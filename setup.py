@@ -8,7 +8,7 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 twisted_deps = ['twisted']
-
+scapy_deps = ['scapy>=2.2.0']
 setup(
     name = 'voltha',
     version = '0.0.1',
@@ -26,7 +26,9 @@ setup(
         'Programming Language :: Python',
         'License :: OSI Approved :: Apache License 2.0',
     ],
-    install_requires=['siz>1.7.2'],
+    install_requires=[
+        'six>1.7.2',
+    ],
     extras_require={
         'twisted': twisted_deps,
         'all' : twisted_deps
