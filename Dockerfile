@@ -5,7 +5,8 @@ RUN apk add --update python py-pip
 
 # Install app dependencies
 RUN apk add build-base gcc abuild binutils python-dev && \
-    pip install scapy twisted
+    pip install scapy twisted && \
+    apk del --purge build-base gcc abuild binutils python-dev
 
 # Bundle app source
 COPY voltha /voltha
@@ -13,4 +14,3 @@ COPY voltha /voltha
 # Exposing process and default entry point
 # EXPOSE 8000
 CMD ["python", "voltha/voltha.py"]
-
