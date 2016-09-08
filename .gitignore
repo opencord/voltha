@@ -7,3 +7,9 @@
 # PyCharm
 .idea
 
+# Vagrant
+.vagrant
+
+# Ansible
+ansible/*.retry
+

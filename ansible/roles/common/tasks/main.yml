@@ -1,0 +1,40 @@
+- name: JQ is present
+  apt:
+    name: jq
+    force: yes
+  tags: [common]
+
+- name: Host is present
+  lineinfile:
+    dest: /etc/hosts
+    regexp: "^{{ item.host_ip }}"
+    line: "{{ item.host_ip }} {{ item.host_name }}"
+  with_items: hosts
+  tags: [common]
+
+- name: Latest apt packages
+  apt:
+    name: "{{ item }}"
+  with_items: use_latest_for
+  tags: [common]
+
+- name: Services are not running
+  service:
+    name: "{{ item }}"
+    state: stopped
+  ignore_errors: yes
+  with_items: obsolete_services
+  tags: [common]
+
+- name: Ensure known_hosts file is absent
+  file:
+    path: "{{ ansible_env['PWD'] }}/.ssh/known_hosts"
+    state: absent
+
+- name: Disable Known Host Checking
+  copy:
+    src: files/ssh_config
+    dest: "{{ ansible_env['PWD'] }}/.ssh/config"
+    owner: "{{ ansible_env['SUDO_USER'] }}"
+    group: "{{ ansible_env['SUDO_USER'] }}"
+    mode: 0600
