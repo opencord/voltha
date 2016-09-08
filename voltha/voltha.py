@@ -23,11 +23,13 @@ import argparse
 
 def main():
     if (args.verbose):
-        vType = 'verbose'
+        vType = '*verbose*'
+        vHint = ''
     else:
-        vType = 'regular'
+        vType = '*regular*'
+        vHint = '(hint: try --verbose)'
         
-    print 'Hello, I am {} VOLTHA'.format(vType)
+    print 'Hello, I am {} VOLTHA {}'.format(vType, vHint)
     print ' _    ______  __  ________  _____ '
     print '| |  / / __ \/ / /_  __/ / / /   |'
     print '| | / / / / / /   / / / /_/ / /| |'
