@@ -45,8 +45,6 @@ ext {
     // using the -PdeployConfig=<file-path> syntax.
     deployConfig = project.hasProperty('deployConfig') ? project.getProperty('deployConfig') : './config/default.yml'
 
-    dockerPath = project.hasProperty('dockerPath') ? project.getProperty('dockerPath') : '/usr/bin'
-
 }
 
 // ~~~~~~~~~~~~~~~~~~~ Global tasks ~~~~~~~~~~~~~~~~~~~~~~~
@@ -59,19 +57,19 @@ task fetch {
 // To be used to generate all needed binaries that need to be present on the target
 // as docker images in the local docker runner.
 task buildImages(type: Exec) {
-    commandLine "$dockerPath/docker", 'build', '-t', 'cord/voltha', '-f', 'Dockerfile', '.'
+    commandLine "docker", 'build', '-t', 'cord/voltha', '-f', 'Dockerfile', '.'
 }
 
 task tagImage(type: Exec) {
    dependsOn buildImages
-   commandLine "$dockerPath/docker", 'tag', 'cord/voltha', "$targetReg/cord/voltha:$targetTag"
+   commandLine "docker", 'tag', 'cord/voltha', "$targetReg/cord/voltha:$targetTag"
 }
 
 // Publish image(s) built during the build step into targetReg registry using the targetTag
 // tag. See maas subproject for examples on how to do this.
 task publishImages(type: Exec) {
     dependsOn tagImage
-    commandLine "$dockerPath/docker", 'push', "$targetReg/cord/voltha:$targetTag"
+    commandLine "docker", 'push', "$targetReg/cord/voltha:$targetTag"
 }
 
 task publish {
