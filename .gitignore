@@ -1,7 +1,16 @@
 # Gradle
 .gradle
+buildSrc/build
 
 # Python
 */*.pyc
 
+# PyCharm
+.idea
+
+# Vagrant
+.vagrant
+
+# Ansible
+ansible/*.retry
 

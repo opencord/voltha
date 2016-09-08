@@ -1,0 +1,11 @@
+hosts: [
+  { host_ip: "10.100.198.220", host_name: "voltha"},
+]
+
+use_latest_for:
+  - debian-keyring
+  - debian-archive-keyring
+
+obsolete_services:
+  - puppet
+  - chef-client
