@@ -5,6 +5,9 @@ hosts: [
 use_latest_for:
   - debian-keyring
   - debian-archive-keyring
+  - python-dev
+  - libssl-dev
+  - python-virtualenv
 
 obsolete_services:
   - puppet
