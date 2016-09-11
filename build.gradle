@@ -57,7 +57,7 @@ task fetch {
 // To be used to generate all needed binaries that need to be present on the target
 // as docker images in the local docker runner.
 task buildImages(type: Exec) {
-    commandLine "docker", 'build', '-t', 'cord/voltha', '-f', 'Dockerfile', '.'
+    commandLine "make"
 }
 
 task tagImage(type: Exec) {
