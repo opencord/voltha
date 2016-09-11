@@ -16,7 +16,7 @@
 
 VENVDIR := venv
 
-.PHONY: venv
+.PHONY:
 
 default: build
 
@@ -27,18 +27,36 @@ help:
 	@echo "build        : Build the Voltha docker image (default target)"
 	@echo "fetch        : Pre-fetch artifacts for subsequent local builds"
 	@echo "help         : Print this help"
-	@echo "venv         : Rebuild local Python virtualenv from scratch"
+	@echo "rebuild-venv : Rebuild local Python virtualenv from scratch"
+	@echo "venv         : Build local Python virtualenv if did not exist yet"
+	@echo "utest        : Run all unit tests"
 	@echo
 
-venv:
+build: fetch utest
+	docker build -t cord/voltha -f Dockerfile .
+
+fetch:
+	# noop
+
+purge-venv:
 	rm -fr ${VENVDIR}
-	@virtualenv ${VENVDIR}
-	@. ${VENVDIR}/bin/activate && \
+
+rebuild-venv: purge-venv venv
+
+venv: ${VENVDIR}/.built
+
+${VENVDIR}/.built:
+	@ virtualenv ${VENVDIR}
+	@ . ${VENVDIR}/bin/activate && \
 	    if ! pip install -r requirements.txt; \
 	    then \
 	        echo "On MAC OS X, if the installation failed with an error \n'<openssl/opensslv.h>': file not found,"; \
 	        echo "see the BUILD.md file for a workaround"; \
+	    else \
+	        touch ${VENVDIR}/.built; \
 	    fi
 
-
-
+utest: venv
+	@ echo "Executing all unit tests"
+	. ${VENVDIR}/bin/activate && \
+	    nosetests tests
