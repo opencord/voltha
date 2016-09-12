@@ -32,7 +32,9 @@ def parse_args():
     parser.add_argument('--no-banner', dest='no_banner', action='store_true', default=False,
                         help='omit startup banner log lines')
     parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', default=False,
-                        help='verbose print out')
+                        help='enable verbose logging')
+    parser.add_argument('-q', '--quiet', dest='quiet', action='store_true', default=False,
+                        help="suppress debug and info logs")
 
     return parser.parse_args()
 
@@ -48,7 +50,7 @@ def setup_logging(args):
     # Configure standard logging
     DATEFMT = '%Y-%m-%dT%H:%M:%S'
     FORMAT = '%(asctime)-15s.%(msecs)03d %(levelname)-8s %(msg)s'
-    level = logging.DEBUG if args.verbose else logging.INFO
+    level = logging.DEBUG if args.verbose else (logging.WARN if args.quiet else logging.INFO)
     logging.basicConfig(stream=sys.stdout, level=level, format=FORMAT, datefmt=DATEFMT)
 
     # Hook up structlog to standard logging
@@ -72,6 +74,7 @@ def print_banner(args, log):
     log.info('| | / / / / / /   / / / /_/ / /| |')
     log.info('| |/ / /_/ / /___/ / / __  / ___ |')
     log.info('|___/\____/_____/_/ /_/ /_/_/  |_|')
+    log.info('(to stop: press Ctrl-C)')
 
 
 def cleanup(log):
