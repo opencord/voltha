@@ -25,6 +25,7 @@ help:
 	@echo "where available targets are:"
 	@echo
 	@echo "build        : Build the Voltha docker image (default target)"
+	@echo "clean        : Remove files created by the build and tests"
 	@echo "fetch        : Pre-fetch artifacts for subsequent local builds"
 	@echo "help         : Print this help"
 	@echo "rebuild-venv : Rebuild local Python virtualenv from scratch"
@@ -35,8 +36,12 @@ help:
 build: fetch utest
 	docker build -t cord/voltha -f Dockerfile .
 
+clean:
+	find voltha -name '*.pyc' | xargs rm -f
+
 fetch:
-	# noop
+	docker pull consul
+	docker pull fluent/fluentd
 
 purge-venv:
 	rm -fr ${VENVDIR}

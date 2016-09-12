@@ -36,4 +36,4 @@ COPY voltha /voltha
 
 # Exposing process and default entry point
 # EXPOSE 8000
-CMD ["python", "voltha/voltha.py"]
+CMD ["python", "voltha/main.py"]

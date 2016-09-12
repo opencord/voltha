@@ -50,8 +50,8 @@ ext {
 // ~~~~~~~~~~~~~~~~~~~ Global tasks ~~~~~~~~~~~~~~~~~~~~~~~
 
 // To be used to fetch upstream binaries, clone repos, etc.
-task fetch {
-    // ...
+task fetch(type: Exec) {
+    commandLine "make", "fetch"
 }
 
 // To be used to generate all needed binaries that need to be present on the target
