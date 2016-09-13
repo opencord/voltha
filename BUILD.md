@@ -66,7 +66,7 @@ Potential issues and workaround:
 1. Missing virtualenv binary. Resolution: install virtualenv.
 
    ```
-   brew install pyenv-virtualenv
+   brew install python pip virtualenv
    ```
 
 1. 'make venv' exits with error 'openssl/opensslv.h': file not found.

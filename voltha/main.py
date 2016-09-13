@@ -15,20 +15,17 @@
 # limitations under the License.
 #
 
-""" virtual OLT Hardware Abstraction """
+"""Virtual OLT Hardware Abstraction main entry point"""
 
 import argparse
-import logging
-import sys
-import structlog
+
+from structlog_setup import setup_logging, DEFAULT_FLUENT_SERVER
 
 
 def parse_args():
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-i', '--interface', dest='interface', action='store', default='eth0',
-                        help='ETH interface to send (default: eth0)')
     parser.add_argument('--no-banner', dest='no_banner', action='store_true', default=False,
                         help='omit startup banner log lines')
     parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', default=False,
@@ -36,36 +33,18 @@ def parse_args():
     parser.add_argument('-q', '--quiet', dest='quiet', action='store_true', default=False,
                         help="suppress debug and info logs")
 
+    # fluentd logging related options
+    parser.add_argument('--enable-fluent', dest='enable_fluent', action='store_true', default=False,
+                        help='enable log stream emission to fluent(d) agent')
+    parser.add_argument('--fluent-server', dest='fluent_server', action='store', default=DEFAULT_FLUENT_SERVER,
+                        # variable='<fluent-host>:<fluent-port>',
+                        help="<fluent-host>:<fluent-port>: host name (or ip address) and tcp port of fluent agent")
+
+    # placeholder
+    parser.add_argument('-i', '--interface', dest='interface', action='store', default='eth0',
+                        help='ETH interface to send (default: eth0)')
+
     return parser.parse_args()
-
-
-def setup_logging(args):
-    """
-    Set up logging such that:
-    - The primary logging entry method is structlog (see http://structlog.readthedocs.io/en/stable/index.html)
-    - By default, the logging backend is Python standard lib logger
-    - In the future, fluentd or other backends will be supported too
-    """
-
-    # Configure standard logging
-    DATEFMT = '%Y-%m-%dT%H:%M:%S'
-    FORMAT = '%(asctime)-15s.%(msecs)03d %(levelname)-8s %(msg)s'
-    level = logging.DEBUG if args.verbose else (logging.WARN if args.quiet else logging.INFO)
-    logging.basicConfig(stream=sys.stdout, level=level, format=FORMAT, datefmt=DATEFMT)
-
-    # Hook up structlog to standard logging
-    processors = [
-        structlog.processors.StackInfoRenderer(),
-        structlog.processors.format_exc_info,
-        structlog.processors.KeyValueRenderer(),  # structlog.processorsJSONRenderer(),
-
-    ]
-    structlog.configure(logger_factory=structlog.stdlib.LoggerFactory(), processors=processors)
-
-    # Mark first line of log
-    log = structlog.get_logger()
-    log.info("first-line")
-    return log
 
 
 def print_banner(args, log):
