@@ -21,8 +21,7 @@ import logging.config
 from collections import OrderedDict
 
 import structlog
-import sys
-import yaml
+from structlog.stdlib import BoundLogger
 
 try:
     from thread import get_ident as _get_ident
@@ -61,44 +60,7 @@ class PlainRenderedOrderedDict(OrderedDict):
             del _repr_running[call_key]
 
 
-def setup_fluent_logging(args):
-    """Setup structlog pipeline and hook it into the fluent sender"""
-
-    # Configure standard logging
-    with open('logging.yaml') as fd:
-        conf = yaml.load(fd)
-    logging.config.dictConfig(conf['logging'])
-
-    processors = [
-        structlog.processors.StackInfoRenderer(),
-        structlog.processors.format_exc_info,
-        FluentRenderer(),
-    ]
-    structlog.configure(logger_factory=structlog.stdlib.LoggerFactory(),
-                        context_class=PlainRenderedOrderedDict,
-                        processors=processors)
-
-
-def setup_standard_logging(args):
-    """Setup structlog pipeline and hook it into the standard logging framework of Python"""
-
-    # Configure standard logging
-    DATEFMT = '%Y%m%dT%H%M%S'
-    FORMAT = '%(asctime)-11s.%(msecs)03d %(levelname)-8s %(msg)s'
-    level = logging.DEBUG if args.verbose else (logging.WARN if args.quiet else logging.INFO)
-    logging.basicConfig(stream=sys.stdout, level=level, format=FORMAT, datefmt=DATEFMT)
-
-    # Hook up structlog to standard logging
-    processors = [
-        structlog.processors.StackInfoRenderer(),
-        structlog.processors.format_exc_info,
-        structlog.processors.KeyValueRenderer(),  # structlog.processorsJSONRenderer(),
-
-    ]
-    structlog.configure(logger_factory=structlog.stdlib.LoggerFactory(), processors=processors)
-
-
-def setup_logging(args):
+def setup_logging(log_config):
     """
     Set up logging such that:
     - The primary logging entry method is structlog (see http://structlog.readthedocs.io/en/stable/index.html)
@@ -107,10 +69,24 @@ def setup_logging(args):
       bridge to a fluent logging agent.
     """
 
-    if args.enable_fluent:
-        setup_fluent_logging(args)
-    else:
-        setup_standard_logging(args)
+    def add_exc_info_flag_for_exception(logger, name, event_dict):
+        if name == 'exception':
+            event_dict['exc_info'] = True
+        return event_dict
+
+    # Configure standard logging
+    logging.config.dictConfig(log_config)
+
+    processors = [
+        add_exc_info_flag_for_exception,
+        structlog.processors.StackInfoRenderer(),
+        structlog.processors.format_exc_info,
+        FluentRenderer(),
+    ]
+    structlog.configure(logger_factory=structlog.stdlib.LoggerFactory(),
+                        context_class=PlainRenderedOrderedDict,
+                        wrapper_class=BoundLogger,
+                        processors=processors)
 
     # Mark first line of log
     log = structlog.get_logger()

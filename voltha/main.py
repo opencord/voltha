@@ -18,6 +18,9 @@
 """Virtual OLT Hardware Abstraction main entry point"""
 
 import argparse
+import os
+
+import yaml
 
 from structlog_setup import setup_logging, DEFAULT_FLUENT_SERVER
 
@@ -26,25 +29,32 @@ def parse_args():
 
     parser = argparse.ArgumentParser()
 
+    # generic parameters
     parser.add_argument('--no-banner', dest='no_banner', action='store_true', default=False,
                         help='omit startup banner log lines')
     parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', default=False,
                         help='enable verbose logging')
     parser.add_argument('-q', '--quiet', dest='quiet', action='store_true', default=False,
                         help="suppress debug and info logs")
-
-    # fluentd logging related options
-    parser.add_argument('--enable-fluent', dest='enable_fluent', action='store_true', default=False,
-                        help='enable log stream emission to fluent(d) agent')
-    parser.add_argument('--fluent-server', dest='fluent_server', action='store', default=DEFAULT_FLUENT_SERVER,
-                        # variable='<fluent-host>:<fluent-port>',
-                        help="<fluent-host>:<fluent-port>: host name (or ip address) and tcp port of fluent agent")
+    parser.add_argument('-c', '--config', dest='config', action='store', default='./voltha.yml',
+                        help='Path to voltha.yml config file. If relative, it is relative to main.py of voltha')
 
     # placeholder
     parser.add_argument('-i', '--interface', dest='interface', action='store', default='eth0',
                         help='ETH interface to send (default: eth0)')
 
     return parser.parse_args()
+
+
+def load_config(args):
+    path = args.config
+    if path.startswith('.'):
+        dir = os.path.dirname(os.path.abspath(__file__))
+        path = os.path.join(dir, path)
+    path = os.path.abspath(path)
+    with open(path) as fd:
+        config = yaml.load(fd)
+    return config
 
 
 def print_banner(args, log):
@@ -70,7 +80,8 @@ def start_reactor(args, log):
 
 def main():
     args = parse_args()
-    log = setup_logging(args)
+    config = load_config(args)
+    log = setup_logging(config.get('logging', {}))
     if not args.no_banner:
         print_banner(args, log)
     start_reactor(args, log)  # will not return except Keyboard interrupt
