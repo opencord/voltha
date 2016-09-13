@@ -17,59 +17,65 @@
 """Setting up proper logging for Voltha"""
 
 import logging
+import logging.config
+from collections import OrderedDict
+
 import structlog
 import sys
+import yaml
 
-from fluent import sender
-from structlog import _frames
+try:
+    from thread import get_ident as _get_ident
+except ImportError:
+    from dummy_thread import get_ident as _get_ident
 
 
 DEFAULT_FLUENT_SERVER = 'localhost:24224'
 
 
-'''
-class FluentLoggerFactory(object):
-
-    def __init__(self, tag, server=DEFAULT_FLUENT_SERVER, additional_ignores=None):
-        self.host = server.split(':')[0]
-        self.port = int(server.split(':')[1])
-        self.emitter = sender.FluentSender(tag=tag, host=self.host, port=self.port)
-        self._ignore = additional_ignores
-
-    def __call__(self, name=None):
-        if name is not None:
-            return logging.getLogger(name)
-        else:
-            _, name = _frames._find_first_app_frame_and_name(self._ignore)
-            return logging.getLogger(name)
-'''
-
-
 class FluentRenderer(object):
     def __call__(self, logger, name, event_dict):
-        args = ()
-        kwargs = event_dict
+        # in order to keep structured log data in event_dict to be forwarded as
+        # is to the fluent logger, we need to pass it into the logger framework
+        # as the first positional argument.
+        args = (event_dict, )
+        kwargs = {}
         return args, kwargs
+
+
+class PlainRenderedOrderedDict(OrderedDict):
+    """Our special version of OrderedDict that renders into string as a dict,
+       to make the log stream output cleaner.
+    """
+    def __repr__(self, _repr_running={}):
+        'od.__repr__() <==> repr(od)'
+        call_key = id(self), _get_ident()
+        if call_key in _repr_running:
+            return '...'
+        _repr_running[call_key] = 1
+        try:
+            if not self:
+                return '{}'
+            return '{%s}' % ", ".join("%s: %s" % (k, v) for k, v in self.items())
+        finally:
+            del _repr_running[call_key]
 
 
 def setup_fluent_logging(args):
     """Setup structlog pipeline and hook it into the fluent sender"""
 
     # Configure standard logging
-    DATEFMT = '%Y%m%dT%H%M%S'
-    FORMAT = '%(asctime)-11s.%(msecs)03d %(levelname)-8s %(msg)s'
-    level = logging.DEBUG if args.verbose else (logging.WARN if args.quiet else logging.INFO)
-    logging.basicConfig(stream=sys.stdout, level=level, format=FORMAT, datefmt=DATEFMT)
+    with open('logging.yaml') as fd:
+        conf = yaml.load(fd)
+    logging.config.dictConfig(conf['logging'])
 
     processors = [
         structlog.processors.StackInfoRenderer(),
         structlog.processors.format_exc_info,
-        FluentRenderer()
-        #structlog.processors.KeyValueRenderer(),  # structlog.processorsJSONRenderer(),
+        FluentRenderer(),
     ]
-    # structlog.configure(logger_factory=FluentLoggerFactory(args.fluent_server),
-    #                     processors=processors)
     structlog.configure(logger_factory=structlog.stdlib.LoggerFactory(),
+                        context_class=PlainRenderedOrderedDict,
                         processors=processors)
 
 
