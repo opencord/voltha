@@ -28,7 +28,7 @@ from coordinator import Coordinator
 
 defs = dict(
     consul=os.environ.get('CONSUL', 'localhost:8500'),
-    instance_id=os.environ.get('INSTANCE_ID', '1'),
+    instance_id=os.environ.get('INSTANCE_ID', os.environ.get('HOSTNAME', '1')),
     config=os.environ.get('CONFIG', './voltha.yml'),
     interface=os.environ.get('INTERFACE', 'eth0'),
     internal_host_address=os.environ.get('INTERNAL_HOST_ADDRESS', 'localhost'),
