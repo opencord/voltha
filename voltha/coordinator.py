@@ -16,6 +16,13 @@
 
 """ Consul-based coordinator services """
 
+# TODO move this to the consul.twisted async client once it is available.
+# Note:
+# We use https://github.com/cablehead/python-consul for consul client. It's master
+# branch already provides support for Twisted, but the latest released version (0.6.1)
+# was cut before twisted support was added. So keep an eye on when 0.6.2 comes out and
+# move over to the twisted interface once it's available.
+
 from consul import Consul, ConsulException
 from requests import ConnectionError
 from structlog import get_logger
@@ -30,12 +37,18 @@ class Coordinator(object):
     CONNECT_RETRY_INTERVAL_SEC = 1
     RETRY_BACKOFF = [0.05, 0.1, 0.2, 0.5, 1, 2, 5]
 
-    def __init__(self, internal_host_address, external_host_address, instance_id, consul='localhost:8500'):
+    def __init__(self,
+                 internal_host_address,
+                 external_host_address,
+                 instance_id,
+                 rest_port,
+                 consul='localhost:8500'):
 
         self.retries = 0
         self.instance_id = instance_id
         self.internal_host_address = internal_host_address
         self.external_host_address = external_host_address
+        self.rest_port = rest_port
 
         self.log = get_logger()
         self.log.info('initializing-coordinator')
@@ -94,6 +107,7 @@ class Coordinator(object):
                 kw = dict(
                     name='voltha-%s' % self.instance_id,
                     address=self.internal_host_address,
+                    port=self.rest_port
                 )
                 self.consul.agent.service.register(**kw)
                 self.log.info('registered-with-consul', **kw)

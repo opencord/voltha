@@ -24,17 +24,18 @@ import yaml
 
 from structlog_setup import setup_logging
 from coordinator import Coordinator
-from northbound.rest.healt_check import init_site
-
+from northbound.rest.health_check import init_rest_service
+from nethelpers import get_my_primary_interface, get_my_primary_local_ipv4
 
 defs = dict(
     consul=os.environ.get('CONSUL', 'localhost:8500'),
     instance_id=os.environ.get('INSTANCE_ID', os.environ.get('HOSTNAME', '1')),
     config=os.environ.get('CONFIG', './voltha.yml'),
-    interface=os.environ.get('INTERFACE', 'eth0'),
-    internal_host_address=os.environ.get('INTERNAL_HOST_ADDRESS', 'localhost'),
-    external_host_address=os.environ.get('EXTERNAL_HOST_ADDRESS', 'localhost'),
-    fluentd=os.environ.get('FLUENTD', None)
+    interface=os.environ.get('INTERFACE', get_my_primary_interface()),
+    internal_host_address=os.environ.get('INTERNAL_HOST_ADDRESS', get_my_primary_local_ipv4()),
+    external_host_address=os.environ.get('EXTERNAL_HOST_ADDRESS', get_my_primary_local_ipv4()),
+    fluentd=os.environ.get('FLUENTD', None),
+    rest_port=os.environ.get('REST_PORT', 8880),
 )
 
 
@@ -82,6 +83,10 @@ def parse_args():
     parser.add_argument('-N', '--no-heartbeat', dest='no_heartbeat', action='store_true', default=False,
                         help='do not emit periodic heartbeat log messages')
 
+    parser.add_argument('-R', '--rest-port', dest='rest_port', action='store', type=int,
+                        default=defs['rest_port'],
+                        help='port number for the rest service (default: %d)' % defs['rest_port'])
+
     parser.add_argument('-q', '--quiet', dest='quiet', action='store_true', default=False,
                         help="suppress debug and info logs")
 
@@ -116,9 +121,10 @@ def startup(log, args, config):
     coordinator = Coordinator(
         internal_host_address=args.internal_host_address,
         external_host_address=args.external_host_address,
+        rest_port=args.rest_port,
         instance_id=args.instance_id,
         consul=args.consul)
-    init_site()
+    init_rest_service(args.rest_port)
     log.info('started-internal-services')
 
 
