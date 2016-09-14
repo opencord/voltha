@@ -29,9 +29,6 @@ except ImportError:
     from dummy_thread import get_ident as _get_ident
 
 
-DEFAULT_FLUENT_SERVER = 'localhost:24224'
-
-
 class FluentRenderer(object):
     def __call__(self, logger, name, event_dict):
         # in order to keep structured log data in event_dict to be forwarded as
