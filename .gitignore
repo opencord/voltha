@@ -3,7 +3,7 @@
 buildSrc/build
 
 # Python
-*/*.pyc
+*.pyc
 
 # PyCharm
 .idea
