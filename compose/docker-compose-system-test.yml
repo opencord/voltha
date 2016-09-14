@@ -1,0 +1,57 @@
+version: '2'
+services:
+  #
+  # Single-node consul agent
+  #
+  consul:
+    image: consul:latest
+    command: agent -server -bootstrap -client 0.0.0.0 -ui
+    ports:
+    - "8300:8300"
+    - "8400:8400"
+    - "8500:8500"
+    - "8600:53/udp"
+  #
+  # Registrator
+  #
+  registrator:
+    image: gliderlabs/registrator:latest
+    command: -ip=10.0.2.15 -retry-attempts 100 consul://consul:8500
+    links:
+    - consul
+    volumes:
+    - "/var/run/docker.sock:/tmp/docker.sock"
+  #
+  # Fluentd log server
+  #
+  fluentd:
+    image: fluent/fluentd
+    ports:
+    - "24224:24224"
+    volumes:
+    - "/tmp/fluentd:/fluentd/log"
+  #
+  # Single-node voltha
+  #
+  voltha:
+    image: cord/voltha
+    command: /voltha/main.py -v --consul=consul:8500 --fluentd=fluentd:24224
+    depends_on:
+    - consul
+    links:
+    - consul
+    - fluentd
+  #
+  # Test container to see services available
+  #
+  test:
+    image: busybox
+    command: tail -F /dev/null
+    depends_on:
+    - consul
+    - voltha
+    links:
+    - consul
+    - registrator
+    - fluentd
+    - voltha

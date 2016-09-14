@@ -40,8 +40,9 @@ clean:
 	find voltha -name '*.pyc' | xargs rm -f
 
 fetch:
-	docker pull consul
-	docker pull fluent/fluentd
+	docker pull consul:latest
+	docker pull fluent/fluentd:latest
+	docker pull gliderlabs/registrator:latest
 
 purge-venv:
 	rm -fr ${VENVDIR}

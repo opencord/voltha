@@ -9,6 +9,7 @@ use_latest_for:
   - libssl-dev
   - libffi-dev
   - python-virtualenv
+  - jq
 
 obsolete_services:
   - puppet

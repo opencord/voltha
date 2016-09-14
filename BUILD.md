@@ -11,6 +11,8 @@ There are many ways to build and develop Voltha:
 
 * Git client
 * Working installation of Vagrant
+* jq -- a useful command line too to work with JSON data. On the MAC, you can install jq with ```brew install jq```; on Ubuntu you can do it with ```sudo apt-get install jq```. You will not regret it.
+
 
 ### Build
 
@@ -23,19 +25,71 @@ cd /voltha
 make
 ```
 
-The above has generated a new Docker image '''cord/voltha''' inside the VM:
+The above has generated a new Docker image '''cord/voltha''' inside the VM. To see it, run:
 
 ```
 docker images
 ```
 
-### Run in stand-alone (solo) mode
+### Run in stand-alone mode
 
 The simplest way to run the image (in the foreground):
 
 ```
 docker run -ti cord/voltha
 ```
+
+Unless you happen to have a consul agent running on your local system, you shall see that voltha is trying to connect to a consul agent, without success.
+
+To bring up a consul agent, you can use docker-compose with the provided compose file:
+
+```
+docker-compose -f compose/docker-compose-system-test.yml up -d consul
+```
+
+This should have started a consul docker container:
+
+```
+docker-compose -f compose/docker-compose-system-test.yml ps
+```
+
+The above should list the consul conatiner.
+
+To verify that consul is indeed up, you can point your web browser to [http://localhost:8500/ui](http://localhost:8500/ui).
+Alternatively, you can use curl to access consul's REST API. For example:
+
+```
+curl -s http://localhost:8500/v1/status/leader | jq -r .
+```
+
+This should print the IP address (on the docker network) and port number of the internal gossip API for our consul instance (you can ignore the actual data).
+
+Once consul is up, you can extract its IP address programmatically by:
+
+```
+CONSUL_IP=`docker inspect compose_consul_1 | \
+    jq -r '.[0].NetworkSettings.Networks.compose_default.IPAddress'`
+```
+
+With the IP address in hand, you can now start Voltha manually as:
+
+```
+docker run -ti --rm --net=compose_default cord/voltha /voltha/main.py --consul=$CONSUL_IP:8500
+```
+
+This time it should successfully connect to consul and actually register itself.
+You should see a log line simialr to the following:
+
+```
+<timestamp> INFO     coordinator.register {name: voltha-1, address: localhost, event: registered-with-consul}
+```
+
+To test Voltha's actual service registration with consul, run this (in another terminal):
+
+```
+curl -s http://localhost:8500/v1/catalog/service/voltha-1 | jq -r .
+```
+
 
 ## Building natively on MAC OS X
 
