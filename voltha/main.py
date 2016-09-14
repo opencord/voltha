@@ -24,6 +24,7 @@ import yaml
 
 from structlog_setup import setup_logging
 from coordinator import Coordinator
+from northbound.rest.healt_check import init_site
 
 
 defs = dict(
@@ -117,6 +118,7 @@ def startup(log, args, config):
         external_host_address=args.external_host_address,
         instance_id=args.instance_id,
         consul=args.consul)
+    init_site()
     log.info('started-internal-services')
 
 
