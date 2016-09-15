@@ -33,6 +33,9 @@ help:
 	@echo "utest        : Run all unit tests"
 	@echo
 
+vagrant:
+	vagrant up
+
 build: fetch utest
 	docker build -t cord/voltha -f Dockerfile .
 
