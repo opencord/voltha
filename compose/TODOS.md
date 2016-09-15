@@ -1,4 +1,4 @@
-= Next Steps Planned
+## Next Steps Planned
 
 - [Z] Adding health-check to voltha (and consul)
 - [Z] Adding membership tracking
@@ -25,12 +25,12 @@
 - Mock adapter
 
 
-= Next hackaton
+## Next hackaton
 
 - [?] Flash out internal APIs
 
 
-= Architectural questions
+## Architectural questions
 
 - Place a set of internal queues between the layers, or just use
   direct Twisted async calls
