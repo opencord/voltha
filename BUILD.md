@@ -10,7 +10,7 @@ There are many ways to build and develop Voltha:
 ### Prerequisites
 
 * Git client
-* Working installation of Vagrant
+* Working installation of Vagrant -- see https://www.vagrantup.com/downloads.html
 * jq -- a useful command line too to work with JSON data. On the MAC, you can install jq with ```brew install jq```; on Ubuntu you can do it with ```sudo apt-get install jq```. You will not regret it.
 
 
