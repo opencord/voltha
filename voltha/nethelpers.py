@@ -26,7 +26,8 @@ import netifaces as ni
 def get_my_primary_interface():
     gateways = ni.gateways()
     assert 'default' in gateways, \
-           "No default gateway on host/container, cannot determine primary interface"
+        ("No default gateway on host/container, "
+         "cannot determine primary interface")
     default_gw_index = gateways['default'].keys()[0]
     # gateways[default_gw_index] has the format (example):
     # [('10.15.32.1', 'en0', True)]
@@ -34,9 +35,9 @@ def get_my_primary_interface():
     return interface_name
 
 
-def get_my_primary_local_ipv4(iface_name=None):
-    iface_name = get_my_primary_interface() if iface_name is None else iface_name
-    addresses = ni.ifaddresses(iface_name)
+def get_my_primary_local_ipv4(ifname=None):
+    ifname = get_my_primary_interface() if ifname is None else ifname
+    addresses = ni.ifaddresses(ifname)
     ipv4 = addresses[AF_INET][0]['addr']
     return ipv4
 

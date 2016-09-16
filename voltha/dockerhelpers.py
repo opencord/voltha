@@ -30,9 +30,10 @@ log = get_logger()
 def get_my_containers_name():
     """
     Return the docker containers name in which this process is running.
-    To look up the container name, we use the container ID extracted from the $HOSTNAME
-    environment variable (which is set by docker conventions).
-    :return: String with the docker container name (or None if any issue is encountered)
+    To look up the container name, we use the container ID extracted from the
+    $HOSTNAME environment variable (which is set by docker conventions).
+    :return: String with the docker container name (or None if any issue is
+             encountered)
     """
     my_container_id = os.environ.get('HOSTNAME', None)
 

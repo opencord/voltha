@@ -52,7 +52,8 @@ class PlainRenderedOrderedDict(OrderedDict):
         try:
             if not self:
                 return '{}'
-            return '{%s}' % ", ".join("%s: %s" % (k, v) for k, v in self.items())
+            return '{%s}' % ", ".join("%s: %s" % (k, v)
+                                      for k, v in self.items())
         finally:
             del _repr_running[call_key]
 
@@ -60,10 +61,11 @@ class PlainRenderedOrderedDict(OrderedDict):
 def setup_logging(log_config, instance_id, fluentd=None):
     """
     Set up logging such that:
-    - The primary logging entry method is structlog (see http://structlog.readthedocs.io/en/stable/index.html)
+    - The primary logging entry method is structlog
+      (see http://structlog.readthedocs.io/en/stable/index.html)
     - By default, the logging backend is Python standard lib logger
-    - Alternatively, fluentd can be configured with to be the backend, providing direct
-      bridge to a fluent logging agent.
+    - Alternatively, fluentd can be configured with to be the backend,
+      providing direct bridge to a fluent logging agent.
     """
 
     def add_exc_info_flag_for_exception(_, name, event_dict):
@@ -74,7 +76,8 @@ def setup_logging(log_config, instance_id, fluentd=None):
     def add_instance_id(_, __, event_dict):
         event_dict['instance_id'] = instance_id
         return event_dict
-    # if fluentd is specified, we need to override the config data with its host and port info
+    # if fluentd is specified, we need to override the config data with
+    # its host and port info
     if fluentd is not None:
         fluentd_host = fluentd.split(':')[0].strip()
         fluentd_port = int(fluentd.split(':')[1].strip())

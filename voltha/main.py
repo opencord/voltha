@@ -35,8 +35,10 @@ defs = dict(
     instance_id=os.environ.get('INSTANCE_ID', os.environ.get('HOSTNAME', '1')),
     config=os.environ.get('CONFIG', './voltha.yml'),
     interface=os.environ.get('INTERFACE', get_my_primary_interface()),
-    internal_host_address=os.environ.get('INTERNAL_HOST_ADDRESS', get_my_primary_local_ipv4()),
-    external_host_address=os.environ.get('EXTERNAL_HOST_ADDRESS', get_my_primary_local_ipv4()),
+    internal_host_address=os.environ.get('INTERNAL_HOST_ADDRESS',
+                                         get_my_primary_local_ipv4()),
+    external_host_address=os.environ.get('EXTERNAL_HOST_ADDRESS',
+                                         get_my_primary_local_ipv4()),
     fluentd=os.environ.get('FLUENTD', None),
     rest_port=os.environ.get('REST_PORT', 8880),
 )
@@ -46,59 +48,106 @@ def parse_args():
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-c', '--config', dest='config', action='store',
+    _help = ('Path to voltha.yml config file (default: %s). '
+             'If relative, it is relative to main.py of voltha.'
+             % defs['config'])
+    parser.add_argument('-c', '--config',
+                        dest='config',
+                        action='store',
                         default=defs['config'],
-                        help='Path to voltha.yml config file (default: %s). '
-                        'If relative, it is relative to main.py of voltha.' % defs['config'])
+                        help=_help)
 
-    parser.add_argument('-C', '--consul', dest='consul', action='store',
-                        default=defs['consul'],
-                        help='<hostname>:<port> to consul agent (default: %s)' % defs['consul'])
+    _help = '<hostname>:<port> to consul agent (default: %s)' % defs['consul']
+    parser.add_argument(
+        '-C', '--consul', dest='consul', action='store',
+        default=defs['consul'],
+        help=_help)
 
-    parser.add_argument('-E', '--external-host-address', dest='external_host_address', action='store',
+    _help = ('<hostname> or <ip> at which Voltha is reachable from outside '
+             'the cluster (default: %s)' % defs['external_host_address'])
+    parser.add_argument('-E', '--external-host-address',
+                        dest='external_host_address',
+                        action='store',
                         default=defs['external_host_address'],
-                        help='<hostname> or <ip> at which Voltha is reachable from outside the cluster'
-                        '(default: %s)' % defs['external_host_address'])
+                        help=_help)
 
-    parser.add_argument('-F', '--fluentd', dest='fluentd', action='store',
+    _help = ('<hostname>:<port> to fluentd server (default: %s). (If not '
+             'specified (None), the address from the config file is used'
+             % defs['fluentd'])
+    parser.add_argument('-F', '--fluentd',
+                        dest='fluentd',
+                        action='store',
                         default=defs['fluentd'],
-                        help='<hostname>:<port> to fluentd server (default: %s).'
-                             '(If not specified (None), the address from the config file is used'
-                             % defs['fluentd'])
+                        help=_help)
 
-    parser.add_argument('-H', '--internal-host-address', dest='internal_host_address', action='store',
+    _help = ('<hostname> or <ip> at which Voltha is reachable from inside the'
+             'cluster (default: %s)' % defs['internal_host_address'])
+    parser.add_argument('-H', '--internal-host-address',
+                        dest='internal_host_address',
+                        action='store',
                         default=defs['internal_host_address'],
-                        help='<hostname> or <ip> at which Voltha is reachable from inside the cluster'
-                        '(default: %s)' % defs['internal_host_address'])
+                        help=_help)
 
-    parser.add_argument('-i', '--instance-id', dest='instance_id', action='store',
+    _help = ('unique string id of this voltha instance (default: %s)'
+             % defs['interface'])
+    parser.add_argument('-i', '--instance-id',
+                        dest='instance_id',
+                        action='store',
                         default=defs['instance_id'],
-                        help='unique string id of this voltha instance (default: %s)' % defs['interface'])
+                        help=_help)
 
     # TODO placeholder, not used yet
-    parser.add_argument('-I', '--interface', dest='interface', action='store',
+    _help = 'ETH interface to send (default: %s)' % defs['interface']
+    parser.add_argument('-I', '--interface',
+                        dest='interface',
+                        action='store',
                         default=defs['interface'],
-                        help='ETH interface to send (default: %s)' % defs['interface'])
+                        help=_help)
 
-    parser.add_argument('-n', '--no-banner', dest='no_banner', action='store_true', default=False,
-                        help='omit startup banner log lines')
+    _help = 'omit startup banner log lines'
+    parser.add_argument('-n', '--no-banner',
+                        dest='no_banner',
+                        action='store_true',
+                        default=False,
+                        help=_help)
 
-    parser.add_argument('-N', '--no-heartbeat', dest='no_heartbeat', action='store_true', default=False,
-                        help='do not emit periodic heartbeat log messages')
+    _help = 'do not emit periodic heartbeat log messages'
+    parser.add_argument('-N', '--no-heartbeat',
+                        dest='no_heartbeat',
+                        action='store_true',
+                        default=False,
+                        help=_help)
 
-    parser.add_argument('-R', '--rest-port', dest='rest_port', action='store', type=int,
+    _help = ('port number for the rest service (default: %d)'
+             % defs['rest_port'])
+    parser.add_argument('-R', '--rest-port',
+                        dest='rest_port',
+                        action='store',
+                        type=int,
                         default=defs['rest_port'],
-                        help='port number for the rest service (default: %d)' % defs['rest_port'])
+                        help=_help)
 
-    parser.add_argument('-q', '--quiet', dest='quiet', action='store_true', default=False,
-                        help="suppress debug and info logs")
+    _help = "suppress debug and info logs"
+    parser.add_argument('-q', '--quiet',
+                        dest='quiet',
+                        action='store_true',
+                        default=False,
+                        help=_help)
 
-    parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', default=False,
-                        help='enable verbose logging')
+    _help = 'enable verbose logging'
+    parser.add_argument('-v', '--verbose',
+                        dest='verbose',
+                        action='store_true',
+                        default=False,
+                        help=_help)
 
-    parser.add_argument('--instance-id-is-container-name', dest='instance_id_is_container_name', action='store_true',
-                        default=False, help='use docker container name as voltha instance id'
-                        ' (overrides -i/--instance-id option)')
+    _help = ('use docker container name as voltha instance id'
+             ' (overrides -i/--instance-id option)')
+    parser.add_argument('--instance-id-is-container-name',
+                        dest='instance_id_is_container_name',
+                        action='store_true',
+                        default=False,
+                        help=_help)
 
     args = parser.parse_args()
 
@@ -135,7 +184,9 @@ class Main(object):
     def __init__(self):
         self.args = args = parse_args()
         self.config = load_config(args)
-        self.log = setup_logging(self.config.get('logging', {}), args.instance_id, fluentd=args.fluentd)
+        self.log = setup_logging(self.config.get('logging', {}),
+                                 args.instance_id,
+                                 fluentd=args.fluentd)
 
         # components
         self.coordinator = None
@@ -170,8 +221,10 @@ class Main(object):
 
     def start_reactor(self):
         from twisted.internet import reactor
-        reactor.callWhenRunning(lambda: self.log.info('twisted-reactor-started'))
-        reactor.addSystemEventTrigger('before', 'shutdown', self.shutdown_components)
+        reactor.callWhenRunning(
+            lambda: self.log.info('twisted-reactor-started'))
+        reactor.addSystemEventTrigger('before', 'shutdown',
+                                      self.shutdown_components)
         reactor.run()
 
     def start_heartbeat(self):

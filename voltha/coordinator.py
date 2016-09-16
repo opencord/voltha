@@ -18,12 +18,13 @@
 
 # TODO move this to the consul.twisted async client once it is available.
 # Note:
-# We use https://github.com/cablehead/python-consul for consul client. It's master
-# branch already provides support for Twisted, but the latest released version (0.6.1)
-# was cut before twisted support was added. So keep an eye on when 0.6.2 comes out and
-# move over to the twisted interface once it's available.
+# We use https://github.com/cablehead/python-consul for consul client.
+# It's master branch already provides support for Twisted, but the latest
+# released version (0.6.1) was cut before twisted support was added. So keep
+# an eye on when 0.6.2 comes out and move over to the twisted interface once
+# it's available.
 
-from consul import Check, ConsulException
+from consul import ConsulException
 from consul.twisted import Consul
 from requests import ConnectionError
 from structlog import get_logger
@@ -60,7 +61,9 @@ class Coordinator(object):
 
         host = consul.split(':')[0].strip()
         port = int(consul.split(':')[1].strip())
-        self.consul = Consul(host=host, port=port)  # TODO need to handle reconnect events properly
+
+        # TODO need to handle reconnect events properly
+        self.consul = Consul(host=host, port=port)
 
         reactor.callLater(0, self.async_init)
         self.log.info('initialized-coordinator')
@@ -71,20 +74,21 @@ class Coordinator(object):
 
     @inlineCallbacks
     def async_init(self):
-        # yield self.kv_put('voltha/instances/%s/status' % self.instance_id, 'up')
         yield self.create_session()
         yield self.create_membership_record()
         yield self.elect_leader()
 
     def backoff(self, msg):
-        wait_time = self.RETRY_BACKOFF[min(self.retries, len(self.RETRY_BACKOFF) - 1)]
+        wait_time = self.RETRY_BACKOFF[min(self.retries,
+                                           len(self.RETRY_BACKOFF) - 1)]
         self.retries += 1
         self.log.error(msg + ', retrying in %s second(s)' % wait_time)
         return asleep(wait_time)
 
     def clear_backoff(self):
         if self.retries:
-            self.log.info('Reconnected to consul agent after %d retries' % self.retries)
+            self.log.info('Reconnected to consul agent after %d retries'
+                          % self.retries)
             self.retries = 0
 
     @inlineCallbacks
@@ -118,7 +122,8 @@ class Coordinator(object):
         @inlineCallbacks
         def _renew_session():
             try:
-                result = yield self.consul.session.renew(session_id=self.session_id)
+                result = yield self.consul.session.renew(
+                    session_id=self.session_id)
                 self.log.debug('just renewed session', result=result)
             except Exception, e:
                 self.log.exception('could-not-renew-session', e=e)
@@ -127,7 +132,8 @@ class Coordinator(object):
         def _create_session():
 
             # create consul session
-            self.session_id = yield self.consul.session.create(behavior='delete', ttl=10)
+            self.session_id = yield self.consul.session.create(
+                behavior='delete', ttl=10)
             self.log.info('created-consul-session', session_id=self.session_id)
 
             # start renewing session it 3 times within the ttl
@@ -142,21 +148,28 @@ class Coordinator(object):
 
     @inlineCallbacks
     def create_membership_record(self):
-        # create ephemeral k/v registering this instance in the service/voltha/members/<instance-id> node
-        result = yield self.consul.kv.put('service/voltha/members/%s' % self.instance_id, 'alive',
-                                          acquire=self.session_id)
+        # create ephemeral k/v registering this instance in the
+        # service/voltha/members/<instance-id> node
+        result = yield self.consul.kv.put(
+            'service/voltha/members/%s' % self.instance_id, 'alive',
+            acquire=self.session_id)
         assert result is True
 
     @inlineCallbacks
     def elect_leader(self):
-        """Attempt to become the leader by acquiring the leader key and track the leader anyway"""
+        """
+        Attempt to become the leader by acquiring the leader key and
+        track the leader anyway
+        """
 
         # attempt acquire leader lock
-        result = yield self.consul.kv.put('service/voltha/leader', self.instance_id,
+        result = yield self.consul.kv.put('service/voltha/leader',
+                                          self.instance_id,
                                           acquire=self.session_id)
 
-        # read it back before being too happy; seeing our session id is a proof and now we have
-        # the change id that we can use to reliably track any changes
+        # read it back before being too happy; seeing our session id is a
+        # proof and now we have the change id that we can use to reliably
+        # track any changes
 
         # TODO continue from here !!!
         if result is True:
