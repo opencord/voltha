@@ -20,6 +20,8 @@ VENVDIR := venv
 
 .PHONY: $(DIRS) $(DIRS_CLEAN) $(DIRS_FLAKE8) flake8
 
+default: build
+
 ## New directories can be added here
 DIRS:=\
 voltha
@@ -47,8 +49,6 @@ DIRS_FLAKE8 = $(addsuffix .flake8,$(DIRS))
 $(DIRS_FLAKE8):
 	@echo "    FLAKE8 $(basename $@)"
 	$(Q)$(MAKE) -C $(basename $@) flake8
-
-default: build
 
 help:
 	@echo "Usage: make [<target>]"
