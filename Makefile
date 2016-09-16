@@ -14,9 +14,39 @@
 # limitations under the License.
 #
 
+include setup.mk
+
 VENVDIR := venv
 
-.PHONY:
+.PHONY: $(DIRS) $(DIRS_CLEAN) $(DIRS_FLAKE8) flake8
+
+## New directories can be added here
+DIRS:=\
+voltha
+
+## If one directory depends on another directory that
+## dependency can be expressed here
+##
+## For example, if the Tibit directory depended on the eoam
+## directory being built first, then that can be expressed here.
+##  driver/tibit: eoam
+
+# Parallel Build
+$(DIRS):
+	@echo "    MK $@"
+	$(Q)$(MAKE) -C $@
+
+# Parallel Clean
+DIRS_CLEAN = $(addsuffix .clean,$(DIRS))
+$(DIRS_CLEAN):
+	@echo "    CLEAN $(basename $@)"
+	$(Q)$(MAKE) -C $(basename $@) clean
+
+# Parallel Flake8
+DIRS_FLAKE8 = $(addsuffix .flake8,$(DIRS))
+$(DIRS_FLAKE8):
+	@echo "    FLAKE8 $(basename $@)"
+	$(Q)$(MAKE) -C $(basename $@) flake8
 
 default: build
 
@@ -69,3 +99,6 @@ utest: venv
 	@ echo "Executing all unit tests"
 	. ${VENVDIR}/bin/activate && \
 	    nosetests tests
+
+flake8: $(DIRS_FLAKE8)
+	@echo "==$(DIRS_FLAKE8)=="
