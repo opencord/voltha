@@ -10,6 +10,8 @@ use_latest_for:
   - libffi-dev
   - python-virtualenv
   - jq
+  - python-nose
+  - python-flake8
 
 obsolete_services:
   - puppet
