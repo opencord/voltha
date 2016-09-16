@@ -1,6 +1,6 @@
 ## Next Steps Planned
 
-- [Z] Adding health-check to voltha (and consul)
+- [DONE] Adding health-check to voltha (and consul)
 - [Z] Adding membership tracking
 - [Z] Adding leader election
 - [Z] Work out a load sharding mechanism
