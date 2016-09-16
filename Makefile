@@ -57,6 +57,7 @@ help:
 	@echo "build        : Build the Voltha docker image (default target)"
 	@echo "clean        : Remove files created by the build and tests"
 	@echo "fetch        : Pre-fetch artifacts for subsequent local builds"
+	@echo "flake8       : Run specifically flake8 tests"
 	@echo "help         : Print this help"
 	@echo "rebuild-venv : Rebuild local Python virtualenv from scratch"
 	@echo "venv         : Build local Python virtualenv if did not exist yet"
@@ -101,4 +102,3 @@ utest: venv
 	    nosetests tests
 
 flake8: $(DIRS_FLAKE8)
-	@echo "==$(DIRS_FLAKE8)=="
