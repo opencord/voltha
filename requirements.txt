@@ -1,6 +1,7 @@
 argparse==1.2.1
 colorama>=0.2.5
 decorator>=3.4.0
+docker-py
 flake8>=2.5.1
 fluent-logger>=0.4.3
 klein>=15.3.1
@@ -12,7 +13,6 @@ pep8-naming>=0.3.3
 pyflakes>=1.0.0
 pylint>=1.5.2
 pyOpenSSL>=0.13
-python-consul>=0.6.1
 PyYAML>=3.10
 requests
 scapy>=2.3.2
@@ -20,5 +20,10 @@ service-identity
 simplejson>=3.8.1
 six>=1.10.0
 structlog>=16.1.0
+treq>=15.1.0
 Twisted>=13.2.0
 urllib3>=1.7.1
+
+# python-consul>=0.6.1  we need the pre-released version for now, because 0.6.1 does not
+# yet support Twisted. Once this is released, it will be the 0.6.2 version
+git+git://github.com/cablehead/python-consul.git

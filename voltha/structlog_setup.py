@@ -57,7 +57,7 @@ class PlainRenderedOrderedDict(OrderedDict):
             del _repr_running[call_key]
 
 
-def setup_logging(log_config, fluentd=None):
+def setup_logging(log_config, instance_id, fluentd=None):
     """
     Set up logging such that:
     - The primary logging entry method is structlog (see http://structlog.readthedocs.io/en/stable/index.html)
@@ -66,11 +66,14 @@ def setup_logging(log_config, fluentd=None):
       bridge to a fluent logging agent.
     """
 
-    def add_exc_info_flag_for_exception(logger, name, event_dict):
+    def add_exc_info_flag_for_exception(_, name, event_dict):
         if name == 'exception':
             event_dict['exc_info'] = True
         return event_dict
 
+    def add_instance_id(_, __, event_dict):
+        event_dict['instance_id'] = instance_id
+        return event_dict
     # if fluentd is specified, we need to override the config data with its host and port info
     if fluentd is not None:
         fluentd_host = fluentd.split(':')[0].strip()
@@ -90,6 +93,7 @@ def setup_logging(log_config, fluentd=None):
         add_exc_info_flag_for_exception,
         structlog.processors.StackInfoRenderer(),
         structlog.processors.format_exc_info,
+        add_instance_id,
         FluentRenderer(),
     ]
     structlog.configure(logger_factory=structlog.stdlib.LoggerFactory(),

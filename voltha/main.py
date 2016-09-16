@@ -21,11 +21,14 @@ import argparse
 import os
 import time
 import yaml
+from twisted.internet.defer import inlineCallbacks
 
 from structlog_setup import setup_logging
 from coordinator import Coordinator
 from northbound.rest.health_check import init_rest_service
 from nethelpers import get_my_primary_interface, get_my_primary_local_ipv4
+from dockerhelpers import get_my_containers_name
+
 
 defs = dict(
     consul=os.environ.get('CONSUL', 'localhost:8500'),
@@ -93,7 +96,18 @@ def parse_args():
     parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', default=False,
                         help='enable verbose logging')
 
-    return parser.parse_args()
+    parser.add_argument('--instance-id-is-container-name', dest='instance_id_is_container_name', action='store_true',
+                        default=False, help='use docker container name as voltha instance id'
+                        ' (overrides -i/--instance-id option)')
+
+    args = parser.parse_args()
+
+    # post-processing
+
+    if args.instance_id_is_container_name:
+        args.instance_id = get_my_containers_name()
+
+    return args
 
 
 def load_config(args):
@@ -107,7 +121,7 @@ def load_config(args):
     return config
 
 
-def print_banner(args, log):
+def print_banner(log):
     log.info(' _    ______  __  ________  _____ ')
     log.info('| |  / / __ \/ / /_  __/ / / /   |')
     log.info('| | / / / / / /   / / / /_/ / /| |')
@@ -116,61 +130,62 @@ def print_banner(args, log):
     log.info('(to stop: press Ctrl-C)')
 
 
-def startup(log, args, config):
-    log.info('starting-internal-services')
-    coordinator = Coordinator(
-        internal_host_address=args.internal_host_address,
-        external_host_address=args.external_host_address,
-        rest_port=args.rest_port,
-        instance_id=args.instance_id,
-        consul=args.consul)
-    init_rest_service(args.rest_port)
-    log.info('started-internal-services')
+class Main(object):
 
+    def __init__(self):
+        self.args = args = parse_args()
+        self.config = load_config(args)
+        self.log = setup_logging(self.config.get('logging', {}), args.instance_id, fluentd=args.fluentd)
 
-def cleanup(log):
-    """Execute before the reactor is shut down"""
-    log.info('exiting-on-keyboard-interrupt')
+        # components
+        self.coordinator = None
 
+        if not args.no_banner:
+            print_banner(self.log)
 
-def start_reactor(args, log):
-    from twisted.internet import reactor
-    reactor.callWhenRunning(lambda: log.info('twisted-reactor-started'))
-    reactor.addSystemEventTrigger('before', 'shutdown', lambda: cleanup(log))
-    reactor.run()
+        if not args.no_heartbeat:
+            self.start_heartbeat()
 
+        self.startup_components()
 
-def start_heartbeat(log):
+    def start(self):
+        self.start_reactor()  # will not return except Keyboard interrupt
 
-    t0 = time.time()
-    t0s = time.ctime(t0)
+    def startup_components(self):
+        self.log.info('starting-internal-components')
+        self.coordinator = Coordinator(
+            internal_host_address=self.args.internal_host_address,
+            external_host_address=self.args.external_host_address,
+            rest_port=self.args.rest_port,
+            instance_id=self.args.instance_id,
+            consul=self.args.consul)
+        init_rest_service(self.args.rest_port)
+        self.log.info('started-internal-services')
 
-    def heartbeat():
-        log.info(status='up', since=t0s, uptime=time.time() - t0)
+    @inlineCallbacks
+    def shutdown_components(self):
+        """Execute before the reactor is shut down"""
+        self.log.info('exiting-on-keyboard-interrupt')
+        yield self.coordinator.shutdown()
 
-    from twisted.internet.task import LoopingCall
-    lc = LoopingCall(heartbeat)
-    lc.start(10)
+    def start_reactor(self):
+        from twisted.internet import reactor
+        reactor.callWhenRunning(lambda: self.log.info('twisted-reactor-started'))
+        reactor.addSystemEventTrigger('before', 'shutdown', self.shutdown_components)
+        reactor.run()
 
+    def start_heartbeat(self):
 
-def main():
+        t0 = time.time()
+        t0s = time.ctime(t0)
 
-    args = parse_args()
+        def heartbeat():
+            self.log.debug(status='up', since=t0s, uptime=time.time() - t0)
 
-    config = load_config(args)
-
-    log = setup_logging(config.get('logging', {}), fluentd=args.fluentd)
-
-    if not args.no_banner:
-        print_banner(args, log)
-
-    if not args.no_heartbeat:
-        start_heartbeat(log)
-
-    startup(log, args, config)
-
-    start_reactor(args, log)  # will not return except Keyboard interrupt
+        from twisted.internet.task import LoopingCall
+        lc = LoopingCall(heartbeat)
+        lc.start(10)
 
 
 if __name__ == '__main__':
-    main()
+    Main().start()

@@ -27,9 +27,9 @@ RUN apk add --update python py-pip
 COPY requirements.txt /tmp/requirements.txt
 
 # Install app dependencies
-RUN apk add build-base gcc abuild binutils python-dev libffi-dev openssl-dev && \
+RUN apk add build-base gcc abuild binutils python-dev libffi-dev openssl-dev git && \
     pip install -r /tmp/requirements.txt && \
-    apk del --purge build-base gcc abuild binutils python-dev libffi-dev openssl-dev
+    apk del --purge build-base gcc abuild binutils python-dev libffi-dev openssl-dev git
 
 # Bundle app source
 COPY voltha /voltha

@@ -39,3 +39,7 @@ def get_my_primary_local_ipv4(iface_name=None):
     addresses = ni.ifaddresses(iface_name)
     ipv4 = addresses[AF_INET][0]['addr']
     return ipv4
+
+
+if __name__ == '__main__':
+    print get_my_primary_local_ipv4()

@@ -18,6 +18,7 @@
 """ Rest API to check health of Voltha instance """
 
 from klein import Klein
+from structlog import get_logger
 from twisted.internet import endpoints
 from twisted.internet import reactor
 from twisted.web.server import Site
@@ -26,10 +27,12 @@ from twisted.web.server import Site
 class HealthCheck(object):
 
     app = Klein()
+    log = get_logger()
 
     @app.route('/health')
     def health_check(self, request):
         # TODO this is just a placeholder, very crude health check
+        self.log.debug("health-check-received")
         return '{"status": "ok"}'
 
     def get_site(self):
