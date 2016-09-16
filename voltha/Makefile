@@ -21,4 +21,4 @@ include $(VOLTHA_BASE)/setup.mk
 PYTHONFILES:=$(wildcard *.py)
 
 flake8: 
-	$(FLAKE8) --filename $(PYTHONFILES)
+	$(FLAKE8) $(PYTHONFILES)
