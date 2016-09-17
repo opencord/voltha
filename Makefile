@@ -14,6 +14,10 @@
 # limitations under the License.
 #
 
+ifeq ($(VOLTHA_BASE)_set,_set)
+$(error To get started, please source the env.sh file)
+endif
+
 include setup.mk
 
 VENVDIR := venv
@@ -25,7 +29,9 @@ default: build
 ## New directories can be added here
 DIRS:=\
 voltha \
-voltha/northbound/openflow
+voltha/northbound/openflow \
+voltha/northbound/openflow/agent \
+voltha/northbound/openflow/oftest
 
 ## If one directory depends on another directory that
 ## dependency can be expressed here

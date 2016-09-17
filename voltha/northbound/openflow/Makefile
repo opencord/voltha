@@ -14,7 +14,9 @@
 # limitations under the License.
 #
 
-VOLTHA_BASE:=../../../.
+ifeq ($(VOLTHA_BASE)_set,_set)
+$(error If your getting this error, please type ". ./env.sh" at the top directory)
+endif
 
 include $(VOLTHA_BASE)/setup.mk
 

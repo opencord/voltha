@@ -1,4 +1,5 @@
 # sourcing this file is needed to make local development and integration testing work
+export VOLTHA_BASE=$PWD
 
 # load local python virtualenv 
 . venv/bin/activate
