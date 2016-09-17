@@ -10,7 +10,8 @@ from utils import pp
 
 class Agent(object):
 
-    def __init__(self, controller, datapath_id, store, backend, retry_interval=1):
+    def __init__(self, controller, datapath_id,
+                 store, backend, retry_interval=1):
         self.ip = controller.split(':')[0]
         self.port = int(controller.split(':')[1])
         self.datapath_id = datapath_id
@@ -34,8 +35,9 @@ class Agent(object):
             try:
                 soc.connect((self.ip, self.port))
             except socket.error, e:
-                logging.info("Cannot connect to controller (errno=%d), retrying in %s secs" %
-                             (e.errno, self.retry_interval))
+                logging.info(
+                    "Cannot connect to controller (errno=%d), retrying in %s secs" %
+                    (e.errno, self.retry_interval))
             else:
                 logging.info("Connected to controller")
                 soc.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, True)
@@ -45,8 +47,9 @@ class Agent(object):
                 try:
                     self.handle_protocol()
                 except Exception, e:
-                    logging.info("Connection was lost (%s), will retry in %s secs" %
-                                 (e, self.retry_interval))
+                    logging.info(
+                        "Connection was lost (%s), will retry in %s secs" %
+                        (e, self.retry_interval))
             time.sleep(self.retry_interval)
 
     def stop(self):

@@ -55,7 +55,7 @@ $(DIRS_CLEAN):
 DIRS_FLAKE8 = $(addsuffix .flake8,$(DIRS))
 $(DIRS_FLAKE8):
 	@echo "    FLAKE8 $(basename $@)"
-	$(Q)$(MAKE) -C $(basename $@) flake8
+	-$(Q)$(MAKE) -C $(basename $@) flake8
 
 help:
 	@echo "Usage: make [<target>]"

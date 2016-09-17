@@ -1,5 +1,5 @@
 from __future__ import print_function
-from setuptools.command.test import test as TestCommand
+from setuptools.command.test import test as testcommand
 import io
 import os
 import sys
@@ -23,9 +23,9 @@ def read(*filenames, **kwargs):
 long_description = read('README.md', 'CHANGES.md')
 
 
-class PyTest(TestCommand):
+class PyTest(testcommand):
     def finalize_options(self):
-        TestCommand.finalize_options(self)
+        testcommand.finalize_options(self)
         self.test_args = []
         self.test_suite = True
 
