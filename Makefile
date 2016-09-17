@@ -24,7 +24,8 @@ default: build
 
 ## New directories can be added here
 DIRS:=\
-voltha
+voltha \
+voltha/northbound/openflow
 
 ## If one directory depends on another directory that
 ## dependency can be expressed here
