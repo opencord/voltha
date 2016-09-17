@@ -12,6 +12,8 @@ use_latest_for:
   - jq
   - python-nose
   - python-flake8
+  - python-scapy
+  - python-pcapy
 
 obsolete_services:
   - puppet
