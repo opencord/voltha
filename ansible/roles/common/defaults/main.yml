@@ -13,7 +13,7 @@ use_latest_for:
   - python-nose
   - python-flake8
   - python-scapy
-  - python-pcapy
+  - python-libpcap
 
 obsolete_services:
   - puppet
