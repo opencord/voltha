@@ -21,7 +21,7 @@ import logging.config
 from collections import OrderedDict
 
 import structlog
-from structlog.stdlib import BoundLogger
+from structlog.stdlib import BoundLogger, INFO
 
 try:
     from thread import get_ident as _get_ident
@@ -58,7 +58,7 @@ class PlainRenderedOrderedDict(OrderedDict):
             del _repr_running[call_key]
 
 
-def setup_logging(log_config, instance_id, fluentd=None):
+def setup_logging(log_config, instance_id, verbosity_adjust=0, fluentd=None):
     """
     Set up logging such that:
     - The primary logging entry method is structlog
@@ -76,11 +76,13 @@ def setup_logging(log_config, instance_id, fluentd=None):
     def add_instance_id(_, __, event_dict):
         event_dict['instance_id'] = instance_id
         return event_dict
+
     # if fluentd is specified, we need to override the config data with
     # its host and port info
     if fluentd is not None:
         fluentd_host = fluentd.split(':')[0].strip()
         fluentd_port = int(fluentd.split(':')[1].strip())
+
         handlers = log_config.get('handlers', None)
         if isinstance(handlers, dict):
             for _, defs in handlers.iteritems():
@@ -91,6 +93,7 @@ def setup_logging(log_config, instance_id, fluentd=None):
 
     # Configure standard logging
     logging.config.dictConfig(log_config)
+    logging.root.level -= 10 * verbosity_adjust
 
     processors = [
         add_exc_info_flag_for_exception,

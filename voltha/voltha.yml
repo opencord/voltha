@@ -39,5 +39,6 @@ logging:
             propagate: False
         '': # root logger
             handlers: [console, fluent]
-            level: DEBUG
+            level: INFO # this can be bumped up/down by -q and -v command line
+                        # options
             propagate: False

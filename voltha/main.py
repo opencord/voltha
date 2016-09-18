@@ -130,15 +130,13 @@ def parse_args():
     _help = "suppress debug and info logs"
     parser.add_argument('-q', '--quiet',
                         dest='quiet',
-                        action='store_true',
-                        default=False,
+                        action='count',
                         help=_help)
 
     _help = 'enable verbose logging'
     parser.add_argument('-v', '--verbose',
                         dest='verbose',
-                        action='store_true',
-                        default=False,
+                        action='count',
                         help=_help)
 
     _help = ('use docker container name as voltha instance id'
@@ -182,10 +180,14 @@ def print_banner(log):
 class Main(object):
 
     def __init__(self):
+
         self.args = args = parse_args()
         self.config = load_config(args)
+
+        verbosity_adjust = (args.verbose or 0) - (args.quiet or 0)
         self.log = setup_logging(self.config.get('logging', {}),
                                  args.instance_id,
+                                 verbosity_adjust=verbosity_adjust,
                                  fluentd=args.fluentd)
 
         # components
