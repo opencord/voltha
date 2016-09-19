@@ -142,7 +142,8 @@ class Leader(object):
 
         if self.reassignment_soak_timer is not None:
             assert isinstance(self.reassignment_soak_timer, DelayedCall)
-            self.reassignment_soak_timer.cancel()
+            if not self.reassignment_soak_timer.called:
+                self.reassignment_soak_timer.cancel()
 
         self.reassignment_soak_timer = reactor.callLater(
             self.soak_time, self._reassign_work)
