@@ -14,7 +14,11 @@
 # limitations under the License.
 #
 
-#### VERBOSE ####
+##
+## Makefile Setup
+##
+
+## VERBOSE Option 
 # Set V (for VERBOSE) on the comand line (make V=1) to see additional
 # output
 ifeq ("$(origin V)", "command line")
@@ -24,4 +28,5 @@ export Q=@
 export MAKEFLAGS+=--no-print-directory
 endif
 
+## Common commands
 FLAKE8:=flake8
