@@ -21,11 +21,12 @@ from consul.twisted import Consul
 from requests import ConnectionError
 from structlog import get_logger
 from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks, returnValue
+from twisted.internet.defer import inlineCallbacks, returnValue, Deferred
 from twisted.internet.task import LoopingCall
 
 from asleep import asleep
 from leader import Leader
+from worker import Worker
 
 
 class StaleMembershipEntryException(Exception):
@@ -48,7 +49,10 @@ class Coordinator(object):
     CONNECT_RETRY_INTERVAL_SEC = 1
     RETRY_BACKOFF = [0.05, 0.1, 0.2, 0.5, 1, 2, 5]
     LEADER_KEY = 'service/voltha/leader'
+
     MEMBERSHIP_PREFIX = 'service/voltha/members/'
+    ASSIGNMENT_PREFIX = 'service/voltha/assignments/'
+    WORKLOAD_PREFIX = 'service/voltha/work/'
 
     # Public methods:
 
@@ -73,6 +77,8 @@ class Coordinator(object):
         self.shutting_down = False
         self.leader = None
 
+        self.worker = Worker(self.instance_id, self)
+
         self.log = get_logger()
         self.log.info('initializing-coordinator')
 
@@ -85,13 +91,30 @@ class Coordinator(object):
         reactor.callLater(0, self._async_init)
         self.log.info('initialized-coordinator')
 
+        self.wait_for_leader_deferreds = []
+
     @inlineCallbacks
     def shutdown(self):
         self.shutting_down = True
         yield self._delete_session()  # this will delete the leader lock too
+        yield self.worker.halt()
         if self.leader is not None:
             yield self.leader.halt()
             self.leader = None
+
+    def wait_for_a_leader(self):
+        """
+        Async wait till a leader is detected/elected. The deferred will be
+        called with the leader's instance_id
+        :return: Deferred.
+        """
+        d = Deferred()
+        if self.leader_id is not None:
+            d.callback(self.leader_id)
+            return d
+        else:
+            self.wait_for_leader_deferreds.append(d)
+            return d
 
     # Proxy methods for consul with retry support
 
@@ -111,6 +134,7 @@ class Coordinator(object):
         yield self._create_session()
         yield self._create_membership_record()
         yield self._start_leader_tracking()
+        yield self.worker.start()
 
     def _backoff(self, msg):
         wait_time = self.RETRY_BACKOFF[min(self.retries,
@@ -179,14 +203,15 @@ class Coordinator(object):
                                index=index, record=record)
                 if record is None or record['Session'] != self.session_id:
                     self.log.debug('remaking-membership-record')
-                    yield self._do_create_membership_record()
+                    yield self._retry(self._do_create_membership_record)
 
         except Exception, e:
             self.log.exception('unexpected-error-leader-trackin', e=e)
 
         finally:
-            # no matter what, the loop need to continue (after a short delay)
-            reactor.callLater(0.1, self._maintain_membership_record)
+            # except in shutdown, the loop must continue (after a short delay)
+            if not self.shutting_down:
+                reactor.callLater(0.1, self._maintain_membership_record)
 
     def _start_leader_tracking(self):
         reactor.callLater(0, self._leadership_tracking_loop)
@@ -248,15 +273,16 @@ class Coordinator(object):
             self.log.exception('unexpected-error-leader-trackin', e=e)
 
         finally:
-            # no matter what, the loop need to continue (after a short delay)
-            reactor.callLater(1, self._leadership_tracking_loop)
+            # except in shutdown, the loop must continue (after a short delay)
+            if not self.shutting_down:
+                reactor.callLater(1, self._leadership_tracking_loop)
 
     @inlineCallbacks
     def _assert_leadership(self):
         """(Re-)assert leadership"""
         if not self.i_am_leader:
             self.i_am_leader = True
-            self.leader_id = self.instance_id
+            self._set_leader_id(self.instance_id)
             yield self._just_gained_leadership()
 
     @inlineCallbacks
@@ -264,11 +290,18 @@ class Coordinator(object):
         """(Re-)assert non-leader role"""
 
         # update leader_id anyway
-        self.leader_id = leader_id
+        self._set_leader_id(leader_id)
 
         if self.i_am_leader:
             self.i_am_leader = False
             yield self._just_lost_leadership()
+
+    def _set_leader_id(self, leader_id):
+        self.leader_id = leader_id
+        deferreds, self.wait_for_leader_deferreds = \
+            self.wait_for_leader_deferreds, []
+        for d in deferreds:
+            d.callback(leader_id)
 
     def _just_gained_leadership(self):
         self.log.info('became-leader')
@@ -291,13 +324,14 @@ class Coordinator(object):
                 result = yield func(*args, **kw)
                 break
             except ConsulException, e:
-                yield self._backoff('consul-not-upC')
+                yield self._backoff('consul-not-up')
             except ConnectionError, e:
                 yield self._backoff('cannot-connect-to-consul')
             except StaleMembershipEntryException, e:
                 yield self._backoff('stale-membership-record-in-the-way')
             except Exception, e:
-                self.log.exception(e)
+                if not self.shutting_down:
+                    self.log.exception(e)
                 yield self._backoff('unknown-error')
 
         returnValue(result)

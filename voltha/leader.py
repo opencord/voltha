@@ -14,6 +14,8 @@
 # limitations under the License.
 #
 
+import re
+from hash_ring import HashRing
 from structlog import get_logger
 from twisted.internet import reactor
 from twisted.internet.base import DelayedCall
@@ -30,21 +32,31 @@ class Leader(object):
     method in cases it looses the leadership lock.
     """
 
-    ASSIGNMENT_PREFIX = 'service/voltha/assignments/'
-    WORKLOAD_PREFIX = 'service/voltha/workload/'
+    ID_EXTRACTOR = '^(%s)([^/]+)$'
+    ASSIGNMENT_EXTRACTOR = '^%s(?P<member_id>[^/]+)/(?P<work_id>[^/]+)$'
 
     log = get_logger()
 
     # Public methods:
 
     def __init__(self, coordinator):
-        self.coorinator = coordinator
+
+        self.coord = coordinator
         self.halted = False
-        self.soak_time = 5  # soak till membership/workload changes settle
+        self.soak_time = 3  # soak till membership/workload changes settle
 
         self.workload = []
         self.members = []
         self.reassignment_soak_timer = None
+
+        self.workload_id_match = re.compile(
+             self.ID_EXTRACTOR % self.coord.WORKLOAD_PREFIX).match
+
+        self.member_id_match = re.compile(
+            self.ID_EXTRACTOR % self.coord.MEMBERSHIP_PREFIX).match
+
+        self.assignment_match = re.compile(
+            self.ASSIGNMENT_EXTRACTOR % self.coord.ASSIGNMENT_PREFIX).match
 
     @inlineCallbacks
     def start(self):
@@ -59,7 +71,8 @@ class Leader(object):
 
         # any active cancellations, releases, etc., should happen here
         if isinstance(self.reassignment_soak_timer, DelayedCall):
-            self.reassignment_soak_timer.cancel()
+            if not self.reassignment_soak_timer.called:
+                self.reassignment_soak_timer.cancel()
 
     # Private methods:
 
@@ -74,8 +87,8 @@ class Leader(object):
 
         # TODO for now we simply generate a fixed number of fake entries
         yield DeferredList([
-            self.coorinator.kv_put(
-                self.WORKLOAD_PREFIX + 'device_group_%04d' % (i + 1),
+            self.coord.kv_put(
+                self.coord.WORKLOAD_PREFIX + 'device_group_%04d' % (i + 1),
                 'placeholder for device group %d data' % (i + 1))
             for i in xrange(100)
         ])
@@ -93,13 +106,16 @@ class Leader(object):
     def _track_workload(self, index):
 
         try:
-            (index, results) = yield self.coorinator.kv_get(
-                self.WORKLOAD_PREFIX, index=index, recurse=True)
+            (index, results) = yield self.coord.kv_get(
+                self.coord.WORKLOAD_PREFIX, index=index, recurse=True)
 
-            workload = [e['Key'] for e in results]
+            matches = (self.workload_id_match(e['Key']) for e in results)
+            workload = [m.group(2) for m in matches if m is not None]
 
             if workload != self.workload:
-                self.log.info('workload-changed', workload=workload)
+                self.log.info('workload-changed',
+                              old_workload_count=len(self.workload),
+                              new_workload_count=len(workload))
                 self.workload = workload
                 self._restart_reassignment_soak_timer()
 
@@ -114,19 +130,17 @@ class Leader(object):
     @inlineCallbacks
     def _track_members(self, index):
 
-        def is_member(entry):
-            key = entry['Key']
-            member_id = key[len(self.coorinator.MEMBERSHIP_PREFIX):]
-            return '/' not in member_id  # otherwise it is a nested key
-
         try:
-            (index, results) = yield self.coorinator.kv_get(
-                self.coorinator.MEMBERSHIP_PREFIX, index=index, recurse=True)
+            (index, results) = yield self.coord.kv_get(
+                self.coord.MEMBERSHIP_PREFIX, index=index, recurse=True)
 
-            members = [e['Key'] for e in results if is_member(e)]
+            matches = (self.member_id_match(e['Key']) for e in results or [])
+            members = [m.group(2) for m in matches if m is not None]
 
             if members != self.members:
-                self.log.info('membership-changed', members=members)
+                self.log.info('membership-changed',
+                              old_members_count=len(self.members),
+                              new_members_count=len(members))
                 self.members = members
                 self._restart_reassignment_soak_timer()
 
@@ -148,20 +162,17 @@ class Leader(object):
         self.reassignment_soak_timer = reactor.callLater(
             self.soak_time, self._reassign_work)
 
-        print self.reassignment_soak_timer
-
     @inlineCallbacks
     def _reassign_work(self):
-        self.log.info('reassign-work')
-        yield None
 
-        # TODO continue from here
+        self.log.info('reassign-work')
 
         # Plan
-        # Step 1: collect current assignments from consul
-        # Step 2: calculate desired assignment from current members and
+        #
+        # Step 1: calculate desired assignment from current members and
         #         workload list (e.g., using consistent hashing or any other
         #         algorithm
+        # Step 2: collect current assignments from consul
         # Step 3: find the delta between the desired and actual assignments:
         #         these form two lists:
         #         1. new assignments to be made
@@ -174,3 +185,65 @@ class Leader(object):
         #
         # We must make sure while we are working on this, we do not re-enter
         # into same method!
+
+        try:
+
+            # Step 1: generate wanted assignment (mapping work to members)
+
+            ring = HashRing(self.members)
+            wanted_assignments = dict()  # member_id -> set(work_id)
+            _ = [
+                wanted_assignments.setdefault(ring.get_node(work), set())
+                .add(work)
+                for work in self.workload
+            ]
+            for (member, work) in sorted(wanted_assignments.iteritems()):
+                self.log.info('assignment',
+                              member=member, work_count=len(work))
+
+            # Step 2: discover current assignment (from consul)
+
+            (_, results) = yield self.coord.kv_get(
+                self.coord.ASSIGNMENT_PREFIX, recurse=True)
+
+            matches = [
+                (self.assignment_match(e['Key']), e) for e in results or []]
+
+            current_assignments = dict()  # member_id -> set(work_id)
+            _ = [
+                current_assignments.setdefault(
+                    m.groupdict()['member_id'], set())
+                .add(m.groupdict()['work_id'])
+                for m, e in matches if m is not None
+            ]
+
+            # Step 3: handle revoked assignments first on a per member basis
+
+            for member_id, current_work in current_assignments.iteritems():
+                assert isinstance(current_work, set)
+                wanted_work = wanted_assignments.get(member_id, set())
+                work_to_revoke = current_work.difference(wanted_work)
+
+                # revoking work by simply deleting the assignment entry
+                # TODO if we want some feedback to see that member abandoned
+                # work, we could add a consul-based protocol here
+                for work_id in work_to_revoke:
+                    yield self.coord.kv_delete(
+                        self.coord.ASSIGNMENT_PREFIX
+                        + member_id + '/' + work_id)
+
+            # Step 4: assign new work as needed
+
+            for member_id, wanted_work in wanted_assignments.iteritems():
+                assert isinstance(wanted_work, set)
+                current_work = current_assignments.get(member_id, set())
+                work_to_assign = wanted_work.difference(current_work)
+
+                for work_id in work_to_assign:
+                    yield self.coord.kv_put(
+                        self.coord.ASSIGNMENT_PREFIX
+                        + member_id + '/' + work_id, '')
+
+        except Exception, e:
+            self.log.exception('failed-reassignment', e=e)
+            self._restart_reassignment_soak_timer()  # try again in a while
