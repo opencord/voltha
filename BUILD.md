@@ -19,7 +19,7 @@ There are many ways to build and develop Voltha:
 ```
 git clone git@bitbucket.org:corddesign/voltha.git
 cd voltha
-make vagrant
+vagrant up
 vagrant ssh # the rest to be executed inside the vagrant VM
 cd /voltha
 . env.sh

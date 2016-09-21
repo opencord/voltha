@@ -71,9 +71,6 @@ help:
 	@echo "utest        : Run all unit tests"
 	@echo
 
-vagrant:
-	vagrant up
-
 build: utest build-protos
 	docker build -t cord/voltha -f Dockerfile .
 
