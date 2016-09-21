@@ -89,7 +89,7 @@ You should see a log line simialr to the following:
 To test Voltha's self-registration with consul, run this (in another terminal):
 
 ```
-curl -s http://localhost:8500/v1/kv/?recurse | jq -r .
+curl -s http://localhost:8500/v1/kv/service/voltha/members?recurse | jq -r .
 ```
 
 This should print one key-value entry, something similar to:
@@ -128,7 +128,7 @@ source env.sh
 To start the four-conatiner ensamble:
 
 ```
-docker-compose -f compose/docker-compose-system-test.yml run -d
+docker-compose -f compose/docker-compose-system-test.yml up -d
 ```
 
 There are a lot of things going on between these containers:
