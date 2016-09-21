@@ -45,7 +45,7 @@ class EOAM():
                  verbose=False, etype='8809',
                  dst=EOAM_MULTICAST_ADDRESS,
                  hexdump=False, interface='eth0',
-                 sleep=0.5):
+                 sleep=2.0):
         self.verbose = verbose
         self.dst = dst
         self.dryrun = dryrun
@@ -58,13 +58,14 @@ class EOAM():
         if (self.verbose == True):
             print("=== Settings ================")
             print("ctag      = %s" % self.ctag)
+            print("stag      = %s" % self.stag)
             print("dst       = %s" % self.dst)
             print("dryrun    = %s" % self.dryrun)
             print("hexdump   = %s" % self.hexdump)
             print("interface = %s" % self.interface)
             print("etype     = 0x%04x" % self.etype)
-            print("stag      = %s" % self.stag)
             print("verbose   = %s" % self.verbose)
+            print("sleep     = %d" % self.sleep)
             print("=== END Settings ============")
 
     def send_frame(self, frame_body):
@@ -74,8 +75,9 @@ class EOAM():
         PACKET.src = self.getHwAddr(self.interface)
         if self.stag:
             # WARNING: September/2016: This should be 0x88a8, but the Intel 10G
-            # hardware I am currently using does not support a TPID of
-            # 0x88a8. Setting to 0x8100.
+            # hardware I am currently using does not support receiving a TPID of
+            # 0x88a8. So, I send double CTAGs, and I usually set this to 0x8100.
+            # (NOTE: The Intel hardware can send a TPID of 0x88a8)
             PACKET.type = 0x8100
             if self.ctag:
                 PACKET/=Dot1Q(type=0x8100,vlan=int(self.stag))
@@ -88,7 +90,7 @@ class EOAM():
                 PACKET/=Dot1Q(type=self.etype,vlan=int(self.ctag))
             else:
                 PACKET.type = self.etype
-            PACKET/=Dot1Q(type=self.etype, vlan=int(self.ctag))
+#            PACKET/=Dot1Q(type=self.etype, vlan=int(self.ctag))
         PACKET/=SlowProtocolsSubtype()/FlagsBytes()/OAMPDU()
         PACKET/=frame_body
         PACKET/=EndOfPDU()
@@ -136,22 +138,19 @@ if __name__ == "__main__":
                         help='STAG value (default: None)')
     parser.add_argument('-c', '--ctag', dest='ctag', action='store', default=None,
                         help='CTAG value (default: None)')
-    parser.add_argument('-p', '--sleep', dest='sleep', action='store', default='0.5', type=float,
-                        help='SLEEP time after frame (default: 2)')
+    parser.add_argument('-p', '--sleep', dest='sleep', action='store', default='1.0', type=float,
+                        help='SLEEP time after frame (default: 1.0 secs)')
     parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', default=False,
                         help='verbose frame print out')
     parser.add_argument('-x', '--hexdump', dest='hexdump', action='store_true', default=False,
                         help='Hexdump the frame')
     parser.add_argument('-y', '--dryrun', dest='dryrun', action='store_true', default=False,
                         help='Dry run test, dont send - just print')
+
     parser.add_argument('-t', '--test', dest='test', action='store_true', default=False,
                         help='Run commands under test')
-
-
     parser.add_argument('-r', '--critical', dest='critical', action='store_true', default=False,
                         help='Send the critical OAM set of set_request()')
-
-
     parser.add_argument('-ta', '--test_add', dest='test_add', action='store_true', default=False,
                         help='Run commands under test')
     parser.add_argument('-td', '--test_del', dest='test_del', action='store_true', default=False,
@@ -173,7 +172,16 @@ if __name__ == "__main__":
         stag=args.stag,
         ctag=args.ctag,
         verbose=args.verbose,
+        sleep=args.sleep
         )
+
+    if (not args.critical
+        and not args.test
+        and not args.test_add
+        and not args.test_del
+        and not args.test_clr):
+        print 'WARNING: *** No frames sent, please specify \'test\' or \'critical\', etc.  See --help'
+
 
     if (args.test == True):
         print 'SET - Multicast Register Message 01'
@@ -186,10 +194,10 @@ if __name__ == "__main__":
         print 'SET Clear Static MAC Table -- User Port Object'
         eoam.set_request(ClearStaticMacTable())
 
-    if (args.test_add == True):
+    elif (args.test_add == True):
         print 'SET Add Static MAC Address -- User Port Object'
         eoam.set_request(AddStaticMacAddress(mac=IGMP_MULTICAST_ADDRESS))
 
-    if (args.test_del == True):
+    elif (args.test_del == True):
         print 'SET Delete Static MAC Address -- User Port Object'
         eoam.set_request(DeleteStaticMacAddress(mac=IGMP_MULTICAST_ADDRESS))
