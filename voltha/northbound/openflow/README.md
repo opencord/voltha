@@ -6,7 +6,10 @@ NOTE: This command should soon be eliminated as the agent should
 be started by VOLTHA.
 
 ```
-cd /voltha/voltha/northbound/openflow
-sudo python agent/main.py -v --in-out-iface=enp1s0f0 --in-out-stag=4004
+$ cd <LOCATION_OF_VOLTHA>
+$ sudo -s
+# . ./env.sh
+# cd <LOCATION_OF_VOLTHA>/voltha/northbound/openflow
+(venv-linux) # python agent/main.py -v --in-out-iface=enp1s0f0 --in-out-stag=4004
 ```
 

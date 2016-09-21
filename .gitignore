@@ -8,6 +8,10 @@ buildSrc/build
 # PyCharm
 .idea
 
+# Emacs
+*~
+.#*
+
 # Vagrant
 .vagrant
 

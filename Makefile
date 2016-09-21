@@ -63,6 +63,7 @@ help:
 	@echo
 	@echo "build        : Build the Voltha docker image (default target)"
 	@echo "clean        : Remove files created by the build and tests"
+	@echo "distclean    : Remove venv directory"
 	@echo "fetch        : Pre-fetch artifacts for subsequent local builds"
 	@echo "flake8       : Run specifically flake8 tests"
 	@echo "help         : Print this help"
@@ -82,6 +83,9 @@ install-protoc:
 
 clean:
 	find voltha -name '*.pyc' | xargs rm -f
+
+distclean: clean
+	rm -rf ${VENVDIR}
 
 fetch:
 	docker pull consul:latest

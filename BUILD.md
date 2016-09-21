@@ -314,8 +314,14 @@ Potential issues and workaround:
 1. 'make venv' exits with error 'openssl/opensslv.h': file not found.
    Resolution: install openssl-dev and add a CFLAGS to make venv:
 
+   MAC OS:
    ```
    brew install openssl
+   ```
+
+   Linux:
+   ```
+   sudo apt-get install libssl-dev
    ```
 
    Note the version that it installed. For example, '1.0.2h_1'.
