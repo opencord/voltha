@@ -20,7 +20,7 @@ endif
 
 include setup.mk
 
-VENVDIR := venv
+VENVDIR := venv-$(shell uname -s | tr '[:upper:]' '[:lower:]')
 
 .PHONY: $(DIRS) $(DIRS_CLEAN) $(DIRS_FLAKE8) flake8
 
@@ -95,12 +95,13 @@ venv: ${VENVDIR}/.built
 ${VENVDIR}/.built:
 	@ virtualenv ${VENVDIR}
 	@ . ${VENVDIR}/bin/activate && \
+	    pip install --upgrade pip; \
 	    if ! pip install -r requirements.txt; \
 	    then \
 	        echo "On MAC OS X, if the installation failed with an error \n'<openssl/opensslv.h>': file not found,"; \
 	        echo "see the BUILD.md file for a workaround"; \
 	    else \
-	        touch ${VENVDIR}/.built; \
+	        uname -s > ${VENVDIR}/.built; \
 	    fi
 
 utest: venv
