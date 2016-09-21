@@ -38,7 +38,7 @@ docker images
 The simplest way to run the image (in the foreground):
 
 ```
-docker run -ti cord/voltha
+docker run -ti --rm cord/voltha
 ```
 
 Unless you happen to have a consul agent running on your local system, you shall see that voltha is trying to connect to a consul agent, without success.
