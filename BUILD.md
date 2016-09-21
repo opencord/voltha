@@ -128,7 +128,7 @@ source env.sh
 To start the four-conatiner ensamble:
 
 ```
-docker-compose -f compose/docker-compose-system-test.yml run -d
+docker-compose -f compose/docker-compose-system-test.yml up -d
 ```
 
 There are a lot of things going on between these containers:
