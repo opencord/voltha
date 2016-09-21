@@ -89,7 +89,7 @@ You should see a log line simialr to the following:
 To test Voltha's self-registration with consul, run this (in another terminal):
 
 ```
-curl -s http://localhost:8500/v1/kv/?recurse | jq -r .
+curl -s http://localhost:8500/v1/kv/service/voltha/members?recurse | jq -r .
 ```
 
 This should print one key-value entry, something similar to:
