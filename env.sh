@@ -17,4 +17,5 @@ export DOCKER_HOST_IP=$(python voltha/nethelpers.py)
 
 # to avoid permission issues, create a dir for fluentd logs
 mkdir -p /tmp/fluentd
+sudo chown $USER /tmp/fluentd
 
