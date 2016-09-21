@@ -39,7 +39,7 @@ class HealthCheck(object):
         return Site(self.app.resource())
 
 
-def init_rest_service(port):  # TODO need to be moved to a shared file across all resources
+def init_rest_service(port):
     hc = HealthCheck()
     endpoint = endpoints.TCP4ServerEndpoint(reactor, port)
     endpoint.listen(hc.get_site())

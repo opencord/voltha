@@ -22,6 +22,8 @@ cd voltha
 make vagrant
 vagrant ssh # the rest to be executed inside the vagrant VM
 cd /voltha
+. env.sh
+make fetch
 make
 ```
 

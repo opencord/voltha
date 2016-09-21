@@ -16,8 +16,9 @@ Vagrant.configure(2) do |config|
     d.vm.network "private_network", ip: "10.100.198.220"
     d.vm.provision :shell, path: "ansible/scripts/bootstrap_ansible.sh"
     d.vm.provision :shell, inline: "PYTHONUNBUFFERED=1 ansible-playbook /voltha/ansible/voltha.yml -c local"
+    d.vm.provision :shell, inline: "cd /voltha && source env.sh && make install-protoc"
     d.vm.provider "virtualbox" do |v|
-      v.memory = 2048
+      v.memory = 4096
     end
   end
 

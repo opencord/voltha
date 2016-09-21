@@ -74,8 +74,14 @@ help:
 vagrant:
 	vagrant up
 
-build: fetch utest
+build: utest build-protos
 	docker build -t cord/voltha -f Dockerfile .
+
+build-protos:
+	make -C voltha/core/protos
+
+install-protoc:
+	make -C voltha/core/protos install-protoc
 
 clean:
 	find voltha -name '*.pyc' | xargs rm -f

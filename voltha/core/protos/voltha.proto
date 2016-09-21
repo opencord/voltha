@@ -1,0 +1,40 @@
+// See README.txt for information and build instructions.
+
+syntax = "proto3";
+
+package voltha;
+
+import "google/api/annotations.proto";
+
+option java_package = "org.opencord.voltha";
+option java_outer_classname = "VolthaProtos";
+option csharp_namespace = "Opencord.Voltha.Voltha";
+
+message NullMessage {}
+
+message HealthStatus {
+
+  // Health states
+  enum HealthState {
+    HEALTHY = 0;
+    OVERLOADED = 1;
+    DYING = 2;
+  }
+
+  // Current state of health of this Voltha instance
+  HealthState state = 1;
+
+}
+
+service HealthService {
+
+  // Return current health status of a Voltha instance
+  rpc GetHealthStatus(NullMessage) returns (HealthStatus) {
+    option (google.api.http) = {
+      get: "/health"
+      body: '*'
+    };
+  }
+
+}
+
