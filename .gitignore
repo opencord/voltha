@@ -32,3 +32,6 @@ tmp
 # Protobuf output files
 voltha/core/protos/*.desc
 voltha/core/protos/*_pb2.py
+
+# Editors
+*.bak
