@@ -1,0 +1,77 @@
+/*
+ * Copyright 2016 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import org.opencord.gradle.rules.*
+import org.yaml.snakeyaml.Yaml
+
+allprojects {
+    apply plugin: 'base'
+    apply plugin: 'de.gesellix.docker'
+
+    docker {
+        // dockerHost = System.env.DOCKER_HOST ?: 'unix:///var/run/docker.sock'
+        // dockerHost = System.env.DOCKER_HOST ?: 'https://192.168.99.100:2376'
+        // certPath = System.getProperty('docker.cert.path') ?: "${System.getProperty('user.home')}/.docker/machine/machines/default"
+        // authConfigPlain = [
+        //   "username"       : "joe",
+        //   "password"       : "some-pw-as-needed",
+        //   "email"          : "joe@acme.com",
+        //   "serveraddress"  : "https://index.docker.io/v1/"
+        //  ]
+    }
+}
+
+ext {
+
+    // Target registry to be used to publish docker images needed for deployment
+    targetReg = project.hasProperty('targetReg') ? project.getProperty('targetReg') : 'localhost:5000'
+
+    // The tag used to tag the docker images push to the target registry
+    targetTag = project.hasProperty('targetTag') ? project.getProperty('targetTag') : 'candidate'
+
+    // Deployment target config file (yaml format); this can be overwritten from the command line
+    // using the -PdeployConfig=<file-path> syntax.
+    deployConfig = project.hasProperty('deployConfig') ? project.getProperty('deployConfig') : './config/default.yml'
+
+}
+
+// ~~~~~~~~~~~~~~~~~~~ Global tasks ~~~~~~~~~~~~~~~~~~~~~~~
+
+// To be used to fetch upstream binaries, clone repos, etc.
+task fetch(type: Exec) {
+    commandLine "make", "fetch"
+}
+
+// To be used to generate all needed binaries that need to be present on the target
+// as docker images in the local docker runner.
+task buildImages(type: Exec) {
+    commandLine "make"
+}
+
+task tagImage(type: Exec) {
+   dependsOn buildImages
+   commandLine "docker", 'tag', 'cord/voltha', "$targetReg/cord/voltha:$targetTag"
+}
+
+// Publish image(s) built during the build step into targetReg registry using the targetTag
+// tag. See maas subproject for examples on how to do this.
+task publishImages(type: Exec) {
+    dependsOn tagImage
+    commandLine "docker", 'push', "$targetReg/cord/voltha:$targetTag"
+}
+
+task publish {
+    dependsOn publishImages
+}

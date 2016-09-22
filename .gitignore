@@ -1,0 +1,37 @@
+# Gradle
+.gradle
+buildSrc/build
+
+# Python
+*.pyc
+
+# PyCharm
+.idea
+
+# Emacs
+*~
+.#*
+
+# Vagrant
+.vagrant
+
+# Ansible
+ansible/*.retry
+
+# Virtualenv
+venv
+venv-darwin
+venv-linux
+
+# Temp data dir for testing
+tmp
+
+# Any vi swap files
+*.swp
+
+# Protobuf output files
+voltha/core/protos/*.desc
+voltha/core/protos/*_pb2.py
+
+# Editors
+*.bak

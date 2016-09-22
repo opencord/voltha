@@ -1,0 +1,9 @@
+ip: "{{ facter_ipaddress_eth1 }}"
+consul_extra: ""
+proxy_url: http://{{ facter_ipaddress_eth1 }}
+proxy_url2: http://{{ facter_ipaddress_eth1 }}
+registry_url: 10.100.198.220:5000/
+jenkins_ip: 10.100.198.220
+debian_version: trusty
+docker_cfg: docker.cfg
+docker_cfg_dest: /etc/default/docker

@@ -1,0 +1,21 @@
+[Unit]
+Description=Docker Application Container Engine
+Documentation=https://docs.docker.com
+After=network.target docker.socket
+Requires=docker.socket
+
+[Service]
+Type=notify
+ExecStart=/usr/bin/docker daemon -H fd:// \
+          --insecure-registry 10.100.198.220:5000 \
+          --registry-mirror=http://10.100.198.220:5001 \
+          --cluster-store=consul://{{ ip }}:8500/swarm \
+          --cluster-advertise={{ ip }}:2375 {{ docker_extra }}
+MountFlags=master
+LimitNOFILE=1048576
+LimitNPROC=1048576
+LimitCORE=infinity
+
+[Install]
+WantedBy=multi-user.target
+

@@ -1,0 +1,87 @@
+version: '2'
+services:
+  #
+  # Single-node consul agent
+  #
+  consul:
+    image: consul:latest
+    command: agent -server -bootstrap -client 0.0.0.0 -ui
+    ports:
+    - "8300:8300"
+    - "8400:8400"
+    - "8500:8500"
+    - "8600:8600/udp"
+    environment:
+      #SERVICE_53_IGNORE: "yes"
+      SERVICE_8300_IGNORE: "yes"
+      SERVICE_8400_IGNORE: "yes"
+      SERVICE_8500_NAME: "consul-rest"
+  #
+  # Registrator
+  #
+  registrator:
+    image: gliderlabs/registrator:latest
+    command: [
+      "-ip=${DOCKER_HOST_IP}",
+      "-retry-attempts", "100",
+      # "-internal",
+      "consul://consul:8500"
+    ]
+    links:
+    - consul
+    volumes:
+    - "/var/run/docker.sock:/tmp/docker.sock"
+  #
+  # Fluentd log server
+  #
+  fluentd:
+    image: fluent/fluentd
+    ports:
+    - "24224:24224"
+    volumes:
+    - "/tmp/fluentd:/fluentd/log"
+    environment:
+      SERVICE_24224_NAME: "fluentd-intake"
+  #
+  # Single-node voltha
+  #
+  voltha:
+    image: cord/voltha
+    command: [
+      "/voltha/main.py",
+      "-v",
+      "--consul=consul:8500",
+      "--fluentd=fluentd:24224",
+      "--rest-port=8880",
+      "--instance-id-is-container-name",
+      "-v"
+    ]
+    ports:
+    - 8880
+    depends_on:
+    - consul
+    links:
+    - consul
+    - fluentd
+    environment:
+      SERVICE_8880_NAME: "voltha-rest"
+      SERVICE_8880_CHECK_HTTP: "/health"
+      SERVICE_8880_CHECK_INTERVAL: "5s"
+      SERVICE_8880_CHECK_TIMEOUT: "1s"
+      IMAGE_NAME: "{{DCOKER_IMAGE_NAME}}"
+    volumes:
+    - "/var/run/docker.sock:/tmp/docker.sock"
+  #
+  # Test container to see services available
+  #
+#  test:
+#    image: busybox
+#    command: tail -F /dev/null
+#    depends_on:
+#    - consul
+#    - voltha
+#    links:
+#    - consul
+#    - registrator
+#    - fluentd
+#    - voltha
