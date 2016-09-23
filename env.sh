@@ -16,6 +16,16 @@ fi
 export DOCKER_HOST_IP=$(python voltha/nethelpers.py)
 
 # to avoid permission issues, create a dir for fluentd logs
+# of if it exists make sure we can write to it
 mkdir -p /tmp/fluentd
-sudo chown $USER /tmp/fluentd
+if ! touch /tmp/fluentd/.check_write_permission; then
+    echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    echo "You don't have write privileges for the log directory"
+    echo "/tmp/fluentd. This will cause issues when running the"
+    echo "fluentd container with docker-compose. We suggest you"
+    echo "fox your write permission before proceeding."
+    echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+else
+    rm -f /tmp/fluentd/.check_write_permission
+fi
 
