@@ -13,7 +13,7 @@ pep8>=1.5.7
 pep8-naming>=0.3.3
 pyflakes>=1.0.0
 pylint>=1.5.2
-pypcap>=1.1.5
+#pypcap>=1.1.5
 pyOpenSSL>=0.13
 PyYAML>=3.10
 requests
