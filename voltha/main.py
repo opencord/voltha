@@ -20,15 +20,16 @@
 import argparse
 import os
 import time
+
 import yaml
 from twisted.internet.defer import inlineCallbacks
 
-from structlog_setup import setup_logging
-from coordinator import Coordinator
-from northbound.rest.health_check import init_rest_service
-from nethelpers import get_my_primary_interface, get_my_primary_local_ipv4
-from dockerhelpers import get_my_containers_name
-
+from voltha.coordinator import Coordinator
+from voltha.dockerhelpers import get_my_containers_name
+from voltha.nethelpers import get_my_primary_interface, get_my_primary_local_ipv4
+from voltha.northbound.grpc.grpc_server import VolthaGrpcServer
+from voltha.northbound.rest.health_check import init_rest_service
+from voltha.structlog_setup import setup_logging
 
 defs = dict(
     consul=os.environ.get('CONSUL', 'localhost:8500'),
@@ -192,6 +193,7 @@ class Main(object):
 
         # components
         self.coordinator = None
+        self.grpc_server = None
 
         if not args.no_banner:
             print_banner(self.log)
@@ -213,13 +215,19 @@ class Main(object):
             instance_id=self.args.instance_id,
             consul=self.args.consul)
         init_rest_service(self.args.rest_port)
+
+        self.grpc_server = VolthaGrpcServer().run()
+
         self.log.info('started-internal-services')
 
     @inlineCallbacks
     def shutdown_components(self):
         """Execute before the reactor is shut down"""
         self.log.info('exiting-on-keyboard-interrupt')
-        yield self.coordinator.shutdown()
+        if self.coordinator is not None:
+            yield self.coordinator.shutdown()
+        if self.grpc_server is not None:
+            yield self.grpc_server.shutdown()
 
     def start_reactor(self):
         from twisted.internet import reactor
