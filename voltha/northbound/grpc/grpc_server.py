@@ -61,7 +61,8 @@ class VolthaGrpcServer(object):
         self.server.stop(grace)
 
 
-# This is to allow runninf the GRPC server in stand-alone mode
+# This is to allow running the GRPC server in stand-alone mode
+
 if __name__ == '__main__':
 
     server = VolthaGrpcServer().run()

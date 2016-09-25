@@ -19,6 +19,7 @@
 import sys
 
 
+# TODO this hack needs to go
 #~~~~~~~~~~~~~~~~~~~~ begin import hach ~~~~~~~~~~~~~~~~~~~~~~~~~
 # Import hack to allow loading the google.api local files
 # without shadowing the google.protoc dependency. We needed
