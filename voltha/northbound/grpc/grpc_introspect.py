@@ -157,16 +157,34 @@ class DescriptorParser(object):
 
 
 if __name__ == '__main__':
-    # load desc into binary string
-    from voltha.core.protos import voltha_pb2
 
+    # try loading voltha descriptor and turn it into JSON data as a preparation
+    # for generating JSON Schema / swagger file (to be done later)
+    from voltha.core.protos import voltha_pb2
     desc_dir = os.path.dirname(inspect.getfile(voltha_pb2))
     desc_file = os.path.join(desc_dir, 'voltha.desc')
     with open(desc_file, 'rb') as f:
         descriptor_blob = f.read()
-
     parser = DescriptorParser()
     parser.load_descriptor(descriptor_blob)
     print dumps(parser.get_catalog(), indent=4)
 
+    # try to see if we can decode binary data into JSON automatically
+    def make_mc(name):
+        mc = voltha_pb2.MoreComplex()
+        mc.name = name
+        mc.foo_counter = 123123123
+        # mc.health = voltha_pb2.HealthStatus()
+        mc.health.state = voltha_pb2.HealthStatus.HEALTHY
+        return mc
 
+    mc = make_mc('root')
+    child1 = mc.
+    print dir(mc)
+    blob = mc.SerializeToString()
+    print len(blob), 'bytes'
+    mc2 = voltha_pb2.MoreComplex()
+    mc2.ParseFromString(blob)
+    assert mc == mc2
+
+    print dumps(parser.parse(mc), indent=4)

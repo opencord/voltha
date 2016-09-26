@@ -28,6 +28,14 @@ message HealthStatus {
 
 }
 
+// A more complex message type for testing purposes
+message MoreComplex {
+  HealthStatus health = 1; // Embedded health
+  int32 foo_counter = 2; // Counting foos
+  string name = 3;  // Name of this thing
+  repeated MoreComplex children = 4;  // Nested object to test recursion type
+}
+
 service HealthService {
 
   // Return current health status of a Voltha instance
