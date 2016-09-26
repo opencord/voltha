@@ -15,24 +15,23 @@
 # limitations under the License.
 #
 
-FROM ubuntu:xenial
+FROM alpine:3.4
 
 MAINTAINER Zsolt Haraszti <zharaszt@ciena.com>
 MAINTAINER Ali Al-Shabibi <ali.al-shabibi@onlab.us>
 MAINTAINER Nathan Knuth   <nathan.knuth@tibitcom.com>
 
 # Update to have latest images
-RUN apt-get update && \
-    apt-get install -y python python-pip openssl
+RUN apk add --update python py-pip && \
+    apk --allow-untrusted --no-cache -X http://apkproxy.heroku.com/andyshinn/alpine-pkg-glibc add glibc glibc-bin
 
 COPY requirements.txt /tmp/requirements.txt
 
-# pip install cython enum34 six && \
 # Install app dependencies
-RUN apt-get install -y wget build-essential make gcc binutils python-dev libffi-dev libssl-dev git && \
+RUN apk add build-base gcc abuild binutils python-dev libffi-dev openssl-dev git linux-headers && \
+    pip install cython enum34 six && \
     pip install -r /tmp/requirements.txt && \
-    apt-get purge -y wget build-essential make gcc binutils python-dev libffi-dev libssl-dev git && \
-    apt-get autoremove -y
+    apk del --purge build-base gcc abuild binutils python-dev libffi-dev openssl-dev git linux-headers
 
 # Bundle app source
 COPY voltha /voltha

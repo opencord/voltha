@@ -22,7 +22,7 @@ endif
 
 default: build
 
-PROTO_FILES := $(wildcard *.proto) $(wildcard google/api/*proto)
+PROTO_FILES := $(wildcard *.proto) $(wildcard third_party/google/api/*proto)
 PROTO_PB2_FILES := $(foreach f,$(PROTO_FILES),$(subst .proto,_pb2.py,$(f)))
 PROTO_DESC_FILES := $(foreach f,$(PROTO_FILES),$(subst .proto,.desc,$(f)))
 
@@ -42,7 +42,7 @@ build: $(PROTOC) $(PROTO_PB2_FILES)
 
 %_pb2.py: %.proto Makefile
 	@echo "Building protocol buffer artifacts from $<"
-	env LD_LIBRARY_PATH=$(PROTOC_LIBDIR) python -m grpc.tools.protoc -I. -I$(VOLTHA_BASE)/third_party/googleapis --python_out=. --grpc_python_out=. --descriptor_set_out=$(basename $<).desc --include_source_info $<
+	env LD_LIBRARY_PATH=$(PROTOC_LIBDIR) python -m grpc.tools.protoc -I. -I./third_party --python_out=. --grpc_python_out=. --descriptor_set_out=$(basename $<).desc --include_source_info $<
 
 clean:
 	rm -f $(PROTO_PB2_FILES) $(PROTO_DESC_FILES)
