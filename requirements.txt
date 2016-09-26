@@ -1,5 +1,6 @@
 argparse==1.2.1
 colorama>=0.2.5
+cython
 decorator>=3.4.0
 docker-py
 fluent-logger>=0.4.3

@@ -19,10 +19,12 @@
 
 import argparse
 import os
+import sys
 import time
-
 import yaml
 from twisted.internet.defer import inlineCallbacks
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from voltha.coordinator import Coordinator
 from voltha.dockerhelpers import get_my_containers_name

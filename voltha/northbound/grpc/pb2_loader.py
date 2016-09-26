@@ -35,7 +35,7 @@ class ModuleProxy(object):
         else:
             return None
 sys.modules['google.api'] = ModuleProxy()
-from voltha.core.protos.google2.api import http_pb2
-from voltha.core.protos.google2.api import annotations_pb2
+from voltha.core.protos.third_party.google.api import http_pb2
+from voltha.core.protos.third_party.google.api import annotations_pb2
 #~~~~~~~~~~~~~~~~~~~~  end import hach  ~~~~~~~~~~~~~~~~~~~~~~~~~
 
