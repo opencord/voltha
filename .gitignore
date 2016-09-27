@@ -30,10 +30,8 @@ tmp
 *.swp
 
 # Protobuf output files
-#voltha/core/protos/*.desc
-#voltha/core/protos/*_pb2.py
-#third_party/googleapis/**/*.desc
-#third_party/googleapis/**/*_pb2.py
+#voltha/**/*.desc
+#voltha/**/*_pb2.py
 
 # Editors
 *.bak

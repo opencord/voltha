@@ -18,7 +18,8 @@
 
 import grpc
 
-from voltha.core.protos import voltha_pb2
+from voltha.protos import schema_pb2
+from voltha.protos import voltha_pb2
 
 
 def run():
@@ -26,8 +27,8 @@ def run():
     channel = grpc.insecure_channel('localhost:50055')
 
     # Test fetch the schema
-    stub = voltha_pb2.SchemaServiceStub(channel)
-    res = stub.GetSchema(voltha_pb2.NullMessage())
+    stub = schema_pb2.SchemaServiceStub(channel)
+    res = stub.GetSchema(schema_pb2.NullMessage())
     print '\nSchema:\n'
     for key in res.protos:
         print '%s %s file begins %s\n' % (30 * '~', key, (35 - len(key)) * '~')

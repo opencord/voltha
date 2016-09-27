@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package schema;
+
+import "google/api/annotations.proto";
+
+// Proto file and compiled descriptor for this interface
+message Schema {
+
+  // file name -> proto file content
+  map<string, string> protos = 1;
+
+  // file name -> gzip compressed protobuf of descriptor
+  map<string, bytes> descriptors = 2;
+
+}
+
+// Empty message
+message NullMessage {}
+
+// Schema services
+service SchemaService {
+
+  // Return active grpc schemas
+  rpc GetSchema(NullMessage) returns (Schema) {
+    option (google.api.http) = {
+      get: "/schema"
+    };
+  }
+}

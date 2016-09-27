@@ -15,6 +15,7 @@
 #
 
 """gRPC server endpoint"""
+import os
 import uuid
 from os.path import abspath, basename, dirname, join, walk
 import grpc
@@ -22,16 +23,16 @@ from concurrent import futures
 from structlog import get_logger
 import zlib
 
-from voltha.core.protos import voltha_pb2
+from voltha.protos import voltha_pb2, schema_pb2
 
 log = get_logger()
 
 
-class SchemaService(voltha_pb2.SchemaServiceServicer):
+class SchemaService(schema_pb2.SchemaServiceServicer):
 
     def __init__(self):
         proto_map, descriptor_map = self._load_schema()
-        self.schema = voltha_pb2.Schema(
+        self.schema = schema_pb2.Schema(
             protos=proto_map,
             descriptors=descriptor_map
         )
@@ -40,13 +41,13 @@ class SchemaService(voltha_pb2.SchemaServiceServicer):
         """Pre-load schema file so that we can serve it up (file sizes
            are small enough to do so
         """
-        proto_dir = abspath(join(dirname(__file__), '../../core/protos'))
+        proto_dir = abspath(join(dirname(__file__), '../../protos'))
 
         def find_files(dir, suffix):
-            proto_files = []
-            visitor = lambda _, d, fnames: proto_files.extend(
-                [join(d, fn) for fn in fnames if fn.endswith(suffix)])
-            walk(dir, visitor, None)
+            proto_files = [
+                join(dir, fname) for fname in os.listdir(dir)
+                if fname.endswith(suffix)
+            ]
             return proto_files
 
         proto_map = {}
@@ -135,12 +136,13 @@ class VolthaGrpcServer(object):
         self.thread_pool = futures.ThreadPoolExecutor(max_workers=10)
         self.server = grpc.server(self.thread_pool)
 
+        schema_pb2.add_SchemaServiceServicer_to_server(
+            SchemaService(), self.server)
+
         voltha_pb2.add_HealthServiceServicer_to_server(
             HealthService(self.thread_pool), self.server)
         voltha_pb2.add_ExampleServiceServicer_to_server(
             ExampleService(self.thread_pool), self.server)
-        voltha_pb2.add_SchemaServiceServicer_to_server(
-            SchemaService(), self.server)
 
         self.server.add_insecure_port('[::]:%s' % self.port)
 

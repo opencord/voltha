@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='voltha.proto',
   package='voltha',
   syntax='proto3',
-  serialized_pb=_b('\n\x0cvoltha.proto\x12\x06voltha\x1a\x1cgoogle/api/annotations.proto\"\xcd\x01\n\x06Schema\x12*\n\x06protos\x18\x01 \x03(\x0b\x32\x1a.voltha.Schema.ProtosEntry\x12\x34\n\x0b\x64\x65scriptors\x18\x02 \x03(\x0b\x32\x1f.voltha.Schema.DescriptorsEntry\x1a-\n\x0bProtosEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a\x32\n\x10\x44\x65scriptorsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x0c:\x02\x38\x01\"\r\n\x0bNullMessage\"v\n\x0cHealthStatus\x12/\n\x05state\x18\x01 \x01(\x0e\x32 .voltha.HealthStatus.HealthState\"5\n\x0bHealthState\x12\x0b\n\x07HEALTHY\x10\x00\x12\x0e\n\nOVERLOADED\x10\x01\x12\t\n\x05\x44YING\x10\x02\"q\n\x07\x41\x64\x64ress\x12\n\n\x02id\x18\x07 \x01(\t\x12\x0e\n\x06street\x18\x01 \x01(\t\x12\x0f\n\x07street2\x18\x02 \x01(\t\x12\x0f\n\x07street3\x18\x03 \x01(\t\x12\x0c\n\x04\x63ity\x18\x04 \x01(\t\x12\r\n\x05state\x18\x05 \x01(\t\x12\x0b\n\x03zip\x18\x06 \x01(\r\"/\n\tAddresses\x12\"\n\taddresses\x18\x01 \x03(\x0b\x32\x0f.voltha.Address\"\x9f\x01\n\x0bMoreComplex\x12$\n\x06health\x18\x01 \x01(\x0b\x32\x14.voltha.HealthStatus\x12\x13\n\x0b\x66oo_counter\x18\x02 \x01(\x05\x12\x0c\n\x04name\x18\x03 \x01(\t\x12%\n\x08\x63hildren\x18\x04 \x03(\x0b\x32\x13.voltha.MoreComplex\x12 \n\x07\x61\x64\x64ress\x18\x05 \x01(\x0b\x32\x0f.voltha.Address\"\x10\n\x02ID\x12\n\n\x02id\x18\x01 \x01(\t2R\n\rSchemaService\x12\x41\n\tGetSchema\x12\x13.voltha.NullMessage\x1a\x0e.voltha.Schema\"\x0f\x82\xd3\xe4\x93\x02\t\x12\x07/schema2^\n\rHealthService\x12M\n\x0fGetHealthStatus\x12\x13.voltha.NullMessage\x1a\x14.voltha.HealthStatus\"\x0f\x82\xd3\xe4\x93\x02\t\x12\x07/health2\xb6\x02\n\x0e\x45xampleService\x12K\n\rListAddresses\x12\x13.voltha.NullMessage\x1a\x11.voltha.Addresses\"\x12\x82\xd3\xe4\x93\x02\x0c\x12\n/addresses\x12\x42\n\nGetAddress\x12\n.voltha.ID\x1a\x0f.voltha.Address\"\x17\x82\xd3\xe4\x93\x02\x11\x12\x0f/addresses/{id}\x12H\n\rCreateAddress\x12\x0f.voltha.Address\x1a\x0f.voltha.Address\"\x15\x82\xd3\xe4\x93\x02\x0f\"\n/addresses:\x01*\x12I\n\rDeleteAddress\x12\n.voltha.ID\x1a\x13.voltha.NullMessage\"\x17\x82\xd3\xe4\x93\x02\x11*\x0f/addresses/{id}B<\n\x13org.opencord.volthaB\x0cVolthaProtos\xaa\x02\x16Opencord.Voltha.Volthab\x06proto3')
+  serialized_pb=_b('\n\x0cvoltha.proto\x12\x06voltha\x1a\x1cgoogle/api/annotations.proto\"\r\n\x0bNullMessage\"v\n\x0cHealthStatus\x12/\n\x05state\x18\x01 \x01(\x0e\x32 .voltha.HealthStatus.HealthState\"5\n\x0bHealthState\x12\x0b\n\x07HEALTHY\x10\x00\x12\x0e\n\nOVERLOADED\x10\x01\x12\t\n\x05\x44YING\x10\x02\"q\n\x07\x41\x64\x64ress\x12\n\n\x02id\x18\x07 \x01(\t\x12\x0e\n\x06street\x18\x01 \x01(\t\x12\x0f\n\x07street2\x18\x02 \x01(\t\x12\x0f\n\x07street3\x18\x03 \x01(\t\x12\x0c\n\x04\x63ity\x18\x04 \x01(\t\x12\r\n\x05state\x18\x05 \x01(\t\x12\x0b\n\x03zip\x18\x06 \x01(\r\"/\n\tAddresses\x12\"\n\taddresses\x18\x01 \x03(\x0b\x32\x0f.voltha.Address\"\x9f\x01\n\x0bMoreComplex\x12$\n\x06health\x18\x01 \x01(\x0b\x32\x14.voltha.HealthStatus\x12\x13\n\x0b\x66oo_counter\x18\x02 \x01(\x05\x12\x0c\n\x04name\x18\x03 \x01(\t\x12%\n\x08\x63hildren\x18\x04 \x03(\x0b\x32\x13.voltha.MoreComplex\x12 \n\x07\x61\x64\x64ress\x18\x05 \x01(\x0b\x32\x0f.voltha.Address\"\x10\n\x02ID\x12\n\n\x02id\x18\x01 \x01(\t2^\n\rHealthService\x12M\n\x0fGetHealthStatus\x12\x13.voltha.NullMessage\x1a\x14.voltha.HealthStatus\"\x0f\x82\xd3\xe4\x93\x02\t\x12\x07/health2\xb6\x02\n\x0e\x45xampleService\x12K\n\rListAddresses\x12\x13.voltha.NullMessage\x1a\x11.voltha.Addresses\"\x12\x82\xd3\xe4\x93\x02\x0c\x12\n/addresses\x12\x42\n\nGetAddress\x12\n.voltha.ID\x1a\x0f.voltha.Address\"\x17\x82\xd3\xe4\x93\x02\x11\x12\x0f/addresses/{id}\x12H\n\rCreateAddress\x12\x0f.voltha.Address\x1a\x0f.voltha.Address\"\x15\x82\xd3\xe4\x93\x02\x0f\"\n/addresses:\x01*\x12I\n\rDeleteAddress\x12\n.voltha.ID\x1a\x13.voltha.NullMessage\"\x17\x82\xd3\xe4\x93\x02\x11*\x0f/addresses/{id}B<\n\x13org.opencord.volthaB\x0cVolthaProtos\xaa\x02\x16Opencord.Voltha.Volthab\x06proto3')
   ,
   dependencies=[google_dot_api_dot_annotations__pb2.DESCRIPTOR,])
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
@@ -48,122 +48,10 @@ _HEALTHSTATUS_HEALTHSTATE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=342,
-  serialized_end=395,
+  serialized_start=134,
+  serialized_end=187,
 )
 _sym_db.RegisterEnumDescriptor(_HEALTHSTATUS_HEALTHSTATE)
-
-
-_SCHEMA_PROTOSENTRY = _descriptor.Descriptor(
-  name='ProtosEntry',
-  full_name='voltha.Schema.ProtosEntry',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='key', full_name='voltha.Schema.ProtosEntry.key', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='value', full_name='voltha.Schema.ProtosEntry.value', index=1,
-      number=2, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=_descriptor._ParseOptions(descriptor_pb2.MessageOptions(), _b('8\001')),
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=163,
-  serialized_end=208,
-)
-
-_SCHEMA_DESCRIPTORSENTRY = _descriptor.Descriptor(
-  name='DescriptorsEntry',
-  full_name='voltha.Schema.DescriptorsEntry',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='key', full_name='voltha.Schema.DescriptorsEntry.key', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='value', full_name='voltha.Schema.DescriptorsEntry.value', index=1,
-      number=2, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b(""),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=_descriptor._ParseOptions(descriptor_pb2.MessageOptions(), _b('8\001')),
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=210,
-  serialized_end=260,
-)
-
-_SCHEMA = _descriptor.Descriptor(
-  name='Schema',
-  full_name='voltha.Schema',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='protos', full_name='voltha.Schema.protos', index=0,
-      number=1, type=11, cpp_type=10, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='descriptors', full_name='voltha.Schema.descriptors', index=1,
-      number=2, type=11, cpp_type=10, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-  ],
-  extensions=[
-  ],
-  nested_types=[_SCHEMA_PROTOSENTRY, _SCHEMA_DESCRIPTORSENTRY, ],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=55,
-  serialized_end=260,
-)
 
 
 _NULLMESSAGE = _descriptor.Descriptor(
@@ -185,8 +73,8 @@ _NULLMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=262,
-  serialized_end=275,
+  serialized_start=54,
+  serialized_end=67,
 )
 
 
@@ -217,8 +105,8 @@ _HEALTHSTATUS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=277,
-  serialized_end=395,
+  serialized_start=69,
+  serialized_end=187,
 )
 
 
@@ -290,8 +178,8 @@ _ADDRESS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=397,
-  serialized_end=510,
+  serialized_start=189,
+  serialized_end=302,
 )
 
 
@@ -321,8 +209,8 @@ _ADDRESSES = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=512,
-  serialized_end=559,
+  serialized_start=304,
+  serialized_end=351,
 )
 
 
@@ -380,8 +268,8 @@ _MORECOMPLEX = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=562,
-  serialized_end=721,
+  serialized_start=354,
+  serialized_end=513,
 )
 
 
@@ -411,50 +299,22 @@ _ID = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=723,
-  serialized_end=739,
+  serialized_start=515,
+  serialized_end=531,
 )
 
-_SCHEMA_PROTOSENTRY.containing_type = _SCHEMA
-_SCHEMA_DESCRIPTORSENTRY.containing_type = _SCHEMA
-_SCHEMA.fields_by_name['protos'].message_type = _SCHEMA_PROTOSENTRY
-_SCHEMA.fields_by_name['descriptors'].message_type = _SCHEMA_DESCRIPTORSENTRY
 _HEALTHSTATUS.fields_by_name['state'].enum_type = _HEALTHSTATUS_HEALTHSTATE
 _HEALTHSTATUS_HEALTHSTATE.containing_type = _HEALTHSTATUS
 _ADDRESSES.fields_by_name['addresses'].message_type = _ADDRESS
 _MORECOMPLEX.fields_by_name['health'].message_type = _HEALTHSTATUS
 _MORECOMPLEX.fields_by_name['children'].message_type = _MORECOMPLEX
 _MORECOMPLEX.fields_by_name['address'].message_type = _ADDRESS
-DESCRIPTOR.message_types_by_name['Schema'] = _SCHEMA
 DESCRIPTOR.message_types_by_name['NullMessage'] = _NULLMESSAGE
 DESCRIPTOR.message_types_by_name['HealthStatus'] = _HEALTHSTATUS
 DESCRIPTOR.message_types_by_name['Address'] = _ADDRESS
 DESCRIPTOR.message_types_by_name['Addresses'] = _ADDRESSES
 DESCRIPTOR.message_types_by_name['MoreComplex'] = _MORECOMPLEX
 DESCRIPTOR.message_types_by_name['ID'] = _ID
-
-Schema = _reflection.GeneratedProtocolMessageType('Schema', (_message.Message,), dict(
-
-  ProtosEntry = _reflection.GeneratedProtocolMessageType('ProtosEntry', (_message.Message,), dict(
-    DESCRIPTOR = _SCHEMA_PROTOSENTRY,
-    __module__ = 'voltha_pb2'
-    # @@protoc_insertion_point(class_scope:voltha.Schema.ProtosEntry)
-    ))
-  ,
-
-  DescriptorsEntry = _reflection.GeneratedProtocolMessageType('DescriptorsEntry', (_message.Message,), dict(
-    DESCRIPTOR = _SCHEMA_DESCRIPTORSENTRY,
-    __module__ = 'voltha_pb2'
-    # @@protoc_insertion_point(class_scope:voltha.Schema.DescriptorsEntry)
-    ))
-  ,
-  DESCRIPTOR = _SCHEMA,
-  __module__ = 'voltha_pb2'
-  # @@protoc_insertion_point(class_scope:voltha.Schema)
-  ))
-_sym_db.RegisterMessage(Schema)
-_sym_db.RegisterMessage(Schema.ProtosEntry)
-_sym_db.RegisterMessage(Schema.DescriptorsEntry)
 
 NullMessage = _reflection.GeneratedProtocolMessageType('NullMessage', (_message.Message,), dict(
   DESCRIPTOR = _NULLMESSAGE,
@@ -501,104 +361,11 @@ _sym_db.RegisterMessage(ID)
 
 DESCRIPTOR.has_options = True
 DESCRIPTOR._options = _descriptor._ParseOptions(descriptor_pb2.FileOptions(), _b('\n\023org.opencord.volthaB\014VolthaProtos\252\002\026Opencord.Voltha.Voltha'))
-_SCHEMA_PROTOSENTRY.has_options = True
-_SCHEMA_PROTOSENTRY._options = _descriptor._ParseOptions(descriptor_pb2.MessageOptions(), _b('8\001'))
-_SCHEMA_DESCRIPTORSENTRY.has_options = True
-_SCHEMA_DESCRIPTORSENTRY._options = _descriptor._ParseOptions(descriptor_pb2.MessageOptions(), _b('8\001'))
 import grpc
 from grpc.beta import implementations as beta_implementations
 from grpc.beta import interfaces as beta_interfaces
 from grpc.framework.common import cardinality
 from grpc.framework.interfaces.face import utilities as face_utilities
-
-
-class SchemaServiceStub(object):
-  """Schema services
-  """
-
-  def __init__(self, channel):
-    """Constructor.
-
-    Args:
-      channel: A grpc.Channel.
-    """
-    self.GetSchema = channel.unary_unary(
-        '/voltha.SchemaService/GetSchema',
-        request_serializer=NullMessage.SerializeToString,
-        response_deserializer=Schema.FromString,
-        )
-
-
-class SchemaServiceServicer(object):
-  """Schema services
-  """
-
-  def GetSchema(self, request, context):
-    """Return active grpc schemas
-    """
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-
-def add_SchemaServiceServicer_to_server(servicer, server):
-  rpc_method_handlers = {
-      'GetSchema': grpc.unary_unary_rpc_method_handler(
-          servicer.GetSchema,
-          request_deserializer=NullMessage.FromString,
-          response_serializer=Schema.SerializeToString,
-      ),
-  }
-  generic_handler = grpc.method_handlers_generic_handler(
-      'voltha.SchemaService', rpc_method_handlers)
-  server.add_generic_rpc_handlers((generic_handler,))
-
-
-class BetaSchemaServiceServicer(object):
-  """Schema services
-  """
-  def GetSchema(self, request, context):
-    """Return active grpc schemas
-    """
-    context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-
-
-class BetaSchemaServiceStub(object):
-  """Schema services
-  """
-  def GetSchema(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-    """Return active grpc schemas
-    """
-    raise NotImplementedError()
-  GetSchema.future = None
-
-
-def beta_create_SchemaService_server(servicer, pool=None, pool_size=None, default_timeout=None, maximum_timeout=None):
-  request_deserializers = {
-    ('voltha.SchemaService', 'GetSchema'): NullMessage.FromString,
-  }
-  response_serializers = {
-    ('voltha.SchemaService', 'GetSchema'): Schema.SerializeToString,
-  }
-  method_implementations = {
-    ('voltha.SchemaService', 'GetSchema'): face_utilities.unary_unary_inline(servicer.GetSchema),
-  }
-  server_options = beta_implementations.server_options(request_deserializers=request_deserializers, response_serializers=response_serializers, thread_pool=pool, thread_pool_size=pool_size, default_timeout=default_timeout, maximum_timeout=maximum_timeout)
-  return beta_implementations.server(method_implementations, options=server_options)
-
-
-def beta_create_SchemaService_stub(channel, host=None, metadata_transformer=None, pool=None, pool_size=None):
-  request_serializers = {
-    ('voltha.SchemaService', 'GetSchema'): NullMessage.SerializeToString,
-  }
-  response_deserializers = {
-    ('voltha.SchemaService', 'GetSchema'): Schema.FromString,
-  }
-  cardinalities = {
-    'GetSchema': cardinality.Cardinality.UNARY_UNARY,
-  }
-  stub_options = beta_implementations.stub_options(host=host, metadata_transformer=metadata_transformer, request_serializers=request_serializers, response_deserializers=response_deserializers, thread_pool=pool, thread_pool_size=pool_size)
-  return beta_implementations.dynamic_stub(channel, 'voltha.SchemaService', cardinalities, options=stub_options)
 
 
 class HealthServiceStub(object):

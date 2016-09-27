@@ -67,12 +67,13 @@ help:
 	@echo "fetch        : Pre-fetch artifacts for subsequent local builds"
 	@echo "flake8       : Run specifically flake8 tests"
 	@echo "help         : Print this help"
+	@echo "protos       : Compile all grpc/protobuf files"
 	@echo "rebuild-venv : Rebuild local Python virtualenv from scratch"
 	@echo "venv         : Build local Python virtualenv if did not exist yet"
 	@echo "utest        : Run all unit tests"
 	@echo
 
-build: utest build-protos docker-base
+build: utest protos docker-base
 	docker build -t cord/voltha -f Dockerfile.voltha .
 	docker build -t cord/chameleon -f Dockerfile.chameleon .
 
@@ -82,11 +83,12 @@ docker-base: .docker-base-built
 	docker build -t cord/voltha-base -f Dockerfile.base .
 	touch .docker-base-built
 
-build-protos:
-	make -C voltha/core/protos
+protos:
+	make -C voltha/protos
+	make -C chameleon/protos
 
 install-protoc:
-	make -C voltha/core/protos install-protoc
+	make -C voltha/protos install-protoc
 
 clean:
 	find voltha -name '*.pyc' | xargs rm -f

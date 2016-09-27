@@ -160,7 +160,7 @@ if __name__ == '__main__':
 
     # try loading voltha descriptor and turn it into JSON data as a preparation
     # for generating JSON Schema / swagger file (to be done later)
-    from voltha.core.protos import voltha_pb2
+    from voltha.protos import voltha_pb2
     desc_dir = os.path.dirname(inspect.getfile(voltha_pb2))
     desc_file = os.path.join(desc_dir, 'voltha.desc')
     with open(desc_file, 'rb') as f:

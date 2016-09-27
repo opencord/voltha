@@ -26,10 +26,12 @@ from twisted.internet.defer import inlineCallbacks
 
 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(base_dir)
+sys.path.append(os.path.join(base_dir, '/chameleon/protos/third_party'))
 
 from chameleon.structlog_setup import setup_logging
 from chameleon.nethelpers import get_my_primary_local_ipv4
 from chameleon.dockerhelpers import get_my_containers_name
+from chameleon.grpc_client.grpc_client import GrpcClient
 
 
 defs = dict(
@@ -80,6 +82,18 @@ def parse_args():
                         dest='fluentd',
                         action='store',
                         default=defs['fluentd'],
+                        help=_help)
+
+    _help = ('gRPC end-point to connect to. It can either be a direct'
+             'definition in the form of <hostname>:<port>, or it can be an'
+             'indirect definition in the form of @<service-name> where'
+             '<service-name> is the name of the grpc service as registered'
+             'in consul (example: @voltha-grpc). (default: %s'
+             % defs['grpc_endpoint'])
+    parser.add_argument('-G', '--grpc-endpoint',
+                        dest='grpc_endpoint',
+                        action='store',
+                        default=defs['grpc_endpoint'],
                         help=_help)
 
     _help = ('<hostname> or <ip> at which Chameleon is reachable from inside'
@@ -196,7 +210,9 @@ class Main(object):
     def startup_components(self):
         self.log.info('starting-internal-components')
 
-        # TODO init client
+        self.grpc_client = \
+            GrpcClient(self.args.consul, self.args.grpc_endpoint).run()
+
         # TODO init server
 
         self.log.info('started-internal-services')
