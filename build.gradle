@@ -13,24 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import org.opencord.gradle.rules.*
-import org.yaml.snakeyaml.Yaml
 
 allprojects {
     apply plugin: 'base'
-    apply plugin: 'de.gesellix.docker'
-
-    docker {
-        // dockerHost = System.env.DOCKER_HOST ?: 'unix:///var/run/docker.sock'
-        // dockerHost = System.env.DOCKER_HOST ?: 'https://192.168.99.100:2376'
-        // certPath = System.getProperty('docker.cert.path') ?: "${System.getProperty('user.home')}/.docker/machine/machines/default"
-        // authConfigPlain = [
-        //   "username"       : "joe",
-        //   "password"       : "some-pw-as-needed",
-        //   "email"          : "joe@acme.com",
-        //   "serveraddress"  : "https://index.docker.io/v1/"
-        //  ]
-    }
 }
 
 ext {
@@ -51,13 +36,13 @@ ext {
 
 // To be used to fetch upstream binaries, clone repos, etc.
 task fetch(type: Exec) {
-    commandLine "make", "fetch"
+    commandLine ".", "env.sh", "&&", "make", "fetch"
 }
 
 // To be used to generate all needed binaries that need to be present on the target
 // as docker images in the local docker runner.
 task buildImages(type: Exec) {
-    commandLine "make"
+    commandLine ".", "env.sh", "&&", "make"
 }
 
 task tagImage(type: Exec) {
