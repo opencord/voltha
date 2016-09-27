@@ -42,7 +42,15 @@ build: $(PROTOC) $(PROTO_PB2_FILES)
 
 %_pb2.py: %.proto Makefile
 	@echo "Building protocol buffer artifacts from $<"
-	env LD_LIBRARY_PATH=$(PROTOC_LIBDIR) python -m grpc.tools.protoc -I. -I./third_party --python_out=. --grpc_python_out=. --descriptor_set_out=$(basename $<).desc --include_source_info $<
+	env LD_LIBRARY_PATH=$(PROTOC_LIBDIR) python -m grpc.tools.protoc \
+	    -I. \
+	    -I./third_party \
+	    --python_out=. \
+	    --grpc_python_out=. \
+	    --descriptor_set_out=$(basename $<).desc \
+	    --include_imports \
+	    --include_source_info \
+	    $<
 
 clean:
 	rm -f $(PROTO_PB2_FILES) $(PROTO_DESC_FILES)

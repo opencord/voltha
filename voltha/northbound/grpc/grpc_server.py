@@ -16,14 +16,62 @@
 
 """gRPC server endpoint"""
 import uuid
-
+from os.path import abspath, basename, dirname, join, walk
 import grpc
 from concurrent import futures
 from structlog import get_logger
+import zlib
 
 from voltha.core.protos import voltha_pb2
 
 log = get_logger()
+
+
+class SchemaService(voltha_pb2.SchemaServiceServicer):
+
+    def __init__(self):
+        proto_map, descriptor_map = self._load_schema()
+        self.schema = voltha_pb2.Schema(
+            protos=proto_map,
+            descriptors=descriptor_map
+        )
+
+    def _load_schema(self):
+        """Pre-load schema file so that we can serve it up (file sizes
+           are small enough to do so
+        """
+        proto_dir = abspath(join(dirname(__file__), '../../core/protos'))
+
+        def find_files(dir, suffix):
+            proto_files = []
+            visitor = lambda _, d, fnames: proto_files.extend(
+                [join(d, fn) for fn in fnames if fn.endswith(suffix)])
+            walk(dir, visitor, None)
+            return proto_files
+
+        proto_map = {}
+        for fpath in find_files(proto_dir, '.proto'):
+            with open(fpath, 'r') as f:
+                content = f.read()
+            fname = basename(fpath)
+            # assure no two files have the same basename
+            assert fname not in proto_map
+            proto_map[fname] = content
+
+        descriptor_map = {}
+        for fpath in find_files(proto_dir, '.desc'):
+            with open(fpath, 'r') as f:
+                content = f.read()
+            fname = basename(fpath)
+            # assure no two files have the same basename
+            assert fname not in descriptor_map
+            descriptor_map[fname] = zlib.compress(content)
+
+        return proto_map, descriptor_map
+
+    def GetSchema(self, request, context):
+        """Return current schema files and descriptor"""
+        return self.schema
 
 
 class HealthService(voltha_pb2.HealthServiceServicer):
@@ -91,6 +139,8 @@ class VolthaGrpcServer(object):
             HealthService(self.thread_pool), self.server)
         voltha_pb2.add_ExampleServiceServicer_to_server(
             ExampleService(self.thread_pool), self.server)
+        voltha_pb2.add_SchemaServiceServicer_to_server(
+            SchemaService(), self.server)
 
         self.server.add_insecure_port('[::]:%s' % self.port)
 

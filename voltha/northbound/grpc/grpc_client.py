@@ -25,6 +25,17 @@ def run():
 
     channel = grpc.insecure_channel('localhost:50055')
 
+    # Test fetch the schema
+    stub = voltha_pb2.SchemaServiceStub(channel)
+    res = stub.GetSchema(voltha_pb2.NullMessage())
+    print '\nSchema:\n'
+    for key in res.protos:
+        print '%s %s file begins %s\n' % (30 * '~', key, (35 - len(key)) * '~')
+        print res.protos[key]
+        print '%s %s file ends %s' % (30 * '~', key, (37 - len(key)) * '~')
+    for key in res.descriptors:
+        print '%s -> descriptor of %d bytes' % (key, len(res.descriptors[key]))
+
     # Ping health state as an example
     stub = voltha_pb2.HealthServiceStub(channel)
     res = stub.GetHealthStatus(voltha_pb2.NullMessage())
