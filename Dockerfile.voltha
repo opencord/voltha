@@ -15,24 +15,11 @@
 # limitations under the License.
 #
 
-FROM ubuntu:xenial
+FROM cord/voltha-base
 
 MAINTAINER Zsolt Haraszti <zharaszt@ciena.com>
 MAINTAINER Ali Al-Shabibi <ali.al-shabibi@onlab.us>
 MAINTAINER Nathan Knuth   <nathan.knuth@tibitcom.com>
-
-# Update to have latest images
-RUN apt-get update && \
-    apt-get install -y python python-pip openssl
-
-COPY requirements.txt /tmp/requirements.txt
-
-# pip install cython enum34 six && \
-# Install app dependencies
-RUN apt-get install -y wget build-essential make gcc binutils python-dev libffi-dev libssl-dev git && \
-    pip install -r /tmp/requirements.txt && \
-    apt-get purge -y wget build-essential make gcc binutils python-dev libffi-dev libssl-dev git && \
-    apt-get autoremove -y
 
 # Bundle app source
 COPY voltha /voltha

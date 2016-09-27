@@ -72,8 +72,14 @@ help:
 	@echo "utest        : Run all unit tests"
 	@echo
 
-build: utest build-protos
-	docker build -t cord/voltha -f Dockerfile .
+build: utest build-protos docker-base
+	docker build -t cord/voltha -f Dockerfile.voltha .
+
+docker-base: .docker-base-built
+
+.docker-base-built: Dockerfile.base Makefile requirements.txt
+	docker build -t cord/voltha-base -f Dockerfile.base .
+	touch .docker-base-built
 
 build-protos:
 	make -C voltha/core/protos

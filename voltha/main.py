@@ -24,7 +24,9 @@ import time
 import yaml
 from twisted.internet.defer import inlineCallbacks
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(base_dir)
+sys.path.append(os.path.join(base_dir, '/voltha/core/protos/third_party'))
 
 from voltha.coordinator import Coordinator
 from voltha.dockerhelpers import get_my_containers_name
