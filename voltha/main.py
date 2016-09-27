@@ -36,15 +36,16 @@ from voltha.northbound.rest.health_check import init_rest_service
 from voltha.structlog_setup import setup_logging
 
 defs = dict(
-    consul=os.environ.get('CONSUL', 'localhost:8500'),
-    instance_id=os.environ.get('INSTANCE_ID', os.environ.get('HOSTNAME', '1')),
     config=os.environ.get('CONFIG', './voltha.yml'),
-    interface=os.environ.get('INTERFACE', get_my_primary_interface()),
-    internal_host_address=os.environ.get('INTERNAL_HOST_ADDRESS',
-                                         get_my_primary_local_ipv4()),
+    consul=os.environ.get('CONSUL', 'localhost:8500'),
     external_host_address=os.environ.get('EXTERNAL_HOST_ADDRESS',
                                          get_my_primary_local_ipv4()),
     fluentd=os.environ.get('FLUENTD', None),
+    grpc_port=os.environ.get('GRPC_PORT', 50055),
+    instance_id=os.environ.get('INSTANCE_ID', os.environ.get('HOSTNAME', '1')),
+    internal_host_address=os.environ.get('INTERNAL_HOST_ADDRESS',
+                                         get_my_primary_local_ipv4()),
+    interface=os.environ.get('INTERFACE', get_my_primary_interface()),
     rest_port=os.environ.get('REST_PORT', 8880),
 )
 
@@ -76,6 +77,14 @@ def parse_args():
                         default=defs['external_host_address'],
                         help=_help)
 
+    _help = ('port number of the GRPC service exposed by voltha (default: %s)'
+             % defs['grpc_port'])
+    parser.add_argument('-g', '--grpc-port',
+                        dest='grpc_port',
+                        action='store',
+                        default=defs['grpc_port'],
+                        help=_help)
+    
     _help = ('<hostname>:<port> to fluentd server (default: %s). (If not '
              'specified (None), the address from the config file is used'
              % defs['fluentd'])
@@ -220,7 +229,7 @@ class Main(object):
             consul=self.args.consul)
         init_rest_service(self.args.rest_port)
 
-        self.grpc_server = VolthaGrpcServer().run()
+        self.grpc_server = VolthaGrpcServer(self.args.grpc_port).run()
 
         self.log.info('started-internal-services')
 

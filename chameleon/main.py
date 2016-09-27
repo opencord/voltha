@@ -33,14 +33,15 @@ from chameleon.dockerhelpers import get_my_containers_name
 
 
 defs = dict(
-    #consul=os.environ.get('CONSUL', 'localhost:8500'),
-    instance_id=os.environ.get('INSTANCE_ID', os.environ.get('HOSTNAME', '1')),
     config=os.environ.get('CONFIG', './chameleon.yml'),
-    internal_host_address=os.environ.get('INTERNAL_HOST_ADDRESS',
-                                         get_my_primary_local_ipv4()),
+    consul=os.environ.get('CONSUL', 'localhost:8500'),
     external_host_address=os.environ.get('EXTERNAL_HOST_ADDRESS',
                                          get_my_primary_local_ipv4()),
+    grpc_endpoint=os.environ.get('GRPC_ENDPOINT', 'localhost:50055'),
     fluentd=os.environ.get('FLUENTD', None),
+    instance_id=os.environ.get('INSTANCE_ID', os.environ.get('HOSTNAME', '1')),
+    internal_host_address=os.environ.get('INTERNAL_HOST_ADDRESS',
+                                         get_my_primary_local_ipv4()),
     rest_port=os.environ.get('REST_PORT', 8881),
 )
 
@@ -58,13 +59,11 @@ def parse_args():
                         default=defs['config'],
                         help=_help)
 
-    '''
     _help = '<hostname>:<port> to consul agent (default: %s)' % defs['consul']
     parser.add_argument(
         '-C', '--consul', dest='consul', action='store',
         default=defs['consul'],
         help=_help)
-    '''
 
     _help = ('<hostname> or <ip> at which Chameleon is reachable from outside '
              'the cluster (default: %s)' % defs['external_host_address'])
