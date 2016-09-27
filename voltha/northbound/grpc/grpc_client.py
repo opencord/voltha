@@ -18,7 +18,6 @@
 
 import grpc
 
-from voltha.northbound.grpc import pb2_loader
 from voltha.core.protos import voltha_pb2
 
 

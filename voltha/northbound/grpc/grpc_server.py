@@ -21,7 +21,6 @@ import grpc
 from concurrent import futures
 from structlog import get_logger
 
-from voltha.northbound.grpc import pb2_loader
 from voltha.core.protos import voltha_pb2
 
 log = get_logger()

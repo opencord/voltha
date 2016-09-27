@@ -22,17 +22,12 @@ import os
 import inspect
 from collections import OrderedDict
 
-from enum import Enum
 from google.protobuf.descriptor import FieldDescriptor, Descriptor
 from google.protobuf.message import Message
 from simplejson import dumps
 
 from google.protobuf import descriptor_pb2
 
-# TODO this hack needs to go
-# don't worry if the below too lines are flagged by your IDE as unused and
-# unresolvable; they are fine.
-import voltha.northbound.grpc.pb2_loader
 from google.api import http_pb2
 
 
