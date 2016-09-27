@@ -16,8 +16,21 @@ There are many ways to build and develop Voltha:
 
 ### Build
 
+If you have not cloned Voltha, it's time to do it now. If you just want to check it out, you can do it anonymously:
+
 ```
-git clone git@bitbucket.org:corddesign/voltha.git
+git clone https://gerrit.opencord.org/voltha
+```
+
+If you want to develop it, you better use your Gerrit credentials and clone is as (substitute your user name):
+
+```
+git clone ssh://<your-gerrit-user-name>@gerrit.opencord.org:29418/voltha
+```
+
+You can build Voltha by:
+
+```
 cd voltha
 vagrant up  # when you do this for the first time, this will take considerable time
 vagrant ssh # the rest to be executed inside the vagrant VM
@@ -156,12 +169,14 @@ There are a lot of things going on between these containers:
    ```
    {
      "voltha-health": [],
+     "voltha-grpc": [],
      "fluentd-intake": [],
      "consul-rest": [],
      "consul-8600": [
        "udp"
      ],
-     "consul": []
+     "consul": [],
+     "chameleon-rest": []
    }
    ```
    
