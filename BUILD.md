@@ -155,7 +155,7 @@ There are a lot of things going on between these containers:
    
    ```
    {
-     "voltha-rest": [],
+     "voltha-health": [],
      "fluentd-intake": [],
      "consul-rest": [],
      "consul-8600": [
@@ -165,10 +165,10 @@ There are a lot of things going on between these containers:
    }
    ```
    
-   You don't see registrator istelf, and you see multiple entries for consul. More importantly you see voltha as a service called "voltha-rest" (referring to the REST service of voltha). You can query additional info on this endpoint from consul:
+   You don't see registrator istelf, and you see multiple entries for consul. More importantly you see voltha as a service called "voltha-health" (referring to the REST health check service of voltha). You can query additional info on this endpoint from consul:
    
    ```
-   curl -s http://localhost:8500/v1/catalog/service/voltha-rest | jq -r .
+   curl -s http://localhost:8500/v1/catalog/service/voltha-health | jq -r .
    ```
    
    This will provide the complete service record for the voltha instance:
@@ -186,7 +186,7 @@ There are a lot of things going on between these containers:
          "lan": "172.18.0.3"
        },
        "ServiceID": "ef1b466f2ede:compose_voltha_1:8880",
-       "ServiceName": "voltha-rest",
+       "ServiceName": "voltha-health",
        "ServiceTags": [],
        "ServiceAddress": "10.0.2.15",
        "ServicePort": 32768
@@ -223,26 +223,26 @@ There are a lot of things going on between these containers:
   
    If you look into the lo stream of voltha, you can see an entry every 3 seconds indicating that voltha received the health check request and responded (you need -v (verbose mode) enabled to see these).
   
-   One way to see the health checks are passing is to point your browser to the user interface of consul: [http://10.100.198.220:8500/ui](http://10.100.198.220:8500/ui). Click on the voltha-rest entry and you shall see its passing two health tests, the one with the name volta-rest is our healthcheck.
+   One way to see the health checks are passing is to point your browser to the user interface of consul: [http://10.100.198.220:8500/ui](http://10.100.198.220:8500/ui). Click on the voltha-health entry and you shall see its passing two health tests, the one with the name volta-rest is our healthcheck.
   
 6. Consul exposes the service records also as a DNS server. This is how it can be used:
 
    To check the IP address(es) for voltha's REST interface, you can use:
    
    ```
-   dig @localhost -p 8600 voltha-rest.service.consul
+   dig @localhost -p 8600 voltha-health.service.consul
    ```
    
    Which shall print, among other things an A record:
    
    ```
-   voltha-rest.service.consul. 0  	IN     	A      	10.0.2.15
+   voltha-health.service.consul. 0  	IN     	A      	10.0.2.15
    ```
    
    Or if you want the IP adress only:
    
    ```
-   dig @localhost -p 8600 +short voltha-rest.service.consul
+   dig @localhost -p 8600 +short voltha-health.service.consul
    ```
    
    Which shall print just an IP address.
@@ -250,7 +250,7 @@ There are a lot of things going on between these containers:
    If you want the exposed service port as well:
    
    ```
-   dig @localhost -p 8600 +short voltha-rest.service.consul SRV
+   dig @localhost -p 8600 +short voltha-health.service.consul SRV
    ```
    
    The 3rd field in the response is the exposed TCP port voltha's REST API is accessible.

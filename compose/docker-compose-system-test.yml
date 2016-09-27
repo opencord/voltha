@@ -53,21 +53,24 @@ services:
       "--consul=consul:8500",
       "--fluentd=fluentd:24224",
       "--rest-port=8880",
+      "--grpc-port=50555",
       "--instance-id-is-container-name",
       "-v"
     ]
     ports:
     - 8880
+    - 50555
     depends_on:
     - consul
     links:
     - consul
     - fluentd
     environment:
-      SERVICE_8880_NAME: "voltha-rest"
+      SERVICE_8880_NAME: "voltha-health"
       SERVICE_8880_CHECK_HTTP: "/health"
       SERVICE_8880_CHECK_INTERVAL: "5s"
       SERVICE_8880_CHECK_TIMEOUT: "1s"
+      SERVICE_50555_NAME: "voltha-grpc"
     volumes:
     - "/var/run/docker.sock:/tmp/docker.sock"
   #
