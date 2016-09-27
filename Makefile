@@ -61,7 +61,7 @@ help:
 	@echo "Usage: make [<target>]"
 	@echo "where available targets are:"
 	@echo
-	@echo "build        : Build the Voltha docker image (default target)"
+	@echo "build        : Build the Voltha docker images (default target)"
 	@echo "clean        : Remove files created by the build and tests"
 	@echo "distclean    : Remove venv directory"
 	@echo "fetch        : Pre-fetch artifacts for subsequent local builds"
@@ -74,6 +74,7 @@ help:
 
 build: utest build-protos docker-base
 	docker build -t cord/voltha -f Dockerfile.voltha .
+	docker build -t cord/chameleon -f Dockerfile.chameleon .
 
 docker-base: .docker-base-built
 

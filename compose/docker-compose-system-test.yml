@@ -43,7 +43,7 @@ services:
     environment:
       SERVICE_24224_NAME: "fluentd-intake"
   #
-  # Single-node voltha
+  # Voltha server instance(s)
   #
   voltha:
     image: cord/voltha
@@ -68,20 +68,29 @@ services:
       SERVICE_8880_CHECK_HTTP: "/health"
       SERVICE_8880_CHECK_INTERVAL: "5s"
       SERVICE_8880_CHECK_TIMEOUT: "1s"
-      IMAGE_NAME: "{{DCOKER_IMAGE_NAME}}"
     volumes:
     - "/var/run/docker.sock:/tmp/docker.sock"
   #
-  # Test container to see services available
+  # Chameleon server instance(s)
   #
-#  test:
-#    image: busybox
-#    command: tail -F /dev/null
-#    depends_on:
-#    - consul
-#    - voltha
-#    links:
-#    - consul
-#    - registrator
-#    - fluentd
-#    - voltha
+  chameleon:
+    image: cord/chameleon
+    command: [
+      "/chameleon/main.py",
+      "-v",
+      "--fluentd=fluentd:24224",
+      "--rest-port=8881",
+      "--instance-id-is-container-name",
+      "-v"
+    ]
+    ports:
+    - 8881
+    depends_on:
+    - consul
+    links:
+    - consul
+    - fluentd
+    environment:
+      SERVICE_8881_NAME: "chameleon-rest"
+    volumes:
+    - "/var/run/docker.sock:/tmp/docker.sock"

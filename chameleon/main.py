@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-"""Virtual OLT Hardware Abstraction main entry point"""
+"""A REST protocol gateway to self-describing GRPC end-points"""
 
 import argparse
 import os
@@ -26,26 +26,22 @@ from twisted.internet.defer import inlineCallbacks
 
 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(base_dir)
-sys.path.append(os.path.join(base_dir, '/voltha/core/protos/third_party'))
 
-from voltha.coordinator import Coordinator
-from voltha.dockerhelpers import get_my_containers_name
-from voltha.nethelpers import get_my_primary_interface, get_my_primary_local_ipv4
-from voltha.northbound.grpc.grpc_server import VolthaGrpcServer
-from voltha.northbound.rest.health_check import init_rest_service
-from voltha.structlog_setup import setup_logging
+from chameleon.structlog_setup import setup_logging
+from chameleon.nethelpers import get_my_primary_local_ipv4
+from chameleon.dockerhelpers import get_my_containers_name
+
 
 defs = dict(
-    consul=os.environ.get('CONSUL', 'localhost:8500'),
+    #consul=os.environ.get('CONSUL', 'localhost:8500'),
     instance_id=os.environ.get('INSTANCE_ID', os.environ.get('HOSTNAME', '1')),
-    config=os.environ.get('CONFIG', './voltha.yml'),
-    interface=os.environ.get('INTERFACE', get_my_primary_interface()),
+    config=os.environ.get('CONFIG', './chameleon.yml'),
     internal_host_address=os.environ.get('INTERNAL_HOST_ADDRESS',
                                          get_my_primary_local_ipv4()),
     external_host_address=os.environ.get('EXTERNAL_HOST_ADDRESS',
                                          get_my_primary_local_ipv4()),
     fluentd=os.environ.get('FLUENTD', None),
-    rest_port=os.environ.get('REST_PORT', 8880),
+    rest_port=os.environ.get('REST_PORT', 8881),
 )
 
 
@@ -53,8 +49,8 @@ def parse_args():
 
     parser = argparse.ArgumentParser()
 
-    _help = ('Path to voltha.yml config file (default: %s). '
-             'If relative, it is relative to main.py of voltha.'
+    _help = ('Path to chameleon.yml config file (default: %s). '
+             'If relative, it is relative to main.py of chameleon.'
              % defs['config'])
     parser.add_argument('-c', '--config',
                         dest='config',
@@ -62,13 +58,15 @@ def parse_args():
                         default=defs['config'],
                         help=_help)
 
+    '''
     _help = '<hostname>:<port> to consul agent (default: %s)' % defs['consul']
     parser.add_argument(
         '-C', '--consul', dest='consul', action='store',
         default=defs['consul'],
         help=_help)
+    '''
 
-    _help = ('<hostname> or <ip> at which Voltha is reachable from outside '
+    _help = ('<hostname> or <ip> at which Chameleon is reachable from outside '
              'the cluster (default: %s)' % defs['external_host_address'])
     parser.add_argument('-E', '--external-host-address',
                         dest='external_host_address',
@@ -85,15 +83,15 @@ def parse_args():
                         default=defs['fluentd'],
                         help=_help)
 
-    _help = ('<hostname> or <ip> at which Voltha is reachable from inside the'
-             'cluster (default: %s)' % defs['internal_host_address'])
+    _help = ('<hostname> or <ip> at which Chameleon is reachable from inside'
+             'the cluster (default: %s)' % defs['internal_host_address'])
     parser.add_argument('-H', '--internal-host-address',
                         dest='internal_host_address',
                         action='store',
                         default=defs['internal_host_address'],
                         help=_help)
 
-    _help = ('unique string id of this voltha instance (default: %s)'
+    _help = ('unique string id of this Chameleon instance (default: %s)'
              % defs['instance_id'])
     parser.add_argument('-i', '--instance-id',
                         dest='instance_id',
@@ -101,24 +99,9 @@ def parse_args():
                         default=defs['instance_id'],
                         help=_help)
 
-    # TODO placeholder, not used yet
-    _help = 'ETH interface to send (default: %s)' % defs['interface']
-    parser.add_argument('-I', '--interface',
-                        dest='interface',
-                        action='store',
-                        default=defs['interface'],
-                        help=_help)
-
     _help = 'omit startup banner log lines'
     parser.add_argument('-n', '--no-banner',
                         dest='no_banner',
-                        action='store_true',
-                        default=False,
-                        help=_help)
-
-    _help = 'do not emit periodic heartbeat log messages'
-    parser.add_argument('-N', '--no-heartbeat',
-                        dest='no_heartbeat',
                         action='store_true',
                         default=False,
                         help=_help)
@@ -144,7 +127,7 @@ def parse_args():
                         action='count',
                         help=_help)
 
-    _help = ('use docker container name as voltha instance id'
+    _help = ('use docker container name as Chameleon instance id'
              ' (overrides -i/--instance-id option)')
     parser.add_argument('--instance-id-is-container-name',
                         dest='instance_id_is_container_name',
@@ -172,13 +155,17 @@ def load_config(args):
         config = yaml.load(fd)
     return config
 
+banner = r'''
+   ____   _                                  _
+  / ___| | |__     __ _   _ __ ___     ___  | |   ___    ___    _ __
+ | |     | '_ \   / _` | | '_ ` _ \   / _ \ | |  / _ \  / _ \  | '_ \
+ | |___  | | | | | (_| | | | | | | | |  __/ | | |  __/ | (_) | | | | |
+  \____| |_| |_|  \__,_| |_| |_| |_|  \___| |_|  \___|  \___/  |_| |_|
 
+'''
 def print_banner(log):
-    log.info(' _    ______  __  ________  _____ ')
-    log.info('| |  / / __ \/ / /_  __/ / / /   |')
-    log.info('| | / / / / / /   / / / /_/ / /| |')
-    log.info('| |/ / /_/ / /___/ / / __  / ___ |')
-    log.info('|___/\____/_____/_/ /_/ /_/_/  |_|')
+    for line in banner.strip('\n').splitlines():
+        log.info(line)
     log.info('(to stop: press Ctrl-C)')
 
 
@@ -196,14 +183,11 @@ class Main(object):
                                  fluentd=args.fluentd)
 
         # components
-        self.coordinator = None
-        self.grpc_server = None
+        self.rest_server = None
+        self.grpc_client = None
 
         if not args.no_banner:
             print_banner(self.log)
-
-        if not args.no_heartbeat:
-            self.start_heartbeat()
 
         self.startup_components()
 
@@ -212,15 +196,9 @@ class Main(object):
 
     def startup_components(self):
         self.log.info('starting-internal-components')
-        self.coordinator = Coordinator(
-            internal_host_address=self.args.internal_host_address,
-            external_host_address=self.args.external_host_address,
-            rest_port=self.args.rest_port,
-            instance_id=self.args.instance_id,
-            consul=self.args.consul)
-        init_rest_service(self.args.rest_port)
 
-        self.grpc_server = VolthaGrpcServer().run()
+        # TODO init client
+        # TODO init server
 
         self.log.info('started-internal-services')
 
@@ -228,10 +206,10 @@ class Main(object):
     def shutdown_components(self):
         """Execute before the reactor is shut down"""
         self.log.info('exiting-on-keyboard-interrupt')
-        if self.coordinator is not None:
-            yield self.coordinator.shutdown()
-        if self.grpc_server is not None:
-            yield self.grpc_server.shutdown()
+        if self.rest_server is not None:
+            yield self.rest_server.shutdown()
+        if self.grpc_client is not None:
+            yield self.grpc_client.shutdown()
 
     def start_reactor(self):
         from twisted.internet import reactor
@@ -240,18 +218,6 @@ class Main(object):
         reactor.addSystemEventTrigger('before', 'shutdown',
                                       self.shutdown_components)
         reactor.run()
-
-    def start_heartbeat(self):
-
-        t0 = time.time()
-        t0s = time.ctime(t0)
-
-        def heartbeat():
-            self.log.debug(status='up', since=t0s, uptime=time.time() - t0)
-
-        from twisted.internet.task import LoopingCall
-        lc = LoopingCall(heartbeat)
-        lc.start(10)
 
 
 if __name__ == '__main__':
