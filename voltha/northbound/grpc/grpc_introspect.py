@@ -65,29 +65,34 @@ class DescriptorParser(object):
     def get_catalog(self):
         return self.catalog
 
-    def load_descriptor(self, descriptor_blob, fold_comments=True):
+    def load_descriptor(self, descriptor_blob,
+                        fold_comments=True,
+                        type_tag_name='_type'):
 
         # decode desciription
         file_descriptor_set = descriptor_pb2.FileDescriptorSet()
         file_descriptor_set.ParseFromString(descriptor_blob)
 
-        d = self.parse(file_descriptor_set)
+        d = self.parse(file_descriptor_set, type_tag_name=type_tag_name)
         for _file in d['file']:
             if fold_comments:
                 self.fold_comments_in(_file)
             self.catalog[_file['package']] = _file
 
-    def parse_message(self, m):
+    def parse_message(self, m, type_tag_name=None):
         assert isinstance(m, Message)
         d = OrderedDict()
         for fd, v in m.ListFields():
             assert isinstance(fd, FieldDescriptor)
             if fd.label in (1, 2):
-                d[fd.name] = self.parse(v)
+                d[fd.name] = self.parse(v, type_tag_name)
             elif fd.label == 3:
-                d[fd.name] = [self.parse(x) for x in v]
+                d[fd.name] = [self.parse(x, type_tag_name) for x in v]
             else:
                 raise InvalidDescriptorError()
+
+        if type_tag_name is not None:
+            d[type_tag_name] = m.DESCRIPTOR.full_name
 
         return d
 
@@ -97,9 +102,9 @@ class DescriptorParser(object):
         bool: lambda x: x,
     }
 
-    def parse(self, o):
+    def parse(self, o, type_tag_name=None):
         if isinstance(o, Message):
-            return self.parse_message(o)
+            return self.parse_message(o, type_tag_name)
         else:
             return self.parser_table[type(o)](o)
 
@@ -170,21 +175,31 @@ if __name__ == '__main__':
     print dumps(parser.get_catalog(), indent=4)
 
     # try to see if we can decode binary data into JSON automatically
-    def make_mc(name):
-        mc = voltha_pb2.MoreComplex()
-        mc.name = name
-        mc.foo_counter = 123123123
-        # mc.health = voltha_pb2.HealthStatus()
-        mc.health.state = voltha_pb2.HealthStatus.HEALTHY
+    from random import seed, randint
+    seed(0)
+
+    def make_mc(name, n_children=0):
+        mc = voltha_pb2.MoreComplex(
+            name=name,
+            foo_counter=randint(0, 10000),
+            health=voltha_pb2.HealthStatus(
+                state=voltha_pb2.HealthStatus.OVERLOADED
+            ),
+            address=voltha_pb2.MoreComplex.Address(
+                street='1383 N McDowell Blvd',
+                city='Petaluma',
+                zip=94954,
+                state='CA'
+            ),
+            children=[make_mc('child%d' % (i + 1)) for i in xrange(n_children)]
+        )
         return mc
 
-    mc = make_mc('root')
-    child1 = mc.
-    print dir(mc)
+    mc = make_mc('root', 3)
     blob = mc.SerializeToString()
     print len(blob), 'bytes'
     mc2 = voltha_pb2.MoreComplex()
     mc2.ParseFromString(blob)
     assert mc == mc2
 
-    print dumps(parser.parse(mc), indent=4)
+    print dumps(parser.parse(mc, type_tag_name='_type'), indent=4)

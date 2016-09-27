@@ -23,10 +23,18 @@ from voltha.core.protos import voltha_pb2
 
 
 def run():
+
     channel = grpc.insecure_channel('localhost:50055')
+
+    # Ping health state as an example
     stub = voltha_pb2.HealthServiceStub(channel)
-    response = stub.GetHealthStatus(voltha_pb2.NullMessage())
-    print 'Health state:', response.state
+    res = stub.GetHealthStatus(voltha_pb2.NullMessage())
+    print '\nHealth state:', res.state
+
+    # Try another API
+    stub = voltha_pb2.ExampleServiceStub(channel)
+    res = stub.ListAddresses(voltha_pb2.NullMessage())
+    print '\nExample objects returned:\n', res.addresses
 
 if __name__ == '__main__':
     run()

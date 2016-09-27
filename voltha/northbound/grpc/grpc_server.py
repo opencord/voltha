@@ -15,6 +15,8 @@
 #
 
 """gRPC server endpoint"""
+import uuid
+
 import grpc
 from concurrent import futures
 from structlog import get_logger
@@ -34,9 +36,48 @@ class HealthService(voltha_pb2.HealthServiceServicer):
         """Return current health status of a Voltha instance
         """
         log.info('get-health-status', request=request)
-        hs = voltha_pb2.HealthStatus()
-        hs.state = voltha_pb2.HealthStatus.HEALTHY
-        return hs
+        res = voltha_pb2.HealthStatus(
+            state=voltha_pb2.HealthStatus.OVERLOADED  # HEALTHY
+        )
+        return res
+
+
+class ExampleService(voltha_pb2.ExampleServiceServicer):
+
+    def __init__(self, thread_pool):
+        from random import randint
+        self.thread_pool = thread_pool
+        self.db = dict((id, voltha_pb2.Address(
+            id=id,
+            street="%d 1st Street" % randint(1, 4000),
+            city="Petaluma",
+            zip=94954,
+            state="CA"
+        )) for id in (uuid.uuid5(uuid.NAMESPACE_OID, str(i)).get_hex()
+                      for i in xrange(1000, 1005)))
+
+    def GetAddress(self, request, context):
+        log.info('get-address', request=request)
+        return self.db[request.id]
+
+    def ListAddresses(self, request, context):
+        log.info('list-addresses', request=request)
+        res = voltha_pb2.Addresses(
+            addresses=self.db.values()
+        )
+        return res
+
+    def CreateAddress(self, request, context):
+        log.info('create-address', request=request)
+        id = uuid.uuid4().get_hex()
+        request.id = id
+        self.db[id] = request
+        return request
+
+    def DeleteAddress(self, request, context):
+        log.info('delete-address', request=request)
+        del self.db[request.id]
+        return voltha_pb2.NullMessage()
 
 
 class VolthaGrpcServer(object):
@@ -49,6 +90,8 @@ class VolthaGrpcServer(object):
 
         voltha_pb2.add_HealthServiceServicer_to_server(
             HealthService(self.thread_pool), self.server)
+        voltha_pb2.add_ExampleServiceServicer_to_server(
+            ExampleService(self.thread_pool), self.server)
 
         self.server.add_insecure_port('[::]:%s' % self.port)
 

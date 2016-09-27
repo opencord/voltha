@@ -91,6 +91,7 @@ fetch:
 	docker pull consul:latest
 	docker pull fluent/fluentd:latest
 	docker pull gliderlabs/registrator:latest
+	docker pull ubuntu:xenial
 
 purge-venv:
 	rm -fr ${VENVDIR}

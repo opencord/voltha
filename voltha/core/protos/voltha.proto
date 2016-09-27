@@ -1,5 +1,3 @@
-// See README.txt for information and build instructions.
-
 syntax = "proto3";
 
 package voltha;
@@ -28,23 +26,77 @@ message HealthStatus {
 
 }
 
-// A more complex message type for testing purposes
-message MoreComplex {
-  HealthStatus health = 1; // Embedded health
-  int32 foo_counter = 2; // Counting foos
-  string name = 3;  // Name of this thing
-  repeated MoreComplex children = 4;  // Nested object to test recursion type
-}
-
+// Health related services
 service HealthService {
 
   // Return current health status of a Voltha instance
   rpc GetHealthStatus(NullMessage) returns (HealthStatus) {
     option (google.api.http) = {
       get: "/health"
-      body: '*'
     };
   }
 
 }
 
+// (placeholder) Address as example message
+message Address {
+  string id = 7;  // ID of address record
+  string street = 1;  // Street address
+  string street2 = 2;  // Apartment, suite, building, etc.
+  string street3 = 3;  // Apartment, suite, building, etc.
+  string city = 4;  // City
+  string state = 5;  // State
+  uint32 zip = 6;   // Zip code
+}
+
+message Addresses {
+  repeated Address addresses = 1;
+}
+
+// (placeholder) A more complex message type for testing purposes
+message MoreComplex {
+  HealthStatus health = 1; // Embedded health status
+  int32 foo_counter = 2; // Counting foos
+  string name = 3;  // Name of this thing
+  repeated MoreComplex children = 4;  // Nested object to test recursion type
+  Address address = 5;
+}
+
+// (placeholder) Convey an identifier
+message ID {
+  string id = 1;
+}
+
+// (placeholder) This is an example service
+service ExampleService {
+
+  // Return a bit more complex objects
+  rpc ListAddresses(NullMessage) returns (Addresses) {
+    option (google.api.http) = {
+      get: "/addresses"
+    };
+  }
+
+  // Return an address by ID
+  rpc GetAddress(ID) returns (Address) {
+    option (google.api.http) = {
+      get: "/addresses/{id}"
+    };
+  }
+
+  // Create an address record
+  rpc CreateAddress(Address) returns (Address) {
+    option (google.api.http) = {
+      post: "/addresses"
+      body: "*"
+    };
+  }
+
+  // Delete an address record by ID
+  rpc DeleteAddress(ID) returns (NullMessage) {
+    option (google.api.http) = {
+      delete: "/addresses/{id}"
+    };
+  }
+
+}
