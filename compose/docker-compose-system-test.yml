@@ -90,6 +90,7 @@ services:
     - 8881
     depends_on:
     - consul
+    - voltha
     links:
     - consul
     - fluentd

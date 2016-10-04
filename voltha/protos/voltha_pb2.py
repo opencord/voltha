@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='voltha.proto',
   package='voltha',
   syntax='proto3',
-  serialized_pb=_b('\n\x0cvoltha.proto\x12\x06voltha\x1a\x1cgoogle/api/annotations.proto\"\r\n\x0bNullMessage\"v\n\x0cHealthStatus\x12/\n\x05state\x18\x01 \x01(\x0e\x32 .voltha.HealthStatus.HealthState\"5\n\x0bHealthState\x12\x0b\n\x07HEALTHY\x10\x00\x12\x0e\n\nOVERLOADED\x10\x01\x12\t\n\x05\x44YING\x10\x02\"q\n\x07\x41\x64\x64ress\x12\n\n\x02id\x18\x07 \x01(\t\x12\x0e\n\x06street\x18\x01 \x01(\t\x12\x0f\n\x07street2\x18\x02 \x01(\t\x12\x0f\n\x07street3\x18\x03 \x01(\t\x12\x0c\n\x04\x63ity\x18\x04 \x01(\t\x12\r\n\x05state\x18\x05 \x01(\t\x12\x0b\n\x03zip\x18\x06 \x01(\r\"/\n\tAddresses\x12\"\n\taddresses\x18\x01 \x03(\x0b\x32\x0f.voltha.Address\"\x9f\x01\n\x0bMoreComplex\x12$\n\x06health\x18\x01 \x01(\x0b\x32\x14.voltha.HealthStatus\x12\x13\n\x0b\x66oo_counter\x18\x02 \x01(\x05\x12\x0c\n\x04name\x18\x03 \x01(\t\x12%\n\x08\x63hildren\x18\x04 \x03(\x0b\x32\x13.voltha.MoreComplex\x12 \n\x07\x61\x64\x64ress\x18\x05 \x01(\x0b\x32\x0f.voltha.Address\"\x10\n\x02ID\x12\n\n\x02id\x18\x01 \x01(\t2^\n\rHealthService\x12M\n\x0fGetHealthStatus\x12\x13.voltha.NullMessage\x1a\x14.voltha.HealthStatus\"\x0f\x82\xd3\xe4\x93\x02\t\x12\x07/health2\xb6\x02\n\x0e\x45xampleService\x12K\n\rListAddresses\x12\x13.voltha.NullMessage\x1a\x11.voltha.Addresses\"\x12\x82\xd3\xe4\x93\x02\x0c\x12\n/addresses\x12\x42\n\nGetAddress\x12\n.voltha.ID\x1a\x0f.voltha.Address\"\x17\x82\xd3\xe4\x93\x02\x11\x12\x0f/addresses/{id}\x12H\n\rCreateAddress\x12\x0f.voltha.Address\x1a\x0f.voltha.Address\"\x15\x82\xd3\xe4\x93\x02\x0f\"\n/addresses:\x01*\x12I\n\rDeleteAddress\x12\n.voltha.ID\x1a\x13.voltha.NullMessage\"\x17\x82\xd3\xe4\x93\x02\x11*\x0f/addresses/{id}B<\n\x13org.opencord.volthaB\x0cVolthaProtos\xaa\x02\x16Opencord.Voltha.Volthab\x06proto3')
+  serialized_pb=_b('\n\x0cvoltha.proto\x12\x06voltha\x1a\x1cgoogle/api/annotations.proto\"\r\n\x0bNullMessage\"v\n\x0cHealthStatus\x12/\n\x05state\x18\x01 \x01(\x0e\x32 .voltha.HealthStatus.HealthState\"5\n\x0bHealthState\x12\x0b\n\x07HEALTHY\x10\x00\x12\x0e\n\nOVERLOADED\x10\x01\x12\t\n\x05\x44YING\x10\x02\"q\n\x07\x41\x64\x64ress\x12\n\n\x02id\x18\x07 \x01(\t\x12\x0e\n\x06street\x18\x01 \x01(\t\x12\x0f\n\x07street2\x18\x02 \x01(\t\x12\x0f\n\x07street3\x18\x03 \x01(\t\x12\x0c\n\x04\x63ity\x18\x04 \x01(\t\x12\r\n\x05state\x18\x05 \x01(\t\x12\x0b\n\x03zip\x18\x06 \x01(\r\"/\n\tAddresses\x12\"\n\taddresses\x18\x01 \x03(\x0b\x32\x0f.voltha.Address\"\x9f\x01\n\x0bMoreComplex\x12$\n\x06health\x18\x01 \x01(\x0b\x32\x14.voltha.HealthStatus\x12\x13\n\x0b\x66oo_counter\x18\x02 \x01(\x05\x12\x0c\n\x04name\x18\x03 \x01(\t\x12%\n\x08\x63hildren\x18\x04 \x03(\x0b\x32\x13.voltha.MoreComplex\x12 \n\x07\x61\x64\x64ress\x18\x05 \x01(\x0b\x32\x0f.voltha.Address\"\x10\n\x02ID\x12\n\n\x02id\x18\x01 \x01(\t2^\n\rHealthService\x12M\n\x0fGetHealthStatus\x12\x13.voltha.NullMessage\x1a\x14.voltha.HealthStatus\"\x0f\x82\xd3\xe4\x93\x02\t\x12\x07/health2\x85\x03\n\x0e\x45xampleService\x12K\n\rListAddresses\x12\x13.voltha.NullMessage\x1a\x11.voltha.Addresses\"\x12\x82\xd3\xe4\x93\x02\x0c\x12\n/addresses\x12\x42\n\nGetAddress\x12\n.voltha.ID\x1a\x0f.voltha.Address\"\x17\x82\xd3\xe4\x93\x02\x11\x12\x0f/addresses/{id}\x12H\n\rCreateAddress\x12\x0f.voltha.Address\x1a\x0f.voltha.Address\"\x15\x82\xd3\xe4\x93\x02\x0f\"\n/addresses:\x01*\x12I\n\rDeleteAddress\x12\n.voltha.ID\x1a\x13.voltha.NullMessage\"\x17\x82\xd3\xe4\x93\x02\x11*\x0f/addresses/{id}\x12M\n\rUpdateAddress\x12\x0f.voltha.Address\x1a\x0f.voltha.Address\"\x1a\x82\xd3\xe4\x93\x02\x14\x32\x0f/addresses/{id}:\x01*B<\n\x13org.opencord.volthaB\x0cVolthaProtos\xaa\x02\x16Opencord.Voltha.Volthab\x06proto3')
   ,
   dependencies=[google_dot_api_dot_annotations__pb2.DESCRIPTOR,])
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
@@ -487,6 +487,11 @@ class ExampleServiceStub(object):
         request_serializer=ID.SerializeToString,
         response_deserializer=NullMessage.FromString,
         )
+    self.UpdateAddress = channel.unary_unary(
+        '/voltha.ExampleService/UpdateAddress',
+        request_serializer=Address.SerializeToString,
+        response_deserializer=Address.FromString,
+        )
 
 
 class ExampleServiceServicer(object):
@@ -521,6 +526,13 @@ class ExampleServiceServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def UpdateAddress(self, request, context):
+    """Update an existing address record by ID
+    """
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
 
 def add_ExampleServiceServicer_to_server(servicer, server):
   rpc_method_handlers = {
@@ -543,6 +555,11 @@ def add_ExampleServiceServicer_to_server(servicer, server):
           servicer.DeleteAddress,
           request_deserializer=ID.FromString,
           response_serializer=NullMessage.SerializeToString,
+      ),
+      'UpdateAddress': grpc.unary_unary_rpc_method_handler(
+          servicer.UpdateAddress,
+          request_deserializer=Address.FromString,
+          response_serializer=Address.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(
@@ -567,6 +584,10 @@ class BetaExampleServiceServicer(object):
     context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
   def DeleteAddress(self, request, context):
     """Delete an address record by ID
+    """
+    context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
+  def UpdateAddress(self, request, context):
+    """Update an existing address record by ID
     """
     context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
 
@@ -594,6 +615,11 @@ class BetaExampleServiceStub(object):
     """
     raise NotImplementedError()
   DeleteAddress.future = None
+  def UpdateAddress(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
+    """Update an existing address record by ID
+    """
+    raise NotImplementedError()
+  UpdateAddress.future = None
 
 
 def beta_create_ExampleService_server(servicer, pool=None, pool_size=None, default_timeout=None, maximum_timeout=None):
@@ -602,18 +628,21 @@ def beta_create_ExampleService_server(servicer, pool=None, pool_size=None, defau
     ('voltha.ExampleService', 'DeleteAddress'): ID.FromString,
     ('voltha.ExampleService', 'GetAddress'): ID.FromString,
     ('voltha.ExampleService', 'ListAddresses'): NullMessage.FromString,
+    ('voltha.ExampleService', 'UpdateAddress'): Address.FromString,
   }
   response_serializers = {
     ('voltha.ExampleService', 'CreateAddress'): Address.SerializeToString,
     ('voltha.ExampleService', 'DeleteAddress'): NullMessage.SerializeToString,
     ('voltha.ExampleService', 'GetAddress'): Address.SerializeToString,
     ('voltha.ExampleService', 'ListAddresses'): Addresses.SerializeToString,
+    ('voltha.ExampleService', 'UpdateAddress'): Address.SerializeToString,
   }
   method_implementations = {
     ('voltha.ExampleService', 'CreateAddress'): face_utilities.unary_unary_inline(servicer.CreateAddress),
     ('voltha.ExampleService', 'DeleteAddress'): face_utilities.unary_unary_inline(servicer.DeleteAddress),
     ('voltha.ExampleService', 'GetAddress'): face_utilities.unary_unary_inline(servicer.GetAddress),
     ('voltha.ExampleService', 'ListAddresses'): face_utilities.unary_unary_inline(servicer.ListAddresses),
+    ('voltha.ExampleService', 'UpdateAddress'): face_utilities.unary_unary_inline(servicer.UpdateAddress),
   }
   server_options = beta_implementations.server_options(request_deserializers=request_deserializers, response_serializers=response_serializers, thread_pool=pool, thread_pool_size=pool_size, default_timeout=default_timeout, maximum_timeout=maximum_timeout)
   return beta_implementations.server(method_implementations, options=server_options)
@@ -625,18 +654,21 @@ def beta_create_ExampleService_stub(channel, host=None, metadata_transformer=Non
     ('voltha.ExampleService', 'DeleteAddress'): ID.SerializeToString,
     ('voltha.ExampleService', 'GetAddress'): ID.SerializeToString,
     ('voltha.ExampleService', 'ListAddresses'): NullMessage.SerializeToString,
+    ('voltha.ExampleService', 'UpdateAddress'): Address.SerializeToString,
   }
   response_deserializers = {
     ('voltha.ExampleService', 'CreateAddress'): Address.FromString,
     ('voltha.ExampleService', 'DeleteAddress'): NullMessage.FromString,
     ('voltha.ExampleService', 'GetAddress'): Address.FromString,
     ('voltha.ExampleService', 'ListAddresses'): Addresses.FromString,
+    ('voltha.ExampleService', 'UpdateAddress'): Address.FromString,
   }
   cardinalities = {
     'CreateAddress': cardinality.Cardinality.UNARY_UNARY,
     'DeleteAddress': cardinality.Cardinality.UNARY_UNARY,
     'GetAddress': cardinality.Cardinality.UNARY_UNARY,
     'ListAddresses': cardinality.Cardinality.UNARY_UNARY,
+    'UpdateAddress': cardinality.Cardinality.UNARY_UNARY,
   }
   stub_options = beta_implementations.stub_options(host=host, metadata_transformer=metadata_transformer, request_serializers=request_serializers, response_deserializers=response_deserializers, thread_pool=pool, thread_pool_size=pool_size)
   return beta_implementations.dynamic_stub(channel, 'voltha.ExampleService', cardinalities, options=stub_options)

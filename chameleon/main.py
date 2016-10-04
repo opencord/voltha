@@ -20,7 +20,7 @@
 import argparse
 import os
 import sys
-import time
+
 import yaml
 from twisted.internet.defer import inlineCallbacks
 
@@ -32,6 +32,7 @@ from chameleon.structlog_setup import setup_logging
 from chameleon.nethelpers import get_my_primary_local_ipv4
 from chameleon.dockerhelpers import get_my_containers_name
 from chameleon.grpc_client.grpc_client import GrpcClient
+from chameleon.web_server.web_server import WebServer
 
 
 defs = dict(
@@ -45,6 +46,7 @@ defs = dict(
     internal_host_address=os.environ.get('INTERNAL_HOST_ADDRESS',
                                          get_my_primary_local_ipv4()),
     rest_port=os.environ.get('REST_PORT', 8881),
+    work_dir=os.environ.get('WORK_DIR', '/tmp/chameleon')
 )
 
 
@@ -140,6 +142,14 @@ def parse_args():
                         action='count',
                         help=_help)
 
+    _help = ('work dir to compile and assemble generated files (default=%s)'
+             % defs['work_dir'])
+    parser.add_argument('-w', '--work-dir',
+                        dest='work_dir',
+                        action='store',
+                        default=defs['work_dir'],
+                        help=_help)
+
     _help = ('use docker container name as Chameleon instance id'
              ' (overrides -i/--instance-id option)')
     parser.add_argument('--instance-id-is-container-name',
@@ -207,14 +217,14 @@ class Main(object):
     def start(self):
         self.start_reactor()  # will not return except Keyboard interrupt
 
+    @inlineCallbacks
     def startup_components(self):
         self.log.info('starting-internal-components')
-
-        self.grpc_client = \
-            GrpcClient(self.args.consul, self.args.grpc_endpoint).run()
-
-        # TODO init server
-
+        args = self.args
+        self.grpc_client = yield \
+            GrpcClient(args.consul, args.work_dir, args.grpc_endpoint).run()
+        self.web_server = yield \
+            WebServer(args.rest_port, args.work_dir, self.grpc_client).run()
         self.log.info('started-internal-services')
 
     @inlineCallbacks

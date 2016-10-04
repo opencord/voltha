@@ -99,4 +99,12 @@ service ExampleService {
     };
   }
 
+  // Update an existing address record by ID
+  rpc UpdateAddress(Address) returns (Address) {
+    option (google.api.http) = {
+      patch: "/addresses/{id}"
+      body: "*"
+    };
+  }
+
 }

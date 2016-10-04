@@ -22,13 +22,15 @@ import os
 import inspect
 from collections import OrderedDict
 
+import sys
+
+from google.protobuf.compiler.plugin_pb2 import CodeGeneratorRequest
 from google.protobuf.descriptor import FieldDescriptor, Descriptor
-from google.protobuf.message import Message
+from google.protobuf.descriptor_pb2 import FileDescriptorProto, MethodOptions
+from google.protobuf.message import Message, DecodeError
 from simplejson import dumps
 
 from google.protobuf import descriptor_pb2
-
-from google.api import http_pb2
 
 
 class InvalidDescriptorError(Exception): pass
@@ -64,12 +66,18 @@ class DescriptorParser(object):
                         fold_comments=True,
                         type_tag_name='_type'):
 
-        # decode desciription
-        file_descriptor_set = descriptor_pb2.FileDescriptorSet()
-        file_descriptor_set.ParseFromString(descriptor_blob)
+        # decode file descriptor set or if that is not possible,
+        # try plugin request
+        try:
+            message = descriptor_pb2.FileDescriptorSet()
+            message.ParseFromString(descriptor_blob)
+        except DecodeError:
+            message = CodeGeneratorRequest()
+            message.ParseFromString(descriptor_blob)
 
-        d = self.parse(file_descriptor_set, type_tag_name=type_tag_name)
-        for _file in d['file']:
+        d = self.parse(message, type_tag_name=type_tag_name)
+        print d.keys()
+        for _file in d.get('file', None) or d['proto_file']:
             if fold_comments:
                 self.fold_comments_in(_file)
             self.catalog[_file['package']] = _file
@@ -160,14 +168,22 @@ if __name__ == '__main__':
 
     # try loading voltha descriptor and turn it into JSON data as a preparation
     # for generating JSON Schema / swagger file (to be done later)
+    if len(sys.argv) >= 2:
+        desc_file = sys.argv[1]
+    else:
+        desc_dir = os.path.dirname(inspect.getfile(voltha_pb2))
+        desc_file = os.path.join(desc_dir, 'voltha.desc')
+
     from voltha.protos import voltha_pb2
-    desc_dir = os.path.dirname(inspect.getfile(voltha_pb2))
-    desc_file = os.path.join(desc_dir, 'voltha.desc')
     with open(desc_file, 'rb') as f:
         descriptor_blob = f.read()
+
     parser = DescriptorParser()
+    parser.save_file_desc = '/tmp/grpc_introspection.out'
+
     parser.load_descriptor(descriptor_blob)
     print dumps(parser.get_catalog(), indent=4)
+    sys.exit(0)
 
     # try to see if we can decode binary data into JSON automatically
     from random import seed, randint
@@ -180,7 +196,7 @@ if __name__ == '__main__':
             health=voltha_pb2.HealthStatus(
                 state=voltha_pb2.HealthStatus.OVERLOADED
             ),
-            address=voltha_pb2.MoreComplex.Address(
+            address=voltha_pb2.Address(
                 street='1383 N McDowell Blvd',
                 city='Petaluma',
                 zip=94954,

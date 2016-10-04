@@ -21,25 +21,27 @@ SchemaService.Schema(NullMessage) and all of its
 semantics are derived from the recovered schema.
 """
 import os
-
-import grpc
 import sys
-from consul import Consul
 from random import randint
-from structlog import get_logger
 from zlib import decompress
 
-from chameleon.protos.schema_pb2 import NullMessage, Schema, SchemaServiceStub
+import grpc
+from consul import Consul
+from structlog import get_logger
+
+from chameleon.protos.schema_pb2 import NullMessage, SchemaServiceStub
 
 log = get_logger()
 
 
 class GrpcClient(object):
 
-    def __init__(self, consul_endpoint, endpoint='localhost:50055'):
+    def __init__(self, consul_endpoint, work_dir, endpoint='localhost:50055'):
         self.consul_endpoint = consul_endpoint
         self.endpoint = endpoint
-        self.work_dir = '/tmp/chameleon'
+        self.work_dir = work_dir
+        self.plugin_dir = os.path.abspath(os.path.join(
+            os.path.dirname(__file__), '../protoc_plugins'))
 
         self.channel = None
         self.schema = None
@@ -134,13 +136,22 @@ class GrpcClient(object):
 
             cmd = (
                 'cd %s && '
+                'env PATH=%s '
                 'python -m grpc.tools.protoc '
                 '-I. '
                 '-I%s '
                 '--python_out=. '
                 '--grpc_python_out=. '
-                '%s' % (self.work_dir, google_api_dir, fname)
+                '--plugin=protoc-gen-gw=%s/gw_gen.py '
+                '--gw_out=. '
+                '%s' % (
+                    self.work_dir,
+                    ':'.join([os.environ['PATH'], self.plugin_dir]),
+                    google_api_dir,
+                    self.plugin_dir,
+                    fname)
             )
+            log.debug('executing', cmd=cmd)
             os.system(cmd)
 
         # test-load each _pb2 file to see all is right
@@ -152,3 +163,7 @@ class GrpcClient(object):
             modname = fname[:-len('.py')]
             log.debug('test-import', modname=modname)
             _ = __import__(modname)
+
+    def invoke(self, stub, method_name, request):
+        response = getattr(stub(self.channel), method_name)(request)
+        return response

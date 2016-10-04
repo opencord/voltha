@@ -35,3 +35,7 @@ tmp
 
 # Editors
 *.bak
+
+# Docker
+.docker-base-built
+

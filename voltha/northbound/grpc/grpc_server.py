@@ -20,6 +20,7 @@ import uuid
 from os.path import abspath, basename, dirname, join, walk
 import grpc
 from concurrent import futures
+from google.protobuf.message import Message
 from structlog import get_logger
 import zlib
 
@@ -126,6 +127,12 @@ class ExampleService(voltha_pb2.ExampleServiceServicer):
         log.info('delete-address', request=request)
         del self.db[request.id]
         return voltha_pb2.NullMessage()
+
+    def UpdateAddress(self, request, context):
+        log.info('update-address', request=request)
+        updated = self.db[request.id]
+        updated.MergeFrom(request)
+        return updated
 
 
 class VolthaGrpcServer(object):
