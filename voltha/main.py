@@ -34,6 +34,8 @@ from voltha.nethelpers import get_my_primary_interface, get_my_primary_local_ipv
 from voltha.northbound.grpc.grpc_server import VolthaGrpcServer
 from voltha.northbound.rest.health_check import init_rest_service
 from voltha.structlog_setup import setup_logging
+from voltha.northbound.kafka.kafka_proxy import KafkaProxy, get_kafka_proxy
+
 
 defs = dict(
     config=os.environ.get('CONFIG', './voltha.yml'),
@@ -47,6 +49,7 @@ defs = dict(
                                          get_my_primary_local_ipv4()),
     interface=os.environ.get('INTERFACE', get_my_primary_interface()),
     rest_port=os.environ.get('REST_PORT', 8880),
+    kafka=os.environ.get('KAFKA', 'localhost:9092'),
 )
 
 
@@ -161,6 +164,15 @@ def parse_args():
                         default=False,
                         help=_help)
 
+    _help = ('<hostname>:<port> of the kafka broker (default: %s). (If not '
+             'specified (None), the address from the config file is used'
+             % defs['kafka'])
+    parser.add_argument('-K', '--kafka',
+                        dest='kafka',
+                        action='store',
+                        default=defs['kafka'],
+                        help=_help)
+
     args = parser.parse_args()
 
     # post-processing
@@ -211,10 +223,11 @@ class Main(object):
         if not args.no_banner:
             print_banner(self.log)
 
+        self.startup_components()
+
         if not args.no_heartbeat:
             self.start_heartbeat()
-
-        self.startup_components()
+            self.start_kafka_heartbeat()
 
     def start(self):
         self.start_reactor()  # will not return except Keyboard interrupt
@@ -230,6 +243,9 @@ class Main(object):
         init_rest_service(self.args.rest_port)
 
         self.grpc_server = VolthaGrpcServer(self.args.grpc_port).run()
+
+        #initialize kafka proxy singleton
+        self.kafka_proxy = KafkaProxy(self.args.consul, self.args.kafka)
 
         self.log.info('started-internal-services')
 
@@ -262,6 +278,18 @@ class Main(object):
         lc = LoopingCall(heartbeat)
         lc.start(10)
 
+    # Temporary function to send a heartbeat message to the external kafka
+    # broker
+    def start_kafka_heartbeat(self):
+        # For heartbeat we will send a message to a specific "voltha-heartbeat"
+        #  topic.  The message is a protocol buf
+        # message
+        message = 'Heartbeat message:{}'.format(get_my_primary_local_ipv4())
+        topic = "voltha-heartbeat"
+
+        from twisted.internet.task import LoopingCall
+        lc = LoopingCall(get_kafka_proxy().send_message, topic, message)
+        lc.start(10)
 
 if __name__ == '__main__':
     Main().start()
