@@ -18,19 +18,18 @@
 Some consul related convenience functions
 """
 
-import os
 from structlog import get_logger
-import sys
 from consul import Consul
 from random import randint
 
 log = get_logger()
 
+
 def get_endpoint_from_consul(consul_endpoint, service_name):
     """Look up, from consul, the service name specified by service-name
     """
     log.debug('Retrieving endpoint {} from consul {}'.format(service_name,
-                                                           consul_endpoint))
+                                                             consul_endpoint))
     host = consul_endpoint.split(':')[0].strip()
     port = int(consul_endpoint.split(':')[1].strip())
 
@@ -38,7 +37,8 @@ def get_endpoint_from_consul(consul_endpoint, service_name):
     _, services = consul.catalog.service(service_name)
 
     if len(services) == 0:
-        raise Exception('Cannot find service {} in consul'.format(service_name))
+        raise Exception(
+            'Cannot find service {} in consul'.format(service_name))
 
     # pick a random entry
     # TODO should we prefer local IP addresses? Probably.

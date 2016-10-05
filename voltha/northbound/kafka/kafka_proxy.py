@@ -14,7 +14,6 @@
 # limitations under the License.
 #
 
-import time
 from afkak.client import KafkaClient as _KafkaClient
 from afkak.producer import Producer as _kafkaProducer
 from structlog import get_logger
@@ -32,8 +31,8 @@ class KafkaProxy(object):
     _kafka_instance = None
 
     def __init__(self, consul_endpoint='localhost:8500',
-                 kafka_endpoint='localhost:9092' ,
-                 ack_timeout = 1000, max_req_attempts = 10):
+                 kafka_endpoint='localhost:9092',
+                 ack_timeout=1000, max_req_attempts=10):
 
         # return an exception if the object already exist
         if KafkaProxy._kafka_instance:
@@ -63,7 +62,6 @@ class KafkaProxy(object):
         self.log.info('initializing-KafkaProxy:{}'.format(_k_endpoint))
         KafkaProxy._kafka_instance = self
 
-
     @inlineCallbacks
     def send_message(self, topic, msg):
         assert topic is not None
@@ -71,8 +69,7 @@ class KafkaProxy(object):
         self.log.info('Sending message {} to kafka topic {}'.format(msg,
                                                                     topic))
         try:
-            msg_list = []
-            msg_list.append(msg)
+            msg_list = [msg]
             yield self.kproducer.send_messages(topic, msgs=msg_list)
             self.log.debug('Successfully sent message {} to kafka topic '
                            '{}'.format(msg, topic))

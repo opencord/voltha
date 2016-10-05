@@ -30,12 +30,12 @@ sys.path.append(os.path.join(base_dir, '/voltha/protos/third_party'))
 
 from voltha.coordinator import Coordinator
 from voltha.dockerhelpers import get_my_containers_name
-from voltha.nethelpers import get_my_primary_interface, get_my_primary_local_ipv4
+from voltha.nethelpers import get_my_primary_interface, \
+    get_my_primary_local_ipv4
 from voltha.northbound.grpc.grpc_server import VolthaGrpcServer
 from voltha.northbound.rest.health_check import init_rest_service
 from voltha.structlog_setup import setup_logging
 from voltha.northbound.kafka.kafka_proxy import KafkaProxy, get_kafka_proxy
-
 
 defs = dict(
     config=os.environ.get('CONFIG', './voltha.yml'),
@@ -54,7 +54,6 @@ defs = dict(
 
 
 def parse_args():
-
     parser = argparse.ArgumentParser()
 
     _help = ('Path to voltha.yml config file (default: %s). '
@@ -87,7 +86,7 @@ def parse_args():
                         action='store',
                         default=defs['grpc_port'],
                         help=_help)
-    
+
     _help = ('<hostname>:<port> to fluentd server (default: %s). (If not '
              'specified (None), the address from the config file is used'
              % defs['fluentd'])
@@ -204,7 +203,6 @@ def print_banner(log):
 
 
 class Main(object):
-
     def __init__(self):
 
         self.args = args = parse_args()
@@ -219,6 +217,7 @@ class Main(object):
         # components
         self.coordinator = None
         self.grpc_server = None
+        self.kafka_proxy = None
 
         if not args.no_banner:
             print_banner(self.log)
@@ -244,7 +243,7 @@ class Main(object):
 
         self.grpc_server = VolthaGrpcServer(self.args.grpc_port).run()
 
-        #initialize kafka proxy singleton
+        # initialize kafka proxy singleton
         self.kafka_proxy = KafkaProxy(self.args.consul, self.args.kafka)
 
         self.log.info('started-internal-services')
@@ -290,6 +289,7 @@ class Main(object):
         from twisted.internet.task import LoopingCall
         lc = LoopingCall(get_kafka_proxy().send_message, topic, message)
         lc.start(10)
+
 
 if __name__ == '__main__':
     Main().start()
