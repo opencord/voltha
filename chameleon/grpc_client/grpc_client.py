@@ -136,7 +136,7 @@ class GrpcClient(object):
 
             cmd = (
                 'cd %s && '
-                'env PATH=%s '
+                'env PATH=%s PYTHONPATH=%s '
                 'python -m grpc.tools.protoc '
                 '-I. '
                 '-I%s '
@@ -147,6 +147,7 @@ class GrpcClient(object):
                 '%s' % (
                     self.work_dir,
                     ':'.join([os.environ['PATH'], self.plugin_dir]),
+                    google_api_dir,
                     google_api_dir,
                     self.plugin_dir,
                     fname)

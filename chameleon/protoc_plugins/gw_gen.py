@@ -17,6 +17,7 @@
 import os
 import sys
 
+from google.protobuf import descriptor as _descriptor
 from google.protobuf.compiler import plugin_pb2 as plugin
 from google.protobuf.descriptor import FieldDescriptor
 from google.protobuf.descriptor_pb2 import ServiceDescriptorProto, MethodOptions
@@ -25,7 +26,7 @@ from jinja2 import Template
 from simplejson import dumps
 
 # without this import, http method annotations would not be recognized:
-from google.api import annotations_pb2 as _, http_pb2
+from google.api import annotations_pb2, http_pb2
 
 
 template = Template("""

@@ -67,22 +67,86 @@ message ID {
   string id = 1;
 }
 
+// Subscriber
+message Subscriber {
+  string id = 1;
+  // TODO add meat here
+}
+
+message Subscribers {
+  repeated Subscriber subscribers = 1;
+}
+
+/*
+message FlowSwitch {
+  string id = 1;
+  string name = 2;
+  uint64 device_id = 3;
+  repeated FlowPort ports = 4;
+}
+
+enum PortSpeed {
+  // TODO
+}
+
+enum PortType {
+  // TODO
+}
+
+message FlowPort {
+  string id = 1;
+  string name = 2;
+  uint32 number = 3;
+  string mac_address = 4;
+  PortSpeed speed = 5;
+  PortType type = 6;
+  string flow_switch_id = 7;
+}
+*/
+
+service VolthaService {
+
+  // Create a subscriber record
+  rpc CreateSubscriber(Subscriber) returns (Subscriber) {
+    option (google.api.http) = {
+      post: "/subscribers"
+      body: "*"
+    };
+  }
+
+  // Return an subscriber by ID
+  rpc GetSubscriber(ID) returns (Subscriber) {
+    option (google.api.http) = {
+      get: "/subscribers/{id}"
+    };
+  }
+
+  // Update an existing subscriber record by ID
+  rpc UpdateSubscriber(Subscriber) returns (Subscriber) {
+    option (google.api.http) = {
+      patch: "/subscribers/{id}"
+      body: "*"
+    };
+  }
+
+  // Delete a subscriber record by ID
+  rpc DeleteSubscriber(ID) returns (NullMessage) {
+    option (google.api.http) = {
+      delete: "/subscribers/{id}"
+    };
+  }
+
+  // List subscribers
+  rpc ListSubscribers(NullMessage) returns (Subscribers) {
+    option (google.api.http) = {
+      get: "/subscribers"
+    };
+  }
+
+}
+
 // (placeholder) This is an example service
 service ExampleService {
-
-  // Return a bit more complex objects
-  rpc ListAddresses(NullMessage) returns (Addresses) {
-    option (google.api.http) = {
-      get: "/addresses"
-    };
-  }
-
-  // Return an address by ID
-  rpc GetAddress(ID) returns (Address) {
-    option (google.api.http) = {
-      get: "/addresses/{id}"
-    };
-  }
 
   // Create an address record
   rpc CreateAddress(Address) returns (Address) {
@@ -92,10 +156,10 @@ service ExampleService {
     };
   }
 
-  // Delete an address record by ID
-  rpc DeleteAddress(ID) returns (NullMessage) {
+  // Return an address by ID
+  rpc GetAddress(ID) returns (Address) {
     option (google.api.http) = {
-      delete: "/addresses/{id}"
+      get: "/addresses/{id}"
     };
   }
 
@@ -107,4 +171,17 @@ service ExampleService {
     };
   }
 
+  // Delete an address record by ID
+  rpc DeleteAddress(ID) returns (NullMessage) {
+    option (google.api.http) = {
+      delete: "/addresses/{id}"
+    };
+  }
+
+  // Return a bit more complex objects
+  rpc ListAddresses(NullMessage) returns (Addresses) {
+    option (google.api.http) = {
+      get: "/addresses"
+    };
+  }
 }

@@ -1,0 +1,8 @@
+# virtualenv dirs
+venv-darwin
+venv-linux
+
+# git
+.git
+.gitignore
+

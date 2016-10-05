@@ -81,8 +81,10 @@ services:
     command: [
       "/chameleon/main.py",
       "-v",
+      "--consul=consul:8500",
       "--fluentd=fluentd:24224",
       "--rest-port=8881",
+      "--grpc-endpoint=@voltha-grpc",
       "--instance-id-is-container-name",
       "-v"
     ]
