@@ -8,8 +8,8 @@ class Consumer(threading.Thread):
     daemon = True
 
     def run(self):
-        #consumer = KafkaConsumer(bootstrap_servers='10.100.198.220:9092',
-        consumer = KafkaConsumer(bootstrap_servers='10.0.2.15:9092',
+        consumer = KafkaConsumer(bootstrap_servers='10.100.198.220:9092',
+        #consumer = KafkaConsumer(bootstrap_servers='10.0.2.15:9092',
                                  auto_offset_reset='earliest')
         consumer.subscribe(['voltha-heartbeat'])
 
