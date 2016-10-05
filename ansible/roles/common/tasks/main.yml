@@ -26,6 +26,15 @@
   with_items: obsolete_services
   tags: [common]
 
+- name: ENSURE SSH directory
+  file:
+    path: "{{ ansible_env['PWD'] }}/.ssh"
+    state: directory
+    owner: "{{ ansible_env['SUDO_USER'] }}"
+    group: "{{ ansible_env['SUDO_USER'] }}"
+    mode: 0700
+  tags: [common]
+
 - name: Ensure known_hosts file is absent
   file:
     path: "{{ ansible_env['PWD'] }}/.ssh/known_hosts"
