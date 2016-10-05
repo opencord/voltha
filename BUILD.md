@@ -138,7 +138,7 @@ Voltha's intended use is with a consul+fluent+registrator combo. You can bring u
 source env.sh
 ```
 
-To start the four-conatiner ensamble:
+To start the eight-container ensamble:
 
 ```
 docker-compose -f compose/docker-compose-system-test.yml up -d
@@ -167,17 +167,19 @@ There are a lot of things going on between these containers:
    This shall list something like this:
    
    ```
-   {
-     "voltha-health": [],
-     "voltha-grpc": [],
-     "fluentd-intake": [],
-     "consul-rest": [],
-     "consul-8600": [
-       "udp"
-     ],
-     "consul": [],
-     "chameleon-rest": []
-   }
+  {
+      "zookeeper": [],
+      "chameleon-rest": [],
+      "consul": [],
+      "consul-8600": [
+        "udp"
+      ],
+      "consul-rest": [],
+      "fluentd-intake": [],
+      "kafka": [],
+      "voltha-grpc": [],
+      "voltha-health": []
+  }  
    ```
    
    You don't see registrator istelf, and you see multiple entries for consul. More importantly you see voltha as a service called "voltha-health" (referring to the REST health check service of voltha). You can query additional info on this endpoint from consul:
@@ -217,7 +219,7 @@ There are a lot of things going on between these containers:
    docker-compose -f compose/docker-compose-system-test.yml logs
    ```
   
-   Once important thing you can see is that voltha uses structured logging, which will come handy once we utilize macihine parsing and filtring of the logs.
+   Once important thing you can see is that voltha uses structured logging, which will come handy once we utilize machine parsing and filtering of the logs.
   
    Alternatively, you can see the individual docker log stream of voltha by:
   
@@ -225,7 +227,7 @@ There are a lot of things going on between these containers:
    docker logs -f compose_voltha_1
    ```
   
-   Voltha sends a periodic log message (heartbeat) to the log stream, in addition to logging major events.
+   Voltha sends a periodic log message (heartbeat) to the log stream, in addition to logging major events.  Voltha also sends a periodic heartbeat message to the kafka broker.
 
 
 4. In addition to the docker log stream, Voltha is explicitly hooked up to the fluentd log collector infrastructure. We are not using fluentd to its full potential yet, but establising the connection to fluentd and funelling structured logs to fluentd is already in place. To see the fluentd log stream, you can run:
