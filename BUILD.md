@@ -228,6 +228,12 @@ There are a lot of things going on between these containers:
    ```
   
    Voltha sends a periodic log message (heartbeat) to the log stream, in addition to logging major events.  Voltha also sends a periodic heartbeat message to the kafka broker.
+   
+   To subscribe and display to the kafka messages:
+   
+   ```
+   python kafka/kafka-consumer.py
+   ```
 
 
 4. In addition to the docker log stream, Voltha is explicitly hooked up to the fluentd log collector infrastructure. We are not using fluentd to its full potential yet, but establising the connection to fluentd and funelling structured logs to fluentd is already in place. To see the fluentd log stream, you can run:

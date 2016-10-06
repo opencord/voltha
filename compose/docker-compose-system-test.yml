@@ -6,7 +6,7 @@ services:
   zookeeper:
     image: wurstmeister/zookeeper
     ports:
-      - "2181:2181"
+    - 2181
     environment:
       SERVICE_2181_NAME: "zookeeper"
   #
@@ -15,7 +15,7 @@ services:
   kafka:
     build: ../kafka
     ports:
-      - "9092:9092"
+     - 9092
     environment:
       KAFKA_ADVERTISED_HOST_NAME: ${DOCKER_HOST_IP}
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181

@@ -47,7 +47,6 @@ def get_endpoint_from_consul(consul_endpoint, service_name):
     endpoint = '{}:{}'.format(service['ServiceAddress'],
                               service['ServicePort'])
 
-    print endpoint
     return endpoint
 
 
