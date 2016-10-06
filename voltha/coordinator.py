@@ -322,6 +322,7 @@ class Coordinator(object):
         while 1:
             try:
                 result = yield func(*args, **kw)
+                self._clear_backoff()
                 break
             except ConsulException, e:
                 yield self._backoff('consul-not-up')

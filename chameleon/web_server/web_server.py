@@ -25,6 +25,7 @@ from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.internet.tcp import Port
 from twisted.web.server import Site
 from twisted.web.static import File
+from werkzeug.exceptions import BadRequest
 
 log = get_logger()
 
@@ -43,22 +44,12 @@ class WebServer(object):
             os.path.join(os.path.dirname(__file__), '../swagger_ui'))
 
         self.tcp_port = None
+        self.shutting_down = False
 
     @inlineCallbacks
     def run(self):
         yield self._open_endpoint()
-        yield self._load_generated_routes()
         returnValue(self)
-
-    def _load_generated_routes(self):
-        for fname in os.listdir(self.work_dir):
-            if fname.endswith('_gw.py'):
-                module_name = fname.replace('.py', '')
-                print 'module_name', module_name
-                m = __import__(module_name)
-                print dir(m)
-                assert hasattr(m, 'add_routes')
-                m.add_routes(self.app, self.grpc_client)
 
     @inlineCallbacks
     def _open_endpoint(self):
@@ -70,9 +61,19 @@ class WebServer(object):
 
     @inlineCallbacks
     def shutdown(self):
-        if self.tcp_porte is not None:
+        self.shutting_down = True
+        if self.tcp_port is not None:
             assert isinstance(self.tcp_port, Port)
             yield self.tcp_port.socket.close()
+
+    def reload_generated_routes(self):
+        for fname in os.listdir(self.work_dir):
+            if fname.endswith('_gw.py'):
+                module_name = fname.replace('.py', '')
+                m = __import__(module_name)
+                assert hasattr(m, 'add_routes')
+                m.add_routes(self.app, self.grpc_client)
+                log.info('routes-loaded', module=module_name)
 
     # static swagger_ui website as landing page (for now)
 
