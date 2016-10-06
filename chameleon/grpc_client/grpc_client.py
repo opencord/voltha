@@ -59,10 +59,12 @@ class GrpcClient(object):
         self.retries = 0
         self.on_reconnect = None
         self.shutting_down = False
+        self.connected = False
 
     def run(self, on_reconnect=None):
         self.on_reconnect = on_reconnect
-        reactor.callLater(0, self.connect)
+        if not self.connected:
+            reactor.callLater(0, self.connect)
         return self
 
     def shutdown(self):
@@ -77,7 +79,7 @@ class GrpcClient(object):
         (Re-)Connect to end-point
         """
 
-        if self.shutting_down:
+        if self.shutting_down or self.connected:
             return
 
         try:
@@ -93,6 +95,7 @@ class GrpcClient(object):
             self._compile_proto_files()
             self._clear_backoff()
 
+            self.connected = True
             if self.on_reconnect is not None:
                 reactor.callLater(0, self.on_reconnect)
 
@@ -236,7 +239,7 @@ class GrpcClient(object):
         :return: The response protobuf message
         """
 
-        if self.channel is None:
+        if not self.connected:
             raise ServiceUnavailable()
 
         try:
@@ -249,7 +252,8 @@ class GrpcClient(object):
             else:
                 log.exception(e)
 
-            self.channel = None
-            reactor.callLater(0, self.connect)
+            if self.connected :
+                self.connected = False
+                reactor.callLater(0, self.connect)
 
             raise e
