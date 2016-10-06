@@ -222,9 +222,11 @@ class Main(object):
         self.log.info('starting-internal-components')
         args = self.args
         self.grpc_client = yield \
-            GrpcClient(args.consul, args.work_dir, args.grpc_endpoint).run()
+            GrpcClient(args.consul, args.work_dir, args.grpc_endpoint)
         self.web_server = yield \
             WebServer(args.rest_port, args.work_dir, self.grpc_client).run()
+        self.grpc_client.run(
+            on_reconnect=self.web_server.reload_generated_routes)
         self.log.info('started-internal-services')
 
     @inlineCallbacks
