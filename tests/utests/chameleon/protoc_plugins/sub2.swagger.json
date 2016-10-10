@@ -1,0 +1,1 @@
+{"info": {"version": "version not set", "title": "examples/sub2/message.proto"}, "paths": {}, "produces": ["application/json"], "definitions": {"sub2.IdMessage": {"description": "", "type": "object", "properties": {"uuid": {"format": "string", "type": "string"}}}}, "swagger": "2.0", "consumes": ["application/json"], "schemes": ["http", "https"]}

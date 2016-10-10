@@ -14,19 +14,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import os
 import sys
 
-from google.protobuf import descriptor as _descriptor
 from google.protobuf.compiler import plugin_pb2 as plugin
-from google.protobuf.descriptor import FieldDescriptor
-from google.protobuf.descriptor_pb2 import ServiceDescriptorProto, MethodOptions
-from google.protobuf.message import Message
+from google.protobuf.descriptor_pb2 import ServiceDescriptorProto, \
+    MethodOptions
 from jinja2 import Template
 from simplejson import dumps
 
-# without this import, http method annotations would not be recognized:
-from google.api import annotations_pb2, http_pb2
+from chameleon.protos.third_party.google.api import annotations_pb2, http_pb2
+_ = annotations_pb2, http_pb2  # to keep import line from being optimized out
 
 
 template = Template("""

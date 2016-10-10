@@ -1,0 +1,6 @@
+syntax = "proto2";
+package examples.sub;
+
+message StringMessage {
+	required string value = 1;
+}

@@ -1,0 +1,6 @@
+syntax = "proto3";
+package sub2;
+
+message IdMessage {
+	string uuid = 1;
+}

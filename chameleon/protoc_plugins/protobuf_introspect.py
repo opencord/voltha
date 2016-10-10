@@ -15,9 +15,11 @@
 # limitations under the License.
 #
 
-"""Load a protobuf description file an make sense of it"""
+"""
+Load a protobuf description file or protoc CodeGeneratorRequest an make
+sense of it
+"""
 
-# This is very experimental
 import os
 import inspect
 from collections import OrderedDict

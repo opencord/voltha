@@ -190,8 +190,11 @@ class GrpcClient(object):
         :return: None
         """
         google_api_dir = os.path.abspath(os.path.join(
-            os.path.dirname(__file__),
-            '../protos/third_party'
+            os.path.dirname(__file__), '../protos/third_party'
+        ))
+
+        chameleon_base_dir = os.path.abspath(os.path.join(
+            os.path.dirname(__file__), '../..'
         ))
 
         for fname in [f for f in os.listdir(self.work_dir)
@@ -208,11 +211,14 @@ class GrpcClient(object):
                 '--grpc_python_out=. '
                 '--plugin=protoc-gen-gw=%s/gw_gen.py '
                 '--gw_out=. '
+                '--plugin=protoc-gen-swagger=%s/swagger_gen.py '
+                '--swagger_out=. '
                 '%s' % (
                     self.work_dir,
                     ':'.join([os.environ['PATH'], self.plugin_dir]),
+                    ':'.join([google_api_dir, chameleon_base_dir]),
                     google_api_dir,
-                    google_api_dir,
+                    self.plugin_dir,
                     self.plugin_dir,
                     fname)
             )
