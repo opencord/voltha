@@ -40,42 +40,77 @@ class KafkaProxy(object):
 
         self.log = get_logger()
 
+        self.log.info('KafkaProxy init with kafka endpoint:{}'.format(
+            kafka_endpoint))
+
+        self.ack_timeout = ack_timeout
+        self.max_req_attempts = max_req_attempts
         self.consul_endpoint = consul_endpoint
         self.kafka_endpoint = kafka_endpoint
+        self.kclient = None
+        self.kproducer = None
 
+        self._get_kafka_producer()
+
+        KafkaProxy._kafka_instance = self
+
+    def _get_kafka_producer(self):
         # PRODUCER_ACK_LOCAL_WRITE : server will wait till the data is written
         #  to a local log before sending response
+
         if self.kafka_endpoint.startswith('@'):
-            _k_endpoint = get_endpoint_from_consul(self.consul_endpoint,
-                                                   self.kafka_endpoint[1:])
+            try:
+                _k_endpoint = get_endpoint_from_consul(self.consul_endpoint,
+                                                       self.kafka_endpoint[1:])
+                self.log.info(
+                    'Found kafka service at {}'.format(_k_endpoint))
+
+            except Exception as e:
+                self.log.error('Failure to locate a kafka service from '
+                               'consul {}:'.format(repr(e)))
+                self.kproducer = None
+                self.kclient = None
+                return
         else:
             _k_endpoint = self.kafka_endpoint
-
-        self.log.info('Creating kafka endpoint', endpoint=_k_endpoint)
 
         self.kclient = _KafkaClient(_k_endpoint)
         self.kproducer = _kafkaProducer(self.kclient,
                                         req_acks=PRODUCER_ACK_LOCAL_WRITE,
-                                        ack_timeout=ack_timeout,
-                                        max_req_attempts=max_req_attempts)
-
-        self.log.info('initializing-KafkaProxy:{}'.format(_k_endpoint))
-        KafkaProxy._kafka_instance = self
+                                        ack_timeout=self.ack_timeout,
+                                        max_req_attempts=self.max_req_attempts)
 
     @inlineCallbacks
     def send_message(self, topic, msg):
         assert topic is not None
         assert msg is not None
+
+        # first check whether we have a kafka producer.  If there is none
+        # then try to get one - this happens only when we try to lookup the
+        # kafka service from consul
+        if self.kproducer is None:
+            self._get_kafka_producer()
+            # Lets the next message request do the retry if still a failure
+            if self.kproducer is None:
+                self.log.error('No kafka producer available at {}'.format(
+                    self.kafka_endpoint))
+                return
+
         self.log.info('Sending message {} to kafka topic {}'.format(msg,
                                                                     topic))
         try:
             msg_list = [msg]
             yield self.kproducer.send_messages(topic, msgs=msg_list)
-            self.log.debug('Successfully sent message {} to kafka topic '
-                           '{}'.format(msg, topic))
+            self.log.info('Successfully sent message {} to kafka topic '
+                          '{}'.format(msg, topic))
         except Exception as e:
-            self.log.info('Failure to send message {} to kafka topic {}: '
-                          '{}'.format(msg, topic, repr(e)))
+            self.log.error('Failure to send message {} to kafka topic {}: '
+                           '{}'.format(msg, topic, repr(e)))
+            # set the kafka producer to None.  This is needed if the
+            # kafka docker went down and comes back up with a different
+            # port number.
+            self.kproducer = None
+            self.kclient = None
 
 
 # Common method to get the singleton instance of the kafka proxy class

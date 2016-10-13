@@ -101,6 +101,8 @@ fetch:
 	docker pull fluent/fluentd:latest
 	docker pull gliderlabs/registrator:latest
 	docker pull ubuntu:xenial
+	docker pull wurstmeister/kafka
+	docker pull wurstmeister/zookeeper
 
 purge-venv:
 	rm -fr ${VENVDIR}

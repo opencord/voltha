@@ -13,7 +13,7 @@ services:
   # Single-node kafka service
   #
   kafka:
-    build: ../kafka
+    image: wurstmeister/kafka
     ports:
      - 9092
     environment:
