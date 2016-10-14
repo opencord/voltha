@@ -23,6 +23,13 @@
     state: present
   tags: [docker]
 
+- name: netifaces pip package is present
+  pip:
+    name: netifaces
+    version: 0.10.4
+    state: present
+  tags: [docker]
+
 - name: Debian files are present
   template:
     src: "{{ docker_cfg }}"
