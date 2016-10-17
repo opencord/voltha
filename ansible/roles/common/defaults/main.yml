@@ -8,12 +8,13 @@ use_latest_for:
   - python-dev
   - libssl-dev
   - libffi-dev
+  - libpcap-dev
   - python-virtualenv
   - jq
   - python-nose
   - python-flake8
   - python-scapy
-  - python-libpcap
+#  - python-libpcap
 
 obsolete_services:
   - puppet
