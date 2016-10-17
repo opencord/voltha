@@ -533,8 +533,8 @@ class BuildMdTests(TestCase):
             self._start_all_containers()
 
             # sleep until all containers are sync up and ready
-            print "Waiting for consul to be ready ..."
-            time.sleep(10)
+            print "Waiting for all containers to be ready ..."
+            time.sleep(20)
 
             # Get the IP address(es) for voltha's REST interface
             print "Get IP of Voltha REST interface..."
