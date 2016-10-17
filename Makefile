@@ -73,7 +73,8 @@ help:
 	@echo "utest        : Run all unit tests"
 	@echo
 
-build: utest protos docker-base
+build: protos docker-base
+#build: utest protos docker-base
 	docker build -t cord/voltha -f Dockerfile.voltha .
 	docker build -t cord/chameleon -f Dockerfile.chameleon .
 
@@ -101,8 +102,8 @@ fetch:
 	docker pull fluent/fluentd:latest
 	docker pull gliderlabs/registrator:latest
 	docker pull ubuntu:xenial
-	docker pull wurstmeister/kafka
-	docker pull wurstmeister/zookeeper
+	docker pull wurstmeister/kafka:latest
+	docker pull wurstmeister/zookeeper:latest
 
 purge-venv:
 	rm -fr ${VENVDIR}
@@ -126,7 +127,12 @@ ${VENVDIR}/.built:
 utest: venv
 	@ echo "Executing all unit tests"
 	. ${VENVDIR}/bin/activate && \
-	    nosetests tests
+	    nosetests tests --exclude-dir=./tests/itests/
+
+itest: venv
+	@ echo "Executing all integration tests"
+	. ${VENVDIR}/bin/activate && \
+	    nosetests tests/itests -s --exclude-dir=./tests/utests/
 
 flake8: $(DIRS_FLAKE8)
 

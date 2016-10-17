@@ -96,7 +96,7 @@ This time it should successfully connect to consul and actually register itself.
 You should see a log line simialr to the following:
 
 ```
-<timestamp> INFO     coordinator.register {name: voltha-1, address: localhost, event: registered-with-consul}
+<timestamp> INFO     coordinator._create_session {session_id: <session_id, event: created-consul-session, instance_id: <instance_id}
 ```
 
 To test Voltha's self-registration with consul, run this (in another terminal):
@@ -302,6 +302,15 @@ exit # from vagrant box back to your native environmnet
 vagrant destroy -f
 ```
 
+# Testing
+
+   Follow the steps below to run integration testing. Note: All output 
+    are directed to the shell:
+
+   ```
+   make itest
+   ```
+
 # Building natively on MAC OS X
 
 For advanced developers this may provide a more comfortable developer
@@ -353,7 +362,7 @@ Potential issues and workaround:
    ```
    env CFLAGS="-I /usr/local/Cellar/openssl/1.0.2h_1/include" make venv
    ```
-
+ 
 ### Building Docker Images and Running Voltha
 
 These steps are not different from the Vagrant path:
