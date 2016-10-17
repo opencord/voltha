@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package experiment;
+
+import "google/protobuf/empty.proto";
+
+message AsyncEvent {
+    int32 seq = 1;
+    enum EventType {
+        BIG_BANG = 0;
+        SMALL_BANG = 1;
+        NO_BANG = 2;
+    }
+    EventType type = 2;
+    string details = 3;
+}
+
+message Packet {
+    int32 source = 1;
+    bytes content = 2;
+}
+message Echo {
+    string msg = 1;
+    float delay = 2;
+}
+
+service ExperimentalService {
+
+    rpc GetEcho(Echo) returns(Echo);
+
+    // For server to send async stream to client
+    rpc ReceiveStreamedEvents(google.protobuf.Empty)
+        returns(stream AsyncEvent);
+
+    // For server to send async packets to client
+    rpc ReceivePackets(google.protobuf.Empty) returns(stream Packet);
+
+    // For client to send async packets to server
+    rpc SendPackets(stream Packet) returns(google.protobuf.Empty);
+
+}

@@ -2215,3 +2215,72 @@ message ofp_async_config {
     repeated uint32 port_status_mask = 3; /* Bitmasks of OFPPR_* values. */
     repeated uint32 flow_removed_mask = 4;/* Bitmasks of OFPRR_* values. */
 };
+
+/*
+ * Service API definitions and additional message types needed for it
+ */
+
+service OpenFlow {
+
+    /*
+     * Hello message handshake, initiated by the client (controller)
+     */
+    rpc GetHello(ofp_hello)
+        returns(ofp_hello) {
+        // TODO http option
+    }
+
+    /*
+     * Echo request / reply, initiated by the client (controller)
+     */
+    rpc EchoRequest(ofp_header)
+        returns(ofp_header) {
+        // TODO http option
+    }
+
+    /*
+     * Experimental (extension) RPC
+     */
+    rpc ExperimenterRequest(ofp_experimenter_header)
+        returns(ofp_experimenter_header) {
+        // TODO http option
+    }
+
+    /*
+     * Get Switch Features
+     */
+    rpc GetSwitchFeatures(ofp_header) returns(ofp_switch_features) {
+        // TODO http option
+    }
+
+    /*
+     * Get Switch Config
+     */
+    rpc GetSwitchConfig(ofp_header) returns(ofp_switch_config) {
+        // TODO http option
+    }
+
+    /*
+     * Set Config
+     */
+    rpc SetConfig(ofp_switch_config) returns(ofp_header) {
+        // TODO http option
+    }
+
+    /*
+     * Receive Packet-In messages
+     */
+    rpc ReceivePacketInMessages(ofp_header) returns(stream ofp_packet_in) {
+        // TODO http option
+    }
+
+    /*
+     * Send Packet-Out messages
+     */
+    rpc SendPacketOutMessages(ofp_packet_out) returns(ofp_header) {
+        // TODO http option
+    }
+
+    // TODO continue
+    
+}
