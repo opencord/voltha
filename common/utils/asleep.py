@@ -21,7 +21,11 @@ from twisted.internet.defer import Deferred
 
 
 def asleep(dt):
-    assert isinstance(dt, (int, float))
+    """
+    Async (event driven) wait for given time period (in seconds)
+    :param dt: Delay in seconds
+    :return: Deferred to be fired with value None when time expires.
+    """
     d = Deferred()
     reactor.callLater(dt, lambda: d.callback(None))
     return d

@@ -33,7 +33,7 @@ from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
 from werkzeug.exceptions import ServiceUnavailable
 
-from chameleon.asleep import asleep
+from common.utils.asleep import asleep
 from chameleon.protos.schema_pb2 import NullMessage, SchemaServiceStub
 
 log = get_logger()

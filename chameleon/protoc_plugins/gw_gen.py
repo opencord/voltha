@@ -40,6 +40,8 @@ log = get_logger()
 
 def add_routes(app, grpc_client):
 
+    pass  # so that if no endpoints are defined, Python is still happy
+
     {% for method in methods %}
     {% set method_name = method['service'] + '_' + method['method'] %}
     {% set path = method['path'].replace('{', '<string:').replace('}', '>') %}

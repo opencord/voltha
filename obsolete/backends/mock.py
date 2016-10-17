@@ -23,7 +23,7 @@ assert conf.L2listen.__name__=='L2pcapListenSocket'
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
 import loxi.of13 as ofp
-from utils import mac_str_to_tuple
+from ofagent.utils import mac_str_to_tuple
 
 
 class MockBackend(object):

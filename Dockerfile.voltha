@@ -23,6 +23,7 @@ MAINTAINER Nathan Knuth   <nathan.knuth@tibitcom.com>
 
 # Bundle app source
 COPY voltha /voltha
+COPY common /common
 
 # Exposing process and default entry point
 # EXPOSE 8000

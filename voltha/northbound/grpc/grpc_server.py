@@ -20,11 +20,11 @@ import uuid
 from os.path import abspath, basename, dirname, join, walk
 import grpc
 from concurrent import futures
-from google.protobuf.message import Message
 from structlog import get_logger
 import zlib
 
-from voltha.protos import voltha_pb2, schema_pb2
+from voltha.core.device_model import DeviceModel
+from voltha.protos import voltha_pb2, schema_pb2, openflow_13_pb2
 
 log = get_logger()
 
@@ -135,6 +135,41 @@ class ExampleService(voltha_pb2.ExampleServiceServicer):
         return updated
 
 
+class VolthaLogicalLayer(voltha_pb2.VolthaLogicalLayerServicer):
+    # TODO still a mock
+
+    def __init__(self, threadpool):
+        self.threadpool = threadpool
+
+        self.devices = [DeviceModel(0)]
+        self.devices_map = dict((d.info.id, d) for d in self.devices)
+
+    def ListLogicalDevices(self, request, context):
+        return voltha_pb2.LogicalDevices(
+            items=[voltha_pb2.LogicalDevice(
+                id=d.info.id,
+                datapath_id=d.info.datapath_id,
+                desc=d.info.desc
+            ) for d in self.devices])
+
+    def GetLogicalDevice(self, request, context):
+        return self.devices_map[request.id].info
+
+    def ListLogicalDevicePorts(self, request, context):
+        device_model = self.devices_map[request.id]
+        return voltha_pb2.LogicalPorts(items=device_model.ports)
+
+    def UpdateFlowTable(self, request, context):
+        device_model = self.devices_map[request.id]
+        device_model.update_flow_table(request.flow_mod)
+        return voltha_pb2.NullMessage()
+
+    def ListDeviceFlows(self, request, context):
+        device_model = self.devices_map[request.id]
+        flows = device_model.list_flows()
+        return voltha_pb2.Flows(items=flows)
+
+
 class VolthaGrpcServer(object):
 
     def __init__(self, port=50055):
@@ -145,11 +180,12 @@ class VolthaGrpcServer(object):
 
         schema_pb2.add_SchemaServiceServicer_to_server(
             SchemaService(), self.server)
-
         voltha_pb2.add_HealthServiceServicer_to_server(
             HealthService(self.thread_pool), self.server)
         voltha_pb2.add_ExampleServiceServicer_to_server(
             ExampleService(self.thread_pool), self.server)
+        voltha_pb2.add_VolthaLogicalLayerServicer_to_server(
+            VolthaLogicalLayer(self.thread_pool), self.server)
 
         self.server.add_insecure_port('[::]:%s' % self.port)
 

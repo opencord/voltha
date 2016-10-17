@@ -5,7 +5,7 @@ import sys
 import time
 
 from loxi.connection import Connection
-from utils import pp
+from ofagent.utils import pp
 
 
 class Agent(object):
@@ -36,7 +36,8 @@ class Agent(object):
                 soc.connect((self.ip, self.port))
             except socket.error, e:
                 logging.info(
-                    "Cannot connect to controller (errno=%d), retrying in %s secs" %
+                    "Cannot connect to controller (errno=%d), "
+                    "retrying in %s secs" %
                     (e.errno, self.retry_interval))
             else:
                 logging.info("Connected to controller")
@@ -155,58 +156,69 @@ class Agent(object):
 
                 elif req.stats_type == ofp.OFPST_FLOW:
                     # flow stats requested
-                    msg = ofp.message.flow_stats_reply(xid=req.xid, entries=self.store.flow_list())
+                    msg = ofp.message.flow_stats_reply(
+                        xid=req.xid, entries=self.store.flow_list())
                     cxn.send(msg)
 
                 elif req.stats_type == ofp.OFPST_TABLE:
                     # table stats requested
-                    msg = ofp.message.table_stats_reply(xid=req.xid, entries=self.store.table_stats())
+                    msg = ofp.message.table_stats_reply(
+                        xid=req.xid, entries=self.store.table_stats())
                     cxn.send(msg)
 
                 elif req.stats_type == ofp.OFPST_PORT:
                     # port list
-                    msg = ofp.message.port_stats_reply(xid=req.xid, entries=self.store.port_stats())
+                    msg = ofp.message.port_stats_reply(
+                        xid=req.xid, entries=self.store.port_stats())
                     cxn.send(msg)
 
                 elif req.stats_type == ofp.OFPST_GROUP:
-                    msg = ofp.message.group_stats_reply(xid=req.xid, entries=self.store.group_stats())
+                    msg = ofp.message.group_stats_reply(
+                        xid=req.xid, entries=self.store.group_stats())
                     cxn.send(msg)
 
                 elif req.stats_type == ofp.OFPST_GROUP_DESC:
-                    msg = ofp.message.group_desc_stats_reply(xid=req.xid, entries=self.store.group_list())
+                    msg = ofp.message.group_desc_stats_reply(
+                        xid=req.xid, entries=self.store.group_list())
                     cxn.send(msg)
 
                 elif req.stats_type == ofp.OFPST_METER:
-                    msg = ofp.message.meter_stats_reply(xid=req.xid, entries=[])
+                    msg = ofp.message.meter_stats_reply(
+                        xid=req.xid, entries=[])
                     cxn.send(msg)
 
                 else:
-                    logging.error("Unhandled stats type: %d in request:" % req.stats_type)
+                    logging.error("Unhandled stats type: %d in request:"
+                                  % req.stats_type)
                     logging.error(pp(req))
-
 
             elif req.type == ofp.OFPT_SET_CONFIG:
                 # TODO ignored for now
                 pass
 
             elif req.type == ofp.OFPT_BARRIER_REQUEST:
-                # TODO this will be the place to commit all changes before replying
+                # TODO this will be the place to commit all changes before
+                # replying
                 # but now we send a reply right away
                 msg = ofp.message.barrier_reply(xid=req.xid)
                 cxn.send(msg)
 
             elif req.type == ofp.OFPT_GET_CONFIG_REQUEST:
                 # send back configuration reply
-                msg = ofp.message.get_config_reply(xid=req.xid, miss_send_len=ofp.OFPCML_NO_BUFFER)
+                msg = ofp.message.get_config_reply(
+                    xid=req.xid, miss_send_len=ofp.OFPCML_NO_BUFFER)
                 cxn.send(msg)
 
             elif req.type == ofp.OFPT_ROLE_REQUEST:
                 # TODO this is where we shall manage which connection is active
-                # now we simply verify that the role request is for active and reply
+                # now we simply verify that the role request is for active and
+                # reply
                 if req.role != ofp.OFPCR_ROLE_MASTER:
                     self.stop()
                     sys.exit(1)
-                msg = ofp.message.role_reply(xid=req.xid, role=req.role, generation_id=req.generation_id)
+                msg = ofp.message.role_reply(
+                    xid=req.xid, role=req.role,
+                    generation_id=req.generation_id)
                 cxn.send(msg)
 
             elif req.type == ofp.OFPT_PACKET_OUT:
@@ -217,7 +229,8 @@ class Agent(object):
                         port = action.port
                         self.backend.packet_out(in_port, port, data)
                     else:
-                        logging.warn("Unhandled packet out action type %s" % action.type)
+                        logging.warn("Unhandled packet out action type %s"
+                                     % action.type)
 
             elif req.type == ofp.OFPT_FLOW_MOD:
 
@@ -239,7 +252,8 @@ class Agent(object):
                     self.store.flow_modify_strict(req)
 
                 else:
-                    logging.warn("Unhandled flow mod command %s in message:" % command)
+                    logging.warn("Unhandled flow mod command %s in message:"
+                                 % command)
                     logging.warn(pp(req))
 
             elif req.type == ofp.OFPT_GROUP_MOD:
@@ -256,7 +270,8 @@ class Agent(object):
                     self.store.group_modify(req)
 
                 else:
-                    logging.warn("Unhandled group command %s in message:" % command)
+                    logging.warn("Unhandled group command %s in message:"
+                                 % command)
                     logging.warn(pp(req))
 
             else:

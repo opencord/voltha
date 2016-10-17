@@ -3,7 +3,7 @@ Internal state of the device
 """
 
 import logging
-from utils import pp
+from ofagent.utils import pp
 import loxi.of13 as ofp
 
 
@@ -102,7 +102,7 @@ class ObjectStore(object):
 
         check_overlap = flow_add.flags & ofp.OFPFF_CHECK_OVERLAP
         if check_overlap:
-            if self._flow_find_overlapping_flows(self, flow_add, return_on_first_hit=True):
+            if self._flow_find_overlapping_flows(flow_add, return_on_first_hit=True):
                 self.signal_flow_mod_error(ofp.OFPFMFC_OVERLAP, flow_add)
             else:
                 # free to add as new flow
@@ -291,7 +291,7 @@ class ObjectStore(object):
         if group_modify.group_id not in self.groups:
             self.signal_group_mod_error(ofp.OFPGMFC_INVALID_GROUP, group_modify)
         else:
-            # replace existing group entry witj new group definition
+            # replace existing group entry with new group definition
             group_entry = group_entry_from_group_mod_message(group_modify)
             self.groups[group_modify.group_id] = group_entry
 

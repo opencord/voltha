@@ -1,0 +1,145 @@
+#
+# Copyright 2016 the original author or authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+import sys
+
+import structlog
+from twisted.internet import protocol
+from twisted.internet import reactor
+from twisted.internet.defer import Deferred, inlineCallbacks
+
+import loxi.of13 as of13
+from common.utils.asleep import asleep
+from of_connection import OpenFlowConnection
+from of_protocol_handler import OpenFlowProtocolHandler
+
+
+log = structlog.get_logger()
+
+
+class Agent(protocol.ClientFactory):
+
+    def __init__(self, controller_endpoint, datapath_id, rpc_stub,
+                 conn_retry_interval=1):
+        self.controller_endpoint = controller_endpoint
+        self.datapath_id = datapath_id
+        self.rpc_stub = rpc_stub
+        self.retry_interval = conn_retry_interval
+
+        self.running = False
+        self.connector = None # will be a Connector instance once connected
+        self.d_disconnected = None  # a deferred to signal reconnect loop when
+                                    # TCP connection is lost
+        self.connected = False
+        self.exiting = False
+
+    def run(self):
+        if self.running:
+            return
+        self.running = True
+        reactor.callLater(0, self.keep_connected)
+        return self
+
+    def resolve_endpoint(self, endpoint):
+        # TODO allow resolution via consul
+        host, port = endpoint.split(':', 2)
+        return host, int(port)
+
+    @inlineCallbacks
+    def keep_connected(self):
+        """Keep reconnecting to the controller"""
+        while not self.exiting:
+            host, port = self.resolve_endpoint(self.controller_endpoint)
+            log.info('connecting', host=host, port=port)
+            self.connector = reactor.connectTCP(host, port, self)
+            self.d_disconnected = Deferred()
+            yield self.d_disconnected
+            log.debug('reconnect', after_delay=self.retry_interval)
+            yield asleep(self.retry_interval)
+
+    def stop(self):
+        self.connected = False
+        self.exiting = True
+        self.connector.disconnect()
+        log.info('stopped')
+
+    def enter_disconnected(self, event, reason):
+        """Internally signal entering disconnected state"""
+        log.error(event, reason=reason)
+        self.connected = False
+        self.d_disconnected.callback(None)
+
+    def enter_connected(self):
+        """Handle transitioning from disconnected to connected state"""
+        log.info('connected')
+        self.connected = True
+        self.read_buffer = None
+        reactor.callLater(0, self.proto_handler.run)
+
+    # protocol.ClientFactory methods
+
+    def protocol(self):
+        cxn = OpenFlowConnection(self)  # Low level message handler
+        self.proto_handler = OpenFlowProtocolHandler(
+            self.datapath_id, self, cxn, self.rpc_stub)
+        return cxn
+
+    def clientConnectionFailed(self, connector, reason):
+        self.enter_disconnected('connection-failed', reason)
+
+    def clientConnectionLost(self, connector, reason):
+        log.error('client-connection-lost',
+                  reason=reason, connector=connector)
+
+
+if __name__ == '__main__':
+    """Run this to test the agent for N concurrent sessions:
+       python agent [<number-of-desired-instances>]
+    """
+
+    n = 1 if len(sys.argv) < 2 else int(sys.argv[1])
+
+    from utils import mac_str_to_tuple
+
+    class MockRpc(object):
+        @staticmethod
+        def get_port_list(_):
+            ports = []
+            cap = of13.OFPPF_1GB_FD | of13.OFPPF_FIBER
+            for pno, mac, nam, cur, adv, sup, spe in (
+                    (1, '00:00:00:00:00:01', 'onu1', cap, cap, cap,
+                     of13.OFPPF_1GB_FD),
+                    (2, '00:00:00:00:00:02', 'onu2', cap, cap, cap,
+                     of13.OFPPF_1GB_FD),
+                    (129, '00:00:00:00:00:81', 'olt', cap, cap, cap,
+                     of13.OFPPF_1GB_FD)
+            ):
+                port = of13.common.port_desc(pno, mac_str_to_tuple(mac), nam,
+                                             curr=cur, advertised=adv,
+                                             supported=sup,
+                                             curr_speed=spe, max_speed=spe)
+                ports.append(port)
+            return ports
+
+    stub = MockRpc()
+    agents = [Agent('localhost:6633', 256 + i, stub).run() for i in range(n)]
+
+    def shutdown():
+        [a.stop() for a in agents]
+
+    reactor.addSystemEventTrigger('before', 'shutdown', shutdown)
+    reactor.run()
+

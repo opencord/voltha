@@ -24,8 +24,8 @@ from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, returnValue, Deferred
 from twisted.internet.task import LoopingCall
 
-from asleep import asleep
 from leader import Leader
+from common.utils.asleep import asleep
 from worker import Worker
 
 

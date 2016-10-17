@@ -20,7 +20,7 @@ from twisted.internet import reactor
 from twisted.internet.base import DelayedCall
 from twisted.internet.defer import inlineCallbacks
 
-from asleep import asleep
+from common.utils.asleep import asleep
 
 
 class Worker(object):

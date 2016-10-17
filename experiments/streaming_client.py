@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import time
 
 import grpc
@@ -6,13 +8,9 @@ from twisted.internet import reactor
 from twisted.internet import threads
 from twisted.internet.defer import Deferred, inlineCallbacks, DeferredQueue
 
+from common.utils.asleep import asleep
 from streaming_pb2 import ExperimentalServiceStub, Echo
 
-
-def asleep(t):
-    d = Deferred()
-    reactor.callLater(t, d.callback, None)
-    return d
 
 t0 = time.time()
 

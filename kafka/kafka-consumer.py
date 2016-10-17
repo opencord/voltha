@@ -5,16 +5,16 @@
 import logging
 from argparse import ArgumentParser
 
+from afkak.client import KafkaClient
+from afkak.common import (
+    KafkaUnavailableError,
+    OFFSET_LATEST)
+from afkak.consumer import Consumer
 from twisted.internet import reactor
 from twisted.internet.defer import DeferredList, inlineCallbacks
 from twisted.python.failure import Failure
-from afkak.client import KafkaClient
-from afkak.consumer import Consumer
-from voltha.consulhelpers import get_endpoint_from_consul
-from afkak.common import (
-    KafkaUnavailableError,
-    OFFSET_EARLIEST,
-    OFFSET_LATEST)
+
+from common.utils.consulhelpers import get_endpoint_from_consul
 
 log = logging.getLogger(__name__)
 

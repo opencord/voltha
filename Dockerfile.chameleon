@@ -36,6 +36,7 @@ RUN apt-get update && \
 
 # Bundle app source
 COPY chameleon /chameleon
+COPY common /common
 
 # Exposing process and default entry point
 # EXPOSE 8000

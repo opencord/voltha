@@ -15,13 +15,14 @@
 #
 
 from afkak.client import KafkaClient as _KafkaClient
-from afkak.producer import Producer as _kafkaProducer
-from structlog import get_logger
-from voltha.consulhelpers import get_endpoint_from_consul
-from twisted.internet.defer import inlineCallbacks
 from afkak.common import (
     PRODUCER_ACK_LOCAL_WRITE,
 )
+from afkak.producer import Producer as _kafkaProducer
+from structlog import get_logger
+from twisted.internet.defer import inlineCallbacks
+
+from common.utils.consulhelpers import get_endpoint_from_consul
 
 
 class KafkaProxy(object):

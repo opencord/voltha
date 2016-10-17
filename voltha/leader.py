@@ -15,13 +15,14 @@
 #
 
 import re
+
 from hash_ring import HashRing
 from structlog import get_logger
 from twisted.internet import reactor
 from twisted.internet.base import DelayedCall
 from twisted.internet.defer import inlineCallbacks, DeferredList
 
-from asleep import asleep
+from common.utils.asleep import asleep
 
 
 class Leader(object):

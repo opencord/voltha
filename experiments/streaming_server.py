@@ -1,23 +1,19 @@
+#!/usr/bin/env python
+
 import grpc
 from concurrent import futures
 from concurrent.futures import Future
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, inlineCallbacks, returnValue
 
-from openflow_13_pb2 import add_OpenFlowServicer_to_server, \
-    OpenFlowServicer
+from common.utils.asleep import asleep
+
 from streaming_pb2 import add_ExperimentalServiceServicer_to_server, \
     AsyncEvent, ExperimentalServiceServicer, Echo
 
 
 class ShutDown(object):
     stop = False  # semaphore for all loops to stop when this flag is set
-
-
-def asleep(t):
-    d = Deferred()
-    reactor.callLater(t, d.callback, None)
-    return d
 
 
 class ShuttingDown(Exception): pass
@@ -92,7 +88,7 @@ class Service(ExperimentalServiceServicer):
     @inlineCallbacks
     def get_next_event(self):
         """called on the twisted thread"""
-        yield asleep(0.000001)
+        yield asleep(0.0001)
         event = AsyncEvent(seq=self.event_seq, details='foo')
         self.event_seq += 1
         returnValue(event)
@@ -112,23 +108,10 @@ class Service(ExperimentalServiceServicer):
         pass
 
 
-class OpenFlow(OpenFlowServicer):
-
-    def EchoRequest(self, request, context):
-        pass
-
-    def SendPacketsOutMessages(self, request, context):
-        pass
-
-    def ReceivePacketInMessages(self, request, context):
-        pass
-
-
 if __name__ == '__main__':
     thread_pool = futures.ThreadPoolExecutor(max_workers=10)
     server = grpc.server(thread_pool)
     add_ExperimentalServiceServicer_to_server(Service(), server)
-    add_OpenFlowServicer_to_server(OpenFlow(), server)
     server.add_insecure_port('[::]:50050')
     server.start()
     def shutdown():

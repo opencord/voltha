@@ -73,7 +73,7 @@ help:
 	@echo "utest        : Run all unit tests"
 	@echo
 
-build: utest protos docker-base
+build: protos docker-base
 	docker build -t cord/voltha -f Dockerfile.voltha .
 	docker build -t cord/chameleon -f Dockerfile.chameleon .
 
@@ -86,6 +86,7 @@ docker-base: .docker-base-built
 protos:
 	make -C voltha/protos
 	make -C chameleon/protos
+	make -C ofagent/protos
 
 install-protoc:
 	make -C voltha/protos install-protoc

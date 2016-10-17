@@ -14,13 +14,24 @@
 # limitations under the License.
 #
 
+# Makefile to build all protobuf and gRPC related artifacts
+
 ifeq ($(VOLTHA_BASE)_set,_set)
-$(error If your getting this error, please type ". ./env.sh" at the top directory)
+  $(error To get started, please source the env.sh file from Voltha top level directory)
 endif
 
-include $(VOLTHA_BASE)/setup.mk
+# This makefile is used only to copy relevant *_pb2.py files from Voltha
+# to allow ofagent to function properly.
 
-PYTHONFILES:=$(wildcard *.py)
+PB2_FILES := \
+    voltha_pb2.py \
+    openflow_13_pb2.py
 
-flake8: 
-	$(FLAKE8) $(PYTHONFILES)
+TARGET_PROTO_DIR := $(VOLTHA_BASE)/ofagent/protos
+SOURCE_PROTO_DIR := $(VOLTHA_BASE)/voltha/protos
+
+build: copyfiles
+
+copyfiles:
+	rsync -av --include '*/' --include '*.py' --exclude='*' $(SOURCE_PROTO_DIR)/ $(TARGET_PROTO_DIR)
+

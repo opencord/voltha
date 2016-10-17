@@ -378,3 +378,26 @@ docker run -ti cord/voltha
 ```
 
 After this, much or all of the things you can do inside the Vagrant box should also work natively on the Mac.
+
+
+### Test Issues and Workarounds
+
+ 1. The dreaded "Need to install scapy for packet parsing" error when running
+ olt-oftest based tests. This is due to a missing dnet package which scapy
+ needs. Workaround:
+ 
+    ```
+    brew uninstall libdnet
+    brew install --with-python libdnet
+    cd $VOLTHA_BASE
+    echo 'import site; site.addsitedir("/usr/local/lib/python2.7/site-packages")' \
+        >> venv-darwin/lib/python2.7/site-packages/homebrew.pth
+    pip install pcapy
+    pip install scapy
+    pip install pypcap
+    ```
+
+ 2. Missing mininet.topo module (used by oftest):
+  
+  Unfortunately I was not yet able to resolve this on the Mac.
+
