@@ -73,8 +73,7 @@ help:
 	@echo "utest        : Run all unit tests"
 	@echo
 
-build: protos docker-base
-#build: utest protos docker-base
+build: utest protos docker-base
 	docker build -t cord/voltha -f Dockerfile.voltha .
 	docker build -t cord/chameleon -f Dockerfile.chameleon .
 
@@ -132,7 +131,7 @@ utest: venv
 itest: venv
 	@ echo "Executing all integration tests"
 	. ${VENVDIR}/bin/activate && \
-	    nosetests tests/itests -s --exclude-dir=./tests/utests/
+	    nosetests tests/itests -s
 
 flake8: $(DIRS_FLAKE8)
 
