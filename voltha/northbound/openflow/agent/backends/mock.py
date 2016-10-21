@@ -11,7 +11,7 @@ from hexdump import hexdump
 from scapy.all import Ether, IP, UDP, Dot1Q, sendp, sniff
 
 # VERY IMPORTANT:
-# Without the brlow hack, scapy will not properly receive VLAN
+# Without the below hack, scapy will not properly receive VLAN
 # header (see http://stackoverflow.com/questions/18994242/why-isnt-scapy-capturing-vlan-tag-information).
 #
 from scapy.all import conf, ETH_P_ALL
@@ -186,7 +186,7 @@ class InOutReceiver(Thread):
             if self.agent is not None:
                 self.agent.send_packet_in(str(new_pkt), in_port=in_port)
                 print 'new packet forwarded to controller (with in_port=%d):' % in_port
-                new_pkt.show() 
+                new_pkt.show()
 
         except Exception, e:
             logging.exception("Unexpected packet format received by InOutReceiver: %s" % e)
