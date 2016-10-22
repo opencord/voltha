@@ -1,7 +1,6 @@
-node ('build') {
+node('build') {
     stage 'Checkout cord repo'
-    m_url = 'https://gerrit.opencord.org/manifest'
-    checkout changelog: false, poll: false, scm [$class: 'RepoScm', currentBranch: true, manifestRepositoryUrl: m_url, quiet: true]
+    checkout([$class: 'RepoScm', currentBranch: true, manifestRepositoryUrl: 'https://gerrit.opencord.org/manifest', quiet: true])
 
     dir ('incubator/voltha') {
         try {
@@ -15,7 +14,6 @@ node ('build') {
             sh 'vagrant ssh -c "cd /voltha && source env.sh && docker-compose -f compose/docker-compose-system-test.yml up -d" voltha'
 
             currentBuild.result = 'SUCCESS'
-            step([$class: 'Mailer', recipients: 'cord-dev@opencord.org', sendToIndividuals: false])
         } catch (err) {
             currentBuild.result = 'FAILURE'
             step([$class: 'Mailer', notifyEveryUnstableBuild: true, recipients: 'cord-dev@opencord.org', sendToIndividuals: false])
