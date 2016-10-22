@@ -14,9 +14,10 @@ node('build') {
             sh 'vagrant ssh -c "cd /voltha && source env.sh && docker-compose -f compose/docker-compose-system-test.yml up -d" voltha'
 
             currentBuild.result = 'SUCCESS'
+            slackSend channel: '#voltha', color: 'warning', message: "${env.JOB_NAME} (${env.BUILD_NUMBER}) Build success.\n${env.BUILD_URL}"
         } catch (err) {
             currentBuild.result = 'FAILURE'
-            step([$class: 'Mailer', notifyEveryUnstableBuild: true, recipients: 'cord-dev@opencord.org', sendToIndividuals: false])
+            slackSend channel: '#voltha', color: 'danger', message: ":dizzy_face: Build failed ${env.JOB_NAME} (${env.BUILD_NUMBER})\n${env.BUILD_URL}"
         } finally {
             sh 'vagrant destroy -f voltha'
         }
