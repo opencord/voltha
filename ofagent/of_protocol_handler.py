@@ -106,9 +106,9 @@ class OpenFlowProtocolHandler(object):
             miss_send_len=ofp.OFPCML_NO_BUFFER
         ))
 
+    @inlineCallbacks
     def handle_group_mod_request(self, req):
-        # TODO do not do anything yet
-        pass
+        yield self.rpc.update_group_table(self.datapath_id, to_grpc(req))
 
     def handle_meter_mod_request(self, req):
         raise NotImplementedError()
@@ -158,10 +158,11 @@ class OpenFlowProtocolHandler(object):
         self.cxn.send(ofp.message.flow_stats_reply(
             xid=req.xid, entries=[to_loxi(f) for f in flow_stats]))
 
+    @inlineCallbacks
     def handle_group_stats_request(self, req):
-        group_stats = []  # TODO
+        group_stats = yield self.rpc.list_groups(self.datapath_id)
         self.cxn.send(ofp.message.group_stats_reply(
-            xid=req.xid, entries=group_stats))
+            xid=req.xid, entries=[to_loxi(g) for g  in group_stats]))
 
     def handle_group_descriptor_request(self, req):
         group_list = []  # TODO

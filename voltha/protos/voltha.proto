@@ -99,8 +99,17 @@ message FlowTableUpdate {
     openflow_13.ofp_flow_mod flow_mod = 2;
 }
 
+message GroupTableUpdate {
+    string id = 1; // device id
+    openflow_13.ofp_group_mod group_mod = 2;
+}
+
 message Flows {
     repeated openflow_13.ofp_flow_stats items = 1;
+}
+
+message FlowGroups {
+    repeated openflow_13.ofp_group_entry items = 1;
 }
 
 service VolthaLogicalLayer {
@@ -138,6 +147,21 @@ service VolthaLogicalLayer {
     rpc ListDeviceFlows(ID) returns(Flows) {
         option (google.api.http) = {
             get: "/local/devices/{id}/flows"
+        };
+    }
+
+    // Update group tabel for device
+    rpc UpdateGroupTable(GroupTableUpdate) returns(NullMessage) {
+        option (google.api.http) = {
+            post: "/local/devices/{id}/groups"
+            body: "*"
+        };
+    }
+
+    // List all flow groups of a logical device
+    rpc ListDeviceFlowGroups(ID) returns(FlowGroups) {
+        option (google.api.http) = {
+            get: "/local/devices/{id}/groups"
         };
     }
 

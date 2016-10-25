@@ -141,7 +141,7 @@ class VolthaLogicalLayer(voltha_pb2.VolthaLogicalLayerServicer):
     def __init__(self, threadpool):
         self.threadpool = threadpool
 
-        self.devices = [DeviceModel(0)]
+        self.devices = [DeviceModel(1)]
         self.devices_map = dict((d.info.id, d) for d in self.devices)
 
     def ListLogicalDevices(self, request, context):
@@ -168,6 +168,16 @@ class VolthaLogicalLayer(voltha_pb2.VolthaLogicalLayerServicer):
         device_model = self.devices_map[request.id]
         flows = device_model.list_flows()
         return voltha_pb2.Flows(items=flows)
+
+    def UpdateGroupTable(self, request, context):
+        device_model = self.devices_map[request.id]
+        device_model.update_group_table(request.group_mod)
+        return voltha_pb2.NullMessage()
+
+    def ListDeviceFlowGroups(self, request, context):
+        device_model = self.devices_map[request.id]
+        groups = device_model.list_groups()
+        return voltha_pb2.FlowGroups(items=groups)
 
 
 class VolthaGrpcServer(object):

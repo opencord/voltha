@@ -20,7 +20,8 @@ The gRPC client layer for the OpenFlow agent
 from twisted.internet import threads
 from twisted.internet.defer import inlineCallbacks, returnValue
 
-from protos.voltha_pb2 import ID, VolthaLogicalLayerStub, FlowTableUpdate
+from protos.voltha_pb2 import ID, VolthaLogicalLayerStub, FlowTableUpdate, \
+    GroupTableUpdate
 
 
 class GrpcClient(object):
@@ -58,9 +59,28 @@ class GrpcClient(object):
         returnValue(res)
 
     @inlineCallbacks
+    def update_group_table(self, datapath_id, group_mod):
+        device_id = self.device_id_map[datapath_id]
+        req = GroupTableUpdate(
+            id=device_id,
+            group_mod=group_mod
+        )
+        res = yield threads.deferToThread(
+            self.logical_stub.UpdateGroupTable, req)
+        returnValue(res)
+
+    @inlineCallbacks
     def list_flows(self, datapath_id):
         device_id = self.device_id_map[datapath_id]
         req = ID(id=device_id)
         res = yield threads.deferToThread(
             self.logical_stub.ListDeviceFlows, req)
+        returnValue(res.items)
+
+    @inlineCallbacks
+    def list_group(self, datapath_id):
+        device_id = self.device_id_map[datapath_id]
+        req = ID(id=device_id)
+        res = yield threads.deferToThread(
+            self.logical_stub.ListDeviceFlowGroups, req)
         returnValue(res.items)
