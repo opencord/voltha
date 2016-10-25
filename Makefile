@@ -76,6 +76,7 @@ help:
 build: protos docker-base
 	docker build -t cord/voltha -f Dockerfile.voltha .
 	docker build -t cord/chameleon -f Dockerfile.chameleon .
+	docker build -t cord/ofagent -f Dockerfile.ofagent .
 
 docker-base: .docker-base-built
 

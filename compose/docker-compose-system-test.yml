@@ -126,3 +126,26 @@ services:
       SERVICE_8881_NAME: "chameleon-rest"
     volumes:
     - "/var/run/docker.sock:/tmp/docker.sock"
+  #
+  # ofagent server instance
+  #
+  ofagent:
+    image: cord/ofagent
+    command: [
+      "/ofagent/main.py",
+      "-v",
+      "--consul=${DOCKER_HOST_IP}:8500",
+      "--fluentd=fluentd:24224",
+      "--controller=localhost:6633",
+      "--grpc-endpoint=@voltha-grpc",
+      "--instance-id-is-container-name",
+      "-v"
+    ]
+    depends_on:
+    - consul
+    - voltha
+    links:
+    - consul
+    - fluentd
+    volumes:
+    - "/var/run/docker.sock:/tmp/docker.sock"
