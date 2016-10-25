@@ -32,10 +32,16 @@ log = structlog.get_logger()
 
 class Agent(protocol.ClientFactory):
 
-    def __init__(self, controller_endpoint, datapath_id, rpc_stub,
+    def __init__(self,
+                 controller_endpoint,
+                 datapath_id,
+                 device_id,
+                 rpc_stub,
                  conn_retry_interval=1):
+
         self.controller_endpoint = controller_endpoint
         self.datapath_id = datapath_id
+        self.device_id = device_id
         self.rpc_stub = rpc_stub
         self.retry_interval = conn_retry_interval
 
@@ -45,6 +51,9 @@ class Agent(protocol.ClientFactory):
                                     # TCP connection is lost
         self.connected = False
         self.exiting = False
+
+    def get_device_id(self):
+        return self.device_id
 
     def run(self):
         if self.running:
@@ -94,7 +103,7 @@ class Agent(protocol.ClientFactory):
     def protocol(self):
         cxn = OpenFlowConnection(self)  # Low level message handler
         self.proto_handler = OpenFlowProtocolHandler(
-            self.datapath_id, self, cxn, self.rpc_stub)
+            self.datapath_id, self.device_id, self, cxn, self.rpc_stub)
         return cxn
 
     def clientConnectionFailed(self, connector, reason):
@@ -103,6 +112,9 @@ class Agent(protocol.ClientFactory):
     def clientConnectionLost(self, connector, reason):
         log.error('client-connection-lost',
                   reason=reason, connector=connector)
+
+    def forward_packet_in(self, ofp_packet_in):
+        self.proto_handler.forward_packet_in(ofp_packet_in)
 
 
 if __name__ == '__main__':

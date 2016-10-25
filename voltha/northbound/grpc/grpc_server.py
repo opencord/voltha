@@ -16,15 +16,18 @@
 
 """gRPC server endpoint"""
 import os
+import sys
 import uuid
+from Queue import Queue
 from os.path import abspath, basename, dirname, join, walk
 import grpc
 from concurrent import futures
 from structlog import get_logger
 import zlib
 
+from common.utils.grpc_utils import twisted_async
 from voltha.core.device_model import DeviceModel
-from voltha.protos import voltha_pb2, schema_pb2, openflow_13_pb2
+from voltha.protos import voltha_pb2, schema_pb2
 
 log = get_logger()
 
@@ -140,10 +143,18 @@ class VolthaLogicalLayer(voltha_pb2.VolthaLogicalLayerServicer):
 
     def __init__(self, threadpool):
         self.threadpool = threadpool
-
-        self.devices = [DeviceModel(1)]
+        self.devices = [DeviceModel(self, 1)]
         self.devices_map = dict((d.info.id, d) for d in self.devices)
+        self.packet_in_queue = Queue()
 
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # Note that all GRPC method implementations are not called on the main
+    # (twisted) thread. We shall contain them here and not spread calls on
+    # "foreign" threads elsewhere in the application. So all calls out from
+    # these methods shall be called with the callFromThread pattern.
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    @twisted_async
     def ListLogicalDevices(self, request, context):
         return voltha_pb2.LogicalDevices(
             items=[voltha_pb2.LogicalDevice(
@@ -152,32 +163,58 @@ class VolthaLogicalLayer(voltha_pb2.VolthaLogicalLayerServicer):
                 desc=d.info.desc
             ) for d in self.devices])
 
+    @twisted_async
     def GetLogicalDevice(self, request, context):
         return self.devices_map[request.id].info
 
+    @twisted_async
     def ListLogicalDevicePorts(self, request, context):
         device_model = self.devices_map[request.id]
         return voltha_pb2.LogicalPorts(items=device_model.ports)
 
+    @twisted_async
     def UpdateFlowTable(self, request, context):
         device_model = self.devices_map[request.id]
         device_model.update_flow_table(request.flow_mod)
         return voltha_pb2.NullMessage()
 
+    @twisted_async
     def ListDeviceFlows(self, request, context):
         device_model = self.devices_map[request.id]
         flows = device_model.list_flows()
         return voltha_pb2.Flows(items=flows)
 
+    @twisted_async
     def UpdateGroupTable(self, request, context):
         device_model = self.devices_map[request.id]
         device_model.update_group_table(request.group_mod)
         return voltha_pb2.NullMessage()
 
+    @twisted_async
     def ListDeviceFlowGroups(self, request, context):
         device_model = self.devices_map[request.id]
         groups = device_model.list_groups()
         return voltha_pb2.FlowGroups(items=groups)
+
+    def StreamPacketsOut(self, request_iterator, context):
+
+        @twisted_async
+        def forward_packet_out(packet_out):
+            device_model = self.devices_map[packet_out.id]
+            device_model.packet_out(packet_out.packet_out)
+
+        for request in request_iterator:
+            forward_packet_out(packet_out=request)
+
+    def ReceivePacketsIn(self, request, context):
+        while 1:
+            packet_in = self.packet_in_queue.get()
+            yield packet_in
+
+    def send_packet_in(self, device_id, ofp_packet_in):
+        """Must be called on the twisted thread"""
+        packet_in = voltha_pb2.PacketIn(id=device_id, packet_in=ofp_packet_in)
+        self.packet_in_queue.put(packet_in)
 
 
 class VolthaGrpcServer(object):

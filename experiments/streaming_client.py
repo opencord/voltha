@@ -1,16 +1,17 @@
 #!/usr/bin/env python
 
 import time
+from Queue import Queue
 
 import grpc
 from google.protobuf.empty_pb2 import Empty
 from twisted.internet import reactor
 from twisted.internet import threads
-from twisted.internet.defer import Deferred, inlineCallbacks, DeferredQueue
+from twisted.internet.defer import Deferred, inlineCallbacks, DeferredQueue, \
+    returnValue
 
 from common.utils.asleep import asleep
-from streaming_pb2 import ExperimentalServiceStub, Echo
-
+from streaming_pb2 import ExperimentalServiceStub, Echo, Packet
 
 t0 = time.time()
 
@@ -52,6 +53,36 @@ class ClientServices(object):
                 pr('event received: %s %s %s' % (
                    event.seq, event.type, event.details))
 
+    @inlineCallbacks
+    def send_packet_stream(self, stub, interval):
+        queue = Queue()
+
+        @inlineCallbacks
+        def get_next_from_queue():
+            packet = yield queue.get()
+            returnValue(packet)
+
+        def packet_generator():
+            while 1:
+                packet = queue.get(block=True)
+                yield packet
+
+        def stream(stub):
+            """This is executed on its own thread"""
+            generator = packet_generator()
+            result = stub.SendPackets(generator)
+            print 'Got this after sending packets:', result, type(result)
+            return result
+
+        reactor.callInThread(stream, stub)
+
+        while 1:
+            len = queue.qsize()
+            if len < 100:
+                packet = Packet(source=42, content='beefstew')
+                queue.put(packet)
+            yield asleep(interval)
+
 
 if __name__ == '__main__':
     client_services = ClientServices()
@@ -60,4 +91,5 @@ if __name__ == '__main__':
     reactor.callLater(0, client_services.echo_loop, stub, '', 0.2)
     reactor.callLater(0, client_services.echo_loop, stub, 40*' ', 2)
     reactor.callLater(0, client_services.receive_async_events, stub)
+    reactor.callLater(0, client_services.send_packet_stream, stub, 0.0000001)
     reactor.run()

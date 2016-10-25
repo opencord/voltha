@@ -27,7 +27,7 @@ class OpenFlowProtocolError(Exception): pass
 
 class OpenFlowProtocolHandler(object):
 
-    def __init__(self, datapath_id, agent, cxn, rpc):
+    def __init__(self, datapath_id, device_id, agent, cxn, rpc):
         """
         The upper half of the OpenFlow protocol, focusing on message
         exchanges.
@@ -38,6 +38,7 @@ class OpenFlowProtocolHandler(object):
           are made as result of processing incoming OpenFlow request messages.
         """
         self.datapath_id = datapath_id
+        self.device_id = device_id
         self.agent = agent
         self.cxn = cxn
         self.rpc = rpc
@@ -71,7 +72,7 @@ class OpenFlowProtocolHandler(object):
 
     @inlineCallbacks
     def handle_feature_request(self, req):
-        device_info = yield self.rpc.get_device_info(self.datapath_id)
+        device_info = yield self.rpc.get_device_info(self.device_id)
         kw = pb2dict(device_info.switch_features)
         self.cxn.send(ofp.message.features_reply(
             xid=req.xid,
@@ -95,7 +96,7 @@ class OpenFlowProtocolHandler(object):
 
     @inlineCallbacks
     def handle_flow_mod_request(self, req):
-        yield self.rpc.update_flow_table(self.datapath_id, to_grpc(req))
+        yield self.rpc.update_flow_table(self.device_id, to_grpc(req))
 
     def handle_get_async_request(self, req):
         raise NotImplementedError()
@@ -108,7 +109,7 @@ class OpenFlowProtocolHandler(object):
 
     @inlineCallbacks
     def handle_group_mod_request(self, req):
-        yield self.rpc.update_group_table(self.datapath_id, to_grpc(req))
+        yield self.rpc.update_group_table(self.device_id, to_grpc(req))
 
     def handle_meter_mod_request(self, req):
         raise NotImplementedError()
@@ -121,8 +122,7 @@ class OpenFlowProtocolHandler(object):
             xid=req.xid, role=req.role, generation_id=req.generation_id))
 
     def handle_packet_out_request(self, req):
-        # TODO send packet out
-        pass
+        self.rpc.send_packet_out(self.device_id, to_grpc(req))
 
     def handle_set_config_request(self, req):
         # TODO ignore for now
@@ -145,7 +145,7 @@ class OpenFlowProtocolHandler(object):
 
     @inlineCallbacks
     def handle_device_description_request(self, req):
-        device_info = yield self.rpc.get_device_info(self.datapath_id)
+        device_info = yield self.rpc.get_device_info(self.device_id)
         kw = pb2dict(device_info.desc)
         self.cxn.send(ofp.message.desc_stats_reply(xid=req.xid, **kw))
 
@@ -154,13 +154,13 @@ class OpenFlowProtocolHandler(object):
 
     @inlineCallbacks
     def handle_flow_stats_request(self, req):
-        flow_stats = yield self.rpc.list_flows(self.datapath_id)
+        flow_stats = yield self.rpc.list_flows(self.device_id)
         self.cxn.send(ofp.message.flow_stats_reply(
             xid=req.xid, entries=[to_loxi(f) for f in flow_stats]))
 
     @inlineCallbacks
     def handle_group_stats_request(self, req):
-        group_stats = yield self.rpc.list_groups(self.datapath_id)
+        group_stats = yield self.rpc.list_groups(self.device_id)
         self.cxn.send(ofp.message.group_stats_reply(
             xid=req.xid, entries=[to_loxi(g) for g  in group_stats]))
 
@@ -190,7 +190,7 @@ class OpenFlowProtocolHandler(object):
 
     @inlineCallbacks
     def handle_port_desc_request(self, req):
-        port_list = yield self.rpc.get_port_list(self.datapath_id)
+        port_list = yield self.rpc.get_port_list(self.device_id)
         self.cxn.send(ofp.message.port_desc_stats_reply(
             xid=req.xid,
             #flags=None,
@@ -246,3 +246,5 @@ class OpenFlowProtocolHandler(object):
         ofp.OFPT_TABLE_MOD: handle_table_mod_request,
     }
 
+    def forward_packet_in(self, ofp_packet_in):
+        self.cxn.send(to_loxi(ofp_packet_in))
