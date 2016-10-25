@@ -7,7 +7,9 @@ from twisted.internet import reactor
 from twisted.internet.defer import Deferred, inlineCallbacks, returnValue
 
 from common.utils.asleep import asleep
+from google.protobuf.empty_pb2 import Empty
 
+from common.utils.grpc_utils import twisted_async
 from streaming_pb2 import add_ExperimentalServiceServicer_to_server, \
     AsyncEvent, ExperimentalServiceServicer, Echo
 
@@ -17,57 +19,6 @@ class ShutDown(object):
 
 
 class ShuttingDown(Exception): pass
-
-
-def twisted_async(func):
-    """
-    This decorator can be used to implement a gRPC method on the twisted
-    thread, allowing asynchronous programming in Twisted while serving
-    a gRPC call.
-
-    gRPC methods normally are called on the futures.ThreadPool threads,
-    so these methods cannot directly use Twisted protocol constructs.
-    If the implementation of the methods needs to touch Twisted, it is
-    safer (or mandatory) to wrap the method with this decorator, which will
-    call the inner method from the external thread and ensure that the
-    result is passed back to the foreign thread.
-    """
-    def in_thread_wrapper(*args, **kw):
-
-        if ShutDown.stop:
-            raise ShuttingDown()
-        f = Future()
-
-        def twisted_wrapper():
-            try:
-                d = func(*args, **kw)
-                if isinstance(d, Deferred):
-
-                    def _done(result):
-                        f.set_result(result)
-                        f.done()
-
-                    def _error(e):
-                        f.set_exception(e)
-                        f.done()
-
-                    d.addCallback(_done)
-                    d.addErrback(_error)
-
-                else:
-                    f.set_result(d)
-                    f.done()
-
-            except Exception, e:
-                f.set_exception(e)
-                f.done()
-
-        reactor.callFromThread(twisted_wrapper)
-        result = f.result()
-
-        return result
-
-    return in_thread_wrapper
 
 
 class Service(ExperimentalServiceServicer):
@@ -88,7 +39,7 @@ class Service(ExperimentalServiceServicer):
     @inlineCallbacks
     def get_next_event(self):
         """called on the twisted thread"""
-        yield asleep(0.0001)
+        yield asleep(0.000001)
         event = AsyncEvent(seq=self.event_seq, details='foo')
         self.event_seq += 1
         returnValue(event)
@@ -105,7 +56,12 @@ class Service(ExperimentalServiceServicer):
         pass
 
     def SendPackets(self, request, context):
-        pass
+        count = 0
+        for _ in request:
+            count += 1
+            if count % 1000 == 0:
+                print '%s got %d packets' % (20 * ' ', count)
+        return Empty()
 
 
 if __name__ == '__main__':

@@ -17,8 +17,13 @@
 """
 Model that captures the current state of a logical device
 """
+import threading
+import sys
+
 import structlog
 
+from voltha.protos.third_party.google import api
+sys.modules['google.api'] = api
 from voltha.protos import openflow_13_pb2 as ofp
 from voltha.protos import voltha_pb2
 
@@ -60,10 +65,12 @@ def group_entry_from_group_mod(mod):
 
 class DeviceModel(object):
 
-    def __init__(self, tmp_id):
+    def __init__(self, grpc_server, id):
+        self.grpc_server = grpc_server
+
         self.info = voltha_pb2.LogicalDeviceDetails(
-            id=str(tmp_id),
-            datapath_id=tmp_id,
+            id=str(id),
+            datapath_id=id,
             desc=ofp.ofp_desc(
                 mfr_desc="CORD/Voltha",
                 hw_desc="Synthetized/logical device",
@@ -213,7 +220,14 @@ class DeviceModel(object):
         self.announce_flows_deleted(to_delete)
 
     def flow_delete_strict(self, mod):
-        raise NotImplementedError()
+        assert isinstance(mod, ofp.ofp_flow_mod)
+        flow = flow_stats_entry_from_flow_mod_message(mod)
+        idx = self.find_flow(flow)
+        if (idx >= 0):
+            del self.flows[idx]
+        else:
+            # TODO need to check what to do with this case
+            log.warn('flow-cannot-delete', flow=flow)
 
     def flow_modify(self, mod):
         raise NotImplementedError()
@@ -386,3 +400,25 @@ class DeviceModel(object):
             # replace existing group entry with new group definition
             group_entry = group_entry_from_group_mod(group_mod)
             self.groups[group_mod.group_id] = group_entry
+
+    ## <=============== PACKET_OUT ===========================================>
+
+    def packet_out(self, ofp_packet_out):
+        log.debug('packet-out', packet=ofp_packet_out)
+        print threading.current_thread().name
+        print 'PACKET_OUT:', ofp_packet_out
+        # TODO for debug purposes, lets turn this around and send it back
+        # self.packet_in(ofp.ofp_packet_in(
+        #     buffer_id=ofp_packet_out.buffer_id,
+        #     reason=ofp.OFPR_NO_MATCH,
+        #     data=ofp_packet_out.data
+        # ))
+
+
+
+    ## <=============== PACKET_IN ============================================>
+
+    def packet_in(self, ofp_packet_in):
+        # TODO
+        print 'PACKET_IN:', ofp_packet_in
+        self.grpc_server.send_packet_in(self.info.id, ofp_packet_in)

@@ -55,23 +55,23 @@ def ofp_port_to_loxi_port_desc(pb):
     kw = pb2dict(pb)
     return of13.common.port_desc(**kw)
 
+def make_loxi_match(match):
+    assert match['type'] == pb2.OFPMT_OXM
+    loxi_match_fields = []
+    for oxm_field in match['oxm_fields']:
+        assert oxm_field['oxm_class'] == pb2.OFPXMC_OPENFLOW_BASIC
+        ofb_field = oxm_field['ofb_field']
+        field_type = ofb_field.get('type', 0)
+        if field_type == pb2.OFPXMT_OFB_ETH_TYPE:
+            loxi_match_fields.append(
+                of13.oxm.eth_type(value=ofb_field['eth_type']))
+        else:
+            raise NotImplementedError(
+                'OXM match field for type %s' % field_type)
+    return of13.match_v3(oxm_list=loxi_match_fields)
+
 def ofp_flow_stats_to_loxi_flow_stats(pb):
     kw = pb2dict(pb)
-
-    def make_loxi_match(match):
-        assert match['type'] == pb2.OFPMT_OXM
-        loxi_match_fields = []
-        for oxm_field in match['oxm_fields']:
-            assert oxm_field['oxm_class'] == pb2.OFPXMC_OPENFLOW_BASIC
-            ofb_field = oxm_field['ofb_field']
-            field_type = ofb_field.get('type', 0)
-            if field_type == pb2.OFPXMT_OFB_ETH_TYPE:
-                loxi_match_fields.append(
-                    of13.oxm.eth_type(value=ofb_field['eth_type']))
-            else:
-                raise NotImplementedError(
-                    'OXM match field for type %s' % field_type)
-        return of13.match_v3(oxm_list=loxi_match_fields)
 
     def make_loxi_action(a):
         type = a.get('type', 0)
@@ -95,10 +95,17 @@ def ofp_flow_stats_to_loxi_flow_stats(pb):
     kw['instructions'] = [make_loxi_instruction(i) for i in kw['instructions']]
     return of13.flow_stats_entry(**kw)
 
+def ofp_packet_in_to_loxi_packet_in(pb):
+    kw = pb2dict(pb)
+    if 'match' in kw:
+        kw['match'] = make_loxi_match(kw['match'])
+    return of13.message.packet_in(**kw)
+
 
 to_loxi_converters = {
     pb2.ofp_port: ofp_port_to_loxi_port_desc,
-    pb2.ofp_flow_stats: ofp_flow_stats_to_loxi_flow_stats
+    pb2.ofp_flow_stats: ofp_flow_stats_to_loxi_flow_stats,
+    pb2.ofp_packet_in: ofp_packet_in_to_loxi_packet_in,
 }
 
 
@@ -127,6 +134,14 @@ def loxi_group_mod_to_ofp_group_mod(lo):
         buckets=[to_grpc(b) for b in lo.buckets])
 
 
+def loxi_packet_out_to_ofp_packet_out(lo):
+    return pb2.ofp_packet_out(
+        buffer_id=lo.buffer_id,
+        in_port=lo.in_port,
+        actions=[to_grpc(a) for a in lo.actions],
+        data=lo.data)
+
+
 def loxi_match_v3_to_ofp_match(lo):
     return pb2.ofp_match(
         type=pb2.OFPMT_OXM,
@@ -138,8 +153,8 @@ def loxi_bucket_to_ofp_bucket(lo):
         weight=lo.weight,
         watch_port=lo.watch_port,
         watch_group=lo.watch_group,
-        actions=[to_grpc(a) for a in lo.actions]
-    )
+        actions=[to_grpc(a) for a in lo.actions])
+
 
 def loxi_oxm_eth_type_to_ofp_oxm(lo):
     return pb2.ofp_oxm_field(
@@ -241,6 +256,7 @@ to_grpc_converters = {
     of13.message.group_add: loxi_group_mod_to_ofp_group_mod,
     of13.message.group_delete: loxi_group_mod_to_ofp_group_mod,
     of13.message.group_modify: loxi_group_mod_to_ofp_group_mod,
+    of13.message.packet_out: loxi_packet_out_to_ofp_packet_out,
 
     of13.common.match_v3: loxi_match_v3_to_ofp_match,
     of13.common.bucket: loxi_bucket_to_ofp_bucket,

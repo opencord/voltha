@@ -1273,11 +1273,10 @@ message ofp_packet_out {
     uint32 buffer_id = 1;          /* ID assigned by datapath (OFP_NO_BUFFER
                                       if none). */
     uint32 in_port = 2;            /* Packet's input port or OFPP_CONTROLLER.*/
-    uint32 actions_len = 3;        /* Size of action array in bytes. */
-    repeated ofp_action actions = 4; /* Action list - 0 or more. */
+    repeated ofp_action actions = 3; /* Action list - 0 or more. */
     /* The variable size action list is optionally followed by packet data.
      * This data is only present and meaningful if buffer_id == -1. */
-    bytes data = 5;                /* Packet data. */
+    bytes data = 4;                /* Packet data. */
 };
 
 /* Why is this packet being sent to the controller? */
@@ -1291,12 +1290,11 @@ enum ofp_packet_in_reason {
 message ofp_packet_in {
     //ofp_header header;
     uint32 buffer_id = 1;     /* ID assigned by datapath. */
-    uint32 total_len = 2;     /* Full length of frame. */
-    ofp_packet_in_reason reason = 3; /* Reason packet is being sent */
-    uint32 table_id = 4;      /* ID of the table that was looked up */
-    uint64 cookie = 5;        /* Cookie of the flow entry that was looked up. */
-    ofp_match match = 6;      /* Packet metadata. Variable size. */
-    bytes data = 7;           /* Ethernet frame */
+    ofp_packet_in_reason reason = 2; /* Reason packet is being sent */
+    uint32 table_id = 3;      /* ID of the table that was looked up */
+    uint64 cookie = 4;        /* Cookie of the flow entry that was looked up. */
+    ofp_match match = 5;      /* Packet metadata. Variable size. */
+    bytes data = 6;           /* Ethernet frame */
 };
 
 /* Why was this flow removed? */
@@ -2243,72 +2241,3 @@ message ofp_async_config {
     repeated uint32 port_status_mask = 2; /* Bitmasks of OFPPR_* values. */
     repeated uint32 flow_removed_mask = 3;/* Bitmasks of OFPRR_* values. */
 };
-
-/*
- * Service API definitions and additional message types needed for it
- */
-
-service OpenFlow {
-
-    /*
-     * Hello message handshake, initiated by the client (controller)
-     */
-    rpc GetHello(ofp_hello)
-        returns(ofp_hello) {
-        // TODO http option
-    }
-
-    /*
-     * Echo request / reply, initiated by the client (controller)
-     */
-    rpc EchoRequest(ofp_header)
-        returns(ofp_header) {
-        // TODO http option
-    }
-
-    /*
-     * Experimental (extension) RPC
-     */
-    rpc ExperimenterRequest(ofp_experimenter_header)
-        returns(ofp_experimenter_header) {
-        // TODO http option
-    }
-
-    /*
-     * Get Switch Features
-     */
-    rpc GetSwitchFeatures(ofp_header) returns(ofp_switch_features) {
-        // TODO http option
-    }
-
-    /*
-     * Get Switch Config
-     */
-    rpc GetSwitchConfig(ofp_header) returns(ofp_switch_config) {
-        // TODO http option
-    }
-
-    /*
-     * Set Config
-     */
-    rpc SetConfig(ofp_switch_config) returns(ofp_header) {
-        // TODO http option
-    }
-
-    /*
-     * Receive Packet-In messages
-     */
-    rpc ReceivePacketInMessages(ofp_header) returns(stream ofp_packet_in) {
-        // TODO http option
-    }
-
-    /*
-     * Send Packet-Out messages
-     */
-    rpc SendPacketOutMessages(ofp_packet_out) returns(ofp_header) {
-        // TODO http option
-    }
-
-    // TODO continue
-
-}

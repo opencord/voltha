@@ -215,9 +215,8 @@ class Main(object):
     def startup_components(self):
         self.log.info('starting-internal-components')
         args = self.args
-        self.connection_manager = yield ConnectionManager(args.consul,
-                                                          args.grpc_endpoint,
-                                                          args.controller).run()
+        self.connection_manager = yield ConnectionManager(
+            args.consul, args.grpc_endpoint, args.controller).run()
         self.log.info('started-internal-services')
 
     @inlineCallbacks

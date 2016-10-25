@@ -112,6 +112,16 @@ message FlowGroups {
     repeated openflow_13.ofp_group_entry items = 1;
 }
 
+message PacketIn {
+    string id = 1; // device id
+    openflow_13.ofp_packet_in packet_in = 2;
+}
+
+message PacketOut {
+    string id = 1; // device id
+    openflow_13.ofp_packet_out packet_out = 2;
+}
+
 service VolthaLogicalLayer {
 
     // List logical devices owned by this Voltha instance
@@ -163,6 +173,16 @@ service VolthaLogicalLayer {
         option (google.api.http) = {
             get: "/local/devices/{id}/groups"
         };
+    }
+
+    // Stream control packets to the dataplane
+    rpc StreamPacketsOut(stream PacketOut) returns(NullMessage) {
+        // This does not have an HTTP representation
+    }
+
+    // Receive control packet stream
+    rpc ReceivePacketsIn(NullMessage) returns(stream PacketIn) {
+        // This does not have an HTTP representation
     }
 
     // Create a subscriber record
