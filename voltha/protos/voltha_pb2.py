@@ -21,7 +21,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='voltha.proto',
   package='voltha',
   syntax='proto3',
-  serialized_pb=_b('\n\x0cvoltha.proto\x12\x06voltha\x1a\x1cgoogle/api/annotations.proto\x1a\x11openflow_13.proto\"\r\n\x0bNullMessage\"v\n\x0cHealthStatus\x12/\n\x05state\x18\x01 \x01(\x0e\x32 .voltha.HealthStatus.HealthState\"5\n\x0bHealthState\x12\x0b\n\x07HEALTHY\x10\x00\x12\x0e\n\nOVERLOADED\x10\x01\x12\t\n\x05\x44YING\x10\x02\"q\n\x07\x41\x64\x64ress\x12\n\n\x02id\x18\x07 \x01(\t\x12\x0e\n\x06street\x18\x01 \x01(\t\x12\x0f\n\x07street2\x18\x02 \x01(\t\x12\x0f\n\x07street3\x18\x03 \x01(\t\x12\x0c\n\x04\x63ity\x18\x04 \x01(\t\x12\r\n\x05state\x18\x05 \x01(\t\x12\x0b\n\x03zip\x18\x06 \x01(\r\"/\n\tAddresses\x12\"\n\taddresses\x18\x01 \x03(\x0b\x32\x0f.voltha.Address\"\x9f\x01\n\x0bMoreComplex\x12$\n\x06health\x18\x01 \x01(\x0b\x32\x14.voltha.HealthStatus\x12\x13\n\x0b\x66oo_counter\x18\x02 \x01(\x05\x12\x0c\n\x04name\x18\x03 \x01(\t\x12%\n\x08\x63hildren\x18\x04 \x03(\x0b\x32\x13.voltha.MoreComplex\x12 \n\x07\x61\x64\x64ress\x18\x05 \x01(\x0b\x32\x0f.voltha.Address\"\x10\n\x02ID\x12\n\n\x02id\x18\x01 \x01(\t\"\x18\n\nSubscriber\x12\n\n\x02id\x18\x01 \x01(\t\"0\n\x0bSubscribers\x12!\n\x05items\x18\x01 \x03(\x0b\x32\x12.voltha.Subscriber\"U\n\rLogicalDevice\x12\n\n\x02id\x18\x01 \x01(\t\x12\x13\n\x0b\x64\x61tapath_id\x18\x02 \x01(\x04\x12#\n\x04\x64\x65sc\x18\x03 \x01(\x0b\x32\x15.openflow_13.ofp_desc\"6\n\x0eLogicalDevices\x12$\n\x05items\x18\x01 \x03(\x0b\x32\x15.voltha.LogicalDevice\"4\n\x0cLogicalPorts\x12$\n\x05items\x18\x01 \x03(\x0b\x32\x15.openflow_13.ofp_port\"\x97\x01\n\x14LogicalDeviceDetails\x12\n\n\x02id\x18\x01 \x01(\t\x12\x13\n\x0b\x64\x61tapath_id\x18\x02 \x01(\x04\x12#\n\x04\x64\x65sc\x18\x03 \x01(\x0b\x32\x15.openflow_13.ofp_desc\x12\x39\n\x0fswitch_features\x18\x04 \x01(\x0b\x32 .openflow_13.ofp_switch_features\"J\n\x0f\x46lowTableUpdate\x12\n\n\x02id\x18\x01 \x01(\t\x12+\n\x08\x66low_mod\x18\x02 \x01(\x0b\x32\x19.openflow_13.ofp_flow_mod\"3\n\x05\x46lows\x12*\n\x05items\x18\x01 \x03(\x0b\x32\x1b.openflow_13.ofp_flow_stats2^\n\rHealthService\x12M\n\x0fGetHealthStatus\x12\x13.voltha.NullMessage\x1a\x14.voltha.HealthStatus\"\x0f\x82\xd3\xe4\x93\x02\t\x12\x07/health2\xff\x06\n\x12VolthaLogicalLayer\x12Y\n\x12ListLogicalDevices\x12\x13.voltha.NullMessage\x1a\x16.voltha.LogicalDevices\"\x16\x82\xd3\xe4\x93\x02\x10\x12\x0e/local/devices\x12Y\n\x10GetLogicalDevice\x12\n.voltha.ID\x1a\x1c.voltha.LogicalDeviceDetails\"\x1b\x82\xd3\xe4\x93\x02\x15\x12\x13/local/devices/{id}\x12]\n\x16ListLogicalDevicePorts\x12\n.voltha.ID\x1a\x14.voltha.LogicalPorts\"!\x82\xd3\xe4\x93\x02\x1b\x12\x19/local/devices/{id}/ports\x12\x65\n\x0fUpdateFlowTable\x12\x17.voltha.FlowTableUpdate\x1a\x13.voltha.NullMessage\"$\x82\xd3\xe4\x93\x02\x1e\"\x19/local/devices/{id}/flows:\x01*\x12O\n\x0fListDeviceFlows\x12\n.voltha.ID\x1a\r.voltha.Flows\"!\x82\xd3\xe4\x93\x02\x1b\x12\x19/local/devices/{id}/flows\x12S\n\x10\x43reateSubscriber\x12\x12.voltha.Subscriber\x1a\x12.voltha.Subscriber\"\x17\x82\xd3\xe4\x93\x02\x11\"\x0c/subscribers:\x01*\x12J\n\rGetSubscriber\x12\n.voltha.ID\x1a\x12.voltha.Subscriber\"\x19\x82\xd3\xe4\x93\x02\x13\x12\x11/subscribers/{id}\x12X\n\x10UpdateSubscriber\x12\x12.voltha.Subscriber\x1a\x12.voltha.Subscriber\"\x1c\x82\xd3\xe4\x93\x02\x16\x32\x11/subscribers/{id}:\x01*\x12N\n\x10\x44\x65leteSubscriber\x12\n.voltha.ID\x1a\x13.voltha.NullMessage\"\x19\x82\xd3\xe4\x93\x02\x13*\x11/subscribers/{id}\x12Q\n\x0fListSubscribers\x12\x13.voltha.NullMessage\x1a\x13.voltha.Subscribers\"\x14\x82\xd3\xe4\x93\x02\x0e\x12\x0c/subscribers2\x85\x03\n\x0e\x45xampleService\x12H\n\rCreateAddress\x12\x0f.voltha.Address\x1a\x0f.voltha.Address\"\x15\x82\xd3\xe4\x93\x02\x0f\"\n/addresses:\x01*\x12\x42\n\nGetAddress\x12\n.voltha.ID\x1a\x0f.voltha.Address\"\x17\x82\xd3\xe4\x93\x02\x11\x12\x0f/addresses/{id}\x12M\n\rUpdateAddress\x12\x0f.voltha.Address\x1a\x0f.voltha.Address\"\x1a\x82\xd3\xe4\x93\x02\x14\x32\x0f/addresses/{id}:\x01*\x12I\n\rDeleteAddress\x12\n.voltha.ID\x1a\x13.voltha.NullMessage\"\x17\x82\xd3\xe4\x93\x02\x11*\x0f/addresses/{id}\x12K\n\rListAddresses\x12\x13.voltha.NullMessage\x1a\x11.voltha.Addresses\"\x12\x82\xd3\xe4\x93\x02\x0c\x12\n/addresses2\xfd\x04\n\x08OpenFlow\x12<\n\x08GetHello\x12\x16.openflow_13.ofp_hello\x1a\x16.openflow_13.ofp_hello\"\x00\x12\x41\n\x0b\x45\x63hoRequest\x12\x17.openflow_13.ofp_header\x1a\x17.openflow_13.ofp_header\"\x00\x12\x63\n\x13\x45xperimenterRequest\x12$.openflow_13.ofp_experimenter_header\x1a$.openflow_13.ofp_experimenter_header\"\x00\x12P\n\x11GetSwitchFeatures\x12\x17.openflow_13.ofp_header\x1a .openflow_13.ofp_switch_features\"\x00\x12L\n\x0fGetSwitchConfig\x12\x17.openflow_13.ofp_header\x1a\x1e.openflow_13.ofp_switch_config\"\x00\x12\x46\n\tSetConfig\x12\x1e.openflow_13.ofp_switch_config\x1a\x17.openflow_13.ofp_header\"\x00\x12R\n\x17ReceivePacketInMessages\x12\x17.openflow_13.ofp_header\x1a\x1a.openflow_13.ofp_packet_in\"\x00\x30\x01\x12O\n\x15SendPacketOutMessages\x12\x1b.openflow_13.ofp_packet_out\x1a\x17.openflow_13.ofp_header\"\x00\x42<\n\x13org.opencord.volthaB\x0cVolthaProtos\xaa\x02\x16Opencord.Voltha.Volthab\x06proto3')
+  serialized_pb=_b('\n\x0cvoltha.proto\x12\x06voltha\x1a\x1cgoogle/api/annotations.proto\x1a\x11openflow_13.proto\"\r\n\x0bNullMessage\"v\n\x0cHealthStatus\x12/\n\x05state\x18\x01 \x01(\x0e\x32 .voltha.HealthStatus.HealthState\"5\n\x0bHealthState\x12\x0b\n\x07HEALTHY\x10\x00\x12\x0e\n\nOVERLOADED\x10\x01\x12\t\n\x05\x44YING\x10\x02\"q\n\x07\x41\x64\x64ress\x12\n\n\x02id\x18\x07 \x01(\t\x12\x0e\n\x06street\x18\x01 \x01(\t\x12\x0f\n\x07street2\x18\x02 \x01(\t\x12\x0f\n\x07street3\x18\x03 \x01(\t\x12\x0c\n\x04\x63ity\x18\x04 \x01(\t\x12\r\n\x05state\x18\x05 \x01(\t\x12\x0b\n\x03zip\x18\x06 \x01(\r\"/\n\tAddresses\x12\"\n\taddresses\x18\x01 \x03(\x0b\x32\x0f.voltha.Address\"\x9f\x01\n\x0bMoreComplex\x12$\n\x06health\x18\x01 \x01(\x0b\x32\x14.voltha.HealthStatus\x12\x13\n\x0b\x66oo_counter\x18\x02 \x01(\x05\x12\x0c\n\x04name\x18\x03 \x01(\t\x12%\n\x08\x63hildren\x18\x04 \x03(\x0b\x32\x13.voltha.MoreComplex\x12 \n\x07\x61\x64\x64ress\x18\x05 \x01(\x0b\x32\x0f.voltha.Address\"\x10\n\x02ID\x12\n\n\x02id\x18\x01 \x01(\t\"\x18\n\nSubscriber\x12\n\n\x02id\x18\x01 \x01(\t\"0\n\x0bSubscribers\x12!\n\x05items\x18\x01 \x03(\x0b\x32\x12.voltha.Subscriber\"U\n\rLogicalDevice\x12\n\n\x02id\x18\x01 \x01(\t\x12\x13\n\x0b\x64\x61tapath_id\x18\x02 \x01(\x04\x12#\n\x04\x64\x65sc\x18\x03 \x01(\x0b\x32\x15.openflow_13.ofp_desc\"6\n\x0eLogicalDevices\x12$\n\x05items\x18\x01 \x03(\x0b\x32\x15.voltha.LogicalDevice\"4\n\x0cLogicalPorts\x12$\n\x05items\x18\x01 \x03(\x0b\x32\x15.openflow_13.ofp_port\"\x97\x01\n\x14LogicalDeviceDetails\x12\n\n\x02id\x18\x01 \x01(\t\x12\x13\n\x0b\x64\x61tapath_id\x18\x02 \x01(\x04\x12#\n\x04\x64\x65sc\x18\x03 \x01(\x0b\x32\x15.openflow_13.ofp_desc\x12\x39\n\x0fswitch_features\x18\x04 \x01(\x0b\x32 .openflow_13.ofp_switch_features\"J\n\x0f\x46lowTableUpdate\x12\n\n\x02id\x18\x01 \x01(\t\x12+\n\x08\x66low_mod\x18\x02 \x01(\x0b\x32\x19.openflow_13.ofp_flow_mod\"M\n\x10GroupTableUpdate\x12\n\n\x02id\x18\x01 \x01(\t\x12-\n\tgroup_mod\x18\x02 \x01(\x0b\x32\x1a.openflow_13.ofp_group_mod\"3\n\x05\x46lows\x12*\n\x05items\x18\x01 \x03(\x0b\x32\x1b.openflow_13.ofp_flow_stats\"9\n\nFlowGroups\x12+\n\x05items\x18\x01 \x03(\x0b\x32\x1c.openflow_13.ofp_group_entry2^\n\rHealthService\x12M\n\x0fGetHealthStatus\x12\x13.voltha.NullMessage\x1a\x14.voltha.HealthStatus\"\x0f\x82\xd3\xe4\x93\x02\t\x12\x07/health2\xc5\x08\n\x12VolthaLogicalLayer\x12Y\n\x12ListLogicalDevices\x12\x13.voltha.NullMessage\x1a\x16.voltha.LogicalDevices\"\x16\x82\xd3\xe4\x93\x02\x10\x12\x0e/local/devices\x12Y\n\x10GetLogicalDevice\x12\n.voltha.ID\x1a\x1c.voltha.LogicalDeviceDetails\"\x1b\x82\xd3\xe4\x93\x02\x15\x12\x13/local/devices/{id}\x12]\n\x16ListLogicalDevicePorts\x12\n.voltha.ID\x1a\x14.voltha.LogicalPorts\"!\x82\xd3\xe4\x93\x02\x1b\x12\x19/local/devices/{id}/ports\x12\x65\n\x0fUpdateFlowTable\x12\x17.voltha.FlowTableUpdate\x1a\x13.voltha.NullMessage\"$\x82\xd3\xe4\x93\x02\x1e\"\x19/local/devices/{id}/flows:\x01*\x12O\n\x0fListDeviceFlows\x12\n.voltha.ID\x1a\r.voltha.Flows\"!\x82\xd3\xe4\x93\x02\x1b\x12\x19/local/devices/{id}/flows\x12h\n\x10UpdateGroupTable\x12\x18.voltha.GroupTableUpdate\x1a\x13.voltha.NullMessage\"%\x82\xd3\xe4\x93\x02\x1f\"\x1a/local/devices/{id}/groups:\x01*\x12Z\n\x14ListDeviceFlowGroups\x12\n.voltha.ID\x1a\x12.voltha.FlowGroups\"\"\x82\xd3\xe4\x93\x02\x1c\x12\x1a/local/devices/{id}/groups\x12S\n\x10\x43reateSubscriber\x12\x12.voltha.Subscriber\x1a\x12.voltha.Subscriber\"\x17\x82\xd3\xe4\x93\x02\x11\"\x0c/subscribers:\x01*\x12J\n\rGetSubscriber\x12\n.voltha.ID\x1a\x12.voltha.Subscriber\"\x19\x82\xd3\xe4\x93\x02\x13\x12\x11/subscribers/{id}\x12X\n\x10UpdateSubscriber\x12\x12.voltha.Subscriber\x1a\x12.voltha.Subscriber\"\x1c\x82\xd3\xe4\x93\x02\x16\x32\x11/subscribers/{id}:\x01*\x12N\n\x10\x44\x65leteSubscriber\x12\n.voltha.ID\x1a\x13.voltha.NullMessage\"\x19\x82\xd3\xe4\x93\x02\x13*\x11/subscribers/{id}\x12Q\n\x0fListSubscribers\x12\x13.voltha.NullMessage\x1a\x13.voltha.Subscribers\"\x14\x82\xd3\xe4\x93\x02\x0e\x12\x0c/subscribers2\x85\x03\n\x0e\x45xampleService\x12H\n\rCreateAddress\x12\x0f.voltha.Address\x1a\x0f.voltha.Address\"\x15\x82\xd3\xe4\x93\x02\x0f\"\n/addresses:\x01*\x12\x42\n\nGetAddress\x12\n.voltha.ID\x1a\x0f.voltha.Address\"\x17\x82\xd3\xe4\x93\x02\x11\x12\x0f/addresses/{id}\x12M\n\rUpdateAddress\x12\x0f.voltha.Address\x1a\x0f.voltha.Address\"\x1a\x82\xd3\xe4\x93\x02\x14\x32\x0f/addresses/{id}:\x01*\x12I\n\rDeleteAddress\x12\n.voltha.ID\x1a\x13.voltha.NullMessage\"\x17\x82\xd3\xe4\x93\x02\x11*\x0f/addresses/{id}\x12K\n\rListAddresses\x12\x13.voltha.NullMessage\x1a\x11.voltha.Addresses\"\x12\x82\xd3\xe4\x93\x02\x0c\x12\n/addresses2\xfd\x04\n\x08OpenFlow\x12<\n\x08GetHello\x12\x16.openflow_13.ofp_hello\x1a\x16.openflow_13.ofp_hello\"\x00\x12\x41\n\x0b\x45\x63hoRequest\x12\x17.openflow_13.ofp_header\x1a\x17.openflow_13.ofp_header\"\x00\x12\x63\n\x13\x45xperimenterRequest\x12$.openflow_13.ofp_experimenter_header\x1a$.openflow_13.ofp_experimenter_header\"\x00\x12P\n\x11GetSwitchFeatures\x12\x17.openflow_13.ofp_header\x1a .openflow_13.ofp_switch_features\"\x00\x12L\n\x0fGetSwitchConfig\x12\x17.openflow_13.ofp_header\x1a\x1e.openflow_13.ofp_switch_config\"\x00\x12\x46\n\tSetConfig\x12\x1e.openflow_13.ofp_switch_config\x1a\x17.openflow_13.ofp_header\"\x00\x12R\n\x17ReceivePacketInMessages\x12\x17.openflow_13.ofp_header\x1a\x1a.openflow_13.ofp_packet_in\"\x00\x30\x01\x12O\n\x15SendPacketOutMessages\x12\x1b.openflow_13.ofp_packet_out\x1a\x17.openflow_13.ofp_header\"\x00\x42<\n\x13org.opencord.volthaB\x0cVolthaProtos\xaa\x02\x16Opencord.Voltha.Volthab\x06proto3')
   ,
   dependencies=[google_dot_api_dot_annotations__pb2.DESCRIPTOR,openflow__13__pb2.DESCRIPTOR,])
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
@@ -564,6 +564,44 @@ _FLOWTABLEUPDATE = _descriptor.Descriptor(
 )
 
 
+_GROUPTABLEUPDATE = _descriptor.Descriptor(
+  name='GroupTableUpdate',
+  full_name='voltha.GroupTableUpdate',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='id', full_name='voltha.GroupTableUpdate.id', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='group_mod', full_name='voltha.GroupTableUpdate.group_mod', index=1,
+      number=2, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1055,
+  serialized_end=1132,
+)
+
+
 _FLOWS = _descriptor.Descriptor(
   name='Flows',
   full_name='voltha.Flows',
@@ -590,8 +628,39 @@ _FLOWS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1055,
-  serialized_end=1106,
+  serialized_start=1134,
+  serialized_end=1185,
+)
+
+
+_FLOWGROUPS = _descriptor.Descriptor(
+  name='FlowGroups',
+  full_name='voltha.FlowGroups',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='items', full_name='voltha.FlowGroups.items', index=0,
+      number=1, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1187,
+  serialized_end=1244,
 )
 
 _HEALTHSTATUS.fields_by_name['state'].enum_type = _HEALTHSTATUS_HEALTHSTATE
@@ -607,7 +676,9 @@ _LOGICALPORTS.fields_by_name['items'].message_type = openflow__13__pb2._OFP_PORT
 _LOGICALDEVICEDETAILS.fields_by_name['desc'].message_type = openflow__13__pb2._OFP_DESC
 _LOGICALDEVICEDETAILS.fields_by_name['switch_features'].message_type = openflow__13__pb2._OFP_SWITCH_FEATURES
 _FLOWTABLEUPDATE.fields_by_name['flow_mod'].message_type = openflow__13__pb2._OFP_FLOW_MOD
+_GROUPTABLEUPDATE.fields_by_name['group_mod'].message_type = openflow__13__pb2._OFP_GROUP_MOD
 _FLOWS.fields_by_name['items'].message_type = openflow__13__pb2._OFP_FLOW_STATS
+_FLOWGROUPS.fields_by_name['items'].message_type = openflow__13__pb2._OFP_GROUP_ENTRY
 DESCRIPTOR.message_types_by_name['NullMessage'] = _NULLMESSAGE
 DESCRIPTOR.message_types_by_name['HealthStatus'] = _HEALTHSTATUS
 DESCRIPTOR.message_types_by_name['Address'] = _ADDRESS
@@ -621,7 +692,9 @@ DESCRIPTOR.message_types_by_name['LogicalDevices'] = _LOGICALDEVICES
 DESCRIPTOR.message_types_by_name['LogicalPorts'] = _LOGICALPORTS
 DESCRIPTOR.message_types_by_name['LogicalDeviceDetails'] = _LOGICALDEVICEDETAILS
 DESCRIPTOR.message_types_by_name['FlowTableUpdate'] = _FLOWTABLEUPDATE
+DESCRIPTOR.message_types_by_name['GroupTableUpdate'] = _GROUPTABLEUPDATE
 DESCRIPTOR.message_types_by_name['Flows'] = _FLOWS
+DESCRIPTOR.message_types_by_name['FlowGroups'] = _FLOWGROUPS
 
 NullMessage = _reflection.GeneratedProtocolMessageType('NullMessage', (_message.Message,), dict(
   DESCRIPTOR = _NULLMESSAGE,
@@ -714,12 +787,26 @@ FlowTableUpdate = _reflection.GeneratedProtocolMessageType('FlowTableUpdate', (_
   ))
 _sym_db.RegisterMessage(FlowTableUpdate)
 
+GroupTableUpdate = _reflection.GeneratedProtocolMessageType('GroupTableUpdate', (_message.Message,), dict(
+  DESCRIPTOR = _GROUPTABLEUPDATE,
+  __module__ = 'voltha_pb2'
+  # @@protoc_insertion_point(class_scope:voltha.GroupTableUpdate)
+  ))
+_sym_db.RegisterMessage(GroupTableUpdate)
+
 Flows = _reflection.GeneratedProtocolMessageType('Flows', (_message.Message,), dict(
   DESCRIPTOR = _FLOWS,
   __module__ = 'voltha_pb2'
   # @@protoc_insertion_point(class_scope:voltha.Flows)
   ))
 _sym_db.RegisterMessage(Flows)
+
+FlowGroups = _reflection.GeneratedProtocolMessageType('FlowGroups', (_message.Message,), dict(
+  DESCRIPTOR = _FLOWGROUPS,
+  __module__ = 'voltha_pb2'
+  # @@protoc_insertion_point(class_scope:voltha.FlowGroups)
+  ))
+_sym_db.RegisterMessage(FlowGroups)
 
 
 DESCRIPTOR.has_options = True
@@ -853,6 +940,16 @@ class VolthaLogicalLayerStub(object):
         request_serializer=ID.SerializeToString,
         response_deserializer=Flows.FromString,
         )
+    self.UpdateGroupTable = channel.unary_unary(
+        '/voltha.VolthaLogicalLayer/UpdateGroupTable',
+        request_serializer=GroupTableUpdate.SerializeToString,
+        response_deserializer=NullMessage.FromString,
+        )
+    self.ListDeviceFlowGroups = channel.unary_unary(
+        '/voltha.VolthaLogicalLayer/ListDeviceFlowGroups',
+        request_serializer=ID.SerializeToString,
+        response_deserializer=FlowGroups.FromString,
+        )
     self.CreateSubscriber = channel.unary_unary(
         '/voltha.VolthaLogicalLayer/CreateSubscriber',
         request_serializer=Subscriber.SerializeToString,
@@ -912,6 +1009,20 @@ class VolthaLogicalLayerServicer(object):
 
   def ListDeviceFlows(self, request, context):
     """List all flows of a logical device
+    """
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def UpdateGroupTable(self, request, context):
+    """Update group tabel for device
+    """
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def ListDeviceFlowGroups(self, request, context):
+    """List all flow groups of a logical device
     """
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
@@ -980,6 +1091,16 @@ def add_VolthaLogicalLayerServicer_to_server(servicer, server):
           request_deserializer=ID.FromString,
           response_serializer=Flows.SerializeToString,
       ),
+      'UpdateGroupTable': grpc.unary_unary_rpc_method_handler(
+          servicer.UpdateGroupTable,
+          request_deserializer=GroupTableUpdate.FromString,
+          response_serializer=NullMessage.SerializeToString,
+      ),
+      'ListDeviceFlowGroups': grpc.unary_unary_rpc_method_handler(
+          servicer.ListDeviceFlowGroups,
+          request_deserializer=ID.FromString,
+          response_serializer=FlowGroups.SerializeToString,
+      ),
       'CreateSubscriber': grpc.unary_unary_rpc_method_handler(
           servicer.CreateSubscriber,
           request_deserializer=Subscriber.FromString,
@@ -1032,6 +1153,14 @@ class BetaVolthaLogicalLayerServicer(object):
     """List all flows of a logical device
     """
     context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
+  def UpdateGroupTable(self, request, context):
+    """Update group tabel for device
+    """
+    context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
+  def ListDeviceFlowGroups(self, request, context):
+    """List all flow groups of a logical device
+    """
+    context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
   def CreateSubscriber(self, request, context):
     """Create a subscriber record
     """
@@ -1080,6 +1209,16 @@ class BetaVolthaLogicalLayerStub(object):
     """
     raise NotImplementedError()
   ListDeviceFlows.future = None
+  def UpdateGroupTable(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
+    """Update group tabel for device
+    """
+    raise NotImplementedError()
+  UpdateGroupTable.future = None
+  def ListDeviceFlowGroups(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
+    """List all flow groups of a logical device
+    """
+    raise NotImplementedError()
+  ListDeviceFlowGroups.future = None
   def CreateSubscriber(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
     """Create a subscriber record
     """
@@ -1113,11 +1252,13 @@ def beta_create_VolthaLogicalLayer_server(servicer, pool=None, pool_size=None, d
     ('voltha.VolthaLogicalLayer', 'DeleteSubscriber'): ID.FromString,
     ('voltha.VolthaLogicalLayer', 'GetLogicalDevice'): ID.FromString,
     ('voltha.VolthaLogicalLayer', 'GetSubscriber'): ID.FromString,
+    ('voltha.VolthaLogicalLayer', 'ListDeviceFlowGroups'): ID.FromString,
     ('voltha.VolthaLogicalLayer', 'ListDeviceFlows'): ID.FromString,
     ('voltha.VolthaLogicalLayer', 'ListLogicalDevicePorts'): ID.FromString,
     ('voltha.VolthaLogicalLayer', 'ListLogicalDevices'): NullMessage.FromString,
     ('voltha.VolthaLogicalLayer', 'ListSubscribers'): NullMessage.FromString,
     ('voltha.VolthaLogicalLayer', 'UpdateFlowTable'): FlowTableUpdate.FromString,
+    ('voltha.VolthaLogicalLayer', 'UpdateGroupTable'): GroupTableUpdate.FromString,
     ('voltha.VolthaLogicalLayer', 'UpdateSubscriber'): Subscriber.FromString,
   }
   response_serializers = {
@@ -1125,11 +1266,13 @@ def beta_create_VolthaLogicalLayer_server(servicer, pool=None, pool_size=None, d
     ('voltha.VolthaLogicalLayer', 'DeleteSubscriber'): NullMessage.SerializeToString,
     ('voltha.VolthaLogicalLayer', 'GetLogicalDevice'): LogicalDeviceDetails.SerializeToString,
     ('voltha.VolthaLogicalLayer', 'GetSubscriber'): Subscriber.SerializeToString,
+    ('voltha.VolthaLogicalLayer', 'ListDeviceFlowGroups'): FlowGroups.SerializeToString,
     ('voltha.VolthaLogicalLayer', 'ListDeviceFlows'): Flows.SerializeToString,
     ('voltha.VolthaLogicalLayer', 'ListLogicalDevicePorts'): LogicalPorts.SerializeToString,
     ('voltha.VolthaLogicalLayer', 'ListLogicalDevices'): LogicalDevices.SerializeToString,
     ('voltha.VolthaLogicalLayer', 'ListSubscribers'): Subscribers.SerializeToString,
     ('voltha.VolthaLogicalLayer', 'UpdateFlowTable'): NullMessage.SerializeToString,
+    ('voltha.VolthaLogicalLayer', 'UpdateGroupTable'): NullMessage.SerializeToString,
     ('voltha.VolthaLogicalLayer', 'UpdateSubscriber'): Subscriber.SerializeToString,
   }
   method_implementations = {
@@ -1137,11 +1280,13 @@ def beta_create_VolthaLogicalLayer_server(servicer, pool=None, pool_size=None, d
     ('voltha.VolthaLogicalLayer', 'DeleteSubscriber'): face_utilities.unary_unary_inline(servicer.DeleteSubscriber),
     ('voltha.VolthaLogicalLayer', 'GetLogicalDevice'): face_utilities.unary_unary_inline(servicer.GetLogicalDevice),
     ('voltha.VolthaLogicalLayer', 'GetSubscriber'): face_utilities.unary_unary_inline(servicer.GetSubscriber),
+    ('voltha.VolthaLogicalLayer', 'ListDeviceFlowGroups'): face_utilities.unary_unary_inline(servicer.ListDeviceFlowGroups),
     ('voltha.VolthaLogicalLayer', 'ListDeviceFlows'): face_utilities.unary_unary_inline(servicer.ListDeviceFlows),
     ('voltha.VolthaLogicalLayer', 'ListLogicalDevicePorts'): face_utilities.unary_unary_inline(servicer.ListLogicalDevicePorts),
     ('voltha.VolthaLogicalLayer', 'ListLogicalDevices'): face_utilities.unary_unary_inline(servicer.ListLogicalDevices),
     ('voltha.VolthaLogicalLayer', 'ListSubscribers'): face_utilities.unary_unary_inline(servicer.ListSubscribers),
     ('voltha.VolthaLogicalLayer', 'UpdateFlowTable'): face_utilities.unary_unary_inline(servicer.UpdateFlowTable),
+    ('voltha.VolthaLogicalLayer', 'UpdateGroupTable'): face_utilities.unary_unary_inline(servicer.UpdateGroupTable),
     ('voltha.VolthaLogicalLayer', 'UpdateSubscriber'): face_utilities.unary_unary_inline(servicer.UpdateSubscriber),
   }
   server_options = beta_implementations.server_options(request_deserializers=request_deserializers, response_serializers=response_serializers, thread_pool=pool, thread_pool_size=pool_size, default_timeout=default_timeout, maximum_timeout=maximum_timeout)
@@ -1154,11 +1299,13 @@ def beta_create_VolthaLogicalLayer_stub(channel, host=None, metadata_transformer
     ('voltha.VolthaLogicalLayer', 'DeleteSubscriber'): ID.SerializeToString,
     ('voltha.VolthaLogicalLayer', 'GetLogicalDevice'): ID.SerializeToString,
     ('voltha.VolthaLogicalLayer', 'GetSubscriber'): ID.SerializeToString,
+    ('voltha.VolthaLogicalLayer', 'ListDeviceFlowGroups'): ID.SerializeToString,
     ('voltha.VolthaLogicalLayer', 'ListDeviceFlows'): ID.SerializeToString,
     ('voltha.VolthaLogicalLayer', 'ListLogicalDevicePorts'): ID.SerializeToString,
     ('voltha.VolthaLogicalLayer', 'ListLogicalDevices'): NullMessage.SerializeToString,
     ('voltha.VolthaLogicalLayer', 'ListSubscribers'): NullMessage.SerializeToString,
     ('voltha.VolthaLogicalLayer', 'UpdateFlowTable'): FlowTableUpdate.SerializeToString,
+    ('voltha.VolthaLogicalLayer', 'UpdateGroupTable'): GroupTableUpdate.SerializeToString,
     ('voltha.VolthaLogicalLayer', 'UpdateSubscriber'): Subscriber.SerializeToString,
   }
   response_deserializers = {
@@ -1166,11 +1313,13 @@ def beta_create_VolthaLogicalLayer_stub(channel, host=None, metadata_transformer
     ('voltha.VolthaLogicalLayer', 'DeleteSubscriber'): NullMessage.FromString,
     ('voltha.VolthaLogicalLayer', 'GetLogicalDevice'): LogicalDeviceDetails.FromString,
     ('voltha.VolthaLogicalLayer', 'GetSubscriber'): Subscriber.FromString,
+    ('voltha.VolthaLogicalLayer', 'ListDeviceFlowGroups'): FlowGroups.FromString,
     ('voltha.VolthaLogicalLayer', 'ListDeviceFlows'): Flows.FromString,
     ('voltha.VolthaLogicalLayer', 'ListLogicalDevicePorts'): LogicalPorts.FromString,
     ('voltha.VolthaLogicalLayer', 'ListLogicalDevices'): LogicalDevices.FromString,
     ('voltha.VolthaLogicalLayer', 'ListSubscribers'): Subscribers.FromString,
     ('voltha.VolthaLogicalLayer', 'UpdateFlowTable'): NullMessage.FromString,
+    ('voltha.VolthaLogicalLayer', 'UpdateGroupTable'): NullMessage.FromString,
     ('voltha.VolthaLogicalLayer', 'UpdateSubscriber'): Subscriber.FromString,
   }
   cardinalities = {
@@ -1178,11 +1327,13 @@ def beta_create_VolthaLogicalLayer_stub(channel, host=None, metadata_transformer
     'DeleteSubscriber': cardinality.Cardinality.UNARY_UNARY,
     'GetLogicalDevice': cardinality.Cardinality.UNARY_UNARY,
     'GetSubscriber': cardinality.Cardinality.UNARY_UNARY,
+    'ListDeviceFlowGroups': cardinality.Cardinality.UNARY_UNARY,
     'ListDeviceFlows': cardinality.Cardinality.UNARY_UNARY,
     'ListLogicalDevicePorts': cardinality.Cardinality.UNARY_UNARY,
     'ListLogicalDevices': cardinality.Cardinality.UNARY_UNARY,
     'ListSubscribers': cardinality.Cardinality.UNARY_UNARY,
     'UpdateFlowTable': cardinality.Cardinality.UNARY_UNARY,
+    'UpdateGroupTable': cardinality.Cardinality.UNARY_UNARY,
     'UpdateSubscriber': cardinality.Cardinality.UNARY_UNARY,
   }
   stub_options = beta_implementations.stub_options(host=host, metadata_transformer=metadata_transformer, request_serializers=request_serializers, response_deserializers=response_deserializers, thread_pool=pool, thread_pool_size=pool_size)

@@ -189,7 +189,7 @@ message ofp_hello_elem_versionbitmap {
 message ofp_hello {
     //ofp_header header = 1;
     /* Hello element list */
-    repeated ofp_hello_elem_header elements = 2; /* 0 or more */
+    repeated ofp_hello_elem_header elements = 1; /* 0 or more */
 };
 
 //#define OFP_DEFAULT_MISS_SEND_LEN   128
@@ -205,8 +205,8 @@ enum ofp_config_flags {
 /* Switch configuration. */
 message ofp_switch_config {
     //ofp_header header = 1;
-    uint32 flags = 2;             /* Bitmap of OFPC_* flags. */
-    uint32 miss_send_len = 3;     /* Max bytes of packet that datapath
+    uint32 flags = 1;             /* Bitmap of OFPC_* flags. */
+    uint32 miss_send_len = 2;     /* Max bytes of packet that datapath
                                      should send to the controller. See
                                      ofp_controller_max_len for valid values.
                                    */
@@ -235,8 +235,8 @@ enum ofp_table {
 /* Configure/Modify behavior of a flow table */
 message ofp_table_mod {
     //ofp_header header = 1;
-    uint32 table_id = 2;  /* ID of the table, OFPTT_ALL indicates all tables */
-    uint32 config = 3;    /* Bitmap of OFPTC_* flags */
+    uint32 table_id = 1;  /* ID of the table, OFPTT_ALL indicates all tables */
+    uint32 config = 2;    /* Bitmap of OFPTC_* flags */
 };
 
 /* Capabilities supported by the datapath. */
@@ -317,17 +317,17 @@ message ofp_port {
 /* Switch features. */
 message ofp_switch_features {
     //ofp_header header = 1;
-    uint64 datapath_id = 2;   /* Datapath unique ID.  The lower 48-bits are for
+    uint64 datapath_id = 1;   /* Datapath unique ID.  The lower 48-bits are for
                                  a MAC address, while the upper 16-bits are
                                  implementer-defined. */
 
-    uint32 n_buffers = 3;     /* Max packets buffered at once. */
+    uint32 n_buffers = 2;     /* Max packets buffered at once. */
 
-    uint32 n_tables = 4;      /* Number of tables supported by datapath. */
-    uint32 auxiliary_id = 5;  /* Identify auxiliary connections */
+    uint32 n_tables = 3;      /* Number of tables supported by datapath. */
+    uint32 auxiliary_id = 4;  /* Identify auxiliary connections */
 
     /* Features. */
-    uint32 capabilities = 6;  /* Bitmap of support "ofp_capabilities". */
+    uint32 capabilities = 5;  /* Bitmap of support "ofp_capabilities". */
 };
 
 /* What changed about the physical port */
@@ -340,24 +340,24 @@ enum ofp_port_reason {
 /* A physical port has changed in the datapath */
 message ofp_port_status {
     //ofp_header header = 1;
-    ofp_port_reason reason = 2; /* One of OFPPR_*. */
-    ofp_port desc = 3;
+    ofp_port_reason reason = 1; /* One of OFPPR_*. */
+    ofp_port desc = 2;
 };
 
 /* Modify behavior of the physical port */
 message ofp_port_mod {
     //ofp_header header = 1;
-    uint32 port_no = 2;
-    repeated uint32 hw_addr = 3; //[OFP_ETH_ALEN];
+    uint32 port_no = 1;
+    repeated uint32 hw_addr = 2; //[OFP_ETH_ALEN];
                                       /* The hardware address is not
                                          configurable.  This is used to
                                          sanity-check the request, so it must
                                          be the same as returned in an
                                          ofp_port struct. */
-    uint32 config = 4;        /* Bitmap of OFPPC_* flags. */
-    uint32 mask = 5;          /* Bitmap of OFPPC_* flags to be changed. */
+    uint32 config = 3;        /* Bitmap of OFPPC_* flags. */
+    uint32 mask = 4;          /* Bitmap of OFPPC_* flags to be changed. */
 
-    uint32 advertise = 6;     /* Bitmap of OFPPF_*.  Zero all bits to prevent
+    uint32 advertise = 5;     /* Bitmap of OFPPF_*.  Zero all bits to prevent
                                  any action taking place. */
 };
 
@@ -2022,9 +2022,13 @@ message ofp_group_stats {
 /* Body of reply to OFPMP_GROUP_DESC request. */
 message ofp_group_desc {
     ofp_group_type type = 1;       /* One of OFPGT_*. */
-    uint32 pad = 2;                /* Pad to 64 bits. */
-    uint32 group_id = 3;           /* Group identifier. */
-    repeated ofp_bucket buckets = 4;   /* List of buckets - 0 or more. */
+    uint32 group_id = 2;           /* Group identifier. */
+    repeated ofp_bucket buckets = 3;   /* List of buckets - 0 or more. */
+};
+
+message ofp_group_entry {
+    ofp_group_desc desc = 1;
+    ofp_group_stats stats = 2;
 };
 
 /* Backward compatibility with 1.3.1 - avoid breaking the API. */
@@ -2228,16 +2232,16 @@ enum ofp_controller_role {
 /* Role request and reply message. */
 message ofp_role_request {
     //ofp_header header = 1;        /* Type OFPT_ROLE_REQUEST/OFPT_ROLE_REPLY. */
-    ofp_controller_role role = 2; /* One of OFPCR_ROLE_*. */
-    uint64 generation_id = 3;     /* Master Election Generation Id */
+    ofp_controller_role role = 1; /* One of OFPCR_ROLE_*. */
+    uint64 generation_id = 2;     /* Master Election Generation Id */
 };
 
 /* Asynchronous message configuration. */
 message ofp_async_config {
     //ofp_header header = 1;    /* OFPT_GET_ASYNC_REPLY or OFPT_SET_ASYNC. */
-    repeated uint32 packet_in_mask = 2;   /* Bitmasks of OFPR_* values. */
-    repeated uint32 port_status_mask = 3; /* Bitmasks of OFPPR_* values. */
-    repeated uint32 flow_removed_mask = 4;/* Bitmasks of OFPRR_* values. */
+    repeated uint32 packet_in_mask = 1;   /* Bitmasks of OFPR_* values. */
+    repeated uint32 port_status_mask = 2; /* Bitmasks of OFPPR_* values. */
+    repeated uint32 flow_removed_mask = 3;/* Bitmasks of OFPRR_* values. */
 };
 
 /*
@@ -2306,5 +2310,5 @@ service OpenFlow {
     }
 
     // TODO continue
-    
+
 }

@@ -57,7 +57,6 @@ def ofp_port_to_loxi_port_desc(pb):
 
 def ofp_flow_stats_to_loxi_flow_stats(pb):
     kw = pb2dict(pb)
-    print 'QQQQQQQQQQQ', kw
 
     def make_loxi_match(match):
         assert match['type'] == pb2.OFPMT_OXM
@@ -75,7 +74,6 @@ def ofp_flow_stats_to_loxi_flow_stats(pb):
         return of13.match_v3(oxm_list=loxi_match_fields)
 
     def make_loxi_action(a):
-        print 'AAAAAAAAAA', a
         type = a.get('type', 0)
         if type == pb2.OFPAT_OUTPUT:
             output = a['output']
@@ -85,7 +83,6 @@ def ofp_flow_stats_to_loxi_flow_stats(pb):
                 'Action decoder for action OFPAT_* %d' % type)
 
     def make_loxi_instruction(inst):
-        print 'IIIIIIIIIIIIIIII', inst
         type = inst['type']
         if type == pb2.OFPIT_APPLY_ACTIONS:
             return of13.instruction.apply_actions(
@@ -98,32 +95,50 @@ def ofp_flow_stats_to_loxi_flow_stats(pb):
     kw['instructions'] = [make_loxi_instruction(i) for i in kw['instructions']]
     return of13.flow_stats_entry(**kw)
 
+
 to_loxi_converters = {
     pb2.ofp_port: ofp_port_to_loxi_port_desc,
     pb2.ofp_flow_stats: ofp_flow_stats_to_loxi_flow_stats
 }
 
-def loxi_flow_mod_to_ofp_flow_mod(loxi_flow_mod):
-    return pb2.ofp_flow_mod(
-        cookie=loxi_flow_mod.cookie,
-        cookie_mask=loxi_flow_mod.cookie_mask,
-        table_id=loxi_flow_mod.table_id,
-        command=loxi_flow_mod._command,
-        idle_timeout=loxi_flow_mod.idle_timeout,
-        hard_timeout=loxi_flow_mod.hard_timeout,
-        priority=loxi_flow_mod.priority,
-        buffer_id=loxi_flow_mod.buffer_id,
-        out_port=loxi_flow_mod.out_port,
-        out_group=loxi_flow_mod.out_group,
-        flags=loxi_flow_mod.flags,
-        match=to_grpc(loxi_flow_mod.match),
-        instructions=[to_grpc(i) for i in loxi_flow_mod.instructions]
-    )
 
-def loxi_match_v3_to_ofp_match(loxi_match):
+def loxi_flow_mod_to_ofp_flow_mod(lo):
+    return pb2.ofp_flow_mod(
+        cookie=lo.cookie,
+        cookie_mask=lo.cookie_mask,
+        table_id=lo.table_id,
+        command=lo._command,
+        idle_timeout=lo.idle_timeout,
+        hard_timeout=lo.hard_timeout,
+        priority=lo.priority,
+        buffer_id=lo.buffer_id,
+        out_port=lo.out_port,
+        out_group=lo.out_group,
+        flags=lo.flags,
+        match=to_grpc(lo.match),
+        instructions=[to_grpc(i) for i in lo.instructions])
+
+
+def loxi_group_mod_to_ofp_group_mod(lo):
+    return pb2.ofp_group_mod(
+        command=lo.command,
+        type=lo.type,
+        group_id=lo.group_id,
+        buckets=[to_grpc(b) for b in lo.buckets])
+
+
+def loxi_match_v3_to_ofp_match(lo):
     return pb2.ofp_match(
         type=pb2.OFPMT_OXM,
-        oxm_fields=[to_grpc(f) for f in loxi_match.oxm_list]
+        oxm_fields=[to_grpc(f) for f in lo.oxm_list])
+
+
+def loxi_bucket_to_ofp_bucket(lo):
+    return pb2.ofp_bucket(
+        weight=lo.weight,
+        watch_port=lo.watch_port,
+        watch_group=lo.watch_group,
+        actions=[to_grpc(a) for a in lo.actions]
     )
 
 def loxi_oxm_eth_type_to_ofp_oxm(lo):
@@ -131,31 +146,118 @@ def loxi_oxm_eth_type_to_ofp_oxm(lo):
         oxm_class=pb2.OFPXMC_OPENFLOW_BASIC,
         ofb_field=pb2.ofp_oxm_ofb_field(
             type=pb2.OFPXMT_OFB_ETH_TYPE,
-            eth_type=lo.value
-        )
-    )
+            eth_type=lo.value))
+
+
+def loxi_oxm_in_port_to_ofp_oxm(lo):
+    return pb2.ofp_oxm_field(
+        oxm_class=pb2.OFPXMC_OPENFLOW_BASIC,
+        ofb_field=pb2.ofp_oxm_ofb_field(
+            type=pb2.OFPXMT_OFB_IN_PORT,
+            port=lo.value))
+
+
+def loxi_oxm_ip_proto_to_ofp_oxm(lo):
+    return pb2.ofp_oxm_field(
+        oxm_class=pb2.OFPXMC_OPENFLOW_BASIC,
+        ofb_field=pb2.ofp_oxm_ofb_field(
+            type=pb2.OFPXMT_OFB_IP_PROTO,
+            ip_proto=lo.value))
+
+
+def loxi_oxm_vlan_vid_to_ofp_oxm(lo):
+    return pb2.ofp_oxm_field(
+        oxm_class=pb2.OFPXMC_OPENFLOW_BASIC,
+        ofb_field=pb2.ofp_oxm_ofb_field(
+            type=pb2.OFPXMT_OFB_VLAN_VID,
+            vlan_vid=lo.value))
+
+
+def loxi_oxm_vlan_pcp_to_ofp_oxm(lo):
+    return pb2.ofp_oxm_field(
+        oxm_class=pb2.OFPXMC_OPENFLOW_BASIC,
+        ofb_field=pb2.ofp_oxm_ofb_field(
+            type=pb2.OFPXMT_OFB_VLAN_PCP,
+            vlan_pcp=lo.value))
+
+
+def loxi_oxm_ipv4_dst_to_ofp_oxm(lo):
+    return pb2.ofp_oxm_field(
+        oxm_class=pb2.OFPXMC_OPENFLOW_BASIC,
+        ofb_field=pb2.ofp_oxm_ofb_field(
+            type=pb2.OFPXMT_OFB_IPV4_DST,
+            ipv4_dst=lo.value))
+
 
 def loxi_apply_actions_to_ofp_instruction(lo):
     return pb2.ofp_instruction(
         type=pb2.OFPIT_APPLY_ACTIONS,
         actions=pb2.ofp_instruction_actions(
-            actions=[to_grpc(a) for a in lo.actions]
-        )
-    )
+            actions=[to_grpc(a) for a in lo.actions]))
+
+
+def loxi_goto_table_to_ofp_instruction(lo):
+    return pb2.ofp_instruction(
+        type=pb2.OFPIT_GOTO_TABLE,
+        goto_table=pb2.ofp_instruction_goto_table(table_id=lo.table_id))
+
 
 def loxi_output_action_to_ofp_action(lo):
     return pb2.ofp_action(
         type=pb2.OFPAT_OUTPUT,
-        output=pb2.ofp_action_output(
-            port=lo.port,
-            max_len=lo.max_len
-        )
-    )
+        output=pb2.ofp_action_output(port=lo.port, max_len=lo.max_len))
+
+
+def loxi_group_action_to_ofp_action(lo):
+    return pb2.ofp_action(
+        type=pb2.OFPAT_GROUP,
+        group=pb2.ofp_action_group(group_id=lo.group_id))
+
+
+def loxi_set_field_action_to_ofp_action(lo):
+    return pb2.ofp_action(
+        type=pb2.OFPAT_SET_FIELD,
+        set_field=pb2.ofp_action_set_field(field=to_grpc(lo.field)))
+
+
+def loxi_pop_vlan_action_to_ofp_action(lo):
+    return pb2.ofp_action(type=pb2.OFPAT_POP_VLAN)
+
+
+def loxi_push_vlan_action_to_ofp_action(lo):
+    return pb2.ofp_action(
+        type=pb2.OFPAT_PUSH_VLAN,
+        push=pb2.ofp_action_push(ethertype=lo.ethertype))
+
 
 to_grpc_converters = {
+
     of13.message.flow_add: loxi_flow_mod_to_ofp_flow_mod,
+    of13.message.flow_delete: loxi_flow_mod_to_ofp_flow_mod,
+    of13.message.flow_delete_strict: loxi_flow_mod_to_ofp_flow_mod,
+    of13.message.flow_modify: loxi_flow_mod_to_ofp_flow_mod,
+    of13.message.flow_modify_strict: loxi_flow_mod_to_ofp_flow_mod,
+
+    of13.message.group_add: loxi_group_mod_to_ofp_group_mod,
+    of13.message.group_delete: loxi_group_mod_to_ofp_group_mod,
+    of13.message.group_modify: loxi_group_mod_to_ofp_group_mod,
+
     of13.common.match_v3: loxi_match_v3_to_ofp_match,
+    of13.common.bucket: loxi_bucket_to_ofp_bucket,
+
     of13.oxm.eth_type: loxi_oxm_eth_type_to_ofp_oxm,
+    of13.oxm.in_port: loxi_oxm_in_port_to_ofp_oxm,
+    of13.oxm.ip_proto: loxi_oxm_ip_proto_to_ofp_oxm,
+    of13.oxm.vlan_vid: loxi_oxm_vlan_vid_to_ofp_oxm,
+    of13.oxm.vlan_pcp: loxi_oxm_vlan_pcp_to_ofp_oxm,
+    of13.oxm.ipv4_dst: loxi_oxm_ipv4_dst_to_ofp_oxm,
+
     of13.instruction.apply_actions: loxi_apply_actions_to_ofp_instruction,
-    of13.action.output: loxi_output_action_to_ofp_action
+    of13.instruction.goto_table: loxi_goto_table_to_ofp_instruction,
+
+    of13.action.output: loxi_output_action_to_ofp_action,
+    of13.action.group: loxi_group_action_to_ofp_action,
+    of13.action.set_field: loxi_set_field_action_to_ofp_action,
+    of13.action.pop_vlan: loxi_pop_vlan_action_to_ofp_action,
+    of13.action.push_vlan: loxi_push_vlan_action_to_ofp_action,
 }

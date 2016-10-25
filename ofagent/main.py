@@ -16,16 +16,35 @@
 #
 
 """TODO This is a POC placeholder """
+import os
+
 import grpc
+import yaml
 from twisted.internet import reactor
 
 from agent import Agent
+from common.utils.structlog_setup import setup_logging
 from protos import voltha_pb2
 
 from grpc_client import GrpcClient
 
 
+def load_config(path):
+    if path.startswith('.'):
+        dir = os.path.dirname(os.path.abspath(__file__))
+        path = os.path.join(dir, path)
+    path = os.path.abspath(path)
+    with open(path) as fd:
+        config = yaml.load(fd)
+    return config
+
+
 if __name__ == '__main__':
+
+    # Load config and setup logging
+    config = load_config('./ofagent.yml')
+    setup_logging(config.get('logging', {}), '1')
+
 
     # Create grpc channel to Voltha and grab client stub
     channel = grpc.insecure_channel('localhost:50055')
