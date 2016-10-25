@@ -187,7 +187,7 @@ message ofp_hello_elem_versionbitmap {
  * variable size. Unknown elements types must be ignored/skipped, to allow
  * for future extensions. */
 message ofp_hello {
-    //ofp_header header = 1;
+    //ofp_header header;
     /* Hello element list */
     repeated ofp_hello_elem_header elements = 1; /* 0 or more */
 };
@@ -204,7 +204,7 @@ enum ofp_config_flags {
 
 /* Switch configuration. */
 message ofp_switch_config {
-    //ofp_header header = 1;
+    //ofp_header header;
     uint32 flags = 1;             /* Bitmap of OFPC_* flags. */
     uint32 miss_send_len = 2;     /* Max bytes of packet that datapath
                                      should send to the controller. See
@@ -234,7 +234,7 @@ enum ofp_table {
 
 /* Configure/Modify behavior of a flow table */
 message ofp_table_mod {
-    //ofp_header header = 1;
+    //ofp_header header;
     uint32 table_id = 1;  /* ID of the table, OFPTT_ALL indicates all tables */
     uint32 config = 2;    /* Bitmap of OFPTC_* flags */
 };
@@ -316,7 +316,7 @@ message ofp_port {
 
 /* Switch features. */
 message ofp_switch_features {
-    //ofp_header header = 1;
+    //ofp_header header;
     uint64 datapath_id = 1;   /* Datapath unique ID.  The lower 48-bits are for
                                  a MAC address, while the upper 16-bits are
                                  implementer-defined. */
@@ -339,14 +339,14 @@ enum ofp_port_reason {
 
 /* A physical port has changed in the datapath */
 message ofp_port_status {
-    //ofp_header header = 1;
+    //ofp_header header;
     ofp_port_reason reason = 1; /* One of OFPPR_*. */
     ofp_port desc = 2;
 };
 
 /* Modify behavior of the physical port */
 message ofp_port_mod {
-    //ofp_header header = 1;
+    //ofp_header header;
     uint32 port_no = 1;
     repeated uint32 hw_addr = 2; //[OFP_ETH_ALEN];
                                       /* The hardware address is not
@@ -1182,34 +1182,34 @@ enum ofp_flow_mod_flags {
 
 /* Flow setup and teardown (controller -> datapath). */
 message ofp_flow_mod {
-    //ofp_header header = 1;
-    uint64 cookie = 2;             /* Opaque controller-issued identifier. */
-    uint64 cookie_mask = 3;        /* Mask used to restrict the cookie bits
+    //ofp_header header;
+    uint64 cookie = 1;             /* Opaque controller-issued identifier. */
+    uint64 cookie_mask = 2;        /* Mask used to restrict the cookie bits
                                       that must match when the command is
                                       OFPFC_MODIFY* or OFPFC_DELETE*. A value
                                       of 0 indicates no restriction. */
-    uint32 table_id = 4;           /* ID of the table to put the flow in.
+    uint32 table_id = 3;           /* ID of the table to put the flow in.
                                       For OFPFC_DELETE_* commands, OFPTT_ALL
                                       can also be used to delete matching
                                       flows from all tables. */
-    ofp_flow_mod_command command = 5; /* One of OFPFC_*. */
-    uint32 idle_timeout = 6;       /* Idle time before discarding (seconds). */
-    uint32 hard_timeout = 7;       /* Max time before discarding (seconds). */
-    uint32 priority = 8;           /* Priority level of flow entry. */
-    uint32 buffer_id = 9;          /* Buffered packet to apply to, or
+    ofp_flow_mod_command command = 4; /* One of OFPFC_*. */
+    uint32 idle_timeout = 5;       /* Idle time before discarding (seconds). */
+    uint32 hard_timeout = 6;       /* Max time before discarding (seconds). */
+    uint32 priority = 7;           /* Priority level of flow entry. */
+    uint32 buffer_id = 8;          /* Buffered packet to apply to, or
                                       OFP_NO_BUFFER.
                                       Not meaningful for OFPFC_DELETE*. */
-    uint32 out_port = 10;          /* For OFPFC_DELETE* commands, require
+    uint32 out_port = 9;          /* For OFPFC_DELETE* commands, require
                                       matching entries to include this as an
                                       output port.  A value of OFPP_ANY
                                       indicates no restriction. */
-    uint32 out_group = 11;         /* For OFPFC_DELETE* commands, require
+    uint32 out_group = 10;         /* For OFPFC_DELETE* commands, require
                                       matching entries to include this as an
                                       output group.  A value of OFPG_ANY
                                       indicates no restriction. */
-    uint32 flags = 12;             /* Bitmap of OFPFF_* flags. */
-    ofp_match match = 13;          /* Fields to match. Variable size. */
-    repeated ofp_instruction instructions = 14; /* 0 or more. */
+    uint32 flags = 11;             /* Bitmap of OFPFF_* flags. */
+    ofp_match match = 12;          /* Fields to match. Variable size. */
+    repeated ofp_instruction instructions = 13; /* 0 or more. */
 };
 
 /* Group numbering. Groups can use any number up to OFPG_MAX. */
@@ -1248,11 +1248,11 @@ message ofp_bucket {
 
 /* Group setup and teardown (controller -> datapath). */
 message ofp_group_mod {
-    //ofp_header header = 1;
-    ofp_group_mod_command command = 2; /* One of OFPGC_*. */
-    ofp_group_type type = 3;           /* One of OFPGT_*. */
-    uint32 group_id = 4;               /* Group identifier. */
-    repeated ofp_bucket buckets = 5;
+    //ofp_header header;
+    ofp_group_mod_command command = 1; /* One of OFPGC_*. */
+    ofp_group_type type = 2;           /* One of OFPGT_*. */
+    uint32 group_id = 3;               /* Group identifier. */
+    repeated ofp_bucket buckets = 4;
 };
 
 /* Group types.  Values in the range [128; 255] are reserved for experimental
@@ -1269,15 +1269,15 @@ enum ofp_group_type {
 
 /* Send packet (controller -> datapath). */
 message ofp_packet_out {
-    //ofp_header header = 1;
-    uint32 buffer_id = 2;          /* ID assigned by datapath (OFP_NO_BUFFER
+    //ofp_header header;
+    uint32 buffer_id = 1;          /* ID assigned by datapath (OFP_NO_BUFFER
                                       if none). */
-    uint32 in_port = 3;            /* Packet's input port or OFPP_CONTROLLER.*/
-    uint32 actions_len = 4;        /* Size of action array in bytes. */
-    repeated ofp_action actions = 5; /* Action list - 0 or more. */
+    uint32 in_port = 2;            /* Packet's input port or OFPP_CONTROLLER.*/
+    uint32 actions_len = 3;        /* Size of action array in bytes. */
+    repeated ofp_action actions = 4; /* Action list - 0 or more. */
     /* The variable size action list is optionally followed by packet data.
      * This data is only present and meaningful if buffer_id == -1. */
-    bytes data = 6;                /* Packet data. */
+    bytes data = 5;                /* Packet data. */
 };
 
 /* Why is this packet being sent to the controller? */
@@ -1289,14 +1289,14 @@ enum ofp_packet_in_reason {
 
 /* Packet received on port (datapath -> controller). */
 message ofp_packet_in {
-    //ofp_header header = 1;
-    uint32 buffer_id = 2;     /* ID assigned by datapath. */
-    uint32 total_len = 3;     /* Full length of frame. */
-    ofp_packet_in_reason reason = 4; /* Reason packet is being sent */
-    uint32 table_id = 5;      /* ID of the table that was looked up */
-    uint64 cookie = 6;        /* Cookie of the flow entry that was looked up. */
-    ofp_match match = 7;      /* Packet metadata. Variable size. */
-    bytes data = 8;           /* Ethernet frame */
+    //ofp_header header;
+    uint32 buffer_id = 1;     /* ID assigned by datapath. */
+    uint32 total_len = 2;     /* Full length of frame. */
+    ofp_packet_in_reason reason = 3; /* Reason packet is being sent */
+    uint32 table_id = 4;      /* ID of the table that was looked up */
+    uint64 cookie = 5;        /* Cookie of the flow entry that was looked up. */
+    ofp_match match = 6;      /* Packet metadata. Variable size. */
+    bytes data = 7;           /* Ethernet frame */
 };
 
 /* Why was this flow removed? */
@@ -1310,21 +1310,21 @@ enum ofp_flow_removed_reason {
 
 /* Flow removed (datapath -> controller). */
 message ofp_flow_removed {
-    //ofp_header header = 1;
-    uint64 cookie = 2;         /* Opaque controller-issued identifier. */
+    //ofp_header header;
+    uint64 cookie = 1;         /* Opaque controller-issued identifier. */
 
-    uint32 priority = 3;       /* Priority level of flow entry. */
-    ofp_flow_removed_reason reason = 4; /* One of OFPRR_*. */
-    uint32 table_id = 5;        /* ID of the table */
+    uint32 priority = 2;       /* Priority level of flow entry. */
+    ofp_flow_removed_reason reason = 3; /* One of OFPRR_*. */
+    uint32 table_id = 4;        /* ID of the table */
 
-    uint32 duration_sec = 6;   /* Time flow was alive in seconds. */
-    uint32 duration_nsec = 7;  /* Time flow was alive in nanoseconds beyond
+    uint32 duration_sec = 5;   /* Time flow was alive in seconds. */
+    uint32 duration_nsec = 6;  /* Time flow was alive in nanoseconds beyond
                                  duration_sec. */
-    uint32 idle_timeout = 8;   /* Idle timeout from original flow mod. */
-    uint32 hard_timeout = 9;   /* Hard timeout from original flow mod. */
-    uint64 packet_count = 10;
-    uint64 byte_count = 11;
-    ofp_match match = 12;  /* Description of fields. Variable size. */
+    uint32 idle_timeout = 7;   /* Idle timeout from original flow mod. */
+    uint32 hard_timeout = 8;   /* Hard timeout from original flow mod. */
+    uint64 packet_count = 9;
+    uint64 byte_count = 10;
+    ofp_match match = 121;  /* Description of fields. Variable size. */
 };
 
 /* Meter numbering. Flow meters can use any number up to OFPM_MAX. */
@@ -1403,11 +1403,11 @@ enum ofp_meter_flags {
 
 /* Meter configuration. OFPT_METER_MOD. */
 message ofp_meter_mod {
-    ofp_header   header = 1;
-    ofp_meter_mod_command command = 2;       /* One of OFPMC_*. */
-    uint32                flags = 3;         /* Bitmap of OFPMF_* flags. */
-    uint32                meter_id = 4;      /* Meter instance. */
-    repeated ofp_meter_band_header bands = 5; /* The band list length is
+//    ofp_header   header = 1;
+    ofp_meter_mod_command command = 1;       /* One of OFPMC_*. */
+    uint32                flags = 2;         /* Bitmap of OFPMF_* flags. */
+    uint32                meter_id = 3;      /* Meter instance. */
+    repeated ofp_meter_band_header bands = 4; /* The band list length is
                                                  inferred from the length field
                                                  in the header. */
 };
@@ -1654,22 +1654,22 @@ enum ofp_table_features_failed_code {
 
 /* OFPT_ERROR: Error message (datapath -> controller). */
 message ofp_error_msg {
-    //ofp_header header = 1;
-    uint32 type = 2;
-    uint32 code = 3;
-    bytes data = 4;          /* Variable-length data.  Interpreted based
+    //ofp_header header;
+    uint32 type = 1;
+    uint32 code = 2;
+    bytes data = 3;          /* Variable-length data.  Interpreted based
                                  on the type and code.  No padding. */
 };
 
 /* OFPET_EXPERIMENTER: Error message (datapath -> controller). */
 message ofp_error_experimenter_msg {
-    //ofp_header header = 1;
+    //ofp_header header;
 
-    uint32 type = 2;           /* OFPET_EXPERIMENTER. */
-    uint32 exp_type = 3;       /* Experimenter defined. */
-    uint32 experimenter = 4;   /* Experimenter ID which takes the same form
+    uint32 type = 1;           /* OFPET_EXPERIMENTER. */
+    uint32 exp_type = 2;       /* Experimenter defined. */
+    uint32 experimenter = 3;   /* Experimenter ID which takes the same form
                                     as in struct ofp_experimenter_header. */
-    bytes data = 5;              /* Variable-length data.  Interpreted based
+    bytes data = 4;              /* Variable-length data.  Interpreted based
                                     on the type and code.  No padding. */
 };
 
@@ -1763,10 +1763,10 @@ enum ofp_multipart_request_flags {
 };
 
 message ofp_multipart_request {
-    //ofp_header header = 1;
-    ofp_multipart_type type = 2; /* One of the OFPMP_* constants. */
-    uint32 flags = 3;            /* OFPMPF_REQ_* flags. */
-    bytes body = 4;              /* Body of the request. 0 or more bytes. */
+    //ofp_header header;
+    ofp_multipart_type type = 1; /* One of the OFPMP_* constants. */
+    uint32 flags = 2;            /* OFPMPF_REQ_* flags. */
+    bytes body = 3;              /* Body of the request. 0 or more bytes. */
 };
 
 enum ofp_multipart_reply_flags {
@@ -1775,10 +1775,10 @@ enum ofp_multipart_reply_flags {
 };
 
 message ofp_multipart_reply {
-    //ofp_header header = 1;
-    ofp_multipart_type type = 2; /* One of the OFPMP_* constants. */
-    uint32 flags = 3;            /* OFPMPF_REPLY_* flags. */
-    bytes body = 4;              /* Body of the reply. 0 or more bytes. */
+    //ofp_header header;
+    ofp_multipart_type type = 1; /* One of the OFPMP_* constants. */
+    uint32 flags = 2;            /* OFPMPF_REPLY_* flags. */
+    bytes body = 3;              /* Body of the reply. 0 or more bytes. */
 };
 
 //#define DESC_STR_LEN   256
@@ -2105,12 +2105,12 @@ message ofp_experimenter_multipart_header {
 
 /* Experimenter extension. */
 message ofp_experimenter_header {
-    //ofp_header header = 1;  /* Type OFPT_EXPERIMENTER. */
-    uint32 experimenter = 2;     /* Experimenter ID:
+    //ofp_header header;  /* Type OFPT_EXPERIMENTER. */
+    uint32 experimenter = 1;     /* Experimenter ID:
                                  * - MSB 0: low-order bytes are IEEE OUI.
                                  * - MSB != 0: defined by ONF. */
-    uint32 exp_type = 3;         /* Experimenter defined. */
-    bytes data = 4; /* Experimenter-defined arbitrary additional data. */
+    uint32 exp_type = 2;         /* Experimenter defined. */
+    bytes data = 3; /* Experimenter-defined arbitrary additional data. */
 };
 
 /* All ones is used to indicate all queues in a port (for stats retrieval). */
@@ -2165,8 +2165,8 @@ message ofp_packet_queue {
 
 /* Query for port queue configuration. */
 message ofp_queue_get_config_request {
-    //ofp_header header = 1;
-    uint32 port = 2;        /* Port to be queried. Should refer
+    //ofp_header header;
+    uint32 port = 1;        /* Port to be queried. Should refer
                               to a valid physical port (i.e. <= OFPP_MAX),
                               or OFPP_ANY to request all configured
                               queues.*/
@@ -2174,9 +2174,9 @@ message ofp_queue_get_config_request {
 
 /* Queue configuration for a given port. */
 message ofp_queue_get_config_reply {
-    //ofp_header header = 1;
-    uint32 port = 2;
-    repeated ofp_packet_queue queues = 3; /* List of configured queues. */
+    //ofp_header header;
+    uint32 port = 1;
+    repeated ofp_packet_queue queues = 2; /* List of configured queues. */
 };
 
 /* OFPAT_SET_QUEUE action struct: send packets to given queue on port. */
@@ -2231,14 +2231,14 @@ enum ofp_controller_role {
 
 /* Role request and reply message. */
 message ofp_role_request {
-    //ofp_header header = 1;        /* Type OFPT_ROLE_REQUEST/OFPT_ROLE_REPLY. */
+    //ofp_header header;        /* Type OFPT_ROLE_REQUEST/OFPT_ROLE_REPLY. */
     ofp_controller_role role = 1; /* One of OFPCR_ROLE_*. */
     uint64 generation_id = 2;     /* Master Election Generation Id */
 };
 
 /* Asynchronous message configuration. */
 message ofp_async_config {
-    //ofp_header header = 1;    /* OFPT_GET_ASYNC_REPLY or OFPT_SET_ASYNC. */
+    //ofp_header header;    /* OFPT_GET_ASYNC_REPLY or OFPT_SET_ASYNC. */
     repeated uint32 packet_in_mask = 1;   /* Bitmasks of OFPR_* values. */
     repeated uint32 port_status_mask = 2; /* Bitmasks of OFPPR_* values. */
     repeated uint32 flow_removed_mask = 3;/* Bitmasks of OFPRR_* values. */

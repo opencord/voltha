@@ -78,7 +78,7 @@ class GrpcClient(object):
         returnValue(res.items)
 
     @inlineCallbacks
-    def list_group(self, datapath_id):
+    def list_groups(self, datapath_id):
         device_id = self.device_id_map[datapath_id]
         req = ID(id=device_id)
         res = yield threads.deferToThread(

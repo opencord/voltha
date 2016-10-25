@@ -122,7 +122,7 @@ def loxi_flow_mod_to_ofp_flow_mod(lo):
 def loxi_group_mod_to_ofp_group_mod(lo):
     return pb2.ofp_group_mod(
         command=lo.command,
-        type=lo.type,
+        type=lo.group_type,
         group_id=lo.group_id,
         buckets=[to_grpc(b) for b in lo.buckets])
 

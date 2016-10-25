@@ -60,8 +60,8 @@ ifconfig veth6 up
 In one terminal window, start ONOS:
 
 ```
-docker fetch onosproject/onos
-docker run --ti --rm -p 6633:6653 \
+docker pull onosproject/onos
+docker run -ti --rm -p 6633:6653 \
     -e ONOS_APPS="drivers,openflow" onosproject/ono
 ```
 

@@ -177,6 +177,7 @@ class DeviceModel(object):
                 # free to add as new flow
                 flow = flow_stats_entry_from_flow_mod_message(mod)
                 self.flows.append(flow)
+                log.debug('flow-added', flow=mod)
 
         else:
             flow = flow_stats_entry_from_flow_mod_message(mod)
@@ -187,9 +188,11 @@ class DeviceModel(object):
                     flow.byte_count = old_flow.byte_count
                     flow.packet_count = old_flow.packet_count
                 self.flows[idx] = flow
+                log.debug('flow-updated', flow=flow)
 
             else:
                 self.flows.append(flow)
+                log.debug('flow-added', flow=mod)
 
     def flow_delete(self, mod):
         assert isinstance(mod, ofp.ofp_flow_mod)
