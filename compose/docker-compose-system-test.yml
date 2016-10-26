@@ -136,7 +136,7 @@ services:
       "-v",
       "--consul=${DOCKER_HOST_IP}:8500",
       "--fluentd=fluentd:24224",
-      "--controller=localhost:6633",
+      "--controller=${DOCKER_HOST_IP}:6633",
       "--grpc-endpoint=@voltha-grpc",
       "--instance-id-is-container-name",
       "-v"
