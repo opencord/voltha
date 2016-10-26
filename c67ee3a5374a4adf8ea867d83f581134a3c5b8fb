@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "1a014df3_f63034ea",
+        "filename": "compose/docker-compose-system-test.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 100,
+      "author": {
+        "id": 1000004
+      },
+      "writtenOn": "2016-10-26T15:08:40Z",
+      "side": 1,
+      "message": "I don\u0027t think we need to tie it to a specific service. The issue is that registrator does not pass other attributes to consul, which was what I was initially going for. On top of this, registrator only talk about services to consul which forced me into this design. \n\nI am not quite sure what scenario you are referring to with a satellite container.",
+      "parentUuid": "1a014df3_762544aa",
+      "range": {
+        "startLine": 100,
+        "startChar": 6,
+        "endLine": 100,
+        "endChar": 24
+      },
+      "revId": "c67ee3a5374a4adf8ea867d83f581134a3c5b8fb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1a014df3_3610dc4d",
         "filename": "podder/consul_mgr.py",
         "patchSetId": 1
@@ -48,6 +72,30 @@
     },
     {
       "key": {
+        "uuid": "1a014df3_d64d3874",
+        "filename": "podder/consul_mgr.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1000004
+      },
+      "writtenOn": "2016-10-26T15:08:40Z",
+      "side": 1,
+      "message": "Yes absolutely, this was done simply for testing. Sadly though connecting to the docker socket on osx doesn\u0027t work with our current implementation of the dockerhelpers. \n\nDo you know how to connect to the docker socket on osx?",
+      "parentUuid": "1a014df3_3610dc4d",
+      "range": {
+        "startLine": 8,
+        "startChar": 0,
+        "endLine": 8,
+        "endChar": 10
+      },
+      "revId": "c67ee3a5374a4adf8ea867d83f581134a3c5b8fb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1a014df3_161de066",
         "filename": "podder/consul_mgr.py",
         "patchSetId": 1
@@ -59,6 +107,30 @@
       "writtenOn": "2016-10-26T07:23:55Z",
       "side": 1,
       "message": "This method is not a generator (no \"yield\" in it), hence @inlineCallback is not needed.",
+      "range": {
+        "startLine": 38,
+        "startChar": 5,
+        "endLine": 38,
+        "endChar": 20
+      },
+      "revId": "c67ee3a5374a4adf8ea867d83f581134a3c5b8fb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a014df3_b652ac11",
+        "filename": "podder/consul_mgr.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1000004
+      },
+      "writtenOn": "2016-10-26T15:08:40Z",
+      "side": 1,
+      "message": "Yes I need to read a little more about twisted to understand how exactly it works.",
+      "parentUuid": "1a014df3_161de066",
       "range": {
         "startLine": 38,
         "startChar": 5,
@@ -140,6 +212,30 @@
     },
     {
       "key": {
+        "uuid": "1a014df3_9657b002",
+        "filename": "podder/consul_mgr.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 57,
+      "author": {
+        "id": 1000004
+      },
+      "writtenOn": "2016-10-26T15:08:40Z",
+      "side": 1,
+      "message": "Yes. Blame this on late night laziness.",
+      "parentUuid": "1a014df3_b62bcc81",
+      "range": {
+        "startLine": 57,
+        "startChar": 8,
+        "endLine": 57,
+        "endChar": 34
+      },
+      "revId": "c67ee3a5374a4adf8ea867d83f581134a3c5b8fb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1a014df3_9620d09c",
         "filename": "podder/consul_mgr.py",
         "patchSetId": 1
@@ -151,6 +247,30 @@
       "writtenOn": "2016-10-26T07:23:55Z",
       "side": 1,
       "message": "How about:\n\nargs \u003d copy(containers)\nargs[\u0027networking_config\u0027] \u003d netcfg\nstart_containers(args)",
+      "range": {
+        "startLine": 83,
+        "startChar": 8,
+        "endLine": 89,
+        "endChar": 47
+      },
+      "revId": "c67ee3a5374a4adf8ea867d83f581134a3c5b8fb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a014df3_765c2426",
+        "filename": "podder/consul_mgr.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 89,
+      "author": {
+        "id": 1000004
+      },
+      "writtenOn": "2016-10-26T15:08:40Z",
+      "side": 1,
+      "message": "agreed. just done for expediency.",
+      "parentUuid": "1a014df3_9620d09c",
       "range": {
         "startLine": 83,
         "startChar": 8,
