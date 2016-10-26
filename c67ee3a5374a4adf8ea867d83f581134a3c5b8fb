@@ -1,0 +1,188 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a014df3_762544aa",
+        "filename": "compose/docker-compose-system-test.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 100,
+      "author": {
+        "id": 1000006
+      },
+      "writtenOn": "2016-10-26T07:23:55Z",
+      "side": 1,
+      "message": "Do you think we really need to tie the Podder trigger variable to a specific service? What if a satellite container needs to connect to the pod main container via multiple connections. I think we could just have a AUTO_POD_MEMBERS or similar listing the names.\n\nI like your design where these names are keys in the config file, where the corresponding values contain the Docker launch instructions.\n\nWe can make the above config file contain jinja template constructs and have a convention for Podder to encode the internal IP address into the config, so that the IP address of the master conatiner can be baked into wherever needed.",
+      "range": {
+        "startLine": 100,
+        "startChar": 6,
+        "endLine": 100,
+        "endChar": 24
+      },
+      "revId": "c67ee3a5374a4adf8ea867d83f581134a3c5b8fb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a014df3_3610dc4d",
+        "filename": "podder/consul_mgr.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1000006
+      },
+      "writtenOn": "2016-10-26T07:23:55Z",
+      "side": 1,
+      "message": "I assume this will come from a config file, right?\n\nI think the config file should be potentially a jinja template, so that podder can actually substitute the specific IP address:port number for the service on behalf of the pod owner (e.g., voltha_1). The \"satellite\" containers shall not use consul to look up their service (like the --grpc-endpoint\u003d@voltha-grpc notation suggests), because then they may be connected to another instance, but instead take a direct specification provided by podder. So that line may look like:\n\n--grpc-endpoint\u003d{{POD_MASTER_IP}}:50555",
+      "range": {
+        "startLine": 8,
+        "startChar": 0,
+        "endLine": 8,
+        "endChar": 10
+      },
+      "revId": "c67ee3a5374a4adf8ea867d83f581134a3c5b8fb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a014df3_161de066",
+        "filename": "podder/consul_mgr.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1000006
+      },
+      "writtenOn": "2016-10-26T07:23:55Z",
+      "side": 1,
+      "message": "This method is not a generator (no \"yield\" in it), hence @inlineCallback is not needed.",
+      "range": {
+        "startLine": 38,
+        "startChar": 5,
+        "endLine": 38,
+        "endChar": 20
+      },
+      "revId": "c67ee3a5374a4adf8ea867d83f581134a3c5b8fb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a014df3_f619547a",
+        "filename": "podder/consul_mgr.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 51,
+      "author": {
+        "id": 1000006
+      },
+      "writtenOn": "2016-10-26T07:23:55Z",
+      "side": 1,
+      "message": "Remove inlineCallbacks (no yield, not a generator)",
+      "range": {
+        "startLine": 51,
+        "startChar": 5,
+        "endLine": 51,
+        "endChar": 20
+      },
+      "revId": "c67ee3a5374a4adf8ea867d83f581134a3c5b8fb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a014df3_d62658ba",
+        "filename": "podder/consul_mgr.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 56,
+      "author": {
+        "id": 1000006
+      },
+      "writtenOn": "2016-10-26T07:23:55Z",
+      "side": 1,
+      "message": "Same.",
+      "range": {
+        "startLine": 56,
+        "startChar": 5,
+        "endLine": 56,
+        "endChar": 20
+      },
+      "revId": "c67ee3a5374a4adf8ea867d83f581134a3c5b8fb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a014df3_b62bcc81",
+        "filename": "podder/consul_mgr.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 57,
+      "author": {
+        "id": 1000006
+      },
+      "writtenOn": "2016-10-26T07:23:55Z",
+      "side": 1,
+      "message": "I assume you intend to generalize this later, so it is not tied to Voltha. Just want to make sure.\n\nSame applies to all voltha mentions below.",
+      "range": {
+        "startLine": 57,
+        "startChar": 8,
+        "endLine": 57,
+        "endChar": 34
+      },
+      "revId": "c67ee3a5374a4adf8ea867d83f581134a3c5b8fb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a014df3_9620d09c",
+        "filename": "podder/consul_mgr.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 89,
+      "author": {
+        "id": 1000006
+      },
+      "writtenOn": "2016-10-26T07:23:55Z",
+      "side": 1,
+      "message": "How about:\n\nargs \u003d copy(containers)\nargs[\u0027networking_config\u0027] \u003d netcfg\nstart_containers(args)",
+      "range": {
+        "startLine": 83,
+        "startChar": 8,
+        "endLine": 89,
+        "endChar": 47
+      },
+      "revId": "c67ee3a5374a4adf8ea867d83f581134a3c5b8fb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a014df3_563a48ce",
+        "filename": "podder/main.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 112,
+      "author": {
+        "id": 1000006
+      },
+      "writtenOn": "2016-10-26T07:23:55Z",
+      "side": 1,
+      "message": "Slick style.",
+      "range": {
+        "startLine": 112,
+        "startChar": 0,
+        "endLine": 112,
+        "endChar": 6
+      },
+      "revId": "c67ee3a5374a4adf8ea867d83f581134a3c5b8fb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
