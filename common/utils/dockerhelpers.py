@@ -48,3 +48,38 @@ def get_my_containers_name():
     name = info['Name'].lstrip('/')
 
     return name
+
+def create_container_network(name, links):
+    """
+    Creates a container networks based on a set of containers.
+    :param name: the network name
+    :param links: the set of containers to link
+    :return: a network configuration
+    """
+    try:
+        docker_cli = Client(base_url='unix://tmp/docker.sock')
+        docker_cli.create_network(name)
+        networking_config = docker_cli.create_networking_config({
+            'network1': docker_cli.create_endpoint_config(links = links)
+        })
+    except Exception, e:
+        log.exception('failed network creation', name, e=e)
+        raise
+
+    return networking_config
+
+
+def start_container(args):
+    """
+    Starts a requested container with the appropriate configuration.
+    :param args: contains arguments for container creation
+        (see https://docker-py.readthedocs.io/en/stable/api/#create_container)
+    :return: the containers name
+    """
+    try:
+        docker_cli = Client(base_url='unix://tmp/docker.sock')
+        docker_cli.create_container(**args)
+    except Exception, e:
+        log.exception('failed', e=e)
+        raise
+
