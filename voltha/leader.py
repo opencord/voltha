@@ -122,7 +122,8 @@ class Leader(object):
 
         except Exception, e:
             self.log.exception('workload-track-error', e=e)
-            yield asleep(self.coord.configurable_vars['ONE_SEC'])  # to prevent flood
+            yield asleep(
+                self.coord.configurable_vars['ONE_SEC'])  # to prevent flood
 
         finally:
             if not self.halted:
@@ -147,7 +148,8 @@ class Leader(object):
 
         except Exception, e:
             self.log.exception('members-track-error', e=e)
-            yield asleep(self.coord.configurable_vars['ONE_SEC'])  # to prevent flood
+            yield asleep(
+                self.coord.configurable_vars['ONE_SEC'])  # to prevent flood
 
         finally:
             if not self.halted:

@@ -44,11 +44,11 @@ logging:
             propagate: False
 
 Constants:
-    VOLTHA_KV_PREFIX: 'service/voltha/'
+    VOLTHA_KV_PREFIX: 'service/voltha'
     LEADER_KEY: 'leader'
-    MEMBERSHIP_KEY: 'members/'
-    ASSIGNMENT_KEY: 'assignments/'
-    WORKLOAD_KEY: 'work/'
+    MEMBERSHIP_KEY: 'members'
+    ASSIGNMENT_KEY: 'assignments'
+    WORKLOAD_KEY: 'work'
     ONE_SEC: 1
     ONE_TENTH_OF_SEC: 0.1
     FIVE_SEC: 5

@@ -96,7 +96,8 @@ class Worker(object):
 
         except Exception, e:
             self.log.exception('assignments-track-error', e=e)
-            yield asleep(self.coord.configurable_vars['ONE_SEC'])  # to prevent flood
+            yield asleep(
+                self.coord.configurable_vars['ONE_SEC'])  # to prevent flood
 
         finally:
             if not self.halted:

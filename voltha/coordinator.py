@@ -48,11 +48,11 @@ class Coordinator(object):
 
     CONNECT_RETRY_INTERVAL_SEC = 1
     RETRY_BACKOFF = [0.05, 0.1, 0.2, 0.5, 1, 2, 5]
-    LEADER_KEY = 'service/voltha/leader'
+    #LEADER_KEY = 'service/voltha/leader'
 
-    MEMBERSHIP_PREFIX = 'service/voltha/members/'
-    ASSIGNMENT_PREFIX = 'service/voltha/assignments/'
-    WORKLOAD_PREFIX = 'service/voltha/work/'
+    #MEMBERSHIP_PREFIX = 'service/voltha/members/'
+    #ASSIGNMENT_PREFIX = 'service/voltha/assignments/'
+    #WORKLOAD_PREFIX = 'service/voltha/work/'
 
     # Public methods:
 
@@ -69,11 +69,20 @@ class Coordinator(object):
         self.log.info('initializing-coordinator')
         self.configurable_vars = configurable_vars
         self.log.info('configurable_vars: %r' % self.configurable_vars)
-        self._prefix = self.configurable_vars['VOLTHA_KV_PREFIX']
-        self.leader_prefix = ''.join([self._prefix, self.configurable_vars['LEADER_KEY']])
-        self.membership_prefix = ''.join([self._prefix, self.configurable_vars['MEMBERSHIP_KEY']])
-        self.assignment_prefix = ''.join([self._prefix, self.configurable_vars['ASSIGNMENT_KEY']])
-        self.workload_prefix = ''.join([self._prefix, self.configurable_vars['WORKLOAD_KEY']])
+        self._prefix = self.configurable_vars.get('VOLTHA_KV_PREFIX',
+                                                  'service/voltha')
+        self.leader_prefix = ''.join(
+            [self._prefix, '/', self.configurable_vars.get(
+                self.configurable_vars['LEADER_KEY'], 'leader')])
+        self.membership_prefix = ''.join(
+            [self._prefix, '/', self.configurable_vars.get(
+                self.configurable_vars['MEMBERSHIP_KEY'], 'members'), '/'])
+        self.assignment_prefix = ''.join(
+            [self._prefix, '/', self.configurable_vars.get(
+                self.configurable_vars['ASSIGNMENT_KEY'], 'assignments'), '/'])
+        self.workload_prefix = ''.join(
+            [self._prefix, '/', self.configurable_vars.get(
+                self.configurable_vars['WORKLOAD_KEY'], 'work'), '/'])
 
         self.retries = 0
         self.instance_id = instance_id
@@ -219,7 +228,8 @@ class Coordinator(object):
         finally:
             # except in shutdown, the loop must continue (after a short delay)
             if not self.shutting_down:
-                reactor.callLater(self.configurable_vars['ONE_TENTH_OF_SEC'], self._maintain_membership_record)
+                reactor.callLater(self.configurable_vars['ONE_TENTH_OF_SEC'],
+                                  self._maintain_membership_record)
 
     def _start_leader_tracking(self):
         reactor.callLater(0, self._leadership_tracking_loop)
@@ -283,7 +293,8 @@ class Coordinator(object):
         finally:
             # except in shutdown, the loop must continue (after a short delay)
             if not self.shutting_down:
-                reactor.callLater(self.configurable_vars['ONE_SEC'], self._leadership_tracking_loop)
+                reactor.callLater(self.configurable_vars['ONE_SEC'],
+                                  self._leadership_tracking_loop)
 
     @inlineCallbacks
     def _assert_leadership(self):
