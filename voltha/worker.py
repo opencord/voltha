@@ -49,7 +49,7 @@ class Worker(object):
         self.my_candidate_workload = set()  # we stash here during soaking
 
         self.assignment_match = re.compile(
-            self.ASSIGNMENT_EXTRACTOR % self.coord.ASSIGNMENT_PREFIX).match
+            self.ASSIGNMENT_EXTRACTOR % self.coord.assignment_prefix).match
 
     @inlineCallbacks
     def start(self):
@@ -78,10 +78,10 @@ class Worker(object):
                 yield d
                 # additional time to let leader update
                 # assignments, to minimize potential churn
-                yield asleep(5)
+                yield asleep(self.coord.configurable_vars['FIVE_SEC'])
 
             (index, results) = yield self.coord.kv_get(
-                self.coord.ASSIGNMENT_PREFIX + self.instance_id,
+                self.coord.assignment_prefix + self.instance_id,
                 index=index, recurse=True)
 
             matches = [
@@ -96,7 +96,7 @@ class Worker(object):
 
         except Exception, e:
             self.log.exception('assignments-track-error', e=e)
-            yield asleep(1)  # to prevent flood
+            yield asleep(self.coord.configurable_vars['ONE_SEC'])  # to prevent flood
 
         finally:
             if not self.halted:
