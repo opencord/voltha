@@ -29,7 +29,7 @@ COPY requirements.txt /tmp/requirements.txt
 
 # Install app dependencies
 RUN apk add build-base gcc abuild binutils python-dev libffi-dev openssl-dev git linux-headers && \
-    pip install cython enum34 six && \
+    pip install cython==0.24.1 enum34 six && \
     pip install -r /tmp/requirements.txt && \
     apk del --purge build-base gcc abuild binutils python-dev libffi-dev openssl-dev git linux-headers
 
