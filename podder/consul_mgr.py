@@ -1,13 +1,13 @@
-import consul
+from consul.twisted import Consul
 from structlog import get_logger
 from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks, Deferred, returnValue
+from twisted.internet.defer import returnValue
 
-from common.utils.dockerhelpers import create_container_network, start_container
+from common.utils.dockerhelpers import create_container_network, start_container, create_host_config
 
 containers = {
     'chameleon' : {
-                    'image' : 'opencord/chameleon',
+                    'image' : 'cord/chameleon',
                     'command' : [ "/chameleon/main.py",
                                     "-v",
                                     "--consul=consul:8500",
@@ -18,9 +18,9 @@ containers = {
                                     "-v"],
                     'ports' : [ 8881 ],
                     'depends_on' : [ "consul", "voltha" ],
-                    'links' : [ "consul", "fluentd" ],
+                    'links' : { "consul" : "consul", "fluentd" : "fluentd" },
                     'environment' : ["SERVICE_8881_NAME=chamleon-rest"],
-                    'volumes' : '/var/run/docker.sock:/tmp/docker.sock'
+                    'volumes' : { '/var/run/docker.sock' :  '/tmp/docker.sock' }
                   }
 }
 
@@ -33,9 +33,8 @@ class ConsulManager(object):
         self.running = False
         self.index = 0
         (host, port) = arg.split(':')
-        self.conn = consul.Consul(host=host, port=port)
+        self.conn = Consul(host=host, port=port)
 
-    @inlineCallbacks
     def run(self):
         if self.running:
             return
@@ -43,36 +42,50 @@ class ConsulManager(object):
 
         self.log.info('Running consul manager')
 
-        reactor.callLater(0, self.provision_voltha_instances())
+        reactor.callLater(0, self.provision_voltha_instances, None)
 
         reactor.addSystemEventTrigger('before', 'shutdown', self.shutdown)
         returnValue(self)
 
-    @inlineCallbacks
+
     def shutdown(self):
         self.log.info('Shutting down consul manager')
         self.running = False
 
-    @inlineCallbacks
-    def provision_voltha_instances(self):
-        while True:
-            if not self.running:
-                return
-            # maintain index such that callbacks only happen is something has changed
-            # timeout is default to 5m
-            (self.index, data) = self.conn.catalog.service(service='voltha-grpc',
-                                                            index=self.index)
-            self.start_containers(data)
 
-    def start_containers(self, data):
+    def provision_voltha_instances(self, _):
+        if not self.running:
+            return
+        # maintain index such that callbacks only happen is something has changed
+        # timeout is default to 5m
+        deferred = self.conn.catalog.service(wait='5s', service='voltha-grpc',
+                                                            index=self.index)
+        deferred.addCallbacks(self.provision, self.fail)
+        deferred.addBoth(self.provision_voltha_instances)
+
+    def provision(self, result):
+        (self.index, data) = result
+        self.log.info('PROVISIONING {}'.format(data))
         for item in data:
-            serviceId = item['ServiceID'].split(':')[1].split('_')[2]
-            serviceTags = item['ServiceTags']
-            self.log.info('voltha instance %s, with tags %s' % (serviceId, serviceTags))
-            for tag in serviceTags:
-                if tag in containers:
-                    netcfg = self.create_network(serviceId, tag)
-                    self.create_container(serviceId, tag, netcfg)
+            (service, id) = item['ServiceID'].split(':')[1].split('_')[1:3]
+            self.log.info('got {} {}'.format(service, id))
+            self.podProvisioned(service, id, item['ServiceTags'])
+
+    def fail(self, err):
+        self.log.info('Failure %s'.format(err))
+
+    def start_containers(self, result, service, id, tags):
+        self.log.info("wtf : {}".format(result))
+        (_, done) = result
+        self.log.info("result : {}, {}".format(done, type(done)))
+        if done:
+            return
+        self.log.info('provisioning voltha instance {}, with tags {}'.format(id, tags))
+        for tag in tags:
+            if tag in containers:
+                netcfg = self.create_network(id, tag)
+                if self.create_container(id, tag, netcfg):
+                    self.markProvisioned(service, id)
 
 
     def create_network(self, id, tag):
@@ -81,10 +94,24 @@ class ConsulManager(object):
 
     def create_container(self, id, tag, netcfg):
         args = {}
-        args['image'] = containers['image']
+        args['image'] = containers[tag]['image']
         args['networking_config'] = netcfg
-        args['command'] = containers['command']
-        args['ports'] = containers['ports']
-        args['environment'] = containers['environment']
-        args['volumes'] = containers['volumes']
+        args['command'] = containers[tag]['command']
+        args['ports'] = containers[tag]['ports']
+        args['environment'] = containers[tag]['environment']
+        args['volumes'] = containers[tag]['volumes'].keys()
+        args['host_config'] = create_host_config(containers[tag]['volumes'],
+                                                 containers[tag]['ports'])
+        args['name'] = 'podder_%s_%s' % (tag, id)
         start_container(args)
+        #TODO check container is running
+
+        return True
+
+    def podProvisioned(self, service, id, tags):
+        d = self.conn.kv.get('podder/%s/%s/state' % (service, id))
+        d.addCallback(self.start_containers, service, id, tags)
+        d.addErrback(lambda err: self.log.info("FAIL {}".format(err)))
+
+    def markProvisioned(self, service, id):
+        self.conn.kv.put('podder/%s/%s/state' % (service, id), "started")

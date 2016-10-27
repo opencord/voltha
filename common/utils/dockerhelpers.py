@@ -24,6 +24,7 @@ from structlog import get_logger
 from docker import Client
 
 
+docker_socket = os.environ.get('DOCKER_SOCK', 'unix://tmp/docker.sock')
 log = get_logger()
 
 
@@ -38,7 +39,7 @@ def get_my_containers_name():
     my_container_id = os.environ.get('HOSTNAME', None)
 
     try:
-        docker_cli = Client(base_url='unix://tmp/docker.sock')
+        docker_cli = Client(base_url=docker_socket)
         info = docker_cli.inspect_container(my_container_id)
 
     except Exception, e:
@@ -49,6 +50,20 @@ def get_my_containers_name():
 
     return name
 
+def create_host_config(volumes, ports):
+    try:
+        port_bindings = { ports[0] : None }
+        binds = ['{0}:{1}'.format(k, v) for k, v in volumes.iteritems()]
+        docker_cli = Client(base_url=docker_socket)
+        host_config = docker_cli.create_host_config(binds=binds,
+                                                    port_bindings=port_bindings)
+    except Exception, e:
+        log.exception('failed host config creation', volumes, ports, e=e)
+        raise
+
+    return host_config
+
+
 def create_container_network(name, links):
     """
     Creates a container networks based on a set of containers.
@@ -57,10 +72,10 @@ def create_container_network(name, links):
     :return: a network configuration
     """
     try:
-        docker_cli = Client(base_url='unix://tmp/docker.sock')
+        docker_cli = Client(base_url=docker_socket)
         docker_cli.create_network(name)
         networking_config = docker_cli.create_networking_config({
-            'network1': docker_cli.create_endpoint_config(links = links)
+            name : docker_cli.create_endpoint_config(links=links)
         })
     except Exception, e:
         log.exception('failed network creation', name, e=e)
@@ -77,9 +92,11 @@ def start_container(args):
     :return: the containers name
     """
     try:
-        docker_cli = Client(base_url='unix://tmp/docker.sock')
-        docker_cli.create_container(**args)
+        docker_cli = Client(base_url=docker_socket)
+        container = docker_cli.create_container(**args)
+        response = docker_cli.start(container=container.get('Id'))
     except Exception, e:
         log.exception('failed', e=e)
         raise
+    return response
 
