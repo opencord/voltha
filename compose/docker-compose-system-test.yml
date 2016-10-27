@@ -97,6 +97,7 @@ services:
       SERVICE_8880_CHECK_INTERVAL: "5s"
       SERVICE_8880_CHECK_TIMEOUT: "1s"
       SERVICE_50555_NAME: "voltha-grpc"
+      SERVICE_50555_TAGS: "chameleon,ofagent"
     volumes:
     - "/var/run/docker.sock:/tmp/docker.sock"
   #
