@@ -1,0 +1,280 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a014df3_b6318ca4",
+        "filename": "voltha/coordinator.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 64,
+      "author": {
+        "id": 1000006
+      },
+      "writtenOn": "2016-10-27T06:04:45Z",
+      "side": 1,
+      "message": "config",
+      "range": {
+        "startLine": 64,
+        "startChar": 17,
+        "endLine": 64,
+        "endChar": 34
+      },
+      "revId": "999e47ee023dc758edef363386c29311e87cdcea",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a014df3_d62c184d",
+        "filename": "voltha/coordinator.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 1000006
+      },
+      "writtenOn": "2016-10-27T06:04:45Z",
+      "side": 1,
+      "message": "I think we should either store the full config here and parse it everywhere where we need to use something, or -- better -- parse it here in __init__ and we don\u0027t need to store.",
+      "range": {
+        "startLine": 70,
+        "startChar": 8,
+        "endLine": 70,
+        "endChar": 50
+      },
+      "revId": "999e47ee023dc758edef363386c29311e87cdcea",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a014df3_96269067",
+        "filename": "voltha/coordinator.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 71,
+      "author": {
+        "id": 1000006
+      },
+      "writtenOn": "2016-10-27T06:04:45Z",
+      "side": 1,
+      "message": "I suggest we log the config once on startup (the entire config), instead of sprinkling this in every class.",
+      "range": {
+        "startLine": 71,
+        "startChar": 8,
+        "endLine": 71,
+        "endChar": 71
+      },
+      "revId": "999e47ee023dc758edef363386c29311e87cdcea",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a014df3_56200849",
+        "filename": "voltha/coordinator.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 72,
+      "author": {
+        "id": 1000006
+      },
+      "writtenOn": "2016-10-27T06:04:45Z",
+      "side": 1,
+      "message": "So this will be:\nprefix \u003d config[\u0027voltha_kv_prefix\u0027]\n\nEven better would be:\nprefix \u003d config.get(\u0027voltha_kv_prefix\u0027, \u0027service/voltha\u0027)\n\nwhich is more forgiving in case the config file is incomplete. You allowed that in main.py with using {} as default value, which is good.",
+      "range": {
+        "startLine": 72,
+        "startChar": 23,
+        "endLine": 72,
+        "endChar": 65
+      },
+      "revId": "999e47ee023dc758edef363386c29311e87cdcea",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a014df3_762b0431",
+        "filename": "voltha/coordinator.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 72,
+      "author": {
+        "id": 1000006
+      },
+      "writtenOn": "2016-10-27T06:04:45Z",
+      "side": 1,
+      "message": "Why is this underscored if nothing else is?",
+      "range": {
+        "startLine": 72,
+        "startChar": 8,
+        "endLine": 72,
+        "endChar": 20
+      },
+      "revId": "999e47ee023dc758edef363386c29311e87cdcea",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a014df3_361d7c10",
+        "filename": "voltha/coordinator.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 73,
+      "author": {
+        "id": 1000006
+      },
+      "writtenOn": "2016-10-27T06:04:45Z",
+      "side": 1,
+      "message": "So this becomes:\nself.leader_prefix \u003d \u0027/\u0027.join(prefix, config.get(\u0027leader_key\u0027, \u0027leader\u0027)\n\nand so on for the next few lines.",
+      "range": {
+        "startLine": 73,
+        "startChar": 8,
+        "endLine": 73,
+        "endChar": 90
+      },
+      "revId": "999e47ee023dc758edef363386c29311e87cdcea",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a014df3_161a8017",
+        "filename": "voltha/coordinator.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 222,
+      "author": {
+        "id": 1000006
+      },
+      "writtenOn": "2016-10-27T06:04:45Z",
+      "side": 1,
+      "message": "So for this the entry in the voltha.yml should have been:\n\ncoordinator:\n    membership_watch_relatch_delay: 0.1\n\nAnd hence in __init__ we shall have the code:\n    self.membership_watch_relatch_delay \u003d config.get(\u0027membership_watch_relatch_delay\u0027, 0.1)\n\nAnd hence in this line we can just use:\n    self.membership_watch_relatch_delay\n\nThis comment applies to the other configurable time constants.",
+      "range": {
+        "startLine": 222,
+        "startChar": 34,
+        "endLine": 222,
+        "endChar": 76
+      },
+      "revId": "999e47ee023dc758edef363386c29311e87cdcea",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a014df3_1603a0b9",
+        "filename": "voltha/main.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 219,
+      "author": {
+        "id": 1000006
+      },
+      "writtenOn": "2016-10-27T06:04:45Z",
+      "side": 1,
+      "message": "See my comments in voltha.yml. If we follow a nesting key approach in voltha.yml, then we can cleanly pass in the relevant config (sub-)snippet to the relevant module, see my comment at line 245 below.",
+      "range": {
+        "startLine": 218,
+        "startChar": 7,
+        "endLine": 219,
+        "endChar": 65
+      },
+      "revId": "999e47ee023dc758edef363386c29311e87cdcea",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a014df3_f6ff14a9",
+        "filename": "voltha/main.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 245,
+      "author": {
+        "id": 1000006
+      },
+      "writtenOn": "2016-10-27T06:04:45Z",
+      "side": 1,
+      "message": "This shall be\n\nconfig\u003dself.config[\u0027coordinator\u0027],\n\nNice and simple.",
+      "range": {
+        "startLine": 245,
+        "startChar": 12,
+        "endLine": 245,
+        "endChar": 52
+      },
+      "revId": "999e47ee023dc758edef363386c29311e87cdcea",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a014df3_761424f5",
+        "filename": "voltha/voltha.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1000006
+      },
+      "writtenOn": "2016-10-27T06:04:45Z",
+      "side": 1,
+      "message": "I suggest main config file entries reflecting subsystems within Voltha. So, for the first five entries, they are all for \"coordinator\", hence we shall use that as the entry name. Instead of \"Constants:\", lets use \"coordinator:\"\n\nIn fact, I suggest config values are nested to reflect the file path of the module where they are used, relative to voltha/voltha.\n\nAlso: please use snake_case entries in all config keys.",
+      "range": {
+        "startLine": 46,
+        "startChar": 0,
+        "endLine": 46,
+        "endChar": 9
+      },
+      "revId": "999e47ee023dc758edef363386c29311e87cdcea",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a014df3_56f928c7",
+        "filename": "voltha/voltha.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 49,
+      "author": {
+        "id": 1000006
+      },
+      "writtenOn": "2016-10-27T06:04:45Z",
+      "side": 1,
+      "message": "Can we drop the trailing slashes in all these five entry values (and make the code to add if needed)? It\u0027s cleaner that way.",
+      "range": {
+        "startLine": 49,
+        "startChar": 21,
+        "endLine": 49,
+        "endChar": 29
+      },
+      "revId": "999e47ee023dc758edef363386c29311e87cdcea",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a014df3_36f69cd8",
+        "filename": "voltha/voltha.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 54,
+      "author": {
+        "id": 1000006
+      },
+      "writtenOn": "2016-10-27T06:04:45Z",
+      "side": 1,
+      "message": "This does not make too much sense this way. Why would anyone ever change FIVE_SEC to some other value than 5, or ONE_SEC to other than 1, etc.? What we want is to control the purpose. For instance, if in the code we currently hardcoded a foo action retry delay to 5, then the goal here is to make that configurable by lifting that into the config file with a\n\nfoo_action_retry_delay: 5\n\nentry. So we can change later to\n\nfoo_action_retry_delay: 10\n\netc.",
+      "range": {
+        "startLine": 52,
+        "startChar": 4,
+        "endLine": 54,
+        "endChar": 15
+      },
+      "revId": "999e47ee023dc758edef363386c29311e87cdcea",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
