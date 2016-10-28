@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a014df3_f654b422",
+        "filename": "ofagent/connection_mgr.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 144,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2016-10-28T14:26:01Z",
+      "side": 1,
+      "message": "Nice and elegant data structure choice :)",
+      "revId": "80019186c945e7d0c696a452aea66edba34e9e6f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a014df3_d631b80c",
+        "filename": "ofagent/connection_mgr.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 187,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2016-10-28T14:26:01Z",
+      "side": 1,
+      "message": "Makes sense. I will look into it.",
+      "revId": "80019186c945e7d0c696a452aea66edba34e9e6f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
