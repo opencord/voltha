@@ -215,6 +215,9 @@ class Main(object):
                                  verbosity_adjust=verbosity_adjust,
                                  fluentd=args.fluentd)
 
+        # configurable variables from voltha.yml file
+        #self.configurable_vars = self.config.get('Constants', {})
+
         # components
         self.coordinator = None
         self.grpc_server = None
@@ -239,6 +242,7 @@ class Main(object):
             external_host_address=self.args.external_host_address,
             rest_port=self.args.rest_port,
             instance_id=self.args.instance_id,
+            config=self.config,
             consul=self.args.consul)
         init_rest_service(self.args.rest_port)
 

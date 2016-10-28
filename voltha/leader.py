@@ -51,13 +51,13 @@ class Leader(object):
         self.reassignment_soak_timer = None
 
         self.workload_id_match = re.compile(
-             self.ID_EXTRACTOR % self.coord.WORKLOAD_PREFIX).match
+             self.ID_EXTRACTOR % self.coord.workload_prefix).match
 
         self.member_id_match = re.compile(
-            self.ID_EXTRACTOR % self.coord.MEMBERSHIP_PREFIX).match
+            self.ID_EXTRACTOR % self.coord.membership_prefix).match
 
         self.assignment_match = re.compile(
-            self.ASSIGNMENT_EXTRACTOR % self.coord.ASSIGNMENT_PREFIX).match
+            self.ASSIGNMENT_EXTRACTOR % self.coord.assignment_prefix).match
 
     @inlineCallbacks
     def start(self):
@@ -89,7 +89,7 @@ class Leader(object):
         # TODO for now we simply generate a fixed number of fake entries
         yield DeferredList([
             self.coord.kv_put(
-                self.coord.WORKLOAD_PREFIX + 'device_group_%04d' % (i + 1),
+                self.coord.workload_prefix + 'device_group_%04d' % (i + 1),
                 'placeholder for device group %d data' % (i + 1))
             for i in xrange(100)
         ])
@@ -108,7 +108,7 @@ class Leader(object):
 
         try:
             (index, results) = yield self.coord.kv_get(
-                self.coord.WORKLOAD_PREFIX, index=index, recurse=True)
+                self.coord.workload_prefix, index=index, recurse=True)
 
             matches = (self.workload_id_match(e['Key']) for e in results)
             workload = [m.group(2) for m in matches if m is not None]
@@ -122,7 +122,11 @@ class Leader(object):
 
         except Exception, e:
             self.log.exception('workload-track-error', e=e)
-            yield asleep(1.0)  # to prevent flood
+            yield asleep(
+                self.coord.leader_config.get(
+                    self.coord.leader_config[
+                        'workload_track_error_to_prevent_flood'], 1))
+            # to prevent flood
 
         finally:
             if not self.halted:
@@ -133,7 +137,7 @@ class Leader(object):
 
         try:
             (index, results) = yield self.coord.kv_get(
-                self.coord.MEMBERSHIP_PREFIX, index=index, recurse=True)
+                self.coord.membership_prefix, index=index, recurse=True)
 
             matches = (self.member_id_match(e['Key']) for e in results or [])
             members = [m.group(2) for m in matches if m is not None]
@@ -147,7 +151,11 @@ class Leader(object):
 
         except Exception, e:
             self.log.exception('members-track-error', e=e)
-            yield asleep(1.0)  # to prevent flood
+            yield asleep(
+                self.coord.leader_config.get(
+                    self.coord.leader_config[
+                        'members_track_error_to_prevent_flood']), 1)
+            # to prevent flood
 
         finally:
             if not self.halted:
@@ -205,7 +213,7 @@ class Leader(object):
             # Step 2: discover current assignment (from consul)
 
             (_, results) = yield self.coord.kv_get(
-                self.coord.ASSIGNMENT_PREFIX, recurse=True)
+                self.coord.assignment_prefix, recurse=True)
 
             matches = [
                 (self.assignment_match(e['Key']), e) for e in results or []]
@@ -230,7 +238,7 @@ class Leader(object):
                 # work, we could add a consul-based protocol here
                 for work_id in work_to_revoke:
                     yield self.coord.kv_delete(
-                        self.coord.ASSIGNMENT_PREFIX
+                        self.coord.assignment_prefix
                         + member_id + '/' + work_id)
 
             # Step 4: assign new work as needed
@@ -242,7 +250,7 @@ class Leader(object):
 
                 for work_id in work_to_assign:
                     yield self.coord.kv_put(
-                        self.coord.ASSIGNMENT_PREFIX
+                        self.coord.assignment_prefix
                         + member_id + '/' + work_id, '')
 
         except Exception, e:
