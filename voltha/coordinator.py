@@ -48,11 +48,11 @@ class Coordinator(object):
 
     CONNECT_RETRY_INTERVAL_SEC = 1
     RETRY_BACKOFF = [0.05, 0.1, 0.2, 0.5, 1, 2, 5]
-    LEADER_KEY = 'service/voltha/leader'
+    #LEADER_KEY = 'service/voltha/leader'
 
-    MEMBERSHIP_PREFIX = 'service/voltha/members/'
-    ASSIGNMENT_PREFIX = 'service/voltha/assignments/'
-    WORKLOAD_PREFIX = 'service/voltha/work/'
+    #MEMBERSHIP_PREFIX = 'service/voltha/members/'
+    #ASSIGNMENT_PREFIX = 'service/voltha/assignments/'
+    #WORKLOAD_PREFIX = 'service/voltha/work/'
 
     # Public methods:
 
@@ -61,15 +61,36 @@ class Coordinator(object):
                  external_host_address,
                  instance_id,
                  rest_port,
+                 config,
                  consul='localhost:8500',
                  leader_class=Leader):
+
+        self.log = get_logger()
+        self.log.info('initializing-coordinator')
+        self.config = config['coordinator']
+        self.worker_config = config['worker']
+        self.leader_config = config['leader']
+        #self.log.info('config: %r' % self.config)
+        self.membership_watch_relatch_delay = config.get(
+            'membership_watch_relatch_delay', 0.1)
+        self.tracking_loop_delay = config.get(
+            'tracking_loop_delay', 1)
+        self.prefix = self.config.get('voltha_kv_prefix', 'service/voltha')
+        self.leader_prefix = '/'.join([self.prefix, self.config.get(
+                self.config['leader_key'], 'leader')])
+        self.membership_prefix = '/'.join([self.prefix, self.config.get(
+                self.config['membership_key'], 'members')])
+        self.assignment_prefix = '/'.join([self.prefix, self.config.get(
+                self.config['assignment_key'], 'assignments')])
+        self.workload_prefix = '/'.join([self.prefix, self.config.get(
+                self.config['workload_key'], 'work')])
 
         self.retries = 0
         self.instance_id = instance_id
         self.internal_host_address = internal_host_address
         self.external_host_address = external_host_address
         self.rest_port = rest_port
-        self.membership_record_key = self.MEMBERSHIP_PREFIX + self.instance_id
+        self.membership_record_key = self.membership_prefix + self.instance_id
 
         self.session_id = None
         self.i_am_leader = False
@@ -78,9 +99,6 @@ class Coordinator(object):
         self.leader = None
 
         self.worker = Worker(self.instance_id, self)
-
-        self.log = get_logger()
-        self.log.info('initializing-coordinator')
 
         host = consul.split(':')[0].strip()
         port = int(consul.split(':')[1].strip())
@@ -211,7 +229,8 @@ class Coordinator(object):
         finally:
             # except in shutdown, the loop must continue (after a short delay)
             if not self.shutting_down:
-                reactor.callLater(0.1, self._maintain_membership_record)
+                reactor.callLater(self.membership_watch_relatch_delay,
+                                  self._maintain_membership_record)
 
     def _start_leader_tracking(self):
         reactor.callLater(0, self._leadership_tracking_loop)
@@ -228,7 +247,7 @@ class Coordinator(object):
             # attempt acquire leader lock
             self.log.debug('leadership-attempt')
             result = yield self._retry(self.consul.kv.put,
-                                       self.LEADER_KEY,
+                                       self.leader_prefix,
                                        self.instance_id,
                                        acquire=self.session_id)
 
@@ -238,7 +257,7 @@ class Coordinator(object):
             # key gets wiped out administratively since the previous line,
             # the returned record can be None. Handle it.
             (index, record) = yield self._retry(self.consul.kv.get,
-                                                self.LEADER_KEY)
+                                                self.leader_prefix)
             self.log.debug('leadership-key',
                            i_am_leader=result, index=index, record=record)
 
@@ -259,7 +278,7 @@ class Coordinator(object):
             while last is not None:
                 # this shall return only when update is made to leader key
                 (index, updated) = yield self._retry(self.consul.kv.get,
-                                                     self.LEADER_KEY,
+                                                     self.leader_prefix,
                                                      index=index)
                 self.log.debug('leader-key-change',
                                index=index, updated=updated)
@@ -275,7 +294,8 @@ class Coordinator(object):
         finally:
             # except in shutdown, the loop must continue (after a short delay)
             if not self.shutting_down:
-                reactor.callLater(1, self._leadership_tracking_loop)
+                reactor.callLater(self.tracking_loop_delay,
+                                  self._leadership_tracking_loop)
 
     @inlineCallbacks
     def _assert_leadership(self):

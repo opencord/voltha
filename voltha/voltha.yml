@@ -42,3 +42,20 @@ logging:
             level: INFO # this can be bumped up/down by -q and -v command line
                         # options
             propagate: False
+
+coordinator:
+    voltha_kv_prefix: 'service/voltha'
+    leader_key: 'leader'
+    membership_key: 'members'
+    assignment_key: 'assignments'
+    workload_key: 'work'
+    membership_watch_relatch_delay: 0.1
+    tracking_loop_delay: 1
+
+worker:
+    time_to_let_leader_update: 5
+    assignments_track_error_to_avoid_flood: 1
+
+leader:
+    workload_track_error_to_prevent_flood: 1
+    members_track_error_to_prevent_flood: 1
