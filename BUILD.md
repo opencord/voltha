@@ -401,3 +401,24 @@ After this, much or all of the things you can do inside the Vagrant box should a
   
   Unfortunately I was not yet able to resolve this on the Mac.
 
+### Scapy related import issues on MAC OS
+
+ 1. I had issues with "from scapy.all import *". It errored out with import error not finding
+dumbnet. The following resolved the issue:
+
+   ```
+   cd $VOLTHA_BASE
+   . env.sh
+   mkdir tmp
+   cd tmp
+   git clone https://github.com/dugsong/libdnet.git
+   cd libdnet
+   ./configure
+   make
+   sudo make install
+   cd python
+   python setup.py install
+   cd ../..
+   rm -fr tmp
+   ```
+
