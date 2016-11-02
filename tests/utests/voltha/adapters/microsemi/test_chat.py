@@ -46,7 +46,7 @@ class TestChat(TestCase):
             reference_msg.show()
             hexdump(str(reference_msg))
             self.fail("Decoded message did not match! "
-                      "(inspect above printouts")
+                      "(inspect above printouts)")
         self.assertEqual(pas5211_msg, reference_msg)
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~ test_get_protocol_version
@@ -489,7 +489,6 @@ class TestChat(TestCase):
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~ test_frame_received_event
 
-    '''
     def test_frame_received_event(self):
         self.check_parsed(
             '\x90\xe2\xba\x82\xf9w\x00\x0c\xd5\x00\x01\x01\x00Z\x01\x00\x01'
@@ -497,7 +496,7 @@ class TestChat(TestCase):
             '\x00\x01\x00\x00\x000\x00\x00\x00\x00\x00\x01\x00\x15\x00 \x00'
             '\x13\x00\x00 \x00\x00)\n\x00\x06\x01\x01\x00\x08\x00PMCS\x00\x00'
             '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-            '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00(\r\xc5\x0c\xb6',
+            '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00(',
             PAS5211EventFrameReceived(
                 length=48,
                 management_frame=PON_TRUE,
@@ -517,12 +516,13 @@ class TestChat(TestCase):
                         data=dict(
                             vendor_id="PMCS"
                         )
-                    )
+                    ),
+                    # omci_trailer=0x28
                 )
             ),
             channel_id=0, onu_id=0, onu_session_id=1
         )
-    '''
+
 
 if __name__ == '__main__':
     main()

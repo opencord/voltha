@@ -1,12 +1,29 @@
 import inspect
 import sys
 from enum import Enum
-# from scapy.all import StrFixedLenField, ByteField, ShortField, ConditionalField, \
-#     PacketField, PadField, IntField, Field, Packet
 from scapy.fields import ByteField, Field, ShortField, PacketField, PadField, \
     ConditionalField
 from scapy.fields import StrFixedLenField, IntField
-from scapy.packet import Packet
+from scapy.packet import Packet, Raw
+
+
+class OmciUninitializedFieldError(Exception): pass
+
+
+class FixedLenField(PadField):
+    """
+    This Pad field limits parsing of its content to its size
+    """
+    def __init__(self, fld, align, padwith='\x00'):
+        super(FixedLenField, self).__init__(fld, align, padwith)
+
+    def getfield(self, pkt, s):
+        remain, val = self._fld.getfield(pkt, s[:self._align])
+        if isinstance(val.payload, Raw) and \
+                not val.payload.load.replace(self._padwith, ''):
+            # raw payload is just padding
+            val.remove_payload()
+        return remain + s[self._align:], val
 
 
 def bitpos_from_mask(mask, lsb_pos=0, increment=1):
@@ -48,34 +65,41 @@ class EntityOperations(Enum):
     Test = 11
 
 
-class EntityClassAttribute:
+class EntityClassAttribute(object):
 
     def __init__(self, fld, access=set(), optional=False):
         self._fld = fld
         self._access = access
         self._optional = optional
 
-class EntityClass:
+class EntityClassMeta(type):
+    """
+    Metaclass for EntityClass to generate secondary class attributes
+    for class attributes of the derived classes.
+    """
+    def __init__(cls, name, bases, dct):
+        super(EntityClassMeta, cls).__init__(name, bases, dct)
+
+        # initialize attribute_name_to_index_map
+        cls.attribute_name_to_index_map = dict(
+            (a._fld.name, idx) for idx, a in enumerate(cls.attributes))
+
+
+class EntityClass(object):
+
     class_id = 'to be filled by subclass'
     attributes = []
     mandatory_operations = {}
     optional_operations = {}
 
-    # will be map of attr_name -> index in attributes
+    # will be map of attr_name -> index in attributes, initialized by metaclass
     attribute_name_to_index_map = None
+    __metaclass__ = EntityClassMeta
 
     def __init__(self, **kw):
-
         assert(isinstance(kw, dict))
-
-        # verify that all keys provided are valid in the entity
-        if self.attribute_name_to_index_map is None:
-            self.__class__.attribute_name_to_index_map = dict(
-                (a._fld.name, idx) for idx, a in enumerate(self.attributes))
-
         for k, v in kw.iteritems():
             assert(k in self.attribute_name_to_index_map)
-
         self._data = kw
 
     def serialize(self, mask=None, operation=None):
@@ -87,14 +111,18 @@ class EntityClass:
         # also taking into account the type of operation in hand
         if mask is not None:
             attribute_indices = EntityClass.attribute_indices_from_mask(mask)
-            print attribute_indices
         else:
             attribute_indices = self.attribute_indices_from_data()
 
         # Serialize each indexed field (ignoring entity id)
         for index in attribute_indices:
             field = self.attributes[index]._fld
-            bytes = field.addfield(None, bytes, self._data[field.name])
+            try:
+                value = self._data[field.name]
+            except KeyError:
+                raise OmciUninitializedFieldError(
+                    'Entity field "{}" not set'.format(field.name) )
+            bytes = field.addfield(None, bytes, value)
 
         return bytes
 
@@ -115,6 +143,19 @@ class EntityClass:
             cls.byte1_mask_to_attr_indices[(mask >> 8) & 0xff] + \
             cls.byte2_mask_to_attr_indices[(mask & 0xff)]
 
+    @classmethod
+    def mask_for(cls, *attr_names):
+        """
+        Return mask value corresponding to given attributes names
+        :param attr_names: Attribute names
+        :return: integer mask value
+        """
+        mask = 0
+        for attr_name in attr_names:
+            index = cls.attribute_name_to_index_map[attr_name]
+            mask |= (1 << (16 - index))
+        return mask
+
 
 # abbreviations
 ECA = EntityClassAttribute
@@ -122,7 +163,7 @@ AA = AttributeAccess
 OP = EntityOperations
 
 
-class CirtcuitPackEntity(EntityClass):
+class CircuitPackEntity(EntityClass):
     class_id = 6
     attributes = [
         ECA(StrFixedLenField("managed_entity_id", None, 22), {AA.R, AA.SBC}),
@@ -167,20 +208,39 @@ class OMCIData(Field):
         self._entity_class = entity_class
         self._attributes_mask = attributes_mask
 
-    def i2m(self, pkt, x):
+    def addfield(self, pkt, s, val):
         class_id = getattr(pkt, self._entity_class)
         attribute_mask = getattr(pkt, self._attributes_mask)
         entity_class = entity_id_to_class_map.get(class_id)
-        return entity_class(**x).serialize(attribute_mask)
+        indices = entity_class.attribute_indices_from_mask(attribute_mask)
+        for index in indices:
+            fld = entity_class.attributes[index]._fld
+            s = fld.addfield(pkt, s, val[fld.name])
+        return s
+
+    def getfield(self, pkt, s):
+        """Extract an internal value from a string"""
+        class_id = getattr(pkt, self._entity_class)
+        attribute_mask = getattr(pkt, self._attributes_mask)
+        entity_class = entity_id_to_class_map.get(class_id)
+        indices = entity_class.attribute_indices_from_mask(attribute_mask)
+        data = {}
+        for index in indices:
+            fld = entity_class.attributes[index]._fld
+            s, value = fld.getfield(pkt, s)
+            data[fld.name] = value
+        return  s, data
 
 
 class OMCIMessage(Packet):
     name = "OMCIMessage"
+    message_id = None  # OMCI message_type value, filled by derived classes
     fields_desc = []
 
 
 class OMCIGetRequest(OMCIMessage):
     name = "OMCIGetRequest"
+    message_id = 0x49
     fields_desc = [
         ShortField("entity_class", None),
         ShortField("entity_id", 0),
@@ -190,13 +250,16 @@ class OMCIGetRequest(OMCIMessage):
 
 class OMCIGetResponse(OMCIMessage):
     name = "OMCIGetResponse"
+    message_id = 0x29
     fields_desc = [
         ShortField("entity_class", None),
         ShortField("entity_id", 0),
         ByteField("success_code", 0),
         ShortField("attributes_mask", None),
-        OMCIData("data", entity_class="entity_class",
-                 attributes_mask="attributes_mask")
+        ConditionalField(
+            OMCIData("data", entity_class="entity_class",
+                     attributes_mask="attributes_mask"),
+            lambda pkt: pkt.success_code == 0)
     ]
 
 
@@ -206,12 +269,36 @@ class OMCIFrame(Packet):
         ShortField("transaction_id", 0),
         ByteField("message_type", None),
         ByteField("omci", 0x0a),
-        ConditionalField(PadField(PacketField("omci_message", None,
+        ConditionalField(FixedLenField(PacketField("omci_message", None,
                                               OMCIGetRequest), align=36),
                          lambda pkt: pkt.message_type == 0x49),
-        ConditionalField(PadField(PacketField("omci_message", None,
+        ConditionalField(FixedLenField(PacketField("omci_message", None,
                                               OMCIGetResponse), align=36),
                          lambda pkt: pkt.message_type == 0x29),
         # TODO add additional message types here as padded conditionals...
+
         IntField("omci_trailer", 0x00000028)
     ]
+
+    # We needed to patch the do_dissect(...) method of Packet, because
+    # it wiped out already dissected conditional fields with None if they
+    # referred to the same field name. We marked the only new line of code
+    # with "Extra condition added".
+    def do_dissect(self, s):
+        raw = s
+        self.raw_packet_cache_fields = {}
+        for f in self.fields_desc:
+            if not s:
+                break
+            s, fval = f.getfield(self, s)
+            # We need to track fields with mutable values to discard
+            # .raw_packet_cache when needed.
+            if f.islist or f.holds_packets:
+                self.raw_packet_cache_fields[f.name] = f.do_copy(fval)
+            # Extra condition added
+            if fval is not None or f.name not in self.fields:
+                self.fields[f.name] = fval
+        assert(raw.endswith(s))
+        self.raw_packet_cache = raw[:-len(s)] if s else raw
+        self.explicit = 1
+        return s
