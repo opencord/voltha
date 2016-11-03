@@ -22,10 +22,8 @@ import sys
 
 import structlog
 
-from voltha.protos.third_party.google import api
-sys.modules['google.api'] = api
-from voltha.protos import openflow_13_pb2 as ofp
 from voltha.protos import voltha_pb2
+from voltha.protos import openflow_13_pb2 as ofp
 
 log = structlog.get_logger()
 

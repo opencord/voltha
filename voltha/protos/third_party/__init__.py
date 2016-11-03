@@ -38,7 +38,7 @@ class GoogleApiImporter(object):
     def load_module(self, name):
         if name in sys.modules:
             return sys.modules[name]
-        full_name = 'chameleon.protos.third_party.' + name
+        full_name = 'voltha.protos.third_party.' + name
         import_module(full_name)
         module = sys.modules[full_name]
         sys.modules[name] = module

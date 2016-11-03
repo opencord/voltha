@@ -16,7 +16,6 @@
 
 """gRPC server endpoint"""
 import os
-import sys
 import uuid
 from Queue import Queue
 from os.path import abspath, basename, dirname, join, walk
