@@ -55,12 +55,21 @@ class Agent(protocol.ClientFactory):
     def get_device_id(self):
         return self.device_id
 
-    def run(self):
+    def start(self):
+        log.debug('starting')
         if self.running:
             return
         self.running = True
         reactor.callLater(0, self.keep_connected)
+        log.info('started')
         return self
+
+    def stop(self):
+        log.debug('stopping')
+        self.connected = False
+        self.exiting = True
+        self.connector.disconnect()
+        log.info('stopped')
 
     def resolve_endpoint(self, endpoint):
         # TODO allow resolution via consul
@@ -79,24 +88,19 @@ class Agent(protocol.ClientFactory):
             log.debug('reconnect', after_delay=self.retry_interval)
             yield asleep(self.retry_interval)
 
-    def stop(self):
-        self.connected = False
-        self.exiting = True
-        self.connector.disconnect()
-        log.info('stopped')
-
     def enter_disconnected(self, event, reason):
         """Internally signal entering disconnected state"""
-        log.error(event, reason=reason)
         self.connected = False
-        self.d_disconnected.callback(None)
+        if not self.exiting:
+            log.error(event, reason=reason)
+            self.d_disconnected.callback(None)
 
     def enter_connected(self):
         """Handle transitioning from disconnected to connected state"""
         log.info('connected')
         self.connected = True
         self.read_buffer = None
-        reactor.callLater(0, self.proto_handler.run)
+        reactor.callLater(0, self.proto_handler.start)
 
     # protocol.ClientFactory methods
 
@@ -110,8 +114,9 @@ class Agent(protocol.ClientFactory):
         self.enter_disconnected('connection-failed', reason)
 
     def clientConnectionLost(self, connector, reason):
-        log.error('client-connection-lost',
-                  reason=reason, connector=connector)
+        if not self.exiting:
+            log.error('client-connection-lost',
+                      reason=reason, connector=connector)
 
     def forward_packet_in(self, ofp_packet_in):
         self.proto_handler.forward_packet_in(ofp_packet_in)
@@ -147,7 +152,7 @@ if __name__ == '__main__':
             return ports
 
     stub = MockRpc()
-    agents = [Agent('localhost:6633', 256 + i, stub).run() for i in range(n)]
+    agents = [Agent('localhost:6633', 256 + i, stub).start() for i in range(n)]
 
     def shutdown():
         [a.stop() for a in agents]

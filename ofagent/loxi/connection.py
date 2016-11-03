@@ -45,7 +45,7 @@ class Connection(Thread):
         self.finished = False
         self.read_buffer = None
 
-    def run(self):
+    def start(self):
         while not self.finished:
             try:
                 rd, wr, err = select.select([self.sock, self.wakeup_rd], [], [])

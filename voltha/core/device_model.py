@@ -22,11 +22,12 @@ import sys
 
 import structlog
 
+from voltha.protos import third_party
 from voltha.protos import voltha_pb2
 from voltha.protos import openflow_13_pb2 as ofp
 
 log = structlog.get_logger()
-
+_ = third_party
 
 def mac_str_to_tuple(mac):
     return tuple(int(d, 16) for d in mac.split(':'))
@@ -406,11 +407,12 @@ class DeviceModel(object):
         print threading.current_thread().name
         print 'PACKET_OUT:', ofp_packet_out
         # TODO for debug purposes, lets turn this around and send it back
-        # self.packet_in(ofp.ofp_packet_in(
-        #     buffer_id=ofp_packet_out.buffer_id,
-        #     reason=ofp.OFPR_NO_MATCH,
-        #     data=ofp_packet_out.data
-        # ))
+        if 0:
+            self.packet_in(ofp.ofp_packet_in(
+                buffer_id=ofp_packet_out.buffer_id,
+                reason=ofp.OFPR_NO_MATCH,
+                data=ofp_packet_out.data
+            ))
 
 
 

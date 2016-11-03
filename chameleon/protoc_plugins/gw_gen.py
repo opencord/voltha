@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 import sys
 
 from google.protobuf.compiler import plugin_pb2 as plugin
@@ -56,11 +57,22 @@ def add_routes(app, grpc_client):
         {% else %}
         riase NotImplementedError('cannot handle specific body field list')
         {% endif %}
-        req = dict_to_protobuf({{ method['input_type'] }}, data)
+        try:
+            req = dict_to_protobuf({{ method['input_type'] }}, data)
+        except Exception, e:
+            log.error('cannot-convert-to-protobuf', e=e, data=data)
+            raise
         res = grpc_client.invoke(
             {{ '.'.join([package, method['service']]) }}Stub,
             '{{ method['method'] }}', req)
-        out_data = protobuf_to_dict(res, use_enum_labels=True)
+        try:
+            out_data = protobuf_to_dict(res, use_enum_labels=True)
+        except AttributeError, e:
+            filename = '/tmp/chameleon_failed_to_convert_data.pbd'
+            with file(filename, 'w') as f:
+                f.write(res.SerializeToString())
+            log.error('cannot-convert-from-protobuf', outdata_saved=filename)
+            raise
         request.setHeader('Content-Type', 'application/json')
         log.debug('{{ method_name }}', **out_data)
         return dumps(out_data)

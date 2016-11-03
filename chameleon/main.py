@@ -224,9 +224,9 @@ class Main(object):
         self.grpc_client = yield \
             GrpcClient(args.consul, args.work_dir, args.grpc_endpoint)
         self.web_server = yield \
-            WebServer(args.rest_port, args.work_dir, self.grpc_client).run()
-        self.grpc_client.run(
-            on_reconnect=self.web_server.reload_generated_routes)
+            WebServer(args.rest_port, args.work_dir, self.grpc_client).start()
+        self.grpc_client.set_reconnect_callback(
+            self.web_server.reload_generated_routes).start()
         self.log.info('started-internal-services')
 
     @inlineCallbacks
@@ -234,9 +234,9 @@ class Main(object):
         """Execute before the reactor is shut down"""
         self.log.info('exiting-on-keyboard-interrupt')
         if self.rest_server is not None:
-            yield self.rest_server.shutdown()
+            yield self.rest_server.stop()
         if self.grpc_client is not None:
-            yield self.grpc_client.shutdown()
+            yield self.grpc_client.stop()
 
     def start_reactor(self):
         from twisted.internet import reactor

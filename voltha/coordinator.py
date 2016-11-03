@@ -28,6 +28,8 @@ from leader import Leader
 from common.utils.asleep import asleep
 from worker import Worker
 
+log = get_logger()
+
 
 class StaleMembershipEntryException(Exception):
     pass
@@ -48,11 +50,6 @@ class Coordinator(object):
 
     CONNECT_RETRY_INTERVAL_SEC = 1
     RETRY_BACKOFF = [0.05, 0.1, 0.2, 0.5, 1, 2, 5]
-    #LEADER_KEY = 'service/voltha/leader'
-
-    #MEMBERSHIP_PREFIX = 'service/voltha/members/'
-    #ASSIGNMENT_PREFIX = 'service/voltha/assignments/'
-    #WORKLOAD_PREFIX = 'service/voltha/work/'
 
     # Public methods:
 
@@ -62,15 +59,12 @@ class Coordinator(object):
                  instance_id,
                  rest_port,
                  config,
-                 consul='localhost:8500',
-                 leader_class=Leader):
+                 consul='localhost:8500'):
 
-        self.log = get_logger()
-        self.log.info('initializing-coordinator')
+        log.info('initializing-coordinator')
         self.config = config['coordinator']
         self.worker_config = config['worker']
         self.leader_config = config['leader']
-        #self.log.info('config: %r' % self.config)
         self.membership_watch_relatch_delay = config.get(
             'membership_watch_relatch_delay', 0.1)
         self.tracking_loop_delay = config.get(
@@ -106,19 +100,23 @@ class Coordinator(object):
         # TODO need to handle reconnect events properly
         self.consul = Consul(host=host, port=port)
 
-        reactor.callLater(0, self._async_init)
-        self.log.info('initialized-coordinator')
-
         self.wait_for_leader_deferreds = []
 
+    def start(self):
+        log.debug('starting')
+        reactor.callLater(0, self._async_init)
+        log.info('started')
+
     @inlineCallbacks
-    def shutdown(self):
+    def stop(self):
+        log.debug('stopping')
         self.shutting_down = True
         yield self._delete_session()  # this will delete the leader lock too
-        yield self.worker.halt()
+        yield self.worker.stop()
         if self.leader is not None:
             yield self.leader.halt()
             self.leader = None
+        log.info('stopped')
 
     def wait_for_a_leader(self):
         """
@@ -158,12 +156,12 @@ class Coordinator(object):
         wait_time = self.RETRY_BACKOFF[min(self.retries,
                                            len(self.RETRY_BACKOFF) - 1)]
         self.retries += 1
-        self.log.error(msg, retry_in=wait_time)
+        log.error(msg, retry_in=wait_time)
         return asleep(wait_time)
 
     def _clear_backoff(self):
         if self.retries:
-            self.log.info('reconnected-to-consul', after_retries=self.retries)
+            log.info('reconnected-to-consul', after_retries=self.retries)
             self.retries = 0
 
     @inlineCallbacks
@@ -174,9 +172,9 @@ class Coordinator(object):
             try:
                 result = yield self.consul.session.renew(
                     session_id=self.session_id)
-                self.log.debug('just renewed session', result=result)
+                log.debug('just renewed session', result=result)
             except Exception, e:
-                self.log.exception('could-not-renew-session', e=e)
+                log.exception('could-not-renew-session', e=e)
 
         @inlineCallbacks
         def _create_session():
@@ -184,7 +182,7 @@ class Coordinator(object):
             # create consul session
             self.session_id = yield self.consul.session.create(
                 behavior='delete', ttl=10, lock_delay=1)
-            self.log.info('created-consul-session', session_id=self.session_id)
+            log.info('created-consul-session', session_id=self.session_id)
 
             # start renewing session it 3 times within the ttl
             lc = LoopingCall(_renew_session)
@@ -217,14 +215,14 @@ class Coordinator(object):
                 (index, record) = yield self._retry(self.consul.kv.get,
                                                     self.membership_record_key,
                                                     index=index)
-                self.log.debug('membership-record-change-detected',
+                log.debug('membership-record-change-detected',
                                index=index, record=record)
                 if record is None or record['Session'] != self.session_id:
-                    self.log.debug('remaking-membership-record')
+                    log.debug('remaking-membership-record')
                     yield self._retry(self._do_create_membership_record)
 
         except Exception, e:
-            self.log.exception('unexpected-error-leader-trackin', e=e)
+            log.exception('unexpected-error-leader-trackin', e=e)
 
         finally:
             # except in shutdown, the loop must continue (after a short delay)
@@ -245,7 +243,7 @@ class Coordinator(object):
             # is then the value under the leader key service/voltha/leader.
 
             # attempt acquire leader lock
-            self.log.debug('leadership-attempt')
+            log.debug('leadership-attempt')
             result = yield self._retry(self.consul.kv.put,
                                        self.leader_prefix,
                                        self.instance_id,
@@ -258,7 +256,7 @@ class Coordinator(object):
             # the returned record can be None. Handle it.
             (index, record) = yield self._retry(self.consul.kv.get,
                                                 self.leader_prefix)
-            self.log.debug('leadership-key',
+            log.debug('leadership-key',
                            i_am_leader=result, index=index, record=record)
 
             if record is not None:
@@ -280,7 +278,7 @@ class Coordinator(object):
                 (index, updated) = yield self._retry(self.consul.kv.get,
                                                      self.leader_prefix,
                                                      index=index)
-                self.log.debug('leader-key-change',
+                log.debug('leader-key-change',
                                index=index, updated=updated)
                 if updated is None or updated != last:
                     # leadership has changed or vacated (or forcefully
@@ -289,7 +287,7 @@ class Coordinator(object):
                 last = updated
 
         except Exception, e:
-            self.log.exception('unexpected-error-leader-trackin', e=e)
+            log.exception('unexpected-error-leader-trackin', e=e)
 
         finally:
             # except in shutdown, the loop must continue (after a short delay)
@@ -324,16 +322,16 @@ class Coordinator(object):
             d.callback(leader_id)
 
     def _just_gained_leadership(self):
-        self.log.info('became-leader')
+        log.info('became-leader')
         self.leader = Leader(self)
         return self.leader.start()
 
     def _just_lost_leadership(self):
-        self.log.info('lost-leadership')
+        log.info('lost-leadership')
         return self._halt_leader()
 
     def _halt_leader(self):
-        d = self.leader.halt()
+        d = self.leader.stop()
         self.leader = None
         return d
 
@@ -352,7 +350,7 @@ class Coordinator(object):
                 yield self._backoff('stale-membership-record-in-the-way')
             except Exception, e:
                 if not self.shutting_down:
-                    self.log.exception(e)
+                    log.exception(e)
                 yield self._backoff('unknown-error')
 
         returnValue(result)

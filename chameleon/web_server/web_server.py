@@ -47,9 +47,20 @@ class WebServer(object):
         self.shutting_down = False
 
     @inlineCallbacks
-    def run(self):
+    def start(self):
+        log.debug('starting')
         yield self._open_endpoint()
+        log.info('started')
         returnValue(self)
+
+    @inlineCallbacks
+    def stop(self):
+        log.debug('stopping')
+        self.shutting_down = True
+        if self.tcp_port is not None:
+            assert isinstance(self.tcp_port, Port)
+            yield self.tcp_port.socket.close()
+        log.info('stopped')
 
     @inlineCallbacks
     def _open_endpoint(self):
@@ -58,13 +69,6 @@ class WebServer(object):
         self.tcp_port = yield endpoint.listen(self.site)
         log.info('web-server-started', port=self.port)
         self.endpoint = endpoint
-
-    @inlineCallbacks
-    def shutdown(self):
-        self.shutting_down = True
-        if self.tcp_port is not None:
-            assert isinstance(self.tcp_port, Port)
-            yield self.tcp_port.socket.close()
 
     def reload_generated_routes(self):
         for fname in os.listdir(self.work_dir):

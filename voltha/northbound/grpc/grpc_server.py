@@ -18,6 +18,7 @@
 import os
 import uuid
 from Queue import Queue
+from collections import OrderedDict
 from os.path import abspath, basename, dirname, join, walk
 import grpc
 from concurrent import futures
@@ -33,12 +34,13 @@ log = get_logger()
 
 class SchemaService(schema_pb2.SchemaServiceServicer):
 
-    def __init__(self):
-        proto_map, descriptor_map = self._load_schema()
-        self.schema = schema_pb2.Schema(
-            protos=proto_map,
-            descriptors=descriptor_map
-        )
+    def __init__(self, thread_pool):
+        self.thread_pool = thread_pool
+        protos = self._load_schema()
+        self.schemas = schema_pb2.Schemas(protos=protos)
+
+    def stop(self):
+        pass
 
     def _load_schema(self):
         """Pre-load schema file so that we can serve it up (file sizes
@@ -53,35 +55,38 @@ class SchemaService(schema_pb2.SchemaServiceServicer):
             ]
             return proto_files
 
-        proto_map = {}
-        for fpath in find_files(proto_dir, '.proto'):
-            with open(fpath, 'r') as f:
-                content = f.read()
-            fname = basename(fpath)
+        proto_map = OrderedDict()  # to have deterministic data
+        for proto_file in find_files(proto_dir, '.proto'):
+            with open(proto_file, 'r') as f:
+                proto_content = f.read()
+            fname = basename(proto_file)
             # assure no two files have the same basename
             assert fname not in proto_map
-            proto_map[fname] = content
 
-        descriptor_map = {}
-        for fpath in find_files(proto_dir, '.desc'):
-            with open(fpath, 'r') as f:
-                content = f.read()
-            fname = basename(fpath)
-            # assure no two files have the same basename
-            assert fname not in descriptor_map
-            descriptor_map[fname] = zlib.compress(content)
+            desc_file = proto_file.replace('.proto', '.desc')
+            with open(desc_file, 'r') as f:
+                descriptor_content = zlib.compress(f.read())
 
-        return proto_map, descriptor_map
+            proto_map[fname] = schema_pb2.ProtoFile(
+                file_name=fname,
+                proto=proto_content,
+                descriptor=descriptor_content
+            )
+
+        return proto_map.values()
 
     def GetSchema(self, request, context):
         """Return current schema files and descriptor"""
-        return self.schema
+        return self.schemas
 
 
 class HealthService(voltha_pb2.HealthServiceServicer):
 
     def __init__(self, thread_pool):
         self.thread_pool = thread_pool
+
+    def stop(self):
+        pass
 
     def GetHealthStatus(self, request, context):
         """Return current health status of a Voltha instance
@@ -106,6 +111,9 @@ class ExampleService(voltha_pb2.ExampleServiceServicer):
             state="CA"
         )) for id in (uuid.uuid5(uuid.NAMESPACE_OID, str(i)).get_hex()
                       for i in xrange(1000, 1005)))
+
+    def stop(self):
+        pass
 
     def GetAddress(self, request, context):
         log.info('get-address', request=request)
@@ -145,6 +153,11 @@ class VolthaLogicalLayer(voltha_pb2.VolthaLogicalLayerServicer):
         self.devices = [DeviceModel(self, 1)]
         self.devices_map = dict((d.info.id, d) for d in self.devices)
         self.packet_in_queue = Queue()
+
+        self.stopped = False
+
+    def stop(self):
+        self.stopped = True
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # Note that all GRPC method implementations are not called on the main
@@ -205,6 +218,8 @@ class VolthaLogicalLayer(voltha_pb2.VolthaLogicalLayerServicer):
         for request in request_iterator:
             forward_packet_out(packet_out=request)
 
+        return voltha_pb2.NullMessage()
+
     def ReceivePacketsIn(self, request, context):
         while 1:
             packet_in = self.packet_in_queue.get()
@@ -223,32 +238,44 @@ class VolthaGrpcServer(object):
         log.info('init-grpc-server', port=self.port)
         self.thread_pool = futures.ThreadPoolExecutor(max_workers=10)
         self.server = grpc.server(self.thread_pool)
+        self.services = []
 
-        schema_pb2.add_SchemaServiceServicer_to_server(
-            SchemaService(), self.server)
-        voltha_pb2.add_HealthServiceServicer_to_server(
-            HealthService(self.thread_pool), self.server)
-        voltha_pb2.add_ExampleServiceServicer_to_server(
-            ExampleService(self.thread_pool), self.server)
-        voltha_pb2.add_VolthaLogicalLayerServicer_to_server(
-            VolthaLogicalLayer(self.thread_pool), self.server)
+    def start(self):
+        log.debug('starting')
 
+        # add each service unit to the server and also to the list
+        for activator_func, service_class in (
+            (schema_pb2.add_SchemaServiceServicer_to_server, SchemaService),
+            (voltha_pb2.add_HealthServiceServicer_to_server, HealthService),
+            (voltha_pb2.add_ExampleServiceServicer_to_server, ExampleService),
+            (voltha_pb2.add_VolthaLogicalLayerServicer_to_server, VolthaLogicalLayer)
+        ):
+            service = service_class(self.thread_pool)
+            self.services.append(service)
+            activator_func(service, self.server)
+
+        # open port
         self.server.add_insecure_port('[::]:%s' % self.port)
 
-    def run(self):
-        log.info('starting-grpc-server')
+        # strat the server
         self.server.start()
+
+        log.info('started')
         return self
 
-    def shutdown(self, grace=0):
+    def stop(self, grace=0):
+        log.debug('stopping')
+        for service in self.services:
+            service.stop()
         self.server.stop(grace)
+        log.debug('stopped')
 
 
 # This is to allow running the GRPC server in stand-alone mode
 
 if __name__ == '__main__':
 
-    server = VolthaGrpcServer().run()
+    server = VolthaGrpcServer().start()
 
     import time
     _ONE_DAY_IN_SECONDS = 60 * 60 * 24
@@ -256,6 +283,6 @@ if __name__ == '__main__':
         while 1:
             time.sleep(_ONE_DAY_IN_SECONDS)
     except KeyboardInterrupt:
-        server.shutdown()
+        server.stop()
 
 

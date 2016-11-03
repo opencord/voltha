@@ -18,9 +18,11 @@ import re
 from structlog import get_logger
 from twisted.internet import reactor
 from twisted.internet.base import DelayedCall
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, returnValue
 
 from common.utils.asleep import asleep
+
+log = get_logger()
 
 
 class Worker(object):
@@ -31,8 +33,6 @@ class Worker(object):
     """
 
     ASSIGNMENT_EXTRACTOR = '^%s(?P<member_id>[^/]+)/(?P<work_id>[^/]+)$'
-
-    log = get_logger()
 
     # Public methods:
 
@@ -53,14 +53,17 @@ class Worker(object):
 
     @inlineCallbacks
     def start(self):
-        self.log.info('worker-started')
+        log.debug('starting')
         yield self._start_tracking_my_assignments()
+        log.info('started')
+        returnValue(self)
 
-    def halt(self):
-        self.log.info('worker-halted')
+    def stop(self):
+        log.debug('stopping')
         if isinstance(self.assignment_soak_timer, DelayedCall):
             if not self.assignment_soak_timer.called:
                 self.assignment_soak_timer.cancel()
+        log.info('stopped')
 
     # Private methods:
 
@@ -96,7 +99,7 @@ class Worker(object):
                 self._stash_and_restart_soak_timer(my_workload)
 
         except Exception, e:
-            self.log.exception('assignments-track-error', e=e)
+            log.exception('assignments-track-error', e=e)
             yield asleep(
                 self.coord.worker_config.get(
                     self.coord.worker_config[
@@ -109,7 +112,7 @@ class Worker(object):
 
     def _stash_and_restart_soak_timer(self, candidate_workload):
 
-        self.log.debug('re-start-assignment-soaking')
+        log.debug('re-start-assignment-soaking')
 
         if self.assignment_soak_timer is not None:
             if not self.assignment_soak_timer.called:
@@ -124,7 +127,7 @@ class Worker(object):
         Called when finally the dust has settled on our assignments.
         :return: None
         """
-        self.log.info('my-assignments-changed',
+        log.info('my-assignments-changed',
                       old_count=len(self.my_workload),
                       new_count=len(self.my_candidate_workload))
         self.my_workload, self.my_candidate_workload = \

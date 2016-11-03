@@ -24,6 +24,8 @@ from twisted.internet.defer import inlineCallbacks, DeferredList
 
 from common.utils.asleep import asleep
 
+log = get_logger()
+
 
 class Leader(object):
     """
@@ -35,8 +37,6 @@ class Leader(object):
 
     ID_EXTRACTOR = '^(%s)([^/]+)$'
     ASSIGNMENT_EXTRACTOR = '^%s(?P<member_id>[^/]+)/(?P<work_id>[^/]+)$'
-
-    log = get_logger()
 
     # Public methods:
 
@@ -61,19 +61,22 @@ class Leader(object):
 
     @inlineCallbacks
     def start(self):
-        self.log.info('leader-started')
+        log.debug('starting')
         yield self._validate_workload()
         yield self._start_tracking_assignments()
+        log.info('started')
 
-    def halt(self):
+    def stop(self):
         """Suspend leadership duties immediately"""
-        self.log.info('leader-halted')
+        log.debug('stopping')
         self.halted = True
 
         # any active cancellations, releases, etc., should happen here
         if isinstance(self.reassignment_soak_timer, DelayedCall):
             if not self.reassignment_soak_timer.called:
                 self.reassignment_soak_timer.cancel()
+
+        log.info('stopped')
 
     # Private methods:
 
@@ -114,14 +117,14 @@ class Leader(object):
             workload = [m.group(2) for m in matches if m is not None]
 
             if workload != self.workload:
-                self.log.info('workload-changed',
+                log.info('workload-changed',
                               old_workload_count=len(self.workload),
                               new_workload_count=len(workload))
                 self.workload = workload
                 self._restart_reassignment_soak_timer()
 
         except Exception, e:
-            self.log.exception('workload-track-error', e=e)
+            log.exception('workload-track-error', e=e)
             yield asleep(
                 self.coord.leader_config.get(
                     self.coord.leader_config[
@@ -143,14 +146,14 @@ class Leader(object):
             members = [m.group(2) for m in matches if m is not None]
 
             if members != self.members:
-                self.log.info('membership-changed',
+                log.info('membership-changed',
                               old_members_count=len(self.members),
                               new_members_count=len(members))
                 self.members = members
                 self._restart_reassignment_soak_timer()
 
         except Exception, e:
-            self.log.exception('members-track-error', e=e)
+            log.exception('members-track-error', e=e)
             yield asleep(
                 self.coord.leader_config.get(
                     self.coord.leader_config[
@@ -174,7 +177,7 @@ class Leader(object):
     @inlineCallbacks
     def _reassign_work(self):
 
-        self.log.info('reassign-work')
+        log.info('reassign-work')
 
         # Plan
         #
@@ -207,7 +210,7 @@ class Leader(object):
                 for work in self.workload
             ]
             for (member, work) in sorted(wanted_assignments.iteritems()):
-                self.log.info('assignment',
+                log.info('assignment',
                               member=member, work_count=len(work))
 
             # Step 2: discover current assignment (from consul)
@@ -254,5 +257,5 @@ class Leader(object):
                         + member_id + '/' + work_id, '')
 
         except Exception, e:
-            self.log.exception('failed-reassignment', e=e)
+            log.exception('failed-reassignment', e=e)
             self._restart_reassignment_soak_timer()  # try again in a while

@@ -4,14 +4,18 @@ package schema;
 
 import "google/api/annotations.proto";
 
-// Proto file and compiled descriptor for this interface
-message Schema {
+// Contains the name and content of a *.proto file
+message ProtoFile {
+    string file_name = 1;  // name of proto file
+    string proto = 2;  // content of proto file
+    bytes descriptor = 3;  // compiled descriptor for proto (zlib compressed)
+}
 
-  // file name -> proto file content
-  map<string, string> protos = 1;
+// Proto files and compiled descriptors for this interface
+message Schemas {
 
-  // file name -> gzip compressed protobuf of descriptor
-  map<string, bytes> descriptors = 2;
+    // Proto files
+    repeated ProtoFile protos = 1;
 
 }
 
@@ -21,10 +25,11 @@ message NullMessage {}
 // Schema services
 service SchemaService {
 
-  // Return active grpc schemas
-  rpc GetSchema(NullMessage) returns (Schema) {
-    option (google.api.http) = {
-      get: "/schema"
-    };
-  }
+    // Return active grpc schemas
+    rpc GetSchema(NullMessage) returns (Schemas) {
+        option (google.api.http) = {
+            get: "/schema"
+        };
+    }
+
 }

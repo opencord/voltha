@@ -23,13 +23,14 @@ from common.utils.asleep import asleep
 from common.utils.consulhelpers import get_endpoint_from_consul
 from structlog import get_logger
 import grpc
+from ofagent.protos import third_party
 from protos import voltha_pb2
 from grpc_client import GrpcClient
 
 from agent import Agent
 
 log = get_logger()
-
+_ = third_party
 
 class ConnectionManager(object):
 
@@ -52,12 +53,12 @@ class ConnectionManager(object):
 
         self.running = False
 
-    def run(self):
+    def start(self):
 
         if self.running:
             return
 
-        log.info('run-connection-manager')
+        log.debug('starting')
 
         self.running = True
 
@@ -65,19 +66,24 @@ class ConnectionManager(object):
         self.channel = self.get_grpc_channel_with_voltha()
 
         # Create shared gRPC API object
-        self.grpc_client = GrpcClient(self, self.channel)
+        self.grpc_client = GrpcClient(self, self.channel).start()
 
         # Start monitoring logical devices and manage agents accordingly
         reactor.callLater(0, self.monitor_logical_devices)
 
+        log.info('started')
+
         return self
 
-    def shutdown(self):
+    def stop(self):
+        log.debug('stopping')
         # clean up all controller connections
-        for _, value in enumerate(self.agent_map):
-            value.stop()
+        for agent in self.agent_map.itervalues():
+            agent.stop()
         self.running = False
-        # TODO: close grpc connection to voltha
+        self.grpc_client.stop()
+        del self.channel
+        log.info('stopped')
 
     def resolve_endpoint(self, endpoint):
         ip_port_endpoint = endpoint
@@ -170,7 +176,7 @@ class ConnectionManager(object):
         device_id = device.id
         agent = Agent(self.controller_endpoint, datapath_id,
                       device_id, self.grpc_client)
-        agent.run()
+        agent.start()
         self.agent_map[datapath_id] = agent
         self.device_id_to_datapath_id_map[device_id] = datapath_id
 

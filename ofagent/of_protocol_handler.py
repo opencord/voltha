@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 import structlog
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, returnValue
 
 import loxi.of13 as ofp
 from converter import to_loxi, pb2dict, to_grpc
@@ -44,8 +44,10 @@ class OpenFlowProtocolHandler(object):
         self.rpc = rpc
 
     @inlineCallbacks
-    def run(self):
+    def start(self):
         """A new call is made after a fresh reconnect"""
+
+        log.debug('starting')
 
         try:
             # send initial hello message
@@ -66,6 +68,14 @@ class OpenFlowProtocolHandler(object):
 
         except Exception, e:
             log.exception('exception', e=e)
+
+        log.info('started')
+        returnValue(self)
+
+    def stop(self):
+        log.debug('stopping')
+        pass  # nothing to do yet
+        log.info('stopped')
 
     def handle_echo_request(self, req):
         self.cxn.send(ofp.message.echo_reply(xid=req.xid))

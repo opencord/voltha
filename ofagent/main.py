@@ -16,13 +16,9 @@
 #
 import argparse
 import os
-import sys
 import yaml
+from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
-
-base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(base_dir)
-sys.path.append(os.path.join(base_dir, '/ofagent/protos/third_party'))
 
 from common.utils.dockerhelpers import get_my_containers_name
 from common.utils.nethelpers import get_my_primary_local_ipv4
@@ -216,7 +212,7 @@ class Main(object):
         self.log.info('starting-internal-components')
         args = self.args
         self.connection_manager = yield ConnectionManager(
-            args.consul, args.grpc_endpoint, args.controller).run()
+            args.consul, args.grpc_endpoint, args.controller).start()
         self.log.info('started-internal-services')
 
     @inlineCallbacks
@@ -225,10 +221,9 @@ class Main(object):
         self.log.info('exiting-on-keyboard-interrupt')
         self.exiting = True
         if self.connection_manager is not None:
-            yield self.connection_manager.shutdown()
+            yield self.connection_manager.stop()
 
     def start_reactor(self):
-        from twisted.internet import reactor
         reactor.callWhenRunning(
             lambda: self.log.info('twisted-reactor-started'))
 

@@ -25,10 +25,6 @@ import time
 import yaml
 from twisted.internet.defer import inlineCallbacks
 
-base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(base_dir)
-sys.path.append(os.path.join(base_dir, '/voltha/protos/third_party'))
-
 from voltha.coordinator import Coordinator
 from common.utils.dockerhelpers import get_my_containers_name
 from common.utils.nethelpers import get_my_primary_interface, \
@@ -243,10 +239,10 @@ class Main(object):
             rest_port=self.args.rest_port,
             instance_id=self.args.instance_id,
             config=self.config,
-            consul=self.args.consul)
+            consul=self.args.consul).start()
         init_rest_service(self.args.rest_port)
 
-        self.grpc_server = VolthaGrpcServer(self.args.grpc_port).run()
+        self.grpc_server = VolthaGrpcServer(self.args.grpc_port).start()
 
         # initialize kafka proxy singleton
         self.kafka_proxy = KafkaProxy(self.args.consul, self.args.kafka)
@@ -258,9 +254,9 @@ class Main(object):
         """Execute before the reactor is shut down"""
         self.log.info('exiting-on-keyboard-interrupt')
         if self.coordinator is not None:
-            yield self.coordinator.shutdown()
+            yield self.coordinator.stop()
         if self.grpc_server is not None:
-            yield self.grpc_server.shutdown()
+            yield self.grpc_server.stop()
 
     def start_reactor(self):
         from twisted.internet import reactor

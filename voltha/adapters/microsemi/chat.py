@@ -628,7 +628,7 @@ class Receiver(Thread):
         self.iface = iface
         self.finished = False
 
-    def run(self):
+    def start(self):
         self.sock = s = conf.L2listen( type=ETH_P_ALL, iface=self.iface, filter='inbound')
         while not self.finished:
             try:

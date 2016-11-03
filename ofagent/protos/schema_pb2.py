@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='schema.proto',
   package='schema',
   syntax='proto3',
-  serialized_pb=_b('\n\x0cschema.proto\x12\x06schema\x1a\x1cgoogle/api/annotations.proto\"\xcd\x01\n\x06Schema\x12*\n\x06protos\x18\x01 \x03(\x0b\x32\x1a.schema.Schema.ProtosEntry\x12\x34\n\x0b\x64\x65scriptors\x18\x02 \x03(\x0b\x32\x1f.schema.Schema.DescriptorsEntry\x1a-\n\x0bProtosEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a\x32\n\x10\x44\x65scriptorsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x0c:\x02\x38\x01\"\r\n\x0bNullMessage2R\n\rSchemaService\x12\x41\n\tGetSchema\x12\x13.schema.NullMessage\x1a\x0e.schema.Schema\"\x0f\x82\xd3\xe4\x93\x02\t\x12\x07/schemab\x06proto3')
+  serialized_pb=_b('\n\x0cschema.proto\x12\x06schema\x1a\x1cgoogle/api/annotations.proto\"A\n\tProtoFile\x12\x11\n\tfile_name\x18\x01 \x01(\t\x12\r\n\x05proto\x18\x02 \x01(\t\x12\x12\n\ndescriptor\x18\x03 \x01(\x0c\",\n\x07Schemas\x12!\n\x06protos\x18\x01 \x03(\x0b\x32\x11.schema.ProtoFile\"\r\n\x0bNullMessage2S\n\rSchemaService\x12\x42\n\tGetSchema\x12\x13.schema.NullMessage\x1a\x0f.schema.Schemas\"\x0f\x82\xd3\xe4\x93\x02\t\x12\x07/schemab\x06proto3')
   ,
   dependencies=[google_dot_api_dot_annotations__pb2.DESCRIPTOR,])
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
@@ -28,60 +28,30 @@ _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 
 
-_SCHEMA_PROTOSENTRY = _descriptor.Descriptor(
-  name='ProtosEntry',
-  full_name='schema.Schema.ProtosEntry',
+_PROTOFILE = _descriptor.Descriptor(
+  name='ProtoFile',
+  full_name='schema.ProtoFile',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='key', full_name='schema.Schema.ProtosEntry.key', index=0,
+      name='file_name', full_name='schema.ProtoFile.file_name', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='value', full_name='schema.Schema.ProtosEntry.value', index=1,
+      name='proto', full_name='schema.ProtoFile.proto', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=_descriptor._ParseOptions(descriptor_pb2.MessageOptions(), _b('8\001')),
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=163,
-  serialized_end=208,
-)
-
-_SCHEMA_DESCRIPTORSENTRY = _descriptor.Descriptor(
-  name='DescriptorsEntry',
-  full_name='schema.Schema.DescriptorsEntry',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
     _descriptor.FieldDescriptor(
-      name='key', full_name='schema.Schema.DescriptorsEntry.key', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='value', full_name='schema.Schema.DescriptorsEntry.value', index=1,
-      number=2, type=12, cpp_type=9, label=1,
+      name='descriptor', full_name='schema.ProtoFile.descriptor', index=2,
+      number=3, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -92,33 +62,27 @@ _SCHEMA_DESCRIPTORSENTRY = _descriptor.Descriptor(
   nested_types=[],
   enum_types=[
   ],
-  options=_descriptor._ParseOptions(descriptor_pb2.MessageOptions(), _b('8\001')),
+  options=None,
   is_extendable=False,
   syntax='proto3',
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=210,
-  serialized_end=260,
+  serialized_start=54,
+  serialized_end=119,
 )
 
-_SCHEMA = _descriptor.Descriptor(
-  name='Schema',
-  full_name='schema.Schema',
+
+_SCHEMAS = _descriptor.Descriptor(
+  name='Schemas',
+  full_name='schema.Schemas',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='protos', full_name='schema.Schema.protos', index=0,
+      name='protos', full_name='schema.Schemas.protos', index=0,
       number=1, type=11, cpp_type=10, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='descriptors', full_name='schema.Schema.descriptors', index=1,
-      number=2, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -126,7 +90,7 @@ _SCHEMA = _descriptor.Descriptor(
   ],
   extensions=[
   ],
-  nested_types=[_SCHEMA_PROTOSENTRY, _SCHEMA_DESCRIPTORSENTRY, ],
+  nested_types=[],
   enum_types=[
   ],
   options=None,
@@ -135,8 +99,8 @@ _SCHEMA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=55,
-  serialized_end=260,
+  serialized_start=121,
+  serialized_end=165,
 )
 
 
@@ -159,39 +123,28 @@ _NULLMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=262,
-  serialized_end=275,
+  serialized_start=167,
+  serialized_end=180,
 )
 
-_SCHEMA_PROTOSENTRY.containing_type = _SCHEMA
-_SCHEMA_DESCRIPTORSENTRY.containing_type = _SCHEMA
-_SCHEMA.fields_by_name['protos'].message_type = _SCHEMA_PROTOSENTRY
-_SCHEMA.fields_by_name['descriptors'].message_type = _SCHEMA_DESCRIPTORSENTRY
-DESCRIPTOR.message_types_by_name['Schema'] = _SCHEMA
+_SCHEMAS.fields_by_name['protos'].message_type = _PROTOFILE
+DESCRIPTOR.message_types_by_name['ProtoFile'] = _PROTOFILE
+DESCRIPTOR.message_types_by_name['Schemas'] = _SCHEMAS
 DESCRIPTOR.message_types_by_name['NullMessage'] = _NULLMESSAGE
 
-Schema = _reflection.GeneratedProtocolMessageType('Schema', (_message.Message,), dict(
-
-  ProtosEntry = _reflection.GeneratedProtocolMessageType('ProtosEntry', (_message.Message,), dict(
-    DESCRIPTOR = _SCHEMA_PROTOSENTRY,
-    __module__ = 'schema_pb2'
-    # @@protoc_insertion_point(class_scope:schema.Schema.ProtosEntry)
-    ))
-  ,
-
-  DescriptorsEntry = _reflection.GeneratedProtocolMessageType('DescriptorsEntry', (_message.Message,), dict(
-    DESCRIPTOR = _SCHEMA_DESCRIPTORSENTRY,
-    __module__ = 'schema_pb2'
-    # @@protoc_insertion_point(class_scope:schema.Schema.DescriptorsEntry)
-    ))
-  ,
-  DESCRIPTOR = _SCHEMA,
+ProtoFile = _reflection.GeneratedProtocolMessageType('ProtoFile', (_message.Message,), dict(
+  DESCRIPTOR = _PROTOFILE,
   __module__ = 'schema_pb2'
-  # @@protoc_insertion_point(class_scope:schema.Schema)
+  # @@protoc_insertion_point(class_scope:schema.ProtoFile)
   ))
-_sym_db.RegisterMessage(Schema)
-_sym_db.RegisterMessage(Schema.ProtosEntry)
-_sym_db.RegisterMessage(Schema.DescriptorsEntry)
+_sym_db.RegisterMessage(ProtoFile)
+
+Schemas = _reflection.GeneratedProtocolMessageType('Schemas', (_message.Message,), dict(
+  DESCRIPTOR = _SCHEMAS,
+  __module__ = 'schema_pb2'
+  # @@protoc_insertion_point(class_scope:schema.Schemas)
+  ))
+_sym_db.RegisterMessage(Schemas)
 
 NullMessage = _reflection.GeneratedProtocolMessageType('NullMessage', (_message.Message,), dict(
   DESCRIPTOR = _NULLMESSAGE,
@@ -201,10 +154,6 @@ NullMessage = _reflection.GeneratedProtocolMessageType('NullMessage', (_message.
 _sym_db.RegisterMessage(NullMessage)
 
 
-_SCHEMA_PROTOSENTRY.has_options = True
-_SCHEMA_PROTOSENTRY._options = _descriptor._ParseOptions(descriptor_pb2.MessageOptions(), _b('8\001'))
-_SCHEMA_DESCRIPTORSENTRY.has_options = True
-_SCHEMA_DESCRIPTORSENTRY._options = _descriptor._ParseOptions(descriptor_pb2.MessageOptions(), _b('8\001'))
 import grpc
 from grpc.beta import implementations as beta_implementations
 from grpc.beta import interfaces as beta_interfaces
@@ -225,7 +174,7 @@ class SchemaServiceStub(object):
     self.GetSchema = channel.unary_unary(
         '/schema.SchemaService/GetSchema',
         request_serializer=NullMessage.SerializeToString,
-        response_deserializer=Schema.FromString,
+        response_deserializer=Schemas.FromString,
         )
 
 
@@ -246,7 +195,7 @@ def add_SchemaServiceServicer_to_server(servicer, server):
       'GetSchema': grpc.unary_unary_rpc_method_handler(
           servicer.GetSchema,
           request_deserializer=NullMessage.FromString,
-          response_serializer=Schema.SerializeToString,
+          response_serializer=Schemas.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(
@@ -278,7 +227,7 @@ def beta_create_SchemaService_server(servicer, pool=None, pool_size=None, defaul
     ('schema.SchemaService', 'GetSchema'): NullMessage.FromString,
   }
   response_serializers = {
-    ('schema.SchemaService', 'GetSchema'): Schema.SerializeToString,
+    ('schema.SchemaService', 'GetSchema'): Schemas.SerializeToString,
   }
   method_implementations = {
     ('schema.SchemaService', 'GetSchema'): face_utilities.unary_unary_inline(servicer.GetSchema),
@@ -292,7 +241,7 @@ def beta_create_SchemaService_stub(channel, host=None, metadata_transformer=None
     ('schema.SchemaService', 'GetSchema'): NullMessage.SerializeToString,
   }
   response_deserializers = {
-    ('schema.SchemaService', 'GetSchema'): Schema.FromString,
+    ('schema.SchemaService', 'GetSchema'): Schemas.FromString,
   }
   cardinalities = {
     'GetSchema': cardinality.Cardinality.UNARY_UNARY,
