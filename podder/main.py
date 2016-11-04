@@ -17,11 +17,13 @@
 
 import argparse
 import os
-from consul_mgr import ConsulManager
-from twisted.internet.defer import inlineCallbacks
-from common.utils.nethelpers import get_my_primary_local_ipv4
-from common.utils.structlog_setup import setup_logging
+
 import yaml
+from twisted.internet.defer import inlineCallbacks
+
+from common.structlog_setup import setup_logging
+from common.utils.nethelpers import get_my_primary_local_ipv4
+from consul_mgr import ConsulManager
 
 defs = dict(
     config=os.environ.get('CONFIG', './podder.yml'),

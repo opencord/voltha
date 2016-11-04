@@ -20,7 +20,7 @@ from mock import call
 from twisted.internet.defer import DeferredQueue, inlineCallbacks
 from twisted.trial.unittest import TestCase
 
-from voltha.core.event_bus import EventBusClient, EventBus
+from common.event_bus import EventBusClient, EventBus
 
 
 class TestEventBus(TestCase):

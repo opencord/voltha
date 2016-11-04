@@ -19,20 +19,19 @@
 
 import argparse
 import os
-import sys
 import time
 
 import yaml
 from twisted.internet.defer import inlineCallbacks
 
-from voltha.coordinator import Coordinator
+from common.structlog_setup import setup_logging
 from common.utils.dockerhelpers import get_my_containers_name
 from common.utils.nethelpers import get_my_primary_interface, \
     get_my_primary_local_ipv4
+from voltha.coordinator import Coordinator
 from voltha.northbound.grpc.grpc_server import VolthaGrpcServer
-from voltha.northbound.rest.health_check import init_rest_service
-from common.utils.structlog_setup import setup_logging
 from voltha.northbound.kafka.kafka_proxy import KafkaProxy, get_kafka_proxy
+from voltha.northbound.rest.health_check import init_rest_service
 
 defs = dict(
     config=os.environ.get('CONFIG', './voltha.yml'),
