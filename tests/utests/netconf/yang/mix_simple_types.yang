@@ -1,0 +1,91 @@
+module mix-simple-types {
+    yang-version "1";
+    namespace "http://rob.sh/yang/test/base-test";
+    prefix "foo";
+    organization "BugReports Inc";
+    contact "A bug reporter";
+
+    description
+        "A test module that checks that the plugin works OK";
+    revision 2014-01-01 {
+        description "april-fools";
+        reference "fooled-you";
+    }
+
+    container int-container {
+        description
+            "A container";
+        choice name {
+             case me {
+                    leaf eight {
+                        type int8;
+                        description
+                        "A test leaf for uint8";
+                    }
+             }
+             case myself {
+                     leaf nine {
+                       type int16;
+                       description "i am nine";
+                    }
+             }
+        }
+        leaf ten {
+             type int16;
+             description "i am ten";
+        }
+    }
+
+    list user {
+       key "name";
+       leaf name {
+         type string;
+       }
+       leaf full-name {
+         type string;
+       }
+       leaf class {
+         type string;
+       }
+     }
+
+    container container1 {
+        description
+            "A container";
+        choice name {
+             case acase {
+                    leaf a {
+                        type boolean;
+                        description
+                        "A test leaf for uint8";
+                    }
+             }
+             case bcase {
+                     leaf b {
+                       type binary;
+                       description "i am nine";
+                    }
+             }
+        }
+        leaf mleaf {
+             type string;
+             description "i am string";
+        }
+        leaf-list mleaf_list {
+             type string;
+             description "i am repeated string";
+        }
+        container inner-container {
+            description
+                "A container";
+            leaf mleaf1 {
+                 type string;
+                 description "i am leaf1";
+            }
+            leaf mleaf2 {
+                 type string;
+                 description "i am leaf2";
+            }
+        }
+    }
+}

@@ -1,0 +1,120 @@
+module xos-core-service {
+  namespace "urn:xos:core:service";
+  prefix xos-cs;
+
+  import complex-types { prefix ct; }
+
+  revision 2015-10-01 {
+    description "Initial revision.";
+  }
+
+  grouping service-attribute {
+    leaf name { type string { length 128; } }
+    leaf value { type string { length 1024; } }
+    leaf service {
+      type instance-identifier { ct:instance-type Service; require-instance true; }
+    }
+  }
+
+  grouping service-role {
+    leaf role {
+      type enumeration {
+        enum "admin";
+        //enum "Admin";
+      }
+    }
+  }
+
+  grouping common-model-attr {
+    leaf kind {
+      type string { length 30; }
+      default "generic";
+    }
+    leaf name { type string { length 255; } }
+  }
+
+  ct:complex-type ServiceElement {
+    ct:abstract true;
+    leaf enabled { type boolean; default true; }
+  }
+  
+  ct:complex-type Service {
+    ct:extends ServiceElement;
+    
+    leaf description {
+      type string { length 255; }
+      description "Description of Service";
+    }
+    leaf published { type boolean; default true; }
+
+    uses common-model-attr {
+      refine kind {
+        description "Kind of Service";
+      }
+      refine name {
+        description "Service Name";
+      }
+    }
+  }
+
+  ct:complex-type User {
+    ct:extends ServiceElement;
+    // TBD - should go to a separate xos-core-user module or such
+  }
+  
+  ct:complex-type ServicePrivilege {
+    key "user-service-role";
+    
+    leaf user {
+      type instance-identifier { ct:instance-type User; require-instance true; }
+    }
+    leaf service {
+      type instance-identifier { ct:instance-type Service; }
+    }
+    uses service-role;
+  }
+
+  ct:complex-type TenantRoot {
+    ct:extends ServiceElement;
+    
+    description
+      "A tenantRoot is one of the things that can sit at the root of a chain
+        of tenancy. This object represents a node.";
+    uses common-model-attr;
+  }
+
+  ct:complex-type ContainerImage {
+    // TBD
+  }
+  
+  ct:complex-type Tenancy {
+    ct:extends ServiceElement;
+    
+    description
+      "A Tenancy describes relationship between a subscriber and a provider";
+    
+    uses common-model-attr;
+
+    leaf provider { type instance-identifer { ct:instance-type Service; } }
+    leaf subscriber {
+      type instance-identifier {
+        ct:instance-type ServiceElement;
+      }
+    }
+
+    // adding stuff from TenantWithContainer here...
+    leaf creator { type instance-identifier { ct:instance-type User; } }
+    leaf image { type instance-identifier { ct:instance-type ContainerImage; } }
+  }
+
+  ct:complex-type Subscriber {
+    ct:extends TenantRoot;
+    refine kind { default "Subscriber"; }
+  }
+
+  ct:complex-type Provider {
+    ct:extends TenantRoot;
+    refine kind { default "Provider"; }
+  }
+  
+}

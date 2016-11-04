@@ -1,0 +1,17 @@
+module basic {
+    namespace "urn:acme:yang:basic";
+    prefix "basic";
+
+    grouping commonAttributes {
+        leaf my-id {
+            type uint8;
+        }
+        leaf my-name {
+            type string;
+        }
+        leaf my-status {
+            type boolean;
+            config false;
+        }
+    }
+}

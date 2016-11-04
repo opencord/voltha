@@ -1,0 +1,34 @@
+module container {
+    yang-version "1";
+    namespace "http://rob.sh/yang/test/base-test";
+    prefix "foo";
+    organization "BugReports Inc";
+    contact "A bug reporter";
+
+    description
+        "A test module that checks that the plugin works OK";
+    revision 2014-01-01 {
+        description "april-fools";
+        reference "fooled-you";
+    }
+
+    container int-container {
+        description
+            "A container";
+        choice name {
+             case me {
+                    leaf eight {
+                        type int8;
+                        description
+                        "A test leaf for uint8";
+                    }
+             }
+             case myself {
+                     leaf nine {
+                       type int16;
+                       description "i am nine";
+                    }
+             }
+        }
+    }
+}

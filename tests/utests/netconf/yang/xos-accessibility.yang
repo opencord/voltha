@@ -1,0 +1,462 @@
+module xos-unreconciled-models {
+  namespace "urn:ietf:params:xml:ns:yang:xos-incomplete";
+  prefix xacc;
+  yang-version 1.1;
+
+  import ietf-yang-types { prefix yang; }
+  import ietf-inet-types { prefix inet; }
+  import xos-types       { prefix xtype; }
+
+  organization
+    "Open Networking Lab (XOS) / Corenova Technologies";
+
+  contact
+    "Larry Peterson <llp@onlab.us>
+     Peter K. Lee <peter@corenova.com>";
+  
+  description
+    "This module contains a collection of core models for XOS.
+
+    Copyright (c) 2016 ON.LAB and the persons identified as authors of
+    the code.  All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, is permitted pursuant to, and subject to the license
+    terms of the Apache License, Version 2.0 which accompanies this
+    distribution, and is available at
+    (http://www.apache.org/licenses/LICENSE-2.0).";
+  
+  revision 2016-09-13 {
+    description "Initial revision.";
+  }
+
+  /* Future Consideration
+  typedef image {
+    type unique-identifier;
+  }
+  typedef controller-network {
+    type unique-identifier;
+  }
+  typedef site {
+    type unique-identifier;
+  }
+  typedef tenant-root-role {
+    type unique-identifier;
+  }
+  typedef slice-role {
+    type unique-identifier;
+  }
+  typedef site-deployment {
+    type unique-identifier;
+  }
+  typedef tenant-privilege {
+    type unique-identifier;
+  }
+  typedef tag {
+    type unique-identifier;
+  }
+  typedef user-credential {
+    type unique-identifier;
+  }
+  typedef invoice {
+    type unique-identifier;
+  }
+  typedef slice-privilege {
+    type unique-identifier;
+  }
+  typedef flavor {
+    type unique-identifier;
+  }
+  typedef port {
+    type unique-identifier;
+  }
+  typedef service-role {
+    type unique-identifier;
+  }
+  typedef controller-site {
+    type unique-identifier;
+  }
+  typedef controller-slice {
+    type unique-identifier;
+  }
+  typedef tenant-role {
+    type unique-identifier;
+  }
+  typedef slice {
+    type unique-identifier;
+  }
+  typedef network {
+    type unique-identifier;
+  }
+  typedef controller-role {
+    type unique-identifier;
+  }
+  typedef diag {
+    type unique-identifier;
+  }
+  typedef service-class {
+    type unique-identifier;
+  }
+  typedef tenant-attribute {
+    type unique-identifier;
+  }
+  typedef site-role {
+    type unique-identifier;
+  }
+  typedef subscriber {
+    type unique-identifier;
+  }
+  typedef instance {
+    type unique-identifier;
+  }
+  typedef charge {
+    type unique-identifier;
+  }
+  typedef program {
+    type unique-identifier;
+  }
+  typedef role {
+    type unique-identifier;
+  }
+  typedef usable-object {
+    type unique-identifier;
+  }
+  typedef node-label {
+    type unique-identifier;
+  }
+  typedef slice-credential {
+    type unique-identifier;
+  }
+  typedef node {
+    type unique-identifier;
+  }
+  typedef address-pool {
+    type unique-identifier;
+  }
+  typedef dashboard-view {
+    type unique-identifier;
+  }
+  typedef network-parameter {
+    type unique-identifier;
+  }
+  typedef image-deployments {
+    type unique-identifier;
+  }
+  typedef controller-user {
+    type unique-identifier;
+  }
+  typedef reserved-resource {
+    type unique-identifier;
+  }
+  typedef network-template {
+    type unique-identifier;
+  }
+  typedef controller-dashboard-view {
+    type unique-identifier;
+  }
+  typedef user-dashboard-view {
+    type unique-identifier;
+  }
+  typedef controller {
+    type unique-identifier;
+  }
+  typedef user {
+    type unique-identifier;
+  }
+  typedef deployment {
+    type unique-identifier;
+  }
+  typedef reservation {
+    type unique-identifier;
+  }
+  typedef site-privilege {
+    type unique-identifier;
+  }
+  typedef payment {
+    type unique-identifier;
+  }
+  typedef tenant {
+    type unique-identifier;
+  }
+  typedef network-slice {
+    type unique-identifier;
+  }
+  typedef account {
+    type unique-identifier;
+  }
+  typedef tenant-root {
+    type unique-identifier;
+  }
+  typedef service {
+    type unique-identifier;
+  }
+  typedef controller-slice-privilege {
+    type unique-identifier;
+  }
+  typedef site-credential {
+    type unique-identifier;
+  }
+  typedef deployment-privilege {
+    type unique-identifier;
+  }
+  typedef network-parameter-type {
+    type unique-identifier;
+  }
+  typedef provider {
+    type unique-identifier;
+  }
+  typedef tenant-with-container {
+    type unique-identifier;
+  }
+  typedef deployment-role {
+    type unique-identifier;
+  }
+  typedef project {
+    type unique-identifier;
+  }
+  typedef tenant-root-privilege {
+    type unique-identifier;
+  }
+  typedef slice-tag {
+    type unique-identifier;
+  }
+  typedef coarse-tenant {
+    type unique-identifier;
+  }
+  typedef router {
+    type unique-identifier;
+  }
+  typedef service-resource {
+    type unique-identifier;
+  }
+  typedef service-privilege {
+    type unique-identifier;
+  }
+  */
+  grouping service-class {
+    uses xos-base;
+    
+    leaf description { 
+      type string;
+    }
+    leaf commitment { 
+      type uint32;
+    }
+    leaf membership-fee { 
+      type uint32;
+    }
+    leaf membership-fee-months { 
+      type uint32;
+    }
+    leaf upgrade-requires-approval { 
+      type boolean;
+    }
+  }
+  grouping invoice {
+    uses xos-base;
+    leaf date { 
+      type xtype:datetime;
+    }
+    leaf account { 
+      type xtype:account; 
+    }
+  }
+
+  grouping charge {
+    uses xos-base;
+    leaf account { 
+      type xtype:account; 
+    }
+    leaf slice { 
+      type xtype:slice; 
+    }
+    leaf kind { 
+      type string;
+    }
+    leaf state { 
+      type string;
+    }
+    leaf date { 
+      type xtype:datetime;
+    }
+    leaf object { 
+      type xtype:object; 
+    }
+    leaf amount { 
+      type decimal64;
+    }
+    leaf core-hours { 
+      type decimal64;
+    }
+    leaf invoice { 
+      type xtype:invoice; 
+    }
+  }
+
+  grouping role {
+    uses xos-base;
+    leaf role-type { 
+      type string;
+    }
+    leaf role { 
+      type string;
+    }
+    leaf description { 
+      type string;
+    }
+    leaf content-type { 
+      type xtype:content-type; 
+    }
+  }
+
+  grouping dashboard-view {
+    uses xos-base;
+    leaf url { 
+      type string;
+    }
+    leaf enabled { 
+      type boolean;
+    }
+  }
+
+  grouping controller-dashboard-view {
+    uses xos-base;
+    leaf controller { 
+      type xtype:controller; 
+    }
+    leaf dashboardView { 
+      type xtype:dashboardView; 
+    }
+    leaf enabled { 
+      type boolean;
+    }
+    leaf url { 
+      type string;
+    }
+  }
+
+  grouping user-dashboard-view {
+    uses xos-base;
+    leaf user { 
+      type xtype:user; 
+    }
+    leaf dashboardView { 
+      type xtype:dashboardView; 
+    }
+    leaf order { 
+      type uint32;
+    }
+  }
+  grouping service-privilege {
+    uses xos-base;
+    leaf user { 
+      type xtype:user; 
+    }
+    leaf service { 
+      type xtype:service; 
+    }
+    leaf role { 
+      type xtype:role; 
+    }
+  }
+
+  grouping payment {
+    uses xos-base;
+    leaf account { 
+      type xtype:account; 
+    }
+    leaf amount { 
+      type decimal64;
+    }
+    leaf date { 
+      type xtype:datetime;
+    }
+  }
+  
+  grouping account {
+    uses xos-base;
+    leaf site { 
+      type xtype:site; 
+    }
+  }
+
+  grouping service-resource {
+    uses xos-base;
+    leaf service-class { 
+      type xtype:service-class; 
+    }
+    
+    leaf max-units-deployment { 
+      type uint32;
+    }
+
+    leaf max-units-node { 
+      type uint32;
+    }
+
+    leaf max-duration { 
+      type uint32;
+    }
+
+    leaf bucket-in-rate { 
+      type uint32;
+    }
+
+    leaf bucket-max-size { 
+      type uint32;
+    }
+
+    leaf cost { 
+      type uint32;
+    }
+
+    leaf calendar-reservable { 
+      type boolean;
+    }
+  }
+
+  grouping diag {
+    uses xos-base;
+    
+  }
+
+  grouping program {
+    uses xos-base;
+    leaf description { 
+      type string;
+    }
+
+    leaf kind { 
+      type string;
+    }
+
+    leaf command { 
+      type string;
+    }
+
+    leaf owner { 
+      type xtype:owner; 
+    }
+
+    leaf contents { 
+      type string;
+    }
+
+    leaf output { 
+      type string;
+    }
+
+    leaf messages { 
+      type string;
+    }
+
+    leaf status { 
+      type string;
+    }
+  }
+
+  grouping usable-object {
+    uses xos-base;
+  }
+
+}

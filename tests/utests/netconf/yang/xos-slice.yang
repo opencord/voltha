@@ -1,0 +1,263 @@
+module xos-slice {
+  namespace "urn:ietf:params:xml:ns:yang:xos-slice";
+  prefix xslice;
+  yang-version 1.1;
+
+  import ietf-yang-types { prefix yang; }
+  import ietf-inet-types { prefix inet; }
+  import xos-controller  { prefix xos; }
+  import xos-types       { prefix xtype; }
+  import opnfv-infrastructure { prefix nfvi; }
+
+  organization
+    "Open Networking Lab (XOS) / Corenova Technologies, Inc.";
+
+  contact
+    "Larry Peterson <llp@onlab.us>
+     Peter K. Lee <peter@corenova.com>";
+  
+  description
+    "This module contains a collection of Slice and related models for XOS.
+
+    Copyright (c) 2016 ON.LAB and the persons identified as authors of
+    the code.  All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, is permitted pursuant to, and subject to the license
+    terms of the Apache License, Version 2.0 which accompanies this
+    distribution, and is available at
+    (http://www.apache.org/licenses/LICENSE-2.0).";
+  
+  revision 2016-09-13 {
+    description "Initial revision.";
+  }
+
+  grouping slice {
+    description 
+      "A slice is a logically centralized container for network and compute resources";
+
+    uses xos:provider {
+      refine "name" { description "Name of the slice"; }
+    }
+    leaf slice-url {
+      description "A URL describing the purpose of this slice";
+      type inet:uri;
+      // blank true;
+    }
+    leaf-list instances {
+      type leafref {
+        path "/nfvi:controller/compute/server/id";
+      }
+    }
+    leaf-list networks {
+      type leafref {
+        path "/nfvi:controller/fabric/network/id";
+      }
+    }
+    container policy {
+      leaf max-instances {
+        description "The maximum number of VMs that this slice is allowed to allocate";
+        type uint16;
+      }
+      leaf default-flavor {
+        type leafref {
+          path "/nfvi:controller/compute/flavor/id";
+        }
+      }
+      leaf default-image {
+        type leafref {
+          path "/nfvi:controller/compute/image/id";
+        }
+      }
+      leaf default-node {
+        type leafref {
+          path "/nfvi:controller/compute/host/id";
+        }
+      } 
+      leaf mount-data-sets {
+        type string {
+          length 0..256; 
+        }
+        default "GenBank";
+      } 
+      leaf default-isolation {
+        type xtype:isolation;
+      } 
+    }
+    leaf network {
+      description
+        "The network that the slice uses to connect to other slices and to the Internet.";
+      type enumeration {
+        enum none;
+        enum host;
+        enum bridged;
+        enum noauto;
+      }
+      default none;
+    }
+    leaf-list ports {
+      description
+        "The ports to be exposed for other slices to connect to";
+      type uint16;
+    }
+    leaf creator {
+      type leafref {
+        path "/xos:core/user/id";
+      }
+    }
+    leaf-list tags {
+      type string;
+    }
+    // below are deprecated and should not be used
+    leaf service {
+      description "The service that runs in this slice";
+      status deprecated;
+    }
+    // TOOD: need to better understand relationship between Service and Slice
+    action scale {
+      description "Adjust scale for slice(s)";
+    }
+  }
+
+  /*
+   * Augmentations to XOS core and NFVI modules
+   */
+  augment "/xos:core" {
+    list slice {
+      key id;
+      uses xslice:slice;
+    }
+  }
+  
+  augment "/nfvi:controller/nfvi:compute/nfvi:server" {
+    leaf slice {
+      // do we need this circular reference?
+    }
+    leaf deployment {
+      type leafref {
+        path "/xos:core/deployment/id";
+      }
+    }
+    leaf isolation {
+      type xtype:isolation;
+    }
+    leaf-list volumes {
+      type string; // should be leafref
+    }
+    // leaf parent {
+    //   type xtype:parent;
+    // }
+    container synchronizer {
+      if-feature synchronizer;
+      leaf instance-id { 
+        type string;
+      }
+      leaf instance-uuid { 
+        type string;
+      }
+      leaf instance-name { 
+        type string;
+      }
+      leaf ip { 
+        type inet:ip-address;
+      }
+    }
+  }
+  augment "/nfvi:controller/nfvi:compute/nfvi:image" {
+    leaf template {
+      type leafref {
+        path "/xos:core/template/id";
+      }
+    }
+    leaf-list deployments {
+      type leafref {
+        path "/xos:core/deployment/id";
+      }
+    }
+    container synchronizer {
+      if-feature xos:synchronizer;
+      leaf glance-image-id { 
+        type string;
+      }
+    }
+  }
+  augment "/nfvi:controller/nfvi:fabric/nfvi:network" {
+    leaf autoconnect {
+      type boolean;
+      default true;
+    }
+    leaf-list labels {
+      type string;
+    }
+    container policy {
+      leaf guaranteed-bandwidth { 
+        type uint32;
+      }
+      leaf permit-all-slices { 
+        type boolean;
+        default true;
+      }
+      container parameters {
+        list topology {
+          key name;
+          uses xos:parameter;
+        }
+        list controller {
+          key name;
+          uses xos:parameter;
+        }
+        list network {
+          key name;
+          uses xos:parameter;
+        }
+      }
+    }
+    container synchronizer {
+      if-feature synchronizer;
+      leaf network-id { 
+        type string;
+      }
+      leaf router-id { 
+        type string;
+      }
+      leaf subnet-id { 
+        type string;
+      }
+    }
+  }
+  augment "/nfvi:controller/nfvi:fabric/nfvi:network/nfvi:subnet/nfvi:port" {
+    leaf instance {
+      type instance-identifier;
+    }
+    leaf xos-created {
+      type boolean;
+      status deprecated;
+    }
+    container synchronizer {
+      if-feature xos:synchronizer;
+      leaf ip { 
+        type inet:ip-address;
+      }
+      leaf port-id { 
+        type yang:uuid;
+      }
+      leaf mac { 
+        type yang:mac-address;
+      }
+    }
+  }
+  augment "/nfvi:controller/nfvi:fabric/nfvi:network/nfvi:subnet/nfvi:dhcp/nfvi:pool" {
+    leaf gateway-ip {
+      type inet:ip-address;
+    }
+    leaf gateway-mac {
+      type yang:mac-address;
+    }
+    leaf cidr {
+      type string;
+    }
+    leaf inuse {
+      type boolean;
+    }
+  }
+}

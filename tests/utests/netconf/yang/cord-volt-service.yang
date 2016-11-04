@@ -1,0 +1,195 @@
+module cord-volt-service {
+  namespace "urn:ietf:params:xml:ns:yang:cord-volt-service";
+  prefix volt;
+  yang-version 1.1;
+
+  import cord-tenant     { prefix cord; }
+  import xos-controller  { prefix xos; }
+  import xos-types       { prefix xtype; }
+  
+  organization
+   "Open Networking Lab (CORD) / Corenova Technologies";
+
+  contact
+    "Larry Peterson <llp@onlab.us>
+     Peter K. Lee <peter@corenova.com>";
+
+  revision 2016-09-09 {
+    description "Initial revision.";
+  }
+
+  identity virtual-olt { base xos:xos-service; }
+
+  feature onos-app-olt {
+    description "System facility to configure VLAN tags on the OLT.";
+  }
+  feature onos-app-aaa {
+    description "System facility to broker authentication between CPE and Radius server.";
+  }
+  /*
+   * Type definitions
+   */
+  typedef bandwidth {
+    type xtype:bandwidth;
+    default 1000000000; // VOLT bandwidth default is 1Gbps
+  }
+  typedef subscriber-outflow {
+    type leafref {
+      path "/volt:controller/volt:port/volt:id";
+    }
+  }
+  /*
+   * Groupings
+   */ 
+  grouping devices-list {
+    grouping olt-device {
+      description
+        "This grouping describes an OLT device which contains ODN link attachments.";
+    
+      leaf name {
+        description "name of OLT device";
+        type string {
+          length 1..254;
+        }
+      }
+      leaf mac { type xtype:mac-address; mandatory true; }
+
+      container uplink {
+        description "Uplink description of the OLT device.";
+        leaf network { type xtype:network-identifier; }
+        leaf tag {
+          type xtype:vlan;
+          description
+            "Represents S-Tag for instructing OLT to associate a VLAN tag for
+             traffic originating from OLT device.";
+        }
+      }
+      list link {
+        description
+          "Each link represents an ONU/ONT (Optical Network Termination) endpoint
+           connection.";
+
+        key serial;
+        unique tag;
+      
+        leaf mac    { type xtype:mac-address; mandatory true; }
+        leaf serial { type string; mandatory true; }
+        leaf active { type boolean; default false; }
+        leaf tag {
+          type xtype:vlan;
+          description
+            "Represents C-Tag for instructing ONT to add/remove vlan tag for
+             traffic within OLT device.";
+        }
+      }
+    }
+    list device {
+      description
+        "Each entry represents an OLT device.";
+      key mac;
+      //unique 'uplink/tag';
+      uses olt-device;
+    }
+  }
+  grouping subscriber {
+    description
+      "This grouping represents a VOLT service subscriber along with
+       references to ONU/ONT access endpoints used by the subscriber.";
+    
+    container tags {
+      description
+        "Each entry represents a unique combination of the OLT uplink VLAN
+         (outer tag) and the ONU/ONT link VLAN (inner tag) connecting
+         into the fabric for the subscriber.";
+      
+      leaf outer {
+        type leafref {
+          path "/volt:controller/volt:device/volt:uplink/volt:tag";
+        }
+      }
+      leaf inner {
+        type leafref {
+          path "/volt:controller/volt:device/volt:link/volt:tag";
+        }
+      }
+    }
+    leaf outflow {
+      description
+        "Each entry represents a unique openflow port ID that the subscriber
+         uses to connect into the fabric from the VOLT service.";
+      config false;
+      type subscriber-outflow;
+    }
+  }
+
+  /*
+   * Configuration data nodes
+   */
+  container controller {
+    description
+      "The controller configuration block represents a VOLT agent/controller
+       which manages multiple OLT devices. The VOLT agent provides
+       aggregate abstraction of the entire PON as a sigle switch to
+       the controller. Each port entry of the agent represents each
+       ONU/ONT endpoint as a separate openflow port.";
+    
+    uses xos:service {
+      refine kind  {
+        default virtual-olt;
+      }
+      augment "subscriber" { uses volt:subscriber; }
+    }
+    // additional service specific configurations
+    uses devices-list;
+    list port {
+      description
+        "Each entry represents an ONU/ONT endpoint connected across OLT devices.";
+      key id;
+      leaf id {
+        description "OpenFlow Port ID";
+        type xtype:flow-identifier;
+        mandatory true;
+      }
+      leaf link {
+        type leafref {
+          path '/volt:controller/device/link/serial';
+        }
+        mandatory true;
+      }
+    }
+    container radius {
+      if-feature onos-app-aaa;
+      // configuration for how to broker authentication requests
+    }
+  }
+  /*
+   * Augmentations to CORD Tenant in XOS
+   */
+  augment "/xos:tenant/cord:cord/cord:subscriber" {
+    container service {
+      leaf id {
+        type leafref {
+          path "/volt:controller/subscriber/id";
+        }
+      }
+      leaf c-tag {
+        config false;
+        type leafref {
+          path "/volt:controller/subscriber/tags/outer";
+        }
+      }
+      leaf s-tag {
+        config false;
+        type leafref {
+          path "/volt:controller/subscriber/tags/inner";
+        }
+      }
+      leaf uplink-speed {
+        type volt:bandwidth;
+      }
+      leaf downlink-speed {
+        type volt:bandwidth;
+      }
+    }
+  }
+}

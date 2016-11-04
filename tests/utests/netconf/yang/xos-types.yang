@@ -1,0 +1,87 @@
+module xos-types {
+  namespace "urn:ietf:params:xml:ns:yang:xos-types";
+  prefix xtype;
+  yang-version 1.1;
+
+  import ietf-yang-types { prefix yang; }
+  import ietf-inet-types { prefix inet; }
+  
+  organization
+   "Open Networking Lab (CORD) / Corenova Technologies";
+
+  contact
+    "Larry Peterson <llp@onlab.us>
+     Peter K. Lee <peter@corenova.com>";
+  
+  description
+   "This module contains a collection of common models and types for XOS.
+
+    Copyright (c) 2016 ON.LAB and the persons identified as authors of
+    the code.  All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, is permitted pursuant to, and subject to the license
+    terms of the Apache License, Version 2.0 which accompanies this
+    distribution, and is available at
+    (http://www.apache.org/licenses/LICENSE-2.0).";
+  
+  revision 2016-09-12 {
+    description "Initial revision.";
+  }
+
+  /*
+   * Typedefs
+   */
+  typedef unique-identifier {
+    description "defines valid formats for external reference id";
+    type union {
+      type uint32 { range 1..max; }
+      type yang:uuid;
+      type inet:uri;
+    }
+  }
+  typedef flow-identifier {
+    description "defines valid format for identifying a flow";
+    type yang:uuid;
+  }
+  typedef network-identifier {
+    description "defines valid format for identifying a network";
+    type yang:uuid;
+  }
+  typedef mac-address {
+    description "defines valid format for mac-address";
+    type yang:mac-address;
+  }
+  typedef bandwidth {
+    type uint32 {
+      range 1000000..max; // should be at least 1 Mbps?  
+    }
+    units 'bps';
+  }
+  typedef vlan {
+    type uint16 { range 0..4095; }
+  }
+  typedef isolation {
+    type enumeration {
+      enum vm     { description 'Virtual Machine'; }
+      enum lxc    { description 'Container'; }
+      enum hybrid { description 'Container in Virtual Machine'; }
+    }
+    default 'vm';
+  }
+  typedef access-role {
+    type enumeration {
+      enum admin;
+      enum staff;
+      enum user;
+    }
+    default 'user';
+  }
+  typedef certificate {
+    description
+      "Captures a security certificate, should be improved for better validation";
+    type string {
+      length 0..1024;
+    }
+  }
+}

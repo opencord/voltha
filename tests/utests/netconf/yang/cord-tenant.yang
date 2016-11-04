@@ -1,0 +1,90 @@
+module cord-tenant {
+  namespace "urn:ietf:params:xml:ns:yang:cord-tenant";
+  prefix cord;
+  yang-version 1.1;
+
+  import xos-controller  { prefix xos; }
+
+  organization
+    "Open Networking Lab (CORD) / Corenova Technologies";
+
+  contact
+    "Larry Peterson <llp@onlab.us>
+     Peter K. Lee <peter@corenova.com>";
+
+  description
+    "This module contains a collection of core models for CORD.
+
+     Copyright (c) 2016 ON.LAB and the persons identified as authors
+     of the code.  All rights reserved.
+
+     Redistribution and use in source and binary forms, with or
+     without modification, is permitted pursuant to, and subject to
+     the license terms of the Apache License, Version 2.0 which
+     accompanies this distribution, and is available at
+     (http://www.apache.org/licenses/LICENSE-2.0).";
+
+  revision 2016-09-29 {
+    description "Combine CORD subscriber and augment XOS.";
+  }
+  revision 2016-07-22 {
+    description "Initial revision.";
+  }
+
+  identity cord-subscriber {
+    base xos:xos-subscriber;
+  }
+  /*
+   * Groupings
+   */
+  grouping subscriber {
+  /*
+    uses xos:subscriber {
+      refine kind { default cord-subscriber; }
+    }
+   */
+    leaf label {
+      config false;
+      type string {
+        pattern '^cordSubscriber-\w+$';
+      }
+    }
+    leaf status {
+      type enumeration {
+        enum "enabled" {
+          description "Enabled";
+          value 1;
+        }
+        enum "suspended" {
+          description "Suspended";
+        }
+        enum "delinquent" {
+          description "Delinquent";
+        }
+        enum "violation" {
+          description "Copyright Violation";
+        }
+      }
+      default enabled;
+    }
+    leaf demo {
+      type boolean;
+      default false;
+    }
+  }
+  /*
+   * Augmentations to XOS
+
+  augment "/xos:tenant" {
+    container cord {
+      description "Register cord as a tenant into XOS";
+      list subscriber {
+        key id;
+        description
+          "Each entry represents a unique CORD subscriber.";
+        uses cord:subscriber;
+      }
+    }
+  }
+  */
+}

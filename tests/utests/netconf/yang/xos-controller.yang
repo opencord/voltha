@@ -1,0 +1,225 @@
+module xos-controller {
+  namespace "urn:ietf:params:xml:ns:yang:xos-controller";
+  prefix xos;
+  yang-version 1.1;
+
+  import ietf-yang-types { prefix yang; }
+  import ietf-inet-types { prefix inet; }
+  import iana-crypt-hash { prefix ianach; }
+  import yang-meta-types { prefix meta; }
+  import xos-types       { prefix xtype; }
+
+  organization
+   "Open Networking Lab / Corenova Technologies";
+
+  contact
+    "Larry Peterson <llp@onlab.us>
+     Peter K. Lee <peter@corenova.com>";
+  
+  description
+   "This module contains a collection of core models for XOS.  The core
+    models represent primary first-order entities such as Tenant,
+    Subscriber, Provider, and Service.
+
+    Copyright (c) 2016 ON.LAB and the persons identified as authors of
+    the code.  All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, is permitted pursuant to, and subject to the license
+    terms of the Apache License, Version 2.0 which accompanies this
+    distribution, and is available at
+    (http://www.apache.org/licenses/LICENSE-2.0).";
+  
+  revision 2016-07-14 {
+    description "Initial revision.";
+  }
+
+  identity xos-tenant {
+    description "Describes the type of tenant within XOS";
+  }
+  identity xos-subscriber {
+    base xos-tenant;
+  }
+  identity xos-provider {
+    base xos-tenant;
+  }
+  identity xos-service {
+    base xos-provider;
+  }
+  
+  feature synchronizer {
+    description
+      "Enables configuration synchronization to the distributed store.";
+  }
+  /*
+   * Groupings
+   */
+  grouping record {
+    description "Synchronizer-specific properties for model entities";
+    
+    leaf created { type yang:date-and-time; }
+    leaf updated { type yang:date-and-time; }
+    leaf enacted { type yang:date-and-time; }
+    leaf policed { type yang:date-and-time; }
+        
+    leaf writable { type boolean; default true; }
+    leaf locked   { type boolean; default false; }
+    leaf deleted  { type boolean; default false; }
+      
+    leaf dirty {
+      config false;
+      type boolean;
+      default false;
+    }
+      
+    container sync {
+      anydata register {
+        description "scratchpad used by the Observer";
+      }
+      leaf progress {
+        type enumeration {
+          enum provisioning {
+            value 0;
+            description "Provisioning in progress";
+          }
+        }
+      }
+      leaf disabled { type boolean; default false; }
+      leaf enforced { type boolean; default true; }
+
+      list policy {
+        // TODO: how are policy defined/enforced?
+      }
+    }
+    action diff {
+      description "retrieve diff of model state if dirty";
+    }
+    action save {
+      description "trigger save into data store via synchronizer";
+    }
+  }
+  grouping credentials-list {
+    list credential {
+      key token;
+      leaf token {
+        type string;
+      }
+      leaf password {
+        type meta:password;
+      }
+      leaf user {
+        type xtype:unique-identifier;
+      }
+      leaf role {
+        type xtype:access-role;
+      }
+    }
+  }
+  grouping parameter {
+    leaf name { type yang:yang-identifier; }
+    leaf value { type string; }
+    leaf content-type { type string; }
+    leaf object-id { type uint32; }
+  }
+  grouping tenant {
+    leaf id {
+      type xtype:unique-identifier;
+      mandatory true;
+    }
+    leaf name { type string { length 0..255; } }
+    leaf kind {
+      config false;
+      type identityref {
+        base xos-tenant;
+      }
+    }
+    leaf description { type meta:description; }
+    leaf enabled { type boolean; default true; }
+    container record {
+      if-feature synchronizer;
+      uses xos:record;
+    }
+  }
+  grouping subscriber {
+    uses xos:tenant {
+      refine kind { default xos-subscriber; }
+    }
+    leaf connectivity {
+      type enumeration {
+        enum public { description "Public"; }
+        enum private { description "Private"; }
+        enum private-unidirectional { description "Private Uni-directional"; }
+        enum na { description "Not Applicable"; }
+      }
+      default na;
+    }
+  }
+  grouping provider {
+    uses xos:tenant {
+      refine kind { default xos-provider; }
+    }
+    uses xos:credentials-list;
+  }
+  grouping service {
+    uses xos:provider {
+      refine 'name' {
+        description "Name of the Service";
+      }
+    }
+    leaf view-url {
+      type inet:uri;
+    }
+    leaf icon-url {
+      type inet:uri;
+    }
+    leaf published {
+      type boolean;
+      default true;
+    }
+    list keypair {
+      description "collection of public/private key pair(s)";
+      // should be a specific typedef for storing this content
+      leaf public  { type string { length 0..1024; } }
+      leaf private { type string { length 0..1024; } }
+    }
+    list attribute {
+      key name;
+      leaf name  { type string { length 0..128; } }
+      leaf value { type string; }
+      status deprecated;
+      reference "XOS: service-specific-attribute";
+      description "backwards-compatible attribute association";
+    }
+    leaf service-specific-id {
+      type xtype:unique-identifier;
+      status deprecated;
+    }
+    list subscriber {
+      description
+        "Each entry represents a subscriber of the service. Each unique service
+         provider should augment this block with service specific
+         attributes.";
+      key id;
+      uses xos:subscriber;
+      notification subscriber-added;
+      notification subscriber-deleted;
+    }
+    // TODO: need to better understand relationship between Service and VTN
+  }
+  /*
+   * Configuration data nodes (main configuration tree for XOS)
+   */
+  container core {
+    description
+      "Primary endpoint for additional core entities to augment";
+    uses xos:provider;
+  }
+  container service {
+    description
+      "Primary endpoint for services to augment";
+  }
+  container tenant {
+    description
+      "Primary endpoint for tenants to augment";
+  }
+}

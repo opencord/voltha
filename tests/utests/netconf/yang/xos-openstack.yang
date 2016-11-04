@@ -1,0 +1,190 @@
+module xos-controller {
+  namespace "urn:ietf:params:xml:ns:yang:xos-controller";
+  prefix xcontrol;
+  yang-version 1.1;
+
+  import ietf-yang-types { prefix yang; }
+  import ietf-inet-types { prefix inet; }
+  import xos-core        { prefix xos; }
+  import xos-types       { prefix xtype; }
+
+  organization
+    "Open Networking Lab (XOS) / Corenova Technologies";
+
+  contact
+    "Larry Peterson <llp@onlab.us>
+     Peter K. Lee <peter@corenova.com>";
+  
+  description
+    "This module contains a collection of Controller models for XOS.
+
+    Copyright (c) 2016 ON.LAB and the persons identified as authors of
+    the code.  All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, is permitted pursuant to, and subject to the license
+    terms of the Apache License, Version 2.0 which accompanies this
+    distribution, and is available at
+    (http://www.apache.org/licenses/LICENSE-2.0).";
+  
+  revision 2016-09-23 {
+    description "Initial revision.";
+  }
+
+  grouping controller {
+    uses xos:provider;
+    leaf backend-type { 
+      type string;
+    }
+    leaf version { 
+      type string;
+    }
+    leaf auth-url { 
+      type string;
+    }
+    leaf admin-user { 
+      type string;
+    }
+    leaf admin-password { 
+      type string;
+    }
+    leaf admin-tenant { 
+      type string;
+    }
+    leaf domain { 
+      type string;
+    }
+    container message-queue {
+      leaf rabbit-host { 
+        type string;
+      }
+      leaf rabbit-user { 
+        type string;
+      }
+      leaf rabbit-password { 
+        type string;
+      }
+    }
+    leaf deployment { 
+      type xtype:deployment; 
+    }
+  }
+  grouping controller-site-privilege {
+    uses xos:tenant;
+
+    leaf controller { 
+      type xtype:controller; 
+    }
+
+    leaf site-privilege { 
+      type xtype:site-privilege; 
+    }
+    
+    container synchronizer {
+      if-feature xos:synchronizer;
+      leaf role-id { 
+        type string;
+      }
+    }
+  }
+  grouping controller-network {
+    uses xos:tenant;
+    leaf network { 
+      type xtype:network; 
+    }
+    leaf controller { 
+      type xtype:controller; 
+    }
+    leaf subnet { 
+      type string;
+    }
+    container synchronizer {
+      if-feature synchronizer;
+      leaf net-id { 
+        type string;
+      }
+      leaf router-id { 
+        type string;
+      }
+      leaf subnet-id { 
+        type string;
+      }
+    }
+  }
+  grouping controller-site {
+    uses xos:tenant;
+    leaf site { 
+      type xtype:site; 
+    }
+
+    leaf controller { 
+      type xtype:controller; 
+    }
+
+    container synchronizer {
+      if-feature synchronizer;
+      leaf tenant-id { 
+        type string;
+      }
+    }
+  }
+  grouping controller-slice {
+    uses xos:tenant;
+    leaf controller { 
+      type xtype:controller; 
+    }
+    leaf slice { 
+      type xtype:slice; 
+    }
+    
+    container synchronizer {
+      if-feature synchronizer;
+      leaf tenant-id { 
+        type string;
+      }
+    }
+  }
+  grouping controller-role {
+    uses xos:tenant;
+    leaf role { 
+      type string;
+    }
+  }
+  grouping controller-user {
+    uses xos:tenant;
+    leaf user { 
+      type xtype:user; 
+    }
+
+    leaf controller { 
+      type xtype:controller; 
+    }
+    
+    container synchronizer {
+      if-feature synchronizer {
+        leaf kuser-id { 
+          type string;
+        }
+      }
+    }
+  }
+  grouping controller-slice-privilege {
+    uses xos:tenant;
+    leaf controller { 
+      type xtype:controller; 
+    }
+
+    leaf slice-privilege { 
+      type xtype:slice-privilege; 
+    }
+    
+    container synchronizer {
+      if-feature synchronizer {
+        leaf role-id { 
+          type string;
+        }
+      }
+    }
+  }
+  
+}

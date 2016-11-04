@@ -1,0 +1,84 @@
+module xos-package {
+  namespace "urn:ietf:params:xml:ns:yang:xos-package";
+  prefix xpkg;
+  yang-version 1.1;
+
+  import ietf-yang-types { prefix yang; }
+  import ietf-inet-types { prefix inet; }
+  import yang-meta-types { prefix meta; }
+  import xos-controller  { prefix xos; }
+  import xos-types       { prefix xtype; }
+
+  organization
+    "Open Networking Lab (XOS) / Corenova Technologies";
+
+  contact
+    "Larry Peterson <llp@onlab.us>
+     Peter K. Lee <peter@corenova.com>";
+  
+  description
+    "This module contains a collection of Package models for XOS.
+
+    Copyright (c) 2016 ON.LAB and the persons identified as authors of
+    the code.  All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, is permitted pursuant to, and subject to the license
+    terms of the Apache License, Version 2.0 which accompanies this
+    distribution, and is available at
+    (http://www.apache.org/licenses/LICENSE-2.0).";
+  
+  revision 2016-09-29 {
+    description "Initial revision.";
+  }
+  typedef package-identifier {
+    type yang:yang-identifier;
+  }
+
+  identity xos-package {
+    base xos:xos-tenant;
+  }
+  /*
+   * Groupings
+   */
+  grouping package-info {
+    uses meta:yang-package-info {
+      refine version {
+        description "Version of Service Definition";
+      }
+      refine description {
+        description "Description of the Service Package";
+      }
+    }
+    container controller {
+      leaf model {
+        type leafref {
+          path "../../model/name";
+        }
+        mandatory true;
+      }
+      leaf initializer {
+        type meta:filename;
+      }
+      leaf synchronizer {
+        type meta:filename;
+      }
+      leaf public-key {
+        type meta:filename;
+      }
+      leaf private-key {
+        type meta:filename;
+      }
+    }
+  }
+  /*
+   * Augmentations to XOS
+   */
+  augment "/xos:core" {
+    list package {
+      key id;
+      uses package-info;
+    }
+  }
+}
+

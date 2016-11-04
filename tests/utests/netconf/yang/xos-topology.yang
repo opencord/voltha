@@ -1,0 +1,224 @@
+module xos-topology {
+  namespace "urn:ietf:params:xml:ns:yang:xos-topology";
+  prefix xtop;
+  yang-version 1.1;
+
+  import ietf-yang-types { prefix yang; }
+  import ietf-inet-types { prefix inet; }
+  import yang-meta-types { prefix meta; }
+  import xos-controller  { prefix xos; }
+  import xos-types       { prefix xtype; }
+
+  organization
+    "Open Networking Lab (XOS) / Corenova Technologies";
+
+  contact
+    "Larry Peterson <llp@onlab.us>
+     Peter K. Lee <peter@corenova.com>";
+  
+  description
+    "This module contains a collection of Topology models for XOS.
+
+    Copyright (c) 2016 ON.LAB and the persons identified as authors of
+    the code.  All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, is permitted pursuant to, and subject to the license
+    terms of the Apache License, Version 2.0 which accompanies this
+    distribution, and is available at
+    (http://www.apache.org/licenses/LICENSE-2.0).";
+  
+  revision 2016-09-13 {
+    description "Initial revision.";
+  }
+
+  grouping deployment {
+    uses xos:provider {
+      refine "name" { description "Name of the deployment"; }
+    }
+    leaf-list sites {
+      config false;
+      type leafref {
+        path "/xos:core/site/id";
+      }
+    }
+    leaf-list templates {
+      type leafref {
+        path "/xos:core/template/id";
+      }
+    }
+  }
+  grouping site {
+    uses xos:provider {
+      refine "name" { description "Name of the site"; }
+    }
+    leaf site-url { 
+      description "A URL describing the purpose of this site";
+      type inet:uri;
+    }
+    container location {
+      leaf geoposition {
+        type string; // what is this data format?
+      }
+      leaf longitude { 
+        type decimal64;
+      }
+      leaf latitude { 
+        type decimal64;
+      }
+    }
+    leaf is-public { 
+      type boolean;
+    }
+    leaf login-base { 
+      type string;
+    }
+    leaf deployment {
+      type leafref {
+        path "/xos:core/deployment/id";
+      }
+    }
+    leaf-list nodes {
+      config false;
+      type leafref {
+        path "/xos:core/node/id";
+      }
+    }
+    leaf-list users {
+      config false;
+      type leafref {
+        path "/xos:core/user/id";
+      }
+    }
+    leaf hosts-nodes {
+      config false;
+      type boolean;
+    }
+    leaf hosts-users {
+      config false;
+      type boolean;
+    }
+    container synchronizer {
+      if-feature xos:synchronizer;
+      leaf availability-zone { 
+        type string;
+      }
+    }
+  }
+  grouping node {
+    uses xos:tenant;
+    leaf site { 
+      type leafref {
+        path "/xos:core/site/id";
+      }
+    }
+    leaf deployment {
+      config false;
+      type leafref {
+        path "/xos:core/deployment/id";
+      }
+    }
+  }
+  grouping user {
+    uses xos:tenant {
+      refine 'name' {
+        config false;
+        description "Name of the user";
+      }
+    }
+    leaf firstname {
+      type meta:person-name;
+    }
+    leaf lastname {
+      type meta:person-name;
+    }
+    leaf email {
+      type meta:email-address;
+    }
+    leaf phone {
+      type meta:phone-number;
+    }
+    leaf timezone {
+      type meta:timezone;
+    }
+    leaf site {
+      type leafref {
+        path "/xos:core/site/id";
+      }
+    }
+    container credential {
+      leaf username {
+        type yang:yang-identifier;
+      }
+      leaf password {
+        type meta:password;
+      }
+      leaf role {
+        type xtype:access-role;
+      }
+      leaf public-key {
+        type string;
+      }
+      leaf login-page {
+        type inet:uri;
+      }
+      leaf last-login {
+        config false;
+        type yang:date-and-time;
+      }
+    }
+  }
+  grouping network-template {
+    uses xos:tenant;
+    leaf guaranteed-bandwidth { 
+      type uint32;
+    }
+    leaf visibility { 
+      type string;
+    }
+    leaf translation { 
+      type string;
+    }
+    leaf access { 
+      type string;
+    }
+    leaf shared-network-name { 
+      type string;
+    }
+    leaf shared-network-id { 
+      type string;
+    }
+    leaf topology-kind { 
+      type string;
+    }
+    leaf controller-kind { 
+      type string;
+    }
+  }
+
+  /*
+   * Augmentations to XOS core
+   */
+  augment "/xos:core" {
+    list template {
+      key id;
+      uses xtop:network-template;
+    }
+    list deployment {
+      key id;
+      uses xtop:deployment;
+    }
+    list site {
+      key id;
+      uses xtop:site;
+    }
+    list node {
+      key id;
+      uses xtop:node;
+    }
+    list user {
+      key id;
+      uses xtop:user;
+    }
+  }
+}

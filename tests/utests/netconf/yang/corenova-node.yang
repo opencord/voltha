@@ -1,0 +1,41 @@
+module corenova-node {
+  namespace "urn:corenova:node";
+  prefix node;
+
+  organization
+    "Corenova Technologies, Inc.";
+
+  contact
+    "Peter K. Lee <peter@corenova.com>";
+
+  description
+    "This module defines extensions to dynamically control schema node
+     display and access overlay controls";
+
+  feature corenova-node {
+    description
+      "this is to indicate the agent supports dynamic schema node
+       link and view constraints.";
+  }
+    
+  extension link {
+    description
+      "Links a new 'link-name' element to an alternate data node element in
+       the schema data tree referenced by the 'path' sub statement. It
+       can be used within 'container' or 'list' type data element to
+       hold one or more such 'links' as part of its configuration data
+       tree.  The new link element becomes a 'mirror' instance of the
+       target node found in the path expression.";
+    argument link-name {
+      yin-element true;
+    }
+  }
+
+  extension view {
+    description
+      "Informs the interface layers that only the data nodes referenced
+       within the value argument should be made visible to the
+       consumer.";
+    argument value;
+  }
+}
