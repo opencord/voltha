@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a014df3_c118d486",
+        "filename": "experiments/plugin/protobuf.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 196,
+      "author": {
+        "id": 1000006
+      },
+      "writtenOn": "2016-11-04T07:44:03Z",
+      "side": 1,
+      "message": "static maps like this shall be created at the class level, so it is constructed once, not on every time the method is called.",
+      "range": {
+        "startLine": 179,
+        "startChar": 8,
+        "endLine": 196,
+        "endChar": 9
+      },
+      "revId": "4c43525b70b09b2ef7267a984c8fe9dd5ba3aa2f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
