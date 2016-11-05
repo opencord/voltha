@@ -23,7 +23,7 @@ MAINTAINER Nathan Knuth   <nathan.knuth@tibitcom.com>
 
 # Update to have latest images
 RUN apt-get update && \
-    apt-get install -y python python-pip openssl
+    apt-get install -y python python-pip openssl iproute2 libpcap-dev
 
 COPY requirements.txt /tmp/requirements.txt
 
