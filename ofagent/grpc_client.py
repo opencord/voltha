@@ -27,7 +27,8 @@ from twisted.internet import threads
 from twisted.internet.defer import inlineCallbacks, returnValue, DeferredQueue
 
 from protos.voltha_pb2 import ID, VolthaLogicalLayerStub, FlowTableUpdate, \
-    GroupTableUpdate, NullMessage, PacketOut
+    GroupTableUpdate, PacketOut
+from google.protobuf import empty_pb2
 
 
 log = get_logger()
@@ -81,7 +82,7 @@ class GrpcClient(object):
 
         def receive_packet_in_stream():
             streaming_rpc_method = self.logical_stub.ReceivePacketsIn
-            iterator = streaming_rpc_method(NullMessage())
+            iterator = streaming_rpc_method(empty_pb2.Empty())
             for packet_in in iterator:
                 reactor.callFromThread(self.packet_in_queue.put,
                                        packet_in)

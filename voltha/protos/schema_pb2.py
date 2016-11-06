@@ -14,15 +14,16 @@ _sym_db = _symbol_database.Default()
 
 
 from google.api import annotations_pb2 as google_dot_api_dot_annotations__pb2
+from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 
 DESCRIPTOR = _descriptor.FileDescriptor(
   name='schema.proto',
   package='schema',
   syntax='proto3',
-  serialized_pb=_b('\n\x0cschema.proto\x12\x06schema\x1a\x1cgoogle/api/annotations.proto\"A\n\tProtoFile\x12\x11\n\tfile_name\x18\x01 \x01(\t\x12\r\n\x05proto\x18\x02 \x01(\t\x12\x12\n\ndescriptor\x18\x03 \x01(\x0c\",\n\x07Schemas\x12!\n\x06protos\x18\x01 \x03(\x0b\x32\x11.schema.ProtoFile\"\r\n\x0bNullMessage2S\n\rSchemaService\x12\x42\n\tGetSchema\x12\x13.schema.NullMessage\x1a\x0f.schema.Schemas\"\x0f\x82\xd3\xe4\x93\x02\t\x12\x07/schemab\x06proto3')
+  serialized_pb=_b('\n\x0cschema.proto\x12\x06schema\x1a\x1cgoogle/api/annotations.proto\x1a\x1bgoogle/protobuf/empty.proto\"A\n\tProtoFile\x12\x11\n\tfile_name\x18\x01 \x01(\t\x12\r\n\x05proto\x18\x02 \x01(\t\x12\x12\n\ndescriptor\x18\x03 \x01(\x0c\",\n\x07Schemas\x12!\n\x06protos\x18\x01 \x03(\x0b\x32\x11.schema.ProtoFile2V\n\rSchemaService\x12\x45\n\tGetSchema\x12\x16.google.protobuf.Empty\x1a\x0f.schema.Schemas\"\x0f\x82\xd3\xe4\x93\x02\t\x12\x07/schemab\x06proto3')
   ,
-  dependencies=[google_dot_api_dot_annotations__pb2.DESCRIPTOR,])
+  dependencies=[google_dot_api_dot_annotations__pb2.DESCRIPTOR,google_dot_protobuf_dot_empty__pb2.DESCRIPTOR,])
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 
@@ -68,8 +69,8 @@ _PROTOFILE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=54,
-  serialized_end=119,
+  serialized_start=83,
+  serialized_end=148,
 )
 
 
@@ -99,38 +100,13 @@ _SCHEMAS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=121,
-  serialized_end=165,
-)
-
-
-_NULLMESSAGE = _descriptor.Descriptor(
-  name='NullMessage',
-  full_name='schema.NullMessage',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=167,
-  serialized_end=180,
+  serialized_start=150,
+  serialized_end=194,
 )
 
 _SCHEMAS.fields_by_name['protos'].message_type = _PROTOFILE
 DESCRIPTOR.message_types_by_name['ProtoFile'] = _PROTOFILE
 DESCRIPTOR.message_types_by_name['Schemas'] = _SCHEMAS
-DESCRIPTOR.message_types_by_name['NullMessage'] = _NULLMESSAGE
 
 ProtoFile = _reflection.GeneratedProtocolMessageType('ProtoFile', (_message.Message,), dict(
   DESCRIPTOR = _PROTOFILE,
@@ -145,13 +121,6 @@ Schemas = _reflection.GeneratedProtocolMessageType('Schemas', (_message.Message,
   # @@protoc_insertion_point(class_scope:schema.Schemas)
   ))
 _sym_db.RegisterMessage(Schemas)
-
-NullMessage = _reflection.GeneratedProtocolMessageType('NullMessage', (_message.Message,), dict(
-  DESCRIPTOR = _NULLMESSAGE,
-  __module__ = 'schema_pb2'
-  # @@protoc_insertion_point(class_scope:schema.NullMessage)
-  ))
-_sym_db.RegisterMessage(NullMessage)
 
 
 import grpc
@@ -173,7 +142,7 @@ class SchemaServiceStub(object):
     """
     self.GetSchema = channel.unary_unary(
         '/schema.SchemaService/GetSchema',
-        request_serializer=NullMessage.SerializeToString,
+        request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
         response_deserializer=Schemas.FromString,
         )
 
@@ -194,7 +163,7 @@ def add_SchemaServiceServicer_to_server(servicer, server):
   rpc_method_handlers = {
       'GetSchema': grpc.unary_unary_rpc_method_handler(
           servicer.GetSchema,
-          request_deserializer=NullMessage.FromString,
+          request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
           response_serializer=Schemas.SerializeToString,
       ),
   }
@@ -224,7 +193,7 @@ class BetaSchemaServiceStub(object):
 
 def beta_create_SchemaService_server(servicer, pool=None, pool_size=None, default_timeout=None, maximum_timeout=None):
   request_deserializers = {
-    ('schema.SchemaService', 'GetSchema'): NullMessage.FromString,
+    ('schema.SchemaService', 'GetSchema'): google_dot_protobuf_dot_empty__pb2.Empty.FromString,
   }
   response_serializers = {
     ('schema.SchemaService', 'GetSchema'): Schemas.SerializeToString,
@@ -238,7 +207,7 @@ def beta_create_SchemaService_server(servicer, pool=None, pool_size=None, defaul
 
 def beta_create_SchemaService_stub(channel, host=None, metadata_transformer=None, pool=None, pool_size=None):
   request_serializers = {
-    ('schema.SchemaService', 'GetSchema'): NullMessage.SerializeToString,
+    ('schema.SchemaService', 'GetSchema'): google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
   }
   response_deserializers = {
     ('schema.SchemaService', 'GetSchema'): Schemas.FromString,

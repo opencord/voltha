@@ -35,7 +35,14 @@ from structlog import get_logger
 from protobuf_to_dict import protobuf_to_dict, dict_to_protobuf
 
 {% set package = file_name.replace('.proto', '') %}
-import {{ package + '_pb2' }} as {{ package }}
+
+{% for pypackage, module in includes %}
+{% if pypackage %}
+from {{ pypackage }} import {{ module }}
+{% else %}
+import {{ module }}
+{% endif %}
+{% endfor %}
 
 log = get_logger()
 
@@ -44,7 +51,7 @@ def add_routes(app, grpc_client):
     pass  # so that if no endpoints are defined, Python is still happy
 
     {% for method in methods %}
-    {% set method_name = method['service'] + '_' + method['method'] %}
+    {% set method_name = method['service'].rpartition('.')[2] + '_' + method['method'] %}
     {% set path = method['path'].replace('{', '<string:').replace('}', '>') %}
     @app.route('{{ path }}', methods=['{{ method['verb'].upper() }}'])
     def {{ method_name }}(server, request, **kw):
@@ -58,12 +65,12 @@ def add_routes(app, grpc_client):
         riase NotImplementedError('cannot handle specific body field list')
         {% endif %}
         try:
-            req = dict_to_protobuf({{ method['input_type'] }}, data)
+            req = dict_to_protobuf({{ type_map[method['input_type']] }}, data)
         except Exception, e:
             log.error('cannot-convert-to-protobuf', e=e, data=data)
             raise
         res = grpc_client.invoke(
-            {{ '.'.join([package, method['service']]) }}Stub,
+            {{ type_map[method['service']] }}Stub,
             '{{ method['method'] }}', req)
         try:
             out_data = protobuf_to_dict(res, use_enum_labels=True)
@@ -128,7 +135,7 @@ def traverse_methods(proto_file):
                     data = {
                         'package': package,
                         'filename': proto_file.name,
-                        'service': service.name,
+                        'service': proto_file.package + '.' + service.name,
                         'method': method.name,
                         'input_type': input_type,
                         'output_type': output_type,
@@ -140,30 +147,116 @@ def traverse_methods(proto_file):
                     yield data
 
 
-def generate_gw_code(file_name, methods):
-    return template.render(file_name=file_name, methods=methods)
+def generate_gw_code(file_name, methods, type_map, includes):
+    return template.render(file_name=file_name, methods=methods,
+                           type_map=type_map, includes=includes)
+
+
+class IncludeManager(object):
+    # need to keep track of what files define what message types and
+    # under what package name. Later, when we analyze the methods, we
+    # need to be able to derive the list of files we need to load and we
+    # also need to replce the <proto-package-name>.<artifact-name> in the
+    # templates with <python-package-name>.<artifact-name> so Python can
+    # resolve these.
+    def __init__(self):
+        self.package_to_localname = {}
+        self.fullname_to_filename = {}
+        self.prefix_table = []  # sorted table of top-level symbols in protos
+        self.type_map = {}  # full name as used in .proto -> python name
+        self.includes_needed = set()  # names of files needed to be included
+        self.filename_to_module = {}  # filename -> (package, module)
+
+    def extend_symbol_tables(self, proto_file):
+        # keep track of what file adds what top-level symbol to what abstract
+        # package name
+        package_name = proto_file.package
+        file_name = proto_file.name
+        self._add_filename(file_name)
+        all_defs = list(proto_file.message_type)
+        all_defs.extend(list(proto_file.enum_type))
+        all_defs.extend(list(proto_file.service))
+        for typedef in all_defs:
+            name = typedef.name
+            fullname = package_name + '.' + name
+            self.fullname_to_filename[fullname] = file_name
+            self.package_to_localname.setdefault(package_name, []).append(name)
+        self._update_prefix_table()
+
+    def _add_filename(self, filename):
+        if filename not in self.filename_to_module:
+            python_path = filename.replace('.proto', '_pb2').replace('/', '.')
+            package_name, _, module_name = python_path.rpartition('.')
+            self.filename_to_module[filename] = (package_name, module_name)
+
+    def _update_prefix_table(self):
+        # make a sorted list symbol prefixes needed to resolv for potential use
+        # of nested symbols
+        self.prefix_table = sorted(self.fullname_to_filename.iterkeys(),
+                                   reverse=True)
+
+    def _find_matching_prefix(self, fullname):
+        for prefix in self.prefix_table:
+            if fullname.startswith(prefix):
+                return prefix
+        # This should never happen
+        raise Exception('No match for type name "{}"'.format(fullname))
+
+    def add_needed_symbol(self, fullname):
+        if fullname in self.type_map:
+            return
+        top_level_symbol = self._find_matching_prefix(fullname)
+        name = top_level_symbol.rpartition('.')[2]
+        nested_name = fullname[len(top_level_symbol):]  # may be empty
+        file_name = self.fullname_to_filename[top_level_symbol]
+        self.includes_needed.add(file_name)
+        module_name = self.filename_to_module[file_name][1]
+        python_name = module_name + '.' + name + nested_name
+        self.type_map[fullname] = python_name
+
+    def get_type_map(self):
+        return self.type_map
+
+    def get_includes(self):
+        return sorted(
+            self.filename_to_module[fn] for fn in self.includes_needed)
 
 
 def generate_code(request, response):
 
     assert isinstance(request, plugin.CodeGeneratorRequest)
+
+    include_manager = IncludeManager()
     for proto_file in request.proto_file:
-        output = []
+
+        include_manager.extend_symbol_tables(proto_file)
+
+        methods = []
 
         for data in traverse_methods(proto_file):
-            output.append(data)
+            methods.append(data)
+            include_manager.add_needed_symbol(data['input_type'])
+            include_manager.add_needed_symbol(data['output_type'])
+            include_manager.add_needed_symbol(data['service'])
+
+        type_map = include_manager.get_type_map()
+        includes = include_manager.get_includes()
 
         # as a nice side-effect, generate a json file capturing the essence
         # of the RPC method entries
         f = response.file.add()
         f.name = proto_file.name + '.json'
-        f.content = dumps(output, indent=4)
+        f.content = dumps(dict(
+            type_rename_map=type_map,
+            includes=includes,
+            methods=methods), indent=4)
 
         # generate the real Python code file
         f = response.file.add()
         assert proto_file.name.endswith('.proto')
         f.name = proto_file.name.replace('.proto', '_gw.py')
-        f.content = generate_gw_code(proto_file.name, output)
+        f.content = generate_gw_code(proto_file.name,
+                                     methods, type_map, includes)
 
 
 if __name__ == '__main__':
@@ -175,6 +268,8 @@ if __name__ == '__main__':
     else:
         # read input from stdin
         data = sys.stdin.read()
+        # with file('/tmp/buf', 'wb') as f:
+        #     f.write(data)
 
     # parse request
     request = plugin.CodeGeneratorRequest()

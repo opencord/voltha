@@ -23,14 +23,16 @@ from common.utils.asleep import asleep
 from common.utils.consulhelpers import get_endpoint_from_consul
 from structlog import get_logger
 import grpc
-from ofagent.protos import third_party
+# from ofagent.protos import third_party
 from protos import voltha_pb2
 from grpc_client import GrpcClient
 
 from agent import Agent
+from google.protobuf.empty_pb2 import Empty
+
 
 log = get_logger()
-_ = third_party
+# _ = third_party
 
 class ConnectionManager(object):
 
@@ -121,8 +123,7 @@ class ConnectionManager(object):
             log.info('Retrieve devices from voltha')
             try:
                 stub = voltha_pb2.VolthaLogicalLayerStub(self.channel)
-                devices = stub.ListLogicalDevices(
-                    voltha_pb2.NullMessage()).items
+                devices = stub.ListLogicalDevices(Empty()).items
                 for device in devices:
                     log.info("Devices {} -> {}".format(device.id,
                                                             device.datapath_id))

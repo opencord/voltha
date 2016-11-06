@@ -16,7 +16,7 @@
 
 """
 gRPC client meant to connect to a gRPC server endpoint, and query the
-end-point's schema by calling SchemaService.Schema(NullMessage) and all of its
+end-point's schema by calling SchemaService.Schema(Empty) and all of its
 semantics are derived from the recovered schema.
 """
 
@@ -34,7 +34,9 @@ from twisted.internet.defer import inlineCallbacks
 from werkzeug.exceptions import ServiceUnavailable
 
 from common.utils.asleep import asleep
-from chameleon.protos.schema_pb2 import NullMessage, SchemaServiceStub
+from chameleon.protos.schema_pb2 import SchemaServiceStub
+from google.protobuf.empty_pb2 import Empty
+
 
 log = get_logger()
 
@@ -165,7 +167,7 @@ class GrpcClient(object):
         assert isinstance(self.channel, grpc.Channel)
         stub = SchemaServiceStub(self.channel)
         # try:
-        schemas = stub.GetSchema(NullMessage())
+        schemas = stub.GetSchema(Empty())
         # except _Rendezvous, e:
         #     if e.code == grpc.StatusCode.UNAVAILABLE:
         #

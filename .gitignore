@@ -31,8 +31,8 @@ tmp
 *.swp
 
 # Protobuf output files
-#voltha/**/*.desc
-#voltha/**/*_pb2.py
+voltha/**/*.desc
+ofagent/protos/**/*_pb2.py
 
 # Editors
 *.bak

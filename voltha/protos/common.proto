@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package voltha;
+
+// Convey a resource identifier
+message ID {
+    string id = 1;
+}
+
+

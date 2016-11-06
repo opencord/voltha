@@ -20,6 +20,7 @@ import grpc
 
 from voltha.protos import schema_pb2
 from voltha.protos import voltha_pb2
+from google.protobuf.empty_pb2 import Empty
 
 
 def run():
@@ -28,7 +29,7 @@ def run():
 
     # Test fetch the schema
     stub = schema_pb2.SchemaServiceStub(channel)
-    res = stub.GetSchema(schema_pb2.NullMessage())
+    res = stub.GetSchema(Empty())
     print '\nSchema:\n'
     for key in res.protos:
         print '%s %s file begins %s\n' % (30 * '~', key, (35 - len(key)) * '~')
@@ -39,12 +40,12 @@ def run():
 
     # Ping health state as an example
     stub = voltha_pb2.HealthServiceStub(channel)
-    res = stub.GetHealthStatus(voltha_pb2.NullMessage())
+    res = stub.GetHealthStatus(Empty())
     print '\nHealth state:', res.state
 
     # Try another API
     stub = voltha_pb2.ExampleServiceStub(channel)
-    res = stub.ListAddresses(voltha_pb2.NullMessage())
+    res = stub.ListAddresses(Empty())
     print '\nExample objects returned:\n', res.addresses
 
 if __name__ == '__main__':
