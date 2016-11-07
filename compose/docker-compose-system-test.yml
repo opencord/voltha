@@ -67,6 +67,16 @@ services:
     - "/tmp/fluentd:/fluentd/log"
     environment:
       SERVICE_24224_NAME: "fluentd-intake"
+
+  #
+  # Podder service instance
+  #
+  podder:
+    image: cord/podder
+    volumes:
+    - "/var/run/docker.sock:/tmp/docker.sock"
+    restart: unless-stopped
+
   #
   # Voltha server instance(s)
   #
@@ -97,9 +107,13 @@ services:
       SERVICE_8880_CHECK_INTERVAL: "5s"
       SERVICE_8880_CHECK_TIMEOUT: "1s"
       SERVICE_50555_NAME: "voltha-grpc"
-      SERVICE_50555_TAGS: "chameleon,ofagent"
     volumes:
     - "/var/run/docker.sock:/tmp/docker.sock"
+
+#############################################
+# Item below this line will soon be removed.#
+#############################################
+
   #
   # Chameleon server instance(s)
   #

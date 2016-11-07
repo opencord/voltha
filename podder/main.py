@@ -19,13 +19,13 @@ import argparse
 import os
 
 import yaml
-from twisted.internet.defer import inlineCallbacks
+from podder import Podder
 
 from common.structlog_setup import setup_logging
 from common.utils.nethelpers import get_my_primary_local_ipv4
-from consul_mgr import ConsulManager
 
 defs = dict(
+    slaves=os.environ.get('SLAVES', './slaves.yml'),
     config=os.environ.get('CONFIG', './podder.yml'),
     consul=os.environ.get('CONSUL', 'localhost:8500'),
     external_host_address=os.environ.get('EXTERNAL_HOST_ADDRESS',
@@ -49,6 +49,15 @@ def parse_args():
                         dest='config',
                         action='store',
                         default=defs['config'],
+                        help=_help)
+
+    _help = ('Path to slaves configuration file (default %s).'
+            'If relative, it is relative to main.py of podder.'
+             % defs['slaves'])
+    parser.add_argument('-s', '--slaves',
+                        dest='slaves',
+                        action='store',
+                        default=defs['slaves'],
                         help=_help)
 
     _help = '<hostname>:<port> to consul agent (default: %s)' % defs['consul']
@@ -101,8 +110,8 @@ def parse_args():
 
     return args
 
-def load_config(args):
-    path = args.config
+def load_config(config):
+    path = config
     if path.startswith('.'):
         dir = os.path.dirname(os.path.abspath(__file__))
         path = os.path.join(dir, path)
@@ -129,7 +138,8 @@ class Main(object):
 
     def __init__(self):
         self.args = args = parse_args()
-        self.config = load_config(args)
+        self.config = load_config(args.config)
+        self.slave_config = load_config(args.slaves)
 
         verbosity_adjust = (args.verbose or 0) - (args.quiet or 0)
         self.log = setup_logging(self.config.get('logging', {}),
@@ -142,33 +152,15 @@ class Main(object):
         if not args.no_banner:
             print_banner(self.log)
 
+    def start(self):
         self.startup_components()
 
-    def start(self):
-        self.start_reactor()
-
-    @inlineCallbacks
     def startup_components(self):
         self.log.info('starting-internal-components')
         args = self.args
-        self.consul_manager = yield ConsulManager(args.consul).run()
+        self.podder = Podder(args, self.slave_config)
         self.log.info('started-internal-components')
-
-    @inlineCallbacks
-    def shutdown_components(self):
-        """Execute before the reactor is shut down"""
-        self.log.info('exiting-on-keyboard-interrupt')
-        if self.consul_manager is not None:
-            yield self.consul_manager.shutdown()
-
-    def start_reactor(self):
-        from twisted.internet import reactor
-        reactor.callWhenRunning(
-            lambda: self.log.info('twisted-reactor-started'))
-
-        reactor.addSystemEventTrigger('before', 'shutdown',
-                                      self.shutdown_components)
-        reactor.run()
+        self.podder.run()
 
 
 if __name__ == '__main__':
