@@ -40,12 +40,13 @@ def pyang_plugin_init():
     plugin.register_plugin(ProtobufPlugin())
 
 
-class Protobuf():
-    def __init__(self):
+class Protobuf(object):
+    def __init__(self, module_name):
+        self.module_name = module_name.replace('-', '_')
         self.tree = {}
         self.containers = []
         self.ylist = []
-        self.messages = []
+        self.leafs = []
         self.enums = []
         self.headers = []
         self.services = []
@@ -55,15 +56,40 @@ class Protobuf():
         self.headers.append('syntax = "proto3";')
         self.headers.append('package {};'.format(module_name.replace('-',
                                                                      '_')))
+    def _filter_duplicate_names(self, list_obj):
+        current_names = []
+        def _filter_dup(obj):
+            if obj.name not in current_names:
+                current_names.append(obj.name)
+                return True
+
+        return filter(_filter_dup, list_obj)
+
+    def _print_rpc(self, out, level=0):
+        spaces = '    ' * level
+        out.append(''.join([spaces, 'service {} '.format(self.module_name)]))
+        out.append(''.join('{\n'))
+
+        rpc_space = spaces + '    '
+        for rpc in self.rpcs:
+            out.append(''.join([rpc_space, 'rpc {}({}) returns({})'.format(
+                rpc.name.replace('-','_'),
+                rpc.input.replace('-','_'),
+                rpc.output.replace('-','_'))]))
+            out.append(''.join(' {}\n'))
+
+        out.append(''.join([spaces, '}\n']))
 
     def _print_container(self, container, out, level=0):
         spaces = '    ' * level
-        out.append(''.join([spaces, 'message {} '.format(container.name)]))
+        out.append(''.join([spaces, 'message {} '.format(
+            container.name.replace('-','_'))]))
         out.append(''.join('{\n'))
-        self._print_leaf(container.leafs, out, spaces)
+
+        self._print_leaf(container.leafs, out, spaces=spaces)
 
         for l in container.ylist:
-            self._print_list(l, out, level)
+            self._print_list(l, out, level + 1)
 
         for inner in container.containers:
             self._print_container(inner, out, level + 1)
@@ -72,29 +98,39 @@ class Protobuf():
 
     def _print_list(self, ylist, out, level=0):
         spaces = '    ' * level
-        out.append('message {} '.format(ylist.name))
-        out.append('{\n')
-        self._print_leaf(ylist.leafs, out, spaces)
+        out.append(''.join([spaces, 'message {} '.format(ylist.name.replace(
+            '-', '_'))]))
+        out.append(''.join('{\n'))
+
+        self._print_leaf(ylist.leafs, out, spaces=spaces)
 
         for l in ylist.ylist:
             self._print_list(l, out, level + 1)
 
-        out.append('}\n')
+        out.append(''.join([spaces, '}\n']))
 
-    def _print_leaf(self, leafs, out, spaces):
+
+    def _print_leaf(self, leafs, out, spaces='', include_message=False):
+        leafspaces = ''.join([spaces, '    '])
         for idx, l in enumerate(leafs):
-            leafspaces = ''.join([spaces, '    '])
             if l.type == "enum":
-                out.append(''.join([leafspaces, 'enum {}\n'.format(l.name)]))
+                out.append(''.join([leafspaces, 'enum {}\n'.format(
+                    l.name.replace('-','_'))]))
                 out.append(''.join([leafspaces, '{\n']))
                 self._print_enumeration(l.enumeration, out, leafspaces)
                 out.append(''.join([leafspaces, '}\n']))
             else:
+                if include_message:
+                    out.append(''.join([spaces, 'message {} '.format(
+                        l.name.replace('-','_'))]))
+                    out.append(''.join([spaces, '{\n']))
                 out.append(''.join([leafspaces, '{}{} {} = {} ;\n'.format(
                     'repeated ' if l.leaf_list else '',
                     l.type,
-                    l.name,
+                    l.name.replace('-', '_'),
                     idx + 1)]))
+                if include_message:
+                    out.append(''.join([spaces, '}\n']))
 
     def _print_enumeration(self, yang_enum, out, spaces):
         enumspaces = ''.join([spaces, '    '])
@@ -106,23 +142,37 @@ class Protobuf():
         for h in self.headers:
             out.append('{}\n'.format(h))
         out.append('\n')
-        for m in self.messages:
-            out.append('{}\n'.format(m))
-        if self.messages:
+
+        if self.leafs:
+            # Risk of duplicates if leaf was processed as both a
+            # children and a substatement.  Filter duplicates.
+            self.leafs = self._filter_duplicate_names(self.leafs)
+            self._print_leaf(self.leafs, out, spaces='', include_message=True)
             out.append('\n')
-        for l in self.ylist:
-            self._print_list(l, out)
+
         if self.ylist:
+            # remove duplicates
+            self.ylist = self._filter_duplicate_names(self.ylist)
+            for l in self.ylist:
+                self._print_list(l, out)
             out.append('\n')
-        for c in self.containers:
-            self._print_container(c, out)
+
         if self.containers:
+            # remove duplicates
+            self.containers = self._filter_duplicate_names(self.containers)
+            for c in self.containers:
+                self._print_container(c, out)
+
             out.append('\n')
+
+        if self.rpcs:
+            self.rpcs = self._filter_duplicate_names(self.rpcs)
+            self._print_rpc(out)
 
         return out
 
 
-class YangContainer():
+class YangContainer(object):
     def __init__(self):
         self.name = None
         self.containers = []
@@ -131,7 +181,7 @@ class YangContainer():
         self.ylist = []
 
 
-class YangList():
+class YangList(object):
     def __init__(self):
         self.name = None
         self.leafs = []
@@ -139,7 +189,7 @@ class YangList():
         self.ylist = []
 
 
-class YangLeaf():
+class YangLeaf(object):
     def __init__(self):
         self.name = None
         self.type = None
@@ -148,9 +198,16 @@ class YangLeaf():
         self.description = None
 
 
-class YangEnumeration():
+class YangEnumeration(object):
     def __init__(self):
         self.value = []
+
+
+class YangRpc(object):
+    def __init__(self):
+        self.name = None
+        self.input = ''
+        self.output = ''
 
 
 class ProtobufPlugin(plugin.PyangPlugin):
@@ -169,7 +226,7 @@ class ProtobufPlugin(plugin.PyangPlugin):
         for m in modules:
             # m.pprint()
             # statements.print_tree(m)
-            proto = Protobuf()
+            proto = Protobuf(m.i_modulename)
             proto.set_headers(m.i_modulename)
             self.process_substatements(m, proto, None)
             self.process_children(m, proto, None)
@@ -181,7 +238,10 @@ class ProtobufPlugin(plugin.PyangPlugin):
         """Process all substmts.
         """
         for st in node.substmts:
-            if st.keyword in ["rpc", "notification"]: continue
+            if st.keyword in ["rpc"]:
+                self.process_rpc(st, parent)
+            if st.keyword in ["notification"]:
+                continue
             if st.keyword in ["choice", "case"]:
                 self.process_substatements(st, parent, pmod)
                 continue
@@ -208,7 +268,10 @@ class ProtobufPlugin(plugin.PyangPlugin):
         """Process all children of `node`, except "rpc" and "notification".
         """
         for ch in node.i_children:
-            if ch.keyword in ["rpc", "notification"]: continue
+            if ch.keyword in ["rpc"]:
+                self.process_rpc(ch, parent)
+            if ch.keyword in ["notification"]:
+                continue
             if ch.keyword in ["choice", "case"]:
                 self.process_children(ch, parent, pmod)
                 continue
@@ -259,6 +322,25 @@ class ProtobufPlugin(plugin.PyangPlugin):
 
         for key, value in enumerate(enumeration_dict):
             leaf.enumeration.append('{} = {} ;'.format(value, key))
+
+    def process_rpc(self, node, parent):
+        yrpc = YangRpc()
+        yrpc.name = node.arg  # name of rpc call
+        # look for input node
+        input_node = node.search_one("input")
+        if input_node and input_node.substmts:
+            self.process_children(input_node, parent, None)
+            # Get the first children - there should be only 1
+            yrpc.input = input_node.i_children[0].arg
+
+        output_node = node.search_one("output")
+        if output_node and output_node.substmts:
+            self.process_children(output_node, parent, None)
+            # Get the first children - there should be only 1
+            yrpc.output = output_node.i_children[0].arg
+        # print yrpc.ouput
+        # print yrpc.input
+        parent.rpcs.append(yrpc)
 
     def get_protobuf_type(self, type):
         type = self.base_type(type)

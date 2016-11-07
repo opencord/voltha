@@ -35,6 +35,9 @@ class YangToProtoBufTests(TestCase):
 
         response = filter(_filter,response.split())
         expected_response = filter(_filter,expected_response.split())
+        print response
+        print expected_response
+
         self.assertEqual(set(response), set(expected_response))
 
 
@@ -49,9 +52,9 @@ class YangToProtoBufTests(TestCase):
             package basic;
 
             message commonAttributes {
-                uint32 my-id = 1 ;
-                string my-name = 2 ;
-                bool my-status = 3 ;
+                uint32 my_id = 1 ;
+                string my_name = 2 ;
+                bool my_status = 3 ;
             }
             """
 
@@ -77,11 +80,7 @@ class YangToProtoBufTests(TestCase):
             syntax = "proto3";
             package container;
 
-            message int-container {
-                int32 eight = 1 ;
-                int32 nine = 2 ;
-            }
-            message int-container {
+            message int_container {
                 int32 eight = 1 ;
                 int32 nine = 2 ;
             }
@@ -111,16 +110,11 @@ class YangToProtoBufTests(TestCase):
 
             message user {
                 string name = 1 ;
-                string full-name = 2 ;
-                string class = 3 ;
-            }
-            message user {
-                string name = 1 ;
-                string full-name = 2 ;
+                string full_name = 2 ;
                 string class = 3 ;
             }
 
-            message int-container {
+            message int_container {
                 int32 eight = 1 ;
                 int32 nine = 2 ;
                 int32 ten = 3 ;
@@ -130,22 +124,7 @@ class YangToProtoBufTests(TestCase):
                 Any b = 2 ;
                 string mleaf = 3 ;
                 repeated string mleaf_list = 4 ;
-                message inner-container {
-                    string mleaf1 = 1 ;
-                    string mleaf2 = 2 ;
-                }
-            }
-            message int-container {
-                int32 eight = 1 ;
-                int32 nine = 2 ;
-                int32 ten = 3 ;
-            }
-            message container1 {
-                bool a = 1 ;
-                Any b = 2 ;
-                string mleaf = 3 ;
-                repeated string mleaf_list = 4 ;
-                message inner-container {
+                message inner_container {
                     string mleaf1 = 1 ;
                     string mleaf2 = 2 ;
                 }
@@ -195,4 +174,46 @@ class YangToProtoBufTests(TestCase):
             self._compare_file(response, expected_response)
         finally:
             print "Test_04_cord_tenant_End:------------------ took {} " \
+                  "secs\n\n".format(time.time() - t0)
+
+
+    def test_05_basic_rpc(self):
+        print "Test_05_basic_rpc_Start:------------------"
+        t0 = time.time()
+
+        # input file: /voltha/tests/utests/netconf/yang/basic-rpc.yang
+
+        expected_response = """
+            syntax = "proto3";
+            package basic_rpc;
+
+            message my_id {
+                uint32 my_id = 1 ;
+            }
+            message my_name {
+                string my_name = 2 ;
+            }
+            message my_status {
+                bool my_status = 3 ;
+            }
+            message my_input {
+                string my_input = 4 ;
+            }
+            message my_output {
+                string my_output = 5 ;
+            }
+
+            service basic_rpc {
+                rpc do_something(my_input) returns(my_output) {}
+            }
+            """
+        try:
+            cmd = pyang_cmd.format('basic-rpc.yang')
+            print 'running command: {}'.format(cmd)
+            response, err, rc = run_command_to_completion_with_raw_stdout(cmd)
+            self.assertEqual(rc, 0)
+
+            self._compare_file(response, expected_response)
+        finally:
+            print "Test_05_basic_rpc_End:------------------ took {} " \
                   "secs\n\n".format(time.time() - t0)

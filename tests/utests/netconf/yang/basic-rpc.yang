@@ -1,0 +1,28 @@
+module basic-rpc {
+    namespace "urn:acme:yang:basic";
+    prefix "basic";
+
+    leaf my-id {
+        type uint8;
+    }
+    leaf my-name {
+        type string;
+    }
+    leaf my-status {
+        type boolean;
+        config false;
+    }
+
+    rpc do-something {
+        input {
+           leaf my-input {
+              type string;
+           }
+        }
+        output {
+           leaf my-output {
+              type string;
+           }
+        }
+    }
+}
