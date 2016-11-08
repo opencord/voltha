@@ -9,13 +9,13 @@
     dest: /etc/hosts
     regexp: "^{{ item.host_ip }}"
     line: "{{ item.host_ip }} {{ item.host_name }}"
-  with_items: hosts
+  with_items: "{{ hosts }}"
   tags: [common]
 
 - name: Latest apt packages
   apt:
     name: "{{ item }}"
-  with_items: use_latest_for
+  with_items: "{{ use_latest_for }}"
   tags: [common]
 
 - name: Services are not running
@@ -23,7 +23,7 @@
     name: "{{ item }}"
     state: stopped
   ignore_errors: yes
-  with_items: obsolete_services
+  with_items: "{{ obsolete_services }}"
   tags: [common]
 
 - name: Ensure known_hosts file is absent
