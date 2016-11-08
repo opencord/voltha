@@ -33,5 +33,5 @@ SOURCE_PROTO_DIR := $(VOLTHA_BASE)/voltha/protos
 build: copyfiles
 
 copyfiles:
-	rsync -av --include '*/' --include '*.py' --exclude='*' $(SOURCE_PROTO_DIR)/ $(TARGET_PROTO_DIR)
+	rsync -av --include '*/' --exclude='third_party/__init__.py' --include '*.py' --exclude='*' $(SOURCE_PROTO_DIR)/ $(TARGET_PROTO_DIR)
 

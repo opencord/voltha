@@ -34,6 +34,7 @@ from twisted.internet.defer import inlineCallbacks
 from werkzeug.exceptions import ServiceUnavailable
 
 from common.utils.asleep import asleep
+from chameleon.protos import third_party
 from chameleon.protos.schema_pb2 import SchemaServiceStub
 from google.protobuf.empty_pb2 import Empty
 
@@ -101,8 +102,8 @@ class GrpcClient(object):
             log.info('connecting', endpoint=_endpoint)
             self.channel = grpc.insecure_channel(_endpoint)
 
-            self._retrieve_schema()
-            self._compile_proto_files()
+            swagger_from = self._retrieve_schema()
+            self._compile_proto_files(swagger_from)
             self._clear_backoff()
 
             self.connected = True
@@ -192,8 +193,9 @@ class GrpcClient(object):
                       length=len(desc_content))
             with open(os.path.join(self.work_dir, desc_fname), 'wb') as f:
                 f.write(desc_content)
+        return schemas.swagger_from
 
-    def _compile_proto_files(self):
+    def _compile_proto_files(self, swagger_from):
         """
         For each *.proto file in the work directory, compile the proto
         file into the respective *_pb2.py file as well as generate the
@@ -211,7 +213,8 @@ class GrpcClient(object):
         for fname in [f for f in os.listdir(self.work_dir)
                       if f.endswith('.proto')]:
 
-            log.debug('compiling', file=fname)
+            need_swagger = fname == swagger_from
+            log.debug('compiling', file=fname, need_swagger=need_swagger)
             cmd = (
                 'cd %s && '
                 'env PATH=%s PYTHONPATH=%s '
@@ -223,7 +226,7 @@ class GrpcClient(object):
                 '--plugin=protoc-gen-gw=%s/gw_gen.py '
                 '--gw_out=. '
                 '--plugin=protoc-gen-swagger=%s/swagger_gen.py '
-                '--swagger_out=. '
+                '%s'
                 '%s' % (
                     self.work_dir,
                     ':'.join([os.environ['PATH'], self.plugin_dir]),
@@ -231,6 +234,7 @@ class GrpcClient(object):
                     google_api_dir,
                     self.plugin_dir,
                     self.plugin_dir,
+                    '--swagger_out=. ' if need_swagger else '',
                     fname)
             )
             log.debug('executing', cmd=cmd, file=fname)

@@ -44,7 +44,8 @@ class SchemaService(schema_pb2.SchemaServiceServicer):
     def __init__(self, thread_pool):
         self.thread_pool = thread_pool
         protos = self._load_schema()
-        self.schemas = schema_pb2.Schemas(protos=protos)
+        self.schemas = schema_pb2.Schemas(protos=protos,
+                                         swagger_from='voltha.proto')
 
     def stop(self):
         pass

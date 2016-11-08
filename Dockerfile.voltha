@@ -22,9 +22,11 @@ MAINTAINER Ali Al-Shabibi <ali.al-shabibi@onlab.us>
 MAINTAINER Nathan Knuth   <nathan.knuth@tibitcom.com>
 
 # Bundle app source
-COPY voltha /voltha
-COPY common /common
+RUN mkdir /voltha && touch /voltha/__init__.py
+ENV PYTHONPATH=/voltha
+COPY common /voltha/common
+COPY voltha /voltha/voltha
 
 # Exposing process and default entry point
 # EXPOSE 8000
-CMD ["python", "voltha/main.py"]
+CMD ["python", "voltha/voltha/main.py"]

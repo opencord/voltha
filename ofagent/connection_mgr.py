@@ -23,7 +23,7 @@ from common.utils.asleep import asleep
 from common.utils.consulhelpers import get_endpoint_from_consul
 from structlog import get_logger
 import grpc
-# from ofagent.protos import third_party
+from ofagent.protos import third_party
 from protos import voltha_pb2
 from grpc_client import GrpcClient
 
