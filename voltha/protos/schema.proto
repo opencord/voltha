@@ -18,6 +18,9 @@ message Schemas {
     // Proto files
     repeated ProtoFile protos = 1;
 
+    // Proto file name from which swagger.json shall be generated
+    string swagger_from = 2;
+
 }
 
 // Schema services

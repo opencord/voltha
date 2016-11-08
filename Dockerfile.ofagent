@@ -35,10 +35,10 @@ RUN apt-get update && \
     rm -f *.deb
 
 # Bundle app source
-COPY ofagent /ofagent
-COPY common /common
+RUN mkdir /ofagent && touch /ofagent/__init__.py
+ENV PYTHONPATH=/ofagent
+COPY common /ofagent/common
+COPY ofagent /ofagent/ofagent
 
 # Exposing process and default entry point
-# EXPOSE 8000
-
-CMD ["python", "ofagent/main.py"]
+CMD ["python", "ofagent/ofagent/main.py"]

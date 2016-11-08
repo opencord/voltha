@@ -21,7 +21,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='schema.proto',
   package='schema',
   syntax='proto3',
-  serialized_pb=_b('\n\x0cschema.proto\x12\x06schema\x1a\x1cgoogle/api/annotations.proto\x1a\x1bgoogle/protobuf/empty.proto\"A\n\tProtoFile\x12\x11\n\tfile_name\x18\x01 \x01(\t\x12\r\n\x05proto\x18\x02 \x01(\t\x12\x12\n\ndescriptor\x18\x03 \x01(\x0c\",\n\x07Schemas\x12!\n\x06protos\x18\x01 \x03(\x0b\x32\x11.schema.ProtoFile2V\n\rSchemaService\x12\x45\n\tGetSchema\x12\x16.google.protobuf.Empty\x1a\x0f.schema.Schemas\"\x0f\x82\xd3\xe4\x93\x02\t\x12\x07/schemab\x06proto3')
+  serialized_pb=_b('\n\x0cschema.proto\x12\x06schema\x1a\x1cgoogle/api/annotations.proto\x1a\x1bgoogle/protobuf/empty.proto\"A\n\tProtoFile\x12\x11\n\tfile_name\x18\x01 \x01(\t\x12\r\n\x05proto\x18\x02 \x01(\t\x12\x12\n\ndescriptor\x18\x03 \x01(\x0c\"B\n\x07Schemas\x12!\n\x06protos\x18\x01 \x03(\x0b\x32\x11.schema.ProtoFile\x12\x14\n\x0cswagger_from\x18\x02 \x01(\t2V\n\rSchemaService\x12\x45\n\tGetSchema\x12\x16.google.protobuf.Empty\x1a\x0f.schema.Schemas\"\x0f\x82\xd3\xe4\x93\x02\t\x12\x07/schemab\x06proto3')
   ,
   dependencies=[google_dot_api_dot_annotations__pb2.DESCRIPTOR,google_dot_protobuf_dot_empty__pb2.DESCRIPTOR,])
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
@@ -88,6 +88,13 @@ _SCHEMAS = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
+    _descriptor.FieldDescriptor(
+      name='swagger_from', full_name='schema.Schemas.swagger_from', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
   ],
   extensions=[
   ],
@@ -101,7 +108,7 @@ _SCHEMAS = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=150,
-  serialized_end=194,
+  serialized_end=216,
 )
 
 _SCHEMAS.fields_by_name['protos'].message_type = _PROTOFILE
@@ -173,6 +180,11 @@ def add_SchemaServiceServicer_to_server(servicer, server):
 
 
 class BetaSchemaServiceServicer(object):
+  """The Beta API is deprecated for 0.15.0 and later.
+
+  It is recommended to use the GA API (classes and functions in this
+  file not marked beta) for all further purposes. This class was generated
+  only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0."""
   """Schema services
   """
   def GetSchema(self, request, context):
@@ -182,6 +194,11 @@ class BetaSchemaServiceServicer(object):
 
 
 class BetaSchemaServiceStub(object):
+  """The Beta API is deprecated for 0.15.0 and later.
+
+  It is recommended to use the GA API (classes and functions in this
+  file not marked beta) for all further purposes. This class was generated
+  only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0."""
   """Schema services
   """
   def GetSchema(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
@@ -192,6 +209,11 @@ class BetaSchemaServiceStub(object):
 
 
 def beta_create_SchemaService_server(servicer, pool=None, pool_size=None, default_timeout=None, maximum_timeout=None):
+  """The Beta API is deprecated for 0.15.0 and later.
+
+  It is recommended to use the GA API (classes and functions in this
+  file not marked beta) for all further purposes. This function was
+  generated only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0"""
   request_deserializers = {
     ('schema.SchemaService', 'GetSchema'): google_dot_protobuf_dot_empty__pb2.Empty.FromString,
   }
@@ -206,6 +228,11 @@ def beta_create_SchemaService_server(servicer, pool=None, pool_size=None, defaul
 
 
 def beta_create_SchemaService_stub(channel, host=None, metadata_transformer=None, pool=None, pool_size=None):
+  """The Beta API is deprecated for 0.15.0 and later.
+
+  It is recommended to use the GA API (classes and functions in this
+  file not marked beta) for all further purposes. This function was
+  generated only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0"""
   request_serializers = {
     ('schema.SchemaService', 'GetSchema'): google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
   }

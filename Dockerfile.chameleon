@@ -35,10 +35,10 @@ RUN apt-get update && \
     rm -f *.deb
 
 # Bundle app source
-COPY chameleon /chameleon
-COPY common /common
+RUN mkdir /chameleon && touch /chameleon/__init__.py
+ENV PYTHONPATH=/chameleon
+COPY common /chameleon/common
+COPY chameleon /chameleon/chameleon
 
 # Exposing process and default entry point
-# EXPOSE 8000
-
-CMD ["python", "chameleon/main.py"]
+CMD ["python", "chameleon/chameleon/main.py"]

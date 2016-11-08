@@ -73,7 +73,7 @@ services:
   voltha:
     image: cord/voltha
     command: [
-      "/voltha/main.py",
+      "/voltha/voltha/main.py",
       "-v",
       "--consul=${DOCKER_HOST_IP}:8500",
       "--fluentd=fluentd:24224",
@@ -106,7 +106,7 @@ services:
   chameleon:
     image: cord/chameleon
     command: [
-      "/chameleon/main.py",
+      "/chameleon/chameleon/main.py",
       "-v",
       "--consul=consul:8500",
       "--fluentd=fluentd:24224",
@@ -133,7 +133,7 @@ services:
   ofagent:
     image: cord/ofagent
     command: [
-      "/ofagent/main.py",
+      "/ofagent/ofagent/main.py",
       "-v",
       "--consul=${DOCKER_HOST_IP}:8500",
       "--fluentd=fluentd:24224",
