@@ -125,7 +125,7 @@ ${VENVDIR}/.built:
 	        uname -s > ${VENVDIR}/.built; \
 	    fi
 
-utest: venv
+utest: venv protos
 	@ echo "Executing all unit tests"
 	. ${VENVDIR}/bin/activate && \
 	    nosetests tests --exclude-dir=./tests/itests/

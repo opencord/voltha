@@ -32,7 +32,7 @@ tmp
 
 # Protobuf output files
 voltha/**/*.desc
-ofagent/protos/**/*_pb2.py
+**/*_pb2.py
 
 # Editors
 *.bak
