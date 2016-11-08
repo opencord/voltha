@@ -24,6 +24,7 @@ from twisted.internet.defer import inlineCallbacks
 
 from common.utils.consulhelpers import get_endpoint_from_consul
 
+log = get_logger()
 
 class KafkaProxy(object):
     """
@@ -39,9 +40,7 @@ class KafkaProxy(object):
         if KafkaProxy._kafka_instance:
             raise Exception('Singleton exist for :{}'.format(KafkaProxy))
 
-        self.log = get_logger()
-
-        self.log.info('KafkaProxy init with kafka endpoint:{}'.format(
+        log.info('KafkaProxy init with kafka endpoint:{}'.format(
             kafka_endpoint))
 
         self.ack_timeout = ack_timeout
@@ -63,11 +62,11 @@ class KafkaProxy(object):
             try:
                 _k_endpoint = get_endpoint_from_consul(self.consul_endpoint,
                                                        self.kafka_endpoint[1:])
-                self.log.info(
+                log.info(
                     'Found kafka service at {}'.format(_k_endpoint))
 
             except Exception as e:
-                self.log.error('Failure to locate a kafka service from '
+                log.error('Failure to locate a kafka service from '
                                'consul {}:'.format(repr(e)))
                 self.kproducer = None
                 self.kclient = None
@@ -93,19 +92,19 @@ class KafkaProxy(object):
             self._get_kafka_producer()
             # Lets the next message request do the retry if still a failure
             if self.kproducer is None:
-                self.log.error('No kafka producer available at {}'.format(
+                log.error('No kafka producer available at {}'.format(
                     self.kafka_endpoint))
                 return
 
-        self.log.info('Sending message {} to kafka topic {}'.format(msg,
+        log.info('Sending message {} to kafka topic {}'.format(msg,
                                                                     topic))
         try:
             msg_list = [msg]
             yield self.kproducer.send_messages(topic, msgs=msg_list)
-            self.log.info('Successfully sent message {} to kafka topic '
+            log.info('Successfully sent message {} to kafka topic '
                           '{}'.format(msg, topic))
         except Exception as e:
-            self.log.error('Failure to send message {} to kafka topic {}: '
+            log.error('Failure to send message {} to kafka topic {}: '
                            '{}'.format(msg, topic, repr(e)))
             # set the kafka producer to None.  This is needed if the
             # kafka docker went down and comes back up with a different
@@ -117,3 +116,4 @@ class KafkaProxy(object):
 # Common method to get the singleton instance of the kafka proxy class
 def get_kafka_proxy():
     return KafkaProxy._kafka_instance
+
