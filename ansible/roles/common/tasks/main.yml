@@ -9,13 +9,26 @@
     dest: /etc/hosts
     regexp: "^{{ item.host_ip }}"
     line: "{{ item.host_ip }} {{ item.host_name }}"
-  with_items: hosts
+  with_items:
+    - host_ip: "10.100.198.220"
+      host_name: "voltha"
   tags: [common]
 
 - name: Latest apt packages
   apt:
     name: "{{ item }}"
-  with_items: use_latest_for
+  with_items:
+    - debian-keyring
+    - debian-archive-keyring
+    - python-dev
+    - libssl-dev
+    - libffi-dev
+    - libpcap-dev
+    - python-virtualenv
+    - jq
+    - python-nose
+    - python-flake8
+    - python-scapy
   tags: [common]
 
 - name: Services are not running
@@ -23,7 +36,9 @@
     name: "{{ item }}"
     state: stopped
   ignore_errors: yes
-  with_items: obsolete_services
+  with_items:
+    - puppet
+    - checf-client
   tags: [common]
 
 - name: Ensure known_hosts file is absent
