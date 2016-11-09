@@ -78,11 +78,8 @@ build: protos docker-base
 	docker build -t cord/chameleon -f Dockerfile.chameleon .
 	docker build -t cord/ofagent -f Dockerfile.ofagent .
 
-docker-base: .docker-base-built
-
-.docker-base-built: Dockerfile.base Makefile requirements.txt
+docker-base:
 	docker build -t cord/voltha-base -f Dockerfile.base .
-	touch .docker-base-built
 
 protos:
 	make -C voltha/protos
