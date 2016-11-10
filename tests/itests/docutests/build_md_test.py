@@ -55,7 +55,7 @@ command_defs = dict(
     docker_start_voltha="docker run -ti --rm cord/voltha",
     docker_start_voltha_with_consul_ip="docker run -ti --rm --net="
                                        "compose_default cord/voltha "
-                                       "/voltha/main.py --consul=",
+                                       "/voltha/voltha/main.py --consul=",
     docker_get_consul_ip="docker inspect "
                          "compose_consul_1 | jq -r "
                          "'.[0].NetworkSettings.Networks."
@@ -201,8 +201,8 @@ class BuildMdTests(TestCase):
             expected_output_subset = [
                 'main.print_banner {event: (to stop: press Ctrl-C), '
                 'instance_id:',
-                'coordinator.__init__ {event: initialized-coordinator,',
-                'grpc_server.run {event: starting-grpc-server,',
+                'coordinator.__init__ {event: initializing-coordinator,',
+                'grpc_server.start {event: started',
                 'main.<lambda> {event: twisted-reactor-started',
                 'main.startup_components {event: started-internal-services,',
                 'kafka_proxy.send_message {event: Sending message Heartbeat '
@@ -490,7 +490,7 @@ class BuildMdTests(TestCase):
                                'coordinator._renew_session', 'main.heartbeat']
             cmd = command_defs['docker_voltha_logs']
             docker_voltha_logs = run_long_running_command_with_timeout(cmd,
-                                                                       0.5, 2)
+                                                                       0.5, 3)
             intersected_logs = [l for l in expected_output if
                                 l in docker_voltha_logs]
             self.assertEqual(len(intersected_logs), len(expected_output))

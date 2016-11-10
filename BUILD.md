@@ -89,7 +89,7 @@ CONSUL_IP=`docker inspect compose_consul_1 | \
 With the IP address in hand, you can now start Voltha manually as:
 
 ```
-docker run -ti --rm --net=compose_default cord/voltha /voltha/main.py --consul=$CONSUL_IP:8500
+docker run -ti --rm --net=compose_default cord/voltha /voltha/voltha/main.py --consul=$CONSUL_IP:8500
 ```
 
 This time it should successfully connect to consul and actually register itself.

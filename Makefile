@@ -21,6 +21,7 @@ endif
 include setup.mk
 
 VENVDIR := venv-$(shell uname -s | tr '[:upper:]' '[:lower:]')
+DOCKER_CMD := docker pull consul
 
 .PHONY: $(DIRS) $(DIRS_CLEAN) $(DIRS_FLAKE8) flake8
 
@@ -71,6 +72,7 @@ help:
 	@echo "rebuild-venv : Rebuild local Python virtualenv from scratch"
 	@echo "venv         : Build local Python virtualenv if did not exist yet"
 	@echo "utest        : Run all unit tests"
+	@echo "itest        : Run all integration tests"
 	@echo
 
 build: protos docker-base
@@ -128,10 +130,22 @@ utest: venv protos
 	. ${VENVDIR}/bin/activate && \
 	    nosetests tests --exclude-dir=./tests/itests/
 
-itest: venv
+itest: venv frameio
+	@ echo "Executing sanity integration tests"
+	. ${VENVDIR}/bin/activate && \
+	nosetests -s  \
+	tests/itests/docutests/build_md_test.py:BuildMdTests.test_07_start_all_containers \
+	--exclude-dir=./tests/itests/frameio_tests/run_as_root/
+
+itest-all: venv frameio
 	@ echo "Executing all integration tests"
 	. ${VENVDIR}/bin/activate && \
-	    nosetests tests/itests -s
+	    nosetests -s  \
+	    tests/itests/docutests/build_md_test.py \
+        --exclude-dir=./tests/itests/frameio_tests/run_as_root/
+
+frameio:
+	docker run -ti --rm -v /voltha:/voltha  --privileged cord/voltha-base     env PYTHONPATH=/voltha python /voltha/tests/itests/frameio_tests/run_as_root/test_frameio.py
 
 flake8: $(DIRS_FLAKE8)
 
