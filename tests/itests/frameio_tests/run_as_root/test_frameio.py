@@ -19,7 +19,8 @@
 Run this test inside a docker container using the following syntax:
 
 docker run -ti --rm -v $(pwd):/voltha  --privileged cord/voltha-base \
-    env PYTHONPATH=/voltha python /voltha/tests/itests/test_frameio.py
+    env PYTHONPATH=/voltha python \
+    /voltha/tests/itests/frameio_tests/run_as_root/test_frameio.py
 
 """
 
