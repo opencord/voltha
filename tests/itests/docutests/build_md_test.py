@@ -736,7 +736,7 @@ class BuildMdTests(TestCase):
             "(.*)consul_1(.*)agent: Synced service(.*)kafka(.*):9092"
         ]
         pattern_found = []
-        max_wait_time = 60  # wait 2 mins as a maximum
+        max_wait_time = 60  # wait up to 1 minute before declaring a failure
 
         def _stop_process(proc):
             try:
