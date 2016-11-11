@@ -1,0 +1,22 @@
+blockdiag {
+
+  // States
+  N1 [label = Not-exist, shape = beginpoint];
+  N2 [label = Not-exist, shape = beginpoint];
+  Discovered [shape = ellipse];
+  Pre-provisioned [shape = ellipse];
+  Activating [shape = ellipse];
+  Active [shape = ellipse, color = "#80ff80"];
+  Failed [shape = ellipse, color = "#ff8080"];
+  TBD [shape = ellipse, stacked];
+
+  // Transients
+  N1 -> Pre-provisioned;
+  N2 -> Discovered;
+  Pre-provisioned -> Activating;
+  Discovered -> Activating;
+  Activating -> Active;
+  Activating -> Failed [folded];
+  Active -> Failed [folded];
+
+}
