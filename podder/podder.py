@@ -16,6 +16,7 @@
 
 from handlers import handler_start, handler_stop
 from structlog import get_logger
+from jinja2 import Template
 
 from common.utils.dockerhelpers import EventProcessor
 
@@ -27,7 +28,7 @@ class Podder(object):
         self.log.info('Initializing Podder')
         self.running = False
         self.events = EventProcessor()
-        self.handlers = { 'podder_config' : slave_config }
+        self.handlers = { 'podder_config' : Template(slave_config) }
 
     def run(self):
         if self.running:

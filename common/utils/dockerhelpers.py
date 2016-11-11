@@ -210,7 +210,7 @@ class EventProcessor(object):
                         data = self.client.inspect_image(i)
                     data[i] = data
                 except errors.NotFound:
-                    log.info('No data for container {}'.format(i))
+                    log.debug('No data for container {}'.format(i))
 
             status = get_status(event)
             if status in handlers:
