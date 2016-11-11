@@ -152,7 +152,7 @@ smoke-test: venv run-as-root-tests
 
 
 run-as-root-tests:
-	docker run -ti --rm -v /voltha:/voltha --privileged cord/voltha-base env PYTHONPATH=/voltha python /voltha/tests/itests/run_as_root/test_frameio.py
+	docker run -i --rm -v /voltha:/voltha --privileged cord/voltha-base env PYTHONPATH=/voltha python /voltha/tests/itests/run_as_root/test_frameio.py
 
 flake8: $(DIRS_FLAKE8)
 

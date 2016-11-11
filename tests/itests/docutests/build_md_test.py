@@ -389,7 +389,8 @@ class BuildMdTests(TestCase):
             cmd = command_defs['docker_ps_count']
             out, err, rc = run_command_to_completion_with_raw_stdout(cmd)
             self.assertEqual(rc, 0)
-            self.assertEqual(out.split(), [str(len(docker_service_list))])
+            self.assertGreaterEqual(out.split(), [str(len(
+                docker_service_list))])
 
             # Retrieve the list of services from consul and validate against
             # the list obtained from docker composed
