@@ -1,3 +1,11 @@
+{% macro address(data, network) -%}
+    {% if data is defined and network is defined -%}
+    {{ data['NetworkSettings']['Networks'][network]['IPAddress'] }}:{{ data['NetworkSettings']['Ports']['50555/tcp'][0]['HostPort'] }}
+    {%- else -%}
+    None:None
+    {%- endif %}
+{%- endmacro %}
+
 services:
   cord/voltha:
     slaves: ["chameleon", "ofagent"]
@@ -12,7 +20,7 @@ slaves:
       "--consul=consul:8500",
       "--fluentd=fluentd:24224",
       "--rest-port=8881",
-      "--grpc-endpoint=@voltha-grpc",
+      "--grpc-endpoint={{ address(data, network) }}",
       "--instance-id-is-container-name",
       "-v"
     ]
@@ -37,7 +45,7 @@ slaves:
       "--consul=${DOCKER_HOST_IP}:8500",
       "--fluentd=fluentd:24224",
       "--controller=${DOCKER_HOST_IP}:6633",
-      "--grpc-endpoint=@voltha-grpc",
+      "--grpc-endpoint={{ address(data, network) }}",
       "--instance-id-is-container-name",
       "-v"
     ]

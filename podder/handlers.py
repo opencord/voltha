@@ -17,6 +17,7 @@ from common.utils.dockerhelpers import create_host_config, create_container, sta
     get_all_running_containers, inspect_container, remove_container
 
 from structlog import get_logger
+import yaml
 
 log = get_logger()
 
@@ -48,7 +49,6 @@ def create_network_config(network, links):
     # Assuming only one network exists....
     return create_networking_config(network[0], { l : l for l in links})
 
-
 def process_value(value):
     if value is None:
         return None
@@ -68,7 +68,6 @@ def process_value(value):
 def construct_container_spec(config):
     container_spec = {}
     container_spec['image'] = get_entry('image', config, mandatory=True)
-    #TODO need to rewrite command to connect to right service instance
     container_spec['command'] = get_entry('command', config, mandatory=True)
     container_spec['environment'] = get_entry('environment', config, noneval={})
     container_spec['ports'] = get_entry('ports', config)
@@ -86,7 +85,11 @@ def service_shutdown(service, instance_name, config):
                     log.info('Removing container {}'.format(container['Names']))
                     remove_container(container['Id'])
 
-def start_slaves(service, instance_name, instance_id, data, config):
+def start_slaves(service, instance_name, instance_id, data, conf):
+    network = obtain_network_name(data)
+    # still assuming a single network
+    config = yaml.load(conf.render(data=data, network=network[0]))
+
     if service not in config['services']:
         log.debug('Unknown service {}'.format(service))
         return
@@ -94,7 +97,7 @@ def start_slaves(service, instance_name, instance_id, data, config):
         if slave not in config['slaves']:
             log.debug('Unknown slave service {}'.format(slave))
             continue
-        network = obtain_network_name(data)
+
         netcfg = create_network_config(network, get_entry('links', config['slaves'][slave]))
         container_spec = construct_container_spec(config['slaves'][slave])
         container_spec['networking_config'] = netcfg
@@ -107,11 +110,14 @@ def start_slaves(service, instance_name, instance_id, data, config):
         container_spec['environment']['PODDER_MASTER'] = instance_name
 
         container = create_container(container_spec)
+        log.info('Starting slaves for {}'.format(instance_name))
         start_container(container)
 
 
-def stop_slaves(service, instance_name, instance_id, data, config):
+def stop_slaves(service, instance_name, instance_id, data, conf):
     log.info('Stopping slaves for {}'.format(instance_name))
+    network = obtain_network_name(data)
+    config = yaml.load(conf.render())
     if service in config['services']:
         service_shutdown(service, instance_name, config)
     else:
