@@ -25,7 +25,7 @@ from common.structlog_setup import setup_logging
 from common.utils.nethelpers import get_my_primary_local_ipv4
 
 defs = dict(
-    slaves=os.environ.get('SLAVES', './slaves.yml'),
+    slaves=os.environ.get('SLAVES', './slaves.yml.j2'),
     config=os.environ.get('CONFIG', './podder.yml'),
     consul=os.environ.get('CONSUL', 'localhost:8500'),
     external_host_address=os.environ.get('EXTERNAL_HOST_ADDRESS',
@@ -110,15 +110,20 @@ def parse_args():
 
     return args
 
-def load_config(config):
-    path = config
+def load_file(file):
+    path = file
     if path.startswith('.'):
         dir = os.path.dirname(os.path.abspath(__file__))
         path = os.path.join(dir, path)
     path = os.path.abspath(path)
     with open(path) as fd:
-        config = yaml.load(fd)
-    return config
+        contents = fd.read()
+    return contents
+
+def load_config(config):
+    contents = load_file(config)
+    return yaml.load(contents)
+
 
 banner = r'''
  _____
@@ -139,7 +144,7 @@ class Main(object):
     def __init__(self):
         self.args = args = parse_args()
         self.config = load_config(args.config)
-        self.slave_config = load_config(args.slaves)
+        self.slave_config = load_file(args.slaves)
 
         verbosity_adjust = (args.verbose or 0) - (args.quiet or 0)
         self.log = setup_logging(self.config.get('logging', {}),
