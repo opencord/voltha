@@ -30,9 +30,14 @@ from common.utils.nethelpers import get_my_primary_interface, \
     get_my_primary_local_ipv4
 from voltha.adapters.loader import AdapterLoader
 from voltha.coordinator import Coordinator
+from voltha.core.core import VolthaCore
 from voltha.northbound.grpc.grpc_server import VolthaGrpcServer
 from voltha.northbound.kafka.kafka_proxy import KafkaProxy, get_kafka_proxy
 from voltha.northbound.rest.health_check import init_rest_service
+from voltha.protos.common_pb2 import INFO
+from voltha.registry import registry
+
+VERSION = '0.9.0'
 
 defs = dict(
     config=os.environ.get('CONFIG', './voltha.yml'),
@@ -214,12 +219,6 @@ class Main(object):
         # configurable variables from voltha.yml file
         #self.configurable_vars = self.config.get('Constants', {})
 
-        # components
-        self.coordinator = None
-        self.grpc_server = None
-        self.kafka_proxy = None
-        self.adapter_loader = None
-
         if not args.no_banner:
             print_banner(self.log)
 
@@ -236,40 +235,49 @@ class Main(object):
     def startup_components(self):
         try:
             self.log.info('starting-internal-components')
-            self.coordinator = yield Coordinator(
+
+            coordinator = yield Coordinator(
                 internal_host_address=self.args.internal_host_address,
                 external_host_address=self.args.external_host_address,
                 rest_port=self.args.rest_port,
                 instance_id=self.args.instance_id,
                 config=self.config,
                 consul=self.args.consul).start()
+            registry.register('coordinator', coordinator)
+
             init_rest_service(self.args.rest_port)
 
-            self.grpc_server = yield VolthaGrpcServer(self.args.grpc_port).start()
+            grpc_server = \
+                yield VolthaGrpcServer(self.args.grpc_port).start()
+            registry.register('grpc_server', grpc_server)
 
-            # initialize kafka proxy singleton
-            self.kafka_proxy = yield KafkaProxy(self.args.consul, self.args.kafka)
+            core = \
+                yield VolthaCore(
+                    instance_id=self.args.instance_id,
+                    version=VERSION,
+                    log_level=INFO
+                ).start()
+            registry.register('core', core)
 
-            # adapter loader
-            self.adapter_loader = yield AdapterLoader(
+            kafka_proxy = \
+                yield KafkaProxy(self.args.consul, self.args.kafka).start()
+            registry.register('kafka_proxy', kafka_proxy)
+
+            adapter_loader = yield AdapterLoader(
                 config=self.config.get('adapter_loader', {})).start()
+            registry.register('adapter_loader', adapter_loader)
 
             self.log.info('started-internal-services')
 
         except Exception as e:
             self.log.exception('Failure to start all components {}'.format(e))
 
-
     @inlineCallbacks
     def shutdown_components(self):
         """Execute before the reactor is shut down"""
         self.log.info('exiting-on-keyboard-interrupt')
-        if self.adapter_loader is not None:
-            yield self.adapter_loader.stop()
-        if self.coordinator is not None:
-            yield self.coordinator.stop()
-        if self.grpc_server is not None:
-            yield self.grpc_server.stop()
+        for component in reversed(registry.iterate()):
+            yield component.stop()
 
     def start_reactor(self):
         from twisted.internet import reactor

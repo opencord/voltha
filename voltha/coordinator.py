@@ -23,9 +23,11 @@ from structlog import get_logger
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, returnValue, Deferred
 from twisted.internet.task import LoopingCall
+from zope.interface import implementer
 
 from leader import Leader
 from common.utils.asleep import asleep
+from voltha.registry import IComponent
 from worker import Worker
 
 log = get_logger()
@@ -35,6 +37,7 @@ class StaleMembershipEntryException(Exception):
     pass
 
 
+@implementer(IComponent)
 class Coordinator(object):
     """
     An app shall instantiate only one Coordinator (singleton).
@@ -106,6 +109,7 @@ class Coordinator(object):
         log.debug('starting')
         reactor.callLater(0, self._async_init)
         log.info('started')
+        return self
 
     @inlineCallbacks
     def stop(self):
@@ -114,7 +118,7 @@ class Coordinator(object):
         yield self._delete_session()  # this will delete the leader lock too
         yield self.worker.stop()
         if self.leader is not None:
-            yield self.leader.halt()
+            yield self.leader.stop()
             self.leader = None
         log.info('stopped')
 

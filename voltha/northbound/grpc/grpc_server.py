@@ -25,18 +25,16 @@ from concurrent import futures
 from structlog import get_logger
 import zlib
 
+from zope.interface import implementer
+
 from common.utils.grpc_utils import twisted_async
 from voltha.core.device_model import DeviceModel
 from voltha.protos import voltha_pb2, schema_pb2
 from google.protobuf.empty_pb2 import Empty
 
+from voltha.registry import IComponent
 
 log = get_logger()
-
-
-_nbi_server = None  # this will become the default server instance
-
-def get_nbi_server(): return _nbi_server
 
 
 class SchemaService(schema_pb2.SchemaServiceServicer):
@@ -239,21 +237,15 @@ class VolthaLogicalLayer(voltha_pb2.VolthaLogicalLayerServicer):
         self.packet_in_queue.put(packet_in)
 
 
+@implementer(IComponent)
 class VolthaGrpcServer(object):
 
     def __init__(self, port=50055):
-        self._register_singleton()
         self.port = port
         log.info('init-grpc-server', port=self.port)
         self.thread_pool = futures.ThreadPoolExecutor(max_workers=10)
         self.server = grpc.server(self.thread_pool)
         self.services = []
-
-    def _register_singleton(self):
-        global _nbi_server
-        if _nbi_server is not None:
-            raise RuntimeError('cannot-run-two-servers')
-        _nbi_server = self
 
     def start(self):
         log.debug('starting')

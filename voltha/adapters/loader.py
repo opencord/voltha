@@ -25,12 +25,15 @@ import os
 
 import structlog
 from twisted.internet.defer import inlineCallbacks, returnValue
+from zope.interface import implementer
 from zope.interface.verify import verifyClass
 
+from common.utils.grpc_utils import twisted_async
 from voltha.adapters.interface import IAdapterInterface
-from voltha.northbound.grpc.grpc_server import get_nbi_server
+from voltha.protos import third_party
 from voltha.protos.adapter_pb2 import add_AdapterServiceServicer_to_server, \
     AdapterServiceServicer, Adapters
+from voltha.registry import IComponent, registry
 
 log = structlog.get_logger()
 
@@ -38,21 +41,25 @@ log = structlog.get_logger()
 mydir = os.path.abspath(os.path.dirname(__file__))
 
 
+@implementer(IComponent)
 class AdapterLoader(AdapterServiceServicer):
 
     def __init__(self, config):
         self.config = config
         self.adapters = {}  # adapter-name -> adapter instance
-        get_nbi_server().register(add_AdapterServiceServicer_to_server, self)
+        registry('grpc_server').register(
+            add_AdapterServiceServicer_to_server, self)
+        self.root_proxy = registry('core').get_proxy('/')
 
     @inlineCallbacks
     def start(self):
         log.debug('starting')
-        for adapter_name, adapter_class in self.find_adapters():
+        for adapter_name, adapter_class in self._find_adapters():
             config = self.load_adapter_config(adapter_name)
             adapter = adapter_class(config)
             yield adapter.start()
             self.adapters[adapter_name] = adapter
+            self.expose_adapter(adapter_name)
         log.info('started')
         returnValue(self)
 
@@ -64,7 +71,7 @@ class AdapterLoader(AdapterServiceServicer):
         self.adapters = {}
         log.info('stopped')
 
-    def find_adapters(self):
+    def _find_adapters(self):
         subdirs = os.walk(mydir).next()[1]
         for subdir in subdirs:
             adapter_name = subdir
@@ -85,7 +92,6 @@ class AdapterLoader(AdapterServiceServicer):
                         verifyClass(IAdapterInterface, cls)
                         yield adapter_name, cls
 
-
     def load_adapter_config(self, adapter_name):
         """
         Opportunistically load persisted adapter configuration
@@ -94,10 +100,15 @@ class AdapterLoader(AdapterServiceServicer):
         """
         # TODO
 
+    def expose_adapter(self, name):
+        adapter_descriptor = self.adapters[name].adapter_descriptor()
+        self.root_proxy.add('/adapters', adapter_descriptor)
+
     # gRPC service method implementations. BE CAREFUL; THESE ARE CALLED ON
     # the gRPC threadpool threads.
 
+    @twisted_async
     def ListAdapters(self, request, context):
         log.info('list-adapters', request=request)
-        items = [a.adapter_descriptor() for a in self.adapters.itervalues()]
+        items = self.root_proxy.get('/adapters')
         return Adapters(items=items)
