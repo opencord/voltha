@@ -133,7 +133,7 @@ test: venv protos run-as-root-tests
 utest: venv protos
 	@ echo "Executing all unit tests"
 	. ${VENVDIR}/bin/activate && \
-	    nosetests tests --exclude-dir=./tests/itests/
+	    for d in $$(find ./tests/utests -type d -depth 1); do echo $$d:; nosetests -v $$d; done
 
 itest: venv run-as-root-tests 
 	@ echo "Executing all integration tests"

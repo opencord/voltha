@@ -8,6 +8,10 @@ syntax = "proto3";
 
 package voltha;
 
+import "google/protobuf/empty.proto";
+import "google/api/annotations.proto";
+
+import public "meta.proto";
 import public "common.proto";
 import public "health.proto";
 import public "logical_layer.proto";
@@ -17,3 +21,26 @@ import public "example_service.proto";
 option java_package = "org.opencord.voltha";
 option java_outer_classname = "VolthaProtos";
 option csharp_namespace = "Opencord.Voltha.Voltha";
+
+// Top-level (root) config node for Voltha
+message Voltha {
+
+    string instance_id = 1  [(access) = READ_ONLY];
+    string version = 2 [(access) = READ_ONLY];
+    LogLevel log_level = 3;
+
+    HealthStatus health = 10 [(child_node) = {}];
+    repeated Adapter adapters = 11 [(child_node) = { key: "id" }];
+    repeated LogicalDevice logical_devices = 12 [(child_node) = {key:"id"}];
+
+}
+
+service VolthaService {
+
+    rpc GetVoltha(google.protobuf.Empty) returns(Voltha) {
+        option (google.api.http) = {
+            get: "/voltha"
+        };
+    }
+
+}

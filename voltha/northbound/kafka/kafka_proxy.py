@@ -21,11 +21,15 @@ from afkak.common import (
 from afkak.producer import Producer as _kafkaProducer
 from structlog import get_logger
 from twisted.internet.defer import inlineCallbacks
+from zope.interface import implementer
 
 from common.utils.consulhelpers import get_endpoint_from_consul
+from voltha.registry import IComponent
 
 log = get_logger()
 
+
+@implementer(IComponent)
 class KafkaProxy(object):
     """
     This is a singleton proxy kafka class to hide the kafka client details.
@@ -50,9 +54,17 @@ class KafkaProxy(object):
         self.kclient = None
         self.kproducer = None
 
+    def start(self):
+        log.debug('starting')
         self._get_kafka_producer()
-
         KafkaProxy._kafka_instance = self
+        log.info('started')
+        return self
+
+    def stop(self):
+        log.debug('stopping')
+        pass
+        log.info('stopped')
 
     def _get_kafka_producer(self):
         # PRODUCER_ACK_LOCAL_WRITE : server will wait till the data is written

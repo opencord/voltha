@@ -4,9 +4,11 @@ package voltha;
 
 import "google/api/annotations.proto";
 import "google/protobuf/empty.proto";
+import "meta.proto";
 
 // Encode health status of a Voltha instance
 message HealthStatus {
+
     // Health states
     enum HealthState {
         HEALTHY = 0;  // The instance is healthy
@@ -15,7 +17,7 @@ message HealthStatus {
     }
 
     // Current state of health of this Voltha instance
-    HealthState state = 1;
+    HealthState state = 1 [(access) = READ_ONLY];
 }
 
 // Health related services

@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package vendor.x1;
+
+// Vendor specific adapter descriptor data
+message AdapterDescription {
+    string internal_name = 1;
+    string internal_code = 2;
+    uint32 price = 3;
+}
+
+// Vendor specific adapter configuration data
+message AdapterConfig {
+    uint32 volume = 1;
+    uint32 bass = 2;
+    uint32 treble = 3;
+}

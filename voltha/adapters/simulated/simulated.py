@@ -23,6 +23,7 @@ from zope.interface import implementer
 from voltha.adapters.interface import IAdapterInterface
 from voltha.protos.adapter_pb2 import Adapter, DeviceTypes, AdapterConfig
 from voltha.protos.health_pb2 import HealthStatus
+from voltha.protos.common_pb2 import INFO
 
 log = structlog.get_logger()
 
@@ -34,8 +35,9 @@ class SimulatedAdapter(object):
         self.config = config
         self.descriptor = Adapter(
             id='simulated',
-            config=AdapterConfig()
-            # TODO
+            vendor='Voltha project',
+            version='0.1',
+            config=AdapterConfig(log_level=INFO)
         )
 
     def start(self):

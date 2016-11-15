@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package voltha;
 
+import "meta.proto";
 import "google/api/annotations.proto";
 import "google/protobuf/empty.proto";
 import "common.proto";
@@ -10,7 +11,12 @@ import "openflow_13.proto";
 message LogicalDevice {
     string id = 1;
     uint64 datapath_id = 2;
+
     openflow_13.ofp_desc desc = 3;
+
+    repeated openflow_13.ofp_port ports = 4 [(child_node) = {key:"port_no"}];
+    repeated openflow_13.ofp_flow_stats flows = 5;
+    repeated openflow_13.ofp_group_entry flow_groups = 6;
 }
 
 message LogicalDevices {
