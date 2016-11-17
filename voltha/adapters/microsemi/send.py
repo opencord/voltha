@@ -1,4 +1,5 @@
 from scapy.all import *
+from scapy.layers.l2 import Dot3
 
 MIN_FRAME_SIZE = 60
 
