@@ -8,7 +8,7 @@ from scapy.config import conf
 from scapy.fields import Field, lhex, MACField, LenField, LEShortField, \
     LEIntField, LESignedIntField, FieldLenField, FieldListField, PacketField, \
     ByteField, StrField, ConditionalField, StrFixedLenField
-from scapy.layers.l2 import DestMACField, ETHER_ANY, ETH_P_ALL, sniff, sendp
+from scapy.layers.l2 import DestMACField, ETHER_ANY, ETH_P_ALL, sniff, sendp, LLC, SNAP, Dot3
 from scapy.layers.ntp import XLEShortField
 from scapy.packet import Packet, bind_layers
 from scapy.volatile import RandSInt
@@ -580,7 +580,7 @@ class PAS5211EventOnuActivation(PAS5211Event):
 
 
 # bindings for messages received
-bind_layers(PAS5211Dot3, PAS5211FrameHeader)
+bind_layers(Dot3,PAS5211FrameHeader)
 bind_layers(PAS5211FrameHeader, PAS5211MsgHeader)
 bind_layers(PAS5211MsgHeader, PAS5211MsgGetProtocolVersionResponse, opcode=0x2800 | 2)
 bind_layers(PAS5211MsgHeader, PAS5211MsgGetOltVersionResponse, opcode=0x3800 | 3)
