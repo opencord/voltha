@@ -15,6 +15,7 @@ exportToHTML
 
 # Vagrant
 .vagrant
+*.box
 
 # Ansible
 ansible/*.retry

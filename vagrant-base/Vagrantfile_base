@@ -1,0 +1,34 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure(2) do |config|
+
+  if (/cygwin|mswin|mingw|bccwin|wince|emx/ =~ RUBY_PLATFORM) != nil
+    config.vm.synced_folder "../", "/voltha", mount_options: ["dmode=700,fmode=600"]
+  else
+    config.vm.synced_folder "../", "/voltha"
+  end
+
+  config.vm.define "voltha" do |d|
+    d.ssh.forward_agent = true
+    d.vm.box = "ubuntu/trusty64"
+    d.vm.hostname = "voltha"
+    d.vm.network "private_network", ip: "10.100.198.220"
+    #d.vm.network "public_network"
+    d.vm.provision :shell, path: "../ansible/scripts/bootstrap_ansible.sh"
+    d.vm.provision :shell, inline: "PYTHONUNBUFFERED=1 ansible-playbook /voltha/ansible/voltha.yml -c local"
+    d.vm.provision :shell, inline: "cd /voltha/base-vagrant && make install-protoc"
+    #d.vm.provision :shell, path: "./test_script.sh"
+    d.vm.provider "virtualbox" do |v|
+      v.name = "voltha-base"
+      v.memory = 4096
+    end
+  end
+
+  config.ssh.shell = "bash -c 'BASH_ENV=/etc/profile exec bash'"
+
+  if Vagrant.has_plugin?("vagrant-cachier")
+    config.cache.scope = :box
+  end
+
+end
