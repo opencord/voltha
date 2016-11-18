@@ -26,7 +26,7 @@
    $ python -m grpc.tools.protoc -I.
    --plugin=protoc-gen-custom=./proto2yang.py --custom_out=. <proto file>.proto
 
-   - the above will produce a <proto file>.yang file formatted for yang
+   - the above will produce a ietf-<proto file>.yang file formatted for yang
 
    - two examples of proto that can be used in the same directory are
    yang.proto and addressbook.proto
@@ -42,37 +42,34 @@ from descriptor_parser import DescriptorParser
 from google.protobuf.descriptor import FieldDescriptor
 
 template_yang = Template("""
-module {{ module.name }} {
-
-    namespace "https://gerrit.opencord.org/voltha/{{ module.package }}";
+module ietf-{{ module.name }} {
     yang-version 1.1;
-
+    namespace "urn:ietf:params:xml:ns:yang:ietf-{{ module.name }}";
     prefix "voltha";
 
-    revision 2016-11-15 {{ module.revision }} {
-    {% if module.description %}
-        /* {{ message.description }} */
-    {% else %}
+    organization "CORD";
+    contact
+        " Any name";
+
+    description
+        "{{ module.description }}";
+
+    revision "2016-11-15" {
         description "Initial revision.";
-    {% endif %}
+        reference "reference";
     }
 
     {% for enum in module.enums %}
-    {% if enum.description %}
-    /* {{ enum.description }} */
-    {% endif %}
     typedef {{ enum.name }} {
         type enumeration {
         {% for v in enum.value %}
-        {% if v.description %}
             enum {{ v.name }} {
                 description "{{ v.description }}";
             }
-        {% else %}
-            enum {{ v.name }} ;
-        {% endif %}
         {% endfor %}
         }
+        description
+            "{{ enum.description }}";
     }
     {% endfor %}
 
@@ -82,14 +79,10 @@ module {{ module.name }} {
     {% else %}
     container {{ message.name }} {
     {% endif %}
-        {% if message.description %}
-        /* {{ message.description }} */
-        {% endif %}
+        description
+            "{{ message.description }}";
         {% for field in message.fields %}
         {% if field.type_ref %}
-        {% if field.description %}
-        /* {{ field.description }} */
-        {% endif %}
         {% for dict_item in module.referred_messages_with_keys %}
                 {% if dict_item.name == field.type %}
         list {{ field.name }} {
@@ -98,6 +91,8 @@ module {{ module.name }} {
             max-elements 1;
             {% endif %}
             uses {{ field.type }};
+            description
+                "{{ field.description }}";
         }
                 {% endif %}
         {% endfor %}
@@ -110,13 +105,13 @@ module {{ module.name }} {
                    fraction-digits 5;
                 }
                 {% else %}
-                type {{ field.type }} ;
+                type {{ field.type }};
                 {% endif %}
-                {% if field.description %}
                 description
-                    "{{ field.description }}" ;
-                {% endif %}
+                    "{{ field.description }}";
             }
+            description
+                "{{ field.description }}";
         }
         {% else %}
         leaf {{ field.name }} {
@@ -125,32 +120,25 @@ module {{ module.name }} {
                fraction-digits 5;
             }
             {% else %}
-            type {{ field.type }} ;
+            type {{ field.type }};
             {% endif %}
-            {% if field.description %}
             description
-                "{{ field.description }}" ;
-            {% endif %}
+                "{{ field.description }}";
         }
         {% endif %}
 
         {% endfor %}
         {% for enum_type in message.enums %}
-        {% if enum_type.description %}
-        /* {{ enum_type.description }} */
-        {% endif %}
         typedef {{ enum_type.name }} {
             type enumeration {
             {% for v in enum_type.value %}
-            {% if v.description %}
                 enum {{ v.name }} {
                     description "{{ v.description }}";
                 }
-            {% else %}
-                enum {{ v.name }} ;
-            {% endif %}
             {% endfor %}
             }
+            description
+                "{{ enum_type.description }}";
         }
 
         {% endfor %}
@@ -165,17 +153,16 @@ module {{ module.name }} {
     /*  {{ service.description }}" */
     {% endif %}
     {% for method in service.methods %}
-    {% if method.description %}
-    /* {{ method.description }} */
-    {% endif %}
     rpc {{ service.service }}-{{ method.method }} {
+        description
+            "{{ method.description }}";
         {% if method.input %}
         input {
             {% if method.input_ref %}
-            uses {{ method.input }} ;
+            uses {{ method.input }};
             {% else %}
             leaf {{ method.input }} {
-                type {{ method.input }} ;
+                type {{ method.input }};
             }
             {% endif %}
         }
@@ -183,10 +170,10 @@ module {{ module.name }} {
         {% if method.output %}
         output {
             {% if method.output_ref %}
-            uses {{ method.output }} ;
+            uses {{ method.output }};
             {% else %}
             leaf {{ method.output }} {
-                type {{ method.output }} ;
+                type {{ method.output }};
             }
             {% endif %}
         }
@@ -418,7 +405,8 @@ def generate_code(request, response):
         # TODO: We should have a separate file for each output. There is an
         # issue reusing the same filename with an incremental suffix.  Using
         # a different file name works but not the actual proto file name
-        f.name = proto_file.name.replace('.proto', '.yang')
+        f.name = '{}-{}'.format('ietf', proto_file.name.replace('.proto',
+                                                                '.yang'))
         # f.name = '{}_{}{}'.format(_rchop(proto_file.name, '.proto'), idx,
         #                            '.yang')
         # idx += 1
