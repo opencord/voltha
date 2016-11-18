@@ -2,8 +2,6 @@ syntax = "proto3";
 
 package experiment;
 
-//import "google/protobuf/empty.proto";
-
 message AsyncEvent {
     int32 seq = 1;
     enum EventType {
@@ -15,27 +13,26 @@ message AsyncEvent {
     string details = 3;
 }
 
-enum khenType {
-    BIG_KHEN = 0;
-    SMALL_KHEN = 1;
-    NO_KHEN = 2;
+enum SimpleEnum {
+    APPLE = 0;
+    BANANA = 1;
+    ORANGE = 2;
 }
-
 
 message Packet {
     int32 source = 1;
     bytes content = 2;
-    message Result {
+    message InnerPacket {
         string url = 1;
         string title = 2;
         repeated string snippets = 3;
-        message Success {
+        message InnerInnerPacket {
             string input = 1;
             string desc = 2;
         }
-        repeated Success success = 4;
+        repeated InnerInnerPacket inner_inner_packet = 4;
     }
-    repeated Result results = 3;
+    repeated InnerPacket inner_packets = 3;
 }
 
 message Echo {

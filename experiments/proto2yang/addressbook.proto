@@ -25,6 +25,7 @@ message Person {
   }
 
   repeated PhoneNumber phones = 4;
+  repeated string khen = 5;
 }
 
 // Our address book file is just one of these.
