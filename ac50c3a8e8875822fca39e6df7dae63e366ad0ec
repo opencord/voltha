@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a014df3_56a00390",
+        "filename": "vagrant-base/Makefile",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2016-11-18T16:46:36Z",
+      "side": 1,
+      "message": "Do you mind add the licensing header?",
+      "revId": "ac50c3a8e8875822fca39e6df7dae63e366ad0ec",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a014df3_36ad7789",
+        "filename": "vagrant-base/Makefile",
+        "patchSetId": 1
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2016-11-18T16:46:36Z",
+      "side": 1,
+      "message": "sudo",
+      "revId": "ac50c3a8e8875822fca39e6df7dae63e366ad0ec",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a014df3_f6b6efdb",
+        "filename": "vagrant-base/Vagrantfile_base",
+        "patchSetId": 1
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2016-11-18T16:46:36Z",
+      "side": 1,
+      "message": "Do we need to set the IP in the base vagrant?",
+      "revId": "ac50c3a8e8875822fca39e6df7dae63e366ad0ec",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a014df3_d6bbf3c2",
+        "filename": "vagrant-base/test_script.sh",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2016-11-18T16:46:36Z",
+      "side": 1,
+      "message": "Do you mind add some test cases:\n1) vagrant up \u0026\u0026 make tests\n2) vagrant up \u0026\u0026 make itests\n2) vagrant up \u0026\u0026 make utests\n2) vagrant up \u0026\u0026 make smoke-test",
+      "revId": "ac50c3a8e8875822fca39e6df7dae63e366ad0ec",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
