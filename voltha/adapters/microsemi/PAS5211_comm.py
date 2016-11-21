@@ -63,10 +63,10 @@ class PAS5211Communication(object):
         self.seqgen = sequence_generator(init)
         self.src_mac = determine_src_mac(self.iface)
 
-    def communicate(self, msg, **kwargs):
+    def communicate(self, msg, timeout=1, **kwargs):
         if self.src_mac is not None:
             frame = constructPAS5211Frames(msg, self.seqgen.next(), self.src_mac,
                                            self.dst_mac, **kwargs)
-            return srp1(frame, timeout=2, iface=self.iface)
+            return srp1(frame, timeout=timeout, iface=self.iface)
         else:
             log.info('Unknown src mac for {}'.format(self.iface))
