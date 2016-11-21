@@ -17,7 +17,7 @@ Vagrant.configure(2) do |config|
     #d.vm.network "public_network"
     d.vm.provision :shell, path: "../ansible/scripts/bootstrap_ansible.sh"
     d.vm.provision :shell, inline: "PYTHONUNBUFFERED=1 ansible-playbook /voltha/ansible/voltha.yml -c local"
-    d.vm.provision :shell, inline: "cd /voltha/base-vagrant && make install-protoc"
+    d.vm.provision :shell, inline: "cd /voltha/vagrant-base && make install-protoc"
     #d.vm.provision :shell, path: "./test_script.sh"
     d.vm.provider "virtualbox" do |v|
       v.name = "voltha-base"
