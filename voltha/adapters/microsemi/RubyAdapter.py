@@ -19,10 +19,13 @@ Microsemi/Celestica Ruby vOLTHA adapter.
 """
 import structlog
 from voltha.adapters.interface import IAdapterInterface
-from voltha.adapters.microsemi.PAS5211 import PAS5211MsgGetOltVersion
 from voltha.adapters.microsemi.PAS5211_comm import PAS5211Communication
-#from voltha.protos.adapter_pb2 import Adapter, AdapterConfig, DeviceTypes
-#from voltha.protos.health_pb2 import HealthStatus
+from voltha.adapters.microsemi.StateMachine import Disconnected
+import signal
+from voltha.protos.adapter_pb2 import Adapter, AdapterConfig, DeviceTypes
+from voltha.protos.health_pb2 import HealthStatus
+
+
 from zope.interface import implementer
 
 log = structlog.get_logger()
@@ -33,11 +36,15 @@ olt_conf = { 'olts' : { 'id' : 0, 'mac' : '00:0c:d5:00:01:00'}, 'iface' : 'eth3'
 class RubyAdapter(object):
     def __init__(self, config):
         self.config = config
-#        self.descriptor = Adapter(
-#            id='ruby',
-#            config=AdapterConfig()
-#            # TODO
-#        )
+        self.descriptor = Adapter(
+            id='ruby',
+            config=AdapterConfig()
+            # TODO
+        )
+        self.comm = comm = PAS5211Communication(dst_mac=olt_conf['olts']['mac'],
+                                                iface=olt_conf['iface'])
+        self.olt = Disconnected(comm)
+        signal.signal(signal.SIGINT, self.stop)
 
     def start(self):
         log.debug('starting')
@@ -46,6 +53,7 @@ class RubyAdapter(object):
 
     def stop(self):
         log.debug('stopping')
+        self.olt.disconnect()
         log.info('stopped')
 
     def adapter_descriptor(self):
@@ -53,13 +61,12 @@ class RubyAdapter(object):
 
     def device_types(self):
         pass
-#        return DeviceTypes(
-#            items=[]  # TODO
-#        )
+        return DeviceTypes(
+            items=[]  # TODO
+        )
 
     def health(self):
-        pass
-#        return HealthStatus(state=HealthStatus.HealthState.HEALTHY)
+        return HealthStatus(state=HealthStatus.HealthState.HEALTHY)
 
     def change_master_state(self, master):
         raise NotImplementedError()
@@ -74,10 +81,15 @@ class RubyAdapter(object):
         raise NotImplementedError()
 
     def init_olt(self):
-        comm = PAS5211Communication(dst_mac=olt_conf['olts']['mac'], iface=olt_conf['iface'])
-        packet = comm.communicate(PAS5211MsgGetOltVersion())
-        log.info('{}'.format(packet.show()))
-
+        self.olt.run()
+        self.olt = self.olt.transition()
+        self.olt.run()
+        self.olt = self.olt.transition()
+        self.olt.run()
 
 if __name__ == '__main__':
-    RubyAdapter(None).start()
+    try:
+        ruby = RubyAdapter(None)
+        ruby.start()
+    except KeyboardInterrupt:
+        ruby.stop()

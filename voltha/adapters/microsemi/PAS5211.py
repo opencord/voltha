@@ -69,6 +69,7 @@ class PAS5211MsgHeader(Packet):
         LESignedIntField("onu_session_id", -1)
     ]
 
+
 class PAS5211MsgGetOltVersion(PAS5211Msg):
     opcode = 3
     name = "PAS5211MsgGetOltVersion"
@@ -76,6 +77,26 @@ class PAS5211MsgGetOltVersion(PAS5211Msg):
 
     def answers(self, other):
         return other.name == "PAS5211MsgGetOltVersionResponse"
+
+
+class PAS5211MsgGetProtocolVersion(PAS5211Msg):
+    opcode = 2
+    name = "PAS5211MsgGetProtocolVersion"
+    fields_desc = [ ]
+
+
+class PAS5211MsgGetProtocolVersionResponse(PAS5211Msg):
+    name = "PAS5211MsgGetProtocolVersionResponse"
+    fields_desc = [
+        LEShortField("major_hardware_version", 0),
+        LEShortField("minor_hardware_version", 0),
+        LEShortField("major_pfi_version", 0),
+        LEShortField("minor_pfi_version", 0)
+    ]
+
+    def answers(self, other):
+        return other.name == 'PAS5211MsgGetProtocolVersion'
+
 
 class PAS5211MsgGetOltVersionResponse(PAS5211Msg):
     name = "PAS5211MsgGetOltVersionResponse"
@@ -111,3 +132,4 @@ split_layers(Dot3, LLC)
 bind_layers(Dot3,PAS5211FrameHeader)
 bind_layers(PAS5211FrameHeader, PAS5211MsgHeader)
 bind_layers(PAS5211MsgHeader, PAS5211MsgGetOltVersionResponse, opcode=0x3800 | 3)
+bind_layers(PAS5211MsgHeader, PAS5211MsgGetProtocolVersionResponse, opcode=0x2800 | 2)
