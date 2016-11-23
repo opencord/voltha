@@ -22,7 +22,7 @@
    - this plugin requires pyang to be present and is run using pyang as
    follows:
 
-   $ pyang --plugindir /voltha/experiments/netconf/yang2proto -f yang2proto  -o
+   $ pyang --plugindir /voltha/experiments/netconf/yang2proto -f proto  -o
    <protofile> -p /voltha/experiments/netconf/tests/yang2proto
    /voltha/experiments/netconf/tests/yang2proto/<yang file>
 
