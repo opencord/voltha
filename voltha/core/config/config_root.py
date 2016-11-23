@@ -18,9 +18,10 @@ from uuid import uuid4
 import structlog
 from simplejson import dumps, loads
 
-from voltha.core.config.config_node import ConfigNode, MergeConflictException
+from voltha.core.config.config_node import ConfigNode
 from voltha.core.config.config_rev import ConfigRevision
 from voltha.core.config.config_rev_persisted import PersistedConfigRevision
+from voltha.core.config.merge_3way import MergeConflictException
 
 log = structlog.get_logger()
 

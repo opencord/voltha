@@ -73,14 +73,14 @@ class Coordinator(object):
         self.tracking_loop_delay = config.get(
             'tracking_loop_delay', 1)
         self.prefix = self.config.get('voltha_kv_prefix', 'service/voltha')
-        self.leader_prefix = '/'.join([self.prefix, self.config.get(
-                self.config['leader_key'], 'leader')])
-        self.membership_prefix = '/'.join([self.prefix, self.config.get(
-                self.config['membership_key'], 'members')])
-        self.assignment_prefix = '/'.join([self.prefix, self.config.get(
-                self.config['assignment_key'], 'assignments')])
-        self.workload_prefix = '/'.join([self.prefix, self.config.get(
-                self.config['workload_key'], 'work')])
+        self.leader_prefix = '/'.join((self.prefix, self.config.get(
+                self.config['leader_key'], 'leader')))
+        self.membership_prefix = '/'.join((self.prefix, self.config.get(
+                self.config['membership_key'], 'members'), ''))
+        self.assignment_prefix = '/'.join((self.prefix, self.config.get(
+                self.config['assignment_key'], 'assignments'), ''))
+        self.workload_prefix = '/'.join((self.prefix, self.config.get(
+                self.config['workload_key'], 'work'), ''))
 
         self.retries = 0
         self.instance_id = instance_id
@@ -146,6 +146,15 @@ class Coordinator(object):
 
     def kv_delete(self, *args, **kw):
         return self._retry(self.consul.kv.delete, *args, **kw)
+
+    # Methods exposing key membership information
+
+    @inlineCallbacks
+    def get_members(self):
+        """Return list of all members"""
+        _, members = yield self.kv_get(self.membership_prefix, recurse=True)
+        returnValue([member['Key'][len(self.membership_prefix):]
+                     for member in members])
 
     # Private (internal) methods:
 

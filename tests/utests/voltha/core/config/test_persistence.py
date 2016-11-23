@@ -5,19 +5,19 @@ from unittest import main, TestCase
 
 from voltha.core.config.config_root import ConfigRoot
 from voltha.protos.openflow_13_pb2 import ofp_desc
-from voltha.protos.voltha_pb2 import Voltha, HealthStatus, Adapter, \
+from voltha.protos.voltha_pb2 import VolthaInstance, HealthStatus, Adapter, \
     AdapterConfig, LogicalDevice
 
 
-n_adapters = 100
-n_logical_nodes = 100
+n_adapters = 1000
+n_logical_nodes = 1000
 
 
 class TestPersistence(TestCase):
 
     def pump_some_data(self, node):
         seed(0)
-        node.update('/', Voltha(
+        node.update('/', VolthaInstance(
             instance_id='1',
             version='42',
             log_level=1
@@ -53,7 +53,7 @@ class TestPersistence(TestCase):
         kv_store = dict()
 
         # create node and pump data
-        node = ConfigRoot(Voltha(), kv_store=kv_store)
+        node = ConfigRoot(VolthaInstance(), kv_store=kv_store)
         pt('init')
         self.pump_some_data(node)
         pt('pump')
@@ -79,10 +79,11 @@ class TestPersistence(TestCase):
         # self.assertEqual(size2, 1 + 2 * (1 + 1 + n_adapters + n_logical_nodes))
 
         # recreate tree from persistence
-        node = ConfigRoot.load(Voltha, kv_store)
+        node = ConfigRoot.load(VolthaInstance, kv_store)
         pt('load from kv store')
         self.assertEqual(node.get('/', deep=1), all_latest_data)
         pt('deep get')
+
 
 if __name__ == '__main__':
     main()

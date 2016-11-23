@@ -22,11 +22,13 @@ message HealthStatus {
 
 // Health related services
 service HealthService {
+
     // Return current health status of a Voltha instance
     rpc GetHealthStatus(google.protobuf.Empty) returns (HealthStatus) {
         option (google.api.http) = {
             get: "/health"
         };
     }
+
 }
 
