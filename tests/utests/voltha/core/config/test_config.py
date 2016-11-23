@@ -3,8 +3,7 @@ from copy import copy
 import resource
 from random import randint, seed
 from time import time
-from unittest import TestCase
-from unittest import main
+from unittest import main, TestCase
 
 import gc
 
@@ -68,15 +67,15 @@ class TestConfigNodeShallow(TestCase):
         self.assertRaises(ValueError, self.node.update, '/', Adapter())
 
     def test_many_simple_updates(self):
-        n = 100
+        n = 1000
         for i in xrange(n):
             self.node.update('/', Voltha(instance_id='id%d' % i))
         self.node.update('/', self.other)
-        self.assertEqual(len(self.node.revisions), 102)
+        self.assertEqual(len(self.node.revisions), 1002)
         self.assertEqual(self.node.latest.data, self.other)
 
     def test_retrieve_by_rev_hash(self):
-        n = 100
+        n = 1000
         for i in xrange(n):
             self.node.update('/', Voltha(instance_id='id%d' % i))
         self.node.update('/', self.other)
@@ -369,7 +368,7 @@ class TestPruningPerformance(DeepTestsBase):
         seed(0)  # makes things consistently random
 
         # this should be the number of nodes in the Voltha tree
-        self.assertLess(rev_count(), 10)
+        self.assertLess(rev_count(), 20)
         print; print_metrics()
 
         def mk_change():
@@ -391,7 +390,7 @@ class TestPruningPerformance(DeepTestsBase):
         self.node.prune_untagged()
 
         # at this point the rev count shall fall back to the original
-        self.assertLess(rev_count(), 10)
+        self.assertLess(rev_count(), 15)
         print_metrics()
 
         # no make an additional set of modifications while constantly pruning
@@ -400,7 +399,7 @@ class TestPruningPerformance(DeepTestsBase):
             self.node.prune_untagged()
 
         # the rev count should not have increased
-        self.assertLess(rev_count(), 10)
+        self.assertLess(rev_count(), 15)
         print_metrics()
 
     def test_churn_efficiency(self):
@@ -412,7 +411,7 @@ class TestPruningPerformance(DeepTestsBase):
         n = 1000
         modulo = 2
 
-        self.assertEqual(rev_count(), 7)
+        self.assertEqual(rev_count(), 14)
         print_metrics()
 
         def mk_change(seq):
@@ -431,7 +430,7 @@ class TestPruningPerformance(DeepTestsBase):
         _tmp_rc = rev_count()
         # verify that the node count did not increase significantly, yet we
         # have access to all ditinct revisions
-        self.assertEqual(rev_count(), 11)
+        self.assertEqual(rev_count(), 20)
         print_metrics()
 
     def test_strict_read_only(self):

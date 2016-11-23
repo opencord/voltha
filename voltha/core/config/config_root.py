@@ -16,8 +16,11 @@
 from uuid import uuid4
 
 import structlog
+from simplejson import dumps, loads
 
 from voltha.core.config.config_node import ConfigNode, MergeConflictException
+from voltha.core.config.config_rev import ConfigRevision
+from voltha.core.config.config_rev_persisted import PersistedConfigRevision
 
 log = structlog.get_logger()
 
@@ -26,11 +29,33 @@ class ConfigRoot(ConfigNode):
 
     __slots__ = (
         '_dirty_nodes',  # holds set of modified nodes per transaction branch
+        '_kv_store',
+        '_loading',
+        '_rev_cls'
     )
 
-    def __init__(self, initial_data):
-        super(ConfigRoot, self).__init__(initial_data, False)
+    def __init__(self, initial_data, kv_store=None, rev_cls=ConfigRevision):
+        self._kv_store = kv_store
         self._dirty_nodes = {}
+        self._loading = False
+        if kv_store is not None and \
+                not issubclass(rev_cls, PersistedConfigRevision):
+            rev_cls = PersistedConfigRevision
+        self._rev_cls = rev_cls
+        super(ConfigRoot, self).__init__(self, initial_data, False)
+
+    @property
+    def kv_store(self):
+        if self._loading:
+            # provide fake store for storing things
+            # TODO this shall be a fake_dict providing noop for all relevant
+            # operations
+            return dict()
+        else:
+            return self._kv_store
+
+    def mkrev(self, *args, **kw):
+        return self._rev_cls(*args, **kw)
 
     def mk_txbranch(self):
         txid = uuid4().hex[:12]
@@ -93,4 +118,41 @@ class ConfigRoot(ConfigNode):
             return super(ConfigRoot, self).remove(path, txid, track_dirty)
         else:
             return super(ConfigRoot, self).remove(path)
+
+    # ~~~~~~~~~~~~~~~~ Persistence related ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    @classmethod
+    def load(cls, root_msg_cls, kv_store):
+        # need to use fake kv store during initial load for not to override
+        # our real k vstore
+        fake_kv_store = dict()  # shall use more efficient mock dict
+        root = cls(root_msg_cls(), kv_store=fake_kv_store,
+                   rev_cls=PersistedConfigRevision)
+        # we can install the real store now
+        root._kv_store = kv_store
+        root.load_from_persistence(root_msg_cls)
+        return root
+
+    def _make_latest(self, branch, *args, **kw):
+        super(ConfigRoot, self)._make_latest(branch, *args, **kw)
+        # only persist the committed branch
+        if self._kv_store is not None and branch._txid is None:
+            root_data = dict(
+                latest=branch._latest._hash,
+                tags=dict((k, v._hash) for k, v in self._tags.iteritems())
+            )
+            blob = dumps(root_data)
+            self._kv_store['root'] = blob
+
+    def load_from_persistence(self, root_msg_cls):
+        self._loading = True
+        blob = self._kv_store['root']
+        root_data = loads(blob)
+
+        for tag, hash in root_data['tags'].iteritems():
+            raise NotImplementedError()
+
+        self.load_latest(root_data['latest'])
+
+        self._loading = False
 

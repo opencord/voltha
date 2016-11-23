@@ -20,8 +20,7 @@ for the active committed revisions or revisions part of a transaction.
 """
 
 from collections import OrderedDict
-
-from common.utils.ordered_weakvalue_dict import OrderedWeakValueDict
+from weakref import WeakValueDictionary
 
 
 class ConfigBranch(object):
@@ -39,7 +38,7 @@ class ConfigBranch(object):
         self._node = node
         self._txid = txid
         self._origin = origin
-        self._revs = OrderedWeakValueDict() if auto_prune else OrderedDict()
+        self._revs = WeakValueDictionary() if auto_prune else OrderedDict()
         self._latest = origin
 
     def __getitem__(self, hash):
