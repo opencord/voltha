@@ -22,9 +22,7 @@ classes directly must obey the rules.
 """
 
 import weakref
-from collections import OrderedDict
 from copy import copy
-from time import time
 from hashlib import md5
 
 from google.protobuf.descriptor import Descriptor
@@ -61,20 +59,41 @@ _children_fields_cache = {}  # to memoize externally stored field name info
 class _ChildType(object):
     """Used to store key metadata about child_node fields in protobuf messages.
     """
-    __slots__ = ('_is_container', '_key', '_key_from_str')
-    def __init__(self, is_container, key=None, key_from_str=None):
+    __slots__ = (
+        '_module',
+        '_type',
+        '_is_container',
+        '_key',
+        '_key_from_str'
+    )
+
+    def __init__(self, module, type, is_container,
+                 key=None, key_from_str=None):
+        self._module = module
+        self._type = type
         self._is_container = is_container
         self._key = key
         self._key_from_str = key_from_str
+
     @property
     def is_container(self):
         return self._is_container
+
     @property
     def key(self):
         return self._key
+
     @property
     def key_from_str(self):
         return self._key_from_str
+
+    @property
+    def module(self):
+        return self._module
+
+    @property
+    def type(self):
+        return self._type
 
 
 def children_fields(cls):
@@ -87,20 +106,27 @@ def children_fields(cls):
     path substring back to the key.
     """
     names = _children_fields_cache.get(cls)
+
     if names is None:
         names = {}
+
         for field in cls.DESCRIPTOR.fields:
+
             if field.has_options:
                 options = field.GetOptions()
+
                 if options.HasExtension(meta_pb2.child_node):
                     is_container = field.label == 3
                     meta = options.Extensions[meta_pb2.child_node]
                     key_from_str = None
+
                     if meta.key:
                         key_field = field.message_type.fields_by_name[meta.key]
                         key_type = key_field.type
+
                         if key_type == key_field.TYPE_STRING:
                             key_from_str = lambda s: s
+
                         elif key_type in (
                                 key_field.TYPE_FIXED32,
                                 key_field.TYPE_FIXED64,
@@ -113,11 +139,21 @@ def children_fields(cls):
                                 key_field.TYPE_UINT32,
                                 key_field.TYPE_UINT64):
                             key_from_str = lambda s: int(s)
+
                         else:
                             raise NotImplementedError()
-                    names[field.name] = _ChildType(is_container, meta.key,
-                                                   key_from_str)
+
+                    field_class = field.message_type._concrete_class
+                    names[field.name] = _ChildType(
+                        module=field_class.__module__,
+                        type=field_class.__name__,
+                        is_container=is_container,
+                        key=meta.key,
+                        key_from_str=key_from_str
+                    )
+
         _children_fields_cache[cls] = names
+
     return names
 
 
@@ -157,20 +193,19 @@ class ConfigDataRevision(object):
     detriments.
     """
 
-    __slots__ = ('_data', '_ts', '_hash')
+    __slots__ = (
+        '_data',
+        '_hash',
+        '__weakref__'
+    )
 
     def __init__(self, data):
         self._data = data
-        self._ts = time()
         self._hash = self._hash_data(data)
 
     @property
     def data(self):
         return self._data
-
-    @property
-    def ts(self):
-        return self._ts
 
     @property
     def hash(self):
@@ -180,12 +215,15 @@ class ConfigDataRevision(object):
     def _hash_data(data):
         """Hash function to be used to track version changes of config nodes"""
         if isinstance(data, (dict, list)):
-            signature = dumps(data)
+            to_hash = dumps(data)
         elif is_proto_message(data):
-            signature = message_to_json_concise(data)
+            to_hash = ':'.join((
+                data.__class__.__module__,
+                data.__class__.__name__,
+                data.SerializeToString()))
         else:
-            signature = str(hash(data))
-        return md5(signature).hexdigest()[:12]
+            to_hash = str(hash(data))
+        return md5(to_hash).hexdigest()[:12]
 
 
 class ConfigRevision(object):
@@ -209,24 +247,26 @@ class ConfigRevision(object):
         self._branch = branch
         self._config = ConfigDataRevision(data)
         self._children = children
-        self._update_metainfo()
+        self._finalize()
 
-    def _update_metainfo(self):
+    def _finalize(self):
         self._hash = self._hash_content()
         if self._hash not in _rev_cache:
             _rev_cache[self._hash] = self
+        if self._config._hash not in _rev_cache:
+            _rev_cache[self._config._hash] = self._config
+        else:
+            self._config = _rev_cache[self._config._hash]  # re-use!
 
     def _hash_content(self):
         # hash is derived from config hash and hashes of all children
-        m = md5('' if self._config is None else self._config.hash)
+        m = md5('' if self._config is None else self._config._hash)
         if self._children is not None:
             for children in self._children.itervalues():
-                if isinstance(children, OrderedDict):
-                    for child in children.itervalues():
-                        m.update(child.hash)
+                if isinstance(children, dict):
+                    m.update(''.join(c._hash for c in children.itervalues()))
                 else:
-                    for child in children:
-                        m.update(child.hash)
+                    m.update(''.join(c._hash for c in children))
         return m.hexdigest()[:12]
 
     @property
@@ -274,7 +314,11 @@ class ConfigRevision(object):
 
     def update_data(self, data, branch):
         """Return a NEW revision which is updated for the modified data"""
-        return ConfigRevision(branch, data=data, children=self._children)
+        new_rev = copy(self)
+        new_rev._branch = branch
+        new_rev._config = self._config.__class__(data)
+        new_rev._finalize()
+        return new_rev
 
     def update_children(self, name, children, branch):
         """Return a NEW revision which is updated for the modified children"""
@@ -283,7 +327,7 @@ class ConfigRevision(object):
         new_rev = copy(self)
         new_rev._branch = branch
         new_rev._children = new_children
-        new_rev._update_metainfo()
+        new_rev._finalize()
         return new_rev
 
     def update_all_children(self, children, branch):
@@ -291,5 +335,5 @@ class ConfigRevision(object):
         new_rev = copy(self)
         new_rev._branch = branch
         new_rev._children = children
-        new_rev._update_metainfo()
+        new_rev._finalize()
         return new_rev
