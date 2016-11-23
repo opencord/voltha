@@ -21,9 +21,10 @@ from tests.itests.docutests.test_utils import run_command_to_completion_with_raw
 from tests.utests.chameleon.protoc_plugins.test_utils import load_file
 
 
-pyang_cmd = "pyang --plugindir /voltha/experiments/plugin -f protobuf " \
-            "-p /voltha/tests/utests/netconf/yang " \
-            "/voltha/tests/utests/netconf/yang/{}"
+pyang_cmd = "pyang --plugindir /voltha/experiments/netconf/yang2proto -f " \
+            "proto " \
+            "-p /voltha/experiments/netconf/tests/yang2proto " \
+            "/voltha/experiments/netconf/tests/yang2proto/{}"
 
 class YangToProtoBufTests(TestCase):
 
