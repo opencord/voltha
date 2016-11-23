@@ -22,11 +22,11 @@
    - this plugin requires pyang to be present and is run using pyang as
    follows:
 
-   $ pyang --plugindir /voltha/experiments/plugin -f protobuf  -o
-   <protofile> -p /voltha/tests/utests/netconf/yang
-   /voltha/tests/utests/netconf/yang/<yang file>
+   $ pyang --plugindir /voltha/experiments/netconf/yang2proto -f yang2proto  -o
+   <protofile> -p /voltha/experiments/netconf/tests/yang2proto
+   /voltha/experiments/netconf/tests/yang2proto/<yang file>
 
-   - pyang validates the yanhg definition first and then invoke this plugin
+   - pyang validates the yang definition first and then invoke this plugin
    to convert the yang model into protobuf.
    
 """
@@ -213,7 +213,7 @@ class YangRpc(object):
 class ProtobufPlugin(plugin.PyangPlugin):
     def add_output_format(self, fmts):
         self.multiple_modules = True
-        fmts['protobuf'] = self
+        fmts['proto'] = self
 
     def setup_fmt(self, ctx):
         ctx.implicit_errors = False

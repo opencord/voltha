@@ -23,7 +23,7 @@ from tests.utests.chameleon.protoc_plugins.test_utils import load_file, \
 
 proto_to_yang_cmd='python -m grpc.tools.protoc -I{}  ' \
                   '--plugin=protoc-gen-custom=/voltha/experiments' \
-                  '/proto2yang/proto2yang.py --custom_out={} {}'
+                  '/netconf/proto2yang/proto2yang.py --custom_out={} {}'
 
 yang_validate_cmd="pyang -f tree --ietf {}"
 
