@@ -2241,3 +2241,34 @@ message ofp_async_config {
     repeated uint32 port_status_mask = 2; /* Bitmasks of OFPPR_* values. */
     repeated uint32 flow_removed_mask = 3;/* Bitmasks of OFPRR_* values. */
 };
+
+
+/* ADDITIONAL VOLTHA SPECIFIC MESSAGE TYPES, AIDING RPC CALLS */
+
+message FlowTableUpdate {
+    string id = 1;  // Device.id or LogicalDevice.id
+    ofp_flow_mod flow_mod = 2;
+}
+
+message FlowGroupTableUpdate {
+    string id = 1;  // Device.id or LogicalDevice.id
+    ofp_group_mod group_mod = 2;
+}
+
+message Flows {
+    repeated ofp_flow_stats items = 1;
+}
+
+message FlowGroups {
+    repeated ofp_group_entry items = 1;
+}
+
+message PacketIn {
+    string id = 1;  // LogicalDevice.id
+    ofp_packet_in packet_in = 2;
+}
+
+message PacketOut {
+    string id = 1;  // LogicalDevice.id
+    ofp_packet_out packet_out = 2;
+}

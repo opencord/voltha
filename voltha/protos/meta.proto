@@ -19,7 +19,6 @@ syntax = "proto3";
 
 package voltha;
 
-import "google/api/http.proto";
 import "google/protobuf/descriptor.proto";
 
 message ChildNode {

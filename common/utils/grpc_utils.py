@@ -20,6 +20,7 @@ Utilities to handle gRPC server and client side code in a Twisted environment
 from concurrent.futures import Future
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred
+from twisted.python.threadable import isInIOThread
 
 
 def twisted_async(func):
@@ -59,6 +60,10 @@ def twisted_async(func):
 
     """
     def in_thread_wrapper(*args, **kw):
+
+        if isInIOThread():
+
+            return func(*args, **kw)
 
         f = Future()
 

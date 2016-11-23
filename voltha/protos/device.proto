@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+package voltha;
+
+import "meta.proto";
+import "google/protobuf/any.proto";
+import "openflow_13.proto";
+
+// A Device Type
+message DeviceType {
+
+    // Unique name for the device type
+    string id = 1;
+
+    // Name of the adapter that handles device type
+    string adapter = 2;
+
+    // TODO
+    // ...
+
+}
+
+// A plurality of device types
+message DeviceTypes {
+    repeated DeviceType items = 1;
+}
+
+message Port {
+    string id = 1;
+    // TODO
+}
+
+message Ports {
+    repeated Port items = 1;
+}
+
+// A Physical Device instance
+message Device {
+
+    // Voltha's device identifier
+    string id = 1;
+
+    // Device type, refers to one of the registered device types
+    string type = 2;
+
+    // Is this device a root device. Each logical switch has one root
+    // device that is associated with the logical flow switch.
+    bool root = 3;
+
+    // Parent device id, in the device tree
+    string parent_id = 4;
+
+    // Vendor, version, serial number, etc.
+    string vendor = 5;
+    string model = 6;
+    string hardware_version = 7;
+    string firmware_version = 8;
+    string software_version = 9;
+    string serial_number = 10;
+
+    // Addapter that takes care of device
+    string adapter = 11;
+
+    // TODO additional common attribute here
+    // ...
+
+    // Device type specific attributes
+    google.protobuf.Any custom = 64;
+
+    repeated Port ports = 128  [(child_node) = {key: "id"}];
+    openflow_13.Flows flows = 129 [(child_node) = {}];
+//    repeated openflow_13.ofp_flow_stats flows = 129;
+    openflow_13.FlowGroups flow_groups = 130 [(child_node) = {}];
+//    repeated openflow_13.ofp_group_entry flow_groups = 130;
+
+}
+
+message Devices {
+    repeated Device items = 1;
+}

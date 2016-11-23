@@ -18,7 +18,6 @@
 A config rev object that persists itself
 """
 from bz2 import compress, decompress
-from collections import OrderedDict
 
 import structlog
 from simplejson import dumps, loads
@@ -61,11 +60,8 @@ class PersistedConfigRevision(ConfigRevision):
 
         children_lists = {}
         for field_name, children in self._children.iteritems():
-            if isinstance(children, list):
-                lst = [rev.hash for rev in children]
-            else:
-                lst = [rev.hash for rev in children.itervalues()]
-            children_lists[field_name] = lst
+            hashes = [rev.hash for rev in children]
+            children_lists[field_name] = hashes
 
         data = dict(
             children=children_lists,
@@ -92,25 +88,13 @@ class PersistedConfigRevision(ConfigRevision):
         node = branch._node
         for field_name, meta in children_fields(msg_cls).iteritems():
             child_msg_cls = tmp_cls_loader(meta.module, meta.type)
-            if meta.key:
-                # we need to assemble an ordered dict using the key
-                lst = OrderedDict()
-                for child_hash in children_list[field_name]:
-                    child_node = node._mknode(child_msg_cls)
-                    child_node.load_latest(child_hash)
-                    child_rev = child_node.latest
-                    key = getattr(child_rev.data, meta.key)
-                    lst[key] = child_rev
-            else:
-                lst = []
-                for child_hash in children_list[field_name]:
-                    child_node = node._mknode(child_msg_cls)
-                    child_node.load_latest(child_hash)
-                    child_rev = child_node.latest
-                    lst.append(child_rev)
-
-            assembled_children[field_name] = lst
-
+            children = []
+            for child_hash in children_list[field_name]:
+                child_node = node._mknode(child_msg_cls)
+                child_node.load_latest(child_hash)
+                child_rev = child_node.latest
+                children.append(child_rev)
+            assembled_children[field_name] = children
         rev = cls(branch, config_data, assembled_children)
         return rev
 
@@ -139,5 +123,5 @@ class PersistedConfigRevision(ConfigRevision):
 def tmp_cls_loader(module_name, cls_name):
     # TODO this shall be generalized
     from voltha.protos import voltha_pb2, health_pb2, adapter_pb2, \
-        logical_layer_pb2, openflow_13_pb2
+        logical_device_pb2, device_pb2, openflow_13_pb2
     return getattr(locals()[module_name], cls_name)

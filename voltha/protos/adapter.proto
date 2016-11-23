@@ -2,8 +2,6 @@ syntax = "proto3";
 
 package voltha;
 
-import "google/api/annotations.proto";
-import "google/protobuf/empty.proto";
 import "google/protobuf/any.proto";
 import "common.proto";
 import "meta.proto";
@@ -40,67 +38,4 @@ message Adapter {
 
 message Adapters {
     repeated Adapter items = 1;
-}
-
-// A Device Type
-message DeviceType {
-
-    // Unique name for the device type
-    string id = 1;
-
-    // Name of the adapter that handles device type
-    string adapter = 2;
-
-    // TODO
-    // ...
-
-}
-
-// A plurality of device types
-message DeviceTypes {
-    repeated DeviceType items = 1;
-}
-
-// A Physical Device instance
-message Device {
-
-    // Voltha's device identifier
-    string id = 1;
-
-    // Device type, refers to one of the registered device types
-    string type = 2;
-
-    // Is this device a root device. Each logical switch has one root
-    // device that is associated with the logical flow switch.
-    bool root = 3;
-
-    // Parent device id, in the device tree
-    string parent_id = 4;
-
-    // Vendor, version, serial number, etc.
-    string vendor = 5;
-    string model = 6;
-    string hardware_version = 7;
-    string firmware_version = 8;
-    string software_version = 9;
-    string serial_number = 10;
-
-    // Addapter that takes care of device
-    string adapter = 11;
-
-    // TODO additional common attribute here
-    // ...
-
-    // Device type specific attributes
-    google.protobuf.Any custom = 64;
-
-}
-
-service AdapterService {
-
-    rpc ListAdapters(google.protobuf.Empty) returns(Adapters) {
-        option (google.api.http) = {
-            get: "/local/adapters"
-        };
-    }
 }

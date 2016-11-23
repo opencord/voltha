@@ -263,10 +263,8 @@ class ConfigRevision(object):
         m = md5('' if self._config is None else self._config._hash)
         if self._children is not None:
             for children in self._children.itervalues():
-                if isinstance(children, dict):
-                    m.update(''.join(c._hash for c in children.itervalues()))
-                else:
-                    m.update(''.join(c._hash for c in children))
+                assert isinstance(children, list)
+                m.update(''.join(c._hash for c in children))
         return m.hexdigest()[:12]
 
     @property
@@ -291,17 +289,15 @@ class ConfigRevision(object):
         branch nodes. If depth is < 0, this results in a fully exhaustive
         "complete config".
         """
-        data = copy(self._config.data)
+        orig_data = self._config.data
+        data = orig_data.__class__()
+        data.CopyFrom(orig_data)
         if depth:
             # collect children
             cfields = children_fields(self.type).iteritems()
             for field_name, field in cfields:
                 if field.is_container:
-                    if field.key:
-                        children = self._children[field_name].itervalues()
-                    else:
-                        children = self._children[field_name]
-                    for rev in children:
+                    for rev in self._children[field_name]:
                         child_data = rev.get(depth=depth - 1)
                         child_data_holder = getattr(data, field_name).add()
                         child_data_holder.MergeFrom(child_data)
@@ -322,7 +318,7 @@ class ConfigRevision(object):
 
     def update_children(self, name, children, branch):
         """Return a NEW revision which is updated for the modified children"""
-        new_children = copy(self._children)
+        new_children = self._children.copy()
         new_children[name] = children
         new_rev = copy(self)
         new_rev._branch = branch

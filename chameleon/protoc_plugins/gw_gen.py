@@ -32,7 +32,9 @@ template = Template("""
 
 from simplejson import dumps, load
 from structlog import get_logger
-from protobuf_to_dict import protobuf_to_dict, dict_to_protobuf
+from protobuf_to_dict import dict_to_protobuf
+from google.protobuf.json_format import MessageToDict
+from twisted.internet.defer import inlineCallbacks, returnValue
 
 {% set package = file_name.replace('.proto', '') %}
 
@@ -54,6 +56,7 @@ def add_routes(app, grpc_client):
     {% set method_name = method['service'].rpartition('.')[2] + '_' + method['method'] %}
     {% set path = method['path'].replace('{', '<string:').replace('}', '>') %}
     @app.route('{{ path }}', methods=['{{ method['verb'].upper() }}'])
+    @inlineCallbacks
     def {{ method_name }}(server, request, **kw):
         log.debug('{{ method_name }}', request=request, server=server, **kw)
         {% if method['body'] == '*' %}
@@ -69,11 +72,11 @@ def add_routes(app, grpc_client):
         except Exception, e:
             log.error('cannot-convert-to-protobuf', e=e, data=data)
             raise
-        res = grpc_client.invoke(
+        res = yield grpc_client.invoke(
             {{ type_map[method['service']] }}Stub,
             '{{ method['method'] }}', req)
         try:
-            out_data = protobuf_to_dict(res, use_enum_labels=True)
+            out_data = MessageToDict(res, True, True)
         except AttributeError, e:
             filename = '/tmp/chameleon_failed_to_convert_data.pbd'
             with file(filename, 'w') as f:
@@ -82,7 +85,7 @@ def add_routes(app, grpc_client):
             raise
         request.setHeader('Content-Type', 'application/json')
         log.debug('{{ method_name }}', **out_data)
-        return dumps(out_data)
+        returnValue(dumps(out_data))
 
     {% endfor %}
 

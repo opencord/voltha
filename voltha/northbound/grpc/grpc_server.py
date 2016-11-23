@@ -103,54 +103,7 @@ class HealthService(voltha_pb2.HealthServiceServicer):
         )
         return res
 
-
-class ExampleService(voltha_pb2.ExampleServiceServicer):
-
-    def __init__(self, thread_pool):
-        from random import randint
-        self.thread_pool = thread_pool
-        self.db = dict((id, voltha_pb2.Address(
-            id=id,
-            street="%d 1st Street" % randint(1, 4000),
-            city="Petaluma",
-            zip=94954,
-            state="CA"
-        )) for id in (uuid.uuid5(uuid.NAMESPACE_OID, str(i)).get_hex()
-                      for i in xrange(1000, 1005)))
-
-    def stop(self):
-        pass
-
-    def GetAddress(self, request, context):
-        log.info('get-address', request=request)
-        return self.db[request.id]
-
-    def ListAddresses(self, request, context):
-        log.info('list-addresses', request=request)
-        res = voltha_pb2.Addresses(
-            addresses=self.db.values()
-        )
-        return res
-
-    def CreateAddress(self, request, context):
-        log.info('create-address', request=request)
-        id = uuid.uuid4().get_hex()
-        request.id = id
-        self.db[id] = request
-        return request
-
-    def DeleteAddress(self, request, context):
-        log.info('delete-address', request=request)
-        del self.db[request.id]
-        return Empty()
-
-    def UpdateAddress(self, request, context):
-        log.info('update-address', request=request)
-        updated = self.db[request.id]
-        updated.MergeFrom(request)
-        return updated
-
-
+'''
 class VolthaLogicalLayer(voltha_pb2.VolthaLogicalLayerServicer):
     # TODO still a mock
 
@@ -235,7 +188,7 @@ class VolthaLogicalLayer(voltha_pb2.VolthaLogicalLayerServicer):
         """Must be called on the twisted thread"""
         packet_in = voltha_pb2.PacketIn(id=device_id, packet_in=ofp_packet_in)
         self.packet_in_queue.put(packet_in)
-
+'''
 
 @implementer(IComponent)
 class VolthaGrpcServer(object):
@@ -254,8 +207,6 @@ class VolthaGrpcServer(object):
         for activator_func, service_class in (
             (schema_pb2.add_SchemaServiceServicer_to_server, SchemaService),
             (voltha_pb2.add_HealthServiceServicer_to_server, HealthService),
-            (voltha_pb2.add_ExampleServiceServicer_to_server, ExampleService),
-            (voltha_pb2.add_VolthaLogicalLayerServicer_to_server, VolthaLogicalLayer)
         ):
             service = service_class(self.thread_pool)
             self.register(activator_func, service)

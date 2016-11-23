@@ -9,13 +9,13 @@ import gc
 
 from mock import Mock
 
-from voltha.core.config.config_proxy import CallbackType
+from voltha.core.config.config_proxy import CallbackType, OperationContext
 from voltha.core.config.config_rev import _rev_cache
 from voltha.core.config.config_root import ConfigRoot, MergeConflictException
 from voltha.core.config.config_txn import ClosedTransactionError
 from voltha.protos import third_party
 from voltha.protos.openflow_13_pb2 import ofp_port
-from voltha.protos.voltha_pb2 import Voltha, Adapter, HealthStatus, \
+from voltha.protos.voltha_pb2 import VolthaInstance, Adapter, HealthStatus, \
     AdapterConfig, LogicalDevice
 
 
@@ -38,9 +38,9 @@ def print_metrics():
 class TestConfigNodeShallow(TestCase):
 
     def setUp(self):
-        self.empty = Voltha()
-        self.other = Voltha(instance_id='other')
-        self.node = ConfigRoot(Voltha())
+        self.empty = VolthaInstance()
+        self.other = VolthaInstance(instance_id='other')
+        self.node = ConfigRoot(VolthaInstance())
 
     def test_init(self):
         pass
@@ -48,7 +48,7 @@ class TestConfigNodeShallow(TestCase):
     def test_immutability(self):
         self.assertEqual(self.node.latest.data, self.empty)
         self.empty.instance_id = 'overwritten id'
-        self.assertEqual(self.node.latest.data, Voltha())
+        self.assertEqual(self.node.latest.data, VolthaInstance())
 
     def test_retrieve_latest(self):
         self.assertEqual(self.node.latest.data, self.empty)
@@ -61,7 +61,7 @@ class TestConfigNodeShallow(TestCase):
         hash1 = self.node.latest.hash
         self.assertEqual(len(self.node.revisions), 2)
         self.assertNotEqual(hash0, hash1)
-        self.assertEqual(self.node.latest.data, Voltha(instance_id='other'))
+        self.assertEqual(self.node.latest.data, VolthaInstance(instance_id='other'))
 
     def test_update_with_bad_data(self):
         self.assertRaises(ValueError, self.node.update, '/', Adapter())
@@ -69,7 +69,7 @@ class TestConfigNodeShallow(TestCase):
     def test_many_simple_updates(self):
         n = 1000
         for i in xrange(n):
-            self.node.update('/', Voltha(instance_id='id%d' % i))
+            self.node.update('/', VolthaInstance(instance_id='id%d' % i))
         self.node.update('/', self.other)
         self.assertEqual(len(self.node.revisions), 1002)
         self.assertEqual(self.node.latest.data, self.other)
@@ -77,11 +77,11 @@ class TestConfigNodeShallow(TestCase):
     def test_retrieve_by_rev_hash(self):
         n = 1000
         for i in xrange(n):
-            self.node.update('/', Voltha(instance_id='id%d' % i))
+            self.node.update('/', VolthaInstance(instance_id='id%d' % i))
         self.node.update('/', self.other)
         hashes = self.node.revisions
         self.assertEqual(self.node[hashes[0]].data, self.empty)
-        self.assertEqual(self.node[hashes[10]].data, Voltha(instance_id='id9'))
+        self.assertEqual(self.node[hashes[10]].data, VolthaInstance(instance_id='id9'))
         self.assertEqual(self.node[hashes[-1]].data, self.other)
 
     def test_diffs(self):
@@ -105,7 +105,7 @@ class TestConfigNodeShallow(TestCase):
 
         # add a bunch of changes
         for a in xrange(10):
-            self.node.update('/', Voltha(instance_id=str(a)))
+            self.node.update('/', VolthaInstance(instance_id=str(a)))
         hash2 = self.node.latest.hash
 
         # apply tag to latest
@@ -164,7 +164,7 @@ class DeepTestsBase(TestCase):
         gc.collect()
         _rev_cache.clear()
         self.health = HealthStatus(state=HealthStatus.DYING)
-        self.base_shallow = Voltha(instance_id='1')
+        self.base_shallow = VolthaInstance(instance_id='1')
         self.base_deep = copy(self.base_shallow)
         self.base_deep.health.state = HealthStatus.DYING  # = self.health
         for i in xrange(5):
@@ -187,7 +187,7 @@ class TestConfigNodeDeep(DeepTestsBase):
         pass
 
     def test_reject_duplicate_keys(self):
-        data = Voltha(
+        data = VolthaInstance(
             instance_id='42', adapters=[Adapter(id='same') for _ in xrange(5)])
         self.assertRaises(ValueError, ConfigRoot, data)
 
@@ -201,7 +201,7 @@ class TestConfigNodeDeep(DeepTestsBase):
 
     def test_top_level_update(self):
         # test that top-level update retains children
-        self.node.update('/', Voltha(version='1.2.3'))
+        self.node.update('/', VolthaInstance(version='1.2.3'))
         hash_new = self.node.latest.hash
         self.assertNotEqual(self.hash_orig, hash_new)
         self.assertEqual(self.node.get(
@@ -272,7 +272,7 @@ class TestConfigNodeDeep(DeepTestsBase):
     def test_update_handle_invalid_type(self):
         self.assertRaises(ValueError, self.node.update, '/', Adapter())
         self.assertRaises(ValueError, self.node.update, '/health', Adapter())
-        self.assertRaises(ValueError, self.node.update, '/adapters/1', Voltha())
+        self.assertRaises(ValueError, self.node.update, '/adapters/1', VolthaInstance())
 
     def test_update_handle_key_change_attempt(self):
         self.assertRaises(
@@ -321,7 +321,7 @@ class TestConfigNodeDeep(DeepTestsBase):
 
     def test_pruning_after_shallow_change(self):
 
-        self.node.update('/', Voltha(version='10.1'))
+        self.node.update('/', VolthaInstance(version='10.1'))
 
         # sanity check
         self.assertEqual(len(self.node.revisions), 2)
@@ -367,7 +367,7 @@ class TestPruningPerformance(DeepTestsBase):
 
         seed(0)  # makes things consistently random
 
-        # this should be the number of nodes in the Voltha tree
+        # this should be the number of nodes in the VolthaInstance tree
         self.assertLess(rev_count(), 20)
         print; print_metrics()
 
@@ -436,7 +436,7 @@ class TestPruningPerformance(DeepTestsBase):
     def test_strict_read_only(self):
         # it shall not be possible to change a read-only field
         self.assertRaises(ValueError, self.node.update,
-                          '/', Voltha(version='foo'), strict=True)
+                          '/', VolthaInstance(version='foo'), strict=True)
         self.assertRaises(ValueError, self.node.update,
                           '/adapters/1', Adapter(version='foo'), strict=True)
 
@@ -590,7 +590,7 @@ class TestTransactionalLogic(DeepTestsBase):
         # look under the hood to verify that branches are added
         # recursively
         _latest_root_rev = self.node._branches[None].latest
-        adapter_node = _latest_root_rev._children['adapters']['2'].node
+        adapter_node = _latest_root_rev._children['adapters'][2].node
         self.assertEqual(len(self.node._branches.keys()), 1)
         self.assertEqual(len(adapter_node._branches.keys()), 1)
 
@@ -666,7 +666,7 @@ class TestTransactionalLogic(DeepTestsBase):
         # look under the hood to verify that branches are added
         # recursively
         _latest_root_rev = self.node._branches[None].latest
-        adapter_node = _latest_root_rev._children['adapters']['2'].node
+        adapter_node = _latest_root_rev._children['adapters'][2].node
         self.assertEqual(len(self.node._branches.keys()), 1)
         self.assertEqual(len(adapter_node._branches.keys()), 1)
 
@@ -692,7 +692,7 @@ class TestTransactionalLogic(DeepTestsBase):
         # look under the hood to verify that branches are added
         # recursively
         _latest_root_rev = self.node._branches[None].latest
-        adapter_node = _latest_root_rev._children['adapters']['2'].node
+        adapter_node = _latest_root_rev._children['adapters'][2].node
         self.assertEqual(len(self.node._branches.keys()), 1)
         self.assertEqual(len(adapter_node._branches.keys()), 1)
 
@@ -715,7 +715,7 @@ class TestTransactionalLogic(DeepTestsBase):
 
         proxy = self.node.get_proxy('/')
         _latest_root_rev = self.node._branches[None].latest
-        adapter_node = _latest_root_rev._children['adapters']['2'].node
+        adapter_node = _latest_root_rev._children['adapters'][2].node
         tx = proxy.open_transaction()
 
         # publicly visible value before change
@@ -888,7 +888,7 @@ class TestTransactionalLogic(DeepTestsBase):
         tx1.commit()
         tx2.commit()
         self.assertRaises(MergeConflictException, tx3.commit)
-        tx4.commit()  # is fine since it add the same data
+        tx4.commit()  # is fine since it added the same data
         self.assertEqual(self.log_levels().keys(), [
             '0', '1', '2', '3', '4', 'new1', 'new2'
         ])
@@ -1159,6 +1159,11 @@ class TestTransactionalLogic(DeepTestsBase):
         tx.commit()
         post_update.assert_called_once_with(v)
         post_add.assert_called_once_with(ld)
+        # OperationContext(
+        #     data=ld,
+        #     field_name='logical_devices',
+        #     child_key='1'
+        # ))
         post_remove.assert_called_once_with(ad)
 
 

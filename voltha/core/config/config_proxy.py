@@ -21,6 +21,22 @@ from voltha.core.config.config_txn import ConfigTransaction
 log = structlog.get_logger()
 
 
+class OperationContext(object):
+    def __init__(self, path=None, data=None, field_name=None, child_key=None):
+        self.path = path
+        self._data = data
+        self.field_name = field_name
+        self.child_key = child_key
+    @property
+    def data(self):
+        return self._data
+    def update(self, data):
+        self._data = data
+        return self
+    def __repr__(self):
+        return 'OperationContext({})'.format(self.__dict__)
+
+
 class CallbackType(Enum):
 
     # GET hooks are called after the data is retrieved and can be used to
@@ -42,6 +58,10 @@ class CallbackType(Enum):
     POST_ADD = 5
     PRE_REMOVE = 6
     POST_REMOVE = 7
+
+    # Bulk list change due to transaction commit that changed items in
+    # non-keyed container fields
+    POST_LISTCHANGE = 8
 
 
 class ConfigProxy(object):
@@ -115,16 +135,16 @@ class ConfigProxy(object):
 
     # ~~~~~~~~~~~~~~~~~~~~~ Callback dispatch ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    def invoke_callbacks(self, callback_type, msg, proceed_on_errors=False):
+    def invoke_callbacks(self, callback_type, context, proceed_on_errors=False):
         lst = self._callbacks.get(callback_type, [])
         for callback, args, kw in lst:
             try:
-                msg = callback(msg, *args, **kw)
+                context = callback(context, *args, **kw)
             except Exception, e:
                 if proceed_on_errors:
                     log.exception(
                         'call-back-error', callback_type=callback_type,
-                        msg=msg, e=e)
+                        context=context, e=e)
                 else:
                     raise
-        return msg
+        return context

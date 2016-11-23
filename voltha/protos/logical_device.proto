@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package voltha;
+
+import "meta.proto";
+import "google/api/annotations.proto";
+import "openflow_13.proto";
+
+message LogicalDevice {
+    string id = 1;
+    uint64 datapath_id = 2;
+
+    openflow_13.ofp_desc desc = 3;
+
+    repeated openflow_13.ofp_port ports = 4 [(child_node) = {key: "port_no"}];
+    openflow_13.Flows flows = 5 [(child_node) = {}];
+//    repeated openflow_13.ofp_flow_stats flows = 129;
+    openflow_13.FlowGroups flow_groups = 6 [(child_node) = {}];
+//    repeated openflow_13.ofp_group_entry flow_groups = 130;
+
+}
+
+message LogicalDevices {
+    repeated LogicalDevice items = 1;
+}
+
+message LogicalPorts {
+    repeated openflow_13.ofp_port items = 1;
+}
+
+message LogicalDeviceDetails {
+    string id = 1;
+    uint64 datapath_id = 2;
+    openflow_13.ofp_desc desc = 3;
+    openflow_13.ofp_switch_features switch_features = 4;
+}
