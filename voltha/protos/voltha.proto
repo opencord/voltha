@@ -14,33 +14,359 @@ import "google/api/annotations.proto";
 import public "meta.proto";
 import public "common.proto";
 import public "health.proto";
-import public "logical_layer.proto";
+import public "logical_device.proto";
+import public "device.proto";
 import public "adapter.proto";
-import public "example_service.proto";
+import public "openflow_13.proto";
 
 option java_package = "org.opencord.voltha";
 option java_outer_classname = "VolthaProtos";
 option csharp_namespace = "Opencord.Voltha.Voltha";
 
-// Top-level (root) config node for Voltha
-message Voltha {
+message DeviceGroup {
+
+    string id = 1 [(access) = READ_ONLY];
+
+    repeated LogicalDevice logical_devices = 2 [(child_node) = {key: "id"}];
+
+    repeated Device devices = 3 [(child_node) = {key: "id"}];
+}
+
+message DeviceGroups {
+    repeated DeviceGroup items = 1;
+}
+
+// Top-level (root) node for a Voltha Instance
+message VolthaInstance {
 
     string instance_id = 1  [(access) = READ_ONLY];
+
     string version = 2 [(access) = READ_ONLY];
+
     LogLevel log_level = 3;
 
     HealthStatus health = 10 [(child_node) = {}];
-    repeated Adapter adapters = 11 [(child_node) = { key: "id" }];
-    repeated LogicalDevice logical_devices = 12 [(child_node) = {key:"id"}];
+
+    repeated Adapter adapters = 11 [(child_node) = {key: "id" }];
+
+    repeated LogicalDevice logical_devices = 12 [(child_node) = {key: "id"}];
+
+    repeated Device devices = 13 [(child_node) = {key: "id"}];
+
+    repeated DeviceType device_types = 14 [(child_node) = {key: "id"}];
+
+    repeated DeviceGroup device_groups = 15 [(child_node) = {key: "id"}];
+}
+
+message VolthaInstances {
+    repeated string items = 1;
+}
+
+// Voltha representing the entire Voltha cluster
+message Voltha {
+
+    string version = 1 [(access) = READ_ONLY];
+
+    LogLevel log_level = 2;
+
+    repeated VolthaInstance instances = 3 [(child_node) = {key: "instance_id"}];
+
+    repeated Adapter adapters = 11 [(child_node) = {key: "id"}];
+
+    repeated LogicalDevice logical_devices = 12 [(child_node) = {key: "id"}];
+
+    repeated Device devices = 13 [(child_node) = {key: "id"}];
+
+    repeated DeviceGroup device_groups = 15 [(child_node) = {key: "id"}];
 
 }
 
-service VolthaService {
+
+/*
+ * Cluster-wide Voltha APIs
+ *
+ * These APIs are potentially dispatched to the leader of the Voltha cluster,
+ * to a specific Voltha instance which owns the given device or logical device.
+ *
+ */
+service VolthaGlobalService {
 
     rpc GetVoltha(google.protobuf.Empty) returns(Voltha) {
         option (google.api.http) = {
-            get: "/voltha"
+            get: "/api/v1"
         };
     }
+
+    rpc ListVolthaInstances(google.protobuf.Empty) returns(VolthaInstances) {
+        option (google.api.http) = {
+            get: "/api/v1/instances"
+        };
+    }
+
+    rpc GetVolthaInstance(ID) returns(VolthaInstance) {
+        option (google.api.http) = {
+            get: "/api/v1/instances/{id}"
+        };
+    }
+
+    rpc ListLogicalDevices(google.protobuf.Empty) returns(LogicalDevices) {
+        option (google.api.http) = {
+            get: "/api/v1/logical_devices"
+        };
+    }
+
+    rpc GetLogicalDevice(ID) returns(LogicalDevice) {
+        option (google.api.http) = {
+            get: "/api/v1/logical_devices/{id}"
+        };
+    }
+
+    // List ports of a logical device
+    rpc ListLogicalDevicePorts(ID) returns(LogicalPorts) {
+        option (google.api.http) = {
+            get: "/api/v1/logical_devices/{id}/ports"
+        };
+    }
+
+    // List all flows of a logical device
+    rpc ListLogicalDeviceFlows(ID) returns(openflow_13.Flows) {
+        option (google.api.http) = {
+            get: "/api/v1/logical_devices/{id}/flows"
+        };
+    }
+
+    // Update flow table for device
+    rpc UpdateLogicalDeviceFlowTable(openflow_13.FlowTableUpdate)
+            returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/logical_devices/{id}/flows"
+            body: "*"
+        };
+    }
+
+    // List all flow groups of a logical device
+    rpc ListLogicalDeviceFlowGroups(ID) returns(openflow_13.FlowGroups) {
+        option (google.api.http) = {
+            get: "/api/v1/logical_devices/{id}/flow_groups"
+        };
+    }
+
+    // Update group table for device
+    rpc UpdateLogicalDeviceFlowGroupTable(openflow_13.FlowGroupTableUpdate)
+            returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/logical_devices/{id}/flow_groups"
+            body: "*"
+        };
+    }
+
+    rpc ListDevices(google.protobuf.Empty) returns(Devices) {
+        option (google.api.http) = {
+            get: "/api/v1/devices"
+        };
+    }
+
+    rpc GetDevice(ID) returns(Device) {
+        option (google.api.http) = {
+            get: "/api/v1/devices/{id}"
+        };
+    }
+
+    // List ports of a logical device
+    rpc ListDevicePorts(ID) returns(Ports) {
+        option (google.api.http) = {
+            get: "/api/v1/devices/{id}/ports"
+        };
+    }
+
+    // List all flows of a logical device
+    rpc ListDeviceFlows(ID) returns(openflow_13.Flows) {
+        option (google.api.http) = {
+            get: "/api/v1/devices/{id}/flows"
+        };
+    }
+
+    // List all flow groups of a logical device
+    rpc ListDeviceFlowGroups(ID) returns(openflow_13.FlowGroups) {
+        option (google.api.http) = {
+            get: "/api/v1/devices/{id}/flow_groups"
+        };
+    }
+
+    rpc ListDeviceTypes(google.protobuf.Empty) returns(DeviceTypes) {
+        option (google.api.http) = {
+            get: "/api/v1/device_types"
+        };
+    }
+
+    rpc GetDeviceType(ID) returns(DeviceType) {
+        option (google.api.http) = {
+            get: "/api/v1/device_types/{id}"
+        };
+    }
+
+    rpc ListDeviceGroups(google.protobuf.Empty) returns(DeviceGroups) {
+        option (google.api.http) = {
+            get: "/api/v1/device_groups"
+        };
+    }
+
+    rpc GetDeviceGroup(ID) returns(DeviceGroup) {
+        option (google.api.http) = {
+            get: "/api/v1/device_groups/{id}"
+        };
+    }
+
+    // TODO other top-level APIs to be added here
+
+}
+
+/*
+ * Per-instance APIs
+ *
+ * These APIs are always served locally by the Voltha instance on which the
+ * call is made.
+ */
+service VolthaLocalService {
+
+    rpc GetVolthaInstance(google.protobuf.Empty) returns(VolthaInstance) {
+        option (google.api.http) = {
+            get: "/api/v1/local"
+        };
+    }
+
+    rpc GetHealth(google.protobuf.Empty) returns(HealthStatus) {
+        option (google.api.http) = {
+            get: "/api/v1/local/health"
+        };
+    }
+
+    rpc ListAdapters(google.protobuf.Empty) returns(Adapters) {
+        option (google.api.http) = {
+            get: "/api/v1/local/adapters"
+        };
+    }
+
+    rpc ListLogicalDevices(google.protobuf.Empty) returns(LogicalDevices) {
+        option (google.api.http) = {
+            get: "/api/v1/local/logical_devices"
+        };
+    }
+
+    rpc GetLogicalDevice(ID) returns(LogicalDevice) {
+        option (google.api.http) = {
+            get: "/api/v1/local/logical_devices/{id}"
+        };
+    }
+
+    // List ports of a logical device
+    rpc ListLogicalDevicePorts(ID) returns(LogicalPorts) {
+        option (google.api.http) = {
+            get: "/api/v1/local/logical_devices/{id}/ports"
+        };
+    }
+
+    // List all flows of a logical device
+    rpc ListLogicalDeviceFlows(ID) returns(openflow_13.Flows) {
+        option (google.api.http) = {
+            get: "/api/v1/local/logical_devices/{id}/flows"
+        };
+    }
+
+    // Update flow table for device
+    rpc UpdateLogicalDeviceFlowTable(openflow_13.FlowTableUpdate)
+            returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/logical_devices/{id}/flows"
+            body: "*"
+        };
+    }
+
+    // List all flow groups of a logical device
+    rpc ListLogicalDeviceFlowGroups(ID) returns(openflow_13.FlowGroups) {
+        option (google.api.http) = {
+            get: "/api/v1/local/logical_devices/{id}/flow_groups"
+        };
+    }
+
+    // Update group table for device
+    rpc UpdateLogicalDeviceFlowGroupTable(openflow_13.FlowGroupTableUpdate)
+            returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/logical_devices/{id}/flow_groups"
+            body: "*"
+        };
+    }
+
+    rpc ListDevices(google.protobuf.Empty) returns(Devices) {
+        option (google.api.http) = {
+            get: "/api/v1/local/devices"
+        };
+    }
+
+    rpc GetDevice(ID) returns(Device) {
+        option (google.api.http) = {
+            get: "/api/v1/local/devices/{id}"
+        };
+    }
+
+    // List ports of a logical device
+    rpc ListDevicePorts(ID) returns(Ports) {
+        option (google.api.http) = {
+            get: "/api/v1/local/devices/{id}/ports"
+        };
+    }
+
+    // List all flows of a logical device
+    rpc ListDeviceFlows(ID) returns(openflow_13.Flows) {
+        option (google.api.http) = {
+            get: "/api/v1/local/devices/{id}/flows"
+        };
+    }
+
+    // List all flow groups of a logical device
+    rpc ListDeviceFlowGroups(ID) returns(openflow_13.FlowGroups) {
+        option (google.api.http) = {
+            get: "/api/v1/local/devices/{id}/flow_groups"
+        };
+    }
+
+    rpc ListDeviceTypes(google.protobuf.Empty) returns(DeviceTypes) {
+        option (google.api.http) = {
+            get: "/api/v1/local/device_types"
+        };
+    }
+
+    rpc GetDeviceType(ID) returns(DeviceType) {
+        option (google.api.http) = {
+            get: "/api/v1/local/device_types/{id}"
+        };
+    }
+
+    rpc ListDeviceGroups(google.protobuf.Empty) returns(DeviceGroups) {
+        option (google.api.http) = {
+            get: "/api/v1/local/device_groups"
+        };
+    }
+
+    rpc GetDeviceGroup(ID) returns(DeviceGroup) {
+        option (google.api.http) = {
+            get: "/api/v1/local/device_groups/{id}"
+        };
+    }
+
+    // Stream control packets to the dataplane
+    rpc StreamPacketsOut(stream openflow_13.PacketOut)
+        returns(google.protobuf.Empty) {
+        // This does not have an HTTP representation
+    }
+
+    // Receive control packet stream
+    rpc ReceivePacketsIn(google.protobuf.Empty)
+        returns(stream openflow_13.PacketIn) {
+        // This does not have an HTTP representation
+    }
+
+    // TODO other local APIs to be added here
 
 }

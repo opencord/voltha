@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from collections import OrderedDict
 from copy import copy
 
 from jsonpatch import JsonPatch
@@ -25,12 +24,9 @@ from voltha.core.config.config_proxy import CallbackType, ConfigProxy
 from voltha.core.config.config_rev import is_proto_message, children_fields, \
     ConfigRevision, access_rights
 from voltha.core.config.config_rev_persisted import PersistedConfigRevision
+from voltha.core.config.merge_3way import merge_3way
 from voltha.protos import third_party
 from voltha.protos import meta_pb2
-
-
-class MergeConflictException(Exception):
-    pass
 
 
 def message_to_dict(m):
@@ -48,6 +44,13 @@ def check_access_violation(new_msg, old_msg):
     if violated_fields:
         raise ValueError('Cannot change read-only field(s) %s' %
                          ', '.join('"%s"' % f for f in violated_fields))
+
+
+def find_rev_by_key(revs, keyname, value):
+    for i, rev in enumerate(revs):
+        if getattr(rev._config._data, keyname) == value:
+            return i, rev
+    raise KeyError('key {}={} not found'.format(keyname, value))
 
 
 class ConfigNode(object):
@@ -80,7 +83,9 @@ class ConfigNode(object):
             self._type = initial_data
         elif is_proto_message(initial_data):
             self._type = initial_data.__class__
-            self._initialize(copy(initial_data), txid)
+            copied_data = initial_data.__class__()
+            copied_data.CopyFrom(initial_data)
+            self._initialize(copied_data, txid)
         else:
             raise NotImplementedError()
 
@@ -98,13 +103,15 @@ class ConfigNode(object):
             field_value = getattr(data, field_name)
             if field.is_container:
                 if field.key:
-                    children[field_name] = od = OrderedDict()
+                    keys_seen = set()
+                    children[field_name] = lst = []
                     for v in field_value:
                         rev = self._mknode(v, txid=txid).latest
                         key = getattr(v, field.key)
-                        if key in od:
+                        if key in keys_seen:
                             raise ValueError('Duplicate key "{}"'.format(key))
-                        od[key] = rev
+                        lst.append(rev)
+                        keys_seen.add(key)
                 else:
                     children[field_name] = [
                         self._mknode(v, txid=txid).latest for v in field_value]
@@ -166,17 +173,18 @@ class ConfigNode(object):
         field = children_fields(self._type)[name]
         if field.is_container:
             if field.key:
-                children_od = rev._children[name]
+                children = rev._children[name]
                 if path:
                     # need to escalate further
                     key, _, path = path.partition('/')
-                    child_rev = children_od[field.key_from_str(key)]
+                    key = field.key_from_str(key)
+                    _, child_rev = find_rev_by_key(children, field.key, key)
                     child_node = child_rev.node
                     return child_node._get(child_rev, path, depth)
                 else:
                     # we are the node of interest
                     response = []
-                    for child_rev in children_od.itervalues():
+                    for child_rev in children:
                         child_node = child_rev.node
                         value = child_node._do_get(child_rev, depth)
                         response.append(value)
@@ -226,8 +234,8 @@ class ConfigNode(object):
             if field.key:
                 key, _, path = path.partition('/')
                 key = field.key_from_str(key)
-                children_od = copy(rev._children[name])
-                child_rev = children_od[key]
+                children = copy(rev._children[name])
+                idx, child_rev = find_rev_by_key(children, field.key, key)
                 child_node = child_rev.node
                 new_child_rev = child_node.update(
                     path, data, strict, txid, mk_branch)
@@ -236,8 +244,8 @@ class ConfigNode(object):
                     return branch._latest
                 if getattr(new_child_rev.data, field.key) != key:
                     raise ValueError('Cannot change key field')
-                children_od[key] = new_child_rev
-                rev = rev.update_children(name, children_od, branch)
+                children[idx] = new_child_rev
+                rev = rev.update_children(name, children, branch)
                 self._make_latest(branch, rev)
                 return rev
             else:
@@ -307,13 +315,17 @@ class ConfigNode(object):
                     if self._proxy is not None:
                         self._proxy.invoke_callbacks(
                             CallbackType.PRE_ADD, data)
-                    children_od = copy(rev._children[name])
+                    children = copy(rev._children[name])
                     key = getattr(data, field.key)
-                    if key in children_od:
+                    try:
+                        find_rev_by_key(children, field.key, key)
+                    except KeyError:
+                        pass
+                    else:
                         raise ValueError('Duplicate key "{}"'.format(key))
                     child_rev = self._mknode(data).latest
-                    children_od[key] = child_rev
-                    rev = rev.update_children(name, children_od, branch)
+                    children.append(child_rev)
+                    rev = rev.update_children(name, children, branch)
                     self._make_latest(branch, rev,
                                       ((CallbackType.POST_ADD, data),))
                     return rev
@@ -325,12 +337,12 @@ class ConfigNode(object):
                     # need to escalate
                     key, _, path = path.partition('/')
                     key = field.key_from_str(key)
-                    children_od = copy(rev._children[name])
-                    child_rev = children_od[key]
+                    children = copy(rev._children[name])
+                    idx, child_rev = find_rev_by_key(children, field.key, key)
                     child_node = child_rev.node
                     new_child_rev = child_node.add(path, data, txid, mk_branch)
-                    children_od[key] = new_child_rev
-                    rev = rev.update_children(name, children_od, branch)
+                    children[idx] = new_child_rev
+                    rev = rev.update_children(name, children, branch)
                     self._make_latest(branch, rev)
                     return rev
                 else:
@@ -363,26 +375,27 @@ class ConfigNode(object):
                 key = field.key_from_str(key)
                 if path:
                     # need to escalate
-                    children_od = copy(rev._children[name])
-                    child_rev = children_od[key]
+                    children = copy(rev._children[name])
+                    idx, child_rev = find_rev_by_key(children, field.key, key)
                     child_node = child_rev.node
                     new_child_rev = child_node.remove(path, txid, mk_branch)
-                    children_od[key] = new_child_rev
-                    rev = rev.update_children(name, children_od, branch)
+                    children[idx] = new_child_rev
+                    rev = rev.update_children(name, children, branch)
                     self._make_latest(branch, rev)
                     return rev
                 else:
                     # need to remove from this very node
-                    children_od = copy(rev._children[name])
+                    children = copy(rev._children[name])
+                    idx, child_rev = find_rev_by_key(children, field.key, key)
                     if self._proxy is not None:
-                        data = children_od[field.key_from_str(key)].data
+                        data = child_rev.data
                         self._proxy.invoke_callbacks(
                             CallbackType.PRE_REMOVE, data)
                         post_anno = ((CallbackType.POST_REMOVE, data),)
                     else:
                         post_anno = ()
-                    del children_od[field.key_from_str(key)]
-                    rev = rev.update_children(name, children_od, branch)
+                    del children[idx]
+                    rev = rev.update_children(name, children, branch)
                     self._make_latest(branch, rev, post_anno)
                     return rev
             else:
@@ -401,14 +414,6 @@ class ConfigNode(object):
     def _del_txbranch(self, txid):
         del self._branches[txid]
 
-    # def can_txbranch_be_merged(self, txid):
-    #     try:
-    #         self._merge_txbranch(txid, dry_run=True)
-    #     except MergeConflictException:
-    #         return False
-    #     else:
-    #         return True
-
     def _merge_txbranch(self, txid, dry_run=False):
         """
         Make latest in branch to be latest in the common branch, but only
@@ -417,72 +422,11 @@ class ConfigNode(object):
         to be verified recursively.
         """
 
-        """
-        A transaction branch can be merged only if none of the following
-        happened with the master branch since the fork rev:
-        - the local data was changed both in the incoming node and in the
-          default branch since the branch point, and they differ now
-        - both branches changed the same children nodes in any way (local or
-          deep)
-        """
-
-        announcements = []
-
-        def _get_od_changes(lst1, lst2):
-            assert isinstance(lst2, dict)
-            added_keys = [k for k in lst2.iterkeys() if k not in lst1]
-            removed_keys = [k for k in lst1.iterkeys() if k not in lst2]
-            changed_keys = [k for k in lst1.iterkeys()
-                            if k in lst2 and lst1[k].hash != lst2[k].hash]
-            return added_keys, removed_keys, changed_keys
-
-        def _get_changes(lst1, lst2):
-            if isinstance(lst1, dict):
-                return _get_od_changes(lst1, lst2)
-            assert isinstance(lst1, list)
-            assert isinstance(lst2, list)
-            set1 = set(lst1)
-            set2 = set(lst2)
-            added = set2.difference(set1)
-            removed = set1.difference(set2)
-            changed = set()  # no such thing in plain (unkeyed) lists
-            return added, removed, changed
-
-        def _escalate(child_rev):
+        def merge_child(child_rev):
             child_branch = child_rev._branch
             if child_branch._txid == txid:
                 child_rev = child_branch._node._merge_txbranch(txid, dry_run)
             return child_rev
-
-        def _escalate_list(src_list):
-            if isinstance(src_list, list):
-                lst = []
-                for child_rev in src_list:
-                    lst.append(_escalate(child_rev))
-                return lst
-            else:  # OrderedDict
-                od = OrderedDict()
-                for key, child_rev in src_list.iteritems():
-                    od[key] = _escalate(child_rev)
-                return od
-
-        def _add(dst, rev_or_key, src):
-            if isinstance(dst, list):
-                dst.append(_escalate(rev_or_key))
-                announcements.append((CallbackType.POST_ADD, rev_or_key.data))
-            else:  # OrderedDict key, data is in lst
-                rev = src[rev_or_key]
-                dst[rev_or_key] = _escalate(rev)
-                announcements.append((CallbackType.POST_ADD, rev.data))
-
-        def _remove(dst, rev_or_key):
-            if isinstance(dst, list):
-                dst.remove(rev_or_key)
-                announcements.append((CallbackType.POST_REMOVE, rev_or_key))
-            else:
-                rev = dst[rev_or_key]
-                del dst[rev_or_key]
-                announcements.append((CallbackType.POST_REMOVE, rev.data))
 
         src_branch = self._branches[txid]
         dst_branch = self._branches[None]
@@ -491,66 +435,14 @@ class ConfigNode(object):
         src_rev = src_branch.latest  # head rev of source branch
         dst_rev = dst_branch.latest  # head rev of target branch
 
-        # deal with config data first
-        if dst_rev._config is fork_rev._config:
-            # no change in master, accept src if different
-            config_changed = dst_rev._config != src_rev._config
-        else:
-            if dst_rev._config.hash != src_rev._config.hash:
-                raise MergeConflictException('Config collision')
-            config_changed = True
-
-        new_children = copy(dst_rev._children)
-        for field_name, field in children_fields(self._type).iteritems():
-            fork_list = fork_rev._children[field_name]
-            src_list = src_rev._children[field_name]
-            dst_list = dst_rev._children[field_name]
-            if 0: #dst_list == fork_list:
-                # no change in master, accept src if different
-                if src_list != fork_list:
-                    new_children[field_name] = _escalate_list(src_list)
-            else:
-                src_added, src_removed, src_changed = _get_changes(
-                    fork_list, src_list)
-                dst_added, dst_removed, dst_changed = _get_changes(
-                    fork_list, dst_list)
-
-                lst = copy(new_children[field_name])
-                for to_add in src_added:
-                    # we cannot add if it has been added and is different
-                    if to_add in dst_added:
-                        # this can happen only to keyed containers
-                        assert isinstance(src_list, dict)
-                        if src_list[to_add].hash != dst_list[to_add].hash:
-                            raise MergeConflictException(
-                                'Cannot add because it has been added and '
-                                'different'
-                            )
-                    _add(lst, to_add, src_list)
-                for to_remove in src_removed:
-                    # we cannot remove if it has changed in dst
-                    if to_remove in dst_changed:
-                        raise MergeConflictException(
-                            'Cannot remove because it has changed')
-                    if to_remove not in dst_removed:
-                        _remove(lst, to_remove)
-                for to_change in src_changed:
-                    # we cannot change if it was removed in dst
-                    if to_change in dst_removed:
-                        raise MergeConflictException(
-                            'Cannot change because it has been removed')
-                    # change can only be in keyed containers (OrderedDict)
-                    lst[to_change] = _escalate(src_list[to_change])
-                new_children[field_name] = lst
+        rev, changes = merge_3way(
+            fork_rev, src_rev, dst_rev, merge_child, dry_run)
 
         if not dry_run:
-            rev = src_rev if config_changed else dst_rev
-            rev = rev.update_all_children(new_children, dst_branch)
-            if config_changed:
-                announcements.append((CallbackType.POST_UPDATE, rev.data))
-            self._make_latest(dst_branch, rev, announcements)
+            self._make_latest(dst_branch, rev, change_announcements=changes)
             del self._branches[txid]
-            return rev
+
+        return rev
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Diff utility ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -638,8 +530,9 @@ class ConfigNode(object):
                 raise ValueError('Cannot proxy a container field')
             if field.key:
                 key, _, path = path.partition('/')
-                children_od = rev._children[name]
-                child_rev = children_od[key]
+                key = field.key_from_str(key)
+                children = rev._children[name]
+                _, child_rev = find_rev_by_key(children, field.key, key)
                 child_node = child_rev.node
                 return child_node._get_proxy(path, root, full_path, exclusive)
 

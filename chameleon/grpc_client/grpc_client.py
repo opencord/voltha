@@ -30,7 +30,7 @@ from consul import Consul
 from grpc._channel import _Rendezvous
 from structlog import get_logger
 from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, returnValue
 from werkzeug.exceptions import ServiceUnavailable
 
 from common.utils.asleep import asleep
@@ -251,7 +251,8 @@ class GrpcClient(object):
             log.debug('test-import', modname=modname)
             _ = __import__(modname)
 
-    def invoke(self, stub, method_name, request):
+    @inlineCallbacks
+    def invoke(self, stub, method_name, request, retry=1):
         """
         Invoke a gRPC call to the remote server and return the response.
         :param stub: Reference to the *_pb2 service stub
@@ -265,16 +266,22 @@ class GrpcClient(object):
 
         try:
             response = getattr(stub(self.channel), method_name)(request)
-            return response
+            returnValue(response)
 
         except grpc._channel._Rendezvous, e:
             if e.code() == grpc.StatusCode.UNAVAILABLE:
                 e = ServiceUnavailable()
+
+                if self.connected:
+                    self.connected = False
+                    yield self.connect()
+                    if retry > 0:
+                        response = yield self.invoke(stub, method_name,
+                                                     request,
+                                                     retry=retry - 1)
+                        returnValue(response)
+
             else:
                 log.exception(e)
-
-            if self.connected :
-                self.connected = False
-                reactor.callLater(0, self.connect)
 
             raise e
