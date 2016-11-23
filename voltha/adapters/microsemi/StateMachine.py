@@ -19,7 +19,11 @@ Base OLT State machine class
 """
 import threading
 import time
+from structlog import get_logger
+from twisted.internet import reactor, task
 from voltha.adapters.microsemi.PAS5211 import PAS5211MsgGetProtocolVersion, PAS5211MsgGetOltVersion
+
+log = get_logger()
 
 class State(object):
     def __init__(self):
@@ -124,10 +128,10 @@ class Connected(State):
         self.comm = pas_comm
         self.completed = False
         self.packet = None
-        self.t = threading.Thread(target = self.keepalive)
+        self.scheduledTask = task.LoopingCall(self.keepalive)
 
     def run(self):
-        self.t.start()
+        self.scheduledTask.start(1.0)
 
     def transition(self):
         if self.completed:
@@ -140,16 +144,14 @@ class Connected(State):
     def send_msg(self, msg):
         return self.comm.communicate(msg)
 
-    # FIXME replace with twisted
     def keepalive(self):
-        while not self.completed:
-            self.packet = self.comm.communicate(PAS5211MsgGetOltVersion())
-            if self.packet is not None:
-                time.sleep(1)
-            else:
-                break
-        self.completed = True
+        if self.completed:
+            log.info('OLT has been disconnected')
+            return
+        self.packet = self.comm.communicate(PAS5211MsgGetOltVersion())
+        if self.packet is None:
+            self.completed = True
 
     def disconnect(self):
-        print "Stopping"
-        self.completed = True
+        print "Disconnecting OLT"
+        self.scheduledTask.stop()
