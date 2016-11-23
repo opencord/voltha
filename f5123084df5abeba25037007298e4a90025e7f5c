@@ -22,6 +22,30 @@
       "revId": "f5123084df5abeba25037007298e4a90025e7f5c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a014df3_39db281d",
+        "filename": "voltha/adapters/microsemi/RubyAdapter.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 52,
+      "author": {
+        "id": 1000004
+      },
+      "writtenOn": "2016-11-23T15:21:02Z",
+      "side": 1,
+      "message": "Yes i was having issues with importing the adapter_pb2 (see slack). So I commented it out.",
+      "parentUuid": "1a014df3_19bbcc0f",
+      "range": {
+        "startLine": 52,
+        "startChar": 15,
+        "endLine": 52,
+        "endChar": 30
+      },
+      "revId": "f5123084df5abeba25037007298e4a90025e7f5c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
