@@ -19,7 +19,6 @@ from common.structlog_setup import setup_logging
 from common.utils.dockerhelpers import get_my_containers_name
 import os
 from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks
 from voltha.adapters.microsemi.RubyAdapter import RubyAdapter
 import yaml
 

@@ -72,6 +72,7 @@ class Disconnected(State):
 
     def run(self):
         self.packet = self.comm.communicate(PAS5211MsgGetProtocolVersion())
+        self.packet.show()
         if self.packet is not None:
             self.completed = True
         return self.completed
@@ -101,6 +102,7 @@ class Fetch_Version(State):
 
     def run(self):
         self.packet = self.comm.communicate(PAS5211MsgGetOltVersion())
+        self.packet.show()
         if self.packet is not None:
             self.completed = True
         return self.completed
@@ -149,6 +151,7 @@ class Connected(State):
             log.info('OLT has been disconnected')
             return
         self.packet = self.comm.communicate(PAS5211MsgGetOltVersion())
+        self.packet.show()
         if self.packet is None:
             self.completed = True
 
