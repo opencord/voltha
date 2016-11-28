@@ -17,6 +17,7 @@
 
 import os
 
+import grpc
 from klein import Klein
 from simplejson import dumps, load
 from structlog import get_logger
@@ -26,6 +27,8 @@ from twisted.internet.tcp import Port
 from twisted.web.server import Site
 from twisted.web.static import File
 from werkzeug.exceptions import BadRequest
+from grpc import StatusCode
+
 
 log = get_logger()
 
@@ -97,3 +100,19 @@ class WebServer(object):
             return File(os.path.join(self.work_dir, 'swagger.json'))
         except Exception, e:
             log.exception('file-not-found', request=request)
+
+    @app.handle_errors(grpc._channel._Rendezvous)
+    def grpc_exception(self, request, failure):
+        code = failure.value.code()
+        if code == StatusCode.NOT_FOUND:
+            request.setResponseCode(404)
+            return failure.value.details()
+        elif code == StatusCode.INVALID_ARGUMENT:
+            request.setResponseCode(400)
+            return failure.value.details()
+        elif code == StatusCode.ALREADY_EXISTS:
+            request.setResponseCode(409)
+            return failure.value.details()
+        else:
+            raise
+

@@ -289,8 +289,16 @@ class ConfigNode(object):
         if change_announcements and branch._txid is None and \
                         self._proxy is not None:
             for change_type, data in change_announcements:
-                self._proxy.invoke_callbacks(
-                    change_type, data, proceed_on_errors=1)
+                # since the callback may operate on the config tree,
+                # we have to defer the execution of the callbacks till
+                # the change is propagated to the root, then root will
+                # call the callbacks
+                self._root.enqueue_callback(
+                    self._proxy.invoke_callbacks,
+                    change_type,
+                    data,
+                    proceed_on_errors=1
+                )
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ add operation ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

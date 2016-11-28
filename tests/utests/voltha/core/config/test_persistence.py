@@ -60,14 +60,14 @@ class TestPersistence(TestCase):
 
         # check that content of kv_store looks ok
         size1 = len(kv_store)
-        self.assertEqual(size1, 10 + 3 * (n_adapters + n_logical_nodes))
+        self.assertEqual(size1, 14 + 3 * (n_adapters + n_logical_nodes))
 
         # this should actually drop if we pune
         node.prune_untagged()
         pt('prunning')
 
         size2 = len(kv_store)
-        self.assertEqual(size2, 3 + 2 * (1 + 1 + n_adapters + n_logical_nodes))
+        self.assertEqual(size2, 7 + 2 * (1 + 1 + n_adapters + n_logical_nodes))
         all_latest_data = node.get('/', deep=1)
         pt('deep get')
 

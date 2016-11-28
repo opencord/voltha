@@ -122,7 +122,7 @@ class ConnectionManager(object):
         while True:
             log.info('Retrieve devices from voltha')
             try:
-                stub = voltha_pb2.VolthaLogicalLayerStub(self.channel)
+                stub = voltha_pb2.VolthaLocalServiceStub(self.channel)
                 devices = stub.ListLogicalDevices(Empty()).items
                 for device in devices:
                     log.info("Devices {} -> {}".format(device.id,

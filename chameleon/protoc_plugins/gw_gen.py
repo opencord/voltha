@@ -32,8 +32,7 @@ template = Template("""
 
 from simplejson import dumps, load
 from structlog import get_logger
-from protobuf_to_dict import dict_to_protobuf
-from google.protobuf.json_format import MessageToDict
+from google.protobuf.json_format import MessageToDict, ParseDict
 from twisted.internet.defer import inlineCallbacks, returnValue
 
 {% set package = file_name.replace('.proto', '') %}
@@ -65,16 +64,16 @@ def add_routes(app, grpc_client):
         {% elif method['body'] == '' %}
         data = kw
         {% else %}
-        riase NotImplementedError('cannot handle specific body field list')
+        raise NotImplementedError('cannot handle specific body field list')
         {% endif %}
         try:
-            req = dict_to_protobuf({{ type_map[method['input_type']] }}, data)
+            req = ParseDict(data, {{ type_map[method['input_type']] }}())
         except Exception, e:
             log.error('cannot-convert-to-protobuf', e=e, data=data)
             raise
-        res = yield grpc_client.invoke(
+        res, metadata = yield grpc_client.invoke(
             {{ type_map[method['service']] }}Stub,
-            '{{ method['method'] }}', req)
+            '{{ method['method'] }}', req, request.getAllHeaders().items())
         try:
             out_data = MessageToDict(res, True, True)
         except AttributeError, e:
@@ -83,6 +82,8 @@ def add_routes(app, grpc_client):
                 f.write(res.SerializeToString())
             log.error('cannot-convert-from-protobuf', outdata_saved=filename)
             raise
+        for key, value in metadata:
+            request.setHeader(key, value)
         request.setHeader('Content-Type', 'application/json')
         log.debug('{{ method_name }}', **out_data)
         returnValue(dumps(out_data))

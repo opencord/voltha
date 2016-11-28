@@ -28,12 +28,10 @@ from twisted.internet.defer import inlineCallbacks, returnValue
 from zope.interface import implementer
 from zope.interface.verify import verifyClass
 
-from common.utils.grpc_utils import twisted_async
-from voltha.adapters.interface import IAdapterInterface, AdapterProxy
+from voltha.adapters.interface import IAdapterInterface
+from voltha.core.adapter_agent import AdapterAgent
 from voltha.protos import third_party
-# from voltha.protos.adapter_pb2 import add_AdapterServiceServicer_to_server, \
-#     AdapterServiceServicer, Adapters
-from voltha.registry import IComponent, registry
+from voltha.registry import IComponent
 
 log = structlog.get_logger()
 
@@ -42,28 +40,32 @@ mydir = os.path.abspath(os.path.dirname(__file__))
 
 
 @implementer(IComponent)
-class AdapterLoader(object):  # AdapterServiceServicer):
+class AdapterLoader(object):
 
     def __init__(self, config):
         self.config = config
-        self.adapter_proxies = {}  # adapter-name -> adapter instance
+        self.adapter_agents = {}  # adapter-name -> adapter instance
 
     @inlineCallbacks
     def start(self):
         log.debug('starting')
         for adapter_name, adapter_class in self._find_adapters():
-            proxy = AdapterProxy(adapter_name, adapter_class)
-            yield proxy.start()
+            agent = AdapterAgent(adapter_name, adapter_class)
+            yield agent.start()
+            self.adapter_agents[adapter_name] = agent
         log.info('started')
         returnValue(self)
 
     @inlineCallbacks
     def stop(self):
         log.debug('stopping')
-        for proxy in self.adapter_proxies.values():
+        for proxy in self.adapter_agents.values():
             yield proxy.stop()
-        self.adapter_proxies = {}
+        self.adapter_agents = {}
         log.info('stopped')
+
+    def get_agent(self, adapter_name):
+        return self.adapter_agents[adapter_name]
 
     def _find_adapters(self):
         subdirs = os.walk(mydir).next()[1]
@@ -76,7 +78,7 @@ class AdapterLoader(object):  # AdapterServiceServicer):
                     pkg = __import__(package_name, None, None, [adapter_name])
                     module = getattr(pkg, adapter_name)
                 except ImportError, e:
-                    log.warn('cannot-load', file=py_file, e=e)
+                    log.exception('cannot-load', file=py_file, e=e)
                     continue
 
                 for attr_name in dir(module):

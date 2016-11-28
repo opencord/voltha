@@ -10,7 +10,7 @@ import "meta.proto";
 message AdapterConfig {
 
     // Common adapter config attributes here
-    LogLevel log_level = 1;
+    LogLevel.LogLevel log_level = 1;
 
     // Custom (vendor-specific) configuration attributes
     google.protobuf.Any additional_config = 64;

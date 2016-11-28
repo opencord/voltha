@@ -62,7 +62,7 @@ In one terminal window, start ONOS:
 ```
 docker pull onosproject/onos
 docker run -ti --rm -p 6633:6653 \
-    -e ONOS_APPS="drivers,openflow" onosproject/ono
+    -e ONOS_APPS="drivers,openflow" onosproject/onos
 ```
 
 In another terminal window, start the pyofagent just as above:

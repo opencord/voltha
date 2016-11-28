@@ -133,6 +133,10 @@ class ConfigProxy(object):
         lst = self._callbacks.setdefault(callback_type, [])
         lst.append((callback, args, kw))
 
+    def unregister_callback(self, callback_type, callback, *args, **kw):
+        lst = self._callbacks.setdefault(callback_type, [])
+        lst.remove((callback, args, kw))
+
     # ~~~~~~~~~~~~~~~~~~~~~ Callback dispatch ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def invoke_callbacks(self, callback_type, context, proceed_on_errors=False):

@@ -1,63 +1,15 @@
+from random import randint
+from time import time, sleep
+
 from google.protobuf.json_format import MessageToDict
-from requests import get, post, put, patch, delete
-from unittest import TestCase, main
+from unittest import main
 
-from voltha.protos.openflow_13_pb2 import FlowTableUpdate, ofp_flow_mod, \
-    OFPFC_ADD, ofp_instruction, OFPIT_APPLY_ACTIONS, ofp_instruction_actions, \
-    ofp_action, OFPAT_OUTPUT, ofp_action_output, FlowGroupTableUpdate, \
-    ofp_group_mod, OFPGC_ADD, OFPGT_ALL, ofp_bucket
+from tests.itests.voltha.rest_base import RestBase
+from voltha.core.flow_decomposer import mk_simple_flow_mod, in_port, output
+from voltha.protos import openflow_13_pb2 as ofp
 
 
-class TestRestCases(TestCase):
-
-    base_url = 'http://localhost:8881'
-
-    def url(self, path):
-        while path.startswith('/'):
-            path = path[1:]
-        return self.base_url + '/' + path
-
-    def verify_content_type_and_return(self, response, expected_content_type):
-        if 200 <= response.status_code < 300:
-            self.assertEqual(
-                response.headers['Content-Type'],
-                expected_content_type,
-                msg='Content-Type %s != %s; msg:%s' % (
-                     response.headers['Content-Type'],
-                     expected_content_type,
-                     response.content))
-            if expected_content_type == 'application/json':
-                return response.json()
-            else:
-                return response.content
-
-    def get(self, path, expected_code=200,
-            expected_content_type='application/json'):
-        r = get(self.url(path))
-        self.assertEqual(r.status_code, expected_code,
-                         msg='Code %d!=%d; msg:%s' % (
-                             r.status_code, expected_code, r.content))
-        return self.verify_content_type_and_return(r, expected_content_type)
-
-    def post(self, path, json_dict, expected_code=201):
-        r = post(self.url(path), json=json_dict)
-        self.assertEqual(r.status_code, expected_code,
-                         msg='Code %d!=%d; msg:%s' % (
-                             r.status_code, expected_code, r.content))
-        return self.verify_content_type_and_return(r, 'application/json')
-
-    def put(self, path, json_dict, expected_code=200):
-        r = put(self.url(path), json=json_dict)
-        self.assertEqual(r.status_code, expected_code,
-                         msg='Code %d!=%d; msg:%s' % (
-                             r.status_code, expected_code, r.content))
-        return self.verify_content_type_and_return(r, 'application/json')
-
-    def delete(self, path, expected_code=209):
-        r = delete(self.url(path))
-        self.assertEqual(r.status_code, expected_code,
-                         msg='Code %d!=%d; msg:%s' % (
-                             r.status_code, expected_code, r.content))
+class GlobalRestCalls(RestBase):
 
     # ~~~~~~~~~~~~~~~~~~~~~ GLOBAL TOP-LEVEL SERVICES~ ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -93,7 +45,7 @@ class TestRestCases(TestCase):
 
     def test_get_logical_device(self):
         res = self.get('/api/v1/logical_devices/simulated1')
-        self.assertEqual(res['datapath_id'], '1')  # TODO should be int
+        self.assertEqual(res['datapath_id'], '1')
 
     def test_list_logical_device_ports(self):
         res = self.get('/api/v1/logical_devices/simulated1/ports')
@@ -106,30 +58,22 @@ class TestRestCases(TestCase):
         len_before = len(res['items'])
 
         # add some flows
-        req = FlowTableUpdate(
+        req = ofp.FlowTableUpdate(
             id='simulated1',
-            flow_mod=ofp_flow_mod(
-                command=OFPFC_ADD,
-                instructions=[
-                    ofp_instruction(
-                        type=OFPIT_APPLY_ACTIONS,
-                        actions=ofp_instruction_actions(
-                            actions=[
-                                ofp_action(
-                                    type=OFPAT_OUTPUT,
-                                    output=ofp_action_output(
-                                        port=1
-                                    )
-                                )
-                            ]
-                        )
-                    )
+            flow_mod=mk_simple_flow_mod(
+                cookie=randint(1, 10000000000),
+                priority=len_before,
+                match_fields=[
+                    in_port(129)
+                ],
+                actions=[
+                    output(1)
                 ]
             )
         )
-
         res = self.post('/api/v1/logical_devices/simulated1/flows',
-                        MessageToDict(req, preserving_proto_field_name=True))
+                        MessageToDict(req, preserving_proto_field_name=True),
+                        expected_code=200)
         # TODO check some stuff on res
 
         res = self.get('/api/v1/logical_devices/simulated1/flows')
@@ -143,18 +87,18 @@ class TestRestCases(TestCase):
         len_before = len(res['items'])
 
         # add some flows
-        req = FlowGroupTableUpdate(
+        req = ofp.FlowGroupTableUpdate(
             id='simulated1',
-            group_mod=ofp_group_mod(
-                command=OFPGC_ADD,
-                type=OFPGT_ALL,
-                group_id=1,
+            group_mod=ofp.ofp_group_mod(
+                command=ofp.OFPGC_ADD,
+                type=ofp.OFPGT_ALL,
+                group_id=len_before + 1,
                 buckets=[
-                    ofp_bucket(
+                    ofp.ofp_bucket(
                         actions=[
-                            ofp_action(
-                                type=OFPAT_OUTPUT,
-                                output=ofp_action_output(
+                            ofp.ofp_action(
+                                type=ofp.OFPAT_OUTPUT,
+                                output=ofp.ofp_action_output(
                                     port=1
                                 )
                             )
@@ -163,9 +107,9 @@ class TestRestCases(TestCase):
                 ]
             )
         )
-
         res = self.post('/api/v1/logical_devices/simulated1/flow_groups',
-                        MessageToDict(req, preserving_proto_field_name=True))
+                        MessageToDict(req, preserving_proto_field_name=True),
+                        expected_code=200)
         # TODO check some stuff on res
 
         res = self.get('/api/v1/logical_devices/simulated1/flow_groups')
@@ -185,8 +129,10 @@ class TestRestCases(TestCase):
         self.assertGreaterEqual(len(res['items']), 2)
 
     def test_list_device_flows(self):
+        # pump some flows into the logical device
+        self.test_list_and_update_logical_device_flows()
         res = self.get('/api/v1/devices/simulated_olt_1/flows')
-        self.assertGreaterEqual(len(res['items']), 0)
+        self.assertGreaterEqual(len(res['items']), 1)
 
     def test_list_device_flow_groups(self):
         res = self.get('/api/v1/devices/simulated_olt_1/flow_groups')
@@ -208,6 +154,9 @@ class TestRestCases(TestCase):
         res = self.get('/api/v1/device_groups/1')
         # TODO test the result
 
+
+class TestLocalRestCalls(RestBase):
+
     # ~~~~~~~~~~~~~~~~~~ VOLTHA INSTANCE LEVEL OPERATIONS ~~~~~~~~~~~~~~~~~~~~~
 
     def test_get_local(self):
@@ -227,7 +176,7 @@ class TestRestCases(TestCase):
 
     def test_get_local_logical_device(self):
         res = self.get('/api/v1/local/logical_devices/simulated1')
-        self.assertEqual(res['datapath_id'], '1')  # TODO this should be a long int
+        self.assertEqual(res['datapath_id'], '1')
 
     def test_list_local_logical_device_ports(self):
         res = self.get('/api/v1/local/logical_devices/simulated1/ports')
@@ -239,32 +188,26 @@ class TestRestCases(TestCase):
         res = self.get('/api/v1/local/logical_devices/simulated1/flows')
         len_before = len(res['items'])
 
+        t0 = time()
         # add some flows
-        req = FlowTableUpdate(
-            id='simulated1',
-            flow_mod=ofp_flow_mod(
-                command=OFPFC_ADD,
-                instructions=[
-                    ofp_instruction(
-                        type=OFPIT_APPLY_ACTIONS,
-                        actions=ofp_instruction_actions(
-                            actions=[
-                                ofp_action(
-                                    type=OFPAT_OUTPUT,
-                                    output=ofp_action_output(
-                                        port=1
-                                    )
-                                )
-                            ]
-                        )
-                    )
-                ]
+        for _ in xrange(10):
+            req = ofp.FlowTableUpdate(
+                id='simulated1',
+                flow_mod=mk_simple_flow_mod(
+                    cookie=randint(1, 10000000000),
+                    priority=randint(1, 10000),  # to make it unique
+                    match_fields=[
+                        in_port(129)
+                    ],
+                    actions=[
+                        output(1)
+                    ]
+                )
             )
-        )
-
-        res = self.post('/api/v1/local/logical_devices/simulated1/flows',
-                        MessageToDict(req, preserving_proto_field_name=True))
-        # TODO check some stuff on res
+            self.post('/api/v1/local/logical_devices/simulated1/flows',
+                      MessageToDict(req, preserving_proto_field_name=True),
+                      expected_code=200)
+        print time() - t0
 
         res = self.get('/api/v1/local/logical_devices/simulated1/flows')
         len_after = len(res['items'])
@@ -277,18 +220,18 @@ class TestRestCases(TestCase):
         len_before = len(res['items'])
 
         # add some flows
-        req = FlowGroupTableUpdate(
+        req = ofp.FlowGroupTableUpdate(
             id='simulated1',
-            group_mod=ofp_group_mod(
-                command=OFPGC_ADD,
-                type=OFPGT_ALL,
-                group_id=1,
+            group_mod=ofp.ofp_group_mod(
+                command=ofp.OFPGC_ADD,
+                type=ofp.OFPGT_ALL,
+                group_id=len_before + 1,
                 buckets=[
-                    ofp_bucket(
+                    ofp.ofp_bucket(
                         actions=[
-                            ofp_action(
-                                type=OFPAT_OUTPUT,
-                                output=ofp_action_output(
+                            ofp.ofp_action(
+                                type=ofp.OFPAT_OUTPUT,
+                                output=ofp.ofp_action_output(
                                     port=1
                                 )
                             )
@@ -299,7 +242,8 @@ class TestRestCases(TestCase):
         )
 
         res = self.post('/api/v1/local/logical_devices/simulated1/flow_groups',
-                        MessageToDict(req, preserving_proto_field_name=True))
+                        MessageToDict(req, preserving_proto_field_name=True),
+                        expected_code=200)
         # TODO check some stuff on res
 
         res = self.get('/api/v1/local/logical_devices/simulated1/flow_groups')
@@ -341,6 +285,25 @@ class TestRestCases(TestCase):
     def test_get_local_device_group(self):
         res = self.get('/api/v1/local/device_groups/1')
         # TODO test the result
+
+
+class TestGlobalNegativeCases(RestBase):
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~ NEGATIVE TEST CASES ~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def test_invalid_url(self):
+        self.get('/some_invalid_url', expected_code=404)
+
+    def test_instance_not_found(self):
+        self.get('/api/v1/instances/nay', expected_code=404)
+
+    def test_logical_device_not_found(self):
+        self.get('/api/v1/logical_devices/nay', expected_code=404)
+
+    def test_device_not_found(self):
+        self.get('/api/v1/devices/nay', expected_code=404)
+
+    # TODO add more negative cases
 
 
 if __name__ == '__main__':
