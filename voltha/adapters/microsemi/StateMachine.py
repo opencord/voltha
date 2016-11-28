@@ -17,15 +17,21 @@
 """
 Base OLT State machine class
 """
-import threading
 import time
+
 from structlog import get_logger
 from twisted.internet import reactor, task
 from voltha.adapters.microsemi.PAS5211 import PAS5211MsgGetProtocolVersion, PAS5211MsgGetOltVersion
 
 log = get_logger()
 
+class States(object):
+    DISCONNECTED = 0
+    FETCH_VERSION = 1
+    CONNECTED = 2
+
 class State(object):
+
     def __init__(self):
         pass
 
@@ -36,10 +42,16 @@ class State(object):
         raise NotImplementedError()
 
     """
-    Distates which state to transtion to.
+    Dictates which state to transtion to.
     Predicated on the run operation to be successful.
     """
     def transition(self):
+        raise NotImplementedError()
+
+    """
+    Returns the current state name
+    """
+    def state(self):
         raise NotImplementedError()
 
     """
@@ -60,26 +72,43 @@ class State(object):
     def disconnect(self):
         raise NotImplementedError()
 
+    """
+    Indicates whether to abandon trying to connect.
+    """
+    def abandon(self):
+        raise  NotImplementedError()
+
 """
 Represents an OLT in disconnected or pre init state.
 """
 class Disconnected(State):
 
-    def __init__(self, pas_comm):
+    def __init__(self, pas_comm, retry=3):
         self.comm = pas_comm
         self.completed = False
         self.packet = None
+        self.retry = retry
+        self.attempt = 1
 
     def run(self):
         self.packet = self.comm.communicate(PAS5211MsgGetProtocolVersion())
-        self.packet.show()
         if self.packet is not None:
+            self.packet.show()
             self.completed = True
+        else:
+            if self.attempt <= self.retry:
+                time.sleep(self.attempt)
+                self.attempt += 1
         return self.completed
 
     def transition(self):
         if self.completed:
             return Fetch_Version(self.comm)
+        else:
+            return self
+
+    def state(self):
+        return States.DISCONNECTED
 
     def value(self):
         # TODO return a nicer value than the packet.
@@ -89,7 +118,10 @@ class Disconnected(State):
         raise NotImplementedError()
 
     def disconnect(self):
-        raise NotImplementedError()
+        pass
+
+    def abandon(self):
+        return self.attempt > self.retry
 
 """
 Fetches the OLT version
@@ -102,14 +134,19 @@ class Fetch_Version(State):
 
     def run(self):
         self.packet = self.comm.communicate(PAS5211MsgGetOltVersion())
-        self.packet.show()
         if self.packet is not None:
+            self.packet.show()
             self.completed = True
         return self.completed
 
     def transition(self):
         if self.completed:
             return Connected(self.comm)
+        else:
+            return self
+
+    def state(self):
+        return States.FETCH_VERSION
 
     def value(self):
         # TODO return a nicer value than the packet.
@@ -121,6 +158,9 @@ class Fetch_Version(State):
     def disconnect(self):
         raise NotImplementedError()
 
+    def abandon(self):
+        return False
+
 
 """
 OLT is in connected State
@@ -130,14 +170,22 @@ class Connected(State):
         self.comm = pas_comm
         self.completed = False
         self.packet = None
+        self.scheduled = False
         self.scheduledTask = task.LoopingCall(self.keepalive)
 
     def run(self):
-        self.scheduledTask.start(1.0)
+        if not self.scheduled:
+            self.scheduled = True
+            self.scheduledTask.start(1.0)
 
     def transition(self):
         if self.completed:
             return Disconnected(self.comm)
+        else:
+            return self
+
+    def state(self):
+        return States.CONNECTED
 
     def value(self):
         # TODO return a nicer value than the packet.
@@ -151,10 +199,17 @@ class Connected(State):
             log.info('OLT has been disconnected')
             return
         self.packet = self.comm.communicate(PAS5211MsgGetOltVersion())
-        self.packet.show()
         if self.packet is None:
             self.completed = True
+        else:
+            self.packet.show()
 
     def disconnect(self):
         print "Disconnecting OLT"
-        self.scheduledTask.stop()
+        if self.scheduled:
+            self.completed = True
+            self.scheduledTask.stop()
+        return self.transition()
+
+    def abandon(self):
+        return False

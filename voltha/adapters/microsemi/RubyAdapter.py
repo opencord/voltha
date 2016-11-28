@@ -17,11 +17,12 @@
 """
 Microsemi/Celestica Ruby vOLTHA adapter.
 """
+import time
 import structlog
 from twisted.internet import reactor
 from voltha.adapters.interface import IAdapterInterface
 from voltha.adapters.microsemi.PAS5211_comm import PAS5211Communication
-from voltha.adapters.microsemi.StateMachine import Disconnected
+from voltha.adapters.microsemi.StateMachine import Disconnected, States
 
 from voltha.protos import third_party
 from voltha.protos.adapter_pb2 import Adapter, AdapterConfig, DeviceTypes
@@ -86,8 +87,16 @@ class RubyAdapter(object):
         raise NotImplementedError()
 
     def init_olt(self):
-        self.olt.run()
-        self.olt = self.olt.transition()
-        self.olt.run()
-        self.olt = self.olt.transition()
-        self.olt.run()
+        olt = self.olt
+        while not olt.abandon():
+            if olt.state() == States.DISCONNECTED or olt.state() == States.FETCH_VERSION:
+                olt.run()
+                olt = olt.transition()
+            elif olt.state() == States.CONNECTED:
+                olt.run()
+                break
+        if olt.abandon():
+            #TODO Add more info here
+            log.info('Disconnecting this OLT')
+            self.stop()
+        self.olt = olt

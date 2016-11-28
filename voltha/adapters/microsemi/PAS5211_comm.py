@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 import netifaces
+import select
 from scapy.layers.l2 import Dot3
 from scapy.sendrecv import srp1
 import structlog
@@ -69,6 +70,13 @@ class PAS5211Communication(object):
             frame = constructPAS5211Frames(msg, self.seqgen.next(), self.src_mac,
                                            self.dst_mac, channel_id=self.channel_id,
                                            **kwargs)
-            return srp1(frame, timeout=timeout, iface=self.iface)
+            try:
+                return srp1(frame, timeout=timeout, iface=self.iface)
+            except IOError as exc:
+                log.info('Can not communicate to ruby on mac {} because {}'
+                         .format(self.dst_mac, exc.message))
+            except select.error as exc:
+                log.info('Can not communicate to ruby on mac {} because {}'
+                         .format(self.dst_mac, exc))
         else:
             log.info('Unknown src mac for {}'.format(self.iface))
