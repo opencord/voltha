@@ -52,6 +52,7 @@ class Registry(object):
         assert IComponent.providedBy(component)
         assert name not in self.components
         self.components[name] = component
+        return component
 
     def unregister(self, name):
         if name in self.components:

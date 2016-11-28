@@ -204,7 +204,7 @@ class OpenFlowProtocolHandler(object):
         self.cxn.send(ofp.message.port_desc_stats_reply(
             xid=req.xid,
             #flags=None,
-            entries=[to_loxi(port) for port in port_list]
+            entries=[to_loxi(port.ofp_port) for port in port_list]
         ))
 
     def handle_queue_stats_request(self, req):

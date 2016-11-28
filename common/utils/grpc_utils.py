@@ -17,10 +17,14 @@
 """
 Utilities to handle gRPC server and client side code in a Twisted environment
 """
+import structlog
 from concurrent.futures import Future
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred
 from twisted.python.threadable import isInIOThread
+
+
+log = structlog.get_logger()
 
 
 def twisted_async(func):
@@ -92,7 +96,11 @@ def twisted_async(func):
                 f.done()
 
         reactor.callFromThread(twisted_wrapper)
-        result = f.result()
+        try:
+            result = f.result()
+        except Exception, e:
+            log.exception(e=e, func=func, args=args, kw=kw)
+            raise
 
         return result
 

@@ -7,10 +7,75 @@ message ID {
     string id = 1;
 }
 
-enum LogLevel {
-    DEBUG = 0;
-    INFO = 1;
-    WARNING = 2;
-    ERROR = 3;
-    CRITICAL = 4;
+message LogLevel {
+
+    // Logging verbosity level
+    enum LogLevel {
+        DEBUG = 0;
+        INFO = 1;
+        WARNING = 2;
+        ERROR = 3;
+        CRITICAL = 4;
+    }
+}
+
+message AdminState {
+
+    // Administrative State
+    enum AdminState {
+
+        // The administrative state of the device is unknown
+        UNKNOWN = 0;
+
+        // The device is pre-provisioned into Voltha, but not contacted by it
+        PREPROVISIONED = 1;
+
+        // The device is enabled for activation and operation
+        ENABLED = 3;
+
+        // The device is disabled and shall not perform its intended forwarding
+        // functions other than being available for re-activation.
+        DISABLED = 2;
+    }
+}
+
+message OperStatus {
+
+    // Operational Status
+    enum OperStatus {
+
+        // The status of the device is unknown at this point
+        UNKNOWN = 0;
+
+        // The device has been discovered, but not yet activated
+        DISCOVERED = 1;
+
+        // The device is being activated (booted, rebooted, upgraded, etc.)
+        ACTIVATING = 2;
+
+        // Service impacting tests are being conducted
+        TESTING = 3;
+
+        // The device is up and active
+        ACTIVE = 4;
+
+        // The device has failed and cannot fulfill its intended role
+        FAILED = 5;
+    }
+}
+
+message ConnectStatus {
+
+    // Connectivity Status
+    enum ConnectStatus {
+
+        // The device connectivity status is unknown
+        UNKNOWN = 0;
+
+        // The device cannot be reached by Voltha
+        UNREACHABLE = 1;
+
+        // There is live communication between device and Voltha
+        REACHABLE = 2;
+    }
 }

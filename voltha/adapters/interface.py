@@ -17,19 +17,7 @@
 """
 Interface definition for Voltha Adapters
 """
-import structlog
-from twisted.internet.defer import inlineCallbacks, returnValue
 from zope.interface import Interface
-from zope.interface import implementer
-
-from voltha.protos import third_party
-from voltha.protos.device_pb2 import Device, Port
-from voltha.protos.openflow_13_pb2 import ofp_port
-from voltha.protos.voltha_pb2 import DeviceGroup, LogicalDevice
-from voltha.registry import registry
-
-
-log = structlog.get_logger()
 
 
 class IAdapterInterface(Interface):
@@ -111,14 +99,22 @@ class IAdapterInterface(Interface):
     # ...
 
 
-class IAdapterProxy(Interface):
+class IAdapterAgent(Interface):
     """
     This object is passed in to the __init__ function of each adapter,
     and can be used by the adapter implementation to initiate async calls
     toward Voltha's CORE via the APIs defined here.
     """
 
-    def create_device(device):
+    def get_device(selfdevice_id):
+        # TODO add doc
+        """"""
+
+    def add_device(device):
+        # TODO add doc
+        """"""
+
+    def update_device(device):
         # TODO add doc
         """"""
 
@@ -134,122 +130,13 @@ class IAdapterProxy(Interface):
         # TODO add doc
         """"""
 
+    def child_device_detected(parent_device_id,
+                              child_device_type,
+                              child_device_address_kw):
+        # TODO add doc
+        """"""
+
     # TODO work in progress
     pass
 
-
-@implementer(IAdapterProxy)
-class AdapterProxy(object):
-    """
-    Gate-keeper between CORE and device adapters.
-
-    On one side it interacts with Core's internal model and update/dispatch
-    mechanisms.
-
-    On the other side, it interacts with the adapters standard interface as
-    defined in
-    """
-
-    def __init__(self, adapter_name, adapter_cls):
-        self.adapter_name = adapter_name
-        self.adapter_cls = adapter_cls
-        self.core = registry('core')
-        self.adapter = None
-        self.adapter_node_proxy = None
-
-    @inlineCallbacks
-    def start(self):
-        log.debug('starting')
-        config = self._get_adapter_config()  # this may be None
-        adapter = self.adapter_cls(self, config)
-        yield adapter.start()
-        self.adapter = adapter
-        self.adapter_node_proxy = self._update_adapter_node()
-        self._update_device_types()
-        log.info('started')
-        returnValue(self)
-
-    @inlineCallbacks
-    def stop(self):
-        log.debug('stopping')
-        if self.adapter is not None:
-            yield self.adapter.stop()
-            self.adapter = None
-        log.info('stopped')
-
-    def _get_adapter_config(self):
-        """
-        Opportunistically load persisted adapter configuration.
-        Return None if no configuration exists yet.
-        """
-        proxy = self.core.get_proxy('/')
-        try:
-            config = proxy.get('/adapters/' + self.adapter_name)
-            return config
-        except KeyError:
-            return None
-
-    def _update_adapter_node(self):
-        """
-        Creates or updates the adapter node object based on self
-        description from the adapter.
-        """
-
-        adapter_desc = self.adapter.adapter_descriptor()
-        assert adapter_desc.id == self.adapter_name
-        path = self._make_up_to_date(
-            '/adapters', self.adapter_name, adapter_desc)
-        return self.core.get_proxy(path)
-
-    def _update_device_types(self):
-        """
-        Make sure device types are registered in Core
-        """
-        device_types = self.adapter.device_types()
-        for device_type in device_types.items:
-            key = device_type.id
-            self._make_up_to_date('/device_types', key, device_type)
-
-    def _make_up_to_date(self, container_path, key, data):
-        full_path = container_path + '/' + str(key)
-        root_proxy = self.core.get_proxy('/')
-        try:
-            root_proxy.get(full_path)
-            root_proxy.update(full_path, data)
-        except KeyError:
-            root_proxy.add(container_path, data)
-        return full_path
-
-    # ~~~~~~~~~~~~~~~~~ Adapter-Facing Service ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    def create_device(self, device):
-        assert isinstance(device, Device)
-        self._make_up_to_date('/devices', device.id, device)
-
-        # TODO for now, just map everything into a single device group
-        # which we create if it does not yet exist
-
-        dg = DeviceGroup(id='1')
-        self._make_up_to_date('/device_groups', dg.id, dg)
-
-        # add device to device group
-        # TODO how to do that?
-
-    def create_logical_device(self, logical_device):
-        assert isinstance(logical_device, LogicalDevice)
-        self._make_up_to_date('/logical_devices',
-                              logical_device.id, logical_device)
-
-        # TODO link logical device to root device and back...
-
-    def add_port(self, device_id, port):
-        assert isinstance(port, Port)
-        self._make_up_to_date('/devices/{}/ports'.format(device_id),
-                              port.id, port)
-
-    def add_logical_port(self, logical_device_id, port):
-        assert isinstance(port, ofp_port)
-        self._make_up_to_date(
-            '/logical_devices/{}/ports'.format(logical_device_id),
-            port.port_no, port)
 

@@ -32,7 +32,8 @@ class ConfigRoot(ConfigNode):
         '_dirty_nodes',  # holds set of modified nodes per transaction branch
         '_kv_store',
         '_loading',
-        '_rev_cls'
+        '_rev_cls',
+        '_deferred_callback_queue'
     )
 
     def __init__(self, initial_data, kv_store=None, rev_cls=ConfigRevision):
@@ -43,6 +44,7 @@ class ConfigRoot(ConfigNode):
                 not issubclass(rev_cls, PersistedConfigRevision):
             rev_cls = PersistedConfigRevision
         self._rev_cls = rev_cls
+        self._deferred_callback_queue = []
         super(ConfigRoot, self).__init__(self, initial_data, False)
 
     @property
@@ -76,49 +78,78 @@ class ConfigRoot(ConfigNode):
             self.del_txbranch(txid)
             raise
 
-        self._merge_txbranch(txid)
+        try:
+            self._merge_txbranch(txid)
+        finally:
+            self.execute_deferred_callbacks()
 
     # ~~~~~~ Overridden, root-level CRUD methods to handle transactions ~~~~~~~
 
     def update(self, path, data, strict=None, txid=None, mk_branch=None):
         assert mk_branch is None
-        if txid is not None:
-            dirtied = self._dirty_nodes[txid]
+        self.check_callback_queue()
+        try:
+            if txid is not None:
+                dirtied = self._dirty_nodes[txid]
 
-            def track_dirty(node):
-                dirtied.add(node)
-                return node._mk_txbranch(txid)
+                def track_dirty(node):
+                    dirtied.add(node)
+                    return node._mk_txbranch(txid)
 
-            return super(ConfigRoot, self).update(path, data, strict,
-                                                      txid, track_dirty)
-        else:
-            return super(ConfigRoot, self).update(path, data, strict)
+                res = super(ConfigRoot, self).update(path, data, strict,
+                                                          txid, track_dirty)
+            else:
+                res = super(ConfigRoot, self).update(path, data, strict)
+        finally:
+            self.execute_deferred_callbacks()
+        return res
 
     def add(self, path, data, txid=None, mk_branch=None):
         assert mk_branch is None
-        if txid is not None:
-            dirtied = self._dirty_nodes[txid]
+        self.check_callback_queue()
+        try:
+            if txid is not None:
+                dirtied = self._dirty_nodes[txid]
 
-            def track_dirty(node):
-                dirtied.add(node)
-                return node._mk_txbranch(txid)
+                def track_dirty(node):
+                    dirtied.add(node)
+                    return node._mk_txbranch(txid)
 
-            return super(ConfigRoot, self).add(path, data, txid, track_dirty)
-        else:
-            return super(ConfigRoot, self).add(path, data)
+                res = super(ConfigRoot, self).add(path, data, txid, track_dirty)
+            else:
+                res = super(ConfigRoot, self).add(path, data)
+        finally:
+            self.execute_deferred_callbacks()
+        return res
 
     def remove(self, path, txid=None, mk_branch=None):
         assert mk_branch is None
-        if txid is not None:
-            dirtied = self._dirty_nodes[txid]
+        self.check_callback_queue()
+        try:
+            if txid is not None:
+                dirtied = self._dirty_nodes[txid]
 
-            def track_dirty(node):
-                dirtied.add(node)
-                return node._mk_txbranch(txid)
+                def track_dirty(node):
+                    dirtied.add(node)
+                    return node._mk_txbranch(txid)
 
-            return super(ConfigRoot, self).remove(path, txid, track_dirty)
-        else:
-            return super(ConfigRoot, self).remove(path)
+                res = super(ConfigRoot, self).remove(path, txid, track_dirty)
+            else:
+                res = super(ConfigRoot, self).remove(path)
+        finally:
+            self.execute_deferred_callbacks()
+        return res
+
+    def check_callback_queue(self):
+        assert len(self._deferred_callback_queue) == 0
+
+    def enqueue_callback(self, func, *args, **kw):
+        self._deferred_callback_queue.append((func, args, kw))
+
+    def execute_deferred_callbacks(self):
+        while self._deferred_callback_queue:
+            func, args, kw = self._deferred_callback_queue.pop(0)
+            func(*args, **kw)
 
     # ~~~~~~~~~~~~~~~~ Persistence related ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

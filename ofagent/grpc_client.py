@@ -26,8 +26,8 @@ from twisted.internet import reactor
 from twisted.internet import threads
 from twisted.internet.defer import inlineCallbacks, returnValue, DeferredQueue
 
-from protos.voltha_pb2 import ID, VolthaLogicalLayerStub, FlowTableUpdate, \
-    GroupTableUpdate, PacketOut
+from protos.voltha_pb2 import ID, VolthaLocalServiceStub, FlowTableUpdate, \
+    FlowGroupTableUpdate, PacketOut
 from google.protobuf import empty_pb2
 
 
@@ -40,7 +40,7 @@ class GrpcClient(object):
 
         self.connection_manager = connection_manager
         self.channel = channel
-        self.logical_stub = VolthaLogicalLayerStub(channel)
+        self.local_stub = VolthaLocalServiceStub(channel)
 
         self.stopped = False
 
@@ -74,14 +74,14 @@ class GrpcClient(object):
 
         def stream_packets_out():
             generator = packet_generator()
-            self.logical_stub.StreamPacketsOut(generator)
+            self.local_stub.StreamPacketsOut(generator)
 
         reactor.callInThread(stream_packets_out)
 
     def start_packet_in_stream(self):
 
         def receive_packet_in_stream():
-            streaming_rpc_method = self.logical_stub.ReceivePacketsIn
+            streaming_rpc_method = self.local_stub.ReceivePacketsIn
             iterator = streaming_rpc_method(empty_pb2.Empty())
             for packet_in in iterator:
                 reactor.callFromThread(self.packet_in_queue.put,
@@ -110,14 +110,14 @@ class GrpcClient(object):
     def get_port_list(self, device_id):
         req = ID(id=device_id)
         res = yield threads.deferToThread(
-            self.logical_stub.ListLogicalDevicePorts, req)
+            self.local_stub.ListLogicalDevicePorts, req)
         returnValue(res.items)
 
     @inlineCallbacks
     def get_device_info(self, device_id):
         req = ID(id=device_id)
         res = yield threads.deferToThread(
-            self.logical_stub.GetLogicalDevice, req)
+            self.local_stub.GetLogicalDevice, req)
         returnValue(res)
 
     @inlineCallbacks
@@ -127,29 +127,29 @@ class GrpcClient(object):
             flow_mod=flow_mod
         )
         res = yield threads.deferToThread(
-            self.logical_stub.UpdateFlowTable, req)
+            self.local_stub.UpdateLogicalDeviceFlowTable, req)
         returnValue(res)
 
     @inlineCallbacks
     def update_group_table(self, device_id, group_mod):
-        req = GroupTableUpdate(
+        req = FlowGroupTableUpdate(
             id=device_id,
             group_mod=group_mod
         )
         res = yield threads.deferToThread(
-            self.logical_stub.UpdateGroupTable, req)
+            self.local_stub.UpdateLogicalDeviceFlowGroupTable, req)
         returnValue(res)
 
     @inlineCallbacks
     def list_flows(self, device_id):
         req = ID(id=device_id)
         res = yield threads.deferToThread(
-            self.logical_stub.ListDeviceFlows, req)
+            self.local_stub.ListLogicalDeviceFlows, req)
         returnValue(res.items)
 
     @inlineCallbacks
     def list_groups(self, device_id):
         req = ID(id=device_id)
         res = yield threads.deferToThread(
-            self.logical_stub.ListDeviceFlowGroups, req)
+            self.local_stub.ListLogicalDeviceFlowGroups, req)
         returnValue(res.items)

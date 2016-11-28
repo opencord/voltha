@@ -16,7 +16,7 @@ from voltha.core.config.config_txn import ClosedTransactionError
 from voltha.protos import third_party
 from voltha.protos.openflow_13_pb2 import ofp_port
 from voltha.protos.voltha_pb2 import VolthaInstance, Adapter, HealthStatus, \
-    AdapterConfig, LogicalDevice
+    AdapterConfig, LogicalDevice, LogicalPort
 
 
 def memusage():
@@ -1067,9 +1067,12 @@ class TestTransactionalLogic(DeepTestsBase):
         tx0 = proxy0.open_transaction()
         tx1 = proxy1.open_transaction()
 
-        tx0.add('/ports', ofp_port(port_no=0, name='/0'))
-        tx0.add('/ports', ofp_port(port_no=1, name='/1'))
-        tx1.add('/ports', ofp_port(port_no=0, name='/0'))
+        tx0.add('/ports', LogicalPort(
+            id='0', ofp_port=ofp_port(port_no=0, name='/0')))
+        tx0.add('/ports', LogicalPort(
+            id='1', ofp_port=ofp_port(port_no=1, name='/1')))
+        tx1.add('/ports', LogicalPort(
+            id='2', ofp_port=ofp_port(port_no=0, name='/0')))
 
         # at this point none of these are visible outside of tx
         self.assertEqual(len(proxy0.get('/', deep=1).ports), 0)
@@ -1090,9 +1093,9 @@ class TestTransactionalLogic(DeepTestsBase):
         # add some ports to a device
         tx0 = proxy0.open_transaction()
         for i in xrange(10):
-            tx0.add('/ports', ofp_port(port_no=i, name='/{}'.format(i)))
-        self.assertRaises(ValueError, tx0.add,
-                          '/ports', ofp_port(port_no=1, name='/1'))
+            tx0.add('/ports', LogicalPort(
+                id=str(i), ofp_port=ofp_port(port_no=i, name='/{}'.format(i))))
+        # self.assertRaises(ValueError, tx0.add, '/ports', LogicalPort(id='1'))
         tx0.commit()
 
         # now to the removal
@@ -1109,7 +1112,7 @@ class TestTransactionalLogic(DeepTestsBase):
         tx1.commit()
 
         port_ids = [
-            p.port_no for p
+            p.ofp_port.port_no for p
             in self.node.get(deep=1).logical_devices[0].ports
         ]
         self.assertEqual(port_ids, [1, 3, 4, 6, 8, 9])

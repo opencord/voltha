@@ -1,0 +1,636 @@
+from unittest import TestCase, main
+
+from jsonpatch import make_patch
+from simplejson import dumps
+
+from voltha.core.flow_decomposer import *
+from voltha.core.logical_device_agent import \
+    flow_stats_entry_from_flow_mod_message
+from voltha.protos.device_pb2 import Device, Port
+from voltha.protos.logical_device_pb2 import LogicalPort
+from google.protobuf.json_format import MessageToDict
+
+
+class TestFlowDecomposer(TestCase, FlowDecomposer):
+
+    def setUp(self):
+        self.logical_device_id = 'pon'
+
+    # methods needed by FlowDecomposer; faking real lookups
+
+    _devices = {
+        'olt':  Device(
+            id='olt',
+            root=True,
+            parent_id='logical_device',
+            ports=[
+                Port(port_no=1, label='pon'),
+                Port(port_no=2, label='nni'),
+            ]
+        ),
+        'onu1': Device(
+            id='onu1',
+            parent_id='olt',
+            ports=[
+                Port(port_no=1, label='pon'),
+                Port(port_no=2, label='uni'),
+            ]
+        ),
+        'onu2': Device(
+            id='onu2',
+            parent_id='olt',
+            ports=[
+                Port(port_no=1, label='pon'),
+                Port(port_no=2, label='uni'),
+            ]
+        ),
+        'onu3': Device(
+            id='onu3',
+            parent_id='olt',
+            ports=[
+                Port(port_no=1, label='pon'),
+                Port(port_no=2, label='uni'),
+            ]
+        ),
+        'onu4': Device(
+            id='onu4',
+            parent_id='olt',
+            ports=[
+                Port(port_no=1, label='pon'),
+                Port(port_no=2, label='uni'),
+            ]
+        ),
+    }
+
+    _logical_ports = {
+        0: LogicalPort(id='0', device_id='olt', device_port_no=2),
+        1: LogicalPort(id='1', device_id='onu1', device_port_no=2),
+        2: LogicalPort(id='2', device_id='onu2', device_port_no=2),
+        3: LogicalPort(id='3', device_id='onu3', device_port_no=2),
+        4: LogicalPort(id='4', device_id='onu4', device_port_no=2),
+    }
+
+    _routes = {
+
+        # DOWNSTREAM ROUTES
+
+        (0, 1): [
+            RouteHop(_devices['olt'],
+                     _devices['olt'].ports[1],
+                     _devices['olt'].ports[0]),
+            RouteHop(_devices['onu1'],
+                     _devices['onu1'].ports[0],
+                     _devices['onu1'].ports[1]),
+        ],
+        (0, 2): [
+            RouteHop(_devices['olt'],
+                     _devices['olt'].ports[1],
+                     _devices['olt'].ports[0]),
+            RouteHop(_devices['onu2'],
+                     _devices['onu2'].ports[0],
+                     _devices['onu2'].ports[1]),
+        ],
+        (0, 3): [
+            RouteHop(_devices['olt'],
+                     _devices['olt'].ports[1],
+                     _devices['olt'].ports[0]),
+            RouteHop(_devices['onu3'],
+                     _devices['onu3'].ports[0],
+                     _devices['onu3'].ports[1]),
+        ],
+        (0, 4): [
+            RouteHop(_devices['olt'],
+                     _devices['olt'].ports[1],
+                     _devices['olt'].ports[0]),
+            RouteHop(_devices['onu4'],
+                     _devices['onu4'].ports[0],
+                     _devices['onu4'].ports[1]),
+        ],
+
+        # UPSTREAM DATA PLANE
+
+        (1, 0): [
+            RouteHop(_devices['onu1'],
+                     _devices['onu1'].ports[1],
+                     _devices['onu1'].ports[0]),
+            RouteHop(_devices['olt'],
+                     _devices['olt'].ports[0],
+                     _devices['olt'].ports[1]),
+        ],
+        (2, 0): [
+            RouteHop(_devices['onu2'],
+                     _devices['onu2'].ports[1],
+                     _devices['onu2'].ports[0]),
+            RouteHop(_devices['olt'],
+                     _devices['olt'].ports[0],
+                     _devices['olt'].ports[1]),
+        ],
+        (3, 0): [
+            RouteHop(_devices['onu3'],
+                     _devices['onu3'].ports[1],
+                     _devices['onu3'].ports[0]),
+            RouteHop(_devices['olt'],
+                     _devices['olt'].ports[0],
+                     _devices['olt'].ports[1]),
+        ],
+        (4, 0): [
+            RouteHop(_devices['onu4'],
+                     _devices['onu4'].ports[1],
+                     _devices['onu4'].ports[0]),
+            RouteHop(_devices['olt'],
+                     _devices['olt'].ports[0],
+                     _devices['olt'].ports[1]),
+        ],
+
+        # UPSTREAM CONTROLLER-BOUND (IN-BAND SENDING TO DATAPLANE
+
+        (1, ofp.OFPP_CONTROLLER): [
+            RouteHop(_devices['onu1'],
+                     _devices['onu1'].ports[1],
+                     _devices['onu1'].ports[0]),
+            RouteHop(_devices['olt'],
+                     _devices['olt'].ports[0],
+                     _devices['olt'].ports[1]),
+        ],
+        (2, ofp.OFPP_CONTROLLER): [
+            RouteHop(_devices['onu2'],
+                     _devices['onu2'].ports[1],
+                     _devices['onu2'].ports[0]),
+            RouteHop(_devices['olt'],
+                     _devices['olt'].ports[0],
+                     _devices['olt'].ports[1]),
+        ],
+        (3, ofp.OFPP_CONTROLLER): [
+            RouteHop(_devices['onu3'],
+                     _devices['onu3'].ports[1],
+                     _devices['onu3'].ports[0]),
+            RouteHop(_devices['olt'],
+                     _devices['olt'].ports[0],
+                     _devices['olt'].ports[1]),
+        ],
+        (4, ofp.OFPP_CONTROLLER): [
+            RouteHop(_devices['onu4'],
+                     _devices['onu4'].ports[1],
+                     _devices['onu4'].ports[0]),
+            RouteHop(_devices['olt'],
+                     _devices['olt'].ports[0],
+                     _devices['olt'].ports[1]),
+        ],
+
+        # UPSTREAM NEXT TABLE BASED
+
+        (1, None): [
+            RouteHop(_devices['onu1'],
+                     _devices['onu1'].ports[1],
+                     _devices['onu1'].ports[0]),
+            RouteHop(_devices['olt'],
+                     _devices['olt'].ports[0],
+                     _devices['olt'].ports[1]),
+        ],
+        (2, None): [
+            RouteHop(_devices['onu2'],
+                     _devices['onu2'].ports[1],
+                     _devices['onu2'].ports[0]),
+            RouteHop(_devices['olt'],
+                     _devices['olt'].ports[0],
+                     _devices['olt'].ports[1]),
+        ],
+        (3, None): [
+            RouteHop(_devices['onu3'],
+                     _devices['onu3'].ports[1],
+                     _devices['onu3'].ports[0]),
+            RouteHop(_devices['olt'],
+                     _devices['olt'].ports[0],
+                     _devices['olt'].ports[1]),
+        ],
+        (4, None): [
+            RouteHop(_devices['onu4'],
+                     _devices['onu4'].ports[1],
+                     _devices['onu4'].ports[0]),
+            RouteHop(_devices['olt'],
+                     _devices['olt'].ports[0],
+                     _devices['olt'].ports[1]),
+        ],
+
+        # DOWNSTREAM NEXT TABLE BASED
+
+        (0, None): [
+            RouteHop(_devices['olt'],
+                     _devices['olt'].ports[1],
+                     _devices['olt'].ports[0]),
+            None  # 2nd hop is not known yet
+        ]
+
+    }
+
+    _default_rules = {
+        'olt': (
+            OrderedDict((f.id, f) for f in [
+                mk_flow_stat(
+                    match_fields=[
+                        in_port(2),
+                        vlan_vid(ofp.OFPVID_PRESENT | 4000),
+                        vlan_pcp(0)
+                    ],
+                    actions=[
+                        pop_vlan(),
+                        output(1)
+                    ]
+                )
+            ]),
+            OrderedDict()
+        ),
+        'onu1': (
+            OrderedDict((f.id, f) for f in [
+                mk_flow_stat(
+                    match_fields=[
+                        in_port(2),
+                        vlan_vid(ofp.OFPVID_PRESENT | 0)
+                    ],
+                    actions=[
+                        set_field(vlan_vid(ofp.OFPVID_PRESENT | 101)),
+                        output(1)
+                    ]
+                )
+            ]),
+            OrderedDict()
+        ),
+        'onu2': (
+            OrderedDict((f.id, f) for f in [
+                mk_flow_stat(
+                    match_fields=[
+                        in_port(2),
+                        vlan_vid(ofp.OFPVID_PRESENT | 0)
+                    ],
+                    actions=[
+                        set_field(vlan_vid(ofp.OFPVID_PRESENT | 102)),
+                        output(1)
+                    ]
+                )
+            ]),
+            OrderedDict()
+        ),
+        'onu3': (
+            OrderedDict((f.id, f) for f in [
+                mk_flow_stat(
+                    match_fields=[
+                        in_port(2),
+                        vlan_vid(ofp.OFPVID_PRESENT | 0)
+                    ],
+                    actions=[
+                        set_field(vlan_vid(ofp.OFPVID_PRESENT | 103)),
+                        output(1)
+                    ]
+                )
+            ]),
+            OrderedDict()
+        ),
+        'onu4': (
+            OrderedDict((f.id, f) for f in [
+                mk_flow_stat(
+                    match_fields=[
+                        in_port(2),
+                        vlan_vid(ofp.OFPVID_PRESENT | 0)
+                    ],
+                    actions=[
+                        set_field(vlan_vid(ofp.OFPVID_PRESENT | 104)),
+                        output(1)
+                    ]
+                )
+            ]),
+            OrderedDict()
+        )
+    }
+
+    def get_all_default_rules(self):
+        return self._default_rules
+
+    def get_default_rules(self, device_id):
+        return self._default_rules[device_id]
+
+    def get_route(self, in_port_no, out_port_no):
+        return self._routes[(in_port_no, out_port_no)]
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~ HELPER METHODS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def assertFlowsEqual(self, flow1, flow2):
+        if flow1 != flow2:
+            self.fail('flow1 %s differs from flow2; differences: \n%s' % (
+                      dumps(MessageToDict(flow1), indent=4),
+                      self.diffMsgs(flow1, flow2)))
+
+    def diffMsgs(self, msg1, msg2):
+        msg1_dict = MessageToDict(msg1)
+        msg2_dict = MessageToDict(msg2)
+        diff = make_patch(msg1_dict, msg2_dict)
+        return dumps(diff.patch, indent=2)
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~ ACTUAL TEST CASES ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def test_eapol_reroute_rule_decomposition(self):
+        flow = mk_flow_stat(
+            match_fields=[
+                in_port(1),
+                vlan_vid(ofp.OFPVID_PRESENT | 0),
+                eth_type(0x888e)
+            ],
+            actions=[
+                output(ofp.OFPP_CONTROLLER)
+            ],
+            priority=1000
+        )
+        device_rules = self.decompose_rules([flow], [])
+        onu1_flows, onu1_groups = device_rules['onu1']
+        olt_flows, olt_groups = device_rules['olt']
+        self.assertEqual(len(onu1_flows), 1)
+        self.assertEqual(len(onu1_groups), 0)
+        self.assertEqual(len(olt_flows), 2)
+        self.assertEqual(len(olt_groups), 0)
+        self.assertFlowsEqual(onu1_flows.values()[0], mk_flow_stat(
+            match_fields=[
+                in_port(2),
+                vlan_vid(ofp.OFPVID_PRESENT | 0),
+            ],
+            actions=[
+                set_field(vlan_vid(ofp.OFPVID_PRESENT | 101)),
+                output(1)
+            ]
+        ))
+        self.assertFlowsEqual(olt_flows.values()[1], mk_flow_stat(
+            priority=1000,
+            match_fields=[
+                in_port(1),
+                eth_type(0x888e)
+            ],
+            actions=[
+                push_vlan(0x8100),
+                set_field(vlan_vid(ofp.OFPVID_PRESENT | 4000)),
+                output(2)
+            ]
+        ))
+
+    def test_dhcp_reroute_rule_decomposition(self):
+        flow = mk_flow_stat(
+            match_fields=[
+                in_port(1),
+                vlan_vid(ofp.OFPVID_PRESENT | 0),
+                eth_type(0x0800),
+                ipv4_dst(0xffffffff),
+                ip_proto(17),
+                udp_src(68),
+                udp_dst(67)
+            ],
+            actions=[output(ofp.OFPP_CONTROLLER)],
+            priority=1000
+        )
+        device_rules = self.decompose_rules([flow], [])
+        onu1_flows, onu1_groups = device_rules['onu1']
+        olt_flows, olt_groups = device_rules['olt']
+        self.assertEqual(len(onu1_flows), 1)
+        self.assertEqual(len(onu1_groups), 0)
+        self.assertEqual(len(olt_flows), 2)
+        self.assertEqual(len(olt_groups), 0)
+        self.assertFlowsEqual(onu1_flows.values()[0], mk_flow_stat(
+            match_fields=[
+                in_port(2),
+                vlan_vid(ofp.OFPVID_PRESENT | 0),
+            ],
+            actions=[
+                set_field(vlan_vid(ofp.OFPVID_PRESENT | 101)),
+                output(1)
+            ]
+        ))
+        self.assertFlowsEqual(olt_flows.values()[1], mk_flow_stat(
+            priority=1000,
+            match_fields=[
+                in_port(1),
+                eth_type(0x0800),
+                ipv4_dst(0xffffffff),
+                ip_proto(17),
+                udp_src(68),
+                udp_dst(67)
+            ],
+            actions=[
+                push_vlan(0x8100),
+                set_field(vlan_vid(ofp.OFPVID_PRESENT | 4000)),
+                output(2)
+            ]
+        ))
+
+    def test_igmp_reroute_rule_decomposition(self):
+        flow = mk_flow_stat(
+            match_fields=[
+                in_port(1),
+                vlan_vid(ofp.OFPVID_PRESENT | 0),
+                eth_type(0x0800),
+                ip_proto(2)
+            ],
+            actions=[output(ofp.OFPP_CONTROLLER)],
+            priority=1000
+        )
+        device_rules = self.decompose_rules([flow], [])
+        onu1_flows, onu1_groups = device_rules['onu1']
+        olt_flows, olt_groups = device_rules['olt']
+        self.assertEqual(len(onu1_flows), 1)
+        self.assertEqual(len(onu1_groups), 0)
+        self.assertEqual(len(olt_flows), 2)
+        self.assertEqual(len(olt_groups), 0)
+        self.assertFlowsEqual(onu1_flows.values()[0], mk_flow_stat(
+            match_fields=[
+                in_port(2),
+                vlan_vid(ofp.OFPVID_PRESENT | 0),
+            ],
+            actions=[
+                set_field(vlan_vid(ofp.OFPVID_PRESENT | 101)),
+                output(1)
+            ]
+        ))
+        self.assertFlowsEqual(olt_flows.values()[1], mk_flow_stat(
+            priority=1000,
+            match_fields=[
+                in_port(1),
+                eth_type(0x0800),
+                ip_proto(2)
+            ],
+            actions=[
+                push_vlan(0x8100),
+                set_field(vlan_vid(ofp.OFPVID_PRESENT | 4000)),
+                output(2)
+            ]
+        ))
+
+    def test_unicast_upstream_rule_decomposition(self):
+        flow1 = mk_flow_stat(
+            priority=500,
+            match_fields=[
+                in_port(1),
+                vlan_vid(ofp.OFPVID_PRESENT | 0),
+                vlan_pcp(0)
+            ],
+            actions=[
+                set_field(vlan_vid(ofp.OFPVID_PRESENT | 101)),
+            ],
+            next_table_id=1
+        )
+        flow2 = mk_flow_stat(
+            priority=500,
+            match_fields=[
+                in_port(1),
+                vlan_vid(ofp.OFPVID_PRESENT | 101),
+                vlan_pcp(0)
+            ],
+            actions=[
+                push_vlan(0x8100),
+                set_field(vlan_vid(ofp.OFPVID_PRESENT | 1000)),
+                set_field(vlan_pcp(0)),
+                output(0)
+            ]
+        )
+        device_rules = self.decompose_rules([flow1, flow2], [])
+        onu1_flows, onu1_groups = device_rules['onu1']
+        olt_flows, olt_groups = device_rules['olt']
+        self.assertEqual(len(onu1_flows), 2)
+        self.assertEqual(len(onu1_groups), 0)
+        self.assertEqual(len(olt_flows), 2)
+        self.assertEqual(len(olt_groups), 0)
+        self.assertFlowsEqual(onu1_flows.values()[1], mk_flow_stat(
+            priority=500,
+            match_fields=[
+                in_port(2),
+                vlan_vid(ofp.OFPVID_PRESENT | 0),
+                vlan_pcp(0)
+            ],
+            actions=[
+                set_field(vlan_vid(ofp.OFPVID_PRESENT | 101)),
+                output(1)
+            ]
+        ))
+        self.assertFlowsEqual(olt_flows.values()[1], mk_flow_stat(
+            priority=500,
+            match_fields=[
+                in_port(1),
+                vlan_vid(ofp.OFPVID_PRESENT | 101),
+                vlan_pcp(0)
+            ],
+            actions=[
+                push_vlan(0x8100),
+                set_field(vlan_vid(ofp.OFPVID_PRESENT | 1000)),
+                set_field(vlan_pcp(0)),
+                output(2)
+            ]
+        ))
+
+    def test_unicast_downstream_rule_decomposition(self):
+        flow1 = mk_flow_stat(
+            match_fields=[
+                in_port(0),
+                vlan_vid(ofp.OFPVID_PRESENT | 1000),
+                vlan_pcp(0)
+            ],
+            actions=[
+                pop_vlan(),
+            ],
+            next_table_id=1,
+            priority=500
+        )
+        flow2 = mk_flow_stat(
+            match_fields=[
+                in_port(0),
+                vlan_vid(ofp.OFPVID_PRESENT | 101),
+                vlan_pcp(0)
+            ],
+            actions=[
+                set_field(vlan_vid(ofp.OFPVID_PRESENT | 0)),
+                output(1)
+            ],
+            priority=500
+        )
+        device_rules = self.decompose_rules([flow1, flow2], [])
+        onu1_flows, onu1_groups = device_rules['onu1']
+        olt_flows, olt_groups = device_rules['olt']
+        self.assertEqual(len(onu1_flows), 2)
+        self.assertEqual(len(onu1_groups), 0)
+        self.assertEqual(len(olt_flows), 2)
+        self.assertEqual(len(olt_groups), 0)
+        self.assertFlowsEqual(olt_flows.values()[1], mk_flow_stat(
+            priority=500,
+            match_fields=[
+                in_port(2),
+                vlan_vid(ofp.OFPVID_PRESENT | 1000),
+                vlan_pcp(0)
+            ],
+            actions=[
+                pop_vlan(),
+                output(1)
+            ]
+        ))
+        self.assertFlowsEqual(onu1_flows.values()[1], mk_flow_stat(
+            priority=500,
+            match_fields=[
+                in_port(1),
+                vlan_vid(ofp.OFPVID_PRESENT | 101),
+                vlan_pcp(0)
+            ],
+            actions=[
+                set_field(vlan_vid(ofp.OFPVID_PRESENT | 0)),
+                output(2)
+            ]
+        ))
+
+    def test_multicast_downstream_rule_decomposition(self):
+        flow = mk_flow_stat(
+            match_fields=[
+                in_port(0),
+                vlan_vid(ofp.OFPVID_PRESENT | 170),
+                vlan_pcp(0),
+                eth_type(0x800),
+                ipv4_dst(0xe00a0a0a)
+            ],
+            actions=[
+                group(10)
+            ],
+            priority=500
+        )
+        grp = mk_group_stat(
+            group_id=10,
+            buckets=[
+                ofp.ofp_bucket(actions=[
+                    pop_vlan(),
+                    output(1)
+                ])
+            ]
+        )
+        device_rules = self.decompose_rules([flow], [grp])
+        onu1_flows, onu1_groups = device_rules['onu1']
+        olt_flows, olt_groups = device_rules['olt']
+        self.assertEqual(len(onu1_flows), 2)
+        self.assertEqual(len(onu1_groups), 0)
+        self.assertEqual(len(olt_flows), 2)
+        self.assertEqual(len(olt_groups), 0)
+        self.assertFlowsEqual(olt_flows.values()[1], mk_flow_stat(
+            priority=500,
+            match_fields=[
+                in_port(2),
+                vlan_vid(ofp.OFPVID_PRESENT | 170),
+                vlan_pcp(0)
+            ],
+            actions=[
+                pop_vlan(),
+                output(1)
+            ]
+        ))
+        self.assertFlowsEqual(onu1_flows.values()[1], mk_flow_stat(
+            priority=500,
+            match_fields=[
+                in_port(1),
+                eth_type(0x800),
+                ipv4_dst(0xe00a0a0a)
+            ],
+            actions=[
+                output(2)
+            ]
+        ))
+
+
+if __name__ == '__main__':
+    main()

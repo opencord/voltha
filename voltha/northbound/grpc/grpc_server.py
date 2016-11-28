@@ -28,7 +28,7 @@ import zlib
 from zope.interface import implementer
 
 from common.utils.grpc_utils import twisted_async
-from voltha.core.device_model import DeviceModel
+from voltha.core.logical_device_agent import LogicalDeviceAgent
 from voltha.protos import voltha_pb2, schema_pb2
 from google.protobuf.empty_pb2 import Empty
 
@@ -109,7 +109,7 @@ class VolthaLogicalLayer(voltha_pb2.VolthaLogicalLayerServicer):
 
     def __init__(self, threadpool):
         self.threadpool = threadpool
-        self.devices = [DeviceModel(self, 1)]
+        self.devices = [LogicalDeviceAgent(self, 1)]
         self.devices_map = dict((d.info.id, d) for d in self.devices)
         self.packet_in_queue = Queue()
 

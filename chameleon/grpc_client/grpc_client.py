@@ -252,24 +252,27 @@ class GrpcClient(object):
             _ = __import__(modname)
 
     @inlineCallbacks
-    def invoke(self, stub, method_name, request, retry=1):
+    def invoke(self, stub, method_name, request, metadata, retry=1):
         """
         Invoke a gRPC call to the remote server and return the response.
         :param stub: Reference to the *_pb2 service stub
         :param method_name: The method name inside the service stub
         :param request: The request protobuf message
-        :return: The response protobuf message
+        :param metadata: [(str, str), (str, str), ...]
+        :return: The response protobuf message and returned trailing metadata
         """
 
         if not self.connected:
             raise ServiceUnavailable()
 
         try:
-            response = getattr(stub(self.channel), method_name)(request)
-            returnValue(response)
+            method = getattr(stub(self.channel), method_name)
+            response, rendezvous = method.with_call(request, metadata=metadata)
+            returnValue((response, rendezvous.trailing_metadata()))
 
         except grpc._channel._Rendezvous, e:
-            if e.code() == grpc.StatusCode.UNAVAILABLE:
+            code = e.code()
+            if code == grpc.StatusCode.UNAVAILABLE:
                 e = ServiceUnavailable()
 
                 if self.connected:
@@ -277,9 +280,16 @@ class GrpcClient(object):
                     yield self.connect()
                     if retry > 0:
                         response = yield self.invoke(stub, method_name,
-                                                     request,
+                                                     request, metadata,
                                                      retry=retry - 1)
                         returnValue(response)
+
+            elif code in (
+                    grpc.StatusCode.NOT_FOUND,
+                    grpc.StatusCode.INVALID_ARGUMENT,
+                    grpc.StatusCode.ALREADY_EXISTS):
+
+                pass  # don't log error, these occur naturally
 
             else:
                 log.exception(e)

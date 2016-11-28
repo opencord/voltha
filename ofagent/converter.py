@@ -56,9 +56,9 @@ def ofp_port_to_loxi_port_desc(pb):
     return of13.common.port_desc(**kw)
 
 def make_loxi_match(match):
-    assert match['type'] == pb2.OFPMT_OXM
+    assert match.get('type', pb2.OFPMT_STANDARD) == pb2.OFPMT_OXM
     loxi_match_fields = []
-    for oxm_field in match['oxm_fields']:
+    for oxm_field in match.get('oxm_fields', []):
         assert oxm_field['oxm_class'] == pb2.OFPXMC_OPENFLOW_BASIC
         ofb_field = oxm_field['ofb_field']
         field_type = ofb_field.get('type', 0)
@@ -93,6 +93,7 @@ def ofp_flow_stats_to_loxi_flow_stats(pb):
 
     kw['match'] = make_loxi_match(kw['match'])
     kw['instructions'] = [make_loxi_instruction(i) for i in kw['instructions']]
+    del kw['id']
     return of13.flow_stats_entry(**kw)
 
 def ofp_packet_in_to_loxi_packet_in(pb):
@@ -101,11 +102,28 @@ def ofp_packet_in_to_loxi_packet_in(pb):
         kw['match'] = make_loxi_match(kw['match'])
     return of13.message.packet_in(**kw)
 
+def ofp_group_entry_to_loxi_group_entry(pb):
+    return of13.group_stats_entry(
+        group_id=pb.stats.group_id,
+        ref_count=pb.stats.ref_count,
+        packet_count=pb.stats.packet_count,
+        byte_count=pb.stats.byte_count,
+        duration_sec=pb.stats.duration_sec,
+        duration_nsec=pb.stats.duration_nsec,
+        bucket_stats=[to_loxi(bstat) for bstat in pb.stats.bucket_stats])
+
+def ofp_bucket_counter_to_loxy_bucket_counter(pb):
+    return of13.bucket_counter(
+        packet_count=pb.packet_count,
+        byte_count=pb.byte_count)
+
 
 to_loxi_converters = {
     pb2.ofp_port: ofp_port_to_loxi_port_desc,
     pb2.ofp_flow_stats: ofp_flow_stats_to_loxi_flow_stats,
     pb2.ofp_packet_in: ofp_packet_in_to_loxi_packet_in,
+    pb2.ofp_group_entry: ofp_group_entry_to_loxi_group_entry,
+    pb2.ofp_bucket_counter: ofp_bucket_counter_to_loxy_bucket_counter
 }
 
 

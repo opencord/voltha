@@ -34,7 +34,7 @@ from voltha.core.core import VolthaCore
 from voltha.northbound.grpc.grpc_server import VolthaGrpcServer
 from voltha.northbound.kafka.kafka_proxy import KafkaProxy, get_kafka_proxy
 from voltha.northbound.rest.health_check import init_rest_service
-from voltha.protos.common_pb2 import INFO
+from voltha.protos.common_pb2 import LogLevel
 from voltha.registry import registry
 
 VERSION = '0.9.0'
@@ -236,36 +236,42 @@ class Main(object):
         try:
             self.log.info('starting-internal-components')
 
-            coordinator = yield Coordinator(
-                internal_host_address=self.args.internal_host_address,
-                external_host_address=self.args.external_host_address,
-                rest_port=self.args.rest_port,
-                instance_id=self.args.instance_id,
-                config=self.config,
-                consul=self.args.consul).start()
-            registry.register('coordinator', coordinator)
+            yield registry.register(
+                'coordinator',
+                Coordinator(
+                    internal_host_address=self.args.internal_host_address,
+                    external_host_address=self.args.external_host_address,
+                    rest_port=self.args.rest_port,
+                    instance_id=self.args.instance_id,
+                    config=self.config,
+                    consul=self.args.consul)
+            ).start()
 
             init_rest_service(self.args.rest_port)
 
-            grpc_server = \
-                yield VolthaGrpcServer(self.args.grpc_port).start()
-            registry.register('grpc_server', grpc_server)
+            yield registry.register(
+                'grpc_server',
+                VolthaGrpcServer(self.args.grpc_port)
+            ).start()
 
-            core = \
-                yield VolthaCore(
+            yield registry.register(
+                'kafka_proxy',
+                KafkaProxy(self.args.consul, self.args.kafka)
+            ).start()
+
+            yield registry.register(
+                'core',
+                VolthaCore(
                     instance_id=self.args.instance_id,
                     version=VERSION,
-                    log_level=INFO
-                ).start()
-            registry.register('core', core)
+                    log_level=LogLevel.INFO
+                )
+            ).start()
 
-            kafka_proxy = \
-                yield KafkaProxy(self.args.consul, self.args.kafka).start()
-            registry.register('kafka_proxy', kafka_proxy)
-
-            adapter_loader = yield AdapterLoader(
-                config=self.config.get('adapter_loader', {})).start()
-            registry.register('adapter_loader', adapter_loader)
+            yield registry.register(
+                'adapter_loader',
+                AdapterLoader(config=self.config.get('adapter_loader', {}))
+            ).start()
 
             self.log.info('started-internal-services')
 
