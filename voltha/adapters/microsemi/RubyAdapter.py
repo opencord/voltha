@@ -33,6 +33,7 @@ from zope.interface import implementer
 log = structlog.get_logger()
 _ = third_party
 
+# Move to configuration... eventually
 olt_conf = { 'olts' : { 'id' : 0, 'mac' : '00:0c:d5:00:01:00'}, 'iface' : 'eth3'}
 
 @implementer(IAdapterInterface)
