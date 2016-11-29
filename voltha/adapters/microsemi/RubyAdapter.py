@@ -17,10 +17,10 @@
 """
 Microsemi/Celestica Ruby vOLTHA adapter.
 """
-import time
 import structlog
 from twisted.internet import reactor
 from voltha.adapters.interface import IAdapterInterface
+from voltha.adapters.microsemi.PAS5211 import PAS5211MsgGetOltVersion, PAS5211MsgGetOltVersionResponse
 from voltha.adapters.microsemi.PAS5211_comm import PAS5211Communication
 from voltha.adapters.microsemi.StateMachine import Disconnected, States
 
@@ -42,18 +42,15 @@ class RubyAdapter(object):
     def __init__(self, args, config):
         self.args = args
         self.config = config
-        self.descriptor = Adapter(
-            id='ruby',
-            config=AdapterConfig()
-            # TODO
-        )
+        self.descriptor = None
         self.comm = comm = PAS5211Communication(dst_mac=olt_conf['olts']['mac'],
                                                 iface=olt_conf['iface'])
         self.olt = Disconnected(comm)
 
     def start(self):
         log.info('starting')
-        reactor.callLater(0, self.init_olt)
+        reactor.callLater(0, self.__init_olt)
+        reactor.callLater(2, self.adapter_descriptor)
         log.info('started')
         return self
 
@@ -64,6 +61,9 @@ class RubyAdapter(object):
         return self
 
     def adapter_descriptor(self):
+        if self.descriptor is None:
+            self.descriptor = self.__obtain_descriptor()
+        print self.descriptor
         return self.descriptor
 
     def device_types(self):
@@ -86,7 +86,11 @@ class RubyAdapter(object):
     def deactivate_device(self, device):
         raise NotImplementedError()
 
-    def init_olt(self):
+    ##
+    # Private methods
+    ##
+
+    def __init_olt(self):
         olt = self.olt
         while not olt.abandon():
             if olt.state() == States.DISCONNECTED or olt.state() == States.FETCH_VERSION:
@@ -100,3 +104,15 @@ class RubyAdapter(object):
             log.info('Disconnecting this OLT')
             self.stop()
         self.olt = olt
+
+
+    def __obtain_descriptor(self):
+        layer = PAS5211MsgGetOltVersionResponse.name
+        pkt = self.olt.send_msg(PAS5211MsgGetOltVersion())
+        return Adapter(
+            id='ruby-{}'.format(olt_conf['olts']['id']),
+            vendor='Celestica',
+            version='{}.{}.{}'.format(pkt[layer].major_firmware_version,
+                                      pkt[layer].minor_firmware_version,
+                                      pkt[layer].build_firmware_version))
+
