@@ -201,8 +201,6 @@ class Connected(State):
         self.packet = self.comm.communicate(PAS5211MsgGetOltVersion())
         if self.packet is None:
             self.completed = True
-        else:
-            self.packet.show()
 
     def disconnect(self):
         print "Disconnecting OLT"
