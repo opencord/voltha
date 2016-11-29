@@ -9,7 +9,7 @@ Vagrant.configure(2) do |config|
     config.vm.synced_folder "../", "/voltha"
   end
 
-  config.vm.define "voltha" do |d|
+  config.vm.define "voltha-base" do |d|
     d.ssh.forward_agent = true
     d.vm.box = "ubuntu/xenial"
     d.vm.hostname = "voltha"
