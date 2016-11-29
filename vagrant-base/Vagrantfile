@@ -10,7 +10,7 @@ Vagrant.configure(2) do |config|
   end
 
   config.vm.define "voltha" do |d|
-    d.vm.box = "voltha-base"
+    d.vm.box = "rrashidi/voltha-base"
     d.vm.hostname = "voltha"
     d.vm.network "private_network", ip: "10.100.198.220"
     d.vm.provision :shell, inline: "cd /voltha && source env.sh && chmod 777 /tmp/fluentd"
