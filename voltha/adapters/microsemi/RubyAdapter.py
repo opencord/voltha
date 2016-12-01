@@ -50,7 +50,6 @@ class RubyAdapter(object):
     def start(self):
         log.info('starting')
         reactor.callLater(0, self.__init_olt)
-        reactor.callLater(2, self.adapter_descriptor)
         log.info('started')
         return self
 
@@ -63,7 +62,6 @@ class RubyAdapter(object):
     def adapter_descriptor(self):
         if self.descriptor is None:
             self.descriptor = self.__obtain_descriptor()
-        print self.descriptor
         return self.descriptor
 
     def device_types(self):

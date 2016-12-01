@@ -30,6 +30,7 @@ class States(object):
     FETCH_VERSION = 1
     CONNECTED = 2
 
+# TODO convert to scapy automata
 class State(object):
 
     def __init__(self):
