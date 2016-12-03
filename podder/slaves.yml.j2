@@ -1,6 +1,6 @@
 {% macro address(data, network) -%}
     {% if data is defined and network is defined -%}
-    {{ data['NetworkSettings']['Networks'][network]['IPAddress'] }}:{{ data['NetworkSettings']['Ports']['50555/tcp'][0]['HostPort'] }}
+    {{ data['NetworkSettings']['Networks'][network]['IPAddress'] }}:50555 }}
     {%- else -%}
     None:None
     {%- endif %}
