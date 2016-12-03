@@ -116,7 +116,6 @@ def start_slaves(service, instance_name, instance_id, data, conf):
 
 def stop_slaves(service, instance_name, instance_id, data, conf):
     log.info('Stopping slaves for {}'.format(instance_name))
-    network = obtain_network_name(data)
     config = yaml.load(conf.render())
     if service in config['services']:
         service_shutdown(service, instance_name, config)

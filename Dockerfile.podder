@@ -21,11 +21,10 @@ MAINTAINER Zsolt Haraszti <zharaszt@ciena.com>
 MAINTAINER Ali Al-Shabibi <ali.al-shabibi@onlab.us>
 MAINTAINER Nathan Knuth   <nathan.knuth@tibitcom.com>
 
-# Bundle app source
-COPY podder /podder
-COPY common /common
+RUN mkdir /podder && touch /podder/__init__.py
+ENV PYTHONPATH=/podder
+COPY common /podder/common
+COPY podder /podder/podder
 
 # Exposing process and default entry point
-# EXPOSE 8000
-
-CMD ["python", "podder/main.py"]
+CMD ["python", "podder/podder/main.py"]
