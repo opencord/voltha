@@ -14,27 +14,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""
-The gRPC client layer for the Netconf agent
-"""
-from Queue import Queue, Empty
-from structlog import get_logger
-from twisted.internet.defer import inlineCallbacks, returnValue, DeferredQueue
+from time import time
+import structlog
+
+log = structlog.get_logger()
 
 
-log = get_logger()
-
-
-class GrpcClient(object):
-
-    def __init__(self, connection_manager, channel):
-
-        self.connection_manager = connection_manager
-        self.channel = channel
-        self.logical_stub = None
-
-        self.stopped = False
-
-        self.packet_out_queue = Queue()  # queue to send out PacketOut msgs
-        self.packet_in_queue = DeferredQueue()  # queue to receive PacketIn
-
+class Session:
+    def __init__(self, session_id, user):
+        self.session_id = session_id
+        self.user = user
+        self.started_at = time()
+        self.session_opened = False

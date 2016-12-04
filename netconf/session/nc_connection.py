@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 #
 # Copyright 2016 the original author or authors.
 #
@@ -18,6 +19,7 @@ from hexdump import hexdump
 from twisted.internet import protocol
 from twisted.internet.defer import inlineCallbacks, returnValue
 from common.utils.message_queue import MessageQueue
+from netconf.constants import Constants as C
 
 log = structlog.get_logger()
 
@@ -70,14 +72,14 @@ class NetconfConnection(protocol.Protocol):
         # Apparently ssh has a bug that requires minimum of 64 bytes?
         # This may not be sufficient to fix this.
         if new_framing:
-            msg = "\n#{}\n{}\n##\n".format(len(msg), msg)
+            msg = "#{}\n{}\n##\n".format(len(msg), msg)
         else:
-            msg += "]]>]]>"
+            msg += C.DELIMITER
         for chunk in self.chunkit(msg, self.max_chunk - 64):
-            log.debug('sending', chunk=chunk,
+            log.info('sending', chunk=chunk,
                      framing="1.1" if new_framing else "1.0")
             # out = hexdump(chunk, result='return')
-            self.transport.write('{}\r\n'.format(chunk))
+            self.transport.write('{}\n'.format(chunk))
 
     @inlineCallbacks
     def receive_msg_any(self, new_framing):
@@ -91,7 +93,7 @@ class NetconfConnection(protocol.Protocol):
     def _receive_10(self, msg):
         # search for message end indicator
         searchfrom = 0
-        eomidx = msg.find(b"]]>]]>", searchfrom)
+        eomidx = msg.find(C.DELIMITER, searchfrom)
         if eomidx != -1:
             log.info('received-msg', msg=msg[:eomidx])
             return msg[:eomidx]
@@ -101,11 +103,14 @@ class NetconfConnection(protocol.Protocol):
 
     def _receive_11(self, msg):
         # Message is received in the format "\n#{len}\n{msg}\n##\n"
+        # A message may have return characters within it
         if msg:
+            log.info('received-msg-full', msg=msg)
             msg = msg.split('\n')
             if len(msg) > 2:
-                log.info('received-msg', msg=msg[2])
-                return msg[2]
+                msg = ''.join(msg[2:(len(msg)-2)])
+                log.info('parsed-msg\n', msg=msg)
+                return msg
         return None
 
     def close_connection(self):

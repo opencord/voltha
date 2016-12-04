@@ -14,27 +14,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""
-The gRPC client layer for the Netconf agent
-"""
-from Queue import Queue, Empty
-from structlog import get_logger
-from twisted.internet.defer import inlineCallbacks, returnValue, DeferredQueue
+from lxml import etree
+import structlog
+from netconf.nc_rpc.rpc import Rpc
+import netconf.nc_common.error as ncerror
 
+log = structlog.get_logger()
 
-log = get_logger()
+class Validate(Rpc):
 
+	def __init__(self, rpc_request, rpc_method, session):
+		super(Validate, self).__init__(rpc_request, rpc_method, session)
+		self._validate_parameters()
 
-class GrpcClient(object):
+	def execute(self):
+		log.info('Validate-request', session=self.session.session_id)
+		if self.rpc_response.is_error:
+			return self.rpc_response
 
-    def __init__(self, connection_manager, channel):
-
-        self.connection_manager = connection_manager
-        self.channel = channel
-        self.logical_stub = None
-
-        self.stopped = False
-
-        self.packet_out_queue = Queue()  # queue to send out PacketOut msgs
-        self.packet_in_queue = DeferredQueue()  # queue to receive PacketIn
-
+	def _validate_parameters(self):
+		log.info('validate-parameters', session=self.session.session_id)

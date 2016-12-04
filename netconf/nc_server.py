@@ -27,20 +27,15 @@ from twisted.internet import reactor
 from twisted.internet.defer import Deferred, inlineCallbacks
 # from twisted.python import log as logp
 from zope.interface import implementer
-from nc_protocol_handler import NetconfProtocolHandler
+from session.nc_protocol_handler import NetconfProtocolHandler
+from session.nc_connection import NetconfConnection
+from session.session_mgr import get_session_manager_instance
+from constants import Constants as C
 
-from nc_connection import NetconfConnection
 
 # logp.startLogging(sys.stderr)
 
 log = structlog.get_logger()
-
-# Secure credentials directories
-# TODO:  In a production environment these locations require better
-# protection.  For now the user_passwords file is just a plain text file.
-KEYS_DIRECTORY = 'security/keys'
-CERTS_DIRECTORY = 'security/certificates'
-CLIENT_CRED_DIRECTORY = 'security/client_credentials'
 
 
 # @implementer(conchinterfaces.ISession)
@@ -59,6 +54,9 @@ class NetconfAvatar(avatar.ConchUser):
 
     def get_nc_server(self):
         return self.nc_server
+
+    def get_user(self):
+        return self.username
 
     def logout(self):
         log.info('netconf-avatar-logout', username=self.username)
@@ -95,6 +93,7 @@ class NCServer(factory.SSHFactory):
         self.server_public_key_file = server_public_key_file
         self.client_public_keys_file = client_public_keys_file
         self.client_passwords_file = client_passwords_file
+        self.session_mgr = get_session_manager_instance()
         self.grpc_stub = grpc_stub
         self.connector = None
         self.nc_client_map = {}
@@ -128,8 +127,11 @@ class NCServer(factory.SSHFactory):
     def client_connected(self, client_conn):
         assert isinstance(client_conn, NetconfConnection)
         log.info('client-connected')
+
+        #create a session
+        session = self.session_mgr.create_session(client_conn.avatar.get_user())
         handler = NetconfProtocolHandler(self, client_conn,
-                                         self.grpc_stub)
+                                         session, self.grpc_stub)
         client_conn.proto_handler = handler
         reactor.callLater(0, handler.start)
 
@@ -139,19 +141,19 @@ class NCServer(factory.SSHFactory):
             portal = portal.Portal(NetconfRealm(self, self.grpc_stub))
 
             # setup userid-password access
-            password_file = '{}/{}'.format(CLIENT_CRED_DIRECTORY,
+            password_file = '{}/{}'.format(C.CLIENT_CRED_DIRECTORY,
                                            self.client_passwords_file)
             portal.registerChecker(FilePasswordDB(password_file))
 
             # setup access when client uses keys
-            keys_file = '{}/{}'.format(CLIENT_CRED_DIRECTORY,
+            keys_file = '{}/{}'.format(C.CLIENT_CRED_DIRECTORY,
                                        self.client_public_keys_file)
             with open(keys_file) as f:
                 users = [line.rstrip('\n') for line in f]
             users_dict = {}
             for user in users:
                 users_dict[user.split(':')[0]] = [
-                    keys.Key.fromFile('{}/{}'.format(CLIENT_CRED_DIRECTORY,
+                    keys.Key.fromFile('{}/{}'.format(C.CLIENT_CRED_DIRECTORY,
                                                      user.split(':')[1]))]
             sshDB = SSHPublicKeyChecker(InMemorySSHKeyDB(users_dict))
             portal.registerChecker(sshDB)
@@ -180,7 +182,7 @@ class NCServer(factory.SSHFactory):
         return SSHServerTransport()
 
     def getPublicKeys(self):
-        key_file_name = '{}/{}'.format(KEYS_DIRECTORY,
+        key_file_name = '{}/{}'.format(C.KEYS_DIRECTORY,
                                        self.server_public_key_file)
         try:
             publicKeys = {
@@ -192,7 +194,7 @@ class NCServer(factory.SSHFactory):
                       filename=key_file_name, exception=repr(e))
 
     def getPrivateKeys(self):
-        key_file_name = '{}/{}'.format(KEYS_DIRECTORY,
+        key_file_name = '{}/{}'.format(C.KEYS_DIRECTORY,
                                        self.server_private_key_file)
         try:
             privateKeys = {

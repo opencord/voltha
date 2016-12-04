@@ -2,6 +2,8 @@
 #
 # Copyright 2016 the original author or authors.
 #
+# Code adapted from https://github.com/choppsv1/netconf
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -14,27 +16,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""
-The gRPC client layer for the Netconf agent
-"""
-from Queue import Queue, Empty
-from structlog import get_logger
-from twisted.internet.defer import inlineCallbacks, returnValue, DeferredQueue
 
+from  rpc_response import RpcResponse
 
-log = get_logger()
+class Rpc(object):
+    def __init__(self,rpc_request, rpc_method, session):
+        self.rpc_request = rpc_request
+        self.rpc_method = rpc_method
+        self.rpc_response = RpcResponse()
+        self.session = session
 
+    def execute(self):
+        """ run the command - returns a OperationResponse """
+        pass
 
-class GrpcClient(object):
+    def set_rpc_response(self):
+        self.rpc_response = RpcResponse()
 
-    def __init__(self, connection_manager, channel):
-
-        self.connection_manager = connection_manager
-        self.channel = channel
-        self.logical_stub = None
-
-        self.stopped = False
-
-        self.packet_out_queue = Queue()  # queue to send out PacketOut msgs
-        self.packet_in_queue = DeferredQueue()  # queue to receive PacketIn
-
+    def _validate_parameters(self, rpc_request):
+        """Sets and validates the node as well"""
+        pass
