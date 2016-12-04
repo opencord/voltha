@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 #
 # Copyright 2016 the original author or authors.
 #
@@ -13,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 """
 The gRPC client layer for the Netconf agent
 """
