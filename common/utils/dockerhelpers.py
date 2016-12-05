@@ -18,6 +18,7 @@
 Some docker related convenience functions
 """
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
 
 import os
 import socket
@@ -78,9 +79,8 @@ def inspect_container(id):
     try:
         docker_cli = Client(base_url=docker_socket)
         info = docker_cli.inspect_container(id)
-
     except Exception, e:
-        log.exception('failed', e=e)
+        log.debug('failed: {}'.format(e.message))
         raise
 
     return info
@@ -162,9 +162,11 @@ class EventProcessor(object):
     This class handles the api session and allows for it to
     be terminated.
     """
-    def __init__(self):
+    def __init__(self, threads=1):
         self.client = CustomClient(base_url=docker_socket)
         self.events = self.client.events(decode=True)
+        log.info("Starting event processor with {} threads".format(threads))
+        self.exec_service = ThreadPoolExecutor(max_workers=threads)
 
     def stop_listening(self):
         """
@@ -214,7 +216,8 @@ class EventProcessor(object):
 
             status = get_status(event)
             if status in handlers:
-                handlers[get_status(event)](event, data, handlers['podder_config'])
+                self.exec_service.submit(handlers[get_status(event)], event,
+                                         data, handlers['podder_config'])
             else:
                 log.debug("No handler for {}; skipping...".format(status))
 

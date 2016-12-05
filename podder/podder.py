@@ -27,7 +27,7 @@ class Podder(object):
     def __init__(self, args, slave_config):
         self.log.info('Initializing Podder')
         self.running = False
-        self.events = EventProcessor()
+        self.events = EventProcessor(threads=args.threads)
         self.handlers = { 'podder_config' : Template(slave_config) }
 
     def run(self):

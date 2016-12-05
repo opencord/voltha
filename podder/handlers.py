@@ -15,6 +15,7 @@
 #
 from common.utils.dockerhelpers import create_host_config, create_container, start_container, create_networking_config, \
     get_all_running_containers, inspect_container, remove_container
+from docker import errors
 
 from structlog import get_logger
 import yaml
@@ -77,7 +78,10 @@ def construct_container_spec(config):
 def service_shutdown(service, instance_name, config):
     containers = get_all_running_containers()
     for container in containers:
-        info = inspect_container(container['Id'])
+        try:
+            info = inspect_container(container['Id'])
+        except errors.NotFound, e:
+            continue
         envs = info['Config']['Env']
         for env in envs:
             for name in env.split('='):
