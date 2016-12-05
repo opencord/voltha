@@ -25,11 +25,11 @@ MAINTAINER Nathan Knuth   <nathan.knuth@tibitcom.com>
 # version on xenial, so we need to "backport" it
 RUN apt-get update && \
     apt-get install -y zlib1g-dev wget && \
-    wget http://ftp.us.debian.org/debian/pool/main/p/protobuf/libprotoc10_3.0.0-7_amd64.deb && \
-    wget http://ftp.us.debian.org/debian/pool/main/p/protobuf/libprotobuf-lite10_3.0.0-7_amd64.deb && \
-    wget http://ftp.us.debian.org/debian/pool/main/p/protobuf/libprotobuf-dev_3.0.0-7_amd64.deb && \
-    wget http://ftp.us.debian.org/debian/pool/main/p/protobuf/libprotobuf10_3.0.0-7_amd64.deb && \
-    wget http://ftp.us.debian.org/debian/pool/main/p/protobuf/protobuf-compiler_3.0.0-7_amd64.deb && \
+    wget http://ftp.us.debian.org/debian/pool/main/p/protobuf/libprotoc10_3.0.0-9_amd64.deb && \
+    wget http://ftp.us.debian.org/debian/pool/main/p/protobuf/libprotobuf-lite10_3.0.0-9_amd64.deb && \
+    wget http://ftp.us.debian.org/debian/pool/main/p/protobuf/libprotobuf-dev_3.0.0-9_amd64.deb && \
+    wget http://ftp.us.debian.org/debian/pool/main/p/protobuf/libprotobuf10_3.0.0-9_amd64.deb && \
+    wget http://ftp.us.debian.org/debian/pool/main/p/protobuf/protobuf-compiler_3.0.0-9_amd64.deb && \
     dpkg -i *.deb && \
     protoc --version && \
     rm -f *.deb
