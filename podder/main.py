@@ -35,7 +35,8 @@ defs = dict(
     instance_id=os.environ.get('INSTANCE_ID', os.environ.get('HOSTNAME', '1')),
     internal_host_address=os.environ.get('INTERNAL_HOST_ADDRESS',
                                          get_my_primary_local_ipv4()),
-    work_dir=os.environ.get('WORK_DIR', '/tmp/podder')
+    work_dir=os.environ.get('WORK_DIR', '/tmp/podder'),
+    threads=os.environ.get('PODDER_THREADS', 5)
 )
 
 def parse_args():
@@ -101,6 +102,14 @@ def parse_args():
     parser.add_argument('-v', '--verbose',
                         dest='verbose',
                         action='count',
+                        help=_help)
+
+    _help = 'Number of events to handle in parallel'
+    parser.add_argument('-e', '--events-in-parallel',
+                        dest='threads',
+                        type=int,
+                        default=defs['threads'],
+                        action='store',
                         help=_help)
 
 
