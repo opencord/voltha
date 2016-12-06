@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fa0f191f_1d9e3757",
+        "filename": "Dockerfile.ofagent",
+        "patchSetId": 1
+      },
+      "lineNbr": 32,
+      "author": {
+        "id": 1000004
+      },
+      "writtenOn": "2016-12-06T23:31:29Z",
+      "side": 1,
+      "message": "should this be moved to the base dockerfile?",
+      "range": {
+        "startLine": 28,
+        "startChar": 0,
+        "endLine": 32,
+        "endChar": 101
+      },
+      "revId": "a46361fd7057ba7a22452db424f8f9f73b94b449",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
