@@ -15,7 +15,7 @@
 #
 
 """
-Tibit OLT device adapter
+Tibit ONU device adapter
 """
 
 import structlog
@@ -27,17 +27,18 @@ from voltha.protos.device_pb2 import DeviceType, DeviceTypes
 from voltha.protos.health_pb2 import HealthStatus
 from voltha.protos.common_pb2 import LogLevel
 
+
 log = structlog.get_logger()
 
 
 @implementer(IAdapterInterface)
-class TibitOltAdapter(object):
+class TibitOnuAdapter(object):
 
-    name = 'tibit_olt'
+    name = 'tibit_onu'
 
     supported_device_types = [
         DeviceType(
-            id='tibit_olt',
+            id='tibit_onu',
             adapter=name,
             accepts_bulk_flow_update=True
         )
@@ -91,8 +92,8 @@ class TibitOltAdapter(object):
         raise NotImplementedError()
 
     def send_proxied_message(self, proxy_address, msg):
-        log.debug('send-proxied-message',
-                  proxy_address=proxy_address, msg=msg)
+        raise NotImplementedError()
 
     def receive_proxied_message(self, proxy_address, msg):
-        raise NotImplementedError()
+        log.debug('send-proxied-message',
+                  proxy_address=proxy_address, msg=msg)
