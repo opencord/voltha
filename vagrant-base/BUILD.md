@@ -7,9 +7,9 @@ There are many ways to build and develop Voltha
 
 ## What triggers the need for a new voltha-base
 
-```
-WHAT WE NEED TO CONSIDER AS A REASON TO CREATE A NEW IMAGE
-```
+* Any change in the Vagrantfile means that we need a new image, hence a new version.
+* Any changes in the libraries/utilities we use, like Ansible, we need to have a new image, hence a new version.
+* Any structural change in the project means we need to create a new image, hence a new version.
 
 ## The process of building and testing the new voltha base image
 
@@ -18,7 +18,6 @@ WHAT WE NEED TO CONSIDER AS A REASON TO CREATE A NEW IMAGE
 * Git client
 * Working installation of Vagrant  -- see [https://www.vagrantup.com/downloads.html](https://www.vagrantup.com/downloads.html)
 * jq -- a useful command line too to work with JSON data. On the MAC, you can install jq with ```brew install jq```; on Ubuntu you can do it with ```sudo apt-get install jq```. You will not regret it.
-
 
 ### Build
 
@@ -62,7 +61,7 @@ suspend the virtual machine. In either case, to restart it again,
 simply run `vagrant up`.
 ```
 
-### Test
+### Test (Optional)
 
 Once image is created and machine is running, as mentioned in previous steps, we can run the following script and test the sanity of the image before uploading it into Vagrant cloud.
 
@@ -75,32 +74,52 @@ In case the script can't get executed, change the access permission of the scrip
 Once vagrant image is created, we can use this base image and package it and create a vagrant box of it.
 
 ```
+# If it exists, remove 'package.box' 
+rm -rf package.box
+
+# package the vagrant box
 vagrant package
 ```
 
 This should create a file named ```package.box```
 
-### Creating a new version on the vagrant cloud
+### Generate your version
 
-At this point we need to create a new version and POST it in the Vagrant Cloud. To do so, we need to create a version.
+To do so, we use versions using current data/time in this format <YYMMDD.HHMM.0>.
 
 ```
-curl https://atlas.hashicorp.com/api/v1/box/rrashidi/voltha-base/versions -X POST -H "X-Atlas-Token: <DEDICATED_VOLTHA_BASE_TOKEN>" -d version[version]='<YOUR_DESIRED_VERSION>' -d version[description]='This is your description' | jq
+DESIRED_VERSION=$(date +"%y%m%d.%H%M%S.0")
+```
+
+### Retrieve voltha-base token
+
+To do so, we use the previously generated token.
+
+```
+DEDICATED_VOLTHA_BASE_TOKEN=$(cat vagrant-token)
+```
+
+### Creating a new version on the vagrant cloud
+
+At this point we need to create a new version and POST it on the Vagrant Cloud. To do so, we need to create a version.
+
+```
+curl https://atlas.hashicorp.com/api/v1/box/voltha/voltha-base/versions -X POST -H "X-Atlas-Token: $DEDICATED_VOLTHA_BASE_TOKEN" -d version[version]=$DESIRED_VERSION -d version[description]='This is your description' | jq
 ```
 
 The result should look something like this:
 
 ```
 {
-  "version": "<YOUR_DESIRED_VERSION>",
+  "version": "<DESIRED_VERSION>",
   "status": "unreleased",
   "description_html": "<p>This is your description</p>\n",
   "description_markdown": "This is your description",
   "created_at": "2016-11-29T15:35:21.103Z",
   "updated_at": "2016-11-29T15:35:21.103Z",
-  "number": "<YOUR_DESIRED_VERSION>",
-  "release_url": "https://atlas.hashicorp.com/api/v1/box/rrashidi/voltha-base/version/<YOUR_DESIRED_VERSION>/release",
-  "revoke_url": "https://atlas.hashicorp.com/api/v1/box/rrashidi/voltha-base/version/<YOUR_DESIRED_VERSION>/revoke",
+  "number": "<DESIRED_VERSION>",
+  "release_url": "https://atlas.hashicorp.com/api/v1/box/voltha/voltha-base/version/<DESIRED_VERSION>/release",
+  "revoke_url": "https://atlas.hashicorp.com/api/v1/box/voltha/voltha-base/version/<DESIRED_VERSION>/revoke",
   "providers": []
 }
 ```
@@ -109,7 +128,7 @@ The result should look something like this:
 Now, we need to create a provider for the newly-created version. We use VirtualBox as the provider.
 
 ```
-url https://atlas.hashicorp.com/api/v1/box/rrashidi/voltha-base/version/<YOUR_DESIRED_VERSION>/providers -X POST -H "X-Atlas-Token: <DEDICATED_VOLTHA_BASE_TOKEN>" -d provider[name]='virtualbox' | jq
+curl https://atlas.hashicorp.com/api/v1/box/voltha/voltha-base/version/$DESIRED_VERSION/providers -X POST -H "X-Atlas-Token: $DEDICATED_VOLTHA_BASE_TOKEN" -d provider[name]='virtualbox' | jq
 ```
 
 The result should look something like this:
@@ -122,7 +141,7 @@ The result should look something like this:
   "original_url": null,
   "created_at": "2016-11-29T16:00:17.604Z",
   "updated_at": "2016-11-29T16:00:17.604Z",
-  "download_url": "https://atlas.hashicorp.com/rrashidi/boxes/voltha-base/versions/<YOUR_DESIRED_VERSION>/providers/virtualbox.box"
+  "download_url": "https://atlas.hashicorp.com/voltha/boxes/voltha-base/versions/<DESIRED_VERSION>/providers/virtualbox.box"
 }
 ```
 
@@ -131,7 +150,7 @@ The result should look something like this:
 We need to upload the package.box file for the provider.
 
 ```
-curl 'https://atlas.hashicorp.com/api/v1/box/rrashidi/voltha-base/version/<YOUR_DESIRED_VERSION>/provider/virtualbox/upload?access_token=<DEDICATED_VOLTHA_BASE_TOKEN>' | jq
+curl https://atlas.hashicorp.com/api/v1/box/voltha/voltha-base/version/$DESIRED_VERSION/provider/virtualbox/upload?access_token=$DEDICATED_VOLTHA_BASE_TOKEN | jq
 ```
 
 The result should look something like this:
@@ -143,31 +162,33 @@ The result should look something like this:
 }
 ```
 
-Then, we upload the .box file using the upload_path.
+Then, we upload the .box file using the upload_path. This action may take some minutes.
 
 ```
-curl -X PUT --upload-file package.box https://binstore-test.hashicorp.com/a5bfcdf9-609b-4e8f-b5b8-d9ebdea4d2c6
+curl -X PUT --upload-file package.box <upload_path from_previous_curl_command>
+
+# For example: curl -X PUT --upload-file package.box https://binstore-test.hashicorp.com/a5bfcdf9-609b-4e8f-b5b8-d9ebdea4d2c6
 ```
 
 Now that provider of the version and the vagrant image package is ready, we need to realese the version. To release a version to be accessible to all the users, we should use the provided release-url.
 
 ```
-curl https://atlas.hashicorp.com/api/v1/box/rrashidi/voltha-base/version/<YOUR_DESIRED_VERSION>/release -X PUT -H "X-Atlas-Token: <DEDICATED_VOLTHA_BASE_TOKEN>" | jq
+curl https://atlas.hashicorp.com/api/v1/box/voltha/voltha-base/version/$DESIRED_VERSION/release -X PUT -H "X-Atlas-Token: $DEDICATED_VOLTHA_BASE_TOKEN" | jq
 ```
 
 The result should look something like this:
 
 ```
 {
-  "version": "<YOUR_DESIRED_VERSION>",
+  "version": "<DESIRED_VERSION>",
   "status": "active",
   "description_html": "<p>This is your description</p>\n",
   "description_markdown": "This is your description",
   "created_at": "2016-11-29T15:48:50.809Z",
   "updated_at": "2016-11-29T16:15:14.471Z",
   "number": "0.1.3",
-  "release_url": "https://atlas.hashicorp.com/api/v1/box/rrashidi/voltha-base/version/<YOUR_DESIRED_VERSION>/release",
-  "revoke_url": "https://atlas.hashicorp.com/api/v1/box/rrashidi/voltha-base/version/<YOUR_DESIRED_VERSION>/revoke",
+  "release_url": "https://atlas.hashicorp.com/api/v1/box/voltha/voltha-base/version/<DESIRED_VERSION>/release",
+  "revoke_url": "https://atlas.hashicorp.com/api/v1/box/voltha/voltha-base/version/<DESIRED_VERSION>/revoke",
   "providers": [
     {
       "name": "virtualbox",
@@ -176,11 +197,35 @@ The result should look something like this:
       "original_url": null,
       "created_at": "2016-11-29T16:00:17.604Z",
       "updated_at": "2016-11-29T16:00:17.604Z",
-      "download_url": "https://atlas.hashicorp.com/rrashidi/boxes/voltha-base/versions/<YOUR_DESIRED_VERSION>/providers/virtualbox.box"
+      "download_url": "https://atlas.hashicorp.com/voltha/boxes/voltha-base/versions/<DESIRED_VERSION>/providers/virtualbox.box"
     }
   ]
 }
 ```
 
-Following the execution of this command, the new version gets released. As the result, the previous version is not currently a released version. 
+Following the execution of this command, the new version is released. As the result, the previous version is not currently a released version. 
 
+## Add/Update voltha-base vagrant box to your local system (Optional)
+
+This part is optional and can be used to see if the newly created vagrant box (image) is available and usable. 
+
+* If voltha-base vagrant box is not available (ON YOUR LOCAL MACHINE), UPDATE operation produces as error message. To fix it, please ADD the voltha-base using the command provided below.
+* If voltha-base vagrant box is already available (ON YOUR LOCAL MACHINE), ADD operation produces as error message. To fix it, please UPDATE the voltha-base using the command provided below.
+
+###To ADD voltha-base vagrant box:
+```
+vagrant box add voltha/voltha-base
+```
+
+###To UPDATE voltha-base vagrant box:
+```
+vagrant box update --box voltha/voltha-base
+```
+
+## Clean up the vagrant VM (Optional)
+
+To make sure the vagrant VM is stopped and removed, the following commands can be used.
+ 
+ ```
+ vagrant halt; vagrant destroy -f;
+ ```
