@@ -74,7 +74,7 @@ In case the script can't get executed, change the access permission of the scrip
 Once vagrant image is created, we can use this base image and package it and create a vagrant box of it.
 
 ```
-# If it exists, remove 'package.box' 
+# If it exists, remove 'package.box'
 rm -rf package.box
 
 # package the vagrant box
@@ -203,11 +203,11 @@ The result should look something like this:
 }
 ```
 
-Following the execution of this command, the new version is released. As the result, the previous version is not currently a released version. 
+Following the execution of this command, the new version is released. As the result, the previous version is not currently a released version.
 
 ## Add/Update voltha-base vagrant box to your local system (Optional)
 
-This part is optional and can be used to see if the newly created vagrant box (image) is available and usable. 
+This part is optional and can be used to see if the newly created vagrant box (image) is available and usable.
 
 * If voltha-base vagrant box is not available (ON YOUR LOCAL MACHINE), UPDATE operation produces as error message. To fix it, please ADD the voltha-base using the command provided below.
 * If voltha-base vagrant box is already available (ON YOUR LOCAL MACHINE), ADD operation produces as error message. To fix it, please UPDATE the voltha-base using the command provided below.
@@ -225,7 +225,7 @@ vagrant box update --box voltha/voltha-base
 ## Clean up the vagrant VM (Optional)
 
 To make sure the vagrant VM is stopped and removed, the following commands can be used.
- 
- ```
+
+```
  vagrant halt; vagrant destroy -f;
- ```
+```
