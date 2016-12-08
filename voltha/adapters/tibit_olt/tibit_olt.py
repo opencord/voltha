@@ -21,6 +21,7 @@ Tibit OLT device adapter
 import structlog
 from zope.interface import implementer
 
+from voltha.registry import registry
 from voltha.adapters.interface import IAdapterInterface
 from voltha.protos.adapter_pb2 import Adapter, AdapterConfig
 from voltha.protos.device_pb2 import DeviceType, DeviceTypes
@@ -52,10 +53,11 @@ class TibitOltAdapter(object):
             version='0.1',
             config=AdapterConfig(log_level=LogLevel.INFO)
         )
+        self.interface = registry('main').get_args().interface
 
     def start(self):
-        log.debug('starting')
-        log.info('started')
+        log.debug('starting', interface=self.interface)
+        log.info('started', interface=self.interface)
 
     def stop(self):
         log.debug('stopping')

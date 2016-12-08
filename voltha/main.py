@@ -23,6 +23,7 @@ import time
 
 import yaml
 from twisted.internet.defer import inlineCallbacks
+from zope.interface import implementer
 
 from common.structlog_setup import setup_logging
 from common.utils.dockerhelpers import get_my_containers_name
@@ -35,7 +36,7 @@ from voltha.northbound.grpc.grpc_server import VolthaGrpcServer
 from voltha.northbound.kafka.kafka_proxy import KafkaProxy, get_kafka_proxy
 from voltha.northbound.rest.health_check import init_rest_service
 from voltha.protos.common_pb2 import LogLevel
-from voltha.registry import registry
+from voltha.registry import registry, IComponent
 
 VERSION = '0.9.0'
 
@@ -204,7 +205,9 @@ def print_banner(log):
     log.info('(to stop: press Ctrl-C)')
 
 
+@implementer(IComponent)
 class Main(object):
+
     def __init__(self):
 
         self.args = args = parse_args()
@@ -231,10 +234,23 @@ class Main(object):
     def start(self):
         self.start_reactor()  # will not return except Keyboard interrupt
 
+    def stop(self):
+        pass
+
+    def get_args(self):
+        """Allow access to command line args"""
+        return self.args
+
+    def get_config(self):
+        """Allow access to content of config file"""
+        return self.config
+
     @inlineCallbacks
     def startup_components(self):
         try:
             self.log.info('starting-internal-components')
+
+            registry.register('main', self)
 
             yield registry.register(
                 'coordinator',
