@@ -16,8 +16,10 @@ message DeviceType {
     // Name of the adapter that handles device type
     string adapter = 2;
 
-    // TODO
-    // ...
+    // Capabilitities
+
+    bool accepts_bulk_flow_update = 3;
+    bool accepts_add_remove_flow_updates = 4;
 
 }
 
@@ -92,7 +94,7 @@ message Device {
     // Device contact on vlan (if 0, no vlan)
     uint32 vlan = 12;
 
-    message ProxyDevice {
+    message ProxyAddress {
         string device_id = 1;  // Which device to use as proxy to this device
         uint32 channel_id = 2;  // Sub-address within proxy device
     };
@@ -108,7 +110,7 @@ message Device {
         // ("xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx")
         string ipv6_address = 15;
 
-        ProxyDevice proxy_device = 19;
+        ProxyAddress proxy_device = 19;
     };
 
     AdminState.AdminState admin_state = 16;

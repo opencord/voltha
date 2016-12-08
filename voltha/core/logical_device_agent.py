@@ -46,6 +46,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         self.core = core
         self.grpc_server = registry('grpc_server')
         self.logical_device_id = logical_device.id
+
         self.root_proxy = core.get_proxy('/')
         self.flows_proxy = core.get_proxy(
             '/logical_devices/{}/flows'.format(logical_device.id))
@@ -53,6 +54,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             '/logical_devices/{}/flow_groups'.format(logical_device.id))
         self.self_proxy = core.get_proxy(
             '/logical_devices/{}'.format(logical_device.id))
+
         self.flows_proxy.register_callback(
             CallbackType.POST_UPDATE, self._flow_table_updated)
         self.groups_proxy.register_callback(
@@ -69,6 +71,14 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
 
     def stop(self):
         log.debug('stopping')
+        self.flows_proxy.unregister_callback(
+            CallbackType.POST_UPDATE, self._flow_table_updated)
+        self.groups_proxy.unregister_callback(
+            CallbackType.POST_UPDATE, self._group_table_updated)
+        self.self_proxy.unregister_callback(
+            CallbackType.POST_ADD, self._port_list_updated)
+        self.self_proxy.unregister_callback(
+            CallbackType.POST_REMOVE, self._port_list_updated)
         log.info('stopped')
 
     def announce_flows_deleted(self, flows):

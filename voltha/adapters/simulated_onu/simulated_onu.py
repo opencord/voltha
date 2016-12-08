@@ -45,6 +45,14 @@ class SimulatedOnuAdapter(object):
 
     name = 'simulated_onu'
 
+    supported_device_types = [
+        DeviceType(
+            id='simulated_onu',
+            adapter=name,
+            accepts_bulk_flow_update=True
+        )
+    ]
+
     def __init__(self, adapter_agent, config):
         self.adapter_agent = adapter_agent
         self.config = config
@@ -67,9 +75,7 @@ class SimulatedOnuAdapter(object):
         return self.descriptor
 
     def device_types(self):
-        return DeviceTypes(items=[
-            DeviceType(id='simulated_onu', adapter=self.name)
-        ])
+        return DeviceTypes(items=self.supported_device_types)
 
     def health(self):
         return HealthStatus(state=HealthStatus.HealthState.HEALTHY)
@@ -83,8 +89,8 @@ class SimulatedOnuAdapter(object):
         return device
 
     def abandon_device(self, device):
-        raise NotImplementedError(0
-                                  )
+        raise NotImplementedError()
+
     def deactivate_device(self, device):
         raise NotImplementedError()
 
@@ -168,3 +174,16 @@ class SimulatedOnuAdapter(object):
         device = self.adapter_agent.get_device(device.id)
         device.oper_status = OperStatus.ACTIVE
         self.adapter_agent.update_device(device)
+
+    def update_flows_bulk(self, device, flows, groups):
+        log.debug('bulk-flow-update', device_id=device.id,
+                  flows=flows, groups=groups)
+
+    def update_flows_incrementally(self, device, flow_changes, group_changes):
+        raise NotImplementedError()
+
+    def send_proxied_message(self, proxy_address, msg):
+        raise NotImplementedError()
+
+    def receive_proxied_message(self, proxy_address, msg):
+        raise NotImplementedError()

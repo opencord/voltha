@@ -92,7 +92,53 @@ class IAdapterInterface(Interface):
     def deactivate_device(device):
         """
         Called if the device is to be deactivate based on a NBI call.
+        :param device: A Voltha.Device object.
         :return: (Deferred) Shall be fired to acknowledge deactivation.
+        """
+
+    def update_flows_bulk(device, flows, groups):
+        """
+        Called after any flow table change, but only if the device supports
+        bulk mode, which is expressed by the 'accepts_bulk_flow_update'
+        capability attribute of the device type.
+        :param device: A Voltha.Device object.
+        :param flows: An openflow_v13.Flows object
+        :param groups: An  openflow_v13.Flows object
+        :return: (Deferred or None)
+        """
+
+    def update_flows_incrementally(device, flow_changes, group_changes):
+        """
+        [This mode is not supported yet.]
+        :param device: A Voltha.Device object.
+        :param flow_changes:
+        :param group_changes:
+        :return:
+        """
+
+    def send_proxied_message(proxy_address, msg):
+        """
+        Forward a msg to a child device of device, addressed by the given
+        proxy_address=Device.ProxyAddress().
+        :param proxy_address: Address info for the parent device
+         to route the message to the child device. This was given to the
+         child device by the parent device at the creation of the child
+         device.
+        :param msg: (str) The actual message to send.
+        :return: (Deferred(None) or None) The return of this method should
+         indicate that the message was successfully *sent*.
+        """
+
+    def receive_proxied_message(proxy_address, msg):
+        """
+        Pass an async message (arrived via a proxy) to this device.
+        :param proxy_address: Address info for the parent device
+         to route the message to the child device. This was given to the
+         child device by the parent device at the creation of the child
+         device. Note this is the proxy_address with which the adapter
+         had to register prior to receiving proxied messages.
+        :param msg: (str) The actual message received.
+        :return: None
         """
 
     # TODO work in progress
@@ -106,7 +152,7 @@ class IAdapterAgent(Interface):
     toward Voltha's CORE via the APIs defined here.
     """
 
-    def get_device(selfdevice_id):
+    def get_device(device_id):
         # TODO add doc
         """"""
 
@@ -131,12 +177,54 @@ class IAdapterAgent(Interface):
         """"""
 
     def child_device_detected(parent_device_id,
+                              parent_port_no,
                               child_device_type,
                               child_device_address_kw):
         # TODO add doc
         """"""
 
-    # TODO work in progress
-    pass
+    def send_proxied_message(proxy_address, msg):
+        """
+        Forward a msg to a child device of device, addressed by the given
+        proxy_address=Device.ProxyAddress().
+        :param proxy_address: Address info for the parent device
+         to route the message to the child device. This was given to the
+         child device by the parent device at the creation of the child
+         device.
+        :param msg: (str) The actual message to send.
+        :return: (Deferred(None) or None) The return of this method should
+         indicate that the message was successfully *sent*.
+        """
+
+    def receive_proxied_message(proxy_address, msg):
+        """
+        Pass an async message (arrived via a proxy) to this device.
+        :param proxy_address: Address info for the parent device
+         to route the message to the child device. This was given to the
+         child device by the parent device at the creation of the child
+         device. Note this is the proxy_address with which the adapter
+         had to register prior to receiving proxied messages.
+        :param msg: (str) The actual message received.
+        :return: None
+        """
+
+    def register_for_proxied_messages(proxy_address):
+        """
+        A child device adapter can use this to indicate its intent to
+        receive async messages sent via a parent device. Example: an
+        ONU adapter can use this to register for OMCI messages received
+        via the OLT and the OLT adapter.
+        :param child_device_address: Address info that was given to the
+         child device by the parent device at the creation of the child
+         device. Its uniqueness acts as a router information for the
+         registration.
+        :return: None
+        """
+
+    def unregister_for_proxied_messages(proxy_address):
+        """
+        Cancel a previous registration
+        :return:
+        """
 
 

@@ -35,14 +35,31 @@ class InvalidStateTransition(Exception): pass
 class DeviceAgent(object):
 
     def __init__(self, core, initial_data):
+
         self.core = core
         self._tmp_initial_data = initial_data
+        self.last_data = None
+
         self.proxy = core.get_proxy('/devices/{}'.format(initial_data.id))
+        self.flows_proxy = core.get_proxy(
+            '/devices/{}/flows'.format(initial_data.id))
+        self.groups_proxy = core.get_proxy(
+            '/devices/{}/flow_groups'.format(initial_data.id))
+
         self.proxy.register_callback(
             CallbackType.PRE_UPDATE, self._validate_update)
         self.proxy.register_callback(
             CallbackType.POST_UPDATE, self._process_update)
-        self.last_data = None
+
+        self.flows_proxy.register_callback(
+            CallbackType.POST_UPDATE, self._flow_table_updated)
+        self.groups_proxy.register_callback(
+            CallbackType.POST_UPDATE, self._group_table_updated)
+
+        # to know device capabilities
+        self.device_type = core.get_proxy(
+            '/device_types/{}'.format(initial_data.type)).get()
+
         self.adapter_agent = None
 
     @inlineCallbacks
@@ -172,3 +189,49 @@ class DeviceAgent(object):
         (AdminState.DISABLED, AdminState.ENABLED): _reenable_device
 
     }
+
+    ## <======================= FLOW TABLE UPDATE HANDLING ====================
+
+    @inlineCallbacks
+    def _flow_table_updated(self, flows):
+        log.debug('flow-table-updated',
+                  logical_device_id=self.last_data.id, flows=flows)
+
+        # if device accepts bulk flow update, lets just call that
+        if self.device_type.accepts_bulk_flow_update:
+            groups = self.groups_proxy.get('/') # gather flow groups
+            yield self.adapter_agent.update_flows_bulk(
+                device=self.last_data,
+                flows=flows,
+                groups=groups)
+            # TODO place to feed back completion
+
+        elif self.accepts_add_remove_flow_updates:
+            raise NotImplementedError()
+
+        else:
+            raise NotImplementedError()
+
+    ## <======================= GROUP TABLE UPDATE HANDLING ===================
+
+    @inlineCallbacks
+    def _group_table_updated(self, groups):
+        log.debug('group-table-updated',
+                  logical_device_id=self.last_data.id,
+                  flow_groups=groups)
+
+        # if device accepts bulk flow update, lets just call that
+        if self.device_type.accepts_bulk_flow_update:
+            flows = self.flows_proxy.get('/')  # gather flows
+            yield self.adapter_agent.update_flows_bulk(
+                device=self.last_data,
+                flows=flows,
+                groups=groups)
+            # TODO place to feed back completion
+
+        elif self.accepts_add_remove_flow_updates:
+            raise NotImplementedError()
+
+        else:
+            raise NotImplementedError()
+

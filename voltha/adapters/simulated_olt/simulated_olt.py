@@ -45,6 +45,14 @@ class SimulatedOltAdapter(object):
 
     name = 'simulated_olt'
 
+    supported_device_types = [
+        DeviceType(
+            id='simulated_olt',
+            adapter=name,
+            accepts_bulk_flow_update=True
+        )
+    ]
+
     def __init__(self, adapter_agent, config):
         self.adapter_agent = adapter_agent
         self.config = config
@@ -69,10 +77,7 @@ class SimulatedOltAdapter(object):
         return self.descriptor
 
     def device_types(self):
-        return DeviceTypes(items=[
-            DeviceType(id='simulated_olt', adapter=self.name),
-            # DeviceType(id='simulated_onu', adapter=self.name)
-        ])
+        return DeviceTypes(items=self.supported_device_types)
 
     def health(self):
         return HealthStatus(state=HealthStatus.HealthState.HEALTHY)
@@ -317,7 +322,7 @@ class SimulatedOltAdapter(object):
                 parent_port_no=1,
                 child_device_type='simulated_onu',
                 child_device_address_kw=dict(
-                    proxy_device=Device.ProxyDevice(
+                    proxy_device=Device.ProxyAddress(
                         device_id=device.id,
                         channel_id=vlan_id
                     ),
@@ -336,3 +341,15 @@ class SimulatedOltAdapter(object):
         vlan_id = seq + 100
         return gemport, vlan_id
 
+    def update_flows_bulk(self, device, flows, groups):
+        log.debug('bulk-flow-update', device_id=device.id,
+                  flows=flows, groups=groups)
+
+    def update_flows_incrementally(self, device, flow_changes, group_changes):
+        raise NotImplementedError()
+
+    def send_proxied_message(self, proxy_address, msg):
+        raise NotImplementedError()
+
+    def receive_proxied_message(self, proxy_address, msg):
+        raise NotImplementedError()

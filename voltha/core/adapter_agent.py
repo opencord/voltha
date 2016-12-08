@@ -127,6 +127,13 @@ class AdapterAgent(object):
     def deactivate_device(self, device):
         return self.adapter.deactivate_device(device)
 
+    def update_flows_bulk(self, device, flows, groups):
+        return self.adapter.update_flows_bulk(device, flows, groups)
+
+    def update_flows_incrementally(self, device, flow_changes, group_changes):
+        return self.update_flows_incrementally(
+            device, flow_changes, group_changes)
+
     # ~~~~~~~~~~~~~~~~~~~ Adapter-Facing Service ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def get_device(self, device_id):
