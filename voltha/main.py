@@ -22,6 +22,7 @@ import os
 import time
 
 import yaml
+from simplejson import dumps
 from twisted.internet.defer import inlineCallbacks
 from zope.interface import implementer
 
@@ -37,6 +38,8 @@ from voltha.northbound.kafka.kafka_proxy import KafkaProxy, get_kafka_proxy
 from voltha.northbound.rest.health_check import init_rest_service
 from voltha.protos.common_pb2 import LogLevel
 from voltha.registry import registry, IComponent
+from common.frameio.frameio import FrameIOManager
+
 
 VERSION = '0.9.0'
 
@@ -229,7 +232,7 @@ class Main(object):
 
         if not args.no_heartbeat:
             self.start_heartbeat()
-            self.start_kafka_heartbeat()
+            self.start_kafka_heartbeat(args.instance_id)
 
     def start(self):
         self.start_reactor()  # will not return except Keyboard interrupt
@@ -285,6 +288,11 @@ class Main(object):
             ).start()
 
             yield registry.register(
+                'frameio',
+                FrameIOManager()
+            ).start()
+
+            yield registry.register(
                 'adapter_loader',
                 AdapterLoader(config=self.config.get('adapter_loader', {}))
             ).start()
@@ -323,20 +331,26 @@ class Main(object):
 
     # Temporary function to send a heartbeat message to the external kafka
     # broker
-    def start_kafka_heartbeat(self):
+    def start_kafka_heartbeat(self, instance_id):
         # For heartbeat we will send a message to a specific "voltha-heartbeat"
         #  topic.  The message is a protocol buf
         # message
-        message = 'Heartbeat message:{}'.format(get_my_primary_local_ipv4())
-        topic = "voltha-heartbeat"
+        message = dumps(dict(
+            type='heartbeat',
+            voltha_instance=instance_id,
+            ip=get_my_primary_local_ipv4()
+        ))
+        topic = "heartbeat.voltha"
 
         from twisted.internet.task import LoopingCall
         kafka_proxy = get_kafka_proxy()
         if kafka_proxy:
             lc = LoopingCall(kafka_proxy.send_message, topic, message)
             lc.start(10)
+            pass
         else:
             self.log.error('Kafka proxy has not been created!')
+
 
 if __name__ == '__main__':
     Main().start()

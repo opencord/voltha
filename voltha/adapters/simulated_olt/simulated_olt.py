@@ -321,13 +321,11 @@ class SimulatedOltAdapter(object):
                 parent_device_id=device.id,
                 parent_port_no=1,
                 child_device_type='simulated_onu',
-                child_device_address_kw=dict(
-                    proxy_device=Device.ProxyAddress(
-                        device_id=device.id,
-                        channel_id=vlan_id
-                    ),
-                    vlan=100 + i
-                )
+                proxy_address=Device.ProxyAddress(
+                    device_id=device.id,
+                    channel_id=vlan_id
+                ),
+                vlan=100 + i
             )
 
     def _olt_side_onu_activation(self, seq):
@@ -349,7 +347,14 @@ class SimulatedOltAdapter(object):
         raise NotImplementedError()
 
     def send_proxied_message(self, proxy_address, msg):
-        raise NotImplementedError()
+        log.info('send-proxied-message', proxy_address=proxy_address, msg=msg)
+        # we mimick a response by sending the same message back in a short time
+        reactor.callLater(
+            0.2,
+            self.adapter_agent.receive_proxied_message,
+            proxy_address,
+            msg
+        )
 
     def receive_proxied_message(self, proxy_address, msg):
         raise NotImplementedError()

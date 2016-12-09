@@ -100,24 +100,22 @@ class KafkaProxy(object):
         # first check whether we have a kafka producer.  If there is none
         # then try to get one - this happens only when we try to lookup the
         # kafka service from consul
-        if self.kproducer is None:
-            self._get_kafka_producer()
-            # Lets the next message request do the retry if still a failure
-            if self.kproducer is None:
-                log.error('No kafka producer available at {}'.format(
-                    self.kafka_endpoint))
-                return
-
-        log.info('Sending message {} to kafka topic {}'.format(msg,
-                                                                    topic))
         try:
-            msg_list = [msg]
-            yield self.kproducer.send_messages(topic, msgs=msg_list)
-            log.info('Successfully sent message {} to kafka topic '
-                          '{}'.format(msg, topic))
-        except Exception as e:
-            log.error('Failure to send message {} to kafka topic {}: '
-                           '{}'.format(msg, topic, repr(e)))
+            if self.kproducer is None:
+                self._get_kafka_producer()
+                # Lets the next message request do the retry if still a failure
+                if self.kproducer is None:
+                    log.error('no-kafka-producer', endpoint=self.kafka_endpoint)
+                    return
+
+            log.debug('sending-kafka-msg', topic=topic, msg=msg)
+            msgs = [msg]
+            yield self.kproducer.send_messages(topic, msgs=msgs)
+            log.debug('sent-kafka-msg', topic=topic, msg=msg)
+
+        except Exception, e:
+            log.error('failed-to-send-kafka-msg', topic=topic, msg=msg, e=e)
+
             # set the kafka producer to None.  This is needed if the
             # kafka docker went down and comes back up with a different
             # port number.

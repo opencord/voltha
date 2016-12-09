@@ -13,7 +13,7 @@ fi
 . $VENVDIR/bin/activate
 
 # add top-level voltha dir to pythonpath
-export PYTHONPATH=$VENVDIR/lib/python2.7/site-packages:$PYTHONPATH:$VOLTHA_BASE:$VOLTHA_BASE/voltha/protos/third_party
+export PYTHONPATH=$VOLTHA_BASE/$VENVDIR/lib/python2.7/site-packages:$PYTHONPATH:$VOLTHA_BASE:$VOLTHA_BASE/voltha/protos/third_party
 
 # assign DOCKER_HOST_IP to be the main ip address of this host
 export DOCKER_HOST_IP=$(python common/utils/nethelpers.py)

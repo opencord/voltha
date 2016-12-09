@@ -21,7 +21,7 @@ from uuid import uuid4
 
 import structlog
 from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, DeferredQueue
 from zope.interface import implementer
 
 from common.utils.asleep import asleep
@@ -62,6 +62,7 @@ class SimulatedOnuAdapter(object):
             version='0.1',
             config=AdapterConfig(log_level=LogLevel.INFO)
         )
+        self.incoming_messages = DeferredQueue()
 
     def start(self):
         log.debug('starting')
@@ -96,10 +97,11 @@ class SimulatedOnuAdapter(object):
 
     @inlineCallbacks
     def _simulate_device_activation(self, device):
+
         # first we verify that we got parent reference and proxy info
         assert device.parent_id
-        assert device.proxy_device.device_id
-        assert device.proxy_device.channel_id
+        assert device.proxy_address.device_id
+        assert device.proxy_address.channel_id
 
         # we pretend that we were able to contact the device and obtain
         # additional information about it
@@ -150,7 +152,7 @@ class SimulatedOnuAdapter(object):
         # and name for the virtual ports, as this is guaranteed to be unique
         # in the context of the OLT port, so it is also unique in the context
         # of the logical device
-        port_no = device.proxy_device.channel_id
+        port_no = device.proxy_address.channel_id
         cap = OFPPF_1GB_FD | OFPPF_FIBER
         self.adapter_agent.add_logical_port(logical_device_id, LogicalPort(
             id=str(port_no),
@@ -170,7 +172,10 @@ class SimulatedOnuAdapter(object):
             device_port_no=uni_port.port_no
         ))
 
-        # and finally update to active
+        # simulate a proxied message sending and receving a reply
+        reply = yield self._simulate_message_exchange(device)
+
+        # and finally update to "ACTIVE"
         device = self.adapter_agent.get_device(device.id)
         device.oper_status = OperStatus.ACTIVE
         self.adapter_agent.update_device(device)
@@ -186,4 +191,27 @@ class SimulatedOnuAdapter(object):
         raise NotImplementedError()
 
     def receive_proxied_message(self, proxy_address, msg):
-        raise NotImplementedError()
+        # just place incoming message to a list
+        self.incoming_messages.put((proxy_address, msg))
+
+    @inlineCallbacks
+    def _simulate_message_exchange(self, device):
+
+        # register for receiving async messages
+        self.adapter_agent.register_for_proxied_messages(device.proxy_address)
+
+        # reset incoming message queue
+        while self.incoming_messages.pending:
+            _ = yield self.incoming_messages.get()
+
+        # construct message
+        msg = 'test message'
+
+        # send message
+        self.adapter_agent.send_proxied_message(device.proxy_address, msg)
+
+        # wait till we detect incoming message
+        yield self.incoming_messages.get()
+
+        # by returning we allow the device to be shown as active, which
+        # indirectly verified that message passing works

@@ -69,21 +69,24 @@ class AdapterLoader(object):
 
     def _find_adapters(self):
         subdirs = os.walk(mydir).next()[1]
-        for subdir in subdirs:
-            adapter_name = subdir
-            py_file = os.path.join(mydir, subdir, subdir + '.py')
-            if os.path.isfile(py_file):
-                try:
-                    package_name = __package__ + '.' + subdir
-                    pkg = __import__(package_name, None, None, [adapter_name])
-                    module = getattr(pkg, adapter_name)
-                except ImportError, e:
-                    log.exception('cannot-load', file=py_file, e=e)
-                    continue
+        try:
+            for subdir in subdirs:
+                adapter_name = subdir
+                py_file = os.path.join(mydir, subdir, subdir + '.py')
+                if os.path.isfile(py_file):
+                    try:
+                        package_name = __package__ + '.' + subdir
+                        pkg = __import__(package_name, None, None, [adapter_name])
+                        module = getattr(pkg, adapter_name)
+                    except ImportError, e:
+                        log.exception('cannot-load', file=py_file, e=e)
+                        continue
 
-                for attr_name in dir(module):
-                    cls = getattr(module, attr_name)
-                    if isinstance(cls, type) and \
-                            IAdapterInterface.implementedBy(cls):
-                        verifyClass(IAdapterInterface, cls)
-                        yield adapter_name, cls
+                    for attr_name in dir(module):
+                        cls = getattr(module, attr_name)
+                        if isinstance(cls, type) and \
+                                IAdapterInterface.implementedBy(cls):
+                            verifyClass(IAdapterInterface, cls)
+                            yield adapter_name, cls
+        except Exception, e:
+            log.exception('failed', e=e)

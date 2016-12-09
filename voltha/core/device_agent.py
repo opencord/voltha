@@ -26,8 +26,6 @@ from voltha.core.config.config_proxy import CallbackType
 from voltha.protos.common_pb2 import AdminState, OperStatus
 from voltha.registry import registry
 
-log = structlog.get_logger()
-
 
 class InvalidStateTransition(Exception): pass
 
@@ -61,23 +59,24 @@ class DeviceAgent(object):
             '/device_types/{}'.format(initial_data.type)).get()
 
         self.adapter_agent = None
+        self.log = structlog.get_logger(device_id=initial_data.id)
 
     @inlineCallbacks
     def start(self):
-        log.debug('starting')
+        self.log.debug('starting')
         self._set_adapter_agent()
         yield self._process_update(self._tmp_initial_data)
         del self._tmp_initial_data
-        log.info('started')
+        self.log.info('started')
         returnValue(self)
 
     def stop(self):
-        log.debug('stopping')
+        self.log.debug('stopping')
         self.proxy.unregister_callback(
             CallbackType.PRE_UPDATE, self._validate_update)
         self.proxy.unregister_callback(
             CallbackType.POST_UPDATE, self._process_update)
-        log.info('stopped')
+        self.log.info('stopped')
 
     def _set_adapter_agent(self):
         adapter_name = self._tmp_initial_data.adapter
@@ -97,7 +96,7 @@ class DeviceAgent(object):
         (by raising an exception), or even the augmentation of the incoming
         data.
         """
-        log.debug('device-pre-update', device=device)
+        self.log.debug('device-pre-update', device=device)
         yield self._process_state_transitions(device, dry_run=True)
         returnValue(device)
 
@@ -108,7 +107,7 @@ class DeviceAgent(object):
         a transaction), and it is used to propagate the change down to the
         adapter
         """
-        log.debug('device-post-update', device=device)
+        self.log.debug('device-post-update', device=device)
 
         # first, process any potential state transition
         yield self._process_state_transitions(device)
@@ -135,7 +134,7 @@ class DeviceAgent(object):
 
     @inlineCallbacks
     def _activate_device(self, device, dry_run=False):
-        log.info('activate-device', device=device, dry_run=dry_run)
+        self.log.info('activate-device', device=device, dry_run=dry_run)
         if not dry_run:
             device = yield self.adapter_agent.adopt_device(device)
             device.oper_status = OperStatus.ACTIVATING
@@ -151,22 +150,22 @@ class DeviceAgent(object):
         raise NotImplementedError()
 
     def _propagate_change(self, device, dry_run=False):
-        log.info('propagate-change', device=device, dry_run=dry_run)
+        self.log.info('propagate-change', device=device, dry_run=dry_run)
         if device != self.last_data:
             raise NotImplementedError()
         else:
-            log.debug('no-op')
+            self.log.debug('no-op')
 
     def _abandon_device(self, device, dry_run=False):
-        log.info('abandon-device', device=device, dry_run=dry_run)
+        self.log.info('abandon-device', device=device, dry_run=dry_run)
         raise NotImplementedError()
 
     def _disable_device(self, device, dry_run=False):
-        log.info('disable-device', device=device, dry_run=dry_run)
+        self.log.info('disable-device', device=device, dry_run=dry_run)
         raise NotImplementedError()
 
     def _reenable_device(self, device, dry_run=False):
-        log.info('reenable-device', device=device, dry_run=dry_run)
+        self.log.info('reenable-device', device=device, dry_run=dry_run)
         raise NotImplementedError()
 
     admin_state_fsm = {
@@ -194,7 +193,7 @@ class DeviceAgent(object):
 
     @inlineCallbacks
     def _flow_table_updated(self, flows):
-        log.debug('flow-table-updated',
+        self.log.debug('flow-table-updated',
                   logical_device_id=self.last_data.id, flows=flows)
 
         # if device accepts bulk flow update, lets just call that
@@ -216,7 +215,7 @@ class DeviceAgent(object):
 
     @inlineCallbacks
     def _group_table_updated(self, groups):
-        log.debug('group-table-updated',
+        self.log.debug('group-table-updated',
                   logical_device_id=self.last_data.id,
                   flow_groups=groups)
 

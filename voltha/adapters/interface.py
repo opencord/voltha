@@ -179,7 +179,8 @@ class IAdapterAgent(Interface):
     def child_device_detected(parent_device_id,
                               parent_port_no,
                               child_device_type,
-                              child_device_address_kw):
+                              proxy_address,
+                              **kw):
         # TODO add doc
         """"""
 

@@ -33,7 +33,6 @@ from voltha.protos.device_pb2 import Port
 from voltha.protos.openflow_13_pb2 import Flows, FlowGroups
 from voltha.registry import registry
 
-log = structlog.get_logger()
 _ = third_party
 
 def mac_str_to_tuple(mac):
@@ -64,13 +63,15 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         self.self_proxy.register_callback(
             CallbackType.POST_REMOVE, self._port_list_updated)
 
+        self.log = structlog.get_logger(logical_device_id=logical_device.id)
+
     def start(self):
-        log.debug('starting')
-        log.info('started')
+        self.log.debug('starting')
+        self.log.info('started')
         return self
 
     def stop(self):
-        log.debug('stopping')
+        self.log.debug('stopping')
         self.flows_proxy.unregister_callback(
             CallbackType.POST_UPDATE, self._flow_table_updated)
         self.groups_proxy.unregister_callback(
@@ -79,7 +80,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             CallbackType.POST_ADD, self._port_list_updated)
         self.self_proxy.unregister_callback(
             CallbackType.POST_REMOVE, self._port_list_updated)
-        log.info('stopped')
+        self.log.info('stopped')
 
     def announce_flows_deleted(self, flows):
         for f in flows:
@@ -118,7 +119,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             self.flow_modify_strict(flow_mod)
 
         else:
-            log.warn('unhandled-flow-mod', command=command, flow_mod=flow_mod)
+            self.log.warn('unhandled-flow-mod', command=command, flow_mod=flow_mod)
 
     # def list_flows(self):
     #     return self.flows
@@ -137,7 +138,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             self.group_modify(group_mod)
 
         else:
-            log.warn('unhandled-group-mod', command=command,
+            self.log.warn('unhandled-group-mod', command=command,
                      group_mod=group_mod)
 
     def list_groups(self):
@@ -163,7 +164,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
                 flow = flow_stats_entry_from_flow_mod_message(mod)
                 flows.append(flow)
                 changed = True
-                log.debug('flow-added', flow=mod)
+                self.log.debug('flow-added', flow=mod)
 
         else:
             flow = flow_stats_entry_from_flow_mod_message(mod)
@@ -175,12 +176,12 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
                     flow.packet_count = old_flow.packet_count
                 flows[idx] = flow
                 changed = True
-                log.debug('flow-updated', flow=flow)
+                self.log.debug('flow-updated', flow=flow)
 
             else:
                 flows.append(flow)
                 changed = True
-                log.debug('flow-added', flow=mod)
+                self.log.debug('flow-added', flow=mod)
 
         # write back to model
         if changed:
@@ -225,7 +226,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             changed = True
         else:
             # TODO need to check what to do with this case
-            log.warn('flow-cannot-delete', flow=flow)
+            self.log.warn('flow-cannot-delete', flow=flow)
 
         if changed:
             self.flows_proxy.update('/', Flows(items=flows))
@@ -403,7 +404,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             # signal controller as requested by flow's flag
             groups = OrderedDict()
             groups_changed = True
-            log.debug('all-groups-deleted')
+            self.log.debug('all-groups-deleted')
 
         else:
             if group_id not in groups:
@@ -415,7 +416,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
                 flows_changed, flows = self.flows_delete_by_group_id(flows, group_id)
                 del groups[group_id]
                 groups_changed = True
-                log.debug('group-deleted', group_id=group_id)
+                self.log.debug('group-deleted', group_id=group_id)
 
         if groups_changed:
             self.groups_proxy.update('/', FlowGroups(items=groups.values()))
@@ -444,7 +445,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
     ## <=============== PACKET_OUT ===========================================>
 
     def packet_out(self, ofp_packet_out):
-        log.debug('packet-out', packet=ofp_packet_out)
+        self.log.debug('packet-out', packet=ofp_packet_out)
         print threading.current_thread().name
         print 'PACKET_OUT:', ofp_packet_out
         # TODO for debug purposes, lets turn this around and send it back
@@ -465,7 +466,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
     ## <======================== FLOW TABLE UPDATE HANDLING ===================
 
     def _flow_table_updated(self, flows):
-        log.debug('flow-table-updated',
+        self.log.debug('flow-table-updated',
                   logical_device_id=self.logical_device_id, flows=flows)
 
         # TODO we have to evolve this into a policy-based, event based pattern
@@ -484,7 +485,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
     ## <======================= GROUP TABLE UPDATE HANDLING ===================
 
     def _group_table_updated(self, flow_groups):
-        log.debug('group-table-updated',
+        self.log.debug('group-table-updated',
                   logical_device_id=self.logical_device_id,
                   flow_groups=flow_groups)
 

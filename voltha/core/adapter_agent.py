@@ -23,6 +23,7 @@ import structlog
 from twisted.internet.defer import inlineCallbacks, returnValue
 from zope.interface import implementer
 
+from common.event_bus import EventBusClient
 from voltha.adapters.interface import IAdapterAgent
 from voltha.protos import third_party
 from voltha.protos.device_pb2 import Device, Port
@@ -30,8 +31,6 @@ from voltha.protos.voltha_pb2 import DeviceGroup, LogicalDevice, \
     LogicalPort, AdminState
 from voltha.registry import registry
 
-
-log = structlog.get_logger()
 
 @implementer(IAdapterAgent)
 class AdapterAgent(object):
@@ -52,26 +51,33 @@ class AdapterAgent(object):
         self.adapter = None
         self.adapter_node_proxy = None
         self.root_proxy = self.core.get_proxy('/')
+        self._rx_event_subscriptions = {}
+        self._tx_event_subscriptions = {}
+        self.event_bus = EventBusClient()
+        self.log = structlog.get_logger(adapter_name=adapter_name)
 
     @inlineCallbacks
     def start(self):
-        log.debug('starting')
+        self.log.debug('starting')
         config = self._get_adapter_config()  # this may be None
-        adapter = self.adapter_cls(self, config)
-        yield adapter.start()
+        try:
+            adapter = self.adapter_cls(self, config)
+            yield adapter.start()
+        except Exception, e:
+            self.log.exception(e)
         self.adapter = adapter
         self.adapter_node_proxy = self._update_adapter_node()
         self._update_device_types()
-        log.info('started')
+        self.log.info('started')
         returnValue(self)
 
     @inlineCallbacks
     def stop(self):
-        log.debug('stopping')
+        self.log.debug('stopping')
         if self.adapter is not None:
             yield self.adapter.stop()
             self.adapter = None
-        log.info('stopped')
+        self.log.info('stopped')
 
     def _get_adapter_config(self):
         """
@@ -197,16 +203,51 @@ class AdapterAgent(object):
                               parent_device_id,
                               parent_port_no,
                               child_device_type,
-                              child_device_address_kw):
+                              proxy_address,
+                              **kw):
         # we create new ONU device objects and insert them into the config
-        # TODO should we auto-enable the freshly created device? Probably
+        # TODO should we auto-enable the freshly created device? Probably.
         device = Device(
             id=uuid4().hex[:12],
             type=child_device_type,
             parent_id=parent_device_id,
             parent_port_no=parent_port_no,
             admin_state=AdminState.ENABLED,
-            **child_device_address_kw
+            proxy_address=proxy_address,
+            **kw
         )
         self._make_up_to_date(
             '/devices', device.id, device)
+
+        topic = self._gen_tx_proxy_address_topic(proxy_address)
+        self._tx_event_subscriptions[topic] = self.event_bus.subscribe(
+            topic, lambda t, m: self._send_proxied_message(proxy_address, m))
+
+    def _gen_rx_proxy_address_topic(self, proxy_address):
+        """Generate unique topic name specific to this proxy address for rx"""
+        topic = 'rx:' + proxy_address.SerializeToString()
+        return topic
+
+    def _gen_tx_proxy_address_topic(self, proxy_address):
+        """Generate unique topic name specific to this proxy address for tx"""
+        topic = 'tx:' + proxy_address.SerializeToString()
+        return topic
+
+    def register_for_proxied_messages(self, proxy_address):
+        topic = self._gen_rx_proxy_address_topic(proxy_address)
+        self._rx_event_subscriptions[topic] = self.event_bus.subscribe(
+            topic, lambda t, m: self._receive_proxied_message(proxy_address, m))
+
+    def _receive_proxied_message(self, proxy_address, msg):
+        self.adapter.receive_proxied_message(proxy_address, msg)
+
+    def send_proxied_message(self, proxy_address, msg):
+        topic = self._gen_tx_proxy_address_topic(proxy_address)
+        self.event_bus.publish(topic, msg)
+
+    def _send_proxied_message(self, proxy_address, msg):
+        self.adapter.send_proxied_message(proxy_address, msg)
+
+    def receive_proxied_message(self, proxy_address, msg):
+        topic = self._gen_rx_proxy_address_topic(proxy_address)
+        self.event_bus.publish(topic, msg)

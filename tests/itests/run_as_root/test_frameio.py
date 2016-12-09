@@ -20,7 +20,7 @@ Run this test inside a docker container using the following syntax:
 
 docker run -ti --rm -v $(pwd):/voltha  --privileged cord/voltha-base \
     env PYTHONPATH=/voltha python \
-    /voltha/tests/itests/frameio_tests/run_as_root/test_frameio.py
+    /voltha/tests/itests/run_as_root/test_frameio.py
 
 """
 
@@ -88,7 +88,6 @@ class TestFrameIO(TestCase):
         self.assertEqual(port, p1)
         self.assertEqual(frame, bogus_frame)
 
-
     @inlineCallbacks
     def test_packet_send_receive_with_filter(self):
         rcvd = DeferredWithTimeout()
@@ -108,7 +107,6 @@ class TestFrameIO(TestCase):
         self.assertEqual(port, p1)
         self.assertEqual(frame, ip_packet)
 
-
     @inlineCallbacks
     def test_packet_send_drop_with_filter(self):
         rcvd = DeferredWithTimeout()
@@ -127,7 +125,6 @@ class TestFrameIO(TestCase):
             pass
         else:
             self.fail('not timed out')
-
 
     @inlineCallbacks
     def test_concurrent_packet_send_receive(self):
