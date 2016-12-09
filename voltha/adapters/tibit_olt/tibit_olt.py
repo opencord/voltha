@@ -29,10 +29,18 @@ from zope.interface import implementer
 from common.frameio.frameio import BpfProgramFilter
 from voltha.registry import registry
 from voltha.adapters.interface import IAdapterInterface
+from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.protos.adapter_pb2 import Adapter, AdapterConfig
 from voltha.protos.device_pb2 import DeviceType, DeviceTypes
 from voltha.protos.health_pb2 import HealthStatus
 from voltha.protos.common_pb2 import LogLevel, ConnectStatus
+
+from voltha.protos.common_pb2 import OperStatus, AdminState
+
+from voltha.protos.logical_device_pb2 import LogicalDevice, LogicalPort
+from voltha.protos.openflow_13_pb2 import ofp_desc, ofp_port, OFPPF_10GB_FD, \
+    OFPPF_FIBER, OFPPS_LIVE, ofp_switch_features, OFPC_PORT_STATS, \
+    OFPC_GROUP_STATS, OFPC_TABLE_STATS, OFPC_FLOW_STATS
 
 from scapy.packet import Packet, bind_layers
 from scapy.fields import StrField
@@ -134,8 +142,6 @@ class TibitOltAdapter(object):
 
         # if we got response, we can fill out the device info, mark the device
         # reachable
-        import pdb
-        pdb.set_trace()
 
         device.root = True
         device.vendor = 'Tibit stuff'
@@ -145,6 +151,77 @@ class TibitOltAdapter(object):
         device.software_version = '1.0'
         device.serial_number = 'add junk here'
         device.connect_status = ConnectStatus.REACHABLE
+        self.adapter_agent.update_device(device)
+
+        # then shortly after we create some ports for the device
+        log.info('create-port')
+        nni_port = Port(
+            port_no=2,
+            label='NNI facing Ethernet port',
+            type=Port.ETHERNET_NNI,
+            admin_state=AdminState.ENABLED,
+            oper_status=OperStatus.ACTIVE
+        )
+        self.adapter_agent.add_port(device.id, nni_port)
+        self.adapter_agent.add_port(device.id, Port(
+            port_no=1,
+            label='PON port',
+            type=Port.PON_OLT,
+            admin_state=AdminState.ENABLED,
+            oper_status=OperStatus.ACTIVE
+        ))
+
+        log.info('create-logical-device')
+        # then shortly after we create the logical device with one port
+        # that will correspond to the NNI port
+        logical_device_id = uuid4().hex[:12]
+        ld = LogicalDevice(
+            id=logical_device_id,
+            datapath_id=int('0x' + logical_device_id[:8], 16), # from id
+            desc=ofp_desc(
+                mfr_desc=device.vendor,
+                hw_desc=jdev['results']['device'],
+                sw_desc=jdev['results']['firmware'],
+                serial_num=uuid4().hex,
+                dp_desc='n/a'
+            ),
+            switch_features=ofp_switch_features(
+                n_buffers=256,  # TODO fake for now
+                n_tables=2,  # TODO ditto
+                capabilities=(  # TODO and ditto
+                    OFPC_FLOW_STATS
+                    | OFPC_TABLE_STATS
+                    | OFPC_PORT_STATS
+                    | OFPC_GROUP_STATS
+                )
+            ),
+            root_device_id=device.id
+        )
+        self.adapter_agent.create_logical_device(ld)
+        cap = OFPPF_10GB_FD | OFPPF_FIBER
+        self.adapter_agent.add_logical_port(ld.id, LogicalPort(
+            id='nni',
+            ofp_port=ofp_port(
+                port_no=129,
+                hw_addr=mac_str_to_tuple(device.mac_address),
+                name='nni',
+                config=0,
+                state=OFPPS_LIVE,
+                curr=cap,
+                advertised=cap,
+                peer=cap,
+                curr_speed=OFPPF_10GB_FD,
+                max_speed=OFPPF_10GB_FD
+            ),
+            device_id=device.id,
+            device_port_no=nni_port.port_no,
+            root_port=True
+        ))
+
+        # and finally update to active
+        device = self.adapter_agent.get_device(device.id)
+        device.parent_id = ld.id
+        device.oper_status = OperStatus.ACTIVE
         self.adapter_agent.update_device(device)
 
     def _rcv_io(self, port, frame):
@@ -187,3 +264,4 @@ class TibitOltAdapter(object):
 
     def receive_proxied_message(self, proxy_address, msg):
         raise NotImplementedError()
+

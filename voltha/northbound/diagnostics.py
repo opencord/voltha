@@ -18,14 +18,14 @@
 """
 Voltha internal diagnostics
 """
-import structlog
-import time
+import arrow
 import gc
+import structlog
+import resource
 
 from simplejson import dumps
 from twisted.internet.defer import Deferred
 from twisted.internet.task import LoopingCall
-from twisted.internet import reactor
 from zope.interface import implementer
 
 from common.event_bus import EventBusClient
@@ -39,7 +39,8 @@ class Diagnostics(object):
 
     def __init__(self, config):
         self.config = config
-        self.periodic_check_interval = config.get('periodic_check_interval', 15)
+        self.periodic_check_interval = config.get(
+            'periodic_check_interval', 15)
         self.periodic_checks = None
         self.event_bus = EventBusClient()
         self.instance_id = registry('main').get_args().instance_id
@@ -59,17 +60,23 @@ class Diagnostics(object):
 
     def run_periodic_checks(self):
 
-        ts = time.time(),  # TODO switch to '2016.12.10T10:12:32Z' format?
+        ts = arrow.utcnow().timestamp
 
-        backlog = dict(
+        def deferreds():
+            return len(gc.get_referrers(Deferred))
+
+        def rss_mb():
+            return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1024/1024
+
+        data = dict(
+            type='slice',
             ts=ts,
-            object='voltha.{}'.format(self.instance_id),
-            metric='internal-backlog',
-            value=len(gc.get_referrers(Deferred))
+            data={
+                'voltha.internal.{}'.format(self.instance_id): {
+                    'deferreds': deferreds(),
+                    'rss-mb': rss_mb(),
+                }
+            }
         )
-
-        self.event_bus.publish('kpis', dumps(backlog))
-
+        self.event_bus.publish('kpis', dumps(data))
         log.debug('periodic-check', ts=ts)
-
-        Deferred()

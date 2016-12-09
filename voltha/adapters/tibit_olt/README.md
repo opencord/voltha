@@ -102,6 +102,18 @@ curl http://localhost:8881/api/v1/local/devices/$OLT_ID | jq '.oper_status,.admi
 "ACTIVATING"
 "ENABLED"
 ```
+When the device is ACTIVE, the logical devices and logical ports should be created.  To check
+the logical devices and logical ports, use the following commands.
+
+```
+curl -s http://localhost:8881/api/v1/local/logical_devices | jq '.'
+# Note: Need to pull out logical device id.
+curl -s http://localhost:8881/api/v1/local/logical_devices/47d2bb42a2c6/ports | jq '.'
+```
+
+
+
+
 
 # OLD stuff
 
