@@ -69,6 +69,10 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
 
         self._routes = None
 
+        self.log = structlog.get_logger(logical_device_id=logical_device.id)
+
+        self.log = structlog.get_logger(logical_device_id=logical_device.id)
+
     def start(self):
         self.log.debug('starting')
         self.log.info('started')

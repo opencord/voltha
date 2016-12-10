@@ -18,17 +18,49 @@
 Tibit ONU device adapter
 """
 
+import json
+
+from uuid import uuid4
+
 import structlog
 from zope.interface import implementer
 
+from scapy.layers.inet import ICMP, IP
+from scapy.layers.l2 import Ether
+from twisted.internet.defer import DeferredQueue, inlineCallbacks
+from twisted.internet import reactor
+
+from voltha.core.logical_device_agent import mac_str_to_tuple
+
 from voltha.adapters.interface import IAdapterInterface
 from voltha.protos.adapter_pb2 import Adapter, AdapterConfig
+from voltha.protos.device_pb2 import Port
 from voltha.protos.device_pb2 import DeviceType, DeviceTypes
 from voltha.protos.health_pb2 import HealthStatus
-from voltha.protos.common_pb2 import LogLevel
+from voltha.protos.common_pb2 import LogLevel, ConnectStatus
 
+from voltha.protos.common_pb2 import OperStatus, AdminState
+
+from voltha.protos.logical_device_pb2 import LogicalDevice, LogicalPort
+from voltha.protos.openflow_13_pb2 import ofp_desc, ofp_port, OFPPF_10GB_FD, \
+    OFPPF_FIBER, OFPPS_LIVE, ofp_switch_features, OFPC_PORT_STATS, \
+    OFPC_GROUP_STATS, OFPC_TABLE_STATS, OFPC_FLOW_STATS
+
+from scapy.packet import Packet, bind_layers
+from scapy.fields import StrField
 
 log = structlog.get_logger()
+
+from EOAM_TLV import AddStaticMacAddress, DeleteStaticMacAddress
+from EOAM_TLV import ClearStaticMacTable
+from EOAM import EOAMPayload, EoamPayload, CablelabsOUI, DPoEOpcode_GetRequest
+
+
+# To be removed in favor of OAM
+class TBJSON(Packet):
+    """ TBJSON 'packet' layer. """
+    name = "TBJSON"
+    fields_desc = [StrField("data", default="")]
 
 
 @implementer(IAdapterInterface)
@@ -53,6 +85,7 @@ class TibitOnuAdapter(object):
             version='0.1',
             config=AdapterConfig(log_level=LogLevel.INFO)
         )
+        self.incoming_messages = DeferredQueue()
 
     def start(self):
         log.debug('starting')
@@ -76,7 +109,91 @@ class TibitOnuAdapter(object):
 
     def adopt_device(self, device):
         log.info('adopt-device', device=device)
+        reactor.callLater(0.1, self._onu_device_activation, device)
         return device
+
+    @inlineCallbacks
+    def _onu_device_activation(self, device):
+        # first we verify that we got parent reference and proxy info
+        assert device.parent_id
+        assert device.proxy_address.device_id
+        assert device.proxy_address.channel_id
+
+        # TODO: For now, pretend that we were able to contact the device and obtain
+        # additional information about it.  Should add real message.
+        device.vendor = 'Tibit Communications, Inc.'
+        device.model = '10G GPON ONU'
+        device.hardware_version = 'fa161020'
+        device.firmware_version = '16.10.01'
+        device.software_version = '1.0'
+        device.mac_address = '00:01:02:03:04:05'
+        device.serial_number = uuid4().hex
+        device.connect_status = ConnectStatus.REACHABLE
+        self.adapter_agent.update_device(device)
+
+        # then shortly after we create some ports for the device
+        uni_port = Port(
+            port_no=2,
+            label='UNI facing Ethernet port',
+            type=Port.ETHERNET_UNI,
+            admin_state=AdminState.ENABLED,
+            oper_status=OperStatus.ACTIVE
+        )
+        self.adapter_agent.add_port(device.id, uni_port)
+        self.adapter_agent.add_port(device.id, Port(
+            port_no=1,
+            label='PON port',
+            type=Port.PON_ONU,
+            admin_state=AdminState.ENABLED,
+            oper_status=OperStatus.ACTIVE,
+            peers=[
+                Port.PeerPort(
+                    device_id=device.parent_id,
+                    port_no=device.parent_port_no
+                )
+            ]
+        ))
+
+        # TODO adding vports to the logical device shall be done by agent?
+        # then we create the logical device port that corresponds to the UNI
+        # port of the device
+
+        # obtain logical device id
+        parent_device = self.adapter_agent.get_device(device.parent_id)
+        logical_device_id = parent_device.parent_id
+        assert logical_device_id
+
+        # we are going to use the proxy_address.channel_id as unique number
+        # and name for the virtual ports, as this is guaranteed to be unique
+        # in the context of the OLT port, so it is also unique in the context
+        # of the logical device
+        port_no = device.proxy_address.channel_id
+        cap = OFPPF_10GB_FD | OFPPF_FIBER
+        self.adapter_agent.add_logical_port(logical_device_id, LogicalPort(
+            id=str(port_no),
+            ofp_port=ofp_port(
+                port_no=port_no,
+                hw_addr=mac_str_to_tuple(device.mac_address),
+                name='uni-{}'.format(port_no),
+                config=0,
+                state=OFPPS_LIVE,
+                curr=cap,
+                advertised=cap,
+                peer=cap,
+                curr_speed=OFPPF_10GB_FD,
+                max_speed=OFPPF_10GB_FD
+            ),
+            device_id=device.id,
+            device_port_no=uni_port.port_no
+        ))
+
+        # simulate a proxied message sending and receving a reply
+        reply = yield self._message_exchange(device)
+
+        # and finally update to "ACTIVE"
+        device = self.adapter_agent.get_device(device.id)
+        device.oper_status = OperStatus.ACTIVE
+        self.adapter_agent.update_device(device)
 
     def abandon_device(self, device):
         raise NotImplementedError(0
@@ -95,5 +212,35 @@ class TibitOnuAdapter(object):
         raise NotImplementedError()
 
     def receive_proxied_message(self, proxy_address, msg):
-        log.debug('send-proxied-message',
+        log.debug('receive-proxied-message',
                   proxy_address=proxy_address, msg=msg)
+        self.incoming_messages.put(msg)
+
+    @inlineCallbacks
+    def _message_exchange(self, device):
+
+        # register for receiving async messages
+        self.adapter_agent.register_for_proxied_messages(device.proxy_address)
+
+        # reset incoming message queue
+        while self.incoming_messages.pending:
+            _ = yield self.incoming_messages.get()
+
+        # construct message
+        msg = EoamPayload(body=CablelabsOUI() /
+                               DPoEOpcode_GetRequest() /
+                               # MAC address for 230.10.10.10
+                               AddStaticMacAddress(mac='01:00:5e:0a:0a:0a') # device.mac_address)
+                          )
+
+        # send message
+        log.info('ONU-send-proxied-message-%s' % msg)
+        self.adapter_agent.send_proxied_message(device.proxy_address, msg)
+
+        log.info('ONU-log incoming messages BEFORE')
+        # wait till we detect incoming message
+        yield self.incoming_messages.get()
+        log.info('ONU-log incoming messages AFTER')
+
+        # by returning we allow the device to be shown as active, which
+        # indirectly verified that message passing works

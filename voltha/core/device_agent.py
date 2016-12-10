@@ -136,11 +136,9 @@ class DeviceAgent(object):
     def _activate_device(self, device, dry_run=False):
         self.log.info('activate-device', device=device, dry_run=dry_run)
         if not dry_run:
-            device = yield self.adapter_agent.adopt_device(device)
             device.oper_status = OperStatus.ACTIVATING
-            # successful return from this may also populated the device
-            # data, so we need to write it back
-            reactor.callLater(0, self.update_device, device)
+            self.update_device(device)
+            yield self.adapter_agent.adopt_device(device)
 
     def update_device(self, device):
         self.last_data = device  # so that we don't propagate back

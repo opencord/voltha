@@ -11,20 +11,18 @@
 #                                                                          #
 #--------------------------------------------------------------------------#
 """ EOAM protocol implementation in scapy """
+from scapy.layers.inet import IP
 
 TIBIT_VERSION_NUMBER = '1.1.2'
 
 import argparse
 import logging
-import time
-
-from hexdump import hexdump
 
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 from scapy.layers.l2 import Ether, Dot1Q
 from scapy.sendrecv import sendp
 
-import fcntl, socket, struct # for get hw address
+import fcntl  # for get hw address
 
 # TODO should remove import *
 from EOAM_TLV import *
@@ -118,40 +116,26 @@ class EOAM():
         return ':'.join(['%02x' % ord(char) for char in info[18:24]])
 
 
-class EOAMPayload():
-    """ EOAM Payload """
-    def __init__(self, dryrun=False,
-                 verbose=False, etype='8809',
-                 hexdump=False):
-        self.etype = int(etype, 16)
-        self.hexdump = hexdump
-        self.verbose = verbose
-        if (self.verbose == True):
-            print("=== Settings ================")
-            print("dryrun    = %s" % self.dryrun)
-            print("etype     = 0x%04x" % self.etype)
-            print("hexdump   = %s" % self.hexdump)
-            print("verbose   = %s" % self.verbose)
-            print("=== END Settings ============")
+class EoamPayload(Packet):
+    name = 'EOAM Payload'
+    fields_desc = [
+        ByteEnumField("subtype", 0x03, SlowProtocolsSubtypeEnum),
+        XShortField("flags", 0x0050),
+        XByteField("opcode", 0xfe),
+        PacketField("body", None, Packet),
+        BitEnumField("type", 0x00, 7, TLV_dictionary),
+        BitField("length", 0x00, 9)
+    ]
 
-    def payload(self, frame_body):
-        PACKET = Ether()
-        PACKET.type = self.etype
-        PACKET/=SlowProtocolsSubtype()/FlagsBytes()/OAMPDU()
-        PACKET/=frame_body
-        PACKET/=EndOfPDU()
-        if (self.verbose == True):
-            PACKET.show()
-            print '###[ Frame Length %d (before padding) ]###' % len(PACKET)
-        if (self.hexdump == True):
-            print hexdump(PACKET)
-        return PACKET
+#    def get_request(self, TLV):
+#        return self.payload(CablelabsOUI()/DPoEOpcode_GetRequest()/TLV)
 
-    def get_request(self, TLV):
-        return self.payload(CablelabsOUI()/DPoEOpcode_GetRequest()/TLV)
+#    def set_request(self, TLV):
+#        return self.payload(CablelabsOUI()/DPoEOpcode_SetRequest()/TLV)
 
-    def set_request(self, TLV):
-        return self.payload(CablelabsOUI()/DPoEOpcode_SetRequest()/TLV)
+bind_layers(Ether, EoamPayload, type=0x8809)
+
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

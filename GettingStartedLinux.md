@@ -27,11 +27,12 @@ October, 2016 - Minimum Linux VM requirements
 ### Update 
 
 To begin with, please make sure you machine is up to date with the
-latest packages.
+latest packages and that you have python-pip installed.
 
 ```
 $ sudo apt update
 $ sudo apt upgrade --yes
+$ sudo apt install python-pip
 $ sudo pip install --upgrade pip
 ```
 
@@ -114,11 +115,23 @@ sudo apt install vagrant
 ### Google repo tool
 
 Install the Google repo tool for working with the VOLTHA repository.
+Installing from Google APIs (googleapis below) seems to be a step that
+is blocked by many corporate firewalls.  An alternative is to install
+repo from the apt packages.
 
+```
+$ sudo apt install repo --yes
+```
+
+Note: The Ubuntu repo package, when executed, may complain about being
+out of date.  Follow the upgrade commands that repo puts to the
+standard out.
+
+Skip this collection of steps if you have installed repo with apt. 
 ```
 $ mkdir ~/bin
 $ PATH=~/bin:$PATH
-$ curl https://storage.gooleapis.com/git-repo-downloads/repo > ~/bin/repo
+$ curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
 $ chmod a+x ~/bin/repo
 ```
 
@@ -128,8 +141,8 @@ Repo requires that at least your git config is setup.  Set it up for
 your user.name and user.email.
 
 ```
-$ git config --global user.email "nathan.knuth@tibitcom.com"
-$ git config --global user.name "Nathan Knuth"
+$ git config --global user.email "<email address>"
+$ git config --global user.name "Firstname Lastname"
 ```
 
 ### Getting the VOLTHA code
@@ -174,7 +187,7 @@ BUILD.md.  At this point you are finished with the basic Linux
 configuration and should be able to start working with VOLTHA. 
 
 ```
-cd voltha
+cd incubator/voltha
 vagrant up  # when you do this for the first time, this will take considerable time
 vagrant ssh # the rest to be executed inside the vagrant VM
 cd /voltha

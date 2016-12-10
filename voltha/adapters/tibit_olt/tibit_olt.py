@@ -20,7 +20,7 @@ Tibit OLT device adapter
 import scapy
 import structlog
 from scapy.layers.inet import ICMP, IP
-from scapy.layers.l2 import Ether
+from scapy.layers.l2 import Ether, Dot1Q
 from twisted.internet.defer import DeferredQueue, inlineCallbacks
 from twisted.internet import reactor
 
@@ -45,12 +45,13 @@ from voltha.protos.openflow_13_pb2 import ofp_desc, ofp_port, OFPPF_10GB_FD, \
 from scapy.packet import Packet, bind_layers
 from scapy.fields import StrField
 
-log = structlog.get_logger()
+from EOAM import EOAM_MULTICAST_ADDRESS
 
+log = structlog.get_logger()
 
 is_tibit_frame = BpfProgramFilter('ether[12:2] = 0x9001')
 
-# To be removed
+# To be removed in favor of OAM
 class TBJSON(Packet):
     """ TBJSON 'packet' layer. """
     name = "TBJSON"
@@ -108,7 +109,6 @@ class TibitOltAdapter(object):
         log.info('adopt-device', device=device)
         self._activate_io_port()
         reactor.callLater(0, self._launch_device_activation, device)
-        return device
 
     def _activate_io_port(self):
         if self.io_port is None:
@@ -117,7 +117,6 @@ class TibitOltAdapter(object):
 
     @inlineCallbacks
     def _launch_device_activation(self, device):
-
 
         try:
             log.debug('launch_dev_activation')
@@ -224,6 +223,52 @@ class TibitOltAdapter(object):
         device.oper_status = OperStatus.ACTIVE
         self.adapter_agent.update_device(device)
 
+        # Just transitioned to ACTIVE, wait a tenth of second
+        # before checking for ONUs
+        reactor.callLater(0.1, self._detect_onus, device)
+
+    @inlineCallbacks
+    def _detect_onus(self, device):
+        # send out get 'links' to the OLT device
+        olt_mac = device.mac_address
+        links_frame = self._make_links_frame(mac_address=olt_mac)
+        self.io_port.send(links_frame)
+        while True:
+            response = yield self.incoming_queues[olt_mac].get()
+            # verify response and if not the expected response
+            if 1: # TODO check if it is really what we expect, and wait if not
+                break
+
+        jdev = json.loads(response.data[5:])
+        for macid in jdev['results']:
+            if macid['macid'] is None:
+                log.info('MAC ID is NONE %s' % str(macid['macid']))
+            else:
+                log.info('activate-olt-for-onu-%s' % macid['macid'])
+            # TODO: report gemport and vlan_id
+            gemport, vlan_id = self._olt_side_onu_activation(int(macid['macid'][-3:]))
+            self.adapter_agent.child_device_detected(
+                parent_device_id=device.id,
+                parent_port_no=1,
+                child_device_type='tibit_onu',
+                proxy_address=Device.ProxyAddress(
+                    device_id=device.id,
+                    channel_id=vlan_id
+                    ),
+                vlan=vlan_id
+                )
+
+    def _olt_side_onu_activation(self, seq):
+        """
+        This is where if this was a real OLT, the OLT-side activation for
+        the new ONU should be performed. By the time we return, the OLT shall
+        be able to provide tunneled (proxy) communication to the given ONU,
+        using the returned information.
+        """
+        gemport = seq + 1
+        vlan_id = seq + 100
+        return gemport, vlan_id
+
     def _rcv_io(self, port, frame):
 
         log.info('frame-recieved')
@@ -245,6 +290,15 @@ class TibitOltAdapter(object):
         frame.show()
         return str(frame)
 
+    def _make_links_frame(self, mac_address):
+        # Create a json packet
+        json_operation_str = '{\"operation\":\"links\"}'
+        frame = Ether()/TBJSON(data='json %s' % json_operation_str)
+        frame.type = int("9001", 16)
+        frame.dst = mac_address
+        bind_layers(Ether, TBJSON, type=0x9001)
+        return str(frame)
+
     def abandon_device(self, device):
         raise NotImplementedError(0
                                   )
@@ -259,9 +313,15 @@ class TibitOltAdapter(object):
         raise NotImplementedError()
 
     def send_proxied_message(self, proxy_address, msg):
-        log.debug('send-proxied-message',
-                  proxy_address=proxy_address, msg=msg)
+        log.info('send-proxied-message', proxy_address=proxy_address, msg=msg)
+        # TODO build device_id -> mac_address cache
+        device = self.adapter_agent.get_device(proxy_address.device_id)
+        frame = Ether(dst=device.mac_address) / \
+                Dot1Q(vlan=4090) / \
+                Dot1Q(vlan=proxy_address.channel_id) / \
+                msg
+        # frame = Ether(dst=EOAM_MULTICAST_ADDRESS) / msg
+        self.io_port.send(str(frame))
 
     def receive_proxied_message(self, proxy_address, msg):
         raise NotImplementedError()
-

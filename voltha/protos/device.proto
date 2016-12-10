@@ -110,8 +110,9 @@ message Device {
         // ("xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx")
         string ipv6_address = 15;
 
-        ProxyAddress proxy_address = 19;
     };
+
+    ProxyAddress proxy_address = 19;
 
     AdminState.AdminState admin_state = 16;
 

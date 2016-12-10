@@ -10,9 +10,8 @@
 #                                                                          #
 #--------------------------------------------------------------------------#
 
-from scapy.packet import Packet
-from scapy.fields import ByteEnumField, XShortField, XByteField, MACField, \
-    ByteField, BitEnumField, BitField
+from scapy.packet import *
+from scapy.fields import *
 
 # This library strives to be an implementation of the following standard:
 

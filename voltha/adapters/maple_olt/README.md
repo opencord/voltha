@@ -12,15 +12,28 @@ These steps assume:
   env.sh was sourced, and at least 'make protos' was executed on the latest code.
 
 
-## Step 1: Launch Voltha with the proper interface value.
+## Step 0: Bring up the supporting docker containers
 
 ```
-./voltha/main.py -I <interface>  # example: ./voltha/main.py -I eth2
+cd ~/voltha
+. env.sh
+docker-compose -f compose/docker-compose-system-test.yml up -d \
+    consul zookeeper kafka fluentd registrator shovel grafana
+```
+
+## Step 1: Launch Voltha (in its terminal window)
+
+```
+cd ~/voltha
+. env.sh
+./voltha/main.py --kafka=@kafka
 ```
 
 ## Step 2: Launch Chameleon (in a different terminal)
 
 ```
+cd ~/voltha
+. env.sh
 ./chamaleon/main.py
 ```
 
@@ -49,7 +62,7 @@ and one for the ONU.
 Issue the following command to pre-provision the Maple OLT:
 
 ```
-curl -s -X POST -d '{"type": "maple_olt", "mac_address": "00:00:00:00:00:01"}' \
+curl -s -X POST -d '{"type": "maple_olt", "ipv4_address": "111.111.111.111"}' \
     http://localhost:8881/api/v1/local/devices | jq '.' | tee olt.json
 ```
 
@@ -98,10 +111,11 @@ After this, if you retrieve the state of the OLT device, it should be enabled
 and in the 'ACTIVATING' operational status:
 
 ```
-curl http://localhost:8881/api/v1/local/devices/$OLT_ID | jq '.oper_status,.admin_state'
+curl -s http://localhost:8881/api/v1/local/devices/$OLT_ID | jq '.oper_status,.admin_state'
 "ACTIVATING"
 "ENABLED"
 ```
+
 When the device is ACTIVE, the logical devices and logical ports should be created.  To check
 the logical devices and logical ports, use the following commands.
 

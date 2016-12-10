@@ -139,7 +139,7 @@ utest: venv protos
 	. ${VENVDIR}/bin/activate && \
 	    for d in $$(find ./tests/utests -type d -depth 1); do echo $$d:; nosetests -v $$d; done
 
-itest: venv run-as-root-tests 
+itest: venv run-as-root-tests
 	@ echo "Executing all integration tests"
 	. ${VENVDIR}/bin/activate && \
 	nosetests -s  \
@@ -147,7 +147,7 @@ itest: venv run-as-root-tests
 	--exclude-dir=./tests/utests/ \
 	--exclude-dir=./tests/itests/run_as_root/
 
-smoke-test: venv run-as-root-tests 
+smoke-test: venv run-as-root-tests
 	@ echo "Executing smoke tests"
 	. ${VENVDIR}/bin/activate && \
 	nosetests -s  \

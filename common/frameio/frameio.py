@@ -44,7 +44,7 @@ from voltha.registry import IComponent
 if sys.platform.startswith('linux'):
     from common.frameio.third_party.oftest import afpacket, netutils
 elif sys.platform == 'darwin':
-    from scapy.arch import pcapdnet, BIOCIMMEDIATE
+    from scapy.arch import pcapdnet, BIOCIMMEDIATE, dnet
 
 log = structlog.get_logger()
 
@@ -164,18 +164,27 @@ class FrameIOPort(object):
 
     def send(self, frame):
         log.debug('sending', len=len(frame), iface=self.iface_name)
-        sent_bytes = self.socket.send(frame)
+        sent_bytes = self.send_frame(frame)
         if sent_bytes != len(frame):
             log.error('send-error', iface=self.iface_name,
                       wanted_to_send=len(frame), actually_sent=sent_bytes)
         return sent_bytes
 
+    def send_frame(self, frame):
+        return self.socket.send(frame)
+
     def up(self):
-        os.system('ip link set {} up'.format(self.iface_name))
+        if sys.platform.startswith('darwin'):
+            pass
+        else:
+            os.system('ip link set {} up'.format(self.iface_name))
         return self
 
     def down(self):
-        os.system('ip link set {} down'.format(self.iface_name))
+        if sys.platform.startswith('darwin'):
+            pass
+        else:
+            os.system('ip link set {} down'.format(self.iface_name))
         return self
 
     def statistics(self):
@@ -199,13 +208,19 @@ class LinuxFrameIOPort(FrameIOPort):
 class DarwinFrameIOPort(FrameIOPort):
 
     def open_socket(self, iface_name):
-        s = pcapdnet.open_pcap(iface_name, 1600, 1, 100)
+        sin = pcapdnet.open_pcap(iface_name, 1600, 1, 100)
         try:
-            fcntl.ioctl(s.fileno(), BIOCIMMEDIATE, struct.pack("I",1))
+            fcntl.ioctl(sin.fileno(), BIOCIMMEDIATE, struct.pack("I",1))
         except:
             pass
 
-        return s
+        # need a different kind of socket for sending out
+        self.sout = dnet.eth(iface_name)
+
+        return sin
+
+    def send_frame(self, frame):
+        return self.sout.send(frame)
 
     def rcv_frame(self):
         pkt = self.socket.next()

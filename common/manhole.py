@@ -33,9 +33,9 @@ MANHOLE_SERVER_RSA_PUBLIC = './manhole_rsa_key.pub'
 
 
 def get_rsa_keys():
-    if not (os.path.exists(MANHOLE_SERVER_RSA_PUBLIC) and os.path.exists(MANHOLE_SERVER_RSA_PRIVATE)):
+    if not (os.path.exists(MANHOLE_SERVER_RSA_PUBLIC) and \
+                    os.path.exists(MANHOLE_SERVER_RSA_PRIVATE)):
         # generate a RSA keypair
-
         log.info('generate-rsa-keypair')
         from Crypto.PublicKey import RSA
         rsa_key = RSA.generate(1024)
