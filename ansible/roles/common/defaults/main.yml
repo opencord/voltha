@@ -6,6 +6,7 @@ use_latest_for:
   - debian-keyring
   - debian-archive-keyring
   - python-dev
+  - kafkacat
   - libssl-dev
   - libffi-dev
   - libpcap-dev

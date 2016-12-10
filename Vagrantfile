@@ -11,7 +11,7 @@ Vagrant.configure(2) do |config|
 
   config.vm.define "voltha" do |d|
     d.ssh.forward_agent = true
-    d.vm.box = "ubuntu/trusty64"
+    d.vm.box = "ubuntu/xenial64"
     d.vm.hostname = "voltha"
     d.vm.network "private_network", ip: "10.100.198.220"
     d.vm.provision :shell, path: "ansible/scripts/bootstrap_ansible.sh"
