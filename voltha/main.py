@@ -33,6 +33,7 @@ from common.utils.nethelpers import get_my_primary_interface, \
 from voltha.adapters.loader import AdapterLoader
 from voltha.coordinator import Coordinator
 from voltha.core.core import VolthaCore
+from voltha.northbound.diagnostics import Diagnostics
 from voltha.northbound.grpc.grpc_server import VolthaGrpcServer
 from voltha.northbound.kafka.kafka_proxy import KafkaProxy, get_kafka_proxy
 from voltha.northbound.rest.health_check import init_rest_service
@@ -275,7 +276,11 @@ class Main(object):
 
             yield registry.register(
                 'kafka_proxy',
-                KafkaProxy(self.args.consul, self.args.kafka)
+                KafkaProxy(
+                    self.args.consul,
+                    self.args.kafka,
+                    config=self.config.get('kafka-proxy', {})
+                )
             ).start()
 
             yield registry.register(
@@ -295,6 +300,11 @@ class Main(object):
             yield registry.register(
                 'adapter_loader',
                 AdapterLoader(config=self.config.get('adapter_loader', {}))
+            ).start()
+
+            yield registry.register(
+                'diag',
+                Diagnostics(config=self.config.get('diagnostics', {}))
             ).start()
 
             self.log.info('started-internal-services')

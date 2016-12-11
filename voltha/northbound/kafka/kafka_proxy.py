@@ -20,10 +20,11 @@ from afkak.common import (
 )
 from afkak.producer import Producer as _kafkaProducer
 from structlog import get_logger
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, returnValue
 from zope.interface import implementer
 
 from common.utils.consulhelpers import get_endpoint_from_consul
+from voltha.northbound.kafka.event_bus_publisher import EventBusPublisher
 from voltha.registry import IComponent
 
 log = get_logger()
@@ -36,9 +37,12 @@ class KafkaProxy(object):
     """
     _kafka_instance = None
 
-    def __init__(self, consul_endpoint='localhost:8500',
+    def __init__(self,
+                 consul_endpoint='localhost:8500',
                  kafka_endpoint='localhost:9092',
-                 ack_timeout=1000, max_req_attempts=10):
+                 ack_timeout=1000,
+                 max_req_attempts=10,
+                 config={}):
 
         # return an exception if the object already exist
         if KafkaProxy._kafka_instance:
@@ -51,15 +55,20 @@ class KafkaProxy(object):
         self.max_req_attempts = max_req_attempts
         self.consul_endpoint = consul_endpoint
         self.kafka_endpoint = kafka_endpoint
+        self.config = config
         self.kclient = None
         self.kproducer = None
+        self.event_bus_publisher = None
 
+    @inlineCallbacks
     def start(self):
         log.debug('starting')
         self._get_kafka_producer()
         KafkaProxy._kafka_instance = self
+        self.event_bus_publisher = yield EventBusPublisher(
+            self, self.config.get('event_bus_publisher', {})).start()
         log.info('started')
-        return self
+        returnValue(self)
 
     def stop(self):
         log.debug('stopping')

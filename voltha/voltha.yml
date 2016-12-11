@@ -59,3 +59,16 @@ worker:
 leader:
     workload_track_error_to_prevent_flood: 1
     members_track_error_to_prevent_flood: 1
+
+kafka-proxy:
+    event_bus_publisher:
+        topic_mappings:
+            'model-change-events':
+                kafka_topic: 'voltha.events'
+                filters:     [null]
+            'alarms':
+                kafka_topic: 'voltha.alarms'
+                filters:     [null]
+            'kpis':
+                kafka_topic: 'voltha.kpis'
+                filters:     [null]
