@@ -452,7 +452,8 @@ class FlowDecomposer(object):
 
         device_rules = {}  # accumulator
 
-        if (out_port_no & 0x7fffffff) == ofp.OFPP_CONTROLLER:
+        if out_port_no is not None and \
+                        (out_port_no & 0x7fffffff) == ofp.OFPP_CONTROLLER:
 
             # UPSTREAM CONTROLLER-BOUND FLOW
 

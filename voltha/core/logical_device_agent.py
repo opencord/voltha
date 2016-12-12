@@ -65,6 +65,8 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
 
         self.log = structlog.get_logger(logical_device_id=logical_device.id)
 
+        self._routes = None
+
     def start(self):
         self.log.debug('starting')
         self.log.info('started')
@@ -305,7 +307,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         # indicates the flow entry matches
         match = flow_mod.match
         assert isinstance(match, ofp.ofp_match)
-        if not match.oxm_list:
+        if not match.oxm_fields:
             # If we got this far and the match is empty in the flow spec,
             # than the flow matches
             return True
@@ -589,9 +591,33 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
 
     def get_route(self, ingress_port_no, egress_port_no):
         self._assure_cached_tables_up_to_date()
-        if (egress_port_no & 0x7fffffff) == ofp.OFPP_CONTROLLER:
+        if egress_port_no is not None and \
+                        (egress_port_no & 0x7fffffff) == ofp.OFPP_CONTROLLER:
             # treat it as if the output port is the NNI of the OLT
             egress_port_no = self._nni_logical_port_no
+
+        # If ingress_port is not specified (None), it may be a wildcarded
+        # route if egress_port is OFPP_CONTROLLER or _nni_logical_port,
+        # in which case we need to create a half-route where only the egress
+        # hop is filled, the first hope is None
+        if ingress_port_no is None and \
+                        egress_port_no == self._nni_logical_port_no:
+            # We can use the 2nd hop of any upstream route, so just find the
+            # first upstream:
+            for (ingress, egress), route in self._routes.iteritems():
+                if egress == self._nni_logical_port_no:
+                    return [None, route[1]]
+            raise Exception('not a single upstream route')
+
+        # If egress_port is not specified (None), we can also can return a
+        # "half" route
+        if egress_port_no is None and \
+            ingress_port_no == self._nni_logical_port_no:
+            for (ingress, egress), route in self._routes.iteritems():
+                if ingress == self._nni_logical_port_no:
+                    return [route[0], None]
+            raise Exception('not a single downstream route')
+
         return self._routes[(ingress_port_no, egress_port_no)]
 
     def get_all_default_rules(self):
