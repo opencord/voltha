@@ -14,6 +14,7 @@ As all GitHib gists, it is covered by the MIT license.
 from optparse import OptionParser
 
 import simplejson
+import structlog
 from kafka import KafkaConsumer
 import pickle
 import struct
@@ -25,6 +26,9 @@ from kafka.consumer.fetcher import ConsumerRecord
 from kafka.errors import KafkaError
 
 from common.utils.consulhelpers import get_endpoint_from_consul
+
+
+log = structlog.get_logger()
 
 
 class Graphite:
@@ -179,6 +183,7 @@ if __name__ == "__main__":
     except socket.gaierror, e:
         print "Invalid hostname for graphite host %s" % (host)
         sys.exit(1)
+    log.info('Connected to graphite at {}:{}'.format(host, port))
 
     # Resolve Kafka value if it is based on consul lookup
     if kafka.startswith('@'):
@@ -186,14 +191,14 @@ if __name__ == "__main__":
 
     # Connect to Kafka
     try:
-        print 'Connecting to Kafka at {}'.format(kafka)
+        log.info('connect-to-kafka', kafka=kafka)
         consumer = KafkaConsumer(topic, bootstrap_servers=kafka)
     except KafkaError, e:
-        print "Could not connect to kafka bootstrap server {}: {}".format(
-            kafka, e)
+        log.error('failed-to-connect-to-kafka', kafka=kafka, e=e)
         sys.exit(1)
 
     # Consume Kafka topic
+    log.info('start-loop', topic=topic)
     for record in consumer:
         assert isinstance(record, ConsumerRecord)
         msg = record.value
@@ -201,9 +206,11 @@ if __name__ == "__main__":
         try:
             batch = _convert(simplejson.loads(msg))
         except Exception, e:
-            print "Unknown format, could not extract data: {}".format(msg)
+            log.warn('unknown-format', msg=msg)
             continue
 
         pickled = _pickle(batch)
         graphite.send(pickled)
-        print "Sent %s metrics to Graphite" % (len(batch))
+        log.debug('sent', batch_len=len(batch))
+
+    log.info('exited')

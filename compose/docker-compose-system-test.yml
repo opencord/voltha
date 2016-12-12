@@ -107,7 +107,7 @@ services:
       "/shovel/shovel/main.py",
       "--kafka=@kafka",
       "--consul=${DOCKER_HOST_IP}:8500",
-      "--topic=voltha.kpi",
+      "--topic=voltha.kpis",
       "--host=${DOCKER_HOST_IP}"
     ]
     depends_on:
