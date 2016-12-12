@@ -62,7 +62,7 @@ class DeviceGraph(object):
                 for peer in port.peers:
                     if peer.device_id not in devices_added:
                         peer_device = root_proxy.get(
-                            'devices/{}'.format(peer.device_id))
+                            '/devices/{}'.format(peer.device_id))
                         add_device(peer_device)
                     else:
                         peer_port_id = (peer.device_id, peer.port_no)

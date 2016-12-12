@@ -1,17 +1,13 @@
-from unittest import TestCase, main
+from unittest import main
 
-from jsonpatch import make_patch
-from simplejson import dumps
-
+from tests.utests.voltha.core.flow_helpers import FlowHelpers
 from voltha.core.flow_decomposer import *
-from voltha.core.logical_device_agent import \
-    flow_stats_entry_from_flow_mod_message
+from voltha.protos import third_party
 from voltha.protos.device_pb2 import Device, Port
 from voltha.protos.logical_device_pb2 import LogicalPort
-from google.protobuf.json_format import MessageToDict
 
 
-class TestFlowDecomposer(TestCase, FlowDecomposer):
+class TestFlowDecomposer(FlowHelpers, FlowDecomposer):
 
     def setUp(self):
         self.logical_device_id = 'pon'
@@ -142,41 +138,6 @@ class TestFlowDecomposer(TestCase, FlowDecomposer):
                      _devices['olt'].ports[1]),
         ],
 
-        # UPSTREAM CONTROLLER-BOUND (IN-BAND SENDING TO DATAPLANE
-
-        (1, ofp.OFPP_CONTROLLER): [
-            RouteHop(_devices['onu1'],
-                     _devices['onu1'].ports[1],
-                     _devices['onu1'].ports[0]),
-            RouteHop(_devices['olt'],
-                     _devices['olt'].ports[0],
-                     _devices['olt'].ports[1]),
-        ],
-        (2, ofp.OFPP_CONTROLLER): [
-            RouteHop(_devices['onu2'],
-                     _devices['onu2'].ports[1],
-                     _devices['onu2'].ports[0]),
-            RouteHop(_devices['olt'],
-                     _devices['olt'].ports[0],
-                     _devices['olt'].ports[1]),
-        ],
-        (3, ofp.OFPP_CONTROLLER): [
-            RouteHop(_devices['onu3'],
-                     _devices['onu3'].ports[1],
-                     _devices['onu3'].ports[0]),
-            RouteHop(_devices['olt'],
-                     _devices['olt'].ports[0],
-                     _devices['olt'].ports[1]),
-        ],
-        (4, ofp.OFPP_CONTROLLER): [
-            RouteHop(_devices['onu4'],
-                     _devices['onu4'].ports[1],
-                     _devices['onu4'].ports[0]),
-            RouteHop(_devices['olt'],
-                     _devices['olt'].ports[0],
-                     _devices['olt'].ports[1]),
-        ],
-
         # UPSTREAM NEXT TABLE BASED
 
         (1, None): [
@@ -219,8 +180,16 @@ class TestFlowDecomposer(TestCase, FlowDecomposer):
                      _devices['olt'].ports[1],
                      _devices['olt'].ports[0]),
             None  # 2nd hop is not known yet
-        ]
+        ],
 
+        # UPSTREAM WILD-CARD
+        (None, 0): [
+            None,  # 1st hop is wildcard
+            RouteHop(_devices['olt'],
+                     _devices['olt'].ports[0],
+                     _devices['olt'].ports[1]
+                     )
+        ]
     }
 
     _default_rules = {
@@ -309,21 +278,11 @@ class TestFlowDecomposer(TestCase, FlowDecomposer):
         return self._default_rules[device_id]
 
     def get_route(self, in_port_no, out_port_no):
+        if out_port_no is not None and \
+                        (out_port_no & 0x7fffffff) == ofp.OFPP_CONTROLLER:
+            # treat it as if the output port is the NNI of the OLT
+            out_port_no = 0  # OLT NNI port
         return self._routes[(in_port_no, out_port_no)]
-
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~ HELPER METHODS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    def assertFlowsEqual(self, flow1, flow2):
-        if flow1 != flow2:
-            self.fail('flow1 %s differs from flow2; differences: \n%s' % (
-                      dumps(MessageToDict(flow1), indent=4),
-                      self.diffMsgs(flow1, flow2)))
-
-    def diffMsgs(self, msg1, msg2):
-        msg1_dict = MessageToDict(msg1)
-        msg2_dict = MessageToDict(msg2)
-        diff = make_patch(msg1_dict, msg2_dict)
-        return dumps(diff.patch, indent=2)
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~ ACTUAL TEST CASES ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -447,6 +406,48 @@ class TestFlowDecomposer(TestCase, FlowDecomposer):
         ))
         self.assertFlowsEqual(olt_flows.values()[1], mk_flow_stat(
             priority=1000,
+            match_fields=[
+                in_port(1),
+                eth_type(0x0800),
+                ip_proto(2)
+            ],
+            actions=[
+                push_vlan(0x8100),
+                set_field(vlan_vid(ofp.OFPVID_PRESENT | 4000)),
+                output(2)
+            ]
+        ))
+
+    def test_wildcarded_igmp_reroute_rule_decomposition(self):
+        flow = mk_flow_stat(
+            match_fields=[
+                eth_type(0x0800),
+                ip_proto(2)
+            ],
+            actions=[output(ofp.OFPP_CONTROLLER)],
+            priority=2000,
+            cookie=140
+        )
+        device_rules = self.decompose_rules([flow], [])
+        onu1_flows, onu1_groups = device_rules['onu1']
+        olt_flows, olt_groups = device_rules['olt']
+        self.assertEqual(len(onu1_flows), 1)
+        self.assertEqual(len(onu1_groups), 0)
+        self.assertEqual(len(olt_flows), 2)
+        self.assertEqual(len(olt_groups), 0)
+        self.assertFlowsEqual(onu1_flows.values()[0], mk_flow_stat(
+            match_fields=[
+                in_port(2),
+                vlan_vid(ofp.OFPVID_PRESENT | 0),
+            ],
+            actions=[
+                set_field(vlan_vid(ofp.OFPVID_PRESENT | 101)),
+                output(1)
+            ]
+        ))
+        self.assertFlowsEqual(olt_flows.values()[1], mk_flow_stat(
+            priority=2000,
+            cookie=140,
             match_fields=[
                 in_port(1),
                 eth_type(0x0800),
