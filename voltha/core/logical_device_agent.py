@@ -29,7 +29,7 @@ from voltha.core.flow_decomposer import FlowDecomposer, \
     mk_flow_stat, in_port, vlan_vid, vlan_pcp, pop_vlan, output, set_field
 from voltha.protos import third_party
 from voltha.protos import openflow_13_pb2 as ofp
-from voltha.protos.device_pb2 import Port
+    from voltha.protos.device_pb2 import Port
 from voltha.protos.openflow_13_pb2 import Flows, FlowGroups
 from voltha.registry import registry
 

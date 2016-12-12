@@ -629,7 +629,7 @@ class Receiver(Thread):
         self.finished = False
 
     def start(self):
-        self.sock = s = conf.L2listen( type=ETH_P_ALL, iface=self.iface, filter='inbound')
+        self.sock = s = conf.L2listen(type=ETH_P_ALL, iface=self.iface, filter='inbound')
         while not self.finished:
             try:
                 sniffed = sniff(1, iface=self.iface, timeout=1, opened_socket=s)

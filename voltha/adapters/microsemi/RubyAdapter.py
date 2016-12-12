@@ -20,13 +20,10 @@ Microsemi/Celestica Ruby vOLTHA adapter.
 import structlog
 from twisted.internet import reactor
 from voltha.adapters.interface import IAdapterInterface
-from voltha.adapters.microsemi.PAS5211 import PAS5211MsgGetOltVersion, PAS5211MsgGetOltVersionResponse
+from voltha.adapters.microsemi.OltStateMachine import OltStateMachine
 from voltha.adapters.microsemi.PAS5211_comm import PAS5211Communication
-from voltha.adapters.microsemi.StateMachine import Disconnected, States
 
 from voltha.protos import third_party
-from voltha.protos.adapter_pb2 import Adapter, AdapterConfig, DeviceTypes
-from voltha.protos.health_pb2 import HealthStatus
 
 
 from zope.interface import implementer
@@ -45,7 +42,10 @@ class RubyAdapter(object):
         self.descriptor = None
         self.comm = comm = PAS5211Communication(dst_mac=olt_conf['olts']['mac'],
                                                 iface=olt_conf['iface'])
-        self.olt = Disconnected(comm)
+        self.olt = OltStateMachine(iface=olt_conf['iface'],
+                                   comm=comm,
+                                   target=olt_conf['olts']['mac'])
+
 
     def start(self):
         log.info('starting')
@@ -55,7 +55,7 @@ class RubyAdapter(object):
 
     def stop(self):
         log.debug('stopping')
-        self.olt.disconnect()
+        self.olt.stop()
         log.info('stopped')
         return self
 
@@ -65,12 +65,14 @@ class RubyAdapter(object):
         return self.descriptor
 
     def device_types(self):
-        return DeviceTypes(
-            items=[]  # TODO
-        )
+        pass
+        #return DeviceTypes(
+        #    items=[]  # TODO
+        #)
 
     def health(self):
-        return HealthStatus(state=HealthStatus.HealthState.HEALTHY)
+        pass
+        #return HealthStatus(state=HealthStatus.HealthState.HEALTHY)
 
     def change_master_state(self, master):
         raise NotImplementedError()
@@ -89,28 +91,8 @@ class RubyAdapter(object):
     ##
 
     def __init_olt(self):
-        olt = self.olt
-        while not olt.abandon():
-            if olt.state() == States.DISCONNECTED or olt.state() == States.FETCH_VERSION:
-                olt.run()
-                olt = olt.transition()
-            elif olt.state() == States.CONNECTED:
-                olt.run()
-                break
-        if olt.abandon():
-            #TODO Add more info here
-            log.info('Disconnecting this OLT')
-            self.stop()
-        self.olt = olt
+        self.olt.run()
 
 
-    def __obtain_descriptor(self):
-        layer = PAS5211MsgGetOltVersionResponse.name
-        pkt = self.olt.send_msg(PAS5211MsgGetOltVersion())
-        return Adapter(
-            id='ruby-{}'.format(olt_conf['olts']['id']),
-            vendor='Celestica',
-            version='{}.{}.{}'.format(pkt[layer].major_firmware_version,
-                                      pkt[layer].minor_firmware_version,
-                                      pkt[layer].build_firmware_version))
+
 
