@@ -1,0 +1,21 @@
+// See README.txt for information and build instructions.
+
+syntax = "proto3";
+
+package tutorial;
+
+import "addressbook.proto";
+
+// Our address book file is just one of these.
+message AddressBook {
+  repeated Person people = 1;
+  repeated Adapter adapters = 2;
+}
+
+message TestOF {
+//   repeated openflow_13.ofp_group_entry flow_groups = 1;
+   //  repeated openflow_13.ofp_switch_features hell = 1;
+ //    repeated openflow_13.ofp_flow_mod mod = 2;
+  //   repeated openflow_13.ofp_flow_stats stats = 3;
+     repeated ofp_group_entry groupi = 4;
+}

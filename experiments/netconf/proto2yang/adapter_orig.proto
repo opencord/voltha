@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package voltha;
+
+import "google/protobuf/any.proto";
+import "common.proto";
+import "meta.proto";
+
+
+message AdapterConfig {
+
+    // Common adapter config attributes here
+    LogLevel.LogLevel log_level = 1;
+
+    // Custom (vendor-specific) configuration attributes
+    google.protobuf.Any additional_config = 64;
+
+}
+
+// Adapter (software plugin)
+message Adapter {
+
+    // Unique name of adapter, matching the python packate name under
+    // voltha/adapters.
+    string id = 1 [(access) = READ_ONLY];
+    string vendor = 2 [(access) = READ_ONLY];
+    string version = 3 [(access) = READ_ONLY];
+
+    // Adapter configuration
+    AdapterConfig config = 16;
+
+    // Custom descriptors and custom configuration
+    google.protobuf.Any additional_description = 64 [(access) = READ_ONLY];
+
+    repeated string logical_device_ids = 4;  // Logical devices "owned"
+
+}
+
+message Adapters {
+    repeated Adapter items = 1;
+}

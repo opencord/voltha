@@ -33,11 +33,11 @@ class NetconfProtocolError(Exception): pass
 
 
 class NetconfProtocolHandler:
-    def __init__(self, nc_server, nc_conn, session, grpc_stub):
+    def __init__(self, nc_server, nc_conn, session, grpc_client):
         self.started = True
         self.conn = nc_conn
         self.nc_server = nc_server
-        self.grpc_stub = grpc_stub
+        self.grpc_client = grpc_client
         self.new_framing = False
         self.capabilities = Capabilities()
         self.session = session
@@ -171,6 +171,7 @@ class NetconfProtocolHandler:
                 # Get a rpc handler
                 rpc_handler = rpc_factory.get_rpc_handler(rpc,
                                                           msg,
+                                                          self.grpc_client,
                                                           self.session)
                 if rpc_handler:
                     # set the parameters for this handler
@@ -206,21 +207,6 @@ class NetconfProtocolHandler:
                 error = ncerror.ServerException(rpc, ex)
                 self.send_message(error.get_reply_msg())
 
-    # @inlineCallbacks
-    # def invoke_method(self, rpcname, rpc, params):
-    #     try:
-    #         # Handle any namespaces or prefixes in the tag, other than
-    #         # "nc" which was removed above. Of course, this does not handle
-    #         # namespace collisions, but that seems reasonable for now.
-    #         rpcname = rpcname.rpartition("}")[-1]
-    #         method_name = "rpc_" + rpcname.replace('-', '_')
-    #         method = getattr(self.methods, method_name,
-    #                          self._rpc_not_implemented)
-    #         log.info("invoking-method", method=method_name)
-    #         reply = yield method(self, rpc, *params)
-    #         returnValue(reply)
-    #     except NotImplementedError:
-    #         raise ncerror.NotImpl(rpc)
 
     def stop(self, reason):
         if not self.exiting:

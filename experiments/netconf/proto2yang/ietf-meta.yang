@@ -1,0 +1,45 @@
+
+module ietf-meta {
+
+
+    namespace "urn:opencord:params:xml:ns:voltha:ietf-meta";
+    prefix meta;
+
+
+    organization "CORD";
+    contact
+        " Any name";
+
+    description
+        "";
+
+    revision "2016-11-15" {
+        description "Initial revision.";
+        reference "reference";
+    }
+
+    typedef Access {
+        type enumeration {
+            enum CONFIG {
+                description "";
+            }
+            enum READ_ONLY {
+                description "";
+            }
+        }
+        description
+            "";
+    }
+
+    container ChildNode {
+        description
+            "";
+        leaf key {
+            type  string; 
+            description
+                "";
+        }
+
+    }
+
+}

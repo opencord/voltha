@@ -1,0 +1,349 @@
+
+module ietf-device {
+
+
+    namespace "urn:opencord:params:xml:ns:voltha:ietf-device";
+    prefix device;
+
+    import ietf-openflow_13 { prefix openflow_13 ; }
+    import ietf-common { prefix common ; }
+    import ietf-any { prefix any ; }
+
+    organization "CORD";
+    contact
+        " Any name";
+
+    description
+        "";
+
+    revision "2016-11-15" {
+        description "Initial revision.";
+        reference "reference";
+    }
+
+
+    grouping DeviceType {
+        description
+            "A Device Type";
+        leaf id {
+            type  string; 
+            description
+                "Unique name for the device type";
+        }
+
+        leaf adapter {
+            type  string; 
+            description
+                "Name of the adapter that handles device type";
+        }
+
+        leaf accepts_bulk_flow_update {
+            type  boolean; 
+            description
+                "Capabilitities";
+        }
+
+        leaf accepts_add_remove_flow_updates {
+            type  boolean; 
+            description
+                "";
+        }
+
+    }
+
+    grouping DeviceTypes {
+        description
+            "A plurality of device types";
+        list items {
+            key "id";
+            uses  DeviceType;
+
+            description
+                "";
+        }
+
+    }
+
+    grouping Port {
+        description
+            "";
+        leaf port_no {
+            type  uint32; 
+            description
+                "Device-unique port number";
+        }
+
+        leaf label {
+            type  string; 
+            description
+                "Arbitrary port label";
+        }
+
+        leaf type {
+            type  PortType; 
+            description
+                "Type of port";
+        }
+
+        leaf admin_state {
+            type  common:AdminState;
+
+            description
+                "";
+        }
+
+        leaf oper_status {
+            type  common:OperStatus;
+
+            description
+                "";
+        }
+
+        leaf device_id {
+            type  string; 
+            description
+                "Unique .id of device that owns this port";
+        }
+
+
+        typedef PortType {
+            type enumeration {
+                enum UNKNOWN {
+                    description "";
+                }
+                enum ETHERNET_NNI {
+                    description "";
+                }
+                enum ETHERNET_UNI {
+                    description "";
+                }
+                enum PON_OLT {
+                    description "";
+                }
+                enum PON_ONU {
+                    description "";
+                }
+            }
+            description
+                "";
+        }
+
+        grouping PeerPort {
+            description
+                "";
+            leaf device_id {
+                type  string; 
+                description
+                    "";
+            }
+    
+            leaf port_no {
+                type  uint32; 
+                description
+                    "";
+            }
+    
+        }
+    
+    }
+
+    grouping Ports {
+        description
+            "";
+        list items {
+            key "port_no";
+            uses  Port;
+
+            description
+                "";
+        }
+
+    }
+
+    grouping Device {
+        description
+            "A Physical Device instance";
+        leaf id {
+            type  string; 
+            description
+                "Voltha's device identifier";
+        }
+
+        leaf type {
+            type  string; 
+            description
+                "Device type, refers to one of the registered device types";
+        }
+
+        leaf root {
+            type  boolean; 
+            description
+                "Is this device a root device. Each logical switch has one root
+ device that is associated with the logical flow switch.";
+        }
+
+        leaf parent_id {
+            type  string; 
+            description
+                "Parent device id, in the device tree (for a root device, the parent_id
+ is the logical_device.id)";
+        }
+
+        leaf parent_port_no {
+            type  uint32; 
+            description
+                "";
+        }
+
+        leaf vendor {
+            type  string; 
+            description
+                "Vendor, version, serial number, etc.";
+        }
+
+        leaf model {
+            type  string; 
+            description
+                "";
+        }
+
+        leaf hardware_version {
+            type  string; 
+            description
+                "";
+        }
+
+        leaf firmware_version {
+            type  string; 
+            description
+                "";
+        }
+
+        leaf software_version {
+            type  string; 
+            description
+                "";
+        }
+
+        leaf serial_number {
+            type  string; 
+            description
+                "";
+        }
+
+        leaf adapter {
+            type  string; 
+            description
+                "Addapter that takes care of device";
+        }
+
+        leaf vlan {
+            type  uint32; 
+            description
+                "Device contact on vlan (if 0, no vlan)";
+        }
+
+        leaf mac_address {
+            type  string; 
+            description
+                "Device contact MAC address (format:  xx:xx:xx:xx:xx:xx )";
+        }
+
+        leaf ipv4_address {
+            type  string; 
+            description
+                "Device contact IPv4 address (format:  a.b.c.d  or can use hostname too)";
+        }
+
+        leaf ipv6_address {
+            type  string; 
+            description
+                "Device contact IPv6 address using the canonical string form
+ ( xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx )";
+        }
+
+
+        leaf admin_state {
+            type  common:AdminState;
+
+            description
+                "";
+        }
+
+        leaf oper_status {
+            type  common:OperStatus;
+
+            description
+                "";
+        }
+
+        leaf connect_status {
+            type  common:ConnectStatus;
+
+            description
+                "";
+        }
+
+        container custom {
+            uses  any:Any;
+
+            description
+                "Device type specific attributes
+TODO additional common attribute here";
+        }
+
+        list ports {
+            key "port_no";
+            uses  Port;
+
+            description
+                "";
+        }
+
+        container flows {
+            uses  openflow_13:Flows;
+
+            description
+                "";
+        }
+
+        container flow_groups {
+            uses  openflow_13:FlowGroups;
+
+            description
+                "";
+        }
+
+        grouping ProxyAddress {
+            description
+                "";
+            leaf device_id {
+                type  string; 
+                description
+                    "Which device to use as proxy to this device";
+            }
+    
+            leaf channel_id {
+                type  uint32; 
+                description
+                    "Sub-address within proxy device";
+            }
+    
+        }
+    
+    }
+
+    grouping Devices {
+        description
+            "";
+        list items {
+            key "id";
+            uses  Device;
+
+            description
+                "";
+        }
+
+    }
+
+}

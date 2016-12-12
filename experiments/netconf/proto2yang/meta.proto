@@ -1,0 +1,46 @@
+// Copyright (c) 2015, Google Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// This file contains annotation definitions that can be used to describe
+// a configuration tree.
+
+syntax = "proto3";
+
+package voltha;
+
+import "google/protobuf/descriptor.proto";
+
+message ChildNode {
+    string key = 1;
+}
+
+enum Access {
+    CONFIG = 0;  // read-write, stored
+    READ_ONLY = 1;      // read-only field
+}
+
+extend google.protobuf.FieldOptions {
+
+    // If present, it indicates that this field is stored as external child node
+    // or children nodes in Voltha's internal configuration tree.
+    // If the field is a container field and if the option specifies a key
+    // the child objects will be addressible by that key.
+    ChildNode child_node = 7761772;
+
+    // This annotation can be used to indicate that a field is read-only,
+    // from the perspective of NBI access. Backend plugins and system
+    // internals can update the field but the update requests through the
+    // NBI will ignore for instance a field that is marked as read-only (RO).
+    Access access = 7761773;
+}

@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package voltha;
+
+import "meta.proto";
+import "google/api/annotations.proto";
+import "openflow_13.proto";
+
+
+message LogicalPort {
+    string id = 1;
+    openflow_13.ofp_port ofp_port = 2;
+    string device_id = 3;
+    uint32 device_port_no = 4;
+    bool root_port = 5;
+}
+
+message LogicalPorts {
+    repeated LogicalPort items = 1;
+}
+
+message LogicalDevice {
+
+    // unique id of logical device
+    string id = 1;
+
+    // unique datapath id for the logical device (used by the SDN controller)
+    uint64 datapath_id = 2;
+
+    // device description
+    openflow_13.ofp_desc desc = 3;
+
+    // device features
+    openflow_13.ofp_switch_features switch_features = 4;
+
+    // name of the root device anchoring logical device
+    string root_device_id = 5;
+
+    // logical device ports
+    repeated LogicalPort ports = 128 [(child_node) = {key: "id"}];
+
+    // flows configured on the logical device
+    openflow_13.Flows flows = 129 [(child_node) = {}];
+
+    // flow groups configured on the logical device
+    openflow_13.FlowGroups flow_groups = 130 [(child_node) = {}];
+
+}
+
+message LogicalDevices {
+    repeated LogicalDevice items = 1;
+}

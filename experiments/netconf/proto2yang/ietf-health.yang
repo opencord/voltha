@@ -1,0 +1,65 @@
+
+module ietf-health {
+
+
+    namespace "urn:opencord:params:xml:ns:voltha:ietf-health";
+    prefix health;
+
+    import ietf-empty { prefix empty ; }
+
+    organization "CORD";
+    contact
+        " Any name";
+
+    description
+        "";
+
+    revision "2016-11-15" {
+        description "Initial revision.";
+        reference "reference";
+    }
+
+
+    grouping HealthStatus {
+        description
+            "Encode health status of a Voltha instance";
+        leaf state {
+            type  HealthState; 
+            description
+                "Current state of health of this Voltha instance";
+        }
+
+        typedef HealthState {
+            type enumeration {
+                enum HEALTHY {
+                    description "";
+                }
+                enum OVERLOADED {
+                    description "";
+                }
+                enum DYING {
+                    description "";
+                }
+            }
+            description
+                "Health states";
+        }
+
+    }
+
+    /*  Health related services" */
+    rpc HealthService-GetHealthStatus {
+        description
+            "Return current health status of a Voltha instance";
+        input {
+            uses  empty:Empty;
+
+        }
+        output {
+            uses  HealthStatus;
+
+        }
+    }
+
+
+}
