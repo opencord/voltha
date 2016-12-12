@@ -420,7 +420,7 @@ class PAS5211MsgSetOltOptics(PAS5211Msg):
 
 class PAS5211MsgSetOltOpticsResponse(PAS5211Msg):
     name = "PAS5211MsgSetOltOpticsResponse"
-    fields_desc = [ ]
+    fields_desc = []
 
 
 class PAS5211MsgSetOpticsIoControl(PAS5211Msg):
@@ -440,6 +440,8 @@ class PAS5211MsgSetOpticsIoControlResponse(PAS5211Msg):
     name = "PAS5211MsgSetOpticsIoControlResponse"
     fields_desc = [ ]
 
+    def extract_padding(self, p):
+        return "", p
 
 class PAS5211MsgSetGeneralParam(PAS5211Msg):
     opcode = 164

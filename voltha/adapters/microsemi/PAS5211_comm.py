@@ -58,25 +58,13 @@ def determine_src_mac(iface):
 
 
 class PAS5211Communication(object):
-    def __init__(self, dst_mac, channel_id = -1, init=0, iface = None):
+    def __init__(self, dst_mac, init=0, iface = None):
         self.iface = iface
         self.dst_mac = dst_mac
         self.seqgen = sequence_generator(init)
         self.src_mac = determine_src_mac(self.iface)
-        self.channel_id = channel_id
 
-    def communicate(self, msg, timeout=1, **kwargs):
-        if self.src_mac is not None:
-            frame = constructPAS5211Frames(msg, self.seqgen.next(), self.src_mac,
-                                           self.dst_mac, channel_id=self.channel_id,
-                                           **kwargs)
-            try:
-                return srp1(frame, timeout=timeout, iface=self.iface)
-            except IOError as exc:
-                log.info('Can not communicate to ruby on mac {} because {}'
-                         .format(self.dst_mac, exc.message))
-            except select.error as exc:
-                log.info('Can not communicate to ruby on mac {} because {}'
-                         .format(self.dst_mac, exc))
-        else:
-            log.info('Unknown src mac for {}'.format(self.iface))
+    def frame(self, msg, channel_id=-1):
+        return constructPAS5211Frames(msg, self.seqgen.next(), self.src_mac,
+                                           self.dst_mac, channel_id=channel_id)
+
