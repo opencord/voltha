@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package vendor.x2;
+
+// Vendor specific adapter descriptor data
+message AdapterDescription {
+    string foo = 1;
+    uint32 arg1 = 2;
+    uint32 arg2 = 3;
+    uint32 arg3 = 4;
+    uint32 arg4 = 5;
+    uint32 arg5 = 6;
+    uint32 arg6 = 7;
+}
+
+// Vendor specific adapter configuration data
+message AdapterConfig {
+    uint64 conf1 = 1;
+    uint64 conf2 = 2;
+    uint64 conf3 = 3;
+    uint64 conf4 = 4;
+    uint64 conf5 = 5;
+    repeated string things = 6;
+}

@@ -79,6 +79,7 @@ build: protos docker-base
 	docker build -t cord/chameleon -f Dockerfile.chameleon .
 	docker build -t cord/ofagent -f Dockerfile.ofagent .
 	docker build -t cord/podder -f Dockerfile.podder .
+	docker build -t cord/netconf -f Dockerfile.netconf .
 
 docker-base:
 	docker build -t cord/voltha-base -f Dockerfile.base .
@@ -87,6 +88,7 @@ protos:
 	make -C voltha/protos
 	make -C chameleon/protos
 	make -C ofagent/protos
+	make -C netconf/protos
 
 install-protoc:
 	make -C voltha/protos install-protoc

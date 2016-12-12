@@ -18,12 +18,15 @@
 #
 
 from  rpc_response import RpcResponse
+from lxml import etree
+import io
 
 class Rpc(object):
-    def __init__(self,rpc_request, rpc_method, session):
+    def __init__(self,rpc_request, rpc_method, grpc_client, session):
         self.rpc_request = rpc_request
         self.rpc_method = rpc_method
         self.rpc_response = RpcResponse()
+        self.grpc_client =  grpc_client
         self.session = session
 
     def execute(self):
@@ -36,3 +39,8 @@ class Rpc(object):
     def _validate_parameters(self, rpc_request):
         """Sets and validates the node as well"""
         pass
+
+    def get_root_element(self, xml_msg):
+        tree = etree.parse(io.BytesIO(xml_msg))
+        return tree.getroot()
+

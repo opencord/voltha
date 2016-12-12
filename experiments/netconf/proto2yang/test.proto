@@ -1,0 +1,19 @@
+// See README.txt for information and build instructions.
+
+syntax = "proto3";
+
+package voltha;
+
+import public "common.proto";
+
+option java_package = "com.example.tutorial";
+option java_outer_classname = "AddressBookProtos";
+option csharp_namespace = "Google.Protobuf.Examples.AddressBook";
+
+message Person {
+  string name = 1;
+  int32 id = 2;        // Unique ID number for this person.
+  string email = 3;
+
+  LogLevel.LogLevel log_level = 4;
+}

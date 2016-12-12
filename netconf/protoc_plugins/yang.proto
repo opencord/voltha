@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package experiment;
+
+message AsyncEvent {
+    int32 seq = 1;
+    enum EventType {
+        BIG_BANG = 0;  // just a big bang
+        SMALL_BANG = 1;  // so small bang
+        NO_BANG = 2;
+    }
+    EventType type = 2;
+    string details = 3;
+}
+
+enum SimpleEnum {
+    APPLE = 0;
+    BANANA = 1;
+    ORANGE = 2;
+}
+
+message Packet {
+    int32 source = 1;
+    bytes content = 2;
+    message InnerPacket {
+        string url = 1;
+        string title = 2;
+        repeated string snippets = 3;
+        message InnerInnerPacket {
+            string input = 1;
+            string desc = 2;
+        }
+        repeated InnerInnerPacket inner_inner_packet = 4;
+    }
+    repeated InnerPacket inner_packets = 3;
+}
+
+message Echo {
+    string msg = 1;
+    float delay = 2;
+}
+
+message testMessage{
+    oneof oneOfTest {
+        string test2 = 1;
+        int32 test3 = 2;
+    }
+}
+
+service ExperimentalService {
+
+    rpc GetEcho(Echo) returns(Echo);
+
+    // For server to send async stream to client
+    rpc ReceiveStreamedEvents(Packet)
+        returns(stream AsyncEvent);
+
+    // For server to send async packets to client
+    rpc ReceivePackets(Echo) returns(stream Packet);
+
+    // For client to send async packets to server
+    rpc SendPackets(stream Packet) returns(Echo);
+
+}

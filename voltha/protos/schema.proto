@@ -21,6 +21,8 @@ message Schemas {
     // Proto file name from which swagger.json shall be generated
     string swagger_from = 2;
 
+    // Proto file name from which yang schemas shall be generated
+    string yang_from = 3;
 }
 
 // Schema services

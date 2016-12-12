@@ -16,6 +16,7 @@
 
 import structlog
 import sys
+import os
 from twisted.conch import avatar
 from twisted.cred import portal
 from twisted.conch.checkers import SSHPublicKeyChecker, InMemorySSHKeyDB
@@ -32,6 +33,7 @@ from session.nc_connection import NetconfConnection
 from session.session_mgr import get_session_manager_instance
 from constants import Constants as C
 
+dir_path = os.path.dirname(os.path.realpath(__file__))
 
 # logp.startLogging(sys.stderr)
 
@@ -40,17 +42,17 @@ log = structlog.get_logger()
 
 # @implementer(conchinterfaces.ISession)
 class NetconfAvatar(avatar.ConchUser):
-    def __init__(self, username, nc_server, grpc_stub):
+    def __init__(self, username, nc_server, grpc_client):
         avatar.ConchUser.__init__(self)
         self.username = username
         self.nc_server = nc_server
-        self.grpc_stub = grpc_stub
+        self.grpc_client = grpc_client
         self.channelLookup.update({'session': session.SSHSession})
         self.subsystemLookup.update(
             {b"netconf": NetconfConnection})
 
-    def get_grpc_stub(self):
-        return self.grpc_stub
+    def get_grpc_client(self):
+        return self.grpc_client
 
     def get_nc_server(self):
         return self.nc_server
@@ -64,12 +66,12 @@ class NetconfAvatar(avatar.ConchUser):
 
 @implementer(portal.IRealm)
 class NetconfRealm(object):
-    def __init__(self, nc_server, grpc_stub):
-        self.grpc_stub = grpc_stub
+    def __init__(self, nc_server, grpc_client):
+        self.grpc_client = grpc_client
         self.nc_server = nc_server
 
     def requestAvatar(self, avatarId, mind, *interfaces):
-        user = NetconfAvatar(avatarId, self.nc_server, self.grpc_stub)
+        user = NetconfAvatar(avatarId, self.nc_server, self.grpc_client)
         return interfaces[0], user, user.logout
 
 
@@ -86,7 +88,7 @@ class NCServer(factory.SSHFactory):
                  server_public_key_file,
                  client_public_keys_file,
                  client_passwords_file,
-                 grpc_stub):
+                 grpc_client):
 
         self.netconf_port = netconf_port
         self.server_private_key_file = server_private_key_file
@@ -94,7 +96,7 @@ class NCServer(factory.SSHFactory):
         self.client_public_keys_file = client_public_keys_file
         self.client_passwords_file = client_passwords_file
         self.session_mgr = get_session_manager_instance()
-        self.grpc_stub = grpc_stub
+        self.grpc_client = grpc_client
         self.connector = None
         self.nc_client_map = {}
         self.running = False
@@ -116,6 +118,12 @@ class NCServer(factory.SSHFactory):
         self.d_stopped.callback(None)
         log.info('stopped')
 
+    def reload_capabilities(self):
+        # TODO: Called when there is a reconnect to voltha
+        # If there are new device types then the new
+        # capabilities will be exposed for subsequent client connections to use
+        pass
+
     def client_disconnected(self, result, handler, reason):
         assert isinstance(handler, NetconfProtocolHandler)
 
@@ -131,30 +139,33 @@ class NCServer(factory.SSHFactory):
         #create a session
         session = self.session_mgr.create_session(client_conn.avatar.get_user())
         handler = NetconfProtocolHandler(self, client_conn,
-                                         session, self.grpc_stub)
+                                         session, self.grpc_client)
         client_conn.proto_handler = handler
         reactor.callLater(0, handler.start)
 
     def setup_secure_access(self):
         try:
             from twisted.cred import portal
-            portal = portal.Portal(NetconfRealm(self, self.grpc_stub))
+            portal = portal.Portal(NetconfRealm(self, self.grpc_client))
 
             # setup userid-password access
-            password_file = '{}/{}'.format(C.CLIENT_CRED_DIRECTORY,
-                                           self.client_passwords_file)
+            password_file = '{}/{}/{}'.format(dir_path,
+                                              C.CLIENT_CRED_DIRECTORY,
+                                              self.client_passwords_file)
             portal.registerChecker(FilePasswordDB(password_file))
 
             # setup access when client uses keys
-            keys_file = '{}/{}'.format(C.CLIENT_CRED_DIRECTORY,
-                                       self.client_public_keys_file)
+            keys_file = '{}/{}/{}'.format(dir_path,
+                                          C.CLIENT_CRED_DIRECTORY,
+                                          self.client_public_keys_file)
             with open(keys_file) as f:
                 users = [line.rstrip('\n') for line in f]
             users_dict = {}
             for user in users:
                 users_dict[user.split(':')[0]] = [
-                    keys.Key.fromFile('{}/{}'.format(C.CLIENT_CRED_DIRECTORY,
-                                                     user.split(':')[1]))]
+                    keys.Key.fromFile('{}/{}/{}'.format(dir_path,
+                                                        C.CLIENT_CRED_DIRECTORY,
+                                                        user.split(':')[1]))]
             sshDB = SSHPublicKeyChecker(InMemorySSHKeyDB(users_dict))
             portal.registerChecker(sshDB)
             return portal
@@ -182,8 +193,9 @@ class NCServer(factory.SSHFactory):
         return SSHServerTransport()
 
     def getPublicKeys(self):
-        key_file_name = '{}/{}'.format(C.KEYS_DIRECTORY,
-                                       self.server_public_key_file)
+        key_file_name = '{}/{}/{}'.format(dir_path,
+                                          C.KEYS_DIRECTORY,
+                                          self.server_public_key_file)
         try:
             publicKeys = {
                 'ssh-rsa': keys.Key.fromFile(key_file_name)
@@ -194,8 +206,9 @@ class NCServer(factory.SSHFactory):
                       filename=key_file_name, exception=repr(e))
 
     def getPrivateKeys(self):
-        key_file_name = '{}/{}'.format(C.KEYS_DIRECTORY,
-                                       self.server_private_key_file)
+        key_file_name = '{}/{}/{}'.format(dir_path,
+                                          C.KEYS_DIRECTORY,
+                                          self.server_private_key_file)
         try:
             privateKeys = {
                 'ssh-rsa': keys.Key.fromFile(key_file_name)
