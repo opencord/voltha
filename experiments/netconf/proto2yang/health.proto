@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package voltha;
+
+import "google/api/annotations.proto";
+import "google/protobuf/empty.proto";
+import "meta.proto";
+
+// Encode health status of a Voltha instance
+message HealthStatus {
+
+    // Health states
+    enum HealthState {
+        HEALTHY = 0;  // The instance is healthy
+        OVERLOADED = 1;  // The instance is overloaded, decrease query rate
+        DYING = 2;  // The instance is in a critical condition, do not use it
+    }
+
+    // Current state of health of this Voltha instance
+    HealthState state = 1 [(access) = READ_ONLY];
+}
+
+// Health related services
+service HealthService {
+
+    // Return current health status of a Voltha instance
+    rpc GetHealthStatus(google.protobuf.Empty) returns (HealthStatus) {
+        option (google.api.http) = {
+            get: "/health"
+        };
+    }
+
+}
+

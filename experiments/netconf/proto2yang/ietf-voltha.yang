@@ -1,0 +1,798 @@
+
+module ietf-voltha {
+
+
+    namespace "urn:opencord:params:xml:ns:voltha:ietf-voltha";
+    prefix voltha;
+
+    import ietf-openflow_13 { prefix openflow_13 ; }
+    import ietf-adapter { prefix adapter ; }
+    import ietf-health { prefix health ; }
+    import ietf-common { prefix common ; }
+    import ietf-device { prefix device ; }
+    import ietf-logical_device { prefix logical_device ; }
+    import ietf-empty { prefix empty ; }
+
+    organization "CORD";
+    contact
+        " Any name";
+
+    description
+        "";
+
+    revision "2016-11-15" {
+        description "Initial revision.";
+        reference "reference";
+    }
+
+
+    grouping DeviceGroup {
+        description
+            "";
+        leaf id {
+            type  string; 
+            description
+                "";
+        }
+
+        list logical_devices {
+            key "id";
+            uses  logical_device:LogicalDevice;
+
+            description
+                "";
+        }
+
+        list devices {
+            key "id";
+            uses  device:Device;
+
+            description
+                "";
+        }
+
+    }
+
+    grouping DeviceGroups {
+        description
+            "";
+        list items {
+            key "id";
+            uses  DeviceGroup;
+
+            description
+                "";
+        }
+
+    }
+
+    grouping VolthaInstance {
+        description
+            "Top-level (root) node for a Voltha Instance";
+        leaf instance_id {
+            type  string; 
+            description
+                "";
+        }
+
+        leaf version {
+            type  string; 
+            description
+                "";
+        }
+
+        leaf log_level {
+            type  common:LogLevel;
+
+            description
+                "";
+        }
+
+        container health {
+            uses  health:HealthStatus;
+
+            description
+                "";
+        }
+
+        list adapters {
+            key "id";
+            uses  adapter:Adapter;
+
+            description
+                "";
+        }
+
+        list logical_devices {
+            key "id";
+            uses  logical_device:LogicalDevice;
+
+            description
+                "";
+        }
+
+        list devices {
+            key "id";
+            uses  device:Device;
+
+            description
+                "";
+        }
+
+        list device_types {
+            key "id";
+            uses  device:DeviceType;
+
+            description
+                "";
+        }
+
+        list device_groups {
+            key "id";
+            uses  DeviceGroup;
+
+            description
+                "";
+        }
+
+    }
+
+    grouping VolthaInstances {
+        description
+            "";
+        list items {
+            key "items";
+            leaf items {
+                type  string; 
+                description
+                    "";
+            }
+            description
+                "";
+        }
+
+    }
+
+    grouping Voltha {
+        description
+            "Voltha representing the entire Voltha cluster";
+        leaf version {
+            type  string; 
+            description
+                "";
+        }
+
+        leaf log_level {
+            type  common:LogLevel;
+
+            description
+                "";
+        }
+
+        list instances {
+            key "instance_id";
+            uses  VolthaInstance;
+
+            description
+                "";
+        }
+
+        list adapters {
+            key "id";
+            uses  adapter:Adapter;
+
+            description
+                "";
+        }
+
+        list logical_devices {
+            key "id";
+            uses  logical_device:LogicalDevice;
+
+            description
+                "";
+        }
+
+        list devices {
+            key "id";
+            uses  device:Device;
+
+            description
+                "";
+        }
+
+        list device_groups {
+            key "id";
+            uses  DeviceGroup;
+
+            description
+                "";
+        }
+
+    }
+
+    /*  Cluster-wide Voltha APIs
+
+ These APIs are potentially dispatched to the leader of the Voltha cluster,
+ to a specific Voltha instance which owns the given device or logical device." */
+    rpc VolthaGlobalService-GetVoltha {
+        description
+            "Get high level information on the Voltha cluster";
+        input {
+            uses  empty:Empty;
+
+        }
+        output {
+            uses  Voltha;
+
+        }
+    }
+
+    rpc VolthaGlobalService-ListVolthaInstances {
+        description
+            "List all Voltha cluster instances";
+        input {
+            uses  empty:Empty;
+
+        }
+        output {
+            uses  VolthaInstances;
+
+        }
+    }
+
+    rpc VolthaGlobalService-GetVolthaInstance {
+        description
+            "Get details on a Voltha cluster instance";
+        input {
+            uses  common:ID;
+
+        }
+        output {
+            uses  VolthaInstance;
+
+        }
+    }
+
+    rpc VolthaGlobalService-ListLogicalDevices {
+        description
+            "List all logical devices managed by the Voltha cluster";
+        input {
+            uses  empty:Empty;
+
+        }
+        output {
+            uses  logical_device:LogicalDevices;
+
+        }
+    }
+
+    rpc VolthaGlobalService-GetLogicalDevice {
+        description
+            "Get additional information on a given logical device";
+        input {
+            uses  common:ID;
+
+        }
+        output {
+            uses  logical_device:LogicalDevice;
+
+        }
+    }
+
+    rpc VolthaGlobalService-ListLogicalDevicePorts {
+        description
+            "List ports of a logical device";
+        input {
+            uses  common:ID;
+
+        }
+        output {
+            uses  logical_device:LogicalPorts;
+
+        }
+    }
+
+    rpc VolthaGlobalService-ListLogicalDeviceFlows {
+        description
+            "List all flows of a logical device";
+        input {
+            uses  common:ID;
+
+        }
+        output {
+            uses  openflow_13:Flows;
+
+        }
+    }
+
+    rpc VolthaGlobalService-UpdateLogicalDeviceFlowTable {
+        description
+            "Update flow table for logical device";
+        input {
+            uses  openflow_13:FlowTableUpdate;
+
+        }
+        output {
+            uses  empty:Empty;
+
+        }
+    }
+
+    rpc VolthaGlobalService-ListLogicalDeviceFlowGroups {
+        description
+            "List all flow groups of a logical device";
+        input {
+            uses  common:ID;
+
+        }
+        output {
+            uses  openflow_13:FlowGroups;
+
+        }
+    }
+
+    rpc VolthaGlobalService-UpdateLogicalDeviceFlowGroupTable {
+        description
+            "Update group table for device";
+        input {
+            uses  openflow_13:FlowGroupTableUpdate;
+
+        }
+        output {
+            uses  empty:Empty;
+
+        }
+    }
+
+    rpc VolthaGlobalService-ListDevices {
+        description
+            "List all physical devices controlled by the Voltha cluster";
+        input {
+            uses  empty:Empty;
+
+        }
+        output {
+            uses  device:Devices;
+
+        }
+    }
+
+    rpc VolthaGlobalService-GetDevice {
+        description
+            "Get more information on a given physical device";
+        input {
+            uses  common:ID;
+
+        }
+        output {
+            uses  device:Device;
+
+        }
+    }
+
+    rpc VolthaGlobalService-CreateDevice {
+        description
+            "Pre-provision a new physical device";
+        input {
+            uses  device:Device;
+
+        }
+        output {
+            uses  device:Device;
+
+        }
+    }
+
+    rpc VolthaGlobalService-ActivateDevice {
+        description
+            "Activate a pre-provisioned device";
+        input {
+            uses  common:ID;
+
+        }
+        output {
+            uses  empty:Empty;
+
+        }
+    }
+
+    rpc VolthaGlobalService-ListDevicePorts {
+        description
+            "List ports of a device";
+        input {
+            uses  common:ID;
+
+        }
+        output {
+            uses  device:Ports;
+
+        }
+    }
+
+    rpc VolthaGlobalService-ListDeviceFlows {
+        description
+            "List all flows of a device";
+        input {
+            uses  common:ID;
+
+        }
+        output {
+            uses  openflow_13:Flows;
+
+        }
+    }
+
+    rpc VolthaGlobalService-ListDeviceFlowGroups {
+        description
+            "List all flow groups of a device";
+        input {
+            uses  common:ID;
+
+        }
+        output {
+            uses  openflow_13:FlowGroups;
+
+        }
+    }
+
+    rpc VolthaGlobalService-ListDeviceTypes {
+        description
+            "List device types known to Voltha";
+        input {
+            uses  empty:Empty;
+
+        }
+        output {
+            uses  device:DeviceTypes;
+
+        }
+    }
+
+    rpc VolthaGlobalService-GetDeviceType {
+        description
+            "Get additional information on a device type";
+        input {
+            uses  common:ID;
+
+        }
+        output {
+            uses  device:DeviceType;
+
+        }
+    }
+
+    rpc VolthaGlobalService-ListDeviceGroups {
+        description
+            "List all device sharding groups";
+        input {
+            uses  empty:Empty;
+
+        }
+        output {
+            uses  DeviceGroups;
+
+        }
+    }
+
+    rpc VolthaGlobalService-GetDeviceGroup {
+        description
+            "Get additional information on a device group";
+        input {
+            uses  common:ID;
+
+        }
+        output {
+            uses  DeviceGroup;
+
+        }
+    }
+
+
+    /*  Per-instance APIs
+
+ These APIs are always served locally by the Voltha instance on which the
+ call is made." */
+    rpc VolthaLocalService-GetVolthaInstance {
+        description
+            "Get information on this Voltha instance";
+        input {
+            uses  empty:Empty;
+
+        }
+        output {
+            uses  VolthaInstance;
+
+        }
+    }
+
+    rpc VolthaLocalService-GetHealth {
+        description
+            "Get the health state of the Voltha instance";
+        input {
+            uses  empty:Empty;
+
+        }
+        output {
+            uses  health:HealthStatus;
+
+        }
+    }
+
+    rpc VolthaLocalService-ListAdapters {
+        description
+            "List all active adapters (plugins) in this Voltha instance";
+        input {
+            uses  empty:Empty;
+
+        }
+        output {
+            uses  adapter:Adapters;
+
+        }
+    }
+
+    rpc VolthaLocalService-ListLogicalDevices {
+        description
+            "List all logical devices managed by this Voltha instance";
+        input {
+            uses  empty:Empty;
+
+        }
+        output {
+            uses  logical_device:LogicalDevices;
+
+        }
+    }
+
+    rpc VolthaLocalService-GetLogicalDevice {
+        description
+            "Get additional information on given logical device";
+        input {
+            uses  common:ID;
+
+        }
+        output {
+            uses  logical_device:LogicalDevice;
+
+        }
+    }
+
+    rpc VolthaLocalService-ListLogicalDevicePorts {
+        description
+            "List ports of a logical device";
+        input {
+            uses  common:ID;
+
+        }
+        output {
+            uses  logical_device:LogicalPorts;
+
+        }
+    }
+
+    rpc VolthaLocalService-ListLogicalDeviceFlows {
+        description
+            "List all flows of a logical device";
+        input {
+            uses  common:ID;
+
+        }
+        output {
+            uses  openflow_13:Flows;
+
+        }
+    }
+
+    rpc VolthaLocalService-UpdateLogicalDeviceFlowTable {
+        description
+            "Update flow table for logical device";
+        input {
+            uses  openflow_13:FlowTableUpdate;
+
+        }
+        output {
+            uses  empty:Empty;
+
+        }
+    }
+
+    rpc VolthaLocalService-ListLogicalDeviceFlowGroups {
+        description
+            "List all flow groups of a logical device";
+        input {
+            uses  common:ID;
+
+        }
+        output {
+            uses  openflow_13:FlowGroups;
+
+        }
+    }
+
+    rpc VolthaLocalService-UpdateLogicalDeviceFlowGroupTable {
+        description
+            "Update group table for logical device";
+        input {
+            uses  openflow_13:FlowGroupTableUpdate;
+
+        }
+        output {
+            uses  empty:Empty;
+
+        }
+    }
+
+    rpc VolthaLocalService-ListDevices {
+        description
+            "List all physical devices managed by this Voltha instance";
+        input {
+            uses  empty:Empty;
+
+        }
+        output {
+            uses  device:Devices;
+
+        }
+    }
+
+    rpc VolthaLocalService-GetDevice {
+        description
+            "Get additional information on this device";
+        input {
+            uses  common:ID;
+
+        }
+        output {
+            uses  device:Device;
+
+        }
+    }
+
+    rpc VolthaLocalService-CreateDevice {
+        description
+            "Pre-provision a new physical device";
+        input {
+            uses  device:Device;
+
+        }
+        output {
+            uses  device:Device;
+
+        }
+    }
+
+    rpc VolthaLocalService-ActivateDevice {
+        description
+            "Activate a pre-provisioned device";
+        input {
+            uses  common:ID;
+
+        }
+        output {
+            uses  empty:Empty;
+
+        }
+    }
+
+    rpc VolthaLocalService-ListDevicePorts {
+        description
+            "List ports of a device";
+        input {
+            uses  common:ID;
+
+        }
+        output {
+            uses  device:Ports;
+
+        }
+    }
+
+    rpc VolthaLocalService-ListDeviceFlows {
+        description
+            "List all flows of a device";
+        input {
+            uses  common:ID;
+
+        }
+        output {
+            uses  openflow_13:Flows;
+
+        }
+    }
+
+    rpc VolthaLocalService-ListDeviceFlowGroups {
+        description
+            "List all flow groups of a device";
+        input {
+            uses  common:ID;
+
+        }
+        output {
+            uses  openflow_13:FlowGroups;
+
+        }
+    }
+
+    rpc VolthaLocalService-ListDeviceTypes {
+        description
+            "List device types know to Voltha instance";
+        input {
+            uses  empty:Empty;
+
+        }
+        output {
+            uses  device:DeviceTypes;
+
+        }
+    }
+
+    rpc VolthaLocalService-GetDeviceType {
+        description
+            "Get additional information on given device type";
+        input {
+            uses  common:ID;
+
+        }
+        output {
+            uses  device:DeviceType;
+
+        }
+    }
+
+    rpc VolthaLocalService-ListDeviceGroups {
+        description
+            "List device sharding groups managed by this Voltha instance";
+        input {
+            uses  empty:Empty;
+
+        }
+        output {
+            uses  DeviceGroups;
+
+        }
+    }
+
+    rpc VolthaLocalService-GetDeviceGroup {
+        description
+            "Get more information on given device shard";
+        input {
+            uses  common:ID;
+
+        }
+        output {
+            uses  DeviceGroup;
+
+        }
+    }
+
+    rpc VolthaLocalService-StreamPacketsOut {
+        description
+            "Stream control packets to the dataplane
+This does not have an HTTP representation";
+        input {
+            uses  openflow_13:PacketOut;
+
+        }
+        output {
+            uses  empty:Empty;
+
+        }
+    }
+
+    rpc VolthaLocalService-ReceivePacketsIn {
+        description
+            "Receive control packet stream
+This does not have an HTTP representation";
+        input {
+            uses  empty:Empty;
+
+        }
+        output {
+            uses  openflow_13:PacketIn;
+
+        }
+    }
+
+
+}

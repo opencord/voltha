@@ -16,15 +16,20 @@
 #
 import argparse
 import os
-
+import sys
 import yaml
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
 
+base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(base_dir)
+sys.path.append(os.path.join(base_dir, '/netconf/protos/third_party'))
+
 from common.structlog_setup import setup_logging
 from common.utils.dockerhelpers import get_my_containers_name
 from common.utils.nethelpers import get_my_primary_local_ipv4
-from connection_mgr import ConnectionManager
+from netconf.grpc_client.grpc_client import GrpcClient
+from netconf.nc_server import NCServer
 
 defs = dict(
     config=os.environ.get('CONFIG', './netconf.yml'),
@@ -247,7 +252,10 @@ class Main(object):
                                  fluentd=args.fluentd)
 
         # components
-        self.connection_manager = None
+        self.nc_server = None
+        self.grpc_client = None  # single, shared gRPC client to Voltha
+
+        self.netconf_server_started = False
 
         self.exiting = False
 
@@ -261,25 +269,53 @@ class Main(object):
 
     @inlineCallbacks
     def startup_components(self):
-        self.log.info('starting-netconf-server')
+        self.log.info('starting')
         args = self.args
-        self.connection_manager = yield ConnectionManager(
-            args.consul,
-            args.grpc_endpoint,
-            args.netconf_port,
-            args.server_private_key_file,
-            args.server_public_key_file,
-            args.client_public_keys_file,
-            args.client_passwords_file).start()
-        self.log.info('started-netconf-server')
+
+        self.grpc_client = yield \
+            GrpcClient(args.consul, args.work_dir, args.grpc_endpoint)
+
+        self.nc_server =  yield \
+                NCServer(args.netconf_port,
+                         args.server_private_key_file,
+                         args.server_public_key_file,
+                         args.client_public_keys_file,
+                         args.client_passwords_file,
+                         self.grpc_client)
+
+        # set on start callback
+        self.grpc_client.set_on_start_callback(self._start_netconf_server)
+
+        # set the callback if there is a reconnect with voltha.
+        self.grpc_client.set_reconnect_callback(self.nc_server.reload_capabilities)
+
+        # start grpc client
+        self.grpc_client.start()
+
+        self.log.info('started')
+
+    @inlineCallbacks
+    def _start_netconf_server(self):
+        if not self.netconf_server_started:
+            self.log.info('starting')
+            yield self.nc_server.start()
+            self.netconf_server_started = True
+            self.log.info('started')
+        else:
+            self.log.info('server-already-started')
 
     @inlineCallbacks
     def shutdown_components(self):
         """Execute before the reactor is shut down"""
         self.log.info('exiting-on-keyboard-interrupt')
         self.exiting = True
-        if self.connection_manager is not None:
-            yield self.connection_manager.stop()
+
+        if self.grpc_client is not None:
+            yield self.grpc_client.stop()
+
+        if self.nc_server is not None:
+            yield self.nc_server.stop()
+
 
     def start_reactor(self):
         reactor.callWhenRunning(

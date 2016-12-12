@@ -38,6 +38,8 @@ treq>=15.1.0
 Twisted>=13.2.0
 urllib3>=1.7.1
 pyang>=1.7
+lxml
+dicttoxml
 
 # python-consul>=0.6.1  we need the pre-released version for now, because 0.6.1 does not
 # yet support Twisted. Once this is released, it will be the 0.6.2 version

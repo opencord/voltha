@@ -75,11 +75,13 @@ help:
 	@echo
 
 build: protos docker-base
-	docker build -t cord/voltha -f docker/Dockerfile.voltha .
-	docker build -t cord/chameleon -f docker/Dockerfile.chameleon .
-	docker build -t cord/ofagent -f docker/Dockerfile.ofagent .
-	docker build -t cord/podder -f docker/Dockerfile.podder .
+	docker build -t cord/voltha -f Dockerfile.voltha .
+	docker build -t cord/chameleon -f Dockerfile.chameleon .
+	docker build -t cord/ofagent -f Dockerfile.ofagent .
+	docker build -t cord/podder -f Dockerfile.podder .
+	docker build -t cord/netconf -f Dockerfile.netconf .
 	docker build -t cord/shovel -f docker/Dockerfile.shovel .
+
 
 docker-base:
 	docker build -t cord/voltha-base -f docker/Dockerfile.base .
@@ -88,6 +90,7 @@ protos:
 	make -C voltha/protos
 	make -C chameleon/protos
 	make -C ofagent/protos
+	make -C netconf/protos
 
 install-protoc:
 	make -C voltha/protos install-protoc

@@ -1,0 +1,2275 @@
+/* Copyright (c) 2008 The Board of Trustees of The Leland Stanford
+ * Junior University
+ * Copyright (c) 2011, 2012 Open Networking Foundation
+ *
+ * We are making the OpenFlow specification and associated documentation
+ * (Software) available for public use and benefit with the expectation
+ * that others will use, modify and enhance the Software and contribute
+ * those enhancements back to the community. However, since we would
+ * like to make the Software available for broadest use, with as few
+ * restrictions as possible permission is hereby granted, free of
+ * charge, to any person obtaining a copy of this Software to deal in
+ * the Software under the copyrights without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish,
+ * distribute, sublicense, and/or sell copies of the Software, and to
+ * permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT.  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+ * BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ * The name and trademarks of copyright holder(s) may NOT be used in
+ * advertising or publicity pertaining to the Software or any
+ * derivatives without specific, written prior permission.
+ */
+
+/* OpenFlow: protocol between controller and datapath. */
+
+/*
+ * This is a relatively straightforward rendering of OpenFlow message
+ * definitions into protocol buffer messages. We preserved the snake
+ * case syntax, and made the following changes:
+ * - all pad fields dropped
+ * - for each enum value above 0x7fffffff the MSB is dropped. For example,
+ *   0xffffffff is now 0x7fffffff.
+ * - '<type> thing[...]' is replaced with 'repeated <type> thing'
+ * - 'char thing[...]' is replaced with 'string thing'
+ * - 'uint8_t data[...]' is replaced with 'bytes data'
+ * - the following systematic changes are done to various integer types:
+ *   uint8_t  -> uint32
+ *   uint16_t -> uint32
+ *   uint32_t -> uint32
+ *   uint64_t -> uint64
+ * - removed most length, len, size fields where these values can be determined
+ *   from the explicitly encoded length of "repeated" protobuf fields.
+ * - explicit use of enum types whereever it is unambigous (and not used as
+ *   bitmask/flags value.
+ *
+ */
+syntax = "proto3";
+
+package openflow_13;
+
+
+/* Version number:
+ * OpenFlow versions released: 0x01 = 1.0 ; 0x02 = 1.1 ; 0x03 = 1.2
+ *     0x04 = 1.3
+ */
+/* The most significant bit in the version field is reserved and must
+ * be set to zero.
+ */
+//#define OFP_VERSION   0x04
+//#define PIPELINE_TABLES 64
+//#define OFP_MAX_TABLE_NAME_LEN 32
+//#define OFP_MAX_PORT_NAME_LEN  16
+/* Official IANA registered port for OpenFlow. */
+//#define OFP_TCP_PORT  6653
+//#define OFP_SSL_PORT  6653
+
+//#define OFP_ETH_ALEN 6          /* Bytes in an Ethernet address. */
+
+/* Port numbering. Ports are numbered starting from 1. */
+enum ofp_port_no {
+    OFPP_INVALID    = 0;
+
+    /* Maximum number of physical and logical switch ports. */
+    OFPP_MAX        = 0x7fffff00;
+
+    /* Reserved OpenFlow Port (fake output "ports"). */
+    OFPP_IN_PORT    = 0x7ffffff8;  /* Send the packet out the input port.  This
+                                      reserved port must be explicitly used
+                                      in order to send back out of the input
+                                      port. */
+    OFPP_TABLE      = 0x7ffffff9;  /* Submit the packet to the first flow table
+                                      NB: This destination port can only be
+                                      used in packet-out messages. */
+    OFPP_NORMAL     = 0x7ffffffa;  /* Forward using non-OpenFlow pipeline. */
+    OFPP_FLOOD      = 0x7ffffffb;  /* Flood using non-OpenFlow pipeline. */
+    OFPP_ALL        = 0x7ffffffc;  /* All standard ports except input port. */
+    OFPP_CONTROLLER = 0x7ffffffd;  /* Send to controller. */
+    OFPP_LOCAL      = 0x7ffffffe;  /* Local openflow "port". */
+    OFPP_ANY        = 0x7fffffff;  /* Special value used in some requests when
+                                      no port is specified (i.e. wildcarded).*/
+};
+
+enum ofp_type {
+
+    /* Immutable messages. */
+    OFPT_HELLO                      = 0;  /* Symmetric message */
+    OFPT_ERROR                      = 1;  /* Symmetric message */
+    OFPT_ECHO_REQUEST               = 2;  /* Symmetric message */
+    OFPT_ECHO_REPLY                 = 3;  /* Symmetric message */
+    OFPT_EXPERIMENTER               = 4;  /* Symmetric message */
+
+    /* Switch configuration messages. */
+    OFPT_FEATURES_REQUEST           = 5;  /* Controller/switch message */
+    OFPT_FEATURES_REPLY             = 6;  /* Controller/switch message */
+    OFPT_GET_CONFIG_REQUEST         = 7;  /* Controller/switch message */
+    OFPT_GET_CONFIG_REPLY           = 8;  /* Controller/switch message */
+    OFPT_SET_CONFIG                 = 9;  /* Controller/switch message */
+
+    /* Asynchronous messages. */
+    OFPT_PACKET_IN                  = 10; /* Async message */
+    OFPT_FLOW_REMOVED               = 11; /* Async message */
+    OFPT_PORT_STATUS                = 12; /* Async message */
+
+    /* Controller command messages. */
+    OFPT_PACKET_OUT                 = 13; /* Controller/switch message */
+    OFPT_FLOW_MOD                   = 14; /* Controller/switch message */
+    OFPT_GROUP_MOD                  = 15; /* Controller/switch message */
+    OFPT_PORT_MOD                   = 16; /* Controller/switch message */
+    OFPT_TABLE_MOD                  = 17; /* Controller/switch message */
+
+    /* Multipart messages. */
+    OFPT_MULTIPART_REQUEST          = 18; /* Controller/switch message */
+    OFPT_MULTIPART_REPLY            = 19; /* Controller/switch message */
+
+    /* Barrier messages. */
+    OFPT_BARRIER_REQUEST            = 20; /* Controller/switch message */
+    OFPT_BARRIER_REPLY              = 21; /* Controller/switch message */
+
+    /* Queue Configuration messages. */
+    OFPT_QUEUE_GET_CONFIG_REQUEST   = 22;  /* Controller/switch message */
+    OFPT_QUEUE_GET_CONFIG_REPLY     = 23;  /* Controller/switch message */
+
+    /* Controller role change request messages. */
+    OFPT_ROLE_REQUEST               = 24; /* Controller/switch message */
+    OFPT_ROLE_REPLY                 = 25; /* Controller/switch message */
+
+    /* Asynchronous message configuration. */
+    OFPT_GET_ASYNC_REQUEST          = 26; /* Controller/switch message */
+    OFPT_GET_ASYNC_REPLY            = 27; /* Controller/switch message */
+    OFPT_SET_ASYNC                  = 28; /* Controller/switch message */
+
+    /* Meters and rate limiters configuration messages. */
+    OFPT_METER_MOD                  = 29; /* Controller/switch message */
+};
+
+/* Header on all OpenFlow packets. */
+message ofp_header {
+    uint32 version = 1;    /* OFP_VERSION. */
+    ofp_type type = 2;     /* One of the OFPT_ constants. */
+    uint32 xid = 3;        /* Transaction id associated with this packet.
+                              Replies use the same id as was in the request
+                              to facilitate pairing. */
+};
+
+/* Hello elements types.
+ */
+enum ofp_hello_elem_type {
+    OFPHET_INVALID                = 0;
+    OFPHET_VERSIONBITMAP          = 1;  /* Bitmap of version supported. */
+};
+
+/* Common header for all Hello Elements */
+message ofp_hello_elem_header {
+    ofp_hello_elem_type type = 1;       /* One of OFPHET_*. */
+    oneof element {
+        ofp_hello_elem_versionbitmap versionbitmap = 2;
+    }
+};
+
+/* Version bitmap Hello Element */
+message ofp_hello_elem_versionbitmap {
+    repeated uint32 bitmaps = 2;   /* List of bitmaps - supported versions */
+};
+
+/* OFPT_HELLO.  This message includes zero or more hello elements having
+ * variable size. Unknown elements types must be ignored/skipped, to allow
+ * for future extensions. */
+message ofp_hello {
+    //ofp_header header;
+    /* Hello element list */
+    repeated ofp_hello_elem_header elements = 1; /* 0 or more */
+};
+
+//#define OFP_DEFAULT_MISS_SEND_LEN   128
+
+enum ofp_config_flags {
+    /* Handling of IP fragments. */
+    OFPC_FRAG_NORMAL   = 0;       /* No special handling for fragments. */
+    OFPC_FRAG_DROP     = 1;       /* Drop fragments. */
+    OFPC_FRAG_REASM    = 2;       /* Reassemble (only if OFPC_IP_REASM set). */
+    OFPC_FRAG_MASK     = 3;       /* Bitmask of flags dealing with frag. */
+};
+
+/* Switch configuration. */
+message ofp_switch_config {
+    //ofp_header header;
+    uint32 flags = 1;             /* Bitmap of OFPC_* flags. */
+    uint32 miss_send_len = 2;     /* Max bytes of packet that datapath
+                                     should send to the controller. See
+                                     ofp_controller_max_len for valid values.
+                                   */
+};
+
+/* Flags to configure the table. Reserved for future use. */
+enum ofp_table_config {
+    OFPTC_INVALID = 0;
+    OFPTC_DEPRECATED_MASK = 3;     /* Deprecated bits */
+};
+
+/* Table numbering. Tables can use any number up to OFPT_MAX. */
+enum ofp_table {
+
+    OFPTT_INVALID = 0;
+
+    /* Last usable table number. */
+    OFPTT_MAX        = 0xfe;
+
+    /* Fake tables. */
+    OFPTT_ALL        = 0xff;   /* Wildcard table used for table config,
+                                  flow stats and flow deletes. */
+};
+
+
+/* Configure/Modify behavior of a flow table */
+message ofp_table_mod {
+    //ofp_header header;
+    uint32 table_id = 1;  /* ID of the table, OFPTT_ALL indicates all tables */
+    uint32 config = 2;    /* Bitmap of OFPTC_* flags */
+};
+
+/* Capabilities supported by the datapath. */
+enum ofp_capabilities {
+    OFPC_INVALID        = 0;
+    OFPC_FLOW_STATS     = 1;    /* Flow statistics. */
+    OFPC_TABLE_STATS    = 2;    /* Table statistics. */
+    OFPC_PORT_STATS     = 4;    /* Port statistics. */
+    OFPC_GROUP_STATS    = 8;    /* Group statistics. */
+    OFPC_IP_REASM       = 32;   /* Can reassemble IP fragments. */
+    OFPC_QUEUE_STATS    = 64;   /* Queue statistics. */
+    OFPC_PORT_BLOCKED   = 256;  /* Switch will block looping ports. */
+};
+
+/* Flags to indicate behavior of the physical port.  These flags are
+ * used in ofp_port to describe the current configuration.  They are
+ * used in the ofp_port_mod message to configure the port's behavior.
+ */
+enum ofp_port_config {
+    OFPPC_INVALID      = 0;
+    OFPPC_PORT_DOWN    = 1;   /* Port is administratively down. */
+
+    OFPPC_NO_RECV      = 4;   /* Drop all packets received by port. */
+    OFPPC_NO_FWD       = 32;  /* Drop packets forwarded to port. */
+    OFPPC_NO_PACKET_IN = 64;  /* Do not send packet-in msgs for port. */
+};
+
+/* Current state of the physical port.  These are not configurable from
+ * the controller.
+ */
+enum ofp_port_state {
+    OFPPS_INVALID      = 0;
+    OFPPS_LINK_DOWN    = 1;  /* No physical link present. */
+    OFPPS_BLOCKED      = 2;  /* Port is blocked */
+    OFPPS_LIVE         = 4;  /* Live for Fast Failover Group. */
+};
+
+/* Features of ports available in a datapath. */
+enum ofp_port_features {
+    OFPPF_INVALID    = 0;
+    OFPPF_10MB_HD    = 1;      /* 10 Mb half-duplex rate support. */
+    OFPPF_10MB_FD    = 2;      /* 10 Mb full-duplex rate support. */
+    OFPPF_100MB_HD   = 4;      /* 100 Mb half-duplex rate support. */
+    OFPPF_100MB_FD   = 8;      /* 100 Mb full-duplex rate support. */
+    OFPPF_1GB_HD     = 16;     /* 1 Gb half-duplex rate support. */
+    OFPPF_1GB_FD     = 32;     /* 1 Gb full-duplex rate support. */
+    OFPPF_10GB_FD    = 64;     /* 10 Gb full-duplex rate support. */
+    OFPPF_40GB_FD    = 128;    /* 40 Gb full-duplex rate support. */
+    OFPPF_100GB_FD   = 256;    /* 100 Gb full-duplex rate support. */
+    OFPPF_1TB_FD     = 512;    /* 1 Tb full-duplex rate support. */
+    OFPPF_OTHER      = 1024;   /* Other rate, not in the list. */
+    OFPPF_COPPER     = 2048;   /* Copper medium. */
+    OFPPF_FIBER      = 4096;   /* Fiber medium. */
+    OFPPF_AUTONEG    = 8192;   /* Auto-negotiation. */
+    OFPPF_PAUSE      = 16384;  /* Pause. */
+    OFPPF_PAUSE_ASYM = 32768;  /* Asymmetric pause. */
+};
+
+/* Description of a port */
+message ofp_port {
+    uint32 port_no = 1;
+    repeated uint32 hw_addr = 2; // [OFP_ETH_ALEN];
+    string name = 3;             /* Null-terminated */
+
+    uint32 config = 4;           /* Bitmap of OFPPC_* flags. */
+    uint32 state = 5;            /* Bitmap of OFPPS_* flags. */
+
+    /* Bitmaps of OFPPF_* that describe features.  All bits zeroed if
+     * unsupported or unavailable. */
+    uint32 curr = 6;           /* Current features. */
+    uint32 advertised = 7;     /* Features being advertised by the port. */
+    uint32 supported = 8;      /* Features supported by the port. */
+    uint32 peer = 9;           /* Features advertised by peer. */
+    uint32 curr_speed = 10;    /* Current port bitrate in kbps. */
+    uint32 max_speed = 11;     /* Max port bitrate in kbps */
+};
+
+/* Switch features. */
+message ofp_switch_features {
+    //ofp_header header;
+    uint64 datapath_id = 1;   /* Datapath unique ID.  The lower 48-bits are for
+                                 a MAC address, while the upper 16-bits are
+                                 implementer-defined. */
+
+    uint32 n_buffers = 2;     /* Max packets buffered at once. */
+
+    uint32 n_tables = 3;      /* Number of tables supported by datapath. */
+    uint32 auxiliary_id = 4;  /* Identify auxiliary connections */
+
+    /* Features. */
+    uint32 capabilities = 5;  /* Bitmap of support "ofp_capabilities". */
+};
+
+/* What changed about the physical port */
+enum ofp_port_reason {
+    OFPPR_ADD     = 0;         /* The port was added. */
+    OFPPR_DELETE  = 1;         /* The port was removed. */
+    OFPPR_MODIFY  = 2;         /* Some attribute of the port has changed. */
+};
+
+/* A physical port has changed in the datapath */
+message ofp_port_status {
+    //ofp_header header;
+    ofp_port_reason reason = 1; /* One of OFPPR_*. */
+    ofp_port desc = 2;
+};
+
+/* Modify behavior of the physical port */
+message ofp_port_mod {
+    //ofp_header header;
+    uint32 port_no = 1;
+    repeated uint32 hw_addr = 2; //[OFP_ETH_ALEN];
+                                      /* The hardware address is not
+                                         configurable.  This is used to
+                                         sanity-check the request, so it must
+                                         be the same as returned in an
+                                         ofp_port struct. */
+    uint32 config = 3;        /* Bitmap of OFPPC_* flags. */
+    uint32 mask = 4;          /* Bitmap of OFPPC_* flags to be changed. */
+
+    uint32 advertise = 5;     /* Bitmap of OFPPF_*.  Zero all bits to prevent
+                                 any action taking place. */
+};
+
+/* ## -------------------------- ## */
+/* ## OpenFlow Extensible Match. ## */
+/* ## -------------------------- ## */
+
+/* The match type indicates the match structure (set of fields that compose the
+ * match) in use. The match type is placed in the type field at the beginning
+ * of all match structures. The "OpenFlow Extensible Match" type corresponds
+ * to OXM TLV format described below and must be supported by all OpenFlow
+ * switches. Extensions that define other match types may be published on the
+ * ONF wiki. Support for extensions is optional.
+ */
+enum ofp_match_type {
+    OFPMT_STANDARD = 0;       /* Deprecated. */
+    OFPMT_OXM      = 1;       /* OpenFlow Extensible Match */
+};
+
+/* Fields to match against flows */
+message ofp_match {
+    ofp_match_type type = 1;         /* One of OFPMT_* */
+    repeated ofp_oxm_field oxm_fields = 2;  /* 0 or more */
+};
+
+/* Components of a OXM TLV header.
+ * Those macros are not valid for the experimenter class, macros for the
+ * experimenter class will depend on the experimenter header used. */
+//#define OXM_HEADER__(CLASS, FIELD, HASMASK, LENGTH) \
+//    (((CLASS) << 16) | ((FIELD) << 9) | ((HASMASK) << 8) | (LENGTH))
+//#define OXM_HEADER(CLASS, FIELD, LENGTH) \
+//    OXM_HEADER__(CLASS, FIELD, 0, LENGTH)
+//#define OXM_HEADER_W(CLASS, FIELD, LENGTH) \
+//    OXM_HEADER__(CLASS, FIELD, 1, (LENGTH) * 2)
+//#define OXM_CLASS(HEADER) ((HEADER) >> 16)
+//#define OXM_FIELD(HEADER) (((HEADER) >> 9) & 0x7f)
+//#define OXM_TYPE(HEADER) (((HEADER) >> 9) & 0x7fffff)
+//#define OXM_HASMASK(HEADER) (((HEADER) >> 8) & 1)
+//#define OXM_LENGTH(HEADER) ((HEADER) & 0xff)
+//
+//#define OXM_MAKE_WILD_HEADER(HEADER) \
+//    OXM_HEADER_W(OXM_CLASS(HEADER), OXM_FIELD(HEADER), OXM_LENGTH(HEADER))
+
+/* OXM Class IDs.
+ * The high order bit differentiate reserved classes from member classes.
+ * Classes 0x0000 to 0x7FFF are member classes, allocated by ONF.
+ * Classes 0x8000 to 0xFFFE are reserved classes, reserved for standardisation.
+ */
+enum ofp_oxm_class {
+    OFPXMC_NXM_0          = 0x0000;    /* Backward compatibility with NXM */
+    OFPXMC_NXM_1          = 0x0001;    /* Backward compatibility with NXM */
+    OFPXMC_OPENFLOW_BASIC = 0x8000;    /* Basic class for OpenFlow */
+    OFPXMC_EXPERIMENTER   = 0xFFFF;    /* Experimenter class */
+};
+
+/* OXM Flow field types for OpenFlow basic class. */
+enum oxm_ofb_field_types {
+    OFPXMT_OFB_IN_PORT        = 0;  /* Switch input port. */
+    OFPXMT_OFB_IN_PHY_PORT    = 1;  /* Switch physical input port. */
+    OFPXMT_OFB_METADATA       = 2;  /* Metadata passed between tables. */
+    OFPXMT_OFB_ETH_DST        = 3;  /* Ethernet destination address. */
+    OFPXMT_OFB_ETH_SRC        = 4;  /* Ethernet source address. */
+    OFPXMT_OFB_ETH_TYPE       = 5;  /* Ethernet frame type. */
+    OFPXMT_OFB_VLAN_VID       = 6;  /* VLAN id. */
+    OFPXMT_OFB_VLAN_PCP       = 7;  /* VLAN priority. */
+    OFPXMT_OFB_IP_DSCP        = 8;  /* IP DSCP (6 bits in ToS field). */
+    OFPXMT_OFB_IP_ECN         = 9;  /* IP ECN (2 bits in ToS field). */
+    OFPXMT_OFB_IP_PROTO       = 10; /* IP protocol. */
+    OFPXMT_OFB_IPV4_SRC       = 11; /* IPv4 source address. */
+    OFPXMT_OFB_IPV4_DST       = 12; /* IPv4 destination address. */
+    OFPXMT_OFB_TCP_SRC        = 13; /* TCP source port. */
+    OFPXMT_OFB_TCP_DST        = 14; /* TCP destination port. */
+    OFPXMT_OFB_UDP_SRC        = 15; /* UDP source port. */
+    OFPXMT_OFB_UDP_DST        = 16; /* UDP destination port. */
+    OFPXMT_OFB_SCTP_SRC       = 17; /* SCTP source port. */
+    OFPXMT_OFB_SCTP_DST       = 18; /* SCTP destination port. */
+    OFPXMT_OFB_ICMPV4_TYPE    = 19; /* ICMP type. */
+    OFPXMT_OFB_ICMPV4_CODE    = 20; /* ICMP code. */
+    OFPXMT_OFB_ARP_OP         = 21; /* ARP opcode. */
+    OFPXMT_OFB_ARP_SPA        = 22; /* ARP source IPv4 address. */
+    OFPXMT_OFB_ARP_TPA        = 23; /* ARP target IPv4 address. */
+    OFPXMT_OFB_ARP_SHA        = 24; /* ARP source hardware address. */
+    OFPXMT_OFB_ARP_THA        = 25; /* ARP target hardware address. */
+    OFPXMT_OFB_IPV6_SRC       = 26; /* IPv6 source address. */
+    OFPXMT_OFB_IPV6_DST       = 27; /* IPv6 destination address. */
+    OFPXMT_OFB_IPV6_FLABEL    = 28; /* IPv6 Flow Label */
+    OFPXMT_OFB_ICMPV6_TYPE    = 29; /* ICMPv6 type. */
+    OFPXMT_OFB_ICMPV6_CODE    = 30; /* ICMPv6 code. */
+    OFPXMT_OFB_IPV6_ND_TARGET = 31; /* Target address for ND. */
+    OFPXMT_OFB_IPV6_ND_SLL    = 32; /* Source link-layer for ND. */
+    OFPXMT_OFB_IPV6_ND_TLL    = 33; /* Target link-layer for ND. */
+    OFPXMT_OFB_MPLS_LABEL     = 34; /* MPLS label. */
+    OFPXMT_OFB_MPLS_TC        = 35; /* MPLS TC. */
+    OFPXMT_OFB_MPLS_BOS       = 36; /* MPLS BoS bit. */
+    OFPXMT_OFB_PBB_ISID       = 37; /* PBB I-SID. */
+    OFPXMT_OFB_TUNNEL_ID      = 38; /* Logical Port Metadata. */
+    OFPXMT_OFB_IPV6_EXTHDR    = 39; /* IPv6 Extension Header pseudo-field */
+};
+
+/* OXM Flow match fields */
+message ofp_oxm_field {
+    ofp_oxm_class oxm_class = 1;
+    oneof field {
+        /* 2 and 3 reserved for NXM_0 and NXM-1 OXM classes */
+        ofp_oxm_ofb_field ofb_field = 4;
+        ofp_oxm_experimenter_field experimenter_field = 5;
+    }
+}
+
+/* OXM OpenFlow Basic Match Field */
+message ofp_oxm_ofb_field {
+    oxm_ofb_field_types type = 1;
+    bool has_mask = 2;
+    oneof value {
+
+        /* OpenFlow port on which the packet was received.
+         * May be a physical port, a logical port, or the reserved port OFPP_LOCAL
+         *
+         * Prereqs: None.
+         *
+         * Format: 32-bit integer in network byte order.
+         *
+         * Masking: Not maskable. */
+        //#define OXM_OF_IN_PORT    OXM_HEADER  (0x8000, OFPXMT_OFB_IN_PORT, 4)
+        uint32 port = 3; /* Used for OFPXMT_OFB_IN_PORT */
+
+        /* Physical port on which the packet was received.
+         *
+         * Consider a packet received on a tunnel interface defined over a link
+         * aggregation group (LAG) with two physical port members.  If the tunnel
+         * interface is the logical port bound to OpenFlow.  In this case,
+         * OFPXMT_OF_IN_PORT is the tunnel's port number and OFPXMT_OF_IN_PHY_PORT is
+         * the physical port number of the LAG on which the tunnel is configured.
+         *
+         * When a packet is received directly on a physical port and not processed by a
+         * logical port, OFPXMT_OF_IN_PORT and OFPXMT_OF_IN_PHY_PORT have the same
+         * value.
+         *
+         * This field is usually not available in a regular match and only available
+         * in ofp_packet_in messages when it's different from OXM_OF_IN_PORT.
+         *
+         * Prereqs: OXM_OF_IN_PORT must be present.
+         *
+         * Format: 32-bit integer in network byte order.
+         *
+         * Masking: Not maskable. */
+        //#define OXM_OF_IN_PHY_PORT OXM_HEADER  (0x8000, OFPXMT_OFB_IN_PHY_PORT, 4)
+        uint32 physical_port = 4; /* Used for OFPXMT_OF_IN_PHY_PORT */
+
+        /* Table metadata.
+         *
+         * Prereqs: None.
+         *
+         * Format: 64-bit integer in network byte order.
+         *
+         * Masking: Arbitrary masks.
+         */
+        //#define OXM_OF_METADATA   OXM_HEADER  (0x8000, OFPXMT_OFB_METADATA, 8)
+        //#define OXM_OF_METADATA_W OXM_HEADER_W(0x8000, OFPXMT_OFB_METADATA, 8)
+        uint64 table_metadata = 5; /* Used for OFPXMT_OFB_METADATA */
+
+        /* Source or destination address in Ethernet header.
+         *
+         * Prereqs: None.
+         *
+         * Format: 48-bit Ethernet MAC address.
+         *
+         * Masking: Arbitrary masks. */
+        //#define OXM_OF_ETH_DST    OXM_HEADER  (0x8000, OFPXMT_OFB_ETH_DST, 6)
+        //#define OXM_OF_ETH_DST_W  OXM_HEADER_W(0x8000, OFPXMT_OFB_ETH_DST, 6)
+        //#define OXM_OF_ETH_SRC    OXM_HEADER  (0x8000, OFPXMT_OFB_ETH_SRC, 6)
+        //#define OXM_OF_ETH_SRC_W  OXM_HEADER_W(0x8000, OFPXMT_OFB_ETH_SRC, 6)
+        bytes eth_dst = 6; /* Used for OFPXMT_OFB_ETH_DST (exactly 6 bytes) */
+        bytes eth_src = 7; /* Used for OFPXMT_OFB_ETH_SRC (exactly 6 bytes) */
+
+        /* Packet's Ethernet type.
+         *
+         * Prereqs: None.
+         *
+         * Format: 16-bit integer in network byte order.
+         *
+         * Masking: Not maskable. */
+        //#define OXM_OF_ETH_TYPE   OXM_HEADER  (0x8000, OFPXMT_OFB_ETH_TYPE,2)
+        uint32 eth_type = 8; /* Used for OFPXMT_OFB_ETH_TYPE */
+
+        /* 802.1Q VID.
+         *
+         * For a packet with an 802.1Q header, this is the VLAN-ID (VID) from the
+         * outermost tag, with the CFI bit forced to 1. For a packet with no 802.1Q
+         * header, this has value OFPVID_NONE.
+         *
+         * Prereqs: None.
+         *
+         * Format: 16-bit integer in network byte order with bit 13 indicating
+         * presence of VLAN header and 3 most-significant bits forced to 0.
+         * Only the lower 13 bits have meaning.
+         *
+         * Masking: Arbitrary masks.
+         *
+         * This field can be used in various ways:
+         *
+         *   - If it is not constrained at all, the nx_match matches packets without
+         *     an 802.1Q header or with an 802.1Q header that has any VID value.
+         *
+         *   - Testing for an exact match with 0x0 matches only packets without
+         *     an 802.1Q header.
+         *
+         *   - Testing for an exact match with a VID value with CFI=1 matches packets
+         *     that have an 802.1Q header with a specified VID.
+         *
+         *   - Testing for an exact match with a nonzero VID value with CFI=0 does
+         *     not make sense.  The switch may reject this combination.
+         *
+         *   - Testing with nxm_value=0, nxm_mask=0x0fff matches packets with no 802.1Q
+         *     header or with an 802.1Q header with a VID of 0.
+         *
+         *   - Testing with nxm_value=0x1000, nxm_mask=0x1000 matches packets with
+         *     an 802.1Q header that has any VID value.
+         */
+        //#define OXM_OF_VLAN_VID   OXM_HEADER  (0x8000, OFPXMT_OFB_VLAN_VID, 2)
+        //#define OXM_OF_VLAN_VID_W OXM_HEADER_W(0x8000, OFPXMT_OFB_VLAN_VID, 2)
+        uint32 vlan_vid = 9; /* Used for OFPXMT_OFB_VLAN_VID */
+
+        /* 802.1Q PCP.
+         *
+         * For a packet with an 802.1Q header, this is the VLAN-PCP from the
+         * outermost tag.  For a packet with no 802.1Q header, this has value
+         * 0.
+         *
+         * Prereqs: OXM_OF_VLAN_VID must be different from OFPVID_NONE.
+         *
+         * Format: 8-bit integer with 5 most-significant bits forced to 0.
+         * Only the lower 3 bits have meaning.
+         *
+         * Masking: Not maskable.
+         */
+        //#define OXM_OF_VLAN_PCP   OXM_HEADER  (0x8000, OFPXMT_OFB_VLAN_PCP, 1)
+        uint32 vlan_pcp = 10; /* Used for OFPXMT_OFB_VLAN_PCP */
+
+        /* The Diff Serv Code Point (DSCP) bits of the IP header.
+         * Part of the IPv4 ToS field or the IPv6 Traffic Class field.
+         *
+         * Prereqs: OXM_OF_ETH_TYPE must be either 0x0800 or 0x86dd.
+         *
+         * Format: 8-bit integer with 2 most-significant bits forced to 0.
+         * Only the lower 6 bits have meaning.
+         *
+         * Masking: Not maskable. */
+        //#define OXM_OF_IP_DSCP     OXM_HEADER  (0x8000, OFPXMT_OFB_IP_DSCP, 1)
+        uint32 ip_dscp = 11; /* Used for OFPXMT_OFB_IP_DSCP */
+
+        /* The ECN bits of the IP header.
+         * Part of the IPv4 ToS field or the IPv6 Traffic Class field.
+         *
+         * Prereqs: OXM_OF_ETH_TYPE must be either 0x0800 or 0x86dd.
+         *
+         * Format: 8-bit integer with 6 most-significant bits forced to 0.
+         * Only the lower 2 bits have meaning.
+         *
+         * Masking: Not maskable. */
+        //#define OXM_OF_IP_ECN     OXM_HEADER  (0x8000, OFPXMT_OFB_IP_ECN, 1)
+        uint32 ip_ecn = 12; /* Used for OFPXMT_OFB_IP_ECN */
+
+        /* The "protocol" byte in the IP header.
+         *
+         * Prereqs: OXM_OF_ETH_TYPE must be either 0x0800 or 0x86dd.
+         *
+         * Format: 8-bit integer.
+         *
+         * Masking: Not maskable. */
+        //#define OXM_OF_IP_PROTO   OXM_HEADER  (0x8000, OFPXMT_OFB_IP_PROTO, 1)
+        uint32 ip_proto = 13; /* Used for OFPXMT_OFB_IP_PROTO */
+
+        /* The source or destination address in the IP header.
+         *
+         * Prereqs: OXM_OF_ETH_TYPE must match 0x0800 exactly.
+         *
+         * Format: 32-bit integer in network byte order.
+         *
+         * Masking: Arbitrary masks.
+         */
+        //#define OXM_OF_IPV4_SRC     OXM_HEADER  (0x8000, OFPXMT_OFB_IPV4_SRC, 4)
+        //#define OXM_OF_IPV4_SRC_W   OXM_HEADER_W(0x8000, OFPXMT_OFB_IPV4_SRC, 4)
+        //#define OXM_OF_IPV4_DST     OXM_HEADER  (0x8000, OFPXMT_OFB_IPV4_DST, 4)
+        //#define OXM_OF_IPV4_DST_W   OXM_HEADER_W(0x8000, OFPXMT_OFB_IPV4_DST, 4)
+        uint32 ipv4_src = 14; /* Used for OFPXMT_OFB_IPV4_SRC */
+        uint32 ipv4_dst = 15; /* Used for OFPXMT_OFB_IPV4_DST */
+
+        /* The source or destination port in the TCP header.
+         *
+         * Prereqs:
+         *   OXM_OF_ETH_TYPE must be either 0x0800 or 0x86dd.
+         *   OXM_OF_IP_PROTO must match 6 exactly.
+         *
+         * Format: 16-bit integer in network byte order.
+         *
+         * Masking: Not maskable. */
+        //#define OXM_OF_TCP_SRC    OXM_HEADER  (0x8000, OFPXMT_OFB_TCP_SRC, 2)
+        //#define OXM_OF_TCP_DST    OXM_HEADER  (0x8000, OFPXMT_OFB_TCP_DST, 2)
+        uint32 tcp_src = 16; /* Used for OFPXMT_OFB_TCP_SRC */
+        uint32 tcp_dst = 17; /* Used for OFPXMT_OFB_TCP_DST */
+
+        /* The source or destination port in the UDP header.
+         *
+         * Prereqs:
+         *   OXM_OF_ETH_TYPE must match either 0x0800 or 0x86dd.
+         *   OXM_OF_IP_PROTO must match 17 exactly.
+         *
+         * Format: 16-bit integer in network byte order.
+         *
+         * Masking: Not maskable. */
+        //#define OXM_OF_UDP_SRC    OXM_HEADER  (0x8000, OFPXMT_OFB_UDP_SRC, 2)
+        //#define OXM_OF_UDP_DST    OXM_HEADER  (0x8000, OFPXMT_OFB_UDP_DST, 2)
+        uint32 udp_src = 18; /* Used for OFPXMT_OFB_UDP_SRC */
+        uint32 udp_dst = 19; /* Used for OFPXMT_OFB_UDP_DST */
+
+        /* The source or destination port in the SCTP header.
+         *
+         * Prereqs:
+         *   OXM_OF_ETH_TYPE must match either 0x0800 or 0x86dd.
+         *   OXM_OF_IP_PROTO must match 132 exactly.
+         *
+         * Format: 16-bit integer in network byte order.
+         *
+         * Masking: Not maskable. */
+        //#define OXM_OF_SCTP_SRC   OXM_HEADER  (0x8000, OFPXMT_OFB_SCTP_SRC, 2)
+        //#define OXM_OF_SCTP_DST   OXM_HEADER  (0x8000, OFPXMT_OFB_SCTP_DST, 2)
+        uint32 sctp_src = 20; /* Used for OFPXMT_OFB_SCTP_SRC */
+        uint32 sctp_dst = 21; /* Used for OFPXMT_OFB_SCTP_DST */
+
+        /* The type or code in the ICMP header.
+         *
+         * Prereqs:
+         *   OXM_OF_ETH_TYPE must match 0x0800 exactly.
+         *   OXM_OF_IP_PROTO must match 1 exactly.
+         *
+         * Format: 8-bit integer.
+         *
+         * Masking: Not maskable. */
+        //#define OXM_OF_ICMPV4_TYPE  OXM_HEADER  (0x8000, OFPXMT_OFB_ICMPV4_TYPE, 1)
+        //#define OXM_OF_ICMPV4_CODE  OXM_HEADER  (0x8000, OFPXMT_OFB_ICMPV4_CODE, 1)
+        uint32 icmpv4_type = 22; /* Used for OFPXMT_OFB_ICMPV4_TYPE */
+        uint32 icmpv4_code = 23; /* Used for OFPXMT_OFB_ICMPV4_CODE */
+
+        /* ARP opcode.
+         *
+         * For an Ethernet+IP ARP packet, the opcode in the ARP header.  Always 0
+         * otherwise.
+         *
+         * Prereqs: OXM_OF_ETH_TYPE must match 0x0806 exactly.
+         *
+         * Format: 16-bit integer in network byte order.
+         *
+         * Masking: Not maskable. */
+        //#define OXM_OF_ARP_OP     OXM_HEADER  (0x8000, OFPXMT_OFB_ARP_OP, 2)
+        uint32 arp_op = 24; /* Used for OFPXMT_OFB_ARP_OP */
+
+        /* For an Ethernet+IP ARP packet, the source or target protocol address
+         * in the ARP header.  Always 0 otherwise.
+         *
+         * Prereqs: OXM_OF_ETH_TYPE must match 0x0806 exactly.
+         *
+         * Format: 32-bit integer in network byte order.
+         *
+         * Masking: Arbitrary masks.
+         */
+        //#define OXM_OF_ARP_SPA    OXM_HEADER  (0x8000, OFPXMT_OFB_ARP_SPA, 4)
+        //#define OXM_OF_ARP_SPA_W  OXM_HEADER_W(0x8000, OFPXMT_OFB_ARP_SPA, 4)
+        //#define OXM_OF_ARP_TPA    OXM_HEADER  (0x8000, OFPXMT_OFB_ARP_TPA, 4)
+        //#define OXM_OF_ARP_TPA_W  OXM_HEADER_W(0x8000, OFPXMT_OFB_ARP_TPA, 4)
+        uint32 arp_spa = 25; /* For OFPXMT_OFB_ARP_SPA */
+        uint32 arp_tpa = 26; /* For OFPXMT_OFB_ARP_TPA */
+
+        /* For an Ethernet+IP ARP packet, the source or target hardware address
+         * in the ARP header.  Always 0 otherwise.
+         *
+         * Prereqs: OXM_OF_ETH_TYPE must match 0x0806 exactly.
+         *
+         * Format: 48-bit Ethernet MAC address.
+         *
+         * Masking: Not maskable. */
+        //#define OXM_OF_ARP_SHA    OXM_HEADER   (0x8000, OFPXMT_OFB_ARP_SHA, 6)
+        //#define OXM_OF_ARP_SHA_W  OXM_HEADER_W (0x8000, OFPXMT_OFB_ARP_SHA, 6)
+        //#define OXM_OF_ARP_THA    OXM_HEADER   (0x8000, OFPXMT_OFB_ARP_THA, 6)
+        //#define OXM_OF_ARP_THA_W  OXM_HEADER_W (0x8000, OFPXMT_OFB_ARP_THA, 6)
+        bytes arp_sha = 27; /* For OFPXMT_OFB_ARP_SHA (6 bytes) */
+        bytes arp_tha = 28; /* For OFPXMT_OFB_ARP_THA (6 bytes) */
+
+        /* The source or destination address in the IPv6 header.
+         *
+         * Prereqs: OXM_OF_ETH_TYPE must match 0x86dd exactly.
+         *
+         * Format: 128-bit IPv6 address.
+         *
+         * Masking: Arbitrary masks.
+         */
+        //#define OXM_OF_IPV6_SRC    OXM_HEADER  (0x8000, OFPXMT_OFB_IPV6_SRC, 16)
+        //#define OXM_OF_IPV6_SRC_W  OXM_HEADER_W(0x8000, OFPXMT_OFB_IPV6_SRC, 16)
+        //#define OXM_OF_IPV6_DST    OXM_HEADER  (0x8000, OFPXMT_OFB_IPV6_DST, 16)
+        //#define OXM_OF_IPV6_DST_W  OXM_HEADER_W(0x8000, OFPXMT_OFB_IPV6_DST, 16)
+        bytes ipv6_src = 29; /* For OFPXMT_OFB_IPV6_SRC */
+        bytes ipv6_dst = 30; /* For OFPXMT_OFB_IPV6_DST */
+
+        /* The IPv6 Flow Label
+         *
+         * Prereqs:
+         *   OXM_OF_ETH_TYPE must match 0x86dd exactly
+         *
+         * Format: 32-bit integer with 12 most-significant bits forced to 0.
+         * Only the lower 20 bits have meaning.
+         *
+         * Masking: Arbitrary masks.
+         */
+        //#define OXM_OF_IPV6_FLABEL   OXM_HEADER  (0x8000, OFPXMT_OFB_IPV6_FLABEL, 4)
+        //#define OXM_OF_IPV6_FLABEL_W OXM_HEADER_W(0x8000, OFPXMT_OFB_IPV6_FLABEL, 4)
+        uint32 ipv6_flabel = 31; /* For OFPXMT_OFB_IPV6_FLABEL */
+
+        /* The type or code in the ICMPv6 header.
+         *
+         * Prereqs:
+         *   OXM_OF_ETH_TYPE must match 0x86dd exactly.
+         *   OXM_OF_IP_PROTO must match 58 exactly.
+         *
+         * Format: 8-bit integer.
+         *
+         * Masking: Not maskable. */
+        //#define OXM_OF_ICMPV6_TYPE OXM_HEADER  (0x8000, OFPXMT_OFB_ICMPV6_TYPE, 1)
+        //#define OXM_OF_ICMPV6_CODE OXM_HEADER  (0x8000, OFPXMT_OFB_ICMPV6_CODE, 1)
+        uint32 icmpv6_type = 32; /* For OFPXMT_OFB_ICMPV6_TYPE */
+        uint32 icmpv6_code = 33; /* For OFPXMT_OFB_ICMPV6_CODE */
+
+        /* The target address in an IPv6 Neighbor Discovery message.
+         *
+         * Prereqs:
+         *   OXM_OF_ETH_TYPE must match 0x86dd exactly.
+         *   OXM_OF_IP_PROTO must match 58 exactly.
+         *   OXM_OF_ICMPV6_TYPE must be either 135 or 136.
+         *
+         * Format: 128-bit IPv6 address.
+         *
+         * Masking: Not maskable. */
+        //#define OXM_OF_IPV6_ND_TARGET OXM_HEADER \
+        //    (0x8000, OFPXMT_OFB_IPV6_ND_TARGET, 16)
+        bytes ipv6_nd_target = 34; /* For OFPXMT_OFB_IPV6_ND_TARGET */
+
+        /* The source link-layer address option in an IPv6 Neighbor Discovery
+         * message.
+         *
+         * Prereqs:
+         *   OXM_OF_ETH_TYPE must match 0x86dd exactly.
+         *   OXM_OF_IP_PROTO must match 58 exactly.
+         *   OXM_OF_ICMPV6_TYPE must be exactly 135.
+         *
+         * Format: 48-bit Ethernet MAC address.
+         *
+         * Masking: Not maskable. */
+        //#define OXM_OF_IPV6_ND_SLL  OXM_HEADER  (0x8000, OFPXMT_OFB_IPV6_ND_SLL, 6)
+        bytes ipv6_nd_ssl = 35; /* For OFPXMT_OFB_IPV6_ND_SLL */
+
+        /* The target link-layer address option in an IPv6 Neighbor Discovery
+         * message.
+         *
+         * Prereqs:
+         *   OXM_OF_ETH_TYPE must match 0x86dd exactly.
+         *   OXM_OF_IP_PROTO must match 58 exactly.
+         *   OXM_OF_ICMPV6_TYPE must be exactly 136.
+         *
+         * Format: 48-bit Ethernet MAC address.
+         *
+         * Masking: Not maskable. */
+        //#define OXM_OF_IPV6_ND_TLL  OXM_HEADER  (0x8000, OFPXMT_OFB_IPV6_ND_TLL, 6)
+        bytes ipv6_nd_tll = 36; /* For OFPXMT_OFB_IPV6_ND_TLL */
+
+        /* The LABEL in the first MPLS shim header.
+         *
+         * Prereqs:
+         *   OXM_OF_ETH_TYPE must match 0x8847 or 0x8848 exactly.
+         *
+         * Format: 32-bit integer in network byte order with 12 most-significant
+         * bits forced to 0. Only the lower 20 bits have meaning.
+         *
+         * Masking: Not maskable. */
+        //#define OXM_OF_MPLS_LABEL  OXM_HEADER  (0x8000, OFPXMT_OFB_MPLS_LABEL, 4)
+        uint32 mpls_label = 37; /* For OFPXMT_OFB_MPLS_LABEL */
+
+        /* The TC in the first MPLS shim header.
+         *
+         * Prereqs:
+         *   OXM_OF_ETH_TYPE must match 0x8847 or 0x8848 exactly.
+         *
+         * Format: 8-bit integer with 5 most-significant bits forced to 0.
+         * Only the lower 3 bits have meaning.
+         *
+         * Masking: Not maskable. */
+        //#define OXM_OF_MPLS_TC     OXM_HEADER  (0x8000, OFPXMT_OFB_MPLS_TC, 1)
+        uint32 mpls_tc = 38; /* For OFPXMT_OFB_MPLS_TC */
+
+        /* The BoS bit in the first MPLS shim header.
+         *
+         * Prereqs:
+         *   OXM_OF_ETH_TYPE must match 0x8847 or 0x8848 exactly.
+         *
+         * Format: 8-bit integer with 7 most-significant bits forced to 0.
+         * Only the lowest bit have a meaning.
+         *
+         * Masking: Not maskable. */
+        //#define OXM_OF_MPLS_BOS     OXM_HEADER  (0x8000, OFPXMT_OFB_MPLS_BOS, 1)
+        uint32 mpls_bos = 39; /* For OFPXMT_OFB_MPLS_BOS */
+
+        /* IEEE 802.1ah I-SID.
+         *
+         * For a packet with a PBB header, this is the I-SID from the
+         * outermost service tag.
+         *
+         * Prereqs:
+         *   OXM_OF_ETH_TYPE must match 0x88E7 exactly.
+         *
+         * Format: 24-bit integer in network byte order.
+         *
+         * Masking: Arbitrary masks. */
+        //#define OXM_OF_PBB_ISID   OXM_HEADER  (0x8000, OFPXMT_OFB_PBB_ISID, 3)
+        //#define OXM_OF_PBB_ISID_W OXM_HEADER_W(0x8000, OFPXMT_OFB_PBB_ISID, 3)
+        uint32 pbb_isid = 40; /* For OFPXMT_OFB_PBB_ISID */
+
+        /* Logical Port Metadata.
+         *
+         * Metadata associated with a logical port.
+         * If the logical port performs encapsulation and decapsulation, this
+         * is the demultiplexing field from the encapsulation header.
+         * For example, for a packet received via GRE tunnel including a (32-bit) key,
+         * the key is stored in the low 32-bits and the high bits are zeroed.
+         * For a MPLS logical port, the low 20 bits represent the MPLS Label.
+         * For a VxLAN logical port, the low 24 bits represent the VNI.
+         * If the packet is not received through a logical port, the value is 0.
+         *
+         * Prereqs: None.
+         *
+         * Format: 64-bit integer in network byte order.
+         *
+         * Masking: Arbitrary masks. */
+        //#define OXM_OF_TUNNEL_ID    OXM_HEADER  (0x8000, OFPXMT_OFB_TUNNEL_ID, 8)
+        //#define OXM_OF_TUNNEL_ID_W  OXM_HEADER_W(0x8000, OFPXMT_OFB_TUNNEL_ID, 8)
+        uint64 tunnel_id = 41; /* For OFPXMT_OFB_TUNNEL_ID */
+
+        /* The IPv6 Extension Header pseudo-field.
+         *
+         * Prereqs:
+         *   OXM_OF_ETH_TYPE must match 0x86dd exactly
+         *
+         * Format: 16-bit integer with 7 most-significant bits forced to 0.
+         * Only the lower 9 bits have meaning.
+         *
+         * Masking: Maskable. */
+        //#define OXM_OF_IPV6_EXTHDR   OXM_HEADER  (0x8000, OFPXMT_OFB_IPV6_EXTHDR, 2)
+        //#define OXM_OF_IPV6_EXTHDR_W OXM_HEADER_W(0x8000, OFPXMT_OFB_IPV6_EXTHDR, 2)
+        uint32 ipv6_exthdr = 42; /* For OFPXMT_OFB_IPV6_EXTHDR */
+
+    }
+
+    /* Optional mask values (must be present when has_mask is true */
+    oneof mask {
+        uint64 table_metadata_mask = 105; /* For OFPXMT_OFB_METADATA */
+
+        bytes eth_dst_mask = 106; /* For OFPXMT_OFB_ETH_DST (exactly 6 bytes)*/
+        bytes eth_src_mask = 107; /* For OFPXMT_OFB_ETH_SRC (exactly 6 bytes)*/
+
+        uint32 vlan_vid_mask = 109; /* For OFPXMT_OFB_VLAN_VID */
+
+        uint32 ipv4_src_mask = 114; /* For OFPXMT_OFB_IPV4_SRC */
+        uint32 ipv4_dst_mask = 115; /* For OFPXMT_OFB_IPV4_DST */
+
+        uint32 arp_spa_mask = 125; /* For OFPXMT_OFB_ARP_SPA */
+        uint32 arp_tpa_mask = 126; /* For OFPXMT_OFB_ARP_TPA */
+
+        bytes ipv6_src_mask = 129; /* For OFPXMT_OFB_IPV6_SRC */
+        bytes ipv6_dst_mask = 130; /* For OFPXMT_OFB_IPV6_DST */
+
+        uint32 ipv6_flabel_mask = 131; /* For OFPXMT_OFB_IPV6_FLABEL */
+
+        uint32 pbb_isid_mask = 140; /* For OFPXMT_OFB_PBB_ISID */
+
+        uint64 tunnel_id_mask = 141; /* For OFPXMT_OFB_TUNNEL_ID */
+
+        uint32 ipv6_exthdr_mask = 142; /* For OFPXMT_OFB_IPV6_EXTHDR */
+    }
+
+}
+//#define OFPXMT_OFB_ALL    ((UINT64_C(1) << 40) - 1)
+
+
+/* The VLAN id is 12-bits, so we can use the entire 16 bits to indicate
+ * special conditions.
+ */
+enum ofp_vlan_id {
+    OFPVID_NONE    = 0x0000; /* No VLAN id was set. */
+    OFPVID_PRESENT = 0x1000; /* Bit that indicate that a VLAN id is set */
+};
+/* Define for compatibility */
+//#define OFP_VLAN_NONE      OFPVID_NONE
+
+/* Bit definitions for IPv6 Extension Header pseudo-field. */
+enum ofp_ipv6exthdr_flags {
+    OFPIEH_INVALID = 0;
+    OFPIEH_NONEXT  = 1;     /* "No next header" encountered. */
+    OFPIEH_ESP     = 2;     /* Encrypted Sec Payload header present. */
+    OFPIEH_AUTH    = 4;     /* Authentication header present. */
+    OFPIEH_DEST    = 8;     /* 1 or 2 dest headers present. */
+    OFPIEH_FRAG    = 16;    /* Fragment header present. */
+    OFPIEH_ROUTER  = 32;    /* Router header present. */
+    OFPIEH_HOP     = 64;    /* Hop-by-hop header present. */
+    OFPIEH_UNREP   = 128;   /* Unexpected repeats encountered. */
+    OFPIEH_UNSEQ   = 256;   /* Unexpected sequencing encountered. */
+};
+
+/* Header for OXM experimenter match fields.
+ * The experimenter class should not use OXM_HEADER() macros for defining
+ * fields due to this extra header. */
+message ofp_oxm_experimenter_field {
+    uint32 oxm_header = 1;    /* oxm_class = OFPXMC_EXPERIMENTER */
+    uint32 experimenter = 2;  /* Experimenter ID which takes the same
+                                 form as in struct ofp_experimenter_header. */
+};
+
+/* ## ----------------- ## */
+/* ## OpenFlow Actions. ## */
+/* ## ----------------- ## */
+
+enum ofp_action_type {
+    OFPAT_OUTPUT       = 0;  /* Output to switch port. */
+    OFPAT_COPY_TTL_OUT = 11; /* Copy TTL "outwards" -- from next-to-outermost
+                                to outermost */
+    OFPAT_COPY_TTL_IN  = 12; /* Copy TTL "inwards" -- from outermost to
+                               next-to-outermost */
+    OFPAT_SET_MPLS_TTL = 15; /* MPLS TTL */
+    OFPAT_DEC_MPLS_TTL = 16; /* Decrement MPLS TTL */
+
+    OFPAT_PUSH_VLAN    = 17; /* Push a new VLAN tag */
+    OFPAT_POP_VLAN     = 18; /* Pop the outer VLAN tag */
+    OFPAT_PUSH_MPLS    = 19; /* Push a new MPLS tag */
+    OFPAT_POP_MPLS     = 20; /* Pop the outer MPLS tag */
+    OFPAT_SET_QUEUE    = 21; /* Set queue id when outputting to a port */
+    OFPAT_GROUP        = 22; /* Apply group. */
+    OFPAT_SET_NW_TTL   = 23; /* IP TTL. */
+    OFPAT_DEC_NW_TTL   = 24; /* Decrement IP TTL. */
+    OFPAT_SET_FIELD    = 25; /* Set a header field using OXM TLV format. */
+    OFPAT_PUSH_PBB     = 26; /* Push a new PBB service tag (I-TAG) */
+    OFPAT_POP_PBB      = 27; /* Pop the outer PBB service tag (I-TAG) */
+    OFPAT_EXPERIMENTER = 0xffff;
+};
+
+/* Action header that is common to all actions.  The length includes the
+ * header and any padding used to make the action 64-bit aligned.
+ * NB: The length of an action *must* always be a multiple of eight. */
+message ofp_action {
+    ofp_action_type type = 1;       /* One of OFPAT_*. */
+    oneof action {
+        ofp_action_output output = 2;
+        ofp_action_mpls_ttl mpls_ttl = 3;
+        ofp_action_push push = 4;
+        ofp_action_pop_mpls pop_mpls = 5;
+        ofp_action_group group = 6;
+        ofp_action_nw_ttl nw_ttl = 7;
+        ofp_action_set_field set_field = 8;
+        ofp_action_experimenter experimenter = 9;
+    }
+};
+
+enum ofp_controller_max_len {
+    OFPCML_INVALID   = 0;
+    OFPCML_MAX       = 0xffe5; /* maximum max_len value which can be used
+                                  to request a specific byte length. */
+    OFPCML_NO_BUFFER = 0xffff; /* indicates that no buffering should be
+                                  applied and the whole packet is to be
+                                  sent to the controller. */
+};
+
+/* Action structure for OFPAT_OUTPUT, which sends packets out 'port'.
+ * When the 'port' is the OFPP_CONTROLLER, 'max_len' indicates the max
+ * number of bytes to send.  A 'max_len' of zero means no bytes of the
+ * packet should be sent. A 'max_len' of OFPCML_NO_BUFFER means that
+ * the packet is not buffered and the complete packet is to be sent to
+ * the controller. */
+message ofp_action_output {
+    uint32 port = 1;                 /* Output port. */
+    uint32 max_len = 2;              /* Max length to send to controller. */
+};
+
+/* Action structure for OFPAT_SET_MPLS_TTL. */
+message ofp_action_mpls_ttl {
+    uint32 mpls_ttl = 1;             /* MPLS TTL */
+};
+
+/* Action structure for OFPAT_PUSH_VLAN/MPLS/PBB. */
+message ofp_action_push {
+    uint32 ethertype = 1;            /* Ethertype */
+};
+
+/* Action structure for OFPAT_POP_MPLS. */
+message ofp_action_pop_mpls {
+    uint32 ethertype = 1;            /* Ethertype */
+};
+
+/* Action structure for OFPAT_GROUP. */
+message ofp_action_group {
+    uint32 group_id = 1;             /* Group identifier. */
+};
+
+/* Action structure for OFPAT_SET_NW_TTL. */
+message ofp_action_nw_ttl {
+    uint32 nw_ttl = 1;               /* IP TTL */
+};
+
+/* Action structure for OFPAT_SET_FIELD. */
+message ofp_action_set_field {
+    ofp_oxm_field field = 1;
+};
+
+/* Action header for OFPAT_EXPERIMENTER.
+ * The rest of the body is experimenter-defined. */
+message ofp_action_experimenter {
+    uint32 experimenter = 1;         /* Experimenter ID which takes the same
+                                        form as in struct
+                                        ofp_experimenter_header. */
+    bytes data = 2;
+};
+
+/* ## ---------------------- ## */
+/* ## OpenFlow Instructions. ## */
+/* ## ---------------------- ## */
+
+enum ofp_instruction_type {
+    OFPIT_INVALID    = 0;
+    OFPIT_GOTO_TABLE = 1;       /* Setup the next table in the lookup
+                                   pipeline */
+    OFPIT_WRITE_METADATA = 2;   /* Setup the metadata field for use later in
+                                   pipeline */
+    OFPIT_WRITE_ACTIONS = 3;    /* Write the action(s) onto the datapath action
+                                   set */
+    OFPIT_APPLY_ACTIONS = 4;    /* Applies the action(s) immediately */
+    OFPIT_CLEAR_ACTIONS = 5;    /* Clears all actions from the datapath
+                                   action set */
+    OFPIT_METER = 6;            /* Apply meter (rate limiter) */
+
+    OFPIT_EXPERIMENTER = 0xFFFF; /* Experimenter instruction */
+};
+
+/* Instruction header that is common to all instructions.  The length includes
+ * the header and any padding used to make the instruction 64-bit aligned.
+ * NB: The length of an instruction *must* always be a multiple of eight. */
+message ofp_instruction {
+    uint32 type = 1;               /* Instruction type */
+    oneof data {
+        ofp_instruction_goto_table goto_table = 2;
+        ofp_instruction_write_metadata write_metadata = 3;
+        ofp_instruction_actions actions = 4;
+        ofp_instruction_meter meter = 5;
+        ofp_instruction_experimenter experimenter = 6;
+    }
+};
+
+/* Instruction structure for OFPIT_GOTO_TABLE */
+message ofp_instruction_goto_table {
+    uint32 table_id = 1;           /* Set next table in the lookup pipeline */
+};
+
+/* Instruction structure for OFPIT_WRITE_METADATA */
+message ofp_instruction_write_metadata {
+    uint64 metadata = 1;           /* Metadata value to write */
+    uint64 metadata_mask = 2;      /* Metadata write bitmask */
+};
+
+/* Instruction structure for OFPIT_WRITE/APPLY/CLEAR_ACTIONS */
+message ofp_instruction_actions {
+    repeated ofp_action actions = 1; /* 0 or more actions associated
+                                        with OFPIT_WRITE_ACTIONS and
+                                        OFPIT_APPLY_ACTIONS */
+};
+
+/* Instruction structure for OFPIT_METER */
+message ofp_instruction_meter {
+    uint32 meter_id = 1;           /* Meter instance. */
+};
+
+/* Instruction structure for experimental instructions */
+message ofp_instruction_experimenter {
+    uint32 experimenter = 1;     /* Experimenter ID which takes the same form
+                                   as in struct ofp_experimenter_header. */
+    /* Experimenter-defined arbitrary additional data. */
+    bytes data = 2;
+};
+
+/* ## --------------------------- ## */
+/* ## OpenFlow Flow Modification. ## */
+/* ## --------------------------- ## */
+
+enum ofp_flow_mod_command {
+    OFPFC_ADD           = 0; /* New flow. */
+    OFPFC_MODIFY        = 1; /* Modify all matching flows. */
+    OFPFC_MODIFY_STRICT = 2; /* Modify entry strictly matching wildcards and
+                                priority. */
+    OFPFC_DELETE        = 3; /* Delete all matching flows. */
+    OFPFC_DELETE_STRICT = 4; /* Delete entry strictly matching wildcards and
+                                priority. */
+};
+
+/* Value used in "idle_timeout" and "hard_timeout" to indicate that the entry
+ * is permanent. */
+//#define OFP_FLOW_PERMANENT 0
+
+/* By default, choose a priority in the middle. */
+//#define OFP_DEFAULT_PRIORITY 0x8000
+
+enum ofp_flow_mod_flags {
+    OFPFF_INVALID       = 0;
+    OFPFF_SEND_FLOW_REM = 1;  /* Send flow removed message when flow
+                               * expires or is deleted. */
+    OFPFF_CHECK_OVERLAP = 2;  /* Check for overlapping entries first. */
+    OFPFF_RESET_COUNTS  = 4;  /* Reset flow packet and byte counts. */
+    OFPFF_NO_PKT_COUNTS = 8;  /* Don't keep track of packet count. */
+    OFPFF_NO_BYT_COUNTS = 16; /* Don't keep track of byte count. */
+};
+
+/* Flow setup and teardown (controller -> datapath). */
+message ofp_flow_mod {
+    //ofp_header header;
+    uint64 cookie = 1;             /* Opaque controller-issued identifier. */
+    uint64 cookie_mask = 2;        /* Mask used to restrict the cookie bits
+                                      that must match when the command is
+                                      OFPFC_MODIFY* or OFPFC_DELETE*. A value
+                                      of 0 indicates no restriction. */
+    uint32 table_id = 3;           /* ID of the table to put the flow in.
+                                      For OFPFC_DELETE_* commands, OFPTT_ALL
+                                      can also be used to delete matching
+                                      flows from all tables. */
+    ofp_flow_mod_command command = 4; /* One of OFPFC_*. */
+    uint32 idle_timeout = 5;       /* Idle time before discarding (seconds). */
+    uint32 hard_timeout = 6;       /* Max time before discarding (seconds). */
+    uint32 priority = 7;           /* Priority level of flow entry. */
+    uint32 buffer_id = 8;          /* Buffered packet to apply to, or
+                                      OFP_NO_BUFFER.
+                                      Not meaningful for OFPFC_DELETE*. */
+    uint32 out_port = 9;          /* For OFPFC_DELETE* commands, require
+                                      matching entries to include this as an
+                                      output port.  A value of OFPP_ANY
+                                      indicates no restriction. */
+    uint32 out_group = 10;         /* For OFPFC_DELETE* commands, require
+                                      matching entries to include this as an
+                                      output group.  A value of OFPG_ANY
+                                      indicates no restriction. */
+    uint32 flags = 11;             /* Bitmap of OFPFF_* flags. */
+    ofp_match match = 12;          /* Fields to match. Variable size. */
+    repeated ofp_instruction instructions = 13; /* 0 or more. */
+};
+
+/* Group numbering. Groups can use any number up to OFPG_MAX. */
+enum ofp_group {
+
+    OFPG_INVALID = 0;
+
+    /* Last usable group number. */
+    OFPG_MAX        = 0x7fffff00;
+
+    /* Fake groups. */
+    OFPG_ALL        = 0x7ffffffc;  /* Represents all groups for group delete
+                                      commands. */
+    OFPG_ANY        = 0x7fffffff;  /* Special wildcard: no group specified. */
+};
+
+/* Group commands */
+enum ofp_group_mod_command {
+    OFPGC_ADD    = 0;       /* New group. */
+    OFPGC_MODIFY = 1;       /* Modify all matching groups. */
+    OFPGC_DELETE = 2;       /* Delete all matching groups. */
+};
+
+/* Bucket for use in groups. */
+message ofp_bucket {
+    uint32 weight = 1;              /* Relative weight of bucket.  Only
+                                       defined for select groups. */
+    uint32 watch_port = 2;          /* Port whose state affects whether this
+                                       bucket is live.  Only required for fast
+                                       failover groups. */
+    uint32 watch_group = 3;         /* Group whose state affects whether this
+                                       bucket is live.  Only required for fast
+                                       failover groups. */
+    repeated ofp_action actions = 4;
+};
+
+/* Group setup and teardown (controller -> datapath). */
+message ofp_group_mod {
+    //ofp_header header;
+    ofp_group_mod_command command = 1; /* One of OFPGC_*. */
+    ofp_group_type type = 2;           /* One of OFPGT_*. */
+    uint32 group_id = 3;               /* Group identifier. */
+    repeated ofp_bucket buckets = 4;
+};
+
+/* Group types.  Values in the range [128; 255] are reserved for experimental
+ * use. */
+enum ofp_group_type {
+    OFPGT_ALL      = 0; /* All (multicast/broadcast) group.  */
+    OFPGT_SELECT   = 1; /* Select group. */
+    OFPGT_INDIRECT = 2; /* Indirect group. */
+    OFPGT_FF       = 3; /* Fast failover group. */
+};
+
+/* Special buffer-id to indicate 'no buffer' */
+//#define OFP_NO_BUFFER 0xffffffff
+
+/* Send packet (controller -> datapath). */
+message ofp_packet_out {
+    //ofp_header header;
+    uint32 buffer_id = 1;          /* ID assigned by datapath (OFP_NO_BUFFER
+                                      if none). */
+    uint32 in_port = 2;            /* Packet's input port or OFPP_CONTROLLER.*/
+    repeated ofp_action actions = 3; /* Action list - 0 or more. */
+    /* The variable size action list is optionally followed by packet data.
+     * This data is only present and meaningful if buffer_id == -1. */
+    bytes data = 4;                /* Packet data. */
+};
+
+/* Why is this packet being sent to the controller? */
+enum ofp_packet_in_reason {
+    OFPR_NO_MATCH    = 0;   /* No matching flow (table-miss flow entry). */
+    OFPR_ACTION      = 1;   /* Action explicitly output to controller. */
+    OFPR_INVALID_TTL = 2;   /* Packet has invalid TTL */
+};
+
+/* Packet received on port (datapath -> controller). */
+message ofp_packet_in {
+    //ofp_header header;
+    uint32 buffer_id = 1;     /* ID assigned by datapath. */
+    ofp_packet_in_reason reason = 2; /* Reason packet is being sent */
+    uint32 table_id = 3;      /* ID of the table that was looked up */
+    uint64 cookie = 4;        /* Cookie of the flow entry that was looked up. */
+    ofp_match match = 5;      /* Packet metadata. Variable size. */
+    bytes data = 6;           /* Ethernet frame */
+};
+
+/* Why was this flow removed? */
+enum ofp_flow_removed_reason {
+    OFPRR_IDLE_TIMEOUT = 0;     /* Flow idle time exceeded idle_timeout. */
+    OFPRR_HARD_TIMEOUT = 1;     /* Time exceeded hard_timeout. */
+    OFPRR_DELETE       = 2;     /* Evicted by a DELETE flow mod. */
+    OFPRR_GROUP_DELETE = 3;     /* Group was removed. */
+    OFPRR_METER_DELETE = 4;     /* Meter was removed */
+};
+
+/* Flow removed (datapath -> controller). */
+message ofp_flow_removed {
+    //ofp_header header;
+    uint64 cookie = 1;         /* Opaque controller-issued identifier. */
+
+    uint32 priority = 2;       /* Priority level of flow entry. */
+    ofp_flow_removed_reason reason = 3; /* One of OFPRR_*. */
+    uint32 table_id = 4;        /* ID of the table */
+
+    uint32 duration_sec = 5;   /* Time flow was alive in seconds. */
+    uint32 duration_nsec = 6;  /* Time flow was alive in nanoseconds beyond
+                                 duration_sec. */
+    uint32 idle_timeout = 7;   /* Idle timeout from original flow mod. */
+    uint32 hard_timeout = 8;   /* Hard timeout from original flow mod. */
+    uint64 packet_count = 9;
+    uint64 byte_count = 10;
+    ofp_match match = 121;  /* Description of fields. Variable size. */
+};
+
+/* Meter numbering. Flow meters can use any number up to OFPM_MAX. */
+enum ofp_meter {
+    OFPM_ZERO       = 0;
+    /* Last usable meter. */
+    OFPM_MAX        = 0x7fff0000;
+
+    /* Virtual meters. */
+    OFPM_SLOWPATH   = 0x7ffffffd;  /* Meter for slow datapath. */
+    OFPM_CONTROLLER = 0x7ffffffe;  /* Meter for controller connection. */
+    OFPM_ALL        = 0x7fffffff;  /* Represents all meters for stat requests
+                                      commands. */
+};
+
+/* Meter band types */
+enum ofp_meter_band_type {
+    OFPMBT_INVALID         = 0;
+    OFPMBT_DROP            = 1;      /* Drop packet. */
+    OFPMBT_DSCP_REMARK     = 2;      /* Remark DSCP in the IP header. */
+    OFPMBT_EXPERIMENTER    = 0xFFFF; /* Experimenter meter band. */
+};
+
+/* Common header for all meter bands */
+message ofp_meter_band_header {
+    ofp_meter_band_type type = 1;   /* One of OFPMBT_*. */
+    uint32              len = 2;    /* Length in bytes of this band. */
+    uint32              rate = 3;   /* Rate for this band. */
+    uint32              burst_size = 4;/* Size of bursts. */
+};
+
+/* OFPMBT_DROP band - drop packets */
+message ofp_meter_band_drop {
+    uint32        type = 1;   /* OFPMBT_DROP. */
+    uint32        len = 2;   /* Length in bytes of this band. */
+    uint32        rate = 3;   /* Rate for dropping packets. */
+    uint32        burst_size = 4;/* Size of bursts. */
+};
+
+/* OFPMBT_DSCP_REMARK band - Remark DSCP in the IP header */
+message ofp_meter_band_dscp_remark {
+    uint32        type = 1;       /* OFPMBT_DSCP_REMARK. */
+    uint32        len = 2;        /* Length in bytes of this band. */
+    uint32        rate = 3;       /* Rate for remarking packets. */
+    uint32        burst_size = 4; /* Size of bursts. */
+    uint32        prec_level = 5; /* Number of drop precedence level to add. */
+};
+
+/* OFPMBT_EXPERIMENTER band - Experimenter type.
+ * The rest of the band is experimenter-defined. */
+message ofp_meter_band_experimenter {
+    ofp_meter_band_type type = 1;        /* One of OFPMBT_*. */
+    uint32              len = 2;         /* Length in bytes of this band. */
+    uint32              rate = 3;        /* Rate for this band. */
+    uint32              burst_size = 4;  /* Size of bursts. */
+    uint32              experimenter = 5;/* Experimenter ID which takes the
+                                            same form as in struct
+                                            ofp_experimenter_header. */
+};
+
+/* Meter commands */
+enum ofp_meter_mod_command {
+    OFPMC_ADD = 0;              /* New meter. */
+    OFPMC_MODIFY = 1;           /* Modify specified meter. */
+    OFPMC_DELETE = 2;           /* Delete specified meter. */
+};
+
+/* Meter configuration flags */
+enum ofp_meter_flags {
+    OFPMF_INVALID = 0;
+    OFPMF_KBPS    = 1;     /* Rate value in kb/s (kilo-bit per second). */
+    OFPMF_PKTPS   = 2;     /* Rate value in packet/sec. */
+    OFPMF_BURST   = 4;     /* Do burst size. */
+    OFPMF_STATS   = 8;     /* Collect statistics. */
+};
+
+/* Meter configuration. OFPT_METER_MOD. */
+message ofp_meter_mod {
+//    ofp_header   header = 1;
+    ofp_meter_mod_command command = 1;       /* One of OFPMC_*. */
+    uint32                flags = 2;         /* Bitmap of OFPMF_* flags. */
+    uint32                meter_id = 3;      /* Meter instance. */
+    repeated ofp_meter_band_header bands = 4; /* The band list length is
+                                                 inferred from the length field
+                                                 in the header. */
+};
+
+/* Values for 'type' in ofp_error_message.  These values are immutable: they
+ * will not change in future versions of the protocol (although new values may
+ * be added). */
+enum ofp_error_type {
+    OFPET_HELLO_FAILED         = 0;  /* Hello protocol failed. */
+    OFPET_BAD_REQUEST          = 1;  /* Request was not understood. */
+    OFPET_BAD_ACTION           = 2;  /* Error in action description. */
+    OFPET_BAD_INSTRUCTION      = 3;  /* Error in instruction list. */
+    OFPET_BAD_MATCH            = 4;  /* Error in match. */
+    OFPET_FLOW_MOD_FAILED      = 5;  /* Problem modifying flow entry. */
+    OFPET_GROUP_MOD_FAILED     = 6;  /* Problem modifying group entry. */
+    OFPET_PORT_MOD_FAILED      = 7;  /* Port mod request failed. */
+    OFPET_TABLE_MOD_FAILED     = 8;  /* Table mod request failed. */
+    OFPET_QUEUE_OP_FAILED      = 9;  /* Queue operation failed. */
+    OFPET_SWITCH_CONFIG_FAILED = 10; /* Switch config request failed. */
+    OFPET_ROLE_REQUEST_FAILED  = 11; /* Controller Role request failed. */
+    OFPET_METER_MOD_FAILED     = 12; /* Error in meter. */
+    OFPET_TABLE_FEATURES_FAILED = 13; /* Setting table features failed. */
+    OFPET_EXPERIMENTER = 0xffff;      /* Experimenter error messages. */
+};
+
+/* ofp_error_msg 'code' values for OFPET_HELLO_FAILED.  'data' contains an
+ * ASCII text string that may give failure details. */
+enum ofp_hello_failed_code {
+    OFPHFC_INCOMPATIBLE = 0;    /* No compatible version. */
+    OFPHFC_EPERM        = 1;    /* Permissions error. */
+};
+
+/* ofp_error_msg 'code' values for OFPET_BAD_REQUEST.  'data' contains at least
+ * the first 64 bytes of the failed request. */
+enum ofp_bad_request_code {
+    OFPBRC_BAD_VERSION      = 0;  /* ofp_header.version not supported. */
+    OFPBRC_BAD_TYPE         = 1;  /* ofp_header.type not supported. */
+    OFPBRC_BAD_MULTIPART    = 2;  /* ofp_multipart_request.type not supported.
+                                   */
+    OFPBRC_BAD_EXPERIMENTER = 3;  /* Experimenter id not supported
+                                   * (in ofp_experimenter_header or
+                                   * ofp_multipart_request or
+                                   * ofp_multipart_reply). */
+    OFPBRC_BAD_EXP_TYPE     = 4;  /* Experimenter type not supported. */
+    OFPBRC_EPERM            = 5;  /* Permissions error. */
+    OFPBRC_BAD_LEN          = 6;  /* Wrong request length for type. */
+    OFPBRC_BUFFER_EMPTY     = 7;  /* Specified buffer has already been used. */
+    OFPBRC_BUFFER_UNKNOWN   = 8;  /* Specified buffer does not exist. */
+    OFPBRC_BAD_TABLE_ID     = 9;  /* Specified table-id invalid or does not
+                                   * exist. */
+    OFPBRC_IS_SLAVE         = 10; /* Denied because controller is slave. */
+    OFPBRC_BAD_PORT         = 11; /* Invalid port. */
+    OFPBRC_BAD_PACKET       = 12; /* Invalid packet in packet-out. */
+    OFPBRC_MULTIPART_BUFFER_OVERFLOW    = 13; /* ofp_multipart_request
+                                     overflowed the assigned buffer. */
+};
+
+/* ofp_error_msg 'code' values for OFPET_BAD_ACTION.  'data' contains at least
+ * the first 64 bytes of the failed request. */
+enum ofp_bad_action_code {
+    OFPBAC_BAD_TYPE           = 0;  /* Unknown or unsupported action type. */
+    OFPBAC_BAD_LEN            = 1;  /* Length problem in actions. */
+    OFPBAC_BAD_EXPERIMENTER   = 2;  /* Unknown experimenter id specified. */
+    OFPBAC_BAD_EXP_TYPE       = 3;  /* Unknown action for experimenter id. */
+    OFPBAC_BAD_OUT_PORT       = 4;  /* Problem validating output port. */
+    OFPBAC_BAD_ARGUMENT       = 5;  /* Bad action argument. */
+    OFPBAC_EPERM              = 6;  /* Permissions error. */
+    OFPBAC_TOO_MANY           = 7;  /* Can't handle this many actions. */
+    OFPBAC_BAD_QUEUE          = 8;  /* Problem validating output queue. */
+    OFPBAC_BAD_OUT_GROUP      = 9;  /* Invalid group id in forward action. */
+    OFPBAC_MATCH_INCONSISTENT = 10; /* Action can't apply for this match,
+                                       or Set-Field missing prerequisite. */
+    OFPBAC_UNSUPPORTED_ORDER  = 11; /* Action order is unsupported for the
+                                 action list in an Apply-Actions instruction */
+    OFPBAC_BAD_TAG            = 12; /* Actions uses an unsupported
+                                       tag/encap. */
+    OFPBAC_BAD_SET_TYPE       = 13; /* Unsupported type in SET_FIELD action. */
+    OFPBAC_BAD_SET_LEN        = 14; /* Length problem in SET_FIELD action. */
+    OFPBAC_BAD_SET_ARGUMENT   = 15; /* Bad argument in SET_FIELD action. */
+};
+
+/* ofp_error_msg 'code' values for OFPET_BAD_INSTRUCTION.  'data' contains at
+ * least the first 64 bytes of the failed request. */
+enum ofp_bad_instruction_code {
+    OFPBIC_UNKNOWN_INST     = 0; /* Unknown instruction. */
+    OFPBIC_UNSUP_INST       = 1; /* Switch or table does not support the
+                                    instruction. */
+    OFPBIC_BAD_TABLE_ID     = 2; /* Invalid Table-ID specified. */
+    OFPBIC_UNSUP_METADATA   = 3; /* Metadata value unsupported by datapath. */
+    OFPBIC_UNSUP_METADATA_MASK = 4; /* Metadata mask value unsupported by
+                                       datapath. */
+    OFPBIC_BAD_EXPERIMENTER = 5; /* Unknown experimenter id specified. */
+    OFPBIC_BAD_EXP_TYPE     = 6; /* Unknown instruction for experimenter id. */
+    OFPBIC_BAD_LEN          = 7; /* Length problem in instructions. */
+    OFPBIC_EPERM            = 8; /* Permissions error. */
+};
+
+/* ofp_error_msg 'code' values for OFPET_BAD_MATCH.  'data' contains at least
+ * the first 64 bytes of the failed request. */
+enum ofp_bad_match_code {
+    OFPBMC_BAD_TYPE         = 0;  /* Unsupported match type specified by the
+                                     match */
+    OFPBMC_BAD_LEN          = 1;  /* Length problem in match. */
+    OFPBMC_BAD_TAG          = 2;  /* Match uses an unsupported tag/encap. */
+    OFPBMC_BAD_DL_ADDR_MASK = 3;  /* Unsupported datalink addr mask - switch
+                                     does not support arbitrary datalink
+                                     address mask. */
+    OFPBMC_BAD_NW_ADDR_MASK = 4;  /* Unsupported network addr mask - switch
+                                     does not support arbitrary network
+                                     address mask. */
+    OFPBMC_BAD_WILDCARDS    = 5;  /* Unsupported combination of fields masked
+                                     or omitted in the match. */
+    OFPBMC_BAD_FIELD        = 6;  /* Unsupported field type in the match. */
+    OFPBMC_BAD_VALUE        = 7;  /* Unsupported value in a match field. */
+    OFPBMC_BAD_MASK         = 8;  /* Unsupported mask specified in the match,
+                                     field is not dl-address or nw-address. */
+    OFPBMC_BAD_PREREQ       = 9;  /* A prerequisite was not met. */
+    OFPBMC_DUP_FIELD        = 10; /* A field type was duplicated. */
+    OFPBMC_EPERM            = 11; /* Permissions error. */
+};
+
+/* ofp_error_msg 'code' values for OFPET_FLOW_MOD_FAILED.  'data' contains
+ * at least the first 64 bytes of the failed request. */
+enum ofp_flow_mod_failed_code {
+    OFPFMFC_UNKNOWN      = 0;   /* Unspecified error. */
+    OFPFMFC_TABLE_FULL   = 1;   /* Flow not added because table was full. */
+    OFPFMFC_BAD_TABLE_ID = 2;   /* Table does not exist */
+    OFPFMFC_OVERLAP      = 3;   /* Attempted to add overlapping flow with
+                                   CHECK_OVERLAP flag set. */
+    OFPFMFC_EPERM        = 4;   /* Permissions error. */
+    OFPFMFC_BAD_TIMEOUT  = 5;   /* Flow not added because of unsupported
+                                   idle/hard timeout. */
+    OFPFMFC_BAD_COMMAND  = 6;   /* Unsupported or unknown command. */
+    OFPFMFC_BAD_FLAGS    = 7;   /* Unsupported or unknown flags. */
+};
+
+/* ofp_error_msg 'code' values for OFPET_GROUP_MOD_FAILED.  'data' contains
+ * at least the first 64 bytes of the failed request. */
+enum ofp_group_mod_failed_code {
+    OFPGMFC_GROUP_EXISTS         = 0;  /* Group not added because a group ADD
+                                          attempted to replace an
+                                          already-present group. */
+    OFPGMFC_INVALID_GROUP        = 1;  /* Group not added because Group
+                                          specified is invalid. */
+    OFPGMFC_WEIGHT_UNSUPPORTED   = 2;  /* Switch does not support unequal load
+                                          sharing with select groups. */
+    OFPGMFC_OUT_OF_GROUPS        = 3;  /* The group table is full. */
+    OFPGMFC_OUT_OF_BUCKETS       = 4;  /* The maximum number of action buckets
+                                          for a group has been exceeded. */
+    OFPGMFC_CHAINING_UNSUPPORTED = 5;  /* Switch does not support groups that
+                                          forward to groups. */
+    OFPGMFC_WATCH_UNSUPPORTED    = 6;  /* This group cannot watch the
+                                          watch_port or watch_group specified.
+                                        */
+    OFPGMFC_LOOP                 = 7;  /* Group entry would cause a loop. */
+    OFPGMFC_UNKNOWN_GROUP        = 8;  /* Group not modified because a group
+                                          MODIFY attempted to modify a
+                                          non-existent group. */
+    OFPGMFC_CHAINED_GROUP        = 9;  /* Group not deleted because another
+                                          group is forwarding to it. */
+    OFPGMFC_BAD_TYPE             = 10; /* Unsupported or unknown group type. */
+    OFPGMFC_BAD_COMMAND          = 11; /* Unsupported or unknown command. */
+    OFPGMFC_BAD_BUCKET           = 12; /* Error in bucket. */
+    OFPGMFC_BAD_WATCH            = 13; /* Error in watch port/group. */
+    OFPGMFC_EPERM                = 14; /* Permissions error. */
+};
+
+/* ofp_error_msg 'code' values for OFPET_PORT_MOD_FAILED.  'data' contains
+ * at least the first 64 bytes of the failed request. */
+enum ofp_port_mod_failed_code {
+    OFPPMFC_BAD_PORT      = 0;   /* Specified port number does not exist. */
+    OFPPMFC_BAD_HW_ADDR   = 1;   /* Specified hardware address does not
+                                  * match the port number. */
+    OFPPMFC_BAD_CONFIG    = 2;   /* Specified config is invalid. */
+    OFPPMFC_BAD_ADVERTISE = 3;   /* Specified advertise is invalid. */
+    OFPPMFC_EPERM         = 4;   /* Permissions error. */
+};
+
+/* ofp_error_msg 'code' values for OFPET_TABLE_MOD_FAILED.  'data' contains
+ * at least the first 64 bytes of the failed request. */
+enum ofp_table_mod_failed_code {
+    OFPTMFC_BAD_TABLE  = 0;      /* Specified table does not exist. */
+    OFPTMFC_BAD_CONFIG = 1;      /* Specified config is invalid. */
+    OFPTMFC_EPERM      = 2;      /* Permissions error. */
+};
+
+/* ofp_error msg 'code' values for OFPET_QUEUE_OP_FAILED. 'data' contains
+ * at least the first 64 bytes of the failed request */
+enum ofp_queue_op_failed_code {
+    OFPQOFC_BAD_PORT   = 0;     /* Invalid port (or port does not exist). */
+    OFPQOFC_BAD_QUEUE  = 1;     /* Queue does not exist. */
+    OFPQOFC_EPERM      = 2;     /* Permissions error. */
+};
+
+/* ofp_error_msg 'code' values for OFPET_SWITCH_CONFIG_FAILED. 'data' contains
+ * at least the first 64 bytes of the failed request. */
+enum ofp_switch_config_failed_code {
+    OFPSCFC_BAD_FLAGS  = 0;      /* Specified flags is invalid. */
+    OFPSCFC_BAD_LEN    = 1;      /* Specified len is invalid. */
+    OFPSCFC_EPERM      = 2;      /* Permissions error. */
+};
+
+/* ofp_error_msg 'code' values for OFPET_ROLE_REQUEST_FAILED. 'data' contains
+ * at least the first 64 bytes of the failed request. */
+enum ofp_role_request_failed_code {
+    OFPRRFC_STALE      = 0;      /* Stale Message: old generation_id. */
+    OFPRRFC_UNSUP      = 1;      /* Controller role change unsupported. */
+    OFPRRFC_BAD_ROLE   = 2;      /* Invalid role. */
+};
+
+/* ofp_error_msg 'code' values for OFPET_METER_MOD_FAILED.  'data' contains
+ * at least the first 64 bytes of the failed request. */
+enum ofp_meter_mod_failed_code {
+    OFPMMFC_UNKNOWN       = 0;  /* Unspecified error. */
+    OFPMMFC_METER_EXISTS  = 1;  /* Meter not added because a Meter ADD
+                                 * attempted to replace an existing Meter. */
+    OFPMMFC_INVALID_METER = 2;  /* Meter not added because Meter specified
+                                 * is invalid,
+                                 * or invalid meter in meter action. */
+    OFPMMFC_UNKNOWN_METER = 3;  /* Meter not modified because a Meter MODIFY
+                                 * attempted to modify a non-existent Meter,
+                                 * or bad meter in meter action. */
+    OFPMMFC_BAD_COMMAND   = 4;  /* Unsupported or unknown command. */
+    OFPMMFC_BAD_FLAGS     = 5;  /* Flag configuration unsupported. */
+    OFPMMFC_BAD_RATE      = 6;  /* Rate unsupported. */
+    OFPMMFC_BAD_BURST     = 7;  /* Burst size unsupported. */
+    OFPMMFC_BAD_BAND      = 8;  /* Band unsupported. */
+    OFPMMFC_BAD_BAND_VALUE = 9; /* Band value unsupported. */
+    OFPMMFC_OUT_OF_METERS = 10; /* No more meters available. */
+    OFPMMFC_OUT_OF_BANDS  = 11; /* The maximum number of properties
+                                 * for a meter has been exceeded. */
+};
+
+/* ofp_error_msg 'code' values for OFPET_TABLE_FEATURES_FAILED. 'data' contains
+ * at least the first 64 bytes of the failed request. */
+enum ofp_table_features_failed_code {
+    OFPTFFC_BAD_TABLE    = 0;      /* Specified table does not exist. */
+    OFPTFFC_BAD_METADATA = 1;      /* Invalid metadata mask. */
+    OFPTFFC_BAD_TYPE     = 2;      /* Unknown property type. */
+    OFPTFFC_BAD_LEN      = 3;      /* Length problem in properties. */
+    OFPTFFC_BAD_ARGUMENT = 4;      /* Unsupported property value. */
+    OFPTFFC_EPERM        = 5;      /* Permissions error. */
+};
+
+/* OFPT_ERROR: Error message (datapath -> controller). */
+message ofp_error_msg {
+    //ofp_header header;
+    uint32 type = 1;
+    uint32 code = 2;
+    bytes data = 3;          /* Variable-length data.  Interpreted based
+                                 on the type and code.  No padding. */
+};
+
+/* OFPET_EXPERIMENTER: Error message (datapath -> controller). */
+message ofp_error_experimenter_msg {
+    //ofp_header header;
+
+    uint32 type = 1;           /* OFPET_EXPERIMENTER. */
+    uint32 exp_type = 2;       /* Experimenter defined. */
+    uint32 experimenter = 3;   /* Experimenter ID which takes the same form
+                                    as in struct ofp_experimenter_header. */
+    bytes data = 4;              /* Variable-length data.  Interpreted based
+                                    on the type and code.  No padding. */
+};
+
+enum ofp_multipart_type {
+    /* Description of this OpenFlow switch.
+     * The request body is empty.
+     * The reply body is struct ofp_desc. */
+    OFPMP_DESC = 0;
+
+    /* Individual flow statistics.
+     * The request body is struct ofp_flow_stats_request.
+     * The reply body is an array of struct ofp_flow_stats. */
+    OFPMP_FLOW = 1;
+
+    /* Aggregate flow statistics.
+     * The request body is struct ofp_aggregate_stats_request.
+     * The reply body is struct ofp_aggregate_stats_reply. */
+    OFPMP_AGGREGATE = 2;
+
+    /* Flow table statistics.
+     * The request body is empty.
+     * The reply body is an array of struct ofp_table_stats. */
+    OFPMP_TABLE = 3;
+
+    /* Port statistics.
+     * The request body is struct ofp_port_stats_request.
+     * The reply body is an array of struct ofp_port_stats. */
+    OFPMP_PORT_STATS = 4;
+
+    /* Queue statistics for a port
+     * The request body is struct ofp_queue_stats_request.
+     * The reply body is an array of struct ofp_queue_stats */
+    OFPMP_QUEUE = 5;
+
+    /* Group counter statistics.
+     * The request body is struct ofp_group_stats_request.
+     * The reply is an array of struct ofp_group_stats. */
+    OFPMP_GROUP = 6;
+
+    /* Group description.
+     * The request body is empty.
+     * The reply body is an array of struct ofp_group_desc. */
+    OFPMP_GROUP_DESC = 7;
+
+    /* Group features.
+     * The request body is empty.
+     * The reply body is struct ofp_group_features. */
+    OFPMP_GROUP_FEATURES = 8;
+
+    /* Meter statistics.
+     * The request body is struct ofp_meter_multipart_requests.
+     * The reply body is an array of struct ofp_meter_stats. */
+    OFPMP_METER = 9;
+
+    /* Meter configuration.
+     * The request body is struct ofp_meter_multipart_requests.
+     * The reply body is an array of struct ofp_meter_config. */
+    OFPMP_METER_CONFIG = 10;
+
+    /* Meter features.
+     * The request body is empty.
+     * The reply body is struct ofp_meter_features. */
+    OFPMP_METER_FEATURES = 11;
+
+    /* Table features.
+     * The request body is either empty or contains an array of
+     * struct ofp_table_features containing the controller's
+     * desired view of the switch. If the switch is unable to
+     * set the specified view an error is returned.
+     * The reply body is an array of struct ofp_table_features. */
+    OFPMP_TABLE_FEATURES = 12;
+
+    /* Port description.
+     * The request body is empty.
+     * The reply body is an array of struct ofp_port. */
+    OFPMP_PORT_DESC = 13;
+
+    /* Experimenter extension.
+     * The request and reply bodies begin with
+     * struct ofp_experimenter_multipart_header.
+     * The request and reply bodies are otherwise experimenter-defined. */
+    OFPMP_EXPERIMENTER = 0xffff;
+};
+
+/* Backward compatibility with 1.3.1 - avoid breaking the API. */
+//#define ofp_multipart_types ofp_multipart_type
+
+enum ofp_multipart_request_flags {
+    OFPMPF_REQ_INVALID = 0;
+    OFPMPF_REQ_MORE  = 1;  /* More requests to follow. */
+};
+
+message ofp_multipart_request {
+    //ofp_header header;
+    ofp_multipart_type type = 1; /* One of the OFPMP_* constants. */
+    uint32 flags = 2;            /* OFPMPF_REQ_* flags. */
+    bytes body = 3;              /* Body of the request. 0 or more bytes. */
+};
+
+enum ofp_multipart_reply_flags {
+    OFPMPF_REPLY_INVALID = 0;
+    OFPMPF_REPLY_MORE  = 1;  /* More replies to follow. */
+};
+
+message ofp_multipart_reply {
+    //ofp_header header;
+    ofp_multipart_type type = 1; /* One of the OFPMP_* constants. */
+    uint32 flags = 2;            /* OFPMPF_REPLY_* flags. */
+    bytes body = 3;              /* Body of the reply. 0 or more bytes. */
+};
+
+//#define DESC_STR_LEN   256
+//#define SERIAL_NUM_LEN 32
+/* Body of reply to OFPMP_DESC request.  Each entry is a NULL-terminated
+ * ASCII string. */
+message ofp_desc {
+    string mfr_desc = 1;       /* Manufacturer description. */
+    string hw_desc = 2;        /* Hardware description. */
+    string sw_desc = 3;        /* Software description. */
+    string serial_num = 4;     /* Serial number. */
+    string dp_desc = 5;        /* Human readable description of datapath. */
+};
+
+/* Body for ofp_multipart_request of type OFPMP_FLOW. */
+message ofp_flow_stats_request {
+    uint32 table_id = 1;       /* ID of table to read (from ofp_table_stats),
+                                    OFPTT_ALL for all tables. */
+    uint32 out_port = 2;       /* Require matching entries to include this
+                                    as an output port.  A value of OFPP_ANY
+                                    indicates no restriction. */
+    uint32 out_group = 3;      /* Require matching entries to include this
+                                    as an output group.  A value of OFPG_ANY
+                                    indicates no restriction. */
+    uint64 cookie = 4;         /* Require matching entries to contain this
+                                    cookie value */
+    uint64 cookie_mask = 5;    /* Mask used to restrict the cookie bits that
+                                    must match. A value of 0 indicates
+                                    no restriction. */
+    ofp_match match = 6;         /* Fields to match. Variable size. */
+};
+
+/* Body of reply to OFPMP_FLOW request. */
+message ofp_flow_stats {
+    uint64 id = 14;            /* Unique ID of flow within device. */
+    uint32 table_id = 1;       /* ID of table flow came from. */
+    uint32 duration_sec = 2;   /* Time flow has been alive in seconds. */
+    uint32 duration_nsec = 3;  /* Time flow has been alive in nanoseconds
+                                  beyond duration_sec. */
+    uint32 priority = 4;       /* Priority of the entry. */
+    uint32 idle_timeout = 5;   /* Number of seconds idle before expiration. */
+    uint32 hard_timeout = 6;   /* Number of seconds before expiration. */
+    uint32 flags = 7;          /* Bitmap of OFPFF_* flags. */
+    uint64 cookie = 8;         /* Opaque controller-issued identifier. */
+    uint64 packet_count = 9;   /* Number of packets in flow. */
+    uint64 byte_count = 10;    /* Number of bytes in flow. */
+    ofp_match match = 12;      /* Description of fields. Variable size. */
+    repeated ofp_instruction instructions = 13; /* Instruction set
+                                                   (0 or more) */
+};
+
+/* Body for ofp_multipart_request of type OFPMP_AGGREGATE. */
+message ofp_aggregate_stats_request {
+    uint32 table_id = 1;      /* ID of table to read (from ofp_table_stats)
+                                 OFPTT_ALL for all tables. */
+    uint32 out_port = 2;      /* Require matching entries to include this
+                                 as an output port.  A value of OFPP_ANY
+                                 indicates no restriction. */
+    uint32 out_group = 3;     /* Require matching entries to include this
+                                 as an output group.  A value of OFPG_ANY
+                                 indicates no restriction. */
+    uint64 cookie = 4;        /* Require matching entries to contain this
+                                 cookie value */
+    uint64 cookie_mask = 5;   /* Mask used to restrict the cookie bits that
+                                 must match. A value of 0 indicates
+                                 no restriction. */
+    ofp_match match = 6;      /* Fields to match. Variable size. */
+};
+
+/* Body of reply to OFPMP_AGGREGATE request. */
+message ofp_aggregate_stats_reply {
+    uint64 packet_count = 1;   /* Number of packets in flows. */
+    uint64 byte_count = 2;     /* Number of bytes in flows. */
+    uint32 flow_count = 3;     /* Number of flows. */
+};
+
+/* Table Feature property types.
+ * Low order bit cleared indicates a property for a regular Flow Entry.
+ * Low order bit set indicates a property for the Table-Miss Flow Entry.
+ */
+enum ofp_table_feature_prop_type {
+    OFPTFPT_INSTRUCTIONS           = 0;  /* Instructions property. */
+    OFPTFPT_INSTRUCTIONS_MISS      = 1;  /* Instructions for table-miss. */
+    OFPTFPT_NEXT_TABLES            = 2;  /* Next Table property. */
+    OFPTFPT_NEXT_TABLES_MISS       = 3;  /* Next Table for table-miss. */
+    OFPTFPT_WRITE_ACTIONS          = 4;  /* Write Actions property. */
+    OFPTFPT_WRITE_ACTIONS_MISS     = 5;  /* Write Actions for table-miss. */
+    OFPTFPT_APPLY_ACTIONS          = 6;  /* Apply Actions property. */
+    OFPTFPT_APPLY_ACTIONS_MISS     = 7;  /* Apply Actions for table-miss. */
+    OFPTFPT_MATCH                  = 8;  /* Match property. */
+    OFPTFPT_WILDCARDS              = 10; /* Wildcards property. */
+    OFPTFPT_WRITE_SETFIELD         = 12; /* Write Set-Field property. */
+    OFPTFPT_WRITE_SETFIELD_MISS    = 13; /* Write Set-Field for table-miss. */
+    OFPTFPT_APPLY_SETFIELD         = 14; /* Apply Set-Field property. */
+    OFPTFPT_APPLY_SETFIELD_MISS    = 15; /* Apply Set-Field for table-miss. */
+    OFPTFPT_EXPERIMENTER           = 0xFFFE; /* Experimenter property. */
+    OFPTFPT_EXPERIMENTER_MISS      = 0xFFFF; /* Experimenter for table-miss. */
+};
+
+/* Common header for all Table Feature Properties */
+message ofp_table_feature_property {
+    ofp_table_feature_prop_type type = 1;   /* One of OFPTFPT_*. */
+    oneof value {
+        ofp_table_feature_prop_instructions instructions = 2;
+        ofp_table_feature_prop_next_tables next_tables = 3;
+        ofp_table_feature_prop_actions actions = 4;
+        ofp_table_feature_prop_oxm oxm = 5;
+        ofp_table_feature_prop_experimenter experimenter = 6;
+    }
+};
+
+/* Instructions property */
+message ofp_table_feature_prop_instructions {
+    /* One of OFPTFPT_INSTRUCTIONS,
+       OFPTFPT_INSTRUCTIONS_MISS. */
+    repeated ofp_instruction instructions = 1;   /* List of instructions */
+};
+
+/* Next Tables property */
+message ofp_table_feature_prop_next_tables {
+    /* One of OFPTFPT_NEXT_TABLES,
+       OFPTFPT_NEXT_TABLES_MISS. */
+    repeated uint32 next_table_ids = 1;     /* List of table ids. */
+};
+
+/* Actions property */
+message ofp_table_feature_prop_actions {
+    /* One of OFPTFPT_WRITE_ACTIONS,
+       OFPTFPT_WRITE_ACTIONS_MISS,
+       OFPTFPT_APPLY_ACTIONS,
+       OFPTFPT_APPLY_ACTIONS_MISS. */
+    repeated ofp_action actions = 1; /* List of actions */
+};
+
+/* Match, Wildcard or Set-Field property */
+message ofp_table_feature_prop_oxm {
+    /* One of OFPTFPT_MATCH,
+       OFPTFPT_WILDCARDS,
+       OFPTFPT_WRITE_SETFIELD,
+       OFPTFPT_WRITE_SETFIELD_MISS,
+       OFPTFPT_APPLY_SETFIELD,
+       OFPTFPT_APPLY_SETFIELD_MISS. */
+    /* TODO is this a uint32??? */
+    repeated uint32 oxm_ids = 3;    /* Array of OXM headers */
+};
+
+/* Experimenter table feature property */
+message ofp_table_feature_prop_experimenter {
+    /* One of OFPTFPT_EXPERIMENTER,
+       OFPTFPT_EXPERIMENTER_MISS. */
+    uint32         experimenter = 2; /* Experimenter ID which takes the same
+                                        form as in struct
+                                        ofp_experimenter_header. */
+    uint32         exp_type = 3;      /* Experimenter defined. */
+    repeated uint32 experimenter_data = 4;
+};
+
+/* Body for ofp_multipart_request of type OFPMP_TABLE_FEATURES./
+ * Body of reply to OFPMP_TABLE_FEATURES request. */
+message ofp_table_features {
+    uint32 table_id = 1;       /* Identifier of table.  Lower numbered tables
+                                are consulted first. */
+    string name = 2;
+    uint64 metadata_match = 3; /* Bits of metadata table can match. */
+    uint64 metadata_write = 4; /* Bits of metadata table can write. */
+    uint32 config = 5;         /* Bitmap of OFPTC_* values */
+    uint32 max_entries = 6;    /* Max number of entries supported. */
+
+    /* Table Feature Property list */
+    repeated ofp_table_feature_property properties = 7;
+};
+
+/* Body of reply to OFPMP_TABLE request. */
+message ofp_table_stats {
+    uint32 table_id = 1;      /* Identifier of table.  Lower numbered tables
+                                 are consulted first. */
+    uint32 active_count = 2;  /* Number of active entries. */
+    uint64 lookup_count = 3;  /* Number of packets looked up in table. */
+    uint64 matched_count = 4; /* Number of packets that hit table. */
+};
+
+/* Body for ofp_multipart_request of type OFPMP_PORT. */
+message ofp_port_stats_request {
+    uint32 port_no = 1;       /* OFPMP_PORT message must request statistics
+                               * either for a single port (specified in
+                               * port_no) or for all ports (if port_no ==
+                               * OFPP_ANY). */
+};
+
+/* Body of reply to OFPMP_PORT request. If a counter is unsupported, set
+ * the field to all ones. */
+message ofp_port_stats {
+    uint32 port_no = 1;
+    uint64 rx_packets = 2;   /* Number of received packets. */
+    uint64 tx_packets = 3;   /* Number of transmitted packets. */
+    uint64 rx_bytes = 4;     /* Number of received bytes. */
+    uint64 tx_bytes = 5;     /* Number of transmitted bytes. */
+    uint64 rx_dropped = 6;   /* Number of packets dropped by RX. */
+    uint64 tx_dropped = 7;   /* Number of packets dropped by TX. */
+    uint64 rx_errors = 8;    /* Number of receive errors.  This is a super-set
+                                of more specific receive errors and should be
+                                greater than or equal to the sum of all
+                                rx_*_err values. */
+    uint64 tx_errors = 9;    /* Number of transmit errors.  This is a super-set
+                                of more specific transmit errors and should be
+                                greater than or equal to the sum of all
+                                tx_*_err values (none currently defined.) */
+    uint64 rx_frame_err = 10;  /* Number of frame alignment errors. */
+    uint64 rx_over_err = 11;   /* Number of packets with RX overrun. */
+    uint64 rx_crc_err = 12;    /* Number of CRC errors. */
+    uint64 collisions = 13;    /* Number of collisions. */
+    uint32 duration_sec = 14;  /* Time port has been alive in seconds. */
+    uint32 duration_nsec = 15; /* Time port has been alive in nanoseconds
+                                  beyond duration_sec. */
+};
+
+/* Body of OFPMP_GROUP request. */
+message ofp_group_stats_request {
+    uint32 group_id = 1;      /* All groups if OFPG_ALL. */
+};
+
+/* Used in group stats replies. */
+message ofp_bucket_counter {
+    uint64 packet_count = 1;  /* Number of packets processed by bucket. */
+    uint64 byte_count = 2;    /* Number of bytes processed by bucket. */
+};
+
+/* Body of reply to OFPMP_GROUP request. */
+message ofp_group_stats {
+    uint32 group_id = 1;      /* Group identifier. */
+    uint32 ref_count = 2;     /* Number of flows or groups that directly
+                                 forward to this group. */
+    uint64 packet_count = 3;  /* Number of packets processed by group. */
+    uint64 byte_count = 4;    /* Number of bytes processed by group. */
+    uint32 duration_sec = 5;  /* Time group has been alive in seconds. */
+    uint32 duration_nsec = 6; /* Time group has been alive in nanoseconds
+                                 beyond duration_sec. */
+    repeated ofp_bucket_counter bucket_stats = 7; /* One counter set per
+                                                     bucket. */
+};
+
+/* Body of reply to OFPMP_GROUP_DESC request. */
+message ofp_group_desc {
+    ofp_group_type type = 1;       /* One of OFPGT_*. */
+    uint32 group_id = 2;           /* Group identifier. */
+    repeated ofp_bucket buckets = 3;   /* List of buckets - 0 or more. */
+};
+
+message ofp_group_entry {
+    ofp_group_desc desc = 1;
+    ofp_group_stats stats = 2;
+};
+
+/* Backward compatibility with 1.3.1 - avoid breaking the API. */
+//#define ofp_group_desc_stats ofp_group_desc
+
+/* Group configuration flags */
+enum ofp_group_capabilities {
+    OFPGFC_INVALID         = 0;
+    OFPGFC_SELECT_WEIGHT   = 1;  /* Support weight for select groups */
+    OFPGFC_SELECT_LIVENESS = 2;  /* Support liveness for select groups */
+    OFPGFC_CHAINING        = 4;  /* Support chaining groups */
+    OFPGFC_CHAINING_CHECKS = 8;  /* Check chaining for loops and delete */
+};
+
+/* Body of reply to OFPMP_GROUP_FEATURES request. Group features. */
+message ofp_group_features {
+    uint32  types = 1;         /* Bitmap of (1 << OFPGT_*) values supported. */
+    uint32  capabilities = 2;  /* Bitmap of OFPGFC_* capability supported. */
+    repeated uint32 max_groups = 3; /* Maximum number of groups for each type.
+                                     */
+    repeated uint32 actions = 4;    /* Bitmaps of (1 << OFPAT_*) values
+                                       supported. */
+};
+
+/* Body of OFPMP_METER and OFPMP_METER_CONFIG requests. */
+message ofp_meter_multipart_request {
+    uint32 meter_id = 1;      /* Meter instance, or OFPM_ALL. */
+};
+
+/* Statistics for each meter band */
+message ofp_meter_band_stats {
+    uint64        packet_band_count = 1;  /* Number of packets in band. */
+    uint64        byte_band_count = 2;    /* Number of bytes in band. */
+};
+
+/* Body of reply to OFPMP_METER request. Meter statistics. */
+message ofp_meter_stats {
+    uint32        meter_id = 1;        /* Meter instance. */
+    uint32        flow_count = 2;      /* Number of flows bound to meter. */
+    uint64        packet_in_count = 3; /* Number of packets in input. */
+    uint64        byte_in_count = 4;   /* Number of bytes in input. */
+    uint32        duration_sec = 5; /* Time meter has been alive in seconds. */
+    uint32        duration_nsec = 6;/* Time meter has been alive in nanoseconds
+                                       beyond duration_sec. */
+    repeated ofp_meter_band_stats band_stats = 7; /* The band_stats length is
+                                         inferred from the length field. */
+};
+
+/* Body of reply to OFPMP_METER_CONFIG request. Meter configuration. */
+message ofp_meter_config {
+    uint32        flags = 1;           /* All OFPMF_* that apply. */
+    uint32        meter_id = 2;        /* Meter instance. */
+    repeated ofp_meter_band_header bands = 3; /* The bands length is
+                                             inferred from the length field. */
+};
+
+/* Body of reply to OFPMP_METER_FEATURES request. Meter features. */
+message ofp_meter_features {
+    uint32    max_meter = 1;    /* Maximum number of meters. */
+    uint32    band_types = 2;   /* Bitmaps of (1 << OFPMBT_*) values supported.
+                                 */
+    uint32    capabilities = 3; /* Bitmaps of "ofp_meter_flags". */
+    uint32    max_bands = 4;    /* Maximum bands per meters */
+    uint32    max_color = 5;    /* Maximum color value */
+};
+
+/* Body for ofp_multipart_request/reply of type OFPMP_EXPERIMENTER. */
+message ofp_experimenter_multipart_header {
+    uint32 experimenter = 1;   /* Experimenter ID which takes the same form
+                                  as in struct ofp_experimenter_header. */
+    uint32 exp_type = 2;       /* Experimenter defined. */
+    bytes data = 3; /* Experimenter-defined arbitrary additional data. */
+};
+
+/* Experimenter extension. */
+message ofp_experimenter_header {
+    //ofp_header header;  /* Type OFPT_EXPERIMENTER. */
+    uint32 experimenter = 1;     /* Experimenter ID:
+                                 * - MSB 0: low-order bytes are IEEE OUI.
+                                 * - MSB != 0: defined by ONF. */
+    uint32 exp_type = 2;         /* Experimenter defined. */
+    bytes data = 3; /* Experimenter-defined arbitrary additional data. */
+};
+
+/* All ones is used to indicate all queues in a port (for stats retrieval). */
+//#define OFPQ_ALL      0xffffffff
+
+/* Min rate > 1000 means not configured. */
+//#define OFPQ_MIN_RATE_UNCFG      0xffff
+
+/* Max rate > 1000 means not configured. */
+//#define OFPQ_MAX_RATE_UNCFG      0xffff
+
+enum ofp_queue_properties {
+    OFPQT_INVALID       = 0;
+    OFPQT_MIN_RATE      = 1;      /* Minimum datarate guaranteed. */
+    OFPQT_MAX_RATE      = 2;      /* Maximum datarate. */
+    OFPQT_EXPERIMENTER  = 0xffff; /* Experimenter defined property. */
+};
+
+/* Common description for a queue. */
+message ofp_queue_prop_header {
+    uint32 property = 1;   /* One of OFPQT_. */
+    uint32 len = 2;        /* Length of property, including this header. */
+};
+
+/* Min-Rate queue property description. */
+message ofp_queue_prop_min_rate {
+    ofp_queue_prop_header prop_header = 1;/* prop: OFPQT_MIN, len: 16. */
+    uint32 rate = 2;       /* In 1/10 of a percent = 0;>1000 -> disabled. */
+};
+
+/* Max-Rate queue property description. */
+message ofp_queue_prop_max_rate {
+    ofp_queue_prop_header prop_header = 1;/* prop: OFPQT_MAX, len: 16. */
+    uint32 rate = 2;       /* In 1/10 of a percent = 0;>1000 -> disabled. */
+};
+
+/* Experimenter queue property description. */
+message ofp_queue_prop_experimenter {
+    ofp_queue_prop_header prop_header = 1;/* prop: OFPQT_EXPERIMENTER */
+    uint32 experimenter = 2;         /* Experimenter ID which takes the same
+                                          form as in struct
+                                          ofp_experimenter_header. */
+    bytes data = 3;                    /* Experimenter defined data. */
+};
+
+/* Full description for a queue. */
+message ofp_packet_queue {
+    uint32 queue_id = 1;    /* id for the specific queue. */
+    uint32 port = 2;        /* Port this queue is attached to. */
+    repeated ofp_queue_prop_header properties = 4; /* List of properties. */
+};
+
+/* Query for port queue configuration. */
+message ofp_queue_get_config_request {
+    //ofp_header header;
+    uint32 port = 1;        /* Port to be queried. Should refer
+                              to a valid physical port (i.e. <= OFPP_MAX),
+                              or OFPP_ANY to request all configured
+                              queues.*/
+};
+
+/* Queue configuration for a given port. */
+message ofp_queue_get_config_reply {
+    //ofp_header header;
+    uint32 port = 1;
+    repeated ofp_packet_queue queues = 2; /* List of configured queues. */
+};
+
+/* OFPAT_SET_QUEUE action struct: send packets to given queue on port. */
+message ofp_action_set_queue {
+    uint32 type = 1;           /* OFPAT_SET_QUEUE. */
+    uint32 queue_id = 3;       /* Queue id for the packets. */
+};
+
+message ofp_queue_stats_request {
+    uint32 port_no = 1;       /* All ports if OFPP_ANY. */
+    uint32 queue_id = 2;      /* All queues if OFPQ_ALL. */
+};
+
+message ofp_queue_stats {
+    uint32 port_no = 1;
+    uint32 queue_id = 2;      /* Queue i.d */
+    uint64 tx_bytes = 3;      /* Number of transmitted bytes. */
+    uint64 tx_packets = 4;    /* Number of transmitted packets. */
+    uint64 tx_errors = 5;     /* Number of packets dropped due to overrun. */
+    uint32 duration_sec = 6;  /* Time queue has been alive in seconds. */
+    uint32 duration_nsec = 7; /* Time queue has been alive in nanoseconds
+                                 beyond duration_sec. */
+};
+
+/* Configures the "role" of the sending controller.  The default role is:
+ *
+ *    - Equal (OFPCR_ROLE_EQUAL), which allows the controller access to all
+ *      OpenFlow features. All controllers have equal responsibility.
+ *
+ * The other possible roles are a related pair:
+ *
+ *    - Master (OFPCR_ROLE_MASTER) is equivalent to Equal, except that there
+ *      may be at most one Master controller at a time: when a controller
+ *      configures itself as Master, any existing Master is demoted to the
+ *      Slave role.
+ *
+ *    - Slave (OFPCR_ROLE_SLAVE) allows the controller read-only access to
+ *      OpenFlow features.  In particular attempts to modify the flow table
+ *      will be rejected with an OFPBRC_EPERM error.
+ *
+ *      Slave controllers do not receive OFPT_PACKET_IN or OFPT_FLOW_REMOVED
+ *      messages, but they do receive OFPT_PORT_STATUS messages.
+ */
+
+/* Controller roles. */
+enum ofp_controller_role {
+    OFPCR_ROLE_NOCHANGE = 0;    /* Don't change current role. */
+    OFPCR_ROLE_EQUAL    = 1;    /* Default role, full access. */
+    OFPCR_ROLE_MASTER   = 2;    /* Full access, at most one master. */
+    OFPCR_ROLE_SLAVE    = 3;    /* Read-only access. */
+};
+
+/* Role request and reply message. */
+message ofp_role_request {
+    //ofp_header header;        /* Type OFPT_ROLE_REQUEST/OFPT_ROLE_REPLY. */
+    ofp_controller_role role = 1; /* One of OFPCR_ROLE_*. */
+    uint64 generation_id = 2;     /* Master Election Generation Id */
+};
+
+/* Asynchronous message configuration. */
+message ofp_async_config {
+    //ofp_header header;    /* OFPT_GET_ASYNC_REPLY or OFPT_SET_ASYNC. */
+    repeated uint32 packet_in_mask = 1;   /* Bitmasks of OFPR_* values. */
+    repeated uint32 port_status_mask = 2; /* Bitmasks of OFPPR_* values. */
+    repeated uint32 flow_removed_mask = 3;/* Bitmasks of OFPRR_* values. */
+};
+
+
+/* ADDITIONAL VOLTHA SPECIFIC MESSAGE TYPES, AIDING RPC CALLS */
+
+message FlowTableUpdate {
+    string id = 1;  // Device.id or LogicalDevice.id
+    ofp_flow_mod flow_mod = 2;
+}
+
+message FlowGroupTableUpdate {
+    string id = 1;  // Device.id or LogicalDevice.id
+    ofp_group_mod group_mod = 2;
+}
+
+message Flows {
+    repeated ofp_flow_stats items = 1;
+}
+
+message FlowGroups {
+    repeated ofp_group_entry items = 1;
+}
+
+message PacketIn {
+    string id = 1;  // LogicalDevice.id
+    ofp_packet_in packet_in = 2;
+}
+
+message PacketOut {
+    string id = 1;  // LogicalDevice.id
+    ofp_packet_out packet_out = 2;
+}

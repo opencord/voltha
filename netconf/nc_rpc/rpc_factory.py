@@ -28,6 +28,7 @@ from base.lock import Lock
 from base.unlock import UnLock
 from base.close_session import CloseSession
 from base.kill_session import KillSession
+from ext.get_voltha import GetVoltha
 from netconf import NSMAP, qmap
 import netconf.nc_common.error as ncerror
 log = structlog.get_logger()
@@ -36,7 +37,7 @@ class RpcFactory:
 
 	instance = None
 
-	def get_rpc_handler(self, rpc_node, msg, session):
+	def get_rpc_handler(self, rpc_node, msg, grpc_channel, session):
 		try:
 			msg_id = rpc_node.get('message-id')
 			log.info("Received-rpc-message-id", msg_id=msg_id)
@@ -59,12 +60,13 @@ class RpcFactory:
 
 		class_handler = self.rpc_class_handlers.get(rpc_name, None)
 		if class_handler is not None:
-			return class_handler(rpc_node, rpc_method, session)
+			return class_handler(rpc_node, rpc_method, grpc_channel, session)
 
 		log.error("rpc-not-implemented", rpc=rpc_name)
 
 
 	rpc_class_handlers = {
+		'getvoltha' : GetVoltha,
 		'get-config': GetConfig,
 		'get': Get,
 		'edit-config': EditConfig,
@@ -83,3 +85,8 @@ def get_rpc_factory_instance():
 		RpcFactory.instance = RpcFactory()
 	return RpcFactory.instance
 
+
+if __name__ == '__main__':
+   fac = get_rpc_factory_instance()
+   rpc = fac.rpc_class_handlers.get('getvoltha', None)
+   print rpc(None,None,None)

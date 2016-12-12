@@ -43,9 +43,27 @@ from google.protobuf.descriptor import FieldDescriptor
 
 template_yang = Template("""
 module ietf-{{ module.name }} {
-    yang-version 1.1;
-    namespace "urn:ietf:params:xml:ns:yang:ietf-{{ module.name }}";
-    prefix "voltha";
+
+    {% macro set_module_prefix(type) %}
+        {% for t in module.data_types %}
+            {% if t.type == type %}
+                {% if t.module != module.name %} {{ t.module }}:{{ type }};
+                {% else %} {{ type }};
+                {% endif %}
+                {% set found=True %}
+            {% endif %}
+        {% if loop.last %}
+            {% if not found %} {{ type }}; {% endif %}
+        {% endif %}
+        {% endfor %}
+    {% endmacro %}
+
+    namespace "urn:opencord:params:xml:ns:voltha:ietf-{{ module.name }}";
+    prefix {{ module.name }};
+
+    {% for imp in module.imports %}
+    import ietf-{{ imp.name }} { prefix {{ imp.name }} ; }
+    {% endfor %}
 
     organization "CORD";
     contact
@@ -74,7 +92,7 @@ module ietf-{{ module.name }} {
     {% endfor %}
 
     {% for message in module.messages recursive %}
-    {% if message.name in module.referenced_messages %}
+    {% if message.name in module.referred_messages %}
     grouping {{ message.name }} {
     {% else %}
     container {{ message.name }} {
@@ -84,17 +102,21 @@ module ietf-{{ module.name }} {
         {% for field in message.fields %}
         {% if field.type_ref %}
         {% for dict_item in module.referred_messages_with_keys %}
-                {% if dict_item.name == field.type %}
+            {% if dict_item.name == field.type %}
+                {% if not field.repeated %}
+        container {{ field.name }} {
+                {% else %}
         list {{ field.name }} {
             key "{{ dict_item.key }}";
             {% if not field.repeated %}
             max-elements 1;
             {% endif %}
-            uses {{ field.type }};
+            {% endif %}
+            uses {{ set_module_prefix(field.type) }}
             description
                 "{{ field.description }}";
         }
-                {% endif %}
+            {% endif %}
         {% endfor %}
         {% elif field.repeated %}
         list {{ field.name }} {
@@ -105,7 +127,7 @@ module ietf-{{ module.name }} {
                    fraction-digits 5;
                 }
                 {% else %}
-                type {{ field.type }};
+                type {{ set_module_prefix(field.type) }}
                 {% endif %}
                 description
                     "{{ field.description }}";
@@ -120,7 +142,7 @@ module ietf-{{ module.name }} {
                fraction-digits 5;
             }
             {% else %}
-            type {{ field.type }};
+            type {{ set_module_prefix(field.type) }}
             {% endif %}
             description
                 "{{ field.description }}";
@@ -159,10 +181,10 @@ module ietf-{{ module.name }} {
         {% if method.input %}
         input {
             {% if method.input_ref %}
-            uses {{ method.input }};
+            uses {{ set_module_prefix(method.input) }}
             {% else %}
             leaf {{ method.input }} {
-                type {{ method.input }};
+                type {{ set_module_prefix(method.input) }}
             }
             {% endif %}
         }
@@ -170,10 +192,10 @@ module ietf-{{ module.name }} {
         {% if method.output %}
         output {
             {% if method.output_ref %}
-            uses {{ method.output }};
+            uses {{ set_module_prefix(method.output) }}
             {% else %}
             leaf {{ method.output }} {
-                type {{ method.output }};
+                type {{ set_module_prefix(method.output) }}
             }
             {% endif %}
         }
@@ -185,6 +207,19 @@ module ietf-{{ module.name }} {
     {% endfor %}
 }
 """, trim_blocks=True, lstrip_blocks=True)
+
+# def traverse_dependencies(descriptor):
+#     dependencies = []
+#     proto_imports = descriptor.get('dependency', [])
+#     for proto_import in proto_imports:
+#         # If the import file has a directory path to it remove it as it is not
+#         # allowed in Yang.  The proto extension should be removed as well
+#         dependencies.append (
+#             {
+#             'name' : proto_import.split('/')[-1][:-len('.proto')]
+#             }
+#         )
+#     return dependencies
 
 
 def traverse_messages(message_types, prefix, referenced_messages):
@@ -229,6 +264,9 @@ def traverse_fields(fields_desc, prefix, referenced_messages):
         yang_base_type = is_base_type(field['type'])
         _type = get_yang_type(field)
         if not yang_base_type:
+            referenced_messages.append(_type)
+        # add to referred messages also if it is an enumeration type
+        if is_enumeration(field['type']):
             referenced_messages.append(_type)
 
         fields.append(
@@ -326,6 +364,7 @@ def traverse_desc(descriptor):
     name = rchop(descriptor.get('name', ''), '.proto')
     package = descriptor.get('package', '')
     description = descriptor.get('_description', '')
+    # imports=traverse_dependencies(descriptor)
     messages = traverse_messages(descriptor.get('message_type', []),
                                  package, referenced_messages)
     enums = traverse_enums(descriptor.get('enum_type', []), package)
@@ -333,26 +372,33 @@ def traverse_desc(descriptor):
                                  referenced_messages)
     # extensions = _traverse_extensions(descriptors)
     # options = _traverse_options(descriptors)
-    set_messages_keys(messages)
-    unique_referred_messages_with_keys = []
-    for message_name in list(set(referenced_messages)):
-        unique_referred_messages_with_keys.append(
-            {
-                'name': message_name,
-                'key': get_message_key(message_name, messages)
-            }
-        )
+    # set_messages_keys(messages)
+    # unique_referred_messages_with_keys = []
+    # for message_name in list(set(referenced_messages)):
+    #     unique_referred_messages_with_keys.append(
+    #         {
+    #             'name': message_name,
+    #             'key': get_message_key(message_name, messages)
+    #         }
+    #     )
+
+    # Get a list of type definitions (messages, enums) defined in this
+    # descriptor
+    defined_types = [m['name'].split('/')[-1] for m in messages] + \
+                    [e['name'].split('/')[-1]  for e in enums]
 
     data = {
-        'name': name,
+        'name': name.split('/')[-1],
         'package': package,
         'description': description,
+        # 'imports' : imports,
         'messages': messages,
         'enums': enums,
         'services': services,
+        'defined_types' : defined_types,
         'referenced_messages': list(set(referenced_messages)),
         # TODO:  simplify for easier jinja2 template use
-        'referred_messages_with_keys': unique_referred_messages_with_keys,
+        # 'referred_messages_with_keys': unique_referred_messages_with_keys,
         # 'extensions': extensions,
         # 'options': options
     }
@@ -361,22 +407,35 @@ def traverse_desc(descriptor):
 
 def set_messages_keys(messages):
     for message in messages:
-        message['key'] = _get_message_key(message)
+        message['key'] = _get_message_key(message, messages)
         if message['messages']:
             set_messages_keys(message['messages'])
 
-
-def _get_message_key(message):
+def _get_message_key(message, messages):
     # assume key is first yang base type field
     for field in message['fields']:
         if not field['type_ref']:
             return field['name']
+        else:
+            # if the field name is a message then loop for the key in that
+            # message
+            ref_message = _get_message(field['type'], messages)
+            if ref_message:
+                return _get_message_key(ref_message, messages)
+
     # no key yet - search nested messaged
-    if message['messages']:
-        return get_message_key(message['messages'])
+    for m in message['messages']:
+        key = _get_message_key(m, messages)
+        if key is not None:
+            return key
     else:
         return None
 
+def _get_message(name, messages):
+    for m in messages:
+        if m['name'] == name:
+            return m
+    return None
 
 def get_message_key(message_name, messages):
     for message in messages:
@@ -387,30 +446,76 @@ def get_message_key(message_name, messages):
     return None
 
 
+def update_module_imports(module):
+    used_imports = set()
+    for ref_msg in module['referenced_messages']:
+        for type_dict in module['data_types']:
+            if ref_msg == type_dict['type']:
+                if module['name'] != type_dict['module']:
+                    used_imports.add(type_dict['module'])
+                break
+    module['imports'] = [{'name' : i} for i in used_imports]
+
+
 def generate_code(request, response):
     assert isinstance(request, plugin.CodeGeneratorRequest)
 
     parser = DescriptorParser()
 
-    # idx = 1
+    # First process the proto file with the imports
+    all_defined_types = []
+    all_proto_data = []
+    all_referred_messages = []
+    all_messages = []
     for proto_file in request.proto_file:
         native_data = parser.parse_file_descriptor(proto_file,
                                                    type_tag_name='_type',
                                                    fold_comments=True)
 
-        # print native_data
+        # Consolidate the defined types across imports
         yang_data = traverse_desc(native_data)
+        for type in yang_data['defined_types']:
+            all_defined_types.append(
+                {
+                    'type' : type,
+                    'module' : yang_data['name']
+                }
+            )
 
+        all_proto_data.append(
+            {
+                'file_name': '{}-{}'.format('ietf', proto_file.name.split(
+                    '/')[-1].replace('.proto','.yang')),
+                'module': yang_data
+            }
+        )
+
+        # Consolidate referred messages across imports
+        all_referred_messages = all_referred_messages + yang_data['referenced_messages']
+
+        # consolidate all messages
+        all_messages = all_messages + yang_data['messages']
+
+    # Set the message keys - required for List definitions (repeated label)
+    set_messages_keys(all_messages)
+    unique_referred_messages_with_keys = []
+    for m in all_messages:
+        unique_referred_messages_with_keys.append(
+                {
+                    'name': m['name'],
+                    'key': m['key']
+                }
+            )
+
+    # Create the files
+    for proto_data in all_proto_data:
         f = response.file.add()
-        # TODO: We should have a separate file for each output. There is an
-        # issue reusing the same filename with an incremental suffix.  Using
-        # a different file name works but not the actual proto file name
-        f.name = '{}-{}'.format('ietf', proto_file.name.replace('.proto',
-                                                                '.yang'))
-        # f.name = '{}_{}{}'.format(_rchop(proto_file.name, '.proto'), idx,
-        #                            '.yang')
-        # idx += 1
-        f.content = template_yang.render(module=yang_data)
+        f.name = proto_data['file_name']
+        proto_data['module']['data_types'] = all_defined_types
+        proto_data['module']['referred_messages'] = all_referred_messages
+        proto_data['module']['referred_messages_with_keys'] = unique_referred_messages_with_keys
+        update_module_imports(proto_data['module'])
+        f.content = template_yang.render(module=proto_data['module'])
 
 
 def get_yang_type(field):
@@ -426,6 +531,11 @@ def get_yang_type(field):
     else:
         return type
 
+def is_enumeration(type):
+    if type in YANG_TYPE_MAP.keys():
+        _type, _ = YANG_TYPE_MAP[type]
+        return _type in ['enumeration']
+    return False
 
 def is_base_type(type):
     # check numeric value of the type first
@@ -435,7 +545,8 @@ def is_base_type(type):
     else:
         # proto name of the type
         result = [_format for (_, _format) in YANG_TYPE_MAP.values() if
-                  _format == type and _format not in ['message', 'group']]
+                  _format == type and _format not in ['message',
+                                                      'group']]
         return len(result) > 0
 
 

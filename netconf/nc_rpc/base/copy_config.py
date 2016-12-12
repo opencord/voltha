@@ -23,8 +23,9 @@ log = structlog.get_logger()
 
 class CopyConfig(Rpc):
 
-	def __init__(self, rpc_request, rpc_method, session):
-		super(CopyConfig, self).__init__(rpc_request, rpc_method, session)
+	def __init__(self, rpc_request, rpc_method, grpc_client, session):
+		super(CopyConfig, self).__init__(rpc_request, rpc_method,
+										 grpc_client, session)
 		self._validate_parameters()
 
 	def execute(self):
