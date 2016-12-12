@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fa0f191f_400cc294",
+        "filename": "voltha/adapters/loader.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 1000004
+      },
+      "writtenOn": "2016-12-12T01:52:07Z",
+      "side": 1,
+      "message": "I wonder if this should be driven by some config file because voltha may have many adaptors which we may not want to be loaded. \n\nAlso, adaptors should be loadable dynamically.",
+      "range": {
+        "startLine": 70,
+        "startChar": 8,
+        "endLine": 70,
+        "endChar": 22
+      },
+      "revId": "89a27307b78281fa7d90a2518aec81723927ffdd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa0f191f_2011ceac",
+        "filename": "voltha/adapters/tibit_olt/tb_json_version.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 63,
+      "author": {
+        "id": 1000004
+      },
+      "writtenOn": "2016-12-12T01:52:07Z",
+      "side": 1,
+      "message": "why not simply:\n\n   return macid.replace(\u0027:\u0027,\u0027\u0027)",
+      "range": {
+        "startLine": 61,
+        "startChar": 4,
+        "endLine": 63,
+        "endChar": 20
+      },
+      "revId": "89a27307b78281fa7d90a2518aec81723927ffdd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
