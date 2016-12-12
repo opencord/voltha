@@ -10,6 +10,8 @@ use_latest_for:
   - libssl-dev
   - libffi-dev
   - libpcap-dev
+  - libxml2-dev
+  - libxslt1-dev
   - python-virtualenv
   - jq
   - python-nose
