@@ -563,6 +563,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             assert len(downstream_ports) == 1
             flows = OrderedDict((f.id, f) for f in [
                 mk_flow_stat(
+                    priority=1000,
                     match_fields=[
                         in_port(downstream_ports[0].port_no),
                         vlan_vid(ofp.OFPVID_PRESENT | 0)
@@ -611,10 +612,9 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
 
         # If egress_port is not specified (None), we can also can return a
         # "half" route
-        if egress_port_no is None and \
-            ingress_port_no == self._nni_logical_port_no:
+        if egress_port_no is None:
             for (ingress, egress), route in self._routes.iteritems():
-                if ingress == self._nni_logical_port_no:
+                if ingress == ingress_port_no:
                     return [route[0], None]
             raise Exception('not a single downstream route')
 
