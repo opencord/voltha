@@ -36,7 +36,11 @@ class Get(Rpc):
 			return self.rpc_response
 
 	def _validate_parameters(self):
-		log.info('validate-parameters', session=self.session.session_id)
+		log.info('validate-parameters',
+				 session=self.session.session_id,
+				 request=self.rpc_request,
+				 method=self.rpc_method
+				 )
 		self.params = self.rpc_method.getchildren()
 		if len(self.params) > 1:
 			self.rpc_response.is_error = True
