@@ -597,7 +597,10 @@ class FlowDecomposer(object):
                         ]
                     ))
 
-                    group = group_map[grp_id]
+                    # having no group yet is the same as having a group with
+                    # no buckets
+                    group = group_map.get(grp_id, ofp.ofp_group_entry())
+
                     for bucket in group.desc.buckets:
                         found_pop_vlan = False
                         other_actions = []
