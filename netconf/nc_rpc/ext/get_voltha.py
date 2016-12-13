@@ -35,7 +35,8 @@ class GetVoltha(Rpc):
 
     @inlineCallbacks
     def execute(self):
-        log.info('get-voltha-request', session=self.session.session_id)
+        log.info('get-voltha-request', session=self.session.session_id,
+                 method=self.rpc_method)
         if self.rpc_response.is_error:
             returnValue(self.rpc_response)
 
@@ -46,7 +47,11 @@ class GetVoltha(Rpc):
         xml = dicttoxml.dicttoxml(res_dict)
         log.info('voltha-info', res=res_dict, xml=xml)
 
-        self.rpc_response.node = self.get_root_element(xml)
+        root_elem = self.get_root_element(xml)
+        root_elem.tag = 'data'
+
+        self.rpc_method.append(root_elem)
+        self.rpc_response.node = self.rpc_method
         self.rpc_response.is_error = False
 
         returnValue(self.rpc_response)
