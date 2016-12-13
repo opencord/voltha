@@ -563,7 +563,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             assert len(downstream_ports) == 1
             flows = OrderedDict((f.id, f) for f in [
                 mk_flow_stat(
-                    priority=1000,
+                    priority=500,
                     match_fields=[
                         in_port(downstream_ports[0].port_no),
                         vlan_vid(ofp.OFPVID_PRESENT | 0)
