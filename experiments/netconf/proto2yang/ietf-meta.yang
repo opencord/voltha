@@ -26,6 +26,9 @@ module ietf-meta {
             enum READ_ONLY {
                 description "";
             }
+            enum REAL_TIME {
+                description "";
+            }
         }
         description
             "";

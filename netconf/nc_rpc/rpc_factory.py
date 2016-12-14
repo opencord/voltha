@@ -31,109 +31,114 @@ from base.kill_session import KillSession
 from ext.get_voltha import GetVoltha
 from netconf import NSMAP, qmap
 import netconf.nc_common.error as ncerror
+
 log = structlog.get_logger()
 from lxml import etree
 
 
 class RpcFactory:
+    instance = None
 
-	instance = None
+    def __init__(self):
+        self.rpc_map = {}
+        # TODO:  This will be loaded after the yang modules have been
+        # generated from proto files
+        self.register_rpc('{urn:opencord:params:xml:ns:voltha:ietf-voltha}',
+                          'VolthaGlobalService', 'GetVoltha', GetVoltha)
+        self.register_rpc('{urn:opencord:params:xml:ns:voltha:ietf-voltha}',
+                          'any', 'any', GetVoltha)
 
-	def __init__(self):
-		self.rpc_map = {}
-		#TODO:  This will be loaded after the yang modules have been
-		# generated from proto files
-		self.register_rpc('{urn:opencord:params:xml:ns:voltha:ietf-voltha}',
-						 'VolthaGlobalService', 'GetVoltha', GetVoltha)
+    def _get_key(self, namespace, service, name):
+        return ''.join([namespace, service, name])
 
-	def _get_key(self, namespace, service, name):
-		return ''.join([namespace,service,name])
+    def register_rpc(self, namespace, service, name, klass):
+        key = self._get_key(namespace, service, name)
+        if key not in self.rpc_map.keys():
+            self.rpc_map[key] = klass
 
-	def register_rpc(self, namespace, service, name, klass):
-		key = self._get_key(namespace, service, name)
-		if key not in self.rpc_map.keys():
-			self.rpc_map[key] = klass
+    def get_handler(self, namespace, service, name):
+        key = self._get_key(namespace, service, name)
+        if key in self.rpc_map.keys():
+            return self.rpc_map[key]
 
-	def get_handler(self, namespace, service, name):
-		key = self._get_key(namespace, service, name)
-		if key in self.rpc_map.keys():
-			return self.rpc_map[key]
+    def get_rpc_handler(self, rpc_node, msg, grpc_channel, session):
+        try:
+            msg_id = rpc_node.get('message-id')
+            log.info("Received-rpc-message-id", msg_id=msg_id)
 
+        except (TypeError, ValueError):
+            raise ncerror.SessionError(msg,
+                                       "No valid message-id attribute found")
 
-	def get_rpc_handler(self, rpc_node, msg, grpc_channel, session):
-		try:
-			msg_id = rpc_node.get('message-id')
-			log.info("Received-rpc-message-id", msg_id=msg_id)
+        log.info("rpc-node", node=etree.tostring(rpc_node, pretty_print=True))
 
-		except (TypeError, ValueError):
-			raise ncerror.SessionError(msg,
-									   "No valid message-id attribute found")
+        # Get the first child of rpc as the method name
+        rpc_method = rpc_node.getchildren()
+        if len(rpc_method) != 1:
+            log.error("badly-formatted-rpc-method", msg_id=msg_id)
+            raise ncerror.BadMsg(rpc_node)
 
-		log.info("rpc-node", node=etree.tostring(rpc_node, pretty_print=True))
+        rpc_method = rpc_method[0]
 
-		# Get the first child of rpc as the method name
-		rpc_method = rpc_node.getchildren()
-		if len(rpc_method) != 1:
-			log.error("badly-formatted-rpc-method", msg_id=msg_id)
-			raise ncerror.BadMsg(rpc_node)
+        if rpc_method.prefix is None:
+            log.error("rpc-method-has-no-prefix", msg_id=msg_id)
+            raise ncerror.BadMsg(rpc_node)
 
-		rpc_method = rpc_method[0]
+        try:
+            # extract the namespace, service and name
+            namespace = ''.join(
+                ['{', rpc_method.nsmap[rpc_method.prefix], '}'])
+            # rpc_name = rpc_method.tag.replace(qmap('nc'), "")
+            rpc = rpc_method.tag.replace(namespace, "").split('-')
+            rpc_service = rpc[0]
+            rpc_name = rpc[1]
+            log.info("rpc-request",
+                     namespace=namespace,
+                     service=rpc_service,
+                     name=rpc_name)
+        except Exception as e:
+            log.error("rpc-parsing-error", exception=repr(e))
+            raise ncerror.BadMsg(rpc_node)
 
-		if rpc_method.prefix is None:
-			log.error("rpc-method-has-no-prefix", msg_id=msg_id)
-			raise ncerror.BadMsg(rpc_node)
+        class_handler = self.get_handler(namespace, rpc_service, rpc_name)
+        if class_handler is None:
+            # TODO: for now just assume anything in voltha namespace will be
+            #  handled by the same api
+            class_handler = self.get_handler(namespace, 'any', 'any')
 
-		try:
-			# extract the namespace, service and name
-			namespace = ''.join(['{', rpc_method.nsmap[rpc_method.prefix], '}'])
-			# rpc_name = rpc_method.tag.replace(qmap('nc'), "")
-			rpc = rpc_method.tag.replace(namespace, "").split('-')
-			rpc_service = rpc[0]
-			rpc_name = rpc[1]
-			log.info("rpc-request",
-					 namespace=namespace,
-					 service=rpc_service,
-					 name=rpc_name)
-		except Exception as e:
-			log.error("rpc-parsing-error", exception=repr(e))
-			raise ncerror.BadMsg(rpc_node)
+        voltha_method_ref = ''.join([rpc_service, '-', rpc_name])
+        if class_handler is not None:
+            return class_handler(rpc_node, rpc_method, voltha_method_ref,
+                                 grpc_channel, session)
 
-		class_handler = self.get_handler(namespace, rpc_service, rpc_name)
+        log.error("rpc-not-implemented", rpc=rpc_name)
 
-		# class_handler = self.rpc_class_handlers.get(rpc_name, None)
-		if class_handler is not None:
-			return class_handler(rpc_node, rpc_method, grpc_channel, session)
-
-		log.error("rpc-not-implemented", rpc=rpc_name)
-
-
-	rpc_class_handlers = {
-		'getvoltha' : GetVoltha,
-		'get-config': GetConfig,
-		'get': Get,
-		'edit-config': EditConfig,
-		'copy-config': CopyConfig,
-		'delete-config': DeleteConfig,
-		'commit': Commit,
-		'lock': Lock,
-		'unlock': UnLock,
-		'close-session': CloseSession,
-		'kill-session': KillSession
-	}
-
+    rpc_class_handlers = {
+        'getvoltha': GetVoltha,
+        'get-config': GetConfig,
+        'get': Get,
+        'edit-config': EditConfig,
+        'copy-config': CopyConfig,
+        'delete-config': DeleteConfig,
+        'commit': Commit,
+        'lock': Lock,
+        'unlock': UnLock,
+        'close-session': CloseSession,
+        'kill-session': KillSession
+    }
 
 
 def get_rpc_factory_instance():
-	if RpcFactory.instance == None:
-		RpcFactory.instance = RpcFactory()
-	return RpcFactory.instance
+    if RpcFactory.instance == None:
+        RpcFactory.instance = RpcFactory()
+    return RpcFactory.instance
 
 
 if __name__ == '__main__':
-   fac = get_rpc_factory_instance()
-   fac.register_rpc('urn:opencord:params:xml:ns:voltha:ietf-voltha',
-					'VolthaGlobalService', 'GetVoltha', GetVoltha)
-   rpc = fac.get_handler('urn:opencord:params:xml:ns:voltha:ietf-voltha',
-					'VolthaGlobalService', 'GetVoltha')
-   # rpc = fac.rpc_class_handlers.get('getvoltha', None)
-   print rpc(None,None,None, None)
+    fac = get_rpc_factory_instance()
+    fac.register_rpc('urn:opencord:params:xml:ns:voltha:ietf-voltha',
+                     'VolthaGlobalService', 'GetVoltha', GetVoltha)
+    rpc = fac.get_handler('urn:opencord:params:xml:ns:voltha:ietf-voltha',
+                          'VolthaGlobalService', 'GetVoltha')
+    # rpc = fac.rpc_class_handlers.get('getvoltha', None)
+    print rpc(None, None, None, None)

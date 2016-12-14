@@ -28,8 +28,9 @@ log = structlog.get_logger()
 
 
 class GetVoltha(Rpc):
-    def __init__(self, rpc_request, rpc_method, grpc_client, session):
-        super(GetVoltha, self).__init__(rpc_request, rpc_method,
+    def __init__(self, rpc_request, rpc_method, voltha_method_ref, grpc_client,
+                 session):
+        super(GetVoltha, self).__init__(rpc_request, rpc_method, voltha_method_ref,
                                         grpc_client, session)
         self._validate_parameters()
 
@@ -41,7 +42,9 @@ class GetVoltha(Rpc):
             returnValue(self.rpc_response)
 
         # Invoke voltha via the grpc client
-        res_dict = yield self.grpc_client.get_voltha_instance()
+        res_dict = yield self.grpc_client.invoke_voltha_api(self.voltha_method_ref)
+
+        # res_dict = yield self.grpc_client.get_voltha_instance()
 
         # convert dict to xml
         xml = dicttoxml.dicttoxml(res_dict)
