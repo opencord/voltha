@@ -38,7 +38,8 @@ from netconf.protos import third_party
 from netconf.protos.schema_pb2 import SchemaServiceStub
 from google.protobuf.empty_pb2 import Empty
 from common.utils.consulhelpers import get_endpoint_from_consul
-from netconf.protos.voltha_pb2  import VolthaLocalServiceStub
+from netconf.protos.voltha_pb2  import VolthaLocalServiceStub, \
+    VolthaGlobalServiceStub
 from twisted.internet import threads
 from google.protobuf import empty_pb2
 from google.protobuf.json_format import MessageToDict, ParseDict
@@ -133,9 +134,9 @@ class GrpcClient(object):
                 log.info('grpc-endpoint-connecting', host=host, port=port)
                 self.channel = grpc.insecure_channel('{}:{}'.format(host, port))
 
-                yang_from = self._retrieve_schema()
-                log.info('proto-to-yang-schema', file=yang_from)
-                self._compile_proto_files(yang_from)
+                # yang_from = self._retrieve_schema()
+                # log.info('proto-to-yang-schema', file=yang_from)
+                # self._compile_proto_files(yang_from)
                 self._clear_backoff()
 
                 if self.on_start_callback is not None:
@@ -146,6 +147,7 @@ class GrpcClient(object):
                     reactor.callLater(0, self.reconnect_callback)
 
                 self.local_stub = VolthaLocalServiceStub(self.channel)
+                self.global_stub = VolthaGlobalServiceStub(self.channel)
 
                 return
 
@@ -285,4 +287,44 @@ class GrpcClient(object):
             returnValue(out_data)
         except Exception, e:
             log.error('failure', exception=repr(e))
+
+
+    #TODO: should be generated code
+    @inlineCallbacks
+    def invoke_voltha_api(self, key):
+        # key = ''.join([service, '-', method])
+        try:
+            if key == 'VolthaGlobalService-GetVoltha':
+                res = yield threads.deferToThread(
+                    self.global_stub.GetVoltha, empty_pb2.Empty())
+            elif key == 'VolthaLocalService-GetVolthaInstance':
+                res = yield threads.deferToThread(
+                    self.local_stub.GetVolthaInstance, empty_pb2.Empty())
+            elif key == 'VolthaLocalService-GetHealth':
+                res = yield threads.deferToThread(
+                    self.local_stub.GetHealth, empty_pb2.Empty())
+            elif key == 'VolthaLocalService-ListAdapters':
+                res = yield threads.deferToThread(
+                    self.local_stub.ListAdapters, empty_pb2.Empty())
+            elif key == 'VolthaLocalService-ListLogicalDevices':
+                res = yield threads.deferToThread(
+                    self.local_stub.ListLogicalDevices, empty_pb2.Empty())
+            elif key == 'VolthaLocalService-ListDevices':
+                res = yield threads.deferToThread(
+                    self.local_stub.ListDevices, empty_pb2.Empty())
+            elif key == 'VolthaLocalService-ListDeviceTypes':
+                res = yield threads.deferToThread(
+                    self.local_stub.ListDeviceTypes, empty_pb2.Empty())
+            elif key == 'VolthaLocalService-ListDeviceGroups':
+                res = yield threads.deferToThread(
+                    self.local_stub.ListDeviceGroups, empty_pb2.Empty())
+            else: # for now just return voltha instance data
+                res = yield threads.deferToThread(
+                    self.local_stub.GetVolthaInstance, empty_pb2.Empty())
+
+            out_data = MessageToDict(res, True, True)
+            returnValue(out_data)
+        except Exception, e:
+            log.error('failure', exception=repr(e))
+
 

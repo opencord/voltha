@@ -2029,7 +2029,7 @@ message ofp_group_entry {
     ofp_group_type type = 1;       /* One of OFPGT_*. */
     uint32 group_id = 2;           /* Group identifier. */
     repeated ofp_bucket buckets = 3;   /* List of buckets - 0 or more. */
-    /* ofp_group_desc desc = 1; */
+//    ofp_group_desc desc = 1;
     ofp_group_stats stats = 4;
 };
 

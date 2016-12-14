@@ -353,7 +353,6 @@ service VolthaLocalService {
     rpc ActivateDevice(ID) returns(google.protobuf.Empty) {
         option (google.api.http) = {
             post: "/api/v1/local/devices/{id}/activate"
-            body: "{}"
         };
     }
 

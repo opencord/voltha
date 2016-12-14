@@ -26,8 +26,17 @@ message ChildNode {
 }
 
 enum Access {
-    CONFIG = 0;  // read-write, stored
-    READ_ONLY = 1;      // read-only field
+
+    // read-write, stored attribute
+    CONFIG = 0;
+
+    // read-only field, stored with the model, covered by its hash
+    READ_ONLY = 1;
+
+    // A read-only attribute that is not stored in the model, not covered
+    // by its hash, its value is filled real-time upon each request.
+    REAL_TIME = 2;
+
 }
 
 extend google.protobuf.FieldOptions {
