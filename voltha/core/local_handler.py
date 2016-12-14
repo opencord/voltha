@@ -88,6 +88,8 @@ class LocalHandler(VolthaLocalServiceServicer):
     def GetLogicalDevice(self, request, context):
         log.info('grpc-request', request=request)
 
+        depth = int(dict(context.invocation_metadata()).get('get-depth', 0))
+
         if '/' in request.id:
             context.set_details(
                 'Malformed logical device id \'{}\''.format(request.id))
@@ -95,7 +97,7 @@ class LocalHandler(VolthaLocalServiceServicer):
             return LogicalDevice()
 
         try:
-            return self.root.get('/logical_devices/' + request.id)
+            return self.root.get('/logical_devices/' + request.id, depth=depth)
         except KeyError:
             context.set_details(
                 'Logical device \'{}\' not found'.format(request.id))
@@ -211,6 +213,8 @@ class LocalHandler(VolthaLocalServiceServicer):
     def GetDevice(self, request, context):
         log.info('grpc-request', request=request)
 
+        depth = int(dict(context.invocation_metadata()).get('get-depth', 0))
+
         if '/' in request.id:
             context.set_details(
                 'Malformed device id \'{}\''.format(request.id))
@@ -218,7 +222,7 @@ class LocalHandler(VolthaLocalServiceServicer):
             return Device()
 
         try:
-            return self.root.get('/devices/' + request.id)
+            return self.root.get('/devices/' + request.id, depth=depth)
         except KeyError:
             context.set_details(
                 'Device \'{}\' not found'.format(request.id))
@@ -353,6 +357,8 @@ class LocalHandler(VolthaLocalServiceServicer):
     def GetDeviceType(self, request, context):
         log.info('grpc-request', request=request)
 
+        depth = int(dict(context.invocation_metadata()).get('get-depth', 0))
+
         if '/' in request.id:
             context.set_details(
                 'Malformed device type id \'{}\''.format(request.id))
@@ -360,7 +366,7 @@ class LocalHandler(VolthaLocalServiceServicer):
             return DeviceType()
 
         try:
-            return self.root.get('/device_types/' + request.id)
+            return self.root.get('/device_types/' + request.id, depth=depth)
         except KeyError:
             context.set_details(
                 'Device type \'{}\' not found'.format(request.id))
@@ -378,6 +384,8 @@ class LocalHandler(VolthaLocalServiceServicer):
     def GetDeviceGroup(self, request, context):
         log.info('grpc-request', request=request)
 
+        depth = int(dict(context.invocation_metadata()).get('get-depth', 0))
+
         if '/' in request.id:
             context.set_details(
                 'Malformed device group id \'{}\''.format(request.id))
@@ -386,7 +394,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
         # TODO is this mapped to tree or taken from coordinator?
         try:
-            return self.root.get('/device_groups/' + request.id)
+            return self.root.get('/device_groups/' + request.id, depth=depth)
         except KeyError:
             context.set_details(
                 'Device group \'{}\' not found'.format(request.id))
