@@ -26,6 +26,8 @@ from simplejson import dumps
 from twisted.internet.defer import inlineCallbacks
 from zope.interface import implementer
 
+from common.event_bus import EventBusClient
+from common.manhole import Manhole
 from common.structlog_setup import setup_logging
 from common.utils.dockerhelpers import get_my_containers_name
 from common.utils.nethelpers import get_my_primary_interface, \
@@ -57,6 +59,7 @@ defs = dict(
     interface=os.environ.get('INTERFACE', get_my_primary_interface()),
     rest_port=os.environ.get('REST_PORT', 8880),
     kafka=os.environ.get('KAFKA', 'localhost:9092'),
+    manhole_port=os.environ.get('MANHOLE_PORT', 12222),
 )
 
 
@@ -125,6 +128,14 @@ def parse_args():
                         dest='interface',
                         action='store',
                         default=defs['interface'],
+                        help=_help)
+
+    _help = 'open ssh manhole at given port'
+    parser.add_argument('-m', '--manhole-port',
+                        dest='manhole_port',
+                        action='store',
+                        type=int,
+                        default=None,
                         help=_help)
 
     _help = 'omit startup banner log lines'
@@ -235,6 +246,8 @@ class Main(object):
             self.start_heartbeat()
             self.start_kafka_heartbeat(args.instance_id)
 
+        self.manhole = None
+
     def start(self):
         self.start_reactor()  # will not return except Keyboard interrupt
 
@@ -307,10 +320,21 @@ class Main(object):
                 Diagnostics(config=self.config.get('diagnostics', {}))
             ).start()
 
+            if self.args.manhole_port is not None:
+                self.start_manhole(self.args.manhole_port)
+
             self.log.info('started-internal-services')
 
         except Exception as e:
             self.log.exception('Failure to start all components {}'.format(e))
+
+    def start_manhole(self, port):
+        self.manhole = Manhole(
+            port,
+            pws=dict(admin='adminpw'),
+            eventbus = EventBusClient(),
+            **registry.components
+        )
 
     @inlineCallbacks
     def shutdown_components(self):
