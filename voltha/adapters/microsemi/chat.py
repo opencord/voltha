@@ -13,7 +13,7 @@ from scapy.layers.ntp import XLEShortField
 from scapy.packet import Packet, bind_layers
 from scapy.volatile import RandSInt
 
-from voltha.extensions.omci.omci import OMCIFrame
+from voltha.extensions.omci.omci import OmciFrame
 
 
 src_mac = "68:05:ca:05:f2:ef"
@@ -567,7 +567,7 @@ class PAS5211EventFrameReceived(PAS5211Event):
         LEShortField("l4_offset", None),
         LEShortField("ignored", 0), # TODO these do receive values, but there is no code in PMC using it
         ConditionalField(PacketField("frame", None, Packet), lambda pkt: pkt.management_frame==PON_FALSE),
-        ConditionalField(PacketField("frame", None, OMCIFrame), lambda pkt: pkt.management_frame==PON_TRUE)
+        ConditionalField(PacketField("frame", None, OmciFrame), lambda pkt: pkt.management_frame==PON_TRUE)
     ]
 
 

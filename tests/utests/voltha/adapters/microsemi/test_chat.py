@@ -1,8 +1,8 @@
 from unittest import TestCase, main
 
 from voltha.adapters.microsemi.chat import *
-from voltha.extensions.omci.omci import OMCIFrame, OMCIGetRequest, \
-    OMCIGetResponse
+from voltha.extensions.omci.omci import OmciFrame, OmciGet, \
+    OmciGetResponse
 
 
 class TestChat(TestCase):
@@ -440,10 +440,10 @@ class TestChat(TestCase):
                 port_type=PON_PORT_PON,
                 port_id=0,
                 management_frame=PON_TRUE,
-                frame=OMCIFrame(
+                frame=OmciFrame(
                     transaction_id=0,
                     message_type=0x49,
-                    omci_message=OMCIGetRequest(
+                    omci_message=OmciGet(
                         entity_class=6,
                         entity_id=0x101,
                         # there is a more programmer friendly way to express it
@@ -505,10 +505,10 @@ class TestChat(TestCase):
                 l4_offset=19,
                 # ignored, yet we get a non-zero value from olt
                 ignored=0x2000,
-                frame=OMCIFrame(
+                frame=OmciFrame(
                     transaction_id=0,
                     message_type=0x29,
-                    omci_message=OMCIGetResponse(
+                    omci_message=OmciGetResponse(
                         entity_class=6,
                         entity_id=0x101,
                         success_code=0,
