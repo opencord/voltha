@@ -14,9 +14,7 @@
 # limitations under the License.
 #
 import netifaces
-import select
 from scapy.layers.l2 import Dot3
-from scapy.sendrecv import srp1
 import structlog
 from voltha.adapters.microsemi.PAS5211 import PAS5211Msg, PAS5211MsgHeader, PAS5211FrameHeader
 

@@ -17,13 +17,15 @@ from scapy.automaton import ATMT, Automaton
 from scapy.layers.l2 import sendp
 import structlog
 from voltha.adapters.microsemi.PAS5211 import PAS5211MsgGetProtocolVersion, PAS5211MsgGetOltVersion, \
-    PAS5211MsgGetOltVersionResponse, PAS5211MsgGetProtocolVersionResponse, PAS5211MsgSetOltOptics, BurstTimingCtrl, \
+    PAS5211MsgGetOltVersionResponse, PAS5211MsgGetProtocolVersionResponse, \
     SnrBurstDelay, RngBurstDelay, GeneralOpticsParams, ResetValues, ResetTimingCtrl, PreambleParams, \
     PAS5211MsgSetOltOpticsResponse, CHANNELS, PON_OPTICS_VOLTAGE_IF_LVPECL, PON_ENABLE, PON_POLARITY_ACTIVE_HIGH, \
     PON_SD_SOURCE_LASER_SD, PON_RESET_TYPE_DELAY_BASED, PON_DISABLE, PON_RESET_TYPE_NORMAL_START_BURST_BASED, \
-    PAS5211MsgSetOpticsIoControl, PON_POLARITY_ACTIVE_LOW, PAS5211MsgSetOpticsIoControlResponse, \
-    PAS5211MsgGetGeneralParam, PON_TX_ENABLE_DEFAULT, PAS5211MsgGetGeneralParamResponse, PAS5211MsgAddOltChannel, \
-    PAS5211MsgAddOltChannelResponse, PON_ALARM_LOS, PAS5211MsgSetAlarmConfigResponse
+    PAS5211MsgSetOpticsIoControlResponse, PON_TX_ENABLE_DEFAULT, PAS5211MsgGetGeneralParamResponse, PAS5211MsgAddOltChannel, \
+    PAS5211MsgAddOltChannelResponse, PON_ALARM_LOS, PAS5211MsgSetAlarmConfigResponse, PAS5211MsgGetDbaMode, \
+    PAS5211MsgGetDbaModeResponse, PON_DBA_MODE_LOADED_NOT_RUNNING, PAS5211MsgStartDbaAlgorithm, \
+    PAS5211MsgStartDbaAlgorithmResponse, PON_DBA_MODE_RUNNING, PAS5211MsgSetOltChannelActivationPeriod, \
+    PAS5211MsgSetOltChannelActivationPeriodResponse
 from voltha.adapters.microsemi.PAS5211_utils import general_param, olt_optics_pkt, burst_timing, io_ctrl_optics, \
     alarm_config
 
@@ -41,6 +43,7 @@ class OltStateMachine(Automaton):
     verbose = None
 
     send_state = []
+    dba_needs_start = False
 
     def parse_args(self, debug=0, store=0, **kwargs):
         self.comm = kwargs.pop('comm', None)
@@ -76,6 +79,10 @@ class OltStateMachine(Automaton):
                     return False
         self.send_state = []
         return True
+
+    """
+    States
+    """
 
     @ATMT.state(initial=1)
     def disconnected(self):
@@ -137,23 +144,49 @@ class OltStateMachine(Automaton):
     def got_alarm_set(self):
         pass
 
-    @ATMT.state(final=1)
+    @ATMT.state()
+    def wait_dba_mode(self):
+        pass
+
+    @ATMT.state()
+    def got_dba_mode(self):
+        pass
+
+    @ATMT.state()
+    def wait_dba_start(self):
+        pass
+
+    @ATMT.state()
+    def got_dba_start(self):
+        pass
+
+    @ATMT.state()
+    def wait_activation(self):
+        pass
+
+    @ATMT.state()
     def initialized(self):
+        pass
+
+    @ATMT.state()
+    def wait_keepalive(self):
         pass
 
     @ATMT.state(error=1)
     def ERROR(self):
         pass
 
+    """
+    Transitions
+    """
 
-
-    #Transitions from disconnected state
+    # Transitions from disconnected state
     @ATMT.condition(disconnected)
     def send_proto_request(self):
         self.send(self.p(PAS5211MsgGetProtocolVersion()))
         raise self.wait_for_proto_version()
 
-    #Transitions from wait_for_proto_version
+    # Transitions from wait_for_proto_version
     @ATMT.timeout(wait_for_proto_version, 1)
     def timeout_proto(self):
         log.info("Timed out waiting for proto version")
@@ -324,7 +357,7 @@ class OltStateMachine(Automaton):
         if PAS5211MsgGetGeneralParamResponse in pkt:
             self.send_state[pkt.channel_id] = True
             if pkt.value == PON_ENABLE:
-                # we may want to do something here.
+                # TODO: we may want to do something here.
                 if self.check_channel_state():
                     raise self.got_query_response()
                 else:
@@ -379,9 +412,101 @@ class OltStateMachine(Automaton):
                 raise self.got_alarm_set()
             raise self.wait_alarm_set()
 
-    @ATMT.timeout(got_alarm_set, 1)
+    # Transitions from got_alarm_set
+    @ATMT.condition(got_alarm_set)
+    def send_dba_mode(self):
+        get_dba_mode = PAS5211MsgGetDbaMode()
+        for id in CHANNELS:
+            self.send_state.append(False)
+            self.send(self.p(get_dba_mode, channel_id=id))
+        raise self.wait_dba_mode()
+
+    # Transitions from wait_dba_mode
+    @ATMT.timeout(wait_dba_mode, 3)
+    def dba_timeout(self):
+        log.error("No DBA information returned; disconnecting")
+        raise self.ERROR()
+
+
+    @ATMT.receive_condition(wait_dba_mode)
+    def wait_for_dba_mode(self, pkt):
+
+        if PAS5211MsgGetDbaModeResponse in pkt:
+            # TODO: What do we do in case the DBA is not loaded.
+            if pkt.dba_mode == PON_DBA_MODE_LOADED_NOT_RUNNING:
+                self.send_state[pkt.channel_id] = True
+                self.dba_needs_start = True
+            elif pkt.dba_mode == PON_DBA_MODE_RUNNING:
+                self.send_state[pkt.channel_id] = True
+            if self.check_channel_state():
+                if self.dba_needs_start:
+                    raise self.got_dba_mode()
+                else:
+                    raise self.got_dba_start()
+        raise self.wait_dba_mode()
+
+    # Transition from got_dba_mode
+    @ATMT.condition(got_dba_mode)
+    def send_start_dba(self):
+        dba_start = PAS5211MsgStartDbaAlgorithm(size=0, initialization_data=None)
+        for id in CHANNELS:
+            self.send_state.append(False)
+            self.send(self.p(dba_start, channel_id=id))
+        raise self.wait_dba_start()
+
+    # Transitions from wait_dba_start
+    @ATMT.timeout(wait_dba_start, 3)
+    def dba_timeout(self):
+        log.error("DBA has not started; disconnecting")
+        raise self.ERROR()
+
+    @ATMT.receive_condition(wait_dba_start)
+    def wait_for_dba_start(self, pkt):
+        if pkt.opcode == PAS5211MsgStartDbaAlgorithmResponse.opcode:
+            self.send_state[pkt.channel_id] = True
+            if self.check_channel_state():
+                raise self.got_dba_start()
+        raise self.wait_dba_start()
+
+    # Transitions from got_dba_start
+    @ATMT.condition(got_dba_start)
+    def send_activation_period(self):
+        activation = PAS5211MsgSetOltChannelActivationPeriod(activation_period=1000)
+        for id in CHANNELS:
+            self.send_state.append(False)
+            self.send(self.p(activation, channel_id=id))
+        raise self.wait_activation()
+
+    # Transitions for wait_for_activation
+    @ATMT.timeout(wait_activation, 3)
+    def timeout_activation(self):
+        log.error("No activation; disconnect")
+        raise self.ERROR()
+
+    @ATMT.receive_condition(wait_activation)
+    def wait_for_activation(self, pkt):
+        if pkt.opcode == PAS5211MsgSetOltChannelActivationPeriodResponse.opcode:
+            self.send_state[pkt.channel_id] = True
+            if self.check_channel_state():
+                raise self.initialized()
+        raise self.wait_activation()
+
+    # Keep alive loop
+    @ATMT.timeout(initialized, 1)
     def send_keepalive(self):
         self.send(self.p(PAS5211MsgGetOltVersion()))
-        raise self.got_alarm_set()
+        raise self.wait_keepalive()
+
+    # Transitions from wait_keepalive
+    @ATMT.timeout(wait_keepalive, 1)
+    def timeout_keepalive(self):
+        log.error("OLT not responsing to keepalive; disconnecting")
+        raise self.ERROR()
+
+    @ATMT.receive_condition(wait_keepalive)
+    def wait_for_keepalive(self, pkt):
+        if PAS5211MsgGetOltVersionResponse in pkt:
+            raise self.initialized()
+
 
 

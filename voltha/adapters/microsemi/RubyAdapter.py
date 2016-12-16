@@ -19,7 +19,8 @@ Microsemi/Celestica Ruby vOLTHA adapter.
 """
 import structlog
 from twisted.internet import reactor
-from zope.interface import implementer
+
+
 
 from voltha.adapters.interface import IAdapterInterface
 from voltha.adapters.microsemi.OltStateMachine import OltStateMachine
@@ -28,11 +29,13 @@ from voltha.protos import third_party
 from voltha.protos.device_pb2 import DeviceTypes
 from voltha.protos.health_pb2 import HealthStatus
 
+from zope.interface import implementer
+
 log = structlog.get_logger()
 _ = third_party
 
 # Move to configuration... eventually
-olt_conf = { 'olts' : { 'id' : 0, 'mac' : '00:0c:d5:00:01:00'}, 'iface' : 'en0'}
+olt_conf = { 'olts' : { 'id' : 0, 'mac' : '00:0c:d5:00:01:00'}, 'iface' : 'eth3'}
 
 @implementer(IAdapterInterface)
 class RubyAdapter(object):
@@ -65,10 +68,10 @@ class RubyAdapter(object):
         return self.descriptor
 
     def device_types(self):
-        pass
         return DeviceTypes(
-           items=[]  # TODO
+            items=[]  # TODO
         )
+
 
     def health(self):
         return HealthStatus(state=HealthStatus.HealthState.HEALTHY)
