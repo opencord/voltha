@@ -516,6 +516,21 @@ class PAS5211MsgSetAlarmConfig(PAS5211Msg):
         LEIntField("parameter4", None)
     ]
 
+class PAS5211MsgStartDbaAlgorithm(PAS5211Msg):
+    opcode = 55
+    name = "PAS5211MsgStartDbaAlgorithm"
+    fields_desc = [
+        LEShortField("size", 0),
+        ByteField("initialization_data", 0)
+    ]
+
+
+class PAS5211MsgStartDbaAlgorithmResponse(PAS5211Msg):
+    name = "PAS5211MsgStartDbaAlgorithmResponse"
+    opcode = 10295
+    fields_desc = []
+
+
 
 class PAS5211MsgSetOltChannelActivationPeriod(PAS5211Msg):
     opcode = 11
@@ -526,6 +541,7 @@ class PAS5211MsgSetOltChannelActivationPeriod(PAS5211Msg):
 
 
 class PAS5211MsgSetOltChannelActivationPeriodResponse(PAS5211Msg):
+    opcode = 10251
     name = "PAS5211MsgSetOltChannelActivationPeriodResponse"
     fields_desc = []
 
@@ -534,6 +550,18 @@ class PAS5211MsgSetAlarmConfigResponse(PAS5211Msg):
     opcode = 10288
     name = "PAS5211MsgSetAlarmConfigResponse"
     fields_desc = []
+
+class PAS5211MsgGetDbaMode(PAS5211Msg):
+    opcode = 57
+    name = "PAS5211MsgGetDbaMode"
+    fields_desc = []
+
+
+class PAS5211MsgGetDbaModeResponse(PAS5211Msg):
+    name = "PAS5211MsgGetDbaModeResponse"
+    fields_desc = [
+        LEIntField("dba_mode", None),
+    ]
 
 """
 Bindings used for message processing
@@ -546,3 +574,6 @@ bind_layers(PAS5211MsgHeader, PAS5211MsgGetOltVersionResponse, opcode=0x3800 | 3
 bind_layers(PAS5211MsgHeader, PAS5211MsgGetProtocolVersionResponse, opcode=0x2800 | 2)
 bind_layers(PAS5211MsgHeader, PAS5211MsgGetGeneralParamResponse, opcode=0x2800 | 165)
 bind_layers(PAS5211MsgHeader, PAS5211MsgSetAlarmConfigResponse, opcode=0x2800 | 48)
+bind_layers(PAS5211MsgHeader, PAS5211MsgGetDbaModeResponse, opcode=0x2800 | 57)
+bind_layers(PAS5211MsgHeader, PAS5211MsgStartDbaAlgorithmResponse, opcode=0x2800 | 55)
+bind_layers(PAS5211MsgHeader, PAS5211MsgSetOltChannelActivationPeriodResponse, opcode=0x2800 | 11)

@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 import code
+import sys
+from scapy.config import conf
+from scapy.data import ARPHDR_ETHER
 
-from time import sleep
 from scapy.fields import Field, lhex, MACField, LenField, LEShortField, \
     LEIntField, LESignedIntField, FieldLenField, FieldListField, PacketField, \
-    ByteField, StrField, ConditionalField, StrFixedLenField
-from scapy.layers.l2 import DestMACField, ETHER_ANY, ETH_P_ALL, sniff, sendp, LLC, SNAP, Dot3
+    ByteField, StrField, ConditionalField, StrFixedLenField, LELongField
+from scapy.layers.l2 import DestMACField, ETHER_ANY, LLC, Dot3
 from scapy.layers.ntp import XLEShortField
 from scapy.packet import Packet, bind_layers, split_layers
 from scapy.utils import rdpcap
@@ -192,25 +194,6 @@ class XLESignedIntField(Field):
 class LESignedShortField(Field):
     def __init__(self, name, default):
         Field.__init__(self, name, default, "<h")
-
-
-class PAS5211Dot3(Packet):
-    name = "PAS5211Dot3"
-    fields_desc = [ DestMACField("dst"),
-                    MACField("src", ETHER_ANY),
-                    LenField("len", None, "H") ]
-
-    MIN_FRAME_SIZE = 60
-
-    def post_build(self, pkt, payload):
-        pkt += payload
-        size = ord(payload[4]) + (ord(payload[5]) << 8)
-        length = size + 6  # this is a idiosyncracy of the PASCOMM protocol
-        pkt = pkt[:12] + chr(length >> 8) + chr(length & 0xff) + pkt[14:]
-        padding = self.MIN_FRAME_SIZE - len(pkt)
-        if padding > 0:
-            pkt = pkt + ("\x00" * padding)
-        return pkt
 
 
 class PAS5211FrameHeader(Packet):
@@ -443,6 +426,22 @@ class PAS5211MsgSetOpticsIoControlResponse(PAS5211Msg):
     def extract_padding(self, p):
         return "", p
 
+
+class PAS5211MsgStartDbaAlgorithm(PAS5211Msg):
+    opcode = 55
+    name = "PAS5211MsgStartDbaAlgorithm"
+    fields_desc = [
+        LEShortField("size", 0),
+        ByteField("initialization_data", None)
+    ]
+
+
+class PAS5211MsgStartDbaAlgorithmResponse(PAS5211Msg):
+    name = "PAS5211MsgStartDbaAlgorithmResponse"
+    opcode = 10295
+    fields_desc = []
+
+
 class PAS5211MsgSetGeneralParam(PAS5211Msg):
     opcode = 164
     name = "PAS5211MsgSetGeneralParam"
@@ -482,11 +481,13 @@ class PAS5211MsgGetDbaMode(PAS5211Msg):
     fields_desc = []
 
 
-class PAS5211MsgGetDbaModeResponse(PAS5211Msg):
+class  PAS5211MsgGetDbaModeResponse(PAS5211Msg):
     name = "PAS5211MsgGetDbaModeResponse"
     fields_desc = [
         LEIntField("dba_mode", None),
     ]
+
+
 
 
 class PAS5211MsgAddOltChannel(PAS5211Msg):
@@ -603,8 +604,9 @@ class PAS5211EventOnuActivation(PAS5211Event):
 
 
 # bindings for messages received
+
 split_layers(Dot3, LLC)
-bind_layers(Dot3,PAS5211FrameHeader)
+bind_layers(Dot3, PAS5211FrameHeader)
 bind_layers(PAS5211FrameHeader, PAS5211MsgHeader)
 
 bind_layers(PAS5211MsgHeader, PAS5211MsgGetProtocolVersion, opcode=0x3000 | 2)
@@ -634,6 +636,9 @@ bind_layers(PAS5211MsgHeader, PAS5211MsgSetAlarmConfigResponse, opcode=0x2800 | 
 bind_layers(PAS5211MsgHeader, PAS5211MsgSetOltChannelActivationPeriod, opcode=0x3000 | 11)
 bind_layers(PAS5211MsgHeader, PAS5211MsgSetOltChannelActivationPeriodResponse, opcode=0x2800 | 11)
 
+bind_layers(PAS5211MsgHeader, PAS5211MsgStartDbaAlgorithm, opcode=0x3000 | 55)
+bind_layers(PAS5211MsgHeader, PAS5211MsgStartDbaAlgorithmResponse, opcode=0x2800 | 55)
+
 bind_layers(PAS5211MsgHeader, PAS5211MsgGetDbaMode, opcode=0x3000 | 57)
 bind_layers(PAS5211MsgHeader, PAS5211MsgGetDbaModeResponse, opcode=0x2800 | 57)
 
@@ -658,7 +663,7 @@ class Display(object):
 
 if __name__ == '__main__':
 
-    packets = rdpcap('pcaps/olt.pcap')
+    packets = rdpcap(sys.argv[1])
     p = Display(packets)
     code.interact(local=locals())
 
