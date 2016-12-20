@@ -49,7 +49,7 @@ and one for the ONU.
 Issue the following command to pre-provision the Tibit OLT:
 
 ```
-curl -s -X POST -d '{"type": "tibit_olt", "mac_address": "00:00:00:00:00:01"}' \
+curl -s -X POST -d '{"type": "tibit_olt", "mac_address": "00:0c:e2:31:06:00"}' \
     http://localhost:8881/api/v1/local/devices | jq '.' | tee olt.json
 ```
 

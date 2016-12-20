@@ -14,11 +14,13 @@
 # limitations under the License.
 #
 
+import sys
 from uuid import uuid4
 
 import structlog
+from twisted.spread import pb
 from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, returnValue
 from zope.interface import implementer
 
 from common.utils.asleep import asleep
@@ -36,6 +38,17 @@ from voltha.protos.openflow_13_pb2 import ofp_desc, ofp_port, OFPPF_1GB_FD, \
 
 log = structlog.get_logger()
 
+
+class AsyncRx(pb.Root):
+    def remote_echo(self, pkt_type, pon, onu, port, crc_ok, msg_size, msg_data):
+        log.info('packet-type', pkt_type=pkt_type)
+        log.info('pon-id', pon_id=pon)
+        log.info('onu-id', onu_id=onu)
+        log.info('port', port_id=port)
+        log.info('crc-ok', crc_ok=crc_ok)
+        log.info('msg-size', msg_size=msg_size)
+        log.info('msg-data', msg_data="".join("{:02x}".format(ord(c)) for c in msg_data))
+        return 0
 
 @implementer(IAdapterInterface)
 class MapleOltAdapter(object):
@@ -59,6 +72,10 @@ class MapleOltAdapter(object):
             version='0.1',
             config=AdapterConfig(log_level=LogLevel.INFO)
         )
+        self.PBServerPort = 24497
+        #start PB server
+        reactor.listenTCP(self.PBServerPort, pb.PBServerFactory(AsyncRx()))
+        log.info('PB-server-started on port', port=self.PBServerPort)
 
     def start(self):
         log.debug('starting')
@@ -92,7 +109,23 @@ class MapleOltAdapter(object):
     def deactivate_device(self, device):
         raise NotImplementedError()
 
+    @inlineCallbacks
     def _activate_device(self, device):
+
+        # launch connecion
+        log.info('initiating-connection-to-olt', device_id=device.id, ipv4=device.ipv4_address)
+        self.pbc_factory = pb.PBClientFactory()
+        reactor.connectTCP(device.ipv4_address, 24498, self.pbc_factory)
+        self.remote = yield self.pbc_factory.getRootObject()
+        log.info('connected-to-olt', device_id=device.id, ipv4=device.ipv4_address)
+
+        data = yield self.remote.callRemote('connect_olt', 0)
+        #TODO: add error handling
+        log.info('connect-data', data=data)
+
+        data = yield self.remote.callRemote('activate_olt', 0)
+        #TODO: add error handling
+        log.info('activate-data', data=data)
 
         # first we pretend that we were able to contact the device and obtain
         # additional information about it
@@ -177,7 +210,7 @@ class MapleOltAdapter(object):
         reactor.callLater(0.1, self._simulate_detection_of_onus, device)
 
     def _simulate_detection_of_onus(self, device):
-        for i in xrange(1, 5):
+        for i in xrange(1, 2):
             log.info('activate-olt-for-onu-{}'.format(i))
             vlan_id = self._olt_side_onu_activation(i)
             self.adapter_agent.child_device_detected(
@@ -186,11 +219,12 @@ class MapleOltAdapter(object):
                 child_device_type='broadcom_onu',
                 proxy_address=Device.ProxyAddress(
                     device_id=device.id,
-                    channel_id=vlan_id
+                    channel_id=i
                 ),
-                vlan=vlan_id
+                vlan=i+1024
             )
 
+    @inlineCallbacks
     def _olt_side_onu_activation(self, seq):
         """
         This is where if this was a real OLT, the OLT-side activation for
@@ -198,8 +232,51 @@ class MapleOltAdapter(object):
         be able to provide tunneled (proxy) communication to the given ONU,
         using the returned information.
         """
-        vlan_id = seq + 100
-        return vlan_id
+        data = yield self.remote.callRemote('create_onu', 0, seq, '4252434d', '12345678')
+        log.info('create-onu-data', data=data)
+
+        vlan_id = seq + 1024
+
+        data = yield self.remote.callRemote('configure_onu', 0, seq, alloc_id=vlan_id, unicast_gem=vlan_id, multicast_gem=4095)
+        log.info('configure-onu-data', data=data)
+
+        data = yield self.remote.callRemote('activate_onu', 0, seq)
+        log.info('activate-onu-data', data=data)
+
+        log.info('ready-to-send-omci')
+        omci_msg = "00014F0A00020000000000000000000000000000000000000000000000000000000000000000000000000028"
+        log.info('sending-omci-msg', msg=omci_msg)
+        try:
+            res = yield self.remote.callRemote(
+                             'send_omci',
+                             0,
+                             0,
+                             1,
+                             omci_msg
+                        )
+            log.info('omci-send-result', result=res)
+        except Exception, e:
+            log.info('omci-send-exception', exc=str(e))
+
+        #reactor.callLater(5.0, self._send_omci_test_msg)
+
+        returnValue(vlan_id)
+
+    @inlineCallbacks
+    def _send_omci_test_msg(self):
+        omci_msg = "00014F0A00020000000000000000000000000000000000000000000000000000000000000000000000000028"
+        log.info('sending-omci-msg', msg=omci_msg)
+        try:
+            res = yield self.remote.callRemote(
+                             'send_omci',
+                             0,
+                             0,
+                             1,
+                             omci_msg
+                        )
+            log.info('omci-send-result', result=res)
+        except Exception, e:
+            log.info('omci-send-exception', exc=str(e))
 
     def update_flows_bulk(self, device, flows, groups):
         log.debug('bulk-flow-update', device_id=device.id,

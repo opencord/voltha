@@ -19,6 +19,10 @@ Tibit OLT device adapter
 """
 import scapy
 import structlog
+import json
+
+from uuid import uuid4
+
 from scapy.layers.inet import ICMP, IP
 from scapy.layers.l2 import Ether, Dot1Q
 from twisted.internet.defer import DeferredQueue, inlineCallbacks
@@ -26,11 +30,14 @@ from twisted.internet import reactor
 
 from zope.interface import implementer
 
+from common.utils.asleep import asleep
+
 from common.frameio.frameio import BpfProgramFilter
 from voltha.registry import registry
 from voltha.adapters.interface import IAdapterInterface
 from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.protos.adapter_pb2 import Adapter, AdapterConfig
+from voltha.protos.device_pb2 import Device, Port
 from voltha.protos.device_pb2 import DeviceType, DeviceTypes
 from voltha.protos.health_pb2 import HealthStatus
 from voltha.protos.common_pb2 import LogLevel, ConnectStatus
@@ -56,6 +63,7 @@ class TBJSON(Packet):
     """ TBJSON 'packet' layer. """
     name = "TBJSON"
     fields_desc = [StrField("data", default="")]
+
 
 @implementer(IAdapterInterface)
 class TibitOltAdapter(object):
@@ -141,14 +149,14 @@ class TibitOltAdapter(object):
 
         # if we got response, we can fill out the device info, mark the device
         # reachable
-
+        jdev = json.loads(response.data[5:])
         device.root = True
-        device.vendor = 'Tibit stuff'
-        device.model = 'n/a'
-        device.hardware_version = 'n/a'
-        device.firmware_version = 'n/a'
-        device.software_version = '1.0'
-        device.serial_number = 'add junk here'
+        device.vendor = 'Tibit Communications, Inc.'
+        device.model = jdev['results']['device']
+        device.hardware_version = jdev['results']['datecode']
+        device.firmware_version = jdev['results']['firmware']
+        device.software_version = jdev['results']['modelversion']
+        device.serial_number = jdev['results']['manufacturer']
         device.connect_status = ConnectStatus.REACHABLE
         self.adapter_agent.update_device(device)
 
@@ -273,21 +281,19 @@ class TibitOltAdapter(object):
 
         log.info('frame-recieved')
 
-        # extract source mac
+        # make into frame to extract source mac
         response = Ether(frame)
 
-        # enqueue incoming parsed frame to rigth device
+        # enqueue incoming parsed frame to right device
         self.incoming_queues[response.src].put(response)
 
     def _make_ping_frame(self, mac_address):
-        # TODO Nathan to make this to be an actual OLT ping
         # Create a json packet
         json_operation_str = '{\"operation\":\"version\"}'
         frame = Ether()/TBJSON(data='json %s' % json_operation_str)
         frame.type = int("9001", 16)
-        frame.dst = '00:0c:e2:31:25:00'
+        frame.dst = mac_address
         bind_layers(Ether, TBJSON, type=0x9001)
-        frame.show()
         return str(frame)
 
     def _make_links_frame(self, mac_address):
