@@ -53,7 +53,7 @@ log = structlog.get_logger()
 
 from EOAM_TLV import AddStaticMacAddress, DeleteStaticMacAddress
 from EOAM_TLV import ClearStaticMacTable
-from EOAM import EOAMPayload, EoamPayload, CablelabsOUI, DPoEOpcode_GetRequest
+from EOAM import EoamPayload, CablelabsOUI, DPoEOpcode_GetRequest
 
 
 # To be removed in favor of OAM
