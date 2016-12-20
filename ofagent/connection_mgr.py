@@ -209,3 +209,9 @@ class ConnectionManager(object):
         if datapath_id:
             agent = self.agent_map[datapath_id]
             agent.forward_packet_in(ofp_packet_in)
+
+    def forward_change_event(self, device_id, event):
+        datapath_id = self.device_id_to_datapath_id_map.get(device_id, None)
+        if datapath_id:
+            agent = self.agent_map[datapath_id]
+            agent.forward_change_event(event)

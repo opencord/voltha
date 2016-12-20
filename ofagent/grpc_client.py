@@ -46,12 +46,15 @@ class GrpcClient(object):
 
         self.packet_out_queue = Queue()  # queue to send out PacketOut msgs
         self.packet_in_queue = DeferredQueue()  # queue to receive PacketIn
+        self.change_event_queue = DeferredQueue()  # queue change events
 
     def start(self):
         log.debug('starting')
         self.start_packet_out_stream()
         self.start_packet_in_stream()
+        self.start_change_event_in_stream()
         reactor.callLater(0, self.packet_in_forwarder_loop)
+        reactor.callLater(0, self.change_event_processing_loop)
         log.info('started')
         return self
 
@@ -91,6 +94,31 @@ class GrpcClient(object):
                           queue_len=len(self.packet_in_queue.pending))
 
         reactor.callInThread(receive_packet_in_stream)
+
+    def start_change_event_in_stream(self):
+
+        def receive_change_events():
+            streaming_rpc_method = self.local_stub.ReceiveChangeEvents
+            iterator = streaming_rpc_method(empty_pb2.Empty())
+            for event in iterator:
+                reactor.callFromThread(self.change_event_queue.put, event)
+                log.debug('enqued-change-event',
+                          change_event=event,
+                          queue_len=len(self.change_event_queue.pending))
+
+        reactor.callInThread(receive_change_events)
+
+    @inlineCallbacks
+    def change_event_processing_loop(self):
+        while True:
+            try:
+                event = yield self.change_event_queue.get()
+                device_id = event.id
+                self.connection_manager.forward_change_event(device_id, event)
+            except Exception, e:
+                log.exception('failed-in-packet-in-handler', e=e)
+            if self.stopped:
+                break
 
     @inlineCallbacks
     def packet_in_forwarder_loop(self):

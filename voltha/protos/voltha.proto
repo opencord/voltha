@@ -417,4 +417,9 @@ service VolthaLocalService {
         // This does not have an HTTP representation
     }
 
+    rpc ReceiveChangeEvents(google.protobuf.Empty)
+        returns(stream openflow_13.ChangeEvent) {
+        // This does not have an HTTP representation
+    }
+
 }

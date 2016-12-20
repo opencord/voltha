@@ -20,8 +20,11 @@ Mock device adapter for testing.
 from uuid import uuid4
 
 import structlog
+from klein import Klein
+from twisted.internet import endpoints
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
+from twisted.web.server import Site
 from zope.interface import implementer
 
 from common.utils.asleep import asleep
@@ -53,6 +56,8 @@ class SimulatedOltAdapter(object):
         )
     ]
 
+    app = Klein()
+
     def __init__(self, adapter_agent, config):
         self.adapter_agent = adapter_agent
         self.config = config
@@ -62,9 +67,15 @@ class SimulatedOltAdapter(object):
             version='0.1',
             config=AdapterConfig(log_level=LogLevel.INFO)
         )
+        self.control_endpoint = None
 
     def start(self):
         log.debug('starting')
+
+        # setup a basic web server for test control
+        self.control_endpoint = endpoints.TCP4ServerEndpoint(reactor, 18880)
+        self.control_endpoint.listen(self.get_test_control_site())
+
         # TODO tmp: populate some devices and logical devices
         reactor.callLater(0, self._tmp_populate_stuff)
         log.info('started')
@@ -309,23 +320,23 @@ class SimulatedOltAdapter(object):
         device.oper_status = OperStatus.ACTIVE
         self.adapter_agent.update_device(device)
 
-        reactor.callLater(0.1, self._simulate_detection_of_onus, device)
+        # reactor.callLater(0.1, self._simulate_detection_of_onus, device.id)
 
     @inlineCallbacks
-    def _simulate_detection_of_onus(self, device):
+    def _simulate_detection_of_onus(self, device_id):
         for i in xrange(1, 5):
             log.info('activate-olt-for-onu-{}'.format(i))
-            gemport, vlan_id = self._olt_side_onu_activation(i)
+            vlan_id = self._olt_side_onu_activation(i)
             yield asleep(0.05)
             self.adapter_agent.child_device_detected(
-                parent_device_id=device.id,
+                parent_device_id=device_id,
                 parent_port_no=1,
                 child_device_type='simulated_onu',
                 proxy_address=Device.ProxyAddress(
-                    device_id=device.id,
+                    device_id=device_id,
                     channel_id=vlan_id
                 ),
-                vlan=100 + i
+                vlan=vlan_id
             )
 
     def _olt_side_onu_activation(self, seq):
@@ -335,9 +346,8 @@ class SimulatedOltAdapter(object):
         be able to provide tunneled (proxy) communication to the given ONU,
         using the returned information.
         """
-        gemport = seq + 1
         vlan_id = seq + 100
-        return gemport, vlan_id
+        return vlan_id
 
     def update_flows_bulk(self, device, flows, groups):
         log.debug('bulk-flow-update', device_id=device.id,
@@ -358,3 +368,15 @@ class SimulatedOltAdapter(object):
 
     def receive_proxied_message(self, proxy_address, msg):
         raise NotImplementedError()
+
+    # ~~~~~~~~~~~~~~~~~~~~ Embedded test Klein rest server ~~~~~~~~~~~~~~~~~~~~
+
+    @app.route('/devices/<string:id>/detect_onus')
+    def detect_onu(self, request, **kw):
+        log.info('detect-onus', request=request, **kw)
+        device_id = kw['id']
+        self._simulate_detection_of_onus(device_id)
+        return '{"status": "OK"}'
+
+    def get_test_control_site(self):
+        return Site(self.app.resource())

@@ -25,7 +25,7 @@ import loxi.of13 as of13
 from common.utils.asleep import asleep
 from of_connection import OpenFlowConnection
 from of_protocol_handler import OpenFlowProtocolHandler
-
+from ofagent.protos.openflow_13_pb2 import ChangeEvent
 
 log = structlog.get_logger()
 
@@ -120,6 +120,14 @@ class Agent(protocol.ClientFactory):
 
     def forward_packet_in(self, ofp_packet_in):
         self.proto_handler.forward_packet_in(ofp_packet_in)
+
+    def forward_change_event(self, event):
+        # assert isinstance(event, ChangeEvent)
+        log.info('got-change-event', change_event=event)
+        if event.HasField("port_status"):
+            self.proto_handler.forward_port_status(event.port_status)
+        else:
+            log.error('unknown-change-event', change_event=event)
 
 
 if __name__ == '__main__':

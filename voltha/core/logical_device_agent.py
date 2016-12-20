@@ -30,6 +30,7 @@ from voltha.core.flow_decomposer import FlowDecomposer, \
 from voltha.protos import third_party
 from voltha.protos import openflow_13_pb2 as ofp
 from voltha.protos.device_pb2 import Port
+from voltha.protos.logical_device_pb2 import LogicalPort
 from voltha.protos.openflow_13_pb2 import Flows, FlowGroups
 from voltha.registry import registry
 
@@ -43,6 +44,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
 
     def __init__(self, core, logical_device):
         self.core = core
+        self.local_handler = core.get_local_handler()
         self.grpc_server = registry('grpc_server')
         self.logical_device_id = logical_device.id
 
@@ -59,9 +61,9 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         self.groups_proxy.register_callback(
             CallbackType.POST_UPDATE, self._group_table_updated)
         self.self_proxy.register_callback(
-            CallbackType.POST_ADD, self._port_list_updated)
+            CallbackType.POST_ADD, self._port_added)
         self.self_proxy.register_callback(
-            CallbackType.POST_REMOVE, self._port_list_updated)
+            CallbackType.POST_REMOVE, self._port_removed)
 
         self.log = structlog.get_logger(logical_device_id=logical_device.id)
 
@@ -500,6 +502,39 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
                                    FlowGroups(items=groups.values()))
 
     ## <==================== APIs NEEDED BY FLOW DECOMPOSER ===================
+
+    def _port_added(self, port):
+        assert isinstance(port, LogicalPort)
+        self._port_list_updated(port)
+        self.local_handler.send_port_change_event(
+            device_id=self.logical_device_id,
+            port_status=ofp.ofp_port_status(
+                reason=ofp.OFPPR_ADD,
+                desc=port.ofp_port
+            )
+        )
+
+    def _port_removed(self, port):
+        assert isinstance(port, LogicalPort)
+        self._port_list_updated(port)
+        self.local_handler.send_port_change_event(
+            device_id=self.logical_device_id,
+            port_status=ofp.ofp_port_status(
+                reason=ofp.OFPPR_DELETE,
+                desc=port.ofp_port
+            )
+        )
+
+    # TODO not yet hooked up
+    def _port_changed(self, port):
+        assert isinstance(port, LogicalPort)
+        self.local_handler.send_port_change_event(
+            device_id=self.logical_device_id,
+            port_status=ofp.ofp_port_status(
+                reason=ofp.OFPPR_MODIFY,
+                desc=port.ofp_port
+            )
+        )
 
     def _port_list_updated(self, _):
         # invalidate the graph and the route table

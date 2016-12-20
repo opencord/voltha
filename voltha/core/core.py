@@ -59,6 +59,7 @@ class VolthaCore(object):
         self.device_agents = {}
         self.logical_device_agents = {}
         self.packet_in_queue = Queue()
+        self.change_event_queue = Queue()
 
     @inlineCallbacks
     def start(self):

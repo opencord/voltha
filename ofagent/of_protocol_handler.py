@@ -258,3 +258,6 @@ class OpenFlowProtocolHandler(object):
 
     def forward_packet_in(self, ofp_packet_in):
         self.cxn.send(to_loxi(ofp_packet_in))
+
+    def forward_port_status(self, ofp_port_status):
+        self.cxn.send(to_loxi(ofp_port_status))

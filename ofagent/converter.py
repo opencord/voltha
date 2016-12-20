@@ -55,6 +55,12 @@ def ofp_port_to_loxi_port_desc(pb):
     kw = pb2dict(pb)
     return of13.common.port_desc(**kw)
 
+def ofp_port_status_to_loxi_port_status(pb):
+    return of13.message.port_status(
+        reason=pb.reason,
+        desc=ofp_port_to_loxi_port_desc(pb.desc)
+    )
+
 def make_loxi_match(match):
     assert match.get('type', pb2.OFPMT_STANDARD) == pb2.OFPMT_OXM
     loxi_match_fields = []
@@ -120,6 +126,7 @@ def ofp_bucket_counter_to_loxy_bucket_counter(pb):
 
 to_loxi_converters = {
     pb2.ofp_port: ofp_port_to_loxi_port_desc,
+    pb2.ofp_port_status: ofp_port_status_to_loxi_port_status,
     pb2.ofp_flow_stats: ofp_flow_stats_to_loxi_flow_stats,
     pb2.ofp_packet_in: ofp_packet_in_to_loxi_packet_in,
     pb2.ofp_group_entry: ofp_group_entry_to_loxi_group_entry,

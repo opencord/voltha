@@ -19,7 +19,8 @@ from grpc import StatusCode
 
 from common.utils.grpc_utils import twisted_async
 from voltha.core.config.config_root import ConfigRoot
-from voltha.protos.openflow_13_pb2 import PacketIn, Flows, FlowGroups
+from voltha.protos.openflow_13_pb2 import PacketIn, Flows, FlowGroups, \
+    ofp_port_status
 
 from google.protobuf.empty_pb2 import Empty
 
@@ -27,7 +28,7 @@ from voltha.protos.voltha_pb2 import \
     add_VolthaLocalServiceServicer_to_server, VolthaLocalServiceServicer, \
     VolthaInstance, Adapters, LogicalDevices, LogicalDevice, Ports, \
     LogicalPorts, Devices, Device, DeviceType, \
-    DeviceTypes, DeviceGroups, DeviceGroup, AdminState, OperStatus
+    DeviceTypes, DeviceGroups, DeviceGroup, AdminState, OperStatus, ChangeEvent
 from voltha.registry import registry
 
 log = structlog.get_logger()
@@ -422,3 +423,14 @@ class LocalHandler(VolthaLocalServiceServicer):
         """Must be called on the twisted thread"""
         packet_in = PacketIn(id=device_id, packet_in=ofp_packet_in)
         self.core.packet_in_queue.put(packet_in)
+
+    def ReceiveChangeEvents(self, request, context):
+        while 1:
+            event = self.core.change_event_queue.get()
+            yield event
+
+    def send_port_change_event(self, device_id, port_status):
+        """Must be called on the twisted thread"""
+        assert isinstance(port_status, ofp_port_status)
+        event = ChangeEvent(id=device_id, port_status=port_status)
+        self.core.change_event_queue.put(event)

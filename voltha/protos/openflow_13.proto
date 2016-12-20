@@ -2273,3 +2273,10 @@ message PacketOut {
     string id = 1;  // LogicalDevice.id
     ofp_packet_out packet_out = 2;
 }
+
+message ChangeEvent {
+    string id = 1; // LogicalDevice.id
+    oneof event {
+        ofp_port_status port_status = 2;
+    }
+}
