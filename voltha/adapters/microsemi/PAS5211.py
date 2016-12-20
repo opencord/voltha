@@ -19,17 +19,19 @@
 PAS5211 scapy structs used for interaction with Ruby
 """
 from scapy.fields import LEShortField, Field, LEIntField, LESignedIntField, FieldLenField, FieldListField, PacketField, \
-    ByteField
+    ByteField, StrFixedLenField, ConditionalField
 from scapy.layers.l2 import Dot3, LLC
 from scapy.layers.inet import ARP
 from scapy.packet import Packet, bind_layers, split_layers
 from scapy.utils import lhex
 from scapy.volatile import RandSInt
 from scapy.layers.ntp import XLEShortField
+from voltha.extensions.omci.omci_frame import OmciFrame
 
 """
 PAS5211 Constants
 """
+#TODO get range from olt_version message
 CHANNELS=range(0,4)
 
 # from enum PON_true_false_t
@@ -212,6 +214,13 @@ PON_OLT_HW_CLASSIFICATION_ALL_IPV6_MULTICAST       = 106
 PON_OLT_HW_CLASSIFICATION_OTHER			           = 107
 PON_OLT_HW_CLASSIFICATION_LAST_RULE                = 108
 
+# from enum PON_activation_auth_type_t
+
+PON_ACTIVATION_AUTH_AUTO 			  				= 0
+PON_ACTIVATION_AUTH_HOST_CONTROLLED_SEPARATE_EVENTS = 1 # Host controlled: Separate events
+PON_ACTIVATION_AUTH_HOST_CONTROLLED_LUMPED_SN   	= 2 # Host controlled: Lumped-SN-Response
+PON_ACTIVATION_AUTH_REGISTRATION_ID_RAW   			= 3 # Registration-ID Raw
+PON_ACTIVATION_AUTH_REGISTRATION_ID_LEARN   		= 4  # Registration-ID Learn
 
 """
 Extra field structs
@@ -563,6 +572,84 @@ class PAS5211MsgGetDbaModeResponse(PAS5211Msg):
         LEIntField("dba_mode", None),
     ]
 
+class PAS5211MsgGetActivationAuthMode(PAS5211Msg):
+    opcode = 145
+    name = "PAS5211MsgGetActivationAuthMode"
+    fields_desc = [
+        LEShortField("nothing", 0) # no idea why this is here
+    ]
+
+class PAS5211MsgGetActivationAuthModeResponse(PAS5211Msg):
+    opcode = 10385
+    name = "PAS5211MsgGetActivationAuthMode"
+    fields_desc = [
+        LEShortField("mode", 0),
+        LEShortField("reserved", 0),
+    ]
+
+class PAS5211MsgSetOnuOmciPortId(PAS5211Msg):
+    opcode = 41
+    name = "PAS5211MsgSetOnuOmciPortId"
+    fields_desc = [
+        LEShortField("port_id", 0),
+        LEShortField("activate", PON_ENABLE)
+    ]
+
+class PAS5211MsgSetOnuOmciPortIdResponse(PAS5211Msg):
+    opcode = 10281
+    name = "PAS5211MsgSetOnuOmciPortIdResponse"
+    fields_desc = []
+
+
+class PAS5211Event(PAS5211Msg):
+    opcode = 12
+
+class PAS5211EventOnuActivation(PAS5211Event):
+    name = "PAS5211EventOnuActivation"
+    fields_desc = [
+        StrFixedLenField("serial_number", None, length=8),
+        LEIntField("equalization_period", None)
+    ]
+
+    """
+    Frame
+    """
+
+class PAS5211MsgSendFrame(PAS5211Msg):
+    opcode = 42
+    name = "PAS5211MsgSendFrame"
+    fields_desc = [
+        FieldLenField("length", None, fmt="<H", length_of="frame"),
+        LEShortField("port_type", PON_PORT_PON),
+        LEShortField("port_id", 0),
+        LEShortField("management_frame", PON_FALSE),
+        ConditionalField(PacketField("frame", None, Packet), lambda pkt: pkt.management_frame==PON_FALSE),
+        ConditionalField(PacketField("frame", None, OmciFrame), lambda pkt: pkt.management_frame==PON_TRUE)
+    ]
+
+
+class PAS5211MsgSendFrameResponse(PAS5211Msg):
+    opcode = 10282
+    name = "PAS5211MsgSendFrameResponse"
+    fields_desc = []
+
+
+class PAS5211EventFrameReceived(PAS5211Event):
+    name = "PAS5211EventFrameReceived"
+    fields_desc = [
+        FieldLenField("length", None, length_of="frame", fmt="<H"),
+        LEShortField("port_type", PON_PORT_PON),
+        LEShortField("port_id", 0),
+        LEShortField("management_frame", PON_FALSE),
+        LEShortField("classification_entity", None),
+        LEShortField("l3_offset", None),
+        LEShortField("l4_offset", None),
+        LEShortField("ignored", 0), # TODO these do receive values, but there is no code in PMC using it
+        ConditionalField(PacketField("frame", None, Packet), lambda pkt: pkt.management_frame==PON_FALSE),
+        ConditionalField(PacketField("frame", None, OmciFrame), lambda pkt: pkt.management_frame==PON_TRUE)
+    ]
+
+
 """
 Bindings used for message processing
 """
@@ -577,3 +664,9 @@ bind_layers(PAS5211MsgHeader, PAS5211MsgSetAlarmConfigResponse, opcode=0x2800 | 
 bind_layers(PAS5211MsgHeader, PAS5211MsgGetDbaModeResponse, opcode=0x2800 | 57)
 bind_layers(PAS5211MsgHeader, PAS5211MsgStartDbaAlgorithmResponse, opcode=0x2800 | 55)
 bind_layers(PAS5211MsgHeader, PAS5211MsgSetOltChannelActivationPeriodResponse, opcode=0x2800 | 11)
+bind_layers(PAS5211MsgHeader, PAS5211MsgGetActivationAuthModeResponse, opcode=0x2800 | 145)
+
+
+bind_layers(PAS5211MsgHeader, PAS5211EventOnuActivation, opcode=0x2800 | 12, event_type=1)
+bind_layers(PAS5211MsgHeader, PAS5211EventFrameReceived, opcode=0x2800 | 12, event_type=10)
+bind_layers(PAS5211MsgHeader, PAS5211Event, opcode=0x2800 | 12)
