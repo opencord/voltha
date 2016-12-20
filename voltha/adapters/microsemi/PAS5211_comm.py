@@ -62,7 +62,8 @@ class PAS5211Communication(object):
         self.seqgen = sequence_generator(init)
         self.src_mac = determine_src_mac(self.iface)
 
-    def frame(self, msg, channel_id=-1):
+    def frame(self, msg, channel_id=-1, onu_id=-1, onu_session_id=-1):
         return constructPAS5211Frames(msg, self.seqgen.next(), self.src_mac,
-                                           self.dst_mac, channel_id=channel_id)
+                                      self.dst_mac, channel_id=channel_id,
+                                      onu_id=onu_id, onu_session_id=onu_session_id)
 

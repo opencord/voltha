@@ -13,9 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from scapy.automaton import ATMT, Automaton
-from scapy.layers.l2 import sendp
+from scapy.automaton import ATMT
 import structlog
+from voltha.adapters.microsemi.BaseOltAutomaton import BaseOltAutomaton
 from voltha.adapters.microsemi.PAS5211 import PAS5211MsgGetProtocolVersion, PAS5211MsgGetOltVersion, \
     PAS5211MsgGetOltVersionResponse, PAS5211MsgGetProtocolVersionResponse, \
     SnrBurstDelay, RngBurstDelay, GeneralOpticsParams, ResetValues, ResetTimingCtrl, PreambleParams, \
@@ -29,49 +29,15 @@ from voltha.adapters.microsemi.PAS5211 import PAS5211MsgGetProtocolVersion, PAS5
 from voltha.adapters.microsemi.PAS5211_utils import general_param, olt_optics_pkt, burst_timing, io_ctrl_optics, \
     alarm_config
 
+import structlog
+
 log = structlog.get_logger()
-_verbose = False
 
 
-
-class OltStateMachine(Automaton):
-
-    comm = None
-    retry = 3
-    iface = None
-    target = None
-    verbose = None
+class OltStateMachine(BaseOltAutomaton):
 
     send_state = []
     dba_needs_start = False
-
-    def parse_args(self, debug=0, store=0, **kwargs):
-        self.comm = kwargs.pop('comm', None)
-        self.target = kwargs.pop('target', None)
-        Automaton.parse_args(self, debug=debug, store=store, **kwargs)
-        self.verbose = kwargs.get('verbose', _verbose)
-        self.iface = kwargs.get('iface', "eth0")
-
-        if self.comm is None or self.target is None:
-            raise ValueError("Missing comm or target")
-
-    def my_send(self, pkt):
-        sendp(pkt, iface=self.iface, verbose=self.verbose)
-
-    def master_filter(self, pkt):
-        """
-        Anything coming from the OLT is for us
-        :param pkt: incoming packet
-        :return: True if it came from the olt
-        """
-        return pkt.src == self.target
-
-    def debug(self, lvl, msg):
-        if self.debug_level >= lvl:
-            log.info(msg)
-
-    def p(self, pkt, channel_id=-1):
-        return self.comm.frame(pkt, channel_id=channel_id)
 
     def check_channel_state(self):
         for i in CHANNELS:
@@ -225,6 +191,8 @@ class OltStateMachine(Automaton):
     def receive_olt_version(self, pkt):
         log.debug("Received proto version {}".format(pkt))
         if PAS5211MsgGetOltVersionResponse in pkt:
+            log.info("updating device")
+            self.device.update_device(pkt)
             raise self.got_olt_version()
         else:
             log.error("Got garbage packet {}".format(pkt))
@@ -286,7 +254,7 @@ class OltStateMachine(Automaton):
 
         raise self.wait_olt_optics()
 
-    #Transitions from wait_olt_optics
+    # Transitions from wait_olt_optics
     @ATMT.timeout(wait_olt_optics, 3)
     def olt_optics_timeout(self):
         log.error("Setting olt optics failed; disconnecting")
@@ -300,7 +268,7 @@ class OltStateMachine(Automaton):
                 raise self.got_olt_optics()
             raise self.wait_olt_optics()
 
-    #Transitions from got_olt_optics
+    # Transitions from got_olt_optics
     @ATMT.condition(got_olt_optics)
     def send_olt_io_optics(self):
 
@@ -322,7 +290,7 @@ class OltStateMachine(Automaton):
 
         raise self.wait_olt_io_optics()
 
-    #Transitions from wait olt io optics
+    # Transitions from wait olt io optics
     @ATMT.timeout(wait_olt_io_optics, 3)
     def olt_io_optics_timeout(self):
         log.error("Setting olt io optics failed; disconnecting")
@@ -488,6 +456,8 @@ class OltStateMachine(Automaton):
         if pkt.opcode == PAS5211MsgSetOltChannelActivationPeriodResponse.opcode:
             self.send_state[pkt.channel_id] = True
             if self.check_channel_state():
+                log.info("Ruby OLT at {} initialised".format(self.target))
+                self.device.create_logical_device()
                 raise self.initialized()
         raise self.wait_activation()
 
@@ -500,7 +470,7 @@ class OltStateMachine(Automaton):
     # Transitions from wait_keepalive
     @ATMT.timeout(wait_keepalive, 1)
     def timeout_keepalive(self):
-        log.error("OLT not responsing to keepalive; disconnecting")
+        log.error("OLT not responding to keep alive; disconnecting")
         raise self.ERROR()
 
     @ATMT.receive_condition(wait_keepalive)

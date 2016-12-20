@@ -553,6 +553,67 @@ class PAS5211MsgSwitchToInboundMode(PAS5211Msg):
         LEShortField("mode", 0)
     ]
 
+class PAS5211MsgGetActivationAuthMode(PAS5211Msg):
+    opcode = 145
+    name = "PAS5211MsgGetActivationAuthMode"
+    fields_desc = [
+        LEShortField("nothing", 0) # no idea why this is here
+    ]
+
+class PAS5211MsgGetActivationAuthModeResponse(PAS5211Msg):
+    opcode = 10385
+    name = "PAS5211MsgGetActivationAuthMode"
+    fields_desc = [
+        LEShortField("mode", 0),
+        LEShortField("reserved", 0),
+    ]
+
+class PAS5211MsgSetOnuOmciPortId(PAS5211Msg):
+    opcode = 41
+    name = "PAS5211MsgSetOnuOmciPortId"
+    fields_desc = [
+        LEShortField("port_id", 0),
+        LEShortField("activate", PON_ENABLE)
+    ]
+
+class PAS5211MsgSetOnuOmciPortIdResponse(PAS5211Msg):
+    opcode = 10281
+    name = "PAS5211MsgSetOnuOmciPortIdResponse"
+    fields_desc = []
+
+
+class PAS5211MsgGetLogicalObjectStatus(PAS5211Msg):
+    opcode = 223
+    name = "PAS5211MsgGetLogicalObjectStatus"
+    fields_desc = [
+        LEIntField("type", None),
+        LEIntField("value", None)
+    ]
+
+class PAS5211MsgGetLogicalObjectStatusResponse(PAS5211Msg):
+    opcode = 10463
+    name = "PAS5211MsgGetLogicalObjectStatusResponse"
+    fields_desc = [
+        LEIntField("type", None),
+        LEIntField("value", None),
+        FieldLenField("return_length", None, fmt="<H", length_of="return_value"),
+        LEIntField("return_value", "")
+    ]
+
+class PAS5211MsgSetOnuAllocId(PAS5211Msg):
+    opcode = 8
+    name = "PAS5211MsgSetOnuAllocId"
+    fields_desc = [
+        LEShortField("alloc_id", None),
+        LEShortField("allocate", None)
+    ]
+
+class PAS5211MsgSetOnuAllocIdResponse(PAS5211Msg):
+    opcode = 10248
+    name = "PAS5211MsgSetOnuAllocIdResponse"
+    fields_desc = []
+
+
 
 class Frame(Packet):
     pass
@@ -566,8 +627,12 @@ class PAS5211MsgSendFrame(PAS5211Msg):
         LEShortField("port_type", PON_PORT_PON),
         LEShortField("port_id", 0),
         LEShortField("management_frame", PON_FALSE),
-        PacketField("frame", None, Packet)
+        ConditionalField(PacketField("frame", None, Packet), lambda pkt: pkt.management_frame==PON_FALSE),
+        ConditionalField(PacketField("frame", None, OmciFrame), lambda pkt: pkt.management_frame==PON_TRUE)
     ]
+
+    def extract_padding(self, p):
+        return "", p
 
 
 class PAS5211MsgSendFrameResponse(PAS5211Msg):
@@ -644,6 +709,20 @@ bind_layers(PAS5211MsgHeader, PAS5211MsgGetDbaModeResponse, opcode=0x2800 | 57)
 
 bind_layers(PAS5211MsgHeader, PAS5211MsgSendFrame, opcode=0x3000 | 42)
 bind_layers(PAS5211MsgHeader, PAS5211MsgSendFrameResponse, opcode=0x2800 | 42)
+
+
+bind_layers(PAS5211MsgHeader, PAS5211MsgGetActivationAuthMode, opcode=0x3000 | 145)
+bind_layers(PAS5211MsgHeader, PAS5211MsgGetActivationAuthModeResponse, opcode=0x2800 | 145)
+
+bind_layers(PAS5211MsgHeader, PAS5211MsgSetOnuOmciPortId, opcode=0x3000 | 41)
+bind_layers(PAS5211MsgHeader, PAS5211MsgSetOnuOmciPortIdResponse, opcode=0x2800 | 41)
+
+bind_layers(PAS5211MsgHeader, PAS5211MsgGetLogicalObjectStatus, opcode=0x3000 | 223)
+bind_layers(PAS5211MsgHeader, PAS5211MsgGetLogicalObjectStatusResponse, opcode=0x2800 | 223)
+
+bind_layers(PAS5211MsgHeader, PAS5211MsgSetOnuAllocId, opcode=0x2800 | 8)
+bind_layers(PAS5211MsgHeader, PAS5211MsgSetOnuAllocIdResponse, opcode=0x2800 | 8)
+
 
 # bindings for events received
 bind_layers(PAS5211MsgHeader, PAS5211EventOnuActivation, opcode=0x2800 | 12, event_type=1)
