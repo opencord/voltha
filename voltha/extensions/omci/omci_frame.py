@@ -73,13 +73,21 @@ class OmciFrame(Packet):
                 "omci_message", None, OmciGetAllAlarmsNextResponse), align=36),
                 lambda pkt:
                 pkt.message_type == OmciGetAllAlarmsNextResponse.message_id),
+
         ConditionalField(FixedLenField(
             PacketField("omci_message", None, OmciMibUpload), align=36),
+            lambda pkt: pkt.message_type == OmciMibUpload.message_id),
+        ConditionalField(FixedLenField(
+            PacketField("omci_message", None, OmciMibUploadResponse), align=36),
             lambda pkt: pkt.message_type == OmciMibUploadResponse.message_id),
         ConditionalField(FixedLenField(
             PacketField("omci_message", None, OmciMibUploadNext), align=36),
             lambda pkt:
-                pkt.message_type == OmciMibUploadNextResponse.message_id),
+                pkt.message_type == OmciMibUploadNext.message_id),
+        ConditionalField(FixedLenField(
+            PacketField("omci_message", None, OmciMibUploadNextResponse), align=36),
+            lambda pkt: pkt.message_type == OmciMibUploadNextResponse.message_id),
+
         ConditionalField(FixedLenField(
             PacketField("omci_message", None, OmciMibReset), align=36),
             lambda pkt: pkt.message_type == OmciMibReset.message_id),

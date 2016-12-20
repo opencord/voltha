@@ -86,7 +86,10 @@ class OmciMaskedData(Field):
         indices = entity_class.attribute_indices_from_mask(attribute_mask)
         data = {}
         for index in indices:
-            fld = entity_class.attributes[index]._fld
+            try:
+                fld = entity_class.attributes[index]._fld
+            except IndexError, e:
+                raise
             s, value = fld.getfield(pkt, s)
             data[fld.name] = value
         return  s, data
@@ -264,7 +267,8 @@ class OmciMibUploadNextResponse(OmciMessage):
         ShortField("object_entity_class", None),
         ShortField("object_entity_id", 0),
         ShortField("object_attributes_mask", None),
-        OmciMaskedData("object_data")
+        OmciMaskedData("object_data", entity_class='object_entity_class',
+                       attributes_mask='object_attributes_mask')
     ]
 
 

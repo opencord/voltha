@@ -133,7 +133,28 @@ class OntData(EntityClass):
     mandatory_operations = {OP.Get, OP.Set,
                             OP.GetAllAlarms, OP.GetAllAlarmsNext,
                             OP.MibReset, OP.MibUpload, OP.MibUploadNext}
-    optional_operations = {}
+
+
+class Cardholder(EntityClass):
+    class_id = 5
+    attributes = [
+        ECA(ShortField("managed_entity_id", None), {AA.R}),
+        ECA(ByteField("actual_plugin_unit_type", None), {AA.R}),
+        ECA(ByteField("expected_plugin_unit_type", None), {AA.R, AA.W}),
+        ECA(ByteField("expected_port_count", None), {AA.R, AA.W},
+            optional=True),
+        ECA(StrFixedLenField("expected_equipment_id", None, 20), {AA.R, AA.W},
+            optional=True),
+        ECA(StrFixedLenField("actual_equipment_id", None, 20), {AA.R},
+            optional=True),
+        ECA(ByteField("protection_profile_pointer", None), {AA.R},
+            optional=True),
+        ECA(ByteField("invoke_protection_switch", None), {AA.R, AA.W},
+            optional=True),
+        ECA(ByteField("arc", None), {AA.R, AA.W}),
+        ECA(ByteField("arc_interval", None), {AA.R, AA.W}),
+    ]
+    mandatory_operations = {OP.Get, OP.Set}
 
 
 class CircuitPack(EntityClass):
