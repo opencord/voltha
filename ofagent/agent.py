@@ -51,6 +51,7 @@ class Agent(protocol.ClientFactory):
                                     # TCP connection is lost
         self.connected = False
         self.exiting = False
+        self.proto_handler = None
 
     def get_device_id(self):
         return self.device_id
@@ -119,13 +120,15 @@ class Agent(protocol.ClientFactory):
                       reason=reason, connector=connector)
 
     def forward_packet_in(self, ofp_packet_in):
-        self.proto_handler.forward_packet_in(ofp_packet_in)
+        if self.proto_handler is not None:
+            self.proto_handler.forward_packet_in(ofp_packet_in)
 
     def forward_change_event(self, event):
         # assert isinstance(event, ChangeEvent)
         log.info('got-change-event', change_event=event)
         if event.HasField("port_status"):
-            self.proto_handler.forward_port_status(event.port_status)
+            if self.proto_handler is not None:
+                self.proto_handler.forward_port_status(event.port_status)
         else:
             log.error('unknown-change-event', change_event=event)
 
