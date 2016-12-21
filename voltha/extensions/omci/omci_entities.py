@@ -16,7 +16,7 @@
 import inspect
 
 import sys
-from scapy.fields import ByteField, ShortField, MACField, BitField
+from scapy.fields import ByteField, ShortField, MACField, BitField, IPField
 from scapy.fields import IntField, StrFixedLenField
 from scapy.packet import Packet
 
@@ -181,6 +181,18 @@ class CircuitPack(EntityClass):
     optional_operations = {OP.Create, OP.Delete, OP.Test}
 
 
+class SoftwareImage(EntityClass):
+    class_id = 7
+    attributes = [
+        ECA(ShortField("managed_entity_id", None), {AA.R}),
+        ECA(StrFixedLenField("version", None, 14), {AA.R}),
+        ECA(ByteField("is_committed", None), {AA.R}),
+        ECA(ByteField("is_active", None), {AA.R}),
+        ECA(ByteField("is_valid", None), {AA.R}),
+    ]
+    mandatory_operations = {OP.Get}
+
+
 class MacBridgeServiceProfile(EntityClass):
     class_id = 45
     attributes = [
@@ -291,6 +303,62 @@ class Ieee8021pMapperServiceProfile(EntityClass):
     mandatory_operations = {OP.Create, OP.Delete, OP.Get, OP.Set}
 
 
+class OltG(EntityClass):
+    class_id = 131
+    attributes = [
+        ECA(ShortField("managed_entity_id", None), {AA.R}),
+        ECA(StrFixedLenField("olt_vendor_id", None, 4), {AA.R, AA.W}),
+        ECA(StrFixedLenField("equipment_id", None, 20), {AA.R, AA.W}),
+        ECA(StrFixedLenField("version", None, 14), {AA.R, AA.W}),
+        ECA(StrFixedLenField("time_of_day", None, 14), {AA.R, AA.W})
+    ]
+    mandatory_operations = {OP.Get, OP.Set}
+
+
+class OntPowerShedding(EntityClass):
+    class_id = 133
+    attributes = [
+        ECA(ShortField("managed_entity_id", None), {AA.R}),
+        ECA(ShortField("restore_power_time_reset_interval", None),
+            {AA.R, AA.W}),
+        ECA(ShortField("data_class_shedding_interval", None), {AA.R, AA.W}),
+        ECA(ShortField("voice_class_shedding_interval", None), {AA.R, AA.W}),
+        ECA(ShortField("video_overlay_class_shedding_interval", None), {AA.R, AA.W}),
+        ECA(ShortField("video_return_class_shedding_interval", None), {AA.R, AA.W}),
+        ECA(ShortField("dsl_class_shedding_interval", None), {AA.R, AA.W}),
+        ECA(ShortField("atm_class_shedding_interval", None), {AA.R, AA.W}),
+        ECA(ShortField("ces_class_shedding_interval", None), {AA.R, AA.W}),
+        ECA(ShortField("frame_class_shedding_interval", None), {AA.R, AA.W}),
+        ECA(ShortField("sonet_class_shedding_interval", None), {AA.R, AA.W}),
+        ECA(ShortField("shedding_status", None), {AA.R, AA.W}),
+    ]
+    mandatory_operations = {OP.Get, OP.Set}
+
+
+class IpHostConfigData(EntityClass):
+    class_id = 134
+    attributes = [
+        ECA(ShortField("managed_entity_id", None), {AA.R}),
+        ECA(ByteField("ip_options", None), {AA.R, AA.W}),
+        ECA(MACField("mac_address", None), {AA.R}),
+        ECA(StrFixedLenField("ont_identifier", None, 25), {AA.R, AA.W}),
+        ECA(IPField("ip_address", None), {AA.R, AA.W}),
+        ECA(IPField("mask", None), {AA.R, AA.W}),
+        ECA(IPField("gateway", None), {AA.R, AA.W}),
+        ECA(IPField("primary_dns", None), {AA.R, AA.W}),
+        ECA(IPField("secondary_dns", None), {AA.R, AA.W}),
+        ECA(IPField("current_address", None), {AA.R}),
+        ECA(IPField("current_mask", None), {AA.R}),
+        ECA(IPField("current_gateway", None), {AA.R}),
+        ECA(IPField("current_primary_dns", None), {AA.R}),
+        ECA(IPField("current_secondary_dns", None), {AA.R}),
+        ECA(StrFixedLenField("domain_name", None, 25), {AA.R}),
+        ECA(StrFixedLenField("host_name", None, 25), {AA.R}),
+
+    ]
+    mandatory_operations = {OP.Get, OP.Set, OP.Test}
+
+
 class VlanTaggingOperation(Packet):
     name = "VlanTaggingOperation"
     fields_desc = [
@@ -337,6 +405,42 @@ class ExtendedVlanTaggingOperationConfigurationData(EntityClass):
     mandatory_operations = {OP.Create, OP.Delete, OP.Set, OP.Get, OP.GetNext}
 
 
+class OntG(EntityClass):
+    class_id = 256
+    attributes = [
+        ECA(ShortField("managed_entity_id", None), {AA.R}),
+        ECA(StrFixedLenField("vendor_id", None, 4), {AA.R}),
+        ECA(StrFixedLenField("version", None, 14), {AA.R}),
+        ECA(StrFixedLenField("serial_number", None, 8), {AA.R}),
+        ECA(ByteField("traffic_management_options", None), {AA.R}),
+        ECA(ByteField("vp_vc_cross_connection_option", None), {AA.R},
+            optional=True),
+        ECA(ByteField("administrative_state", None), {AA.R, AA.W}),
+        ECA(ByteField("operational_state", None), {AA.R}, optional=True),
+        ECA(ByteField("ont_survival_time", None), {AA.R})
+    ]
+    mandatory_operations = {
+        OP.Get, OP.Set, OP.Reboot, OP.Test, OP.SynchronizeTime}
+
+
+class Ont2G(EntityClass):
+    class_id = 257
+    attributes = [
+        ECA(ShortField("managed_entity_id", None), {AA.R}),
+        ECA(StrFixedLenField("equipment_id", None, 20), {AA.R}),
+        ECA(ByteField("omcc_version", None), {AA.R}),
+        ECA(ShortField("vendor_product_code", None), {AA.R}, optional=True),
+        ECA(ByteField("security_capability", None), {AA.R}),
+        ECA(ByteField("security_mode", None), {AA.R, AA.W}),
+        ECA(ShortField("total_priority_queue_number", None), {AA.R}),
+        ECA(ByteField("total_traffic_scheduler_number", None), {AA.R}),
+        ECA(ByteField("mode", None), {AA.R}),
+        ECA(ShortField("total_gem_port_id_number", None), {AA.R}, optional=True),
+        ECA(IntField("sys_uptime", None), {AA.R}, optional=True),
+    ]
+    mandatory_operations = {OP.Get, OP.Set}
+
+
 class Tcont(EntityClass):
     class_id = 262
     attributes = [
@@ -344,6 +448,42 @@ class Tcont(EntityClass):
         ECA(ShortField("alloc_id", 0x00ff), {AA.R, AA.W}),
         ECA(ByteField("mode_indicator", 1), {AA.R}),
         ECA(ByteField("policy", None), {AA.R, AA.W}),  # addendum makes it R/W
+    ]
+    mandatory_operations = {OP.Get, OP.Set}
+
+
+class AniG(EntityClass):
+    class_id = 263
+    attributes = [
+        ECA(ShortField("managed_entity_id", None), {AA.R}),
+        ECA(ByteField("sr_indication", None), {AA.R}),
+        ECA(ShortField("total_tcont_number", None), {AA.R}),
+        ECA(ShortField("gem_block_length", None), {AA.R, AA.W}),
+        ECA(ByteField("piggyback_dba_reporting", None), {AA.R}),
+        ECA(ByteField("whole_ont_dba_reporting", None), {AA.R}),
+        ECA(ByteField("sf_threshold", None), {AA.R, AA.W}),
+        ECA(ByteField("sd_threshold", None), {AA.R, AA.W}),
+        ECA(ByteField("arc", None), {AA.R, AA.W}),
+        ECA(ByteField("arc_interval", None), {AA.R, AA.W}),
+        ECA(ShortField("optical_signal_level", None), {AA.R}),
+        ECA(ByteField("lower_optical_threshold", None), {AA.R, AA.W}, optional=True),
+        ECA(ByteField("upper_optical_threshold", None), {AA.R, AA.W}, optional=True),
+        ECA(ByteField("ont_response_time", None), {AA.R}, optional=True),
+        ECA(ShortField("transmit_optical_level", None), {AA.R}, optional=True),
+        ECA(ByteField("lower_transmit_power_threshold", None), {AA.R, AA.W},
+            optional=True),
+        ECA(ByteField("upper_transmit_power_threshold", None), {AA.R, AA.W},
+            optional=True),
+    ]
+    mandatory_operations = {OP.Get, OP.Set, OP.Test}
+
+
+class UniG(EntityClass):
+    class_id = 264
+    attributes = [
+        ECA(ShortField("managed_entity_id", None), {AA.R}),
+        ECA(ShortField("configuration_option_status", None), {AA.R, AA.W}),
+        ECA(ByteField("administrative_state", None), {AA.R, AA.W}),
     ]
     mandatory_operations = {OP.Get, OP.Set}
 
@@ -394,6 +534,38 @@ class GalEthernetProfile(EntityClass):
     mandatory_operations = {OP.Create, OP.Delete, OP.Get, OP.Set}
 
 
+class PriorityQueueG(EntityClass):
+    class_id = 277
+    attributes = [
+        ECA(ShortField("managed_entity_id", None), {AA.R}),
+        ECA(ByteField("queue_configuration_option", None), {AA.R}),
+        ECA(ShortField("maximum_queue_size", None), {AA.R}),
+        ECA(ShortField("allocated_queue_size", None), {AA.R, AA.W}),
+        ECA(ShortField("discard_block_countter_reset_interval", None), {AA.R, AA.W}),
+        ECA(ShortField("threshold_value_for_discarded_blocks", None), {AA.R, AA.W}),
+        ECA(IntField("related_port", None), {AA.R}),
+        ECA(ShortField("traffic_scheduler_g_pointer", None), {AA.R, AA.W}),
+        ECA(ByteField("weight", None), {AA.R, AA.W}),
+        ECA(ShortField("back_pressure_operation", None), {AA.R, AA.W}),
+        ECA(IntField("back_pressure_time", None), {AA.R, AA.W}),
+        ECA(ShortField("back_pressure_occur_queue_threshold", None), {AA.R, AA.W}),
+        ECA(ShortField("back_pressure_clear_queue_threshold", None), {AA.R, AA.W}),
+    ]
+    mandatory_operations = {OP.Get, OP.Set}
+
+
+class TrafficSchedulerG(EntityClass):
+    class_id = 278
+    attributes = [
+        ECA(ShortField("managed_entity_id", None), {AA.R}),
+        ECA(ShortField("tcont_pointer", None), {AA.R}),
+        ECA(ShortField("traffic_scheduler_pointer", None), {AA.R}),
+        ECA(ByteField("policy", None), {AA.R}),
+        ECA(ByteField("priority_weight", None), {AA.R}),
+    ]
+    mandatory_operations = {OP.Get, OP.Set}
+
+
 class MulticastGemInterworkingTp(EntityClass):
     class_id = 281
     attributes = [
@@ -411,6 +583,27 @@ class MulticastGemInterworkingTp(EntityClass):
         # ECA(...("multicast_address_table", None), {AA.R, AA.W})
     ]
     mandatory_operations = {OP.Create, OP.Delete, OP.Get, OP.GetNext, OP.Set}
+
+
+class Unknown329(EntityClass):
+    class_id = 329
+    attributes = [
+
+    ]
+
+
+class Unknown332(EntityClass):
+    class_id = 332
+    attributes = [
+
+    ]
+
+
+class Unknown347(EntityClass):
+    class_id = 347
+    attributes = [
+
+    ]
 
 
 # entity class lookup table from entity_class values

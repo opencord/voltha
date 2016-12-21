@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import structlog
 from enum import Enum
 from scapy.fields import ByteField, StrFixedLenField, ConditionalField, Field
 from scapy.fields import ShortField
@@ -20,6 +21,9 @@ from scapy.packet import Packet
 
 from voltha.extensions.omci.omci_defs import AttributeAccess
 from voltha.extensions.omci.omci_entities import entity_id_to_class_map
+
+
+log = structlog.get_logger()
 
 
 class OmciData(Field):
@@ -82,15 +86,20 @@ class OmciMaskedData(Field):
         """Extract an internal value from a string"""
         class_id = getattr(pkt, self._entity_class)
         attribute_mask = getattr(pkt, self._attributes_mask)
-        entity_class = entity_id_to_class_map.get(class_id)
+        entity_class = entity_id_to_class_map[class_id]
         indices = entity_class.attribute_indices_from_mask(attribute_mask)
         data = {}
         for index in indices:
             try:
                 fld = entity_class.attributes[index]._fld
             except IndexError, e:
+                log.error("Cannot decode attribute {} for entity class {}".format(
+                        index, entity_class))
+                continue
+            try:
+                s, value = fld.getfield(pkt, s)
+            except Exception, e:
                 raise
-            s, value = fld.getfield(pkt, s)
             data[fld.name] = value
         return  s, data
 
