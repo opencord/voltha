@@ -20,40 +20,63 @@ from netconf.nc_rpc.rpc import Rpc
 import netconf.nc_common.error as ncerror
 from netconf.constants import Constants as C
 from netconf.utils import filter_tag_match
+from twisted.internet.defer import inlineCallbacks, returnValue
+import dicttoxml
+from simplejson import dumps, load
 
 log = structlog.get_logger()
 
+
 class Get(Rpc):
+    def __init__(self, rpc_request, rpc_method, voltha_method_ref, grpc_client,
+                 session):
+        super(Get, self).__init__(rpc_request, rpc_method, voltha_method_ref,
+                                        grpc_client, session)
+        self._validate_parameters()
 
-	def __init__(self, rpc_request, rpc_method, grpc_client, session):
-		super(Get, self).__init__(rpc_request, rpc_method, grpc_client,
-								  session)
-		self._validate_parameters()
+    @inlineCallbacks
+    def execute(self):
+        log.info('get-request', session=self.session.session_id,
+                 method=self.rpc_method)
+        if self.rpc_response.is_error:
+            returnValue(self.rpc_response)
 
-	def execute(self):
-		log.info('get-request', session=self.session.session_id)
-		if self.rpc_response.is_error:
-			return self.rpc_response
+        # TODO: for debugging only, assume we are doing a voltha-getinstance
+        self.voltha_method_ref='VolthaLocalService-GetVolthaInstance'
+        # Invoke voltha via the grpc client
+        res_dict = yield self.grpc_client.invoke_voltha_api(self.voltha_method_ref)
 
-	def _validate_parameters(self):
-		log.info('validate-parameters',
-				 session=self.session.session_id,
-				 request=self.rpc_request,
-				 method=self.rpc_method
-				 )
-		self.params = self.rpc_method.getchildren()
-		if len(self.params) > 1:
-			self.rpc_response.is_error = True
-			self.rpc_response.node = ncerror.BadMsg(self.rpc_request)
-			return
+        # convert dict to xml
+        xml = dicttoxml.dicttoxml(res_dict, attr_type=False)
+        log.info('voltha-info', res=res_dict, xml=xml)
 
-		if self.params and not filter_tag_match(self.params[0], C.NC_FILTER):
-			self.rpc_response.is_error = True
-			self.rpc_response.node = ncerror.UnknownElement(
-				self.rpc_request, self.params[0])
-			return
+        root_elem = self.get_root_element(xml)
+        root_elem.tag = 'data'
 
-		if not self.params:
-			self.params = [None]
+        log.info('rpc-method', etree.tounicode(self.rpc_method,
+                                               pretty_print=True))
 
+        self.rpc_method.append(root_elem)
+        self.rpc_response.node = self.rpc_method
+        self.rpc_response.is_error = False
+
+        returnValue(self.rpc_response)
+
+
+    def _validate_parameters(self):
+        log.info('validate-parameters', session=self.session.session_id)
+        self.params = self.rpc_method.getchildren()
+        if len(self.params) > 1:
+            self.rpc_response.is_error = True
+            self.rpc_response.node = ncerror.BadMsg(self.rpc_request)
+            return
+
+        if self.params and not filter_tag_match(self.params[0], C.NC_FILTER):
+            self.rpc_response.is_error = True
+            self.rpc_response.node = ncerror.UnknownElement(
+                self.rpc_request, self.params[0])
+            return
+
+        if not self.params:
+            self.params = [None]
 

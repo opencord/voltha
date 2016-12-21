@@ -31,6 +31,7 @@ class Rpc(object):
         self.voltha_method_ref = voltha_method_ref
         self.session = session
 
+
     def execute(self):
         """ run the command - returns a OperationResponse """
         pass

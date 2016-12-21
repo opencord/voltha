@@ -44,10 +44,8 @@ class GetVoltha(Rpc):
         # Invoke voltha via the grpc client
         res_dict = yield self.grpc_client.invoke_voltha_api(self.voltha_method_ref)
 
-        # res_dict = yield self.grpc_client.get_voltha_instance()
-
         # convert dict to xml
-        xml = dicttoxml.dicttoxml(res_dict)
+        xml = dicttoxml.dicttoxml(res_dict, attr_type=False)
         log.info('voltha-info', res=res_dict, xml=xml)
 
         root_elem = self.get_root_element(xml)

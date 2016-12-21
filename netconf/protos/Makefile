@@ -20,37 +20,14 @@ ifeq ($(VOLTHA_BASE)_set,_set)
   $(error To get started, please source the env.sh file from Voltha top level directory)
 endif
 
-default: build
-
-PB2_FILES := \
-	voltha_pb2.py
+default: copyfiles
 
 TARGET_PROTO_DIR := $(VOLTHA_BASE)/netconf/protos
 SOURCE_PROTO_DIR := $(VOLTHA_BASE)/voltha/protos
 
-build: copyfiles
-
 copyfiles:
 	rsync -av --include '*/' --exclude='third_party/__init__.py' --include '*.py' --exclude='*' $(SOURCE_PROTO_DIR)/ $(TARGET_PROTO_DIR)
 
-
-PROTO_FILES := $(wildcard *.proto) $(wildcard third_party/google/api/*proto)
-PROTO_PB2_FILES := $(foreach f,$(PROTO_FILES),$(subst .proto,_pb2.py,$(f)))
-PROTO_DESC_FILES := $(foreach f,$(PROTO_FILES),$(subst .proto,.desc,$(f)))
-
-PROTOC_PREFIX := /usr/local
-PROTOC_LIBDIR := $(PROTOC_PREFIX)/lib
-
-build: $(PROTO_PB2_FILES)
-
-%_pb2.py: %.proto Makefile
-	@echo "Building protocol buffer artifacts from $<"
-	env LD_LIBRARY_PATH=$(PROTOC_LIBDIR) python -m grpc.tools.protoc \
-	    -I. \
-	    -I./third_party \
-	    --python_out=. \
-	    --grpc_python_out=. \
-	    $<
 
 clean:
 	rm -f $(PROTO_PB2_FILES) $(PROTO_DESC_FILES)
