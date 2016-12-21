@@ -228,4 +228,13 @@ class IAdapterAgent(Interface):
         :return:
         """
 
+    def send_packet_in(logical_device_id, logical_port_no, packet):
+        """
+        Forward given packet to the northbound toward an SDN controller.
+        :param device_id: logical device identifier
+        :param logical_port_no: logical port_no (as numbered in openflow)
+        :param packet: the actual packet; can be a serialized string or a scapy
+                       Packet.
+        :return: None returned on success
+        """
 
