@@ -71,6 +71,9 @@ def make_loxi_match(match):
         if field_type == pb2.OFPXMT_OFB_ETH_TYPE:
             loxi_match_fields.append(
                 of13.oxm.eth_type(value=ofb_field['eth_type']))
+        elif field_type == pb2.OFPXMT_OFB_IN_PORT:
+            loxi_match_fields.append(
+                of13.oxm.in_port(value=ofb_field['port']))
         else:
             raise NotImplementedError(
                 'OXM match field for type %s' % field_type)
@@ -102,11 +105,18 @@ def ofp_flow_stats_to_loxi_flow_stats(pb):
     del kw['id']
     return of13.flow_stats_entry(**kw)
 
+
 def ofp_packet_in_to_loxi_packet_in(pb):
-    kw = pb2dict(pb)
-    if 'match' in kw:
-        kw['match'] = make_loxi_match(kw['match'])
-    return of13.message.packet_in(**kw)
+    packet_in = of13.message.packet_in(
+        buffer_id=pb.buffer_id,
+        reason=pb.reason,
+        table_id=pb.table_id,
+        cookie=pb.cookie,
+        match=make_loxi_match(pb2dict(pb.match)),
+        data=pb.data
+    )
+    return packet_in
+
 
 def ofp_group_entry_to_loxi_group_entry(pb):
     return of13.group_stats_entry(

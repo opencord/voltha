@@ -22,6 +22,7 @@ from collections import OrderedDict
 
 import structlog
 
+from common.event_bus import EventBusClient
 from voltha.core.config.config_proxy import CallbackType
 from voltha.core.device_graph import DeviceGraph
 from voltha.core.flow_decomposer import FlowDecomposer, \
@@ -45,7 +46,6 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
     def __init__(self, core, logical_device):
         self.core = core
         self.local_handler = core.get_local_handler()
-        self.grpc_server = registry('grpc_server')
         self.logical_device_id = logical_device.id
 
         self.root_proxy = core.get_proxy('/')
@@ -65,13 +65,14 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         self.self_proxy.register_callback(
             CallbackType.POST_REMOVE, self._port_removed)
 
+        self.event_bus = EventBusClient()
+        self.packet_in_subscription = self.event_bus.subscribe(
+            topic='packet-in:{}'.format(logical_device.id),
+            callback=self.handle_packet_in_event)
+
         self.log = structlog.get_logger(logical_device_id=logical_device.id)
 
         self._routes = None
-
-        self.log = structlog.get_logger(logical_device_id=logical_device.id)
-
-        self.log = structlog.get_logger(logical_device_id=logical_device.id)
 
     def start(self):
         self.log.debug('starting')
@@ -127,10 +128,8 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             self.flow_modify_strict(flow_mod)
 
         else:
-            self.log.warn('unhandled-flow-mod', command=command, flow_mod=flow_mod)
-
-    # def list_flows(self):
-    #     return self.flows
+            self.log.warn('unhandled-flow-mod',
+                          command=command, flow_mod=flow_mod)
 
     def update_group_table(self, group_mod):
 
@@ -146,13 +145,10 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             self.group_modify(group_mod)
 
         else:
-            self.log.warn('unhandled-group-mod', command=command,
-                     group_mod=group_mod)
+            self.log.warn('unhandled-group-mod',
+                          command=command, group_mod=group_mod)
 
-    def list_groups(self):
-        return self.groups.values()
-
-    ## <=============== LOW LEVEL FLOW HANDLERS ==============================>
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~ LOW LEVEL FLOW HANDLERS ~~~~~~~~~~~~~~~~~~~~~~~
 
     def flow_add(self, mod):
         assert isinstance(mod, ofp.ofp_flow_mod)
@@ -379,7 +375,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
 
         return bool(to_delete), flows
 
-    ## <=============== LOW LEVEL GROUP HANDLERS =============================>
+    # ~~~~~~~~~~~~~~~~~~~~~ LOW LEVEL GROUP HANDLERS ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def group_add(self, group_mod):
         assert isinstance(group_mod, ofp.ofp_group_mod)
@@ -450,7 +446,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         if changed:
             self.groups_proxy.update('/', FlowGroups(items=groups.values()))
 
-    ## <=============== PACKET_OUT ===========================================>
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ PACKET_OUT ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def packet_out(self, ofp_packet_out):
         self.log.debug('packet-out', packet=ofp_packet_out)
@@ -464,14 +460,36 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
                 data=ofp_packet_out.data
             ))
 
-    ## <=============== PACKET_IN ============================================>
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ PACKET_IN ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def handle_packet_in_event(self, _, msg):
+        self.log.debug('handle-packet-in', msg=msg)
+        logical_port_no, packet = msg
+        packet_in = ofp.ofp_packet_in(
+            # buffer_id=0,
+            reason=ofp.OFPR_ACTION,
+            # table_id=0,
+            # cookie=0,
+            match=ofp.ofp_match(
+                type=ofp.OFPMT_OXM,
+                oxm_fields=[
+                    ofp.ofp_oxm_field(
+                        oxm_class=ofp.OFPXMC_OPENFLOW_BASIC,
+                        ofb_field=in_port(logical_port_no)
+                    )
+                ]
+            ),
+            data=packet
+        )
+        self.packet_in(packet_in)
 
     def packet_in(self, ofp_packet_in):
         # TODO
         print 'PACKET_IN:', ofp_packet_in
-        self.grpc_server.send_packet_in(self.logical_device_id, ofp_packet_in)
+        self.local_handler.send_packet_in(
+            self.logical_device_id, ofp_packet_in)
 
-    ## <======================== FLOW TABLE UPDATE HANDLING ===================
+    # ~~~~~~~~~~~~~~~~~~~~~ FLOW TABLE UPDATE HANDLING ~~~~~~~~~~~~~~~~~~~~~~~~
 
     def _flow_table_updated(self, flows):
         self.log.debug('flow-table-updated',
@@ -490,7 +508,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             self.root_proxy.update('/devices/{}/flow_groups'.format(device_id),
                                    FlowGroups(items=groups.values()))
 
-    ## <======================= GROUP TABLE UPDATE HANDLING ===================
+    # ~~~~~~~~~~~~~~~~~~~~ GROUP TABLE UPDATE HANDLING ~~~~~~~~~~~~~~~~~~~~~~~~
 
     def _group_table_updated(self, flow_groups):
         self.log.debug('group-table-updated',
@@ -505,7 +523,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             self.root_proxy.update('/devices/{}/flow_groups'.format(device_id),
                                    FlowGroups(items=groups.values()))
 
-    ## <==================== APIs NEEDED BY FLOW DECOMPOSER ===================
+    # ~~~~~~~~~~~~~~~~~~~ APIs NEEDED BY FLOW DECOMPOSER ~~~~~~~~~~~~~~~~~~~~~~
 
     def _port_added(self, port):
         assert isinstance(port, LogicalPort)

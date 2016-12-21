@@ -20,6 +20,7 @@ Agent to play gateway between CORE and an individual adapter.
 from uuid import uuid4
 
 import structlog
+from scapy.packet import Packet
 from twisted.internet.defer import inlineCallbacks, returnValue
 from zope.interface import implementer
 
@@ -251,3 +252,15 @@ class AdapterAgent(object):
     def receive_proxied_message(self, proxy_address, msg):
         topic = self._gen_rx_proxy_address_topic(proxy_address)
         self.event_bus.publish(topic, msg)
+
+    # ~~~~~~~~~~~~~~~~~~ Handling packet-in and packet-out ~~~~~~~~~~~~~~~~~~~~
+
+    def send_packet_in(self, logical_device_id, logical_port_no, packet):
+        self.log.debug('send-packet-in', logical_device_id=logical_device_id,
+                       logical_port_no=logical_port_no, packet=packet)
+
+        if isinstance(packet, Packet):
+            packet = str(packet)
+
+        topic = 'packet-in:' + logical_device_id
+        self.event_bus.publish(topic, (logical_port_no, packet))

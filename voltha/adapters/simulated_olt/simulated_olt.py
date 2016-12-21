@@ -21,6 +21,7 @@ from uuid import uuid4
 
 import structlog
 from klein import Klein
+from scapy.layers.l2 import Ether, EAPOL, Padding
 from twisted.internet import endpoints
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
@@ -234,6 +235,9 @@ class SimulatedOltAdapter(object):
             )
             self.adapter_agent.add_logical_port(ld.id, port)
 
+        olt.parent_id = ld.id
+        self.adapter_agent.update_device(olt)
+
     @inlineCallbacks
     def _simulate_device_activation(self, device):
 
@@ -371,12 +375,26 @@ class SimulatedOltAdapter(object):
 
     # ~~~~~~~~~~~~~~~~~~~~ Embedded test Klein rest server ~~~~~~~~~~~~~~~~~~~~
 
-    @app.route('/devices/<string:id>/detect_onus')
-    def detect_onu(self, request, **kw):
-        log.info('detect-onus', request=request, **kw)
-        device_id = kw['id']
+    def get_test_control_site(self):
+        return Site(self.app.resource())
+
+    @app.route('/devices/<string:device_id>/detect_onus')
+    def detect_onus(self, request, device_id):
+        log.info('detect-onus', request=request, device_id=device_id)
         self._simulate_detection_of_onus(device_id)
         return '{"status": "OK"}'
 
-    def get_test_control_site(self):
-        return Site(self.app.resource())
+    @app.route('/devices/<string:device_id>/test_eapol_in')
+    def test_eapol_in(self, request, device_id):
+        """Simulate a packet in message posted upstream"""
+        log.info('test_eapol_in', request=request, device_id=device_id)
+        eapol_start = str(
+            (Ether(src='00:11:22:33:44:55') / EAPOL(type=1))
+            / Padding(load=42*'\x00')
+        )
+
+        device = self.adapter_agent.get_device(device_id)
+        self.adapter_agent.send_packet_in(logical_device_id=device.parent_id,
+                                          logical_port_no=1,
+                                          packet=eapol_start)
+        return '{"status": "sent"}'
