@@ -80,36 +80,13 @@ class RpcFactory:
 
         rpc_method = rpc_method[0]
 
-        if rpc_method.prefix is None:
-            log.error("rpc-method-has-no-prefix", msg_id=msg_id)
-            raise ncerror.BadMsg(rpc_node)
+        rpc_name = rpc_method.tag.replace(qmap('nc'), "")
 
-        try:
-            # extract the namespace, service and name
-            namespace = ''.join(
-                ['{', rpc_method.nsmap[rpc_method.prefix], '}'])
-            # rpc_name = rpc_method.tag.replace(qmap('nc'), "")
-            rpc = rpc_method.tag.replace(namespace, "").split('-')
-            rpc_service = rpc[0]
-            rpc_name = rpc[1]
-            log.info("rpc-request",
-                     namespace=namespace,
-                     service=rpc_service,
-                     name=rpc_name)
-        except Exception as e:
-            log.error("rpc-parsing-error", exception=repr(e))
-            raise ncerror.BadMsg(rpc_node)
-
-        class_handler = self.get_handler(namespace, rpc_service, rpc_name)
-        if class_handler is None:
-            # TODO: for now just assume anything in voltha namespace will be
-            #  handled by the same api
-            class_handler = self.get_handler(namespace, 'any', 'any')
-
-        voltha_method_ref = ''.join([rpc_service, '-', rpc_name])
+        log.info("rpc-request", rpc=rpc_name)
+        class_handler = self.rpc_class_handlers.get(rpc_name, None)
         if class_handler is not None:
-            return class_handler(rpc_node, rpc_method, voltha_method_ref,
-                                 grpc_channel, session)
+            return class_handler(rpc_node, rpc_method, None, grpc_channel,
+                                 session)
 
         log.error("rpc-not-implemented", rpc=rpc_name)
 

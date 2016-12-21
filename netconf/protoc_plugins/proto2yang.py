@@ -37,7 +37,10 @@ import sys
 
 from jinja2 import Template
 from google.protobuf.compiler import plugin_pb2 as plugin
+from google.protobuf.descriptor_pb2 import DescriptorProto, FieldDescriptorProto
 from descriptor_parser import DescriptorParser
+import copy
+import yang_options_pb2
 
 from google.protobuf.descriptor import FieldDescriptor
 
@@ -208,18 +211,98 @@ module ietf-{{ module.name }} {
 }
 """, trim_blocks=True, lstrip_blocks=True)
 
-# def traverse_dependencies(descriptor):
-#     dependencies = []
-#     proto_imports = descriptor.get('dependency', [])
-#     for proto_import in proto_imports:
-#         # If the import file has a directory path to it remove it as it is not
-#         # allowed in Yang.  The proto extension should be removed as well
-#         dependencies.append (
-#             {
-#             'name' : proto_import.split('/')[-1][:-len('.proto')]
-#             }
-#         )
-#     return dependencies
+
+def traverse_field_options(fields, prefix):
+    field_options = []
+    for field in fields:
+        assert isinstance(field, FieldDescriptorProto)
+        full_name = prefix + '-' + field.name
+        option = None
+        if field.type == FieldDescriptor.TYPE_MESSAGE and field.label != \
+                FieldDescriptor.LABEL_REPEATED:
+            if field.options:
+                for fd, val in field.options.ListFields():
+                    if fd.full_name == 'voltha.yang_inline_node':
+                        field_options.append(
+                            {'name' : full_name,
+                             'option' : fd.full_name,
+                             'proto_name' : val.id,
+                             'proto_type' : val.type
+                             }
+                        )
+        return field_options
+
+
+def traverse_message_options(message_types, prefix):
+    message_options=[]
+    for message_type in message_types:
+        assert isinstance(message_type, DescriptorProto)
+        full_name = prefix + '-' + message_type.name
+        option_rules = []
+
+        options = message_type.options
+        if options:
+            for fd, val in options.ListFields():
+                if fd.full_name in ['voltha.yang_child_rule',
+                                    'voltha.yang_message_rule']:
+                    option_rules.append({
+                        'name' : fd.full_name,
+                        'value' : val
+                    })
+
+        # parse fields for options
+        field_options = traverse_field_options(message_type.field,
+                                               full_name)
+
+        # parse nested messages
+        nested_messages_options = []
+        nested = message_type.nested_type
+        if nested:
+            nested_messages_options = traverse_message_options(nested,
+                                                              full_name)
+
+        if option_rules or nested_messages_options or field_options:
+            message_options.append(
+                {
+                    'name': full_name,
+                    'options': option_rules,
+                    'field_options' : field_options,
+                    'nested_options': nested_messages_options,
+                }
+            )
+    return message_options
+
+
+def get_message_options(name, options):
+    result = None
+    for opt in options:
+        if opt['name'] == name:
+            return opt['options']
+        if opt['nested_options']:
+            result = get_message_options(name, opt['nested_options'])
+        if result:
+            return result
+
+def get_field_options(name, options):
+    result = None
+    for opt in options:
+        if opt['field_options']:
+            for field_opt in opt['field_options']:
+                if field_opt['name'] == name:
+                    result = field_opt
+        if opt['nested_options']:
+            result = get_field_options(name, opt['nested_options'])
+        if result:
+            return result
+
+
+def traverse_options(proto_file):
+    package = proto_file.name
+    prefix = package.replace('.proto', '')
+    if proto_file.message_type:
+        message_options = traverse_message_options(proto_file.message_type,
+                                                   prefix)
+        return message_options
 
 
 def traverse_messages(message_types, prefix, referenced_messages):
@@ -227,8 +310,8 @@ def traverse_messages(message_types, prefix, referenced_messages):
     for message_type in message_types:
         assert message_type['_type'] == 'google.protobuf.DescriptorProto'
 
-        # full_name = prefix + '-' + message_type['name']
-        full_name = message_type['name']
+        full_name = prefix + '-' + message_type['name']
+        name = message_type['name']
 
         # parse the fields
         fields = traverse_fields(message_type.get('field', []), full_name,
@@ -241,17 +324,16 @@ def traverse_messages(message_types, prefix, referenced_messages):
         nested = message_type.get('nested_type', [])
         nested_messages = traverse_messages(nested, full_name,
                                             referenced_messages)
+
         messages.append(
             {
-                'name': full_name,
+                'full_name': full_name,
+                'name': name,
                 'fields': fields,
                 'enums': enums,
-                # 'extensions': extensions,
                 'messages': nested_messages,
                 'description': remove_unsupported_characters(
                     message_type.get('_description', '')),
-                # 'extension_ranges': extension_ranges,
-                # 'oneof': oneof
             }
         )
     return messages
@@ -271,7 +353,7 @@ def traverse_fields(fields_desc, prefix, referenced_messages):
 
         fields.append(
             {
-                # 'name': prefix + '-' + field.get('name', ''),
+                'full_name': prefix + '-' + field.get('name', ''),
                 'name': field.get('name', ''),
                 'label': field.get('label', ''),
                 'repeated': field['label'] == FieldDescriptor.LABEL_REPEATED,
@@ -291,11 +373,12 @@ def traverse_enums(enums_desc, prefix):
     enums = []
     for enum in enums_desc:
         assert enum['_type'] == 'google.protobuf.EnumDescriptorProto'
-        # full_name = prefix + '-' + enum.get('name', '')
-        full_name = enum.get('name', '')
+        full_name = prefix + '-' + enum.get('name', '')
+        name = enum.get('name', '')
         enums.append(
             {
-                'name': full_name,
+                'full_name': full_name,
+                'name': name,
                 'value': enum.get('value', ''),
                 'description': remove_unsupported_characters(enum.get(
                     '_description', ''))
@@ -364,23 +447,11 @@ def traverse_desc(descriptor):
     name = rchop(descriptor.get('name', ''), '.proto')
     package = descriptor.get('package', '')
     description = descriptor.get('_description', '')
-    # imports=traverse_dependencies(descriptor)
     messages = traverse_messages(descriptor.get('message_type', []),
-                                 package, referenced_messages)
-    enums = traverse_enums(descriptor.get('enum_type', []), package)
+                                 name, referenced_messages)
+    enums = traverse_enums(descriptor.get('enum_type', []), name)
     services = traverse_services(descriptor.get('service', []),
                                  referenced_messages)
-    # extensions = _traverse_extensions(descriptors)
-    # options = _traverse_options(descriptors)
-    # set_messages_keys(messages)
-    # unique_referred_messages_with_keys = []
-    # for message_name in list(set(referenced_messages)):
-    #     unique_referred_messages_with_keys.append(
-    #         {
-    #             'name': message_name,
-    #             'key': get_message_key(message_name, messages)
-    #         }
-    #     )
 
     # Get a list of type definitions (messages, enums) defined in this
     # descriptor
@@ -391,18 +462,111 @@ def traverse_desc(descriptor):
         'name': name.split('/')[-1],
         'package': package,
         'description': description,
-        # 'imports' : imports,
         'messages': messages,
         'enums': enums,
         'services': services,
         'defined_types' : defined_types,
         'referenced_messages': list(set(referenced_messages)),
-        # TODO:  simplify for easier jinja2 template use
-        # 'referred_messages_with_keys': unique_referred_messages_with_keys,
-        # 'extensions': extensions,
-        # 'options': options
     }
     return data
+
+
+# For now, annotations are added to first level messages only.
+# Therefore, at this time no need to tackle nested messages.
+def move_message_to_parent_level(message, messages, enums):
+    new_message = []
+    new_enum = copy.deepcopy(enums)
+    for msg in messages:
+        if msg['full_name'] == message['full_name']:
+            # Move all sub messages and enums to top level
+            if msg['messages']:
+                new_message = new_message + copy.deepcopy(msg['messages'])
+            if msg['enums']:
+                new_enum = new_enum + copy.deepcopy(msg['enums'])
+
+            # if the message has some fields then enclose them in a container
+            if msg['fields']:
+                new_message.append(
+                    {
+                        'full_name': msg['full_name'],
+                        'name': msg['name'],
+                        'fields': msg['fields'],
+                        'description': msg['description'],
+                        'messages': [],
+                        'enums': []
+                    }
+                )
+        else:
+            new_message.append(msg)
+
+    return new_message, new_enum
+
+
+def update_messages_per_annotations_rule(options, messages, enums):
+    new_messages = messages
+    new_enums = enums
+    # Used when a message needs to exist both as a type and a container
+    duplicate_messages = []
+    for message in messages:
+        opts = get_message_options(message['full_name'], options)
+        if opts:
+            for opt in opts:
+                if opt['name'] == 'voltha.yang_child_rule':
+                    new_messages, new_enums = move_message_to_parent_level(message,
+                                                 new_messages, new_enums)
+                elif opt['name'] == 'voltha.yang_message_rule':
+                    # create a duplicate message
+                    #TODO: update references to point to the
+                    duplicate_messages.append(message['name'])
+                    clone = copy.deepcopy(message)
+                    clone['full_name'] = ''.join([clone['full_name'], '_', 'grouping'])
+                    clone['name'] = ''.join([clone['name'], '_', 'grouping'])
+                    new_messages = new_messages + [clone]
+
+    return new_messages, new_enums, duplicate_messages
+
+
+def inline_field(message, field, option, messages):
+    new_message = copy.deepcopy(message)
+    new_message['fields'] = []
+    for f in message['fields']:
+        if f['full_name'] == field['full_name']:
+            # look for the message this field referred to.
+            # Addresses only top-level messages
+            for m in messages:
+                # 'proto_type' is the name of the message type this field
+                # refers to
+                if m['full_name'] == option['proto_type']:
+                    # Copy all content of m into the field
+                    new_message['fields'] = new_message['fields'] + \
+                                            copy.deepcopy(m['fields'])
+                    new_message['enums'] = new_message['enums'] + \
+                                           copy.deepcopy(m['enums'])
+                    new_message['messages'] = new_message['messages'] + \
+                                           copy.deepcopy(m['messages'])
+        else:
+            new_message['fields'].append(f)
+
+    return new_message
+
+# Address only annotations on top-level messages, i.e. no nested messages
+def update_fields_per_annotations_rule(options, messages):
+    new_messages = []
+    for message in messages:
+        new_message = None
+        for field in message['fields']:
+            opt = get_field_options(field['full_name'], options)
+            if opt:
+                if opt['option'] == 'voltha.yang_inline_node':
+                    new_message = inline_field(message, field, opt,  messages)
+
+        if new_message:
+            new_messages.append(new_message)
+        else:
+            new_messages.append(message)
+
+    return new_messages
+
 
 
 def set_messages_keys(messages):
@@ -457,6 +621,40 @@ def update_module_imports(module):
     module['imports'] = [{'name' : i} for i in used_imports]
 
 
+def update_referred_messages(all_referred_messages, all_duplicate_messages):
+    new_referred_messages = []
+    for ref in all_referred_messages:
+        if ref in all_duplicate_messages:
+            new_referred_messages.append(''.join([ref, '_grouping']))
+        else:
+            new_referred_messages.append(ref)
+
+    return new_referred_messages
+
+def update_message_references_based_on_duplicates(duplicates, messages):
+    # Duplicates has a list of messages that exist both as a grouping and as
+    # a container.   All reference to the container name by existing fields
+    # should be changed to the grouping name instead
+    for m in messages:
+        for f in m['fields']:
+            if f['type'] in duplicates:
+                f['type'] = ''.join([f['type'], '_grouping'])
+        if m['messages']:
+            update_message_references_based_on_duplicates(duplicates,
+                                                      m['messages'])
+
+def update_servic_references_based_on_duplicates(duplicates, services):
+    # Duplicates has a list of messages that exist both as a grouping and as
+    # a container.   All reference to the container name by existing fields
+    # should be changed to the grouping name instead
+    for s in services:
+        for m in s['methods']:
+            if m['input_ref'] and m['input'] in duplicates:
+                m['input'] = ''.join([m['input'], '_grouping'])
+            if m['output_ref'] and m['output'] in duplicates:
+                m['output'] = ''.join([m['output'], '_grouping'])
+
+
 def generate_code(request, response):
     assert isinstance(request, plugin.CodeGeneratorRequest)
 
@@ -467,13 +665,38 @@ def generate_code(request, response):
     all_proto_data = []
     all_referred_messages = []
     all_messages = []
+    all_duplicate_messages = []
     for proto_file in request.proto_file:
+        options = traverse_options(proto_file)
+        # print options
+
         native_data = parser.parse_file_descriptor(proto_file,
                                                    type_tag_name='_type',
                                                    fold_comments=True)
 
         # Consolidate the defined types across imports
         yang_data = traverse_desc(native_data)
+
+        duplicates = []
+        if options:
+            new_messages, new_enums, duplicates  = \
+                update_messages_per_annotations_rule(
+                options, yang_data['messages'], yang_data['enums'])
+
+            new_messages = update_fields_per_annotations_rule(options,
+                                                            new_messages)
+
+            # TODO:  Need to do the change across all schema files.  Not
+            # needed as annotations are single file based for now
+            if duplicates:
+                update_message_references_based_on_duplicates(duplicates,
+                                                        new_messages)
+                update_servic_references_based_on_duplicates(duplicates,
+                                                             yang_data['services'])
+
+            yang_data['messages'] = new_messages
+            yang_data['enums'] = new_enums
+
         for type in yang_data['defined_types']:
             all_defined_types.append(
                 {
@@ -481,6 +704,7 @@ def generate_code(request, response):
                     'module' : yang_data['name']
                 }
             )
+
 
         all_proto_data.append(
             {
@@ -490,11 +714,17 @@ def generate_code(request, response):
             }
         )
 
+        # Consolidate all duplicate messages
+        all_duplicate_messages = all_duplicate_messages + duplicates
+
         # Consolidate referred messages across imports
         all_referred_messages = all_referred_messages + yang_data['referenced_messages']
 
         # consolidate all messages
         all_messages = all_messages + yang_data['messages']
+
+    # Update the referred_messages
+    all_referred_messages = update_referred_messages(all_referred_messages, all_duplicate_messages)
 
     # Set the message keys - required for List definitions (repeated label)
     set_messages_keys(all_messages)
@@ -507,6 +737,7 @@ def generate_code(request, response):
                 }
             )
 
+    # print_referred_msg(unique_referred_messages_with_keys)
     # Create the files
     for proto_data in all_proto_data:
         f = response.file.add()
@@ -514,7 +745,9 @@ def generate_code(request, response):
         proto_data['module']['data_types'] = all_defined_types
         proto_data['module']['referred_messages'] = all_referred_messages
         proto_data['module']['referred_messages_with_keys'] = unique_referred_messages_with_keys
+        proto_data['module']['duplicates'] = all_duplicate_messages
         update_module_imports(proto_data['module'])
+        # print_message(proto_data['module']['messages'])
         f.content = template_yang.render(module=proto_data['module'])
 
 
@@ -524,8 +757,6 @@ def get_yang_type(field):
         _type, _ = YANG_TYPE_MAP[type]
         if _type in ['enumeration', 'message', 'group']:
             return field['type_name'].split('.')[-1]
-            # return remove_first_character_if_match(field['type_name'],
-            #                                        '.').replace('.', '-')
         else:
             return _type
     else:

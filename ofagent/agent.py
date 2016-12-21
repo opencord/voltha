@@ -25,7 +25,7 @@ import loxi.of13 as of13
 from common.utils.asleep import asleep
 from of_connection import OpenFlowConnection
 from of_protocol_handler import OpenFlowProtocolHandler
-from ofagent.protos.openflow_13_pb2 import ChangeEvent
+# from ofagent.protos.openflow_13_pb2 import ChangeEvent
 
 log = structlog.get_logger()
 

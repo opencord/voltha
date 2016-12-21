@@ -59,6 +59,9 @@ syntax = "proto3";
 
 package openflow_13;
 
+import "google/api/annotations.proto";
+import public "yang_options.proto";
+
 
 /* Version number:
  * OpenFlow versions released: 0x01 = 1.0 ; 0x02 = 1.1 ; 0x03 = 1.2
@@ -2026,7 +2029,8 @@ message ofp_group_desc {
 };
 
 message ofp_group_entry {
-    ofp_group_desc desc = 1;
+    ofp_group_desc desc = 1 [(voltha.yang_inline_node).id = 'desc',
+                            (voltha.yang_inline_node).type = 'openflow_13-ofp_group_desc'];
     ofp_group_stats stats = 2;
 };
 

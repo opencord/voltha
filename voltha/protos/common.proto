@@ -2,12 +2,15 @@ syntax = "proto3";
 
 package voltha;
 
+import "yang_options.proto";
+
 // Convey a resource identifier
 message ID {
     string id = 1;
 }
 
 message LogLevel {
+    option (yang_child_rule) = MOVE_TO_PARENT_LEVEL;
 
     // Logging verbosity level
     enum LogLevel {
@@ -20,6 +23,7 @@ message LogLevel {
 }
 
 message AdminState {
+    option (yang_child_rule) = MOVE_TO_PARENT_LEVEL;
 
     // Administrative State
     enum AdminState {
@@ -40,6 +44,7 @@ message AdminState {
 }
 
 message OperStatus {
+    option (yang_child_rule) = MOVE_TO_PARENT_LEVEL;
 
     // Operational Status
     enum OperStatus {
@@ -65,6 +70,7 @@ message OperStatus {
 }
 
 message ConnectStatus {
+    option (yang_child_rule) = MOVE_TO_PARENT_LEVEL;
 
     // Connectivity Status
     enum ConnectStatus {

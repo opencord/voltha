@@ -30,6 +30,7 @@ class Capabilities:
         return (
             C.NETCONF_BASE_10,
             C.NETCONF_BASE_11,
+            "urn:ietf:params:netconf:capability:writable-running:1.0",
             "urn:opencord:params:xml:ns:voltha:ietf-voltha",
             "urn:opencord:params:xml:ns:voltha:ietf-openflow_13",
             "urn:opencord:params:xml:ns:voltha:ietf-meta",

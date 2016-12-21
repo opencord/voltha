@@ -11,6 +11,8 @@ package voltha;
 import "google/protobuf/empty.proto";
 import "google/api/annotations.proto";
 
+import "yang_options.proto";
+
 import public "meta.proto";
 import public "common.proto";
 import public "health.proto";
@@ -38,6 +40,7 @@ message DeviceGroups {
 
 // Top-level (root) node for a Voltha Instance
 message VolthaInstance {
+    option (yang_message_rule) = CREATE_BOTH_GROUPING_AND_CONTAINER;
 
     string instance_id = 1  [(access) = READ_ONLY];
 
@@ -59,11 +62,13 @@ message VolthaInstance {
 }
 
 message VolthaInstances {
+    option (yang_message_rule) = CREATE_BOTH_GROUPING_AND_CONTAINER;
     repeated string items = 1;
 }
 
 // Voltha representing the entire Voltha cluster
 message Voltha {
+    option (yang_message_rule) = CREATE_BOTH_GROUPING_AND_CONTAINER;
 
     string version = 1 [(access) = READ_ONLY];
 

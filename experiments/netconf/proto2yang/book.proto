@@ -1,0 +1,64 @@
+// See README.txt for information and build instructions.
+
+syntax = "proto3";
+
+package tutorial;
+
+import "google/api/annotations.proto";
+
+import public "yang_options.proto";
+
+option java_package = "com.example.tutorial";
+option java_outer_classname = "AddressBookProtos";
+option csharp_namespace = "Google.Protobuf.Examples.AddressBook";
+
+message House {
+    option (voltha.yang_child_rule) = MOVE_TO_PARENT_LEVEL;
+
+    enum HouseType {
+      MOBILE = 0;
+      SINGLE = 1;
+      TOWN = 2;
+    }
+
+    string myhouse = 1;
+
+    message Door {
+      string colour = 1;
+      string size = 2;
+    }
+}
+
+message Girl {
+    option (voltha.yang_message_rule) = CREATE_BOTH_GROUPING_AND_CONTAINER;
+    repeated House houses = 4;
+}
+
+message Person {
+  option (voltha.yang_message_rule) = CREATE_BOTH_GROUPING_AND_CONTAINER;
+
+  string name = 1;
+  int32 id = 2;        // Unique ID number for this person.
+  string email = 3;
+  repeated string khen = 4;
+  repeated PhoneNumber phones = 5;
+
+  enum PhoneType {
+    MOBILE = 0;
+    HOME = 1;
+    WORK = 2;
+  }
+
+  message PhoneNumber {
+    string number = 1;
+    PhoneType type = 2;
+  }
+
+}
+
+// Our address book file is just one of these.
+message AddressBook {
+   Person people = 1  [(voltha.yang_inline_node).id = 'people',
+                              (voltha.yang_inline_node).type = 'book-Person'] ;
+   Girl girl = 2;
+}
