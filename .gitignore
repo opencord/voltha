@@ -34,6 +34,7 @@ tmp
 # Protobuf output files
 voltha/**/*.desc
 **/*_pb2.py
+**/*_pb2_grpc.py
 
 # Editors
 *.bak
@@ -41,3 +42,21 @@ voltha/**/*.desc
 # Docker
 .docker-base-built
 
+# Mac stuff
+.DS_Store
+**/.DS_Store
+
+# Companion git repos used in tests
+loxigen
+mininet
+oftest
+olt-oftest
+pox
+openflow
+
+# Generated docs
+**/*.pdf
+docs/pon-requirements/*.svg
+
+# Files copied over during make
+ofagent/protos/third_party/google
