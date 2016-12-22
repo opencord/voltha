@@ -10,8 +10,9 @@
 #                                                                          #
 #--------------------------------------------------------------------------#
 
-from scapy.packet import *
-from scapy.fields import *
+from scapy.packet import Packet
+from scapy.fields import ByteEnumField, XShortField, XByteField, MACField, \
+    ByteField, BitEnumField, BitField
 
 # This library strives to be an implementation of the following standard:
 
@@ -20,7 +21,7 @@ from scapy.fields import *
 # This library may be used with PON devices for
 # configuration and provisioning.
 
-TIBIT_VERSION_NUMBER = '1.0.1'
+TIBIT_VERSION_NUMBER = '1.1.4'
 
 TLV_dictionary = {
     0x00: "End EOAMPDU",
@@ -137,6 +138,15 @@ class MulticastRegisterSet(Packet):
 class DONUObject(Packet):
     """ Object Context: D-ONU Object """
     name = "Object Context: D-ONU Object"
+    fields_desc = [XByteField("branch", 0xD6),
+                   XShortField("leaf", 0x0000),
+                   XByteField("length", 1),
+                   XByteField("num", 0)
+                   ]
+
+class DOLTObject(Packet):
+    """ Object Context: D-OLT Object """
+    name = "Object Context: D-OLT Object"
     fields_desc = [XByteField("branch", 0xD6),
                    XShortField("leaf", 0x0000),
                    XByteField("length", 1),
@@ -838,6 +848,35 @@ class PortIngressRuleResultQueue(Packet):
         XByteField("queuenum", 0),
         ]
 
+class PortIngressRuleResultSet(Packet):
+    """ Variable Descriptor: Port Ingress Rule Result Set """
+    name = "Variable Descriptor: Port Ingress Rule Result Set"
+    fields_desc = [
+        XByteField("branch", 0xD7),
+        XShortField("leaf", 0x0501),
+        ByteField("length", 8),
+        XByteField("result", 3),
+        XByteField("set", 4),
+        XByteField("fieldcode", 0),
+        XByteField("fieldinstance", 0),
+        XByteField("msbmask", 0),
+        XByteField("lsbmask", 0),
+        XShortField("value", 0),
+        ]
+
+class PortIngressRuleResultInsert(Packet):
+    """ Variable Descriptor: Port Ingress Rule Result Insert """
+    name = "Variable Descriptor: Port Ingress Rule Result Insert"
+    fields_desc = [
+        XByteField("branch", 0xD7),
+        XShortField("leaf", 0x0501),
+        ByteField("length", 4),
+        XByteField("result", 3),
+        XByteField("insert", 7),
+        XByteField("fieldcode", 0),
+        XByteField("fieldinstance", 0),
+        ]
+
 class PortIngressRuleTerminator(Packet):
     """ Variable Descriptor: Port Ingress Rule Terminator """
     name = "Variable Descriptor: Port Ingress Rule Terminator"
@@ -913,7 +952,7 @@ class DeletePortIngressRule(Packet):
     name = "Variable Descriptor: Delete Port Ingress Rule"
     fields_desc = [XByteField("branch", 0xD9),
                    XShortField("leaf", 0x0503),
-                   XByteField("length", 1),
+                   XByteField("length", 0x80),
                    XByteField("value", 0),
                    ]
 

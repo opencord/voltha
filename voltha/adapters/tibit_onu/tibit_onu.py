@@ -38,7 +38,6 @@ from voltha.protos.device_pb2 import Port
 from voltha.protos.device_pb2 import DeviceType, DeviceTypes
 from voltha.protos.health_pb2 import HealthStatus
 from voltha.protos.common_pb2 import LogLevel, ConnectStatus
-
 from voltha.protos.common_pb2 import OperStatus, AdminState
 
 from voltha.protos.logical_device_pb2 import LogicalDevice, LogicalPort
@@ -53,15 +52,9 @@ log = structlog.get_logger()
 
 from EOAM_TLV import AddStaticMacAddress, DeleteStaticMacAddress
 from EOAM_TLV import ClearStaticMacTable
-from EOAM import EoamPayload, CablelabsOUI, DPoEOpcode_GetRequest
-
-
-# To be removed in favor of OAM
-class TBJSON(Packet):
-    """ TBJSON 'packet' layer. """
-    name = "TBJSON"
-    fields_desc = [StrField("data", default="")]
-
+from EOAM_TLV import DeviceId
+from EOAM import EOAMPayload, CablelabsOUI
+from EOAM import DPoEOpcode_GetRequest, DPoEOpcode_SetRequest
 
 @implementer(IAdapterInterface)
 class TibitOnuAdapter(object):
@@ -126,7 +119,6 @@ class TibitOnuAdapter(object):
         device.hardware_version = 'fa161020'
         device.firmware_version = '16.10.01'
         device.software_version = '1.0'
-        device.mac_address = '00:01:02:03:04:05'
         device.serial_number = uuid4().hex
         device.connect_status = ConnectStatus.REACHABLE
         self.adapter_agent.update_device(device)
@@ -227,14 +219,13 @@ class TibitOnuAdapter(object):
             _ = yield self.incoming_messages.get()
 
         # construct message
-        msg = EoamPayload(body=CablelabsOUI() /
-                               DPoEOpcode_GetRequest() /
-                               # MAC address for 230.10.10.10
-                               AddStaticMacAddress(mac='01:00:5e:0a:0a:0a') # device.mac_address)
+        msg = EOAMPayload(body=CablelabsOUI() /
+                          DPoEOpcode_GetRequest() /
+                          DeviceId()
                           )
 
         # send message
-        log.info('ONU-send-proxied-message-%s' % msg)
+        log.info('ONU-send-proxied-message')
         self.adapter_agent.send_proxied_message(device.proxy_address, msg)
 
         log.info('ONU-log incoming messages BEFORE')

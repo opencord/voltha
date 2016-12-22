@@ -41,7 +41,6 @@ from voltha.protos.device_pb2 import Device, Port
 from voltha.protos.device_pb2 import DeviceType, DeviceTypes
 from voltha.protos.health_pb2 import HealthStatus
 from voltha.protos.common_pb2 import LogLevel, ConnectStatus
-
 from voltha.protos.common_pb2 import OperStatus, AdminState
 
 from voltha.protos.logical_device_pb2 import LogicalDevice, LogicalPort
@@ -52,11 +51,14 @@ from voltha.protos.openflow_13_pb2 import ofp_desc, ofp_port, OFPPF_10GB_FD, \
 from scapy.packet import Packet, bind_layers
 from scapy.fields import StrField
 
-from EOAM import EOAM_MULTICAST_ADDRESS
-
 log = structlog.get_logger()
 
-is_tibit_frame = BpfProgramFilter('ether[12:2] = 0x9001')
+# Match on the MGMT VLAN, Priority 7
+TIBIT_MGMT_VLAN=4090
+TIBIT_MGMT_PRIORITY=7
+frame_match = 'ether[14:2] = 0x{:01x}{:03x}'.format(TIBIT_MGMT_PRIORITY << 1, TIBIT_MGMT_VLAN)
+is_tibit_frame = BpfProgramFilter(frame_match)
+#is_tibit_frame = lambda x: True
 
 # To be removed in favor of OAM
 class TBJSON(Packet):
@@ -64,6 +66,7 @@ class TBJSON(Packet):
     name = "TBJSON"
     fields_desc = [StrField("data", default="")]
 
+bind_layers(Ether, TBJSON, type=0x9001)
 
 @implementer(IAdapterInterface)
 class TibitOltAdapter(object):
@@ -89,7 +92,8 @@ class TibitOltAdapter(object):
         )
         self.interface = registry('main').get_args().interface
         self.io_port = None
-        self.incoming_queues = {}  # mac_address -> DeferredQueue()
+        self.incoming_queues = {}  # OLT mac_address -> DeferredQueue()
+        self.device_ids = {}  # OLT mac_address -> device_id
 
     def start(self):
         log.debug('starting', interface=self.interface)
@@ -125,19 +129,22 @@ class TibitOltAdapter(object):
 
     @inlineCallbacks
     def _launch_device_activation(self, device):
-
         try:
             log.debug('launch_dev_activation')
             # prepare receive queue
             self.incoming_queues[device.mac_address] = DeferredQueue(size=100)
 
-            # send out ping to OLT device
+            # add mac_address to device_ids table
             olt_mac = device.mac_address
+            self.device_ids[olt_mac] = device.id
+
+            # send out ping to OLT device
             ping_frame = self._make_ping_frame(mac_address=olt_mac)
             self.io_port.send(ping_frame)
 
             # wait till we receive a response
-            # TODO add timeout mechanism so we can signal if we cannot reach device
+            ## TODO add timeout mechanism so we can signal if we cannot reach
+            ##device
             while True:
                 response = yield self.incoming_queues[olt_mac].get()
                 # verify response and if not the expected response
@@ -152,11 +159,12 @@ class TibitOltAdapter(object):
         jdev = json.loads(response.data[5:])
         device.root = True
         device.vendor = 'Tibit Communications, Inc.'
-        device.model = jdev['results']['device']
+        device.model = jdev.get('results', {}).get('device', 'DEVICE_UNKNOWN')
         device.hardware_version = jdev['results']['datecode']
         device.firmware_version = jdev['results']['firmware']
         device.software_version = jdev['results']['modelversion']
         device.serial_number = jdev['results']['manufacturer']
+
         device.connect_status = ConnectStatus.REACHABLE
         self.adapter_agent.update_device(device)
 
@@ -248,17 +256,23 @@ class TibitOltAdapter(object):
                 break
 
         jdev = json.loads(response.data[5:])
+        tibit_mac = ''
         for macid in jdev['results']:
             if macid['macid'] is None:
                 log.info('MAC ID is NONE %s' % str(macid['macid']))
             else:
-                log.info('activate-olt-for-onu-%s' % macid['macid'])
-            # TODO: report gemport and vlan_id
-            gemport, vlan_id = self._olt_side_onu_activation(int(macid['macid'][-3:]))
+                tibit_mac = '000c' + macid.get('macid', 'e2000000')[4:]
+                log.info('activate-olt-for-onu-%s' % tibit_mac)
+
+            # Convert from string to colon separated form
+            tibit_mac = ':'.join(s.encode('hex') for s in tibit_mac.decode('hex'))
+
+            gemport, vlan_id = self._olt_side_onu_activation(int(macid['macid'][-4:-2], 16))
             self.adapter_agent.child_device_detected(
                 parent_device_id=device.id,
                 parent_port_no=1,
                 child_device_type='tibit_onu',
+                mac_address = tibit_mac,
                 proxy_address=Device.ProxyAddress(
                     device_id=device.id,
                     channel_id=vlan_id
@@ -266,43 +280,59 @@ class TibitOltAdapter(object):
                 vlan=vlan_id
                 )
 
-    def _olt_side_onu_activation(self, seq):
+    def _olt_side_onu_activation(self, serial):
         """
         This is where if this was a real OLT, the OLT-side activation for
         the new ONU should be performed. By the time we return, the OLT shall
         be able to provide tunneled (proxy) communication to the given ONU,
         using the returned information.
         """
-        gemport = seq + 1
-        vlan_id = seq + 100
+        gemport = serial
+        vlan_id = serial + 200
         return gemport, vlan_id
 
     def _rcv_io(self, port, frame):
 
-        log.info('frame-recieved')
+        log.info('frame-received')
 
         # make into frame to extract source mac
         response = Ether(frame)
 
-        # enqueue incoming parsed frame to right device
-        self.incoming_queues[response.src].put(response)
+        if response.haslayer(Dot1Q):
+            # All responses from the OLT should have a TIBIT_MGMT_VLAN.
+            # Responses from the ONUs should have a TIBIT_MGMT_VLAN followed by a ONU CTAG
+            if response.getlayer(Dot1Q).type == 0x8100:
+                ## Responses from the ONU
+                ## Since the type of the first layer is 0x8100,
+                ## then the frame must have an inner tag layer
+                olt_mac = response.src
+                device_id = self.device_ids[olt_mac]
+                channel_id = response[Dot1Q:2].vlan
+                log.info('received_channel_id', channel_id=channel_id,
+                         device_id=device_id)
+
+                proxy_address=Device.ProxyAddress(
+                    device_id=device_id,
+                    channel_id=channel_id
+                    )
+                # pop dot1q header(s)
+                msg = response.payload.payload
+                self.adapter_agent.receive_proxied_message(proxy_address, msg)
+            else:
+                ## Respones from the OLT
+                ## enqueue incoming parsed frame to right device
+                self.incoming_queues[response.src].put(response)
 
     def _make_ping_frame(self, mac_address):
         # Create a json packet
         json_operation_str = '{\"operation\":\"version\"}'
-        frame = Ether()/TBJSON(data='json %s' % json_operation_str)
-        frame.type = int("9001", 16)
-        frame.dst = mac_address
-        bind_layers(Ether, TBJSON, type=0x9001)
+        frame = Ether(dst=mac_address)/Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY)/TBJSON(data='json %s' % json_operation_str)
         return str(frame)
 
     def _make_links_frame(self, mac_address):
         # Create a json packet
         json_operation_str = '{\"operation\":\"links\"}'
-        frame = Ether()/TBJSON(data='json %s' % json_operation_str)
-        frame.type = int("9001", 16)
-        frame.dst = mac_address
-        bind_layers(Ether, TBJSON, type=0x9001)
+        frame = Ether(dst=mac_address)/Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY)/TBJSON(data='json %s' % json_operation_str)
         return str(frame)
 
     def abandon_device(self, device):
@@ -319,14 +349,14 @@ class TibitOltAdapter(object):
         raise NotImplementedError()
 
     def send_proxied_message(self, proxy_address, msg):
-        log.info('send-proxied-message', proxy_address=proxy_address, msg=msg)
+        log.info('send-proxied-message', proxy_address=proxy_address)
         # TODO build device_id -> mac_address cache
         device = self.adapter_agent.get_device(proxy_address.device_id)
-        frame = Ether(dst=device.mac_address) / \
-                Dot1Q(vlan=4090) / \
-                Dot1Q(vlan=proxy_address.channel_id) / \
+        frame = Ether(dst='00:0c:e2:22:29:00') / \
+                Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) / \
+                Dot1Q(vlan=proxy_address.channel_id, prio=TIBIT_MGMT_PRIORITY) / \
                 msg
-        # frame = Ether(dst=EOAM_MULTICAST_ADDRESS) / msg
+
         self.io_port.send(str(frame))
 
     def receive_proxied_message(self, proxy_address, msg):
