@@ -95,7 +95,6 @@ class DeviceManager(object):
                 max_speed=OFPPF_10GB_FD
             )
         )
-        log.info('Adding logical port to logical device')
         self.adapter_agent.add_logical_port(self.logical_device.id,
                                             logical_port)
 
