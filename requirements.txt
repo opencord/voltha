@@ -44,8 +44,8 @@ dicttoxml
 
 # python-consul>=0.6.1  we need the pre-released version for now, because 0.6.1 does not
 # yet support Twisted. Once this is released, it will be the 0.6.2 version
-git+git://github.com/cablehead/python-consul.git
+git+https://github.com/cablehead/python-consul.git
 
 # Twisted Python kafka client
-git+git://github.com/ciena/afkak.git
+git+https://github.com/ciena/afkak.git
 
