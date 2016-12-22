@@ -191,7 +191,7 @@ class OpenFlowProtocolHandler(object):
         raise NotImplementedError()
 
     def handle_meter_features_request(self, req):
-        raise NotImplementedError()
+        self.cxn.send(ofp.message.bad_request_error_msg())
 
     def handle_port_stats_request(self, req):
         port_stats = []  # TODO
