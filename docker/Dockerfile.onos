@@ -1,0 +1,31 @@
+FROM onosproject/onos:1.8
+
+MAINTAINER Zsolt Haraszti <zharaszt@ciena.com>
+MAINTAINER Ali Al-Shabibi <ali.al-shabibi@onlab.us>
+MAINTAINER Nathan Knuth   <nathan.knuth@tibitcom.com>
+
+ENV ONOS_APP=/root/onos/apps ONOS=/root/onos KARAF_SYS=/root/onos/apache-karaf-3.0.5/system/org VERSION=1.1-SNAPSHOT
+
+RUN apt-get update && apt-get install -y git maven unzip && git clone http://gerrit.opencord.org/olt && \
+    git clone http://gerrit.opencord.org/aaa && \
+    git clone http://gerrit.opencord.org/config 
+    
+RUN cd $ONOS/olt && mvn clean install 
+RUN  mkdir $ONOS_APP/org.onosproject.olt && cd $ONOS_APP/org.onosproject.olt &&\
+            cp $ONOS/olt/app/target/*.oar org.onosproject.olt.oar && unzip *.oar && touch active &&\
+            cd $KARAF_SYS && mkdir -p opencord/olt-api/$VERSION && mkdir -p opencord/olt-app/$VERSION &&\
+            unzip -d . -j $ONOS/olt/app/target/*.oar && mv olt-api-$VERSION.jar opencord/olt-api/$VERSION &&\
+            mv olt-app-$VERSION.jar opencord/olt-app/$VERSION && mv olt-app-$VERSION-features.xml opencord/olt-app/$VERSION
+RUN cd $ONOS/config && mvn clean install
+RUN  mkdir $ONOS_APP/org.opencord.cord-config && cd $ONOS_APP/org.opencord.cord-config &&\
+            cp $ONOS/config/target/*.oar org.opencord.config.oar && unzip *.oar && touch active &&\
+            cd $KARAF_SYS && mkdir -p opencord/cord-config/$VERSION && cd opencord/cord-config/$VERSION &&\ 
+            unzip -d . -j $ONOS/config/target/*.oar 
+              
+RUN cd $ONOS/aaa && mvn clean install
+RUN  mkdir $ONOS_APP/org.opencord.aaa && cd $ONOS_APP/org.opencord.aaa &&\
+            cp $ONOS/aaa/target/*.oar org.opencord.aaa.oar && unzip *.oar && touch active &&\
+            cd $KARAF_SYS && mkdir -p opencord/aaa/$VERSION && cd opencord/aaa/$VERSION &&\
+            unzip -d . -j $ONOS/aaa/target/*.oar
+
+COPY config/netcfg.json $KARAF_ROOT/../config/network-cfg.json

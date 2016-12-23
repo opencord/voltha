@@ -191,7 +191,7 @@ class SimulatedOltAdapter(object):
             id='simulated1',
             datapath_id=1,
             desc=ofp_desc(
-                mfr_desc='cord porject',
+                mfr_desc='cord project',
                 hw_desc='simualted pon',
                 sw_desc='simualted pon',
                 serial_num=uuid4().hex,
@@ -275,6 +275,7 @@ class SimulatedOltAdapter(object):
         # then shortly after we create the logical device with one port
         # that will correspond to the NNI port
         yield asleep(0.05)
+        logical_device_id = uuid4().hex[:12]
         ld = LogicalDevice(
             # not setting id and datapth_id will let the adapter agent pick id
             desc=ofp_desc(
