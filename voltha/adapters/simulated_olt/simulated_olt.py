@@ -78,7 +78,7 @@ class SimulatedOltAdapter(object):
         self.control_endpoint.listen(self.get_test_control_site())
 
         # TODO tmp: populate some devices and logical devices
-        reactor.callLater(0, self._tmp_populate_stuff)
+        # reactor.callLater(0, self._tmp_populate_stuff)
         log.info('started')
 
     def stop(self):
@@ -190,7 +190,7 @@ class SimulatedOltAdapter(object):
             id='simulated1',
             datapath_id=1,
             desc=ofp_desc(
-                mfr_desc='cord porject',
+                mfr_desc='cord project',
                 hw_desc='simualted pon',
                 sw_desc='simualted pon',
                 serial_num=uuid4().hex,
@@ -274,7 +274,7 @@ class SimulatedOltAdapter(object):
         # then shortly after we create the logical device with one port
         # that will correspond to the NNI port
         yield asleep(0.05)
-        logical_device_id = uuid4().hex[:12]
+        logical_device_id = "000001" #uuid4().hex[:12]
         ld = LogicalDevice(
             id=logical_device_id,
             datapath_id=int('0x' + logical_device_id[:8], 16), # from id
@@ -389,7 +389,7 @@ class SimulatedOltAdapter(object):
         """Simulate a packet in message posted upstream"""
         log.info('test_eapol_in', request=request, device_id=device_id)
         eapol_start = str(
-            (Ether(src='00:11:22:33:44:55') / EAPOL(type=1))
+            (Ether(src='00:11:22:33:44:55') / EAPOL(type=1, len=0))
             / Padding(load=42*'\x00')
         )
 
