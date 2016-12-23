@@ -180,8 +180,8 @@ class NetconfProtocolHandler:
                              rpc_handler=rpc_handler,
                              is_error=response.is_error,
                              response=response)
-                    # self.send_rpc_reply(response.node, rpc)
-                    self.send_rpc_reply(self.get_instance(), rpc)
+                    self.send_rpc_reply(response.node, rpc)
+                    # self.send_rpc_reply(self.get_instance(), rpc)
 
                     if response.close_session:
                         log.info('response-closing-session', response=response)

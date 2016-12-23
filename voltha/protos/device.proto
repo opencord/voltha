@@ -6,6 +6,7 @@ import "meta.proto";
 import "google/protobuf/any.proto";
 import "common.proto";
 import "openflow_13.proto";
+import "yang_options.proto";
 
 // A Device Type
 message DeviceType {
@@ -29,6 +30,7 @@ message DeviceTypes {
 }
 
 message Port {
+    option (voltha.yang_child_rule) = MOVE_TO_PARENT_LEVEL;
 
     enum PortType {
         UNKNOWN = 0;
@@ -64,6 +66,7 @@ message Ports {
 
 // A Physical Device instance
 message Device {
+    option (voltha.yang_child_rule) = MOVE_TO_PARENT_LEVEL;
 
     // Voltha's device identifier
     string id = 1 [(access) = READ_ONLY];

@@ -40,6 +40,17 @@ from netconf.protos.voltha_pb2 import VolthaLocalServiceStub, \
     VolthaGlobalServiceStub
 from google.protobuf import empty_pb2
 from google.protobuf.json_format import MessageToDict, ParseDict
+from google.protobuf import descriptor
+import base64
+import math
+
+_INT64_TYPES = frozenset([descriptor.FieldDescriptor.CPPTYPE_INT64,
+                          descriptor.FieldDescriptor.CPPTYPE_UINT64])
+_FLOAT_TYPES = frozenset([descriptor.FieldDescriptor.CPPTYPE_FLOAT,
+                          descriptor.FieldDescriptor.CPPTYPE_DOUBLE])
+_INFINITY = 'Infinity'
+_NEG_INFINITY = '-Infinity'
+_NAN = 'NaN'
 
 log = get_logger()
 
@@ -281,17 +292,21 @@ class GrpcClient(object):
             service_method = key.split('-')
             service = service_method[0]
             method = service_method[1]
-            stub = None
-            # if service == 'VolthaGlobalService':
-            #     stub = VolthaGlobalServiceStub
-            # elif service == 'VolthaLocalService':
-            #     stub = VolthaLocalServiceStub
-            # else:
-            #     raise  # Exception
+            if service == 'VolthaGlobalService':
+                stub = VolthaGlobalServiceStub
+            elif service == 'VolthaLocalService':
+                stub = VolthaLocalServiceStub
+            else:
+                raise  # Exception
+
+            log.info('voltha-rpc', service=service, method=method, req=req,
+                     depth=depth)
 
             res, metadata = yield self.invoke(stub, method, req, depth)
 
-            returnValue(MessageToDict(res, True, True))
+            # returnValue(MessageToDict(res, True, True))
+            returnValue(self.convertToDict(res))
+
         except Exception, e:
             log.error('failure', exception=repr(e))
 
@@ -339,3 +354,135 @@ class GrpcClient(object):
                 log.exception(e)
 
             raise e
+
+    # Below is an adaptation of Google's MessageToDict() which includes
+    # protobuf options extensions
+
+    class Error(Exception):
+        """Top-level module error for json_format."""
+
+    class SerializeToJsonError(Error):
+        """Thrown if serialization to JSON fails."""
+
+    def _IsMapEntry(self, field):
+        return (field.type == descriptor.FieldDescriptor.TYPE_MESSAGE and
+                field.message_type.has_options and
+                field.message_type.GetOptions().map_entry)
+
+    def convertToDict(self, message):
+        """Converts message to an object according to Proto3 JSON Specification."""
+
+        js = {}
+        return self._RegularMessageToJsonObject(message, js)
+
+    def get_yang_option(self, field):
+        opt = field.GetOptions()
+        yang_opt = {}
+        for fd, val in opt.ListFields():
+            if fd.full_name == 'voltha.yang_inline_node':
+                yang_opt['id'] = val.id
+                yang_opt['type'] = val.type
+                # Fow now, a max of 1 yang option is set per field
+                return yang_opt
+
+    def _RegularMessageToJsonObject(self, message, js):
+        """Converts normal message according to Proto3 JSON Specification."""
+        fields = message.ListFields()
+
+        try:
+            for field, value in fields:
+                # Check for options
+                yang_opt = self.get_yang_option(field)
+
+                name = field.name
+                if self._IsMapEntry(field):
+                    # Convert a map field.
+                    v_field = field.message_type.fields_by_name['value']
+                    js_map = {}
+                    for key in value:
+                        if isinstance(key, bool):
+                            if key:
+                                recorded_key = 'true'
+                            else:
+                                recorded_key = 'false'
+                        else:
+                            recorded_key = key
+                        js_map[recorded_key] = self._FieldToJsonObject(
+                            v_field, value[key])
+                    js[name] = js_map
+                elif field.label == descriptor.FieldDescriptor.LABEL_REPEATED:
+                    # Convert a repeated field.
+                    js[name] = [self._FieldToJsonObject(field, k)
+                                for k in value]
+                else:
+                    # This specific yang option applies only to non-repeated
+                    # fields
+                    if yang_opt:  # Create a map
+                        js_map = {}
+                        js_map['yang_field_option'] = True
+                        js_map['yang_field_option_id'] = yang_opt['id']
+                        js_map['yang_field_option_type'] = yang_opt['type']
+                        js_map['name'] = name
+                        js_map[name] = self._FieldToJsonObject(field, value)
+                        js[name] = js_map
+                    else:
+                        js[name] = self._FieldToJsonObject(field, value)
+
+            # Serialize default value if including_default_value_fields is True.
+            message_descriptor = message.DESCRIPTOR
+            for field in message_descriptor.fields:
+                # Singular message fields and oneof fields will not be affected.
+                if ((
+                                    field.label != descriptor.FieldDescriptor.LABEL_REPEATED and
+                                    field.cpp_type == descriptor.FieldDescriptor.CPPTYPE_MESSAGE) or
+                        field.containing_oneof):
+                    continue
+                name = field.name
+                if name in js:
+                    # Skip the field which has been serailized already.
+                    continue
+                if self._IsMapEntry(field):
+                    js[name] = {}
+                elif field.label == descriptor.FieldDescriptor.LABEL_REPEATED:
+                    js[name] = []
+                else:
+                    js[name] = self._FieldToJsonObject(field,
+                                                       field.default_value)
+
+        except ValueError as e:
+            raise self.SerializeToJsonError(
+                'Failed to serialize {0} field: {1}.'.format(field.name, e))
+
+        return js
+
+    def _FieldToJsonObject(self, field, value):
+        """Converts field value according to Proto3 JSON Specification."""
+        if field.cpp_type == descriptor.FieldDescriptor.CPPTYPE_MESSAGE:
+            return self.convertToDict(value)
+        elif field.cpp_type == descriptor.FieldDescriptor.CPPTYPE_ENUM:
+            enum_value = field.enum_type.values_by_number.get(value, None)
+            if enum_value is not None:
+                return enum_value.name
+            else:
+                raise self.SerializeToJsonError('Enum field contains an '
+                                                'integer value '
+                                                'which can not mapped to an enum value.')
+        elif field.cpp_type == descriptor.FieldDescriptor.CPPTYPE_STRING:
+            if field.type == descriptor.FieldDescriptor.TYPE_BYTES:
+                # Use base64 Data encoding for bytes
+                return base64.b64encode(value).decode('utf-8')
+            else:
+                return value
+        elif field.cpp_type == descriptor.FieldDescriptor.CPPTYPE_BOOL:
+            return bool(value)
+        elif field.cpp_type in _INT64_TYPES:
+            return str(value)
+        elif field.cpp_type in _FLOAT_TYPES:
+            if math.isinf(value):
+                if value < 0.0:
+                    return _NEG_INFINITY
+                else:
+                    return _INFINITY
+            if math.isnan(value):
+                return _NAN
+        return value
