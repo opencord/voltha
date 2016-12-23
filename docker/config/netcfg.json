@@ -1,0 +1,22 @@
+{
+    "apps" : {
+        "org.onosproject.aaa" : {
+            "AAA" : {
+                "radiusIp": "10.128.0.231",
+                "radiusServerPort": "1812",
+                "radiusSecret": "howdoyouturnthison"
+            }
+        }
+    },
+    "devices" : {
+        "of:0000000000000001" : {
+            "basic" : {
+                "driver" : "pmc-olt"
+            },
+            "accessDevice": {
+                "uplink": "129",
+                "vlan": "1000"
+            }
+        }
+    }
+}
