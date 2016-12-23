@@ -54,6 +54,7 @@ class Constants:
     # Netconf namespaces
 	NETCONF_BASE_10 = "urn:ietf:params:netconf:base:1.0"
 	NETCONF_BASE_11 = "urn:ietf:params:netconf:base:1.1"
+	NETCONF_MONITORING = "urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring"
 
 	# XML
 	XML_HEADER = """<?xml version="1.0" encoding="utf-8"?>"""

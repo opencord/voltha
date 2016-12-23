@@ -28,55 +28,113 @@ log = structlog.get_logger()
 
 
 class Get(Rpc):
-    def __init__(self, rpc_request, rpc_method, voltha_method_ref, grpc_client,
-                 session):
-        super(Get, self).__init__(rpc_request, rpc_method, voltha_method_ref,
-                                        grpc_client, session)
+    def __init__(self, request, grpc_client, session):
+        super(Get, self).__init__(request, grpc_client, session)
         self._validate_parameters()
 
     @inlineCallbacks
     def execute(self):
-        log.info('get-request', session=self.session.session_id,
-                 method=self.rpc_method)
         if self.rpc_response.is_error:
             returnValue(self.rpc_response)
 
-        # TODO: for debugging only, assume we are doing a voltha-getinstance
-        self.voltha_method_ref='VolthaLocalService-GetVolthaInstance'
+        log.info('get-request', session=self.session.session_id,
+                 request=self.request)
+
+        rpc = self.get_voltha_rpc(self.request)
+        if not rpc:
+            log.info('unsupported-request', request=self.request)
+            self.rpc_response.is_error = True
+            self.rpc_response.node = ncerror.BadMsg(self.request)
+            return
+
         # Invoke voltha via the grpc client
-        res_dict = yield self.grpc_client.invoke_voltha_api(self.voltha_method_ref)
+        res_dict = yield self.grpc_client.invoke_voltha_api(rpc)
 
         # convert dict to xml
-        xml = dicttoxml.dicttoxml(res_dict, attr_type=False)
+        xml = dicttoxml.dicttoxml(res_dict, attr_type=True)
         log.info('voltha-info', res=res_dict, xml=xml)
 
         root_elem = self.get_root_element(xml)
-        root_elem.tag = 'data'
 
-        log.info('rpc-method', etree.tounicode(self.rpc_method,
-                                               pretty_print=True))
-
-        self.rpc_method.append(root_elem)
-        self.rpc_response.node = self.rpc_method
+        # Build the yang response
+        self.rpc_response.node = self.rpc_response.build_yang_response(
+            root_elem, self.request)
         self.rpc_response.is_error = False
 
         returnValue(self.rpc_response)
 
-
     def _validate_parameters(self):
         log.info('validate-parameters', session=self.session.session_id)
-        self.params = self.rpc_method.getchildren()
-        if len(self.params) > 1:
-            self.rpc_response.is_error = True
-            self.rpc_response.node = ncerror.BadMsg(self.rpc_request)
-            return
+        # Validate the GET command
+        if self.request:
+            try:
+                if self.request['command'] != 'get':
+                    self.rpc_response.is_error = True
+                    self.rpc_response.node = ncerror.BadMsg('No GET in get '
+                                                            'request')
 
-        if self.params and not filter_tag_match(self.params[0], C.NC_FILTER):
-            self.rpc_response.is_error = True
-            self.rpc_response.node = ncerror.UnknownElement(
-                self.rpc_request, self.params[0])
-            return
+                if self.request.has_key('filter'):
+                    if not self.request.has_key('class'):
+                        self.rpc_response.is_error = True
+                        self.rpc_response.node = ncerror.BadMsg(
+                            'Missing filter sub-element')
 
-        if not self.params:
-            self.params = [None]
+            except Exception as e:
+                self.rpc_response.is_error = True
+                self.rpc_response.node = ncerror.BadMsg(self.request)
+                return
 
+    def get_voltha_rpc(self, request):
+        if request.has_key('class'):
+            rpcs = self.rpc_request_mapping.get(request['class'])
+            if rpcs is None:
+                return None
+            for rpc in rpcs:
+                if request.has_key('subclass'):
+                    # search first for subclass
+                    if rpc['subclass'] and request['subclass'] == rpc[
+                        'subclass']:
+                        return rpc['rpc']
+
+            # If we are here then no subclass exists.  Just return the rpc
+            # associated with theNone subclass
+            for rpc in rpcs:
+                if rpc['subclass'] is None:
+                    return rpc['rpc']
+
+        return None
+
+    # Supported Get Methods
+    rpc_request_mapping = {
+        'Voltha': [
+            {'subclass': None,
+             'rpc': 'VolthaGlobalService-GetVoltha'
+             }],
+        'VolthaInstance': [
+            {'subclass': None,
+             'rpc': 'VolthaLocalService-GetVolthaInstance'
+             },
+            {'subclass': 'health',
+             'rpc': 'VolthaLocalService-GetHealth'
+             },
+            {'subclass': 'adapters',
+             'rpc': 'VolthaLocalService-ListAdapters'
+             },
+            {'subclass': 'logical_devices',
+             'rpc': 'VolthaLocalService-ListLogicalDevices'
+             },
+            {'subclass': 'devices',
+             'rpc': 'VolthaLocalService-ListDevices'
+             },
+            {'subclass': 'device_types',
+             'rpc': 'VolthaLocalService-ListDeviceTypes'
+             },
+            {'subclass': 'device_groups',
+             'rpc': 'VolthaLocalService-ListDeviceGroups'
+             },
+        ],
+        'VolthaInstances': [
+            {'subclass': None,
+             'rpc': 'VolthaGlobalService-ListVolthaInstances'
+             }],
+    }

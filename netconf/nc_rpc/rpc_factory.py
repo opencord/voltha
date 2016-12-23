@@ -35,6 +35,11 @@ import netconf.nc_common.error as ncerror
 log = structlog.get_logger()
 from lxml import etree
 
+ns_map = {
+    'base': '{urn:ietf:params:xml:ns:netconf:base:1.0}',
+    'voltha': '{urn:opencord:params:xml:ns:voltha:ietf-voltha}'
+}
+
 
 class RpcFactory:
     instance = None
@@ -51,6 +56,39 @@ class RpcFactory:
     def _get_key(self, namespace, service, name):
         return ''.join([namespace, service, name])
 
+    def get_attribute_value(self, name, attributes):
+        for tup in attributes.items():
+            if tup[0] == name:
+                return tup[1]
+
+    # Parse a request (node is an ElementTree) and return a dictionary
+    # TODO:  This parser is specific to a GET request.  Need to be it more
+    # generic
+    def parse_xml_request(self, node):
+        request = {}
+        if not len(node):
+            return request
+        for elem in node.iter():
+            if elem.tag.find(ns_map['base']) != -1:  # found
+                elem_name = elem.tag.replace(ns_map['base'], "")
+                if elem_name == 'rpc':
+                    request['type'] = 'rpc'
+                    request['message_id'] = self.get_attribute_value(
+                        'message-id', elem.attrib)
+                elif elem_name == 'filter':
+                    request['filter'] = self.get_attribute_value('type',
+                                                                 elem.attrib)
+                else:
+                    request[
+                        'command'] = elem_name  # attribute is empty for now
+            elif elem.tag.find(ns_map['voltha']) != -1:  # found
+                if request.has_key('class'):
+                    request['subclass'] = elem.tag.replace(ns_map['voltha'],
+                                                           "")
+                else:
+                    request['class'] = elem.tag.replace(ns_map['voltha'], "")
+        return request
+
     def register_rpc(self, namespace, service, name, klass):
         key = self._get_key(namespace, service, name)
         if key not in self.rpc_map.keys():
@@ -63,32 +101,31 @@ class RpcFactory:
 
     def get_rpc_handler(self, rpc_node, msg, grpc_channel, session):
         try:
-            msg_id = rpc_node.get('message-id')
-            log.info("Received-rpc-message-id", msg_id=msg_id)
+            # Parse the request into a dictionary
+            log.info("rpc-node",
+                     node=etree.tostring(rpc_node, pretty_print=True))
 
-        except (TypeError, ValueError):
-            raise ncerror.SessionError(msg,
-                                       "No valid message-id attribute found")
+            request = self.parse_xml_request(rpc_node)
+            if not request:
+                log.error("request-bad-format")
+                raise ncerror.BadMsg(rpc_node)
 
-        log.info("rpc-node", node=etree.tostring(rpc_node, pretty_print=True))
+            if not request.has_key('message_id') or \
+                    not request.has_key('command'):
+                log.error("request-no-message-id")
+                raise ncerror.BadMsg(rpc_node)
 
-        # Get the first child of rpc as the method name
-        rpc_method = rpc_node.getchildren()
-        if len(rpc_method) != 1:
-            log.error("badly-formatted-rpc-method", msg_id=msg_id)
+            log.info("parsed-request", request=request)
+
+            class_handler = self.rpc_class_handlers.get(request['command'],
+                                                        None)
+            if class_handler is not None:
+                return class_handler(request, grpc_channel, session)
+
+            log.error("rpc-not-implemented", rpc=request['command'])
+
+        except Exception as e:
             raise ncerror.BadMsg(rpc_node)
-
-        rpc_method = rpc_method[0]
-
-        rpc_name = rpc_method.tag.replace(qmap('nc'), "")
-
-        log.info("rpc-request", rpc=rpc_name)
-        class_handler = self.rpc_class_handlers.get(rpc_name, None)
-        if class_handler is not None:
-            return class_handler(rpc_node, rpc_method, None, grpc_channel,
-                                 session)
-
-        log.error("rpc-not-implemented", rpc=rpc_name)
 
     rpc_class_handlers = {
         'getvoltha': GetVoltha,
@@ -109,13 +146,3 @@ def get_rpc_factory_instance():
     if RpcFactory.instance == None:
         RpcFactory.instance = RpcFactory()
     return RpcFactory.instance
-
-
-if __name__ == '__main__':
-    fac = get_rpc_factory_instance()
-    fac.register_rpc('urn:opencord:params:xml:ns:voltha:ietf-voltha',
-                     'VolthaGlobalService', 'GetVoltha', GetVoltha)
-    rpc = fac.get_handler('urn:opencord:params:xml:ns:voltha:ietf-voltha',
-                          'VolthaGlobalService', 'GetVoltha')
-    # rpc = fac.rpc_class_handlers.get('getvoltha', None)
-    print rpc(None, None, None, None)

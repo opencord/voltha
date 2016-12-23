@@ -28,10 +28,8 @@ log = structlog.get_logger()
 
 
 class GetVoltha(Rpc):
-    def __init__(self, rpc_request, rpc_method, voltha_method_ref, grpc_client,
-                 session):
-        super(GetVoltha, self).__init__(rpc_request, rpc_method, voltha_method_ref,
-                                        grpc_client, session)
+    def __init__(self, request, grpc_client, session):
+        super(GetVoltha, self).__init__(request, grpc_client, session)
         self._validate_parameters()
 
     @inlineCallbacks

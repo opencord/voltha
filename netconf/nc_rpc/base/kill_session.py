@@ -25,9 +25,8 @@ log = structlog.get_logger()
 
 class KillSession(Rpc):
 
-    def __init__(self, rpc_request, rpc_method, grpc_client, session):
-        super(KillSession, self).__init__(rpc_request, rpc_method,
-                                          grpc_client, session)
+    def __init__(self, request, grpc_client, session):
+        super(KillSession, self).__init__(request, grpc_client, session)
         self._validate_parameters()
 
     def execute(self):
