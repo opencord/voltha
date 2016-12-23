@@ -189,10 +189,28 @@ class AdapterAgent(object):
         self._make_up_to_date('/devices/{}/ports'.format(device_id),
                               port.port_no, port)
 
+    def _find_first_available_id(self):
+        logical_devices = self.root_proxy.get('/logical_devices')
+        existing_ids = set(ld.id for ld in logical_devices)
+        existing_datapath_ids = set(ld.datapath_id for ld in logical_devices)
+        i = 1
+        while True:
+            if i not in existing_datapath_ids and str(i) not in existing_ids:
+                return i
+            i += 1
+
     def create_logical_device(self, logical_device):
         assert isinstance(logical_device, LogicalDevice)
+
+        if not logical_device.id:
+            id = self._find_first_available_id()
+            logical_device.id = str(id)
+            logical_device.datapath_id = id
+
         self._make_up_to_date('/logical_devices',
                               logical_device.id, logical_device)
+
+        return logical_device
 
     def add_logical_port(self, logical_device_id, port):
         assert isinstance(port, LogicalPort)

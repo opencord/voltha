@@ -78,7 +78,7 @@ class SimulatedOltAdapter(object):
         self.control_endpoint.listen(self.get_test_control_site())
 
         # TODO tmp: populate some devices and logical devices
-        reactor.callLater(0, self._tmp_populate_stuff)
+        # reactor.callLater(0, self._tmp_populate_stuff)
         log.info('started')
 
     def stop(self):
@@ -103,8 +103,8 @@ class SimulatedOltAdapter(object):
         return device
 
     def abandon_device(self, device):
-        raise NotImplementedError(0
-                                  )
+        raise NotImplementedError()
+
     def deactivate_device(self, device):
         raise NotImplementedError()
 
@@ -274,10 +274,8 @@ class SimulatedOltAdapter(object):
         # then shortly after we create the logical device with one port
         # that will correspond to the NNI port
         yield asleep(0.05)
-        logical_device_id = uuid4().hex[:12]
         ld = LogicalDevice(
-            id=logical_device_id,
-            datapath_id=int('0x' + logical_device_id[:8], 16), # from id
+            # not setting id and datapth_id will let the adapter agent pick id
             desc=ofp_desc(
                 mfr_desc='cord porject',
                 hw_desc='simualted pon',
@@ -297,9 +295,9 @@ class SimulatedOltAdapter(object):
             ),
             root_device_id=device.id
         )
-        self.adapter_agent.create_logical_device(ld)
+        ld_initialized = self.adapter_agent.create_logical_device(ld)
         cap = OFPPF_1GB_FD | OFPPF_FIBER
-        self.adapter_agent.add_logical_port(ld.id, LogicalPort(
+        self.adapter_agent.add_logical_port(ld_initialized.id, LogicalPort(
             id='nni',
             ofp_port=ofp_port(
                 port_no=129,
@@ -320,7 +318,7 @@ class SimulatedOltAdapter(object):
 
         # and finally update to active
         device = self.adapter_agent.get_device(device.id)
-        device.parent_id = ld.id
+        device.parent_id = ld_initialized.id
         device.oper_status = OperStatus.ACTIVE
         self.adapter_agent.update_device(device)
 
@@ -389,10 +387,10 @@ class SimulatedOltAdapter(object):
         """Simulate a packet in message posted upstream"""
         log.info('test_eapol_in', request=request, device_id=device_id)
         eapol_start = str(
-            (Ether(src='00:11:22:33:44:55') / EAPOL(type=1))
-            / Padding(load=42*'\x00')
+            Ether(src='00:11:22:33:44:55') /
+            EAPOL(type=1, len=0) /
+            Padding(load=42*'\x00')
         )
-
         device = self.adapter_agent.get_device(device_id)
         self.adapter_agent.send_packet_in(logical_device_id=device.parent_id,
                                           logical_port_no=1,

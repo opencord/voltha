@@ -1,8 +1,15 @@
 import os
 import sys
 import requests
+from google.protobuf.json_format import MessageToDict
 from termcolor import cprint, colored
 from os.path import join as pjoin
+
+
+def pb2dict(pb_msg):
+    d = MessageToDict(pb_msg, including_default_value_fields=1,
+                      preserving_proto_field_name=1)
+    return d
 
 
 def p_cookie(cookie):
