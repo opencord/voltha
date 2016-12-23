@@ -26,9 +26,8 @@ log = structlog.get_logger()
 
 class GetConfig(Rpc):
 
-	def __init__(self, rpc_request, rpc_method, grpc_client, session):
-		super(GetConfig, self).__init__(rpc_request, rpc_method,
-										grpc_client, session)
+	def __init__(self, request, grpc_client, session):
+		super(GetConfig, self).__init__(request, grpc_client, session)
 		self._validate_parameters()
 
 	def execute(self):

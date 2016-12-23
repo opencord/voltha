@@ -21,14 +21,13 @@ from  rpc_response import RpcResponse
 from lxml import etree
 import io
 
+
+
 class Rpc(object):
-    def __init__(self,rpc_request, rpc_method, voltha_method_ref,
-                 grpc_client, session):
-        self.rpc_request = rpc_request
-        self.rpc_method = rpc_method
+    def __init__(self, request, grpc_client, session):
+        self.request = request
         self.rpc_response = RpcResponse()
         self.grpc_client =  grpc_client
-        self.voltha_method_ref = voltha_method_ref
         self.session = session
 
 
