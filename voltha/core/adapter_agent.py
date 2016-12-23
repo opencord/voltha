@@ -199,6 +199,12 @@ class AdapterAgent(object):
             '/logical_devices/{}/ports'.format(logical_device_id),
             port.id, port)
 
+    def update_logical_port(self, logical_device_id, port):
+        assert isinstance(port, LogicalPort)
+        self._make_up_to_date(
+            '/logical_devices/{}/ports'.format(logical_device_id),
+            port.id, port)
+
     def child_device_detected(self,
                               parent_device_id,
                               parent_port_no,

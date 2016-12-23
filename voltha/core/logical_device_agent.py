@@ -56,14 +56,20 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         self.self_proxy = core.get_proxy(
             '/logical_devices/{}'.format(logical_device.id))
 
+        self.ports_proxy = core.get_proxy(
+            '/logical_devices/{}/ports'.format(logical_device.id))
+
         self.flows_proxy.register_callback(
             CallbackType.POST_UPDATE, self._flow_table_updated)
         self.groups_proxy.register_callback(
             CallbackType.POST_UPDATE, self._group_table_updated)
+
         self.self_proxy.register_callback(
             CallbackType.POST_ADD, self._port_added)
         self.self_proxy.register_callback(
             CallbackType.POST_REMOVE, self._port_removed)
+        self.ports_proxy.register_callback(
+            CallbackType.POST_UPDATE, self._port_updated)
 
         self.log = structlog.get_logger(logical_device_id=logical_device.id)
 
@@ -530,7 +536,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         )
 
     # TODO not yet hooked up
-    def _port_changed(self, port):
+    def _port_updated(self, port):
         assert isinstance(port, LogicalPort)
         self.local_handler.send_port_change_event(
             device_id=self.logical_device_id,

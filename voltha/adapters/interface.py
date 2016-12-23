@@ -175,6 +175,9 @@ class IAdapterAgent(Interface):
     def add_logical_port(logical_device_id, port):
         # TODO add doc
         """"""
+    def update_logical_port(logical_device_id, port):
+        # TODO add doc
+        """"""
 
     def child_device_detected(parent_device_id,
                               parent_port_no,
