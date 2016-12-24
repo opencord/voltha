@@ -59,6 +59,7 @@ frame_match = 'ether[14:2] = 0x{:01x}{:03x}'.format(TIBIT_MGMT_PRIORITY << 1, TI
 is_tibit_frame = BpfProgramFilter(frame_match)
 #is_tibit_frame = lambda x: True
 
+
 # To be removed in favor of OAM
 class TBJSON(Packet):
     """ TBJSON 'packet' layer. """
@@ -66,6 +67,7 @@ class TBJSON(Packet):
     fields_desc = [StrField("data", default="")]
 
 bind_layers(Ether, TBJSON, type=0x9001)
+
 
 @implementer(IAdapterInterface)
 class TibitOltAdapter(object):
@@ -363,6 +365,7 @@ class TibitOltAdapter(object):
                 req /= PortIngressRuleHeader(precedence=precedence)
 
                 for field in get_ofb_fields(flow):
+
                     if field.type == ETH_TYPE:
                         _type = field.eth_type
                         req /= PortIngressRuleClauseMatchLength02(
@@ -370,14 +373,38 @@ class TibitOltAdapter(object):
                             operator=1,
                             match0=(_type >> 8) & 0xff,
                             match1=_type & 0xff)
+
                     elif field.type == IP_PROTO:
-                        pass
-                    # TODO etc
+                        _proto = field.ip_proto
+                        pass  # construct ip_proto based condition here
+
+                    elif field.type == IN_PORT:
+                        _port = field.port
+                        pass  # construct in_port based condition here
+
+                    elif field.type == VLAN_VID:
+                        _vlan_vid = field.vlan_vid
+                        pass  # construct VLAN ID based filter condition here
+
+                    elif field.type == VLAN_PCP:
+                        _vlan_pcp = field.vlan_pcp
+                        pass  # construct VLAN PCP based filter condition here
+
+                    elif field.type == UDP_DST:
+                        _udp_dst = field.udp_dst
+                        pass  # construct UDP SDT based filter here
+
+                    else:
+                        raise NotImplementedError('field.type={}'.format(
+                            field.type))
 
                 for action in get_actions(flow):
 
                     if action.type == OUTPUT:
                         req /= PortIngressRuleResultForward()
+
+                    elif action.type == POP_VLAN:
+                        pass  # construct vlan pop command here
 
                     elif action.type == PUSH_VLAN:
                         if action.push.ethertype != 0x8100:

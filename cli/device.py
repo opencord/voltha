@@ -21,6 +21,7 @@ Device level CLI commands
 from cmd2 import Cmd
 from simplejson import dumps
 
+from cli.table import print_pb_as_table, print_pb_list_as_table
 from cli.utils import print_flows, pb2dict
 from voltha.protos import third_party
 
@@ -47,8 +48,16 @@ class DeviceCli(Cmd):
 
     def do_show(self, line):
         """Show detailed device information"""
-        self.poutput(dumps(pb2dict(self.get_device(depth=-1)),
-                     indent=4, sort_keys=True))
+        print_pb_as_table('Device {}'.format(self.device_id),
+                          self.get_device(depth=-1))
+
+    def do_ports(self, line):
+        """Show ports of device"""
+        device = self.get_device(depth=-1)
+        omit_fields = {
+        }
+        print_pb_list_as_table('Device ports:', device.ports,
+                               omit_fields, self.poutput)
 
     def do_flows(self, line):
         """Show flow table for device"""

@@ -15,6 +15,7 @@
 #
 import sys
 
+from google.protobuf.internal.containers import RepeatedCompositeFieldContainer
 from google.protobuf.message import Message
 from termcolor import colored
 
@@ -36,6 +37,9 @@ class TablePrinter(object):
         row = self.cell_values.setdefault(row_number, {})
         row[field_key] = value
         self._update_max_length(field_key, value)
+
+    def number_of_rows(self):
+        return len(self.cell_values)
 
     def print_table(self, header=None, printfn=_printfn, dividers=10):
 
@@ -85,7 +89,7 @@ class TablePrinter(object):
             assert self.field_names[field_key] == field_name
 
 
-def print_pb_table(header, items, fields_to_omit=None, printfn=_printfn):
+def print_pb_list_as_table(header, items, fields_to_omit=None, printfn=_printfn):
     from cli.utils import pb2dict
 
     t = TablePrinter()
@@ -110,6 +114,34 @@ def print_pb_table(header, items, fields_to_omit=None, printfn=_printfn):
 
     t.print_table(header, printfn)
 
+
+def print_pb_as_table(header, pb, fields_to_omit={}, printfn=_printfn):
+    from cli.utils import pb2dict
+
+    t = TablePrinter()
+
+    def pr(_pb, prefix=''):
+        d = pb2dict(_pb)
+        for field in sorted(_pb._fields, key=lambda f: f.number):
+            fname = prefix + field.name
+            if fname in fields_to_omit:
+                continue
+            value = getattr(_pb, field.name)
+            if isinstance(value, Message):
+                pr(value, fname + '.')
+            elif isinstance(value, RepeatedCompositeFieldContainer):
+                row = t.number_of_rows()
+                t.add_cell(row, 0, 'field', fname)
+                t.add_cell(row, 1, 'value', '{} item(s)'.format(
+                    len(d.get(field.name))))
+            else:
+                row = t.number_of_rows()
+                t.add_cell(row, 0, 'field', fname)
+                t.add_cell(row, 1, 'value', d.get(field.name))
+
+    pr(pb)
+
+    t.print_table(header, printfn)
 
 if __name__ == '__main__':
     import random

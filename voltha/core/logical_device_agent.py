@@ -417,7 +417,8 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
 
             else:
                 flows = list(self.flows_proxy.get('/').items)
-                flows_changed, flows = self.flows_delete_by_group_id(flows, group_id)
+                flows_changed, flows = self.flows_delete_by_group_id(
+                    flows, group_id)
                 del groups[group_id]
                 groups_changed = True
                 self.log.debug('group-deleted', group_id=group_id)

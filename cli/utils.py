@@ -83,8 +83,12 @@ field_printers = {
     'VLAN_VID': lambda f: (101, 'vlan_vid', p_vlan_vid(f['vlan_vid'])),
     'VLAN_PCP': lambda f: (102, 'vlan_pcp', str(f['vlan_pcp'])),
     'ETH_TYPE': lambda f: (103, 'eth_type', '%X' % f['eth_type']),
-    'IPV4_DST': lambda f: (104, 'ipv4_dst', p_ipv4(f['ipv4_dst'])),
-    'IP_PROTO': lambda f: (105, 'ip_proto', str(f['ip_proto']))
+    'IP_PROTO': lambda f: (104, 'ip_proto', str(f['ip_proto'])),
+    'IPV4_DST': lambda f: (105, 'ipv4_dst', p_ipv4(f['ipv4_dst'])),
+    'UDP_SRC': lambda f: (106, 'udp_src', str(f['udp_src'])),
+    'UDP_DST': lambda f: (107, 'udp_dst', str(f['udp_dst'])),
+    'TCP_SRC': lambda f: (108, 'tcp_src', str(f['tcp_src'])),
+    'TCP_DST': lambda f: (109, 'tcp_dst', str(f['tcp_dst'])),
 }
 
 

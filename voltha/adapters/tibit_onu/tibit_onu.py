@@ -30,6 +30,7 @@ from scapy.layers.l2 import Ether
 from twisted.internet.defer import DeferredQueue, inlineCallbacks
 from twisted.internet import reactor
 
+from voltha.core.flow_decomposer import *
 from voltha.core.logical_device_agent import mac_str_to_tuple
 
 from voltha.adapters.interface import IAdapterInterface
@@ -196,6 +197,145 @@ class TibitOnuAdapter(object):
     def update_flows_bulk(self, device, flows, groups):
         log.debug('bulk-flow-update', device_id=device.id,
                   flows=flows, groups=groups)
+
+        # sample code that analyzes the incoming flow table
+        assert len(groups.items) == 0, "Cannot yet deal with groups"
+
+        for flow in flows.items:
+            in_port = get_in_port(flow)
+            assert in_port is not None
+
+            if in_port == 2:
+
+                # Downstream rule
+
+                for field in get_ofb_fields(flow):
+                    if field.type == ETH_TYPE:
+                        _type = field.eth_type
+                        pass  # construct ether type based condition here
+
+                    elif field.type == IP_PROTO:
+                        _proto = field.ip_proto
+                        pass  # construct ip_proto based condition here
+
+                    elif field.type == IN_PORT:
+                        _port = field.port
+                        pass  # construct in_port based condition here
+
+                    elif field.type == VLAN_VID:
+                        _vlan_vid = field.vlan_vid
+                        pass  # construct VLAN ID based filter condition here
+
+                    elif field.type == VLAN_PCP:
+                        _vlan_pcp = field.vlan_pcp
+                        pass  # construct VLAN PCP based filter condition here
+
+                    # TODO
+                    else:
+                        raise NotImplementedError('field.type={}'.format(
+                            field.type))
+
+                for action in get_actions(flow):
+
+                    if action.type == OUTPUT:
+                        pass  # construct packet emit rule here
+
+                    elif action.type == PUSH_VLAN:
+                        if action.push.ethertype != 0x8100:
+                            log.error('unhandled-ether-type',
+                                      ethertype=action.push.ethertype)
+                        pass  # construct vlan push command here
+
+                    elif action.type == POP_VLAN:
+                        pass  # construct vlan pop command here
+
+                    elif action.type == SET_FIELD:
+                        assert (action.set_field.field.oxm_class ==
+                                ofp.OFPXMC_OPENFLOW_BASIC)
+                        field = action.set_field.field.ofb_field
+                        if field.type == VLAN_VID:
+                            pass  # construct vlan_id set command here
+                        else:
+                            log.error('unsupported-action-set-field-type',
+                                      field_type=field.type)
+
+                    else:
+                        log.error('unsupported-action-type',
+                                  action_type=action.type)
+
+                # final assembly of low level device flow rule and pushing it
+                # down to device
+                pass
+
+            elif in_port == 1:
+
+                # Upstream rule
+
+                for field in get_ofb_fields(flow):
+                    if field.type == ETH_TYPE:
+                        _type = field.eth_type
+                        pass  # construct ether type based condition here
+
+                    elif field.type == IP_PROTO:
+                        _proto = field.ip_proto
+                        pass  # construct ip_proto based condition here
+
+                    elif field.type == IN_PORT:
+                        _port = field.port
+                        pass  # construct in_port based condition here
+
+                    elif field.type == VLAN_VID:
+                        _vlan_vid = field.vlan_vid
+                        pass  # construct VLAN ID based filter condition here
+
+                    elif field.type == VLAN_PCP:
+                        _vlan_pcp = field.vlan_pcp
+                        pass  # construct VLAN PCP based filter condition here
+
+                    elif field.type == IPV4_DST:
+                        _ipv4_dst = field.ipv4_dst
+                        pass  # construct IPv4 DST address based condition
+
+                    elif field.type == UDP_DST:
+                        _udp_dst = field.udp_dst
+                        pass  # construct UDP SDT based filter here
+
+                    # TODO
+                    else:
+                        raise NotImplementedError('field.type={}'.format(
+                            field.type))
+
+                for action in get_actions(flow):
+
+                    if action.type == OUTPUT:
+                        pass  # construct packet emit rule here
+
+                    elif action.type == PUSH_VLAN:
+                        if action.push.ethertype != 0x8100:
+                            log.error('unhandled-ether-type',
+                                      ethertype=action.push.ethertype)
+                        pass  # construct vlan push command here
+
+                    elif action.type == SET_FIELD:
+                        assert (action.set_field.field.oxm_class ==
+                                ofp.OFPXMC_OPENFLOW_BASIC)
+                        field = action.set_field.field.ofb_field
+                        if field.type == VLAN_VID:
+                            pass  # construct vlan_id set command here
+                        else:
+                            log.error('unsupported-action-set-field-type',
+                                      field_type=field.type)
+
+                    else:
+                        log.error('unsupported-action-type',
+                                  action_type=action.type)
+
+                # final assembly of low level device flow rule and pushing it
+                # down to device
+                pass
+
+            else:
+                raise Exception('Port should be 1 or 2 by our convention')
 
     def update_flows_incrementally(self, device, flow_changes, group_changes):
         raise NotImplementedError()

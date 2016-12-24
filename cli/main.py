@@ -27,11 +27,11 @@ from simplejson import dumps
 
 from cli.device import DeviceCli
 from cli.logical_device import LogicalDeviceCli
-from cli.table import TablePrinter, print_pb_table
+from cli.table import TablePrinter, print_pb_list_as_table
 from voltha.core.flow_decomposer import *
 from voltha.protos import third_party
 from voltha.protos import voltha_pb2
-from voltha.protos.openflow_13_pb2 import FlowTableUpdate
+from voltha.protos.openflow_13_pb2 import FlowTableUpdate, FlowGroupTableUpdate
 
 _ = third_party
 from cli.utils import pb2dict, dict2line
@@ -144,7 +144,7 @@ class VolthaCli(Cmd):
         stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
         res = stub.ListAdapters(Empty())
         omit_fields = {}
-        print_pb_table('Adapters:', res.items, omit_fields, self.poutput)
+        print_pb_list_as_table('Adapters:', res.items, omit_fields, self.poutput)
 
     def get_devices(self):
         stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
@@ -168,7 +168,7 @@ class VolthaCli(Cmd):
             'firmware_version',
             'serial_number'
         }
-        print_pb_table('Devices:', devices, omit_fields, self.poutput)
+        print_pb_list_as_table('Devices:', devices, omit_fields, self.poutput)
 
     def do_logical_devices(self, line):
         """List logical devices in Voltha"""
@@ -182,8 +182,8 @@ class VolthaCli(Cmd):
             'desc.serial_number',
             'switch_features.capabilities'
         }
-        print_pb_table('Logical devices:', res.items, omit_fields,
-                       self.poutput)
+        print_pb_list_as_table('Logical devices:', res.items, omit_fields,
+                               self.poutput)
 
     def do_device(self, line):
         """Enter device level command mode"""
@@ -257,6 +257,12 @@ class TestCli(VolthaCli):
         self.prompt = '(' + self.colorize(self.colorize('test', 'cyan'),
             'bold') + ') '
 
+    def get_device(self, device_id, depth=0):
+        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        res = stub.GetDevice(voltha_pb2.ID(id=device_id),
+                             metadata=(('get-depth', str(depth)), ))
+        return res
+
     @options([
         make_option('-t', '--device-type', action="store", dest='device_type',
                      help="Device type", default='simulated_olt'),
@@ -305,14 +311,40 @@ class TestCli(VolthaCli):
 
     def do_arrive_onus(self, line):
         """
-        Simulate the arrival of ONUs
+        Simulate the arrival of ONUs (available only on simulated_olt)
         """
         device_id = line or self.default_device_id
+
+        # verify that device is of type simulated_olt
+        device = self.get_device(device_id)
+        assert device.type == 'simulated_olt', (
+            'Cannot use it on this device type (only on simulated_olt type)')
+
         requests.get('http://{}/devices/{}/detect_onus'.format(
             self.voltha_sim_rest, device_id
         ))
 
     complete_arrive_onus = VolthaCli.complete_device
+
+    def get_logical_ports(self, logical_device_id):
+        """
+        Return the NNI port number and the first usable UNI port of logical
+        device, and the vlan associated with the latter.
+        """
+        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        ports = stub.ListLogicalDevicePorts(
+            voltha_pb2.ID(id=logical_device_id)).items
+        nni = uni = vlan = None
+        for port in ports:
+            if nni is None and port.root_port:
+                nni = port.ofp_port.port_no
+            if uni is None and not port.root_port:
+                uni = port.ofp_port.port_no
+                uni_device = self.get_device(port.device_id)
+                vlan = uni_device.vlan
+            if nni is not None and uni is not None:
+                return nni, uni, vlan
+        raise Exception('No valid port pair found (no ONUs yet?)')
 
     def do_install_eapol_flow(self, line):
         """
@@ -321,14 +353,19 @@ class TestCli(VolthaCli):
         OLT device.
         """
         logical_device_id = line or self.default_logical_device_id
+
+        # gather NNI and UNI port IDs
+        nni_port_no, uni_port_no = self.get_logical_ports(logical_device_id)
+
+        # construct and push flow rule
         update = FlowTableUpdate(
             id=logical_device_id,
-            flow_mod = mk_simple_flow_mod(
+            flow_mod=mk_simple_flow_mod(
                 priority=2000,
-                match_fields=[in_port(241), eth_type(0x888e)],
+                match_fields=[in_port(uni_port_no), eth_type(0x888e)],
                 actions=[
-                    push_vlan(0x8100),
-                    set_field(vlan_vid(4096 + 4000)),
+                    # push_vlan(0x8100),
+                    # set_field(vlan_vid(4096 + 4000)),
                     output(ofp.OFPP_CONTROLLER)
                 ]
             )
@@ -338,6 +375,255 @@ class TestCli(VolthaCli):
         self.poutput('success ({})'.format(res))
 
     complete_install_eapol_flow = VolthaCli.complete_logical_device
+
+    def do_install_all_controller_bound_flows(self, line):
+        """
+        Install all flow rules for controller bound flows, including EAPOL,
+        IGMP and DHCP. If device is not given, it will be applied to logical
+        device of the last pre-provisioned OLT device.
+        """
+        logical_device_id = line or self.default_logical_device_id
+
+        # gather NNI and UNI port IDs
+        nni_port_no, uni_port_no = self.get_logical_ports(logical_device_id)
+
+        # construct and push flow rules
+        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+
+        stub.UpdateLogicalDeviceFlowTable(FlowTableUpdate(
+            id=logical_device_id,
+            flow_mod=mk_simple_flow_mod(
+                priority=2000,
+                match_fields=[in_port(uni_port_no), eth_type(0x888e)],
+                actions=[
+                    # push_vlan(0x8100),
+                    # set_field(vlan_vid(4096 + 4000)),
+                    output(ofp.OFPP_CONTROLLER)
+                ]
+            )
+        ))
+        stub.UpdateLogicalDeviceFlowTable(FlowTableUpdate(
+            id=logical_device_id,
+            flow_mod=mk_simple_flow_mod(
+                priority=1000,
+                match_fields=[eth_type(0x800), ip_proto(2)],
+                actions=[output(ofp.OFPP_CONTROLLER)]
+            )
+        ))
+        stub.UpdateLogicalDeviceFlowTable(FlowTableUpdate(
+            id=logical_device_id,
+            flow_mod=mk_simple_flow_mod(
+                priority=1000,
+                match_fields=[eth_type(0x800), ip_proto(17), udp_dst(67)],
+                actions=[output(ofp.OFPP_CONTROLLER)]
+            )
+        ))
+
+        self.poutput('success')
+
+    complete_install_all_controller_bound_flows = \
+        VolthaCli.complete_logical_device
+
+    def do_install_all_sample_flows(self, line):
+        """
+        Install all flows that are representative of the virtualized access
+        scenario in a PON network.
+        """
+        logical_device_id = line or self.default_logical_device_id
+
+        # gather NNI and UNI port IDs
+        nni_port_no, uni_port_no, c_vid = \
+            self.get_logical_ports(logical_device_id)
+
+        # construct and push flow rules
+        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+
+        # Controller-bound flows
+        stub.UpdateLogicalDeviceFlowTable(FlowTableUpdate(
+            id=logical_device_id,
+            flow_mod=mk_simple_flow_mod(
+                priority=2000,
+                match_fields=[in_port(uni_port_no), eth_type(0x888e)],
+                actions=[
+                    # push_vlan(0x8100),
+                    # set_field(vlan_vid(4096 + 4000)),
+                    output(ofp.OFPP_CONTROLLER)
+                ]
+            )
+        ))
+        stub.UpdateLogicalDeviceFlowTable(FlowTableUpdate(
+            id=logical_device_id,
+            flow_mod=mk_simple_flow_mod(
+                priority=1000,
+                match_fields=[eth_type(0x800), ip_proto(2)],
+                actions=[output(ofp.OFPP_CONTROLLER)]
+            )
+        ))
+        stub.UpdateLogicalDeviceFlowTable(FlowTableUpdate(
+            id=logical_device_id,
+            flow_mod=mk_simple_flow_mod(
+                priority=1000,
+                match_fields=[eth_type(0x800), ip_proto(17), udp_dst(67)],
+                actions=[output(ofp.OFPP_CONTROLLER)]
+            )
+        ))
+
+        # Unicast flows:
+        # Downstream flow 1
+        stub.UpdateLogicalDeviceFlowTable(FlowTableUpdate(
+            id=logical_device_id,
+            flow_mod=mk_simple_flow_mod(
+                priority=500,
+                match_fields=[
+                    in_port(nni_port_no),
+                    vlan_vid(4096 + 1000)
+                ],
+                actions=[pop_vlan()],
+                next_table_id=1
+            )
+        ))
+        # Downstream flow 2
+        stub.UpdateLogicalDeviceFlowTable(FlowTableUpdate(
+            id=logical_device_id,
+            flow_mod=mk_simple_flow_mod(
+                priority=500,
+                match_fields=[in_port(nni_port_no), vlan_vid(4096 + c_vid)],
+                actions=[set_field(vlan_vid(4096 + 0)), output(uni_port_no)]
+            )
+        ))
+        # Upstream flow 1 for 0-tagged case
+        stub.UpdateLogicalDeviceFlowTable(FlowTableUpdate(
+            id=logical_device_id,
+            flow_mod=mk_simple_flow_mod(
+                priority=500,
+                match_fields=[in_port(uni_port_no), vlan_vid(4096 + 0)],
+                actions=[set_field(vlan_vid(4096 + c_vid))],
+                next_table_id=1
+            )
+        ))
+        # Upstream flow 1 for untagged case
+        stub.UpdateLogicalDeviceFlowTable(FlowTableUpdate(
+            id=logical_device_id,
+            flow_mod=mk_simple_flow_mod(
+                priority=500,
+                match_fields=[in_port(uni_port_no), vlan_vid(0)],
+                actions=[push_vlan(0x8100), set_field(vlan_vid(4096 + c_vid))],
+                next_table_id=1
+            )
+        ))
+        # Upstream flow 2 for s-tag
+        stub.UpdateLogicalDeviceFlowTable(FlowTableUpdate(
+            id=logical_device_id,
+            flow_mod=mk_simple_flow_mod(
+                priority=500,
+                match_fields=[in_port(uni_port_no), vlan_vid(4096 + c_vid)],
+                actions=[
+                    push_vlan(0x8100),
+                    set_field(vlan_vid(4096 + 1000)),
+                    output(nni_port_no)
+                ]
+            )
+        ))
+
+        # Push a few multicast flows
+        # 1st with one bucket for our uni
+        stub.UpdateLogicalDeviceFlowGroupTable(FlowGroupTableUpdate(
+            id=logical_device_id,
+            group_mod=mk_multicast_group_mod(
+                group_id=1,
+                buckets=[
+                    ofp.ofp_bucket(actions=[pop_vlan(), output(uni_port_no)])
+                ]
+            )
+        ))
+        stub.UpdateLogicalDeviceFlowTable(FlowTableUpdate(
+            id=logical_device_id,
+            flow_mod=mk_simple_flow_mod(
+                priority=1000,
+                match_fields=[
+                    in_port(nni_port_no),
+                    eth_type(0x800),
+                    vlan_vid(4096 + 140),
+                    ipv4_dst(0xe4010101)
+                ],
+                actions=[group(1)]
+            )
+        ))
+        # 2st with one bucket for our uni
+        stub.UpdateLogicalDeviceFlowGroupTable(FlowGroupTableUpdate(
+            id=logical_device_id,
+            group_mod=mk_multicast_group_mod(
+                group_id=2,
+                buckets=[
+                    ofp.ofp_bucket(actions=[pop_vlan(), output(uni_port_no)])
+                ]
+            )
+        ))
+        stub.UpdateLogicalDeviceFlowTable(FlowTableUpdate(
+            id=logical_device_id,
+            flow_mod=mk_simple_flow_mod(
+                priority=1000,
+                match_fields=[
+                    in_port(nni_port_no),
+                    eth_type(0x800),
+                    vlan_vid(4096 + 140),
+                    ipv4_dst(0xe4020202)
+                ],
+                actions=[group(2)]
+            )
+        ))
+        # 3rd with empty bucket
+        stub.UpdateLogicalDeviceFlowGroupTable(FlowGroupTableUpdate(
+            id=logical_device_id,
+            group_mod=mk_multicast_group_mod(
+                group_id=3,
+                buckets=[]
+            )
+        ))
+        stub.UpdateLogicalDeviceFlowTable(FlowTableUpdate(
+            id=logical_device_id,
+            flow_mod=mk_simple_flow_mod(
+                priority=1000,
+                match_fields=[
+                    in_port(nni_port_no),
+                    eth_type(0x800),
+                    vlan_vid(4096 + 140),
+                    ipv4_dst(0xe4030303)
+                ],
+                actions=[group(3)]
+            )
+        ))
+
+        self.poutput('success')
+
+    complete_install_all_sample_flows = VolthaCli.complete_logical_device
+
+    def do_delete_all_flows(self, line):
+        """
+        Remove all flows and flow groups from given logical device
+        """
+        logical_device_id = line or self.default_logical_device_id
+        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        stub.UpdateLogicalDeviceFlowTable(FlowTableUpdate(
+            id=logical_device_id,
+            flow_mod=ofp.ofp_flow_mod(
+                command=ofp.OFPFC_DELETE,
+                table_id=ofp.OFPTT_ALL,
+                cookie_mask=0,
+                out_port=ofp.OFPP_ANY,
+                out_group=ofp.OFPG_ANY
+            )
+        ))
+        stub.UpdateLogicalDeviceFlowGroupTable(FlowGroupTableUpdate(
+            id=logical_device_id,
+            group_mod=ofp.ofp_group_mod(
+                command=ofp.OFPGC_DELETE,
+                group_id=ofp.OFPG_ALL
+            )
+        ))
+        self.poutput('success')
+
+    complete_delete_all_flows = VolthaCli.complete_logical_device
 
     def do_send_simulated_upstream_eapol(self, line):
         """
