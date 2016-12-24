@@ -139,7 +139,12 @@ class FrameIOPort(object):
 
     def _dispatch(self, frame):
         log.debug('calling-publisher', frame=hexify(frame))
-        self.callback(self, frame)
+        try:
+            self.callback(self, frame)
+        except Exception, e:
+            log.exception('callback-error',
+                          explanation='Callback failed while processing frame',
+                          e=e)
 
     def recv(self):
         """Called on the select thread when a packet arrives"""

@@ -17,39 +17,38 @@
 """
 Tibit OLT device adapter
 """
-import scapy
-import structlog
 import json
-
 from uuid import uuid4
 
-from scapy.layers.inet import ICMP, IP
+import structlog
+from scapy.fields import StrField
 from scapy.layers.l2 import Ether, Dot1Q
-from twisted.internet.defer import DeferredQueue, inlineCallbacks
+from scapy.packet import Packet, bind_layers
 from twisted.internet import reactor
-
+from twisted.internet.defer import DeferredQueue, inlineCallbacks
 from zope.interface import implementer
 
-from common.utils.asleep import asleep
-
 from common.frameio.frameio import BpfProgramFilter
-from voltha.registry import registry
 from voltha.adapters.interface import IAdapterInterface
+from voltha.adapters.tibit_olt.EOAM import EOAMPayload, DPoEOpcode_SetRequest
+from voltha.adapters.tibit_olt.EOAM_TLV import DOLTObject, \
+    PortIngressRuleClauseMatchLength02, PortIngressRuleResultForward, \
+    PortIngressRuleResultSet, PortIngressRuleResultInsert, \
+    PortIngressRuleTerminator, AddPortIngressRule, CablelabsOUI
+from voltha.adapters.tibit_olt.EOAM_TLV import PortIngressRuleHeader
+from voltha.core.flow_decomposer import *
 from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.protos.adapter_pb2 import Adapter, AdapterConfig
+from voltha.protos.common_pb2 import LogLevel, ConnectStatus
+from voltha.protos.common_pb2 import OperStatus, AdminState
 from voltha.protos.device_pb2 import Device, Port
 from voltha.protos.device_pb2 import DeviceType, DeviceTypes
 from voltha.protos.health_pb2 import HealthStatus
-from voltha.protos.common_pb2 import LogLevel, ConnectStatus
-from voltha.protos.common_pb2 import OperStatus, AdminState
-
 from voltha.protos.logical_device_pb2 import LogicalDevice, LogicalPort
 from voltha.protos.openflow_13_pb2 import ofp_desc, ofp_port, OFPPF_10GB_FD, \
     OFPPF_FIBER, OFPPS_LIVE, ofp_switch_features, OFPC_PORT_STATS, \
     OFPC_GROUP_STATS, OFPC_TABLE_STATS, OFPC_FLOW_STATS
-
-from scapy.packet import Packet, bind_layers
-from scapy.fields import StrField
+from voltha.registry import registry
 
 log = structlog.get_logger()
 
@@ -156,7 +155,8 @@ class TibitOltAdapter(object):
 
         # if we got response, we can fill out the device info, mark the device
         # reachable
-        jdev = json.loads(response.data[5:])
+        # jdev = json.loads(response.data[5:])
+        jdev = json.loads(response.payload.payload.body.load)
         device.root = True
         device.vendor = 'Tibit Communications, Inc.'
         device.model = jdev.get('results', {}).get('device', 'DEVICE_UNKNOWN')
@@ -255,7 +255,7 @@ class TibitOltAdapter(object):
             if 1: # TODO check if it is really what we expect, and wait if not
                 break
 
-        jdev = json.loads(response.data[5:])
+        jdev = json.loads(response.payload.payload.body.load)
         tibit_mac = ''
         for macid in jdev['results']:
             if macid['macid'] is None:
@@ -342,8 +342,78 @@ class TibitOltAdapter(object):
         raise NotImplementedError()
 
     def update_flows_bulk(self, device, flows, groups):
-        log.debug('bulk-flow-update', device_id=device.id,
-                  flows=flows, groups=groups)
+        log.info('bulk-flow-update', device_id=device.id,
+                 flows=flows, groups=groups)
+
+        assert len(groups.items) == 0, "Cannot yet deal with groups"
+
+        for flow in flows.items:
+            in_port = get_in_port(flow)
+            assert in_port is not None
+
+            precedence = 255 - min(flow.priority / 256, 255)
+
+            if in_port == 2:
+                # Downstream rule
+                pass  # TODO still ignores
+
+            elif in_port == 1:
+                # Upstream rule
+                req = DOLTObject()
+                req /= PortIngressRuleHeader(precedence=precedence)
+
+                for field in get_ofb_fields(flow):
+                    if field.type == ETH_TYPE:
+                        _type = field.eth_type
+                        req /= PortIngressRuleClauseMatchLength02(
+                            fieldcode=3,
+                            operator=1,
+                            match0=(_type >> 8) & 0xff,
+                            match1=_type & 0xff)
+                    elif field.type == IP_PROTO:
+                        pass
+                    # TODO etc
+
+                for action in get_actions(flow):
+
+                    if action.type == OUTPUT:
+                        req /= PortIngressRuleResultForward()
+
+                    elif action.type == PUSH_VLAN:
+                        if action.push.ethertype != 0x8100:
+                            log.error('unhandled-ether-type',
+                                      ethertype=action.push.ethertype)
+                        req /= PortIngressRuleResultInsert(fieldcode=7)
+
+                    elif action.type == SET_FIELD:
+                        assert (action.set_field.field.oxm_class ==
+                                ofp.OFPXMC_OPENFLOW_BASIC)
+                        field = action.set_field.field.ofb_field
+                        if field.type == VLAN_VID:
+                            req /= PortIngressRuleResultSet(
+                                fieldcode=7, value=field.vlan_vid & 0xfff)
+                        else:
+                            log.error('unsupported-action-set-field-type',
+                                      field_type=field.type)
+
+                    else:
+                        log.error('unsupported-action-type',
+                                  action_type=action.type)
+
+                req /= PortIngressRuleTerminator()
+                req /= AddPortIngressRule()
+
+                msg = (
+                    Ether(dst=device.mac_address) /
+                    Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) /
+                    EOAMPayload(
+                        body=CablelabsOUI() / DPoEOpcode_SetRequest() / req)
+                )
+
+                self.io_port.send(str(msg))
+
+            else:
+                raise Exception('Port should be 1 or 2 by our convention')
 
     def update_flows_incrementally(self, device, flow_changes, group_changes):
         raise NotImplementedError()

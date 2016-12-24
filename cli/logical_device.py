@@ -45,10 +45,12 @@ class LogicalDeviceCli(Cmd):
                                     metadata=(('get-depth', str(depth)), ))
         return res
 
+    do_exit = Cmd.do_quit
+
     def do_show(self, arg):
         """Show detailed logical device information"""
-        print dumps(pb2dict(self.get_logical_device(depth=-1)),
-                    indent=4, sort_keys=True)
+        self.poutput(dumps(pb2dict(self.get_logical_device(depth=-1)),
+                     indent=4, sort_keys=True))
 
     def do_flows(self, arg):
         """Show flow table for logical device"""

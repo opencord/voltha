@@ -43,12 +43,14 @@ class DeviceCli(Cmd):
                              metadata=(('get-depth', str(depth)), ))
         return res
 
-    def do_show(self, arg):
-        """Show detailed device information"""
-        print dumps(pb2dict(self.get_device(depth=-1)),
-                    indent=4, sort_keys=True)
+    do_exit = Cmd.do_quit
 
-    def do_flows(self, arg):
+    def do_show(self, line):
+        """Show detailed device information"""
+        self.poutput(dumps(pb2dict(self.get_device(depth=-1)),
+                     indent=4, sort_keys=True))
+
+    def do_flows(self, line):
         """Show flow table for device"""
         device = pb2dict(self.get_device(-1))
         print_flows(

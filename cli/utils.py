@@ -1,9 +1,28 @@
-import os
+#
+# Copyright 2016 the original author or authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import sys
-import requests
+
 from google.protobuf.json_format import MessageToDict
 from termcolor import cprint, colored
-from os.path import join as pjoin
+
+from cli.table import TablePrinter
+
+
+_printfn = lambda l: sys.stdout.write(l + '\n')
 
 
 def pb2dict(pb_msg):
@@ -87,49 +106,22 @@ action_printers = {
 }
 
 
-def print_flows(what, id, type, flows, groups):
+def print_flows(what, id, type, flows, groups, printfn=_printfn):
 
-    print
-    print ''.join([
+    header = ''.join([
         '{} '.format(what),
         colored(id, color='green', attrs=['bold']),
         ' (type: ',
         colored(type, color='blue'),
         ')'
-    ])
-    print 'Flows ({}):'.format(len(flows))
+    ]) + '\nFlows ({}):'.format(len(flows))
 
-    max_field_lengths = {}
-    field_names = {}
-
-    def update_max_length(field_key, string):
-        length = len(string)
-        if length > max_field_lengths.get(field_key, 0):
-            max_field_lengths[field_key] = length
-
-    def add_field_type(field_key, field_name):
-        if field_key not in field_names:
-            field_names[field_key] = field_name
-            update_max_length(field_key, field_name)
-        else:
-            assert field_names[field_key] == field_name
-
-    cell_values = {}
-
-    # preprocess data
-    if not flows:
-        return
+    table = TablePrinter()
     for i, flow in enumerate(flows):
 
-        def add_field(field_key, field_name, value):
-            add_field_type(field_key, field_name)
-            row = cell_values.setdefault(i, {})
-            row[field_key] = value
-            update_max_length(field_key, value)
-
-        add_field(0, 'table_id', value=str(flow['table_id']))
-        add_field(1, 'priority', value=str(flow['priority']))
-        add_field(2, 'cookie', p_cookie(flow['cookie']))
+        table.add_cell(i, 0, 'table_id', value=str(flow['table_id']))
+        table.add_cell(i, 1, 'priority', value=str(flow['priority']))
+        table.add_cell(i, 2, 'cookie', p_cookie(flow['cookie']))
 
         assert flow['match']['type'] == 'OFPMT_OXM'
         for field in flow['match']['oxm_fields']:
@@ -137,40 +129,20 @@ def print_flows(what, id, type, flows, groups):
             ofb = field['ofb_field']
             assert not ofb['has_mask'], 'masked match not handled yet'  # TODO
             type = ofb['type'][len('OFPXMT_OFB_'):]
-            add_field(*field_printers[type](ofb))
+            table.add_cell(i, *field_printers[type](ofb))
 
         for instruction in flow['instructions']:
             if instruction['type'] == 4:
                 for action in instruction['actions']['actions']:
                     type = action['type'][len('OFPAT_'):]
-                    add_field(*action_printers[type](action))
+                    table.add_cell(i, *action_printers[type](action))
 
-    # print header
-    field_keys = sorted(field_names.keys())
-    def p_sep():
-        print '+' + '+'.join(
-            [(max_field_lengths[k] + 2) * '-' for k in field_keys]) + '+'
-
-    p_sep()
-    print '| ' + ' | '.join(
-        '%%%ds' % max_field_lengths[k] % field_names[k]
-        for k in field_keys) + ' |'
-    p_sep()
-
-    # print values
-    for i in xrange(len(flows)):
-        row = cell_values[i]
-        cprint('| ' + ' | '.join(
-            '%%%ds' % max_field_lengths[k] % row.get(k, '')
-            for k in field_keys
-        ) + ' |')
-        if not ((i + 1) % 3):
-            p_sep()
-
-    if ((i + 1) % 3):
-        p_sep()
+    table.print_table(header, printfn)
 
     # TODO groups TBF
     assert len(groups) == 0
 
 
+def dict2line(d):
+    assert isinstance(d, dict)
+    return ', '.join('{}: {}'.format(k, v) for k, v in sorted(d.items()))
