@@ -200,8 +200,18 @@ if __name__ == "__main__":
         eoam.send_multicast_register(MulticastRegisterSet(ActionFlags="Deregister",MulticastLink=0x3fe0, UnicastLink=0x1008))
 
     if (args.test_clr == True):
-        print 'SET Clear Static MAC Table -- User Port Object'
-        eoam.set_request(ClearStaticMacTable())
+#        print 'Set - Clear Static MAC Table -- User Port Object'
+#        eoam.set_request(ClearStaticMacTable())
+
+        print 'Delete - Port Ingress Rule'
+        eoam.set_request(DOLTObject()/
+                         PortIngressRuleHeader(precedence=32)/
+                         PortIngressRuleClauseMatchLength02(fieldcode=3, operator=1, match0=0x88, match1=0x8e)/
+                         PortIngressRuleResultForward()/
+                         PortIngressRuleResultSet(fieldcode=7, value=4090)/
+                         PortIngressRuleResultInsert(fieldcode=7)/
+                         PortIngressRuleTerminator()/
+                         DeletePortIngressRule())
 
     elif (args.test_add == True):
         print 'SET Add Static MAC Address -- User Port Object'
@@ -217,16 +227,8 @@ if __name__ == "__main__":
                          PortIngressRuleHeader(precedence=32)/
                          PortIngressRuleClauseMatchLength02(fieldcode=3, operator=1, match0=0x88, match1=0x8e)/
                          PortIngressRuleResultForward()/
-                         PortIngressRuleResultSet(fieldcode=7, value=0x4090)/
+                         PortIngressRuleResultSet(fieldcode=7, value=4090)/
                          PortIngressRuleResultInsert(fieldcode=7)/
                          PortIngressRuleTerminator()/
                          AddPortIngressRule())
 
-        eoam.set_request(DOLTObject()/
-                         PortIngressRuleHeader(precedence=32)/
-                         PortIngressRuleClauseMatchLength02(fieldcode=3, operator=1, match0=0x88, match1=0x8e)/
-                         PortIngressRuleResultForward()/
-                         PortIngressRuleResultSet(fieldcode=7, value=0x4090)/
-                         PortIngressRuleResultInsert(fieldcode=7)/
-                         PortIngressRuleTerminator()/
-                         DeletePortIngressRule())

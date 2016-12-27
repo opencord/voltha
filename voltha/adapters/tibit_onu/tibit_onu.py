@@ -51,11 +51,11 @@ from scapy.fields import StrField
 
 log = structlog.get_logger()
 
-from EOAM_TLV import AddStaticMacAddress, DeleteStaticMacAddress
-from EOAM_TLV import ClearStaticMacTable
-from EOAM_TLV import DeviceId
-from EOAM import EOAMPayload, CablelabsOUI
-from EOAM import DPoEOpcode_GetRequest, DPoEOpcode_SetRequest
+from voltha.extensions.eoam.EOAM_TLV import AddStaticMacAddress, DeleteStaticMacAddress
+from voltha.extensions.eoam.EOAM_TLV import ClearStaticMacTable
+from voltha.extensions.eoam.EOAM_TLV import DeviceId
+from voltha.extensions.eoam.EOAM import EOAMPayload, CablelabsOUI
+from voltha.extensions.eoam.EOAM import DPoEOpcode_GetRequest, DPoEOpcode_SetRequest
 
 @implementer(IAdapterInterface)
 class TibitOnuAdapter(object):

@@ -30,12 +30,13 @@ from zope.interface import implementer
 
 from common.frameio.frameio import BpfProgramFilter
 from voltha.adapters.interface import IAdapterInterface
-from voltha.adapters.tibit_olt.EOAM import EOAMPayload, DPoEOpcode_SetRequest
-from voltha.adapters.tibit_olt.EOAM_TLV import DOLTObject, \
+from voltha.extensions.eoam.EOAM import EOAMPayload, DPoEOpcode_SetRequest
+from voltha.extensions.eoam.EOAM_TLV import DOLTObject, \
     PortIngressRuleClauseMatchLength02, PortIngressRuleResultForward, \
     PortIngressRuleResultSet, PortIngressRuleResultInsert, \
     PortIngressRuleTerminator, AddPortIngressRule, CablelabsOUI
-from voltha.adapters.tibit_olt.EOAM_TLV import PortIngressRuleHeader
+from voltha.extensions.eoam.EOAM_TLV import PortIngressRuleHeader
+from voltha.extensions.eoam.EOAM_TLV import ClauseSubtypeEnum as Clause
 from voltha.core.flow_decomposer import *
 from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.protos.adapter_pb2 import Adapter, AdapterConfig
@@ -49,7 +50,6 @@ from voltha.protos.openflow_13_pb2 import ofp_desc, ofp_port, OFPPF_10GB_FD, \
     OFPPF_FIBER, OFPPS_LIVE, ofp_switch_features, OFPC_PORT_STATS, \
     OFPC_GROUP_STATS, OFPC_TABLE_STATS, OFPC_FLOW_STATS
 from voltha.registry import registry
-
 log = structlog.get_logger()
 
 # Match on the MGMT VLAN, Priority 7

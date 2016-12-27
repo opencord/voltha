@@ -720,6 +720,40 @@ class MediaType(Packet):
 ####
 #### 0xD7 - Port Ingress Rules
 ####
+ClauseSubtypeEnum = {0x00: "LLID Index",
+                     0x01: "L2 Destination MAC address",
+                     0x02: "L2 Source MAC address",
+                     0x03: "L2 Type/Len",
+                     0x04: "B-DA",
+                     0x05: "B-SA",
+                     0x06: "I-Tag",
+                     0x07: "S-VLAN Tag",
+                     0x08: "C-VLAN Tag",
+                     0x09: "MPLS Label Stack Entry",
+                     0x0a: "IPv4 TOS/IPv6 Traffic Class",
+                     0x0b: "IPv4 TTL/IPv6 Hop Limit",
+                     0x0c: "IPv4/IPv6 Protocol Type",
+                     0x0d: "IPv4 Source Address",
+                     0x0e: "IPv6 Source Address",
+                     0x0f: "IPv4 Destination Address",
+                     0x10: "IPv6 Destination Address",
+                     0x11: "IPv6 Next Header",
+                     0x12: "IPv6 Flow Header",
+                     0x13: "TCP/UDP source port",
+                     0x14: "TCP/UDP destination port",
+                     0x15: "B-Tag",
+                     0x16: "Reserved",
+                     0x17: "Reserved",
+                     0x18: "Custom field 0",
+                     0x19: "Custom field 1",
+                     0x1a: "Custom field 2",
+                     0x1b: "Custom field 3",
+                     0x1c: "Custom field 4",
+                     0x1d: "Custom field 5",
+                     0x1e: "Custom field 6",
+                     0x1f: "Custom field 7",
+                     }
+
 class PortIngressRule(Packet):
     """ Variable Descriptor: Port Ingress Rule """
     name = "Variable Descriptor: Port Ingress Rule"
