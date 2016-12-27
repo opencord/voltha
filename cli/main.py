@@ -373,7 +373,7 @@ class TestCli(VolthaCli):
         logical_device_id = line or self.default_logical_device_id
 
         # gather NNI and UNI port IDs
-        nni_port_no, uni_port_no = self.get_logical_ports(logical_device_id)
+        nni_port_no, uni_port_no, _ = self.get_logical_ports(logical_device_id)
 
         # construct and push flow rule
         update = FlowTableUpdate(
@@ -403,7 +403,7 @@ class TestCli(VolthaCli):
         logical_device_id = line or self.default_logical_device_id
 
         # gather NNI and UNI port IDs
-        nni_port_no, uni_port_no = self.get_logical_ports(logical_device_id)
+        nni_port_no, uni_port_no, _ = self.get_logical_ports(logical_device_id)
 
         # construct and push flow rules
         stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
