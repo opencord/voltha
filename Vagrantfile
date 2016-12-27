@@ -18,7 +18,7 @@ Vagrant.configure(2) do |config|
     d.vm.provision :shell, inline: "PYTHONUNBUFFERED=1 ansible-playbook /voltha/ansible/voltha.yml -c local"
     d.vm.provision :shell, inline: "cd /voltha && source env.sh && make install-protoc && chmod 777 /tmp/fluentd"
     d.vm.provider "virtualbox" do |v|
-      v.memory = 4096
+      v.memory = 6144
     end
   end
 

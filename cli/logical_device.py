@@ -41,6 +41,9 @@ class LogicalDeviceCli(Cmd):
             self.colorize('logical device {}'.format(logical_device_id), 'red'),
             'bold') + ') '
 
+    def cmdloop(self):
+        self._cmdloop()
+
     def get_logical_device(self, depth=0):
         stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
         res = stub.GetLogicalDevice(voltha_pb2.ID(id=self.logical_device_id),
