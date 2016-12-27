@@ -79,6 +79,42 @@ services:
     restart: unless-stopped
 
   #
+  # Graphite-Grafana-statsd service instance
+  # (demo place-holder for external KPI system)
+  #
+  grafana:
+    image: kamon/grafana_graphite
+    ports:
+    - "8882:80"
+    - "2003:2003"
+    - "2004:2004"
+    - "8126:8126"
+    - "8125:8125/udp"
+    environment:
+      SERVICE_80_NAME:   "grafana-web-ui"
+      SERVICE_2003_NAME: "carbon-plain-text-intake"
+      SERVICE_2004_NAME: "carbon-pickle-intake"
+      SERVICE_8126_NAME: "statsd-tcp-intake"
+      SERVICE_8125_NAME: "statsd-udp-intake"
+
+  #
+  # Shovel (Kafka-graphite-gateway)
+  #
+  shovel:
+    image: cord/shovel
+    command: [
+      "/shovel/shovel/main.py",
+      "--kafka=@kafka",
+      "--consul=${DOCKER_HOST_IP}:8500",
+      "--topic=voltha.kpis",
+      "--host=${DOCKER_HOST_IP}"
+    ]
+    depends_on:
+    - consul
+    - kafka
+    - grafana
+
+  #
   # Voltha server instance(s)
   #
   voltha:
@@ -97,6 +133,7 @@ services:
     ports:
     - 8880
     - 50555
+    - 18880
     depends_on:
     - consul
     - podder
@@ -109,6 +146,15 @@ services:
       SERVICE_8880_CHECK_INTERVAL: "5s"
       SERVICE_8880_CHECK_TIMEOUT: "1s"
       SERVICE_50555_NAME: "voltha-grpc"
+      SERVICE_18880_NAME: "voltha-sim-rest"
     volumes:
     - "/var/run/docker.sock:/tmp/docker.sock"
+    networks:
+    - default
+    - ponmgmt
 
+networks:
+  default:
+    driver: bridge
+  ponmgmt:
+    driver: bridge

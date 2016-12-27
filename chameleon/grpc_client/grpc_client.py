@@ -95,7 +95,8 @@ class GrpcClient(object):
 
         try:
             if self.endpoint.startswith('@'):
-                _endpoint = self._get_endpoint_from_consul(self.endpoint[1:])
+                _endpoint = yield self._get_endpoint_from_consul(
+                    self.endpoint[1:])
             else:
                 _endpoint = self.endpoint
 
@@ -138,6 +139,7 @@ class GrpcClient(object):
             log.info('reconnected', after_retries=self.retries)
             self.retries = 0
 
+    @inlineCallbacks
     def _get_endpoint_from_consul(self, service_name):
         """
         Look up an appropriate grpc endpoint (host, port) from
@@ -146,11 +148,16 @@ class GrpcClient(object):
         host = self.consul_endpoint.split(':')[0].strip()
         port = int(self.consul_endpoint.split(':')[1].strip())
 
-        consul = Consul(host=host, port=port)
-        _, services = consul.catalog.service(service_name)
-
-        if len(services) == 0:
-            raise Exception('Cannot find service %s in consul' % service_name)
+        while True:
+            log.debug('consul-lookup', host=host, port=port)
+            consul = Consul(host=host, port=port)
+            _, services = consul.catalog.service(service_name)
+            log.debug('consul-response', services=services)
+            if services:
+                break
+            log.warning('no-service', consul_host=host, consul_port=port,
+                        service_name=service_name)
+            yield asleep(1.0)
 
         # pick a random entry
         # TODO should we prefer local IP addresses? Probably.
@@ -158,7 +165,7 @@ class GrpcClient(object):
         service = services[randint(0, len(services) - 1)]
         endpoint = '{}:{}'.format(service['ServiceAddress'],
                                   service['ServicePort'])
-        return endpoint
+        returnValue(endpoint)
 
     def _retrieve_schema(self):
         """

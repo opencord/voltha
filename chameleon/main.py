@@ -219,15 +219,18 @@ class Main(object):
 
     @inlineCallbacks
     def startup_components(self):
-        self.log.info('starting-internal-components')
-        args = self.args
-        self.grpc_client = yield \
-            GrpcClient(args.consul, args.work_dir, args.grpc_endpoint)
-        self.web_server = yield \
-            WebServer(args.rest_port, args.work_dir, self.grpc_client).start()
-        self.grpc_client.set_reconnect_callback(
-            self.web_server.reload_generated_routes).start()
-        self.log.info('started-internal-services')
+        try:
+            self.log.info('starting-internal-components')
+            args = self.args
+            self.grpc_client = yield \
+                GrpcClient(args.consul, args.work_dir, args.grpc_endpoint)
+            self.rest_server = yield \
+                WebServer(args.rest_port, args.work_dir, self.grpc_client).start()
+            self.grpc_client.set_reconnect_callback(
+                self.rest_server.reload_generated_routes).start()
+            self.log.info('started-internal-services')
+        except Exception, e:
+            self.log.exception('startup-failed', e=e)
 
     @inlineCallbacks
     def shutdown_components(self):

@@ -38,6 +38,9 @@ class DeviceCli(Cmd):
         self.prompt = '(' + self.colorize(
             self.colorize('device {}'.format(device_id), 'red'), 'bold') + ') '
 
+    def cmdloop(self):
+        self._cmdloop()
+
     def get_device(self, depth=0):
         stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
         res = stub.GetDevice(voltha_pb2.ID(id=self.device_id),

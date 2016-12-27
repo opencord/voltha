@@ -14,11 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
+import argparse
+import os
 import readline
 from optparse import make_option
 from time import sleep, time
 
+import sys
+from consul import Consul
 import grpc
 import requests
 from cmd2 import Cmd, options
@@ -35,6 +38,16 @@ from voltha.protos.openflow_13_pb2 import FlowTableUpdate, FlowGroupTableUpdate
 
 _ = third_party
 from cli.utils import pb2dict, dict2line
+
+
+defs = dict(
+    # config=os.environ.get('CONFIG', './cli.yml'),
+    consul=os.environ.get('CONSUL', 'localhost:8500'),
+    voltha_grpc_endpoint=os.environ.get('VOLTHA_GRPC_ENDPOINT',
+                                        'localhost:50055'),
+    voltha_sim_rest_endpoint=os.environ.get('VOLTHA_SIM_REST_ENDPOINT',
+                                            'localhost:18880'),
+)
 
 banner = """\
          _ _   _              _ _
@@ -67,10 +80,9 @@ class VolthaCli(Cmd):
                                   'is specified',
     ))
 
-    # cleanup of superflous commands from cmd2
+    # cleanup of superfluous commands from cmd2
     del Cmd.do_cmdenvironment
     # del Cmd.do_eof
-    del Cmd.do_exit
     del Cmd.do_q
     del Cmd.do_hi
     del Cmd.do_l
@@ -80,10 +92,10 @@ class VolthaCli(Cmd):
     del Cmd.do__relative_load
     Cmd.do_edit = Cmd.do_ed
 
-
-    def __init__(self, *args, **kw):
-
-        Cmd.__init__(self, *args, **kw)
+    def __init__(self, voltha_grpc, voltha_sim_rest):
+        VolthaCli.voltha_grpc = voltha_grpc
+        VolthaCli.voltha_sim_rest = voltha_sim_rest
+        Cmd.__init__(self)
         self.prompt = '(' + self.colorize(
             self.colorize(self.prompt, 'blue'), 'bold') + ') '
         self.channel = None
@@ -91,6 +103,11 @@ class VolthaCli(Cmd):
         self.device_ids_cache_ts = time()
         self.logical_device_ids_cache = None
         self.logical_device_ids_cache_ts = time()
+
+    # we override cmd2's method to avoid its optparse conflicting with our
+    # command line parsing
+    def cmdloop(self):
+        self._cmdloop()
 
     def load_history(self):
         """Load saved command history from local history file"""
@@ -111,7 +128,7 @@ class VolthaCli(Cmd):
             self.perror('Could not save history in {}: {}'.format(
                 self.history_file_name, e))
         else:
-            self.perror('History saved as {}'.format(
+            self.poutput('History saved as {}'.format(
                 self.history_file_name))
 
     def perror(self, errmsg, statement=None):
@@ -244,14 +261,15 @@ class VolthaCli(Cmd):
 
     def do_test(self, line):
         """Enter test mode, which makes a bunch on new commands available"""
-        sub = TestCli(self.history, self.get_channel)
+        sub = TestCli(self.history, self.get_channel, self.voltha_grpc,
+                      self.voltha_sim_rest)
         sub.cmdloop()
 
 
 class TestCli(VolthaCli):
 
-    def __init__(self, history, get_channel):
-        VolthaCli.__init__(self)
+    def __init__(self, history, get_channel, voltha_grpc, voltha_sim_rest):
+        VolthaCli.__init__(self, voltha_grpc, voltha_sim_rest)
         self.history = history
         self.get_channel = get_channel
         self.prompt = '(' + self.colorize(self.colorize('test', 'cyan'),
@@ -644,7 +662,50 @@ class TestCli(VolthaCli):
 
 
 if __name__ == '__main__':
-    c = VolthaCli()
+
+    parser = argparse.ArgumentParser()
+
+    _help = '<hostname>:<port> to consul agent (default: %s)' % defs['consul']
+    parser.add_argument(
+        '-C', '--consul', action='store', default=defs['consul'], help=_help)
+
+    _help = 'Lookup Voltha endpoints based on service entries in Consul'
+    parser.add_argument(
+        '-L', '--lookup', action='store_true', help=_help)
+
+    _help = '<hostname>:<port> of Voltha gRPC service (default={})'.format(
+        defs['voltha_grpc_endpoint'])
+    parser.add_argument('-g', '--grpc-endpoint', action='store',
+                        default=defs['voltha_grpc_endpoint'], help=_help)
+
+    _help = '<hostname>:<port> of Voltha simulated adapter backend for ' \
+            'testing (default={})'.format(
+        defs['voltha_sim_rest_endpoint'])
+    parser.add_argument('-s', '--sim-rest-endpoint', action='store',
+                        default=defs['voltha_sim_rest_endpoint'], help=_help)
+
+    args = parser.parse_args()
+
+    if args.lookup:
+        host = args.consul.split(':')[0].strip()
+        port = int(args.consul.split(':')[1].strip())
+        consul = Consul(host=host, port=port)
+
+        _, services = consul.catalog.service('voltha-grpc')
+        if not services:
+            print('No voltha-grpc service registered in consul; exiting')
+            sys.exit(1)
+        args.grpc_endpoint = '{}:{}'.format(services[0]['ServiceAddress'],
+                                            services[0]['ServicePort'])
+
+        _, services = consul.catalog.service('voltha-sim-rest')
+        if not services:
+            print('No voltha-sim-rest service registered in consul; exiting')
+            sys.exit(1)
+        args.sim_rest_endpoint = '{}:{}'.format(services[0]['ServiceAddress'],
+                                                services[0]['ServicePort'])
+
+    c = VolthaCli(args.grpc_endpoint, args.sim_rest_endpoint)
     c.poutput(banner)
     c.load_history()
     c.cmdloop()
