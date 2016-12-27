@@ -28,13 +28,13 @@ from twisted.internet import reactor
 from twisted.internet.defer import DeferredQueue, inlineCallbacks
 from zope.interface import implementer
 
-from common.frameio.frameio import BpfProgramFilter
+from common.frameio.frameio import BpfProgramFilter, hexify
 from voltha.adapters.interface import IAdapterInterface
 from voltha.extensions.eoam.EOAM import EOAMPayload, DPoEOpcode_SetRequest
 from voltha.extensions.eoam.EOAM_TLV import DOLTObject, \
     PortIngressRuleClauseMatchLength02, PortIngressRuleResultForward, \
     PortIngressRuleResultSet, PortIngressRuleResultInsert, \
-    PortIngressRuleTerminator, AddPortIngressRule, CablelabsOUI
+    PortIngressRuleTerminator, AddPortIngressRule, CablelabsOUI, PonPortObject
 from voltha.extensions.eoam.EOAM_TLV import PortIngressRuleHeader
 from voltha.extensions.eoam.EOAM_TLV import ClauseSubtypeEnum as Clause
 from voltha.core.flow_decomposer import *
@@ -53,10 +53,18 @@ from voltha.registry import registry
 log = structlog.get_logger()
 
 # Match on the MGMT VLAN, Priority 7
-TIBIT_MGMT_VLAN=4090
-TIBIT_MGMT_PRIORITY=7
-frame_match = 'ether[14:2] = 0x{:01x}{:03x}'.format(TIBIT_MGMT_PRIORITY << 1, TIBIT_MGMT_VLAN)
-is_tibit_frame = BpfProgramFilter(frame_match)
+TIBIT_MGMT_VLAN = 4090
+TIBIT_MGMT_PRIORITY = 7
+frame_match_case1 = 'ether[14:2] = 0x{:01x}{:03x}'.format(
+    TIBIT_MGMT_PRIORITY << 1, TIBIT_MGMT_VLAN)
+
+TIBIT_PACKET_IN_VLAN = 4000
+frame_match_case2 = '(ether[14:2] & 0xfff) = 0x{:03x}'.format(
+    TIBIT_PACKET_IN_VLAN)
+
+is_tibit_frame = BpfProgramFilter('{} or {}'.format(
+    frame_match_case1, frame_match_case2))
+
 #is_tibit_frame = lambda x: True
 
 
@@ -95,6 +103,7 @@ class TibitOltAdapter(object):
         self.io_port = None
         self.incoming_queues = {}  # OLT mac_address -> DeferredQueue()
         self.device_ids = {}  # OLT mac_address -> device_id
+        self.vlan_to_device_ids = {}  # c-vid -> (device_id, logical_device_id)
 
     def start(self):
         log.debug('starting', interface=self.interface)
@@ -269,7 +278,7 @@ class TibitOltAdapter(object):
             # Convert from string to colon separated form
             tibit_mac = ':'.join(s.encode('hex') for s in tibit_mac.decode('hex'))
 
-            gemport, vlan_id = self._olt_side_onu_activation(int(macid['macid'][-4:-2], 16))
+            vlan_id = self._olt_side_onu_activation(int(macid['macid'][-4:-2], 16))
             self.adapter_agent.child_device_detected(
                 parent_device_id=device.id,
                 parent_port_no=1,
@@ -282,6 +291,10 @@ class TibitOltAdapter(object):
                 vlan=vlan_id
                 )
 
+            # also record the vlan_id -> (device_id, logical_device_id) for
+            # later use
+            self.vlan_to_device_ids[vlan_id] = (device.id, device.parent_id)
+
     def _olt_side_onu_activation(self, serial):
         """
         This is where if this was a real OLT, the OLT-side activation for
@@ -289,40 +302,73 @@ class TibitOltAdapter(object):
         be able to provide tunneled (proxy) communication to the given ONU,
         using the returned information.
         """
-        gemport = serial
         vlan_id = serial + 200
-        return gemport, vlan_id
+        return vlan_id
 
     def _rcv_io(self, port, frame):
 
-        log.info('frame-received')
+        log.info('frame-received', frame=hexify(frame))
 
         # make into frame to extract source mac
         response = Ether(frame)
 
         if response.haslayer(Dot1Q):
-            # All responses from the OLT should have a TIBIT_MGMT_VLAN.
-            # Responses from the ONUs should have a TIBIT_MGMT_VLAN followed by a ONU CTAG
-            if response.getlayer(Dot1Q).type == 0x8100:
-                ## Responses from the ONU
-                ## Since the type of the first layer is 0x8100,
-                ## then the frame must have an inner tag layer
-                olt_mac = response.src
-                device_id = self.device_ids[olt_mac]
-                channel_id = response[Dot1Q:2].vlan
-                log.info('received_channel_id', channel_id=channel_id,
-                         device_id=device_id)
 
-                proxy_address=Device.ProxyAddress(
-                    device_id=device_id,
-                    channel_id=channel_id
-                    )
-                # pop dot1q header(s)
-                msg = response.payload.payload
-                self.adapter_agent.receive_proxied_message(proxy_address, msg)
+            # All OAM responses from the OLT should have a TIBIT_MGMT_VLAN.
+            # Responses from the ONUs should have a TIBIT_MGMT_VLAN followed by a ONU CTAG
+            # All packet-in frames will have the TIBIT_PACKET_IN_VLAN.
+            if response.getlayer(Dot1Q).type == 0x8100:
+
+                if response.getlayer(Dot1Q).vlan == TIBIT_PACKET_IN_VLAN:
+
+                    inner_tag_and_rest = response.payload.payload
+
+                    inner_tag_and_rest.show()  # TODO remove this soon
+
+                    if isinstance(inner_tag_and_rest, Dot1Q):
+
+                        cvid = inner_tag_and_rest.vlan
+
+                        frame = Ether(src=response.src,
+                                      dst=response.dst,
+                                      type=inner_tag_and_rest.type) /\
+                                inner_tag_and_rest.payload
+
+                        _, logical_device_id = self.vlan_to_device_ids.get(cvid)
+                        if logical_device_id is None:
+                            log.error('invalid-cvid', cvid=cvid)
+                        else:
+                            self.adapter_agent.send_packet_in(
+                                logical_device_id=logical_device_id,
+                                logical_port_no=cvid,  # C-VID encodes port no
+                                packet=str(frame))
+
+                    else:
+                        log.error('packet-in-single-tagged',
+                                  frame=hexify(response))
+
+                else:
+                    ## Responses from the ONU
+                    ## Since the type of the first layer is 0x8100,
+                    ## then the frame must have an inner tag layer
+                    olt_mac = response.src
+                    device_id = self.device_ids[olt_mac]
+                    channel_id = response[Dot1Q:2].vlan
+                    log.info('received_channel_id', channel_id=channel_id,
+                             device_id=device_id)
+
+                    proxy_address=Device.ProxyAddress(
+                        device_id=device_id,
+                        channel_id=channel_id
+                        )
+                    # pop dot1q header(s)
+                    msg = response.payload.payload
+                    self.adapter_agent.receive_proxied_message(proxy_address, msg)
+
             else:
                 ## Respones from the OLT
                 ## enqueue incoming parsed frame to right device
+                log.info('received-dot1q-not-8100')
                 self.incoming_queues[response.src].put(response)
 
     def _make_ping_frame(self, mac_address):
@@ -361,7 +407,7 @@ class TibitOltAdapter(object):
 
             elif in_port == 1:
                 # Upstream rule
-                req = DOLTObject()
+                req = PonPortObject()
                 req /= PortIngressRuleHeader(precedence=precedence)
 
                 for field in get_ofb_fields(flow):

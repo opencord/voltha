@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package voltha;
+
+import "meta.proto";
+import "google/api/annotations.proto";
+
+
+message KpiEventType {
+    enum KpiEventType {
+        slice = 0; // slice: a set of path/metric data for same time-stamp
+        ts = 1; // time-series: array of data for same metric
+    }
+}
+
+/*
+message KpiEvent {
+
+    KpiEventType type = 1;
+
+    // Fields used when for slice:
+
+    float ts = 2;  // UTC time-stamp of data in slice mode (seconds since epoc)
+
+    message MetricSamples {
+        map<string, float> metric_samples = 1;
+    }
+
+    map<string, MetricSamples> data = 3;
+
+}
+*/

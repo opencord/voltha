@@ -162,6 +162,15 @@ class NetworkPortObject(Packet):
                    XByteField("num", 0)
                    ]
 
+class PonPortObject(Packet):
+    """ Object Context: PON Port Object """
+    name = "Object Context: PON Port Object"
+    fields_desc = [XByteField("branch", 0xD6),
+                   XShortField("leaf", 0x0001),
+                   XByteField("length", 1),
+                   XByteField("num", 1)
+                   ]
+
 class UnicastLogicalLink(Packet):
     """ Object Context: Unicast Logical Link """
     name = "Object Context: Unicast Logical Link"
