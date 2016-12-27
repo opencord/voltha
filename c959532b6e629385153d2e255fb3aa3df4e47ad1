@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fa0f191f_54ca44a2",
+        "filename": "voltha/core/logical_device_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000006
+      },
+      "writtenOn": "2016-12-27T18:59:24Z",
+      "side": 1,
+      "message": "Naveen, this is not going to work. Proxies can be added only to nodes in the config tree, and cannot be added to children containers (.../ports). In this case we need to add a proxy to each Port node, such as /logical_devices/{device-id}/ports/{port-id}. But since ports are added/removed dynamically,  we need to do this dynamically too. I described this in the slack discussion we had.\n\nSpecifically, this is what you need to do:\nOn the existing _port_added() callback, when a new port is added, we need to also create a proxy for the port and register for update callbacks on that port. On the existing _port_removed() callback we need to be able to undo that.\n\nUpdate callbacks for all ports can still be calling the same _port_updated() method, as the port object is passed in, so we can identify which port it is meant for.\n\nLet me know if you have any questions. In your final submission please also provide test cases that test this behavior.",
+      "revId": "c959532b6e629385153d2e255fb3aa3df4e47ad1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
