@@ -60,6 +60,7 @@ docs/pon-requirements/*.svg
 
 # Files copied over during make
 ofagent/protos/third_party/google
+ponsim/protos/third_party/google
 
 # Voltha CLI hostory files
 .voltha_cli_history

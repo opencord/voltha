@@ -287,12 +287,16 @@ class TestCli(VolthaCli):
         make_option('-m', '--mac-address', action='store', dest='mac_address',
                     default='00:0c:e2:31:40:00'),
         make_option('-i', '--ip-address', action='store', dest='ip_address'),
+        make_option('-H', '--host_and_port', action='store',
+                    dest='host_and_port'),
     ])
     def do_preprovision_olt(self, line, opts):
         """Preprovision a new OLT with given device type"""
         stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
         kw = dict(type=opts.device_type)
-        if opts.ip_address:
+        if opts.host_and_port:
+            kw['host_and_port'] = opts.host_and_port
+        elif opts.ip_address:
             kw['ipv4_address'] = opts.ip_address
         elif opts.mac_address:
             kw['mac_address'] = opts.mac_address

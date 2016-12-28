@@ -17,23 +17,23 @@
 """
 Model that captures the current state of a logical device
 """
-import threading
 from collections import OrderedDict
 
 import structlog
 
 from common.event_bus import EventBusClient
+from common.frameio.frameio import hexify
 from voltha.core.config.config_proxy import CallbackType
 from voltha.core.device_graph import DeviceGraph
 from voltha.core.flow_decomposer import FlowDecomposer, \
     flow_stats_entry_from_flow_mod_message, group_entry_from_group_mod, \
-    mk_flow_stat, in_port, vlan_vid, vlan_pcp, pop_vlan, output, set_field
+    mk_flow_stat, in_port, vlan_vid, vlan_pcp, pop_vlan, output, set_field, \
+    push_vlan
 from voltha.protos import third_party
 from voltha.protos import openflow_13_pb2 as ofp
 from voltha.protos.device_pb2 import Port
 from voltha.protos.logical_device_pb2 import LogicalPort
 from voltha.protos.openflow_13_pb2 import Flows, FlowGroups
-from voltha.registry import registry
 
 _ = third_party
 
@@ -450,16 +450,9 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ PACKET_OUT ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def packet_out(self, ofp_packet_out):
-        self.log.debug('packet-out', packet=ofp_packet_out)
-        print threading.current_thread().name
-        print 'PACKET_OUT:', ofp_packet_out
-        # TODO for debug purposes, lets turn this around and send it back
-        if 0:
-            self.packet_in(ofp.ofp_packet_in(
-                buffer_id=ofp_packet_out.buffer_id,
-                reason=ofp.OFPR_NO_MATCH,
-                data=ofp_packet_out.data
-            ))
+        self.log.info('packet-out', packet=ofp_packet_out)
+        topic = 'packet-out:{}'.format(self.logical_device_id)
+        self.event_bus.publish(topic, ofp_packet_out)
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ PACKET_IN ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -485,8 +478,8 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         self.packet_in(packet_in)
 
     def packet_in(self, ofp_packet_in):
-        # TODO
-        print 'PACKET_IN:', ofp_packet_in
+        self.log.info('packet-in', logical_device_id=self.logical_device_id,
+                      pkt=ofp_packet_in, data=hexify(ofp_packet_in.data))
         self.local_handler.send_packet_in(
             self.logical_device_id, ofp_packet_in)
 
@@ -630,7 +623,30 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
                         set_field(vlan_vid(ofp.OFPVID_PRESENT | device.vlan)),
                         output(upstream_ports[0].port_no)
                     ]
-                )
+                ),
+                mk_flow_stat(
+                    priority=500,
+                    match_fields=[
+                        in_port(downstream_ports[0].port_no),
+                        vlan_vid(0)
+                    ],
+                    actions=[
+                        push_vlan(0x8100),
+                        set_field(vlan_vid(ofp.OFPVID_PRESENT | device.vlan)),
+                        output(upstream_ports[0].port_no)
+                    ]
+                ),
+                mk_flow_stat(
+                    priority=500,
+                    match_fields=[
+                        in_port(upstream_ports[0].port_no),
+                        vlan_vid(ofp.OFPVID_PRESENT | device.vlan)
+                    ],
+                    actions=[
+                        set_field(vlan_vid(ofp.OFPVID_PRESENT | 0)),
+                        output(downstream_ports[0].port_no)
+                    ]
+                ),
             ])
             groups = OrderedDict()
             return flows, groups

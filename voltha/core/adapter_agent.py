@@ -31,6 +31,7 @@ from voltha.protos.device_pb2 import Device, Port
 from voltha.protos.voltha_pb2 import DeviceGroup, LogicalDevice, \
     LogicalPort, AdminState
 from voltha.registry import registry
+from voltha.core.flow_decomposer import OUTPUT
 
 
 @implementer(IAdapterAgent)
@@ -64,11 +65,11 @@ class AdapterAgent(object):
         try:
             adapter = self.adapter_cls(self, config)
             yield adapter.start()
+            self.adapter = adapter
+            self.adapter_node_proxy = self._update_adapter_node()
+            self._update_device_types()
         except Exception, e:
             self.log.exception(e)
-        self.adapter = adapter
-        self.adapter_node_proxy = self._update_adapter_node()
-        self._update_device_types()
         self.log.info('started')
         returnValue(self)
 
@@ -199,6 +200,10 @@ class AdapterAgent(object):
                 return i
             i += 1
 
+    def get_logical_device(self, logical_device_id):
+        return self.root_proxy.get('/logical_devices/{}'.format(
+            logical_device_id))
+
     def create_logical_device(self, logical_device):
         assert isinstance(logical_device, LogicalDevice)
 
@@ -210,7 +215,23 @@ class AdapterAgent(object):
         self._make_up_to_date('/logical_devices',
                               logical_device.id, logical_device)
 
+        self.event_bus.subscribe(
+            topic='packet-out:{}'.format(logical_device.id),
+            callback=lambda _, p: self.receive_packet_out(logical_device.id, p)
+        )
+
         return logical_device
+
+    def receive_packet_out(self, logical_device_id, ofp_packet_out):
+
+        def get_port_out(opo):
+            for action in opo.actions:
+                if action.type == OUTPUT:
+                    return action.output.port
+
+        out_port = get_port_out(ofp_packet_out)
+        frame = ofp_packet_out.data
+        self.adapter.receive_packet_out(logical_device_id, out_port, frame)
 
     def add_logical_port(self, logical_device_id, port):
         assert isinstance(port, LogicalPort)

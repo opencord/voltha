@@ -141,6 +141,16 @@ class IAdapterInterface(Interface):
         :return: None
         """
 
+    def receive_packet_out(logical_device_id, egress_port_no, msg):
+        """
+        Pass a packet_out message content to adapter so that it can forward it
+        out to the device. This is only called on root devices.
+        :param logical_device_id:
+        :param egress_port: egress logical port number
+        :param msg: actual message
+        :return: None
+        """
+
     # TODO work in progress
     # ...
 

@@ -122,6 +122,10 @@ class RubyAdapter(object):
     def update_flows_incrementally(self, device, flow_changes, group_changes):
         raise NotImplementedError()
 
+    def receive_packet_out(self, logical_device_id, egress_port_no, msg):
+        log.info('packet-out', logical_device_id=logical_device_id,
+                 egress_port_no=egress_port_no, msg_len=len(msg))
+
     ##
     # Private methods
     ##

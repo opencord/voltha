@@ -15,39 +15,40 @@
 #
 
 """
-Mock device adapter for testing.
+Fully simulated OLT/ONU adapter.
 """
-from uuid import uuid4
 
 import structlog
 from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks, DeferredQueue
+from twisted.internet.defer import DeferredQueue, inlineCallbacks
 from zope.interface import implementer
 
-from common.utils.asleep import asleep
 from voltha.adapters.interface import IAdapterInterface
 from voltha.core.logical_device_agent import mac_str_to_tuple
-from voltha.protos.adapter_pb2 import Adapter, AdapterConfig
-from voltha.protos.device_pb2 import DeviceType, DeviceTypes, Device, Port
-from voltha.protos.health_pb2 import HealthStatus
+from voltha.protos import third_party
+from voltha.protos.adapter_pb2 import Adapter
+from voltha.protos.adapter_pb2 import AdapterConfig
 from voltha.protos.common_pb2 import LogLevel, OperStatus, ConnectStatus, \
     AdminState
-from voltha.protos.logical_device_pb2 import LogicalDevice, LogicalPort
-from voltha.protos.openflow_13_pb2 import ofp_desc, ofp_port, OFPPF_1GB_FD, \
-    OFPPF_FIBER, OFPPS_LIVE, ofp_switch_features, OFPC_PORT_STATS, \
-    OFPC_GROUP_STATS, OFPC_TABLE_STATS, OFPC_FLOW_STATS
+from voltha.protos.device_pb2 import DeviceType, DeviceTypes, Port
+from voltha.protos.health_pb2 import HealthStatus
+from voltha.protos.logical_device_pb2 import LogicalPort
+from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, OFPPF_1GB_FD
+from voltha.protos.openflow_13_pb2 import ofp_port
+from voltha.protos.ponsim_pb2 import FlowTable
 
+_ = third_party
 log = structlog.get_logger()
 
 
 @implementer(IAdapterInterface)
-class BroadcomOnuAdapter(object):
+class PonSimOnuAdapter(object):
 
-    name = 'broadcom_onu'
+    name = 'ponsim_onu'
 
     supported_device_types = [
         DeviceType(
-            id='broadcom_onu',
+            id=name,
             adapter=name,
             accepts_bulk_flow_update=True
         )
@@ -59,10 +60,10 @@ class BroadcomOnuAdapter(object):
         self.descriptor = Adapter(
             id=self.name,
             vendor='Voltha project',
-            version='0.1',
+            version='0.4',
             config=AdapterConfig(log_level=LogLevel.INFO)
         )
-        self.incoming_messages = DeferredQueue()
+        self.devices_handlers = dict()  # device_id -> PonSimOltHandler()
 
     def start(self):
         log.debug('starting')
@@ -85,8 +86,8 @@ class BroadcomOnuAdapter(object):
         raise NotImplementedError()
 
     def adopt_device(self, device):
-        # We kick of a simulated activation scenario
-        reactor.callLater(0.2, self._simulate_device_activation, device)
+        self.devices_handlers[device.id] = PonSimOnuHandler(self, device.id)
+        reactor.callLater(0, self.devices_handlers[device.id].activate, device)
         return device
 
     def abandon_device(self, device):
@@ -95,29 +96,65 @@ class BroadcomOnuAdapter(object):
     def deactivate_device(self, device):
         raise NotImplementedError()
 
-    @inlineCallbacks
-    def _simulate_device_activation(self, device):
+    def update_flows_bulk(self, device, flows, groups):
+        log.info('bulk-flow-update', device_id=device.id,
+                  flows=flows, groups=groups)
+        assert len(groups.items) == 0
+        handler = self.devices_handlers[device.id]
+        return handler.update_flow_table(flows.items)
+
+    def update_flows_incrementally(self, device, flow_changes, group_changes):
+        raise NotImplementedError()
+
+    def send_proxied_message(self, proxy_address, msg):
+        log.info('send-proxied-message', proxy_address=proxy_address, msg=msg)
+
+    def receive_proxied_message(self, proxy_address, msg):
+        log.info('receive-proxied-message', proxy_address=proxy_address,
+                 device_id=proxy_address.device_id, msg=msg)
+        handler = self.devices_handlers[proxy_address.device_id]
+        handler.receive_message(msg)
+
+    def receive_packet_out(self, logical_device_id, egress_port_no, msg):
+        log.info('packet-out', logical_device_id=logical_device_id,
+                 egress_port_no=egress_port_no, msg_len=len(msg))
+
+
+class PonSimOnuHandler(object):
+
+    def __init__(self, adapter, device_id):
+        self.adapter = adapter
+        self.adapter_agent = adapter.adapter_agent
+        self.device_id = device_id
+        self.log = structlog.get_logger(device_id=device_id)
+        self.incoming_messages = DeferredQueue()
+        self.proxy_address = None
+
+    def receive_message(self, msg):
+        self.incoming_messages.put(msg)
+
+    def activate(self, device):
+        self.log.info('activating')
 
         # first we verify that we got parent reference and proxy info
         assert device.parent_id
         assert device.proxy_address.device_id
         assert device.proxy_address.channel_id
 
-        # we pretend that we were able to contact the device and obtain
-        # additional information about it
-        device.vendor = 'Broadcom'
-        device.model = 'to be filled'
-        device.hardware_version = 'to be filled'
-        device.firmware_version = 'to be filled'
-        device.software_version = 'to be filled'
-        device.serial_number = uuid4().hex
+        # register for proxied messages right away
+        self.proxy_address = device.proxy_address
+        self.adapter_agent.register_for_proxied_messages(device.proxy_address)
+
+        # populate device info
+        device.root = True
+        device.vendor = 'ponsim'
+        device.model ='n/a'
         device.connect_status = ConnectStatus.REACHABLE
         self.adapter_agent.update_device(device)
 
-        # then shortly after we create some ports for the device
-        yield asleep(0.05)
+        # register physical ports
         uni_port = Port(
-            port_no=0,
+            port_no=2,
             label='UNI facing Ethernet port',
             type=Port.ETHERNET_UNI,
             admin_state=AdminState.ENABLED,
@@ -138,24 +175,14 @@ class BroadcomOnuAdapter(object):
             ]
         ))
 
-        # TODO adding vports to the logical device shall be done by agent?
-        # then we create the logical device port that corresponds to the UNI
-        # port of the device
-        yield asleep(0.05)
-
-        # obtain logical device id
+        # add uni port to logical device
         parent_device = self.adapter_agent.get_device(device.parent_id)
         logical_device_id = parent_device.parent_id
         assert logical_device_id
-
-        # we are going to use the proxy_address.channel_id as unique number
-        # and name for the virtual ports, as this is guaranteed to be unique
-        # in the context of the OLT port, so it is also unique in the context
-        # of the logical device
         port_no = device.proxy_address.channel_id
         cap = OFPPF_1GB_FD | OFPPF_FIBER
         self.adapter_agent.add_logical_port(logical_device_id, LogicalPort(
-            id=str(port_no),
+            id='uni-{}'.format(port_no),
             ofp_port=ofp_port(
                 port_no=port_no,
                 hw_addr=mac_str_to_tuple('00:00:00:00:00:%02x' % port_no),
@@ -172,50 +199,23 @@ class BroadcomOnuAdapter(object):
             device_port_no=uni_port.port_no
         ))
 
-        # simulate a proxied message sending and receving a reply
-        reply = yield self._simulate_message_exchange(device)
-
-        # and finally update to "ACTIVE"
         device = self.adapter_agent.get_device(device.id)
         device.oper_status = OperStatus.ACTIVE
         self.adapter_agent.update_device(device)
 
-    def update_flows_bulk(self, device, flows, groups):
-        log.debug('bulk-flow-update', device_id=device.id,
-                  flows=flows, groups=groups)
-
-    def update_flows_incrementally(self, device, flow_changes, group_changes):
-        raise NotImplementedError()
-
-    def send_proxied_message(self, proxy_address, msg):
-        raise NotImplementedError()
-
-    def receive_proxied_message(self, proxy_address, msg):
-        # just place incoming message to a list
-        self.incoming_messages.put((proxy_address, msg))
-
     @inlineCallbacks
-    def _simulate_message_exchange(self, device):
+    def update_flow_table(self, flows):
 
-        # register for receiving async messages
-        self.adapter_agent.register_for_proxied_messages(device.proxy_address)
+        # we need to proxy through the OLT to get to the ONU
 
-        # reset incoming message queue
+        # reset response queue
         while self.incoming_messages.pending:
-            _ = yield self.incoming_messages.get()
+            yield self.incoming_messages.get()
 
-        # construct message
-        msg = 'test message'
+        msg = FlowTable(
+            port=self.proxy_address.channel_id,
+            flows=flows
+        )
+        self.adapter_agent.send_proxied_message(self.proxy_address, msg)
 
-        # send message
-        self.adapter_agent.send_proxied_message(device.proxy_address, msg)
-
-        # wait till we detect incoming message
         yield self.incoming_messages.get()
-
-        # by returning we allow the device to be shown as active, which
-        # indirectly verified that message passing works
-
-    def receive_packet_out(self, logical_device_id, egress_port_no, msg):
-        log.info('packet-out', logical_device_id=logical_device_id,
-                 egress_port_no=egress_port_no, msg_len=len(msg))

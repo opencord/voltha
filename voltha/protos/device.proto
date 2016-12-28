@@ -113,6 +113,8 @@ message Device {
         // ("xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx")
         string ipv6_address = 15;
 
+        string host_and_port = 21;
+
     };
 
     ProxyAddress proxy_address = 19;
@@ -120,6 +122,8 @@ message Device {
     AdminState.AdminState admin_state = 16;
 
     OperStatus.OperStatus oper_status = 17 [(access) = READ_ONLY];
+
+    string reason = 22 [(access) = READ_ONLY];  //  Used in FAILED state
 
     ConnectStatus.ConnectStatus connect_status = 18 [(access) = READ_ONLY];
 

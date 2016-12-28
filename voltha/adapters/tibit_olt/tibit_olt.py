@@ -504,3 +504,7 @@ class TibitOltAdapter(object):
 
     def receive_proxied_message(self, proxy_address, msg):
         raise NotImplementedError()
+
+    def receive_packet_out(self, logical_device_id, egress_port_no, msg):
+        log.info('packet-out', logical_device_id=logical_device_id,
+                 egress_port_no=egress_port_no, msg_len=len(msg))

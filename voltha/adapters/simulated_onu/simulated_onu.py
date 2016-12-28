@@ -356,3 +356,7 @@ class SimulatedOnuAdapter(object):
 
         # by returning we allow the device to be shown as active, which
         # indirectly verified that message passing works
+
+    def receive_packet_out(self, logical_device_id, egress_port_no, msg):
+        log.info('packet-out', logical_device_id=logical_device_id,
+                 egress_port_no=egress_port_no, msg_len=len(msg))

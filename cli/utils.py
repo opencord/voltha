@@ -136,10 +136,17 @@ def print_flows(what, id, type, flows, groups, printfn=_printfn):
             table.add_cell(i, *field_printers[type](ofb))
 
         for instruction in flow['instructions']:
-            if instruction['type'] == 4:
+            itype = instruction['type']
+            if itype == 4:
                 for action in instruction['actions']['actions']:
-                    type = action['type'][len('OFPAT_'):]
-                    table.add_cell(i, *action_printers[type](action))
+                    atype = action['type'][len('OFPAT_'):]
+                    table.add_cell(i, *action_printers[atype](action))
+            elif itype == 1:
+                table.add_cell(i, 10000, 'goto-table',
+                               instruction['goto_table']['table_id'])
+            else:
+                raise NotImplementedError(
+                    'not handling instruction type {}'.format(itype))
 
     table.print_table(header, printfn)
 

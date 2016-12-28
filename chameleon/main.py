@@ -186,6 +186,7 @@ banner = r'''
   \____| |_| |_|  \__,_| |_| |_| |_|  \___| |_|  \___|  \___/  |_| |_|
 
 '''
+
 def print_banner(log):
     for line in banner.strip('\n').splitlines():
         log.info(line)

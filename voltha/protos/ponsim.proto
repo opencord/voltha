@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package voltha;
+
+import "google/protobuf/empty.proto";
+import "openflow_13.proto";
+
+
+message PonSimDeviceInfo {
+    int32 nni_port = 1;
+    repeated int32 uni_ports = 2;
+}
+
+message FlowTable {
+    int32 port = 1;  // Used to address right device
+    repeated openflow_13.ofp_flow_stats flows = 2;
+}
+
+service PonSim {
+
+    rpc GetDeviceInfo(google.protobuf.Empty)
+        returns(PonSimDeviceInfo) {}
+
+    rpc UpdateFlowTable(FlowTable)
+        returns(google.protobuf.Empty) {}
+
+}
