@@ -31,7 +31,7 @@ from common.manhole import Manhole
 from common.structlog_setup import setup_logging
 from common.utils.dockerhelpers import get_my_containers_name
 from common.utils.nethelpers import get_my_primary_interface, \
-    get_my_primary_local_ipv4
+    get_my_primary_local_ipv4, get_my_mac_address
 from voltha.adapters.loader import AdapterLoader
 from voltha.coordinator import Coordinator
 from voltha.core.core import VolthaCore
@@ -228,6 +228,7 @@ class Main(object):
         self.args = args = parse_args()
         self.config = load_config(args)
 
+        self.voltha_mac_address = get_my_mac_address(self.args.interface)
         verbosity_adjust = (args.verbose or 0) - (args.quiet or 0)
         self.log = setup_logging(self.config.get('logging', {}),
                                  args.instance_id,
