@@ -1,5 +1,5 @@
 #
-# Copyright 2016 the original author or authors.
+# Copyright 2017 the original author or authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,5 +22,5 @@ include $(VOLTHA_BASE)/setup.mk
 
 PYTHONFILES:=$(wildcard *.py)
 
-flake8: 
+flake8:
 	$(FLAKE8) $(PYTHONFILES)
