@@ -127,6 +127,7 @@ class TibitOltAdapter(object):
             config=AdapterConfig(log_level=LogLevel.INFO)
         )
         self.interface = registry('main').get_args().interface
+        self.src_mac_address = registry('main').voltha_mac_address
         self.io_port = None
         self.incoming_queues = {}  # OLT mac_address -> DeferredQueue()
         self.device_ids = {}  # OLT mac_address -> device_id
@@ -445,7 +446,7 @@ class TibitOltAdapter(object):
     def _make_ping_frame(self, mac_address):
         # Create a json packet
         json_operation_str = '{\"operation\":\"version\"}'
-        frame = Ether(dst=mac_address)/Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY)/TBJSON(data='json %s' % json_operation_str)
+        frame = Ether(dst=mac_address, src=self.src_mac_address)/Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY)/TBJSON(data='json %s' % json_operation_str)
         return str(frame)
 
     def _make_links_frame(self, mac_address):

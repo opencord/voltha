@@ -42,5 +42,10 @@ def get_my_primary_local_ipv4(ifname=None):
     return ipv4
 
 
+def get_my_mac_address(ifname):
+    mac_addresses = ni.ifaddresses(ifname)
+    mac = mac_addresses[ni.AF_LINK][0]['addr']
+    return mac
+
 if __name__ == '__main__':
     print get_my_primary_local_ipv4()
