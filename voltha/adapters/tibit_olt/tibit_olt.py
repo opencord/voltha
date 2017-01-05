@@ -390,6 +390,7 @@ class TibitOltAdapter(object):
         raise NotImplementedError()
 
     def update_flows_bulk(self, device, flows, groups):
+        log.info('########################################')
         log.info('bulk-flow-update', device_id=device.id,
                  flows=flows, groups=groups)
 
@@ -402,11 +403,79 @@ class TibitOltAdapter(object):
             precedence = 255 - min(flow.priority / 256, 255)
 
             if in_port == 2:
-                # Downstream rule
-                pass  # TODO still ignores
+                log.info('#### Downstream Rule ####')
+
+                for field in get_ofb_fields(flow):
+
+                    if field.type == ETH_TYPE:
+                        log.info('#### field.type == ETH_TYPE ####')
+                        _type = field.eth_type
+                        req /= PortIngressRuleClauseMatchLength02(
+                            fieldcode=3,
+                            operator=1,
+                            match0=(_type >> 8) & 0xff,
+                            match1=_type & 0xff)
+
+                    elif field.type == IP_PROTO:
+                        _proto = field.ip_proto
+                        log.info('#### field.type == IP_PROTO ####')
+                        pass  # construct ip_proto based condition here
+
+                    elif field.type == IN_PORT:
+                        _port = field.port
+                        log.info('#### field.type == IN_PORT ####')
+                        pass  # construct in_port based condition here
+
+                    elif field.type == VLAN_VID:
+                        _vlan_vid = field.vlan_vid
+                        log.info('#### field.type == VLAN_VID ####')
+                        pass  # construct VLAN ID based filter condition here
+
+                    elif field.type == VLAN_PCP:
+                        _vlan_pcp = field.vlan_pcp
+                        log.info('#### field.type == VLAN_PCP ####')
+                        pass  # construct VLAN PCP based filter condition here
+
+                    elif field.type == UDP_DST:
+                        _udp_dst = field.udp_dst
+                        log.info('#### field.type == UDP_DST ####')
+                        pass  # construct UDP SDT based filter here
+
+                    else:
+                        raise NotImplementedError('field.type={}'.format(
+                            field.type))
+
+                    for action in get_actions(flow):
+
+                        if action.type == OUTPUT:
+                            req /= PortIngressRuleResultForward()
+
+                        elif action.type == POP_VLAN:
+                            pass  # construct vlan pop command here
+
+                        elif action.type == PUSH_VLAN:
+                            if action.push.ethertype != 0x8100:
+                                log.error('unhandled-ether-type',
+                                          ethertype=action.push.ethertype)
+                                req /= PortIngressRuleResultInsert(fieldcode=7)
+
+                            elif action.type == SET_FIELD:
+                                assert (action.set_field.field.oxm_class ==
+                                        ofp.OFPXMC_OPENFLOW_BASIC)
+                                field = action.set_field.field.ofb_field
+                                if field.type == VLAN_VID:
+                                    req /= PortIngressRuleResultSet(
+                                        fieldcode=7, value=field.vlan_vid & 0xfff)
+                                else:
+                                    log.error('unsupported-action-set-field-type',
+                                              field_type=field.type)
+                        else:
+                            log.error('unsupported-action-type',
+                                      action_type=action.type)
 
             elif in_port == 1:
                 # Upstream rule
+                log.info('#### Upstream Rule ####')
                 req = PonPortObject()
                 req /= PortIngressRuleHeader(precedence=precedence)
 
@@ -422,22 +491,27 @@ class TibitOltAdapter(object):
 
                     elif field.type == IP_PROTO:
                         _proto = field.ip_proto
+                        log.info('#### field.type == IP_PROTO ####')
                         pass  # construct ip_proto based condition here
 
                     elif field.type == IN_PORT:
                         _port = field.port
+                        log.info('#### field.type == IN_PORT ####')
                         pass  # construct in_port based condition here
 
                     elif field.type == VLAN_VID:
                         _vlan_vid = field.vlan_vid
+                        log.info('#### field.type == VLAN_VID ####')
                         pass  # construct VLAN ID based filter condition here
 
                     elif field.type == VLAN_PCP:
                         _vlan_pcp = field.vlan_pcp
+                        log.info('#### field.type == VLAN_PCP ####')
                         pass  # construct VLAN PCP based filter condition here
 
                     elif field.type == UDP_DST:
                         _udp_dst = field.udp_dst
+                        log.info('#### field.type == UDP_DST ####')
                         pass  # construct UDP SDT based filter here
 
                     else:
@@ -493,9 +567,8 @@ class TibitOltAdapter(object):
 
     def send_proxied_message(self, proxy_address, msg):
         log.info('send-proxied-message', proxy_address=proxy_address)
-        # TODO build device_id -> mac_address cache
         device = self.adapter_agent.get_device(proxy_address.device_id)
-        frame = Ether(dst='00:0c:e2:22:29:00') / \
+        frame = Ether(dst=device.mac_address) / \
                 Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) / \
                 Dot1Q(vlan=proxy_address.channel_id, prio=TIBIT_MGMT_PRIORITY) / \
                 msg
