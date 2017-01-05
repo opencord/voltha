@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2016 the original author or authors.
+# Copyright 2017 the original author or authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,22 +14,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from lxml import etree
 import structlog
 from netconf.nc_rpc.rpc import Rpc
 import netconf.nc_common.error as ncerror
-from netconf.constants import Constants as C
-from netconf.utils import filter_tag_match
 from twisted.internet.defer import inlineCallbacks, returnValue
 import dicttoxml
-from simplejson import dumps, load
 
 log = structlog.get_logger()
 
 
 class Get(Rpc):
-    def __init__(self, request, grpc_client, session):
-        super(Get, self).__init__(request, grpc_client, session)
+    def __init__(self, request, request_xml, grpc_client, session, capabilities):
+        super(Get, self).__init__(request, request_xml, grpc_client, session)
         self._validate_parameters()
 
     @inlineCallbacks

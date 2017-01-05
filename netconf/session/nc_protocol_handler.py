@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2016 the original author or authors.
+# Copyright 2017 the original author or authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,28 +18,25 @@ import structlog
 import io
 from lxml import etree
 from lxml.builder import E
-import netconf.nc_common.error as ncerror
-from netconf import NSMAP, qmap
-from utils import elm
 from twisted.internet.defer import inlineCallbacks, returnValue, Deferred
-from capabilities import Capabilities
 from netconf.nc_rpc.rpc_factory import get_rpc_factory_instance
 from netconf.constants import Constants as C
+from netconf.nc_common.utils import qmap, ns, elm
+import netconf.nc_common.error as ncerror
 
 log = structlog.get_logger()
-
 
 class NetconfProtocolError(Exception): pass
 
 
 class NetconfProtocolHandler:
-    def __init__(self, nc_server, nc_conn, session, grpc_client):
+    def __init__(self, nc_server, nc_conn, session, grpc_client, capabilities):
         self.started = True
         self.conn = nc_conn
         self.nc_server = nc_server
         self.grpc_client = grpc_client
         self.new_framing = False
-        self.capabilities = Capabilities()
+        self.capabilities = capabilities
         self.session = session
         self.exiting = False
         self.connected = Deferred()
@@ -53,7 +50,7 @@ class NetconfProtocolHandler:
         return self.conn.receive_msg_any(self.new_framing)
 
     def send_hello(self, caplist, session=None):
-        msg = elm(C.HELLO, attrib={C.XMLNS: NSMAP[C.NC]})
+        msg = elm(C.HELLO, attrib={C.XMLNS: ns(C.NC)})
         caps = E.capabilities(*[E.capability(x) for x in caplist])
         msg.append(caps)
 
@@ -96,7 +93,7 @@ class NetconfProtocolHandler:
             # Parse reply
             tree = etree.parse(io.BytesIO(reply.encode('utf-8')))
             root = tree.getroot()
-            caps = root.xpath(C.CAPABILITY_XPATH, namespaces=NSMAP)
+            caps = root.xpath(C.CAPABILITY_XPATH, namespaces=C.NS_MAP)
 
             # Store capabilities
             for cap in caps:
@@ -152,7 +149,7 @@ class NetconfProtocolHandler:
                 self.close()
             return
 
-        rpcs = tree.xpath(C.RPC_XPATH, namespaces=NSMAP)
+        rpcs = tree.xpath(C.RPC_XPATH, namespaces=C.NS_MAP)
         if not rpcs:
             raise ncerror.SessionError(msg, "No rpc found")
 
@@ -172,7 +169,8 @@ class NetconfProtocolHandler:
                 rpc_handler = rpc_factory.get_rpc_handler(rpc,
                                                           msg,
                                                           self.grpc_client,
-                                                          self.session)
+                                                          self.session,
+                                                          self.capabilities)
                 if rpc_handler:
                     # set the parameters for this handler
                     response = yield rpc_handler.execute()

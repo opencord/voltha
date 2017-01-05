@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2016 the original author or authors.
+# Copyright 2017 the original author or authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,6 +18,9 @@
 class Constants:
 
 	SSH_SUBSYSTEM = "netconf"
+
+	# Send message max size
+	MAXSSHBUF = 1024 * 1024
 
 	# Secure credentials directories
 	# TODO:  In a production environment these locations require better
@@ -80,6 +83,8 @@ class Constants:
 
 	#tags
 	NC = "nc"
+	VOLTHA = 'voltha'
+	NCM = "ncm"
 	RPC = "rpc"
 	RPC_REPLY = "rpc-reply"
 	RPC_ERROR = "rpc-error"
@@ -96,3 +101,11 @@ class Constants:
 	MESSAGE_ID = "message-id"
 	XMLNS = "xmlns"
 	DELIMITER = "]]>]]>"
+
+	NS_MAP = {
+		'nc': 'urn:ietf:params:xml:ns:netconf:base:1.0',
+		'voltha': 'urn:opencord:params:xml:ns:voltha:ietf-voltha',
+		'ncm': 'urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring'
+	}
+
+

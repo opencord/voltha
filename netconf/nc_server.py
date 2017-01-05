@@ -1,5 +1,5 @@
 #
-# Copyright 2016 the original author or authors.
+# Copyright 2017 the original author or authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,6 +32,7 @@ from session.nc_protocol_handler import NetconfProtocolHandler
 from session.nc_connection import NetconfConnection
 from session.session_mgr import get_session_manager_instance
 from constants import Constants as C
+from capabilities import Capabilities
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -97,6 +98,7 @@ class NCServer(factory.SSHFactory):
         self.client_passwords_file = client_passwords_file
         self.session_mgr = get_session_manager_instance()
         self.grpc_client = grpc_client
+        self.capabilities = Capabilities()
         self.connector = None
         self.nc_client_map = {}
         self.running = False
@@ -117,6 +119,14 @@ class NCServer(factory.SSHFactory):
         self.connector.disconnect()
         self.d_stopped.callback(None)
         log.info('stopped')
+
+    def set_capabilities(self):
+        yang_schemas = self.grpc_client.yang_schemas
+        if not yang_schemas:
+            log.error('no-yang-schema')
+            return
+        self.capabilities.set_server_capabilities(yang_schemas)
+        self.capabilities.set_schema_dir(self.grpc_client.work_dir)
 
     def reload_capabilities(self):
         # TODO: Called when there is a reconnect to voltha
@@ -139,7 +149,8 @@ class NCServer(factory.SSHFactory):
         #create a session
         session = self.session_mgr.create_session(client_conn.avatar.get_user())
         handler = NetconfProtocolHandler(self, client_conn,
-                                         session, self.grpc_client)
+                                         session, self.grpc_client,
+                                         self.capabilities)
         client_conn.proto_handler = handler
         reactor.callLater(0, handler.start)
 
@@ -176,6 +187,7 @@ class NCServer(factory.SSHFactory):
     def start_ssh_server(self):
         try:
             log.debug('starting', port=self.netconf_port)
+            self.set_capabilities()
             self.portal = self.setup_secure_access()
             self.connector = reactor.listenTCP(self.netconf_port, self)
             log.debug('started', port=self.netconf_port)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2016 the original author or authors.
+# Copyright 2017 the original author or authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -782,7 +782,8 @@ def is_base_type(type):
 
 
 def remove_unsupported_characters(text):
-    unsupported_characters = ["{", "}", "[", "]", "\"", "\\", "*", "/"]
+    unsupported_characters = ["{", "}", "[", "]", "\"", "\\", "*", "/", "<",
+                              ">"]
     return ''.join([i if i not in unsupported_characters else ' ' for i in
                     text])
 

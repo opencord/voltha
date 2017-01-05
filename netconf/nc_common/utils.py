@@ -2,6 +2,8 @@
 #
 # Copyright 2017 the original author or authors.
 #
+# Code adapted from https://github.com/choppsv1/netconf
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -14,24 +16,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from netconf.constants import Constants as C
 from lxml import etree
-import structlog
-from netconf.nc_rpc.rpc import Rpc
-import netconf.nc_common.error as ncerror
 
-log = structlog.get_logger()
+ns_map = C.NS_MAP
 
-class EditConfig(Rpc):
+def qmap(key):
+    if ns_map.has_key(key):
+        return ''.join(['{', ns_map[key], '}'])
 
-	def __init__(self, request, request_xml, grpc_client, session, capabilities):
-		super(EditConfig, self).__init__(request, request_xml, grpc_client, session)
-		self._validate_parameters()
+def ns(key):
+    if ns_map.has_key(key):
+        return ns_map[key]
 
-	def execute(self):
-		log.info('edit-config-request', session=self.session.session_id)
-		if self.rpc_response.is_error:
-			return self.rpc_response
+def qname(tag):
+    try:
+        return etree.QName(tag)
+    except ValueError:
+        prefix, base = tag.split(":")
+        return etree.QName(ns(prefix), base)
 
+def elm(tag, attrib=None, **extra):
+    if attrib is None:
+        attrib = dict()
+    return etree.Element(qname(tag), attrib, **extra)
 
-	def _validate_parameters(self):
-		log.info('validate-parameters', session=self.session.session_id)

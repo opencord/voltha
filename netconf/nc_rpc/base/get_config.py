@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2016 the original author or authors.
+# Copyright 2017 the original author or authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,20 +14,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from lxml import etree
 import structlog
 from netconf.nc_rpc.rpc import Rpc
 import netconf.nc_common.error as ncerror
 from netconf.constants import Constants as C
-from netconf.utils import elm
-from netconf import NSMAP
 
 log = structlog.get_logger()
 
 class GetConfig(Rpc):
 
-	def __init__(self, request, grpc_client, session):
-		super(GetConfig, self).__init__(request, grpc_client, session)
+	def __init__(self, request, request_xml, grpc_client, session, capabilities):
+		super(GetConfig, self).__init__(request, request_xml, grpc_client, session)
 		self._validate_parameters()
 
 	def execute(self):
@@ -47,17 +44,17 @@ class GetConfig(Rpc):
 			self.rpc_response.node = ncerror.BadMsg(self.rpc_request)
 			return
 
-		self.source_param = self.rpc_method.find(C.NC_SOURCE, namespaces=NSMAP)
-		if self.source_param is None:
-			self.rpc_response.is_error = True
-			self.rpc_response.node = ncerror.MissingElement(
-				self.rpc_request, elm(C.NC_SOURCE))
-			return
+		self.source_param = self.rpc_method.find(C.NC_SOURCE, namespaces=C.NS_MAP)
+		# if self.source_param is None:
+		# 	self.rpc_response.is_error = True
+		# 	self.rpc_response.node = ncerror.MissingElement(
+		# 		self.rpc_request, elm(C.NC_SOURCE))
+		# 	return
 
 		self.filter_param = None
 		if paramslen == 2:
 			self.filter_param = self.rpc_method.find(C.NC_FILTER,
-												  namespaces=NSMAP)
+												  namespaces=C.NS_MAP)
 			if self.filter_param is None:
 				unknown_elm = self.params[0] if self.params[0] != \
 												self.source_param else \

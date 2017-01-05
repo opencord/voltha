@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2016 the original author or authors.
+# Copyright 2017 the original author or authors.
 #
 # Code adapted from https://github.com/choppsv1/netconf
 #
@@ -24,8 +24,9 @@ import io
 
 
 class Rpc(object):
-    def __init__(self, request, grpc_client, session):
-        self.request = request
+    def __init__(self, request_dict, request_xml, grpc_client, session):
+        self.request = request_dict
+        self.request_xml = request_xml
         self.rpc_response = RpcResponse()
         self.grpc_client =  grpc_client
         self.session = session

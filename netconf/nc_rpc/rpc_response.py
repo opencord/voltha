@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2016 the original author or authors.
+# Copyright 2017 the original author or authors.
 #
 # Code adapted from https://github.com/choppsv1/netconf
 #
@@ -36,7 +36,7 @@ class RpcResponse():
             return
         voltha_xml_string = etree.tostring(voltha_response)
 
-        # Remove the leading and trailing <root> tags
+        # Remove the leading and trailing <yang> tags
         if voltha_xml_string.startswith('<yang>'):
             voltha_xml_string = voltha_xml_string[len('<yang>'):]
             if voltha_xml_string.endswith('</yang>'):
@@ -48,7 +48,9 @@ class RpcResponse():
                 '<data>',
                 '<',
                 request['class'],
-                ' xmlns="urn:opencord:params:xml:ns:voltha:ietf-voltha">',
+                ' xmlns="',
+                request['namespace'],
+                '">',
                 '<',
                 request['subclass'],
                 '>',

@@ -1,5 +1,5 @@
 #
-# Copyright 2016 the original author or authors.
+# Copyright 2017 the original author or authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -76,6 +76,8 @@ class GrpcClient(object):
         self.plugin_dir = os.path.abspath(os.path.join(
             os.path.dirname(__file__), '../protoc_plugins'))
 
+        self.yang_schemas = set()
+
         self.channel = None
         self.local_stub = None
         self.schema = None
@@ -141,6 +143,8 @@ class GrpcClient(object):
                 yang_from = self._retrieve_schema()
                 log.info('proto-to-yang-schema', file=yang_from)
                 self._compile_proto_files(yang_from)
+                self._set_yang_schemas()
+
                 self._clear_backoff()
 
                 if self.on_start_callback is not None:
@@ -279,6 +283,20 @@ class GrpcClient(object):
             #     _ = __import__(modname)
 
             # TODO: find a different way to test the generated yang files
+
+    def _set_yang_schemas(self):
+        if self.work_dir not in sys.path:
+            sys.path.insert(0, self.work_dir)
+
+        for fname in [f for f in os.listdir(self.work_dir)
+                      if f.endswith('.yang')]:
+            # Special case : since ietf-http, ietf-annotations,
+            # ietf-yang_options are not used for yang schema then do not add
+            # them to the set
+            if fname not in ['ietf-http.yang', 'ietf-yang_options.yang',
+                             'ietf-descriptor.yang']:
+                self.yang_schemas.add(fname[:-len('.yang')])
+        log.info('yang-schemas', schemas=self.yang_schemas)
 
     # TODO: should be generated code
     # Focus for now is issuing a GET request for VolthaGlobalService or VolthaLocalService

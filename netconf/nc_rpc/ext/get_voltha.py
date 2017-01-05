@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2016 the original author or authors.
+# Copyright 2017 the original author or authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,19 +18,17 @@ from lxml import etree
 import structlog
 from netconf.nc_rpc.rpc import Rpc
 import netconf.nc_common.error as ncerror
-from netconf.constants import Constants as C
-from netconf.utils import filter_tag_match
 from twisted.internet.defer import inlineCallbacks, returnValue
 import dicttoxml
-from simplejson import dumps, load
 
 log = structlog.get_logger()
 
 
 class GetVoltha(Rpc):
-    def __init__(self, request, grpc_client, session):
-        super(GetVoltha, self).__init__(request, grpc_client, session)
+    def __init__(self, request, request_xml, grpc_client, session, capabilities):
+        super(GetVoltha, self).__init__(request, request_xml, grpc_client, session)
         self._validate_parameters()
+
 
     @inlineCallbacks
     def execute(self):
@@ -62,12 +60,6 @@ class GetVoltha(Rpc):
         if len(self.params) > 1:
             self.rpc_response.is_error = True
             self.rpc_response.node = ncerror.BadMsg(self.rpc_request)
-            return
-
-        if self.params and not filter_tag_match(self.params[0], C.NC_FILTER):
-            self.rpc_response.is_error = True
-            self.rpc_response.node = ncerror.UnknownElement(
-                self.rpc_request, self.params[0])
             return
 
         if not self.params:

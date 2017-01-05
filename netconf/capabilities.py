@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2016 the original author or authors.
+# Copyright 2017 the original author or authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,149 +14,67 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import structlog
+import sys
 from constants import Constants as C
+
+# URN_PREFIX = "urn:ietf:params:netconf:capability:"
+URN_PREFIX = "urn:opencord:params:xml:ns:voltha:"
+log = structlog.get_logger()
 
 class Capabilities:
 
     def __init__(self):
-        self.server_caps = self._get_server_capabilities()
+        self.server_caps = set()
         self.client_caps = set()
+        self.voltha_schemas = set()
+        self.schema_dir = None
 
     def add_client_capability(self, cap):
         self.client_caps.add(cap)
 
-    #TODO:  This will be automatically generated from the voltha proto files
-    def _get_server_capabilities(self):
-        return (
-            C.NETCONF_BASE_10,
-            C.NETCONF_BASE_11,
-            "urn:ietf:params:netconf:capability:writable-running:1.0",
-            "urn:opencord:params:xml:ns:voltha:ietf-voltha",
-            "urn:opencord:params:xml:ns:voltha:ietf-openflow_13",
-            "urn:opencord:params:xml:ns:voltha:ietf-meta",
-            "urn:opencord:params:xml:ns:voltha:ietf-logical_device",
-            "urn:opencord:params:xml:ns:voltha:ietf-health",
-            "urn:opencord:params:xml:ns:voltha:ietf-device",
-            "urn:opencord:params:xml:ns:voltha:ietf-empty",
-            "urn:opencord:params:xml:ns:voltha:ietf-common",
-            "urn:opencord:params:xml:ns:voltha:ietf-any",
-            "urn:opencord:params:xml:ns:voltha:ietf-adapter"
-        )
-
-    #TODO:  A schema exchange will also need to happen
-
-    description = """
-
-    Option 1:  Client already have the yang model for voltha and adapters:
-        <hello xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
-            <capabilities>
-                <capability>
-                    urn:ietf:params:netconf:base:1.1
-                </capability>
-                <capability>
-                    urn:cord:voltha:1.0
-                </capability>
-                <capability>
-                    urn:cord:voltha:adpater_x:1.0
-                </capability>
+    def set_server_capabilities(self, schemas):
+        # prefix = "urn:ietf:params:netconf:capability:"
+        # first add the basic capabilities
+        self.server_caps.add(C.NETCONF_BASE_10)
+        self.server_caps.add(C.NETCONF_BASE_11)
+        self.server_caps.add(C.NETCONF_MONITORING)
+        for schema in schemas:
+            self.server_caps.add(''.join([URN_PREFIX, schema]))
+            self.voltha_schemas.add(schema)
 
 
-    Option 2: NETCONF-MONITORING - schema exchanges
+    def set_schema_dir(self, schema_dir)        :
+        self.schema_dir = schema_dir
 
-        server expose capabilities
+    def get_yang_schemas_definitions(self):
+        defs = []
+        for schema in self.voltha_schemas:
+            defs.append(
+                {
+                    'id': schema,
+                    'version': '2016-11-15', #TODO: need to extract from voltha
+                    'format': 'yang',
+                    'location': 'NETCONF',
+                    'namespace': ''.join([URN_PREFIX, schema])
+                 }
+            )
+        return defs
 
-            <hello xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
-                <capabilities>
-                    <capability>
-                        urn:ietf:params:netconf:base:1.1
-                    </capability>
-                    <capability>
-                        urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring?module=ietf-netconf-monitoring&revision=2010-10-04
-                    </capability>
-
-        client request schemas
-
-            <rpc message-id="101"
-                 xmlns="urn:ietf:params:xml:ns:netconf:base:1.1">
-                <get>
-                    <filter type="subtree">
-                        <netconf-state xmlns=
-                            "urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring">
-                             <schemas/>
-                        </netconf-state>
-                    </filter>
-                </get>
-            </rpc>
-
-        server sends back schemas
-
-            <rpc-reply message-id="101"
-                       xmlns="urn:ietf:params:xml:ns:netconf:base:1.1">
-                  <data>
-                        <netconf-state
-                            xmlns="urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring">
-                            <schemas>
-                                <schema>
-                                    <identifier>voltha</identifier>
-                                    <version>1.0</version>
-                                    <format>yang</format>
-                                    <namespace>urn:cord:voltha</namespace>
-                                    <location>NETCONF</location>
-                                </schema>
-                                <schema>
-                                    <identifier>adapter_x</identifier>
-                                    <version>x_release</version>
-                                    <format>yang</format>
-                                    <namespace>urn:cord:voltha:adapter_x</namespace>
-                                    <location>NETCONF</location>
-                                </schema>
-                            </schemas>
-                        </netconf-state>
-                  </data>
-            </rpc-reply>
+    def is_schema_supported(self, schema):
+        return schema in self.voltha_schemas
 
 
-        client requests each schema instance
+    def get_schema_content(self, schema):
+        if self.schema_dir not in sys.path:
+            sys.path.insert(0, self.schema_dir)
 
-            <rpc message-id="102"
-                xmlns="urn:ietf:params:xml:ns:netconf:base:1.1">
-                <get-schema
-                    xmlns="urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring">
-                    <identifer>voltha</identifer>
-                    <version>1.0</version>
-                </get-schema>
-             </rpc>
+        try:
+            with open(''.join([self.schema_dir, '/', schema, '.yang']),
+                      'r') as f:
+                content = f.read()
+                return content
+        except Exception as e:
+            log.error("error-opening-file", file=''.join([schema, '.yang']),
+                      dir=self.schema_dir, exception=repr(e))
 
-             <rpc-reply message-id="102"
-                xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
-                <data
-                    xmlns="urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring">
-                    module voltha {
-                        //default format (yang) returned
-                        //voltha version 0.1 yang module
-                        //contents here ...
-                    }
-                </data>
-             </rpc-reply>
-
-
-    GETTING DATA
-
-    Use filter:
-        1) namespace filter
-            <filter type="subtree">
-                <top xmlns="http://example.com/schema/1.2/config"/>
-            </filter>
-
-         2) <filter type="subtree">
-                <adapters xmlns="urn:cord:voltha:adapter_x">
-                    <adapter>
-                        <id>uuid</id>
-                        <config/>
-                    </adapter>
-                </adapters>
-            </filter>
-
-            /voltha/adapters/<adapter>/[<id>, <vendor>, <version>, <config>, <additonal_desc>]
-
-    """

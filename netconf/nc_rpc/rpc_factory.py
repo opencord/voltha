@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2016 the original author or authors.
+# Copyright 2017 the original author or authors.
 #
 # Code adapted from https://github.com/choppsv1/netconf
 #
@@ -17,10 +17,10 @@
 # limitations under the License.
 #
 import structlog
+from netconf.constants import Constants as C
 from base.commit import Commit
 from base.copy_config import CopyConfig
 from base.delete_config import DeleteConfig
-from base.discard_changes import DiscardChanges
 from base.edit_config import EditConfig
 from base.get import Get
 from base.get_config import GetConfig
@@ -28,18 +28,15 @@ from base.lock import Lock
 from base.unlock import UnLock
 from base.close_session import CloseSession
 from base.kill_session import KillSession
+from ext.get_schemas import GetSchemas
+from ext.get_schema import GetSchema
 from ext.get_voltha import GetVoltha
-from netconf import NSMAP, qmap
 import netconf.nc_common.error as ncerror
-
-log = structlog.get_logger()
+from netconf.nc_common.utils import qmap, ns
 from lxml import etree
 
-ns_map = {
-    'base': '{urn:ietf:params:xml:ns:netconf:base:1.0}',
-    'voltha': '{urn:opencord:params:xml:ns:voltha:ietf-voltha}'
-}
 
+log = structlog.get_logger()
 
 class RpcFactory:
     instance = None
@@ -61,6 +58,7 @@ class RpcFactory:
             if tup[0] == name:
                 return tup[1]
 
+
     # Parse a request (node is an ElementTree) and return a dictionary
     # TODO:  This parser is specific to a GET request.  Need to be it more
     # generic
@@ -69,8 +67,8 @@ class RpcFactory:
         if not len(node):
             return request
         for elem in node.iter():
-            if elem.tag.find(ns_map['base']) != -1:  # found
-                elem_name = elem.tag.replace(ns_map['base'], "")
+            if elem.tag.find(qmap(C.NC)) != -1:  # found
+                elem_name = elem.tag.replace(qmap(C.NC), "")
                 if elem_name == 'rpc':
                     request['type'] = 'rpc'
                     request['message_id'] = self.get_attribute_value(
@@ -81,12 +79,24 @@ class RpcFactory:
                 else:
                     request[
                         'command'] = elem_name  # attribute is empty for now
-            elif elem.tag.find(ns_map['voltha']) != -1:  # found
+            elif elem.tag.find(qmap(C.VOLTHA)) != -1:  # found
+                request['namespace'] = ns(C.VOLTHA)
                 if request.has_key('class'):
-                    request['subclass'] = elem.tag.replace(ns_map['voltha'],
-                                                           "")
+                    request['subclass'] = elem.tag.replace(qmap(C.VOLTHA),"")
                 else:
-                    request['class'] = elem.tag.replace(ns_map['voltha'], "")
+                    request['class'] = elem.tag.replace(qmap(C.VOLTHA), "")
+            elif elem.tag.find(qmap(C.NCM)) != -1:  # found
+                request['namespace'] = ns(C.NCM)
+                elem_name = elem.tag.replace(qmap(C.NCM), "")
+                if elem_name == 'get-schema':
+                    request['command'] = elem_name
+                    request['class'] = elem_name
+                elif request.has_key('class'):
+                    request['subclass'] = elem_name
+                elif elem_name == 'netconf-state':
+                    request['command'] = 'get-schemas'
+                    request['class'] = elem_name
+
         return request
 
     def register_rpc(self, namespace, service, name, klass):
@@ -99,7 +109,8 @@ class RpcFactory:
         if key in self.rpc_map.keys():
             return self.rpc_map[key]
 
-    def get_rpc_handler(self, rpc_node, msg, grpc_channel, session):
+    def get_rpc_handler(self, rpc_node, msg, grpc_channel, session,
+                        capabilities):
         try:
             # Parse the request into a dictionary
             log.info("rpc-node",
@@ -110,17 +121,17 @@ class RpcFactory:
                 log.error("request-bad-format")
                 raise ncerror.BadMsg(rpc_node)
 
-            if not request.has_key('message_id') or \
-                    not request.has_key('command'):
+            log.info("parsed-request", request=request)
+
+            if not request.has_key('message_id'):
                 log.error("request-no-message-id")
                 raise ncerror.BadMsg(rpc_node)
-
-            log.info("parsed-request", request=request)
 
             class_handler = self.rpc_class_handlers.get(request['command'],
                                                         None)
             if class_handler is not None:
-                return class_handler(request, grpc_channel, session)
+                return class_handler(request, rpc_node, grpc_channel, session,
+                                     capabilities)
 
             log.error("rpc-not-implemented", rpc=request['command'])
 
@@ -131,6 +142,8 @@ class RpcFactory:
         'getvoltha': GetVoltha,
         'get-config': GetConfig,
         'get': Get,
+        'get-schemas': GetSchemas,
+        'get-schema': GetSchema,
         'edit-config': EditConfig,
         'copy-config': CopyConfig,
         'delete-config': DeleteConfig,

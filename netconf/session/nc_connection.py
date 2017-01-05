@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2016 the original author or authors.
+# Copyright 2017 the original author or authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,8 +23,7 @@ from netconf.constants import Constants as C
 
 log = structlog.get_logger()
 
-from netconf import MAXSSHBUF
-
+MAXSSHBUF = C.MAXSSHBUF
 
 class NetconfConnection(protocol.Protocol):
     def __init__(self, data=None, avatar=None, max_chunk=MAXSSHBUF):

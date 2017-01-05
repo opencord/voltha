@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2016 the original author or authors.
+# Copyright 2017 the original author or authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,8 +24,8 @@ log = structlog.get_logger()
 
 class Commit(Rpc):
 
-	def __init__(self, request, grpc_client, session):
-		super(Commit, self).__init__(request, grpc_client, session)
+	def __init__(self, request, request_xml, grpc_client, session, capabilities):
+		super(Commit, self).__init__(request, request_xml, grpc_client, session)
 		self._validate_parameters()
 
 	def execute(self):
