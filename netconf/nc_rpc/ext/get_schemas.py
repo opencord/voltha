@@ -18,6 +18,8 @@ from lxml import etree
 import structlog
 from netconf.nc_rpc.rpc import Rpc
 import netconf.nc_common.error as ncerror
+from twisted.internet.defer import inlineCallbacks, returnValue
+
 
 log = structlog.get_logger()
 
@@ -28,9 +30,10 @@ class GetSchemas(Rpc):
         self._validate_parameters()
         self.capabilities = capabilities
 
+    @inlineCallbacks
     def execute(self):
         if self.rpc_response.is_error:
-            return(self.rpc_response)
+            returnValue(self.rpc_response)
 
         log.info('get-schemas-request', session=self.session.session_id,
                  request=self.request)
@@ -55,12 +58,12 @@ class GetSchemas(Rpc):
             node.text = dict['location']
 
         # Build the yang response
-        self.rpc_response.node = self.rpc_response.build_xml_response(
+        self.rpc_response.node = yield self.rpc_response.build_xml_response(
             self.request, top)
 
         self.rpc_response.is_error = False
 
-        return(self.rpc_response)
+        returnValue(self.rpc_response)
 
 
     def _validate_parameters(self):
@@ -70,15 +73,14 @@ class GetSchemas(Rpc):
             try:
                 if self.request['command'] != 'get-schemas':
                     self.rpc_response.is_error = True
-                    self.rpc_response.node = ncerror.BadMsg('Improperly '
-                                                            'formatted get '
-                                                            'schemas request')
+                    self.rpc_response.node = ncerror.BadMsg(self.request_xml)
+                    return
 
                 if self.request.has_key('filter'):
                     if not self.request.has_key('class'):
                         self.rpc_response.is_error = True
-                        self.rpc_response.node = ncerror.BadMsg(
-                            'Missing filter sub-element')
+                        self.rpc_response.node = ncerror.BadMsg(self.request_xml)
+                        return
 
             except Exception as e:
                 self.rpc_response.is_error = True

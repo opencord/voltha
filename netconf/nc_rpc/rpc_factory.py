@@ -42,13 +42,7 @@ class RpcFactory:
     instance = None
 
     def __init__(self):
-        self.rpc_map = {}
-        # TODO:  This will be loaded after the yang modules have been
-        # generated from proto files
-        self.register_rpc('{urn:opencord:params:xml:ns:voltha:ietf-voltha}',
-                          'VolthaGlobalService', 'GetVoltha', GetVoltha)
-        self.register_rpc('{urn:opencord:params:xml:ns:voltha:ietf-voltha}',
-                          'any', 'any', GetVoltha)
+        pass
 
     def _get_key(self, namespace, service, name):
         return ''.join([namespace, service, name])
@@ -60,8 +54,8 @@ class RpcFactory:
 
 
     # Parse a request (node is an ElementTree) and return a dictionary
-    # TODO:  This parser is specific to a GET request.  Need to be it more
-    # generic
+    # TODO:  This parser is specific for a GET/GET SCHEMAS request.  Need to be
+    #  it more generic
     def parse_xml_request(self, node):
         request = {}
         if not len(node):
@@ -99,15 +93,6 @@ class RpcFactory:
 
         return request
 
-    def register_rpc(self, namespace, service, name, klass):
-        key = self._get_key(namespace, service, name)
-        if key not in self.rpc_map.keys():
-            self.rpc_map[key] = klass
-
-    def get_handler(self, namespace, service, name):
-        key = self._get_key(namespace, service, name)
-        if key in self.rpc_map.keys():
-            return self.rpc_map[key]
 
     def get_rpc_handler(self, rpc_node, msg, grpc_channel, session,
                         capabilities):
@@ -135,8 +120,12 @@ class RpcFactory:
 
             log.error("rpc-not-implemented", rpc=request['command'])
 
-        except Exception as e:
+        except ncerror.BadMsg as err:
+            log.info('ncerror.BadMsg')
             raise ncerror.BadMsg(rpc_node)
+
+        except Exception as e:
+            raise ncerror.ServerException(rpc_node, exception=e)
 
     rpc_class_handlers = {
         'getvoltha': GetVoltha,

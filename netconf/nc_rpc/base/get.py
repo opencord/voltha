@@ -40,8 +40,8 @@ class Get(Rpc):
         if not rpc:
             log.info('unsupported-request', request=self.request)
             self.rpc_response.is_error = True
-            self.rpc_response.node = ncerror.BadMsg(self.request)
-            return
+            self.rpc_response.node = ncerror.NotImpl(self.request_xml)
+            returnValue(self.rpc_response)
 
         # Invoke voltha via the grpc client
         res_dict = yield self.grpc_client.invoke_voltha_api(rpc)
@@ -66,18 +66,18 @@ class Get(Rpc):
             try:
                 if self.request['command'] != 'get':
                     self.rpc_response.is_error = True
-                    self.rpc_response.node = ncerror.BadMsg('No GET in get '
-                                                            'request')
+                    self.rpc_response.node = ncerror.BadMsg(self.request_xml)
+                    return
 
                 if self.request.has_key('filter'):
                     if not self.request.has_key('class'):
                         self.rpc_response.is_error = True
-                        self.rpc_response.node = ncerror.BadMsg(
-                            'Missing filter sub-element')
+                        self.rpc_response.node = ncerror.NotImpl(self.request_xml)
+                    return
 
             except Exception as e:
                 self.rpc_response.is_error = True
-                self.rpc_response.node = ncerror.BadMsg(self.request)
+                self.rpc_response.node = ncerror.ServerException(self.request_xml)
                 return
 
     def get_voltha_rpc(self, request):
@@ -91,6 +91,11 @@ class Get(Rpc):
                     if rpc['subclass'] and request['subclass'] == rpc[
                         'subclass']:
                         return rpc['rpc']
+
+            # If the request has a subclass and is not in the list of
+            # supported rpc then return None
+            if request.has_key('subclass'):
+                return None
 
             # If we are here then no subclass exists.  Just return the rpc
             # associated with theNone subclass
@@ -128,9 +133,9 @@ class Get(Rpc):
             {'subclass': 'device_groups',
              'rpc': 'VolthaLocalService-ListDeviceGroups'
              },
-        ],
-        'VolthaInstances': [
-            {'subclass': None,
-             'rpc': 'VolthaGlobalService-ListVolthaInstances'
-             }],
+        ]
+        # 'VolthaInstances': [
+        #     {'subclass': None,
+        #      'rpc': 'VolthaGlobalService-ListVolthaInstances'
+        #      }],
     }

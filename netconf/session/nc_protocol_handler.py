@@ -23,6 +23,7 @@ from netconf.nc_rpc.rpc_factory import get_rpc_factory_instance
 from netconf.constants import Constants as C
 from netconf.nc_common.utils import qmap, ns, elm
 import netconf.nc_common.error as ncerror
+from netconf.nc_common.error import BadMsg, NotImpl, ServerException, Error
 
 log = structlog.get_logger()
 
@@ -178,8 +179,10 @@ class NetconfProtocolHandler:
                              rpc_handler=rpc_handler,
                              is_error=response.is_error,
                              response=response)
-                    self.send_rpc_reply(response.node, rpc)
-                    # self.send_rpc_reply(self.get_instance(), rpc)
+                    if not response.is_error:
+                        self.send_rpc_reply(response.node, rpc)
+                    else:
+                        self.send_message(response.node.get_xml_reply())
 
                     if response.close_session:
                         log.info('response-closing-session', response=response)
@@ -188,12 +191,13 @@ class NetconfProtocolHandler:
                     log.error('no-rpc-handler',
                               request=msg,
                               session_id=self.session.session_id)
-                    raise ncerror.NotImpl(msg)
+                    error = ncerror.NotImpl(msg)
+                    self.send_message(error.get_xml_reply())
 
             except ncerror.BadMsg as err:
                 log.info('ncerror.BadMsg')
                 if self.new_framing:
-                    self.send_message(err.get_reply_msg())
+                    self.send_message(err.get_xml_reply())
                 else:
                     # If we are 1.0 we have to simply close the connection
                     # as we are not allowed to send this error
@@ -205,7 +209,7 @@ class NetconfProtocolHandler:
             except Exception as ex:
                 log.info('Exception', repr(ex))
                 error = ncerror.ServerException(rpc, ex)
-                self.send_message(error.get_reply_msg())
+                self.send_message(error.get_xml_reply())
 
 
     def stop(self, reason):

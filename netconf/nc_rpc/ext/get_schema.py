@@ -19,7 +19,8 @@ import structlog
 from netconf.nc_rpc.rpc import Rpc
 import netconf.nc_common.error as ncerror
 from netconf.constants import Constants as C
-from netconf.nc_common.utils import qmap, ns
+from netconf.nc_common.utils import qmap
+from twisted.internet.defer import inlineCallbacks, returnValue
 
 log = structlog.get_logger()
 
@@ -31,26 +32,28 @@ class GetSchema(Rpc):
         self.parse_schema_request(request_xml)
         self._validate_parameters()
 
+    @inlineCallbacks
     def execute(self):
         if self.rpc_response.is_error:
-            return(self.rpc_response)
+            returnValue(self.rpc_response)
 
         log.info('get-schema-request', session=self.session.session_id,
                  request=self.request)
 
         # Get the yang schema content
         # TODO: Use version as well
-        content = self.capabilities.get_schema_content(self.request['identifier'])
+        content = yield self.capabilities.get_schema_content(self.request[
+                                                            'identifier'])
         if not content:
             self.rpc_response.is_error = True
-            self.rpc_response.node = ncerror.BadMsg('Server Error')
-            return
+            self.rpc_response.node = ncerror.BadMsg(self.request_xml)
+            returnValue(self.rpc_response)
 
-        self.rpc_response.node = self.create_xml_response(content)
+        self.rpc_response.node = yield self.create_xml_response(content)
 
         self.rpc_response.is_error = False
 
-        return(self.rpc_response)
+        returnValue(self.rpc_response)
 
     def _validate_parameters(self):
         log.info('validate-parameters', session=self.session.session_id)
@@ -62,16 +65,14 @@ class GetSchema(Rpc):
                         not self.request.has_key('format') or \
                         not self.request.has_key('version'):
                     self.rpc_response.is_error = True
-                    self.rpc_response.node = ncerror.BadMsg('Improperly '
-                                                            'formatted get '
-                                                            'schemas request')
+                    self.rpc_response.node = ncerror.BadMsg(self.request_xml)
                     return
 
                 if self.request.has_key('filter'):
                     if not self.request.has_key('class'):
                         self.rpc_response.is_error = True
                         self.rpc_response.node = ncerror.BadMsg(
-                            'Missing filter sub-element')
+                            self.request_xml)
                         return
 
                 # Verify that the requested schema exists
@@ -79,8 +80,7 @@ class GetSchema(Rpc):
                                                              'identifier']) \
                         or self.request['format'] != 'yang' :
                     self.rpc_response.is_error = True
-                    self.rpc_response.node = ncerror.BadMsg(
-                        'Unsupported request')
+                    self.rpc_response.node = ncerror.BadMsg(self.request_xml)
                     return
 
             except Exception as e:

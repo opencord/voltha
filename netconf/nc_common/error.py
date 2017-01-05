@@ -72,19 +72,6 @@ class Error(Exception):
     XML_ERROR_SEV = "error-severity"
 
 
-    # def __init__(self, replynode=None, error_type=None, error_tag=None,
-    #              error_severity=None, error_tag_app=None, error_path=None,
-    #              error_message=None):
-    #
-    #     self.replynode = replynode
-    #     self.error_type = error_type
-    #     self.error_tag = error_tag
-    #     self.error_severity = error_severity
-    #     self.error_tag_app = error_tag_app
-    #     self.error_path = error_path
-    #     self.error_message = error_message
-    #     self.error_info = []
-
 class ChannelClosed(Error):
     pass
 
@@ -117,23 +104,23 @@ class RPCError(Error):
         if "severity" not in kwargs:
             etree.SubElement(rpcerr, Error.XML_ERROR_SEV).text = "error"
 
-        # Convert all remaining arguments to xml
-        for key, value in kwargs.items():
-            key = key.replace('_', '-')
-            etree.SubElement(rpcerr, "error-{}".format(key)).text = str(value)
+        # # Convert all remaining arguments to xml
+        # for key, value in kwargs.items():
+        #     key = key.replace('_', '-')
+        #     etree.SubElement(rpcerr, "error-{}".format(key)).text = str(value)
 
-        # super(RPCError, self).__init__(self.get_xml_reply())
-
-    def get_xml_reply(self):
-        return etree.tounicode(self.reply)
 
 
 class BadMsg(RPCError):
-    def __init__(self, origmsg):
-        RPCError.__init__(self,
-                          origmsg,
-                          Error.RPC,
-                          Error.MALFORMED_MESSAGE)
+    def __init__(self, origmsg, exception=None):
+        super(BadMsg, self).__init__(
+                            origmsg,
+                            Error.RPC,
+                            Error.MALFORMED_MESSAGE,
+                            info=str(exception))
+
+    def get_xml_reply(self):
+        return etree.tounicode(self.reply)
 
 
 class InvalidValue(Error):
@@ -143,6 +130,9 @@ class InvalidValue(Error):
                           Error.RPC,
                           Error.INVALID_VALUE,
                           **kwargs)
+    def get_xml_reply(self):
+        return etree.tounicode(self.reply)
+
 
 
 class MissingElement(RPCError):
@@ -153,6 +143,9 @@ class MissingElement(RPCError):
                           Error.MISSING_ELEMENT,
                           info=tag,
                           **kwargs)
+    def get_xml_reply(self):
+        return etree.tounicode(self.reply)
+
 
 
 class BadElement(RPCError):
@@ -164,6 +157,9 @@ class BadElement(RPCError):
                           info=element.tag,
                           **kwargs)
 
+    def get_xml_reply(self):
+        return etree.tounicode(self.reply)
+
 
 class UnknownElement(RPCError):
     def __init__(self, origmsg, element, **kwargs):
@@ -173,23 +169,31 @@ class UnknownElement(RPCError):
                           Error.UNKNOWN_ELEMENT,
                           info=element.tag,
                           **kwargs)
+    def get_xml_reply(self):
+        return etree.tounicode(self.reply)
 
 
 class NotImpl(RPCError):
     def __init__(self, origmsg, **kwargs):
         RPCError.__init__(self,
                           origmsg,
-                          Error.PROTOCOL,
+                          Error.APPLICATION,
                           Error.OPERATION_NOT_SUPPORTED,
                           **kwargs)
+    def get_xml_reply(self):
+        return etree.tounicode(self.reply)
+
 
 
 class ServerException(RPCError):
     def __init__(self, origmsg, exception, **kwargs):
         RPCError.__init__(self,
                           origmsg,
-                          Error.PROTOCOL,
+                          Error.APPLICATION,
                           Error.OPERATION_FAILED,
                           info=str(exception),
                           **kwargs)
+
+    def get_xml_reply(self):
+        return etree.tounicode(self.reply)
 

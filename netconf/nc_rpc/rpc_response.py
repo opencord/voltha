@@ -41,6 +41,9 @@ class RpcResponse():
             voltha_xml_string = voltha_xml_string[len('<yang>'):]
             if voltha_xml_string.endswith('</yang>'):
                 voltha_xml_string = voltha_xml_string[:-len('</yang>')]
+        # Empty response
+        elif voltha_xml_string.startswith('<yang/>'):
+            voltha_xml_string=''
 
         # Create the xml body as
         if request.has_key('subclass'):
@@ -151,6 +154,7 @@ class RpcResponse():
         # special case the xml contain a list type
         if len(elms) == 1:
             item = elms[0]
+            #TODO: Address the case where the content is a list of list
             if item.get('type') == 'list':
                 item.tag = 'ignore'
                 self.add_node(self.process_element(item), top)
