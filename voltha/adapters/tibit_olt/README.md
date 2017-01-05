@@ -1,44 +1,67 @@
 # Developer notes:
 
-Before auto-discovery is implemented, you can follow the steps below to activate a Tibit PON.
-These steps assume:
+Before auto-discovery is implemented, you can follow the steps below
+to activate a Tibit PON.  These steps assume:
 
+* Voltha code was downloaded and compiled successfully
 * Voltha starts with fresh state (was just launched in single-instance mode)
-* Tibit OLT and ONU(s) are powered on and properly connected with splitters.
-* There is network reach from Voltha's host environment to the Tibit OLT via
+* Tibit OLT and ONU(s) are powered on and properly connected with splitters
+* There is a network reachable from Voltha's host environment to the Tibit OLT via
   a specific interface of the host OS. We symbolically refer to this Linux
   interface as \<interface\>.
-* All commands are to be executed from the root dir of the voltha project after
-  env.sh was sourced, and at least 'make protos' was executed on the latest code.
+* All commands are to be executed from the root dir of the voltha project
 
 
-## Step 1: Launch Voltha with the proper interface value.
+## Step 1: Launch Voltha support applications and Chameleon
 
-```
-./voltha/main.py -I <interface>  # example: ./voltha/main.py -I eth2
-```
-
-## Step 2: Launch Chameleon (in a different terminal)
+Open a shell and execute the following commands.
 
 ```
-./chamaleon/main.py
+$ cd voltha
+$ . ./env.sh
+(venv-linux)$ docker-compose -f compose/docker-compose-system-test.yml up -d consul kafka zookeeper fluentd registrator
+```
+
+In the same shell, launch chameleon. The command below assumes that you are in the top level Voltha directory.
+
+```
+(venv-linux)$ ./chameleon/main.py
+```
+
+## Step 2: Launch Voltha with the proper interface value.
+
+Note: For Voltha to properly access the interface, it needs to be run with sudo priveleges.
+
+```
+$ sudo -s
+# cd ~/cord/incubator/voltha
+# . ./env.sh
+(venv-linux)# ./voltha/main.py --interface <interface>
+```
+
+Also, the interface being used for Voltha needs to be in promiscuous
+mode.  To set the interface in promiscuous mode, use the following
+command.
+
+```
+$ sudo ip link set <interface> promisc on
 ```
 
 ## Step 3: Verify Tibit adapters loaded
 
-In a third terminal, issue the following RESt requests:
+In a third terminal, issue the following REST requests:
 
 ```
-curl -s http://localhost:8881/api/v1/local/adapters | jq
+$ curl -s http://localhost:8881/api/v1/local/adapters | jq
 ```
 
-This should list (among other entries) two entries for Tibit devices:
+This should list (among other entries) two entries for Tibit devices,
 one for the Tibit OLT and one for the Tibit ONU.
 
 The following request should show the device types supported:
 
 ```
-curl -s http://localhost:8881/api/v1/local/device_types | jq
+$ curl -s http://localhost:8881/api/v1/local/device_types | jq
 ```
 
 This should include two entries for Tibit devices, one for the OLT
@@ -53,9 +76,9 @@ curl -s -X POST -d '{"type": "tibit_olt", "mac_address": "00:0c:e2:31:06:00"}' \
     http://localhost:8881/api/v1/local/devices | jq '.' | tee olt.json
 ```
 
-This shall return with a complete Device JSON object, including a 12-character
-id of the new device and a preprovisioned state as admin state (it also saved the
-json blob in a olt.json file):
+This will return a complete Device JSON object, including a
+12-character id of the new device and a preprovisioned state as admin
+state (it also saved the json blob in a olt.json file):
 
 ```
 {
@@ -94,12 +117,14 @@ To activate the OLT, issue the following using the OLT_ID memorized above:
 curl -s -X POST http://localhost:8881/api/v1/local/devices/$OLT_ID/activate
 ```
 
-After this, if you retrieve the state of the OLT device, it should be enabled
-and in the 'ACTIVATING' operational status:
+After this, if you retrieve the state of the OLT device, it should be
+enabled and in the 'ACTIVE' operational status.  If it is not in the
+'ACTIVE' operational status it is likely that the handshake with the
+OLT device was not successful.
 
 ```
 curl http://localhost:8881/api/v1/local/devices/$OLT_ID | jq '.oper_status,.admin_state'
-"ACTIVATING"
+"ACTIVE"
 "ENABLED"
 ```
 When the device is ACTIVE, the logical devices and logical ports should be created.  To check
@@ -111,24 +136,14 @@ curl -s http://localhost:8881/api/v1/local/logical_devices | jq '.'
 curl -s http://localhost:8881/api/v1/local/logical_devices/47d2bb42a2c6/ports | jq '.'
 ```
 
-
-
-
-
-# OLD stuff
-
-[This will be moved to some other place soon.]
+## Running the ONOS olt-test
 
 To get the EOAM stack to work with the ONOS olt-test, the following
 command was used in the shell to launch the olt-test.
-
-NOTE: This command should soon be eliminated as the adapter should
-be started by VOLTHA. By running the commands as listed below, then
-the olt-test can take advantage of the virtual environment.
 
 ```
 $ cd <LOCATION_OF_VOLTHA>
 $ sudo -s
 # . ./env.sh
-(venv-linux) # PYTHONPATH=$HOME/dev/voltha/voltha/adapters/tibit ./oftest/oft --test-dir=olt-oftest/ -i 1@enp1s0f0 -i 2@enp1s0f1 --port 6633 -V 1.3 -t "olt_port=1;onu_port=2;in_out_port=1;device_type='tibit'" olt-complex.TestScenario1SingleOnu
+(venv-linux) # PYTHONPATH=$HOME/cord/incubator/voltha/voltha/extensions/eoam ./oftest/oft --test-dir=olt-oftest/ -i 1@enp1s0f0 -i 2@enp1s0f1 --port 6633 -V 1.3 -t "olt_port=1;onu_port=2;in_out_port=1;device_type='tibit'" olt-complex.TestScenario1SingleOnu
 ```
