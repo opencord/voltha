@@ -214,6 +214,7 @@ services:
   #
   netconf:
     image: cord/netconf
+    privileged: true
     command: [
       "/netconf/netconf/main.py",
       "-v",
@@ -224,7 +225,7 @@ services:
       "-v"
     ]
     ports:
-    - "1830:1830"
+    - "830:1830"
     depends_on:
     - consul
     - voltha
