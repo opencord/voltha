@@ -43,7 +43,7 @@ class RpcResponse():
                 voltha_xml_string = voltha_xml_string[:-len('</yang>')]
         # Empty response
         elif voltha_xml_string.startswith('<yang/>'):
-            voltha_xml_string=''
+            voltha_xml_string = ''
 
         # Create the xml body as
         if request.has_key('subclass'):
@@ -117,7 +117,10 @@ class RpcResponse():
         if (attrib == 'list'):
             if list(elem) is None:
                 return self.copy_basic_element(elem)
-            new_elem = etree.Element('ignore')
+            if elem.tag == 'items':
+                new_elem = etree.Element('items')
+            else:
+                new_elem = etree.Element('ignore')
             for elm in list(elem):
                 elm.tag = elem.tag
                 if elm.get('type') in ['list', 'dict']:
@@ -142,7 +145,7 @@ class RpcResponse():
         else:
             return self.copy_basic_element(elem)
 
-    def to_yang_xml(self, from_xml):
+    def to_yang_xml(self, from_xml, request):
         # Parse from_xml as follows:
         # 1.  Any element having a list attribute shoud have each item move 1 level
         #     up and retag using the parent tag
@@ -154,9 +157,16 @@ class RpcResponse():
         # special case the xml contain a list type
         if len(elms) == 1:
             item = elms[0]
-            #TODO: Address the case where the content is a list of list
+            # TODO: Address name 'items' clash when a list name is actually
+            # 'items'.
             if item.get('type') == 'list':
-                item.tag = 'ignore'
+                if request.has_key('subclass'):
+                    item.tag = request['subclass']
+                    # remove the subclass element in request to avoid duplicate tag
+                    del request['subclass']
+                else:
+                    item.tag = 'ignore'
+                # item.tag = 'ignore'
                 self.add_node(self.process_element(item), top)
                 return top
 
@@ -168,7 +178,7 @@ class RpcResponse():
 
     def build_yang_response(self, root, request):
         try:
-            yang_xml = self.to_yang_xml(root)
+            yang_xml = self.to_yang_xml(root, request)
             log.info('yang-xml', yang_xml=etree.tounicode(yang_xml,
                                                           pretty_print=True))
             return self.build_xml_response(request, yang_xml)

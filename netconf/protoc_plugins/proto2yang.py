@@ -37,7 +37,8 @@ import sys
 
 from jinja2 import Template
 from google.protobuf.compiler import plugin_pb2 as plugin
-from google.protobuf.descriptor_pb2 import DescriptorProto, FieldDescriptorProto
+from google.protobuf.descriptor_pb2 import DescriptorProto, \
+    FieldDescriptorProto
 from descriptor_parser import DescriptorParser
 import copy
 import yang_options_pb2
@@ -60,6 +61,43 @@ module ietf-{{ module.name }} {
         {% endif %}
         {% endfor %}
     {% endmacro %}
+
+
+    {% macro process_oneofs(oneofs, ref_msgs) %}
+
+        {% for key, value in oneofs.iteritems() %}
+        choice {{ key }} {
+        {% for field in value %}
+            case {{ field.name }} {
+            {% if field.type_ref %}
+                {% for dict_item in ref_msgs %}
+                    {% if dict_item.name == field.type %}
+                container {{ field.name }} {
+                    uses {{ set_module_prefix(field.type) }}
+                    description
+                        "{{ field.description }}";
+                        {% endif %}
+                {% endfor %}
+                }
+            {% else %}
+                leaf {{ field.name }} {
+                    {% if field.type == "decimal64" %}
+                    type {{ field.type }} {
+                        fraction-digits 5;
+                    }
+                    {% else %}
+                    type {{ set_module_prefix(field.type) }}
+                        {% endif %}
+                    description
+                        "{{ field.description }}";
+                }
+            {% endif %}
+            }
+        {% endfor %}
+        }
+        {% endfor %}
+    {% endmacro %}
+
 
     namespace "urn:opencord:params:xml:ns:voltha:ietf-{{ module.name }}";
     prefix {{ module.name }};
@@ -153,6 +191,11 @@ module ietf-{{ module.name }} {
         {% endif %}
 
         {% endfor %}
+
+        {% if message.oneofs %}
+        {{ process_oneofs(message.oneofs, module.referred_messages_with_keys) }}
+        {% endif %}
+
         {% for enum_type in message.enums %}
         typedef {{ enum_type.name }} {
             type enumeration {
@@ -224,17 +267,17 @@ def traverse_field_options(fields, prefix):
                 for fd, val in field.options.ListFields():
                     if fd.full_name == 'voltha.yang_inline_node':
                         field_options.append(
-                            {'name' : full_name,
-                             'option' : fd.full_name,
-                             'proto_name' : val.id,
-                             'proto_type' : val.type
+                            {'name': full_name,
+                             'option': fd.full_name,
+                             'proto_name': val.id,
+                             'proto_type': val.type
                              }
                         )
         return field_options
 
 
 def traverse_message_options(message_types, prefix):
-    message_options=[]
+    message_options = []
     for message_type in message_types:
         assert isinstance(message_type, DescriptorProto)
         full_name = prefix + '-' + message_type.name
@@ -246,8 +289,8 @@ def traverse_message_options(message_types, prefix):
                 if fd.full_name in ['voltha.yang_child_rule',
                                     'voltha.yang_message_rule']:
                     option_rules.append({
-                        'name' : fd.full_name,
-                        'value' : val
+                        'name': fd.full_name,
+                        'value': val
                     })
 
         # parse fields for options
@@ -259,14 +302,14 @@ def traverse_message_options(message_types, prefix):
         nested = message_type.nested_type
         if nested:
             nested_messages_options = traverse_message_options(nested,
-                                                              full_name)
+                                                               full_name)
 
         if option_rules or nested_messages_options or field_options:
             message_options.append(
                 {
                     'name': full_name,
                     'options': option_rules,
-                    'field_options' : field_options,
+                    'field_options': field_options,
                     'nested_options': nested_messages_options,
                 }
             )
@@ -282,6 +325,7 @@ def get_message_options(name, options):
             result = get_message_options(name, opt['nested_options'])
         if result:
             return result
+
 
 def get_field_options(name, options):
     result = None
@@ -314,8 +358,8 @@ def traverse_messages(message_types, prefix, referenced_messages):
         name = message_type['name']
 
         # parse the fields
-        fields = traverse_fields(message_type.get('field', []), full_name,
-                                 referenced_messages)
+        oneofs, fields = traverse_fields(message_type.get('field', []),
+                                         full_name, referenced_messages)
 
         # parse the enums
         enums = traverse_enums(message_type.get('enum_type', []), full_name)
@@ -330,6 +374,7 @@ def traverse_messages(message_types, prefix, referenced_messages):
                 'full_name': full_name,
                 'name': name,
                 'fields': fields,
+                'oneofs': oneofs,
                 'enums': enums,
                 'messages': nested_messages,
                 'description': remove_unsupported_characters(
@@ -341,7 +386,10 @@ def traverse_messages(message_types, prefix, referenced_messages):
 
 def traverse_fields(fields_desc, prefix, referenced_messages):
     fields = []
+    oneofs = {}
     for field in fields_desc:
+        # if field.get('oneof_index', None) >= 0:
+        #     print '{},{}'.format(field.get('name', ''), field.get('number'))
         assert field['_type'] == 'google.protobuf.FieldDescriptorProto'
         yang_base_type = is_base_type(field['type'])
         _type = get_yang_type(field)
@@ -351,22 +399,47 @@ def traverse_fields(fields_desc, prefix, referenced_messages):
         if is_enumeration(field['type']):
             referenced_messages.append(_type)
 
-        fields.append(
-            {
-                'full_name': prefix + '-' + field.get('name', ''),
-                'name': field.get('name', ''),
-                'label': field.get('label', ''),
-                'repeated': field['label'] == FieldDescriptor.LABEL_REPEATED,
-                'number': field.get('number', ''),
-                'options': field.get('options', ''),
-                'type_name': field.get('type_name', ''),
-                'type': _type,
-                'type_ref': not yang_base_type,
-                'description': remove_unsupported_characters(field.get(
-                    '_description', ''))
-            }
-        )
-    return fields
+        if field.get('oneof_index', None) >= 0:
+            # Oneof fields
+            key = ''.join(['choice_', str(field['oneof_index'])])
+            if not oneofs.has_key(key):
+                oneofs[key] = []
+            oneofs[key].append(
+                {
+                    'full_name': prefix + '-' + field.get('name', ''),
+                    'oneof_index': field.get('oneof_index', None),
+                    'name': field.get('name', ''),
+                    'label': field.get('label', ''),
+                    'repeated': field[
+                                    'label'] == FieldDescriptor.LABEL_REPEATED,
+                    'number': field.get('number', ''),
+                    'options': field.get('options', ''),
+                    'type_name': field.get('type_name', ''),
+                    'type': _type,
+                    'type_ref': not yang_base_type,
+                    'description': remove_unsupported_characters(field.get(
+                        '_description', ''))
+                }
+            )
+        else:
+            fields.append(
+                {
+                    'full_name': prefix + '-' + field.get('name', ''),
+                    'name': field.get('name', ''),
+                    'label': field.get('label', ''),
+                    'repeated': field[
+                                    'label'] == FieldDescriptor.LABEL_REPEATED,
+                    'number': field.get('number', ''),
+                    'options': field.get('options', ''),
+                    'type_name': field.get('type_name', ''),
+                    'type': _type,
+                    'type_ref': not yang_base_type,
+                    'description': remove_unsupported_characters(field.get(
+                        '_description', ''))
+                }
+            )
+    # print oneofs
+    return oneofs, fields
 
 
 def traverse_enums(enums_desc, prefix):
@@ -456,7 +529,7 @@ def traverse_desc(descriptor):
     # Get a list of type definitions (messages, enums) defined in this
     # descriptor
     defined_types = [m['name'].split('/')[-1] for m in messages] + \
-                    [e['name'].split('/')[-1]  for e in enums]
+                    [e['name'].split('/')[-1] for e in enums]
 
     data = {
         'name': name.split('/')[-1],
@@ -465,7 +538,7 @@ def traverse_desc(descriptor):
         'messages': messages,
         'enums': enums,
         'services': services,
-        'defined_types' : defined_types,
+        'defined_types': defined_types,
         'referenced_messages': list(set(referenced_messages)),
     }
     return data
@@ -491,6 +564,7 @@ def move_message_to_parent_level(message, messages, enums):
                         'full_name': msg['full_name'],
                         'name': msg['name'],
                         'fields': msg['fields'],
+                        'oneofs': msg['oneofs'],
                         'description': msg['description'],
                         'messages': [],
                         'enums': []
@@ -512,14 +586,16 @@ def update_messages_per_annotations_rule(options, messages, enums):
         if opts:
             for opt in opts:
                 if opt['name'] == 'voltha.yang_child_rule':
-                    new_messages, new_enums = move_message_to_parent_level(message,
-                                                 new_messages, new_enums)
+                    new_messages, new_enums = move_message_to_parent_level(
+                        message,
+                        new_messages, new_enums)
                 elif opt['name'] == 'voltha.yang_message_rule':
                     # create a duplicate message
-                    #TODO: update references to point to the
+                    # TODO: update references to point to the
                     duplicate_messages.append(message['name'])
                     clone = copy.deepcopy(message)
-                    clone['full_name'] = ''.join([clone['full_name'], '_', 'grouping'])
+                    clone['full_name'] = ''.join(
+                        [clone['full_name'], '_', 'grouping'])
                     clone['name'] = ''.join([clone['name'], '_', 'grouping'])
                     new_messages = new_messages + [clone]
 
@@ -540,14 +616,17 @@ def inline_field(message, field, option, messages):
                     # Copy all content of m into the field
                     new_message['fields'] = new_message['fields'] + \
                                             copy.deepcopy(m['fields'])
+                    new_message['oneofs'] = new_message['oneofs'].update(
+                        copy.deepcopy(m['oneofs']))
                     new_message['enums'] = new_message['enums'] + \
                                            copy.deepcopy(m['enums'])
                     new_message['messages'] = new_message['messages'] + \
-                                           copy.deepcopy(m['messages'])
+                                              copy.deepcopy(m['messages'])
         else:
             new_message['fields'].append(f)
 
     return new_message
+
 
 # Address only annotations on top-level messages, i.e. no nested messages
 def update_fields_per_annotations_rule(options, messages):
@@ -558,7 +637,7 @@ def update_fields_per_annotations_rule(options, messages):
             opt = get_field_options(field['full_name'], options)
             if opt:
                 if opt['option'] == 'voltha.yang_inline_node':
-                    new_message = inline_field(message, field, opt,  messages)
+                    new_message = inline_field(message, field, opt, messages)
 
         if new_message:
             new_messages.append(new_message)
@@ -568,12 +647,12 @@ def update_fields_per_annotations_rule(options, messages):
     return new_messages
 
 
-
 def set_messages_keys(messages):
     for message in messages:
         message['key'] = _get_message_key(message, messages)
         if message['messages']:
             set_messages_keys(message['messages'])
+
 
 def _get_message_key(message, messages):
     # assume key is first yang base type field
@@ -595,11 +674,13 @@ def _get_message_key(message, messages):
     else:
         return None
 
+
 def _get_message(name, messages):
     for m in messages:
         if m['name'] == name:
             return m
     return None
+
 
 def get_message_key(message_name, messages):
     for message in messages:
@@ -618,7 +699,7 @@ def update_module_imports(module):
                 if module['name'] != type_dict['module']:
                     used_imports.add(type_dict['module'])
                 break
-    module['imports'] = [{'name' : i} for i in used_imports]
+    module['imports'] = [{'name': i} for i in used_imports]
 
 
 def update_referred_messages(all_referred_messages, all_duplicate_messages):
@@ -631,6 +712,7 @@ def update_referred_messages(all_referred_messages, all_duplicate_messages):
 
     return new_referred_messages
 
+
 def update_message_references_based_on_duplicates(duplicates, messages):
     # Duplicates has a list of messages that exist both as a grouping and as
     # a container.   All reference to the container name by existing fields
@@ -641,7 +723,8 @@ def update_message_references_based_on_duplicates(duplicates, messages):
                 f['type'] = ''.join([f['type'], '_grouping'])
         if m['messages']:
             update_message_references_based_on_duplicates(duplicates,
-                                                      m['messages'])
+                                                          m['messages'])
+
 
 def update_servic_references_based_on_duplicates(duplicates, services):
     # Duplicates has a list of messages that exist both as a grouping and as
@@ -679,20 +762,21 @@ def generate_code(request, response):
 
         duplicates = []
         if options:
-            new_messages, new_enums, duplicates  = \
+            new_messages, new_enums, duplicates = \
                 update_messages_per_annotations_rule(
-                options, yang_data['messages'], yang_data['enums'])
+                    options, yang_data['messages'], yang_data['enums'])
 
             new_messages = update_fields_per_annotations_rule(options,
-                                                            new_messages)
+                                                              new_messages)
 
             # TODO:  Need to do the change across all schema files.  Not
             # needed as annotations are single file based for now
             if duplicates:
                 update_message_references_based_on_duplicates(duplicates,
-                                                        new_messages)
+                                                              new_messages)
                 update_servic_references_based_on_duplicates(duplicates,
-                                                             yang_data['services'])
+                                                             yang_data[
+                                                                 'services'])
 
             yang_data['messages'] = new_messages
             yang_data['enums'] = new_enums
@@ -700,16 +784,15 @@ def generate_code(request, response):
         for type in yang_data['defined_types']:
             all_defined_types.append(
                 {
-                    'type' : type,
-                    'module' : yang_data['name']
+                    'type': type,
+                    'module': yang_data['name']
                 }
             )
-
 
         all_proto_data.append(
             {
                 'file_name': '{}-{}'.format('ietf', proto_file.name.split(
-                    '/')[-1].replace('.proto','.yang')),
+                    '/')[-1].replace('.proto', '.yang')),
                 'module': yang_data
             }
         )
@@ -718,24 +801,26 @@ def generate_code(request, response):
         all_duplicate_messages = all_duplicate_messages + duplicates
 
         # Consolidate referred messages across imports
-        all_referred_messages = all_referred_messages + yang_data['referenced_messages']
+        all_referred_messages = all_referred_messages + yang_data[
+            'referenced_messages']
 
         # consolidate all messages
         all_messages = all_messages + yang_data['messages']
 
-    # Update the referred_messages
-    all_referred_messages = update_referred_messages(all_referred_messages, all_duplicate_messages)
+    # # Update the referred_messages
+    all_referred_messages = update_referred_messages(all_referred_messages,
+                                                     all_duplicate_messages)
 
     # Set the message keys - required for List definitions (repeated label)
     set_messages_keys(all_messages)
     unique_referred_messages_with_keys = []
     for m in all_messages:
         unique_referred_messages_with_keys.append(
-                {
-                    'name': m['name'],
-                    'key': m['key']
-                }
-            )
+            {
+                'name': m['name'],
+                'key': m['key']
+            }
+        )
 
     # print_referred_msg(unique_referred_messages_with_keys)
     # Create the files
@@ -744,7 +829,8 @@ def generate_code(request, response):
         f.name = proto_data['file_name']
         proto_data['module']['data_types'] = all_defined_types
         proto_data['module']['referred_messages'] = all_referred_messages
-        proto_data['module']['referred_messages_with_keys'] = unique_referred_messages_with_keys
+        proto_data['module'][
+            'referred_messages_with_keys'] = unique_referred_messages_with_keys
         proto_data['module']['duplicates'] = all_duplicate_messages
         update_module_imports(proto_data['module'])
         # print_message(proto_data['module']['messages'])
@@ -762,11 +848,13 @@ def get_yang_type(field):
     else:
         return type
 
+
 def is_enumeration(type):
     if type in YANG_TYPE_MAP.keys():
         _type, _ = YANG_TYPE_MAP[type]
         return _type in ['enumeration']
     return False
+
 
 def is_base_type(type):
     # check numeric value of the type first
