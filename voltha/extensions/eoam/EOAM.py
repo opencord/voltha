@@ -163,6 +163,10 @@ if __name__ == "__main__":
                         help='Run commands under test')
     parser.add_argument('-te', '--test_eapol', dest='test_eapol', action='store_true', default=False,
                         help='Run commands under test')
+    parser.add_argument('-ti', '--test_igmp', dest='test_igmp', action='store_true', default=False,
+                        help='Run commands under test')
+    parser.add_argument('-th', '--test_dhcp', dest='test_dhcp', action='store_true', default=False,
+                        help='Run commands under test')
     parser.add_argument('-tu', '--test_upstream', dest='test_upstream', action='store_true', default=False,
                         help='Run commands under test')
     parser.add_argument('-td', '--test_downstream', dest='test_downstream', action='store_true', default=False,
@@ -192,6 +196,8 @@ if __name__ == "__main__":
         and not args.test_add
         and not args.test_clr
         and not args.test_eapol
+        and not args.test_igmp
+        and not args.test_dhcp
         and not args.test_upstream
         and not args.test_downstream
         and not args.test_multicast):
@@ -222,23 +228,108 @@ if __name__ == "__main__":
         #################################################################################
         ## EAPOL
         #################################################################################
-        print 'SET - Port Ingress Rule -- DOLT Port Object -- EAPOL'
-        eoam.set_request(DOLTObject()/
+        Clause = {v: k for k, v in ClauseSubtypeEnum.iteritems()}
+        Operator = {v: k for k, v in RuleOperatorEnum.iteritems()}
+
+        print 'SET - Port Ingress Rule -- PON Port Object -- EAPOL'
+        eoam.set_request(PonPortObject()/
                          PortIngressRuleHeader(precedence=32)/
-                         PortIngressRuleClauseMatchLength02(fieldcode=3, operator=1, match0=0x88, match1=0x8e)/
+                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['L2 Type/Len'],
+                                                            operator=Operator['=='], match=0x888e)/
                          PortIngressRuleResultForward()/
-                         PortIngressRuleResultSet(fieldcode=7, value=4090)/
-                         PortIngressRuleResultInsert(fieldcode=7)/
+                         PortIngressRuleResultSet(fieldcode=Clause['C-VLAN Tag'], value=4090)/
+                         PortIngressRuleResultInsert(fieldcode=Clause['C-VLAN Tag'])/
                          PortIngressRuleTerminator()/
                          AddPortIngressRule())
 
-        print 'Delete - Port Ingress Rule -- DOLT Port Object -- EAPOL'
-        eoam.set_request(DOLTObject()/
+        time.sleep(3)
+
+        print 'Delete - Port Ingress Rule -- PON Port Object -- EAPOL'
+        eoam.set_request(PonPortObject()/
                          PortIngressRuleHeader(precedence=32)/
-                         PortIngressRuleClauseMatchLength02(fieldcode=3, operator=1, match0=0x88, match1=0x8e)/
+                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['L2 Type/Len'],
+                                                            operator=Operator['=='], match=0x888e)/
                          PortIngressRuleResultForward()/
-                         PortIngressRuleResultSet(fieldcode=7, value=4090)/
-                         PortIngressRuleResultInsert(fieldcode=7)/
+                         PortIngressRuleResultSet(fieldcode=Clause['C-VLAN Tag'], value=4090)/
+                         PortIngressRuleResultInsert(fieldcode=Clause['C-VLAN Tag'])/
+                         PortIngressRuleTerminator()/
+                         DeletePortIngressRule())
+
+    if (args.test_igmp == True):
+        #################################################################################
+        ## IGMP
+        #################################################################################
+        Clause = {v: k for k, v in ClauseSubtypeEnum.iteritems()}
+        Operator = {v: k for k, v in RuleOperatorEnum.iteritems()}
+
+        print 'SET - Port Ingress Rule -- PON Port Object -- IGMP'
+        eoam.set_request(PonPortObject()/
+                         PortIngressRuleHeader(precedence=13)/
+                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['L2 Type/Len'],
+                                                            operator=Operator['=='], match=0x0800)/
+                         PortIngressRuleClauseMatchLength01(fieldcode=Clause['IPv4/IPv6 Protocol Type'],
+                                                            operator=Operator['=='], match=0x02)/
+                         PortIngressRuleResultForward()/
+                         PortIngressRuleResultSet(fieldcode=Clause['C-VLAN Tag'], value=4000)/
+                         PortIngressRuleResultInsert(fieldcode=Clause['C-VLAN Tag'])/
+                         PortIngressRuleTerminator()/
+                         AddPortIngressRule())
+
+        time.sleep(3)
+
+        print 'Delete - Port Ingress Rule -- PON Port Object -- IGMP'
+        eoam.set_request(PonPortObject()/
+                         PortIngressRuleHeader(precedence=13)/
+                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['L2 Type/Len'],
+                                                            operator=Operator['=='], match=0x0800)/
+                         PortIngressRuleClauseMatchLength01(fieldcode=Clause['IPv4/IPv6 Protocol Type'],
+                                                            operator=Operator['=='], match=0x02)/
+                         PortIngressRuleResultForward()/
+                         PortIngressRuleResultSet(fieldcode=Clause['C-VLAN Tag'], value=4000)/
+                         PortIngressRuleResultInsert(fieldcode=Clause['C-VLAN Tag'])/
+                         PortIngressRuleTerminator()/
+                         DeletePortIngressRule())
+
+    if (args.test_dhcp == True):
+        #################################################################################
+        ## DHCP
+        #################################################################################
+        Clause = {v: k for k, v in ClauseSubtypeEnum.iteritems()}
+        Operator = {v: k for k, v in RuleOperatorEnum.iteritems()}
+
+        print 'SET - Port Ingress Rule -- PON Port Object -- DHCP'
+        eoam.set_request(PonPortObject()/
+                         PortIngressRuleHeader(precedence=13)/
+                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['L2 Type/Len'],
+                                                            operator=Operator['=='], match=0x0800)/
+                         PortIngressRuleClauseMatchLength01(fieldcode=Clause['IPv4/IPv6 Protocol Type'],
+                                                            operator=Operator['=='], match=0x11)/
+                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['TCP/UDP source port'],
+                                                            operator=Operator['=='], match=0x0044)/
+                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['TCP/UDP destination port'],
+                                                            operator=Operator['=='], match=0x0043)/
+                         PortIngressRuleResultForward()/
+                         PortIngressRuleResultSet(fieldcode=Clause['C-VLAN Tag'], value=4000)/
+                         PortIngressRuleResultInsert(fieldcode=Clause['C-VLAN Tag'])/
+                         PortIngressRuleTerminator()/
+                         AddPortIngressRule())
+
+        time.sleep(3)
+
+        print 'Delete - Port Ingress Rule -- PON Port Object -- DHCP'
+        eoam.set_request(PonPortObject()/
+                         PortIngressRuleHeader(precedence=13)/
+                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['L2 Type/Len'],
+                                                            operator=Operator['=='], match=0x0800)/
+                         PortIngressRuleClauseMatchLength01(fieldcode=Clause['IPv4/IPv6 Protocol Type'],
+                                                            operator=Operator['=='], match=0x11)/
+                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['TCP/UDP source port'],
+                                                            operator=Operator['=='], match=0x0044)/
+                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['TCP/UDP destination port'],
+                                                            operator=Operator['=='], match=0x0043)/
+                         PortIngressRuleResultForward()/
+                         PortIngressRuleResultSet(fieldcode=Clause['C-VLAN Tag'], value=4000)/
+                         PortIngressRuleResultInsert(fieldcode=Clause['C-VLAN Tag'])/
                          PortIngressRuleTerminator()/
                          DeletePortIngressRule())
 
@@ -246,35 +337,35 @@ if __name__ == "__main__":
         #################################################################################
         ## UPSTREAM
         #################################################################################
-        ClauseFields = {v: k for k, v in ClauseSubtypeEnum.iteritems()}
-        OperatorFields = {v: k for k, v in RuleOperatorEnum.iteritems()}
+        Clause = {v: k for k, v in ClauseSubtypeEnum.iteritems()}
+        Operator = {v: k for k, v in RuleOperatorEnum.iteritems()}
 
         print 'SET - Port Ingress Rule -- OLT Unicast Logical Link -- Upstream Traffic'
         eoam.set_request(OLTUnicastLogicalLink(unicastvssn="TBIT", unicastlink=0xe2222900)/
                          PortIngressRuleHeader(precedence=13)/
-                         PortIngressRuleClauseMatchLength02(fieldcode=ClauseFields['C-VLAN Tag'], fieldinstance=0,
-                                                            operator=OperatorFields['=='], match0=0x00, match1=0xf1)/
+                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
+                                                            operator=Operator['=='], match=0x00f1)/
                          PortIngressRuleResultForward()/
-                         PortIngressRuleResultCopy(fieldcode=ClauseFields['C-VLAN Tag'])/
-                         PortIngressRuleResultInsert(fieldcode=ClauseFields['C-VLAN Tag'], fieldinstance=1)/
-                         PortIngressRuleResultSet(fieldcode=ClauseFields['C-VLAN Tag'], value=1000)/
-                         PortIngressRuleResultReplace(fieldcode=ClauseFields['C-VLAN Tag'])/
+                         PortIngressRuleResultCopy(fieldcode=Clause['C-VLAN Tag'])/
+                         PortIngressRuleResultInsert(fieldcode=Clause['C-VLAN Tag'], fieldinstance=1)/
+                         PortIngressRuleResultSet(fieldcode=Clause['C-VLAN Tag'], value=1000)/
+                         PortIngressRuleResultReplace(fieldcode=Clause['C-VLAN Tag'])/
                          PortIngressRuleTerminator()/
                          AddPortIngressRule())
 
 
-        time.sleep(15)
+        time.sleep(3)
 
         print 'DELETE - Port Ingress Rule -- OLT Unicast Logical Link -- Upstream Traffic'
         eoam.set_request(OLTUnicastLogicalLink(unicastvssn="TBIT", unicastlink=0xe2222900)/
                          PortIngressRuleHeader(precedence=13)/
-                         PortIngressRuleClauseMatchLength02(fieldcode=ClauseFields['C-VLAN Tag'], fieldinstance=0,
-                                                            operator=OperatorFields['=='], match0=0x00, match1=0xf1)/
+                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
+                                                            operator=Operator['=='], match=0x00f1)/
                          PortIngressRuleResultForward()/
-                         PortIngressRuleResultCopy(fieldcode=ClauseFields['C-VLAN Tag'])/
-                         PortIngressRuleResultInsert(fieldcode=ClauseFields['C-VLAN Tag'], fieldinstance=1)/
-                         PortIngressRuleResultSet(fieldcode=ClauseFields['C-VLAN Tag'], value=1000)/
-                         PortIngressRuleResultReplace(fieldcode=ClauseFields['C-VLAN Tag'])/
+                         PortIngressRuleResultCopy(fieldcode=Clause['C-VLAN Tag'])/
+                         PortIngressRuleResultInsert(fieldcode=Clause['C-VLAN Tag'], fieldinstance=1)/
+                         PortIngressRuleResultSet(fieldcode=Clause['C-VLAN Tag'], value=1000)/
+                         PortIngressRuleResultReplace(fieldcode=Clause['C-VLAN Tag'])/
                          PortIngressRuleTerminator()/
                          DeletePortIngressRule())
 
@@ -282,35 +373,35 @@ if __name__ == "__main__":
         #################################################################################
         ## DOWNSTREAM
         #################################################################################
-        ClauseFields = {v: k for k, v in ClauseSubtypeEnum.iteritems()}
-        OperatorFields = {v: k for k, v in RuleOperatorEnum.iteritems()}
+        Clause = {v: k for k, v in ClauseSubtypeEnum.iteritems()}
+        Operator = {v: k for k, v in RuleOperatorEnum.iteritems()}
 
         print 'SET - Port Ingress Rule -- NNI Port Object -- Downstream Traffic'
         eoam.set_request(NetworkToNetworkPortObject()/
                          PortIngressRuleHeader(precedence=13)/
-                         PortIngressRuleClauseMatchLength02(fieldcode=ClauseFields['C-VLAN Tag'], fieldinstance=0,
-                                                            operator=OperatorFields['=='], match0=0x0f, match1=0xa0)/
-                         PortIngressRuleClauseMatchLength02(fieldcode=ClauseFields['C-VLAN Tag'], fieldinstance=1,
-                                                            operator=OperatorFields['=='], match0=0x00, match1=0xf1)/
+                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
+                                                            operator=Operator['=='], match=0x0fa0)/
+                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=1,
+                                                            operator=Operator['=='], match=0x00f1)/
                          PortIngressRuleResultOLTQueue(unicastvssn="TBIT", unicastlink=0xe2222900)/
                          PortIngressRuleResultForward()/
-                         PortIngressRuleResultDelete(fieldcode=ClauseFields['C-VLAN Tag'])/
+                         PortIngressRuleResultDelete(fieldcode=Clause['C-VLAN Tag'])/
                          PortIngressRuleTerminator()/
                          AddPortIngressRule())
 
 
-        time.sleep(15)
+        time.sleep(3)
 
         print 'DELETE - Port Ingress Rule -- NNI Port Object -- Downstream Traffic'
         eoam.set_request(NetworkToNetworkPortObject()/
                          PortIngressRuleHeader(precedence=13)/
-                         PortIngressRuleClauseMatchLength02(fieldcode=ClauseFields['C-VLAN Tag'], fieldinstance=0,
-                                                            operator=OperatorFields['=='], match0=0x0f, match1=0xa0)/
-                         PortIngressRuleClauseMatchLength02(fieldcode=ClauseFields['C-VLAN Tag'], fieldinstance=1,
-                                                            operator=OperatorFields['=='], match0=0x00, match1=0xf1)/
+                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
+                                                            operator=Operator['=='], match=0x0fa0)/
+                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=1,
+                                                            operator=Operator['=='], match=0x00f1)/
                          PortIngressRuleResultOLTQueue(unicastvssn="TBIT", unicastlink=0xe2222900)/
                          PortIngressRuleResultForward()/
-                         PortIngressRuleResultDelete(fieldcode=ClauseFields['C-VLAN Tag'])/
+                         PortIngressRuleResultDelete(fieldcode=Clause['C-VLAN Tag'])/
                          PortIngressRuleTerminator()/
                          DeletePortIngressRule())
 
@@ -318,30 +409,30 @@ if __name__ == "__main__":
         #################################################################################
         ## MULTICAST
         #################################################################################
-        ClauseFields = {v: k for k, v in ClauseSubtypeEnum.iteritems()}
-        OperatorFields = {v: k for k, v in RuleOperatorEnum.iteritems()}
+        Clause = {v: k for k, v in ClauseSubtypeEnum.iteritems()}
+        Operator = {v: k for k, v in RuleOperatorEnum.iteritems()}
 
         print 'SET - Port Ingress Rule -- NNI Port Object -- Downstream Multicast Traffic'
         eoam.set_request(NetworkToNetworkPortObject()/
                          PortIngressRuleHeader(precedence=13)/
-                         PortIngressRuleClauseMatchLength02(fieldcode=ClauseFields['C-VLAN Tag'], fieldinstance=0,
-                                                            operator=OperatorFields['=='], match0=0x00, match1=0x8c)/
+                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
+                                                            operator=Operator['=='], match=0x008c)/
                          PortIngressRuleResultOLTBroadcastQueue()/
                          PortIngressRuleResultForward()/
-                         PortIngressRuleResultDelete(fieldcode=ClauseFields['C-VLAN Tag'])/
+                         PortIngressRuleResultDelete(fieldcode=Clause['C-VLAN Tag'])/
                          PortIngressRuleTerminator()/
                          AddPortIngressRule())
 
 
-        time.sleep(15)
+        time.sleep(3)
 
         print 'DELETE - Port Ingress Rule -- NNI Port Object -- Downstream Multicast Traffic'
         eoam.set_request(NetworkToNetworkPortObject()/
                          PortIngressRuleHeader(precedence=13)/
-                         PortIngressRuleClauseMatchLength02(fieldcode=ClauseFields['C-VLAN Tag'], fieldinstance=0,
-                                                            operator=OperatorFields['=='], match0=0x00, match1=0x8c)/
+                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
+                                                            operator=Operator['=='], match=0x008c)/
                          PortIngressRuleResultOLTBroadcastQueue()/
                          PortIngressRuleResultForward()/
-                         PortIngressRuleResultDelete(fieldcode=ClauseFields['C-VLAN Tag'])/
+                         PortIngressRuleResultDelete(fieldcode=Clause['C-VLAN Tag'])/
                          PortIngressRuleTerminator()/
                          DeletePortIngressRule())

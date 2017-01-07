@@ -796,14 +796,14 @@ ClauseSubtypeEnum = {0x00: "LLID Index",
                      0x1f: "Custom field 7",
                      }
 
-RuleOperatorEnum = { 0x00: "F",             #False
+RuleOperatorEnum = { 0x00: "F",           #False
                      0x01: "==",
                      0x02: "!=",
                      0x03: "<=",
                      0x04: ">=",
                      0x05: "exists",
                      0x06: "!exist",
-                     0x07: "T",
+                     0x07: "T",           #True
                      }
 
 class PortIngressRule(Packet):
@@ -851,7 +851,7 @@ class PortIngressRuleClauseMatchLength01(Packet):
                    XByteField("lsbmask", 0),
                    XByteField("operator", 0),
                    XByteField("matchlength", 1),
-                   XByteField("match0", 0),
+                   XByteField("match", 0),
                    ]
 
 class PortIngressRuleClauseMatchLength02(Packet):
@@ -867,8 +867,7 @@ class PortIngressRuleClauseMatchLength02(Packet):
                    XByteField("lsbmask", 0),
                    XByteField("operator", 0),
                    XByteField("matchlength", 2),
-                   XByteField("match0", 0),
-                   XByteField("match1", 0),
+                   XShortField("match", 0),
                    ]
 
 

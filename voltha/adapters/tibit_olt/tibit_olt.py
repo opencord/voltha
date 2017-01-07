@@ -36,7 +36,8 @@ from voltha.extensions.eoam.EOAM_TLV import DOLTObject, \
     PortIngressRuleResultSet, PortIngressRuleResultInsert, \
     PortIngressRuleTerminator, AddPortIngressRule, CablelabsOUI, PonPortObject
 from voltha.extensions.eoam.EOAM_TLV import PortIngressRuleHeader
-from voltha.extensions.eoam.EOAM_TLV import ClauseSubtypeEnum as Clause
+from voltha.extensions.eoam.EOAM_TLV import ClauseSubtypeEnum
+from voltha.extensions.eoam.EOAM_TLV import RuleOperatorEnum
 from voltha.core.flow_decomposer import *
 from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.protos.adapter_pb2 import Adapter, AdapterConfig
@@ -405,7 +406,8 @@ class TibitOltAdapter(object):
 
         assert len(groups.items) == 0, "Cannot yet deal with groups"
 
-        ClauseFields = {v: k for k, v in Clause.iteritems()}
+        Clause = {v: k for k, v in ClauseSubtypeEnum.iteritems()}
+        Operator = {v: k for k, v in RuleOperatorEnum.iteritems()}
 
         for flow in flows.items:
             in_port = get_in_port(flow)
@@ -421,13 +423,12 @@ class TibitOltAdapter(object):
                 for field in get_ofb_fields(flow):
 
                     if field.type == ETH_TYPE:
-                        log.info('#### field.type == ETH_TYPE ####')
                         _type = field.eth_type
+                        log.info('#### field.type == ETH_TYPE ####')
                         dn_req /= PortIngressRuleClauseMatchLength02(
-                            fieldcode=ClauseFields['L2 Type/Len'],
-                            operator=1,
-                            match0=(_type >> 8) & 0xff,
-                            match1=_type & 0xff)
+                            fieldcode=Clause['L2 Type/Len'],
+                            operator=Operator['=='],
+                            match=_type)
 
                     elif field.type == IP_PROTO:
                         _proto = field.ip_proto
@@ -470,7 +471,7 @@ class TibitOltAdapter(object):
                         if action.push.ethertype != 0x8100:
                             log.error('unhandled-ether-type',
                                       ethertype=action.push.ethertype)
-                            dn_req /= PortIngressRuleResultInsert(fieldcode=ClauseFields['C-VLAN Tag'])
+                            dn_req /= PortIngressRuleResultInsert(fieldcode=Clause['C-VLAN Tag'])
 
                     elif action.type == SET_FIELD:
                         assert (action.set_field.field.oxm_class ==
@@ -478,7 +479,7 @@ class TibitOltAdapter(object):
                         field = action.set_field.field.ofb_field
                         if field.type == VLAN_VID:
                             dn_req /= PortIngressRuleResultSet(
-                                fieldcode=ClauseFields['C-VLAN Tag'], value=field.vlan_vid & 0xfff)
+                                fieldcode=Clause['C-VLAN Tag'], value=field.vlan_vid & 0xfff)
                         else:
                             log.error('unsupported-action-set-field-type',
                                       field_type=field.type)
@@ -509,10 +510,9 @@ class TibitOltAdapter(object):
                     if field.type == ETH_TYPE:
                         _type = field.eth_type
                         up_req /= PortIngressRuleClauseMatchLength02(
-                            fieldcode=ClauseFields['L2 Type/Len'],
+                            fieldcode=Clause['L2 Type/Len'],
                             operator=1,
-                            match0=(_type >> 8) & 0xff,
-                            match1=_type & 0xff)
+                            match=_type)
 
                     elif field.type == IP_PROTO:
                         _proto = field.ip_proto
@@ -555,7 +555,7 @@ class TibitOltAdapter(object):
                         if action.push.ethertype != 0x8100:
                             log.error('unhandled-ether-type',
                                       ethertype=action.push.ethertype)
-                        up_req /= PortIngressRuleResultInsert(fieldcode=ClauseFields['C-VLAN Tag'])
+                        up_req /= PortIngressRuleResultInsert(fieldcode=Clause['C-VLAN Tag'])
 
                     elif action.type == SET_FIELD:
                         assert (action.set_field.field.oxm_class ==
@@ -563,7 +563,7 @@ class TibitOltAdapter(object):
                         field = action.set_field.field.ofb_field
                         if field.type == VLAN_VID:
                             up_req /= PortIngressRuleResultSet(
-                                fieldcode=ClauseFields['C-VLAN Tag'], value=field.vlan_vid & 0xfff)
+                                fieldcode=Clause['C-VLAN Tag'], value=field.vlan_vid & 0xfff)
                         else:
                             log.error('unsupported-action-set-field-type',
                                       field_type=field.type)
