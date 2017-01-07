@@ -13,6 +13,7 @@
 from scapy.packet import Packet
 from scapy.fields import ByteEnumField, XShortField, XByteField, MACField, \
     ByteField, BitEnumField, BitField
+from scapy.fields import XLongField, StrField, XIntField
 
 # This library strives to be an implementation of the following standard:
 
@@ -20,6 +21,13 @@ from scapy.fields import ByteEnumField, XShortField, XByteField, MACField, \
 
 # This library may be used with PON devices for
 # configuration and provisioning.
+
+## Note on Deviations:
+
+## Tibit endeavors to use DPoE OAM for not only communicating with DpOE ONUs,
+## but also to communicate with the Tibit OLT Microplug.  In places where this
+## document deviates from the DPoE standard for ONUs, Tibit has added a comment
+## __TIBIT_OLT_OAM__
 
 TIBIT_VERSION_NUMBER = '1.1.4'
 
@@ -141,16 +149,17 @@ class DONUObject(Packet):
     fields_desc = [XByteField("branch", 0xD6),
                    XShortField("leaf", 0x0000),
                    XByteField("length", 1),
-                   XByteField("num", 0)
+                   XByteField("number", 0)
                    ]
 
+# __TIBIT_OLT_OAM__: Defined by Tibit
 class DOLTObject(Packet):
     """ Object Context: D-OLT Object """
     name = "Object Context: D-OLT Object"
     fields_desc = [XByteField("branch", 0xD6),
                    XShortField("leaf", 0x0000),
                    XByteField("length", 1),
-                   XByteField("num", 0)
+                   XByteField("number", 0)
                    ]
 
 class NetworkPortObject(Packet):
@@ -159,16 +168,17 @@ class NetworkPortObject(Packet):
     fields_desc = [XByteField("branch", 0xD6),
                    XShortField("leaf", 0x0001),
                    XByteField("length", 1),
-                   XByteField("num", 0)
+                   XByteField("number", 0)
                    ]
 
+# __TIBIT_OLT_OAM__: Defined by Tibit
 class PonPortObject(Packet):
     """ Object Context: PON Port Object """
     name = "Object Context: PON Port Object"
     fields_desc = [XByteField("branch", 0xD6),
                    XShortField("leaf", 0x0001),
                    XByteField("length", 1),
-                   XByteField("num", 1)
+                   XByteField("number", 0)
                    ]
 
 class UnicastLogicalLink(Packet):
@@ -176,6 +186,29 @@ class UnicastLogicalLink(Packet):
     name = "Object Context: Unicast Logical Link"
     fields_desc = [XByteField("branch", 0xD6),
                    XShortField("leaf", 0x0002),
+                   XByteField("length", 1),
+                   XByteField("number", 0)
+                   ]
+
+# __TIBIT_OLT_OAM__: Defined by Tibit
+class OLTUnicastLogicalLink(Packet):
+    """ Object Context: OLT Unicast Logical Link """
+    name = "Object Context: OLT Unicast Logical Link"
+    fields_desc = [XByteField("branch", 0xD6),
+                   XShortField("leaf", 0x000a),
+                   XByteField("length", 10),
+                   XByteField("pon", 0),
+                   StrField("unicastvssn", "TBIT"),
+                   XIntField("unicastlink", 0x00000000),
+                   XByteField("pad", 0),
+                   ]
+
+# __TIBIT_OLT_OAM__: Defined by Tibit
+class NetworkToNetworkPortObject(Packet):
+    """ Object Context: Network-to-Network (NNI) Port Object """
+    name = "Object Context: Network-to-Network (NNI) Port Object"
+    fields_desc = [XByteField("branch", 0xD6),
+                   XShortField("leaf", 0x0003),
                    XByteField("length", 1),
                    XByteField("number", 0)
                    ]
@@ -763,6 +796,16 @@ ClauseSubtypeEnum = {0x00: "LLID Index",
                      0x1f: "Custom field 7",
                      }
 
+RuleOperatorEnum = { 0x00: "F",             #False
+                     0x01: "==",
+                     0x02: "!=",
+                     0x03: "<=",
+                     0x04: ">=",
+                     0x05: "exists",
+                     0x06: "!exist",
+                     0x07: "T",
+                     }
+
 class PortIngressRule(Packet):
     """ Variable Descriptor: Port Ingress Rule """
     name = "Variable Descriptor: Port Ingress Rule"
@@ -773,162 +816,222 @@ class PortIngressRule(Packet):
 class PortIngressRuleHeader(Packet):
     """ Variable Descriptor: Port Ingress Rule Header """
     name = "Variable Descriptor: Port Ingress Rule Header"
-    fields_desc = [
-        XByteField("branch", 0xD7),
-        XShortField("leaf", 0x0501),
-        ByteField("length", 2),
-        XByteField("header", 1),
-        XByteField("precedence", 00),
-        ]
+    fields_desc = [XByteField("branch", 0xD7),
+                   XShortField("leaf", 0x0501),
+                   ByteField("length", 2),
+                   XByteField("header", 1),
+                   XByteField("precedence", 00),
+                   ]
 
 class PortIngressRuleClauseMatchLength00(Packet):
     """ Variable Descriptor: Port Ingress Rule Clause """
     name = "Variable Descriptor: Port Ingress Rule Clause"
-    fields_desc = [
-        XByteField("branch", 0xD7),
-        XShortField("leaf", 0x0501),
-        ByteField("length", 7),
-        XByteField("clause", 2),
-        XByteField("fieldcode", 0),
-        XByteField("fieldinstance", 0),
-        XByteField("msbmask", 0),
-        XByteField("lsbmask", 0),
-        XByteField("operator", 0),
-        XByteField("matchlength", 0),
-        ]
+    fields_desc = [XByteField("branch", 0xD7),
+                   XShortField("leaf", 0x0501),
+                   ByteField("length", 7),
+                   XByteField("clause", 2),
+                   XByteField("fieldcode", 0),
+                   XByteField("fieldinstance", 0),
+                   XByteField("msbmask", 0),
+                   XByteField("lsbmask", 0),
+                   XByteField("operator", 0),
+                   XByteField("matchlength", 0),
+                   ]
 
 class PortIngressRuleClauseMatchLength01(Packet):
     """ Variable Descriptor: Port Ingress Rule Clause """
     name = "Variable Descriptor: Port Ingress Rule Clause"
-    fields_desc = [
-        XByteField("branch", 0xD7),
-        XShortField("leaf", 0x0501),
-        ByteField("length", 8),
-        XByteField("clause", 2),
-        XByteField("fieldcode", 0),
-        XByteField("fieldinstance", 0),
-        XByteField("msbmask", 0),
-        XByteField("lsbmask", 0),
-        XByteField("operator", 0),
-        XByteField("matchlength", 1),
-        XByteField("match0", 0),
-        ]
+    fields_desc = [XByteField("branch", 0xD7),
+                   XShortField("leaf", 0x0501),
+                   ByteField("length", 8),
+                   XByteField("clause", 2),
+                   XByteField("fieldcode", 0),
+                   XByteField("fieldinstance", 0),
+                   XByteField("msbmask", 0),
+                   XByteField("lsbmask", 0),
+                   XByteField("operator", 0),
+                   XByteField("matchlength", 1),
+                   XByteField("match0", 0),
+                   ]
 
 class PortIngressRuleClauseMatchLength02(Packet):
     """ Variable Descriptor: Port Ingress Rule Clause """
     name = "Variable Descriptor: Port Ingress Rule Clause"
-    fields_desc = [
-        XByteField("branch", 0xD7),
-        XShortField("leaf", 0x0501),
-        ByteField("length", 9),
-        XByteField("clause", 2),
-        XByteField("fieldcode", 0),
-        XByteField("fieldinstance", 0),
-        XByteField("msbmask", 0),
-        XByteField("lsbmask", 0),
-        XByteField("operator", 0),
-        XByteField("matchlength", 2),
-        XByteField("match0", 0),
-        XByteField("match1", 0),
-        ]
+    fields_desc = [XByteField("branch", 0xD7),
+                   XShortField("leaf", 0x0501),
+                   ByteField("length", 9),
+                   XByteField("clause", 2),
+                   XByteField("fieldcode", 0),
+                   XByteField("fieldinstance", 0),
+                   XByteField("msbmask", 0),
+                   XByteField("lsbmask", 0),
+                   XByteField("operator", 0),
+                   XByteField("matchlength", 2),
+                   XByteField("match0", 0),
+                   XByteField("match1", 0),
+                   ]
 
 
 class PortIngressRuleClauseMatchLength06(Packet):
     """ Variable Descriptor: Port Ingress Rule Clause """
     name = "Variable Descriptor: Port Ingress Rule Clause"
-    fields_desc = [
-        XByteField("branch", 0xD7),
-        XShortField("leaf", 0x0501),
-        ByteField("length", 13),
-        XByteField("clause", 2),
-        XByteField("fieldcode", 0),
-        XByteField("fieldinstance", 0),
-        XByteField("msbmask", 0),
-        XByteField("lsbmask", 0),
-        XByteField("operator", 0),
-        XByteField("matchlength", 6),
-        XByteField("match0", 0x01),
-        XByteField("match1", 0x80),
-        XByteField("match2", 0xc2),
-        XByteField("match3", 0x00),
-        XByteField("match4", 0x00),
-        XByteField("match5", 0x00),
-        ]
+    fields_desc = [XByteField("branch", 0xD7),
+                   XShortField("leaf", 0x0501),
+                   ByteField("length", 13),
+                   XByteField("clause", 2),
+                   XByteField("fieldcode", 0),
+                   XByteField("fieldinstance", 0),
+                   XByteField("msbmask", 0),
+                   XByteField("lsbmask", 0),
+                   XByteField("operator", 0),
+                   XByteField("matchlength", 6),
+                   XByteField("match0", 0x01),
+                   XByteField("match1", 0x80),
+                   XByteField("match2", 0xc2),
+                   XByteField("match3", 0x00),
+                   XByteField("match4", 0x00),
+                   XByteField("match5", 0x00),
+                   ]
 
 class PortIngressRuleResultForward(Packet):
     """ Variable Descriptor: Port Ingress Rule Result Forward """
     name = "Variable Descriptor: Port Ingress Rule Result Forward"
-    fields_desc = [
-        XByteField("branch", 0xD7),
-        XShortField("leaf", 0x0501),
-        ByteField("length", 2),
-        XByteField("result", 3),
-        XByteField("forward", 2),
-        ]
+    fields_desc = [XByteField("branch", 0xD7),
+                   XShortField("leaf", 0x0501),
+                   ByteField("length", 2),
+                   XByteField("result", 3),
+                   XByteField("forward", 2),
+                   ]
 
 class PortIngressRuleResultDiscard(Packet):
     """ Variable Descriptor: Port Ingress Rule Result Discard """
     name = "Variable Descriptor: Port Ingress Rule Result Discard"
-    fields_desc = [
-        XByteField("branch", 0xD7),
-        XShortField("leaf", 0x0501),
-        ByteField("length", 2),
-        XByteField("result", 3),
-        XByteField("discard", 1),
-        ]
+    fields_desc = [XByteField("branch", 0xD7),
+                   XShortField("leaf", 0x0501),
+                   ByteField("length", 2),
+                   XByteField("result", 3),
+                   XByteField("discard", 1),
+                   ]
 
 class PortIngressRuleResultQueue(Packet):
     """ Variable Descriptor: Port Ingress Rule Result Queue """
     name = "Variable Descriptor: Port Ingress Rule Result Queue"
-    fields_desc = [
-        XByteField("branch", 0xD7),
-        XShortField("leaf", 0x0501),
-        ByteField("length", 6),
-        XByteField("result", 3),
-        XByteField("queuerule", 3),
-        XShortField("objecttype", 0x0000),
-        XByteField("instance", 0),
-        XByteField("queuenum", 0),
-        ]
+    fields_desc = [XByteField("branch", 0xD7),
+                   XShortField("leaf", 0x0501),
+                   ByteField("length", 6),
+                   XByteField("result", 3),
+                   XByteField("queuerule", 3),
+                   XShortField("objecttype", 0x0000),
+                   XByteField("instance", 0),
+                   XByteField("queuenum", 0),
+                   ]
+
+# __TIBIT_OLT_OAM__: Defined by Tibit
+class PortIngressRuleResultOLTQueue(Packet):
+    """ Variable Descriptor: Port Ingress Rule Result OLT Queue """
+    name = "Variable Descriptor: Port Ingress Rule Result OLT Queue"
+    fields_desc = [XByteField("branch", 0xD7),
+                   XShortField("leaf", 0x0501),
+                   ByteField("length", 15),
+                   XByteField("result", 3),
+                   XByteField("oltqueuerule", 0x13),
+                   XShortField("objecttype", 0x0001),
+                   XByteField("instance", 0),
+                   XByteField("pon", 0),
+                   StrField("unicastvssn", "TBIT"),
+                   XIntField("unicastlink", 0xe2222900),
+                   XByteField("pad", 0),
+                   ]
+
+# __TIBIT_OLT_OAM__: Defined by Tibit
+class PortIngressRuleResultOLTBroadcastQueue(Packet):
+    """ Variable Descriptor: Port Ingress Rule Result OLT Broadcast Queue """
+    name = "Variable Descriptor: Port Ingress Rule Result OLT Broadcast Queue"
+    fields_desc = [XByteField("branch", 0xD7),
+                   XShortField("leaf", 0x0501),
+                   ByteField("length", 15),
+                   XByteField("result", 3),
+                   XByteField("oltqueuerule", 0x13),
+                   XShortField("objecttype", 0x0001),
+                   XByteField("instance", 0),
+                   XByteField("pon", 0),
+                   XLongField("broadcast", 0xffffffffffff0000),
+                   XByteField("pad", 0),
+                   ]
 
 class PortIngressRuleResultSet(Packet):
     """ Variable Descriptor: Port Ingress Rule Result Set """
     name = "Variable Descriptor: Port Ingress Rule Result Set"
-    fields_desc = [
-        XByteField("branch", 0xD7),
-        XShortField("leaf", 0x0501),
-        ByteField("length", 8),
-        XByteField("result", 3),
-        XByteField("set", 4),
-        XByteField("fieldcode", 0),
-        XByteField("fieldinstance", 0),
-        XByteField("msbmask", 0),
-        XByteField("lsbmask", 0),
-        XShortField("value", 0),
-        ]
+    fields_desc = [XByteField("branch", 0xD7),
+                   XShortField("leaf", 0x0501),
+                   ByteField("length", 8),
+                   XByteField("result", 3),
+                   XByteField("set", 4),
+                   XByteField("fieldcode", 0),
+                   XByteField("fieldinstance", 0),
+                   XByteField("msbmask", 0),
+                   XByteField("lsbmask", 0),
+                   XShortField("value", 0),
+                   ]
+
+class PortIngressRuleResultCopy(Packet):
+    """ Variable Descriptor: Port Ingress Rule Result Copy """
+    name = "Variable Descriptor: Port Ingress Rule Result Copy"
+    fields_desc = [XByteField("branch", 0xD7),
+                   XShortField("leaf", 0x0501),
+                   ByteField("length", 6),
+                   XByteField("result", 3),
+                   XByteField("copy", 5),
+                   XByteField("fieldcode", 0),
+                   XByteField("fieldinstance", 0),
+                   XByteField("msbmask", 0),
+                   XByteField("lsbmask", 0),
+                   ]
+
+class PortIngressRuleResultDelete(Packet):
+    """ Variable Descriptor: Port Ingress Rule Result Delete """
+    name = "Variable Descriptor: Port Ingress Rule Result Delete"
+    fields_desc = [XByteField("branch", 0xD7),
+                   XShortField("leaf", 0x0501),
+                   ByteField("length", 4),
+                   XByteField("result", 3),
+                   XByteField("delete", 6),
+                   XByteField("fieldcode", 0),
+                   XByteField("instance", 0),
+                   ]
 
 class PortIngressRuleResultInsert(Packet):
     """ Variable Descriptor: Port Ingress Rule Result Insert """
     name = "Variable Descriptor: Port Ingress Rule Result Insert"
-    fields_desc = [
-        XByteField("branch", 0xD7),
-        XShortField("leaf", 0x0501),
-        ByteField("length", 4),
-        XByteField("result", 3),
-        XByteField("insert", 7),
-        XByteField("fieldcode", 0),
-        XByteField("fieldinstance", 0),
-        ]
+    fields_desc = [XByteField("branch", 0xD7),
+                   XShortField("leaf", 0x0501),
+                   ByteField("length", 4),
+                   XByteField("result", 3),
+                   XByteField("insert", 7),
+                   XByteField("fieldcode", 0),
+                   XByteField("fieldinstance", 0),
+                   ]
+
+class PortIngressRuleResultReplace(Packet):
+    """ Variable Descriptor: Port Ingress Rule Result Replace """
+    name = "Variable Descriptor: Port Ingress Rule Result Replace"
+    fields_desc = [XByteField("branch", 0xD7),
+                   XShortField("leaf", 0x0501),
+                   ByteField("length", 4),
+                   XByteField("result", 3),
+                   XByteField("replace", 8),
+                   XByteField("fieldcode", 0),
+                   XByteField("fieldinstance", 0),
+                   ]
 
 class PortIngressRuleTerminator(Packet):
     """ Variable Descriptor: Port Ingress Rule Terminator """
     name = "Variable Descriptor: Port Ingress Rule Terminator"
-    fields_desc = [
-        XByteField("branch", 0xD7),
-        XShortField("leaf", 0x0501),
-        ByteField("length", 1),
-        XByteField("terminator", 0),
-        ]
+    fields_desc = [XByteField("branch", 0xD7),
+                   XShortField("leaf", 0x0501),
+                   ByteField("length", 1),
+                   XByteField("terminator", 0),
+                   ]
 
 class CustomField(Packet):
     """ Variable Descriptor: Custom Field """

@@ -424,7 +424,7 @@ class TibitOltAdapter(object):
                         log.info('#### field.type == ETH_TYPE ####')
                         _type = field.eth_type
                         dn_req /= PortIngressRuleClauseMatchLength02(
-                            fieldcode=3,
+                            fieldcode=ClauseFields['L2 Type/Len'],
                             operator=1,
                             match0=(_type >> 8) & 0xff,
                             match1=_type & 0xff)
@@ -509,7 +509,7 @@ class TibitOltAdapter(object):
                     if field.type == ETH_TYPE:
                         _type = field.eth_type
                         up_req /= PortIngressRuleClauseMatchLength02(
-                            fieldcode=3,
+                            fieldcode=ClauseFields['L2 Type/Len'],
                             operator=1,
                             match0=(_type >> 8) & 0xff,
                             match1=_type & 0xff)
