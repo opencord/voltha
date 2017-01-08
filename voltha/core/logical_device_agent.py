@@ -293,12 +293,12 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             return False
 
         # Check out_port
-        if flow_mod.out_port != ofp.OFPP_ANY and \
+        if (flow_mod.out_port & 0x7fffffff) != ofp.OFPP_ANY and \
                 not cls.flow_has_out_port(flow, flow_mod.out_port):
             return False
 
         # Check out_group
-        if flow_mod.out_group != ofp.OFPG_ANY and \
+        if (flow_mod.out_group & 0x7fffffff) != ofp.OFPG_ANY and \
                 not cls.flow_has_out_group(flow, flow_mod.out_group):
             return False
 

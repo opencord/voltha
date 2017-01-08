@@ -69,8 +69,8 @@ class AdapterLoader(object):
 
     def _find_adapters(self):
         subdirs = os.walk(mydir).next()[1]
-        try:
-            for subdir in subdirs:
+        for subdir in subdirs:
+            try:
                 adapter_name = subdir
                 py_file = os.path.join(mydir, subdir, subdir + '.py')
                 if os.path.isfile(py_file):
@@ -88,5 +88,5 @@ class AdapterLoader(object):
                                 IAdapterInterface.implementedBy(cls):
                             verifyClass(IAdapterInterface, cls)
                             yield adapter_name, cls
-        except Exception, e:
-            log.exception('failed', e=e)
+            except Exception, e:
+                log.exception('failed', e=e)
