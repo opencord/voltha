@@ -4,7 +4,7 @@ MAINTAINER Zsolt Haraszti <zharaszt@ciena.com>
 MAINTAINER Ali Al-Shabibi <ali.al-shabibi@onlab.us>
 MAINTAINER Nathan Knuth   <nathan.knuth@tibitcom.com>
 
-ENV ONOS_APP=/root/onos/apps ONOS=/root/onos KARAF_SYS=/root/onos/apache-karaf-3.0.5/system/org VERSION=1.1-SNAPSHOT
+ENV ONOS_APP=/root/onos/apps ONOS=/root/onos KARAF_SYS=/root/onos/apache-karaf-3.0.5/system/org VERSION=1.2-SNAPSHOT
 
 RUN apt-get update && apt-get install -y git maven unzip && git clone http://gerrit.opencord.org/olt && \
     git clone http://gerrit.opencord.org/aaa && \
