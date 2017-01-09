@@ -94,6 +94,7 @@ class Coordinator(object):
         self.leader_id = None  # will be the instance id of the current leader
         self.shutting_down = False
         self.leader = None
+        self.session_renew_timer = None
 
         self.worker = Worker(self.instance_id, self)
 
@@ -115,6 +116,7 @@ class Coordinator(object):
     def stop(self):
         log.debug('stopping')
         self.shutting_down = True
+        self.session_renew_timer.stop()
         yield self._delete_session()  # this will delete the leader lock too
         yield self.worker.stop()
         if self.leader is not None:
@@ -198,8 +200,8 @@ class Coordinator(object):
             log.info('created-consul-session', session_id=self.session_id)
 
             # start renewing session it 3 times within the ttl
-            lc = LoopingCall(_renew_session)
-            lc.start(3)
+            self.session_renew_timer = LoopingCall(_renew_session)
+            self.session_renew_timer.start(3)
 
         yield self._retry(_create_session)
 

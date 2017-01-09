@@ -343,6 +343,18 @@ class Main(object):
         for component in reversed(registry.iterate()):
             yield component.stop()
 
+        import threading
+        self.log.info('THREADS:')
+        main_thread = threading.current_thread()
+        for t in threading.enumerate():
+            if t is main_thread:
+                continue
+            if not t.isDaemon():
+                continue
+            self.log.info('joining thread {} {}'.format(
+                t.getName(), "daemon" if t.isDaemon() else "not-daemon"))
+            t.join()
+
     def start_reactor(self):
         from twisted.internet import reactor
         reactor.callWhenRunning(

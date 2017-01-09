@@ -115,7 +115,6 @@ class ConnectionManager(object):
         log.info('Acquired a grpc channel to voltha')
         return channel
 
-
     @inlineCallbacks
     def get_list_of_logical_devices_from_voltha(self):
 
@@ -126,7 +125,7 @@ class ConnectionManager(object):
                 devices = stub.ListLogicalDevices(Empty()).items
                 for device in devices:
                     log.info("Devices {} -> {}".format(device.id,
-                                                            device.datapath_id))
+                                                       device.datapath_id))
                 returnValue(devices)
 
             except Exception as e:
@@ -135,7 +134,6 @@ class ConnectionManager(object):
 
             log.info('reconnect', after_delay=self.voltha_retry_interval)
             yield asleep(self.voltha_retry_interval)
-
 
     def refresh_agent_connections(self, devices):
         """

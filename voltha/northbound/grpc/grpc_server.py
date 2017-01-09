@@ -226,6 +226,7 @@ class VolthaGrpcServer(object):
         for service in self.services:
             service.stop()
         self.server.stop(grace)
+        self.thread_pool.shutdown(False)
         log.debug('stopped')
 
     def register(self, activator_func, service):

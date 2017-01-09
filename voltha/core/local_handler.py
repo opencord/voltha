@@ -12,18 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from Queue import Empty as QueueEmpty
 from uuid import uuid4
 
 import structlog
+from google.protobuf.empty_pb2 import Empty
 from grpc import StatusCode
 
 from common.utils.grpc_utils import twisted_async
 from voltha.core.config.config_root import ConfigRoot
 from voltha.protos.openflow_13_pb2 import PacketIn, Flows, FlowGroups, \
     ofp_port_status
-
-from google.protobuf.empty_pb2 import Empty
-
 from voltha.protos.voltha_pb2 import \
     add_VolthaLocalServiceServicer_to_server, VolthaLocalServiceServicer, \
     VolthaInstance, Adapters, LogicalDevices, LogicalDevice, Ports, \
@@ -416,8 +415,12 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     def ReceivePacketsIn(self, request, context):
         while 1:
-            packet_in = self.core.packet_in_queue.get()
-            yield packet_in
+            try:
+                packet_in = self.core.packet_in_queue.get(timeout=1)
+                yield packet_in
+            except QueueEmpty:
+                if self.stopped:
+                    break
 
     def send_packet_in(self, device_id, ofp_packet_in):
         """Must be called on the twisted thread"""
@@ -426,8 +429,12 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     def ReceiveChangeEvents(self, request, context):
         while 1:
-            event = self.core.change_event_queue.get()
-            yield event
+            try:
+                event = self.core.change_event_queue.get(timeout=1)
+                yield event
+            except QueueEmpty:
+                if self.stopped:
+                    break
 
     def send_port_change_event(self, device_id, port_status):
         """Must be called on the twisted thread"""
