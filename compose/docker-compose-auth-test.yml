@@ -16,7 +16,7 @@ services:
     ipv4_address: 172.25.0.100
 
  onos:
-  image: "opencord/onos"
+  image: "cord/onos"
   ports:
    - "8101:8101" # ssh
    - "6653:6653" # OF
