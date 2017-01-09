@@ -74,17 +74,33 @@ help:
 	@echo "itest        : Run all integration tests"
 	@echo
 
-build: protos docker-base
-	docker build -t cord/voltha -f docker/Dockerfile.voltha .
-	docker build -t cord/chameleon -f docker/Dockerfile.chameleon .
-	docker build -t cord/ofagent -f docker/Dockerfile.ofagent .
-	docker build -t cord/podder -f docker/Dockerfile.podder .
-	docker build -t cord/netconf -f docker/Dockerfile.netconf .
-	docker build -t cord/shovel -f docker/Dockerfile.shovel .
+build: protos containers
 
+containers: docker-base voltha chameleon ofagent podder netconf shovel onos
 
 docker-base:
 	docker build -t cord/voltha-base -f docker/Dockerfile.base .
+
+voltha:
+	docker build -t cord/voltha -f docker/Dockerfile.voltha .
+
+chameleon:
+	docker build -t cord/chameleon -f docker/Dockerfile.chameleon .
+
+ofagent:
+	docker build -t cord/ofagent -f docker/Dockerfile.ofagent .
+
+podder:
+	docker build -t cord/podder -f docker/Dockerfile.podder .
+
+netconf:
+	docker build -t cord/netconf -f docker/Dockerfile.netconf .
+
+shovel:
+	docker build -t cord/shovel -f docker/Dockerfile.shovel .
+
+onos:
+	docker build -t cord/onos -f docker/Dockerfile.onos .
 
 protos:
 	make -C voltha/protos
