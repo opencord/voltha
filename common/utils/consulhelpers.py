@@ -28,8 +28,9 @@ log = get_logger()
 def get_endpoint_from_consul(consul_endpoint, service_name):
     """Look up, from consul, the service name specified by service-name
     """
-    log.debug('Retrieving endpoint {} from consul {}'.format(service_name,
-                                                             consul_endpoint))
+    log.debug('getting-service-endpoint', consul=consul_endpoint,
+              service=service_name)
+
     host = consul_endpoint.split(':')[0].strip()
     port = int(consul_endpoint.split(':')[1].strip())
 

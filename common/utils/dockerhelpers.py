@@ -80,7 +80,7 @@ def inspect_container(id):
         docker_cli = Client(base_url=docker_socket)
         info = docker_cli.inspect_container(id)
     except Exception, e:
-        log.debug('failed: {}'.format(e.message))
+        log.exception('failed-inspect-container', id=id, e=e)
         raise
 
     return info
@@ -94,7 +94,7 @@ def create_host_config(volumes, ports):
         host_config = docker_cli.create_host_config(binds=binds,
                                                     port_bindings=port_bindings)
     except Exception, e:
-        log.exception('failed host config creation', volumes, ports, e=e)
+        log.exception('failed-host-config-creation', volumes, ports, e=e)
         raise
 
     return host_config
@@ -103,8 +103,9 @@ def connect_container_to_network(container, net_id, links):
     try:
         docker_cli = Client(base_url=docker_socket)
         docker_cli.connect_container_to_network(container, net_id, links=links)
-    except:
-        log.exception('Failed to connect container {} to network {}'.format(container, net_id))
+    except Exception, e:
+        log.exception('failed-connection-to-network',
+                      container=container, net_id=net_id, e=e)
         raise
 
 def create_networking_config(name, links):
@@ -120,7 +121,7 @@ def create_networking_config(name, links):
             name : docker_cli.create_endpoint_config(links=links)
         })
     except Exception, e:
-        log.exception('failed network creation', name, e=e)
+        log.exception('failed-network-creation', name, e=e)
         raise
 
     return networking_config
@@ -165,7 +166,7 @@ class EventProcessor(object):
     def __init__(self, threads=1):
         self.client = CustomClient(base_url=docker_socket)
         self.events = self.client.events(decode=True)
-        log.info("Starting event processor with {} threads".format(threads))
+        log.info("starting", threads=threads)
         self.exec_service = ThreadPoolExecutor(max_workers=threads)
 
     def stop_listening(self):
@@ -200,7 +201,7 @@ class EventProcessor(object):
             for k in ['time', 'Time']:
                 if k in event:
                     event[k] = datetime.fromtimestamp(event[k])
-            log.debug('docker event: {}'.format(event))
+            log.debug('docker-event', event=event)
 
             data = {}
             i = get_id(event)
@@ -212,14 +213,14 @@ class EventProcessor(object):
                         data = self.client.inspect_image(i)
                     data[i] = data
                 except errors.NotFound:
-                    log.debug('No data for container {}'.format(i))
+                    log.debug('no-data-for-container', container=i)
 
             status = get_status(event)
             if status in handlers:
                 self.exec_service.submit(handlers[get_status(event)], event,
                                          data, handlers['podder_config'])
             else:
-                log.debug("No handler for {}; skipping...".format(status))
+                log.debug('no-handler', handler=status)
 
 class CustomGenerator(object):
     """
