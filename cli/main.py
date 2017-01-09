@@ -259,28 +259,6 @@ class VolthaCli(Cmd):
         res = stub.GetHealthStatus(Empty())
         self.poutput(dumps(pb2dict(res), indent=4))
 
-    def do_test(self, line):
-        """Enter test mode, which makes a bunch on new commands available"""
-        sub = TestCli(self.history, self.get_channel, self.voltha_grpc,
-                      self.voltha_sim_rest)
-        sub.cmdloop()
-
-
-class TestCli(VolthaCli):
-
-    def __init__(self, history, get_channel, voltha_grpc, voltha_sim_rest):
-        VolthaCli.__init__(self, voltha_grpc, voltha_sim_rest)
-        self.history = history
-        self.get_channel = get_channel
-        self.prompt = '(' + self.colorize(self.colorize('test', 'cyan'),
-            'bold') + ') '
-
-    def get_device(self, device_id, depth=0):
-        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
-        res = stub.GetDevice(voltha_pb2.ID(id=device_id),
-                             metadata=(('get-depth', str(depth)), ))
-        return res
-
     @options([
         make_option('-t', '--device-type', action="store", dest='device_type',
                      help="Device type", default='simulated_olt'),
@@ -329,7 +307,29 @@ class TestCli(VolthaCli):
         self.poutput('success (logical device id = {})'.format(
             self.default_logical_device_id))
 
-    complete_activate_olt = VolthaCli.complete_device
+    complete_activate_olt = complete_device
+
+    def do_test(self, line):
+        """Enter test mode, which makes a bunch on new commands available"""
+        sub = TestCli(self.history, self.get_channel, self.voltha_grpc,
+                      self.voltha_sim_rest)
+        sub.cmdloop()
+
+
+class TestCli(VolthaCli):
+
+    def __init__(self, history, get_channel, voltha_grpc, voltha_sim_rest):
+        VolthaCli.__init__(self, voltha_grpc, voltha_sim_rest)
+        self.history = history
+        self.get_channel = get_channel
+        self.prompt = '(' + self.colorize(self.colorize('test', 'cyan'),
+            'bold') + ') '
+
+    def get_device(self, device_id, depth=0):
+        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        res = stub.GetDevice(voltha_pb2.ID(id=device_id),
+                             metadata=(('get-depth', str(depth)), ))
+        return res
 
     def do_arrive_onus(self, line):
         """
