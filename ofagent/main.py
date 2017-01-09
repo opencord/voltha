@@ -29,7 +29,7 @@ from connection_mgr import ConnectionManager
 defs = dict(
     config=os.environ.get('CONFIG', './ofagent.yml'),
     consul=os.environ.get('CONSUL', 'localhost:8500'),
-    controller=os.environ.get('CONTROLLER', 'localhost:6633'),
+    controller=os.environ.get('CONTROLLER', 'localhost:6653'),
     external_host_address=os.environ.get('EXTERNAL_HOST_ADDRESS',
                                          get_my_primary_local_ipv4()),
     grpc_endpoint=os.environ.get('GRPC_ENDPOINT', 'localhost:50055'),

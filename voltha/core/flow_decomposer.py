@@ -21,7 +21,12 @@ from collections import OrderedDict
 from copy import copy, deepcopy
 from hashlib import md5
 
+import structlog
+
 from voltha.protos import openflow_13_pb2 as ofp
+
+log = structlog.get_logger()
+
 
 # aliases
 ofb_field = ofp.ofp_oxm_ofb_field
@@ -439,7 +444,13 @@ class FlowDecomposer(object):
         in_port_no = get_in_port(flow)
         out_port_no = get_out_port(flow)  # may be None
 
+        device_rules = {}  # accumulator
+
         route = self.get_route(in_port_no, out_port_no)
+        if route is None:
+            log.error('no-route', in_port_no=in_port_no,
+                      out_port_no=out_port_no, comment='ignoring flow')
+            return device_rules
 
         assert len(route) == 2
         ingress_hop, egress_hop = route
@@ -449,8 +460,6 @@ class FlowDecomposer(object):
 
         def is_upstream():
             return not is_downstream()
-
-        device_rules = {}  # accumulator
 
         if out_port_no is not None and \
                         (out_port_no & 0x7fffffff) == ofp.OFPP_CONTROLLER:

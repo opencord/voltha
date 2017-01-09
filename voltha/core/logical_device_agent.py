@@ -692,7 +692,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
                     return [route[0], None]
             raise Exception('not a single downstream route')
 
-        return self._routes[(ingress_port_no, egress_port_no)]
+        return self._routes.get((ingress_port_no, egress_port_no))
 
     def get_all_default_rules(self):
         self._assure_cached_tables_up_to_date()

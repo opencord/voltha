@@ -163,7 +163,7 @@ if __name__ == '__main__':
             return ports
 
     stub = MockRpc()
-    agents = [Agent('localhost:6633', 256 + i, stub).start() for i in range(n)]
+    agents = [Agent('localhost:6653', 256 + i, stub).start() for i in range(n)]
 
     def shutdown():
         [a.stop() for a in agents]

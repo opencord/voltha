@@ -145,5 +145,5 @@ command was used in the shell to launch the olt-test.
 $ cd <LOCATION_OF_VOLTHA>
 $ sudo -s
 # . ./env.sh
-(venv-linux) # PYTHONPATH=$HOME/cord/incubator/voltha/voltha/extensions/eoam ./oftest/oft --test-dir=olt-oftest/ -i 1@enp1s0f0 -i 2@enp1s0f1 --port 6633 -V 1.3 -t "olt_port=1;onu_port=2;in_out_port=1;device_type='tibit'" olt-complex.TestScenario1SingleOnu
+(venv-linux) # PYTHONPATH=$HOME/cord/incubator/voltha/voltha/extensions/eoam ./oftest/oft --test-dir=olt-oftest/ -i 1@enp1s0f0 -i 2@enp1s0f1 --port 6653 -V 1.3 -t "olt_port=1;onu_port=2;in_out_port=1;device_type='tibit'" olt-complex.TestScenario1SingleOnu
 ```
