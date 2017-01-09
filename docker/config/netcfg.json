@@ -2,9 +2,9 @@
     "apps" : {
         "org.onosproject.aaa" : {
             "AAA" : {
-                "radiusIp": "10.128.0.231",
+                "radiusIp": "172.25.0.100",
                 "radiusServerPort": "1812",
-                "radiusSecret": "howdoyouturnthison"
+                "radiusSecret": "SECRET"
             }
         }
     },
