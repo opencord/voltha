@@ -48,9 +48,7 @@ class KafkaProxy(object):
         if KafkaProxy._kafka_instance:
             raise Exception('Singleton exist for :{}'.format(KafkaProxy))
 
-        log.info('KafkaProxy init with kafka endpoint:{}'.format(
-            kafka_endpoint))
-
+        log.debug('initializing', endpoint=kafka_endpoint)
         self.ack_timeout = ack_timeout
         self.max_req_attempts = max_req_attempts
         self.consul_endpoint = consul_endpoint
@@ -59,6 +57,7 @@ class KafkaProxy(object):
         self.kclient = None
         self.kproducer = None
         self.event_bus_publisher = None
+        log.debug('initialized', endpoint=kafka_endpoint)
 
     @inlineCallbacks
     def start(self):
@@ -83,12 +82,11 @@ class KafkaProxy(object):
             try:
                 _k_endpoint = get_endpoint_from_consul(self.consul_endpoint,
                                                        self.kafka_endpoint[1:])
-                log.info(
-                    'Found kafka service at {}'.format(_k_endpoint))
+                log.debug('found-kafka-service', endpoint=_k_endpoint)
 
             except Exception as e:
-                log.error('Failure to locate a kafka service from '
-                               'consul {}:'.format(repr(e)))
+                log.exception('no-kafka-service-in-consul', e=e)
+
                 self.kproducer = None
                 self.kclient = None
                 return
