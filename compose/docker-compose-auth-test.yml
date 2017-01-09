@@ -16,13 +16,13 @@ services:
     ipv4_address: 172.25.0.100
 
  onos:
-  image: "cord/onos"
+  image: "onosproject/onos:1.8"
   ports:
    - "8101:8101" # ssh
    - "6653:6653" # OF
    - "8181:8181" # UI
-  #environment:
-  #  ONOS_APPS: openflow,drivers,org.opencord.aaa,org.opencord.cord-config,org.onosproject.olt
+  environment:
+   ONOS_APPS: 'drivers,openflow-base'
   networks:
     authnet:
      ipv4_address: 172.25.0.200

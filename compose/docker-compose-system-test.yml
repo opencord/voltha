@@ -70,7 +70,6 @@ services:
     environment:
       SERVICE_24224_NAME: "fluentd-intake"
 
-
   #
   # Graphite-Grafana-statsd service instance
   # (demo place-holder for external KPI system)
