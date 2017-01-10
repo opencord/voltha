@@ -7,18 +7,21 @@ MAINTAINER Nathan Knuth   <nathan.knuth@tibitcom.com>
 ENV APPS=/root/onos/apps ONOS=/root/onos KARAF_M2=/root/onos/apache-karaf-3.0.5/system VERSION=1.2-SNAPSHOT
 ENV AUX=$APPS/aux
 
-RUN apt-get update && apt-get install -y git maven unzip && \
-    git config --global http.sslverify false && \
-    git clone http://gerrit.opencord.org/olt && \
-    git clone http://gerrit.opencord.org/aaa && \
-    git clone http://gerrit.opencord.org/config 
+RUN apt-get update && apt-get install -y git maven unzip 
+RUN git config --global http.sslverify false && \
+    git clone https://alshabibi@bitbucket.org/alshabibi/onos-apps.git
     
-RUN cd $ONOS/olt && mvn clean install && cd $ONOS/config && mvn clean install && cd $ONOS/aaa && mvn clean install 
+RUN cd $ONOS/onos-apps/apps && mvn clean install
 
 WORKDIR $ONOS
 
 COPY config/app-install.sh .
 
 RUN sh $ONOS/app-install.sh
+
+# Disabling vtn,mcast and igmp
+RUN rm $ONOS/apps/org.opencord.mcast/active &&\
+     rm $ONOS/apps/org.opencord.igmp/active &&\
+     rm $ONOS/apps/org.opencord.vtn/active
 
 COPY config/netcfg.json $KARAF_ROOT/../config/network-cfg.json
