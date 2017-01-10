@@ -205,8 +205,7 @@ class BuildMdTests(TestCase):
                 'grpc_server.start {event: started',
                 'main.<lambda> {event: twisted-reactor-started',
                 'main.startup_components {event: started-internal-services,',
-                'kafka_proxy.send_message {event: Sending message Heartbeat '
-                'message',
+                'kafka_proxy.start {event: started,',
                 'coordinator._backoff {retry_in: 5, event: consul-not-up,'
             ]
 
@@ -398,7 +397,8 @@ class BuildMdTests(TestCase):
             expected_services = ['consul-rest', 'fluentd-intake',
                                  'chameleon-rest', 'voltha-grpc',
                                  'voltha-health',
-                                 'consul-8600', 'zookeeper', 'consul', 'kafka']
+                                 'consul-8600', 'zookeeper', 'consul',
+                                 'kafka']
 
             cmd = command_defs['consul_get_services']
             out, err, rc = run_command_to_completion_with_raw_stdout(cmd)
@@ -441,7 +441,7 @@ class BuildMdTests(TestCase):
 
             # Verify kafka client is receiving the messages
             print "Verify kafka client is receiving the heartbeat messages ..."
-            expected_pattern = ['voltha-heartbeat', 'Heartbeat message']
+            expected_pattern = ['heartbeat.voltha', 'heartbeat']
             cmd = command_defs['kafka_client_run_10_secs']
             kafka_client_output = run_long_running_command_with_timeout(cmd,
                                                                         20)
@@ -461,7 +461,7 @@ class BuildMdTests(TestCase):
                   "..."
             expected_output = ['voltha_1', 'fluentd_1', 'consul_1',
                                'registrator_1', 'kafka_1', 'zookeeper_1',
-                               'chameleon_1']
+                               'chameleon_1', 'ofagent_1', 'netconf_1']
             cmd = command_defs['docker_compose_logs']
             docker_compose_logs = run_long_running_command_with_timeout(cmd, 5,
                                                                         0)
@@ -722,8 +722,8 @@ class BuildMdTests(TestCase):
         expected_output = [
             "(.*)registrator_1(.*)Listening for Docker events",
             "(.*)voltha_1(.*)main.heartbeat {status: up, uptime:",
-            "(.*)voltha_1(.*)kafka_proxy.send_message {event: Successfully "
-            "sent message Heartbeat message",
+            "(.*)voltha_1(.*)kafka_proxy.send_message(.*)event: "
+            "sent-kafka-msg",
             "(.*)fluentd_1(.*)listening fluent socket on",
             "(.*)chameleon_1(.*)main.startup_components {event: "
             "started-internal-services, instance_id: compose_chameleon_1}",

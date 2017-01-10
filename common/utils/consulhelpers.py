@@ -52,4 +52,4 @@ def get_endpoint_from_consul(consul_endpoint, service_name):
 
 
 if __name__ == '__main__':
-    get_endpoint_from_consul('10.100.198.220:8500', 'kafka')
+    print get_endpoint_from_consul('10.100.198.220:8500', 'kafka')

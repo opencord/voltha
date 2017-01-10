@@ -35,7 +35,6 @@
 
 import sys
 
-from jinja2 import Template
 from google.protobuf.compiler import plugin_pb2 as plugin
 from google.protobuf.descriptor_pb2 import DescriptorProto, \
     FieldDescriptorProto
@@ -45,16 +44,20 @@ import yang_options_pb2
 
 from google.protobuf.descriptor import FieldDescriptor
 
-template_yang = Template("""
+import jinja2
+env = jinja2.Environment(extensions=["jinja2.ext.do",], trim_blocks=True, lstrip_blocks=True)
+
+template_yang = env.from_string("""
 module ietf-{{ module.name }} {
 
     {% macro set_module_prefix(type) %}
+        {% set found = [] %}
         {% for t in module.data_types %}
             {% if t.type == type %}
                 {% if t.module != module.name %} {{ t.module }}:{{ type }};
                 {% else %} {{ type }};
                 {% endif %}
-                {% set found=True %}
+                {% do found.append(1) %}
             {% endif %}
         {% if loop.last %}
             {% if not found %} {{ type }}; {% endif %}
@@ -252,7 +255,7 @@ module ietf-{{ module.name }} {
 
     {% endfor %}
 }
-""", trim_blocks=True, lstrip_blocks=True)
+""")
 
 
 def traverse_field_options(fields, prefix):
