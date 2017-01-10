@@ -81,8 +81,9 @@ def run_long_running_command_with_timeout(cmd, timeout,
             if return_word_number_x_of_each_line != -1:
                 ansi_escape = re.compile(r'\x1b[^m]*m')
                 line = ansi_escape.sub('', line)
-                captured_stdout.append(
-                    line.split()[return_word_number_x_of_each_line])
+                if len(line.split()) > return_word_number_x_of_each_line:
+                    captured_stdout.append(
+                        line.split()[return_word_number_x_of_each_line])
             else:
                 captured_stdout.append(line)
             if time.time() - t0 > timeout:
