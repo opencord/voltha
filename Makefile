@@ -22,7 +22,7 @@ include setup.mk
 
 VENVDIR := venv-$(shell uname -s | tr '[:upper:]' '[:lower:]')
 
-.PHONY: $(DIRS) $(DIRS_CLEAN) $(DIRS_FLAKE8) flake8
+.PHONY: $(DIRS) $(DIRS_CLEAN) $(DIRS_FLAKE8) flake8 docker-base voltha chameleon ofagent podder netconf shovel onos
 
 default: build
 
@@ -100,7 +100,7 @@ shovel:
 	docker build -t cord/shovel -f docker/Dockerfile.shovel .
 
 onos:
-	docker build -t cord/onos -f docker/Dockerfile.onos .
+	docker build -t cord/onos -f docker/Dockerfile.onos docker
 
 protos:
 	make -C voltha/protos

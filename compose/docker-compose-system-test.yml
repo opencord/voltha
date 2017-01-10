@@ -70,14 +70,6 @@ services:
     environment:
       SERVICE_24224_NAME: "fluentd-intake"
 
-  #
-  # Podder service instance
-  #
-  podder:
-    image: cord/podder
-    volumes:
-    - "/var/run/docker.sock:/tmp/docker.sock"
-    restart: unless-stopped
 
   #
   # Graphite-Grafana-statsd service instance
