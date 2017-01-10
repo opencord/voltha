@@ -138,8 +138,11 @@ class SimDevice(object):
                     return False
 
             elif field.type == UDP_DST:
-                if field.udsp_dst != get_udp_dst(frame):
+                if field.udp_dst != get_udp_dst(frame):
                     return False
+
+            elif field.type == METADATA:
+                pass  # safe to ignore
 
             else:
                 raise NotImplementedError('field.type=%d' % field.type)

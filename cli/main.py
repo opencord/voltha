@@ -498,7 +498,8 @@ class TestCli(VolthaCli):
                 priority=500,
                 match_fields=[
                     in_port(nni_port_no),
-                    vlan_vid(4096 + 1000)
+                    vlan_vid(4096 + 1000),
+                    metadata(40)  # here to mimic an ONOS artifact
                 ],
                 actions=[pop_vlan()],
                 next_table_id=1

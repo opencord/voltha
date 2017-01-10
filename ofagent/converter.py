@@ -128,6 +128,7 @@ def ofp_group_entry_to_loxi_group_entry(pb):
         duration_nsec=pb.stats.duration_nsec,
         bucket_stats=[to_loxi(bstat) for bstat in pb.stats.bucket_stats])
 
+
 def ofp_bucket_counter_to_loxy_bucket_counter(pb):
     return of13.bucket_counter(
         packet_count=pb.packet_count,
@@ -239,6 +240,22 @@ def loxi_oxm_ipv4_dst_to_ofp_oxm(lo):
             ipv4_dst=lo.value))
 
 
+def loxi_oxm_udp_dst_to_ofp_oxm(lo):
+    return pb2.ofp_oxm_field(
+        oxm_class=pb2.OFPXMC_OPENFLOW_BASIC,
+        ofb_field=pb2.ofp_oxm_ofb_field(
+            type=pb2.OFPXMT_OFB_UDP_DST,
+            udp_dst=lo.value))
+
+
+def loxi_oxm_metadata_to_ofp_oxm(lo):
+    return pb2.ofp_oxm_field(
+        oxm_class=pb2.OFPXMC_OPENFLOW_BASIC,
+        ofb_field=pb2.ofp_oxm_ofb_field(
+            type=pb2.OFPXMT_OFB_METADATA,
+            table_metadata=lo.value))
+
+
 def loxi_apply_actions_to_ofp_instruction(lo):
     return pb2.ofp_instruction(
         type=pb2.OFPIT_APPLY_ACTIONS,
@@ -302,6 +319,8 @@ to_grpc_converters = {
     of13.oxm.vlan_vid: loxi_oxm_vlan_vid_to_ofp_oxm,
     of13.oxm.vlan_pcp: loxi_oxm_vlan_pcp_to_ofp_oxm,
     of13.oxm.ipv4_dst: loxi_oxm_ipv4_dst_to_ofp_oxm,
+    of13.oxm.udp_dst: loxi_oxm_udp_dst_to_ofp_oxm,
+    of13.oxm.metadata: loxi_oxm_metadata_to_ofp_oxm,
 
     of13.instruction.apply_actions: loxi_apply_actions_to_ofp_instruction,
     of13.instruction.goto_table: loxi_goto_table_to_ofp_instruction,

@@ -455,6 +455,9 @@ class TibitOltAdapter(object):
                         log.info('#### field.type == UDP_DST ####')
                         pass  # construct UDP SDT based filter here
 
+                    elif field.type == METADATA:
+                        pass  # safe to ignore
+
                     else:
                         raise NotImplementedError('field.type={}'.format(
                             field.type))

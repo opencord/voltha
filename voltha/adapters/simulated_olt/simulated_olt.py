@@ -389,6 +389,9 @@ class SimulatedOltAdapter(object):
                         _vlan_pcp = field.vlan_pcp
                         pass  # construct VLAN PCP based filter condition here
 
+                    elif field.type == METADATA:
+                        pass  # safe to ignore
+
                     # TODO
                     else:
                         raise NotImplementedError('field.type={}'.format(

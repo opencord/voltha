@@ -104,9 +104,13 @@ class OpenFlowProtocolHandler(object):
     def handle_experimenter_request(self, req):
         raise NotImplementedError()
 
-    @inlineCallbacks
     def handle_flow_mod_request(self, req):
-        yield self.rpc.update_flow_table(self.device_id, to_grpc(req))
+        try:
+            grpc_req = to_grpc(req)
+        except Exception, e:
+            log.exception('failed-to-convert', e=e)
+        else:
+            return self.rpc.update_flow_table(self.device_id, grpc_req)
 
     def handle_get_async_request(self, req):
         raise NotImplementedError()

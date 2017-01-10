@@ -221,6 +221,10 @@ def arp_sha(_arp_sha):
 def arp_tha(_arp_tha):
     return ofb_field(type=ARP_THA, arp_tha=_arp_tha)
 
+def metadata(_table_metadata):
+    return ofb_field(type=METADATA, table_metadata=_table_metadata)
+
+
 # TODO finish for rest of match fields
 
 
