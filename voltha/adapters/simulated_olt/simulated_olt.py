@@ -455,9 +455,13 @@ class SimulatedOltAdapter(object):
                         _vlan_pcp = field.vlan_pcp
                         pass  # construct VLAN PCP based filter condition here
 
+                    elif field.type == UDP_SRC:
+                        _udp_src = field.udp_src
+                        pass  # construct UDP SRC based filter here
+
                     elif field.type == UDP_DST:
                         _udp_dst = field.udp_dst
-                        pass  # construct UDP SDT based filter here
+                        pass  # construct UDP DST based filter here
 
                     # TODO
                     else:

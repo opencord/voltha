@@ -450,10 +450,15 @@ class TibitOltAdapter(object):
                         log.info('#### field.type == VLAN_PCP ####')
                         pass  # construct VLAN PCP based filter condition here
 
+                    elif field.type == UDP_SRC:
+                        _udp_src = field.udp_src
+                        log.info('#### field.type == UDP_SRC ####')
+                        pass  # construct UDP SRC based filter here
+
                     elif field.type == UDP_DST:
                         _udp_dst = field.udp_dst
                         log.info('#### field.type == UDP_DST ####')
-                        pass  # construct UDP SDT based filter here
+                        pass  # construct UDP DST based filter here
 
                     elif field.type == METADATA:
                         pass  # safe to ignore
@@ -537,10 +542,15 @@ class TibitOltAdapter(object):
                         log.info('#### field.type == VLAN_PCP ####')
                         pass  # construct VLAN PCP based filter condition here
 
+                    elif field.type == UDP_SRC:
+                        _udp_src = field.udp_src
+                        log.info('#### field.type == UDP_SRC ####')
+                        pass  # construct UDP SRC based filter here
+
                     elif field.type == UDP_DST:
                         _udp_dst = field.udp_dst
                         log.info('#### field.type == UDP_DST ####')
-                        pass  # construct UDP SDT based filter here
+                        pass  # construct UDP DST based filter here
 
                     else:
                         raise NotImplementedError('field.type={}'.format(

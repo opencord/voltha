@@ -46,5 +46,8 @@ class GoogleApiImporter(object):
 
 
 sys.meta_path.append(GoogleApiImporter())
-from google.api import http_pb2, annotations_pb2
-_ = http_pb2, annotations_pb2
+try:
+    from google.api import http_pb2, annotations_pb2
+    _ = http_pb2, annotations_pb2
+except AssertionError:
+    pass

@@ -23,8 +23,10 @@ from hashlib import md5
 
 import structlog
 
+from voltha.protos import third_party
 from voltha.protos import openflow_13_pb2 as ofp
 
+_ = third_party
 log = structlog.get_logger()
 
 

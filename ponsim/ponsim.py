@@ -101,6 +101,10 @@ class SimDevice(object):
             if f.haslayer(IP):
                 return f.getlayer(IP).dst
 
+        def get_udp_src(f):
+            if f.haslayer(UDP):
+                return f.getlayer(UDP).sport
+
         def get_udp_dst(f):
             if f.haslayer(UDP):
                 return f.getlayer(UDP).dport
@@ -135,6 +139,10 @@ class SimDevice(object):
 
             elif field.type == IPV4_DST:
                 if ipv4int2str(field.ipv4_dst) != get_ipv4_dst(frame):
+                    return False
+
+            elif field.type == UDP_SRC:
+                if field.udp_src != get_udp_src(frame):
                     return False
 
             elif field.type == UDP_DST:

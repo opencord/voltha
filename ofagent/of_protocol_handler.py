@@ -168,9 +168,12 @@ class OpenFlowProtocolHandler(object):
 
     @inlineCallbacks
     def handle_flow_stats_request(self, req):
-        flow_stats = yield self.rpc.list_flows(self.device_id)
-        self.cxn.send(ofp.message.flow_stats_reply(
-            xid=req.xid, entries=[to_loxi(f) for f in flow_stats]))
+        try:
+            flow_stats = yield self.rpc.list_flows(self.device_id)
+            self.cxn.send(ofp.message.flow_stats_reply(
+                xid=req.xid, entries=[to_loxi(f) for f in flow_stats]))
+        except Exception, e:
+            log.exception('failed-flow-stats-request', req=req)
 
     @inlineCallbacks
     def handle_group_stats_request(self, req):

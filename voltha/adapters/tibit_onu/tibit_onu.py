@@ -296,9 +296,13 @@ class TibitOnuAdapter(object):
                         _ipv4_dst = field.ipv4_dst
                         pass  # construct IPv4 DST address based condition
 
+                    elif field.type == UDP_SRC:
+                        _udp_src = field.udp_src
+                        pass  # construct UDP SRC based filter here
+
                     elif field.type == UDP_DST:
                         _udp_dst = field.udp_dst
-                        pass  # construct UDP SDT based filter here
+                        pass  # construct UDP DST based filter here
 
                     # TODO
                     else:

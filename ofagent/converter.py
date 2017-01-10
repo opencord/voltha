@@ -43,7 +43,7 @@ def pb2dict(pb):
 
 def to_loxi(grpc_object):
     cls = grpc_object.__class__
-    converter = to_loxi_converters[cls]
+    converter = to_loxi_converters[cls.__name__]
     return converter(grpc_object)
 
 def to_grpc(loxi_object):
@@ -61,22 +61,60 @@ def ofp_port_status_to_loxi_port_status(pb):
         desc=ofp_port_to_loxi_port_desc(pb.desc)
     )
 
+def make_loxi_field(oxm_field):
+    assert oxm_field['oxm_class'] == pb2.OFPXMC_OPENFLOW_BASIC
+    ofb_field = oxm_field['ofb_field']
+    field_type = ofb_field.get('type', 0)
+
+    if field_type == pb2.OFPXMT_OFB_ETH_TYPE:
+        return (
+            of13.oxm.eth_type(value=ofb_field['eth_type']))
+
+    elif field_type == pb2.OFPXMT_OFB_IN_PORT:
+        return (
+            of13.oxm.in_port(value=ofb_field['port']))
+
+    elif field_type == pb2.OFPXMT_OFB_IP_PROTO:
+        return (
+            of13.oxm.ip_proto(value=ofb_field['ip_proto']))
+
+    elif field_type == pb2.OFPXMT_OFB_VLAN_VID:
+        return (
+            of13.oxm.vlan_vid(value=ofb_field['vlan_vid']))
+
+    elif field_type == pb2.OFPXMT_OFB_VLAN_PCP:
+        return (
+            of13.oxm.vlan_pcp(value=ofb_field['vlan_pcp']))
+
+    elif field_type == pb2.OFPXMT_OFB_IPV4_SRC:
+        return (
+            of13.oxm.ipv4_src(value=ofb_field['ipv4_src']))
+
+    elif field_type == pb2.OFPXMT_OFB_IPV4_DST:
+        return (
+            of13.oxm.ipv4_dst(value=ofb_field['ipv4_dst']))
+
+    elif field_type == pb2.OFPXMT_OFB_UDP_SRC:
+        return (
+            of13.oxm.udp_src(value=ofb_field['udp_src']))
+
+    elif field_type == pb2.OFPXMT_OFB_UDP_DST:
+        return (
+            of13.oxm.udp_dst(value=ofb_field['udp_dst']))
+
+    elif field_type == pb2.OFPXMT_OFB_METADATA:
+        return (
+            of13.oxm.metadata(value=ofb_field['table_metadata']))
+
+    else:
+        raise NotImplementedError(
+            'OXM match field for type %s' % field_type)
+
 def make_loxi_match(match):
     assert match.get('type', pb2.OFPMT_STANDARD) == pb2.OFPMT_OXM
     loxi_match_fields = []
     for oxm_field in match.get('oxm_fields', []):
-        assert oxm_field['oxm_class'] == pb2.OFPXMC_OPENFLOW_BASIC
-        ofb_field = oxm_field['ofb_field']
-        field_type = ofb_field.get('type', 0)
-        if field_type == pb2.OFPXMT_OFB_ETH_TYPE:
-            loxi_match_fields.append(
-                of13.oxm.eth_type(value=ofb_field['eth_type']))
-        elif field_type == pb2.OFPXMT_OFB_IN_PORT:
-            loxi_match_fields.append(
-                of13.oxm.in_port(value=ofb_field['port']))
-        else:
-            raise NotImplementedError(
-                'OXM match field for type %s' % field_type)
+        loxi_match_fields.append(make_loxi_field(oxm_field))
     return of13.match_v3(oxm_list=loxi_match_fields)
 
 def ofp_flow_stats_to_loxi_flow_stats(pb):
@@ -84,9 +122,26 @@ def ofp_flow_stats_to_loxi_flow_stats(pb):
 
     def make_loxi_action(a):
         type = a.get('type', 0)
+
         if type == pb2.OFPAT_OUTPUT:
-            output = a['output']
-            return of13.action.output(**output)
+            output_kws = a['output']
+            return of13.action.output(**output_kws)
+
+        elif type == pb2.OFPAT_POP_VLAN:
+            return of13.action.pop_vlan()
+
+        elif type == pb2.OFPAT_PUSH_VLAN:
+            push_vlan_kws = a['push']
+            return of13.action.push_vlan(**push_vlan_kws)
+
+        elif type == pb2.OFPAT_SET_FIELD:
+            loxi_field = make_loxi_field(a['set_field']['field'])
+            return of13.action.set_field(loxi_field)
+
+        elif type == pb2.OFPAT_GROUP:
+            group_kws = a['group']
+            return of13.action.group(**group_kws)
+
         else:
             raise NotImplementedError(
                 'Action decoder for action OFPAT_* %d' % type)
@@ -97,6 +152,10 @@ def ofp_flow_stats_to_loxi_flow_stats(pb):
             return of13.instruction.apply_actions(
                 actions=[make_loxi_action(a)
                          for a in inst['actions']['actions']])
+        elif type == pb2.OFPIT_GOTO_TABLE:
+            return of13.instruction.goto_table(
+                table_id=inst['goto_table']['table_id'])
+
         else:
             raise NotImplementedError('Instruction type %d' % type)
 
@@ -136,12 +195,12 @@ def ofp_bucket_counter_to_loxy_bucket_counter(pb):
 
 
 to_loxi_converters = {
-    pb2.ofp_port: ofp_port_to_loxi_port_desc,
-    pb2.ofp_port_status: ofp_port_status_to_loxi_port_status,
-    pb2.ofp_flow_stats: ofp_flow_stats_to_loxi_flow_stats,
-    pb2.ofp_packet_in: ofp_packet_in_to_loxi_packet_in,
-    pb2.ofp_group_entry: ofp_group_entry_to_loxi_group_entry,
-    pb2.ofp_bucket_counter: ofp_bucket_counter_to_loxy_bucket_counter
+    'ofp_port': ofp_port_to_loxi_port_desc,
+    'ofp_port_status': ofp_port_status_to_loxi_port_status,
+    'ofp_flow_stats': ofp_flow_stats_to_loxi_flow_stats,
+    'ofp_packet_in': ofp_packet_in_to_loxi_packet_in,
+    'ofp_group_entry': ofp_group_entry_to_loxi_group_entry,
+    'ofp_bucket_counter': ofp_bucket_counter_to_loxy_bucket_counter
 }
 
 
@@ -248,6 +307,14 @@ def loxi_oxm_udp_dst_to_ofp_oxm(lo):
             udp_dst=lo.value))
 
 
+def loxi_oxm_udp_src_to_ofp_oxm(lo):
+    return pb2.ofp_oxm_field(
+        oxm_class=pb2.OFPXMC_OPENFLOW_BASIC,
+        ofb_field=pb2.ofp_oxm_ofb_field(
+            type=pb2.OFPXMT_OFB_UDP_SRC,
+            udp_src=lo.value))
+
+
 def loxi_oxm_metadata_to_ofp_oxm(lo):
     return pb2.ofp_oxm_field(
         oxm_class=pb2.OFPXMC_OPENFLOW_BASIC,
@@ -319,6 +386,7 @@ to_grpc_converters = {
     of13.oxm.vlan_vid: loxi_oxm_vlan_vid_to_ofp_oxm,
     of13.oxm.vlan_pcp: loxi_oxm_vlan_pcp_to_ofp_oxm,
     of13.oxm.ipv4_dst: loxi_oxm_ipv4_dst_to_ofp_oxm,
+    of13.oxm.udp_src: loxi_oxm_udp_src_to_ofp_oxm,
     of13.oxm.udp_dst: loxi_oxm_udp_dst_to_ofp_oxm,
     of13.oxm.metadata: loxi_oxm_metadata_to_ofp_oxm,
 
