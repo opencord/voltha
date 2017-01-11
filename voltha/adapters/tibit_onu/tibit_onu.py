@@ -54,6 +54,9 @@ log = structlog.get_logger()
 from voltha.extensions.eoam.EOAM_TLV import AddStaticMacAddress, DeleteStaticMacAddress
 from voltha.extensions.eoam.EOAM_TLV import ClearStaticMacTable
 from voltha.extensions.eoam.EOAM_TLV import DeviceId
+from voltha.extensions.eoam.EOAM_TLV import ClauseSubtypeEnum
+from voltha.extensions.eoam.EOAM_TLV import RuleOperatorEnum
+
 from voltha.extensions.eoam.EOAM import EOAMPayload, CablelabsOUI
 from voltha.extensions.eoam.EOAM import DPoEOpcode_GetRequest, DPoEOpcode_SetRequest
 
@@ -118,7 +121,7 @@ class TibitOnuAdapter(object):
         device.vendor = 'Tibit Communications, Inc.'
         device.model = '10G GPON ONU'
         device.hardware_version = 'fa161020'
-        device.firmware_version = '16.10.01'
+        device.firmware_version = '16.12.02'
         device.software_version = '1.0'
         device.serial_number = uuid4().hex
         device.connect_status = ConnectStatus.REACHABLE
@@ -195,116 +198,137 @@ class TibitOnuAdapter(object):
         raise NotImplementedError()
 
     def update_flows_bulk(self, device, flows, groups):
-        log.debug('bulk-flow-update', device_id=device.id,
-                  flows=flows, groups=groups)
-
-        # sample code that analyzes the incoming flow table
+        log.info('########################################')
+        log.info('bulk-flow-update', device_id=device.id,
+                 flows=flows, groups=groups)
         assert len(groups.items) == 0, "Cannot yet deal with groups"
+
+        Clause = {v: k for k, v in ClauseSubtypeEnum.iteritems()}
+        Operator = {v: k for k, v in RuleOperatorEnum.iteritems()}
 
         for flow in flows.items:
             in_port = get_in_port(flow)
             assert in_port is not None
 
+            precedence = 255 - min(flow.priority / 256, 255)
+
             if in_port == 2:
-
-                # Downstream rule
+                log.info('#### Downstream Rule ####')
+                dn_req = EOAMPayload(body=CablelabsOUI() /
+                                     DPoEOpcode_SetRequest())
 
                 for field in get_ofb_fields(flow):
+
                     if field.type == ETH_TYPE:
                         _type = field.eth_type
-                        pass  # construct ether type based condition here
+                        log.info('#### field.type == ETH_TYPE ####',field_type=_type)
 
                     elif field.type == IP_PROTO:
                         _proto = field.ip_proto
+                        log.info('#### field.type == IP_PROTO ####')
                         pass  # construct ip_proto based condition here
 
                     elif field.type == IN_PORT:
                         _port = field.port
+                        log.info('#### field.type == IN_PORT ####', port=_port)
                         pass  # construct in_port based condition here
 
                     elif field.type == VLAN_VID:
-                        _vlan_vid = field.vlan_vid
-                        pass  # construct VLAN ID based filter condition here
+                        _vlan_vid = field.vlan_vid & 0xfff
+                        log.info('#### field.type == VLAN_VID ####', vlan=_vlan_vid)
 
                     elif field.type == VLAN_PCP:
                         _vlan_pcp = field.vlan_pcp
+                        log.info('#### field.type == VLAN_PCP ####', pcp=_vlan_pcp)
                         pass  # construct VLAN PCP based filter condition here
-
-                    # TODO
-                    else:
-                        raise NotImplementedError('field.type={}'.format(
-                            field.type))
-
-                for action in get_actions(flow):
-
-                    if action.type == OUTPUT:
-                        pass  # construct packet emit rule here
-
-                    elif action.type == PUSH_VLAN:
-                        if action.push.ethertype != 0x8100:
-                            log.error('unhandled-ether-type',
-                                      ethertype=action.push.ethertype)
-                        pass  # construct vlan push command here
-
-                    elif action.type == POP_VLAN:
-                        pass  # construct vlan pop command here
-
-                    elif action.type == SET_FIELD:
-                        assert (action.set_field.field.oxm_class ==
-                                ofp.OFPXMC_OPENFLOW_BASIC)
-                        field = action.set_field.field.ofb_field
-                        if field.type == VLAN_VID:
-                            pass  # construct vlan_id set command here
-                        else:
-                            log.error('unsupported-action-set-field-type',
-                                      field_type=field.type)
-
-                    else:
-                        log.error('unsupported-action-type',
-                                  action_type=action.type)
-
-                # final assembly of low level device flow rule and pushing it
-                # down to device
-                pass
-
-            elif in_port == 1:
-
-                # Upstream rule
-
-                for field in get_ofb_fields(flow):
-                    if field.type == ETH_TYPE:
-                        _type = field.eth_type
-                        pass  # construct ether type based condition here
-
-                    elif field.type == IP_PROTO:
-                        _proto = field.ip_proto
-                        pass  # construct ip_proto based condition here
-
-                    elif field.type == IN_PORT:
-                        _port = field.port
-                        pass  # construct in_port based condition here
-
-                    elif field.type == VLAN_VID:
-                        _vlan_vid = field.vlan_vid
-                        pass  # construct VLAN ID based filter condition here
-
-                    elif field.type == VLAN_PCP:
-                        _vlan_pcp = field.vlan_pcp
-                        pass  # construct VLAN PCP based filter condition here
-
-                    elif field.type == IPV4_DST:
-                        _ipv4_dst = field.ipv4_dst
-                        pass  # construct IPv4 DST address based condition
-
-                    elif field.type == UDP_SRC:
-                        _udp_src = field.udp_src
-                        pass  # construct UDP SRC based filter here
 
                     elif field.type == UDP_DST:
                         _udp_dst = field.udp_dst
-                        pass  # construct UDP DST based filter here
+                        log.info('#### field.type == UDP_DST ####')
+                        pass  # construct UDP SDT based filter here
 
-                    # TODO
+                    elif field.type == IPV4_DST:
+                        _ipv4_dst = field.ipv4_dst
+                        import pdb
+                        pdb.set_trace()
+                        log.info('#### field.type == IPV4_DST ####')
+                        pass
+
+                    else:
+                        log.info('#### field.type == NOT IMPLEMENTED!! ####')
+                        raise NotImplementedError('field.type={}'.format(
+                            field.type))
+
+                for action in get_actions(flow):
+
+                    if action.type == OUTPUT:
+                        log.info('#### action.type == OUTPUT ####')
+
+                    elif action.type == POP_VLAN:
+                        log.info('#### action.type == POP_VLAN ####')
+                        pass  # construct vlan pop command here
+
+                    elif action.type == PUSH_VLAN:
+                        log.info('#### action.type == PUSH_VLAN ####')
+                        if action.push.ethertype != 0x8100:
+                            log.error('unhandled-tpid',
+                                      ethertype=action.push.ethertype)
+
+                    elif action.type == SET_FIELD:
+                        log.info('#### action.type == SET_FIELD ####')
+                        assert (action.set_field.field.oxm_class ==
+                                ofp.OFPXMC_OPENFLOW_BASIC)
+                        field = action.set_field.field.ofb_field
+                        if field.type == VLAN_VID:
+                            pass
+                        else:
+                            log.error('unsupported-action-set-field-type',
+                                      field_type=field.type)
+                    else:
+                        log.error('UNSUPPORTED-ACTION-TYPE',
+                                  action_type=action.type)
+
+                # send message
+                log.info('ONU-send-proxied-message')
+#                self.adapter_agent.send_proxied_message(device.proxy_address, dn_req)
+
+
+            elif in_port == 1:
+                # Upstream rule
+                log.info('#### Upstream Rule ####')
+
+                #### Loop through fields again...
+
+                for field in get_ofb_fields(flow):
+
+                    if field.type == ETH_TYPE:
+                        _type = field.eth_type
+                        log.info('#### field.type == ETH_TYPE ####', in_port=in_port,
+                                 match=_type)
+
+                    elif field.type == IP_PROTO:
+                        _proto = field.ip_proto
+                        log.info('#### field.type == IP_PROTO ####', in_port=in_port,
+                                 ip_proto=ip_proto)
+
+                    elif field.type == IN_PORT:
+                        _port = field.port
+                        log.info('#### field.type == IN_PORT ####')
+                        pass  # construct in_port based condition here
+
+                    elif field.type == VLAN_VID:
+                        _vlan_vid = field.vlan_vid & 0xfff
+                        log.info('#### field.type == VLAN_VID ####')
+
+                    elif field.type == VLAN_PCP:
+                        _vlan_pcp = field.vlan_pcp
+                        log.info('#### field.type == VLAN_PCP ####')
+                        pass  # construct VLAN PCP based filter condition here
+
+                    elif field.type == UDP_DST:
+                        _udp_dst = field.udp_dst
+                        log.info('#### field.type == UDP_DST ####')
+
                     else:
                         raise NotImplementedError('field.type={}'.format(
                             field.type))
@@ -312,31 +336,32 @@ class TibitOnuAdapter(object):
                 for action in get_actions(flow):
 
                     if action.type == OUTPUT:
-                        pass  # construct packet emit rule here
+                        log.info('#### action.type == OUTPUT ####')
+
+                    elif action.type == POP_VLAN:
+                        log.info('#### action.type == POP_VLAN ####')
+                        pass  # construct vlan pop command here
 
                     elif action.type == PUSH_VLAN:
+                        log.info('#### action.type == PUSH_VLAN ####')
                         if action.push.ethertype != 0x8100:
                             log.error('unhandled-ether-type',
                                       ethertype=action.push.ethertype)
-                        pass  # construct vlan push command here
 
                     elif action.type == SET_FIELD:
+                        log.info('#### action.type == SET_FIELD ####')
                         assert (action.set_field.field.oxm_class ==
                                 ofp.OFPXMC_OPENFLOW_BASIC)
                         field = action.set_field.field.ofb_field
                         if field.type == VLAN_VID:
-                            pass  # construct vlan_id set command here
+                            pass
                         else:
                             log.error('unsupported-action-set-field-type',
                                       field_type=field.type)
 
                     else:
-                        log.error('unsupported-action-type',
+                        log.error('UNSUPPORTED-ACTION-TYPE',
                                   action_type=action.type)
-
-                # final assembly of low level device flow rule and pushing it
-                # down to device
-                pass
 
             else:
                 raise Exception('Port should be 1 or 2 by our convention')
@@ -372,10 +397,21 @@ class TibitOnuAdapter(object):
         log.info('ONU-send-proxied-message')
         self.adapter_agent.send_proxied_message(device.proxy_address, msg)
 
-        log.info('ONU-log incoming messages BEFORE')
         # wait till we detect incoming message
         yield self.incoming_messages.get()
-        log.info('ONU-log incoming messages AFTER')
+
+        # construct install of igmp query address
+        msg = EOAMPayload(body=CablelabsOUI() /
+                          DPoEOpcode_SetRequest() /
+                          AddStaticMacAddress(mac='01:00:5e:00:00:01')
+                          )
+
+        # send message
+        log.info('ONU-send-proxied-message')
+        self.adapter_agent.send_proxied_message(device.proxy_address, msg)
+
+        # wait till we detect incoming message
+        yield self.incoming_messages.get()
 
         # by returning we allow the device to be shown as active, which
         # indirectly verified that message passing works
