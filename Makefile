@@ -76,7 +76,7 @@ help:
 
 build: protos containers
 
-containers: docker-base voltha chameleon ofagent podder netconf shovel onos
+containers: docker-base voltha chameleon ofagent podder netconf shovel onos tester
 
 docker-base:
 	docker build -t cord/voltha-base -f docker/Dockerfile.base .
@@ -101,6 +101,9 @@ shovel:
 
 onos:
 	docker build -t cord/onos -f docker/Dockerfile.onos docker
+
+tester:
+	docker build -t cord/onos -f docker/Dockerfile.tester docker
 
 protos:
 	make -C voltha/protos
