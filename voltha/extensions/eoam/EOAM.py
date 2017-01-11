@@ -132,6 +132,11 @@ class EOAMPayload(Packet):
 
 bind_layers(Ether, EOAMPayload, type=0x9001)
 
+def mcastIp2McastMac(ip):
+    """ Convert a dot-notated IPv4 multicast address string into an multicast MAC address"""
+    digits = [int(d) for d in ip.split('.')]
+    return '01:00:5e:%02x:%02x:%02x' % (digits[1] & 0x7f, digits[2] & 0xff, digits[3] & 0xff)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--dst', dest='dst', action='store', default=EOAM_MULTICAST_ADDRESS,
@@ -217,12 +222,12 @@ if __name__ == "__main__":
 
     if (args.test_add == True):
         print 'SET Add Static MAC Address -- User Port Object'
-        eoam.set_request(AddStaticMacAddress(mac=IGMP_MULTICAST_ADDRESS))
+        eoam.set_request(AddStaticMacAddress(mac=mcastIp2McastMac('230.10.10.10')))
+        time.sleep(1)
+        eoam.set_request(AddStaticMacAddress(mac=mcastIp2McastMac('231.11.11.11')))
 
-        time.sleep(15)
-
-        print 'SET Delete Static MAC Address -- User Port Object'
-        eoam.set_request(DeleteStaticMacAddress(mac=IGMP_MULTICAST_ADDRESS))
+#        print 'SET Delete Static MAC Address -- User Port Object'
+#        eoam.set_request(DeleteStaticMacAddress(mac=IGMP_MULTICAST_ADDRESS))
 
     if (args.test_eapol == True):
         #################################################################################
@@ -341,8 +346,7 @@ if __name__ == "__main__":
         Operator = {v: k for k, v in RuleOperatorEnum.iteritems()}
 
         print 'SET - Port Ingress Rule -- OLT Unicast Logical Link -- Upstream Traffic'
-        eoam.set_request(OLTUnicastLogicalLink(unicastvssn="TBIT", unicastlink=0xe2222900)/
-                         PortIngressRuleHeader(precedence=13)/
+        eoam.set_request(PortIngressRuleHeader(precedence=13)/
                          PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
                                                             operator=Operator['=='], match=0x00f1)/
                          PortIngressRuleResultForward()/
@@ -350,6 +354,7 @@ if __name__ == "__main__":
                          PortIngressRuleResultInsert(fieldcode=Clause['C-VLAN Tag'], fieldinstance=1)/
                          PortIngressRuleResultSet(fieldcode=Clause['C-VLAN Tag'], value=1000)/
                          PortIngressRuleResultReplace(fieldcode=Clause['C-VLAN Tag'])/
+                         OLTUnicastLogicalLink(unicastvssn="TBIT", unicastlink=0xe2222900)/
                          PortIngressRuleTerminator()/
                          AddPortIngressRule())
 
@@ -390,7 +395,7 @@ if __name__ == "__main__":
                          AddPortIngressRule())
 
 
-        time.sleep(3)
+        time.sleep(15)
 
         print 'DELETE - Port Ingress Rule -- NNI Port Object -- Downstream Traffic'
         eoam.set_request(NetworkToNetworkPortObject()/
