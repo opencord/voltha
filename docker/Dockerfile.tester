@@ -6,4 +6,9 @@ MAINTAINER Nathan Knuth   <nathan.knuth@tibitcom.com>
 
 RUN apt update && apt install -y iperf isc-dhcp-client tcpdump net-tools iproute2 iputils-ping wpasupplicant
 
+COPY config/igmp.py /usr/local/bin
+COPY config/igmpv3.py /usr/local/bin
+
+RUN chmod 755 /usr/local/bin/igmp.py
+
 COPY config/wpa_supplicant.conf /etc/wpa_supplicant/
