@@ -103,7 +103,7 @@ onos:
 	docker build -t cord/onos -f docker/Dockerfile.onos docker
 
 tester:
-	docker build -t cord/onos -f docker/Dockerfile.tester docker
+	docker build -t cord/tester -f docker/Dockerfile.tester docker
 
 protos:
 	make -C voltha/protos
