@@ -1,0 +1,9 @@
+FROM cord/voltha-base
+
+MAINTAINER Zsolt Haraszti <zharaszt@ciena.com>
+MAINTAINER Ali Al-Shabibi <ali.al-shabibi@onlab.us>
+MAINTAINER Nathan Knuth   <nathan.knuth@tibitcom.com>
+
+RUN apt update && apt install -y iperf isc-dhcp-client tcpdump net-tools iproute2 iputils-ping wpasupplicant
+
+COPY config/wpa_supplicant.conf /etc/wpa_supplicant/
