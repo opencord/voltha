@@ -588,10 +588,9 @@ class TibitOltAdapter(object):
                             operator=Operator['=='], match=_vlan_vid)
 
                         serial = _vlan_vid - 200
-                        #link = (0xe222 << 16) | (serial << 8)
-                        #up_req_link /= OLTUnicastLogicalLink(unicastvssn='TBIT', unicastlink=link)
+                        link = (0xe222 << 16) | (serial << 8)
+                        up_req_link /= OLTUnicastLogicalLink(unicastvssn='TBIT', unicastlink=link)
 
-                        up_req_link /=UnicastLogicalLink(unicastlink=link)
                         up_req_link /= PortIngressRuleClauseMatchLength02(
                             fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
                             operator=Operator['=='], match=_vlan_vid)
