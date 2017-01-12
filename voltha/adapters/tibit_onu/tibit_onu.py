@@ -59,6 +59,7 @@ from voltha.extensions.eoam.EOAM_TLV import RuleOperatorEnum
 
 from voltha.extensions.eoam.EOAM import EOAMPayload, CablelabsOUI
 from voltha.extensions.eoam.EOAM import DPoEOpcode_GetRequest, DPoEOpcode_SetRequest
+from voltha.extensions.eoam.EOAM import mcastIp2McastMac
 
 @implementer(IAdapterInterface)
 class TibitOnuAdapter(object):
@@ -213,7 +214,7 @@ class TibitOnuAdapter(object):
             precedence = 255 - min(flow.priority / 256, 255)
 
             if in_port == 2:
-                log.info('#### Downstream Rule ####')
+                log.info('#### Upstream Rule ####')
                 dn_req = EOAMPayload(body=CablelabsOUI() /
                                      DPoEOpcode_SetRequest())
 
@@ -226,12 +227,10 @@ class TibitOnuAdapter(object):
                     elif field.type == IP_PROTO:
                         _proto = field.ip_proto
                         log.info('#### field.type == IP_PROTO ####')
-                        pass  # construct ip_proto based condition here
 
                     elif field.type == IN_PORT:
                         _port = field.port
                         log.info('#### field.type == IN_PORT ####', port=_port)
-                        pass  # construct in_port based condition here
 
                     elif field.type == VLAN_VID:
                         _vlan_vid = field.vlan_vid & 0xfff
@@ -240,19 +239,14 @@ class TibitOnuAdapter(object):
                     elif field.type == VLAN_PCP:
                         _vlan_pcp = field.vlan_pcp
                         log.info('#### field.type == VLAN_PCP ####', pcp=_vlan_pcp)
-                        pass  # construct VLAN PCP based filter condition here
 
                     elif field.type == UDP_DST:
                         _udp_dst = field.udp_dst
                         log.info('#### field.type == UDP_DST ####')
-                        pass  # construct UDP SDT based filter here
 
                     elif field.type == IPV4_DST:
                         _ipv4_dst = field.ipv4_dst
-                        import pdb
-                        pdb.set_trace()
                         log.info('#### field.type == IPV4_DST ####')
-                        pass
 
                     else:
                         log.info('#### field.type == NOT IMPLEMENTED!! ####')
@@ -266,7 +260,6 @@ class TibitOnuAdapter(object):
 
                     elif action.type == POP_VLAN:
                         log.info('#### action.type == POP_VLAN ####')
-                        pass  # construct vlan pop command here
 
                     elif action.type == PUSH_VLAN:
                         log.info('#### action.type == PUSH_VLAN ####')
@@ -288,14 +281,8 @@ class TibitOnuAdapter(object):
                         log.error('UNSUPPORTED-ACTION-TYPE',
                                   action_type=action.type)
 
-                # send message
-                log.info('ONU-send-proxied-message')
-#                self.adapter_agent.send_proxied_message(device.proxy_address, dn_req)
-
-
             elif in_port == 1:
-                # Upstream rule
-                log.info('#### Upstream Rule ####')
+                log.info('#### Downstream Rule ####')
 
                 #### Loop through fields again...
 
@@ -314,7 +301,6 @@ class TibitOnuAdapter(object):
                     elif field.type == IN_PORT:
                         _port = field.port
                         log.info('#### field.type == IN_PORT ####')
-                        pass  # construct in_port based condition here
 
                     elif field.type == VLAN_VID:
                         _vlan_vid = field.vlan_vid & 0xfff
@@ -323,11 +309,28 @@ class TibitOnuAdapter(object):
                     elif field.type == VLAN_PCP:
                         _vlan_pcp = field.vlan_pcp
                         log.info('#### field.type == VLAN_PCP ####')
-                        pass  # construct VLAN PCP based filter condition here
 
                     elif field.type == UDP_DST:
                         _udp_dst = field.udp_dst
                         log.info('#### field.type == UDP_DST ####')
+
+                    elif field.type == IPV4_DST:
+                        _ipv4_dst = field.ipv4_dst
+                        log.info('#### field.type == IPV4_DST ####')
+                        a = int(hex(_ipv4_dst)[2:4], 16)
+                        b = int(hex(_ipv4_dst)[4:6], 16)
+                        c = int(hex(_ipv4_dst)[6:8], 16)
+                        d = int(hex(_ipv4_dst)[8:], 16)
+                        dn_req = EOAMPayload(body=CablelabsOUI() /
+                                          DPoEOpcode_SetRequest() /
+                                          AddStaticMacAddress(
+                                              mac=mcastIp2McastMac('%d.%d.%d.%d' % (a,b,c,d)))
+                                          )
+                        # send message
+                        log.info('ONU-send-proxied-message')
+                        self.adapter_agent.send_proxied_message(device.proxy_address,
+                                                                dn_req)
+
 
                     else:
                         raise NotImplementedError('field.type={}'.format(
@@ -340,7 +343,6 @@ class TibitOnuAdapter(object):
 
                     elif action.type == POP_VLAN:
                         log.info('#### action.type == POP_VLAN ####')
-                        pass  # construct vlan pop command here
 
                     elif action.type == PUSH_VLAN:
                         log.info('#### action.type == PUSH_VLAN ####')

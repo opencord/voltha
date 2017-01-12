@@ -621,6 +621,35 @@ class TestCli(VolthaCli):
 
     complete_install_all_sample_flows = VolthaCli.complete_logical_device
 
+    def do_install_dhcp_flows(self, line):
+        """
+        Install all dhcp flows that are representative of the virtualized access
+        scenario in a PON network.
+        """
+        logical_device_id = line or self.default_logical_device_id
+
+        # gather NNI and UNI port IDs
+        nni_port_no, uni_port_no, c_vid = \
+            self.get_logical_ports(logical_device_id)
+
+        # construct and push flow rules
+        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+
+        # Controller-bound flows
+        stub.UpdateLogicalDeviceFlowTable(FlowTableUpdate(
+            id=logical_device_id,
+            flow_mod=mk_simple_flow_mod(
+                priority=1000,
+                match_fields=[eth_type(0x800), ip_proto(17), udp_dst(67)],
+                actions=[output(ofp.OFPP_CONTROLLER)]
+            )
+        ))
+
+
+        self.poutput('success')
+
+    complete_install_dhcp_flows = VolthaCli.complete_logical_device
+
     def do_delete_all_flows(self, line):
         """
         Remove all flows and flow groups from given logical device

@@ -427,6 +427,8 @@ class TibitOltAdapter(object):
                  flows=flows, groups=groups)
         assert len(groups.items) == 0, "Cannot yet deal with groups"
 
+        ONU_VID_208=0xd0
+
         Clause = {v: k for k, v in ClauseSubtypeEnum.iteritems()}
         Operator = {v: k for k, v in RuleOperatorEnum.iteritems()}
 
@@ -454,12 +456,10 @@ class TibitOltAdapter(object):
                     elif field.type == IP_PROTO:
                         _proto = field.ip_proto
                         log.info('#### field.type == IP_PROTO ####')
-                        pass  # construct ip_proto based condition here
 
                     elif field.type == IN_PORT:
                         _port = field.port
                         log.info('#### field.type == IN_PORT ####', port=_port)
-                        pass  # construct in_port based condition here
 
                     elif field.type == VLAN_VID:
                         _vlan_vid = field.vlan_vid & 0xfff
@@ -468,24 +468,19 @@ class TibitOltAdapter(object):
                                                                      operator=Operator['=='], match=_vlan_vid)
                         if (_vlan_vid != 140):
                             dn_req /= PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=1,
-                                                                         operator=Operator['=='], match=0x00f1)
+                                                                         operator=Operator['=='], match=ONU_VID_208)
 
                     elif field.type == VLAN_PCP:
                         _vlan_pcp = field.vlan_pcp
                         log.info('#### field.type == VLAN_PCP ####', pcp=_vlan_pcp)
-                        pass  # construct VLAN PCP based filter condition here
 
                     elif field.type == UDP_DST:
                         _udp_dst = field.udp_dst
                         log.info('#### field.type == UDP_DST ####')
-                        pass  # construct UDP SDT based filter here
 
                     elif field.type == IPV4_DST:
-                        _udp_dst = field.ipv4_dst
+                        _ipv4_dst = field.ipv4_dst
                         log.info('#### field.type == IPV4_DST ####')
-                        import pdb
-                        pdb.set_trace()
-                        pass  # construct UDP SDT based filter here
 
                     else:
                         raise NotImplementedError('field.type={}'.format(
@@ -496,12 +491,14 @@ class TibitOltAdapter(object):
                     if action.type == OUTPUT:
                         log.info('#### action.type == OUTPUT ####')
                         dn_req /= PortIngressRuleResultForward()
-                        dn_req /= PortIngressRuleResultOLTQueue(unicastvssn="TBIT", unicastlink=0xe2222900)
+                        serial = ONU_VID_208 - 200
+                        link = (0xe222 << 16) | (serial << 8)
+                        dn_req /= PortIngressRuleResultOLTQueue(unicastvssn="TBIT",
+                                                                unicastlink=link)
 
                     elif action.type == POP_VLAN:
                         log.info('#### action.type == POP_VLAN ####')
                         dn_req /= PortIngressRuleResultDelete(fieldcode=Clause['S-VLAN Tag'])
-                        pass  # construct vlan pop command here
 
                     elif action.type == PUSH_VLAN:
                         log.info('#### action.type == PUSH_VLAN ####')
