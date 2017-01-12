@@ -14,7 +14,6 @@
 # limitations under the License.
 #
 from uuid import uuid4
-from ofagent.utils import mac_str_to_tuple
 import structlog
 from voltha.protos.common_pb2 import ConnectStatus, OperStatus
 from voltha.protos.logical_device_pb2 import LogicalDevice, LogicalPort
@@ -22,6 +21,13 @@ from voltha.protos.openflow_13_pb2 import ofp_desc, ofp_switch_features, OFPC_FL
     OFPC_PORT_STATS, OFPC_GROUP_STATS, ofp_port, OFPPS_LIVE, OFPPF_10GB_FD, OFPPF_FIBER
 
 log = structlog.get_logger()
+
+def mac_str_to_tuple(mac):
+    """
+    Convert 'xx:xx:xx:xx:xx:xx' MAC address string to a tuple of integers.
+    Example: mac_str_to_tuple('00:01:02:03:04:05') == (0, 1, 2, 3, 4, 5)
+    """
+    return tuple(int(d, 16) for d in mac.split(':'))
 
 class DeviceManager(object):
 
