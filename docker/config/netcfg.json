@@ -1,5 +1,29 @@
 {
   "apps": {
+    "org.onosproject.igmp": {
+      "ssmTranslate": [
+        {
+          "source": "1.2.3.4",
+          "group": "229.0.0.1"
+        },
+        {
+          "source": "2.3.4.5",
+          "group": "229.0.0.2"
+        },
+        {
+          "source": "1.2.3.4",
+          "group": "229.0.0.3"
+        },
+        {
+          "source": "1.2.3.4",
+          "group": "229.0.0.4"
+        },
+        {
+          "source": "2.3.4.5",
+          "group": "229.0.0.5"
+        }
+      ]
+    },
     "org.onosproject.aaa": {
       "AAA": {
         "radiusIp": "172.25.0.100",
