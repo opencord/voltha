@@ -215,10 +215,7 @@ class TibitOltAdapter(object):
         log.info('create-logical-device')
         # then shortly after we create the logical device with one port
         # that will correspond to the NNI port
-        logical_device_id = uuid4().hex[:12]
         ld = LogicalDevice(
-            id=logical_device_id,
-            datapath_id=int('0x' + logical_device_id[:8], 16), # from id
             desc=ofp_desc(
                 mfr_desc=device.vendor,
                 hw_desc=jdev['results']['device'],
@@ -238,12 +235,12 @@ class TibitOltAdapter(object):
             ),
             root_device_id=device.id
         )
-        self.adapter_agent.create_logical_device(ld)
+        ld_initialized = self.adapter_agent.create_logical_device(ld)
         cap = OFPPF_10GB_FD | OFPPF_FIBER
-        self.adapter_agent.add_logical_port(ld.id, LogicalPort(
+        self.adapter_agent.add_logical_port(ld_initialized.id, LogicalPort(
             id='nni',
             ofp_port=ofp_port(
-                port_no=129,
+                port_no=0,
                 hw_addr=mac_str_to_tuple(device.mac_address),
                 name='nni',
                 config=0,
@@ -261,7 +258,7 @@ class TibitOltAdapter(object):
 
         # and finally update to active
         device = self.adapter_agent.get_device(device.id)
-        device.parent_id = ld.id
+        device.parent_id = ld_initialized.id
         device.oper_status = OperStatus.ACTIVE
         self.adapter_agent.update_device(device)
 
@@ -433,247 +430,264 @@ class TibitOltAdapter(object):
         Operator = {v: k for k, v in RuleOperatorEnum.iteritems()}
 
         for flow in flows.items:
-            in_port = get_in_port(flow)
-            assert in_port is not None
 
-            precedence = 255 - min(flow.priority / 256, 255)
+            try:
+                in_port = get_in_port(flow)
+                assert in_port is not None
 
-            if in_port == 2:
-                log.info('#### Downstream Rule ####')
-                dn_req = NetworkToNetworkPortObject()
-                dn_req /= PortIngressRuleHeader(precedence=precedence)
+                precedence = 255 - min(flow.priority / 256, 255)
 
-                for field in get_ofb_fields(flow):
+                if in_port == 2:
+                    log.info('#### Downstream Rule ####')
+                    dn_req = NetworkToNetworkPortObject()
+                    dn_req /= PortIngressRuleHeader(precedence=precedence)
 
-                    if field.type == ETH_TYPE:
-                        _type = field.eth_type
-                        log.info('#### field.type == ETH_TYPE ####')
-                        dn_req /= PortIngressRuleClauseMatchLength02(
-                            fieldcode=Clause['L2 Type/Len'],
-                            operator=Operator['=='],
-                            match=_type)
+                    for field in get_ofb_fields(flow):
 
-                    elif field.type == IP_PROTO:
-                        _proto = field.ip_proto
-                        log.info('#### field.type == IP_PROTO ####')
+                        if field.type == ETH_TYPE:
+                            _type = field.eth_type
+                            log.info('#### field.type == ETH_TYPE ####')
+                            dn_req /= PortIngressRuleClauseMatchLength02(
+                                fieldcode=Clause['L2 Type/Len'],
+                                operator=Operator['=='],
+                                match=_type)
 
-                    elif field.type == IN_PORT:
-                        _port = field.port
-                        log.info('#### field.type == IN_PORT ####', port=_port)
+                        elif field.type == IP_PROTO:
+                            _proto = field.ip_proto
+                            log.info('#### field.type == IP_PROTO ####')
 
-                    elif field.type == VLAN_VID:
-                        _vlan_vid = field.vlan_vid & 0xfff
-                        log.info('#### field.type == VLAN_VID ####', vlan=_vlan_vid)
-                        dn_req /= PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
-                                                                     operator=Operator['=='], match=_vlan_vid)
-                        if (_vlan_vid != 140):
-                            dn_req /= PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=1,
-                                                                         operator=Operator['=='], match=ONU_VID_208)
+                        elif field.type == IN_PORT:
+                            _port = field.port
+                            log.info('#### field.type == IN_PORT ####', port=_port)
 
-                    elif field.type == VLAN_PCP:
-                        _vlan_pcp = field.vlan_pcp
-                        log.info('#### field.type == VLAN_PCP ####', pcp=_vlan_pcp)
+                        elif field.type == VLAN_VID:
+                            _vlan_vid = field.vlan_vid & 0xfff
+                            log.info('#### field.type == VLAN_VID ####', vlan=_vlan_vid)
+                            dn_req /= PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
+                                                                         operator=Operator['=='], match=_vlan_vid)
+                            if (_vlan_vid != 140):
+                                dn_req /= PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=1,
+                                                                             operator=Operator['=='], match=ONU_VID_208)
 
-                    elif field.type == UDP_DST:
-                        _udp_dst = field.udp_dst
-                        log.info('#### field.type == UDP_DST ####')
+                        elif field.type == VLAN_PCP:
+                            _vlan_pcp = field.vlan_pcp
+                            log.info('#### field.type == VLAN_PCP ####', pcp=_vlan_pcp)
 
-                    elif field.type == IPV4_DST:
-                        _ipv4_dst = field.ipv4_dst
-                        log.info('#### field.type == IPV4_DST ####')
+                        elif field.type == UDP_DST:
+                            _udp_dst = field.udp_dst
+                            log.info('#### field.type == UDP_DST ####')
 
-                    else:
-                        raise NotImplementedError('field.type={}'.format(
-                            field.type))
+                        elif field.type == UDP_SRC:
+                            _udp_src = field.udp_src
+                            log.info('#### field.type == UDP_SRC ####')
 
-                for action in get_actions(flow):
+                        elif field.type == IPV4_DST:
+                            _ipv4_dst = field.ipv4_dst
+                            log.info('#### field.type == IPV4_DST ####')
 
-                    if action.type == OUTPUT:
-                        log.info('#### action.type == OUTPUT ####')
-                        dn_req /= PortIngressRuleResultForward()
-                        serial = ONU_VID_208 - 200
-                        link = (0xe222 << 16) | (serial << 8)
-                        dn_req /= PortIngressRuleResultOLTQueue(unicastvssn="TBIT",
-                                                                unicastlink=link)
+                        elif field.type == METADATA:
+                            log.info('#### field.type == METADATA ####')
+                            pass
 
-                    elif action.type == POP_VLAN:
-                        log.info('#### action.type == POP_VLAN ####')
-                        dn_req /= PortIngressRuleResultDelete(fieldcode=Clause['S-VLAN Tag'])
-
-                    elif action.type == PUSH_VLAN:
-                        log.info('#### action.type == PUSH_VLAN ####')
-                        if action.push.ethertype != 0x8100:
-                            log.error('unhandled-tpid',
-                                      ethertype=action.push.ethertype)
-                            dn_req /= PortIngressRuleResultInsert(fieldcode=Clause['C-VLAN Tag'])
-
-                    elif action.type == SET_FIELD:
-                        log.info('#### action.type == SET_FIELD ####')
-                        assert (action.set_field.field.oxm_class ==
-                                ofp.OFPXMC_OPENFLOW_BASIC)
-                        field = action.set_field.field.ofb_field
-                        if field.type == VLAN_VID:
-                            dn_req /= PortIngressRuleResultSet(
-                                fieldcode=Clause['C-VLAN Tag'], value=field.vlan_vid & 0xfff)
                         else:
-                            log.error('unsupported-action-set-field-type',
-                                      field_type=field.type)
-                    else:
-                        log.error('UNSUPPORTED-ACTION-TYPE',
-                                  action_type=action.type)
+                            raise NotImplementedError('field.type={}'.format(
+                                field.type))
 
-                dn_req /= PortIngressRuleTerminator()
-                dn_req /= AddPortIngressRule()
+                    for action in get_actions(flow):
 
-                msg = (
-                    Ether(dst=device.mac_address) /
-                    Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) /
-                    EOAMPayload(
-                        body=CablelabsOUI() / DPoEOpcode_SetRequest() / dn_req)
-                )
+                        if action.type == OUTPUT:
+                            log.info('#### action.type == OUTPUT ####')
+                            dn_req /= PortIngressRuleResultForward()
+                            serial = ONU_VID_208 - 200
+                            link = (0xe222 << 16) | (serial << 8)
+                            dn_req /= PortIngressRuleResultOLTQueue(unicastvssn="TBIT",
+                                                                    unicastlink=link)
 
-                self.io_port.send(str(msg))
+                        elif action.type == POP_VLAN:
+                            log.info('#### action.type == POP_VLAN ####')
+                            dn_req /= PortIngressRuleResultDelete(fieldcode=Clause['S-VLAN Tag'])
 
-            elif in_port == 1:
-                # Upstream rule
-                log.info('#### Upstream Rule ####')
+                        elif action.type == PUSH_VLAN:
+                            log.info('#### action.type == PUSH_VLAN ####')
+                            if action.push.ethertype != 0x8100:
+                                log.error('unhandled-tpid',
+                                          ethertype=action.push.ethertype)
+                                dn_req /= PortIngressRuleResultInsert(fieldcode=Clause['C-VLAN Tag'])
 
-                field_match_vlan_upstream_with_link = False
-                up_req_link = PortIngressRuleHeader(precedence=precedence)
-
-                up_req_pon = PonPortObject()
-                up_req_pon /= PortIngressRuleHeader(precedence=precedence)
-
-                for field in get_ofb_fields(flow):
-
-                    if field.type == ETH_TYPE:
-                        _type = field.eth_type
-                        log.info('#### field.type == ETH_TYPE ####', in_port=in_port,
-                                 match=_type)
-                        up_req_pon /= PortIngressRuleClauseMatchLength02(
-                            fieldcode=Clause['L2 Type/Len'],
-                            operator=Operator['=='],
-                            match=_type)
-
-                        up_req_link /= PortIngressRuleClauseMatchLength02(
-                            fieldcode=Clause['L2 Type/Len'],
-                            operator=Operator['=='],
-                            match=_type)
-
-                    elif field.type == IP_PROTO:
-                        _proto = field.ip_proto
-                        log.info('#### field.type == IP_PROTO ####', in_port=in_port,
-                                 ip_proto=ip_proto)
-
-                        up_req_pon /= PortIngressRuleClauseMatchLength01(
-                            fieldcode=Clause['IPv4/IPv6 Protocol Type'],
-                            operator=Operator['=='], match=_proto)
-
-                        up_req_link /= PortIngressRuleClauseMatchLength01(
-                            fieldcode=Clause['IPv4/IPv6 Protocol Type'],
-                            operator=Operator['=='], match=_proto)
-
-                    elif field.type == IN_PORT:
-                        _port = field.port
-                        log.info('#### field.type == IN_PORT ####')
-
-                    elif field.type == VLAN_VID:
-                        _vlan_vid = field.vlan_vid & 0xfff
-                        log.info('#### field.type == VLAN_VID ####')
-                        up_req_pon /= PortIngressRuleClauseMatchLength02(
-                            fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
-                            operator=Operator['=='], match=_vlan_vid)
-
-                        serial = _vlan_vid - 200
-                        link = (0xe222 << 16) | (serial << 8)
-                        up_req_link /= OLTUnicastLogicalLink(unicastvssn='TBIT', unicastlink=link)
-
-                        up_req_link /= PortIngressRuleClauseMatchLength02(
-                            fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
-                            operator=Operator['=='], match=_vlan_vid)
-                        field_match_vlan_upstream_with_link = True
-
-
-                    elif field.type == VLAN_PCP:
-                        _vlan_pcp = field.vlan_pcp
-                        log.info('#### field.type == VLAN_PCP ####')
-
-                    elif field.type == UDP_DST:
-                        _udp_dst = field.udp_dst
-                        log.info('#### field.type == UDP_DST ####')
-                        up_req_pon /= (PortIngressRuleClauseMatchLength02(fieldcode=Clause['TCP/UDP source port'],
-                                                                          operator=Operator['=='], match=0x0044)/
-                                       PortIngressRuleClauseMatchLength02(fieldcode=Clause['TCP/UDP destination port'],
-                                                                          operator=Operator['=='], match=0x0043))
-
-                    else:
-                        raise NotImplementedError('field.type={}'.format(
-                            field.type))
-
-                for action in get_actions(flow):
-
-                    if action.type == OUTPUT:
-                        log.info('#### action.type == OUTPUT ####')
-                        up_req_pon /= PortIngressRuleResultForward()
-                        up_req_link /= PortIngressRuleResultForward()
-
-                    elif action.type == POP_VLAN:
-                        log.info('#### action.type == POP_VLAN ####')
-
-                    elif action.type == PUSH_VLAN:
-                        log.info('#### action.type == PUSH_VLAN ####')
-                        if action.push.ethertype != 0x8100:
-                            log.error('unhandled-ether-type',
-                                      ethertype=action.push.ethertype)
-                        if field_match_vlan_upstream_with_link == True:
-                            up_req_link /= PortIngressRuleResultInsert(fieldcode=Clause['C-VLAN Tag'],
-                                                                  fieldinstance=1)
+                        elif action.type == SET_FIELD:
+                            log.info('#### action.type == SET_FIELD ####')
+                            assert (action.set_field.field.oxm_class ==
+                                    ofp.OFPXMC_OPENFLOW_BASIC)
+                            field = action.set_field.field.ofb_field
+                            if field.type == VLAN_VID:
+                                dn_req /= PortIngressRuleResultSet(
+                                    fieldcode=Clause['C-VLAN Tag'], value=field.vlan_vid & 0xfff)
+                            else:
+                                log.error('unsupported-action-set-field-type',
+                                          field_type=field.type)
                         else:
-                            up_req_pon /= PortIngressRuleResultInsert(fieldcode=Clause['C-VLAN Tag'],
-                                                                  fieldinstance=0)
+                            log.error('UNSUPPORTED-ACTION-TYPE',
+                                      action_type=action.type)
 
-                    elif action.type == SET_FIELD:
-                        log.info('#### action.type == SET_FIELD ####')
-                        assert (action.set_field.field.oxm_class ==
-                                ofp.OFPXMC_OPENFLOW_BASIC)
-                        field = action.set_field.field.ofb_field
-                        if field.type == VLAN_VID:
+                    dn_req /= PortIngressRuleTerminator()
+                    dn_req /= AddPortIngressRule()
+
+                    msg = (
+                        Ether(dst=device.mac_address) /
+                        Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) /
+                        EOAMPayload(
+                            body=CablelabsOUI() / DPoEOpcode_SetRequest() / dn_req)
+                    )
+
+                    self.io_port.send(str(msg))
+
+                elif in_port == 1:
+                    # Upstream rule
+                    log.info('#### Upstream Rule ####')
+
+                    field_match_vlan_upstream_with_link = False
+                    up_req_link = PortIngressRuleHeader(precedence=precedence)
+
+                    up_req_pon = PonPortObject()
+                    up_req_pon /= PortIngressRuleHeader(precedence=precedence)
+
+                    for field in get_ofb_fields(flow):
+
+                        if field.type == ETH_TYPE:
+                            _type = field.eth_type
+                            log.info('#### field.type == ETH_TYPE ####', in_port=in_port,
+                                     match=_type)
+                            up_req_pon /= PortIngressRuleClauseMatchLength02(
+                                fieldcode=Clause['L2 Type/Len'],
+                                operator=Operator['=='],
+                                match=_type)
+
+                            up_req_link /= PortIngressRuleClauseMatchLength02(
+                                fieldcode=Clause['L2 Type/Len'],
+                                operator=Operator['=='],
+                                match=_type)
+
+                        elif field.type == IP_PROTO:
+                            _proto = field.ip_proto
+                            log.info('#### field.type == IP_PROTO ####', in_port=in_port,
+                                     ip_proto=_proto)
+
+                            up_req_pon /= PortIngressRuleClauseMatchLength01(
+                                fieldcode=Clause['IPv4/IPv6 Protocol Type'],
+                                operator=Operator['=='], match=_proto)
+
+                            up_req_link /= PortIngressRuleClauseMatchLength01(
+                                fieldcode=Clause['IPv4/IPv6 Protocol Type'],
+                                operator=Operator['=='], match=_proto)
+
+                        elif field.type == IN_PORT:
+                            _port = field.port
+                            log.info('#### field.type == IN_PORT ####')
+
+                        elif field.type == VLAN_VID:
+                            _vlan_vid = field.vlan_vid & 0xfff
+                            log.info('#### field.type == VLAN_VID ####')
+                            up_req_pon /= PortIngressRuleClauseMatchLength02(
+                                fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
+                                operator=Operator['=='], match=_vlan_vid)
+
+                            serial = _vlan_vid - 200
+                            link = (0xe222 << 16) | (serial << 8)
+                            up_req_link /= OLTUnicastLogicalLink(unicastvssn='TBIT', unicastlink=link)
+
+                            up_req_link /= PortIngressRuleClauseMatchLength02(
+                                fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
+                                operator=Operator['=='], match=_vlan_vid)
+                            field_match_vlan_upstream_with_link = True
+
+
+                        elif field.type == VLAN_PCP:
+                            _vlan_pcp = field.vlan_pcp
+                            log.info('#### field.type == VLAN_PCP ####')
+
+                        elif field.type == UDP_DST:
+                            _udp_dst = field.udp_dst
+                            log.info('#### field.type == UDP_DST ####')
+                            up_req_pon /= (PortIngressRuleClauseMatchLength02(fieldcode=Clause['TCP/UDP source port'],
+                                                                              operator=Operator['=='], match=0x0044)/
+                                           PortIngressRuleClauseMatchLength02(fieldcode=Clause['TCP/UDP destination port'],
+                                                                              operator=Operator['=='], match=0x0043))
+
+                        elif field.type == UDP_SRC:
+                            _udp_src = field.udp_src
+                            log.info('#### field.type == UDP_SRC ####')
+
+                        else:
+                            raise NotImplementedError('field.type={}'.format(
+                                field.type))
+
+                    for action in get_actions(flow):
+
+                        if action.type == OUTPUT:
+                            log.info('#### action.type == OUTPUT ####')
+                            up_req_pon /= PortIngressRuleResultForward()
+                            up_req_link /= PortIngressRuleResultForward()
+
+                        elif action.type == POP_VLAN:
+                            log.info('#### action.type == POP_VLAN ####')
+
+                        elif action.type == PUSH_VLAN:
+                            log.info('#### action.type == PUSH_VLAN ####')
+                            if action.push.ethertype != 0x8100:
+                                log.error('unhandled-ether-type',
+                                          ethertype=action.push.ethertype)
                             if field_match_vlan_upstream_with_link == True:
-                                up_req_link /=(PortIngressRuleResultCopy(fieldcode=Clause['C-VLAN Tag'])/
-                                               PortIngressRuleResultReplace(fieldcode=Clause['C-VLAN Tag']))
+                                up_req_link /= PortIngressRuleResultInsert(fieldcode=Clause['C-VLAN Tag'],
+                                                                      fieldinstance=1)
+                            else:
+                                up_req_pon /= PortIngressRuleResultInsert(fieldcode=Clause['C-VLAN Tag'],
+                                                                      fieldinstance=0)
 
-                            up_req_pon /= PortIngressRuleResultSet(
-                                fieldcode=Clause['C-VLAN Tag'], value=field.vlan_vid & 0xfff)
-                            up_req_link /= PortIngressRuleResultSet(
-                                fieldcode=Clause['C-VLAN Tag'], value=field.vlan_vid & 0xfff)
+                        elif action.type == SET_FIELD:
+                            log.info('#### action.type == SET_FIELD ####')
+                            assert (action.set_field.field.oxm_class ==
+                                    ofp.OFPXMC_OPENFLOW_BASIC)
+                            field = action.set_field.field.ofb_field
+                            if field.type == VLAN_VID:
+                                if field_match_vlan_upstream_with_link == True:
+                                    up_req_link /=(PortIngressRuleResultCopy(fieldcode=Clause['C-VLAN Tag'])/
+                                                   PortIngressRuleResultReplace(fieldcode=Clause['C-VLAN Tag']))
+
+                                up_req_pon /= PortIngressRuleResultSet(
+                                    fieldcode=Clause['C-VLAN Tag'], value=field.vlan_vid & 0xfff)
+                                up_req_link /= PortIngressRuleResultSet(
+                                    fieldcode=Clause['C-VLAN Tag'], value=field.vlan_vid & 0xfff)
+                            else:
+                                log.error('unsupported-action-set-field-type',
+                                          field_type=field.type)
+
                         else:
-                            log.error('unsupported-action-set-field-type',
-                                      field_type=field.type)
+                            log.error('UNSUPPORTED-ACTION-TYPE',
+                                      action_type=action.type)
 
+                    if (field_match_vlan_upstream_with_link == True):
+                        up_req = up_req_link
+                        up_req.show()
                     else:
-                        log.error('UNSUPPORTED-ACTION-TYPE',
-                                  action_type=action.type)
+                        up_req = up_req_pon
 
-                if (field_match_vlan_upstream_with_link == True):
-                    up_req = up_req_link
-                    up_req.show()
+                    up_req /= PortIngressRuleTerminator()
+                    up_req /= AddPortIngressRule()
+
+                    msg = (
+                        Ether(dst=device.mac_address) /
+                        Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) /
+                        EOAMPayload(
+                            body=CablelabsOUI() / DPoEOpcode_SetRequest() / up_req)
+                    )
+
+                    self.io_port.send(str(msg))
+
                 else:
-                    up_req = up_req_pon
+                    raise Exception('Port should be 1 or 2 by our convention')
 
-                up_req /= PortIngressRuleTerminator()
-                up_req /= AddPortIngressRule()
-
-                msg = (
-                    Ether(dst=device.mac_address) /
-                    Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) /
-                    EOAMPayload(
-                        body=CablelabsOUI() / DPoEOpcode_SetRequest() / up_req)
-                )
-
-                self.io_port.send(str(msg))
-
-            else:
-                raise Exception('Port should be 1 or 2 by our convention')
+            except Exception, e:
+                log.exception('failed-to-install-flow', e=e, flow=flow)
 
     def update_flows_incrementally(self, device, flow_changes, group_changes):
         raise NotImplementedError()
