@@ -23,7 +23,7 @@ from netconf.nc_rpc.rpc_factory import get_rpc_factory_instance
 from netconf.constants import Constants as C
 from netconf.nc_common.utils import qmap, ns, elm
 import netconf.nc_common.error as ncerror
-from netconf.nc_common.error import BadMsg, NotImpl, ServerException, Error
+from netconf.nc_rpc.rpc_response import RpcResponse
 
 log = structlog.get_logger()
 
@@ -181,6 +181,7 @@ class NetconfProtocolHandler:
                              response=response)
                     if not response.is_error:
                         self.send_rpc_reply(response.node, rpc)
+                        # self.send_rpc_reply(self.get_mock_volthainstance(), rpc)
                     else:
                         self.send_message(response.node.get_xml_reply())
 
@@ -235,371 +236,142 @@ class NetconfProtocolHandler:
             self.connected.callback(None)
             log.info('closing-client')
 
+
     # Example of a properly formatted Yang-XML message
-    def get_instance(self):
-        xml_string = """
-            <data>
-             <Voltha xmlns="urn:opencord:params:xml:ns:voltha:ietf-voltha">
-             <instances>
-              <log_level>INFO</log_level>
-                <device_types>
-                  <adapter>simulated_onu</adapter>
-                  <accepts_bulk_flow_update>True</accepts_bulk_flow_update>
-                  <id>simulated_onu</id>
-                  <accepts_add_remove_flow_updates>False</accepts_add_remove_flow_updates>
-                </device_types>
-                <device_types>
-                  <adapter>tibit_onu</adapter>
-                  <accepts_bulk_flow_update>True</accepts_bulk_flow_update>
-                  <id>tibit_onu</id>
-                  <accepts_add_remove_flow_updates>False</accepts_add_remove_flow_updates>
-                </device_types>
-                <device_types>
-                  <adapter>maple_olt</adapter>
-                  <accepts_bulk_flow_update>True</accepts_bulk_flow_update>
-                  <id>maple_olt</id>
-                  <accepts_add_remove_flow_updates>False</accepts_add_remove_flow_updates>
-                </device_types>
-                <device_types>
-                  <adapter>tibit_olt</adapter>
-                  <accepts_bulk_flow_update>True</accepts_bulk_flow_update>
-                  <id>tibit_olt</id>
-                  <accepts_add_remove_flow_updates>False</accepts_add_remove_flow_updates>
-                </device_types>
-                <device_types>
-                  <adapter>broadcom_onu</adapter>
-                  <accepts_bulk_flow_update>True</accepts_bulk_flow_update>
-                  <id>broadcom_onu</id>
-                  <accepts_add_remove_flow_updates>False</accepts_add_remove_flow_updates>
-                </device_types>
-                <device_types>
-                  <adapter>simulated_olt</adapter>
-                  <accepts_bulk_flow_update>True</accepts_bulk_flow_update>
-                  <id>simulated_olt</id>
-                  <accepts_add_remove_flow_updates>False</accepts_add_remove_flow_updates>
-                </device_types>
-                <logical_devices>
-                  <datapath_id>1</datapath_id>
-                  <root_device_id>simulated_olt_1</root_device_id>
-                  <switch_features>
-                    <auxiliary_id>0</auxiliary_id>
-                    <n_tables>2</n_tables>
-                    <datapath_id>0</datapath_id>
-                    <capabilities>15</capabilities>
-                    <n_buffers>256</n_buffers>
-                  </switch_features>
-                  <flows/>
-                  <id>simulated1</id>
-                  <flow_groups/>
-                    <ports>
-                      <device_port_no>2</device_port_no>
-                      <root_port>False</root_port>
-                      <device_id>simulated_onu_1</device_id>
-                      <id>onu1</id>
-                      <ofp_port>
-                        <hw_addr>
-                          <item>0</item>
-                          <item>0</item>
-                          <item>0</item>
-                          <item>0</item>
-                          <item>0</item>
-                          <item>1</item>
-                        </hw_addr>
-                        <curr_speed>32</curr_speed>
-                        <curr>4128</curr>
-                        <name>onu1</name>
-                        <supported>0</supported>
-                        <state>4</state>
-                        <max_speed>32</max_speed>
-                        <advertised>4128</advertised>
-                        <peer>4128</peer>
-                        <config>0</config>
-                        <port_no>1</port_no>
-                      </ofp_port>
-                    </ports>
-                    <ports>
-                      <device_port_no>2</device_port_no>
-                      <root_port>False</root_port>
-                      <device_id>simulated_onu_2</device_id>
-                      <id>onu2</id>
-                      <ofp_port>
-                        <hw_addr>
-                          <item>0</item>
-                          <item>0</item>
-                          <item>0</item>
-                          <item>0</item>
-                          <item>0</item>
-                          <item>2</item>
-                        </hw_addr>
-                        <curr_speed>32</curr_speed>
-                        <curr>4128</curr>
-                        <name>onu2</name>
-                        <supported>0</supported>
-                        <state>4</state>
-                        <max_speed>32</max_speed>
-                        <advertised>4128</advertised>
-                        <peer>4128</peer>
-                        <config>0</config>
-                        <port_no>2</port_no>
-                      </ofp_port>
-                    </ports>
-                    <ports>
-                      <device_port_no>2</device_port_no>
-                      <root_port>True</root_port>
-                      <device_id>simulated_olt_1</device_id>
-                      <id>olt1</id>
-                      <ofp_port>
-                        <hw_addr>
-                          <item>0</item>
-                          <item>0</item>
-                          <item>0</item>
-                          <item>0</item>
-                          <item>0</item>
-                          <item>129</item>
-                        </hw_addr>
-                        <curr_speed>32</curr_speed>
-                        <curr>4128</curr>
-                        <name>olt1</name>
-                        <supported>0</supported>
-                        <state>4</state>
-                        <max_speed>32</max_speed>
-                        <advertised>4128</advertised>
-                        <peer>4128</peer>
-                        <config>0</config>
-                        <port_no>129</port_no>
-                      </ofp_port>
-                    </ports>
-                  <desc>
-                    <dp_desc>n/a</dp_desc>
-                    <sw_desc>simualted pon</sw_desc>
-                    <hw_desc>simualted pon</hw_desc>
-                    <serial_num>985c4449d50a441ca843401e2f44e682</serial_num>
-                    <mfr_desc>cord porject</mfr_desc>
-                  </desc>
-                </logical_devices>
-              <devices>
-                <item>
-                  <vendor>simulated</vendor>
-                  <parent_port_no>0</parent_port_no>
-                  <software_version>1.0</software_version>
-                  <connect_status>UNKNOWN</connect_status>
-                  <type>simulated_olt</type>
-                  <adapter>simulated_olt</adapter>
-                  <vlan>0</vlan>
-                  <hardware_version>n/a</hardware_version>
-                  <flows>
-                    <items/>
-                  </flows>
-                  <ports>
-                    <item>
-                      <peers>
-                        <item>
-                          <port_no>1</port_no>
-                          <device_id>simulated_onu_1</device_id>
-                        </item>
-                        <item>
-                          <port_no>1</port_no>
-                          <device_id>simulated_onu_2</device_id>
-                        </item>
-                      </peers>
-                      <label>pon</label>
-                      <oper_status>UNKNOWN</oper_status>
-                      <admin_state>UNKNOWN</admin_state>
-                      <type>PON_OLT</type>
-                      <port_no>1</port_no>
-                      <device_id>simulated_olt_1</device_id>
-                    </item>
-                    <item>
-                      <peers/>
-                      <label>eth</label>
-                      <oper_status>UNKNOWN</oper_status>
-                      <admin_state>UNKNOWN</admin_state>
-                      <type>ETHERNET_NNI</type>
-                      <port_no>2</port_no>
-                      <device_id>simulated_olt_1</device_id>
-                    </item>
-                  </ports>
-                  <parent_id/>
-                  <oper_status>DISCOVERED</oper_status>
-                  <flow_groups>
-                    <items/>
-                  </flow_groups>
-                  <admin_state>UNKNOWN</admin_state>
-                  <serial_number>19addcd7305d4d4fa90300cb8e4ab9a6</serial_number>
-                  <model>n/a</model>
-                  <root>True</root>
-                  <id>simulated_olt_1</id>
-                  <firmware_version>n/a</firmware_version>
-                </item>
-                <item>
-                  <vendor>simulated</vendor>
-                  <parent_port_no>1</parent_port_no>
-                  <software_version>1.0</software_version>
-                  <connect_status>UNKNOWN</connect_status>
-                  <root>False</root>
-                  <adapter>simulated_onu</adapter>
-                  <vlan>101</vlan>
-                  <hardware_version>n/a</hardware_version>
-                  <flows>
-                    <items/>
-                  </flows>
-                  <ports>
-                    <item>
-                      <peers/>
-                      <label>eth</label>
-                      <oper_status>UNKNOWN</oper_status>
-                      <admin_state>UNKNOWN</admin_state>
-                      <type>ETHERNET_UNI</type>
-                      <port_no>2</port_no>
-                      <device_id>simulated_onu_1</device_id>
-                    </item>
-                    <item>
-                      <peers>
-                        <item>
-                          <port_no>1</port_no>
-                          <device_id>simulated_olt_1</device_id>
-                        </item>
-                      </peers>
-                      <label>pon</label>
-                      <oper_status>UNKNOWN</oper_status>
-                      <admin_state>UNKNOWN</admin_state>
-                      <type>PON_ONU</type>
-                      <port_no>1</port_no>
-                      <device_id>simulated_onu_1</device_id>
-                    </item>
-                  </ports>
-                  <parent_id>simulated_olt_1</parent_id>
-                  <oper_status>DISCOVERED</oper_status>
-                  <flow_groups>
-                    <items/>
-                  </flow_groups>
-                  <admin_state>UNKNOWN</admin_state>
-                  <serial_number>8ce6514e1b324d349038d9a80af04772</serial_number>
-                  <model>n/a</model>
-                  <type>simulated_onu</type>
-                  <id>simulated_onu_1</id>
-                  <firmware_version>n/a</firmware_version>
-                </item>
-                <item>
-                  <vendor>simulated</vendor>
-                  <parent_port_no>1</parent_port_no>
-                  <software_version>1.0</software_version>
-                  <connect_status>UNKNOWN</connect_status>
-                  <root>False</root>
-                  <adapter>simulated_onu</adapter>
-                  <vlan>102</vlan>
-                  <hardware_version>n/a</hardware_version>
-                  <flows>
-                    <items/>
-                  </flows>
-                  <ports>
-                    <item>
-                      <peers/>
-                      <label>eth</label>
-                      <oper_status>UNKNOWN</oper_status>
-                      <admin_state>UNKNOWN</admin_state>
-                      <type>ETHERNET_UNI</type>
-                      <port_no>2</port_no>
-                      <device_id>simulated_onu_2</device_id>
-                    </item>
-                    <item>
-                      <peers>
-                        <item>
-                          <port_no>1</port_no>
-                          <device_id>simulated_olt_1</device_id>
-                        </item>
-                      </peers>
-                      <label>pon</label>
-                      <oper_status>UNKNOWN</oper_status>
-                      <admin_state>UNKNOWN</admin_state>
-                      <type>PON_ONU</type>
-                      <port_no>1</port_no>
-                      <device_id>simulated_onu_2</device_id>
-                    </item>
-                  </ports>
-                  <parent_id>simulated_olt_1</parent_id>
-                  <oper_status>DISCOVERED</oper_status>
-                  <flow_groups>
-                    <items/>
-                  </flow_groups>
-                  <admin_state>UNKNOWN</admin_state>
-                  <serial_number>0dfbb5af422044639c0660b518c06519</serial_number>
-                  <model>n/a</model>
-                  <type>simulated_onu</type>
-                  <id>simulated_onu_2</id>
-                  <firmware_version>n/a</firmware_version>
-                </item>
-              </devices>
-              <instance_id>compose_voltha_1</instance_id>
-              <version>0.9.0</version>
-              <health>
-                <state>HEALTHY</state>
-              </health>
-              <device_groups>
-                <item>
-                  <logical_devices/>
-                  <id>1</id>
-                  <devices/>
-                </item>
-              </device_groups>
-              <adapters>
-                <item>
-                  <config>
-                    <log_level>INFO</log_level>
-                  </config>
-                  <version>0.1</version>
-                  <vendor>Voltha project</vendor>
-                  <id>simulated_onu</id>
-                  <logical_device_ids/>
-                </item>
-                <item>
-                  <config>
-                    <log_level>INFO</log_level>
-                  </config>
-                  <version>0.1</version>
-                  <vendor>Tibit Communications Inc.</vendor>
-                  <id>tibit_onu</id>
-                  <logical_device_ids/>
-                </item>
-                <item>
-                  <config>
-                    <log_level>INFO</log_level>
-                  </config>
-                  <version>0.1</version>
-                  <vendor>Voltha project</vendor>
-                  <id>maple_olt</id>
-                  <logical_device_ids/>
-                </item>
-                <item>
-                  <config>
-                    <log_level>INFO</log_level>
-                  </config>
-                  <version>0.1</version>
-                  <vendor>Tibit Communications Inc.</vendor>
-                  <id>tibit_olt</id>
-                  <logical_device_ids/>
-                </item>
-                <item>
-                  <config>
-                    <log_level>INFO</log_level>
-                  </config>
-                  <version>0.1</version>
-                  <vendor>Voltha project</vendor>
-                  <id>broadcom_onu</id>
-                  <logical_device_ids/>
-                </item>
-                <item>
-                  <config>
-                    <log_level>INFO</log_level>
-                  </config>
-                  <version>0.1</version>
-                  <vendor>Voltha project</vendor>
-                  <id>simulated_olt</id>
-                  <logical_device_ids/>
-                </item>
-              </adapters>
-             </instances>
-             </Voltha>
-            </data>
-        """
-        return etree.fromstring(xml_string)
+    def get_mock_volthainstance(self):
+        res = {'log_level': 'INFO',
+               'device_types': [
+                    {'adapter': u'broadcom_onu',
+                    'accepts_bulk_flow_update': True,
+                    'id': u'broadcom_onu',
+                    'accepts_add_remove_flow_updates': False
+                    },
+                    {'adapter': u'maple_olt',
+                    'accepts_bulk_flow_update': True,
+                    'id': u'maple_olt',
+                     'accepts_add_remove_flow_updates': False
+                     },
+                    {'adapter': u'ponsim_olt',
+                     'accepts_bulk_flow_update': True,
+                    'id': u'ponsim_olt',
+                     'accepts_add_remove_flow_updates': False
+                     },
+                    {'adapter': u'ponsim_onu',
+                     'accepts_bulk_flow_update': True,
+                    'id': u'ponsim_onu',
+                     'accepts_add_remove_flow_updates': False
+                     },
+                    {'adapter': u'simulated_olt',
+                     'accepts_bulk_flow_update': True,
+                    'id': u'simulated_olt',
+                     'accepts_add_remove_flow_updates': False
+                     },
+                    {'adapter': u'simulated_onu',
+                     'accepts_bulk_flow_update': True,
+                    'id': u'simulated_onu',
+                     'accepts_add_remove_flow_updates': False
+                     },
+                     {'adapter': u'tibit_olt',
+                      'accepts_bulk_flow_update': True,
+                      'id': u'tibit_olt',
+                      'accepts_add_remove_flow_updates': False
+                      },
+                      {'adapter': u'tibit_onu',
+                       'accepts_bulk_flow_update': True,
+                       'id': u'tibit_onu',
+                       'accepts_add_remove_flow_updates': False}
+               ],
+               'logical_devices': [],
+               'devices': [],
+               'instance_id': u'compose_voltha_1',
+               'version': u'0.9.0',
+               'health': {'state': 'HEALTHY'},
+               'device_groups': [],
+               'adapters': [
+                   {'config': {'log_level': 'INFO'},
+                    'version': u'0.1',
+                    'vendor': u'Voltha project',
+                    'id': u'broadcom_onu',
+                    'logical_device_ids': []
+                    },
+                   {'config': {'log_level': 'INFO'},
+                    'version': u'0.1',
+                    'vendor': u'Voltha project',
+                    'id': u'maple_olt',
+                    'logical_device_ids': []},
+                   {'config': {'log_level': 'INFO'},
+                    'version': u'0.4',
+                    'vendor': u'Voltha project',
+                    'id': u'ponsim_olt',
+                    'logical_device_ids': []
+                    },
+                   {'config': {'log_level': 'INFO'},
+                    'version': u'0.4',
+                    'vendor': u'Voltha project',
+                    'id': u'ponsim_onu',
+                    'logical_device_ids': []
+                    },
+                   {'config': {'log_level': 'INFO'},
+                    'version': u'0.1',
+                    'vendor': u'Voltha project',
+                    'id': u'simulated_olt',
+                    'logical_device_ids': []
+                    },
+                   {'config': {'log_level': 'INFO'},
+                    'version': u'0.1',
+                    'vendor': u'Voltha project',
+                    'id': u'simulated_onu',
+                    'logical_device_ids': []
+                    },
+                   {'config': {'log_level': 'INFO'},
+                    'version': u'0.1',
+                    'vendor': u'Tibit Communications Inc.',
+                    'id': u'tibit_olt',
+                    'logical_device_ids': []
+                    },
+                   {'config': {'log_level': 'INFO'},
+                    'version': u'0.1',
+                    'vendor': u'Tibit Communications Inc.',
+                    'id': u'tibit_onu',
+                    'logical_device_ids': []
+                    }
+               ]
+        }
+        devices_array = []
+        flow_items = []
+        for i in xrange(1, 10):
+            flow_items.append({
+                'items': {
+                    'id': str(i),
+                    'table_id': 'table_id_' + str(i),
+                    'flags': i,
+                    'instructions' : [
+                        {'type' : i, 'goto_table': 'table_id_' + str(i) },
+                        {'type': i, 'meter': i},
+                        {'type': i,
+                         'actions': {'actions': [
+                                        {'type': 11,
+                                        'output': {
+                                            'port': i,
+                                            'max_len': i}
+                                         }
+                                    ]}
+                         }
+                    ]
+                }
+            }
+            )
+        for i in xrange(1, 10):
+            devices_array.append({
+                'id': str(i),
+                'type': 'type_' + str(i),
+                'vlan': i,
+                'flows': flow_items
+            })
+        res['devices'] = devices_array
+        xml = dicttoxml.dicttoxml(res, attr_type=True)
+        root = etree.fromstring(xml)
+        # print etree.tounicode(root, pretty_print=True)
+        request = {'class': 'VolthaInstance'}
+        top = RpcResponse().build_yang_response(root, request)
+        return top
