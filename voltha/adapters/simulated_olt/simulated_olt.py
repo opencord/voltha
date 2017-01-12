@@ -40,7 +40,7 @@ from voltha.protos.common_pb2 import LogLevel, OperStatus, ConnectStatus, \
 from voltha.protos.logical_device_pb2 import LogicalDevice, LogicalPort
 from voltha.protos.openflow_13_pb2 import ofp_desc, ofp_port, OFPPF_1GB_FD, \
     OFPPF_FIBER, OFPPS_LIVE, ofp_switch_features, OFPC_PORT_STATS, \
-    OFPC_GROUP_STATS, OFPC_TABLE_STATS, OFPC_FLOW_STATS
+    OFPC_GROUP_STATS, OFPC_TABLE_STATS, OFPC_FLOW_STATS, OFPPS_LINK_DOWN
 
 log = structlog.get_logger()
 
@@ -299,30 +299,38 @@ class SimulatedOltAdapter(object):
         )
         ld_initialized = self.adapter_agent.create_logical_device(ld)
         cap = OFPPF_1GB_FD | OFPPF_FIBER
-        self.adapter_agent.add_logical_port(ld_initialized.id, LogicalPort(
-            id='nni',
-            ofp_port=ofp_port(
-                port_no=129,
-                hw_addr=mac_str_to_tuple('00:00:00:00:00:%02x' % 129),
-                name='nni',
-                config=0,
-                state=OFPPS_LIVE,
-                curr=cap,
-                advertised=cap,
-                peer=cap,
-                curr_speed=OFPPF_1GB_FD,
-                max_speed=OFPPF_1GB_FD
-            ),
-            device_id=device.id,
-            device_port_no=nni_port.port_no,
-            root_port=True
-        ))
+        lgcl_port= LogicalPort(
+                id='nni',
+                ofp_port=ofp_port(
+                    port_no=129,
+                    hw_addr=mac_str_to_tuple('00:00:00:00:00:%02x' % 129),
+                    name='nni',
+                    config=0,
+                    state=OFPPS_LIVE,
+                    curr=cap,
+                    advertised=cap,
+                    peer=cap,
+                    curr_speed=OFPPF_1GB_FD,
+                    max_speed=OFPPF_1GB_FD
+                ),
+                device_id=device.id,
+                device_port_no=nni_port.port_no,
+                root_port=True
+        )
+        self.adapter_agent.add_logical_port(ld.id, lgcl_port)
 
         # and finally update to active
         device = self.adapter_agent.get_device(device.id)
         device.parent_id = ld_initialized.id
         device.oper_status = OperStatus.ACTIVE
         self.adapter_agent.update_device(device)
+
+        #Test for Update Logical Port
+        from time import sleep
+        sleep(3)
+        lgcl_port.ofp_port.state=OFPPS_LINK_DOWN
+
+        self.adapter_agent.update_logical_port(ld.id, lgcl_port)  
 
         # reactor.callLater(0.1, self._simulate_detection_of_onus, device.id)
 
