@@ -79,7 +79,7 @@ def send_join(args):
 
 def send_leave(args):
 
-    igmp = IGMPv3(type=IGMP_TYPE_V3_MEMBERSHIP_REPORT, max_resp_code=30, gaddr="224.0.0.22c")
+    igmp = IGMPv3(type=IGMP_TYPE_V3_MEMBERSHIP_REPORT, max_resp_code=30, gaddr="224.0.0.22")
     igmp.grps = [IGMPv3gr(rtype=IGMP_V3_GR_TYPE_INCLUDE, mcaddr=args.mcaddr)]
 
     send(igmp)
