@@ -117,34 +117,39 @@ def make_loxi_match(match):
         loxi_match_fields.append(make_loxi_field(oxm_field))
     return of13.match_v3(oxm_list=loxi_match_fields)
 
+
+def make_loxi_action(a):
+    if type(a) is not dict:
+        a = pb2dict(a)
+
+    typ = a.get('type', 0)
+
+    if typ == pb2.OFPAT_OUTPUT:
+        output_kws = a['output']
+        return of13.action.output(**output_kws)
+
+    elif typ == pb2.OFPAT_POP_VLAN:
+        return of13.action.pop_vlan()
+
+    elif typ == pb2.OFPAT_PUSH_VLAN:
+        push_vlan_kws = a['push']
+        return of13.action.push_vlan(**push_vlan_kws)
+
+    elif typ == pb2.OFPAT_SET_FIELD:
+        loxi_field = make_loxi_field(a['set_field']['field'])
+        return of13.action.set_field(loxi_field)
+
+    elif typ == pb2.OFPAT_GROUP:
+        group_kws = a['group']
+        return of13.action.group(**group_kws)
+
+    else:
+        raise NotImplementedError(
+            'Action decoder for action OFPAT_* %d' % typ)
+
+
 def ofp_flow_stats_to_loxi_flow_stats(pb):
     kw = pb2dict(pb)
-
-    def make_loxi_action(a):
-        type = a.get('type', 0)
-
-        if type == pb2.OFPAT_OUTPUT:
-            output_kws = a['output']
-            return of13.action.output(**output_kws)
-
-        elif type == pb2.OFPAT_POP_VLAN:
-            return of13.action.pop_vlan()
-
-        elif type == pb2.OFPAT_PUSH_VLAN:
-            push_vlan_kws = a['push']
-            return of13.action.push_vlan(**push_vlan_kws)
-
-        elif type == pb2.OFPAT_SET_FIELD:
-            loxi_field = make_loxi_field(a['set_field']['field'])
-            return of13.action.set_field(loxi_field)
-
-        elif type == pb2.OFPAT_GROUP:
-            group_kws = a['group']
-            return of13.action.group(**group_kws)
-
-        else:
-            raise NotImplementedError(
-                'Action decoder for action OFPAT_* %d' % type)
 
     def make_loxi_instruction(inst):
         type = inst['type']
@@ -176,16 +181,22 @@ def ofp_packet_in_to_loxi_packet_in(pb):
     )
     return packet_in
 
+def ofp_group_desc_to_loxi_group_desc(pb):
+    return of13.group_desc_stats_entry(
+        group_type=pb.type,
+        group_id=pb.group_id,
+        buckets=[to_loxi(bucket) for bucket in pb.buckets])
 
-def ofp_group_entry_to_loxi_group_entry(pb):
+
+def ofp_group_stats_to_loxi_group_stats(pb):
     return of13.group_stats_entry(
-        group_id=pb.stats.group_id,
-        ref_count=pb.stats.ref_count,
-        packet_count=pb.stats.packet_count,
-        byte_count=pb.stats.byte_count,
-        duration_sec=pb.stats.duration_sec,
-        duration_nsec=pb.stats.duration_nsec,
-        bucket_stats=[to_loxi(bstat) for bstat in pb.stats.bucket_stats])
+        group_id=pb.group_id,
+        ref_count=pb.ref_count,
+        packet_count=pb.packet_count,
+        byte_count=pb.byte_count,
+        duration_sec=pb.duration_sec,
+        duration_nsec=pb.duration_nsec,
+        bucket_stats=[to_loxi(bstat) for bstat in pb.bucket_stats])
 
 
 def ofp_bucket_counter_to_loxy_bucket_counter(pb):
@@ -194,13 +205,25 @@ def ofp_bucket_counter_to_loxy_bucket_counter(pb):
         byte_count=pb.byte_count)
 
 
+def ofp_bucket_to_loxi_bucket(pb):
+    return of13.bucket(
+        weight=pb.weight,
+        watch_port=pb.watch_port,
+        watch_group=pb.watch_group,
+        actions=[to_loxi(action) for action in pb.actions]
+    )
+
+
 to_loxi_converters = {
     'ofp_port': ofp_port_to_loxi_port_desc,
     'ofp_port_status': ofp_port_status_to_loxi_port_status,
     'ofp_flow_stats': ofp_flow_stats_to_loxi_flow_stats,
     'ofp_packet_in': ofp_packet_in_to_loxi_packet_in,
-    'ofp_group_entry': ofp_group_entry_to_loxi_group_entry,
-    'ofp_bucket_counter': ofp_bucket_counter_to_loxy_bucket_counter
+    'ofp_group_stats': ofp_group_stats_to_loxi_group_stats,
+    'ofp_group_desc': ofp_group_desc_to_loxi_group_desc,
+    'ofp_bucket_counter': ofp_bucket_counter_to_loxy_bucket_counter,
+    'ofp_bucket': ofp_bucket_to_loxi_bucket,
+    'ofp_action': make_loxi_action
 }
 
 

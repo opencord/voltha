@@ -128,6 +128,8 @@ class TestConverter(TestCase):
             (3, 0xe4010103, (2,)),
             (4, 0xe4010104, (1, 2)),
         )
+
+        group_stats = []
         for group_id, mcast_addr, ports in mcast_setup:
             # self.lda.update_group_table(mk_multicast_group_mod(
             #     group_id=group_id,
@@ -149,6 +151,16 @@ class TestConverter(TestCase):
                     group(group_id)
                 ]
             ))
+            group_stats.append(group_entry_from_group_mod(
+                mk_multicast_group_mod(
+                 group_id=group_id,
+                 buckets=[
+                     ofp.ofp_bucket(actions=[
+                         pop_vlan(),
+                         output(port)
+                     ]) for port in ports
+                 ])))
+
 
         # Unicast channels for each subscriber
         # Downstream flow 1 for both
@@ -194,13 +206,22 @@ class TestConverter(TestCase):
                 ]
             ))
 
-        return flow_stats
+        return (flow_stats, group_stats)
 
     def test_flow_spec_pb_to_loxi_conversion(self):
-        flow_stats = self.gen_pb_flow_stats()
+        flow_stats, _ = self.gen_pb_flow_stats()
         for flow_stat in flow_stats:
             loxi_flow_stats = to_loxi(flow_stat)
 
+    def test_group_stat_spec_pb_to_loxi_conversion(self):
+        _, group_stats = self.gen_pb_flow_stats()
+        for group_stat in group_stats:
+            loxi_group_stat = to_loxi(group_stat.stats)
+
+    def test_group_desc_spec_pb_to_loxi_conversion(self):
+        _, group_stats = self.gen_pb_flow_stats()
+        for group_stat in group_stats:
+            loxi_group_desc = to_loxi(group_stat.desc)
 
 if __name__ == '__main__':
     main()

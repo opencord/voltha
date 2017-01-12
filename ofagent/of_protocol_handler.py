@@ -179,12 +179,13 @@ class OpenFlowProtocolHandler(object):
     def handle_group_stats_request(self, req):
         group_stats = yield self.rpc.list_groups(self.device_id)
         self.cxn.send(ofp.message.group_stats_reply(
-            xid=req.xid, entries=[to_loxi(g) for g  in group_stats]))
+            xid=req.xid, entries=[to_loxi(g.stats) for g  in group_stats]))
 
+    @inlineCallbacks
     def handle_group_descriptor_request(self, req):
-        group_list = []  # TODO
+        group_stats = yield self.rpc.list_groups(self.device_id)
         self.cxn.send(ofp.message.group_desc_stats_reply(
-            xid=req.xid, entries=group_list))
+            xid=req.xid, entries=[to_loxi(g.desc) for g  in group_stats]))
 
     def handle_group_features_request(self, req):
         raise NotImplementedError()
