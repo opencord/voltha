@@ -192,7 +192,7 @@ class NetconfProtocolHandler:
                     log.error('no-rpc-handler',
                               request=msg,
                               session_id=self.session.session_id)
-                    error = ncerror.NotImpl(msg)
+                    error = ncerror.NotImpl(rpc)
                     self.send_message(error.get_xml_reply())
 
             except ncerror.BadMsg as err:

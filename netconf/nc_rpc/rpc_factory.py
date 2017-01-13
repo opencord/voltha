@@ -71,14 +71,16 @@ class RpcFactory:
                     request['filter'] = self.get_attribute_value('type',
                                                                  elem.attrib)
                 else:
-                    request[
-                        'command'] = elem_name  # attribute is empty for now
+                    request['command'] = elem_name  # attribute is empty for now
             elif elem.tag.find(qmap(C.VOLTHA)) != -1:  # found
                 request['namespace'] = ns(C.VOLTHA)
                 if request.has_key('class'):
                     request['subclass'] = elem.tag.replace(qmap(C.VOLTHA),"")
                 else:
-                    request['class'] = elem.tag.replace(qmap(C.VOLTHA), "")
+                    elem_name = elem.tag.replace(qmap(C.VOLTHA), "")
+                    request['class'] = elem_name
+                    if not request.has_key('command'):
+                        request['command'] = elem_name
             elif elem.tag.find(qmap(C.NCM)) != -1:  # found
                 request['namespace'] = ns(C.NCM)
                 elem_name = elem.tag.replace(qmap(C.NCM), "")
@@ -119,6 +121,7 @@ class RpcFactory:
                                      capabilities)
 
             log.error("rpc-not-implemented", rpc=request['command'])
+
 
         except ncerror.BadMsg as err:
             log.info('ncerror.BadMsg')
