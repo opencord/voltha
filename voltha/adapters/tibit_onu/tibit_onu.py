@@ -32,7 +32,7 @@ from twisted.internet import reactor
 
 from voltha.core.flow_decomposer import *
 from voltha.core.logical_device_agent import mac_str_to_tuple
-
+from common.frameio.frameio import BpfProgramFilter, hexify
 from voltha.adapters.interface import IAdapterInterface
 from voltha.protos.adapter_pb2 import Adapter, AdapterConfig
 from voltha.protos.device_pb2 import Port
@@ -183,6 +183,7 @@ class TibitOnuAdapter(object):
             device_id=device.id,
             device_port_no=uni_port.port_no
         ))
+
 
         # simulate a proxied message sending and receving a reply
         reply = yield self._message_exchange(device)
@@ -375,8 +376,8 @@ class TibitOnuAdapter(object):
         raise NotImplementedError()
 
     def receive_proxied_message(self, proxy_address, msg):
-        log.debug('receive-proxied-message',
-                  proxy_address=proxy_address, msg=msg)
+        log.info('receive-proxied-message',
+                  proxy_address=proxy_address, msg=msg.show(dump=True))
         self.incoming_messages.put(msg)
 
     @inlineCallbacks

@@ -352,8 +352,6 @@ class TibitOltAdapter(object):
 
                     inner_tag_and_rest = response.payload.payload
 
-                    inner_tag_and_rest.show()  # TODO remove this soon
-
                     if isinstance(inner_tag_and_rest, Dot1Q):
 
                         cvid = inner_tag_and_rest.vlan
@@ -667,7 +665,6 @@ class TibitOltAdapter(object):
 
                     if (field_match_vlan_upstream_with_link == True):
                         up_req = up_req_link
-                        up_req.show()
                     else:
                         up_req = up_req_pon
 
