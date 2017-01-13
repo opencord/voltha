@@ -422,7 +422,9 @@ class TibitOltAdapter(object):
                  flows=flows, groups=groups)
         assert len(groups.items) == 0, "Cannot yet deal with groups"
 
-        ONU_VID_208=0xd0
+        # extract ONU VID
+        vid_from_device_id = {v[0]: k for k,v in self.vlan_to_device_ids.iteritems()}
+        ONU_VID = vid_from_device_id[device.id]
 
         Clause = {v: k for k, v in ClauseSubtypeEnum.iteritems()}
         Operator = {v: k for k, v in RuleOperatorEnum.iteritems()}
@@ -465,7 +467,7 @@ class TibitOltAdapter(object):
                                                                          operator=Operator['=='], match=_vlan_vid)
                             if (_vlan_vid != 140):
                                 dn_req /= PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=1,
-                                                                             operator=Operator['=='], match=ONU_VID_208)
+                                                                             operator=Operator['=='], match=ONU_VID)
 
                         elif field.type == VLAN_PCP:
                             _vlan_pcp = field.vlan_pcp
@@ -496,7 +498,7 @@ class TibitOltAdapter(object):
                         if action.type == OUTPUT:
                             log.info('#### action.type == OUTPUT ####')
                             dn_req /= PortIngressRuleResultForward()
-                            serial = ONU_VID_208 - 200
+                            serial = ONU_VID - 200
                             link = (0xe222 << 16) | (serial << 8)
                             dn_req /= PortIngressRuleResultOLTQueue(unicastvssn="TBIT",
                                                                     unicastlink=link)
