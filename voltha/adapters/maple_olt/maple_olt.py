@@ -405,9 +405,9 @@ class MapleOltHandler(object):
             )
 
         # finally, open the frameio port to receive in-band packet_in messages
-        self.log.info('registering-frameoi')
-        # self.io_port = registry('frameio').add_interface(
-        #    self.interface, self.rcv_io, is_inband_frame)
+        self.log.info('registering-frameio')
+        self.io_port = registry('frameio').add_interface(
+            self.interface, self.rcv_io, is_inband_frame)
 
     def rcv_io(self, port, frame):
         self.log.info('reveived', iface_name=port.iface_name,
