@@ -199,6 +199,7 @@ services:
     - fluentd
     volumes:
     - "/var/run/docker.sock:/tmp/docker.sock"
+    restart: unless-stopped
 
   #
   # Netconf server instance(s)

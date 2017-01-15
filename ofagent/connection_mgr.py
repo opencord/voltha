@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import os
 
 import sys
 
@@ -99,7 +100,9 @@ class ConnectionManager(object):
             except Exception as e:
                 log.error('Failure to locate {} service from '
                                'consul {}:'.format(endpoint, repr(e)))
-                return
+                log.error('Committing suicide...')
+                # Committing suicide in order to let docker restart ofagent
+                os.system("kill -15 {}".format(os.getpid()))
         if ip_port_endpoint:
             host, port = ip_port_endpoint.split(':', 2)
             return host, int(port)
