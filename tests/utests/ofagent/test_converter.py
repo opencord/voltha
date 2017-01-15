@@ -223,5 +223,6 @@ class TestConverter(TestCase):
         for group_stat in group_stats:
             loxi_group_desc = to_loxi(group_stat.desc)
 
+
 if __name__ == '__main__':
     main()
