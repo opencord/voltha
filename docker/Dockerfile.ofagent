@@ -30,6 +30,7 @@ RUN apt-get update && \
     wget http://ftp.us.debian.org/debian/pool/main/p/protobuf/libprotobuf-dev_3.0.0-9_amd64.deb && \
     wget http://ftp.us.debian.org/debian/pool/main/p/protobuf/libprotobuf10_3.0.0-9_amd64.deb && \
     wget http://ftp.us.debian.org/debian/pool/main/p/protobuf/protobuf-compiler_3.0.0-9_amd64.deb && \
+    wget https://github.com/Yelp/dumb-init/releases/download/v1.2.0/dumb-init_1.2.0_amd64.deb && \
     dpkg -i *.deb && \
     protoc --version && \
     rm -f *.deb
@@ -40,5 +41,7 @@ ENV PYTHONPATH=/ofagent
 COPY common /ofagent/common
 COPY ofagent /ofagent/ofagent
 
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+
 # Exposing process and default entry point
-CMD ["python", "ofagent/ofagent/main.py"]
+CMD ["dumb-init", "python", "ofagent/ofagent/main.py"]

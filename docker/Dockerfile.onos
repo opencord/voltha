@@ -8,7 +8,7 @@ ENV APPS=/root/onos/apps ONOS=/root/onos KARAF_M2=/root/onos/apache-karaf-3.0.5/
 ENV AUX=$APPS/aux
 
 RUN apt-get update && apt-get install -y git maven unzip 
-RUN git config --global http.sslverify false &&\
+RUN git config --global http.sslverify false && \
     git clone https://alshabibi@bitbucket.org/alshabibi/onos-apps.git
     
 RUN cd $ONOS/onos-apps/apps && mvn clean install
