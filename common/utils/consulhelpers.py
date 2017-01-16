@@ -40,6 +40,7 @@ def get_endpoint_from_consul(consul_endpoint, service_name):
     if len(services) == 0:
         raise Exception(
             'Cannot find service {} in consul'.format(service_name))
+        os.exit(1)
 
     # pick a random entry
     # TODO should we prefer local IP addresses? Probably.

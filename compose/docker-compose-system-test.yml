@@ -105,6 +105,7 @@ services:
     - consul
     - kafka
     - grafana
+    restart: unless-stopped
 
   #
   # Voltha server instance(s)

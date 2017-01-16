@@ -27,5 +27,7 @@ ENV PYTHONPATH=/shovel
 COPY common /shovel/common
 COPY shovel /shovel/shovel
 
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+
 # Exposing process and default entry point
 CMD ["python", "shovel/shovel/main.py"]
