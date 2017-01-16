@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 
 
 class ConsumerExample(object):
-    def __init__(self, consul_endpoint, topic="heartbeat.voltha", runtime=60):
+    def __init__(self, consul_endpoint, topic="voltha.heartbeat", runtime=60):
         self.topic = topic
         self.runtime = runtime
         self.kafka_endpoint = get_endpoint_from_consul(consul_endpoint,
@@ -105,7 +105,7 @@ def parse_options():
 
     parser.add_argument("-t", "--topic",
                         help="topic to listen from",
-                        default="heartbeat.voltha")
+                        default="voltha.heartbeat")
 
     parser.add_argument("-r", "--runtime",
                         help="total runtime",

@@ -441,7 +441,7 @@ class BuildMdTests(TestCase):
 
             # Verify kafka client is receiving the messages
             print "Verify kafka client is receiving the heartbeat messages ..."
-            expected_pattern = ['heartbeat.voltha', 'heartbeat']
+            expected_pattern = ['voltha.heartbeat', 'heartbeat']
             cmd = command_defs['kafka_client_run_10_secs']
             kafka_client_output = run_long_running_command_with_timeout(cmd,
                                                                         20)

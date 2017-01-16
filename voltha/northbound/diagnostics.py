@@ -23,6 +23,7 @@ import gc
 import structlog
 import resource
 
+import sys
 from simplejson import dumps
 from twisted.internet.defer import Deferred
 from twisted.internet.task import LoopingCall
@@ -66,7 +67,10 @@ class Diagnostics(object):
             return len(gc.get_referrers(Deferred))
 
         def rss_mb():
-            return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1024/1024
+            rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1024
+            if sys.platform.startswith('darwin'):
+                rss /= 1024
+            return rss
 
         data = dict(
             type='slice',

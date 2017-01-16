@@ -18,12 +18,14 @@
 """Virtual OLT Hardware Abstraction main entry point"""
 
 import argparse
+import arrow
 import os
 import time
 
 import yaml
 from simplejson import dumps
 from twisted.internet.defer import inlineCallbacks
+from twisted.internet.task import LoopingCall
 from zope.interface import implementer
 
 from common.event_bus import EventBusClient
@@ -371,7 +373,6 @@ class Main(object):
         def heartbeat():
             self.log.debug(status='up', since=t0s, uptime=time.time() - t0)
 
-        from twisted.internet.task import LoopingCall
         lc = LoopingCall(heartbeat)
         lc.start(10)
 
@@ -381,19 +382,21 @@ class Main(object):
         # For heartbeat we will send a message to a specific "voltha-heartbeat"
         #  topic.  The message is a protocol buf
         # message
-        message = dumps(dict(
+        message = dict(
             type='heartbeat',
             voltha_instance=instance_id,
             ip=get_my_primary_local_ipv4()
-        ))
-        topic = "heartbeat.voltha"
+        )
+        topic = "voltha.heartbeat"
 
-        from twisted.internet.task import LoopingCall
+        def send_msg():
+            message['ts'] = arrow.utcnow().timestamp
+            kafka_proxy.send_message(topic, dumps(message))
+
         kafka_proxy = get_kafka_proxy()
         if kafka_proxy:
-            lc = LoopingCall(kafka_proxy.send_message, topic, message)
+            lc = LoopingCall(send_msg)
             lc.start(10)
-            pass
         else:
             self.log.error('Kafka proxy has not been created!')
 
