@@ -220,6 +220,49 @@ class MapleOltHandler(object):
             self.log.info('set-remote-exception', exc=str(e))
 
     @inlineCallbacks
+    def send_config_classifier(self, olt_no, etype, ip_proto=None, src_port=None, dst_port=None):
+        self.log.info('configuring-classifier',
+                      olt=olt_no,
+                      etype=etype,
+                      ip_proto=ip_proto,
+                      src_port=src_port,
+                      dst_port=dst_port)
+        try:
+            remote = self.get_channel()
+            data = yield remote.callRemote('config_classifier',
+                                           olt_no,
+                                           etype,
+                                           ip_proto,
+                                           src_port,
+                                           dst_port)
+            self.log.info('configured-classifier', data=data)
+        except Exception as e:
+            self.log.info('config-classifier-exception', exc=str(e))
+
+    @inlineCallbacks
+    def send_config_acflow(self, olt_no, onu_no, etype, ip_proto=None, src_port=None, dst_port=None):
+        self.log.info('configuring-acflow',
+                      olt=olt_no,
+                      onu=onu_no,
+                      etype=etype,
+                      ip_proto=ip_proto,
+                      src_port=src_port,
+                      dst_port=dst_port)
+        try:
+            remote = self.get_channel()
+            data = yield remote.callRemote('config_acflow',
+                                           olt_no,
+                                           onu_no,
+                                           etype,
+                                           ip_proto,
+                                           src_port,
+                                           dst_port)
+
+            self.log.info('configured-acflow', data=data)
+        except Exception as e:
+            self.log.info('config-acflow-exception', exc=str(e))
+
+    @inlineCallbacks
     def send_connect_olt(self, olt_no):
         self.log.info('connecting-to-olt', olt=olt_no)
         try:
@@ -256,6 +299,54 @@ class MapleOltHandler(object):
             self.log.info('created-onu', data=data)
         except Exception as e:
             self.log.info('create-onu-exception', exc=str(e))
+
+    @inlineCallbacks
+    def send_configure_alloc_id(self, olt_no, onu_no, alloc_id):
+        self.log.info('configuring-alloc-id',
+                      olt=olt_no,
+                      onu=onu_no,
+                      alloc_id=alloc_id)
+        try:
+            remote = self.get_channel()
+            data = yield remote.callRemote('configure_alloc_id',
+                                           olt_no,
+                                           onu_no,
+                                           alloc_id)
+            self.log.info('configured-alloc-id', data=data)
+        except Exception as e:
+            self.log.info('configure-alloc-id-exception', exc=str(e))
+
+    @inlineCallbacks
+    def send_configure_unicast_gem(self, olt_no, onu_no, uni_gem):
+        self.log.info('configuring-unicast-gem',
+                      olt=olt_no,
+                      onu=onu_no,
+                      unicast_gem_port=uni_gem)
+        try:
+            remote = self.get_channel()
+            data = yield remote.callRemote('configure_unicast_gem',
+                                           olt_no,
+                                           onu_no,
+                                           uni_gem)
+            self.log.info('configured-unicast-gem', data=data)
+        except Exception as e:
+            self.log.info('configure-unicast-gem-exception', exc=str(e))
+
+    @inlineCallbacks
+    def send_configure_multicast_gem(self, olt_no, onu_no, multi_gem):
+        self.log.info('configuring-multicast-gem',
+                      olt=olt_no,
+                      onu=onu_no,
+                      multicast_gem_port=multi_gem)
+        try:
+            remote = self.get_channel()
+            data = yield remote.callRemote('configure_multicast_gem',
+                                           olt_no,
+                                           onu_no,
+                                           multi_gem)
+            self.log.info('configured-multicast-gem', data=data)
+        except Exception as e:
+            self.log.info('configure-multicast-gem-exception', exc=str(e))
 
     @inlineCallbacks
     def send_configure_onu(self, olt_no, onu_no, alloc_id, uni_gem, multi_gem):
@@ -311,9 +402,12 @@ class MapleOltHandler(object):
         except Exception as e:
             self.log.info('get-channel-exception', exc=str(e))
 
-        self.send_set_remote()
-        self.send_connect_olt(0)
-        self.send_activate_olt(0)
+        yield self.send_set_remote()
+        yield self.send_config_classifier(0, 0x888e)
+        yield self.send_config_classifier(0, 0x800, 2)
+        yield self.send_config_classifier(0, 0x800, 17, 68, 67)
+        yield self.send_connect_olt(0)
+        yield self.send_activate_olt(0)
 
         device.root = True
         device.vendor = 'Broadcom'
@@ -389,8 +483,13 @@ class MapleOltHandler(object):
         # register ONUS per uni port until done asynchronously
         for onu_no in [1]:
             vlan_id = self.get_vlan_from_onu(onu_no)
+            yield self.send_config_acflow(0, onu_no, 0x888e)
+            yield self.send_config_acflow(0, onu_no, 0x0800, 2)
+            yield self.send_config_acflow(0, onu_no, 0x800, 17, 68, 67)
             yield self.send_create_onu(0, onu_no, '4252434d', '12345678')
-            yield self.send_configure_onu(0, onu_no, vlan_id, vlan_id, 4000)
+            yield self.send_configure_alloc_id(0, onu_no, vlan_id)
+            yield self.send_configure_unicast_gem(0,onu_no, vlan_id)
+            yield self.send_configure_multicast_gem(0, onu_no, 4000)
             yield self.send_activate_onu(0, onu_no)
 
             self.adapter_agent.child_device_detected(
