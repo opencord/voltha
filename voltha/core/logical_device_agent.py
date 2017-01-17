@@ -558,8 +558,6 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
     def _port_updated(self, port):
         assert isinstance(port, LogicalPort)
         # TODO
-        import pdb
-        pdb.set_trace()
         self.local_handler.send_port_change_event(
             device_id=self.logical_device_id,
             port_status=ofp.ofp_port_status(
