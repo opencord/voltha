@@ -55,6 +55,10 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             '/logical_devices/{}/flow_groups'.format(logical_device.id))
         self.self_proxy = core.get_proxy(
             '/logical_devices/{}'.format(logical_device.id))
+        self.port_proxies = {} 
+        #core.get_proxy('/') 
+        #core.get_proxy(
+        #    '/logical_devices/{}/ports/{}'.format(self.logical_device_id, port.id))
 
         self.flows_proxy.register_callback(
             CallbackType.POST_UPDATE, self._flow_table_updated)
@@ -529,6 +533,13 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
                 desc=port.ofp_port
             )
         )
+        self.port_proxies[port.id]= self.core.get_proxy(
+           '/logical_devices/{}/ports/{}'.format(self.logical_device_id, port.id))
+
+        self.port_proxies[port.id].register_callback(
+            CallbackType.POST_UPDATE, self._port_updated)
+        self.log.debug('port-added', port=port);
+
 
     def _port_removed(self, port):
         assert isinstance(port, LogicalPort)
@@ -540,10 +551,15 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
                 desc=port.ofp_port
             )
         )
+        self.log.debug('port-removed', port=port);
+        del self.port_proxies[port.id]
 
-    # TODO not yet hooked up
-    def _port_changed(self, port):
+    # TODO not yet hooked up : Added here 
+    def _port_updated(self, port):
         assert isinstance(port, LogicalPort)
+        # TODO
+        import pdb
+        pdb.set_trace()
         self.local_handler.send_port_change_event(
             device_id=self.logical_device_id,
             port_status=ofp.ofp_port_status(
@@ -551,6 +567,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
                 desc=port.ofp_port
             )
         )
+        self.log.debug('port-updated', port=port);
 
     def _port_list_updated(self, _):
         # invalidate the graph and the route table

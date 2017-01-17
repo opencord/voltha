@@ -5,11 +5,16 @@ from mock import Mock
 from tests.utests.voltha.core.flow_helpers import FlowHelpers
 from voltha.core import logical_device_agent
 from voltha.core.flow_decomposer import *
-from voltha.core.logical_device_agent import LogicalDeviceAgent
+from voltha.core.logical_device_agent import LogicalDeviceAgent, mac_str_to_tuple
 from voltha.protos import third_party
 from voltha.protos.device_pb2 import Device, Port
 from voltha.protos.logical_device_pb2 import LogicalDevice, LogicalPort
-from voltha.protos.openflow_13_pb2 import Flows, FlowGroups
+from voltha.protos.openflow_13_pb2 import Flows, FlowGroups, \
+    ofp_desc, ofp_port, OFPPF_1GB_FD, \
+    OFPPF_FIBER, OFPPS_LIVE, ofp_switch_features, OFPC_PORT_STATS, \
+    OFPC_GROUP_STATS, OFPC_TABLE_STATS, OFPC_FLOW_STATS, OFPPS_LINK_DOWN
+from voltha.protos.common_pb2 import LogLevel, OperStatus, ConnectStatus, \
+    AdminState
 
 
 class test_logical_device_agent(FlowHelpers):
@@ -23,6 +28,7 @@ class test_logical_device_agent(FlowHelpers):
 
         self.flows = Flows(items=[])
         self.groups = FlowGroups(items=[])
+        self.port_proxy = {};
         self.ld_ports = [
             LogicalPort(
                 id='0',
@@ -827,6 +833,72 @@ class test_logical_device_agent(FlowHelpers):
             actions=[push_vlan(0x8100), set_field(vlan_vid(4096 + 102)),
                      output(1)]
         ))
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ TestCase to Verify Port add/remove/update ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    def test_port_updated(self):
+        nni_port = Port(
+            port_no=2,
+            label='NNI facing Ethernet port',
+            type=Port.ETHERNET_NNI,
+            admin_state=AdminState.ENABLED,
+            oper_status=OperStatus.ACTIVE
+        )
+        cap = OFPPF_1GB_FD | OFPPF_FIBER
+            
+        lgcl_port= LogicalPort(
+                id='nni',
+                ofp_port=ofp_port(
+                    port_no=129,
+                    hw_addr=mac_str_to_tuple('00:00:00:00:00:%02x' % 129),
+                    name='nni',
+                    config=0,
+                    state=OFPPS_LIVE,
+                    curr=cap,
+                    advertised=cap,
+                    peer=cap,
+                    curr_speed=OFPPF_1GB_FD,
+                    max_speed=OFPPF_1GB_FD
+                ),
+                device_id='nni', #device.id,
+                device_port_no=nni_port.port_no,
+                root_port=True
+        )
+        full_path = '/logical_devices/{}/ports'.format(self.ld) + '/' + str(lgcl_port.id)
+        root_proxy = self.core.get_proxy('/')
+        root_proxy.get(full_path)
+        root_proxy.update(full_path, lgcl_port)
+
+        self.lda._port_added(lgcl_port)
+
+        #using self Setup provided logical ports
+        self.lda._port_added(self.ld_ports[1])
+
+        #Only for Test Purpose its been added
+        #self.assertEqual(self.ld_ports[1], self.lda.port_add_rem_upd) 
+
+        self.port_proxy = self.lda.port_proxies[self.ld_ports[1].id]
+        port_proxy_registered = self.core.get_proxy(
+        '/logical_devices/{}/ports/{}'.format(self.ld, self.ld_ports[1].id))
+        self.assertEqual(port_proxy_registered, self.port_proxy) 
+
+        #verify _port_updated - this wil lbe used in iTEST
+        lgcl_port.ofp_port.state=OFPPS_LINK_DOWN
+
+        full_path = '/logical_devices/{}/ports'.format(self.ld) + '/' + str(lgcl_port.id)
+        root_proxy = self.core.get_proxy('/')
+        root_proxy.get(full_path)
+        root_proxy.update(full_path, lgcl_port)
+
+        self.lda._port_updated(lgcl_port)
+
+        #using self Setup provided ld_ports
+        self.ld_ports[1].ofp_port.state=OFPPS_LINK_DOWN
+        self.lda._port_updated(self.ld_ports[1])
+        
+        #Only for Test Purpose its been added
+        #self.assertEqual(self.ld_ports[1], self.lda.port_add_rem_upd) 
+
+        #self.adapter_agent.update_logical_port(ld.id, lgcl_port)  
 
 
 if __name__ == '__main__':
