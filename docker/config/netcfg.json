@@ -59,6 +59,52 @@
         "uplink": "0",
         "vlan": "1000"
       }
+    },
+    "of:0000000000000002": {
+      "basic": {
+        "driver": "pmc-olt"
+      },
+      "accessDevice": {
+        "uplink": "0",
+        "vlan": "1001"
+      }
+    },
+    "of:0000000000000003": {
+      "basic": {
+        "driver": "pmc-olt"
+      },
+      "accessDevice": {
+        "uplink": "0",
+        "vlan": "1002"
+      }
+    },
+    "of:0000000000000004": {
+      "basic": {
+        "driver": "pmc-olt"
+      },
+      "accessDevice": {
+        "uplink": "0",
+        "vlan": "1003"
+      }
+    },
+    "of:0000000000000005": {
+      "basic": {
+        "driver": "pmc-olt"
+      },
+      "accessDevice": {
+        "uplink": "0",
+        "vlan": "1004"
+      }
+    },
+    "of:0000000000000006": {
+      "basic": {
+        "driver": "pmc-olt"
+      },
+      "accessDevice": {
+        "uplink": "0",
+        "vlan": "1005"
+      }
     }
+
   }
 }
