@@ -248,3 +248,11 @@ class IAdapterAgent(Interface):
         :return: None returned on success
         """
 
+    def submit_kpis(kpi_event_msg):
+        """
+        Submit KPI metrics on behalf of the OLT and its adapter. This can
+        include hardware related metrics, usage and utilization metrics, as
+        well as optional adapter specific metrics.
+        :param kpi_event_msg: A protobuf message of KpiEvent type.
+        :return: None
+        """

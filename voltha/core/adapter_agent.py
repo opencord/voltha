@@ -30,6 +30,7 @@ from common.frameio.frameio import hexify
 from voltha.adapters.interface import IAdapterAgent
 from voltha.protos import third_party
 from voltha.protos.device_pb2 import Device, Port
+from voltha.protos.events_pb2 import KpiEvent
 from voltha.protos.voltha_pb2 import DeviceGroup, LogicalDevice, \
     LogicalPort, AdminState
 from voltha.registry import registry
@@ -305,3 +306,12 @@ class AdapterAgent(object):
 
         topic = 'packet-in:' + logical_device_id
         self.event_bus.publish(topic, (logical_port_no, packet))
+
+    # ~~~~~~~~~~~~~~~~~~~ Handling KPI metric submissions ~~~~~~~~~~~~~~~~~~~~~
+    def submit_kpis(self, kpi_event_msg):
+        try:
+            assert isinstance(kpi_event_msg, KpiEvent)
+            self.event_bus.publish('kpis', kpi_event_msg)
+        except Exception as e:
+            self.log.exception('failed-kpi-submission',
+                               type=type(kpi_event_msg))

@@ -19,12 +19,14 @@ Mock device adapter for testing.
 """
 from uuid import uuid4
 
+import arrow
 import structlog
 from klein import Klein
 from scapy.layers.l2 import Ether, EAPOL, Padding
 from twisted.internet import endpoints
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
+from twisted.internet.task import LoopingCall
 from twisted.web.server import Site
 from zope.interface import implementer
 
@@ -34,6 +36,7 @@ from voltha.core.flow_decomposer import *
 from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.protos.adapter_pb2 import Adapter, AdapterConfig
 from voltha.protos.device_pb2 import DeviceType, DeviceTypes, Device, Port
+from voltha.protos.events_pb2 import KpiEvent, KpiEventType, MetricValuePairs
 from voltha.protos.health_pb2 import HealthStatus
 from voltha.protos.common_pb2 import LogLevel, OperStatus, ConnectStatus, \
     AdminState
@@ -325,6 +328,7 @@ class SimulatedOltAdapter(object):
         self.adapter_agent.update_device(device)
 
         # reactor.callLater(0.1, self._simulate_detection_of_onus, device.id)
+        self.start_kpi_collection(device.id)
 
     @inlineCallbacks
     def _simulate_detection_of_onus(self, device_id):
@@ -520,6 +524,59 @@ class SimulatedOltAdapter(object):
     def receive_packet_out(self, logical_device_id, egress_port_no, msg):
         log.info('packet-out', logical_device_id=logical_device_id,
                  egress_port_no=egress_port_no, msg_len=len(msg))
+
+    def start_kpi_collection(self, device_id):
+        """Simulate periodic KPI metric collection from the device"""
+        import random
+
+        @inlineCallbacks  # pretend that we need to do async calls
+        def _collect(device_id, prefix):
+
+            try:
+                # Step 1: gather metrics from device (pretend it here) - examples
+                nni_port_metrics = yield dict(
+                    tx_pkts=random.randint(0, 100),
+                    rx_pkts=random.randint(0, 100),
+                    tx_bytes=random.randint(0, 100000),
+                    rx_bytes=random.randint(0, 100000),
+                )
+                pon_port_metrics = yield dict(
+                    tx_pkts=nni_port_metrics['rx_pkts'],
+                    rx_pkts=nni_port_metrics['tx_pkts'],
+                    tx_bytes=nni_port_metrics['rx_bytes'],
+                    rx_bytes=nni_port_metrics['tx_bytes'],
+                )
+                olt_metrics = yield dict(
+                    cpu_util=20 + 5 * random.random(),
+                    buffer_util=10 + 10 * random.random()
+                )
+
+                # Step 2: prepare the KpiEvent for submission
+                # we can time-stamp them here (or could use time derived from OLT
+                ts = arrow.utcnow().timestamp
+                kpi_event = KpiEvent(
+                    type=KpiEventType.slice,
+                    ts=ts,
+                    prefixes={
+                        # OLT-level
+                        prefix: MetricValuePairs(metrics=olt_metrics),
+                        # OLT NNI port
+                        prefix + '.nni': MetricValuePairs(metrics=nni_port_metrics),
+                        # OLT PON port
+                        prefix + '.pon': MetricValuePairs(metrics=pon_port_metrics)
+                    }
+                )
+
+                # Step 3: submit
+                self.adapter_agent.submit_kpis(kpi_event)
+
+            except Exception as e:
+                log.exception('failed-to-submit-kpis', e=e)
+
+        prefix = 'voltha.{}.{}'.format(self.name, device_id)
+        lc = LoopingCall(_collect, device_id, prefix)
+        lc.start(interval=15)  # TODO make this configurable
+
 
     # ~~~~~~~~~~~~~~~~~~~~ Embedded test Klein rest server ~~~~~~~~~~~~~~~~~~~~
 
