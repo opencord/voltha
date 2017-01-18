@@ -21,6 +21,9 @@ to publish select topics and messages posted to the Voltha-internal event
 bus toward the external world.
 """
 import structlog
+from google.protobuf.json_format import MessageToDict
+from google.protobuf.message import Message
+from simplejson import dumps
 
 from common.event_bus import EventBusClient
 
@@ -67,5 +70,10 @@ class EventBusPublisher(object):
                      event_bus_topic=event_bus_topic)
 
     def forward(self, kafka_topic, msg):
+
+        # convert to JSON string if msg is a protobuf msg
+        if isinstance(msg, Message):
+            msg = dumps(MessageToDict(msg, True, True))
+
         self.kafka_proxy.send_message(kafka_topic, msg)
 

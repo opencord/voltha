@@ -131,16 +131,17 @@ def _pickle(batch):
 def _convert(msg):
     """Convert a graphite key value string to pickle."""
 
-    def extract_slice(ts, data):
-        for object_path, metrics in data.iteritems():
-            for metric_name, value in metrics.iteritems():
+    def extract_slice(ts, prefixes):
+        for object_path, metrics in prefixes.iteritems():
+            for metric_name, value in metrics['metrics'].iteritems():
                 path = '.'.join((object_path, metric_name))
                 yield (path, ts, value)
 
     assert isinstance(msg, dict)
     type = msg.get('type')
     if type == 'slice':
-        extractor, kw = extract_slice, dict(ts=msg['ts'], data=msg['data'])
+        extractor, kw = extract_slice, dict(ts=msg['ts'],
+                                            prefixes=msg['prefixes'])
     else:
         raise Exception('Unknown format')
 

@@ -13,20 +13,27 @@ message KpiEventType {
     }
 }
 
+
 /*
+ * Struct to convey a dictionary of metric->value pairs. Typically used in
+ * pure shared-timestamp or shared-timestamp + shared object prefix situations.
+ */
+message MetricValuePairs {
+
+    // Metric / value pairs.
+    map<string, float> metrics = 1;
+
+}
+
+
 message KpiEvent {
 
-    KpiEventType type = 1;
+    KpiEventType.KpiEventType type = 1;
 
     // Fields used when for slice:
 
     float ts = 2;  // UTC time-stamp of data in slice mode (seconds since epoc)
 
-    message MetricSamples {
-        map<string, float> metric_samples = 1;
-    }
-
-    map<string, MetricSamples> data = 3;
+    map<string, MetricValuePairs> prefixes = 3;
 
 }
-*/

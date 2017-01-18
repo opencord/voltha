@@ -18,6 +18,7 @@
 """
 Voltha internal diagnostics
 """
+
 import arrow
 import gc
 import structlog
@@ -30,6 +31,7 @@ from twisted.internet.task import LoopingCall
 from zope.interface import implementer
 
 from common.event_bus import EventBusClient
+from voltha.protos.events_pb2 import KpiEvent, KpiEventType, MetricValuePairs
 from voltha.registry import IComponent, registry
 
 log = structlog.get_logger()
@@ -72,15 +74,17 @@ class Diagnostics(object):
                 rss /= 1024
             return rss
 
-        data = dict(
-            type='slice',
+        kpi_event = KpiEvent(
+            type=KpiEventType.slice,
             ts=ts,
-            data={
-                'voltha.internal.{}'.format(self.instance_id): {
-                    'deferreds': deferreds(),
-                    'rss-mb': rss_mb(),
-                }
+            prefixes={
+                'voltha.internal.{}'.format(self.instance_id):
+                    MetricValuePairs(metrics={
+                        'deferreds': deferreds(),
+                        'rss-mb': rss_mb(),
+                    })
             }
         )
-        self.event_bus.publish('kpis', dumps(data))
+
+        self.event_bus.publish('kpis', kpi_event)
         log.debug('periodic-check', ts=ts)
