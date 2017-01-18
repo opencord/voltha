@@ -308,6 +308,7 @@ class AdapterAgent(object):
         self.event_bus.publish(topic, (logical_port_no, packet))
 
     # ~~~~~~~~~~~~~~~~~~~ Handling KPI metric submissions ~~~~~~~~~~~~~~~~~~~~~
+
     def submit_kpis(self, kpi_event_msg):
         try:
             assert isinstance(kpi_event_msg, KpiEvent)

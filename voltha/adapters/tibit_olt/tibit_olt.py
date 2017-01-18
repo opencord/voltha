@@ -20,12 +20,14 @@ Tibit OLT device adapter
 import json
 from uuid import uuid4
 
+import arrow
 import structlog
 from scapy.fields import StrField
 from scapy.layers.l2 import Ether, Dot1Q
 from scapy.packet import Packet, bind_layers
 from twisted.internet import reactor
 from twisted.internet.defer import DeferredQueue, inlineCallbacks
+from twisted.internet.task import LoopingCall
 from zope.interface import implementer
 
 from common.frameio.frameio import BpfProgramFilter, hexify
@@ -49,6 +51,8 @@ from voltha.protos.common_pb2 import LogLevel, ConnectStatus
 from voltha.protos.common_pb2 import OperStatus, AdminState
 from voltha.protos.device_pb2 import Device, Port
 from voltha.protos.device_pb2 import DeviceType, DeviceTypes
+from voltha.protos.events_pb2 import KpiEvent, MetricValuePairs
+from voltha.protos.events_pb2 import KpiEventType
 from voltha.protos.health_pb2 import HealthStatus
 from voltha.protos.logical_device_pb2 import LogicalDevice, LogicalPort
 from voltha.protos.openflow_13_pb2 import ofp_desc, ofp_port, OFPPF_10GB_FD, \
@@ -265,6 +269,8 @@ class TibitOltAdapter(object):
         # Just transitioned to ACTIVE, wait a tenth of second
         # before checking for ONUs
         reactor.callLater(0.1, self._detect_onus, device)
+
+        self.start_kpi_collection(device.id)
 
     @inlineCallbacks
     def _detect_onus(self, device):
@@ -720,3 +726,57 @@ class TibitOltAdapter(object):
                 tmp.payload
 
         self.io_port.send(str(frame))
+
+    def start_kpi_collection(self, device_id):
+
+        """TMP Simulate periodic KPI metric collection from the device"""
+        import random
+
+        @inlineCallbacks  # pretend that we need to do async calls
+        def _collect(device_id, prefix):
+
+            try:
+                # Step 1: gather metrics from device (pretend it here) - examples
+                nni_port_metrics = yield dict(
+                    tx_pkts=random.randint(0, 100),
+                    rx_pkts=random.randint(0, 100),
+                    tx_bytes=random.randint(0, 100000),
+                    rx_bytes=random.randint(0, 100000),
+                )
+                pon_port_metrics = yield dict(
+                    tx_pkts=nni_port_metrics['rx_pkts'],
+                    rx_pkts=nni_port_metrics['tx_pkts'],
+                    tx_bytes=nni_port_metrics['rx_bytes'],
+                    rx_bytes=nni_port_metrics['tx_bytes'],
+                )
+                olt_metrics = yield dict(
+                    cpu_util=20 + 5 * random.random(),
+                    buffer_util=10 + 10 * random.random()
+                )
+
+                # Step 2: prepare the KpiEvent for submission
+                # we can time-stamp them here (or could use time derived from OLT
+                ts = arrow.utcnow().timestamp
+                kpi_event = KpiEvent(
+                    type=KpiEventType.slice,
+                    ts=ts,
+                    prefixes={
+                        # OLT-level
+                        prefix: MetricValuePairs(metrics=olt_metrics),
+                        # OLT NNI port
+                        prefix + '.nni': MetricValuePairs(metrics=nni_port_metrics),
+                        # OLT PON port
+                        prefix + '.pon': MetricValuePairs(metrics=pon_port_metrics)
+                    }
+                )
+
+                # Step 3: submit
+                self.adapter_agent.submit_kpis(kpi_event)
+
+            except Exception as e:
+                log.exception('failed-to-submit-kpis', e=e)
+
+        prefix = 'voltha.{}.{}'.format(self.name, device_id)
+        lc = LoopingCall(_collect, device_id, prefix)
+        lc.start(interval=15)  # TODO make this configurable
+

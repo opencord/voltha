@@ -526,6 +526,7 @@ class SimulatedOltAdapter(object):
                  egress_port_no=egress_port_no, msg_len=len(msg))
 
     def start_kpi_collection(self, device_id):
+
         """Simulate periodic KPI metric collection from the device"""
         import random
 
