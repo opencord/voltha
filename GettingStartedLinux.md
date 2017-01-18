@@ -18,11 +18,9 @@ docker images.
 
 October, 2016 - Minimum Linux VM requirements
 
-------  ---  ----
- Cores  RAM  Disk 
-------  ---  ----
- 2      6GB  20GB
-------  ---  ----
+| Cores | RAM | Disk |
+|-------|-----|------|
+| 2     | 6GB | 20GB |
 
 ### Update 
 
@@ -127,12 +125,16 @@ Note: The Ubuntu repo package, when executed, may complain about being
 out of date.  Follow the upgrade commands that repo puts to the
 standard out.
 
-Skip this collection of steps if you have installed repo with apt. 
-```
-$ mkdir ~/bin
-$ PATH=~/bin:$PATH
-$ curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
-$ chmod a+x ~/bin/repo
+Some older linux distributions do not have repo available.  If you
+cannot apt install repo, then follow the commands below to fetch repo
+from the Google site.  Skip this collection of steps if you have
+installed repo with apt.  
+
+``` 
+$ mkdir ~/bin 
+$ PATH=~/bin:$PATH 
+$ curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo 
+$ chmod a+x ~/bin/repo 
 ```
 
 ### GIT environment

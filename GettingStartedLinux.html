@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<title>GettingStartedLinux.html</title>
+
+</head>
+
+<body>
+
+<h1>Setting up a clean-slate Linux system for VOLTHA development and execution.</h1>
+
+<p>Note: These steps have been tested and confirmed on
+ * Ubuntu Desktop 16.04.01 LTS release
+ * Ubuntu Server 16.04.01 LTS release.</p>
+
+<p>The purpose of this file is to document the intial packages that need
+to be installed on a Linux system so that you can execute the basic
+installation procedure documented in BUILD.md</p>
+
+<p>The following steps can be executed in order and have been tested (and
+retested) on various Linux VMs. If you find any issues with the steps
+below, please update this file accordingly.</p>
+
+<p>Regarding Linux VMs, I found that I needed to allocate at lest 6GB of
+RAM to my VM, otherwise I would run out of memory while fetching the
+docker images.</p>
+
+<p>October, 2016 - Minimum Linux VM requirements</p>
+
+<p>| Cores | RAM | Disk |
+|-------|-----|------|
+| 2     | 6GB | 20GB |</p>
+
+<h3>Update</h3>
+
+<p>To begin with, please make sure you machine is up to date with the
+latest packages and that you have python-pip installed.</p>
+
+<p><code>
+$ sudo apt update
+$ sudo apt upgrade --yes
+$ sudo apt install python-pip
+$ sudo pip install --upgrade pip
+</code></p>
+
+<h3>Base Packages</h3>
+
+<p>Next, install the following base packages that will be needed to
+successfully install and compile the virtualenv.</p>
+
+<p><code>
+$ sudo apt install git --yes
+$ sudo apt install make --yes
+$ sudo apt install virtualenv --yes
+$ sudo apt install curl --yes
+$ sudo apt install jq --yes
+$ sudo apt install libssl-dev --yes
+$ sudo apt install libffi-dev --yes
+$ sudo apt install libpcap-dev --yes
+</code></p>
+
+<p>Python 2.x is needed in the native environment for (at least) the repo
+tool (installed below). </p>
+
+<p>And, Python-dev is needed when the pip packages are installed while
+setting up the virtualenv.</p>
+
+<p>To install python 2.X use the following command.</p>
+
+<p><code>
+$ sudo apt install python --yes
+$ sudo apt install python-dev --yes
+</code></p>
+
+<h3>Virtual Box</h3>
+
+<p>There are a couple of different ways to use Vagrant, the following
+steps assume that you install VirtualBox.</p>
+
+<p><code>
+$ sudo sh -c "/bin/echo 'deb http://download.virtualbox.org/virtualbox/debian xenial contrib' &gt;&gt; /etc/apt/sources.list"
+</code></p>
+
+<p><code>
+$ wget https://www.virtualbox.org/download/oracle_vbox_2016.asc
+$ sudo apt-key add oracle_vbox_2016.asc
+</code></p>
+
+<p><code>
+$ wget https://www.virtualbox.org/download/oracle_vbox.asc
+$ sudo apt-key add oracle_vbox.asc
+</code></p>
+
+<p>VirtualBox-5.1 is the latest release of VirtualBox, yet it is not
+compatible with the Ubuntu 16.04 default version of <em>vagrant</em>.  The best
+release of VirtualBox to install is 5.0. </p>
+
+<p>Here is the note from vagrant...</p>
+
+<pre>
+The provider 'virtualbox' that was requested to back the machine
+'voltha' is reporting that it isn't usable on this system. The
+reason is shown below:
+
+Vagrant has detected that you have a version of VirtualBox installed
+that is not supported by this version of Vagrant. Please install one of
+the supported versions listed below to use Vagrant:
+
+4.0, 4.1, 4.2, 4.3, 5.0
+
+A Vagrant update may also be available that adds support for the version
+you specified. Please check www.vagrantup.com/downloads.html to download
+the latest version.
+</pre>
+
+<p><code>
+$ sudo apt update 
+sudo apt install virtualbox-5.0 --yes
+sudo apt install vagrant
+</code></p>
+
+<h3>Google repo tool</h3>
+
+<p>Install the Google repo tool for working with the VOLTHA repository.
+Installing from Google APIs (googleapis below) seems to be a step that
+is blocked by many corporate firewalls.  An alternative is to install
+repo from the apt packages.</p>
+
+<p><code>
+$ sudo apt install repo --yes
+</code></p>
+
+<p>Note: The Ubuntu repo package, when executed, may complain about being
+out of date.  Follow the upgrade commands that repo puts to the
+standard out.</p>
+
+<p>Some older linux distributions do not have repo available.  If you
+cannot apt install repo, then follow the commands below to fetch repo
+from the Google site.  Skip this collection of steps if you have
+installed repo with apt.  </p>
+
+<p><code>
+$ mkdir ~/bin 
+$ PATH=~/bin:$PATH 
+$ curl https://storage.googleapis.com/git-repo-downloads/repo &gt; ~/bin/repo 
+$ chmod a+x ~/bin/repo
+</code></p>
+
+<h3>GIT environment</h3>
+
+<p>Repo requires that at least your git config is setup.  Set it up for
+your user.name and user.email.</p>
+
+<p><code>
+$ git config --global user.email "&lt;email address&gt;"
+$ git config --global user.name "Firstname Lastname"
+</code></p>
+
+<h3>Getting the VOLTHA code</h3>
+
+<p><code>
+$ mkdir cord
+$ cd cord
+$ repo init -u https://gerrit.opencord.org/manifest
+$ repo sync
+</code></p>
+
+<p><code>
+$ cd incubator/voltha
+voltha$ . ./env.sh
+</code></p>
+
+<p>The last step above the sources the virtualenv enviroment should
+pass.  If it does not and exits because of an error, see the commands
+below. </p>
+
+<h3>Virtualenv ERROR Handling</h3>
+
+<p>When you start with a clean Linux system, the first time virtualenv is
+setup it installs a number of pip packages.  If the base packages on
+the machine are not present for the pip packages to be installed
+correctly, then the virtualenv may be in a half-configured state.</p>
+
+<p>If you find yourself in this state, the error should be addressed, the
+virtualenv directory should be deleted, and the environment should be
+sourced again.</p>
+
+<p><code>
+voltha$ rm -rf venv-linux
+&lt; Fix virtualenv environment &gt;
+voltha$ . ./env.sh
+</code></p>
+
+<h3>Verify working VOLTHA</h3>
+
+<p>Thes commands are meant to be identical to the commands documented in
+BUILD.md.  At this point you are finished with the basic Linux
+configuration and should be able to start working with VOLTHA. </p>
+
+<p><code>
+cd incubator/voltha
+vagrant up  # when you do this for the first time, this will take considerable time
+vagrant ssh # the rest to be executed inside the vagrant VM
+cd /voltha
+. env.sh
+make fetch
+make
+</code></p>
+
+<h3>Advanced Commands</h3>
+
+<p>If you are running the former pyofagent, then you will need the
+following packages installed in your <strong>native</strong> environment.</p>
+
+<p><code>
+$ sudo apt install mininet --yes
+$ sudo apt install netifaces --yes
+</code></p>
+
+</body>
+</html>
