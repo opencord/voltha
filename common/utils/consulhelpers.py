@@ -25,16 +25,65 @@ from random import randint
 log = get_logger()
 
 
-def get_endpoint_from_consul(consul_endpoint, service_name):
-    """Look up, from consul, the service name specified by service-name
-    """
-    log.debug('getting-service-endpoint', consul=consul_endpoint,
-              service=service_name)
+def connect_to_consult(consul_endpoint):
+    log.debug('getting-service-endpoint', consul=consul_endpoint)
 
     host = consul_endpoint.split(':')[0].strip()
     port = int(consul_endpoint.split(':')[1].strip())
 
-    consul = Consul(host=host, port=port)
+    return Consul(host=host, port=port)
+
+
+def verify_all_services_healthy(consul_endpoint, service_name=None,
+                                number_of_expected_services=None):
+    """
+    Verify in consul if any service is healthy
+    :param consul_endpoint: a <host>:<port> string
+    :param service_name: name of service to check, optional
+    :param number_of_expected_services number of services to check for, optional
+    :return: true if healthy, false otherwise
+    """
+
+    def check_health(service):
+        _, serv_health = consul.health.service(service, passing=True)
+        return not serv_health == []
+
+    consul = connect_to_consult(consul_endpoint)
+
+    if service_name is not None:
+        return check_health(service_name)
+
+    services = get_all_services(consul_endpoint)
+
+    items = services.keys()
+
+    if number_of_expected_services is not None and \
+            len(items) != number_of_expected_services:
+        return False
+
+    for item in items:
+        if not check_health(item):
+            return False
+
+    return True
+
+
+def get_all_services(consul_endpoint):
+
+    log.debug('getting-service-verify-health')
+
+    consul = connect_to_consult(consul_endpoint)
+    _, services = consul.catalog.services()
+
+    return services
+
+
+def get_endpoint_from_consul(consul_endpoint, service_name):
+    """Look up, from consul, the service name specified by service-name
+    """
+    log.debug('getting-service-info', service=service_name)
+
+    consul = connect_to_consult(consul_endpoint)
     _, services = consul.catalog.service(service_name)
 
     if len(services) == 0:

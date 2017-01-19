@@ -17,6 +17,7 @@
 import subprocess
 import time
 import logging
+from common.utils.consulhelpers import verify_all_services_healthy
 import os
 import json
 from unittest import TestCase
@@ -32,7 +33,8 @@ from test_utils import run_command_to_completion_with_raw_stdout, \
 
 log = logging.getLogger(__name__)
 
-LOCAL_CONSUL_URL = "http://localhost:8500"
+LOCAL_CONSUL = "localhost:8500"
+LOCAL_CONSUL_URL = "http://%s" % LOCAL_CONSUL
 LOCAL_CONSUL_DNS = "@localhost -p 8600"
 DOCKER_COMPOSE_FILE = "compose/docker-compose-system-test.yml"
 DOCKER_COMPOSE_FILE_SERVICES_COUNT = 7
@@ -370,10 +372,11 @@ class BuildMdTests(TestCase):
             self.assertEqual(rc, 0)
 
             print "Waiting for all containers to be ready ..."
-            rc, not_found_list = self._wait_for_all_containers_to_ready()
-            if rc:
-                print "Not found patterns:{}".format(not_found_list)
-            self.assertEqual(rc, 0)
+            time.sleep(10)
+            rc = verify_all_services_healthy(LOCAL_CONSUL)
+            if not  rc:
+                print "Not all services are up"
+            self.assertEqual(rc, True)
 
             # verify that all containers are running
             print "Verify all services are running using docker command ..."
@@ -541,10 +544,10 @@ class BuildMdTests(TestCase):
 
             print "Waiting for all containers to be ready ..."
             time.sleep(10)
-            rc, not_found_list = self._wait_for_all_containers_to_ready()
-            if rc:
-                print "Not found patterns:{}".format(not_found_list)
-            self.assertEqual(rc, 0)
+            rc = verify_all_services_healthy(LOCAL_CONSUL)
+            if not  rc:
+                print "Not all services are up"
+            self.assertEqual(rc, True)
 
             # Get the IP address(es) for voltha's REST interface
             print "Get IP of Voltha REST interface..."
@@ -689,99 +692,3 @@ class BuildMdTests(TestCase):
                 return -1  # consul should have come up by this time
             else:
                 time.sleep(2)  # constant sleep for testing
-
-    def _wait_for_all_containers_to_ready(self):
-        # After the containers have been started using docker-compose, look
-        # at the logs for the following patterns to decide if the containers
-        # are up and in sync:
-        #
-        # For registrator, look for
-        #       "(.*)registrator_1(.*)Listening for Docker events"
-        #
-        # For voltha, zookeeper and kafka look for these patterns
-        #       "(.*)voltha_1(.*)main.heartbeat {status: up, uptime:"
-        #       "(.*)voltha_1(.*)kafka_proxy.send_message {event: Successfully sent message Heartbeat message"
-        #
-        # For fluentd, look for
-        #       "(.*)fluentd_1(.*)listening fluent socket on"
-        #
-        # For chameleon, look for
-        #       "(.*)chameleon_1(.*)main.startup_components {event:
-        #       started-internal-services, instance_id: compose_chameleon_1}"
-        #
-        # For consul, look for
-        #       "(.*)consul_1(.*)agent: Synced service(.*)consul(.*)8500"
-        #       "(.*)consul_1(.*)agent: Synced service(.*)consul(.*)8600:udp"
-        #       "(.*)consul_1(.*)agent: Synced service(.*)fluentd"
-        #       "(.*)consul_1(.*)agent: Synced service(.*)voltha"
-        #       "(.*)consul_1(.*)agent: Synced service(.*)voltha(.*):8880"
-        #       "(.*)consul_1(.*)agent: Synced service(.*)chameleon(.*):8881"
-        #       "(.*)consul_1(.*)agent: Synced service(.*)zookeeper(.*):2181"
-        #       "(.*)consul_1(.*)agent: Synced service(.*)kafka(.*):9092"
-        #
-        expected_output = [
-            "(.*)registrator_1(.*)Listening for Docker events",
-            "(.*)voltha_1(.*)main.heartbeat {status: up, uptime:",
-            "(.*)voltha_1(.*)kafka_proxy.send_message(.*)event: "
-            "sent-kafka-msg",
-            "(.*)fluentd_1(.*)listening fluent socket on",
-            "(.*)chameleon_1(.*)main.startup_components {event: "
-            "started-internal-services, instance_id: compose_chameleon_1}",
-            "(.*)consul_1(.*)agent: Synced service(.*)consul(.*)8500",
-            "(.*)consul_1(.*)agent: Synced service(.*)consul(.*)8600:udp",
-            "(.*)consul_1(.*)agent: Synced service(.*)fluentd",
-            "(.*)consul_1(.*)agent: Synced service(.*)voltha(.*):(?!8880)",
-            "(.*)consul_1(.*)agent: Synced service(.*)voltha(.*):8880",
-            "(.*)consul_1(.*)agent: Synced service(.*)chameleon(.*):8881",
-            "(.*)consul_1(.*)agent: Synced service(.*)zookeeper(.*):2181",
-            "(.*)consul_1(.*)agent: Synced service(.*)kafka(.*):9092"
-        ]
-        pattern_found = []
-        max_wait_time = 60  # wait up to 1 minute before declaring a failure
-
-        def _stop_process(proc):
-            try:
-                proc.terminate()
-                proc.wait()
-                # In principle this 'reset' should not be required.
-                # However, without it, the terminal is left in a funny
-                # state and required
-                subprocess.Popen(['reset']).wait()
-            except Exception as e:
-                print "Received exception {} when killing process " \
-                    .format(repr(e), )
-
-        try:
-            t0 = time.time()
-            env = os.environ.copy()
-            proc = subprocess.Popen(
-                command_defs['docker_compose_logs'],
-                env=env,
-                shell=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                bufsize=1
-            )
-            for line in iter(proc.stdout.readline, b''):
-                ansi_escape = re.compile(r'\x1b[^m]*m')
-                line = ansi_escape.sub('', line)
-                for pattern in expected_output:
-                    if re.match(pattern, line, re.I):
-                        if pattern not in pattern_found:
-                            pattern_found.append(pattern)
-                        break
-                        # Check if we found all patterns yet
-                if len(pattern_found) == len(expected_output):
-                    _stop_process(proc)
-                    return 0, []  # success
-                elif time.time() - t0 > max_wait_time:
-                    _stop_process(proc)
-                    not_found = [p for p in expected_output if p not in
-                                 pattern_found]
-                    return -1, not_found  # failure
-                else:
-                    return -1, []
-
-        except Exception as e:
-            print 'Exception {} '.format(repr(e))
-            return -1, []
