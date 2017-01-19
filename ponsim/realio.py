@@ -37,7 +37,7 @@ class RealIo(object):
         log.debug('starting')
         yield self.frame_io.start()
         for port, iface_name in self.port_to_iface_name.items():
-            io_port = self.frame_io.add_interface(iface_name, self.ingress)
+            io_port = self.frame_io.open_port(iface_name, self.ingress)
             self.io_ports[port] = io_port
         log.info('started')
         returnValue(self)

@@ -193,7 +193,7 @@ class MapleOltHandler(object):
 
     def __del__(self):
         if self.io_port is not None:
-            registry('frameio').del_interface(self.interface)
+            registry('frameio').close_port(self.io_port)
 
     def get_channel(self):
         return self.channel
@@ -505,7 +505,7 @@ class MapleOltHandler(object):
 
         # finally, open the frameio port to receive in-band packet_in messages
         self.log.info('registering-frameio')
-        self.io_port = registry('frameio').add_interface(
+        self.io_port = registry('frameio').open_port(
             self.interface, self.rcv_io, is_inband_frame)
 
     def rcv_io(self, port, frame):

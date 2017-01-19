@@ -133,7 +133,7 @@ class TibitOltAdapter(object):
     def stop(self):
         log.debug('stopping')
         if self.io_port is not None:
-            registry('frameio').del_interface(self.interface)
+            registry('frameio').close_port(self.io_port)
         log.info('stopped')
 
     def adapter_descriptor(self):
@@ -155,7 +155,7 @@ class TibitOltAdapter(object):
 
     def _activate_io_port(self):
         if self.io_port is None:
-            self.io_port = registry('frameio').add_interface(
+            self.io_port = registry('frameio').open_port(
                 self.interface, self._rcv_io, is_tibit_frame)
 
     @inlineCallbacks
@@ -182,7 +182,7 @@ class TibitOltAdapter(object):
                 if 1: # TODO check if it is really what we expect, and wait if not
                     break
 
-        except Exception, e:
+        except Exception as e:
             log.exception('launch device failed', e=e)
 
         # if we got response, we can fill out the device info, mark the device

@@ -31,11 +31,12 @@ from time import sleep
 from scapy.layers.inet import IP
 from scapy.layers.l2 import Ether, Dot1Q
 from twisted.internet import reactor
-from twisted.internet.defer import Deferred, inlineCallbacks
+from twisted.internet.defer import Deferred, inlineCallbacks, DeferredQueue
 from twisted.internet.error import AlreadyCalled
 from twisted.trial.unittest import TestCase
 
-from common.frameio.frameio import FrameIOManager, BpfProgramFilter
+from common.frameio.frameio import FrameIOManager, BpfProgramFilter, \
+    FrameIOPortProxy
 from common.utils.asleep import asleep
 from common.utils.deferred_utils import DeferredWithTimeout, TimeOutError
 
@@ -75,8 +76,8 @@ class TestFrameIO(TestCase):
     @inlineCallbacks
     def test_packet_send_receive(self):
         rcvd = DeferredWithTimeout()
-        p0 = self.mgr.add_interface('veth0', none).up()
-        p1 = self.mgr.add_interface('veth1',
+        p0 = self.mgr.open_port('veth0', none).up()
+        p1 = self.mgr.open_port('veth1',
                                     lambda p, f: rcvd.callback((p, f))).up()
 
         # sending to veth0 should result in receiving on veth1 and vice versa
@@ -93,10 +94,10 @@ class TestFrameIO(TestCase):
         rcvd = DeferredWithTimeout()
 
         filter = BpfProgramFilter('ip dst host 123.123.123.123')
-        p0 = self.mgr.add_interface('veth0', none).up()
-        p1 = self.mgr.add_interface('veth1',
-                                    lambda p, f: rcvd.callback((p, f)),
-                                    filter=filter).up()
+        p0 = self.mgr.open_port('veth0', none).up()
+        p1 = self.mgr.open_port('veth1',
+                                lambda p, f: rcvd.callback((p, f)),
+                                filter=filter).up()
 
         # sending bogus packet would not be received
         ip_packet = str(Ether()/IP(dst='123.123.123.123'))
@@ -112,9 +113,9 @@ class TestFrameIO(TestCase):
         rcvd = DeferredWithTimeout()
 
         filter = BpfProgramFilter('ip dst host 123.123.123.123')
-        p0 = self.mgr.add_interface('veth0', none).up()
-        self.mgr.add_interface('veth1', lambda p, f: rcvd.callback((p, f)),
-                               filter=filter).up()
+        p0 = self.mgr.open_port('veth0', none).up()
+        self.mgr.open_port('veth1', lambda p, f: rcvd.callback((p, f)),
+                           filter=filter).up()
 
         # sending bogus packet would not be received
         p0.send('bogus packet')
@@ -142,10 +143,10 @@ class TestFrameIO(TestCase):
                     done.callback(None)
             return _append
 
-        p1in = self.mgr.add_interface('veth0', none).up()
-        self.mgr.add_interface('veth1', append(queue1)).up()
-        p2in = self.mgr.add_interface('veth2', none).up()
-        self.mgr.add_interface('veth3', append(queue2)).up()
+        p1in = self.mgr.open_port('veth0', none).up()
+        self.mgr.open_port('veth1', append(queue1)).up()
+        p2in = self.mgr.open_port('veth2', none).up()
+        self.mgr.open_port('veth3', append(queue2)).up()
 
         @inlineCallbacks
         def send_packets(port, n):
@@ -177,10 +178,10 @@ class TestFrameIO(TestCase):
             return _append
 
         filter = BpfProgramFilter('vlan 100')
-        p1in = self.mgr.add_interface('veth0', none).up()
-        self.mgr.add_interface('veth1', append(queue1), filter).up()
-        p2in = self.mgr.add_interface('veth2', none).up()
-        self.mgr.add_interface('veth3', append(queue2), filter).up()
+        p1in = self.mgr.open_port('veth0', none).up()
+        self.mgr.open_port('veth1', append(queue1), filter).up()
+        p2in = self.mgr.open_port('veth2', none).up()
+        self.mgr.open_port('veth3', append(queue2), filter).up()
 
         @inlineCallbacks
         def send_packets(port, n):
@@ -196,6 +197,70 @@ class TestFrameIO(TestCase):
 
         # verify that both queue got all packets
         yield done
+
+    @inlineCallbacks
+    def test_shared_interface(self):
+
+        queue1 = DeferredQueue()
+        queue2 = DeferredQueue()
+
+        # two senders hooked up to the same interface (sharing it)
+        # here we test if they can both send
+        pin1 = self.mgr.open_port('veth0', none).up()
+        pin2 = self.mgr.open_port('veth0', none).up()
+
+        pout1 = self.mgr.open_port(
+            'veth1', lambda p, f: queue1.put((p, f))).up()
+        filter = BpfProgramFilter('ip dst host 123.123.123.123')
+        pout2 = self.mgr.open_port(
+            'veth1', lambda p, f: queue2.put((p, f)), filter=filter).up()
+
+        # sending from pin1, should be received by pout1
+        bogus_frame = 'bogus packet'
+        pin1.send(bogus_frame)
+        port, frame = yield queue1.get()
+        self.assertEqual(port, pout1)
+        self.assertEqual(frame, bogus_frame)
+        self.assertEqual(len(queue1.pending), 0)
+        self.assertEqual(len(queue2.pending), 0)
+
+        # sending from pin2, should be received by pout1
+        bogus_frame = 'bogus packet'
+        pin2.send(bogus_frame)
+        port, frame = yield queue1.get()
+        self.assertEqual(port, pout1)
+        self.assertEqual(frame, bogus_frame)
+        self.assertEqual(len(queue1.pending), 0)
+        self.assertEqual(len(queue2.pending), 0)
+
+        # sending from pin1, should be received by both pouts
+        ip_packet = str(Ether()/IP(dst='123.123.123.123'))
+        pin1.send(ip_packet)
+        port, frame = yield queue1.get()
+        self.assertEqual(port, pout1)
+        self.assertEqual(frame, ip_packet)
+        self.assertEqual(len(queue1.pending), 0)
+        port, frame = yield queue2.get()
+        self.assertEqual(port, pout2)
+        self.assertEqual(frame, ip_packet)
+        self.assertEqual(len(queue2.pending), 0)
+
+        # sending from pin2, should be received by pout1
+        ip_packet = str(Ether()/IP(dst='123.123.123.123'))
+        pin2.send(ip_packet)
+        port, frame = yield queue1.get()
+        self.assertEqual(port, pout1)
+        self.assertEqual(frame, ip_packet)
+        self.assertEqual(len(queue1.pending), 0)
+        port, frame = yield queue2.get()
+        self.assertEqual(port, pout2)
+        self.assertEqual(frame, ip_packet)
+        self.assertEqual(len(queue2.pending), 0)
+
+        self.mgr.close_port(pin1)
+        self.mgr.close_port(pin2)
+        self.mgr.close_port(pout1)
+        self.mgr.close_port(pout2)
 
 
 if __name__ == '__main__':
