@@ -61,6 +61,8 @@ from voltha.protos.openflow_13_pb2 import ofp_desc, ofp_port, OFPPF_10GB_FD, \
 from voltha.registry import registry
 log = structlog.get_logger()
 
+TIBIT_ONU_LINK_INDEX = 2
+
 # Match on the MGMT VLAN, Priority 7
 TIBIT_MGMT_VLAN = 4090
 TIBIT_MGMT_PRIORITY = 7
@@ -185,7 +187,6 @@ class TibitOltAdapter(object):
 
         # if we got response, we can fill out the device info, mark the device
         # reachable
-        # jdev = json.loads(response.data[5:])
         jdev = json.loads(response.payload.payload.body.load)
         device.root = True
         device.vendor = 'Tibit Communications, Inc.'
@@ -270,8 +271,6 @@ class TibitOltAdapter(object):
         # before checking for ONUs
         reactor.callLater(0.1, self._detect_onus, device)
 
-        self.start_kpi_collection(device.id)
-
     @inlineCallbacks
     def _detect_onus(self, device):
         # send out get 'links' to the OLT device
@@ -326,9 +325,12 @@ class TibitOltAdapter(object):
                         vlan=vlan_id
                     )
 
-            # also record the vlan_id -> (device_id, logical_device_id) for
-            # later use
-            self.vlan_to_device_ids[vlan_id] = (device.id, device.parent_id)
+            # also record the vlan_id -> (device_id, logical_device_id, linkid) for
+            # later use.  The linkid is the macid returned.
+            self.vlan_to_device_ids[vlan_id] = (device.id, device.parent_id, macid.get('macid', 0))
+
+        # Give the ONUs a chance to arrive before starting metric collection
+        reactor.callLater(5.0, self.start_kpi_collection, device.id)
 
     def _olt_side_onu_activation(self, serial):
         """
@@ -413,6 +415,12 @@ class TibitOltAdapter(object):
     def _make_links_frame(self, mac_address):
         # Create a json packet
         json_operation_str = '{\"operation\":\"links\"}'
+        frame = Ether(dst=mac_address)/Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY)/TBJSON(data='json %s' % json_operation_str)
+        return str(frame)
+
+    def _make_stats_frame(self, mac_address, itype, link):
+        # Create a json packet
+        json_operation_str = ('{\"operation\":\"stats\",\"parameters\":{\"itype\":\"%s\",\"iinst\",\"0\",\"macid\":\"%s\"}}' % (itype, link))
         frame = Ether(dst=mac_address)/Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY)/TBJSON(data='json %s' % json_operation_str)
         return str(frame)
 
@@ -735,20 +743,43 @@ class TibitOltAdapter(object):
         @inlineCallbacks  # pretend that we need to do async calls
         def _collect(device_id, prefix):
 
+            pon_port_metrics = {}
+            links = []
+            olt_mac = next((mac for mac, device in self.device_ids.iteritems() if device == device_id), None)
+            links   = [v[TIBIT_ONU_LINK_INDEX] for _,v in self.vlan_to_device_ids.iteritems()]
+
             try:
-                # Step 1: gather metrics from device (pretend it here) - examples
-                nni_port_metrics = yield dict(
-                    tx_pkts=random.randint(0, 100),
-                    rx_pkts=random.randint(0, 100),
-                    tx_bytes=random.randint(0, 100000),
-                    rx_bytes=random.randint(0, 100000),
-                )
-                pon_port_metrics = yield dict(
-                    tx_pkts=nni_port_metrics['rx_pkts'],
-                    rx_pkts=nni_port_metrics['tx_pkts'],
-                    tx_bytes=nni_port_metrics['rx_bytes'],
-                    rx_bytes=nni_port_metrics['tx_bytes'],
-                )
+                # Step 1: gather metrics from device
+                log.info('link stats frame', links=links)
+                for link in links:
+                    stats_frame = self._make_stats_frame(mac_address=olt_mac, itype='olt', link=link)
+                    self.io_port.send(stats_frame)
+
+                    ## Add timeout mechanism so we can signal if we cannot reach
+                    ## device
+                    while True:
+                        response = yield self.incoming_queues[olt_mac].get()
+                        jdict = json.loads(response.payload.payload.body.load)
+                        pon_port_metrics[link] = {k: int(v,16) for k,v in jdict['results'].iteritems()}
+                        # verify response and if not the expected response
+                        if 1: # TODO check if it is really what we expect, and wait if not
+                            break
+
+                log.info('nni stats frame')
+                olt_nni_link = ''.join(l for l in olt_mac.split(':'))
+                stats_frame = self._make_stats_frame(mac_address=olt_mac, itype='eth', link=olt_nni_link)
+                self.io_port.send(stats_frame)
+
+                ## Add timeout mechanism so we can signal if we cannot reach
+                ## device
+                while True:
+                    response = yield self.incoming_queues[olt_mac].get()
+                    jdict = json.loads(response.payload.payload.body.load)
+                    nni_port_metrics = {k: int(v,16) for k,v in jdict['results'].iteritems()}
+                    # verify response and if not the expected response
+                    if 1: # TODO check if it is really what we expect, and wait if not
+                        break
+
                 olt_metrics = yield dict(
                     cpu_util=20 + 5 * random.random(),
                     buffer_util=10 + 10 * random.random()
@@ -765,8 +796,7 @@ class TibitOltAdapter(object):
                         prefix: MetricValuePairs(metrics=olt_metrics),
                         # OLT NNI port
                         prefix + '.nni': MetricValuePairs(metrics=nni_port_metrics),
-                        # OLT PON port
-                        prefix + '.pon': MetricValuePairs(metrics=pon_port_metrics)
+                        prefix + '.pon.{}'.format(link): MetricValuePairs(metrics=pon_port_metrics[link])
                     }
                 )
 
