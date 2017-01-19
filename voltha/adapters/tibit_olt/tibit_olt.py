@@ -736,11 +736,12 @@ class TibitOltAdapter(object):
         self.io_port.send(str(frame))
 
     def start_kpi_collection(self, device_id):
-
-        """TMP Simulate periodic KPI metric collection from the device"""
+        """ Periodic KPI metric collection from the device """
         import random
 
-        @inlineCallbacks  # pretend that we need to do async calls
+        # This is setup (for now) to be called from the adapter.  Push
+        # architectures should be explored in the near future.
+        @inlineCallbacks
         def _collect(device_id, prefix):
 
             pon_port_metrics = {}
@@ -780,7 +781,7 @@ class TibitOltAdapter(object):
                     if 1: # TODO check if it is really what we expect, and wait if not
                         break
 
-                olt_metrics = yield dict(
+                olt_metrics = dict(
                     cpu_util=20 + 5 * random.random(),
                     buffer_util=10 + 10 * random.random()
                 )
@@ -788,16 +789,21 @@ class TibitOltAdapter(object):
                 # Step 2: prepare the KpiEvent for submission
                 # we can time-stamp them here (or could use time derived from OLT
                 ts = arrow.utcnow().timestamp
+                prefixes = {
+                    # CPU Metrics (example)
+                    prefix: MetricValuePairs(metrics=olt_metrics),
+                    # OLT NNI port
+                    prefix + '.nni': MetricValuePairs(metrics=nni_port_metrics)
+                    }
+
+                for link in links:
+                    # PON link ports
+                    prefixes[prefix + '.pon.{}'.format(link)] = MetricValuePairs(metrics=pon_port_metrics[link])
+
                 kpi_event = KpiEvent(
                     type=KpiEventType.slice,
                     ts=ts,
-                    prefixes={
-                        # OLT-level
-                        prefix: MetricValuePairs(metrics=olt_metrics),
-                        # OLT NNI port
-                        prefix + '.nni': MetricValuePairs(metrics=nni_port_metrics),
-                        prefix + '.pon.{}'.format(link): MetricValuePairs(metrics=pon_port_metrics[link])
-                    }
+                    prefixes=prefixes
                 )
 
                 # Step 3: submit
