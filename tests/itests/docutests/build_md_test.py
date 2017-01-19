@@ -779,6 +779,9 @@ class BuildMdTests(TestCase):
                     not_found = [p for p in expected_output if p not in
                                  pattern_found]
                     return -1, not_found  # failure
+                else:
+                    return -1, []
+
         except Exception as e:
             print 'Exception {} '.format(repr(e))
             return -1, []
