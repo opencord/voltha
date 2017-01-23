@@ -1,3 +1,4 @@
+
 from unittest import main
 
 from mock import Mock
@@ -376,9 +377,9 @@ class test_logical_device_agent(FlowHelpers):
         # we assume one default flow and no default group for each of 3 devs
         self.assertEqual(len(rules['olt'][0]), 1)
         self.assertEqual(len(rules['olt'][1]), 0)
-        self.assertEqual(len(rules['onu1'][0]), 1)
+        self.assertEqual(len(rules['onu1'][0]), 3)
         self.assertEqual(len(rules['onu1'][1]), 0)
-        self.assertEqual(len(rules['onu2'][0]), 1)
+        self.assertEqual(len(rules['onu2'][0]), 3)
         self.assertEqual(len(rules['onu2'][1]), 0)
 
     def test_routes(self):
@@ -435,8 +436,8 @@ class test_logical_device_agent(FlowHelpers):
         ))
         self.lda._flow_table_updated(self.flows)
         self.assertEqual(len(self.device_flows['olt'].items), 2)
-        self.assertEqual(len(self.device_flows['onu1'].items), 1)
-        self.assertEqual(len(self.device_flows['onu2'].items), 1)
+        self.assertEqual(len(self.device_flows['onu1'].items), 3)
+        self.assertEqual(len(self.device_flows['onu2'].items), 3)
         self.assertEqual(len(self.device_groups['olt'].items), 0)
         self.assertEqual(len(self.device_groups['onu1'].items), 0)
         self.assertEqual(len(self.device_groups['onu2'].items), 0)
@@ -458,10 +459,11 @@ class test_logical_device_agent(FlowHelpers):
             match_fields=[eth_type(0x800), ip_proto(2)],
             actions=[output(ofp.OFPP_CONTROLLER)]
         ))
+
         self.lda._flow_table_updated(self.flows)
         self.assertEqual(len(self.device_flows['olt'].items), 2)
-        self.assertEqual(len(self.device_flows['onu1'].items), 1)
-        self.assertEqual(len(self.device_flows['onu2'].items), 1)
+        self.assertEqual(len(self.device_flows['onu1'].items), 3)
+        self.assertEqual(len(self.device_flows['onu2'].items), 3)
         self.assertEqual(len(self.device_groups['olt'].items), 0)
         self.assertEqual(len(self.device_groups['onu1'].items), 0)
         self.assertEqual(len(self.device_groups['onu2'].items), 0)
@@ -499,8 +501,8 @@ class test_logical_device_agent(FlowHelpers):
         ))
         self.lda._flow_table_updated(self.flows)
         self.assertEqual(len(self.device_flows['olt'].items), 2)
-        self.assertEqual(len(self.device_flows['onu1'].items), 2)
-        self.assertEqual(len(self.device_flows['onu2'].items), 1)
+        self.assertEqual(len(self.device_flows['onu1'].items), 4)
+        self.assertEqual(len(self.device_flows['onu2'].items), 3)
         self.assertEqual(len(self.device_groups['olt'].items), 0)
         self.assertEqual(len(self.device_groups['onu1'].items), 0)
         self.assertEqual(len(self.device_groups['onu2'].items), 0)
@@ -513,7 +515,7 @@ class test_logical_device_agent(FlowHelpers):
                 output(1)
             ]
         ))
-        self.assertFlowsEqual(self.device_flows['onu1'].items[1], mk_flow_stat(
+        self.assertFlowsEqual(self.device_flows['onu1'].items[3], mk_flow_stat(
             priority=1000,
             match_fields=[in_port(1), eth_type(0x800), ipv4_dst(0xe60a0a0a)],
             actions=[
@@ -547,8 +549,8 @@ class test_logical_device_agent(FlowHelpers):
         ))
         self.lda._flow_table_updated(self.flows)
         self.assertEqual(len(self.device_flows['olt'].items), 2)
-        self.assertEqual(len(self.device_flows['onu1'].items), 2)
-        self.assertEqual(len(self.device_flows['onu2'].items), 2)
+        self.assertEqual(len(self.device_flows['onu1'].items), 4)
+        self.assertEqual(len(self.device_flows['onu2'].items), 4)
         self.assertEqual(len(self.device_groups['olt'].items), 0)
         self.assertEqual(len(self.device_groups['onu1'].items), 0)
         self.assertEqual(len(self.device_groups['onu2'].items), 0)
@@ -561,14 +563,14 @@ class test_logical_device_agent(FlowHelpers):
                 output(1)
             ]
         ))
-        self.assertFlowsEqual(self.device_flows['onu1'].items[1], mk_flow_stat(
+        self.assertFlowsEqual(self.device_flows['onu1'].items[3], mk_flow_stat(
             priority=1000,
             match_fields=[in_port(1), eth_type(0x800), ipv4_dst(0xe60a0a0a)],
             actions=[
                 output(0)
             ]
         ))
-        self.assertFlowsEqual(self.device_flows['onu2'].items[1], mk_flow_stat(
+        self.assertFlowsEqual(self.device_flows['onu2'].items[3], mk_flow_stat(
             priority=1000,
             match_fields=[in_port(1), eth_type(0x800), ipv4_dst(0xe60a0a0a)],
             actions=[
@@ -777,22 +779,22 @@ class test_logical_device_agent(FlowHelpers):
             actions=[
                 set_field(vlan_vid(4096 + 101)), output(1)]
         ))
-        self.assertFlowsEqual(self.device_flows['onu1'].items[1], mk_flow_stat(
+        self.assertFlowsEqual(self.device_flows['onu1'].items[3], mk_flow_stat(
             priority=1000,
             match_fields=[in_port(1), eth_type(0x800), ipv4_dst(0xe4010102)],
             actions=[output(0)]
         ))
-        self.assertFlowsEqual(self.device_flows['onu1'].items[2], mk_flow_stat(
+        self.assertFlowsEqual(self.device_flows['onu1'].items[4], mk_flow_stat(
             priority=1000,
             match_fields=[in_port(1), eth_type(0x800), ipv4_dst(0xe4010104)],
             actions=[output(0)]
         ))
-        self.assertFlowsEqual(self.device_flows['onu1'].items[3], mk_flow_stat(
+        self.assertFlowsEqual(self.device_flows['onu1'].items[2], mk_flow_stat(
             priority=500,
             match_fields=[in_port(1), vlan_vid(4096 + 101)],
             actions=[set_field(vlan_vid(4096 + 0)), output(0)]
         ))
-        self.assertFlowsEqual(self.device_flows['onu1'].items[4], mk_flow_stat(
+        self.assertFlowsEqual(self.device_flows['onu1'].items[1], mk_flow_stat(
             priority=500,
             match_fields=[in_port(0), vlan_vid(0)],
             actions=[push_vlan(0x8100), set_field(vlan_vid(4096 + 101)),
@@ -806,22 +808,22 @@ class test_logical_device_agent(FlowHelpers):
             actions=[
                 set_field(vlan_vid(4096 + 102)), output(1)]
         ))
-        self.assertFlowsEqual(self.device_flows['onu2'].items[1], mk_flow_stat(
+        self.assertFlowsEqual(self.device_flows['onu2'].items[3], mk_flow_stat(
             priority=1000,
             match_fields=[in_port(1), eth_type(0x800), ipv4_dst(0xe4010103)],
             actions=[output(0)]
         ))
-        self.assertFlowsEqual(self.device_flows['onu2'].items[2], mk_flow_stat(
+        self.assertFlowsEqual(self.device_flows['onu2'].items[4], mk_flow_stat(
             priority=1000,
             match_fields=[in_port(1), eth_type(0x800), ipv4_dst(0xe4010104)],
             actions=[output(0)]
         ))
-        self.assertFlowsEqual(self.device_flows['onu2'].items[3], mk_flow_stat(
+        self.assertFlowsEqual(self.device_flows['onu2'].items[2], mk_flow_stat(
             priority=500,
             match_fields=[in_port(1), vlan_vid(4096 + 102)],
             actions=[set_field(vlan_vid(4096 + 0)), output(0)]
         ))
-        self.assertFlowsEqual(self.device_flows['onu2'].items[4], mk_flow_stat(
+        self.assertFlowsEqual(self.device_flows['onu2'].items[1], mk_flow_stat(
             priority=500,
             match_fields=[in_port(0), vlan_vid(0)],
             actions=[push_vlan(0x8100), set_field(vlan_vid(4096 + 102)),
