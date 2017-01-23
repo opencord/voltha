@@ -369,7 +369,7 @@ class TibitOltAdapter(object):
                                       type=inner_tag_and_rest.type) /\
                                       inner_tag_and_rest.payload
 
-                        _, logical_device_id = self.vlan_to_device_ids.get(cvid)
+                        _, logical_device_id,_ = self.vlan_to_device_ids.get(cvid)
                         if logical_device_id is None:
                             log.error('invalid-cvid', cvid=cvid)
                         else:
@@ -722,7 +722,7 @@ class TibitOltAdapter(object):
         log.info('packet-out', logical_device_id=logical_device_id,
                  egress_port_no=egress_port_no, msg_len=len(msg))
 
-        dev_id, logical_dev_id = self.vlan_to_device_ids[egress_port_no]
+        dev_id, logical_dev_id,_ = self.vlan_to_device_ids[egress_port_no]
         if logical_dev_id != logical_device_id:
             raise Exception('Internal table mismatch')
 
