@@ -156,7 +156,13 @@ test: venv protos run-as-root-tests
 utest: venv protos
 	@ echo "Executing all unit tests"
 	. ${VENVDIR}/bin/activate && \
-	    for d in $$(find ./tests/utests -type d -depth 1); do echo $$d:; nosetests -v $$d; done
+	    for d in $$(find ./tests/utests -depth -type d); do echo $$d:; nosetests $$d; done
+
+utest-with-coverage: venv protos
+	@ echo "Executing all unit tests and producing coverage results"
+	. ${VENVDIR}/bin/activate && \
+        for d in $$(find ./tests/utests -depth -type d); do echo $$d:; \
+	nosetests --with-xcoverage --with-xunit --cover-package=voltha,common,ofagent,chameleon $$d; done
 
 itest: venv run-as-root-tests
 	@ echo "Executing all integration tests"

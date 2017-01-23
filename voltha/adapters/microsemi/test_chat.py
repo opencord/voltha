@@ -1,10 +1,11 @@
+import unittest
 from unittest import TestCase, main
 
 from voltha.adapters.microsemi.chat import *
 from voltha.extensions.omci.omci import OmciFrame, OmciGet, \
     OmciGetResponse
 
-
+@unittest.SkipTest
 class TestChat(TestCase):
 
     def check_gen(self, frames, raw_frames):
