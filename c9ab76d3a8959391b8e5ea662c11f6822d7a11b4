@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fa0f191f_a6604b36",
+        "filename": "voltha/adapters/tibit_olt/tibit_olt.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 372,
+      "author": {
+        "id": 1000004
+      },
+      "writtenOn": "2017-01-24T18:35:59Z",
+      "side": 1,
+      "message": "insert whitespace",
+      "range": {
+        "startLine": 372,
+        "startChar": 44,
+        "endLine": 372,
+        "endChar": 46
+      },
+      "revId": "c9ab76d3a8959391b8e5ea662c11f6822d7a11b4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa0f191f_86654747",
+        "filename": "voltha/adapters/tibit_olt/tibit_olt.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 725,
+      "author": {
+        "id": 1000004
+      },
+      "writtenOn": "2017-01-24T18:35:59Z",
+      "side": 1,
+      "message": "same here",
+      "range": {
+        "startLine": 725,
+        "startChar": 30,
+        "endLine": 725,
+        "endChar": 32
+      },
+      "revId": "c9ab76d3a8959391b8e5ea662c11f6822d7a11b4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
