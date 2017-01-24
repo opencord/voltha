@@ -98,7 +98,7 @@ class RubyAdapter(object):
                               target=target, device=device_manager)
         activation = ActivationWatcher(iface=self.interface, comm=comm,
                                        target=target, device=device_manager)
-        reactor.callLater(0, self.__init_olt, olt, activation)
+        reactor.callLater(0, self._init_olt, olt, activation)
 
         log.info('adopted-device', device=device)
         # TODO store olt elements
@@ -129,7 +129,7 @@ class RubyAdapter(object):
     ##
     # Private methods
     ##
-    def __init_olt(self, olt, activation_watch):
+    def _init_olt(self, olt, activation_watch):
         olt.runbg()
         activation_watch.runbg()
 

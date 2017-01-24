@@ -58,7 +58,6 @@ class DeviceManager(object):
         # that will correspond to the NNI port
         logical_device_id = uuid4().hex[:12]
         ld = LogicalDevice(
-            id=logical_device_id,
             datapath_id=int('0x' + logical_device_id[:8], 16), # from id
             desc=ofp_desc(
                 mfr_desc=self.device.vendor,
@@ -79,8 +78,8 @@ class DeviceManager(object):
             ),
             root_device_id=self.device.id
         )
-        self.adapter_agent.create_logical_device(ld)
-        self.logical_device = ld
+
+        self.logical_device = self.adapter_agent.create_logical_device(ld)
 
     def add_port(self, port):
         self.adapter_agent.add_port(self.device.id, port)
