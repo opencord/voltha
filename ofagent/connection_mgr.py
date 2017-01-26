@@ -192,8 +192,8 @@ class ConnectionManager(object):
     @inlineCallbacks
     def monitor_logical_devices(self):
         while True:
-            # TODO @khen We should switch to a polling mode based on a
-            # streaming gRPC method
+            # should change to a gRPC streaming call
+            # see https://jira.opencord.org/browse/CORD-821
 
             # get current list from Voltha
             devices = yield self.get_list_of_logical_devices_from_voltha()

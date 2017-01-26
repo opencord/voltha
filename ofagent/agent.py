@@ -73,7 +73,8 @@ class Agent(protocol.ClientFactory):
         log.info('stopped')
 
     def resolve_endpoint(self, endpoint):
-        # TODO allow resolution via consul
+        # enable optional resolution via consul;
+        # see https://jira.opencord.org/browse/CORD-820
         host, port = endpoint.split(':', 2)
         return host, int(port)
 
