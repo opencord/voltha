@@ -193,7 +193,7 @@ class BroadcomOnuHandler(object):
             id='uni-{}'.format(port_no),
             ofp_port=ofp_port(
                 port_no=port_no,
-                hw_addr=mac_str_to_tuple('00:00:00:00:00:%02x' % port_no),
+                hw_addr=mac_str_to_tuple('00:00:00:00:%02x:%02x' % ((port_no >> 8) & 0xff, port_no & 0xff)),
                 name='uni-{}'.format(port_no),
                 config=0,
                 state=OFPPS_LIVE,
@@ -207,7 +207,7 @@ class BroadcomOnuHandler(object):
             device_port_no=uni_port.port_no
         ))
 
-        reactor.callLater(5, self.message_exchange)
+        reactor.callLater(10, self.message_exchange)
 
         device = self.adapter_agent.get_device(device.id)
         device.oper_status = OperStatus.ACTIVE

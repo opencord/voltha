@@ -62,7 +62,7 @@ class EOAM():
             print("sleep     = %d" % self.sleep)
             print("=== END Settings ============")
 
-    def send_frame(self, frame_body):
+    def send_frame(self, frame_body, slow_protocol=True):
         PACKET = Ether()
         PACKET.dst = self.dst
         PACKET.src = self.getHwAddr(self.interface)
@@ -76,7 +76,7 @@ class EOAM():
                 PACKET/=Dot1Q(type=0x8100,vlan=int(self.stag))
                 PACKET/=Dot1Q(type=self.etype,vlan=int(self.ctag))
             else:
-                PACKET/=Dot1Q(type=self.etype,vlan=int(self.stag))
+                PACKET/=Dot1Q(prio=7,type=self.etype,vlan=int(self.stag))
         else:
             if self.ctag:
                 PACKET.type = 0x8100
@@ -84,9 +84,14 @@ class EOAM():
             else:
                 PACKET.type = self.etype
 #            PACKET/=Dot1Q(type=self.etype, vlan=int(self.ctag))
-        PACKET/=SlowProtocolsSubtype()/FlagsBytes()/OAMPDU()
-        PACKET/=frame_body
-        PACKET/=EndOfPDU()
+        if slow_protocol:
+            PACKET /= SlowProtocolsSubtype()/FlagsBytes()/OAMPDU()
+            PACKET /= frame_body
+            PACKET /= EndOfPDU()
+        else:
+            PACKET.lastlayer().type = 0x9001
+            PACKET /= frame_body
+            
         if (self.verbose == True):
             PACKET.show()
             print '###[ Frame Length %d (before padding) ]###' % len(PACKET)
@@ -137,6 +142,15 @@ def mcastIp2McastMac(ip):
     digits = [int(d) for d in ip.split('.')]
     return '01:00:5e:%02x:%02x:%02x' % (digits[1] & 0x7f, digits[2] & 0xff, digits[3] & 0xff)
 
+
+class TBJSON(Packet):
+    """ TBJSON 'packet' layer. """
+    name = "TBJSON"
+    fields_desc = [StrField("data", default="")]
+
+bind_layers(Ether, TBJSON, type=0x9001)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--dst', dest='dst', action='store', default=EOAM_MULTICAST_ADDRESS,
@@ -178,6 +192,8 @@ if __name__ == "__main__":
                         help='Run commands under test')
     parser.add_argument('-tm', '--test_multicast', dest='test_multicast', action='store_true', default=False,
                         help='Run commands under test')
+    parser.add_argument('-tp', '--test_ping', dest='test_ping', action='store_true', default=False,
+                        help='Issue a test ping to get JSON data on device version')
 
     args = parser.parse_args()
 
@@ -205,7 +221,8 @@ if __name__ == "__main__":
         and not args.test_dhcp
         and not args.test_upstream
         and not args.test_downstream
-        and not args.test_multicast):
+        and not args.test_multicast
+        and not args.test_ping):
         print 'WARNING: *** No frames sent, please specify \'test\' or \'critical\', etc.  See --help'
 
 
@@ -441,3 +458,10 @@ if __name__ == "__main__":
                          PortIngressRuleResultDelete(fieldcode=Clause['C-VLAN Tag'])/
                          PortIngressRuleTerminator()/
                          DeletePortIngressRule())
+
+
+    if (args.test_ping == True):
+        json_operation_str = '{\"operation\":\"version\"}'
+        for i in range(10000):
+            eoam.send_frame(TBJSON(data='json %s' % json_operation_str), False)
+
