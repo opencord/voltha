@@ -159,8 +159,8 @@ class GrpcClient(object):
                         service_name=service_name)
             yield asleep(1.0)
 
-        # pick a random entry
-        # TODO should we prefer local IP addresses? Probably.
+        # pick local addresses when resolving a service via consul
+        # see CORD-815 (https://jira.opencord.org/browse/CORD-815)
 
         service = services[randint(0, len(services) - 1)]
         endpoint = '{}:{}'.format(service['ServiceAddress'],

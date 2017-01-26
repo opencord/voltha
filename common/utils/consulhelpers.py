@@ -91,8 +91,8 @@ def get_endpoint_from_consul(consul_endpoint, service_name):
             'Cannot find service {} in consul'.format(service_name))
         os.exit(1)
 
-    # pick a random entry
-    # TODO should we prefer local IP addresses? Probably.
+    # pick local addresses when resolving a service via consul
+    # see CORD-818 (https://jira.opencord.org/browse/CORD-818)
 
     service = services[randint(0, len(services) - 1)]
     endpoint = '{}:{}'.format(service['ServiceAddress'],
