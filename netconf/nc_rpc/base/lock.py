@@ -24,7 +24,8 @@ log = structlog.get_logger()
 class Lock(Rpc):
 
 	def __init__(self, request, request_xml, grpc_client, session, capabilities):
-		super(Lock, self).__init__(request, request_xml, grpc_client, session)
+		super(Lock, self).__init__(request, request_xml, grpc_client,
+								   session, capabilities)
 		self._validate_parameters()
 
 	def execute(self):

@@ -27,7 +27,7 @@ class CloseSession(Rpc):
     def __init__(self, request, request_xml, grpc_client, session,
                  capabilities):
         super(CloseSession, self).__init__(request, request_xml, grpc_client,
-                                           session)
+                                           session, capabilities)
         self._validate_parameters()
 
     def execute(self):

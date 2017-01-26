@@ -25,7 +25,8 @@ log = structlog.get_logger()
 class Commit(Rpc):
 
 	def __init__(self, request, request_xml, grpc_client, session, capabilities):
-		super(Commit, self).__init__(request, request_xml, grpc_client, session)
+		super(Commit, self).__init__(request, request_xml, grpc_client,
+									 session, capabilities)
 		self._validate_parameters()
 
 	def execute(self):

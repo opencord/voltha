@@ -52,6 +52,7 @@ clean:
 	rm -f $(PROTO_PB2_FILES) $(PROTO_DESC_FILES)
 	rm $(TARGET_YANG_OPTION_DIR)/$(YANG_OPTION_FILE)
 	rm $(TARGET_PROTO_DIR)/*.py
+	rm $(TARGET_PROTO_DIR)/*.pyc
 
 
 

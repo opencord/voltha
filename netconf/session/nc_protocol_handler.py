@@ -27,6 +27,7 @@ from netconf.nc_rpc.rpc_response import RpcResponse
 
 log = structlog.get_logger()
 
+
 class NetconfProtocolError(Exception): pass
 
 
@@ -74,6 +75,17 @@ class NetconfProtocolHandler:
         log.info("RPC-Reply", reply=ucode)
         self.send_message(ucode)
 
+    def send_custom_rpc_reply(self, rpc_reply, origmsg):
+        reply = etree.Element(qmap(C.NC) + C.RPC_REPLY, attrib=origmsg.attrib,
+                              nsmap=rpc_reply.nsmap)
+        try:
+            reply.extend(rpc_reply.getchildren())
+        except AttributeError:
+            reply.extend(rpc_reply)
+        ucode = etree.tounicode(reply, pretty_print=True)
+        log.info("Custom-RPC-Reply", reply=ucode)
+        self.send_message(ucode)
+
     def set_framing_version(self):
         if C.NETCONF_BASE_11 in self.capabilities.client_caps:
             self.new_framing = True
@@ -106,7 +118,7 @@ class NetconfProtocolHandler:
             log.info('session-opened', session_id=self.session.session_id,
                      framing="1.1" if self.new_framing else "1.0")
         except Exception as e:
-            log.error('hello-failure', exception=repr(e))
+            log.exception('hello-failure', e=e)
             self.stop(repr(e))
             raise
 
@@ -178,10 +190,14 @@ class NetconfProtocolHandler:
                     log.info('handler',
                              rpc_handler=rpc_handler,
                              is_error=response.is_error,
+                             custom_rpc=response.custom_rpc,
                              response=response)
                     if not response.is_error:
-                        self.send_rpc_reply(response.node, rpc)
-                        # self.send_rpc_reply(self.get_mock_volthainstance(), rpc)
+                        if response.custom_rpc:
+                            self.send_custom_rpc_reply(response.node, rpc)
+                        else:
+                            self.send_rpc_reply(response.node, rpc)
+                            # self.send_rpc_reply(self.get_mock_volthainstance(), rpc)
                     else:
                         self.send_message(response.node.get_xml_reply())
 
@@ -205,13 +221,12 @@ class NetconfProtocolHandler:
                     log.error("Closing-1-0-session--malformed-message")
                     self.close()
             except (ncerror.NotImpl, ncerror.MissingElement) as e:
-                log.info('error', repr(e))
+                log.exception('error', e=e)
                 self.send_message(e.get_reply_msg())
-            except Exception as ex:
-                log.info('Exception', repr(ex))
-                error = ncerror.ServerException(rpc, ex)
+            except Exception as e:
+                log.exception('Exception', e=e)
+                error = ncerror.ServerException(rpc, e)
                 self.send_message(error.get_xml_reply())
-
 
     def stop(self, reason):
         if not self.exiting:
@@ -236,50 +251,49 @@ class NetconfProtocolHandler:
             self.connected.callback(None)
             log.info('closing-client')
 
-
     # Example of a properly formatted Yang-XML message
     def get_mock_volthainstance(self):
         res = {'log_level': 'INFO',
                'device_types': [
-                    {'adapter': u'broadcom_onu',
+                   {'adapter': u'broadcom_onu',
                     'accepts_bulk_flow_update': True,
                     'id': u'broadcom_onu',
                     'accepts_add_remove_flow_updates': False
                     },
-                    {'adapter': u'maple_olt',
+                   {'adapter': u'maple_olt',
                     'accepts_bulk_flow_update': True,
                     'id': u'maple_olt',
-                     'accepts_add_remove_flow_updates': False
-                     },
-                    {'adapter': u'ponsim_olt',
-                     'accepts_bulk_flow_update': True,
+                    'accepts_add_remove_flow_updates': False
+                    },
+                   {'adapter': u'ponsim_olt',
+                    'accepts_bulk_flow_update': True,
                     'id': u'ponsim_olt',
-                     'accepts_add_remove_flow_updates': False
-                     },
-                    {'adapter': u'ponsim_onu',
-                     'accepts_bulk_flow_update': True,
+                    'accepts_add_remove_flow_updates': False
+                    },
+                   {'adapter': u'ponsim_onu',
+                    'accepts_bulk_flow_update': True,
                     'id': u'ponsim_onu',
-                     'accepts_add_remove_flow_updates': False
-                     },
-                    {'adapter': u'simulated_olt',
-                     'accepts_bulk_flow_update': True,
+                    'accepts_add_remove_flow_updates': False
+                    },
+                   {'adapter': u'simulated_olt',
+                    'accepts_bulk_flow_update': True,
                     'id': u'simulated_olt',
-                     'accepts_add_remove_flow_updates': False
-                     },
-                    {'adapter': u'simulated_onu',
-                     'accepts_bulk_flow_update': True,
+                    'accepts_add_remove_flow_updates': False
+                    },
+                   {'adapter': u'simulated_onu',
+                    'accepts_bulk_flow_update': True,
                     'id': u'simulated_onu',
-                     'accepts_add_remove_flow_updates': False
-                     },
-                     {'adapter': u'tibit_olt',
-                      'accepts_bulk_flow_update': True,
-                      'id': u'tibit_olt',
-                      'accepts_add_remove_flow_updates': False
-                      },
-                      {'adapter': u'tibit_onu',
-                       'accepts_bulk_flow_update': True,
-                       'id': u'tibit_onu',
-                       'accepts_add_remove_flow_updates': False}
+                    'accepts_add_remove_flow_updates': False
+                    },
+                   {'adapter': u'tibit_olt',
+                    'accepts_bulk_flow_update': True,
+                    'id': u'tibit_olt',
+                    'accepts_add_remove_flow_updates': False
+                    },
+                   {'adapter': u'tibit_onu',
+                    'accepts_bulk_flow_update': True,
+                    'id': u'tibit_onu',
+                    'accepts_add_remove_flow_updates': False}
                ],
                'logical_devices': [],
                'devices': [],
@@ -336,7 +350,7 @@ class NetconfProtocolHandler:
                     'logical_device_ids': []
                     }
                ]
-        }
+               }
         devices_array = []
         flow_items = []
         for i in xrange(1, 10):
@@ -345,17 +359,17 @@ class NetconfProtocolHandler:
                     'id': str(i),
                     'table_id': 'table_id_' + str(i),
                     'flags': i,
-                    'instructions' : [
-                        {'type' : i, 'goto_table': 'table_id_' + str(i) },
+                    'instructions': [
+                        {'type': i, 'goto_table': 'table_id_' + str(i)},
                         {'type': i, 'meter': i},
                         {'type': i,
                          'actions': {'actions': [
-                                        {'type': 11,
-                                        'output': {
-                                            'port': i,
-                                            'max_len': i}
-                                         }
-                                    ]}
+                             {'type': 11,
+                              'output': {
+                                  'port': i,
+                                  'max_len': i}
+                              }
+                         ]}
                          }
                     ]
                 }

@@ -22,15 +22,15 @@ from lxml import etree
 import io
 
 
-
 class Rpc(object):
-    def __init__(self, request_dict, request_xml, grpc_client, session):
+    def __init__(self, request_dict, request_xml, grpc_client, session,
+                 capabilities):
         self.request = request_dict
         self.request_xml = request_xml
-        self.rpc_response = RpcResponse()
-        self.grpc_client =  grpc_client
+        self.rpc_response = RpcResponse(capabilities)
+        self.grpc_client = grpc_client
         self.session = session
-
+        self.capabilities = capabilities
 
     def execute(self):
         """ run the command - returns a OperationResponse """
@@ -46,4 +46,3 @@ class Rpc(object):
     def get_root_element(self, xml_msg):
         tree = etree.parse(io.BytesIO(xml_msg))
         return tree.getroot()
-

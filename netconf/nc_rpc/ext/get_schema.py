@@ -26,8 +26,8 @@ log = structlog.get_logger()
 
 class GetSchema(Rpc):
     def __init__(self, request, request_xml, grpc_client, session, capabilities):
-        super(GetSchema, self).__init__(request, request_xml, grpc_client, session)
-        self.capabilities = capabilities
+        super(GetSchema, self).__init__(request, request_xml, grpc_client,
+                                        session, capabilities)
         # specific schema parsing required
         self.parse_schema_request(request_xml)
         self._validate_parameters()

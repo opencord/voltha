@@ -24,8 +24,13 @@ log = structlog.get_logger()
 
 
 class Get(Rpc):
-    def __init__(self, request, request_xml, grpc_client, session, capabilities):
-        super(Get, self).__init__(request, request_xml, grpc_client, session)
+    def __init__(self, request, request_xml, grpc_client, session,
+                 capabilities):
+        super(Get, self).__init__(request, request_xml, grpc_client, session,
+                                  capabilities)
+        self.service = None
+        self.method = None
+        self.metadata = None
         self._validate_parameters()
 
     @inlineCallbacks
@@ -43,8 +48,26 @@ class Get(Rpc):
             self.rpc_response.node = ncerror.NotImpl(self.request_xml)
             returnValue(self.rpc_response)
 
-        # Invoke voltha via the grpc client
-        res_dict = yield self.grpc_client.invoke_voltha_api(rpc)
+        # Extract the service and method name from the rpc
+        command = rpc.split('-')
+        if len(command) != 2:
+            log.debug('unsupported-rpc', rpc=rpc)
+            self.rpc_response.is_error = True
+            self.rpc_response.node = ncerror.NotImpl(self.request_xml)
+            returnValue(self.rpc_response)
+
+        self.service = command[0]
+        self.method = command[1]
+        self.params = {}
+        if self.request.has_key('metadata'):
+            self.metadata = self.request['metadata']
+
+        # Execute the request
+        res_dict = yield self.grpc_client.invoke_voltha_rpc(
+            service=self.service,
+            method=self.method,
+            params=self.params,
+            metadata=self.metadata)
 
         # convert dict to xml
         xml = dicttoxml.dicttoxml(res_dict, attr_type=True)
@@ -72,12 +95,14 @@ class Get(Rpc):
                 if self.request.has_key('filter'):
                     if not self.request.has_key('class'):
                         self.rpc_response.is_error = True
-                        self.rpc_response.node = ncerror.NotImpl(self.request_xml)
+                        self.rpc_response.node = ncerror.NotImpl(
+                            self.request_xml)
                     return
 
             except Exception as e:
                 self.rpc_response.is_error = True
-                self.rpc_response.node = ncerror.ServerException(self.request_xml)
+                self.rpc_response.node = ncerror.ServerException(
+                    self.request_xml)
                 return
 
     def get_voltha_rpc(self, request):

@@ -24,7 +24,7 @@ log = structlog.get_logger()
 class Validate(Rpc):
 
 	def __init__(self, request, request_xml, grpc_client, session, capabilities):
-		super(Validate, self).__init__(request, grpc_client, session)
+		super(Validate, self).__init__(request, grpc_client, session, capabilities)
 		self._validate_parameters()
 
 	def execute(self):

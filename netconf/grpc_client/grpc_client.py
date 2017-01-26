@@ -36,10 +36,11 @@ from netconf.protos import third_party
 from netconf.protos.schema_pb2 import SchemaServiceStub
 from google.protobuf.empty_pb2 import Empty
 from common.utils.consulhelpers import get_endpoint_from_consul
-from netconf.protos.voltha_pb2 import VolthaLocalServiceStub, \
-    VolthaGlobalServiceStub
-from google.protobuf import empty_pb2
-from google.protobuf.json_format import MessageToDict, ParseDict
+# from netconf.protos.voltha_pb2 import VolthaLocalServiceStub, \
+#     VolthaGlobalServiceStub
+# from google.protobuf import empty_pb2
+# from google.protobuf.json_format import MessageToDict, ParseDict
+from nc_rpc_mapper import get_nc_rpc_mapper_instance
 from google.protobuf import descriptor
 import base64
 import math
@@ -154,9 +155,6 @@ class GrpcClient(object):
                 if self.reconnect_callback is not None:
                     reactor.callLater(0, self.reconnect_callback)
 
-                # self.local_stub = voltha_pb2.VolthaLocalServiceStub(self.channel)
-                # self.global_stub = voltha_pb2.VolthaGlobalServiceStub(self.channel)
-
                 return
 
         except _Rendezvous, e:
@@ -257,6 +255,8 @@ class GrpcClient(object):
                 '-I%s '
                 '--python_out=. '
                 '--grpc_python_out=. '
+                '--plugin=protoc-gen-gw=%s/rpc_gw_gen.py '
+                '--gw_out=. '
                 '--plugin=protoc-gen-custom=%s/proto2yang.py '
                 '%s'
                 '%s' % (
@@ -265,6 +265,7 @@ class GrpcClient(object):
                     ':'.join([google_api_dir, netconf_base_dir]),
                     google_api_dir,
                     self.plugin_dir,
+                    self.plugin_dir,
                     '--custom_out=. ' if need_yang else '',
                     fname)
             )
@@ -272,17 +273,9 @@ class GrpcClient(object):
             os.system(cmd)
             log.info('compiled', file=fname)
 
-            # # test-load each _pb2 file to see all is right
-            # if self.work_dir not in sys.path:
-            #     sys.path.insert(0, self.work_dir)
-            #
-            # for fname in [f for f in os.listdir(self.work_dir)
-            #               if f.endswith('_pb2.py')]:
-            #     modname = fname[:-len('.py')]
-            #     log.debug('test-import', modname=modname)
-            #     _ = __import__(modname)
-
-            # TODO: find a different way to test the generated yang files
+        # Load the generated modules
+        mapper = get_nc_rpc_mapper_instance(self.work_dir, self)
+        mapper.load_modules()
 
     def _set_yang_schemas(self):
         if self.work_dir not in sys.path:
@@ -298,35 +291,27 @@ class GrpcClient(object):
                 self.yang_schemas.add(fname[:-len('.yang')])
         log.info('yang-schemas', schemas=self.yang_schemas)
 
-    # TODO: should be generated code
-    # Focus for now is issuing a GET request for VolthaGlobalService or VolthaLocalService
     @inlineCallbacks
-    def invoke_voltha_api(self, key):
-        # TODO:  This should be part of a parameter request
-        depth = [('get-depth', '-1')]
+    def invoke_voltha_rpc(self, service, method, params, metadata=None):
         try:
-            data = {}
-            req = ParseDict(data, empty_pb2.Empty())
-            service_method = key.split('-')
-            service = service_method[0]
-            method = service_method[1]
-            if service == 'VolthaGlobalService':
-                stub = VolthaGlobalServiceStub
-            elif service == 'VolthaLocalService':
-                stub = VolthaLocalServiceStub
-            else:
-                raise  # Exception
+            mapper = get_nc_rpc_mapper_instance()
 
-            log.info('voltha-rpc', service=service, method=method, req=req,
-                     depth=depth)
+            # Get the mapping function using the service and method name
+            func = mapper.get_function(service, method)
+            if func is None:
+                log.info('unsupported-rpc', service=service, method=method)
+                return
 
-            res, metadata = yield self.invoke(stub, method, req, depth)
+            response = yield func(self, params, metadata)
 
-            # returnValue(MessageToDict(res, True, True))
-            returnValue(self.convertToDict(res))
+            log.info('rpc-result', service=service, method=method,
+                     response=response)
+
+            returnValue(response)
 
         except Exception, e:
-            log.error('failure', exception=repr(e))
+            log.exception('rpc-failure', service=service, method=method,
+                          params=params, e=e)
 
     @inlineCallbacks
     def invoke(self, stub, method_name, request, metadata, retry=1):

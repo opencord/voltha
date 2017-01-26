@@ -24,14 +24,16 @@ log = structlog.get_logger()
 
 
 class RpcResponse():
-    def __init__(self):
+    def __init__(self, capabilities):
         self.is_error = False
         # if there is an error then the reply_node will contains an Error
         # object
         self.reply_node = None
         self.close_session = False
+        self.capabilities = capabilities
+        self.custom_rpc = False
 
-    def build_xml_response(self, request, voltha_response):
+    def build_xml_response(self, request, voltha_response, custom_rpc=False):
         if request is None:
             return
         voltha_xml_string = etree.tostring(voltha_response)
@@ -45,38 +47,46 @@ class RpcResponse():
         elif voltha_xml_string.startswith('<yang/>'):
             voltha_xml_string = ''
 
-        # Create the xml body as
-        if request.has_key('subclass'):
+        if not custom_rpc:
+            # Create the xml body as
+            if request.has_key('subclass'):
+                body = ''.join([
+                    '<data>',
+                    '<',
+                    request['class'],
+                    ' xmlns="',
+                    request['namespace'],
+                    '">',
+                    '<',
+                    request['subclass'],
+                    '>',
+                    voltha_xml_string,
+                    '</',
+                    request['subclass'],
+                    '>',
+                    '</',
+                    request['class'],
+                    '>',
+                    '</data>'
+                ])
+            else:
+                body = ''.join([
+                    '<data>',
+                    '<',
+                    request['class'],
+                    ' xmlns="urn:opencord:params:xml:ns:voltha:ietf-voltha">',
+                    voltha_xml_string,
+                    '</',
+                    request['class'],
+                    '>',
+                    '</data>'
+                ])
+        else:  # custom_rpc
             body = ''.join([
-                '<data>',
-                '<',
-                request['class'],
-                ' xmlns="',
-                request['namespace'],
-                '">',
-                '<',
-                request['subclass'],
-                '>',
-                voltha_xml_string,
-                '</',
-                request['subclass'],
-                '>',
-                '</',
-                request['class'],
-                '>',
-                '</data>'
-            ])
-        else:
-            body = ''.join([
-                '<data>',
-                '<',
-                request['class'],
+                '<rpc-reply',
                 ' xmlns="urn:opencord:params:xml:ns:voltha:ietf-voltha">',
                 voltha_xml_string,
-                '</',
-                request['class'],
-                '>',
-                '</data>'
+                '</rpc-reply>',
             ])
 
         return etree.fromstring(body)
@@ -145,7 +155,7 @@ class RpcResponse():
         else:
             return self.copy_basic_element(elem)
 
-    def to_yang_xml(self, from_xml, request):
+    def to_yang_xml(self, from_xml, request, custom_rpc=False):
         # Parse from_xml as follows:
         # 1.  Any element having a list attribute shoud have each item move 1 level
         #     up and retag using the parent tag
@@ -155,7 +165,7 @@ class RpcResponse():
         elms = list(from_xml)
 
         # special case the xml contain a list type
-        if len(elms) == 1:
+        if len(elms) == 1 and not custom_rpc:
             item = elms[0]
             # TODO: Address name 'items' clash when a list name is actually
             # 'items'.
@@ -166,7 +176,6 @@ class RpcResponse():
                     del request['subclass']
                 else:
                     item.tag = 'ignore'
-                # item.tag = 'ignore'
                 self.add_node(self.process_element(item), top)
                 return top
 
@@ -176,13 +185,18 @@ class RpcResponse():
 
         return top
 
-    def build_yang_response(self, root, request):
+    # custom_rpc refers to custom RPCs different from Netconf default RPCs
+    # like get, get-config, edit-config, etc
+    def build_yang_response(self, root, request, custom_rpc=False):
         try:
-            yang_xml = self.to_yang_xml(root, request)
+            self.custom_rpc = custom_rpc
+            yang_xml = self.to_yang_xml(root, request, custom_rpc)
             log.info('yang-xml', yang_xml=etree.tounicode(yang_xml,
                                                           pretty_print=True))
-            return self.build_xml_response(request, yang_xml)
+            return self.build_xml_response(request, yang_xml, custom_rpc)
         except Exception as e:
+            log.exception('error-building-yang-response', request=request,
+                          xml=etree.tostring(root))
             self.rpc_response.is_error = True
             self.rpc_response.node = ncerror.BadMsg(request)
             return

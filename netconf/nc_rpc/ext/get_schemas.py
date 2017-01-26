@@ -26,9 +26,9 @@ log = structlog.get_logger()
 
 class GetSchemas(Rpc):
     def __init__(self, request, request_xml, grpc_client, session, capabilities):
-        super(GetSchemas, self).__init__(request, request_xml, grpc_client, session)
+        super(GetSchemas, self).__init__(request, request_xml, grpc_client,
+                                         session, capabilities)
         self._validate_parameters()
-        self.capabilities = capabilities
 
     @inlineCallbacks
     def execute(self):
