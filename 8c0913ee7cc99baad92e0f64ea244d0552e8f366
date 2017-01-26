@@ -16,6 +16,24 @@
       "revId": "8c0913ee7cc99baad92e0f64ea244d0552e8f366",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa0f191f_4bf8577c",
+        "filename": "compose/docker-compose-system-test.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 127,
+      "author": {
+        "id": 1000074
+      },
+      "writtenOn": "2017-01-26T21:31:57Z",
+      "side": 1,
+      "message": "Completely agree. Once we can properly configure a vlan on the ponmgmt interface this would no longer be required by the Maple adapter.",
+      "parentUuid": "fa0f191f_abbb73c3",
+      "revId": "8c0913ee7cc99baad92e0f64ea244d0552e8f366",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
