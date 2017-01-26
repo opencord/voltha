@@ -55,7 +55,9 @@ class OpenFlowProtocolHandler(object):
 
             # expect to receive a hello message
             msg = yield self.cxn.recv_class(ofp.message.hello)
-            # TODO verify version compatibility (must list version 1.3)
+            # verify version compatibility (must list version 1.3)
+            # and negotiate if not.
+            # see https://jira.opencord.org/browse/CORD-822
 
             while True:
                 req = yield self.cxn.recv_any()
