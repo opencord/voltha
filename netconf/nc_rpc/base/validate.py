@@ -21,16 +21,18 @@ import netconf.nc_common.error as ncerror
 
 log = structlog.get_logger()
 
+
 class Validate(Rpc):
+    def __init__(self, request, request_xml, grpc_client, session,
+                 capabilities):
+        super(Validate, self).__init__(request, grpc_client, session,
+                                       capabilities)
+        self._validate_parameters()
 
-	def __init__(self, request, request_xml, grpc_client, session, capabilities):
-		super(Validate, self).__init__(request, grpc_client, session, capabilities)
-		self._validate_parameters()
+    def execute(self):
+        log.info('Validate-request', session=self.session.session_id)
+        if self.rpc_response.is_error:
+            return self.rpc_response
 
-	def execute(self):
-		log.info('Validate-request', session=self.session.session_id)
-		if self.rpc_response.is_error:
-			return self.rpc_response
-
-	def _validate_parameters(self):
-		log.info('validate-parameters', session=self.session.session_id)
+    def _validate_parameters(self):
+        log.info('validate-parameters', session=self.session.session_id)
