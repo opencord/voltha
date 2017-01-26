@@ -55,7 +55,9 @@ class OpenFlowProtocolHandler(object):
 
             # expect to receive a hello message
             msg = yield self.cxn.recv_class(ofp.message.hello)
-            # TODO verify version compatibility (must list version 1.3)
+            # verify version compatibility (must list version 1.3)
+            # and negotiate if not.
+            # see https://jira.opencord.org/browse/CORD-822
 
             while True:
                 req = yield self.cxn.recv_any()
@@ -98,7 +100,8 @@ class OpenFlowProtocolHandler(object):
                 'Cannot handle stats request type "{}"'.format(req.stats_type))
 
     def handle_barrier_request(self, req):
-        # TODO not really doing barrier yet, but we respond
+        # not really doing barrier yet, but we respond
+        # see https://jira.opencord.org/browse/CORD-823
         self.cxn.send(ofp.message.barrier_reply(xid=req.xid))
 
     def handle_experimenter_request(self, req):
@@ -129,7 +132,8 @@ class OpenFlowProtocolHandler(object):
         raise NotImplementedError()
 
     def handle_role_request(self, req):
-        # TODO this is where we need to manage which connection is active
+        # Handle role messages appropriately to support multiple controllers
+        # see https://jira.opencord.org/browse/CORD-824
         if req.role != ofp.OFPCR_ROLE_MASTER:
             raise NotImplementedError()
         self.cxn.send(ofp.message.role_reply(
@@ -139,7 +143,8 @@ class OpenFlowProtocolHandler(object):
         self.rpc.send_packet_out(self.device_id, to_grpc(req))
 
     def handle_set_config_request(self, req):
-        # TODO ignore for now
+        # Handle set config appropriately
+        # https://jira.opencord.org/browse/CORD-826
         pass
 
     def handle_port_mod_request(self, req):
@@ -191,7 +196,7 @@ class OpenFlowProtocolHandler(object):
         raise NotImplementedError()
 
     def handle_meter_stats_request(self, req):
-        meter_stats = []  # TODO
+        meter_stats = []  # see https://jira.opencord.org/browse/CORD-825
         self.cxn.send(ofp.message.meter_stats_reply(
             xid=req.xid, entries=meter_stats))
 
@@ -202,7 +207,7 @@ class OpenFlowProtocolHandler(object):
         self.cxn.send(ofp.message.bad_request_error_msg())
 
     def handle_port_stats_request(self, req):
-        port_stats = []  # TODO
+        port_stats = []  # see https://jira.opencord.org/browse/CORD-825
         self.cxn.send(ofp.message.port_stats_reply(
             xid=req.xid,entries=port_stats))
 
@@ -219,7 +224,7 @@ class OpenFlowProtocolHandler(object):
         raise NotImplementedError()
 
     def handle_table_stats_request(self, req):
-        table_stats = []  # TODO
+        table_stats = []  # see https://jira.opencord.org/browse/CORD-825
         self.cxn.send(ofp.message.table_stats_reply(
             xid=req.xid, entries=table_stats))
 
