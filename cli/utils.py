@@ -132,7 +132,8 @@ def print_flows(what, id, type, flows, groups, printfn=_printfn):
         for field in flow['match']['oxm_fields']:
             assert field['oxm_class'].endswith('OPENFLOW_BASIC')
             ofb = field['ofb_field']
-            assert not ofb['has_mask'], 'masked match not handled yet'  # TODO
+            # see CORD-816 (https://jira.opencord.org/browse/CORD-816)
+            assert not ofb['has_mask'], 'masked match not handled yet'
             type = ofb['type'][len('OFPXMT_OFB_'):]
             table.add_cell(i, *field_printers[type](ofb))
 
@@ -151,7 +152,7 @@ def print_flows(what, id, type, flows, groups, printfn=_printfn):
 
     table.print_table(header, printfn)
 
-    # TODO groups TBF
+    # see CORD-817 (https://jira.opencord.org/browse/CORD-817)
     assert len(groups) == 0
 
 
