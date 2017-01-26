@@ -21,47 +21,46 @@ from netconf.constants import Constants as C
 
 log = structlog.get_logger()
 
+
 class GetConfig(Rpc):
+    def __init__(self, request, request_xml, grpc_client, session, capabilities):
+        super(GetConfig, self).__init__(request, request_xml, grpc_client, session)
+        self._validate_parameters()
 
-	def __init__(self, request, request_xml, grpc_client, session, capabilities):
-		super(GetConfig, self).__init__(request, request_xml, grpc_client,
-										session, capabilities)
-		self._validate_parameters()
+    def execute(self):
+        log.info('get-config-request', session=self.session.session_id)
+        if self.rpc_response.is_error:
+            return self.rpc_response
 
-	def execute(self):
-		log.info('get-config-request', session=self.session.session_id)
-		if self.rpc_response.is_error:
-			return self.rpc_response
+    def _validate_parameters(self):
+        log.info('validate-parameters', session=self.session.session_id)
 
-	def _validate_parameters(self):
-		log.info('validate-parameters', session=self.session.session_id)
+        self.params = self.rpc_method.getchildren()
+        paramslen = len(self.params)
+        # Verify that the source parameter is present
+        if paramslen > 2:
+            # TODO: need to specify all elements not known
+            self.rpc_response.is_error = True
+            self.rpc_response.node = ncerror.BadMsg(self.rpc_request)
+            return
 
-		self.params = self.rpc_method.getchildren()
-		paramslen = len(self.params)
-		# Verify that the source parameter is present
-		if paramslen > 2:
-			# TODO: need to specify all elements not known
-			self.rpc_response.is_error = True
-			self.rpc_response.node = ncerror.BadMsg(self.rpc_request)
-			return
+        self.source_param = self.rpc_method.find(C.NC_SOURCE, namespaces=C.NS_MAP)
+        # if self.source_param is None:
+        # 	self.rpc_response.is_error = True
+        # 	self.rpc_response.node = ncerror.MissingElement(
+        # 		self.rpc_request, elm(C.NC_SOURCE))
+        # 	return
 
-		self.source_param = self.rpc_method.find(C.NC_SOURCE, namespaces=C.NS_MAP)
-		# if self.source_param is None:
-		# 	self.rpc_response.is_error = True
-		# 	self.rpc_response.node = ncerror.MissingElement(
-		# 		self.rpc_request, elm(C.NC_SOURCE))
-		# 	return
+        self.filter_param = None
+        if paramslen == 2:
+            self.filter_param = self.rpc_method.find(C.NC_FILTER,
+                                                     namespaces=C.NS_MAP)
+            if self.filter_param is None:
+                unknown_elm = self.params[0] if self.params[0] != \
+                                                self.source_param else \
+                    self.params[1]
+                self.rpc_response.is_error = True
+                self.rpc_response.node = ncerror.UnknownElement(
+                    self.rpc_request, unknown_elm)
 
-		self.filter_param = None
-		if paramslen == 2:
-			self.filter_param = self.rpc_method.find(C.NC_FILTER,
-												  namespaces=C.NS_MAP)
-			if self.filter_param is None:
-				unknown_elm = self.params[0] if self.params[0] != \
-												self.source_param else \
-												self.params[1]
-				self.rpc_response.is_error = True
-				self.rpc_response.node = ncerror.UnknownElement(
-					self.rpc_request, unknown_elm)
-
-		self.params = [self.source_param, self.filter_param]
+        self.params = [self.source_param, self.filter_param]
