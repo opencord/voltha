@@ -124,6 +124,7 @@ services:
       "--interface=eth1",
       "-v"
     ]
+    privileged: true
     ports:
     - 8880
     - 50555
