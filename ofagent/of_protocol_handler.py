@@ -55,7 +55,9 @@ class OpenFlowProtocolHandler(object):
 
             # expect to receive a hello message
             msg = yield self.cxn.recv_class(ofp.message.hello)
-            # TODO verify version compatibility (must list version 1.3)
+            # verify version compatibility (must list version 1.3)
+            # and negotiate if not.
+            # see https://jira.opencord.org/browse/CORD-822
 
             while True:
                 req = yield self.cxn.recv_any()
@@ -98,7 +100,8 @@ class OpenFlowProtocolHandler(object):
                 'Cannot handle stats request type "{}"'.format(req.stats_type))
 
     def handle_barrier_request(self, req):
-        # TODO not really doing barrier yet, but we respond
+        # not really doing barrier yet, but we respond
+        # see https://jira.opencord.org/browse/CORD-823
         self.cxn.send(ofp.message.barrier_reply(xid=req.xid))
 
     def handle_experimenter_request(self, req):
@@ -129,7 +132,8 @@ class OpenFlowProtocolHandler(object):
         raise NotImplementedError()
 
     def handle_role_request(self, req):
-        # TODO this is where we need to manage which connection is active
+        # Handle role messages appropriately to support multiple controllers
+        # see https://jira.opencord.org/browse/CORD-824
         if req.role != ofp.OFPCR_ROLE_MASTER:
             raise NotImplementedError()
         self.cxn.send(ofp.message.role_reply(
