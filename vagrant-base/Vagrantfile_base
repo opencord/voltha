@@ -11,7 +11,7 @@ Vagrant.configure(2) do |config|
 
   config.vm.define "voltha-base" do |d|
     d.ssh.forward_agent = true
-    d.vm.box = "ubuntu/xenial"
+    d.vm.box = "v0rtex/xenial64"
     d.vm.hostname = "voltha"
     d.vm.network "private_network", ip: "10.100.198.220"
     #d.vm.network "public_network"

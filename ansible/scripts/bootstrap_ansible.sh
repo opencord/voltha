@@ -18,6 +18,7 @@
 set -e
 
 echo "Installing Ansible..."
+rm /var/lib/dpkg/lock
 apt-get install -y software-properties-common
 apt-add-repository ppa:ansible/ansible
 apt-get update
