@@ -329,8 +329,9 @@ class TibitOltAdapter(object):
             # later use.  The linkid is the macid returned.
             self.vlan_to_device_ids[vlan_id] = (device.id, device.parent_id, macid.get('macid', 0))
 
-        # Give the ONUs a chance to arrive before starting metric collection
-        reactor.callLater(5.0, self.start_kpi_collection, device.id)
+        ### KPI Metrics - Work in progress feature - Disabling for now 
+        ### Give the ONUs a chance to arrive before starting metric collection
+        ###    reactor.callLater(5.0, self.start_kpi_collection, device.id)
 
     def _olt_side_onu_activation(self, serial):
         """
