@@ -33,11 +33,11 @@ from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, returnValue
 from werkzeug.exceptions import ServiceUnavailable
 
-from common.utils.asleep import asleep
 from chameleon.protos import third_party
 from chameleon.protos.schema_pb2 import SchemaServiceStub
 from google.protobuf.empty_pb2 import Empty
 
+from chameleon.utils.asleep import asleep
 
 log = get_logger()
 

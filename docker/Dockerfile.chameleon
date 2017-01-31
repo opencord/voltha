@@ -37,7 +37,6 @@ RUN apt-get update && \
 # Bundle app source
 RUN mkdir /chameleon && touch /chameleon/__init__.py
 ENV PYTHONPATH=/chameleon
-COPY common /chameleon/common
 COPY chameleon /chameleon/chameleon
 
 # Exposing process and default entry point
