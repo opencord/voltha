@@ -28,6 +28,9 @@ class Constants:
     CERTS_DIRECTORY = 'security/certificates'
     CLIENT_CRED_DIRECTORY = 'security/client_credentials'
 
+    # YANG message definition file - generated file
+    YANG_MESSAGE_DEFINITIONS_FILE='yang_message_defs.py'
+
     # Datastores
     RUNNING = "running"
     CANDIDATE = "candidate"

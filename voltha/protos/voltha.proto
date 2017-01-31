@@ -108,6 +108,8 @@ service VolthaGlobalService {
         option (google.api.http) = {
             get: "/api/v1/instances"
         };
+        option (voltha.yang_xml_tag).xml_tag = 'items';
+        option (voltha.yang_xml_tag).list_items_name = 'items';
     }
 
     // Get details on a Voltha cluster instance
@@ -122,6 +124,7 @@ service VolthaGlobalService {
         option (google.api.http) = {
             get: "/api/v1/logical_devices"
         };
+        option (voltha.yang_xml_tag).xml_tag = 'logical_devices';
     }
 
     // Get additional information on a given logical device
@@ -136,6 +139,7 @@ service VolthaGlobalService {
         option (google.api.http) = {
             get: "/api/v1/logical_devices/{id}/ports"
         };
+        option (voltha.yang_xml_tag).xml_tag = 'ports';
     }
 
     // List all flows of a logical device
@@ -143,6 +147,8 @@ service VolthaGlobalService {
         option (google.api.http) = {
             get: "/api/v1/logical_devices/{id}/flows"
         };
+        option (voltha.yang_xml_tag).xml_tag = 'flows';
+        option (voltha.yang_xml_tag).list_items_name = 'items';
     }
 
     // Update flow table for logical device
@@ -159,6 +165,8 @@ service VolthaGlobalService {
         option (google.api.http) = {
             get: "/api/v1/logical_devices/{id}/flow_groups"
         };
+        option (voltha.yang_xml_tag).xml_tag = 'flow_groups';
+        option (voltha.yang_xml_tag).list_items_name = 'items';
     }
 
     // Update group table for device
@@ -175,6 +183,7 @@ service VolthaGlobalService {
         option (google.api.http) = {
             get: "/api/v1/devices"
         };
+        option (voltha.yang_xml_tag).xml_tag = 'devices';
     }
 
     // Get more information on a given physical device
@@ -204,6 +213,7 @@ service VolthaGlobalService {
         option (google.api.http) = {
             get: "/api/v1/devices/{id}/ports"
         };
+        option (voltha.yang_xml_tag).xml_tag = 'ports';
     }
 
     // List all flows of a device
@@ -211,6 +221,8 @@ service VolthaGlobalService {
         option (google.api.http) = {
             get: "/api/v1/devices/{id}/flows"
         };
+        option (voltha.yang_xml_tag).xml_tag = 'flows';
+        option (voltha.yang_xml_tag).list_items_name = 'items';
     }
 
     // List all flow groups of a device
@@ -218,6 +230,8 @@ service VolthaGlobalService {
         option (google.api.http) = {
             get: "/api/v1/devices/{id}/flow_groups"
         };
+        option (voltha.yang_xml_tag).xml_tag = 'flow_groups';
+        option (voltha.yang_xml_tag).list_items_name = 'items';
     }
 
     // List device types known to Voltha
@@ -225,6 +239,7 @@ service VolthaGlobalService {
         option (google.api.http) = {
             get: "/api/v1/device_types"
         };
+        option (voltha.yang_xml_tag).xml_tag = 'device_types';
     }
 
     // Get additional information on a device type
@@ -239,6 +254,7 @@ service VolthaGlobalService {
         option (google.api.http) = {
             get: "/api/v1/device_groups"
         };
+        option (voltha.yang_xml_tag).xml_tag = 'device_groups';
     }
 
     // Get additional information on a device group
@@ -270,6 +286,7 @@ service VolthaLocalService {
         option (google.api.http) = {
             get: "/api/v1/local/health"
         };
+        option (voltha.yang_xml_tag).xml_tag = 'health';
     }
 
     // List all active adapters (plugins) in this Voltha instance
@@ -277,6 +294,7 @@ service VolthaLocalService {
         option (google.api.http) = {
             get: "/api/v1/local/adapters"
         };
+        option (voltha.yang_xml_tag).xml_tag = 'adapters';
     }
 
     // List all logical devices managed by this Voltha instance
@@ -284,6 +302,7 @@ service VolthaLocalService {
         option (google.api.http) = {
             get: "/api/v1/local/logical_devices"
         };
+        option (voltha.yang_xml_tag).xml_tag = 'logical_devices';
     }
 
     // Get additional information on given logical device
@@ -298,6 +317,7 @@ service VolthaLocalService {
         option (google.api.http) = {
             get: "/api/v1/local/logical_devices/{id}/ports"
         };
+        option (voltha.yang_xml_tag).xml_tag = 'ports';
     }
 
     // List all flows of a logical device
@@ -305,6 +325,8 @@ service VolthaLocalService {
         option (google.api.http) = {
             get: "/api/v1/local/logical_devices/{id}/flows"
         };
+        option (voltha.yang_xml_tag).xml_tag = 'flows';
+        option (voltha.yang_xml_tag).list_items_name = 'items';
     }
 
     // Update flow table for logical device
@@ -321,6 +343,8 @@ service VolthaLocalService {
         option (google.api.http) = {
             get: "/api/v1/local/logical_devices/{id}/flow_groups"
         };
+        option (voltha.yang_xml_tag).xml_tag = 'flow_groups';
+        option (voltha.yang_xml_tag).list_items_name = 'items';
     }
 
     // Update group table for logical device
@@ -337,6 +361,7 @@ service VolthaLocalService {
         option (google.api.http) = {
             get: "/api/v1/local/devices"
         };
+        option (voltha.yang_xml_tag).xml_tag = 'devices';
     }
 
     // Get additional information on this device
@@ -366,6 +391,7 @@ service VolthaLocalService {
         option (google.api.http) = {
             get: "/api/v1/local/devices/{id}/ports"
         };
+        option (voltha.yang_xml_tag).xml_tag = 'ports';
     }
 
     // List all flows of a device
@@ -373,6 +399,8 @@ service VolthaLocalService {
         option (google.api.http) = {
             get: "/api/v1/local/devices/{id}/flows"
         };
+        option (voltha.yang_xml_tag).xml_tag = 'flows';
+        option (voltha.yang_xml_tag).list_items_name = 'items';
     }
 
     // List all flow groups of a device
@@ -380,6 +408,8 @@ service VolthaLocalService {
         option (google.api.http) = {
             get: "/api/v1/local/devices/{id}/flow_groups"
         };
+        option (voltha.yang_xml_tag).xml_tag = 'flow_groups';
+        option (voltha.yang_xml_tag).list_items_name = 'items';
     }
 
     // List device types know to Voltha instance
@@ -387,6 +417,7 @@ service VolthaLocalService {
         option (google.api.http) = {
             get: "/api/v1/local/device_types"
         };
+        option (voltha.yang_xml_tag).xml_tag = 'device_types';
     }
 
     // Get additional information on given device type
@@ -401,6 +432,7 @@ service VolthaLocalService {
         option (google.api.http) = {
             get: "/api/v1/local/device_groups"
         };
+        option (voltha.yang_xml_tag).xml_tag = 'device_groups';
     }
 
     // Get more information on given device shard

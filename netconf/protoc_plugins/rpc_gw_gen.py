@@ -22,6 +22,7 @@ from google.protobuf.descriptor_pb2 import ServiceDescriptorProto, \
     MethodOptions
 from jinja2 import Template
 from simplejson import dumps
+import yang_options_pb2
 
 from netconf.protos.third_party.google.api import annotations_pb2, http_pb2
 
@@ -73,6 +74,15 @@ def {{ method_name }}(grpc_client, params, metadata, **kw):
     log.info('{{ method_name }}', **out_data)
     returnValue(out_data)
 
+def get_xml_tag_{{ method_name }}():
+    return '{{ method['xml_tag'] }}'
+
+def get_list_items_name_{{ method_name }}():
+    return '{{ method['list_item_name'] }}'
+
+def get_return_type_{{ method_name }}():
+    return '{{ type_map[method['output_type']] }}'
+
 {% endfor %}
 
 """, trim_blocks=True, lstrip_blocks=True)
@@ -92,13 +102,27 @@ def traverse_methods(proto_file):
             if output_type.startswith('.'):
                 output_type = output_type[1:]
 
+            # Process any specific yang option
+            xml_tag = ''
+            list_item_name = ''
+            options = method.options
+            assert isinstance(options, MethodOptions)
+            for fd, yang_tag in options.ListFields():
+                if fd.full_name == 'voltha.yang_xml_tag':
+                    if yang_tag.xml_tag:
+                        xml_tag = yang_tag.xml_tag
+                    if yang_tag.list_items_name:
+                        list_item_name = yang_tag.list_items_name
+
             data = {
                 'package': package,
                 'filename': proto_file.name,
                 'service': proto_file.package + '.' + service.name,
                 'method': method.name,
                 'input_type': input_type,
-                'output_type': output_type
+                'output_type': output_type,
+                'xml_tag': xml_tag,
+                'list_item_name': list_item_name
             }
 
             yield data

@@ -44,6 +44,7 @@ from nc_rpc_mapper import get_nc_rpc_mapper_instance
 from google.protobuf import descriptor
 import base64
 import math
+import collections
 
 _INT64_TYPES = frozenset([descriptor.FieldDescriptor.CPPTYPE_INT64,
                           descriptor.FieldDescriptor.CPPTYPE_UINT64])
@@ -304,14 +305,71 @@ class GrpcClient(object):
 
             response = yield func(self, params, metadata)
 
-            log.info('rpc-result', service=service, method=method,
-                     response=response)
+            # Get the XML tag to use in the response
+            xml_tag = mapper.get_xml_tag(service, method)
 
-            returnValue(response)
+            # Get the XML list item name used in the response
+            list_item_name = mapper.get_list_items_name(service, method)
+
+            # Get the YANG defined fields (and their order) for that service
+            # and method
+            fields = mapper.get_fields_from_yang_defs(service, method)
+
+            # TODO: This needs to be investigated further since the Netconf
+            # Client shows a formatting error in the code below is uncommented.
+            # Check if this represents a List and whether the field name is
+            # items.  In the response (a dictionary), if a list named 'items'
+            # is returned then 'items' can either:
+            # 1) represent a list of items being returned where 'items' is just
+            # a name to represent a list. In this case, this name will be
+            # discarded
+            # 2) represent the actual field name as defined in the proto
+            # definitions.  If this is the case then we need to preserve the
+            # name
+            # list_item_name = ''
+            # if len(fields) == 1:
+            #     if fields[0]['name'] == 'items':
+            #         list_item_name = 'items'
+
+            # Rearrange the dictionary response as specified by the YANG
+            # definitions
+            rearranged_response = self.rearrange_dict(mapper, response, fields)
+
+            log.info('rpc-result', service=service, method=method,
+                     response=response,
+                     rearranged_response=rearranged_response, xml_tag=xml_tag,
+                     list_item_name=list_item_name, fields=fields)
+
+            returnValue((rearranged_response, (xml_tag, list_item_name)))
 
         except Exception, e:
             log.exception('rpc-failure', service=service, method=method,
                           params=params, e=e)
+
+    def rearrange_dict(self, mapper, orig_dict, fields):
+        log.debug('rearranging-dict', fields=fields)
+        result = collections.OrderedDict()
+        if len(orig_dict) == 0 or not fields:
+            return result
+        for f in fields:
+            if orig_dict.has_key(f['name']):
+                if f['type_ref']:
+                    # Get the fields for that type
+                    sub_fields = mapper.get_fields_from_type_name(f['module'],
+                                                                  f['type'])
+                    if f['repeated']:
+                        result[f['name']] = []
+                        for d in orig_dict[f['name']]:
+                            result[f['name']].append(self.rearrange_dict(
+                                mapper, d, sub_fields))
+                    else:
+                        result[f['name']] = self.rearrange_dict(mapper,
+                                                                orig_dict[
+                                                                    f['name']],
+                                                                sub_fields)
+                else:
+                    result[f['name']] = orig_dict[f['name']]
+        return result
 
     @inlineCallbacks
     def invoke(self, stub, method_name, request, metadata, retry=1):

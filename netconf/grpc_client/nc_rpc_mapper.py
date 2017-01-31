@@ -17,6 +17,7 @@ import os
 import sys
 import inspect
 from structlog import get_logger
+from netconf.constants import Constants as C
 
 log = get_logger()
 
@@ -32,6 +33,7 @@ class NetconfRPCMapper:
         self.work_dir = work_dir
         self.grpc_client = grpc_client
         self.rpc_map = {}
+        self.yang_defs = {}
 
     def _add_rpc_map(self, func_name, func_ref):
         if not self.rpc_map.has_key(func_name):
@@ -39,6 +41,10 @@ class NetconfRPCMapper:
             self.rpc_map[func_name] = func_ref
 
     def _add_module_rpc(self, mod):
+        for name, ref in self.list_functions(mod):
+            self._add_rpc_map(name, ref)
+
+    def _add_m(self, mod):
         for name, ref in self.list_functions(mod):
             self._add_rpc_map(name, ref)
 
@@ -63,19 +69,87 @@ class NetconfRPCMapper:
             except Exception, e:
                 log.exception('loading-module-exception', modname=modname, e=e)
 
+        # load the yang definition
+        for fname in [f for f in os.listdir(self.work_dir)
+                      if f.endswith(C.YANG_MESSAGE_DEFINITIONS_FILE)]:
+            modname = fname[:-len('.py')]
+            try:
+                m = __import__(modname)
+                for name, ref in self.list_functions(m):
+                    self.yang_defs[name] = ref
+            except Exception, e:
+                log.exception('loading-yang-module-exception', modname=modname,
+                              e=e)
+
+    def get_fields_from_yang_defs(self, service, method):
+        # Get the return type of that method
+        func_name = self._get_function_name(service, method)
+        return_type_func_name = ''.join(['get_return_type_', func_name])
+        if self.rpc_map.has_key(return_type_func_name):
+            type_name = self.rpc_map[return_type_func_name]()
+            log.info('get-yang-defs', type_name=type_name, service=service,
+                     method=method)
+            if type_name:
+                # Type name is in the form "<package-name>_pb2".<message_name>
+                name = type_name.split('.')
+                if len(name) == 2:
+                    package = name[0][:-len('_pb2')]
+                    message_name = name[1]
+                    if self.yang_defs.has_key('get_fields'):
+                        return self.yang_defs['get_fields'](package,
+                                                            message_name)
+                else:
+                    log.info('Incorrect-type-format', type_name=type_name,
+                             service=service,
+                             method=method)
+        return None
+
+    def get_fields_from_type_name(self, module_name, type_name):
+        if self.yang_defs.has_key('get_fields'):
+            return self.yang_defs['get_fields'](module_name,
+                                                type_name)
+
     def get_function(self, service, method):
-        if service:
-            func_name = ''.join([service, '_', method])
-        else:
-            func_name = method
+
+        func_name = self._get_function_name(service, method)
 
         if self.rpc_map.has_key(func_name):
             return self.rpc_map[func_name]
         else:
             return None
 
+    def get_xml_tag(self, service, method):
+        func_name = self._get_function_name(service, method)
+        xml_tag_func_name = ''.join(['get_xml_tag_', func_name])
+        if self.rpc_map.has_key(xml_tag_func_name):
+            tag = self.rpc_map[xml_tag_func_name]()
+            if tag == '':
+                return None
+            else:
+                return tag
+        else:
+            return None
+
+    def get_list_items_name(self, service, method):
+        func_name = self._get_function_name(service, method)
+        list_items_name = ''.join(['get_list_items_name_', func_name])
+        if self.rpc_map.has_key(list_items_name):
+            name = self.rpc_map[list_items_name]()
+            if name == '':
+                return None
+            else:
+                return name
+        else:
+            return None
+
     def is_rpc_exist(self, rpc_name):
         return self.rpc_map.has_key(rpc_name)
+
+    def _get_function_name(self, service, method):
+        if service:
+            return ''.join([service, '_', method])
+        else:
+            return method
 
 
 def get_nc_rpc_mapper_instance(work_dir=None, grpc_client=None):

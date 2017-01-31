@@ -63,7 +63,7 @@ class Get(Rpc):
             self.metadata = self.request['metadata']
 
         # Execute the request
-        res_dict = yield self.grpc_client.invoke_voltha_rpc(
+        res_dict, yang_options = yield self.grpc_client.invoke_voltha_rpc(
             service=self.service,
             method=self.method,
             params=self.params,
@@ -77,7 +77,7 @@ class Get(Rpc):
 
         # Build the yang response
         self.rpc_response.node = self.rpc_response.build_yang_response(
-            root_elem, self.request)
+            root_elem, self.request, yang_options=yang_options)
         self.rpc_response.is_error = False
 
         returnValue(self.rpc_response)
@@ -158,9 +158,9 @@ class Get(Rpc):
             {'subclass': 'device_groups',
              'rpc': 'VolthaLocalService-ListDeviceGroups'
              },
-        ]
-        # 'VolthaInstances': [
-        #     {'subclass': None,
-        #      'rpc': 'VolthaGlobalService-ListVolthaInstances'
-        #      }],
+        ],
+        'VolthaInstances': [
+            {'subclass': None,
+             'rpc': 'VolthaGlobalService-ListVolthaInstances'
+             }],
     }

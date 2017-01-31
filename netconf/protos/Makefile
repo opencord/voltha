@@ -27,7 +27,7 @@ PROTO_DESC_FILES := $(foreach f,$(PROTO_FILES),$(subst .proto,.desc,$(f)))
 PROTOC_PREFIX := /usr/local
 PROTOC_LIBDIR := $(PROTOC_PREFIX)/lib
 
-build: $(PROTO_PB2_FILES) copyfiles
+build: copyprotos $(PROTO_PB2_FILES) copypb2files
 
 %_pb2.py: %.proto Makefile
 	@echo "Building protocol buffer artifacts from $<"
@@ -43,16 +43,22 @@ SOURCE_PROTO_DIR := $(VOLTHA_BASE)/voltha/protos
 
 TARGET_YANG_OPTION_DIR := $(VOLTHA_BASE)/netconf/protoc_plugins
 YANG_OPTION_FILE := yang_options_pb2.py
+YANG_PROTO_FILE := yang_options.proto
+SCHEMA_PROTO_FILE := schema.proto
 
-copyfiles:
+copyprotos:
+	cp $(SOURCE_PROTO_DIR)/$(SCHEMA_PROTO_FILE) $(TARGET_PROTO_DIR)
+	cp $(SOURCE_PROTO_DIR)/$(YANG_PROTO_FILE) $(TARGET_PROTO_DIR)
+
+copypb2files:
 	rsync -av --include '*/' --exclude='third_party/__init__.py' --include '*.py' --exclude='*' $(SOURCE_PROTO_DIR)/ $(TARGET_PROTO_DIR)
 	cp $(SOURCE_PROTO_DIR)/$(YANG_OPTION_FILE) $(TARGET_YANG_OPTION_DIR)
 
 clean:
 	rm -f $(PROTO_PB2_FILES) $(PROTO_DESC_FILES)
-	rm $(TARGET_YANG_OPTION_DIR)/$(YANG_OPTION_FILE)
-	rm $(TARGET_PROTO_DIR)/*.py
-	rm $(TARGET_PROTO_DIR)/*.pyc
-
+	rm -f $(TARGET_YANG_OPTION_DIR)/$(YANG_OPTION_FILE)
+	rm -f $(TARGET_PROTO_DIR)/*.py
+	rm -f $(TARGET_PROTO_DIR)/*.pyc
+	rm -f $(TARGET_PROTO_DIR)/*.proto
 
 
