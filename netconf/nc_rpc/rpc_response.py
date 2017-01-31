@@ -47,6 +47,10 @@ class RpcResponse():
         elif voltha_xml_string.startswith('<yang/>'):
             voltha_xml_string = ''
 
+        # Replace any True/False data to true/false
+        voltha_xml_string = voltha_xml_string.replace('>False<', '>false<')
+        voltha_xml_string = voltha_xml_string.replace('>True<', '>true<')
+
         if not custom_rpc:
             # Create the xml body as
             if request.has_key('subclass'):
@@ -127,10 +131,11 @@ class RpcResponse():
         if (attrib == 'list'):
             if list(elem) is None:
                 return self.copy_basic_element(elem)
-            if elem.tag == 'items':
-                new_elem = etree.Element('items')
-            else:
-                new_elem = etree.Element('ignore')
+                # if elem.tag == 'items':
+                # new_elem = etree.Element('items')
+            new_elem = etree.Element('ignore')
+            # else:
+            # new_elem = etree.Element('ignore')
             for elm in list(elem):
                 elm.tag = elem.tag
                 if elm.get('type') in ['list', 'dict']:
@@ -155,7 +160,8 @@ class RpcResponse():
         else:
             return self.copy_basic_element(elem)
 
-    def to_yang_xml(self, from_xml, request, custom_rpc=False):
+    def to_yang_xml(self, from_xml, request, yang_options=None,
+                    custom_rpc=False):
         # Parse from_xml as follows:
         # 1.  Any element having a list attribute shoud have each item move 1 level
         #     up and retag using the parent tag
@@ -163,20 +169,27 @@ class RpcResponse():
         #     sub-element should have all it's items move to teh parent level
         top = etree.Element('yang')
         elms = list(from_xml)
-
+        xml_tag = yang_options[0]
+        list_items_name = yang_options[1]
         # special case the xml contain a list type
-        if len(elms) == 1 and not custom_rpc:
+        if len(elms) == 1:
             item = elms[0]
-            # TODO: Address name 'items' clash when a list name is actually
-            # 'items'.
             if item.get('type') == 'list':
-                if request.has_key('subclass'):
-                    item.tag = request['subclass']
-                    # remove the subclass element in request to avoid duplicate tag
-                    del request['subclass']
+                if list_items_name == 'items':
+                    # Create a new parent element
+                    new_elem = etree.Element(xml_tag)
+                    self.add_node(self.process_element(item), new_elem)
+                    top.append(new_elem)
                 else:
-                    item.tag = 'ignore'
-                self.add_node(self.process_element(item), top)
+                    if xml_tag and custom_rpc:
+                        item.tag = xml_tag
+                    elif request.has_key('subclass'):
+                        item.tag = request['subclass']
+                        # remove the subclass element in request to avoid duplicate tag
+                        del request['subclass']
+                    else:
+                        item.tag = 'ignore'
+                    self.add_node(self.process_element(item), top)
                 return top
 
         # Process normally for all other cases
@@ -185,12 +198,20 @@ class RpcResponse():
 
         return top
 
+    # Helper method to sort the xml message based on the xml tags
+    def sort_xml_response(self, xml):
+        for parent in xml.xpath('//*[./*]'):  # Search for parent elements
+            parent[:] = sorted(parent, key=lambda x: x.tag)
+        return xml
+
     # custom_rpc refers to custom RPCs different from Netconf default RPCs
     # like get, get-config, edit-config, etc
-    def build_yang_response(self, root, request, custom_rpc=False):
+    def build_yang_response(self, root, request, yang_options=None,
+                            custom_rpc=False):
         try:
             self.custom_rpc = custom_rpc
-            yang_xml = self.to_yang_xml(root, request, custom_rpc)
+            yang_xml = self.to_yang_xml(root, request, yang_options,
+                                        custom_rpc)
             log.info('yang-xml', yang_xml=etree.tounicode(yang_xml,
                                                           pretty_print=True))
             return self.build_xml_response(request, yang_xml, custom_rpc)

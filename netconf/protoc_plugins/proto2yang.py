@@ -40,12 +40,39 @@ from google.protobuf.descriptor_pb2 import DescriptorProto, \
     FieldDescriptorProto
 from descriptor_parser import DescriptorParser
 import copy
+from netconf.constants import Constants as C
 import yang_options_pb2
 
 from google.protobuf.descriptor import FieldDescriptor
 
 import jinja2
-env = jinja2.Environment(extensions=["jinja2.ext.do",], trim_blocks=True, lstrip_blocks=True)
+
+env = jinja2.Environment(extensions=["jinja2.ext.do", ], trim_blocks=True,
+                         lstrip_blocks=True)
+
+template_yang_definition = env.from_string("""
+# Generated file; please do not edit
+
+from structlog import get_logger
+
+log = get_logger()
+
+message_definitions = {
+    {% for m in messages %}
+    '{{ m.name }}': {{ m.fields }},
+     {% if loop.last %}{% endif %}
+    {% endfor %}
+}
+
+def get_fields(package, type_name, **kw):
+    log.info('fields-request', type=type_name, package=package, **kw)
+    full_name = ''.join([package, '-', type_name])
+    if message_definitions.has_key(full_name):
+        return message_definitions[full_name]
+    else:
+        return None
+
+""")
 
 template_yang = env.from_string("""
 module ietf-{{ module.name }} {
@@ -741,6 +768,77 @@ def update_servic_references_based_on_duplicates(duplicates, services):
                 m['output'] = ''.join([m['output'], '_grouping'])
 
 
+def get_module_name(type, data_types):
+    for t in data_types:
+        # Verify both the type and when it is a referred type as they will
+        # both be in the same module
+        if t['type'] in [type, ''.join([type, '_grouping'])]:
+            return t['module']
+
+    # return the default module name
+    return 'voltha'
+
+
+def get_message_defs(messages, data_types, msg_response):
+    for msg in messages:
+        fields = []
+
+        # First process the fields as they appear before the oneofs in the
+        # YANG module
+        for f in msg['fields']:
+            module_name = '.'
+            if f['type_ref']:
+                module_name = get_module_name(f['type'], data_types)
+            fields.append(
+                {
+                    'oneof_key': None,
+                    'repeated': f['repeated'],
+                    'name': f['name'],
+                    'full_name': f['full_name'],
+                    'type': f['type'],
+                    'type_ref': f['type_ref'],
+                    'module': module_name
+                }
+            )
+
+        # Now process the oneofs
+        if msg['oneofs']:
+            for key, value in msg['oneofs'].iteritems():
+                # Value contains a list of fields
+                for v in value:
+                    module_name = '.'
+                    if v['type_ref']:
+                        module_name = get_module_name(v['type'], data_types)
+                    fields.append(
+                        {
+                            'oneof_key': key,
+                            'repeated': v['repeated'],
+                            'name': v['name'],
+                            'full_name': v['full_name'],
+                            'type': v['type'],
+                            'type_ref': v['type_ref'],
+                            'module': module_name
+                        }
+                    )
+
+        msg_response.append({
+            'name': msg['full_name'],
+            'fields': fields
+        })
+
+        if msg['messages']:
+            get_message_defs(msg['messages'], data_types, msg_response)
+
+
+def build_yang_definitions(all_proto_data):
+    msg_response = []
+    for proto_data in all_proto_data:
+        get_message_defs(proto_data['module']['messages'], proto_data[
+            'module']['data_types'], msg_response)
+
+    return msg_response
+
+
 def generate_code(request, response):
     assert isinstance(request, plugin.CodeGeneratorRequest)
 
@@ -838,6 +936,17 @@ def generate_code(request, response):
         update_module_imports(proto_data['module'])
         # print_message(proto_data['module']['messages'])
         f.content = template_yang.render(module=proto_data['module'])
+
+    # Create a summary of the YANG definitions with the order in which the
+    # attributes appear in each message.  It would have been easier to sort
+    # the attributes in the YANG files and then sort the XML tags when a
+    # XML response is built.  However, this strategy won't work with the oneof
+    # protobuf definition.  The attributes in the oneof need to be kept
+    # together and as such will break the sort strategy.
+    msg_response = build_yang_definitions(all_proto_data)
+    yang_def = response.file.add()
+    yang_def.name = C.YANG_MESSAGE_DEFINITIONS_FILE
+    yang_def.content = template_yang_definition.render(messages=msg_response)
 
 
 def get_yang_type(field):

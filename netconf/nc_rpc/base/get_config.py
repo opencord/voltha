@@ -23,8 +23,10 @@ log = structlog.get_logger()
 
 
 class GetConfig(Rpc):
-    def __init__(self, request, request_xml, grpc_client, session, capabilities):
-        super(GetConfig, self).__init__(request, request_xml, grpc_client, session)
+    def __init__(self, request, request_xml, grpc_client, session,
+                 capabilities):
+        super(GetConfig, self).__init__(request, request_xml, grpc_client,
+                                        session, capabilities)
         self._validate_parameters()
 
     def execute(self):
@@ -44,7 +46,8 @@ class GetConfig(Rpc):
             self.rpc_response.node = ncerror.BadMsg(self.rpc_request)
             return
 
-        self.source_param = self.rpc_method.find(C.NC_SOURCE, namespaces=C.NS_MAP)
+        self.source_param = self.rpc_method.find(C.NC_SOURCE,
+                                                 namespaces=C.NS_MAP)
         # if self.source_param is None:
         # 	self.rpc_response.is_error = True
         # 	self.rpc_response.node = ncerror.MissingElement(
