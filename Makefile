@@ -85,7 +85,10 @@ voltha:
 	docker build -t cord/voltha -f docker/Dockerfile.voltha .
 
 chameleon:
+	mkdir tmp.chameleon
+	cp -R chameleon/* tmp.chameleon
 	docker build -t cord/chameleon -f docker/Dockerfile.chameleon .
+	rm -rf tmp.chameleon
 
 ofagent:
 	docker build -t cord/ofagent -f docker/Dockerfile.ofagent .
