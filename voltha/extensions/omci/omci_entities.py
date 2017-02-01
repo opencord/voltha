@@ -17,7 +17,7 @@ import inspect
 
 import sys
 from scapy.fields import ByteField, ShortField, MACField, BitField, IPField
-from scapy.fields import IntField, StrFixedLenField
+from scapy.fields import IntField, StrFixedLenField, ThreeBytesField
 from scapy.packet import Packet
 
 from voltha.extensions.omci.omci_defs import OmciUninitializedFieldError, \
@@ -585,18 +585,97 @@ class MulticastGemInterworkingTp(EntityClass):
     mandatory_operations = {OP.Create, OP.Delete, OP.Get, OP.GetNext, OP.Set}
 
 
-class Unknown329(EntityClass):
+class MulticastOperationsProfile(EntityClass):
+    class_id = 309
+    attributes = [
+        ECA(ShortField("managed_entity_id", None), {AA.R, AA.SBC}),
+        ECA(ByteField("igmp_version", None), {AA.R, AA.W, AA.SBC}),
+        ECA(ByteField("igmp_function", None), {AA.R, AA.W, AA.SBC}),
+        ECA(ByteField("immediate_leave", None), {AA.R, AA.W, AA.SBC}),
+        ECA(ShortField("us_igmp_tci", None), {AA.R, AA.W, AA.SBC}, optional=True),
+        ECA(ByteField("us_igmp_tag_ctrl", None), {AA.R, AA.W, AA.SBC}, optional=True),
+        ECA(IntField("us_igmp_rate", None), {AA.R, AA.W, AA.SBC}, optional=True),
+        # TODO: need to make table and add column data
+        ECA(StrFixedLenField(
+            "dynamic_access_control_list_table", None, 24), {AA.R, AA.W}),
+        # TODO: need to make table and add column data
+        ECA(StrFixedLenField(
+            "static_access_control_list_table", None, 24), {AA.R, AA.W}),
+        # TODO: need to make table and add column data
+        ECA(StrFixedLenField("lost_groups_list_table", None, 10), {AA.R}, optional=True),
+        ECA(ByteField("robustness", None), {AA.R, AA.W, AA.SBC}, optional=True),
+        ECA(IPField("querier_ip", None), {AA.R, AA.W, AA.SBC}, optional=True),
+        ECA(IntField("query_interval", None), {AA.R, AA.W, AA.SBC}, optional=True),
+        ECA(IntField("querier_max_response_time", None), {AA.R, AA.W, AA.SBC}, optional=True),
+        ECA(IntField("last_member_response_time", None), {AA.R, AA.W}, optional=True),
+        ECA(ByteField("unauthorized_join_behaviour", None), {AA.R, AA.W}, optional=True),
+        ECA(ThreeBytesField("ds_igmp_mcast_tci", None), {AA.R, AA.W, AA.SBC}, optional=True),
+    ]
+    mandatory_operations = {OP.Create, OP.Delete, OP.Set, OP.Get, OP.GetNext}
+
+
+class MulticastSubscriberConfigInfo(EntityClass):
+    class_id = 310
+    attributes = [
+        ECA(ShortField("managed_entity_id", None), {AA.R, AA.SBC}),
+        ECA(ByteField("me_type", None), {AA.R, AA.W, AA.SBC}),
+        ECA(ShortField("mcast_operations_profile_pointer", None), {AA.R, AA.W, AA.SBC}),
+        ECA(ShortField("max_simultaneous_groups", None), {AA.R, AA.W, AA.SBC}, optional=True),
+        ECA(IntField("max_multicast_bandwidth", None), {AA.R, AA.W, AA.SBC}, optional=True),
+        # TODO: need to make table and add column data
+        ECA(StrFixedLenField(
+            "multicast_service_package_table", None, 20), {AA.R, AA.W}, optional=True),
+        # TODO: need to make table and add column data
+        ECA(StrFixedLenField(
+            "allowed_preview_groups_table", None, 22), {AA.R, AA.W}, optional=True),
+    ]
+    mandatory_operations = {OP.Create, OP.Delete, OP.Set, OP.Get, OP.GetNext}
+
+
+class VirtualEthernetInterfacePt(EntityClass):
     class_id = 329
     attributes = [
-
+        ECA(ShortField("managed_entity_id", None), {AA.R}),
+        ECA(ByteField("administrative_state", None), {AA.R, AA.W}),
+        ECA(ByteField("operational_state", None), {AA.R}, optional=True),
+        ECA(StrFixedLenField(
+            "interdomain_name", None, 25), {AA.R, AA.W}, optional=True),
+        ECA(ShortField("tcp_udp_pointer", None), {AA.R, AA.W}, optional=True),
+        ECA(ShortField("iana_assigned_port", None), {AA.R}),
     ]
+    mandatory_operations = {OP.Get, OP.Set}
 
 
-class Unknown332(EntityClass):
+class EnhSecurityControl:
     class_id = 332
     attributes = [
+        ECA(ShortField("managed_entity_id", None), {AA.R}),
+        ECA(StrFixedLenField(
+            "olt_crypto_capabilities", None, 16), {AA.W}),
+        # TODO: need to make table and add column data
+        ECA(StrFixedLenField(
+            "olt_random_challenge_table", None, 17), {AA.R, AA.W}),
+        ECA(ByteField("olt_challenge_status", None), {AA.R, AA.W}),
+        ECA(ByteField("onu_selected_crypto_capabilities", None), {AA.R}),
+        # TODO: need to make table and add column data
+        ECA(StrFixedLenField(
+            "onu_random_challenge_table", None, 16), {AA.R}),
+        # TODO: need to make table and add column data
+        ECA(StrFixedLenField(
+            "onu_authentication_result_table", None, 16), {AA.R}),
+        # TODO: need to make table and add column data
+        ECA(StrFixedLenField(
+            "olt_authentication_result_table", None, 17), {AA.W}),
+        ECA(ByteField("olt_result_status", None), {AA.R, AA.W}),
+        ECA(ByteField("onu_authentication_status", None), {AA.R}),
+        ECA(StrFixedLenField(
+            "master_session_key_name", None, 16), {AA.R}),
+        ECA(StrFixedLenField(
+            "broadcast_key_table", None, 18), {AA.R, AA.W}, optional=True),
+        ECA(ShortField("effective_key_length", None), {AA.R}, optional=True),
 
     ]
+    mandatory_operations = {OP.Set, OP.Get, OP.GetNext}
 
 
 class Unknown347(EntityClass):
