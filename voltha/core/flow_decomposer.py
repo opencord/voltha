@@ -227,7 +227,8 @@ def metadata(_table_metadata):
     return ofb_field(type=METADATA, table_metadata=_table_metadata)
 
 
-# TODO finish for rest of match fields
+# finish for rest of match fields
+# see https://jira.opencord.org/browse/CORD-840
 
 
 # frequently used extractors:
@@ -443,7 +444,8 @@ class FlowDecomposer(object):
 
         ####################################################################
         #
-        # TODO this is a very limited, heuristics based implementation
+        # limited, heuristics based implementation
+        # needs to be replaced, see https://jira.opencord.org/browse/CORD-841
         #
         ####################################################################
 
