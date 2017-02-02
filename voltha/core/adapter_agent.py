@@ -154,14 +154,14 @@ class AdapterAgent(object):
         assert isinstance(device, Device)
         self._make_up_to_date('/devices', device.id, device)
 
-        # TODO for now, just map everything into a single device group
-        # which we create if it does not yet exist
+        # Ultimately, assign devices to device grpups.
+        # see https://jira.opencord.org/browse/CORD-838
 
         dg = DeviceGroup(id='1')
         self._make_up_to_date('/device_groups', dg.id, dg)
 
         # add device to device group
-        # TODO how to do that?
+        # see https://jira.opencord.org/browse/CORD-838
 
     def update_device(self, device):
         assert isinstance(device, Device)
