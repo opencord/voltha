@@ -46,6 +46,9 @@ voltha/**/*.desc
 .DS_Store
 **/.DS_Store
 
+# Ignore chameleon subdirectory
+chameleon
+
 # Companion git repos used in tests
 loxigen
 mininet
