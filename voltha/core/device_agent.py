@@ -201,7 +201,8 @@ class DeviceAgent(object):
                 device=self.last_data,
                 flows=flows,
                 groups=groups)
-            # TODO place to feed back completion
+            # add ability to notify called when an flow update completes
+            # see https://jira.opencord.org/browse/CORD-839
 
         elif self.accepts_add_remove_flow_updates:
             raise NotImplementedError()
@@ -224,7 +225,8 @@ class DeviceAgent(object):
                 device=self.last_data,
                 flows=flows,
                 groups=groups)
-            # TODO place to feed back completion
+            # add ability to notify called when an group update completes
+            # see https://jira.opencord.org/browse/CORD-839
 
         elif self.accepts_add_remove_flow_updates:
             raise NotImplementedError()
