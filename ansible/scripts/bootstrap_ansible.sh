@@ -23,4 +23,4 @@ apt-get install -y software-properties-common
 apt-add-repository ppa:ansible/ansible
 apt-get update
 apt-get install -y ansible apt-transport-https
-cp /voltha/ansible/ansible.cfg /etc/ansible/ansible.cfg
+cp /cord/incubator/voltha/ansible/ansible.cfg /etc/ansible/ansible.cfg

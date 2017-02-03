@@ -4,9 +4,9 @@
 Vagrant.configure(2) do |config|
 
   if (/cygwin|mswin|mingw|bccwin|wince|emx/ =~ RUBY_PLATFORM) != nil
-    config.vm.synced_folder ".", "/voltha", mount_options: ["dmode=700,fmode=600"]
+    config.vm.synced_folder "../..", "/cord", mount_options: ["dmode=700,fmode=600"]
   else
-    config.vm.synced_folder ".", "/voltha"
+    config.vm.synced_folder "../..", "/cord"
   end
 
   config.vm.define "voltha" do |d|
@@ -15,8 +15,8 @@ Vagrant.configure(2) do |config|
     d.vm.hostname = "voltha"
     d.vm.network "private_network", ip: "10.100.198.220"
     d.vm.provision :shell, path: "ansible/scripts/bootstrap_ansible.sh"
-    d.vm.provision :shell, inline: "PYTHONUNBUFFERED=1 ansible-playbook /voltha/ansible/voltha.yml -c local"
-    d.vm.provision :shell, inline: "cd /voltha && source env.sh && make install-protoc && chmod 777 /tmp/fluentd"
+    d.vm.provision :shell, inline: "PYTHONUNBUFFERED=1 ansible-playbook /cord/incubator/voltha/ansible/voltha.yml -c local"
+    d.vm.provision :shell, inline: "cd /cord/incubator/voltha && source env.sh && make install-protoc && chmod 777 /tmp/fluentd"
     d.vm.provider "virtualbox" do |v|
       v.memory = 6144
     end
