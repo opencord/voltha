@@ -33,7 +33,6 @@ class Capabilities:
         self.client_caps.add(cap)
 
     def set_server_capabilities(self, schemas):
-        # prefix = "urn:ietf:params:netconf:capability:"
         # first add the basic capabilities
         self.server_caps.add(C.NETCONF_BASE_10)
         self.server_caps.add(C.NETCONF_BASE_11)

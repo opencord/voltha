@@ -26,7 +26,7 @@
    $ python -m grpc.tools.protoc -I.
    --plugin=protoc-gen-custom=./proto2yang.py --custom_out=. <proto file>.proto
 
-   - the above will produce a ietf-<proto file>.yang file formatted for yang
+   - the above will produce a <proto file>.yang file formatted for yang
 
    - two examples of proto that can be used in the same directory are
    yang.proto and addressbook.proto
@@ -75,7 +75,7 @@ def get_fields(package, type_name, **kw):
 """)
 
 template_yang = env.from_string("""
-module ietf-{{ module.name }} {
+module {{ module.name }} {
 
     {% macro set_module_prefix(type) %}
         {% set found = [] %}
@@ -129,11 +129,11 @@ module ietf-{{ module.name }} {
     {% endmacro %}
 
 
-    namespace "urn:opencord:params:xml:ns:voltha:ietf-{{ module.name }}";
+    namespace "urn:opencord:params:xml:ns:voltha:{{ module.name }}";
     prefix {{ module.name }};
 
     {% for imp in module.imports %}
-    import ietf-{{ imp.name }} { prefix {{ imp.name }} ; }
+    import {{ imp.name }} { prefix {{ imp.name }} ; }
     {% endfor %}
 
     organization "CORD";
@@ -892,7 +892,7 @@ def generate_code(request, response):
 
         all_proto_data.append(
             {
-                'file_name': '{}-{}'.format('ietf', proto_file.name.split(
+                'file_name': '{}'.format(proto_file.name.split(
                     '/')[-1].replace('.proto', '.yang')),
                 'module': yang_data
             }

@@ -45,6 +45,7 @@ from google.protobuf import descriptor
 import base64
 import math
 import collections
+from netconf.constants import Constants as C
 
 _INT64_TYPES = frozenset([descriptor.FieldDescriptor.CPPTYPE_INT64,
                           descriptor.FieldDescriptor.CPPTYPE_UINT64])
@@ -284,11 +285,8 @@ class GrpcClient(object):
 
         for fname in [f for f in os.listdir(self.work_dir)
                       if f.endswith('.yang')]:
-            # Special case : since ietf-http, ietf-annotations,
-            # ietf-yang_options are not used for yang schema then do not add
-            # them to the set
-            if fname not in ['ietf-http.yang', 'ietf-yang_options.yang',
-                             'ietf-descriptor.yang']:
+            # Filter out schemas which are not required
+            if fname not in C.SCHEMAS_TO_IGNORE:
                 self.yang_schemas.add(fname[:-len('.yang')])
         log.info('yang-schemas', schemas=self.yang_schemas)
 

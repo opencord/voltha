@@ -78,7 +78,7 @@ class RpcResponse():
                     '<data>',
                     '<',
                     request['class'],
-                    ' xmlns="urn:opencord:params:xml:ns:voltha:ietf-voltha">',
+                    ' xmlns="urn:opencord:params:xml:ns:voltha:voltha">',
                     voltha_xml_string,
                     '</',
                     request['class'],
@@ -88,7 +88,7 @@ class RpcResponse():
         else:  # custom_rpc
             body = ''.join([
                 '<rpc-reply',
-                ' xmlns="urn:opencord:params:xml:ns:voltha:ietf-voltha">',
+                ' xmlns="urn:opencord:params:xml:ns:voltha:voltha">',
                 voltha_xml_string,
                 '</rpc-reply>',
             ])

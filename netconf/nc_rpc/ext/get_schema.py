@@ -57,7 +57,7 @@ class GetSchema(Rpc):
 
     def _validate_parameters(self):
         log.info('validate-parameters', session=self.session.session_id)
-        # Validate the GET command
+        # Validate the GET-SCHEMA command
         if self.request:
             try:
                 if self.request['command'] != 'get-schema' or \
@@ -101,7 +101,7 @@ class GetSchema(Rpc):
 
     def create_xml_response(self, content):
         ns = {}
-        ns['xmlns'] = "urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring"
+        ns['xmlns'] = C.NS_MAP['ncm']
 
         elem = etree.Element('data', attrib=ns)
         elem.text = unicode(content, "utf-8")

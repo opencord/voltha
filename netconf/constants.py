@@ -31,6 +31,9 @@ class Constants:
     # YANG message definition file - generated file
     YANG_MESSAGE_DEFINITIONS_FILE='yang_message_defs.py'
 
+    # Generated YANG schemas to ignore as not used by Netconf client
+    SCHEMAS_TO_IGNORE =['http.yang', 'yang_options.yang', 'descriptor.yang']
+
     # Datastores
     RUNNING = "running"
     CANDIDATE = "candidate"
@@ -107,7 +110,7 @@ class Constants:
 
     NS_MAP = {
         'nc': 'urn:ietf:params:xml:ns:netconf:base:1.0',
-        'voltha': 'urn:opencord:params:xml:ns:voltha:ietf-voltha',
+        'voltha': 'urn:opencord:params:xml:ns:voltha:voltha',
         'ncm': 'urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring',
-        'health': 'urn:opencord:params:xml:ns:voltha:ietf-health'
+        'health': 'urn:opencord:params:xml:ns:voltha:health'
     }
