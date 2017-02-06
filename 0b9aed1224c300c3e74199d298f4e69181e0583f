@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fa0f191f_97bfb0d0",
+        "filename": "netconf/constants.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1000004
+      },
+      "writtenOn": "2017-02-06T21:06:49Z",
+      "side": 1,
+      "message": "Should these schemas not be published either?",
+      "revId": "0b9aed1224c300c3e74199d298f4e69181e0583f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
