@@ -16,6 +16,24 @@
       "revId": "0b9aed1224c300c3e74199d298f4e69181e0583f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa0f191f_57b918e8",
+        "filename": "netconf/constants.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-02-07T13:46:38Z",
+      "side": 1,
+      "message": "Yes, they won\u0027t be published outside of the netconf server.",
+      "parentUuid": "fa0f191f_97bfb0d0",
+      "revId": "0b9aed1224c300c3e74199d298f4e69181e0583f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
