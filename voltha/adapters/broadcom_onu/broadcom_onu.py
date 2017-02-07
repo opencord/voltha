@@ -26,6 +26,7 @@ from zope.interface import implementer
 
 from voltha.adapters.interface import IAdapterInterface
 from voltha.core.logical_device_agent import mac_str_to_tuple
+import voltha.core.flow_decomposer as fd
 from voltha.protos import third_party
 from voltha.protos.adapter_pb2 import Adapter
 from voltha.protos.adapter_pb2 import AdapterConfig
@@ -35,7 +36,7 @@ from voltha.protos.device_pb2 import DeviceType, DeviceTypes, Port
 from voltha.protos.health_pb2 import HealthStatus
 from voltha.protos.logical_device_pb2 import LogicalPort
 from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, OFPPF_1GB_FD
-from voltha.protos.openflow_13_pb2 import ofp_port
+from voltha.protos.openflow_13_pb2 import OFPXMC_OPENFLOW_BASIC, ofp_port
 from common.frameio.frameio import hexify
 from voltha.extensions.omci.omci import *
 
@@ -104,7 +105,7 @@ class BroadcomOnuAdapter(object):
                   flows=flows, groups=groups)
         assert len(groups.items) == 0
         handler = self.devices_handlers[device.proxy_address.channel_id]
-        return handler.update_flow_table(flows.items)
+        return handler.update_flow_table(device, flows.items)
 
     def update_flows_incrementally(self, device, flow_changes, group_changes):
         raise NotImplementedError()
@@ -214,21 +215,131 @@ class BroadcomOnuHandler(object):
         self.adapter_agent.update_device(device)
 
     @inlineCallbacks
-    def update_flow_table(self, flows):
+    def update_flow_table(self, device, flows):
+        #
+        # We need to proxy through the OLT to get to the ONU
+        # Configuration from here should be using OMCI
+        #
+        self.log.info('bulk-flow-update', device_id=device.id, flows=flows)
 
-        # we need to proxy through the OLT to get to the ONU
+        def is_downstream(port):
+            return port == 2  # Need a better way
 
-        # reset response queue
-        while self.incoming_messages.pending:
-            yield self.incoming_messages.get()
+        def is_upstream(port):
+            return not is_downstream(port)
 
-        msg = FlowTable(
-            port=self.proxy_address.channel_id,
-            flows=flows
-        )
-        self.adapter_agent.send_proxied_message(self.proxy_address, msg)
+        for flow in flows:
+            try:
+                _in_port = fd.get_in_port(flow)
+                assert _in_port is not None
 
-        yield self.incoming_messages.get()
+                if is_downstream(_in_port):
+                    self.log.info('downstream-flow')
+                elif is_upstream(_in_port):
+                    self.log.info('upstream-flow')
+                else:
+                    raise Exception('port should be 1 or 2 by our convention')
+
+                _out_port = fd.get_out_port(flow)  # may be None
+                self.log.info('out-port', out_port=_out_port)
+
+                for field in fd.get_ofb_fields(flow):
+                    if field.type == fd.ETH_TYPE:
+                        _type = field.eth_type
+                        self.log.info('field-type-eth-type',
+                                      eth_type=_type)
+
+                    elif field.type == fd.IP_PROTO:
+                        _proto = field.ip_proto
+                        self.log.info('field-type-ip-proto',
+                                      ip_proto=_proto)
+
+                    elif field.type == fd.IN_PORT:
+                        _port = field.port
+                        self.log.info('field-type-in-port',
+                                      in_port=_port)
+
+                    elif field.type == fd.VLAN_VID:
+                        _vlan_vid = field.vlan_vid & 0xfff
+                        self.log.info('field-type-vlan-vid',
+                                      vlan=_vlan_vid)
+
+                    elif field.type == fd.VLAN_PCP:
+                        _vlan_pcp = field.vlan_pcp
+                        self.log.info('field-type-vlan-pcp',
+                                      pcp=_vlan_pcp)
+
+                    elif field.type == fd.UDP_DST:
+                        _udp_dst = field.udp_dst
+                        self.log.info('field-type-udp-dst',
+                                      udp_dst=_udp_dst)
+
+                    elif field.type == fd.UDP_SRC:
+                        _udp_src = field.udp_src
+                        self.log.info('field-type-udp-src',
+                                      udp_src=_udp_src)
+
+                    elif field.type == fd.IPV4_DST:
+                        _ipv4_dst = field.ipv4_dst
+                        self.log.info('field-type-ipv4-dst',
+                                      ipv4_dst=_ipv4_dst)
+
+                    elif field.type == fd.IPV4_SRC:
+                        _ipv4_src = field.ipv4_src
+                        self.log.info('field-type-ipv4-src',
+                                      ipv4_dst=_ipv4_src)
+
+                    elif field.type == fd.METADATA:
+                        _metadata = field.metadata
+                        self.log.info('field-type-metadata',
+                                      metadata=_metadata)
+
+                    else:
+                        raise NotImplementedError('field.type={}'.format(
+                            field.type))
+
+                for action in fd.get_actions(flow):
+
+                    if action.type == fd.OUTPUT:
+                        _output = action.output.port
+                        self.log.info('action-type-output',
+                                      output=_output, in_port=_in_port)
+
+                    elif action.type == fd.POP_VLAN:
+                        self.log.info('action-type-pop-vlan',
+                                      in_port=_in_port)
+
+                    elif action.type == fd.PUSH_VLAN:
+                        _push_tpid = action.push.ethertype
+                        log.info('action-type-push-vlan',
+                                 push_tpid=_push_tpid, in_port=_in_port)
+                        if action.push.ethertype != 0x8100:
+                            self.log.error('unhandled-tpid',
+                                           ethertype=action.push.ethertype)
+
+                    elif action.type == fd.SET_FIELD:
+                        _field = action.set_field.field.ofb_field
+                        assert (action.set_field.field.oxm_class ==
+                                OFPXMC_OPENFLOW_BASIC)
+                        self.log.info('action-type-set-field',
+                                      field=_field, in_port=_in_port)
+                        if _field.type == fd.VLAN_VID:
+                            self.log.info('set-field-type-valn-vid',
+                                          vlan_vid=_field.vlan_vid & 0xfff)
+                        else:
+                            self.log.error('unsupported-action-set-field-type',
+                                           field_type=_field.type)
+                    else:
+                        log.error('unsupported-action-type',
+                                  action_type=action.type, in_port=_in_port)
+
+                #
+                # All flows created from ONU adapter should be OMCI based
+                #
+
+            except Exception as e:
+                log.exception('failed-to-install-flow', e=e, flow=flow)
+
 
     def get_tx_id(self):
         self.tx_id += 1
