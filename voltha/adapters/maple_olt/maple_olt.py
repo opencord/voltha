@@ -106,7 +106,7 @@ class MapleOltAdapter(object):
         self.config = config
         self.descriptor = Adapter(
             id=self.name,
-            vendor='Voltha project',
+            vendor='Voltha project (RSYS)',
             version='0.4',
             config=AdapterConfig(log_level=LogLevel.INFO)
         )
