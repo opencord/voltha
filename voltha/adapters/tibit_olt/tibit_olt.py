@@ -370,7 +370,7 @@ class TibitOltAdapter(object):
                                       type=inner_tag_and_rest.type) /\
                                       inner_tag_and_rest.payload
 
-                        _, logical_device_id = self.vlan_to_device_ids.get(cvid)
+                        _, logical_device_id, _ = self.vlan_to_device_ids.get(cvid)
                         if logical_device_id is None:
                             log.error('invalid-cvid', cvid=cvid)
                         else:
