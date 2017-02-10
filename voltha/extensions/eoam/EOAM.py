@@ -91,7 +91,7 @@ class EOAM():
         else:
             PACKET.lastlayer().type = 0x9001
             PACKET /= frame_body
-            
+
         if (self.verbose == True):
             PACKET.show()
             print '###[ Frame Length %d (before padding) ]###' % len(PACKET)
@@ -398,7 +398,7 @@ if __name__ == "__main__":
         Clause = {v: k for k, v in ClauseSubtypeEnum.iteritems()}
         Operator = {v: k for k, v in RuleOperatorEnum.iteritems()}
 
-        print 'SET - Port Ingress Rule -- NNI Port Object -- Downstream Traffic'
+        print 'SET - Port Ingress Rule -- NNI Port Object -- Downstream Traffic -- 4000/241'
         eoam.set_request(NetworkToNetworkPortObject()/
                          PortIngressRuleHeader(precedence=13)/
                          PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
@@ -411,21 +411,51 @@ if __name__ == "__main__":
                          PortIngressRuleTerminator()/
                          AddPortIngressRule())
 
+        time.sleep(1)
 
-        time.sleep(15)
-
-        print 'DELETE - Port Ingress Rule -- NNI Port Object -- Downstream Traffic'
+        print 'SET - Port Ingress Rule -- NNI Port Object -- Downstream Traffic -- 1000/241'
         eoam.set_request(NetworkToNetworkPortObject()/
                          PortIngressRuleHeader(precedence=13)/
                          PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
-                                                            operator=Operator['=='], match=0x0fa0)/
+                                                            operator=Operator['=='], match=0x03e8)/
                          PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=1,
                                                             operator=Operator['=='], match=0x00f1)/
                          PortIngressRuleResultOLTQueue(unicastvssn="TBIT", unicastlink=0xe2222900)/
                          PortIngressRuleResultForward()/
                          PortIngressRuleResultDelete(fieldcode=Clause['C-VLAN Tag'])/
                          PortIngressRuleTerminator()/
-                         DeletePortIngressRule())
+                         AddPortIngressRule())
+
+
+        time.sleep(1)
+
+        print 'SET - Port Ingress Rule -- NNI Port Object -- Downstream Traffic -- 4000/203'
+        eoam.set_request(NetworkToNetworkPortObject()/
+                         PortIngressRuleHeader(precedence=13)/
+                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
+                                                            operator=Operator['=='], match=0x0fa0)/
+                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=1,
+                                                            operator=Operator['=='], match=0x00CB)/
+                         PortIngressRuleResultOLTQueue(unicastvssn="TBIT", unicastlink=0xe2220300)/
+                         PortIngressRuleResultForward()/
+                         PortIngressRuleResultDelete(fieldcode=Clause['C-VLAN Tag'])/
+                         PortIngressRuleTerminator()/
+                         AddPortIngressRule())
+
+        time.sleep(1)
+
+        print 'SET - Port Ingress Rule -- NNI Port Object -- Downstream Traffic -- 1000/203'
+        eoam.set_request(NetworkToNetworkPortObject()/
+                         PortIngressRuleHeader(precedence=13)/
+                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
+                                                            operator=Operator['=='], match=0x03e8)/
+                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=1,
+                                                            operator=Operator['=='], match=0x00cb)/
+                         PortIngressRuleResultOLTQueue(unicastvssn="TBIT", unicastlink=0xe2220300)/
+                         PortIngressRuleResultForward()/
+                         PortIngressRuleResultDelete(fieldcode=Clause['C-VLAN Tag'])/
+                         PortIngressRuleTerminator()/
+                         AddPortIngressRule())
 
     if (args.test_multicast == True):
         #################################################################################
