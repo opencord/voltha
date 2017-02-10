@@ -23,6 +23,7 @@ netifaces>=0.10.4
 pcapy>=0.10.10
 pep8>=1.5.7
 pep8-naming>=0.3.3
+protobuf==3.1.0.post1
 protobuf-to-dict>=0.1.0
 pyflakes>=1.0.0
 pylint>=1.5.2
