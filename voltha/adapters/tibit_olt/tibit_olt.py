@@ -44,6 +44,7 @@ from voltha.extensions.eoam.EOAM_TLV import DOLTObject, \
 from voltha.extensions.eoam.EOAM_TLV import PortIngressRuleHeader
 from voltha.extensions.eoam.EOAM_TLV import ClauseSubtypeEnum
 from voltha.extensions.eoam.EOAM_TLV import RuleOperatorEnum
+from voltha.extensions.eoam.EOAM import EOAMPayload, CablelabsOUI
 from voltha.core.flow_decomposer import *
 from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.protos.adapter_pb2 import Adapter, AdapterConfig
@@ -308,11 +309,12 @@ class TibitOltAdapter(object):
                     )
 
             else:
-                onu_mac = '000c' + macid.get('macid', 'e2000000')[4:]
+                onu_mac_string = '000c' + macid.get('macid', 'e2000000')[4:]
                 log.info('activate-olt-for-onu-%s' % onu_mac)
                 # Convert from string to colon separated form
-                onu_mac = ':'.join(s.encode('hex') for s in onu_mac.decode('hex'))
-                vlan_id = self._olt_side_onu_activation(int(macid['macid'][-4:-2], 16))
+                onu_mac = ':'.join(s.encode('hex') for s in onu_mac_string.decode('hex'))
+                serial_num = int(macid['macid'][-4:-2], 16)
+                vlan_id = self._olt_side_onu_activation(serial_num)
                 self.adapter_agent.child_device_detected(
                     parent_device_id=device.id,
                     parent_port_no=1,
@@ -325,11 +327,39 @@ class TibitOltAdapter(object):
                         vlan=vlan_id
                     )
 
+                ## Possibly (automatically) setup default downstream control frames flow
+                # Clause = {v: k for k, v in ClauseSubtypeEnum.iteritems()}
+                # Operator = {v: k for k, v in RuleOperatorEnum.iteritems()}
+                # packet_out_rule = (
+                #         Ether(dst=device.mac_address) /
+                #         Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) /
+                #         EOAMPayload(
+                #             body=CablelabsOUI() / DPoEOpcode_SetRequest() /
+                #             NetworkToNetworkPortObject()/
+                #             PortIngressRuleHeader(precedence=13)/
+                #             PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
+                #                                                operator=Operator['=='],
+                #                                                match=TIBIT_PACKET_OUT_VLAN)/
+                #             PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=1,
+                #                                                operator=Operator['=='], match=vlan_id)/
+                #             PortIngressRuleResultOLTQueue(unicastvssn="TBIT", unicastlink=int(onu_mac_string[4:], 16))/
+                #             PortIngressRuleResultForward()/
+                #             PortIngressRuleResultDelete(fieldcode=Clause['C-VLAN Tag'])/
+                #             PortIngressRuleTerminator()/
+                #             AddPortIngressRule()))
+
+                # self.io_port.send(str(packet_out_rule))
+                # while True:
+                #     response = yield self.incoming_queues[olt_mac].get()
+                #     # verify response and if not the expected response
+                #     if 1: # TODO check if it is really what we expect, and wait if not
+                #         break
+
             # also record the vlan_id -> (device_id, logical_device_id, linkid) for
             # later use.  The linkid is the macid returned.
             self.vlan_to_device_ids[vlan_id] = (device.id, device.parent_id, macid.get('macid', 0))
 
-        ### KPI Metrics - Work in progress feature - Disabling for now 
+        ### KPI Metrics - Work in progress feature - Disabling for now
         ### Give the ONUs a chance to arrive before starting metric collection
         ###    reactor.callLater(5.0, self.start_kpi_collection, device.id)
 
