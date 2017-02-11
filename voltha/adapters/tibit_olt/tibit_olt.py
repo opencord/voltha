@@ -730,7 +730,7 @@ class TibitOltAdapter(object):
                 else:
                     raise Exception('Port should be 1 or 2 by our convention')
 
-            except Exception, e:
+            except Exception as e:
                 log.exception('failed-to-install-flow', e=e, flow=flow)
 
     def update_flows_incrementally(self, device, flow_changes, group_changes):

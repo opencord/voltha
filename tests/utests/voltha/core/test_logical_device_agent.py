@@ -625,17 +625,17 @@ class test_logical_device_agent(FlowHelpers):
                     output(ofp.OFPP_CONTROLLER)
                 ]
             ))
-        self.lda.update_flow_table(mk_simple_flow_mod(
-            priority=1000,
-            match_fields=[eth_type(0x800), ip_proto(2)],
-            actions=[output(ofp.OFPP_CONTROLLER)]
-        ))
-        self.lda.update_flow_table(mk_simple_flow_mod(
-            priority=1000,
-            match_fields=[eth_type(0x800), ip_proto(17),
-                          udp_src(68), udp_dst(67)],
-            actions=[output(ofp.OFPP_CONTROLLER)]
-        ))
+            self.lda.update_flow_table(mk_simple_flow_mod(
+                priority=1000,
+                match_fields=[in_port(_in_port), eth_type(0x800), ip_proto(2)],
+                actions=[output(ofp.OFPP_CONTROLLER)]
+            ))
+            self.lda.update_flow_table(mk_simple_flow_mod(
+                priority=1000,
+                match_fields=[in_port(_in_port), eth_type(0x800), ip_proto(17),
+                              udp_src(68), udp_dst(67)],
+                actions=[output(ofp.OFPP_CONTROLLER)]
+            ))
 
         # Multicast channels
         mcast_setup = (
@@ -667,38 +667,42 @@ class test_logical_device_agent(FlowHelpers):
             ))
 
         # Unicast channels for each subscriber
-        # Downstream flow 1 for both
-        self.lda.update_flow_table(mk_simple_flow_mod(
-            priority=500,
-            match_fields=[
-                in_port(0),
-                vlan_vid(4096 + 1000),
-                metadata(128)
-            ],
-            actions=[pop_vlan()],
-            next_table_id=1
-        ))
-        # Downstream flow 2 and upsrteam flow 1 for each ONU
         for port, c_vid in ((1, 101), (2, 102)):
+
+            # Downstream flow 1 for both
+            self.lda.update_flow_table(mk_simple_flow_mod(
+                priority=500,
+                match_fields=[
+                    in_port(0),
+                    vlan_vid(4096 + 1000),
+                    metadata(c_vid)
+                ],
+                actions=[pop_vlan()],
+                next_table_id=1
+            ))
+
+            # Downstream flow 2
             self.lda.update_flow_table(mk_simple_flow_mod(
                 priority=500,
                 match_fields=[in_port(0), vlan_vid(4096 + c_vid)],
                 actions=[set_field(vlan_vid(4096 + 0)), output(port)]
             ))
-            # for the 0-tagged case
+
+            # upstream flow 1 for the 0-tagged case
             self.lda.update_flow_table(mk_simple_flow_mod(
                 priority=500,
                 match_fields=[in_port(port), vlan_vid(4096 + 0)],
                 actions=[set_field(vlan_vid(4096 + c_vid))],
                 next_table_id=1
             ))
-            # for the untagged case
+            # ... and for the untagged case
             self.lda.update_flow_table(mk_simple_flow_mod(
                 priority=500,
                 match_fields=[in_port(port), vlan_vid(0)],
                 actions=[push_vlan(0x8100), set_field(vlan_vid(4096 + c_vid))],
                 next_table_id=1
             ))
+
             # Upstream flow 2 for s-tag
             self.lda.update_flow_table(mk_simple_flow_mod(
                 priority=500,
@@ -710,14 +714,14 @@ class test_logical_device_agent(FlowHelpers):
                 ]
             ))
 
-        self.assertEqual(len(self.flows.items), 17)
+        self.assertEqual(len(self.flows.items), 20)
         self.assertEqual(len(self.groups.items), 4)
 
         # trigger flow table decomposition
         self.lda._flow_table_updated(self.flows)
 
         # now check device level flows
-        self.assertEqual(len(self.device_flows['olt'].items), 8)
+        self.assertEqual(len(self.device_flows['olt'].items), 9)
         self.assertEqual(len(self.device_flows['onu1'].items), 5)
         self.assertEqual(len(self.device_flows['onu2'].items), 5)
         self.assertEqual(len(self.device_groups['olt'].items), 0)
@@ -756,7 +760,7 @@ class test_logical_device_agent(FlowHelpers):
         ))
         self.assertFlowsEqual(self.device_flows['olt'].items[5], mk_flow_stat(
             priority=500,
-            match_fields=[in_port(0), vlan_vid(4096 + 1000), metadata(128)],
+            match_fields=[in_port(0), vlan_vid(4096 + 1000), metadata(101)],
             actions=[pop_vlan(), output(1)]
         ))
         self.assertFlowsEqual(self.device_flows['olt'].items[6], mk_flow_stat(
@@ -766,6 +770,11 @@ class test_logical_device_agent(FlowHelpers):
                 push_vlan(0x8100), set_field(vlan_vid(4096 + 1000)), output(0)]
         ))
         self.assertFlowsEqual(self.device_flows['olt'].items[7], mk_flow_stat(
+            priority=500,
+            match_fields=[in_port(0), vlan_vid(4096 + 1000), metadata(102)],
+            actions=[pop_vlan(), output(1)]
+        ))
+        self.assertFlowsEqual(self.device_flows['olt'].items[8], mk_flow_stat(
             priority=500,
             match_fields=[in_port(1), vlan_vid(4096 + 102)],
             actions=[
