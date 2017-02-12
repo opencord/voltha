@@ -599,8 +599,8 @@ class TestCli(VolthaCli):
             group_mod=mk_multicast_group_mod(
                 group_id=2,
                 buckets=[
-                    ofp.ofp_bucket(actions=[pop_vlan(), output(unis[0][0])]),
-                    ofp.ofp_bucket(actions=[pop_vlan(), output(unis[1][0])])
+                    ofp.ofp_bucket(actions=[pop_vlan(), output(unis[0][0])])
+#                    ofp.ofp_bucket(actions=[pop_vlan(), output(unis[1][0])])
                 ]
             )
         ))

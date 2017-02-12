@@ -327,33 +327,33 @@ class TibitOltAdapter(object):
                         vlan=vlan_id
                     )
 
-                ## Possibly (automatically) setup default downstream control frames flow
-                # Clause = {v: k for k, v in ClauseSubtypeEnum.iteritems()}
-                # Operator = {v: k for k, v in RuleOperatorEnum.iteritems()}
-                # packet_out_rule = (
-                #         Ether(dst=device.mac_address) /
-                #         Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) /
-                #         EOAMPayload(
-                #             body=CablelabsOUI() / DPoEOpcode_SetRequest() /
-                #             NetworkToNetworkPortObject()/
-                #             PortIngressRuleHeader(precedence=13)/
-                #             PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
-                #                                                operator=Operator['=='],
-                #                                                match=TIBIT_PACKET_OUT_VLAN)/
-                #             PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=1,
-                #                                                operator=Operator['=='], match=vlan_id)/
-                #             PortIngressRuleResultOLTQueue(unicastvssn="TBIT", unicastlink=int(onu_mac_string[4:], 16))/
-                #             PortIngressRuleResultForward()/
-                #             PortIngressRuleResultDelete(fieldcode=Clause['C-VLAN Tag'])/
-                #             PortIngressRuleTerminator()/
-                #             AddPortIngressRule()))
+                ## Automatically setup default downstream control frames flow (in this case VLAN 4000)
+                Clause = {v: k for k, v in ClauseSubtypeEnum.iteritems()}
+                Operator = {v: k for k, v in RuleOperatorEnum.iteritems()}
+                packet_out_rule = (
+                        Ether(dst=device.mac_address) /
+                        Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) /
+                        EOAMPayload(
+                            body=CablelabsOUI() / DPoEOpcode_SetRequest() /
+                            NetworkToNetworkPortObject()/
+                            PortIngressRuleHeader(precedence=13)/
+                            PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
+                                                               operator=Operator['=='],
+                                                               match=TIBIT_PACKET_OUT_VLAN)/
+                            PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=1,
+                                                               operator=Operator['=='], match=vlan_id)/
+                            PortIngressRuleResultOLTQueue(unicastvssn="TBIT", unicastlink=int(onu_mac_string[4:], 16))/
+                            PortIngressRuleResultForward()/
+                            PortIngressRuleResultDelete(fieldcode=Clause['C-VLAN Tag'])/
+                            PortIngressRuleTerminator()/
+                            AddPortIngressRule()))
 
-                # self.io_port.send(str(packet_out_rule))
-                # while True:
-                #     response = yield self.incoming_queues[olt_mac].get()
-                #     # verify response and if not the expected response
-                #     if 1: # TODO check if it is really what we expect, and wait if not
-                #         break
+                self.io_port.send(str(packet_out_rule))
+                while True:
+                    response = yield self.incoming_queues[olt_mac].get()
+                    # verify response and if not the expected response
+                    if 1: # TODO check if it is really what we expect, and wait if not
+                        break
 
             # also record the vlan_id -> (device_id, logical_device_id, linkid) for
             # later use.  The linkid is the macid returned.
@@ -468,8 +468,8 @@ class TibitOltAdapter(object):
         assert len(groups.items) == 0, "Cannot yet deal with groups"
 
         # extract ONU VID
-        vid_from_device_id = {v[0]: k for k,v in self.vlan_to_device_ids.iteritems()}
-        ONU_VID = vid_from_device_id[device.id]
+        # vid_from_device_id = {v[0]: k for k,v in self.vlan_to_device_ids.iteritems()}
+        # ONU_VID = vid_from_device_id[device.id]
 
         Clause = {v: k for k, v in ClauseSubtypeEnum.iteritems()}
         Operator = {v: k for k, v in RuleOperatorEnum.iteritems()}
@@ -508,11 +508,7 @@ class TibitOltAdapter(object):
                         elif field.type == VLAN_VID:
                             _vlan_vid = field.vlan_vid & 0xfff
                             log.info('#### field.type == VLAN_VID ####', vlan=_vlan_vid)
-                            dn_req /= PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
-                                                                         operator=Operator['=='], match=_vlan_vid)
-                            if (_vlan_vid != 140):
-                                dn_req /= PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=1,
-                                                                             operator=Operator['=='], match=ONU_VID)
+                            _outer_vid = _vlan_vid
 
                         elif field.type == VLAN_PCP:
                             _vlan_pcp = field.vlan_pcp
@@ -520,19 +516,20 @@ class TibitOltAdapter(object):
 
                         elif field.type == UDP_DST:
                             _udp_dst = field.udp_dst
-                            log.info('#### field.type == UDP_DST ####')
+                            log.info('#### field.type == UDP_DST ####', udp_dst=_udp_dst)
 
                         elif field.type == UDP_SRC:
                             _udp_src = field.udp_src
-                            log.info('#### field.type == UDP_SRC ####')
+                            log.info('#### field.type == UDP_SRC ####', udp_src=_udp_src)
 
                         elif field.type == IPV4_DST:
                             _ipv4_dst = field.ipv4_dst
-                            log.info('#### field.type == IPV4_DST ####')
+                            log.info('#### field.type == IPV4_DST ####', ipv4_dst=_ipv4_dst)
 
                         elif field.type == METADATA:
-                            log.info('#### field.type == METADATA ####')
-                            pass
+                            _metadata = field.table_metadata
+                            log.info('#### field.type == METADATA ####', metadata=_metadata)
+                            _inner_vid = _metadata
 
                         else:
                             raise NotImplementedError('field.type={}'.format(
@@ -543,7 +540,7 @@ class TibitOltAdapter(object):
                         if action.type == OUTPUT:
                             log.info('#### action.type == OUTPUT ####')
                             dn_req /= PortIngressRuleResultForward()
-                            serial = ONU_VID - 200
+                            serial = _inner_vid - 200
                             link = (0xe222 << 16) | (serial << 8)
                             dn_req /= PortIngressRuleResultOLTQueue(unicastvssn="TBIT",
                                                                     unicastlink=link)
@@ -551,6 +548,11 @@ class TibitOltAdapter(object):
                         elif action.type == POP_VLAN:
                             log.info('#### action.type == POP_VLAN ####')
                             dn_req /= PortIngressRuleResultDelete(fieldcode=Clause['S-VLAN Tag'])
+                            dn_req /= PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
+                                                                         operator=Operator['=='], match=_outer_vid)
+                            if (_outer_vid != 140):
+                                dn_req /= PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=1,
+                                                                             operator=Operator['=='], match=_inner_vid)
 
                         elif action.type == PUSH_VLAN:
                             log.info('#### action.type == PUSH_VLAN ####')
@@ -730,7 +732,7 @@ class TibitOltAdapter(object):
                 else:
                     raise Exception('Port should be 1 or 2 by our convention')
 
-            except Exception as e:
+            except Exception, e:
                 log.exception('failed-to-install-flow', e=e, flow=flow)
 
     def update_flows_incrementally(self, device, flow_changes, group_changes):
