@@ -125,7 +125,7 @@ class TibitOltAdapter(object):
         self.io_port = None
         self.incoming_queues = {}  # OLT mac_address -> DeferredQueue()
         self.device_ids = {}  # OLT mac_address -> device_id
-        self.vlan_to_device_ids = {}  # c-vid -> (device_id, logical_device_id)
+        self.vlan_to_device_ids = {}  # c-vid -> (device_id, logical_device_id, mac_address)
 
     def start(self):
         log.debug('starting', interface=self.interface)
@@ -755,7 +755,7 @@ class TibitOltAdapter(object):
         log.info('packet-out', logical_device_id=logical_device_id,
                  egress_port_no=egress_port_no, msg_len=len(msg))
 
-        dev_id, logical_dev_id = self.vlan_to_device_ids[egress_port_no]
+        _, logical_dev_id, _ = self.vlan_to_device_ids[egress_port_no]
         if logical_dev_id != logical_device_id:
             raise Exception('Internal table mismatch')
 
@@ -780,7 +780,7 @@ class TibitOltAdapter(object):
             pon_port_metrics = {}
             links = []
             olt_mac = next((mac for mac, device in self.device_ids.iteritems() if device == device_id), None)
-            links   = [v[TIBIT_ONU_LINK_INDEX] for _,v in self.vlan_to_device_ids.iteritems()]
+            links   = [v[TIBIT_ONU_LINK_INDEX] for _,v,_ in self.vlan_to_device_ids.iteritems()]
 
             try:
                 # Step 1: gather metrics from device
