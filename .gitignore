@@ -68,3 +68,6 @@ ponsim/protos/third_party/google
 # Voltha CLI hostory files
 .voltha_cli_history
 **/.voltha_cli_history
+
+# Vagrant logfile
+*.log
