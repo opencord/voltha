@@ -17,6 +17,8 @@
 
 """
 Device level CLI commands
+
+useful doc comment
 """
 from cmd2 import Cmd
 from simplejson import dumps
