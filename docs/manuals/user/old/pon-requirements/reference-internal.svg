@@ -1,0 +1,204 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.0//EN" "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">
+<svg viewBox="0 0 970 280" xmlns="http://www.w3.org/2000/svg" xmlns:inkspace="http://www.inkscape.org/namespaces/inkscape" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs id="defs_block">
+    <filter height="1.504" id="filter_blur" inkspace:collect="always" width="1.1575" x="-0.07875" y="-0.252">
+      <feGaussianBlur id="feGaussianBlur3780" inkspace:collect="always" stdDeviation="4.2" />
+    </filter>
+  </defs>
+  <title>blockdiag</title>
+  <desc>blockdiag {
+
+    //orientation = portrait;
+
+    // Blocks used
+    SDN [label = "SDN\nController", width = 64];
+    M [label = "PON\nManager", width = 64];
+    V [label = "Voltha\nCore &amp; NBI", width = 74];
+    A [label = "OLT\nAdapter", width = 64];
+    A2 [label = "ONU\nAdapter", width = 64];
+    U [label = "Upstream\nNetwork", width = 64];
+    L2 [label = "L2 Aggr.", width = 64, shape = cloud];
+    OL [label = "OLT chip\n&amp; firmware", width = 64];
+    ON [label = ONU, width = 64];
+    R [label = RG, width = 64];
+
+    U &lt;-&gt; L2 [label = Pd];
+    L2 &lt;-&gt; OL [label = Pu];
+    OL &lt;-&gt; ON;
+    ON &lt;-&gt; R [label = Pr];
+    M &lt;-&gt; V;
+    M &lt;-&gt; SDN;
+    SDN &lt;-&gt; V [label = Pv];
+    V &lt;-&gt; A [label = Pa];
+    V &lt;-&gt; A2;
+    A &lt;-&gt; OL [label = Pc];
+
+    group {
+        SDN; M; V; A; A2; U; L2; OL; ON; R;
+        shape = line;
+        color = "#FFFFFF";
+        fontsize = 24;
+
+        group {
+            label = "PON Network";
+            V; A; A2; OL; ON;
+
+            group {
+                label = "Voltha";
+                color = "#AAAAFF"
+                V; A; A2;
+            }
+
+
+        }
+    }
+}
+
+</desc>
+  <rect fill="rgb(243,152,0)" height="140" style="filter:url(#filter_blur)" width="474" x="312" y="30" />
+  <rect fill="rgb(170,170,255)" height="140" style="filter:url(#filter_blur)" width="218" x="312" y="30" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="64" x="195" y="46" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="74" x="323" y="46" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="64" x="461" y="46" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="64" x="461" y="126" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="64" x="589" y="46" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="64" x="717" y="46" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="64" x="67" y="46" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="64" x="67" y="206" />
+  <path d="M 205 222 A10,8 0 0 1 215 214 A10,6 0 0 1 240 214 A10,8 0 0 1 250 222 A10,8 0 0 1 250 238 A10,20 0 0 1 235 238 A10,20 0 0 1 220 238 A10,20 0 0 1 205 238 A10,8 0 0 1 205 222" fill="rgb(0,0,0)" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="64" x="845" y="46" />
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="64" x="192" y="40" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="23" x="224" y="59">SDN</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="48" x="224" y="71">Controller</text>
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="74" x="320" y="40" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="32" x="357" y="59">Voltha</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="58" x="357" y="71">Core &amp; NBI</text>
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="64" x="458" y="40" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="22" x="490" y="58">OLT</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="40" x="490" y="72">Adapter</text>
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="64" x="458" y="120" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="25" x="490" y="138">ONU</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="40" x="490" y="152">Adapter</text>
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="64" x="586" y="40" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="46" x="618" y="60">OLT chip</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="58" x="618" y="72">&amp; firmware</text>
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="64" x="714" y="40" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="25" x="746" y="65">ONU</text>
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="64" x="64" y="40" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="24" x="96" y="58">PON</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="44" x="96" y="72">Manager</text>
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="64" x="64" y="200" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="49" x="96" y="220">Upstream</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="43" x="96" y="232">Network</text>
+  <path d="M 202 216 A10,8 0 0 1 212 208 A10,6 0 0 1 237 208 A10,8 0 0 1 247 216 A10,8 0 0 1 247 232 A10,20 0 0 1 232 232 A10,20 0 0 1 217 232 A10,20 0 0 1 202 232 A10,8 0 0 1 202 216" fill="rgb(255,255,255)" stroke="rgb(0,0,0)" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="45" x="224" y="226">L2 Aggr.</text>
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="64" x="842" y="40" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="15" x="874" y="65">RG</text>
+  <path d="M 264 60 L 312 60" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="257,60 264,56 264,64 257,60" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="319,60 312,56 312,64 319,60" stroke="rgb(0,0,0)" />
+  <path d="M 136 60 L 160 60" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 160 60 L 160 100" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 160 100 L 304 100" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 304 100 L 304 60" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 304 60 L 312 60" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="129,60 136,56 136,64 129,60" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="319,60 312,56 312,64 319,60" stroke="rgb(0,0,0)" />
+  <path d="M 136 60 L 184 60" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="129,60 136,56 136,64 129,60" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="191,60 184,56 184,64 191,60" stroke="rgb(0,0,0)" />
+  <path d="M 136 220 L 184 220" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="129,220 136,216 136,224 129,220" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="191,220 184,216 184,224 191,220" stroke="rgb(0,0,0)" />
+  <path d="M 264 220 L 570 220" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 570 220 L 570 60" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 570 60 L 578 60" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="257,220 264,216 264,224 257,220" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="585,60 578,56 578,64 585,60" stroke="rgb(0,0,0)" />
+  <path d="M 658 60 L 706 60" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="651,60 658,56 658,64 651,60" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="713,60 706,56 706,64 713,60" stroke="rgb(0,0,0)" />
+  <path d="M 786 60 L 834 60" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="779,60 786,56 786,64 779,60" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="841,60 834,56 834,64 841,60" stroke="rgb(0,0,0)" />
+  <path d="M 402 60 L 450 60" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="395,60 402,56 402,64 395,60" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="457,60 450,56 450,64 457,60" stroke="rgb(0,0,0)" />
+  <path d="M 402 60 L 426 60" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 426 60 L 426 140" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 426 140 L 450 140" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="395,60 402,56 402,64 395,60" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="457,140 450,136 450,144 457,140" stroke="rgb(0,0,0)" />
+  <path d="M 530 60 L 578 60" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="523,60 530,56 530,64 523,60" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="585,60 578,56 578,64 585,60" stroke="rgb(0,0,0)" />
+  <path d="M 402 60 L 450 60" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="395,60 402,56 402,64 395,60" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="457,60 450,56 450,64 457,60" stroke="rgb(0,0,0)" />
+  <path d="M 402 60 L 426 60" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 426 60 L 426 140" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 426 140 L 450 140" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="395,60 402,56 402,64 395,60" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="457,140 450,136 450,144 457,140" stroke="rgb(0,0,0)" />
+  <path d="M 530 60 L 578 60" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="523,60 530,56 530,64 523,60" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="585,60 578,56 578,64 585,60" stroke="rgb(0,0,0)" />
+  <path d="M 658 60 L 706 60" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="651,60 658,56 658,64 651,60" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="713,60 706,56 706,64 713,60" stroke="rgb(0,0,0)" />
+  <path d="M 786 60 L 834 60" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="779,60 786,56 786,64 779,60" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="841,60 834,56 834,64 841,60" stroke="rgb(0,0,0)" />
+  <path d="M 402 60 L 450 60" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="395,60 402,56 402,64 395,60" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="457,60 450,56 450,64 457,60" stroke="rgb(0,0,0)" />
+  <path d="M 402 60 L 426 60" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 426 60 L 426 140" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 426 140 L 450 140" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="395,60 402,56 402,64 395,60" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="457,140 450,136 450,144 457,140" stroke="rgb(0,0,0)" />
+  <path d="M 530 60 L 578 60" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="523,60 530,56 530,64 523,60" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="585,60 578,56 578,64 585,60" stroke="rgb(0,0,0)" />
+  <path d="M 402 60 L 450 60" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="395,60 402,56 402,64 395,60" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="457,60 450,56 450,64 457,60" stroke="rgb(0,0,0)" />
+  <path d="M 402 60 L 426 60" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 426 60 L 426 140" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 426 140 L 450 140" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="395,60 402,56 402,64 395,60" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="457,140 450,136 450,144 457,140" stroke="rgb(0,0,0)" />
+  <path d="M 530 60 L 578 60" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="523,60 530,56 530,64 523,60" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="585,60 578,56 578,64 585,60" stroke="rgb(0,0,0)" />
+  <rect fill="white" height="14" stroke="rgb(0,0,0)" width="29" x="274" y="38" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="13" x="288" y="50">Pv</text>
+  <rect fill="white" height="14" stroke="rgb(0,0,0)" width="29" x="146" y="198" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="13" x="160" y="210">Pd</text>
+  <rect fill="white" height="14" stroke="rgb(0,0,0)" width="29" x="540" y="183" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="13" x="554" y="195">Pu</text>
+  <rect fill="white" height="14" stroke="rgb(0,0,0)" width="27" x="797" y="38" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="11" x="810" y="50">Pr</text>
+  <rect fill="white" height="14" stroke="rgb(0,0,0)" width="29" x="412" y="38" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="13" x="426" y="50">Pa</text>
+  <rect fill="white" height="14" stroke="rgb(0,0,0)" width="29" x="540" y="38" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="13" x="554" y="50">Pc</text>
+  <rect fill="white" height="14" stroke="rgb(0,0,0)" width="29" x="412" y="38" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="13" x="426" y="50">Pa</text>
+  <rect fill="white" height="14" stroke="rgb(0,0,0)" width="29" x="540" y="38" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="13" x="554" y="50">Pc</text>
+  <rect fill="white" height="14" stroke="rgb(0,0,0)" width="27" x="797" y="38" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="11" x="810" y="50">Pr</text>
+  <rect fill="white" height="14" stroke="rgb(0,0,0)" width="29" x="412" y="38" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="13" x="426" y="50">Pa</text>
+  <rect fill="white" height="14" stroke="rgb(0,0,0)" width="29" x="540" y="38" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="13" x="554" y="50">Pc</text>
+  <rect fill="white" height="14" stroke="rgb(0,0,0)" width="29" x="412" y="38" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="13" x="426" y="50">Pa</text>
+  <rect fill="white" height="14" stroke="rgb(0,0,0)" width="29" x="540" y="38" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="13" x="554" y="50">Pc</text>
+  <rect fill="none" height="220" stroke="rgb(255,255,255)" stroke-width="3" width="858" x="56" y="30" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="71" x="549" y="35">PON Network</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="32" x="421" y="35">Voltha</text>
+</svg>

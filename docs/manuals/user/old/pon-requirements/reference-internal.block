@@ -1,0 +1,48 @@
+blockdiag {
+
+    //orientation = portrait;
+
+    // Blocks used
+    SDN [label = "SDN\nController", width = 64];
+    M [label = "PON\nManager", width = 64];
+    V [label = "Voltha\nCore & NBI", width = 74];
+    A [label = "OLT\nAdapter", width = 64];
+    A2 [label = "ONU\nAdapter", width = 64];
+    U [label = "Upstream\nNetwork", width = 64];
+    L2 [label = "L2 Aggr.", width = 64, shape = cloud];
+    OL [label = "OLT chip\n& firmware", width = 64];
+    ON [label = ONU, width = 64];
+    R [label = RG, width = 64];
+
+    U <-> L2 [label = Pd];
+    L2 <-> OL [label = Pu];
+    OL <-> ON;
+    ON <-> R [label = Pr];
+    M <-> V;
+    M <-> SDN;
+    SDN <-> V [label = Pv];
+    V <-> A [label = Pa];
+    V <-> A2;
+    A <-> OL [label = Pc];
+
+    group {
+        SDN; M; V; A; A2; U; L2; OL; ON; R;
+        shape = line;
+        color = "#FFFFFF";
+        fontsize = 24;
+
+        group {
+            label = "PON Network";
+            V; A; A2; OL; ON;
+
+            group {
+                label = "Voltha";
+                color = "#AAAAFF"
+                V; A; A2;
+            }
+
+
+        }
+    }
+}
+

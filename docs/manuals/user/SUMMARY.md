@@ -1,0 +1,47 @@
+# Summary
+
+This is the TOC file used by the gitbook generator.
+To generate and serve static content, run:
+
+  ```
+  gitbook serve
+  ```
+
+* [Introduction](README.md)
+* [Overview of Voltha](labtests/README.md)
+* [Recommended Lab Test Scenarios](labtests/README.md)
+  * [Requirements](labtests/requirements.md)
+  * [Preparation](labtests/preparations.md)
+  * [Voltha Bringup Tests](labtests/V00_voltha.md)
+    * [V1 - Deploy Voltha and Verify its Vital Signs](labtests/V01_voltha_bringup_deploy.md)
+    * [V2 - Connect to Voltha with REST and Web Browser](labtests/V02_voltha_bringup_rest.md)
+    * [V3 - Connect to Voltha via its CLI](labtests/V03_voltha_bringup_cli.md)
+    * [V4 - View Voltha Async Events with Kafkacat](labtests/V04_voltha_bringup_async.md)
+  * [PONSIM OLT Tests](labtests/S00_ponsim_tests.md)
+    * [S1 - Preprovision and Activate OLT](labtests/S01_ponsim_tests_launch_and_activate.md)
+	* [S2 - Launch ONOS](labtests/S02_ponsim_tests_onos.md)
+	* [S3 - Verify RG Authentication Scenario (EAPOL)](labtests/S03_ponsim_eapol_auth.md)
+	* [S4 - Verify DHCP Lookup](labtests/S04_ponsim_verify_dhcp.md)
+	* [S5 - Verify Unicast Access](labtests/S05_ponsim_tests_unicast.md)
+	* [S6 - Verify IGMP Handling](labtests/S06_ponsim_tests_multicast.md)	
+  * [Tibit OLT Tests](labtests/T00_tibit_olt_tests.md)
+    * [T1 - Preprovision and Activate OLT](labtests/T01_tibit_olt_tests_activate_olt.md)
+	* [T2 - Launch ONOS](labtests/T02_tibit_olt_tests_onos.md)
+	* [T3 - Verify EAPOL RG Authentication Scenario](labtests/T03_tibit_olt_eapol_auth.md)
+	* [T4 - Verify DHCP Lookup](labtests/T04_tibit_verify_dhcp.md)
+    * [T5 - Verify Unicast Access](labtests/T05_tibit_tests_unicast.md)
+    * [T6 - Verify IGMP Handling](labtests/T06_tibit_tests_multicast.md)
+  * [Maple OLT Tests](labtests/M00_maple_olt_tests.md)
+    * [M1 - Preprovision and Activate OLT](labtests/M01_maple_olt_tests_activate_olt.md)
+	* [M2 - Launch ONOS](labtests/M02_maple_olt_tests_onos.md)
+	* [M3 - Verify EAPOL RG Authentication Scenario](labtests/M03_maple_olt_tests_eapol_auth.md)
+	* [M4 - Verify DHCP Lookup](labtests/M04_maple_olt_tests_verify_dhcp.md)
+    * [M5 - Verify Unicast Access](labtests/M05_maple_olt_tests_unicast.md)
+    * [M6 - Verify IGMP Handling](labtests/M06_maple_olt_tests_multicast.md)
+  * [Netconf Tests](labtests/N00_netconf.md)
+    * [N1 - Deploy Netconf and Verify its Vital Signs](labtests/N01_netconf_bringup_deploy.md)
+    * [N2 - Connect to Netconf with a Netconf Browser](labtests/N02_netconf_client_connect.md)
+    * [N3 - Retrieve YANG Modules](labtests/N03_netconf_client_retrieve_YANG_modules.md)
+    * [N4 - Get VolthaInstance info](labtests/N04_netconf_client_get_volthainstance.md)
+    * [N5 - Get List of Adapters](labtests/N05_netconf_client_get_adapters.md)
+
