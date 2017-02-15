@@ -64,15 +64,16 @@ docs/pon-requirements/*.svg
 # Files copied over during make
 ofagent/protos/third_party/google
 ponsim/protos/third_party/google
+netconf/protos/*.proto
 
-# Voltha CLI hostory files
+# Voltha CLI history files
 .voltha_cli_history
 **/.voltha_cli_history
 
 # Vagrant logfile
 *.log
 
-# gitnook artifacts
+# gitbook artifacts
 docs/manuals/user/_book
 docs/manual/user/*.pdf
 docs/manual/user/node_modules
