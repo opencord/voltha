@@ -71,3 +71,8 @@ ponsim/protos/third_party/google
 
 # Vagrant logfile
 *.log
+
+# gitnook artifacts
+docs/manuals/user/_book
+docs/manual/user/*.pdf
+docs/manual/user/node_modules

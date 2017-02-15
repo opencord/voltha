@@ -1,0 +1,19 @@
+{
+  "name": "voltha-docs",
+  "version": "1.0.0",
+  "description": "Documentation for Voltha",
+  "main": "README.md",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://gerrit.opencord.org/voltha"
+  },
+  "author": "Voltha Team",
+  "license": "Apache 2.0",
+  "dependencies": {
+    "doctoc": "^0.14.1",
+    "gitbook-cli": "^0.3.6"
+  }
+}

@@ -1,0 +1,21 @@
+{
+    "gitbook": "2.0.2",
+    "title": "Voltha Documentation",
+    "plugins": [
+        "google_code_prettify",
+        "collapsible-menu",
+        "image-captions"
+    ],
+    "links": {
+        "sidebar": {
+            "Contact us": "http://opencord.org"
+        }
+    },
+    "pluginsConfig": {},
+    "pdf": {
+        "fontSize": 8
+    },
+    "styles": {
+        "website": "gitbook/styles/printable.css"
+    }
+}

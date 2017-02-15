@@ -1,0 +1,15 @@
+@media print {
+  .book-body {
+    left: 0px !important;
+  }
+  .book .book-body {
+    left: 0px !important;
+    overflow: visible !important;
+  }
+  div.book-summary {
+    display: none !important;
+  }
+  a.navigation-prev { display: none !important; }
+  a.navigation-next { display: none !important; }
+  div { page-break-inside: avoid; }
+}
