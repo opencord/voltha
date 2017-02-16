@@ -91,9 +91,19 @@ def get_endpoint_from_consul(consul_endpoint, service_name):
             'Cannot find service {} in consul'.format(service_name))
         os.exit(1)
 
-    # pick local addresses when resolving a service via consul
-    # see CORD-818 (https://jira.opencord.org/browse/CORD-818)
+    """ Check if the service is available on localhost and return
+        the corresponding endpoint if available
+    """
+    for service in services:
+        for k, v in service.iteritems():
+            if (k == 'ServiceAddress' and v == "127.0.0.1"):
+                endpoint = '127.0.0.1:{}'.format(
+                                            service['ServicePort'])
+                return endpoint
 
+    """ If service is not available on loopback,
+        pick a random service within the list
+    """
     service = services[randint(0, len(services) - 1)]
     endpoint = '{}:{}'.format(service['ServiceAddress'],
                               service['ServicePort'])
