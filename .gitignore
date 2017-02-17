@@ -76,4 +76,4 @@ netconf/protos/*.proto
 # gitbook artifacts
 docs/manuals/user/_book
 docs/manual/user/*.pdf
-docs/manual/user/node_modules
+docs/manuals/user/node_modules/
