@@ -4,7 +4,22 @@ package voltha;
 
 import "meta.proto";
 import "google/api/annotations.proto";
+import "google/protobuf/any.proto";
 
+message ConfigEventType {
+    enum ConfigEventType {
+        add = 0; // A new config has been added
+        remove = 1; // A config has been removed
+        update = 2; // A config has been updated
+    }
+}
+
+message ConfigEvent {
+    ConfigEventType.ConfigEventType type = 1;
+
+    string hash = 2; // hash for this change, can be used for quick lookup
+    google.protobuf.Any data = 3; // the actual new data, may be empty for a remove operation
+}
 
 message KpiEventType {
     enum KpiEventType {
