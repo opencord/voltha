@@ -160,6 +160,18 @@ def experimenter(experimenter, data):
 def in_port(_in_port):
     return ofb_field(type=IN_PORT, port=_in_port)
 
+def in_phy_port(_in_phy_port):
+    return ofb_field(type=IN_PHY_PORT, port=_in_phy_port)
+
+def metadata(_table_metadata):
+    return ofb_field(type=METADATA, table_metadata=_table_metadata)
+
+def eth_dst(_eth_dst):
+    return ofb_field(type=ETH_DST, table_metadata=_eth_dst)
+
+def eth_src(_eth_src):
+    return ofb_field(type=ETH_SRC, table_metadata=_eth_src)
+
 def eth_type(_eth_type):
     return ofb_field(type=ETH_TYPE, eth_type=_eth_type)
 
@@ -223,12 +235,47 @@ def arp_sha(_arp_sha):
 def arp_tha(_arp_tha):
     return ofb_field(type=ARP_THA, arp_tha=_arp_tha)
 
-def metadata(_table_metadata):
-    return ofb_field(type=METADATA, table_metadata=_table_metadata)
+def ipv6_src(_ipv6_src):
+    return ofb_field(type=IPV6_SRC, arp_tha=_ipv6_src)
 
+def ipv6_dst(_ipv6_dst):
+    return ofb_field(type=IPV6_DST, arp_tha=_ipv6_dst)
 
-# finish for rest of match fields
-# see https://jira.opencord.org/browse/CORD-840
+def ipv6_flabel(_ipv6_flabel):
+    return ofb_field(type=IPV6_FLABEL, arp_tha=_ipv6_flabel)
+
+def ipmpv6_type(_icmpv6_type):
+    return ofb_field(type=ICMPV6_TYPE, arp_tha=_icmpv6_type)
+
+def icmpv6_code(_icmpv6_code):
+    return ofb_field(type=ICMPV6_CODE, arp_tha=_icmpv6_code)
+
+def ipv6_nd_target(_ipv6_nd_target):
+    return ofb_field(type=IPV6_ND_TARGET, arp_tha=_ipv6_nd_target)
+
+def ofb_ipv6_nd_sll(_ofb_ipv6_nd_sll):
+    return ofb_field(type=OFB_IPV6_ND_SLL, arp_tha=_ofb_ipv6_nd_sll)
+
+def ipv6_nd_tll(_ipv6_nd_tll):
+    return ofb_field(type=IPV6_ND_TLL, arp_tha=_ipv6_nd_tll)
+
+def mpls_label(_mpls_label):
+    return ofb_field(type=MPLS_LABEL, arp_tha=_mpls_label)
+
+def mpls_tc(_mpls_tc):
+    return ofb_field(type=MPLS_TC, arp_tha=_mpls_tc)
+
+def mpls_bos(_mpls_bos):
+    return ofb_field(type=MPLS_BOS, arp_tha=_mpls_bos)
+
+def pbb_isid(_pbb_isid):
+    return ofb_field(type=PBB_ISID, arp_tha=_pbb_isid)
+
+def tunnel_id(_tunnel_id):
+    return ofb_field(type=TUNNEL_ID, arp_tha=_tunnel_id)
+
+def ipv6_exthdr(_ipv6_exthdr):
+    return ofb_field(type=IPV6_EXTHDR, arp_tha=_ipv6_exthdr)
 
 
 # frequently used extractors:
