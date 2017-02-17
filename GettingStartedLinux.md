@@ -63,6 +63,83 @@ $ sudo apt install python --yes
 $ sudo apt install python-dev --yes
 ```
 
+### Docker/Docker-compose
+
+Docker engine and docker tools (compose) should get installed. These tools are
+used, in case that user doesn't want to use vagrant and wants to run the code
+on local machine.
+
+#### Docker
+
+```
+$ sudo apt-get update
+$ sudo apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
+$ sudo apt-add-repository 'deb https://apt.dockerproject.org/repo ubuntu-xenial main'
+$ sudo apt-get update
+$ apt-cache policy docker-engine
+```
+
+This could be a sample of the output of the latest command.
+
+```
+docker-engine:
+  Installed: (none)
+  Candidate: 1.11.1-0~xenial
+  Version table:
+     1.11.1-0~xenial 500
+        500 https://apt.dockerproject.org/repo ubuntu-xenial/main amd64 Packages
+     1.11.0-0~xenial 500
+        500 https://apt.dockerproject.org/repo ubuntu-xenial/main amd64 Packages
+```
+
+We continue with docker engine installation.
+
+```
+$ sudo apt-get install -y docker-engine
+$ sudo systemctl status docker
+```
+
+This should be sample output following the latest command.
+
+```
+docker.service - Docker Application Container Engine
+   Loaded: loaded (/lib/systemd/system/docker.service; enabled; vendor preset: enabled)
+   Active: active (running) since Sun 2016-05-01 06:53:52 CDT; 1 weeks 3 days ago
+     Docs: https://docs.docker.com
+ Main PID: 749 (docker)
+```
+
+##### Post installation of Docker engine
+
+We should add username to docker group to void typing ```sudo``` repeatedly.
+
+```
+$ sudo usermod -aG docker $(whoami)
+```
+
+You will need to log out and back in for change to take affect.
+
+#### Docker-compose
+
+Docker tools need to get installed as well.
+
+```
+$ sudo curl -L "https://github.com/docker/compose/releases/download/1.10.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+$ sudo chmod +x /usr/local/bin/docker-compose
+```
+
+To test docker-compose installation:
+
+```
+$ docker-compose --version
+```
+
+Should output this:
+
+```
+docker-compose version: 1.10.0
+```
+
 ### Virtual Box
 
 There are a couple of different ways to use Vagrant, the following
@@ -106,8 +183,8 @@ the latest version.
 
 ```
 $ sudo apt update 
-sudo apt install virtualbox-5.0 --yes
-sudo apt install vagrant
+$ sudo apt install virtualbox-5.0 --yes
+$ sudo apt install vagrant
 ```
 
 ### Google repo tool
@@ -158,10 +235,10 @@ $ repo sync
 
 ```
 $ cd incubator/voltha
-voltha$ . ./env.sh
+$ voltha$ . ./env.sh
 ```
 
-The last step above the sources the virtualenv enviroment should
+The last step above the sources the virtualenv environment should
 pass.  If it does not and exits because of an error, see the commands
 below. 
 
