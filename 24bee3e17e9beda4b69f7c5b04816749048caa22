@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "da141535_396d8f05",
+        "filename": "common/utils/consulhelpers.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 99,
+      "author": {
+        "id": 1000004
+      },
+      "writtenOn": "2017-02-18T00:12:07Z",
+      "side": 1,
+      "message": "I don\u0027t think registrator will register 127.0.0.1 but rather the actual ip of the host machine.",
+      "revId": "24bee3e17e9beda4b69f7c5b04816749048caa22",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
