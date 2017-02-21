@@ -22,8 +22,8 @@ import netconf.nc_common.error as ncerror
 
 log = structlog.get_logger()
 
-class CloseSession(Rpc):
 
+class CloseSession(Rpc):
     def __init__(self, request, request_xml, grpc_client, session,
                  capabilities):
         super(CloseSession, self).__init__(request, request_xml, grpc_client,
@@ -36,12 +36,22 @@ class CloseSession(Rpc):
             return self.rpc_response
 
         self.rpc_response.node = etree.Element("ok")
+
+        # Set the close session flag
+        self.rpc_response.close_session = True
         return self.rpc_response
 
-
     def _validate_parameters(self):
-        for child in self.rpc_method.getchildren():
-            # There cannot be parameters to a close session request
-            self.rpc_response.is_error = True
-            self.rpc_response.node = ncerror.BadMsg(self.rpc_request)
-            return
+
+        if self.request:
+            try:
+                if self.request['command'] != 'close-session':
+                    self.rpc_response.is_error = True
+                    self.rpc_response.node = ncerror.BadMsg(self.request_xml)
+                    return
+
+            except Exception as e:
+                self.rpc_response.is_error = True
+                self.rpc_response.node = ncerror.ServerException(
+                    self.request_xml)
+                return

@@ -37,13 +37,9 @@ class Capabilities:
         self.server_caps.add(C.NETCONF_BASE_10)
         self.server_caps.add(C.NETCONF_BASE_11)
         self.server_caps.add(C.NETCONF_MONITORING)
+        self.server_caps.add(C.NETCONF_WRITABLE)
         for schema in schemas:
             self.server_caps.add(''.join([URN_PREFIX, schema]))
-            self.server_caps.add(''.join([
-                                            URN_PREFIX,
-                                            schema,
-                                            ':writable-running'])
-                                )
             self.voltha_schemas.add(schema)
 
     def set_schema_dir(self, schema_dir):

@@ -29,10 +29,10 @@ class Constants:
     CLIENT_CRED_DIRECTORY = 'security/client_credentials'
 
     # YANG message definition file - generated file
-    YANG_MESSAGE_DEFINITIONS_FILE='yang_message_defs.py'
+    YANG_MESSAGE_DEFINITIONS_FILE = 'yang_message_defs.py'
 
     # Generated YANG schemas to ignore as not used by Netconf client
-    SCHEMAS_TO_IGNORE =['http.yang', 'yang_options.yang', 'descriptor.yang']
+    SCHEMAS_TO_IGNORE = ['http.yang', 'yang_options.yang', 'descriptor.yang']
 
     # Datastores
     RUNNING = "running"
@@ -64,6 +64,7 @@ class Constants:
     NETCONF_BASE_11 = "urn:ietf:params:netconf:base:1.1"
     NETCONF_MONITORING = "urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring"
     NETCONF_WRITABLE = "urn:ietf:params:netconf:capability:writable-running:1.0"
+    NETCONF_CANDIDATE = "urn:ietf:params:netconf:capability:candidate:1.0"
 
     # XML
     XML_HEADER = """<?xml version="1.0" encoding="utf-8"?>"""
@@ -107,7 +108,7 @@ class Constants:
     MESSAGE_ID = "message-id"
     XMLNS = "xmlns"
     DELIMITER = "]]>]]>"
-    DELIMITER_1_1 ="##"
+    DELIMITER_1_1 = "##"
 
     NS_MAP = {
         'nc': 'urn:ietf:params:xml:ns:netconf:base:1.0',
