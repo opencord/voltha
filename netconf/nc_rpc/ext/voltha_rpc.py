@@ -83,17 +83,29 @@ class VolthaRpc(Rpc):
                     self.request_xml)
                 return
 
+    # Helper function to parse a complex xml into a dict
+    def _parse_params(self, node):
+        params = {}
+        if node is not None:
+            for r in node:
+                children = r.getchildren()
+                if children:
+                    params[ r.tag.replace(qmap(C.VOLTHA), "")] = \
+                        self._parse_params(children)
+                else:
+                    params[
+                        r.tag.replace(qmap(C.VOLTHA), "")] = r.text
+        return params
+
     def _extract_parameters(self):
         try:
             rpc_node = self.request_xml.find(''.join(
                 [qmap(C.VOLTHA),
                  self.request['command']])
             )
-            self.request['params'] = {}
-            if rpc_node is not None:
-                for r in rpc_node:
-                    self.request['params'][
-                        r.tag.replace(qmap(C.VOLTHA), "")] = r.text
+
+            # Parse rpc the parameters
+            self.request['params'] = self._parse_params(rpc_node)
 
             # Remove the subclass element in the request if it is present as
             # it is not required for rpc calls

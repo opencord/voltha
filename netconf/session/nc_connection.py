@@ -20,10 +20,12 @@ from twisted.internet import protocol
 from twisted.internet.defer import inlineCallbacks, returnValue
 from common.utils.message_queue import MessageQueue
 from netconf.constants import Constants as C
+import re
 
 log = structlog.get_logger()
 
 MAXSSHBUF = C.MAXSSHBUF
+
 
 class NetconfConnection(protocol.Protocol):
     def __init__(self, data=None, avatar=None, max_chunk=MAXSSHBUF):
@@ -47,7 +49,7 @@ class NetconfConnection(protocol.Protocol):
 
     def dataReceived(self, data):
         log.debug('data-received', len=len(data),
-                 received=hexdump(data, result='return'))
+                  received=hexdump(data, result='return'))
         assert len(data)
         self.rx.put(data)
 
@@ -85,32 +87,52 @@ class NetconfConnection(protocol.Protocol):
         assert self.connected
         msg = yield self.recv(lambda _: True)
         if new_framing:
-            returnValue(self._receive_11(msg))
+            response = yield self._receive_11(msg)
         else:
-            returnValue(self._receive_10(msg))
+            response = yield self._receive_10(msg)
+        returnValue(response)
 
+    @inlineCallbacks
     def _receive_10(self, msg):
         # search for message end indicator
         searchfrom = 0
-        eomidx = msg.find(C.DELIMITER, searchfrom)
-        if eomidx != -1:
-            log.info('received-msg', msg=msg[:eomidx])
-            return msg[:eomidx]
-        else:
-            log.error('no-message-end-indicators', msg=msg)
-            return msg
+        partial_msgs = []
+        while 1:
+            eomidx = msg.find(C.DELIMITER, searchfrom)
+            if eomidx != -1:
+                partial_msgs.append(msg[:eomidx])
+                full_msg = ''.join(partial_msgs)
+                log.info('full-msg-received', msg=full_msg)
+                returnValue(full_msg)
+            else:
+                partial_msgs.append(msg)
+                log.debug('partial-msg-received', msg=msg)
+                msg = yield self.recv(lambda _: True)
 
+    @inlineCallbacks
     def _receive_11(self, msg):
-        # Message is received in the format "\n#{len}\n{msg}\n##\n"
-        # A message may have return characters within it
-        if msg:
-            log.info('received-msg-full', msg=msg)
+        # A message can be received in chunks where each chunk is formatted as:
+        # /\n#[len]\n
+        # \n##\n
+        # msg\n
+        # msg
+        # \n
+        # \nmsg\n
+        partial_msgs = []
+        while 1:
+            log.info('received-msg', msg=msg)
+            # Remove all reference to length if any, i.e any '#len'
+            msg = re.sub(r'#[0-9]+', "", msg)
             msg = msg.split('\n')
-            if len(msg) > 2:
-                msg = ''.join(msg[2:(len(msg)-2)])
-                log.info('parsed-msg\n', msg=msg)
-                return msg
-        return None
+            if C.DELIMITER_1_1 in msg:  # The '##' is the second last ref
+                partial_msgs.append(''.join(msg[0:(len(msg) - 2)]))
+                full_msg = ''.join(partial_msgs)
+                log.debug('full-msg-received', msg=full_msg)
+                returnValue(full_msg)
+            else:
+                partial_msgs.append(''.join(msg))
+                log.debug('partial-msg-received', msg=msg)
+            msg = yield self.recv(lambda _: True)
 
     def close_connection(self):
         log.info('closing-connection')

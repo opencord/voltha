@@ -131,11 +131,7 @@ class RpcResponse():
         if (attrib == 'list'):
             if list(elem) is None:
                 return self.copy_basic_element(elem)
-                # if elem.tag == 'items':
-                # new_elem = etree.Element('items')
             new_elem = etree.Element('ignore')
-            # else:
-            # new_elem = etree.Element('ignore')
             for elm in list(elem):
                 elm.tag = elem.tag
                 if elm.get('type') in ['list', 'dict']:
@@ -171,25 +167,31 @@ class RpcResponse():
         elms = list(from_xml)
         xml_tag = yang_options[0]
         list_items_name = yang_options[1]
-        # special case the xml contain a list type
+        # Handle the special case when the the xml contains 1 element which
+        # is a list type
         if len(elms) == 1:
             item = elms[0]
             if item.get('type') == 'list':
-                if list_items_name == 'items':
-                    # Create a new parent element
-                    new_elem = etree.Element(xml_tag)
-                    self.add_node(self.process_element(item), new_elem)
-                    top.append(new_elem)
-                else:
-                    if xml_tag and custom_rpc:
+                if custom_rpc:  # custom rpc request
+                    if list_items_name == 'items': # no pre-processing required
+                        self.add_node(self.process_element(item), top)
+                        return top
+                    if xml_tag:
                         item.tag = xml_tag
-                    elif request.has_key('subclass'):
+                    else:
+                        item.tag = 'ignore'
+                else:
+                    # Default netconf operations - may end up needing
+                    # specific parsing per request type
+                    if request.has_key('subclass'):
                         item.tag = request['subclass']
                         # remove the subclass element in request to avoid duplicate tag
                         del request['subclass']
+                    elif list_items_name == 'items':
+                        item.tag = xml_tag
                     else:
                         item.tag = 'ignore'
-                    self.add_node(self.process_element(item), top)
+                self.add_node(self.process_element(item), top)
                 return top
 
         # Process normally for all other cases

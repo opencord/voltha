@@ -306,15 +306,13 @@ class GrpcClient(object):
             # Get the XML tag to use in the response
             xml_tag = mapper.get_xml_tag(service, method)
 
-            # Get the XML list item name used in the response
-            list_item_name = mapper.get_list_items_name(service, method)
+            # # Get the XML list item name used in the response
+            # list_item_name = mapper.get_list_items_name(service, method)
 
             # Get the YANG defined fields (and their order) for that service
             # and method
             fields = mapper.get_fields_from_yang_defs(service, method)
 
-            # TODO: This needs to be investigated further since the Netconf
-            # Client shows a formatting error in the code below is uncommented.
             # Check if this represents a List and whether the field name is
             # items.  In the response (a dictionary), if a list named 'items'
             # is returned then 'items' can either:
@@ -324,10 +322,11 @@ class GrpcClient(object):
             # 2) represent the actual field name as defined in the proto
             # definitions.  If this is the case then we need to preserve the
             # name
-            # list_item_name = ''
-            # if len(fields) == 1:
-            #     if fields[0]['name'] == 'items':
-            #         list_item_name = 'items'
+            list_item_name = ''
+            if fields: # if the return type is empty then fields will be None
+                if len(fields) == 1:
+                    if fields[0]['name'] == 'items':
+                        list_item_name = 'items'
 
             # Rearrange the dictionary response as specified by the YANG
             # definitions
