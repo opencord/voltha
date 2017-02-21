@@ -107,6 +107,7 @@ class Constants:
     MESSAGE_ID = "message-id"
     XMLNS = "xmlns"
     DELIMITER = "]]>]]>"
+    DELIMITER_1_1 ="##"
 
     NS_MAP = {
         'nc': 'urn:ietf:params:xml:ns:netconf:base:1.0',
