@@ -52,6 +52,24 @@
       "revId": "24bee3e17e9beda4b69f7c5b04816749048caa22",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_fc24a5c7",
+        "filename": "common/utils/consulhelpers.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 99,
+      "author": {
+        "id": 1000004
+      },
+      "writtenOn": "2017-02-22T17:05:28Z",
+      "side": 1,
+      "message": "You should probably get the service which is running on the same host as the request is coming from.",
+      "parentUuid": "da141535_dc7321e6",
+      "revId": "24bee3e17e9beda4b69f7c5b04816749048caa22",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
