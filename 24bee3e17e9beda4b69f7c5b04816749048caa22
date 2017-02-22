@@ -16,6 +16,24 @@
       "revId": "24bee3e17e9beda4b69f7c5b04816749048caa22",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_bc806d8c",
+        "filename": "common/utils/consulhelpers.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 99,
+      "author": {
+        "id": 1000097
+      },
+      "writtenOn": "2017-02-22T09:53:30Z",
+      "side": 1,
+      "message": "test comment",
+      "parentUuid": "da141535_396d8f05",
+      "revId": "24bee3e17e9beda4b69f7c5b04816749048caa22",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
