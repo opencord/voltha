@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "da141535_3f09ef2c",
+        "filename": "voltha/protos/events.proto",
+        "patchSetId": 4
+      },
+      "lineNbr": 10,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-02-22T20:27:06Z",
+      "side": 1,
+      "message": "In general, proto enums should be capitalized (kpieventtype should have been as well)",
+      "revId": "5be58f5f01ba6749904543fe8a010ff48acdd31f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_1f0e2b35",
+        "filename": "voltha/protos/events.proto",
+        "patchSetId": 4
+      },
+      "lineNbr": 19,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-02-22T20:27:06Z",
+      "side": 1,
+      "message": "I assume this hash represents the full config tree after the event occurred.",
+      "revId": "5be58f5f01ba6749904543fe8a010ff48acdd31f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_ff125757",
+        "filename": "voltha/protos/events.proto",
+        "patchSetId": 4
+      },
+      "lineNbr": 20,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-02-22T20:27:06Z",
+      "side": 1,
+      "message": "Will this be the data of the hash above?",
+      "revId": "5be58f5f01ba6749904543fe8a010ff48acdd31f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
