@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "da141535_7f2647bc",
+        "filename": "voltha/protos/events.proto",
+        "patchSetId": 5
+      },
+      "lineNbr": 11,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-02-22T20:27:06Z",
+      "side": 1,
+      "message": "Ali, do you mind set these in caps?  In general proto enums are caps.  (kpiEventType (slice, ts) should have been caps as well.",
+      "revId": "3690e6f4d2032b9cd18bc880492b9213354dc39c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_5f2b8382",
+        "filename": "voltha/protos/events.proto",
+        "patchSetId": 5
+      },
+      "lineNbr": 21,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-02-22T20:27:06Z",
+      "side": 1,
+      "message": "Would this data represent the latest config from the root level or just the  data that was added/removed/deleted?  In other words, if we get a config \u0027ADD\u0027 event, how would we know what was added?",
+      "revId": "3690e6f4d2032b9cd18bc880492b9213354dc39c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
