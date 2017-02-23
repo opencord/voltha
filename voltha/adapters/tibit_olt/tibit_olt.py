@@ -40,6 +40,7 @@ from voltha.extensions.eoam.EOAM_TLV import DOLTObject, \
      PortIngressRuleResultSet, PortIngressRuleResultInsert, \
      PortIngressRuleResultCopy, PortIngressRuleResultReplace, \
      PortIngressRuleResultDelete, PortIngressRuleResultOLTQueue, \
+     PortIngressRuleResultOLTBroadcastQueue, \
      PortIngressRuleTerminator, AddPortIngressRule, CablelabsOUI, PonPortObject
 from voltha.extensions.eoam.EOAM_TLV import PortIngressRuleHeader
 from voltha.extensions.eoam.EOAM_TLV import ClauseSubtypeEnum
@@ -79,7 +80,11 @@ TIBIT_PACKET_OUT_VLAN = 4000
 is_tibit_frame = BpfProgramFilter('{} or {}'.format(
     frame_match_case1, frame_match_case2))
 
-#is_tibit_frame = lambda x: True
+
+# TODO: This information should be conveyed to the adapter
+# from a higher level.
+MULTICAST_VLAN = 140
+
 
 # Extract OLT MAC address: This is a good
 # example of getting the OLT mac address
@@ -470,6 +475,7 @@ class TibitOltAdapter(object):
         # extract ONU VID
         # vid_from_device_id = {v[0]: k for k,v in self.vlan_to_device_ids.iteritems()}
         # ONU_VID = vid_from_device_id[device.id]
+        _inner_vid = None
 
         Clause = {v: k for k, v in ClauseSubtypeEnum.iteritems()}
         Operator = {v: k for k, v in RuleOperatorEnum.iteritems()}
@@ -540,17 +546,24 @@ class TibitOltAdapter(object):
                         if action.type == OUTPUT:
                             log.info('#### action.type == OUTPUT ####')
                             dn_req /= PortIngressRuleResultForward()
-                            serial = _inner_vid - 200
-                            link = (0xe222 << 16) | (serial << 8)
-                            dn_req /= PortIngressRuleResultOLTQueue(unicastvssn="TBIT",
-                                                                    unicastlink=link)
+                            if _outer_vid == MULTICAST_VLAN:
+                                dn_req /= PortIngressRuleResultOLTBroadcastQueue()
+                            else:
+                                serial = _inner_vid - 200
+                                link = (0xe222 << 16) | (serial << 8)
+                                dn_req /= PortIngressRuleResultOLTQueue(unicastvssn="TBIT",
+                                                                        unicastlink=link)
 
                         elif action.type == POP_VLAN:
                             log.info('#### action.type == POP_VLAN ####')
-                            dn_req /= PortIngressRuleResultDelete(fieldcode=Clause['S-VLAN Tag'])
-                            dn_req /= PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
-                                                                         operator=Operator['=='], match=_outer_vid)
-                            if (_outer_vid != 140):
+                            if _outer_vid == MULTICAST_VLAN:
+                                dn_req /= PortIngressRuleResultDelete(fieldcode=Clause['C-VLAN Tag'])
+                                dn_req /= PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
+                                                                             operator=Operator['=='], match=_outer_vid)
+                            else:
+                                dn_req /= PortIngressRuleResultDelete(fieldcode=Clause['S-VLAN Tag'])
+                                dn_req /= PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
+                                                                             operator=Operator['=='], match=_outer_vid)
                                 dn_req /= PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=1,
                                                                              operator=Operator['=='], match=_inner_vid)
 
