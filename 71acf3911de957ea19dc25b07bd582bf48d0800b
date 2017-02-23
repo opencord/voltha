@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "da141535_5f9a6315",
+        "filename": "ponsim/realio.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 54,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-02-23T21:57:57Z",
+      "side": 1,
+      "message": "Is there any benefit of using log.exception over here?",
+      "revId": "71acf3911de957ea19dc25b07bd582bf48d0800b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
