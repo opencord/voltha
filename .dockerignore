@@ -6,3 +6,5 @@ venv-linux
 .git
 .gitignore
 
+# npm
+**/node_modules
