@@ -416,3 +416,12 @@ class FrameIOManager(Thread):
                     break  # break inner loop so we reconstruct sockets list
 
         log.debug('select-loop-exited')
+
+    def del_interface(self, iface_name):
+        """
+            Delete interface for stopping
+        """
+
+        log.info('Delete interface')
+        del self.ports[iface_name]
+        log.info('Interface(port) is deleted')
