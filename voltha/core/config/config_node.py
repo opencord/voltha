@@ -20,6 +20,7 @@ from jsonpatch import make_patch
 
 from common.utils.json_format import MessageToDict
 from voltha.core.config.config_branch import ConfigBranch
+from voltha.core.config.config_event_bus import ConfigEventBus
 from voltha.core.config.config_proxy import CallbackType, ConfigProxy
 from voltha.core.config.config_rev import is_proto_message, children_fields, \
     ConfigRevision, access_rights
@@ -69,6 +70,7 @@ class ConfigNode(object):
                       # branch
         '_tags',  # dict of tag-name to ref of ConfigRevision
         '_proxy',  # ref to proxy observer or None if no proxy assigned
+        '_event_bus',  # ref to event_bus or None if no event bus is assigned
         '_auto_prune'
     )
 
@@ -77,6 +79,7 @@ class ConfigNode(object):
         self._branches = {}
         self._tags = {}
         self._proxy = None
+        self._event_bus = None
         self._auto_prune = auto_prune
 
         if isinstance(initial_data, type):
@@ -286,18 +289,28 @@ class ConfigNode(object):
             branch._revs[rev.hash] = rev
 
         # announce only if this is main branch
-        if change_announcements and branch._txid is None and \
-                        self._proxy is not None:
+        if change_announcements and branch._txid is None:
+
+            if self._proxy is not None:
+                for change_type, data in change_announcements:
+                    # since the callback may operate on the config tree,
+                    # we have to defer the execution of the callbacks till
+                    # the change is propagated to the root, then root will
+                    # call the callbacks
+                    self._root.enqueue_callback(
+                        self._proxy.invoke_callbacks,
+                        change_type,
+                        data,
+                        proceed_on_errors=1,
+                    )
+
+
             for change_type, data in change_announcements:
-                # since the callback may operate on the config tree,
-                # we have to defer the execution of the callbacks till
-                # the change is propagated to the root, then root will
-                # call the callbacks
                 self._root.enqueue_callback(
-                    self._proxy.invoke_callbacks,
+                    self._mk_event_bus().advertise,
                     change_type,
                     data,
-                    proceed_on_errors=1
+                    hash=rev.hash
                 )
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ add operation ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -401,7 +414,7 @@ class ConfigNode(object):
                             CallbackType.PRE_REMOVE, data)
                         post_anno = ((CallbackType.POST_REMOVE, data),)
                     else:
-                        post_anno = ()
+                        post_anno = ((CallbackType.POST_REMOVE, child_rev.data),)
                     del children[idx]
                     rev = rev.update_children(name, children, branch)
                     self._make_latest(branch, rev, post_anno)
@@ -566,6 +579,11 @@ class ConfigNode(object):
             if self._proxy.exclusive:
                 raise ValueError('Node is already owned exclusively')
         return self._proxy
+
+    def _mk_event_bus(self):
+        if self._event_bus is None:
+            self._event_bus = ConfigEventBus()
+        return self._event_bus
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~ Persistence loading ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
