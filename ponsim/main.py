@@ -178,7 +178,7 @@ class Main(object):
         self.teardown_networking_assets(self.args.name, self.args.onus)
         if self.grpc_server is not None:
             yield self.grpc_server.stop()
-        
+
     def start_reactor(self):
         from twisted.internet import reactor
         reactor.callWhenRunning(

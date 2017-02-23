@@ -51,7 +51,7 @@ class RealIo(object):
             yield self.frame_io.stop()
             log.info('stopped')
         except Exception, e:
-            log.info('exception: %r' % e)
+            pass
 
     def register_ponsim(self, ponsim):
         self.ponsim = ponsim
