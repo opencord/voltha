@@ -150,6 +150,8 @@ class ConfigRoot(ConfigNode):
         while self._deferred_callback_queue:
             func, args, kw = self._deferred_callback_queue.pop(0)
             func(*args, **kw)
+            if self._event_bus is not None:
+                self._event_bus.advertise(*args, hash=hash)
 
     # ~~~~~~~~~~~~~~~~ Persistence related ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
