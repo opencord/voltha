@@ -7,13 +7,17 @@ from unittest import main, TestCase
 
 import gc
 
+from google.protobuf.json_format import MessageToDict
 from mock import Mock
+from simplejson import dumps
 
-from voltha.core.config.config_proxy import CallbackType, OperationContext
+from common.event_bus import EventBusClient
+from voltha.core.config.config_proxy import CallbackType
 from voltha.core.config.config_rev import _rev_cache
 from voltha.core.config.config_root import ConfigRoot, MergeConflictException
 from voltha.core.config.config_txn import ClosedTransactionError
 from voltha.protos import third_party
+from voltha.protos.events_pb2 import ConfigEvent, ConfigEventType
 from voltha.protos.openflow_13_pb2 import ofp_port
 from voltha.protos.voltha_pb2 import VolthaInstance, Adapter, HealthStatus, \
     AdapterConfig, LogicalDevice, LogicalPort
@@ -538,6 +542,42 @@ class TestNodeOwnershipAndHooks(DeepTestsBase):
         proxy.remove('/adapters/1')
         pre_callback.assert_called_with(adapter)
         post_callback.assert_called_with(adapter)
+
+class TestEventLogic(DeepTestsBase):
+
+    def setUp(self):
+        super(TestEventLogic, self).setUp()
+        self.ebc = EventBusClient()
+        self.event_mock = Mock()
+        self.ebc.subscribe('model-change-events', self.event_mock)
+
+    def test_add_event(self):
+
+        data = Adapter(id='10', version='zoo')
+        self.node.add('/adapters', data)
+        event = ConfigEvent(
+            type=ConfigEventType.add,
+            hash=self.node.latest.hash,
+            data=dumps(MessageToDict(data, True, True))
+        )
+
+        self.event_mock.assert_called_once_with('model-change-events', event)
+
+    def test_remove_event(self):
+        data = Adapter(
+            id='1',
+            config=AdapterConfig(
+                log_level=3
+            )
+        )
+        self.node.remove('/adapters/1')
+        event = ConfigEvent(
+            type=ConfigEventType.remove,
+            hash=self.node.latest.hash,
+            data=dumps(MessageToDict(data, True, True))
+        )
+
+        self.event_mock.assert_called_once_with('model-change-events', event)
 
 
 class TestTransactionalLogic(DeepTestsBase):
