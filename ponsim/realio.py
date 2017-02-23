@@ -42,12 +42,16 @@ class RealIo(object):
         log.info('started')
         returnValue(self)
 
+    @inlineCallbacks
     def stop(self):
         log.debug('stopping')
-        for port in self.io_ports.values():
-            self.frame_io.del_interface(port.iface_name)
-        self.frame_io.stop()
-        log.info('stopped')
+        try:
+            for port in self.io_ports.values():
+                yield self.frame_io.del_interface(port.iface_name)
+            yield self.frame_io.stop()
+            log.info('stopped')
+        except Exception, e:
+            log.info('exception: %r' % e)
 
     def register_ponsim(self, ponsim):
         self.ponsim = ponsim
