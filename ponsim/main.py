@@ -173,11 +173,14 @@ class Main(object):
     def shutdown_components(self):
         """Execute before the reactor is shut down"""
         self.log.info('exiting-on-keyboard-interrupt')
-        if self.io is not None:
-            yield self.io.stop()
-        self.teardown_networking_assets(self.args.name, self.args.onus)
-        if self.grpc_server is not None:
-            yield self.grpc_server.stop()
+        try:
+            if self.io is not None:
+                yield self.io.stop()
+            self.teardown_networking_assets(self.args.name, self.args.onus)
+            if self.grpc_server is not None:
+                yield self.grpc_server.stop()
+        except Exception, e:
+            self.log.exception('shutdown-failed', e=e)
 
     def start_reactor(self):
         from twisted.internet import reactor
