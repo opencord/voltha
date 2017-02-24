@@ -176,13 +176,24 @@ class ConfigRoot(ConfigNode):
             blob = dumps(root_data)
             self._kv_store['root'] = blob
 
+    def persist_tags(self):
+        if self._kv_store is not None:
+            root_data = loads(self.kv_store['root'])
+            root_data = dict(
+                latest=root_data['latest'],
+                tags=dict((k, v._hash) for k, v in self._tags.iteritems())
+            )
+            blob = dumps(root_data)
+            self._kv_store['root'] = blob
+
     def load_from_persistence(self, root_msg_cls):
         self._loading = True
         blob = self._kv_store['root']
         root_data = loads(blob)
 
         for tag, hash in root_data['tags'].iteritems():
-            raise NotImplementedError()
+            self.load_latest(hash)
+            self._tags[tag] = self.latest
 
         self.load_latest(root_data['latest'])
 
