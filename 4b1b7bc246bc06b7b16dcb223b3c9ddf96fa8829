@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "da141535_2281d44a",
+        "filename": "ponsim/realio.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 54,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-02-24T14:10:30Z",
+      "side": 1,
+      "message": "You misunderstood my initial comment.  I think we still need to have a log message here.  My question was in regards to using log.exception vs log.info.",
+      "revId": "4b1b7bc246bc06b7b16dcb223b3c9ddf96fa8829",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
