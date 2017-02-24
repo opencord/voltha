@@ -9,29 +9,27 @@ There are many ways to build and develop Voltha:
 
 ### Prerequisites
 
-* Git client
+* Repo client (see below)
 * Working installation of Vagrant 1.9.1 or later -- see [https://www.vagrantup.com/downloads.html](https://www.vagrantup.com/downloads.html)
 * jq -- a useful command line too to work with JSON data. On the MAC, you can install jq with ```brew install jq```; on Ubuntu you can do it with ```sudo apt-get install jq```. You will not regret it.
 
+### Repo
+
+To checkout the the voltha source code you will need to install repo. Intructions for this can be found [here](https://wiki.opencord.org/display/CORD/Setting+up+and+using+REPO)
 
 ### Build
 
-If you have not cloned Voltha, it's time to do it now. If you just want to check it out, you can do it anonymously:
+If you have not cloned Voltha, it's time to do it now.
 
 ```
-git clone https://gerrit.opencord.org/voltha
-```
-
-If you want to develop it, you better use your Gerrit credentials and clone is as (substitute your user name):
-
-```
-git clone ssh://<your-gerrit-user-name>@gerrit.opencord.org:29418/voltha
+repo init -u https://gerrit.opencord.org/manifest -g voltha
+repo sync
 ```
 
 You can build Voltha by:
 
 ```
-cd voltha
+cd opencord/incubator/voltha
 vagrant up  # when you do this for the first time, this will take considerable time
 vagrant ssh # the rest to be executed inside the vagrant VM
 cd /cord/incubator/voltha
