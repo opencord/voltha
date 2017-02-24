@@ -215,7 +215,7 @@ class ConfigDataRevision(object):
     def _hash_data(data):
         """Hash function to be used to track version changes of config nodes"""
         if isinstance(data, (dict, list)):
-            to_hash = dumps(data)
+            to_hash = dumps(data, sort_keys=True)
         elif is_proto_message(data):
             to_hash = ':'.join((
                 data.__class__.__module__,
@@ -262,7 +262,8 @@ class ConfigRevision(object):
         # hash is derived from config hash and hashes of all children
         m = md5('' if self._config is None else self._config._hash)
         if self._children is not None:
-            for children in self._children.itervalues():
+            for child_field in sorted(self._children.keys()):
+                children = self._children[child_field]
                 assert isinstance(children, list)
                 m.update(''.join(c._hash for c in children))
         return m.hexdigest()[:12]

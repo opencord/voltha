@@ -471,6 +471,7 @@ class ConfigNode(object):
         branch = self._branches[None]  # tag only what has been committed
         rev = branch._latest if hash is None else branch._revs[hash]
         self._tags[tag] = rev
+        self.persist_tags()
         return self
 
     @property
@@ -490,10 +491,12 @@ class ConfigNode(object):
 
     def delete_tag(self, tag):
         del self._tags[tag]
+        self.persist_tags()
 
     def delete_tags(self, *tags):
         for tag in tags:
             del self._tags[tag]
+        self.persist_tags()
 
     def prune_untagged(self):
         branch = self._branches[None]
@@ -503,6 +506,11 @@ class ConfigNode(object):
             if hash not in keep:
                 del branch._revs[hash]
         return self
+
+    def persist_tags(self):
+        """
+        Persist tag information to the backend
+        """
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Internals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

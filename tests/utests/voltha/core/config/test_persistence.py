@@ -2,6 +2,7 @@ from copy import copy
 from random import randint, seed
 from time import time
 from unittest import main, TestCase
+import json
 
 from voltha.core.config.config_root import ConfigRoot
 from voltha.protos.openflow_13_pb2 import ofp_desc
@@ -54,9 +55,11 @@ class TestPersistence(TestCase):
 
         # create node and pump data
         node = ConfigRoot(VolthaInstance(), kv_store=kv_store)
+        node.tag('original')
         pt('init')
         self.pump_some_data(node)
         pt('pump')
+        node.tag('pumped')
 
         # check that content of kv_store looks ok
         size1 = len(kv_store)
@@ -67,22 +70,26 @@ class TestPersistence(TestCase):
         pt('prunning')
 
         size2 = len(kv_store)
-        self.assertEqual(size2, 7 + 2 * (1 + 1 + n_adapters + n_logical_nodes))
+        self.assertEqual(size2, 7 + 2 * (1 + 1 + n_adapters + n_logical_nodes) + 2)
         all_latest_data = node.get('/', deep=1)
         pt('deep get')
 
         # save dict so that deleting the node will not wipe it
+        latest_hash = node.latest.hash
         kv_store = copy(kv_store)
         pt('copy kv store')
         del node
         pt('delete node')
         # self.assertEqual(size2, 1 + 2 * (1 + 1 + n_adapters + n_logical_nodes))
 
+        self.assertEqual(json.loads(kv_store['root'])['latest'], latest_hash)
         # recreate tree from persistence
         node = ConfigRoot.load(VolthaInstance, kv_store)
         pt('load from kv store')
         self.assertEqual(node.get('/', deep=1), all_latest_data)
         pt('deep get')
+        self.assertEqual(latest_hash, node.latest.hash)
+        self.assertEqual(node.tags, ['original', 'pumped'])
 
 
 if __name__ == '__main__':
