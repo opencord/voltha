@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "da141535_0272507c",
+        "filename": "common/utils/consulhelpers.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 98,
+      "author": {
+        "id": 1000004
+      },
+      "writtenOn": "2017-02-24T17:49:41Z",
+      "side": 1,
+      "message": "I believe near returns nodes that are sorted with respect to the consul server which may not be what we want. I think we just want to see whether there is an instance of the service running on this machine and if not pick one randomly.",
+      "revId": "94d3835730a8183403dcd000894ec4d8db46aa58",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
