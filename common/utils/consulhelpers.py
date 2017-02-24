@@ -78,31 +78,44 @@ def get_all_services(consul_endpoint):
     return services
 
 
-def get_endpoint_from_consul(consul_endpoint, service_name):
-    """Look up, from consul, the service name specified by service-name
+def get_endpoint_from_consul(consul_endpoint, service_name,
+                             node=None):
+    """
+    Get endpoint of service_name from consul.
+    Takes an optional parameter, i.e., node, to sort the
+    resulting list in ascending order based on the estimated
+    round trip time from that node.
+    :param consul_endpoint: a <host>:<port> string
+    :param service_name: name of service for which endpoint
+                         needs to be found.
+    :param node: node name, optional
+    :return: service endpoint if available, else exit.
     """
     log.debug('getting-service-info', service=service_name)
 
     consul = connect_to_consult(consul_endpoint)
-    _, services = consul.catalog.service(service_name)
+    if node is not None:
+        _, services = consul.catalog.service(service_name, near=node)
+    else:
+        _, services = consul.catalog.service(service_name)
 
     if len(services) == 0:
         raise Exception(
             'Cannot find service {} in consul'.format(service_name))
         os.exit(1)
 
-    """ Check if the service is available on localhost and return
-        the corresponding endpoint if available
+    """ If a valid node name was provided, the resulting service list
+        would be sorted in the ascending order of RTT. So, choose the
+        first node in the services list.
     """
-    for service in services:
-        for k, v in service.iteritems():
-            if (k == 'ServiceAddress' and v == "127.0.0.1"):
-                endpoint = '127.0.0.1:{}'.format(
-                                            service['ServicePort'])
-                return endpoint
+    if node is not None:
+        service = services[0]
+        endpoint = '{}:{}'.format(service['ServiceAddress'],
+                                  service['ServicePort'])
+        return endpoint
 
-    """ If service is not available on loopback,
-        pick a random service within the list
+    """ If no node name was provided, pick a random service in the
+        services list
     """
     service = services[randint(0, len(services) - 1)]
     endpoint = '{}:{}'.format(service['ServiceAddress'],
