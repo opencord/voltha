@@ -16,6 +16,24 @@
       "revId": "94d3835730a8183403dcd000894ec4d8db46aa58",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_026db032",
+        "filename": "common/utils/consulhelpers.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 98,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-02-25T04:51:02Z",
+      "side": 1,
+      "message": "As per the documentation in https://www.consul.io/docs/agent/http/catalog.html#catalog_service, it suggests otherwise.\nTo quote it .. \"Adding the optional ?near\u003d parameter with a node name will sort the node list in ascending order based on the estimated round trip time from that node. Passing ?near\u003d_agent will use the agent\u0027s node for the sort.\".\nThis link https://python-consul.readthedocs.io/en/latest/#consul.base.Consul.Catalog.service is for python consul catalog service.",
+      "parentUuid": "da141535_0272507c",
+      "revId": "94d3835730a8183403dcd000894ec4d8db46aa58",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
