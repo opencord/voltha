@@ -19,6 +19,7 @@ Maple OLT/ONU adapter.
 """
 from uuid import uuid4
 
+import arrow
 import grpc
 import structlog
 from scapy.layers.l2 import Ether, Dot1Q
@@ -40,6 +41,8 @@ from voltha.protos.common_pb2 import LogLevel, OperStatus, ConnectStatus, \
 from voltha.protos.device_pb2 import DeviceType, DeviceTypes, Port, Device
 from voltha.protos.health_pb2 import HealthStatus
 from google.protobuf.empty_pb2 import Empty
+from voltha.protos.events_pb2 import KpiEvent, MetricValuePairs
+from voltha.protos.events_pb2 import KpiEventType
 
 from voltha.protos.logical_device_pb2 import LogicalPort, LogicalDevice
 from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, OFPPF_1GB_FD, \
@@ -56,8 +59,11 @@ is_inband_frame = BpfProgramFilter('(ether[14:2] & 0xfff) = 0x{:03x}'.format(
     PACKET_IN_VLAN))
 
 
-class OmciRxProxy(pb.Root):
-    def __init__(self):
+class MapleOltRxHandler(pb.Root):
+    def __init__(self, device_id, adapter):
+        self.device_id = device_id
+        self.adapter_agent = adapter.adapter_agent
+        self.adapter_name = adapter.name
         self.pb_server_ip = '192.168.24.20'  # registry('main').get_args().external_host_address
         self.pb_server_port = 24497
         self.pb_server_factory = pb.PBServerFactory(self)
@@ -86,8 +92,50 @@ class OmciRxProxy(pb.Root):
                  msg_data=hexify(msg_data))
         self.omci_rx_queue.put((onu, msg_data))
 
-    def receive(self):
+    def receive_omci_msg(self):
         return self.omci_rx_queue.get()
+
+    def remote_report_stats(self, object, key, stats_data):
+        log.info('received-stats-msg',
+                 object=object,
+                 key=key,
+                 stats=stats_data)
+
+        prefix = 'voltha.{}.{}'.format(self.adapter_name, self.device_id)
+
+        try:
+            ts = arrow.utcnow().timestamp
+
+            prefixes = {
+                prefix + '.nni': MetricValuePairs(metrics=stats_data)
+                }
+
+            kpi_event = KpiEvent(
+                type=KpiEventType.slice,
+                ts=ts,
+                prefixes=prefixes
+            )
+
+            self.adapter_agent.submit_kpis(kpi_event)
+
+        except Exception as e:
+            log.exception('failed-to-submit-kpis', e=e)
+
+    def remote_report_event(self, object, key, event, event_data=None):
+        log.info('received-event-msg',
+                 object=object,
+                 key=key,
+                 event_str=event,
+                 event_data=event_data)
+
+    def remote_report_alarm(self, object, key, alarm, status, priority, alarm_data=None):
+        log.info('received-alarm-msg',
+                 object=object,
+                 key=key,
+                 alarm=alarm,
+                 status=status,
+                 priority=priority,
+                 alarm_data=alarm_data)
 
 
 @implementer(IAdapterInterface)
@@ -190,7 +238,7 @@ class MapleOltHandler(object):
         self.pbc_factory = pb.PBClientFactory()
         self.pbc_port = 24498
         self.tx_id = 0
-        self.omci_rx_proxy = OmciRxProxy()
+        self.rx_handler = MapleOltRxHandler(self.device_id, self.adapter)
 
     def __del__(self):
         if self.io_port is not None:
@@ -209,8 +257,8 @@ class MapleOltHandler(object):
 
     @inlineCallbacks
     def send_set_remote(self):
-        srv_ip = self.omci_rx_proxy.get_ip()
-        srv_port = self.omci_rx_proxy.get_port()
+        srv_ip = self.rx_handler.get_ip()
+        srv_port = self.rx_handler.get_port()
         self.log.info('setting-remote-ip-port', ip=srv_ip, port=srv_port)
 
         try:
@@ -674,7 +722,7 @@ class MapleOltHandler(object):
                                     0,
                                     self.get_onu_from_vlan(proxy_address.channel_id),
                                     msg)
-            onu, rmsg = yield self.omci_rx_proxy.receive()
+            onu, rmsg = yield self.rx_handler.receive_omci_msg()
             self.adapter_agent.receive_proxied_message(proxy_address, rmsg)
         except Exception as e:
             self.log.info('send-proxied_message-exception', exc=str(e))
@@ -692,3 +740,13 @@ class MapleOltHandler(object):
             pkt.payload
         )
         self.io_port.send(str(out_pkt))
+
+    @inlineCallbacks
+    def send_configure_stats_collection_interval(self, olt_no, interval):
+        self.log.info('configuring-stats-collect-interval', olt=olt_no, interval=interval)
+        try:
+            remote = self.get_channel()
+            data = yield remote.callRemote('set_stats_collection_interval', interval)
+            self.log.info('configured-stats-collect-interval', data=data)
+        except Exception as e:
+            self.log.info('configure-stats-collect-interval', exc=str(e))
