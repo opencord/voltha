@@ -82,15 +82,8 @@ class VolthaCli(Cmd):
 
     # cleanup of superfluous commands from cmd2
     del Cmd.do_cmdenvironment
-    # del Cmd.do_eof
-    del Cmd.do_q
-    del Cmd.do_hi
-    del Cmd.do_l
-    del Cmd.do_li
-    del Cmd.do_r
-    del Cmd.do__load
+    del Cmd.do_load
     del Cmd.do__relative_load
-    Cmd.do_edit = Cmd.do_ed
 
     def __init__(self, voltha_grpc, voltha_sim_rest):
         VolthaCli.voltha_grpc = voltha_grpc
