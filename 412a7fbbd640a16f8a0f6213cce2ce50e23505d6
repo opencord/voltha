@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "da141535_cd9ec963",
+        "filename": "voltha/adapters/maple_olt/maple_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 752,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-02-28T14:28:10Z",
+      "side": 1,
+      "message": "It\u0027s preferable to change this to self.log.exception(...), this way you get the traceback.",
+      "revId": "412a7fbbd640a16f8a0f6213cce2ce50e23505d6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
