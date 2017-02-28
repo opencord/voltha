@@ -73,6 +73,48 @@ class SimulatedOltAdapter(object):
             config=AdapterConfig(log_level=LogLevel.INFO)
         )
         self.control_endpoint = None
+        # Faked PM metrics for testing PM functionality
+        self.pon_tx_64 = 0
+        self.pon_tx_65_127 = 0
+        self.pon_tx_128_255 = 0
+        self.pon_tx_256_511 = 0
+        self.pon_tx_512_1023 = 0
+        self.pon_tx_1024_1518 = 0
+        self.pon_tx_1519_9k = 0
+
+        self.pon_rx_64 = 0
+        self.pon_rx_65_127 = 0
+        self.pon_rx_128_255 = 0
+        self.pon_rx_256_511 = 0
+        self.pon_rx_512_1023 = 0
+        self.pon_rx_1024_1518 = 0
+        self.pon_rx_1519_9k = 0
+
+        self.pon_tx_pkts = 0
+        self.pon_rx_pkts = 0
+        self.pon_tx_bytes = 0
+        self.pon_rx_bytes = 0
+
+        self.nni_tx_64 = 0
+        self.nni_tx_65_127 = 0
+        self.nni_tx_128_255 = 0
+        self.nni_tx_256_511 = 0
+        self.nni_tx_512_1023 = 0
+        self.nni_tx_1024_1518 = 0
+        self.nni_tx_1519_9k = 0
+
+        self.nni_rx_64 = 0
+        self.nni_rx_65_127 = 0
+        self.nni_rx_128_255 = 0
+        self.nni_rx_256_511 = 0
+        self.nni_rx_512_1023 = 0
+        self.nni_rx_1024_1518 = 0
+        self.nni_rx_1519_9k = 0
+
+        self.nni_tx_pkts = 0
+        self.nni_rx_pkts = 0
+        self.nni_tx_bytes = 0
+        self.nni_rx_bytes = 0
 
     def start(self):
         log.debug('starting')
@@ -535,18 +577,92 @@ class SimulatedOltAdapter(object):
 
             try:
                 # Step 1: gather metrics from device (pretend it here) - examples
+                # upgraded the metrics to include packet statistics for
+                # testing.
                 nni_port_metrics = yield dict(
-                    tx_pkts=random.randint(0, 100),
-                    rx_pkts=random.randint(0, 100),
-                    tx_bytes=random.randint(0, 100000),
-                    rx_bytes=random.randint(0, 100000),
+                    tx_pkts=self.nni_tx_pkts+random.randint(90, 100),
+                    rx_pkts=self.nni_rx_pkts+random.randint(90, 100),
+                    tx_bytes=self.nni_tx_bytes+random.randint(90000, 100000),
+                    rx_bytes=self.nni_rx_bytes+random.randint(90000, 100000),
+                    tx_64 = self.nni_tx_64 + random.randint(50,55),
+                    tx_65_127 = self.nni_tx_65_127 + random.randint(55,60),
+                    tx_128_255 = self.nni_tx_128_255 + random.randint(60,65),
+                    tx_256_511 = self.nni_tx_256_511 + random.randint(85,90),
+                    tx_512_1023 = self.nni_tx_512_1023 + random.randint(90,95),
+                    tx_1024_1518 = self.nni_tx_1024_1518 + random.randint(60,65),
+                    tx_1519_9k = self.nni_tx_1519_9k + random.randint(50,55),
+
+                    rx_64 = self.nni_tx_64 + random.randint(50,55),
+                    rx_65_127 = self.nni_tx_65_127 + random.randint(55,60),
+                    rx_128_255 = self.nni_tx_128_255 + random.randint(60,65),
+                    rx_256_511 = self.nni_tx_256_511 + random.randint(85,90),
+                    rx_512_1023 = self.nni_tx_512_1023 + random.randint(90,95),
+                    rx_1024_1518 = self.nni_tx_1024_1518 + random.randint(60,65),
+                    rx_1519_9k = self.nni_tx_1519_9k + random.randint(50,55)
                 )
                 pon_port_metrics = yield dict(
-                    tx_pkts=nni_port_metrics['rx_pkts'],
-                    rx_pkts=nni_port_metrics['tx_pkts'],
-                    tx_bytes=nni_port_metrics['rx_bytes'],
-                    rx_bytes=nni_port_metrics['tx_bytes'],
+                    tx_pkts=self.pon_tx_pkts+random.randint(90, 100),
+                    rx_pkts=self.pon_rx_pkts+random.randint(90, 100),
+                    tx_bytes=self.pon_tx_bytes+random.randint(90000, 100000),
+                    rx_bytes=self.pon_rx_bytes+random.randint(90000, 100000),
+                    tx_64 = self.pon_tx_64 + random.randint(50,55),
+                    tx_65_127 = self.pon_tx_65_127 + random.randint(55,60),
+                    tx_128_255 = self.pon_tx_128_255 + random.randint(60,65),
+                    tx_256_511 = self.pon_tx_256_511 + random.randint(85,90),
+                    tx_512_1023 = self.pon_tx_512_1023 + random.randint(90,95),
+                    tx_1024_1518 = self.pon_tx_1024_1518 + random.randint(60,65),
+                    tx_1519_9k = self.pon_tx_1519_9k + random.randint(50,55),
+
+                    rx_64 = self.pon_tx_64 + random.randint(50,55),
+                    rx_65_127 = self.pon_tx_65_127 + random.randint(55,60),
+                    rx_128_255 = self.pon_tx_128_255 + random.randint(60,65),
+                    rx_256_511 = self.pon_tx_256_511 + random.randint(85,90),
+                    rx_512_1023 = self.pon_tx_512_1023 + random.randint(90,95),
+                    rx_1024_1518 = self.pon_tx_1024_1518 + random.randint(60,65),
+                    rx_1519_9k = self.pon_tx_1519_9k + random.randint(50,55)
                 )
+                self.pon_tx_pkts = pon_port_metrics['tx_pkts']
+                self.pon_rx_pkts = pon_port_metrics['rx_pkts']
+                self.pon_tx_bytes = pon_port_metrics['tx_bytes']
+                self.pon_rx_bytes = pon_port_metrics['rx_bytes']
+
+                self.pon_tx_64 = pon_port_metrics['tx_64']
+                self.pon_tx_65_127 = pon_port_metrics['tx_65_127']
+                self.pon_tx_128_255 = pon_port_metrics['tx_128_255']
+                self.pon_tx_256_511 = pon_port_metrics['tx_256_511']
+                self.pon_tx_512_1023 = pon_port_metrics['tx_512_1023']
+                self.pon_tx_1024_1518 = pon_port_metrics['tx_1024_1518']
+                self.pon_tx_1519_9k = pon_port_metrics['tx_1519_9k']
+
+                self.pon_rx_64 = pon_port_metrics['rx_64']
+                self.pon_rx_65_127 = pon_port_metrics['rx_65_127']
+                self.pon_rx_128_255 = pon_port_metrics['rx_128_255']
+                self.pon_rx_256_511 = pon_port_metrics['rx_256_511']
+                self.pon_rx_512_1023 = pon_port_metrics['rx_512_1023']
+                self.pon_rx_1024_1518 = pon_port_metrics['rx_1024_1518']
+                self.pon_rx_1519_9k = pon_port_metrics['rx_1519_9k']
+
+                self.nni_tx_pkts = nni_port_metrics['tx_pkts']
+                self.nni_rx_pkts = nni_port_metrics['rx_pkts']
+                self.nni_tx_bytes = nni_port_metrics['tx_bytes']
+                self.nni_rx_bytes = nni_port_metrics['rx_bytes']
+
+                self.nni_tx_64 = nni_port_metrics['tx_64']
+                self.nni_tx_65_127 = nni_port_metrics['tx_65_127']
+                self.nni_tx_128_255 = nni_port_metrics['tx_128_255']
+                self.nni_tx_256_511 = nni_port_metrics['tx_256_511']
+                self.nni_tx_512_1023 = nni_port_metrics['tx_512_1023']
+                self.nni_tx_1024_1518 = nni_port_metrics['tx_1024_1518']
+                self.nni_tx_1519_9k = nni_port_metrics['tx_1519_9k']
+
+                self.nni_rx_64 = nni_port_metrics['rx_64']
+                self.nni_rx_65_127 = nni_port_metrics['rx_65_127']
+                self.nni_rx_128_255 = nni_port_metrics['rx_128_255']
+                self.nni_rx_256_511 = nni_port_metrics['rx_256_511']
+                self.nni_rx_512_1023 = nni_port_metrics['rx_512_1023']
+                self.nni_rx_1024_1518 = nni_port_metrics['rx_1024_1518']
+                self.nni_rx_1519_9k = nni_port_metrics['rx_1519_9k']
+
                 olt_metrics = yield dict(
                     cpu_util=20 + 5 * random.random(),
                     buffer_util=10 + 10 * random.random()
