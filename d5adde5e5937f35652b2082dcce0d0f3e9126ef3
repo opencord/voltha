@@ -1,0 +1,89 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "da141535_4dd199cc",
+        "filename": "dashd/dash_template.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 31,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-02-28T21:56:58Z",
+      "side": 1,
+      "message": "Ideally, lines are limited to 79.  In this case, this may be ok.",
+      "revId": "d5adde5e5937f35652b2082dcce0d0f3e9126ef3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_cd4da9c6",
+        "filename": "dashd/dashd_impl.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 3,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-02-28T21:56:58Z",
+      "side": 1,
+      "message": "Please use Apache license instead.",
+      "revId": "d5adde5e5937f35652b2082dcce0d0f3e9126ef3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_ad4a75aa",
+        "filename": "dashd/dashd_impl.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 88,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-02-28T21:56:58Z",
+      "side": 1,
+      "message": "The print i guess this is just for debug",
+      "revId": "d5adde5e5937f35652b2082dcce0d0f3e9126ef3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_8dc7b112",
+        "filename": "dashd/dashd_impl.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 109,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-02-28T21:56:58Z",
+      "side": 1,
+      "message": "This is the format of logs adopted in voltha",
+      "revId": "d5adde5e5937f35652b2082dcce0d0f3e9126ef3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_6dcc5d36",
+        "filename": "dashd/dashd_impl.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 204,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-02-28T21:56:58Z",
+      "side": 1,
+      "message": "Please update the logs with the adopted format.",
+      "revId": "d5adde5e5937f35652b2082dcce0d0f3e9126ef3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
