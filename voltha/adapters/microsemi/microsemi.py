@@ -58,6 +58,7 @@ class RubyAdapter(object):
     def __init__(self, adaptor_agent, config):
         self.adaptor_agent = adaptor_agent
         self.config = config
+        self.olts = {}
         self.descriptor = Adapter(
             id=self.name,
             vendor='Microsemi / Celestica',
@@ -74,7 +75,8 @@ class RubyAdapter(object):
 
     def stop(self):
         log.debug('stopping')
-        # TODO Stop all OLTs
+        for target in self.olts.keys():
+            self._abandon(target)
         log.info('stopped')
         return self
 
@@ -101,13 +103,13 @@ class RubyAdapter(object):
         reactor.callLater(0, self._init_olt, olt, activation)
 
         log.info('adopted-device', device=device)
-        # TODO store olt elements
+        self.olts[target] = (olt, activation)
 
     def abandon_device(self, device):
-        raise NotImplementedError(0)
+        self._abandon(device.mac_address)
 
     def deactivate_device(self, device):
-        raise NotImplementedError()
+        self._abandon(device.mac_address)
 
     def update_flows_bulk(self, device, flows, groups):
         log.debug('bulk-flow-update', device_id=device.id,
@@ -132,6 +134,11 @@ class RubyAdapter(object):
     def _init_olt(self, olt, activation_watch):
         olt.runbg()
         activation_watch.runbg()
+
+    def _abandon(self, target):
+        olt, activation = self.olts[target]
+        olt.stop()
+        activation.stop()
 
 
 
