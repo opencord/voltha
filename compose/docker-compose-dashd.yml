@@ -1,0 +1,20 @@
+version: '2'
+services:
+  #
+  # Dashboard daemon
+  #
+  dashd:
+    image: cord/dashd
+    command: [
+      "/dashd/dashd/main.py",
+      "--kafka=@kafka",
+      "--consul=${DOCKER_HOST_IP}:8500",
+      "--grafana_url=http://admin:admin@${DOCKER_HOST_IP}:8882/api",
+      "--topic=voltha.kpis",
+      "--docker_host=${DOCKER_HOST_IP}"
+    ]
+    depends_on:
+    - consul
+    - kafka
+    - grafana
+    restart: unless-stopped
