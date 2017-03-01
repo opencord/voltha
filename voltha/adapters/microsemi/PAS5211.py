@@ -19,7 +19,7 @@
 PAS5211 scapy structs used for interaction with Ruby
 """
 from scapy.fields import LEShortField, Field, LEIntField, LESignedIntField, FieldLenField, FieldListField, PacketField, \
-    ByteField, StrFixedLenField, ConditionalField
+    ByteField, StrFixedLenField, ConditionalField, StrField, MACField, LELongField
 from scapy.layers.l2 import Dot3, LLC
 from scapy.layers.inet import ARP
 from scapy.packet import Packet, bind_layers, split_layers
@@ -64,25 +64,6 @@ PON_RESET_TYPE_DOUBLE_RESET = 2
 
 PON_RESET_TYPE_NORMAL_START_BURST_BASED = 0
 PON_RESET_TYPE_NORMAL_END_BURST_BASED = 1
-
-#from PON_general_parameters_type_t
-PON_COMBINED_LOSI_LOFI = 1000,
-PON_TX_ENABLE_DEFAULT = 1001,
-PON_FALSE_Q_FULL_EVENT_MODE = 1002,             #Enable or disable False queue full event from DBA
-PON_PID_AID_MISMATCH_MIN_SILENCE_PERIOD = 1003, #Set PID_AID_MISMATCH min silence period. 0 - disable, Else - period in secs
-PON_ENABLE_CLEAR_ALARM          = 1004,         #Set if FW generate clear alarm. 0 - generate clear alarm, Else - don't generate clear alarm
-PON_ASSIGN_ALLOC_ID_PLOAM       = 1005,         #Enable or disabl send assign alloc id ploam. 0 - disable, 1 - enable
-PON_BIP_ERR_POLLING_PERIOD_MS   = 1006,         #BIP error polling period, 200 - 65000, 0 - Disabled, Recommended: 5000 (default)
-PON_IGNORE_SN_WHEN_ACTIVE		= 1007,         #Ignore SN when decatived 0 - consider SN (deactivate the onu if received same SN when activated (default)	1 - Ignore
-PON_ONU_PRE_ASSIGNED_DELAY		= 1008,		    #0xffffffff - Disabled (default). Any other value (0 - 0xfffe) indicates that PA delay is enabled, with the specified delay value and included in the US_OVERHEAD PLOAM.
-PON_DS_FRAGMENTATION			= 1009,		    #Enable or disable DS fragmentation, 0 disable, 1 enable
-PON_REI_ERRORS_REPORT_ALL		= 1010,		    #Set if fw report rei alarm when errors is 0, 0 disable (default), 1 enable
-PON_IGNORE_SFI_DEACTIVATION		= 1011,		    #Set if igonre sfi deactivation, 0 disable (default), 1 enable
-PON_OVERRIDE_ALLOCATION_OVERHEAD	= 1012,	   	#Allows to override the allocation overhead set by optic-params configuration. This configuration is only allowed when the the pon channel is disabled.
-PON_OPTICS_TIMELINE_OFFSET	= 1013,		        #Optics timeline offset, -128-127, : this parameter is very sensitive and requires coordination with PMC
-PON_LAST_GENERAL_PARAMETER		= PON_OPTICS_TIMELINE_OFFSET		   #Last general meter
-
-
 
 PON_GPIO_LINE_0 = 0
 PON_GPIO_LINE_1 = 1
@@ -214,21 +195,6 @@ PON_OLT_HW_CLASSIFICATION_ALL_IPV6_MULTICAST       = 106
 PON_OLT_HW_CLASSIFICATION_OTHER			           = 107
 PON_OLT_HW_CLASSIFICATION_LAST_RULE                = 108
 
-# from enum PON_activation_auth_type_t
-
-PON_ACTIVATION_AUTH_AUTO 			  				= 0
-PON_ACTIVATION_AUTH_HOST_CONTROLLED_SEPARATE_EVENTS = 1 # Host controlled: Separate events
-PON_ACTIVATION_AUTH_HOST_CONTROLLED_LUMPED_SN   	= 2 # Host controlled: Lumped-SN-Response
-PON_ACTIVATION_AUTH_REGISTRATION_ID_RAW   			= 3 # Registration-ID Raw
-PON_ACTIVATION_AUTH_REGISTRATION_ID_LEARN   		= 4  # Registration-ID Learn
-
-"""
-Extra field structs
-"""
-
-class LESignedShortField(Field):
-    def __init__(self, name, default):
-        Field.__init__(self, name, default, "<h")
 
 class XLESignedIntField(Field):
     def __init__(self, name, default):
@@ -238,13 +204,11 @@ class XLESignedIntField(Field):
     def i2repr(self, pkt, x):
         return lhex(self.i2h(pkt, x))
 
-"""
-PAS5211 Message structs
-"""
 
-class PAS5211Msg(Packet):
-    opcode = "Must be filled by subclass"
-    pass
+class LESignedShortField(Field):
+    def __init__(self, name, default):
+        Field.__init__(self, name, default, "<h")
+
 
 class PAS5211FrameHeader(Packet):
     name = "PAS5211FrameHeader"
@@ -254,6 +218,7 @@ class PAS5211FrameHeader(Packet):
         LEShortField("size", 0),
         XLESignedIntField("magic_number", 0x1234ABCD)
     ]
+
 
 class PAS5211MsgHeader(Packet):
     name = "PAS5211MsgHeader"
@@ -267,13 +232,9 @@ class PAS5211MsgHeader(Packet):
     ]
 
 
-class PAS5211MsgGetOltVersion(PAS5211Msg):
-    opcode = 3
-    name = "PAS5211MsgGetOltVersion"
-    fields_desc = [ ]
-
-    def answers(self, other):
-        return other.name == "PAS5211MsgGetOltVersionResponse"
+class PAS5211Msg(Packet):
+    opcode = "Must be filled by subclass"
+    pass
 
 
 class PAS5211MsgGetProtocolVersion(PAS5211Msg):
@@ -291,8 +252,11 @@ class PAS5211MsgGetProtocolVersionResponse(PAS5211Msg):
         LEShortField("minor_pfi_version", 0)
     ]
 
-    def answers(self, other):
-        return other.name == 'PAS5211MsgGetProtocolVersion'
+
+class PAS5211MsgGetOltVersion(PAS5211Msg):
+    opcode = 3
+    name = "PAS5211MsgGetOltVersion"
+    fields_desc = [ ]
 
 
 class PAS5211MsgGetOltVersionResponse(PAS5211Msg):
@@ -317,10 +281,6 @@ class PAS5211MsgGetOltVersionResponse(PAS5211Msg):
                        count_from=lambda pkt: pkt.channels_supported)
     ]
 
-    # FIXME: find a better way to pair messages together.
-    def answers(self, other):
-        return other.name == "PAS5211MsgGetOltVersion"
-
 
 class SnrBurstDelay(Packet):
     name = "SnrBurstDelay"
@@ -341,7 +301,6 @@ class RngBurstDelay(Packet):
         LEShortField("preamble_delay", None),
         LEShortField("delimiter_delay", None)
     ]
-
 
     def extract_padding(self, p):
         return "", p
@@ -437,11 +396,10 @@ class PreambleParams(Packet):
     def extract_padding(self, p):
         return "", p
 
-class PAS5211MsgSetOltOptics(PAS5211Msg):
 
+class PAS5211MsgSetOltOptics(PAS5211Msg):
     opcode = 106
     name = "PAS5211MsgSetOltOptics"
-
     fields_desc = [
         PacketField("burst_timing_ctrl", None, BurstTimingCtrl),
         PacketField("general_optics_params", None, GeneralOpticsParams),
@@ -456,8 +414,8 @@ class PAS5211MsgSetOltOptics(PAS5211Msg):
         ByteField("reserved6", 0)
     ]
 
+
 class PAS5211MsgSetOltOpticsResponse(PAS5211Msg):
-    opcode = 10346
     name = "PAS5211MsgSetOltOpticsResponse"
     fields_desc = []
 
@@ -476,25 +434,42 @@ class PAS5211MsgSetOpticsIoControl(PAS5211Msg):
 
 
 class PAS5211MsgSetOpticsIoControlResponse(PAS5211Msg):
-    opcode = 10348
     name = "PAS5211MsgSetOpticsIoControlResponse"
     fields_desc = [ ]
 
+    def extract_padding(self, p):
+        return "", p
 
-class PAS5211MsgAddOltChannel(PAS5211Msg):
-    opcode = 4
-    name = "PAS5211MsgAddOltChannel"
+
+class PAS5211MsgStartDbaAlgorithm(PAS5211Msg):
+    opcode = 55
+    name = "PAS5211MsgStartDbaAlgorithm"
     fields_desc = [
-
+        LEShortField("size", 0),
+        ByteField("initialization_data", None)
     ]
 
 
-class PAS5211MsgAddOltChannelResponse(PAS5211Msg):
-    opcode = 10244
-    name = "PAS5211MsgAddOltChannelResponse"
-    fields_desc = [
+class PAS5211MsgStartDbaAlgorithmResponse(PAS5211Msg):
+    name = "PAS5211MsgStartDbaAlgorithmResponse"
+    opcode = 10295
+    fields_desc = []
 
+
+class PAS5211MsgSetGeneralParam(PAS5211Msg):
+    opcode = 164
+    name = "PAS5211MsgSetGeneralParam"
+    fields_desc = [
+        LEIntField("parameter", None),
+        LEIntField("reserved", 0),
+        LEIntField("value", None)
     ]
+
+
+class PAS5211MsgSetGeneralParamResponse(PAS5211Msg):
+    name = "PAS5211MsgSetGeneralParamResponse"
+    fields_desc = []
+
 
 class PAS5211MsgGetGeneralParam(PAS5211Msg):
     opcode = 165
@@ -513,6 +488,37 @@ class PAS5211MsgGetGeneralParamResponse(PAS5211Msg):
         LEIntField("value", None)
     ]
 
+
+class PAS5211MsgGetDbaMode(PAS5211Msg):
+    opcode = 57
+    name = "PAS5211MsgGetDbaMode"
+    fields_desc = []
+
+
+class  PAS5211MsgGetDbaModeResponse(PAS5211Msg):
+    name = "PAS5211MsgGetDbaModeResponse"
+    fields_desc = [
+        LEIntField("dba_mode", None),
+    ]
+
+
+
+
+class PAS5211MsgAddOltChannel(PAS5211Msg):
+    opcode = 4
+    name = "PAS5211MsgAddOltChannel"
+    fields_desc = [
+
+    ]
+
+
+class PAS5211MsgAddOltChannelResponse(PAS5211Msg):
+    name = "PAS5211MsgAddOltChannelResponse"
+    fields_desc = [
+
+    ]
+
+
 class PAS5211MsgSetAlarmConfig(PAS5211Msg):
     opcode = 48
     name = "PAS5211MsgSetAlarmConfig"
@@ -525,21 +531,6 @@ class PAS5211MsgSetAlarmConfig(PAS5211Msg):
         LEIntField("parameter4", None)
     ]
 
-class PAS5211MsgStartDbaAlgorithm(PAS5211Msg):
-    opcode = 55
-    name = "PAS5211MsgStartDbaAlgorithm"
-    fields_desc = [
-        LEShortField("size", 0),
-        ByteField("initialization_data", 0)
-    ]
-
-
-class PAS5211MsgStartDbaAlgorithmResponse(PAS5211Msg):
-    name = "PAS5211MsgStartDbaAlgorithmResponse"
-    opcode = 10295
-    fields_desc = []
-
-
 
 class PAS5211MsgSetOltChannelActivationPeriod(PAS5211Msg):
     opcode = 11
@@ -550,26 +541,30 @@ class PAS5211MsgSetOltChannelActivationPeriod(PAS5211Msg):
 
 
 class PAS5211MsgSetOltChannelActivationPeriodResponse(PAS5211Msg):
-    opcode = 10251
     name = "PAS5211MsgSetOltChannelActivationPeriodResponse"
     fields_desc = []
 
 
 class PAS5211MsgSetAlarmConfigResponse(PAS5211Msg):
-    opcode = 10288
     name = "PAS5211MsgSetAlarmConfigResponse"
     fields_desc = []
 
-class PAS5211MsgGetDbaMode(PAS5211Msg):
-    opcode = 57
-    name = "PAS5211MsgGetDbaMode"
-    fields_desc = []
 
-
-class PAS5211MsgGetDbaModeResponse(PAS5211Msg):
-    name = "PAS5211MsgGetDbaModeResponse"
+class PAS5211MsgSendCliCommand(PAS5211Msg):
+    opcode = 15
+    name = "PAS5211MsgSendCliCommand"
     fields_desc = [
-        LEIntField("dba_mode", None),
+        FieldLenField("size", None, fmt="<H", length_of="command"),
+        StrField("command", "")
+    ]
+
+
+class PAS5211MsgSwitchToInboundMode(PAS5211Msg):
+    opcode = 0xec
+    name = "PAS5211MsgSwitchToInboundMode"
+    fields_desc = [
+        MACField("mac", None),
+        LEShortField("mode", 0)
     ]
 
 class PAS5211MsgGetActivationAuthMode(PAS5211Msg):
@@ -601,19 +596,168 @@ class PAS5211MsgSetOnuOmciPortIdResponse(PAS5211Msg):
     fields_desc = []
 
 
-class PAS5211Event(PAS5211Msg):
-    opcode = 12
-
-class PAS5211EventOnuActivation(PAS5211Event):
-    name = "PAS5211EventOnuActivation"
+class PAS5211MsgGetLogicalObjectStatus(PAS5211Msg):
+    opcode = 223
+    name = "PAS5211MsgGetLogicalObjectStatus"
     fields_desc = [
-        StrFixedLenField("serial_number", None, length=8),
-        LEIntField("equalization_period", None)
+        LEIntField("type", None),
+        LEIntField("value", None)
     ]
 
-    """
-    Frame
-    """
+class PAS5211MsgGetLogicalObjectStatusResponse(PAS5211Msg):
+    opcode = 10463
+    name = "PAS5211MsgGetLogicalObjectStatusResponse"
+    fields_desc = [
+        LEIntField("type", None),
+        LEIntField("value", None),
+        FieldLenField("return_length", None, fmt="<H", length_of="return_value"),
+        LEIntField("return_value", "")
+    ]
+
+class PAS5211MsgSetOnuAllocId(PAS5211Msg):
+    opcode = 8
+    name = "PAS5211MsgSetOnuAllocId"
+    fields_desc = [
+        LEShortField("alloc_id", None),
+        LEShortField("allocate", None)
+    ]
+
+class PAS5211MsgSetOnuAllocIdResponse(PAS5211Msg):
+    opcode = 10248
+    name = "PAS5211MsgSetOnuAllocIdResponse"
+    fields_desc = []
+
+
+class PAS5211MsgSendDbaAlgorithmMsg(PAS5211Msg):
+    opcode = 47
+    name = "PAS5211MsgSendDbaAlgorithmMsg"
+    fields_desc = [
+        LEShortField("id", None),
+        LEShortField("size", None),
+        ByteField("data", None)
+    ]
+
+class PAS5211MsgSendDbaAlgorithmMsgResponse(PAS5211Msg):
+    opcode = 10287
+    name = "PAS5211MsgSendDbaAlgorithmMsgReponse"
+    fields_desc = []
+
+class PAS5211MsgSetPortIdConfig(PAS5211Msg):
+    opcode = 18
+    name = "PAS5211MsgSetPortIdConfig"
+    fields_desc = [
+        LEShortField("port_id", None),
+        LEShortField("activate", PON_ENABLE),
+        LEShortField("alloc_id", None),
+        LEIntField("type", None),
+        LEIntField("destination", None),
+        LEShortField("reserved", None)
+    ]
+
+class PAS5211MsgSetPortIdConfigResponse(PAS5211Msg):
+    opcode = 10258
+    name = "PAS5211MsgSetPortIdConfigResponse"
+    fields_desc = []
+
+
+class PAS5211MsgGetOnuIdByPortId(PAS5211Msg):
+    opcode = 196
+    name = "PAS5211MsgGetOnuIdByPortId"
+    fields_desc = [
+        LEShortField("port_id", None),
+        LEShortField("reserved", None)
+    ]
+
+
+class PAS5211MsgGetOnuIdByPortIdResponse(PAS5211Msg):
+    opcode = 196
+    name = "PAS5211MsgGetOnuIdByPortIdResponse"
+    fields_desc = [
+        LEShortField("valid", None),
+        LEShortField("onu_id", None)
+    ]
+
+
+class PAS5211SetVlanUplinkConfiguration(PAS5211Msg):
+    opcode = 39
+    name = "PAS5211SetVlanUplinkConfiguration"
+    fields_desc = [
+        LEShortField("port_id", None),
+        LEIntField("pvid_config_enabled", None),
+        LEShortField("min_cos"),
+        LEShortField("max_cos"),
+        LEIntField("de_bit", None),
+        LEShortField("reserved", None)
+    ]
+
+
+class PAS5211SetVlanUplinkConfigurationResponse(PAS5211Msg):
+    opcode = 10279
+    name = "PAS5211SetVlanUplinkConfigurationResponse"
+    fields_desc = []
+
+
+class PAS5211GetOnuAllocs(PAS5211Msg):
+    opcode = 9
+    name = "PAS5211GetOnuAllocs"
+    fields_desc = [
+        LEShortField("nothing", None) # It's in the PMC code... so yeah.
+    ]
+
+
+class PAS5211GetOnuAllocsResponse(PAS5211Msg):
+    opcode = 9
+    name = "PAS5211GetOnuAllocsResponse"
+    fields_desc = [
+        LEShortField("allocs_number", None),
+        FieldListField("alloc_ids", None, LEShortField("alloc_id", None))
+    ]
+
+
+class PAS5211GetSnInfo(PAS5211Msg):
+    opcode = 7
+    name = "PAS5211GetSnInfo"
+    fields_desc = [
+        StrField("serial_number", None)
+    ]
+
+
+class PAS5211GetSnInfoResponse(PAS5211Msg):
+    opcode = 7
+    name = "PAS5211GetSnInfoResponse"
+    fields_desc = [
+        StrField("serial_number", None),
+        LEShortField("found", None),
+        LEShortField("type", None),
+        LEShortField("onu_state", None),
+        LELongField("equalization_delay", None),
+        LEShortField("reserved", None)
+    ]
+
+
+class PAS5211GetOnusRange(PAS5211Msg):
+    opcode = 116
+    name = "PAS5211GetOnusRange"
+    fields_desc = [
+        LEShortField("nothing", None)
+    ]
+
+
+class PAS5211GetOnusRangeResponse(PAS5211Msg):
+    opcode = 116
+    name = "PAS5211GetOnusRangeResponse"
+    fields_desc = [
+        LELongField("min_distance", None),
+        LELongField("max_distance", None),
+        LELongField("actual_min_distance", None),
+        LELongField("actual_max_distance", None)
+    ]
+
+
+
+class Frame(Packet):
+    pass
+
 
 class PAS5211MsgSendFrame(PAS5211Msg):
     opcode = 42
@@ -627,11 +771,17 @@ class PAS5211MsgSendFrame(PAS5211Msg):
         ConditionalField(PacketField("frame", None, OmciFrame), lambda pkt: pkt.management_frame==PON_TRUE)
     ]
 
+    def extract_padding(self, p):
+        return "", p
+
 
 class PAS5211MsgSendFrameResponse(PAS5211Msg):
-    opcode = 10282
     name = "PAS5211MsgSendFrameResponse"
     fields_desc = []
+
+
+class PAS5211Event(PAS5211Msg):
+    opcode = 12
 
 
 class PAS5211EventFrameReceived(PAS5211Event):
@@ -649,24 +799,99 @@ class PAS5211EventFrameReceived(PAS5211Event):
         ConditionalField(PacketField("frame", None, OmciFrame), lambda pkt: pkt.management_frame==PON_TRUE)
     ]
 
+class PAS5211EventDbaAlgorithm(PAS5211Event):
+    name = "PAS5211EventDbaAlgorithm"
+    fields_desc = [
+        LEShortField("size", None),
+        ByteField("event_buffer", None) # According to Pythagoras_API.c line 264. Am I certain? No.
+    ]
 
-"""
-Bindings used for message processing
-"""
+
+class PAS5211EventOnuActivation(PAS5211Event):
+    name = "PAS5211EventOnuActivation"
+    fields_desc = [
+        StrFixedLenField("serial_number", None, length=8),
+        LEIntField("equalization_period", None)
+    ]
+
+
+# bindings for messages received
 
 split_layers(Dot3, LLC)
-bind_layers(Dot3,PAS5211FrameHeader)
+bind_layers(Dot3, PAS5211FrameHeader)
 bind_layers(PAS5211FrameHeader, PAS5211MsgHeader)
-bind_layers(PAS5211MsgHeader, PAS5211MsgGetOltVersionResponse, opcode=0x3800 | 3)
+
+bind_layers(PAS5211MsgHeader, PAS5211MsgGetProtocolVersion, opcode=0x3000 | 2)
 bind_layers(PAS5211MsgHeader, PAS5211MsgGetProtocolVersionResponse, opcode=0x2800 | 2)
+
+bind_layers(PAS5211MsgHeader, PAS5211MsgGetOltVersion, opcode=0x3000 | 3)
+bind_layers(PAS5211MsgHeader, PAS5211MsgGetOltVersionResponse, opcode=0x3800 | 3)
+
+bind_layers(PAS5211MsgHeader, PAS5211MsgSetOltOptics, opcode=0x3000 | 106)
+bind_layers(PAS5211MsgHeader, PAS5211MsgSetOltOpticsResponse, opcode=0x2800 | 106)
+
+bind_layers(PAS5211MsgHeader, PAS5211MsgSetOpticsIoControl, opcode=0x3000 | 108)
+bind_layers(PAS5211MsgHeader, PAS5211MsgSetOpticsIoControlResponse, opcode=0x2800 | 108)
+
+bind_layers(PAS5211MsgHeader, PAS5211MsgSetGeneralParam, opcode=0x3000 | 164)
+bind_layers(PAS5211MsgHeader, PAS5211MsgSetGeneralParamResponse, opcode=0x2800 | 164)
+
+bind_layers(PAS5211MsgHeader, PAS5211MsgGetGeneralParam, opcode=0x3000 | 165)
 bind_layers(PAS5211MsgHeader, PAS5211MsgGetGeneralParamResponse, opcode=0x2800 | 165)
+
+bind_layers(PAS5211MsgHeader, PAS5211MsgAddOltChannel, opcode=0x3000 | 4)
+bind_layers(PAS5211MsgHeader, PAS5211MsgAddOltChannelResponse, opcode=0x2800 | 4)
+
+bind_layers(PAS5211MsgHeader, PAS5211MsgSetAlarmConfig, opcode=0x3000 | 48)
 bind_layers(PAS5211MsgHeader, PAS5211MsgSetAlarmConfigResponse, opcode=0x2800 | 48)
-bind_layers(PAS5211MsgHeader, PAS5211MsgGetDbaModeResponse, opcode=0x2800 | 57)
-bind_layers(PAS5211MsgHeader, PAS5211MsgStartDbaAlgorithmResponse, opcode=0x2800 | 55)
+
+bind_layers(PAS5211MsgHeader, PAS5211MsgSetOltChannelActivationPeriod, opcode=0x3000 | 11)
 bind_layers(PAS5211MsgHeader, PAS5211MsgSetOltChannelActivationPeriodResponse, opcode=0x2800 | 11)
+
+bind_layers(PAS5211MsgHeader, PAS5211MsgStartDbaAlgorithm, opcode=0x3000 | 55)
+bind_layers(PAS5211MsgHeader, PAS5211MsgStartDbaAlgorithmResponse, opcode=0x2800 | 55)
+
+bind_layers(PAS5211MsgHeader, PAS5211MsgGetDbaMode, opcode=0x3000 | 57)
+bind_layers(PAS5211MsgHeader, PAS5211MsgGetDbaModeResponse, opcode=0x2800 | 57)
+
+bind_layers(PAS5211MsgHeader, PAS5211MsgSendFrame, opcode=0x3000 | 42)
+bind_layers(PAS5211MsgHeader, PAS5211MsgSendFrameResponse, opcode=0x2800 | 42)
+
+bind_layers(PAS5211MsgHeader, PAS5211MsgGetActivationAuthMode, opcode=0x3000 | 145)
 bind_layers(PAS5211MsgHeader, PAS5211MsgGetActivationAuthModeResponse, opcode=0x2800 | 145)
 
+bind_layers(PAS5211MsgHeader, PAS5211MsgSetOnuOmciPortId, opcode=0x3000 | 41)
+bind_layers(PAS5211MsgHeader, PAS5211MsgSetOnuOmciPortIdResponse, opcode=0x2800 | 41)
 
+bind_layers(PAS5211MsgHeader, PAS5211MsgGetLogicalObjectStatus, opcode=0x3000 | 223)
+bind_layers(PAS5211MsgHeader, PAS5211MsgGetLogicalObjectStatusResponse, opcode=0x2800 | 223)
+
+bind_layers(PAS5211MsgHeader, PAS5211MsgSetOnuAllocId, opcode=0x3000 | 8)
+bind_layers(PAS5211MsgHeader, PAS5211MsgSetOnuAllocIdResponse, opcode=0x2800 | 8)
+
+bind_layers(PAS5211MsgHeader, PAS5211MsgSendDbaAlgorithmMsg, opcode=0x3000 | 47)
+bind_layers(PAS5211MsgHeader, PAS5211MsgSendDbaAlgorithmMsgResponse, opcode=0x2800 | 47)
+
+bind_layers(PAS5211MsgHeader, PAS5211MsgSetPortIdConfig, opcode=0x3000 | 18)
+bind_layers(PAS5211MsgHeader, PAS5211MsgSetPortIdConfigResponse, opcode=0x2800 | 18)
+
+bind_layers(PAS5211MsgHeader, PAS5211MsgGetOnuIdByPortId, opcode=0x3000 | 196)
+bind_layers(PAS5211MsgHeader, PAS5211MsgGetOnuIdByPortIdResponse, opcode=0x2800 | 18)
+
+bind_layers(PAS5211MsgHeader, PAS5211SetVlanUplinkConfiguration, opcode=0x3000 | 39)
+bind_layers(PAS5211MsgHeader, PAS5211SetVlanUplinkConfigurationResponse, opcode=0x2800 | 39)
+
+bind_layers(PAS5211MsgHeader, PAS5211GetOnuAllocs, opcode=0x3000 | 9)
+bind_layers(PAS5211MsgHeader, PAS5211GetOnuAllocsResponse, opcode=0x2800 | 9)
+
+bind_layers(PAS5211MsgHeader, PAS5211GetSnInfo, opcode=0x3000 | 7)
+bind_layers(PAS5211MsgHeader, PAS5211GetSnInfoResponse, opcode=0x2800 | 7)
+
+bind_layers(PAS5211MsgHeader, PAS5211GetOnusRange, opcode=0x3000 | 116)
+bind_layers(PAS5211MsgHeader, PAS5211GetOnusRangeResponse, opcode=0x2800 | 116)
+
+# bindings for events received
 bind_layers(PAS5211MsgHeader, PAS5211EventOnuActivation, opcode=0x2800 | 12, event_type=1)
 bind_layers(PAS5211MsgHeader, PAS5211EventFrameReceived, opcode=0x2800 | 12, event_type=10)
+bind_layers(PAS5211MsgHeader, PAS5211EventDbaAlgorithm, opcode=0x2800 | 12, event_type=11)
 bind_layers(PAS5211MsgHeader, PAS5211Event, opcode=0x2800 | 12)

@@ -614,6 +614,132 @@ class PAS5211MsgSetOnuAllocIdResponse(PAS5211Msg):
     fields_desc = []
 
 
+class PAS5211MsgSendDbaAlgorithmMsg(PAS5211Msg):
+    opcode = 47
+    name = "PAS5211MsgSendDbaAlgorithmMsg"
+    fields_desc = [
+        LEShortField("id", None),
+        LEShortField("size", None),
+        ByteField("data", None)
+    ]
+
+class PAS5211MsgSendDbaAlgorithmMsgResponse(PAS5211Msg):
+    opcode = 10287
+    name = "PAS5211MsgSendDbaAlgorithmMsgReponse"
+    fields_desc = []
+
+class PAS5211MsgSetPortIdConfig(PAS5211Msg):
+    opcode = 18
+    name = "PAS5211MsgSetPortIdConfig"
+    fields_desc = [
+        LEShortField("port_id", None),
+        LEShortField("activate", PON_ENABLE),
+        LEShortField("alloc_id", None),
+        LEIntField("type", None),
+        LEIntField("destination", None),
+        LEShortField("reserved", None)
+    ]
+
+class PAS5211MsgSetPortIdConfigResponse(PAS5211Msg):
+    opcode = 10258
+    name = "PAS5211MsgSetPortIdConfigResponse"
+    fields_desc = []
+
+
+class PAS5211MsgGetOnuIdByPortId(PAS5211Msg):
+    opcode = 196
+    name = "PAS5211MsgGetOnuIdByPortId"
+    fields_desc = [
+        LEShortField("port_id", None),
+        LEShortField("reserved", None)
+    ]
+
+
+class PAS5211MsgGetOnuIdByPortIdResponse(PAS5211Msg):
+    opcode = 196
+    name = "PAS5211MsgGetOnuIdByPortIdResponse"
+    fields_desc = [
+        LEShortField("valid", None),
+        LEShortField("onu_id", None)
+    ]
+
+
+class PAS5211SetVlanUplinkConfiguration(PAS5211Msg):
+    opcode = 39
+    name = "PAS5211SetVlanUplinkConfiguration"
+    fields_desc = [
+        LEShortField("port_id", None),
+        LEIntField("pvid_config_enabled", None),
+        LEShortField("min_cos"),
+        LEShortField("max_cos"),
+        LEIntField("de_bit", None),
+        LEShortField("reserved", None)
+    ]
+
+
+class PAS5211SetVlanUplinkConfigurationResponse(PAS5211Msg):
+    opcode = 10279
+    name = "PAS5211SetVlanUplinkConfigurationResponse"
+    fields_desc = []
+
+
+class PAS5211GetOnuAllocs(PAS5211Msg):
+    opcode = 9
+    name = "PAS5211GetOnuAllocs"
+    fields_desc = [
+        LEShortField("nothing", None) # It's in the PMC code... so yeah.
+    ]
+
+
+class PAS5211GetOnuAllocsResponse(PAS5211Msg):
+    opcode = 9
+    name = "PAS5211GetOnuAllocsResponse"
+    fields_desc = [
+        LEShortField("allocs_number", None),
+        FieldListField("alloc_ids", None, LEShortField("alloc_id", None))
+    ]
+
+
+class PAS5211GetSnInfo(PAS5211Msg):
+    opcode = 7
+    name = "PAS5211GetSnInfo"
+    fields_desc = [
+        StrField("serial_number", None)
+    ]
+
+
+class PAS5211GetSnInfoResponse(PAS5211Msg):
+    opcode = 7
+    name = "PAS5211GetSnInfoResponse"
+    fields_desc = [
+        StrField("serial_number", None),
+        LEShortField("found", None),
+        LEShortField("type", None),
+        LEShortField("onu_state", None),
+        LELongField("equalization_delay", None),
+        LEShortField("reserved", None)
+    ]
+
+
+class PAS5211GetOnusRange(PAS5211Msg):
+    opcode = 116
+    name = "PAS5211GetOnusRange"
+    fields_desc = [
+        LEShortField("nothing", None)
+    ]
+
+
+class PAS5211GetOnusRangeResponse(PAS5211Msg):
+    opcode = 116
+    name = "PAS5211GetOnusRangeResponse"
+    fields_desc = [
+        LELongField("min_distance", None),
+        LELongField("max_distance", None),
+        LELongField("actual_min_distance", None),
+        LELongField("actual_max_distance", None)
+    ]
+
+
 
 class Frame(Packet):
     pass
@@ -657,6 +783,13 @@ class PAS5211EventFrameReceived(PAS5211Event):
         LEShortField("ignored", 0), # TODO these do receive values, but there is no code in PMC using it
         ConditionalField(PacketField("frame", None, Packet), lambda pkt: pkt.management_frame==PON_FALSE),
         ConditionalField(PacketField("frame", None, OmciFrame), lambda pkt: pkt.management_frame==PON_TRUE)
+    ]
+
+class PAS5211EventDbaAlgorithm(PAS5211Event):
+    name = "PAS5211EventDbaAlgorithm"
+    fields_desc = [
+        LEShortField("size", None),
+        ByteField("event_buffer", None) # According to Pythagoras_API.c line 264. Am I certain? No.
     ]
 
 
@@ -720,13 +853,34 @@ bind_layers(PAS5211MsgHeader, PAS5211MsgSetOnuOmciPortIdResponse, opcode=0x2800 
 bind_layers(PAS5211MsgHeader, PAS5211MsgGetLogicalObjectStatus, opcode=0x3000 | 223)
 bind_layers(PAS5211MsgHeader, PAS5211MsgGetLogicalObjectStatusResponse, opcode=0x2800 | 223)
 
-bind_layers(PAS5211MsgHeader, PAS5211MsgSetOnuAllocId, opcode=0x2800 | 8)
+bind_layers(PAS5211MsgHeader, PAS5211MsgSetOnuAllocId, opcode=0x3000 | 8)
 bind_layers(PAS5211MsgHeader, PAS5211MsgSetOnuAllocIdResponse, opcode=0x2800 | 8)
 
+bind_layers(PAS5211MsgHeader, PAS5211MsgSendDbaAlgorithmMsg, opcode=0x3000 | 47)
+bind_layers(PAS5211MsgHeader, PAS5211MsgSendDbaAlgorithmMsgResponse, opcode=0x2800 | 47)
+
+bind_layers(PAS5211MsgHeader, PAS5211MsgSetPortIdConfig, opcode=0x3000 | 18)
+bind_layers(PAS5211MsgHeader, PAS5211MsgSetPortIdConfigResponse, opcode=0x2800 | 18)
+
+bind_layers(PAS5211MsgHeader, PAS5211MsgGetOnuIdByPortId, opcode=0x3000 | 196)
+bind_layers(PAS5211MsgHeader, PAS5211MsgGetOnuIdByPortIdResponse, opcode=0x2800 | 18)
+
+bind_layers(PAS5211MsgHeader, PAS5211SetVlanUplinkConfiguration, opcode=0x3000 | 39)
+bind_layers(PAS5211MsgHeader, PAS5211SetVlanUplinkConfigurationResponse, opcode=0x2800 | 39)
+
+bind_layers(PAS5211MsgHeader, PAS5211GetOnuAllocs, opcode=0x3000 | 9)
+bind_layers(PAS5211MsgHeader, PAS5211GetOnuAllocsResponse, opcode=0x2800 | 9)
+
+bind_layers(PAS5211MsgHeader, PAS5211GetSnInfo, opcode=0x3000 | 7)
+bind_layers(PAS5211MsgHeader, PAS5211GetSnInfoResponse, opcode=0x2800 | 7)
+
+bind_layers(PAS5211MsgHeader, PAS5211GetOnusRange, opcode=0x3000 | 116)
+bind_layers(PAS5211MsgHeader, PAS5211GetOnusRangeResponse, opcode=0x2800 | 116)
 
 # bindings for events received
 bind_layers(PAS5211MsgHeader, PAS5211EventOnuActivation, opcode=0x2800 | 12, event_type=1)
 bind_layers(PAS5211MsgHeader, PAS5211EventFrameReceived, opcode=0x2800 | 12, event_type=10)
+bind_layers(PAS5211MsgHeader, PAS5211EventDbaAlgorithm, opcode=0x2800 | 12, event_type=11)
 bind_layers(PAS5211MsgHeader, PAS5211Event, opcode=0x2800 | 12)
 
 class Display(object):
