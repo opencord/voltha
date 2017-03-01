@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "da141535_e8929b9e",
+        "filename": "compose/docker-compose-system-test-with-dashd.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000004
+      },
+      "writtenOn": "2017-03-01T18:50:09Z",
+      "side": 1,
+      "message": "Do you want to have a whole separate docker-compose file? Would it be sufficient to only have dashd stuff in here so that it can be started in an additive fashion to the other compose files.",
+      "revId": "d5adde5e5937f35652b2082dcce0d0f3e9126ef3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "da141535_4dd199cc",
         "filename": "dashd/dash_template.py",
         "patchSetId": 1
@@ -81,6 +98,23 @@
       "writtenOn": "2017-02-28T21:56:58Z",
       "side": 1,
       "message": "Please update the logs with the adopted format.",
+      "revId": "d5adde5e5937f35652b2082dcce0d0f3e9126ef3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_c88fd774",
+        "filename": "dashd/dashd_impl.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 210,
+      "author": {
+        "id": 1000004
+      },
+      "writtenOn": "2017-03-01T18:50:09Z",
+      "side": 1,
+      "message": "remove print statement",
       "revId": "d5adde5e5937f35652b2082dcce0d0f3e9126ef3",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
