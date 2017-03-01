@@ -56,9 +56,7 @@ class DeviceManager(object):
         log.info('create-logical-device')
         # then shortly after we create the logical device with one port
         # that will correspond to the NNI port
-        logical_device_id = uuid4().hex[:12]
         ld = LogicalDevice(
-            datapath_id=int('0x' + logical_device_id[:8], 16), # from id
             desc=ofp_desc(
                 mfr_desc=self.device.vendor,
                 hw_desc=self.device.hardware_version,
