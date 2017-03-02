@@ -18,11 +18,13 @@
 """
 PAS5211 scapy structs used for interaction with Ruby
 """
+import struct
+
+
 from scapy.fields import LEShortField, Field, LEIntField, LESignedIntField, FieldLenField, FieldListField, PacketField, \
-    ByteField, StrFixedLenField, ConditionalField, StrField, MACField, LELongField
-from scapy.layers.l2 import Dot3, LLC
-from scapy.layers.inet import ARP
-from scapy.packet import Packet, bind_layers, split_layers
+    ByteField, StrFixedLenField, ConditionalField, StrField, MACField, LELongField, LenField
+from scapy.layers.l2 import DestMACField, ETHER_ANY, Ether
+from scapy.packet import Packet, bind_layers
 from scapy.utils import lhex
 from scapy.volatile import RandSInt
 from scapy.layers.ntp import XLEShortField
@@ -650,7 +652,8 @@ class PAS5211MsgSetPortIdConfig(PAS5211Msg):
         LEShortField("activate", PON_ENABLE),
         LEShortField("alloc_id", None),
         LEIntField("type", None),
-        LEIntField("destination", None),
+        LEIntField("destination", None),  # Is this the CNI port
+                                          # if yes then values are 0-11 (for ruby)
         LEShortField("reserved", None)
     ]
 
@@ -684,8 +687,8 @@ class PAS5211SetVlanUplinkConfiguration(PAS5211Msg):
     fields_desc = [
         LEShortField("port_id", None),
         LEIntField("pvid_config_enabled", None),
-        LEShortField("min_cos"),
-        LEShortField("max_cos"),
+        LEShortField("min_cos", None),
+        LEShortField("max_cos", None),
         LEIntField("de_bit", None),
         LEShortField("reserved", None)
     ]
@@ -718,7 +721,7 @@ class PAS5211GetSnInfo(PAS5211Msg):
     opcode = 7
     name = "PAS5211GetSnInfo"
     fields_desc = [
-        StrField("serial_number", None)
+        StrFixedLenField("serial_number", None, 8)
     ]
 
 
@@ -726,7 +729,7 @@ class PAS5211GetSnInfoResponse(PAS5211Msg):
     opcode = 7
     name = "PAS5211GetSnInfoResponse"
     fields_desc = [
-        StrField("serial_number", None),
+        StrFixedLenField("serial_number", None, 8),
         LEShortField("found", None),
         LEShortField("type", None),
         LEShortField("onu_state", None),
@@ -747,10 +750,10 @@ class PAS5211GetOnusRangeResponse(PAS5211Msg):
     opcode = 116
     name = "PAS5211GetOnusRangeResponse"
     fields_desc = [
-        LELongField("min_distance", None),
-        LELongField("max_distance", None),
-        LELongField("actual_min_distance", None),
-        LELongField("actual_max_distance", None)
+        LEIntField("min_distance", None),
+        LEIntField("max_distance", None),
+        LEIntField("actual_min_distance", None),
+        LEIntField("actual_max_distance", None)
     ]
 
 
@@ -815,10 +818,40 @@ class PAS5211EventOnuActivation(PAS5211Event):
     ]
 
 
+class PAS5211Dot3(Packet):
+    name = "PAS5211Dot3"
+    fields_desc = [ DestMACField("dst"),
+                    MACField("src", ETHER_ANY),
+                    LenField("len", None, "H") ]
+
+    MIN_FRAME_SIZE = 60
+
+    def post_build(self, pkt, payload):
+        pkt += payload
+        size = ord(payload[4]) + (ord(payload[5]) << 8)
+        length = size + 6  # this is a idiosyncracy of the PASCOMM protocol
+        pkt = pkt[:12] + chr(length >> 8) + chr(length & 0xff) + pkt[14:]
+        padding = self.MIN_FRAME_SIZE - len(pkt)
+        if padding > 0:
+            pkt = pkt + ("\x00" * padding)
+        return pkt
+
+'''
+This is needed in order to force scapy to use PAS5211Dot3
+instead of the default Dot3 that the Ether class uses.
+'''
+@classmethod
+def PAS_dispatch_hook(cls, _pkt=None, *args, **kargs):
+    if _pkt and len(_pkt) >= 14:
+        if struct.unpack("!H", _pkt[12:14])[0] <= 1500:
+            return PAS5211Dot3
+    return cls
+
+Ether.dispatch_hook = PAS_dispatch_hook
+
 # bindings for messages received
 
-split_layers(Dot3, LLC)
-bind_layers(Dot3, PAS5211FrameHeader)
+bind_layers(PAS5211Dot3, PAS5211FrameHeader)
 bind_layers(PAS5211FrameHeader, PAS5211MsgHeader)
 
 bind_layers(PAS5211MsgHeader, PAS5211MsgGetProtocolVersion, opcode=0x3000 | 2)
@@ -876,7 +909,7 @@ bind_layers(PAS5211MsgHeader, PAS5211MsgSetPortIdConfig, opcode=0x3000 | 18)
 bind_layers(PAS5211MsgHeader, PAS5211MsgSetPortIdConfigResponse, opcode=0x2800 | 18)
 
 bind_layers(PAS5211MsgHeader, PAS5211MsgGetOnuIdByPortId, opcode=0x3000 | 196)
-bind_layers(PAS5211MsgHeader, PAS5211MsgGetOnuIdByPortIdResponse, opcode=0x2800 | 18)
+bind_layers(PAS5211MsgHeader, PAS5211MsgGetOnuIdByPortIdResponse, opcode=0x2800 | 196)
 
 bind_layers(PAS5211MsgHeader, PAS5211SetVlanUplinkConfiguration, opcode=0x3000 | 39)
 bind_layers(PAS5211MsgHeader, PAS5211SetVlanUplinkConfigurationResponse, opcode=0x2800 | 39)
@@ -895,3 +928,24 @@ bind_layers(PAS5211MsgHeader, PAS5211EventOnuActivation, opcode=0x2800 | 12, eve
 bind_layers(PAS5211MsgHeader, PAS5211EventFrameReceived, opcode=0x2800 | 12, event_type=10)
 bind_layers(PAS5211MsgHeader, PAS5211EventDbaAlgorithm, opcode=0x2800 | 12, event_type=11)
 bind_layers(PAS5211MsgHeader, PAS5211Event, opcode=0x2800 | 12)
+
+
+class Display(object):
+    def __init__(self, pkts):
+        self.pkts = pkts
+
+    def show(self, seq):
+        self.pkts[seq].show()
+
+    def __getitem__(self, key):
+        self.show(key)
+
+
+if __name__ == '__main__':
+
+    from scapy.utils import rdpcap
+    import sys
+    import code
+    packets = rdpcap(sys.argv[1])
+    p = Display(packets)
+    code.interact(local=locals())
