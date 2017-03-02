@@ -62,11 +62,11 @@ class VolthaCore(object):
         self.change_event_queue = Queue()
 
     @inlineCallbacks
-    def start(self):
+    def start(self, config_backend=None):
         log.debug('starting')
         yield self.dispatcher.start()
         yield self.global_handler.start()
-        yield self.local_handler.start()
+        yield self.local_handler.start(config_backend=config_backend)
         self.local_root_proxy = self.get_proxy('/')
         self.local_root_proxy.register_callback(
             CallbackType.POST_ADD, self._post_add_callback)

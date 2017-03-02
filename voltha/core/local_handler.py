@@ -21,6 +21,7 @@ from grpc import StatusCode
 
 from common.utils.grpc_utils import twisted_async
 from voltha.core.config.config_root import ConfigRoot
+from voltha.core.config.config_backend import ConsulStore
 from voltha.protos.openflow_13_pb2 import PacketIn, Flows, FlowGroups, \
     ofp_port_status
 from voltha.protos.voltha_pb2 import \
@@ -41,9 +42,19 @@ class LocalHandler(VolthaLocalServiceServicer):
         self.root = None
         self.stopped = False
 
-    def start(self):
+    def start(self, config_backend=None):
         log.debug('starting')
-        self.root = ConfigRoot(VolthaInstance(**self.init_kw))
+        if config_backend:
+            if 'root' in config_backend:
+                # This is going to block the entire reactor until loading is completed
+                log.info('loading config from persisted backend')
+                self.root = ConfigRoot.load(VolthaInstance, kv_store=config_backend)
+            else:
+                log.info('initializing new config')
+                self.root = ConfigRoot(VolthaInstance(**self.init_kw), kv_store=config_backend)
+        else:
+            self.root = ConfigRoot(VolthaInstance(**self.init_kw))
+
         registry('grpc_server').register(
             add_VolthaLocalServiceServicer_to_server, self)
         log.info('started')

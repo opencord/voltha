@@ -37,6 +37,7 @@ from common.utils.nethelpers import get_my_primary_interface, \
 from voltha.adapters.loader import AdapterLoader
 from voltha.coordinator import Coordinator
 from voltha.core.core import VolthaCore
+from voltha.core.config.config_backend import load_backend
 from voltha.northbound.diagnostics import Diagnostics
 from voltha.northbound.grpc.grpc_server import VolthaGrpcServer
 from voltha.northbound.kafka.kafka_proxy import KafkaProxy, get_kafka_proxy
@@ -62,6 +63,7 @@ defs = dict(
     rest_port=os.environ.get('REST_PORT', 8880),
     kafka=os.environ.get('KAFKA', 'localhost:9092'),
     manhole_port=os.environ.get('MANHOLE_PORT', 12222),
+    backend=os.environ.get('BACKEND', 'none'),
 )
 
 
@@ -192,6 +194,12 @@ def parse_args():
                         default=defs['kafka'],
                         help=_help)
 
+    _help = 'backend to use for config persitence'
+    parser.add_argument('-b', '--backend',
+                        default=defs['backend'],
+                        choices=['none', 'consul'],
+                        help=_help)
+
     args = parser.parse_args()
 
     # post-processing
@@ -305,7 +313,7 @@ class Main(object):
                     version=VERSION,
                     log_level=LogLevel.INFO
                 )
-            ).start()
+            ).start(config_backend=load_backend(self.args))
 
             yield registry.register(
                 'frameio',
