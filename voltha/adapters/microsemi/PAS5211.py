@@ -198,6 +198,13 @@ PON_OLT_HW_CLASSIFICATION_OTHER			           = 107
 PON_OLT_HW_CLASSIFICATION_LAST_RULE                = 108
 
 
+PON_ACTIVATION_AUTH_AUTO 			  				= 0
+PON_ACTIVATION_AUTH_HOST_CONTROLLED_SEPARATE_EVENTS = 1 # Host controlled: Separate events
+PON_ACTIVATION_AUTH_HOST_CONTROLLED_LUMPED_SN   	= 2 # Host controlled: Lumped-SN-Response
+PON_ACTIVATION_AUTH_REGISTRATION_ID_RAW   			= 3 # Registration-ID Raw
+PON_ACTIVATION_AUTH_REGISTRATION_ID_LEARN   		= 4  # Registration-ID Learn
+
+
 class XLESignedIntField(Field):
     def __init__(self, name, default):
         Field.__init__(self, name, default, "<i")

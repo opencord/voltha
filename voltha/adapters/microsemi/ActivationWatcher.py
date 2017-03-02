@@ -14,7 +14,6 @@
 # limitations under the License.
 #
 from scapy.automaton import ATMT
-from twisted.internet import reactor
 import structlog
 from voltha.adapters.microsemi.BaseOltAutomaton import BaseOltAutomaton
 from voltha.adapters.microsemi.PAS5211 import PAS5211EventOnuActivation, PAS5211MsgGetActivationAuthMode, \
