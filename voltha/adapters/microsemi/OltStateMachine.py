@@ -31,6 +31,8 @@ from voltha.adapters.microsemi.PAS5211_utils import general_param, olt_optics_pk
 
 import structlog
 
+from voltha.protos.common_pb2 import ConnectStatus
+
 log = structlog.get_logger()
 
 
@@ -192,7 +194,7 @@ class OltStateMachine(BaseOltAutomaton):
         log.debug("Received proto version {}".format(pkt))
         if PAS5211MsgGetOltVersionResponse in pkt:
             log.info("updating device")
-            self.device.update_device(pkt)
+            self.device.update_device_info_from_pkt(pkt)
             raise self.got_olt_version()
         else:
             log.error("Got garbage packet {}".format(pkt))
@@ -262,7 +264,8 @@ class OltStateMachine(BaseOltAutomaton):
 
     @ATMT.receive_condition(wait_olt_optics)
     def receive_set_optics_response(self, pkt):
-        if pkt.opcode == PAS5211MsgSetOltOpticsResponse.opcode:
+        if PAS5211MsgSetOltOpticsResponse in pkt:
+            print "GOT OPTICS RESP"
             self.send_state[pkt.channel_id] = True
             if self.check_channel_state():
                 raise self.got_olt_optics()
@@ -298,7 +301,7 @@ class OltStateMachine(BaseOltAutomaton):
 
     @ATMT.receive_condition(wait_olt_io_optics)
     def receive_io_optics_response(self, pkt):
-        if pkt.opcode == PAS5211MsgSetOpticsIoControlResponse.opcode:
+        if PAS5211MsgSetOpticsIoControlResponse in pkt:
             self.send_state[pkt.channel_id] = True
             if self.check_channel_state():
                 raise self.got_olt_io_optics()
@@ -351,7 +354,7 @@ class OltStateMachine(BaseOltAutomaton):
 
     @ATMT.receive_condition(wait_olt_add)
     def wait_for_olt_add(self, pkt):
-        if pkt.opcode == PAS5211MsgAddOltChannelResponse.opcode:
+        if PAS5211MsgAddOltChannelResponse in pkt:
             self.send_state[pkt.channel_id] = True
             if self.check_channel_state():
                 raise self.got_olt_add()
@@ -374,7 +377,7 @@ class OltStateMachine(BaseOltAutomaton):
 
     @ATMT.receive_condition(wait_alarm_set)
     def wait_for_alarm_set(self, pkt):
-        if pkt.opcode == PAS5211MsgSetAlarmConfigResponse.opcode:
+        if PAS5211MsgSetAlarmConfigResponse in pkt:
             self.send_state[pkt.channel_id] = True
             if self.check_channel_state():
                 raise self.got_alarm_set()
@@ -430,7 +433,7 @@ class OltStateMachine(BaseOltAutomaton):
 
     @ATMT.receive_condition(wait_dba_start)
     def wait_for_dba_start(self, pkt):
-        if pkt.opcode == PAS5211MsgStartDbaAlgorithmResponse.opcode:
+        if PAS5211MsgStartDbaAlgorithmResponse in pkt:
             self.send_state[pkt.channel_id] = True
             if self.check_channel_state():
                 raise self.got_dba_start()
@@ -453,11 +456,12 @@ class OltStateMachine(BaseOltAutomaton):
 
     @ATMT.receive_condition(wait_activation)
     def wait_for_activation(self, pkt):
-        if pkt.opcode == PAS5211MsgSetOltChannelActivationPeriodResponse.opcode:
+        if PAS5211MsgSetOltChannelActivationPeriodResponse in pkt:
             self.send_state[pkt.channel_id] = True
             if self.check_channel_state():
                 log.info("Ruby OLT at {} initialised".format(self.target))
                 self.device.create_logical_device()
+                self.device.activate()
                 raise self.initialized()
         raise self.wait_activation()
 

@@ -36,7 +36,7 @@ class DeviceManager(object):
         self.adapter_agent = adapter_agent
         self.logical_device = None
 
-    def update_device(self, pkt):
+    def update_device_info_from_pkt(self, pkt):
 
         self.device.root = True
         self.device.vendor = 'Celestica Inc.'
@@ -49,7 +49,7 @@ class DeviceManager(object):
                                                          pkt.build_firmware_version)
         self.device.software_version = '0.0.1'
         self.device.serial_number = self.device.mac_address
-        self.device.connect_status = ConnectStatus.REACHABLE
+        self.device.oper_status = ConnectStatus.REACHABLE
         self.adapter_agent.update_device(self.device)
 
     def create_logical_device(self):
@@ -102,6 +102,7 @@ class DeviceManager(object):
                                             logical_port)
 
     def activate(self):
+        self.device = self.adapter_agent.get_device(self.device.id)
         self.device.parent_id = self.logical_device.id
         self.device.oper_status = OperStatus.ACTIVE
         self.adapter_agent.update_device(self.device)
