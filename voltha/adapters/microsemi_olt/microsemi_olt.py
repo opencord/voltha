@@ -25,10 +25,10 @@ from twisted.internet import reactor
 
 
 from voltha.adapters.interface import IAdapterInterface
-from voltha.adapters.microsemi.ActivationWatcher import ActivationWatcher
-from voltha.adapters.microsemi.DeviceManager import DeviceManager
-from voltha.adapters.microsemi.OltStateMachine import OltStateMachine
-from voltha.adapters.microsemi.PAS5211_comm import PAS5211Communication
+from voltha.adapters.microsemi_olt.ActivationWatcher import ActivationWatcher
+from voltha.adapters.microsemi_olt.DeviceManager import DeviceManager
+from voltha.adapters.microsemi_olt.OltStateMachine import OltStateMachine
+from voltha.adapters.microsemi_olt.PAS5211_comm import PAS5211Communication
 from voltha.protos import third_party
 from voltha.protos.adapter_pb2 import Adapter, AdapterConfig
 from voltha.protos.common_pb2 import LogLevel
@@ -45,11 +45,11 @@ _ = third_party
 @implementer(IAdapterInterface)
 class RubyAdapter(object):
 
-    name = "microsemi"
+    name = "microsemi_olt"
 
     supported_device_types = [
         DeviceType(
-            id='microsemi',
+            id=name,
             adapter=name,
             accepts_bulk_flow_update=True
         )
@@ -139,6 +139,7 @@ class RubyAdapter(object):
         olt, activation = self.olts[target]
         olt.stop()
         activation.stop()
+        del self.olts[target]
 
 
 

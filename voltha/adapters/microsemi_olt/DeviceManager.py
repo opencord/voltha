@@ -16,6 +16,7 @@
 from uuid import uuid4
 import structlog
 from voltha.protos.common_pb2 import ConnectStatus, OperStatus
+from voltha.protos.device_pb2 import Device
 from voltha.protos.logical_device_pb2 import LogicalDevice, LogicalPort
 from voltha.protos.openflow_13_pb2 import ofp_desc, ofp_switch_features, OFPC_FLOW_STATS, OFPC_TABLE_STATS, \
     OFPC_PORT_STATS, OFPC_GROUP_STATS, ofp_port, OFPPS_LIVE, OFPPF_10GB_FD, OFPPF_FIBER
@@ -100,6 +101,20 @@ class DeviceManager(object):
         )
         self.adapter_agent.add_logical_port(self.logical_device.id,
                                             logical_port)
+
+    def onu_detected(self, parent_port_no=None,
+                        child_device_type=None,
+                        onu_id=None):
+        self.adapter_agent.child_device_detected(
+            parent_device_id=self.device.id,
+            parent_port_no=parent_port_no,
+            child_device_type=child_device_type,
+            proxy_address=Device.ProxyAddress(
+                device_id=self.device.id,
+                channel_id=onu_id
+            ),
+            vlan=0
+        )
 
     def activate(self):
         self.device = self.adapter_agent.get_device(self.device.id)

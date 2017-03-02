@@ -585,7 +585,7 @@ class PAS5211MsgGetActivationAuthMode(PAS5211Msg):
 
 class PAS5211MsgGetActivationAuthModeResponse(PAS5211Msg):
     opcode = 10385
-    name = "PAS5211MsgGetActivationAuthMode"
+    name = "PAS5211MsgGetActivationAuthModeResponse"
     fields_desc = [
         LEShortField("mode", 0),
         LEShortField("reserved", 0),

@@ -15,8 +15,8 @@
 #
 from scapy.automaton import ATMT
 import structlog
-from voltha.adapters.microsemi.BaseOltAutomaton import BaseOltAutomaton
-from voltha.adapters.microsemi.PAS5211 import PAS5211MsgGetProtocolVersion, PAS5211MsgGetOltVersion, \
+from voltha.adapters.microsemi_olt.BaseOltAutomaton import BaseOltAutomaton
+from voltha.adapters.microsemi_olt.PAS5211 import PAS5211MsgGetProtocolVersion, PAS5211MsgGetOltVersion, \
     PAS5211MsgGetOltVersionResponse, PAS5211MsgGetProtocolVersionResponse, \
     SnrBurstDelay, RngBurstDelay, GeneralOpticsParams, ResetValues, ResetTimingCtrl, PreambleParams, \
     PAS5211MsgSetOltOpticsResponse, CHANNELS, PON_OPTICS_VOLTAGE_IF_LVPECL, PON_ENABLE, PON_POLARITY_ACTIVE_HIGH, \
@@ -26,7 +26,7 @@ from voltha.adapters.microsemi.PAS5211 import PAS5211MsgGetProtocolVersion, PAS5
     PAS5211MsgGetDbaModeResponse, PON_DBA_MODE_LOADED_NOT_RUNNING, PAS5211MsgStartDbaAlgorithm, \
     PAS5211MsgStartDbaAlgorithmResponse, PON_DBA_MODE_RUNNING, PAS5211MsgSetOltChannelActivationPeriod, \
     PAS5211MsgSetOltChannelActivationPeriodResponse
-from voltha.adapters.microsemi.PAS5211_utils import general_param, olt_optics_pkt, burst_timing, io_ctrl_optics, \
+from voltha.adapters.microsemi_olt.PAS5211_utils import general_param, olt_optics_pkt, burst_timing, io_ctrl_optics, \
     alarm_config
 
 import structlog
@@ -265,7 +265,6 @@ class OltStateMachine(BaseOltAutomaton):
     @ATMT.receive_condition(wait_olt_optics)
     def receive_set_optics_response(self, pkt):
         if PAS5211MsgSetOltOpticsResponse in pkt:
-            print "GOT OPTICS RESP"
             self.send_state[pkt.channel_id] = True
             if self.check_channel_state():
                 raise self.got_olt_optics()

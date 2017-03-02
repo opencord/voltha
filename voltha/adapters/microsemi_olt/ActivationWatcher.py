@@ -15,8 +15,8 @@
 #
 from scapy.automaton import ATMT
 import structlog
-from voltha.adapters.microsemi.BaseOltAutomaton import BaseOltAutomaton
-from voltha.adapters.microsemi.PAS5211 import PAS5211EventOnuActivation, PAS5211MsgGetActivationAuthMode, \
+from voltha.adapters.microsemi_olt.BaseOltAutomaton import BaseOltAutomaton
+from voltha.adapters.microsemi_olt.PAS5211 import PAS5211EventOnuActivation, PAS5211MsgGetActivationAuthMode, \
     PAS5211MsgGetActivationAuthModeResponse, PON_ACTIVATION_AUTH_AUTO, PON_ENABLE, PAS5211MsgSetOnuOmciPortId, \
     PAS5211MsgSetOnuOmciPortIdResponse, PAS5211MsgSendFrame, PON_PORT_PON, PAS5211MsgSendFrameResponse
 from voltha.extensions.omci.omci_entities import CircuitPack
@@ -97,8 +97,7 @@ class ActivationManager(BaseOltAutomaton):
     Utility Methods
     """
 
-    def create_port(self, pkt):
-        vendor = pkt['OmciGetResponse'].data['vendor_id']
+    def create_port(self, vendor):
         port = Port(port_no=self.port_id,
                     label="{} ONU".format(vendor),
                     type=Port.ETHERNET_UNI,
@@ -193,7 +192,7 @@ class ActivationManager(BaseOltAutomaton):
 
     @ATMT.receive_condition(wait_send_frame)
     def wait_for_send_frame(self, pkt):
-        if pkt.opcode == PAS5211MsgSendFrameResponse.opcode:
+        if PAS5211MsgSendFrameResponse in pkt:
             raise self.wait_omci_get()
 
     # Transitions from wait_omci_get
@@ -205,9 +204,16 @@ class ActivationManager(BaseOltAutomaton):
     @ATMT.receive_condition(wait_omci_get)
     def wait_for_omci_get(self, pkt):
         if OmciGetResponse in pkt:
-            log.info("Activated {} ONT".format(pkt['OmciGetResponse'].data['vendor_id']))
-            self.create_port(pkt)
-            # TODO: create onu proxy device
+            vendor = pkt['OmciGetResponse'].data['vendor_id']
+            log.info("Activated {} ONT".format(vendor))
+            self.create_port(vendor)
+
+            self.device.onu_detected(
+                parent_port_no=self.channel_id,
+                child_device_type='%s_onu' % vendor.lower(),
+                onu_id=self.port_id,
+            )
+
             raise self.end()
 
 

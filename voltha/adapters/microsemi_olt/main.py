@@ -20,7 +20,7 @@ from common.structlog_setup import setup_logging
 from common.utils.dockerhelpers import get_my_containers_name
 import os
 from twisted.internet import reactor
-from voltha.adapters.microsemi.microsemi import RubyAdapter
+from voltha.adapters.microsemi_olt.microsemi import RubyAdapter
 import yaml
 
 defs = dict(

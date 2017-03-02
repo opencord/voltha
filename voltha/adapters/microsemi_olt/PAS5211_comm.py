@@ -16,7 +16,7 @@
 import netifaces
 from scapy.layers.l2 import Dot3
 import structlog
-from voltha.adapters.microsemi.PAS5211 import PAS5211Msg, PAS5211MsgHeader, PAS5211FrameHeader
+from voltha.adapters.microsemi_olt.PAS5211 import PAS5211Msg, PAS5211MsgHeader, PAS5211FrameHeader
 
 log = structlog.get_logger()
 
