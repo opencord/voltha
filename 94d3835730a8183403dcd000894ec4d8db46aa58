@@ -34,6 +34,24 @@
       "revId": "94d3835730a8183403dcd000894ec4d8db46aa58",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_88043f7f",
+        "filename": "common/utils/consulhelpers.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 98,
+      "author": {
+        "id": 1000004
+      },
+      "writtenOn": "2017-03-02T01:49:30Z",
+      "side": 1,
+      "message": "Actually you need to be careful how you read the doc. Here, a node represents a consul agent of a consul cluster, ie. a node of the consul cluster. This means that if you pass in a host which is not a consul agent you will get a shuffled response. This is not what is desired here.",
+      "parentUuid": "da141535_026db032",
+      "revId": "94d3835730a8183403dcd000894ec4d8db46aa58",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
