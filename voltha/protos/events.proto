@@ -28,7 +28,6 @@ message KpiEventType {
     }
 }
 
-
 /*
  * Struct to convey a dictionary of metric->value pairs. Typically used in
  * pure shared-timestamp or shared-timestamp + shared object prefix situations.
@@ -47,7 +46,7 @@ message KpiEvent {
 
     // Fields used when for slice:
 
-    float ts = 2;  // UTC time-stamp of data in slice mode (seconds since epoc)
+    float ts = 2; // UTC time-stamp of data in slice mode (seconds since epoc)
 
     map<string, MetricValuePairs> prefixes = 3;
 
@@ -106,29 +105,40 @@ message AlarmEventSeverity {
  *
  */
 message AlarmEvent {
-    string id = 1;                                      // Unique ID for this alarm.  e.g. voltha.some_olt.1234
+    // Unique ID for this alarm.  e.g. voltha.some_olt.1234
+    string id = 1;
 
-    AlarmEventType.AlarmEventType type = 2;             // Refers to the area of the system impacted by the alarm
-                                                        // COMMUNICATION, ENVIRONMENT, EQUIPMENT, SERVICE, PROCESSING, SECURITY
+    // Refers to the area of the system impacted by the alarm
+    // COMMUNICATION, ENVIRONMENT, EQUIPMENT, SERVICE, PROCESSING, SECURITY
+    AlarmEventType.AlarmEventType type = 2;
 
-    AlarmEventCategory.AlarmEventCategory category = 3; // Refers to the functional category originating the alarm
-                                                        // GENERAL, CONFIG, PON, TCA
+    // Refers to the functional category originating the alarm
+    // GENERAL, CONFIG, PON, TCA
+    AlarmEventCategory.AlarmEventCategory category = 3;
 
-    AlarmEventState.AlarmEventState state = 4;          // Current active state of the alarm
-                                                        // RAISED, CLEARED
+    // Current active state of the alarm
+    // RAISED, CLEARED
+    AlarmEventState.AlarmEventState state = 4;
 
-    AlarmEventSeverity.AlarmEventSeverity severity = 5; // Overall impact of the alarm on the system
-                                                        // INDETERMINATE, WARNING, MINOR, MAJOR, CRITICAL
+    // Overall impact of the alarm on the system
+    // INDETERMINATE, WARNING, MINOR, MAJOR, CRITICAL
+    AlarmEventSeverity.AlarmEventSeverity severity = 5;
 
-    float raised_ts = 6;                                // Timestamp at which the alarm was first raised
+    // Timestamp at which the alarm was first raised
+    float raised_ts = 6;
 
-    float reported_ts = 7;                              // Timestamp at which the alarm was reported
+    // Timestamp at which the alarm was reported
+    float reported_ts = 7;
 
-    float changed_ts = 8;                               // Timestamp at which the alarm has changed since it was raised
+    // Timestamp at which the alarm has changed since it was raised
+    float changed_ts = 8;
 
-    string resource_id = 9;                             // Identifier of the originating resource of the alarm
+    // Identifier of the originating resource of the alarm
+    string resource_id = 9;
 
-    string description = 10;                            // Textual explanation of the alarm
+    // Textual explanation of the alarm
+    string description = 10;
 
-    map<string,string> context = 11;                    // Key/Value storage for extra information that may give context to the alarm
+    // Key/Value storage for extra information that may give context to the alarm
+    map<string, string> context = 11;
 }

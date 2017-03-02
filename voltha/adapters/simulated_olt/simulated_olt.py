@@ -44,7 +44,8 @@ from voltha.protos.logical_device_pb2 import LogicalDevice, LogicalPort
 from voltha.protos.openflow_13_pb2 import ofp_desc, ofp_port, OFPPF_1GB_FD, \
     OFPPF_FIBER, OFPPS_LIVE, ofp_switch_features, OFPC_PORT_STATS, \
     OFPC_GROUP_STATS, OFPC_TABLE_STATS, OFPC_FLOW_STATS
-from voltha.protos.events_pb2 import AlarmEvent, AlarmEventType, AlarmEventSeverity, AlarmEventState, AlarmEventCategory
+from voltha.protos.events_pb2 import AlarmEvent, AlarmEventType, \
+    AlarmEventSeverity, AlarmEventState, AlarmEventCategory
 
 log = structlog.get_logger()
 
@@ -590,7 +591,7 @@ class SimulatedOltAdapter(object):
                     tx_128_255=self.nni_tx_128_255 + random.randint(60, 65),
                     tx_256_511=self.nni_tx_256_511 + random.randint(85, 90),
                     tx_512_1023=self.nni_tx_512_1023 + random.randint(90, 95),
-                    tx_1024_1518=self.nni_tx_1024_1518 + random.randint(60, 65),
+                    tx_1024_1518=self.nni_tx_1024_1518 + random.randint(60,65),
                     tx_1519_9k=self.nni_tx_1519_9k + random.randint(50, 55),
 
                     rx_64=self.nni_tx_64 + random.randint(50, 55),
@@ -598,7 +599,7 @@ class SimulatedOltAdapter(object):
                     rx_128_255=self.nni_tx_128_255 + random.randint(60, 65),
                     rx_256_511=self.nni_tx_256_511 + random.randint(85, 90),
                     rx_512_1023=self.nni_tx_512_1023 + random.randint(90, 95),
-                    rx_1024_1518=self.nni_tx_1024_1518 + random.randint(60, 65),
+                    rx_1024_1518=self.nni_tx_1024_1518 + random.randint(60,65),
                     rx_1519_9k=self.nni_tx_1519_9k + random.randint(50, 55)
                 )
                 pon_port_metrics = yield dict(
@@ -611,7 +612,7 @@ class SimulatedOltAdapter(object):
                     tx_128_255=self.pon_tx_128_255 + random.randint(60, 65),
                     tx_256_511=self.pon_tx_256_511 + random.randint(85, 90),
                     tx_512_1023=self.pon_tx_512_1023 + random.randint(90, 95),
-                    tx_1024_1518=self.pon_tx_1024_1518 + random.randint(60, 65),
+                    tx_1024_1518=self.pon_tx_1024_1518 + random.randint(60,65),
                     tx_1519_9k=self.pon_tx_1519_9k + random.randint(50, 55),
 
                     rx_64=self.pon_tx_64 + random.randint(50, 55),
@@ -619,7 +620,7 @@ class SimulatedOltAdapter(object):
                     rx_128_255=self.pon_tx_128_255 + random.randint(60, 65),
                     rx_256_511=self.pon_tx_256_511 + random.randint(85, 90),
                     rx_512_1023=self.pon_tx_512_1023 + random.randint(90, 95),
-                    rx_1024_1518=self.pon_tx_1024_1518 + random.randint(60, 65),
+                    rx_1024_1518=self.pon_tx_1024_1518 + random.randint(60,65),
                     rx_1519_9k=self.pon_tx_1519_9k + random.randint(50, 55)
                 )
                 self.pon_tx_pkts = pon_port_metrics['tx_pkts']
@@ -679,9 +680,11 @@ class SimulatedOltAdapter(object):
                         # OLT-level
                         prefix: MetricValuePairs(metrics=olt_metrics),
                         # OLT NNI port
-                        prefix + '.nni': MetricValuePairs(metrics=nni_port_metrics),
+                        prefix + '.nni': MetricValuePairs(
+                            metrics=nni_port_metrics),
                         # OLT PON port
-                        prefix + '.pon': MetricValuePairs(metrics=pon_port_metrics)
+                        prefix + '.pon': MetricValuePairs(
+                            metrics=pon_port_metrics)
                     }
                 )
 
@@ -704,28 +707,45 @@ class SimulatedOltAdapter(object):
 
             try:
                 # Randomly choose values for each enum types
-                severity = random.choice(list(v for k, v in AlarmEventSeverity.DESCRIPTOR.enum_values_by_name.items()))
-                state = random.choice(list(v for k, v in AlarmEventState.DESCRIPTOR.enum_values_by_name.items()))
-                type = random.choice(list(v for k, v in AlarmEventType.DESCRIPTOR.enum_values_by_name.items()))
-                category = random.choice(list(v for k, v in AlarmEventCategory.DESCRIPTOR.enum_values_by_name.items()))
+                severity = random.choice(list(
+                    v for k, v in
+                    AlarmEventSeverity.DESCRIPTOR.enum_values_by_name.items()))
 
-                description = "Simulated alarm - device:{} type:{} severity:{} state:{} category:{}".format(device_id,
-                                                                                                            type.name,
-                                                                                                            severity.name,
-                                                                                                            state.name,
-                                                                                                            category.name)
+                state = random.choice(list(
+                    v for k, v in
+                    AlarmEventState.DESCRIPTOR.enum_values_by_name.items()))
+
+                type = random.choice(list(
+                    v for k, v in
+                    AlarmEventType.DESCRIPTOR.enum_values_by_name.items()))
+
+                category = random.choice(list(
+                    v for k, v in
+                    AlarmEventCategory.DESCRIPTOR.enum_values_by_name.items()))
+
+                description = "Simulated alarm - " \
+                              "device:{} " \
+                              "type:{} " \
+                              "severity:{} " \
+                              "state:{} " \
+                              "category:{}".format(device_id,
+                                                   type.name,
+                                                   severity.name,
+                                                   state.name,
+                                                   category.name)
 
                 current_context = {}
                 for key, value in self.__dict__.items():
                     current_context[key] = str(value)
 
-                alarm_event = self.adapter_agent.create_alarm(resource_id=device_id,
-                                                              type=type.number,
-                                                              category=category.number,
-                                                              severity=severity.number,
-                                                              state=state.number,
-                                                              description=description,
-                                                              context=current_context)
+                alarm_event = self.adapter_agent.create_alarm(
+                    resource_id=device_id,
+                    type=type.number,
+                    category=category.number,
+                    severity=severity.number,
+                    state=state.number,
+                    description=description,
+                    context=current_context)
 
                 self.adapter_agent.submit_alarm(alarm_event)
 

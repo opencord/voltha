@@ -32,7 +32,8 @@ from common.frameio.frameio import hexify
 from voltha.adapters.interface import IAdapterAgent
 from voltha.protos import third_party
 from voltha.protos.device_pb2 import Device, Port
-from voltha.protos.events_pb2 import KpiEvent, AlarmEvent, AlarmEventType, AlarmEventSeverity, AlarmEventState, AlarmEventCategory
+from voltha.protos.events_pb2 import KpiEvent, AlarmEvent, AlarmEventType, \
+    AlarmEventSeverity, AlarmEventState, AlarmEventCategory
 from voltha.protos.voltha_pb2 import DeviceGroup, LogicalDevice, \
     LogicalPort, AdminState
 from voltha.registry import registry
@@ -281,7 +282,8 @@ class AdapterAgent(object):
     def register_for_proxied_messages(self, proxy_address):
         topic = self._gen_rx_proxy_address_topic(proxy_address)
         self._rx_event_subscriptions[topic] = self.event_bus.subscribe(
-            topic, lambda t, m: self._receive_proxied_message(proxy_address, m))
+            topic,
+            lambda t, m: self._receive_proxied_message(proxy_address, m))
 
     def _receive_proxied_message(self, proxy_address, msg):
         self.adapter.receive_proxied_message(proxy_address, msg)
@@ -321,9 +323,12 @@ class AdapterAgent(object):
 
     # ~~~~~~~~~~~~~~~~~~~ Handle alarm submissions ~~~~~~~~~~~~~~~~~~~~~
 
-    def create_alarm(self, id=None, resource_id=None, description=None, raised_ts=0, changed_ts=0,
-                     type=AlarmEventType.EQUIPMENT, category=AlarmEventCategory.GENERAL,
-                     severity=AlarmEventSeverity.MINOR, state=AlarmEventState.RAISED,
+    def create_alarm(self, id=None, resource_id=None, description=None,
+                     raised_ts=0, changed_ts=0,
+                     type=AlarmEventType.EQUIPMENT,
+                     category=AlarmEventCategory.GENERAL,
+                     severity=AlarmEventSeverity.MINOR,
+                     state=AlarmEventState.RAISED,
                      context=None):
 
         # Construct the ID if it is not provided
