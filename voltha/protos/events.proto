@@ -52,3 +52,83 @@ message KpiEvent {
     map<string, MetricValuePairs> prefixes = 3;
 
 }
+
+/*
+ * Identify to the area of the system impacted by the alarm
+ */
+message AlarmEventType {
+    enum AlarmEventType {
+        COMMUNICATION = 0;
+        ENVIRONMENT = 1;
+        EQUIPMENT = 2;
+        SERVICE = 3;
+        PROCESSING = 4;
+        SECURITY = 5;
+    }
+}
+
+/*
+ * Identify to the functional category originating the alarm
+ */
+message AlarmEventCategory {
+    enum AlarmEventCategory {
+        GENERAL = 0;
+        CONFIGURATION = 1;
+        PON = 2;
+        TCA = 3;
+    }
+}
+
+/*
+ * Active state of the alarm
+ */
+message AlarmEventState {
+    enum AlarmEventState {
+        RAISED = 0;
+        CLEARED = 1;
+    }
+}
+
+/*
+ * Identify the overall impact of the alarm on the system
+ */
+message AlarmEventSeverity {
+    enum AlarmEventSeverity {
+        INDETERMINATE = 0;
+        WARNING = 1;
+        MINOR = 2;
+        MAJOR = 3;
+        CRITICAL = 4;
+    }
+}
+
+/*
+ *
+ */
+message AlarmEvent {
+    string id = 1;                                      // Unique ID for this alarm.  e.g. voltha.some_olt.1234
+
+    AlarmEventType.AlarmEventType type = 2;             // Refers to the area of the system impacted by the alarm
+                                                        // COMMUNICATION, ENVIRONMENT, EQUIPMENT, SERVICE, PROCESSING, SECURITY
+
+    AlarmEventCategory.AlarmEventCategory category = 3; // Refers to the functional category originating the alarm
+                                                        // GENERAL, CONFIG, PON, TCA
+
+    AlarmEventState.AlarmEventState state = 4;          // Current active state of the alarm
+                                                        // RAISED, CLEARED
+
+    AlarmEventSeverity.AlarmEventSeverity severity = 5; // Overall impact of the alarm on the system
+                                                        // INDETERMINATE, WARNING, MINOR, MAJOR, CRITICAL
+
+    float raised_ts = 6;                                // Timestamp at which the alarm was first raised
+
+    float reported_ts = 7;                              // Timestamp at which the alarm was reported
+
+    float changed_ts = 8;                               // Timestamp at which the alarm has changed since it was raised
+
+    string resource_id = 9;                             // Identifier of the originating resource of the alarm
+
+    string description = 10;                            // Textual explanation of the alarm
+
+    map<string,string> context = 11;                    // Key/Value storage for extra information that may give context to the alarm
+}

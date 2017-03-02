@@ -18,6 +18,8 @@
 Agent to play gateway between CORE and an individual adapter.
 """
 from uuid import uuid4
+import arrow
+import re
 
 import structlog
 from google.protobuf.json_format import MessageToJson
@@ -30,7 +32,7 @@ from common.frameio.frameio import hexify
 from voltha.adapters.interface import IAdapterAgent
 from voltha.protos import third_party
 from voltha.protos.device_pb2 import Device, Port
-from voltha.protos.events_pb2 import KpiEvent
+from voltha.protos.events_pb2 import KpiEvent, AlarmEvent, AlarmEventType, AlarmEventSeverity, AlarmEventState, AlarmEventCategory
 from voltha.protos.voltha_pb2 import DeviceGroup, LogicalDevice, \
     LogicalPort, AdminState
 from voltha.registry import registry
@@ -316,3 +318,37 @@ class AdapterAgent(object):
         except Exception as e:
             self.log.exception('failed-kpi-submission',
                                type=type(kpi_event_msg))
+
+    # ~~~~~~~~~~~~~~~~~~~ Handle alarm submissions ~~~~~~~~~~~~~~~~~~~~~
+
+    def create_alarm(self, id=None, resource_id=None, description=None, raised_ts=0, changed_ts=0,
+                     type=AlarmEventType.EQUIPMENT, category=AlarmEventCategory.GENERAL,
+                     severity=AlarmEventSeverity.MINOR, state=AlarmEventState.RAISED,
+                     context=None):
+
+        # Construct the ID if it is not provided
+        if id == None:
+            id = 'voltha.{}.{}'.format(self.adapter_name, resource_id)
+
+        return AlarmEvent(
+            id=id,
+            resource_id=resource_id,
+            type=type,
+            category=category,
+            severity=severity,
+            state=state,
+            description=description,
+            reported_ts=arrow.utcnow().timestamp,
+            raised_ts=raised_ts,
+            changed_ts=changed_ts,
+            context=context
+        )
+
+    def submit_alarm(self, alarm_event_msg):
+        try:
+            assert isinstance(alarm_event_msg, AlarmEvent)
+            self.event_bus.publish('alarms', alarm_event_msg)
+
+        except Exception as e:
+            self.log.exception('failed-alarm-submission',
+                               type=type(alarm_event_msg))

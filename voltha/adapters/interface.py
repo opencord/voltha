@@ -256,3 +256,10 @@ class IAdapterAgent(Interface):
         :param kpi_event_msg: A protobuf message of KpiEvent type.
         :return: None
         """
+
+    def submit_alarm(alarm_event_msg):
+        """
+        Submit an alarm on behalf of the OLT and its adapter.
+        :param alarm_event_msg: A protobuf message of AlarmEvent type.
+        :return: None
+        """

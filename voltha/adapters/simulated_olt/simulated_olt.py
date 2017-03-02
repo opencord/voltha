@@ -44,13 +44,13 @@ from voltha.protos.logical_device_pb2 import LogicalDevice, LogicalPort
 from voltha.protos.openflow_13_pb2 import ofp_desc, ofp_port, OFPPF_1GB_FD, \
     OFPPF_FIBER, OFPPS_LIVE, ofp_switch_features, OFPC_PORT_STATS, \
     OFPC_GROUP_STATS, OFPC_TABLE_STATS, OFPC_FLOW_STATS
+from voltha.protos.events_pb2 import AlarmEvent, AlarmEventType, AlarmEventSeverity, AlarmEventState, AlarmEventCategory
 
 log = structlog.get_logger()
 
 
 @implementer(IAdapterInterface)
 class SimulatedOltAdapter(object):
-
     name = 'simulated_olt'
 
     supported_device_types = [
@@ -372,6 +372,8 @@ class SimulatedOltAdapter(object):
         # reactor.callLater(0.1, self._simulate_detection_of_onus, device.id)
         self.start_kpi_collection(device.id)
 
+        self.start_alarm_simulation(device.id)
+
     @inlineCallbacks
     def _simulate_detection_of_onus(self, device_id):
         for i in xrange(1, 5):
@@ -546,7 +548,6 @@ class SimulatedOltAdapter(object):
             else:
                 raise Exception('Port should be 1 or 2 by our convention')
 
-
     def update_flows_incrementally(self, device, flow_changes, group_changes):
         raise NotImplementedError()
 
@@ -580,46 +581,46 @@ class SimulatedOltAdapter(object):
                 # upgraded the metrics to include packet statistics for
                 # testing.
                 nni_port_metrics = yield dict(
-                    tx_pkts=self.nni_tx_pkts+random.randint(90, 100),
-                    rx_pkts=self.nni_rx_pkts+random.randint(90, 100),
-                    tx_bytes=self.nni_tx_bytes+random.randint(90000, 100000),
-                    rx_bytes=self.nni_rx_bytes+random.randint(90000, 100000),
-                    tx_64 = self.nni_tx_64 + random.randint(50,55),
-                    tx_65_127 = self.nni_tx_65_127 + random.randint(55,60),
-                    tx_128_255 = self.nni_tx_128_255 + random.randint(60,65),
-                    tx_256_511 = self.nni_tx_256_511 + random.randint(85,90),
-                    tx_512_1023 = self.nni_tx_512_1023 + random.randint(90,95),
-                    tx_1024_1518 = self.nni_tx_1024_1518 + random.randint(60,65),
-                    tx_1519_9k = self.nni_tx_1519_9k + random.randint(50,55),
+                    tx_pkts=self.nni_tx_pkts + random.randint(90, 100),
+                    rx_pkts=self.nni_rx_pkts + random.randint(90, 100),
+                    tx_bytes=self.nni_tx_bytes + random.randint(90000, 100000),
+                    rx_bytes=self.nni_rx_bytes + random.randint(90000, 100000),
+                    tx_64=self.nni_tx_64 + random.randint(50, 55),
+                    tx_65_127=self.nni_tx_65_127 + random.randint(55, 60),
+                    tx_128_255=self.nni_tx_128_255 + random.randint(60, 65),
+                    tx_256_511=self.nni_tx_256_511 + random.randint(85, 90),
+                    tx_512_1023=self.nni_tx_512_1023 + random.randint(90, 95),
+                    tx_1024_1518=self.nni_tx_1024_1518 + random.randint(60, 65),
+                    tx_1519_9k=self.nni_tx_1519_9k + random.randint(50, 55),
 
-                    rx_64 = self.nni_tx_64 + random.randint(50,55),
-                    rx_65_127 = self.nni_tx_65_127 + random.randint(55,60),
-                    rx_128_255 = self.nni_tx_128_255 + random.randint(60,65),
-                    rx_256_511 = self.nni_tx_256_511 + random.randint(85,90),
-                    rx_512_1023 = self.nni_tx_512_1023 + random.randint(90,95),
-                    rx_1024_1518 = self.nni_tx_1024_1518 + random.randint(60,65),
-                    rx_1519_9k = self.nni_tx_1519_9k + random.randint(50,55)
+                    rx_64=self.nni_tx_64 + random.randint(50, 55),
+                    rx_65_127=self.nni_tx_65_127 + random.randint(55, 60),
+                    rx_128_255=self.nni_tx_128_255 + random.randint(60, 65),
+                    rx_256_511=self.nni_tx_256_511 + random.randint(85, 90),
+                    rx_512_1023=self.nni_tx_512_1023 + random.randint(90, 95),
+                    rx_1024_1518=self.nni_tx_1024_1518 + random.randint(60, 65),
+                    rx_1519_9k=self.nni_tx_1519_9k + random.randint(50, 55)
                 )
                 pon_port_metrics = yield dict(
-                    tx_pkts=self.pon_tx_pkts+random.randint(90, 100),
-                    rx_pkts=self.pon_rx_pkts+random.randint(90, 100),
-                    tx_bytes=self.pon_tx_bytes+random.randint(90000, 100000),
-                    rx_bytes=self.pon_rx_bytes+random.randint(90000, 100000),
-                    tx_64 = self.pon_tx_64 + random.randint(50,55),
-                    tx_65_127 = self.pon_tx_65_127 + random.randint(55,60),
-                    tx_128_255 = self.pon_tx_128_255 + random.randint(60,65),
-                    tx_256_511 = self.pon_tx_256_511 + random.randint(85,90),
-                    tx_512_1023 = self.pon_tx_512_1023 + random.randint(90,95),
-                    tx_1024_1518 = self.pon_tx_1024_1518 + random.randint(60,65),
-                    tx_1519_9k = self.pon_tx_1519_9k + random.randint(50,55),
+                    tx_pkts=self.pon_tx_pkts + random.randint(90, 100),
+                    rx_pkts=self.pon_rx_pkts + random.randint(90, 100),
+                    tx_bytes=self.pon_tx_bytes + random.randint(90000, 100000),
+                    rx_bytes=self.pon_rx_bytes + random.randint(90000, 100000),
+                    tx_64=self.pon_tx_64 + random.randint(50, 55),
+                    tx_65_127=self.pon_tx_65_127 + random.randint(55, 60),
+                    tx_128_255=self.pon_tx_128_255 + random.randint(60, 65),
+                    tx_256_511=self.pon_tx_256_511 + random.randint(85, 90),
+                    tx_512_1023=self.pon_tx_512_1023 + random.randint(90, 95),
+                    tx_1024_1518=self.pon_tx_1024_1518 + random.randint(60, 65),
+                    tx_1519_9k=self.pon_tx_1519_9k + random.randint(50, 55),
 
-                    rx_64 = self.pon_tx_64 + random.randint(50,55),
-                    rx_65_127 = self.pon_tx_65_127 + random.randint(55,60),
-                    rx_128_255 = self.pon_tx_128_255 + random.randint(60,65),
-                    rx_256_511 = self.pon_tx_256_511 + random.randint(85,90),
-                    rx_512_1023 = self.pon_tx_512_1023 + random.randint(90,95),
-                    rx_1024_1518 = self.pon_tx_1024_1518 + random.randint(60,65),
-                    rx_1519_9k = self.pon_tx_1519_9k + random.randint(50,55)
+                    rx_64=self.pon_tx_64 + random.randint(50, 55),
+                    rx_65_127=self.pon_tx_65_127 + random.randint(55, 60),
+                    rx_128_255=self.pon_tx_128_255 + random.randint(60, 65),
+                    rx_256_511=self.pon_tx_256_511 + random.randint(85, 90),
+                    rx_512_1023=self.pon_tx_512_1023 + random.randint(90, 95),
+                    rx_1024_1518=self.pon_tx_1024_1518 + random.randint(60, 65),
+                    rx_1519_9k=self.pon_tx_1519_9k + random.randint(50, 55)
                 )
                 self.pon_tx_pkts = pon_port_metrics['tx_pkts']
                 self.pon_rx_pkts = pon_port_metrics['rx_pkts']
@@ -694,6 +695,45 @@ class SimulatedOltAdapter(object):
         lc = LoopingCall(_collect, device_id, prefix)
         lc.start(interval=15)  # TODO make this configurable
 
+    def start_alarm_simulation(self, device_id):
+
+        """Simulate periodic device alarms"""
+        import random
+
+        def _generate_alarm(device_id):
+
+            try:
+                # Randomly choose values for each enum types
+                severity = random.choice(list(v for k, v in AlarmEventSeverity.DESCRIPTOR.enum_values_by_name.items()))
+                state = random.choice(list(v for k, v in AlarmEventState.DESCRIPTOR.enum_values_by_name.items()))
+                type = random.choice(list(v for k, v in AlarmEventType.DESCRIPTOR.enum_values_by_name.items()))
+                category = random.choice(list(v for k, v in AlarmEventCategory.DESCRIPTOR.enum_values_by_name.items()))
+
+                description = "Simulated alarm - device:{} type:{} severity:{} state:{} category:{}".format(device_id,
+                                                                                                            type.name,
+                                                                                                            severity.name,
+                                                                                                            state.name,
+                                                                                                            category.name)
+
+                current_context = {}
+                for key, value in self.__dict__.items():
+                    current_context[key] = str(value)
+
+                alarm_event = self.adapter_agent.create_alarm(resource_id=device_id,
+                                                              type=type.number,
+                                                              category=category.number,
+                                                              severity=severity.number,
+                                                              state=state.number,
+                                                              description=description,
+                                                              context=current_context)
+
+                self.adapter_agent.submit_alarm(alarm_event)
+
+            except Exception as e:
+                log.exception('failed-to-submit-alarm', e=e)
+
+        alarm_lc = LoopingCall(_generate_alarm, device_id)
+        alarm_lc.start(30)
 
     # ~~~~~~~~~~~~~~~~~~~~ Embedded test Klein rest server ~~~~~~~~~~~~~~~~~~~~
 
@@ -713,7 +753,7 @@ class SimulatedOltAdapter(object):
         eapol_start = str(
             Ether(src='00:11:22:33:44:55') /
             EAPOL(type=1, len=0) /
-            Padding(load=42*'\x00')
+            Padding(load=42 * '\x00')
         )
         device = self.adapter_agent.get_device(device_id)
         self.adapter_agent.send_packet_in(logical_device_id=device.parent_id,
