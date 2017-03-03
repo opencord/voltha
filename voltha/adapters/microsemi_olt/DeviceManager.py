@@ -104,11 +104,13 @@ class DeviceManager(object):
 
     def onu_detected(self, parent_port_no=None,
                         child_device_type=None,
-                        onu_id=None):
+                        onu_id=None,
+                        serial_number=None):
         self.adapter_agent.child_device_detected(
             parent_device_id=self.device.id,
             parent_port_no=parent_port_no,
             child_device_type=child_device_type,
+            serial_number=serial_number,
             proxy_address=Device.ProxyAddress(
                 device_id=self.device.id,
                 channel_id=onu_id

@@ -13,12 +13,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from struct import pack, unpack
+
 from scapy.automaton import ATMT
 import structlog
 from voltha.adapters.microsemi_olt.BaseOltAutomaton import BaseOltAutomaton
 from voltha.adapters.microsemi_olt.PAS5211 import PAS5211EventOnuActivation, PAS5211MsgGetActivationAuthMode, \
-    PAS5211MsgGetActivationAuthModeResponse, PON_ACTIVATION_AUTH_AUTO, PON_ENABLE, PAS5211MsgSetOnuOmciPortId, \
-    PAS5211MsgSetOnuOmciPortIdResponse, PAS5211MsgSendFrame, PON_PORT_PON, PAS5211MsgSendFrameResponse
+    PAS5211MsgGetActivationAuthModeResponse, PAS5211MsgSetOnuOmciPortId, \
+    PAS5211MsgSetOnuOmciPortIdResponse, PAS5211MsgSendFrame, PAS5211MsgSendFrameResponse, \
+    PAS5211MsgGetLogicalObjectStatus, PAS5211MsgGetLogicalObjectStatusResponse, PAS5211MsgSetOnuAllocId, \
+    PAS5211MsgGetDbaMode, PAS5211MsgGetDbaModeResponse, PAS5211MsgSendDbaAlgorithmMsg, \
+    PAS5211MsgSendDbaAlgorithmMsgResponse, PAS5211EventDbaAlgorithm, PAS5211MsgSetPortIdConfig, \
+    PAS5211MsgSetPortIdConfigResponse, PAS5211MsgGetOnuIdByPortId, PAS5211MsgGetOnuIdByPortIdResponse, \
+    PAS5211SetVlanUplinkConfiguration, PAS5211SetVlanUplinkConfigurationResponse, PAS5211MsgSetOnuAllocIdResponse
+from voltha.adapters.microsemi_olt.PAS5211_constants import PON_ACTIVATION_AUTH_AUTO, PON_ENABLE, PON_PORT_PON, \
+    PON_LOGICAL_OBJECT_TYPE_ALLOC_ID, PON_LOGICAL_OBJECT_TYPE_ONU_ID_BY_ALLOC_ID, PON_TRUE, \
+    PMC_OFAL_MAX_BI_DIRECTIONAL_FLOW_PER_ONU, PMC_OFAL_START_FLOW_ID_BASE, PON_DBA_MODE_RUNNING, \
+    PYTHAGORAS_UPDATE_AID_SLA, SLA_be_bw_gros, SLA_gr_bw_gros, SLA_gr_bw_fine, SLA_be_bw_fine, PYTHAGORAS_DBA_DATA_COS, \
+    PYTHAGORAS_DBA_STATUS_REPORT_NSR, PYTHAGORAS_SET_SLA_RESP_SIZE, PON_PORT_TYPE_GEM, PON_PORT_DESTINATION_CNI0, \
+    PON_FALSE, PON_DISABLE
 from voltha.extensions.omci.omci_entities import CircuitPack
 from voltha.extensions.omci.omci_frame import OmciFrame
 from voltha.extensions.omci.omci_messages import OmciGet, OmciGetResponse
@@ -28,6 +41,14 @@ from voltha.protos.device_pb2 import Port
 
 log = structlog.get_logger()
 _verbose = False
+
+ALLOC_ID = 1000
+
+def alloc_id(onu_id):
+    for i in range(0, PMC_OFAL_MAX_BI_DIRECTIONAL_FLOW_PER_ONU):
+        alloc_id = PMC_OFAL_START_FLOW_ID_BASE + \
+                   (onu_id * PMC_OFAL_MAX_BI_DIRECTIONAL_FLOW_PER_ONU) + i
+        yield alloc_id
 
 def hexstring(string):
     return ":".join("{:02x}".format(ord(c)) for c in string)
@@ -39,6 +60,8 @@ class ActivationManager(BaseOltAutomaton):
     onu_session_id = None
     port_id = None
     channel_id = None
+    alloc_id = None
+    vendor = None
 
     def parse_args(self, debug=0, store=0, **kwargs):
         self.onu_id = kwargs.pop('onu_id')
@@ -46,6 +69,7 @@ class ActivationManager(BaseOltAutomaton):
         self.onu_session_id = kwargs.pop('onu_session_id')
         self.port_id = self.onu_id
         self.channel_id = kwargs.pop('channel_id')
+        self.alloc_id = alloc_id(self.onu_id)
 
         if self.onu_id is None or self.serial_number is None or \
                 self.onu_session_id is None or self.channel_id is None:
@@ -85,13 +109,45 @@ class ActivationManager(BaseOltAutomaton):
     def wait_omci_get(self):
         pass
 
+    @ATMT.state()
+    def wait_logical_object_status(self):
+        pass
+
+    @ATMT.state()
+    def wait_set_alloc_id(self):
+        pass
+
+    @ATMT.state()
+    def wait_dba_mode(self):
+        pass
+
+    @ATMT.state()
+    def wait_send_dba_alg_msg(self):
+        pass
+
+    @ATMT.state()
+    def wait_dba_alg_event(self):
+        pass
+
+    @ATMT.state()
+    def wait_set_port_id_config(self):
+        pass
+
+    @ATMT.state()
+    def wait_get_onu_id_by_port_id(self):
+        pass
+
+    @ATMT.state()
+    def wait_set_vlan_uplink_config(self):
+        pass
+
     @ATMT.state(final=1)
     def end(self):
         pass
 
     @ATMT.state(error=1)
-    def error(self):
-        pass
+    def error(self, msg):
+        log.error(msg)
 
     """
     Utility Methods
@@ -114,6 +170,21 @@ class ActivationManager(BaseOltAutomaton):
         log.error(msg)
         raise self.error()
 
+    def detect_onu(self):
+        log.info("Activated {} ONT".format(self.vendor))
+        self.create_port(self.vendor)
+        print self.channel_id
+        print self.onu_id
+        try:
+            self.device.onu_detected(
+                parent_port_no=self.channel_id,
+                child_device_type='%s_onu' % self.vendor.lower(),
+                onu_id=self.onu_id,
+                serial_number=hexstring(self.serial_number)
+            )
+        except Exception as e:
+            print e
+
     """
     Transitions
     """
@@ -128,7 +199,7 @@ class ActivationManager(BaseOltAutomaton):
     # Transitions from wait_get_auth_mode
     @ATMT.timeout(wait_get_auth_mode, 3)
     def timeout_get_auth_mode(self):
-        self.error('Could not get auth mode for OLT {}; dropping activation event for {}'
+        raise self.error('Could not get auth mode for OLT {}; dropping activation event for {}'
                    .format(self.target, hexstring(self.serial_number)))
 
     @ATMT.receive_condition(wait_get_auth_mode)
@@ -152,7 +223,7 @@ class ActivationManager(BaseOltAutomaton):
     # Transitions from wait_omci_port_id
     @ATMT.timeout(wait_omci_port_id, 3)
     def timeout_omci_port_id(self):
-        self.error('Could not set omci port id for OLT {}; dropping activation event for {}'
+        raise self.error('Could not set omci port id for OLT {}; dropping activation event for {}'
                    .format(self.target, hexstring(self.serial_number)))
 
     @ATMT.receive_condition(wait_omci_port_id)
@@ -180,6 +251,7 @@ class ActivationManager(BaseOltAutomaton):
         omci_frame = PAS5211MsgSendFrame(port_type=PON_PORT_PON, port_id=self.port_id,
                                          management_frame=PON_ENABLE, frame=frame)
 
+
         self.send(self.px(omci_frame))
 
         raise self.wait_send_frame()
@@ -187,7 +259,7 @@ class ActivationManager(BaseOltAutomaton):
     # Transitions from wait_send_frame
     @ATMT.timeout(wait_send_frame, 3)
     def timeout_send_frame(self):
-        self.error('Could not send omci to OLT {}; dropping activation event for {}'
+        raise self.error('Could not send omci to OLT {}; dropping activation event for {}'
                    .format(self.target, hexstring(self.serial_number)))
 
     @ATMT.receive_condition(wait_send_frame)
@@ -198,22 +270,180 @@ class ActivationManager(BaseOltAutomaton):
     # Transitions from wait_omci_get
     @ATMT.timeout(wait_omci_get, 3)
     def timeout_send_frame(self):
-        self.error('Did not receive omci get event from OLT {}; dropping activation event for {}'
+        raise self.error('Did not receive omci get event from OLT {}; dropping activation event for {}'
                    .format(self.target, hexstring(self.serial_number)))
 
     @ATMT.receive_condition(wait_omci_get)
     def wait_for_omci_get(self, pkt):
         if OmciGetResponse in pkt:
-            vendor = pkt['OmciGetResponse'].data['vendor_id']
-            log.info("Activated {} ONT".format(vendor))
-            self.create_port(vendor)
+            self.allocId = self.alloc_id.next()
+            self.vendor = pkt['OmciGetResponse'].data['vendor_id']
+            l_obj_status = PAS5211MsgGetLogicalObjectStatus(
+                            type=PON_LOGICAL_OBJECT_TYPE_ALLOC_ID,
+                            value=self.allocId)
+            self.send(self.px(l_obj_status))
+            raise self.wait_logical_object_status()
 
-            self.device.onu_detected(
-                parent_port_no=self.channel_id,
-                child_device_type='%s_onu' % vendor.lower(),
-                onu_id=self.port_id,
+    # Transitions from wait_logical_object_status
+    @ATMT.timeout(wait_logical_object_status, 3)
+    def timeout_logical_object_status(self):
+        raise self.error('Did not receive info about alloc id status for {}; dropping activation event for {}'
+                   .format(self.target, hexstring(self.serial_number)))
+
+    @ATMT.receive_condition(wait_logical_object_status)
+    def wait_for_logical_object_status(self, pkt):
+        if PAS5211MsgGetLogicalObjectStatusResponse in pkt:
+            if pkt.type == PON_LOGICAL_OBJECT_TYPE_ALLOC_ID:
+                if pkt.return_value == 0:
+                    # alloc-id not set
+                    set_alloc_id = PAS5211MsgSetOnuAllocId(
+                                    alloc_id=self.allocId,
+                                    allocate=PON_ENABLE
+                                )
+                    self.onu_id = -1
+                    self.port_id = self.allocId
+                    self.send(self.px(set_alloc_id))
+                    raise self.wait_set_alloc_id()
+                else:
+                    l_obj_status = PAS5211MsgGetLogicalObjectStatus(
+                        type=PON_LOGICAL_OBJECT_TYPE_ONU_ID_BY_ALLOC_ID,
+                        value=self.allocId)
+                    self.send(self.px(l_obj_status))
+                    raise self.wait_logical_object_status()
+            elif pkt.type == PON_LOGICAL_OBJECT_TYPE_ONU_ID_BY_ALLOC_ID:
+                # That's your onu id.
+                self.onu_id = pkt.return_value
+                # FIXME Need to iterate to get the port id as
+                # in PMC_OFAL_flow_db.c line 656
+                # UPDATE PORT_ID
+                set_alloc_id = PAS5211MsgSetOnuAllocId(
+                    alloc_id=self.allocId,
+                    allocate=PON_ENABLE
+                )
+                self.send(self.px(set_alloc_id))
+                raise self.wait_for_set_alloc_id() #FIXME are we done? probably not but check
+
+    # Transitions from wait_set_alloc_id
+    @ATMT.timeout(wait_set_alloc_id, 3)
+    def timeout_set_alloc_id(self):
+        raise self.error('Was not able to set alloc id for {}; dropping activation event for {}'
+                   .format(self.target, hexstring(self.serial_number)))
+
+    @ATMT.receive_condition(wait_set_alloc_id)
+    def wait_for_set_alloc_id(self, pkt):
+        if PAS5211MsgSetOnuAllocIdResponse in pkt:
+            self.send(self.px(PAS5211MsgGetDbaMode()))
+            raise self.wait_dba_mode()
+
+    # Transitions from wait for dba mode (See Pythagoras_api.c line 344 & PMC_OFAL.c 2062)
+    @ATMT.timeout(wait_dba_mode, 3)
+    def timeout_wait_dba_mode(self):
+        raise self.error('Did not get DBA mode for {}; dropping activation event for {}'
+                   .format(self.target, hexstring(self.serial_number)))
+
+
+    @ATMT.receive_condition(wait_dba_mode)
+    def wait_for_dba_mode(self, pkt):
+        if PAS5211MsgGetDbaModeResponse in pkt:
+            if pkt.dba_mode != PON_DBA_MODE_RUNNING:
+                raise self.error('DBA is not running; dropping activation event for {}'
+                           .format(hexstring(self.serial_number)))
+
+            data = pack('<LLHHBBBB', PYTHAGORAS_UPDATE_AID_SLA,
+                        self.allocId, SLA_gr_bw_gros, SLA_be_bw_gros,
+                        SLA_gr_bw_fine, SLA_be_bw_fine, PYTHAGORAS_DBA_DATA_COS,
+                        PYTHAGORAS_DBA_STATUS_REPORT_NSR)
+
+            send_dba_alg = PAS5211MsgSendDbaAlgorithmMsg(data=data)
+            self.send(self.px(send_dba_alg))
+            raise self.wait_send_dba_alg_msg()
+
+    # Transitions from wait_send_dba_alg_msg
+    @ATMT.timeout(wait_send_dba_alg_msg, 3)
+    def timeout_wait_for_send_dba_alg_msg(self):
+        raise self.error('Unable to set dba alg params for {}; dropping activation event for {}'
+                         .format(self.target, hexstring(self.serial_number)))
+
+    @ATMT.receive_condition(wait_send_dba_alg_msg)
+    def wait_for_send_dba_alg_msg(self, pkt):
+        if PAS5211MsgSendDbaAlgorithmMsgResponse in pkt:
+            raise self.wait_dba_alg_event()
+
+    # Transitions from wait_dba_alg_event
+    @ATMT.timeout(wait_dba_alg_event, 3)
+    def timeout_wait_for_send_dba_alg_event(self):
+        raise self.error('DBA params ont set for {}; dropping activation event for {}'
+                         .format(self.target, hexstring(self.serial_number)))
+
+    @ATMT.receive_condition(wait_dba_alg_event)
+    def wait_for_send_dba_alg_event(self, pkt):
+        if PAS5211EventDbaAlgorithm in pkt:
+            if pkt.size < PYTHAGORAS_SET_SLA_RESP_SIZE:
+                raise self.error('DBA Event message too small for {}, dropping activation event for {}'
+                                 .format(self.target, hexstring(self.serial_number)))
+
+            (_, aid, _) = unpack('<LLH',pkt.data)
+            if aid == self.allocId:
+                # All is well moving on.
+                # There is some more shit at PYTHAGORAS.c line 395 but fuck it.
+                set_port_id_config = PAS5211MsgSetPortIdConfig(
+                    port_id=self.port_id,
+                    activate=PON_ENABLE,
+                    alloc_id=self.allocId,
+                    type=PON_PORT_TYPE_GEM,
+                    destination=PON_PORT_DESTINATION_CNI0
+                )
+                self.send(self.px(set_port_id_config))
+                raise self.wait_set_port_id_config()
+
+    # Transitions from wait_set_port_id_config
+    @ATMT.timeout(wait_set_port_id_config, 3)
+    def timeout_wait_set_port_id_config(self):
+        raise self.error('Could not set port id config for {}; dropping activation event for {}'
+                         .format(self.target, hexstring(self.serial_number)))
+
+    @ATMT.receive_condition(wait_set_port_id_config)
+    def wait_for_set_port_id_config(self, pkt):
+        if PAS5211MsgSetPortIdConfigResponse in pkt:
+            get_onu_id = PAS5211MsgGetOnuIdByPortId(
+                port_id=self.port_id
             )
+            self.send(self.px(get_onu_id))
+            raise self.wait_get_onu_id_by_port_id()
 
+    # Transistions from wait_get_onu_id_by_port_id
+    @ATMT.timeout(wait_get_onu_id_by_port_id, 3)
+    def timeout_wait_get_onu_id_by_port_id(self):
+        raise self.error('Could not get onu id for {}; dropping activation event for {}'
+                         .format(self.target, hexstring(self.serial_number)))
+
+    @ATMT.receive_condition(wait_get_onu_id_by_port_id)
+    def wait_for_get_onu_id_by_port_id(self, pkt):
+        if PAS5211MsgGetOnuIdByPortIdResponse in pkt:
+            self.onu_id = pkt['PAS5211MsgGetOnuIdByPortIdResponse'].onu_id
+            # There may be more things to do here. but traces indicate that no.
+            # see PAS.c line 977 and onwards.
+            set_vlan_uplink_config = PAS5211SetVlanUplinkConfiguration(
+                port_id=self.port_id,
+                pvid_config_enabled=PON_FALSE,
+                min_cos=0,
+                max_cos=7,
+                de_bit=PON_DISABLE
+            )
+            self.send(self.px(set_vlan_uplink_config))
+            raise self.wait_set_vlan_uplink_config()
+
+    # Transitions from wait_set_vlan_uplink_config
+    @ATMT.timeout(wait_set_vlan_uplink_config, 3)
+    def timeout_wait_set_vlan_uplink_config(self):
+        raise self.error('Could not set vlan uplink config for {}; dropping activation event for {}'
+                                 .format(self.target, hexstring(self.serial_number)))
+
+    @ATMT.receive_condition(wait_set_vlan_uplink_config)
+    def wait_for_set_vlan_uplink_config(self, pkt):
+        if PAS5211SetVlanUplinkConfigurationResponse in pkt:
+            # YAY we made it.
+            self.detect_onu()
             raise self.end()
 
 

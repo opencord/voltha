@@ -19,13 +19,14 @@ from voltha.adapters.microsemi_olt.BaseOltAutomaton import BaseOltAutomaton
 from voltha.adapters.microsemi_olt.PAS5211 import PAS5211MsgGetProtocolVersion, PAS5211MsgGetOltVersion, \
     PAS5211MsgGetOltVersionResponse, PAS5211MsgGetProtocolVersionResponse, \
     SnrBurstDelay, RngBurstDelay, GeneralOpticsParams, ResetValues, ResetTimingCtrl, PreambleParams, \
-    PAS5211MsgSetOltOpticsResponse, CHANNELS, PON_OPTICS_VOLTAGE_IF_LVPECL, PON_ENABLE, PON_POLARITY_ACTIVE_HIGH, \
-    PON_SD_SOURCE_LASER_SD, PON_RESET_TYPE_DELAY_BASED, PON_DISABLE, PON_RESET_TYPE_NORMAL_START_BURST_BASED, \
-    PAS5211MsgSetOpticsIoControlResponse, PON_TX_ENABLE_DEFAULT, PAS5211MsgGetGeneralParamResponse, PAS5211MsgAddOltChannel, \
-    PAS5211MsgAddOltChannelResponse, PON_ALARM_LOS, PAS5211MsgSetAlarmConfigResponse, PAS5211MsgGetDbaMode, \
-    PAS5211MsgGetDbaModeResponse, PON_DBA_MODE_LOADED_NOT_RUNNING, PAS5211MsgStartDbaAlgorithm, \
-    PAS5211MsgStartDbaAlgorithmResponse, PON_DBA_MODE_RUNNING, PAS5211MsgSetOltChannelActivationPeriod, \
+    PAS5211MsgSetOltOpticsResponse, CHANNELS, PAS5211MsgSetOpticsIoControlResponse, PAS5211MsgGetGeneralParamResponse, PAS5211MsgAddOltChannel, \
+    PAS5211MsgAddOltChannelResponse, PAS5211MsgSetAlarmConfigResponse, PAS5211MsgGetDbaMode, \
+    PAS5211MsgGetDbaModeResponse, PAS5211MsgStartDbaAlgorithm, \
+    PAS5211MsgStartDbaAlgorithmResponse,  PAS5211MsgSetOltChannelActivationPeriod, \
     PAS5211MsgSetOltChannelActivationPeriodResponse
+from voltha.adapters.microsemi_olt.PAS5211_constants import PON_OPTICS_VOLTAGE_IF_LVPECL, PON_ENABLE, PON_POLARITY_ACTIVE_HIGH, \
+    PON_SD_SOURCE_LASER_SD, PON_RESET_TYPE_DELAY_BASED, PON_DISABLE, PON_RESET_TYPE_NORMAL_START_BURST_BASED, \
+    PON_TX_ENABLE_DEFAULT, PON_ALARM_LOS,  PON_DBA_MODE_LOADED_NOT_RUNNING,  PON_DBA_MODE_RUNNING
 from voltha.adapters.microsemi_olt.PAS5211_utils import general_param, olt_optics_pkt, burst_timing, io_ctrl_optics, \
     alarm_config
 
