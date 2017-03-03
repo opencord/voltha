@@ -71,10 +71,7 @@ message AlarmEventType {
  */
 message AlarmEventCategory {
     enum AlarmEventCategory {
-        GENERAL = 0;
-        CONFIGURATION = 1;
-        PON = 2;
-        TCA = 3;
+        PON = 0;
     }
 }
 
@@ -109,19 +106,15 @@ message AlarmEvent {
     string id = 1;
 
     // Refers to the area of the system impacted by the alarm
-    // COMMUNICATION, ENVIRONMENT, EQUIPMENT, SERVICE, PROCESSING, SECURITY
     AlarmEventType.AlarmEventType type = 2;
 
-    // Refers to the functional category originating the alarm
-    // GENERAL, CONFIG, PON, TCA
+    // Refers to functional category of the alarm
     AlarmEventCategory.AlarmEventCategory category = 3;
 
     // Current active state of the alarm
-    // RAISED, CLEARED
     AlarmEventState.AlarmEventState state = 4;
 
     // Overall impact of the alarm on the system
-    // INDETERMINATE, WARNING, MINOR, MAJOR, CRITICAL
     AlarmEventSeverity.AlarmEventSeverity severity = 5;
 
     // Timestamp at which the alarm was first raised

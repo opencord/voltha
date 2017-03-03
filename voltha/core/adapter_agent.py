@@ -326,7 +326,7 @@ class AdapterAgent(object):
     def create_alarm(self, id=None, resource_id=None, description=None,
                      raised_ts=0, changed_ts=0,
                      type=AlarmEventType.EQUIPMENT,
-                     category=AlarmEventCategory.GENERAL,
+                     category=AlarmEventCategory.PON,
                      severity=AlarmEventSeverity.MINOR,
                      state=AlarmEventState.RAISED,
                      context=None):
