@@ -108,8 +108,20 @@ class RubyAdapter(object):
     def abandon_device(self, device):
         self._abandon(device.mac_address)
 
-    def deactivate_device(self, device):
-        self._abandon(device.mac_address)
+    def disable_device(self, device):
+        raise NotImplementedError()
+
+    def reenable_device(self, device):
+        raise NotImplementedError()
+
+    def reboot_device(self, device):
+        raise NotImplementedError()
+
+    def delete_device(self, device):
+        raise NotImplementedError()
+
+    def get_device_details(self, device):
+        raise NotImplementedError()
 
     def update_flows_bulk(self, device, flows, groups):
         log.debug('bulk-flow-update', device_id=device.id,

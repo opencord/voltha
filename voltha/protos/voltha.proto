@@ -9,6 +9,7 @@ syntax = "proto3";
 package voltha;
 
 import "google/protobuf/empty.proto";
+import "google/protobuf/any.proto";
 import "google/api/annotations.proto";
 
 import "yang_options.proto";
@@ -201,10 +202,33 @@ service VolthaGlobalService {
         };
     }
 
-    // Activate a pre-provisioned device
-    rpc ActivateDevice(ID) returns(google.protobuf.Empty) {
+    // Enable a device.  If the device was in pre-provisioned state then it
+    // will tansition to ENABLED state.  If it was is DISABLED state then it
+    // will tansition to ENABLED state as well.
+    rpc EnableDevice(ID) returns(google.protobuf.Empty) {
         option (google.api.http) = {
-            post: "/api/v1/devices/{id}/activate"
+            post: "/api/v1/devices/{id}/enable"
+        };
+    }
+
+    // Disable a device
+    rpc DisableDevice(ID) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/devices/{id}/disable"
+        };
+    }
+
+    // Reboot a device
+    rpc RebootDevice(ID) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/devices/{id}/reboot"
+        };
+    }
+
+    // Delete a device
+    rpc DeleteDevice(ID) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/api/v1/devices/{id}/delete"
         };
     }
 
@@ -379,10 +403,33 @@ service VolthaLocalService {
         };
     }
 
-    // Activate a pre-provisioned device
-    rpc ActivateDevice(ID) returns(google.protobuf.Empty) {
+    // Enable a device.  If the device was in pre-provisioned state then it
+    // will tansition to ENABLED state.  If it was is DISABLED state then it
+    // will tansition to ENABLED state as well.
+    rpc EnableDevice(ID) returns(google.protobuf.Empty) {
         option (google.api.http) = {
-            post: "/api/v1/local/devices/{id}/activate"
+            post: "/api/v1/local/devices/{id}/enable"
+        };
+    }
+
+    // Disable a device
+    rpc DisableDevice(ID) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/devices/{id}/disable"
+        };
+    }
+
+    // Reboot a device
+    rpc RebootDevice(ID) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/devices/{id}/reboot"
+        };
+    }
+
+    // Delete a device
+    rpc DeleteDevice(ID) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/devices/{id}/delete"
         };
     }
 

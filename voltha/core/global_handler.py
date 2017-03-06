@@ -264,13 +264,87 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context)
 
     @twisted_async
-    def ActivateDevice(self, request, context):
+    def EnableDevice(self, request, context):
         log.info('grpc-request', request=request)
-        # TODO dispatching to local instead of passing it to leader
+
+        try:
+            instance_id = self.dispatcher.instance_id_by_device_id(
+                request.id
+            )
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return Device()
+
         return self.dispatcher.dispatch(
-            self.instance_id,
+            instance_id,
             VolthaLocalServiceStub,
-            'ActivateDevice',
+            'EnableDevice',
+            request,
+            context)
+
+
+    @twisted_async
+    def DisableDevice(self, request, context):
+        log.info('grpc-request', request=request)
+
+        try:
+            instance_id = self.dispatcher.instance_id_by_device_id(
+                request.id
+            )
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return Device()
+
+        return self.dispatcher.dispatch(
+            instance_id,
+            VolthaLocalServiceStub,
+            'DisableDevice',
+            request,
+            context)
+
+    @twisted_async
+    def RebootDevice(self, request, context):
+        log.info('grpc-request', request=request)
+
+        try:
+            instance_id = self.dispatcher.instance_id_by_device_id(
+                request.id
+            )
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return Device()
+
+        return self.dispatcher.dispatch(
+            instance_id,
+            VolthaLocalServiceStub,
+            'RebootDevice',
+            request,
+            context)
+
+    @twisted_async
+    def DeleteDevice(self, request, context):
+        log.info('grpc-request', request=request)
+
+        try:
+            instance_id = self.dispatcher.instance_id_by_device_id(
+                request.id
+            )
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return Device()
+
+        return self.dispatcher.dispatch(
+            instance_id,
+            VolthaLocalServiceStub,
+            'DeleteDevice',
             request,
             context)
 

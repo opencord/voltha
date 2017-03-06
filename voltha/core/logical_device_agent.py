@@ -28,7 +28,7 @@ from voltha.core.device_graph import DeviceGraph
 from voltha.core.flow_decomposer import FlowDecomposer, \
     flow_stats_entry_from_flow_mod_message, group_entry_from_group_mod, \
     mk_flow_stat, in_port, vlan_vid, vlan_pcp, pop_vlan, output, set_field, \
-    push_vlan
+    push_vlan, mk_simple_flow_mod
 from voltha.protos import third_party
 from voltha.protos import openflow_13_pb2 as ofp
 from voltha.protos.device_pb2 import Port
@@ -53,6 +53,8 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             '/logical_devices/{}/flows'.format(logical_device.id))
         self.groups_proxy = core.get_proxy(
             '/logical_devices/{}/flow_groups'.format(logical_device.id))
+        # self.port_proxy = core.get_proxy(
+        #     '/logical_devices/{}/ports'.format(logical_device.id))
         self.self_proxy = core.get_proxy(
             '/logical_devices/{}'.format(logical_device.id))
 
@@ -60,6 +62,8 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             CallbackType.POST_UPDATE, self._flow_table_updated)
         self.groups_proxy.register_callback(
             CallbackType.POST_UPDATE, self._group_table_updated)
+        # self.port_proxy.register_callback(
+        #     CallbackType.POST_UPDATE, self._port_changed)
         self.self_proxy.register_callback(
             CallbackType.POST_ADD, self._port_added)
         self.self_proxy.register_callback(
@@ -89,6 +93,9 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             CallbackType.POST_ADD, self._port_list_updated)
         self.self_proxy.unregister_callback(
             CallbackType.POST_REMOVE, self._port_list_updated)
+
+        # Remove subscription to the event bus
+        self.event_bus.unsubscribe(self.packet_in_subscription)
         self.log.info('stopped')
 
     def announce_flows_deleted(self, flows):
@@ -107,6 +114,15 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
 
     def signal_group_mod_error(self, code, group_mod):
         pass  # TODO
+
+    def delete_all_flows(self):
+        self.update_flow_table(mk_simple_flow_mod(
+            command=ofp.OFPFC_DELETE,
+            out_port=ofp.OFPP_ANY,
+            out_group=ofp.OFPG_ANY,
+            match_fields=[],
+            actions=[]
+        ))
 
     def update_flow_table(self, flow_mod):
 
@@ -520,6 +536,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
     # ~~~~~~~~~~~~~~~~~~~ APIs NEEDED BY FLOW DECOMPOSER ~~~~~~~~~~~~~~~~~~~~~~
 
     def _port_added(self, port):
+        self.log.debug('port-added', port=port)
         assert isinstance(port, LogicalPort)
         self._port_list_updated(port)
         self.local_handler.send_port_change_event(
@@ -531,6 +548,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         )
 
     def _port_removed(self, port):
+        self.log.debug('port-removed', port=port)
         assert isinstance(port, LogicalPort)
         self._port_list_updated(port)
         self.local_handler.send_port_change_event(

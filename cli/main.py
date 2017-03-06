@@ -278,29 +278,73 @@ class VolthaCli(Cmd):
         self.poutput('success (device id = {})'.format(device.id))
         self.default_device_id = device.id
 
-    def do_activate_olt(self, line):
+    def do_enable(self, line):
         """
-        Activate an OLT. If the <id> is not provided, it will be on the last
-        pre-provisioned OLT.
+        Enable a device. If the <id> is not provided, it will be on the last
+        pre-provisioned device.
         """
         device_id = line or self.default_device_id
         self.poutput('activating {}'.format(device_id))
         stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
-        stub.ActivateDevice(voltha_pb2.ID(id=device_id))
+        stub.EnableDevice(voltha_pb2.ID(id=device_id))
 
-        # try to acquire logical device id
         while True:
             device = stub.GetDevice(voltha_pb2.ID(id=device_id))
+            # If this is an OLT then acquire logical device id
             if device.oper_status == voltha_pb2.OperStatus.ACTIVE:
-                assert device.parent_id
-                self.default_logical_device_id = device.parent_id
+                if device.type.endswith('_olt'):
+                    assert device.parent_id
+                    self.default_logical_device_id = device.parent_id
+                    self.poutput('success (logical device id = {})'.format(
+                        self.default_logical_device_id))
+                else:
+                    self.poutput('success (device id = {})'.format(device.id))
                 break
-            self.poutput('waiting for device to be activated...')
+            self.poutput('waiting for device to be enabled...')
             sleep(.5)
-        self.poutput('success (logical device id = {})'.format(
-            self.default_logical_device_id))
 
     complete_activate_olt = complete_device
+
+    def do_reboot(self, line):
+        """
+        Rebooting a device. ID of the device needs to be provided
+        """
+        device_id = line or self.default_device_id
+        self.poutput('rebooting {}'.format(device_id))
+        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        stub.RebootDevice(voltha_pb2.ID(id=device_id))
+        self.poutput('rebooted {}'.format(device_id))
+
+    def do_delete(self, line):
+        """
+        Deleting a device. ID of the device needs to be provided
+        """
+        device_id = line or self.default_device_id
+        self.poutput('deleting {}'.format(device_id))
+        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        stub.DeleteDevice(voltha_pb2.ID(id=device_id))
+        self.poutput('deleted {}'.format(device_id))
+
+    def do_disable(self, line):
+        """
+        Disable a device. ID of the device needs to be provided
+        """
+        device_id = line
+        self.poutput('disabling {}'.format(device_id))
+        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        stub.DisableDevice(voltha_pb2.ID(id=device_id))
+
+        # Do device query and verify that the device admin status is
+        # DISABLED and Operational Status is unknown
+        device = stub.GetDevice(voltha_pb2.ID(id=device_id))
+        if device.oper_status == voltha_pb2.OperStatus.UNKNOWN and \
+                        device.admin_state == voltha_pb2.AdminState.DISABLED:
+            self.poutput('disabled successfully {}'.format(device_id))
+        else:
+            self.poutput('disabling failed {}.  Admin State:{} '
+                         'Operation State: {}'.format(device_id,
+                                                      device.admin_state,
+                                                      device.oper_status))
 
     def do_test(self, line):
         """Enter test mode, which makes a bunch on new commands available"""

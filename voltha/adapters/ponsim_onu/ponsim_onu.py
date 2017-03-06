@@ -22,6 +22,7 @@ import structlog
 from twisted.internet import reactor
 from twisted.internet.defer import DeferredQueue, inlineCallbacks
 from zope.interface import implementer
+from common.utils.asleep import asleep
 
 from voltha.adapters.interface import IAdapterInterface
 from voltha.core.logical_device_agent import mac_str_to_tuple
@@ -33,7 +34,8 @@ from voltha.protos.common_pb2 import LogLevel, OperStatus, ConnectStatus, \
 from voltha.protos.device_pb2 import DeviceType, DeviceTypes, Port
 from voltha.protos.health_pb2 import HealthStatus
 from voltha.protos.logical_device_pb2 import LogicalPort
-from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, OFPPF_1GB_FD
+from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, \
+    OFPPF_1GB_FD, OFPPC_NO_RECV
 from voltha.protos.openflow_13_pb2 import ofp_port
 from voltha.protos.ponsim_pb2 import FlowTable
 
@@ -93,7 +95,27 @@ class PonSimOnuAdapter(object):
     def abandon_device(self, device):
         raise NotImplementedError()
 
-    def deactivate_device(self, device):
+    def disable_device(self, device):
+        log.info('disable-device', device_id=device.id)
+        reactor.callLater(0, self.devices_handlers[device.id].disable)
+        return device
+
+    def reenable_device(self, device):
+        log.info('reenable-device', device_id=device.id)
+        reactor.callLater(0, self.devices_handlers[device.id].reenable)
+        return device
+
+    def reboot_device(self, device):
+        log.info('rebooting', device_id=device.id)
+        reactor.callLater(0, self.devices_handlers[device.id].reboot)
+        return device
+
+    def delete_device(self, device):
+        log.info('delete-device', device_id=device.id)
+        reactor.callLater(0, self.devices_handlers[device.id].delete)
+        return device
+
+    def get_device_details(self, device):
         raise NotImplementedError()
 
     def update_flows_bulk(self, device, flows, groups):
@@ -129,6 +151,10 @@ class PonSimOnuHandler(object):
         self.log = structlog.get_logger(device_id=device_id)
         self.incoming_messages = DeferredQueue()
         self.proxy_address = None
+        # reference of uni_port is required when re-enabling the device if
+        # it was disabled previously
+        self.uni_port = None
+        self.pon_port = None
 
     def receive_message(self, msg):
         self.incoming_messages.put(msg)
@@ -153,15 +179,14 @@ class PonSimOnuHandler(object):
         self.adapter_agent.update_device(device)
 
         # register physical ports
-        uni_port = Port(
+        self.uni_port = Port(
             port_no=2,
             label='UNI facing Ethernet port',
             type=Port.ETHERNET_UNI,
             admin_state=AdminState.ENABLED,
             oper_status=OperStatus.ACTIVE
         )
-        self.adapter_agent.add_port(device.id, uni_port)
-        self.adapter_agent.add_port(device.id, Port(
+        self.pon_port = Port(
             port_no=1,
             label='PON port',
             type=Port.PON_ONU,
@@ -173,7 +198,9 @@ class PonSimOnuHandler(object):
                     port_no=device.parent_port_no
                 )
             ]
-        ))
+        )
+        self.adapter_agent.add_port(device.id, self.uni_port)
+        self.adapter_agent.add_port(device.id, self.pon_port)
 
         # add uni port to logical device
         parent_device = self.adapter_agent.get_device(device.parent_id)
@@ -196,7 +223,7 @@ class PonSimOnuHandler(object):
                 max_speed=OFPPF_1GB_FD
             ),
             device_id=device.id,
-            device_port_no=uni_port.port_no
+            device_port_no=self.uni_port.port_no
         ))
 
         device = self.adapter_agent.get_device(device.id)
@@ -219,3 +246,143 @@ class PonSimOnuHandler(object):
         self.adapter_agent.send_proxied_message(self.proxy_address, msg)
 
         yield self.incoming_messages.get()
+
+
+    @inlineCallbacks
+    def reboot(self):
+        self.log.info('rebooting', device_id=self.device_id)
+
+        # Update the operational status to ACTIVATING and connect status to
+        # UNREACHABLE
+        device = self.adapter_agent.get_device(self.device_id)
+        previous_oper_status = device.oper_status
+        previous_conn_status = device.connect_status
+        device.oper_status = OperStatus.ACTIVATING
+        device.connect_status = ConnectStatus.UNREACHABLE
+        self.adapter_agent.update_device(device)
+
+        # Sleep 10 secs, simulating a reboot
+        #TODO: send alert and clear alert after the reboot
+        yield asleep(10)
+
+        # Change the operational status back to its previous state.  With a
+        # real OLT the operational state should be the state the device is
+        # after a reboot.
+        # Get the latest device reference
+        device = self.adapter_agent.get_device(self.device_id)
+        device.oper_status = previous_oper_status
+        device.connect_status = previous_conn_status
+        self.adapter_agent.update_device(device)
+        self.log.info('rebooted', device_id=self.device_id)
+
+
+    def disable(self):
+        self.log.info('disabling', device_id=self.device_id)
+
+        # Get the latest device reference
+        device = self.adapter_agent.get_device(self.device_id)
+
+        # Disable all ports on that device
+        self.adapter_agent.disable_all_ports(self.device_id)
+
+        # Update the device operational status to UNKNOWN
+        device.oper_status = OperStatus.UNKNOWN
+        device.connect_status = ConnectStatus.UNREACHABLE
+        self.adapter_agent.update_device(device)
+
+        # Remove the uni logical port from the OLT, if still present
+        parent_device = self.adapter_agent.get_device(device.parent_id)
+        assert parent_device
+        logical_device_id = parent_device.parent_id
+        assert logical_device_id
+        port_no = device.proxy_address.channel_id
+        port_id = 'uni-{}'.format(port_no)
+        try:
+            port = self.adapter_agent.get_logical_port(logical_device_id, port_id)
+            self.adapter_agent.delete_logical_port(logical_device_id, port)
+        except KeyError:
+            self.log.info('logical-port-not-found', device_id=self.device_id,
+                          portid=port_id)
+
+        # Remove pon port from parent
+        self.adapter_agent.delete_port_reference_from_parent(self.device_id,
+                                                             self.pon_port)
+
+        # Just updating the port status may be an option as well
+        # port.ofp_port.config = OFPPC_NO_RECV
+        # yield self.adapter_agent.update_logical_port(logical_device_id,
+        #                                             port)
+        # Unregister for proxied message
+        self.adapter_agent.unregister_for_proxied_messages(device.proxy_address)
+
+        # TODO:
+        # 1) Remove all flows from the device
+        # 2) Remove the device from ponsim
+
+        self.log.info('disabled', device_id=device.id)
+
+
+    def reenable(self):
+        self.log.info('re-enabling', device_id=self.device_id)
+
+        # Get the latest device reference
+        device = self.adapter_agent.get_device(self.device_id)
+
+        # First we verify that we got parent reference and proxy info
+        assert self.uni_port
+        assert device.parent_id
+        assert device.proxy_address.device_id
+        assert device.proxy_address.channel_id
+
+        # Re-register for proxied messages right away
+        self.proxy_address = device.proxy_address
+        self.adapter_agent.register_for_proxied_messages(device.proxy_address)
+
+        # Re-enable the ports on that device
+        self.adapter_agent.reenable_all_ports(self.device_id)
+
+        # Update the connect status to REACHABLE
+        device.connect_status = ConnectStatus.REACHABLE
+        self.adapter_agent.update_device(device)
+
+        # re-add uni port to logical device
+        parent_device = self.adapter_agent.get_device(device.parent_id)
+        logical_device_id = parent_device.parent_id
+        assert logical_device_id
+        port_no = device.proxy_address.channel_id
+        cap = OFPPF_1GB_FD | OFPPF_FIBER
+        self.adapter_agent.add_logical_port(logical_device_id, LogicalPort(
+            id='uni-{}'.format(port_no),
+            ofp_port=ofp_port(
+                port_no=port_no,
+                hw_addr=mac_str_to_tuple('00:00:00:00:00:%02x' % port_no),
+                name='uni-{}'.format(port_no),
+                config=0,
+                state=OFPPS_LIVE,
+                curr=cap,
+                advertised=cap,
+                peer=cap,
+                curr_speed=OFPPF_1GB_FD,
+                max_speed=OFPPF_1GB_FD
+            ),
+            device_id=device.id,
+            device_port_no=self.uni_port.port_no
+        ))
+
+        device = self.adapter_agent.get_device(device.id)
+        device.oper_status = OperStatus.ACTIVE
+        self.adapter_agent.update_device(device)
+
+        self.log.info('re-enabled', device_id=device.id)
+
+
+    def delete(self):
+        self.log.info('deleting', device_id=self.device_id)
+
+        # A delete request may be received when an OLT is dsiabled
+
+        # TODO:
+        # 1) Remove all flows from the device
+        # 2) Remove the device from ponsim
+
+        self.log.info('deleted', device_id=self.device_id)

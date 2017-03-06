@@ -23,9 +23,11 @@ import grpc
 import structlog
 from scapy.layers.l2 import Ether, Dot1Q
 from twisted.internet import reactor
+from twisted.internet.defer import inlineCallbacks
 from zope.interface import implementer
 
 from common.frameio.frameio import BpfProgramFilter, hexify
+from common.utils.asleep import asleep
 from voltha.adapters.interface import IAdapterInterface
 from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.protos import third_party
@@ -85,6 +87,11 @@ class PonSimOltAdapter(object):
         log.info('started')
 
     def stop(self):
+        """
+        This method is called when this device instance is no longer
+        required,  which means there is a request to remove this device.
+        :return:
+        """
         log.debug('stopping')
         log.info('stopped')
 
@@ -108,7 +115,27 @@ class PonSimOltAdapter(object):
     def abandon_device(self, device):
         raise NotImplementedError()
 
-    def deactivate_device(self, device):
+    def disable_device(self, device):
+        log.info('disable-device', device_id=device.id)
+        reactor.callLater(0, self.devices_handlers[device.id].disable)
+        return device
+
+    def reenable_device(self, device):
+        log.info('reenable-device', device_id=device.id)
+        reactor.callLater(0, self.devices_handlers[device.id].reenable)
+        return device
+
+    def reboot_device(self, device):
+        log.info('reboot-device', device_id=device.id)
+        reactor.callLater(0, self.devices_handlers[device.id].reboot)
+        return device
+
+    def delete_device(self, device):
+        log.info('delete-device', device_id=device.id)
+        reactor.callLater(0, self.devices_handlers[device.id].delete)
+        return device
+
+    def get_device_details(self, device):
         raise NotImplementedError()
 
     def update_flows_bulk(self, device, flows, groups):
@@ -154,6 +181,7 @@ class PonSimOltHandler(object):
         self.channel = None
         self.io_port = None
         self.logical_device_id = None
+        self.nni_port = None
         self.interface = registry('main').get_args().interface
 
     def __del__(self):
@@ -193,6 +221,7 @@ class PonSimOltHandler(object):
             admin_state=AdminState.ENABLED,
             oper_status=OperStatus.ACTIVE
         )
+        self.nni_port = nni_port
         self.adapter_agent.add_port(device.id, nni_port)
         self.adapter_agent.add_port(device.id, Port(
             port_no=1,
@@ -292,6 +321,8 @@ class PonSimOltHandler(object):
                 self.adapter_agent.send_packet_in(
                     packet=str(popped_frame), **kw)
 
+
+
     def update_flow_table(self, flows):
         stub = ponsim_pb2.PonSimStub(self.get_channel())
         self.log.info('pushing-olt-flow-table')
@@ -320,3 +351,151 @@ class PonSimOltHandler(object):
             pkt.payload
         )
         self.io_port.send(str(out_pkt))
+
+    @inlineCallbacks
+    def reboot(self):
+        self.log.info('rebooting', device_id=self.device_id)
+
+        # Update the operational status to ACTIVATING and connect status to
+        # UNREACHABLE
+        device = self.adapter_agent.get_device(self.device_id)
+        previous_oper_status = device.oper_status
+        previous_conn_status = device.connect_status
+        device.oper_status = OperStatus.ACTIVATING
+        device.connect_status = ConnectStatus.UNREACHABLE
+        self.adapter_agent.update_device(device)
+
+        # Sleep 10 secs, simulating a reboot
+        #TODO: send alert and clear alert after the reboot
+        yield asleep(10)
+
+        # Change the operational status back to its previous state.  With a
+        # real OLT the operational state should be the state the device is
+        # after a reboot.
+        # Get the latest device reference
+        device = self.adapter_agent.get_device(self.device_id)
+        device.oper_status = previous_oper_status
+        device.connect_status = previous_conn_status
+        self.adapter_agent.update_device(device)
+        self.log.info('rebooted', device_id=self.device_id)
+
+    def disable(self):
+        self.log.info('disabling', device_id=self.device_id)
+
+        # Get the latest device reference
+        device = self.adapter_agent.get_device(self.device_id)
+
+        # Update the operational status to UNKNOWN
+        device.oper_status = OperStatus.UNKNOWN
+        device.connect_status = ConnectStatus.UNREACHABLE
+        self.adapter_agent.update_device(device)
+
+        # Remove the logical device
+        logical_device = self.adapter_agent.get_logical_device(
+                                                    self.logical_device_id)
+        self.adapter_agent.delete_logical_device(logical_device)
+
+        # Disable all child devices first
+        self.adapter_agent.disable_all_child_devices(self.device_id)
+
+        # # Remove all child devices
+        # self.adapter_agent.remove_all_child_devices(self.device_id)
+
+        # Remove the peer references from this device
+        self.adapter_agent.delete_all_peer_references(self.device_id)
+
+        # close the frameio port
+        registry('frameio').close_port(self.io_port)
+
+        # TODO:
+        # 1) Remove all flows from the device
+        # 2) Remove the device from ponsim
+
+        self.log.info('disabled', device_id=device.id)
+
+
+    def reenable(self):
+        self.log.info('re-enabling', device_id=self.device_id)
+
+        # Get the latest device reference
+        device = self.adapter_agent.get_device(self.device_id)
+
+        # Update the connect status to REACHABLE
+        device.connect_status = ConnectStatus.REACHABLE
+        self.adapter_agent.update_device(device)
+
+        ld = LogicalDevice(
+            # not setting id and datapth_id will let the adapter agent pick id
+            desc=ofp_desc(
+                mfr_desc='cord porject',
+                hw_desc='simulated pon',
+                sw_desc='simulated pon',
+                serial_num=uuid4().hex,
+                dp_desc='n/a'
+            ),
+            switch_features=ofp_switch_features(
+                n_buffers=256,  # TODO fake for now
+                n_tables=2,  # TODO ditto
+                capabilities=(  # TODO and ditto
+                    OFPC_FLOW_STATS
+                    | OFPC_TABLE_STATS
+                    | OFPC_PORT_STATS
+                    | OFPC_GROUP_STATS
+                )
+            ),
+            root_device_id=device.id
+        )
+        ld_initialized = self.adapter_agent.create_logical_device(ld)
+        cap = OFPPF_1GB_FD | OFPPF_FIBER
+        self.adapter_agent.add_logical_port(ld_initialized.id, LogicalPort(
+            id='nni',
+            ofp_port=ofp_port(
+                # port_no=info.nni_port,
+                # hw_addr=mac_str_to_tuple('00:00:00:00:00:%02x' % info.nni_port),
+                port_no=self.nni_port.port_no,
+                hw_addr=mac_str_to_tuple(
+                    '00:00:00:00:00:%02x' % self.nni_port.port_no),
+                name='nni',
+                config=0,
+                state=OFPPS_LIVE,
+                curr=cap,
+                advertised=cap,
+                peer=cap,
+                curr_speed=OFPPF_1GB_FD,
+                max_speed=OFPPF_1GB_FD
+            ),
+            device_id=device.id,
+            device_port_no=self.nni_port.port_no,
+            root_port=True
+        ))
+
+        device = self.adapter_agent.get_device(device.id)
+        device.parent_id = ld_initialized.id
+        device.oper_status = OperStatus.ACTIVE
+        self.adapter_agent.update_device(device)
+        self.logical_device_id = ld_initialized.id
+
+        # Reenable all child devices
+        self.adapter_agent.reenable_all_child_devices(device.id)
+
+
+        # finally, open the frameio port to receive in-band packet_in messages
+        self.log.info('registering-frameio')
+        self.io_port = registry('frameio').open_port(
+            self.interface, self.rcv_io, is_inband_frame)
+        self.log.info('registered-frameio')
+
+        self.log.info('re-enabled', device_id=device.id)
+
+
+    def delete(self):
+        self.log.info('deleting', device_id=self.device_id)
+
+        # Remove all child devices
+        self.adapter_agent.delete_all_child_devices(self.device_id)
+
+        # TODO:
+        # 1) Remove all flows from the device
+        # 2) Remove the device from ponsim
+
+        self.log.info('deleted', device_id=self.device_id)

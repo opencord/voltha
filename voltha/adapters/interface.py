@@ -89,11 +89,45 @@ class IAdapterInterface(Interface):
         :return: (Deferred) Shall be fired to acknowledge abandonment.
         """
 
-    def deactivate_device(device):
+    def disable_device(device):
         """
-        Called if the device is to be deactivate based on a NBI call.
+        This is called when a previously enabled device needs to be disabled
+        based on a NBI call.
         :param device: A Voltha.Device object.
-        :return: (Deferred) Shall be fired to acknowledge deactivation.
+        :return: (Deferred) Shall be fired to acknowledge disabling the device.
+        """
+
+    def reenable_device(device):
+        """
+        This is called when a previously disabled device needs to be enabled
+        based on a NBI call.
+        :param device: A Voltha.Device object.
+        :return: (Deferred) Shall be fired to acknowledge re-enabling the
+        device.
+        """
+
+    def reboot_device(device):
+        """
+        This is called to reboot a device based on a NBI call.  The admin
+        state of the device will not change after the reboot
+        :param device: A Voltha.Device object.
+        :return: (Deferred) Shall be fired to acknowledge the reboot.
+        """
+
+    def delete_device(device):
+        """
+        This is called to delete a device from the PON based on a NBI call.
+        If the device is an OLT then the whole PON will be deleted.
+        :param device: A Voltha.Device object.
+        :return: (Deferred) Shall be fired to acknowledge the deletion.
+        """
+
+    def get_device_details(device):
+        """
+        This is called to get additional device details based on a NBI call.
+        :param device: A Voltha.Device object.
+        :return: (Deferred) Shall be fired to acknowledge the retrieval of
+        additional details.
         """
 
     def update_flows_bulk(device, flows, groups):
@@ -151,8 +185,8 @@ class IAdapterInterface(Interface):
         :return: None
         """
 
-    # TODO work in progress
-    # ...
+        # TODO work in progress
+        # ...
 
 
 class IAdapterAgent(Interface):
