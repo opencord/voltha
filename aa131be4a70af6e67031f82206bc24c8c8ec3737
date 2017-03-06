@@ -205,6 +205,57 @@
       "revId": "aa131be4a70af6e67031f82206bc24c8c8ec3737",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_1302a43e",
+        "filename": "voltha/adapters/ponsim_olt/ponsim_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 431,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-03-06T21:00:16Z",
+      "side": 1,
+      "message": "typos: simulated",
+      "revId": "aa131be4a70af6e67031f82206bc24c8c8ec3737",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_f3fe1038",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 167,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-03-06T21:00:16Z",
+      "side": 1,
+      "message": "Can there be a better naming convention? ... It is not obvious how the method differs from \"delete_device\" unless you look at the code",
+      "revId": "aa131be4a70af6e67031f82206bc24c8c8ec3737",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_f385f0ad",
+        "filename": "voltha/core/device_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 74,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-03-06T21:00:16Z",
+      "side": 1,
+      "message": "Why stop() and not delete()?",
+      "revId": "aa131be4a70af6e67031f82206bc24c8c8ec3737",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
