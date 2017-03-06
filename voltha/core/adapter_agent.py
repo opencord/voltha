@@ -35,7 +35,7 @@ from voltha.protos.device_pb2 import Device, Port
 from voltha.protos.events_pb2 import KpiEvent, AlarmEvent, AlarmEventType, \
     AlarmEventSeverity, AlarmEventState, AlarmEventCategory
 from voltha.protos.voltha_pb2 import DeviceGroup, LogicalDevice, \
-    LogicalPort, AdminState
+    LogicalPort, AdminState, OperStatus
 from voltha.registry import registry
 from voltha.core.flow_decomposer import OUTPUT
 
@@ -62,6 +62,7 @@ class AdapterAgent(object):
         self._rx_event_subscriptions = {}
         self._tx_event_subscriptions = {}
         self.event_bus = EventBusClient()
+        self.packet_out_subscription = None
         self.log = structlog.get_logger(adapter_name=adapter_name)
 
     @inlineCallbacks
@@ -130,6 +131,22 @@ class AdapterAgent(object):
             root_proxy.add(container_path, data)
         return full_path
 
+    def _remove_node(self, container_path, key):
+        """
+        Remove a node from the data model
+        :param container_path: path to node
+        :param key: node
+        :return: None
+        """
+        full_path = container_path + '/' + str(key)
+        root_proxy = self.core.get_proxy('/')
+        try:
+            root_proxy.get(full_path)
+            root_proxy.remove(full_path)
+        except KeyError:
+            # Node does not exist
+            pass
+
     # ~~~~~~~~~~~~~~~~~~~~~ Core-Facing Service ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def adopt_device(self, device):
@@ -138,8 +155,20 @@ class AdapterAgent(object):
     def abandon_device(self, device):
         return self.adapter.abandon_device(device)
 
-    def deactivate_device(self, device):
-        return self.adapter.deactivate_device(device)
+    def disable_device(self, device):
+        return self.adapter.disable_device(device)
+
+    def reenable_device(self, device):
+        return self.adapter.reenable_device(device)
+
+    def reboot_device(self, device):
+        return self.adapter.reboot_device(device)
+
+    def delete_device(self, device):
+        return self.adapter.delete_device(device)
+
+    def get_device_details(self, device):
+        return self.adapter.get_device_details(device)
 
     def update_flows_bulk(self, device, flows, groups):
         return self.adapter.update_flows_bulk(device, flows, groups)
@@ -174,10 +203,6 @@ class AdapterAgent(object):
         device_agent = self.core.get_device_agent(device.id)
         device_agent.update_device(device)
 
-    def remove_device(self, device_id):
-        device_agent = self.core.get_device_agent(device_id)
-        device_agent.remove_device(device_id)
-
     def add_port(self, device_id, port):
         assert isinstance(port, Port)
 
@@ -196,6 +221,71 @@ class AdapterAgent(object):
         self._make_up_to_date('/devices/{}/ports'.format(device_id),
                               port.port_no, port)
 
+    def disable_all_ports(self, device_id):
+        """
+        Disable all ports on that device, i.e. change the admin status to
+        disable and operational status to UNKNOWN
+        :param device_id: device id
+        :return: None
+        """
+
+        # get all device ports
+        ports = self.root_proxy.get('/devices/{}/ports'.format(device_id))
+        for port in ports:
+            port.admin_state = AdminState.DISABLED
+            port.oper_status = OperStatus.UNKNOWN
+            self._make_up_to_date('/devices/{}/ports'.format(device_id),
+                                  port.port_no, port)
+
+    def reenable_all_ports(self, device_id):
+        """
+        Re-enable all ports on that device, i.e. change the admin status to
+        enabled and operational status to ACTIVE
+        :param device_id: device id
+        :return: None
+        """
+
+        # get all device ports
+        ports = self.root_proxy.get('/devices/{}/ports'.format(device_id))
+        for port in ports:
+            port.admin_state = AdminState.ENABLED
+            port.oper_status = OperStatus.ACTIVE
+            self._make_up_to_date('/devices/{}/ports'.format(device_id),
+                                  port.port_no, port)
+
+    def delete_all_peer_references(self, device_id):
+        """
+        Remove all peer port references for that device
+        :param device_id: device_id of device
+        :return: None
+        """
+        ports = self.root_proxy.get('/devices/{}/ports'.format(device_id))
+        for port in ports:
+            port_path = '/devices/{}/ports/{}'.format(device_id, port.port_no)
+            for peer in port.peers:
+                port.peers.remove(peer)
+            self.root_proxy.update(port_path, port)
+
+    def delete_port_reference_from_parent(self, device_id, port):
+        """
+        Delete the port reference from the parent device
+        :param device_id: id of device containing the port
+        :param port: port to remove
+        :return: None
+        """
+        assert isinstance(port, Port)
+        self.log.info('delete-port-reference', device_id=device_id, port=port)
+
+        # for referential integrity, remove references
+        me_as_peer = Port.PeerPort(device_id=device_id, port_no=port.port_no)
+        for peer in port.peers:
+            peer_port_path = '/devices/{}/ports/{}'.format(
+                peer.device_id, peer.port_no)
+            peer_port = self.root_proxy.get(peer_port_path)
+            if me_as_peer in peer_port.peers:
+                peer_port.peers.remove(me_as_peer)
+            self.root_proxy.update(peer_port_path, peer_port)
+
     def _find_first_available_id(self):
         logical_devices = self.root_proxy.get('/logical_devices')
         existing_ids = set(ld.id for ld in logical_devices)
@@ -210,6 +300,10 @@ class AdapterAgent(object):
         return self.root_proxy.get('/logical_devices/{}'.format(
             logical_device_id))
 
+    def get_logical_port(self, logical_device_id, port_id):
+        return self.root_proxy.get('/logical_devices/{}/ports/{}'.format(
+            logical_device_id, port_id))
+
     def create_logical_device(self, logical_device):
         assert isinstance(logical_device, LogicalDevice)
 
@@ -221,12 +315,33 @@ class AdapterAgent(object):
         self._make_up_to_date('/logical_devices',
                               logical_device.id, logical_device)
 
-        self.event_bus.subscribe(
+        # Keep a reference to the packet out subscription as it will be
+        # referred during removal
+        self.packet_out_subscription = self.event_bus.subscribe(
             topic='packet-out:{}'.format(logical_device.id),
             callback=lambda _, p: self.receive_packet_out(logical_device.id, p)
         )
 
         return logical_device
+
+
+    def delete_logical_device(self, logical_device):
+        """
+        This will remove the logical device as well as all logical ports
+        associated with it
+        :param logical_device: The logical device to remove
+        :return: None
+        """
+        assert isinstance(logical_device, LogicalDevice)
+
+        # Remove packet out subscription
+        self.event_bus.unsubscribe(self.packet_out_subscription)
+
+        # Remove node from the data model - this will trigger the logical
+        # device 'remove callbacks' as well as logical ports 'remove
+        # callbacks' if present
+        self._remove_node('/logical_devices', logical_device.id)
+
 
     def receive_packet_out(self, logical_device_id, ofp_packet_out):
 
@@ -241,6 +356,21 @@ class AdapterAgent(object):
 
     def add_logical_port(self, logical_device_id, port):
         assert isinstance(port, LogicalPort)
+        self._make_up_to_date(
+            '/logical_devices/{}/ports'.format(logical_device_id),
+            port.id, port)
+
+    def delete_logical_port(self, logical_device_id, port):
+        assert isinstance(port, LogicalPort)
+        self._remove_node('/logical_devices/{}/ports'.format(
+            logical_device_id), port.id)
+
+    def update_logical_port(self, logical_device_id, port):
+        assert isinstance(port, LogicalPort)
+        self.log.debug('update-logical-port',
+                       logical_device_id=logical_device_id,
+                       port=port)
+
         self._make_up_to_date(
             '/logical_devices/{}/ports'.format(logical_device_id),
             port.id, port)
@@ -269,6 +399,49 @@ class AdapterAgent(object):
         self._tx_event_subscriptions[topic] = self.event_bus.subscribe(
             topic, lambda t, m: self._send_proxied_message(proxy_address, m))
 
+    def remove_all_logical_ports(self, logical_device_id):
+        """ Remove all logical ports from a given logical device"""
+        ports = self.root_proxy.get('/logical_devices/{}/ports')
+        for port in ports:
+            self._remove_node('/logical_devices/{}/ports', port.id)
+
+    def delete_all_child_devices(self, parent_device_id):
+        """ Remove all ONUs from a given OLT """
+        devices = self.root_proxy.get('/devices')
+        children_ids = set(d.id for d in devices if d.parent_id == parent_device_id)
+        self.log.debug('devices-to-delete',
+                       parent_id=parent_device_id,
+                       children_ids=children_ids)
+        for child_id in children_ids:
+            self._remove_node('/devices', child_id)
+
+    def reenable_all_child_devices(self, parent_device_id):
+        """ Re-enable all ONUs from a given OLT """
+        devices = self.root_proxy.get('/devices')
+        children_ids = set(d.id for d in devices if d.parent_id == parent_device_id)
+        self.log.debug('devices-to-reenable',
+                       parent_id=parent_device_id,
+                       children_ids=children_ids)
+        for child_id in children_ids:
+            device = self.get_device(child_id)
+            device.admin_state = AdminState.ENABLED
+            self._make_up_to_date(
+                '/devices', device.id, device)
+
+    def disable_all_child_devices(self, parent_device_id):
+        """ Disable all ONUs from a given OLT """
+        devices = self.root_proxy.get('/devices')
+        children_ids = set(d.id for d in devices if d.parent_id == parent_device_id)
+        self.log.debug('devices-to-disable',
+                       parent_id=parent_device_id,
+                       children_ids=children_ids)
+        for child_id in children_ids:
+            # Change the admin state pf the device to DISABLE
+            device = self.get_device(child_id)
+            device.admin_state = AdminState.DISABLED
+            self._make_up_to_date(
+                '/devices', device.id, device)
+
     def _gen_rx_proxy_address_topic(self, proxy_address):
         """Generate unique topic name specific to this proxy address for rx"""
         topic = 'rx:' + MessageToJson(proxy_address)
@@ -284,6 +457,11 @@ class AdapterAgent(object):
         self._rx_event_subscriptions[topic] = self.event_bus.subscribe(
             topic,
             lambda t, m: self._receive_proxied_message(proxy_address, m))
+
+    def unregister_for_proxied_messages(self, proxy_address):
+        topic = self._gen_rx_proxy_address_topic(proxy_address)
+        self.event_bus.unsubscribe(self._rx_event_subscriptions[topic])
+        del self._rx_event_subscriptions[topic]
 
     def _receive_proxied_message(self, proxy_address, msg):
         self.adapter.receive_proxied_message(proxy_address, msg)

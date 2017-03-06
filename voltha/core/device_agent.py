@@ -70,13 +70,30 @@ class DeviceAgent(object):
         self.log.info('started')
         returnValue(self)
 
-    def stop(self):
-        self.log.debug('stopping')
+    @inlineCallbacks
+    def stop(self, device):
+        self.log.debug('stopping', device=device)
+
+        # First, propagate this request to the device agents
+        yield self._delete_device(device)
+
         self.proxy.unregister_callback(
             CallbackType.PRE_UPDATE, self._validate_update)
         self.proxy.unregister_callback(
             CallbackType.POST_UPDATE, self._process_update)
         self.log.info('stopped')
+
+    @inlineCallbacks
+    def reboot_device(self, device, dry_run=False):
+        self.log.info('reboot-device', device=device, dry_run=dry_run)
+        if not dry_run:
+            yield self.adapter_agent.reboot_device(device)
+
+    @inlineCallbacks
+    def get_device_details(self, device, dry_run=False):
+        self.log.info('get-device-details', device=device, dry_run=dry_run)
+        if not dry_run:
+            yield self.adapter_agent.get_device_details(device)
 
     def _set_adapter_agent(self):
         adapter_name = self._tmp_initial_data.adapter
@@ -144,9 +161,6 @@ class DeviceAgent(object):
         self.last_data = device  # so that we don't propagate back
         self.proxy.update('/', device)
 
-    def remove_device(self, device_id):
-        raise NotImplementedError()
-
     def _propagate_change(self, device, dry_run=False):
         self.log.info('propagate-change', device=device, dry_run=dry_run)
         if device != self.last_data:
@@ -158,13 +172,23 @@ class DeviceAgent(object):
         self.log.info('abandon-device', device=device, dry_run=dry_run)
         raise NotImplementedError()
 
+    @inlineCallbacks
     def _disable_device(self, device, dry_run=False):
         self.log.info('disable-device', device=device, dry_run=dry_run)
-        raise NotImplementedError()
+        if not dry_run:
+            yield self.adapter_agent.disable_device(device)
 
+    @inlineCallbacks
     def _reenable_device(self, device, dry_run=False):
         self.log.info('reenable-device', device=device, dry_run=dry_run)
-        raise NotImplementedError()
+        if not dry_run:
+            yield self.adapter_agent.reenable_device(device)
+
+    @inlineCallbacks
+    def _delete_device(self, device, dry_run=False):
+        self.log.info('delete-device', device=device, dry_run=dry_run)
+        if not dry_run:
+            yield self.adapter_agent.delete_device(device)
 
     admin_state_fsm = {
 
@@ -204,7 +228,7 @@ class DeviceAgent(object):
             # add ability to notify called when an flow update completes
             # see https://jira.opencord.org/browse/CORD-839
 
-        elif self.accepts_add_remove_flow_updates:
+        elif self.device_type.accepts_add_remove_flow_updates:
             raise NotImplementedError()
 
         else:
@@ -228,7 +252,7 @@ class DeviceAgent(object):
             # add ability to notify called when an group update completes
             # see https://jira.opencord.org/browse/CORD-839
 
-        elif self.accepts_add_remove_flow_updates:
+        elif self.device_type.accepts_add_remove_flow_updates:
             raise NotImplementedError()
 
         else:
