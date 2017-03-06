@@ -181,6 +181,30 @@
       "revId": "aa131be4a70af6e67031f82206bc24c8c8ec3737",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_335fe874",
+        "filename": "voltha/adapters/interface.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 100,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-06T18:43:38Z",
+      "side": 1,
+      "message": "The device state transitions for activate_olt and re-enable are different.  For Activate_olt, the state transitions from pre-provisioned to enabled.  However, for re-enable the state transitions from disabled to enabled.\n\nAre your concerns about the gRPC APIs or the Adapter APIs?  If we want to have a single gRPC API (e.g. enable) then that not an issue.   However, if we want to have a common API for the adapter then that could increase the adapter complexity since the device won\u0027t know the actual state transition that has occurred (unless we hack something in the model to keep the transition, quite ugly).   IMHO, the gRPC API change to a single enable makes sense, but the adapter would still need two APIs (activate and re-enable).   If this is the same code for a given adapter then the adapter can create a single method.\n\nThoughts?",
+      "parentUuid": "da141535_73656044",
+      "range": {
+        "startLine": 92,
+        "startChar": 0,
+        "endLine": 100,
+        "endChar": 32
+      },
+      "revId": "aa131be4a70af6e67031f82206bc24c8c8ec3737",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
