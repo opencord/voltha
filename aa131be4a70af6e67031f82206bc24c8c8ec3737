@@ -109,6 +109,30 @@
       "revId": "aa131be4a70af6e67031f82206bc24c8c8ec3737",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_f3697026",
+        "filename": "voltha/adapters/interface.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 100,
+      "author": {
+        "id": 1000004
+      },
+      "writtenOn": "2017-03-06T17:50:10Z",
+      "side": 1,
+      "message": "OK I see where you were trying to go. Augmenting enable and disable to not clear state unless calls to remove are made would effectively provide the same behaviour no? \n\nImho, enable and disable only mark devices online or offline respectively. Then remove modifies their existence in voltha. Does this make sense?",
+      "parentUuid": "da141535_338808e7",
+      "range": {
+        "startLine": 92,
+        "startChar": 0,
+        "endLine": 100,
+        "endChar": 32
+      },
+      "revId": "aa131be4a70af6e67031f82206bc24c8c8ec3737",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
