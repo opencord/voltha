@@ -85,6 +85,30 @@
       "revId": "aa131be4a70af6e67031f82206bc24c8c8ec3737",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_338808e7",
+        "filename": "voltha/adapters/interface.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 100,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-06T17:43:12Z",
+      "side": 1,
+      "message": "Good point.   If we chose to have only enable/disable then disable would be similar to a delete.  For instance, doing a disable of an olt would bring it to the \"pre-provisioning\" state with all of its onus removed.    I find that too drastic.\n\nWith the activate/disable/re-enable/delete, when disabling an olt then we are just stopping traffic and mark the olt and onus as disabled.  Re-enabling the olt will bring back the olt and onus to their previous states.  I find this approach would give more flexibility to the user.  It\u0027s true that it adds complexity to the code.",
+      "parentUuid": "da141535_13262417",
+      "range": {
+        "startLine": 92,
+        "startChar": 0,
+        "endLine": 100,
+        "endChar": 32
+      },
+      "revId": "aa131be4a70af6e67031f82206bc24c8c8ec3737",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
