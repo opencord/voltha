@@ -96,7 +96,7 @@ class VolthaCore(object):
             pass  # ignore others
 
     def _post_remove_callback(self, data, *args, **kw):
-        log.debug('added', data=data, args=args, kw=kw)
+        log.debug('removed', data=data, args=args, kw=kw)
         if isinstance(data, Device):
             self._handle_remove_device(data)
         elif isinstance(data, LogicalDevice):
@@ -118,7 +118,7 @@ class VolthaCore(object):
     @inlineCallbacks
     def _handle_remove_device(self, device):
         if device.id in self.device_agents:
-            yield self.device_agents[device.id].stop()
+            yield self.device_agents[device.id].stop(device)
             del self.device_agents[device.id]
 
     def get_device_agent(self, device_id):

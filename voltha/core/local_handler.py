@@ -35,7 +35,6 @@ log = structlog.get_logger()
 
 
 class LocalHandler(VolthaLocalServiceServicer):
-
     def __init__(self, core, **init_kw):
         self.core = core
         self.init_kw = init_kw
@@ -48,10 +47,12 @@ class LocalHandler(VolthaLocalServiceServicer):
             if 'root' in config_backend:
                 # This is going to block the entire reactor until loading is completed
                 log.info('loading config from persisted backend')
-                self.root = ConfigRoot.load(VolthaInstance, kv_store=config_backend)
+                self.root = ConfigRoot.load(VolthaInstance,
+                                            kv_store=config_backend)
             else:
                 log.info('initializing new config')
-                self.root = ConfigRoot(VolthaInstance(**self.init_kw), kv_store=config_backend)
+                self.root = ConfigRoot(VolthaInstance(**self.init_kw),
+                                       kv_store=config_backend)
         else:
             self.root = ConfigRoot(VolthaInstance(**self.init_kw))
 
@@ -126,7 +127,8 @@ class LocalHandler(VolthaLocalServiceServicer):
             return LogicalPorts()
 
         try:
-            items = self.root.get('/logical_devices/{}/ports'.format(request.id))
+            items = self.root.get(
+                '/logical_devices/{}/ports'.format(request.id))
             return LogicalPorts(items=items)
         except KeyError:
             context.set_details(
@@ -145,14 +147,14 @@ class LocalHandler(VolthaLocalServiceServicer):
             return Flows()
 
         try:
-            flows = self.root.get('/logical_devices/{}/flows'.format(request.id))
+            flows = self.root.get(
+                '/logical_devices/{}/flows'.format(request.id))
             return flows
         except KeyError:
             context.set_details(
                 'Logical device \'{}\' not found'.format(request.id))
             context.set_code(StatusCode.NOT_FOUND)
             return Flows()
-
 
     @twisted_async
     def UpdateLogicalDeviceFlowTable(self, request, context):
@@ -277,7 +279,7 @@ class LocalHandler(VolthaLocalServiceServicer):
         return request
 
     @twisted_async
-    def ActivateDevice(self, request, context):
+    def EnableDevice(self, request, context):
         log.info('grpc-request', request=request)
 
         if '/' in request.id:
@@ -289,8 +291,108 @@ class LocalHandler(VolthaLocalServiceServicer):
         try:
             path = '/devices/{}'.format(request.id)
             device = self.root.get(path)
+            assert device.admin_state in (AdminState.PREPROVISIONED,
+                                          AdminState.DISABLED), \
+                'Device to enable cannot be ' \
+                'in admin state \'{}\''.format(device.admin_state)
             device.admin_state = AdminState.ENABLED
             self.root.update(path, device, strict=True)
+
+        except AssertionError, e:
+            context.set_details(e.msg)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return Device()
+
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+
+        return Empty()
+
+    @twisted_async
+    def DisableDevice(self, request, context):
+        log.info('grpc-request', request=request)
+
+        if '/' in request.id:
+            context.set_details(
+                'Malformed device id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return Device()
+
+        try:
+            path = '/devices/{}'.format(request.id)
+            device = self.root.get(path)
+            assert device.admin_state == AdminState.ENABLED, \
+                'Device to disable cannot be ' \
+                'in admin state \'{}\''.format(device.admin_state)
+            device.admin_state = AdminState.DISABLED
+            self.root.update(path, device, strict=True)
+
+        except AssertionError, e:
+            context.set_details(e.msg)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return Device()
+
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+
+        return Empty()
+
+    @twisted_async
+    def RebootDevice(self, request, context):
+        log.info('grpc-request', request=request)
+
+        if '/' in request.id:
+            context.set_details(
+                'Malformed device id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return Device()
+
+        try:
+            path = '/devices/{}'.format(request.id)
+            device = self.root.get(path)
+
+            agent = self.core.get_device_agent(device.id)
+            agent.reboot_device(device)
+
+        except AssertionError, e:
+            context.set_details(e.msg)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return Device()
+
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+
+        return Empty()
+
+    @twisted_async
+    def DeleteDevice(self, request, context):
+        log.info('grpc-request', request=request)
+
+        if '/' in request.id:
+            context.set_details(
+                'Malformed device id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return Device()
+
+        try:
+            path = '/devices/{}'.format(request.id)
+            device = self.root.get(path)
+            assert device.admin_state == AdminState.DISABLED, \
+                'Device to delete cannot be ' \
+                'in admin state \'{}\''.format(device.admin_state)
+
+            self.root.remove(path)
+
+        except AssertionError, e:
+            context.set_details(e.msg)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return Device()
 
         except KeyError:
             context.set_details(
@@ -318,7 +420,6 @@ class LocalHandler(VolthaLocalServiceServicer):
             context.set_code(StatusCode.NOT_FOUND)
             return Ports()
 
-
     @twisted_async
     def ListDeviceFlows(self, request, context):
         log.info('grpc-request', request=request)
@@ -338,7 +439,6 @@ class LocalHandler(VolthaLocalServiceServicer):
             context.set_code(StatusCode.NOT_FOUND)
             return Flows()
 
-
     @twisted_async
     def ListDeviceFlowGroups(self, request, context):
         log.info('grpc-request', request=request)
@@ -350,7 +450,8 @@ class LocalHandler(VolthaLocalServiceServicer):
             return FlowGroups()
 
         try:
-            groups = self.root.get('/devices/{}/flow_groups'.format(request.id))
+            groups = self.root.get(
+                '/devices/{}/flow_groups'.format(request.id))
             return groups
         except KeyError:
             context.set_details(
