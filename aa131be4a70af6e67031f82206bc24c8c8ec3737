@@ -242,6 +242,24 @@
     },
     {
       "key": {
+        "uuid": "da141535_73c1e0e3",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 167,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-06T21:12:54Z",
+      "side": 1,
+      "message": "Makes sense.   The remove_device would be called by core components with the delete_device will be invoked by adapters.   I will either add a comment or find a better name.",
+      "parentUuid": "da141535_f3fe1038",
+      "revId": "aa131be4a70af6e67031f82206bc24c8c8ec3737",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "da141535_f385f0ad",
         "filename": "voltha/core/device_agent.py",
         "patchSetId": 1
@@ -253,6 +271,24 @@
       "writtenOn": "2017-03-06T21:00:16Z",
       "side": 1,
       "message": "Why stop() and not delete()?",
+      "revId": "aa131be4a70af6e67031f82206bc24c8c8ec3737",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_53b6dc8b",
+        "filename": "voltha/core/device_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 74,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-06T21:12:54Z",
+      "side": 1,
+      "message": "We typically use stop to stop a service (or a perceived service like this agent).   Delete is used to delete an object.",
+      "parentUuid": "da141535_f385f0ad",
       "revId": "aa131be4a70af6e67031f82206bc24c8c8ec3737",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
