@@ -1,0 +1,90 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "da141535_7317a0a4",
+        "filename": "cli/main.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 345,
+      "author": {
+        "id": 1000004
+      },
+      "writtenOn": "2017-03-06T17:30:52Z",
+      "side": 1,
+      "message": "I wonder whether we should simple have enable/disable rather than activate_olt/disable/re_enable. This would make the CLI and API simpler and more conventional from an operator standpoint.",
+      "revId": "aa131be4a70af6e67031f82206bc24c8c8ec3737",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_530c9c94",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 104,
+      "author": {
+        "id": 1000004
+      },
+      "writtenOn": "2017-03-06T17:30:52Z",
+      "side": 1,
+      "message": "similarly here. does adopt/disable/enable make sense versus a simple enable/disable.",
+      "range": {
+        "startLine": 100,
+        "startChar": 0,
+        "endLine": 104,
+        "endChar": 35
+      },
+      "revId": "aa131be4a70af6e67031f82206bc24c8c8ec3737",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_331128ad",
+        "filename": "voltha/adapters/dpoe_onu/dpoe_onu.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 204,
+      "author": {
+        "id": 1000004
+      },
+      "writtenOn": "2017-03-06T17:30:52Z",
+      "side": 1,
+      "message": "same",
+      "range": {
+        "startLine": 200,
+        "startChar": 0,
+        "endLine": 204,
+        "endChar": 35
+      },
+      "revId": "aa131be4a70af6e67031f82206bc24c8c8ec3737",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_13262417",
+        "filename": "voltha/adapters/interface.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 100,
+      "author": {
+        "id": 1000004
+      },
+      "writtenOn": "2017-03-06T17:30:52Z",
+      "side": 1,
+      "message": "I guess this is where my question should really be",
+      "range": {
+        "startLine": 92,
+        "startChar": 0,
+        "endLine": 100,
+        "endChar": 32
+      },
+      "revId": "aa131be4a70af6e67031f82206bc24c8c8ec3737",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
