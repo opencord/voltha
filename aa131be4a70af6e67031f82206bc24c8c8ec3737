@@ -133,6 +133,30 @@
       "revId": "aa131be4a70af6e67031f82206bc24c8c8ec3737",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_b373f814",
+        "filename": "voltha/adapters/interface.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 100,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-06T18:00:57Z",
+      "side": 1,
+      "message": "That\u0027s correct.  The current behavior is as follows:\n\n1) activate_olt -\u003e create the olt and discover the onus\n2) disable -\u003e prevent the device from handling traffic\n3) re-enable -\u003e device is set back to it\u0027s activated state \n4) delete -\u003e remove the device from voltha\n\nMakes sense?",
+      "parentUuid": "da141535_f3697026",
+      "range": {
+        "startLine": 92,
+        "startChar": 0,
+        "endLine": 100,
+        "endChar": 32
+      },
+      "revId": "aa131be4a70af6e67031f82206bc24c8c8ec3737",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
