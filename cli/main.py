@@ -302,6 +302,65 @@ class VolthaCli(Cmd):
 
     complete_activate_olt = complete_device
 
+    def do_reboot(self, line):
+        """
+        Rebooting a device. ID of the device needs to be provided
+        """
+        device_id = line or self.default_device_id
+        self.poutput('rebooting {}'.format(device_id))
+        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        stub.RebootDevice(voltha_pb2.ID(id=device_id))
+        self.poutput('rebooted {}'.format(device_id))
+
+    def do_delete(self, line):
+        """
+        Deleting a device. ID of the device needs to be provided
+        """
+        device_id = line or self.default_device_id
+        self.poutput('deleting {}'.format(device_id))
+        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        stub.DeleteDevice(voltha_pb2.ID(id=device_id))
+        self.poutput('deleted {}'.format(device_id))
+
+    def do_disable(self, line):
+        """
+        Disable a device. ID of the device needs to be provided
+        """
+        device_id = line
+        self.poutput('disabling {}'.format(device_id))
+        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        stub.DisableDevice(voltha_pb2.ID(id=device_id))
+
+        # Do device query and verify that the device admin status is
+        # DISABLED and Operational Status is unknown
+        device = stub.GetDevice(voltha_pb2.ID(id=device_id))
+        if device.oper_status == voltha_pb2.OperStatus.UNKNOWN and \
+                        device.admin_state == voltha_pb2.AdminState.DISABLED:
+            self.poutput('disabled successfully {}'.format(device_id))
+        else:
+            self.poutput('disabling failed {}.  Admin State:{} '
+                         'Operation State: {}'.format(device_id,
+                                                      device.admin_state,
+                                                      device.oper_status))
+    def do_re_enable(self, line):
+        """
+        Re-enable a device. ID of the device needs to be provided
+        """
+        device_id = line
+        self.poutput('re-enabling {}'.format(device_id))
+        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        stub.ReEnableDevice(voltha_pb2.ID(id=device_id))
+
+        # Do device query and verify that the device admin status is
+        # ENABLED
+        device = stub.GetDevice(voltha_pb2.ID(id=device_id))
+        if device.admin_state == voltha_pb2.AdminState.ENABLED:
+            self.poutput('enabled successfully {}'.format(device_id))
+        else:
+            self.poutput('enabling failed {}.  Admin State:{} '.format(
+                                                device_id,
+                                                device.admin_state))
+
     def do_test(self, line):
         """Enter test mode, which makes a bunch on new commands available"""
         sub = TestCli(self.history, self.get_channel, self.voltha_grpc,

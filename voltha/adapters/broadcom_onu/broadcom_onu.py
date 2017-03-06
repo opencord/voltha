@@ -97,7 +97,19 @@ class BroadcomOnuAdapter(object):
     def abandon_device(self, device):
         raise NotImplementedError()
 
-    def deactivate_device(self, device):
+    def disable_device(self, device):
+        raise NotImplementedError()
+
+    def reenable_device(self, device):
+        raise NotImplementedError()
+
+    def reboot_device(self, device):
+        raise NotImplementedError()
+
+    def delete_device(self, device):
+        raise NotImplementedError()
+
+    def get_device_details(self, device):
         raise NotImplementedError()
 
     def update_flows_bulk(self, device, flows, groups):

@@ -9,6 +9,7 @@ syntax = "proto3";
 package voltha;
 
 import "google/protobuf/empty.proto";
+import "google/protobuf/any.proto";
 import "google/api/annotations.proto";
 
 import "yang_options.proto";
@@ -208,6 +209,34 @@ service VolthaGlobalService {
         };
     }
 
+    // Disable a device
+    rpc DisableDevice(ID) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/devices/{id}/disable"
+        };
+    }
+
+    // Re-Enable a device that was previously disabled
+    rpc ReEnableDevice(ID) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/devices/{id}/re_enable"
+        };
+    }
+
+    // Reboot a device
+    rpc RebootDevice(ID) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/devices/{id}/reboot"
+        };
+    }
+
+    // Delete a device
+    rpc DeleteDevice(ID) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/api/v1/devices/{id}/delete"
+        };
+    }
+
     // List ports of a device
     rpc ListDevicePorts(ID) returns(Ports) {
         option (google.api.http) = {
@@ -383,6 +412,34 @@ service VolthaLocalService {
     rpc ActivateDevice(ID) returns(google.protobuf.Empty) {
         option (google.api.http) = {
             post: "/api/v1/local/devices/{id}/activate"
+        };
+    }
+
+    // Disable a device
+    rpc DisableDevice(ID) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/devices/{id}/disable"
+        };
+    }
+
+    // Re-Enable a device that was previously disabled
+    rpc ReEnableDevice(ID) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/devices/{id}/re_enable"
+        };
+    }
+
+    // Reboot a device
+    rpc RebootDevice(ID) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/devices/{id}/reboot"
+        };
+    }
+
+    // Delete a device
+    rpc DeleteDevice(ID) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/devices/{id}/delete"
         };
     }
 

@@ -300,6 +300,129 @@ class LocalHandler(VolthaLocalServiceServicer):
         return Empty()
 
     @twisted_async
+    def DisableDevice(self, request, context):
+        log.info('grpc-request', request=request)
+
+        if '/' in request.id:
+            context.set_details(
+                'Malformed device id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return Device()
+
+        try:
+            path = '/devices/{}'.format(request.id)
+            device = self.root.get(path)
+            assert device.admin_state == AdminState.ENABLED, \
+                'Device to disable cannot be ' \
+                'in admin state \'{}\''.format(device.admin_state)
+            device.admin_state = AdminState.DISABLED
+            self.root.update(path, device, strict=True)
+
+        except AssertionError, e:
+            context.set_details(e.msg)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return Device()
+
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+
+        return Empty()
+
+    @twisted_async
+    def ReEnableDevice(self, request, context):
+        log.info('grpc-request', request=request)
+
+        if '/' in request.id:
+            context.set_details(
+                'Malformed device id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return Device()
+
+        try:
+            path = '/devices/{}'.format(request.id)
+            device = self.root.get(path)
+            assert device.admin_state == AdminState.DISABLED, \
+                'Device to enable cannot be ' \
+                'in admin state \'{}\''.format(device.admin_state)
+            device.admin_state = AdminState.ENABLED
+            self.root.update(path, device, strict=True)
+
+        except AssertionError, e:
+            context.set_details(e.msg)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return Device()
+
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+
+        return Empty()
+
+    @twisted_async
+    def RebootDevice(self, request, context):
+        log.info('grpc-request', request=request)
+
+        if '/' in request.id:
+            context.set_details(
+                'Malformed device id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return Device()
+
+        try:
+            path = '/devices/{}'.format(request.id)
+            device = self.root.get(path)
+
+            agent = self.core.get_device_agent(device.id)
+            agent.reboot_device(device)
+
+        except AssertionError, e:
+            context.set_details(e.msg)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return Device()
+
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+
+        return Empty()
+
+    @twisted_async
+    def DeleteDevice(self, request, context):
+        log.info('grpc-request', request=request)
+
+        if '/' in request.id:
+            context.set_details(
+                'Malformed device id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return Device()
+
+        try:
+            path = '/devices/{}'.format(request.id)
+            device = self.root.get(path)
+            assert device.admin_state == AdminState.DISABLED, \
+                'Device to delete cannot be ' \
+                'in admin state \'{}\''.format(device.admin_state)
+
+            self.root.remove(path)
+
+        except AssertionError, e:
+            context.set_details(e.msg)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return Device()
+
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+
+        return Empty()
+
+
+    @twisted_async
     def ListDevicePorts(self, request, context):
         log.info('grpc-request', request=request)
 
