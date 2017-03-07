@@ -284,7 +284,7 @@ class VolthaCli(Cmd):
         pre-provisioned device.
         """
         device_id = line or self.default_device_id
-        self.poutput('activating {}'.format(device_id))
+        self.poutput('enabling {}'.format(device_id))
         stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
         stub.EnableDevice(voltha_pb2.ID(id=device_id))
 

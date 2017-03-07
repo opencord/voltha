@@ -66,7 +66,7 @@ class TestColdActivationSequence(RestBase):
 
     def activate_device(self, olt_id):
         path = '/api/v1/devices/{}'.format(olt_id)
-        self.post(path + '/activate', expected_code=200)
+        self.post(path + '/enable', expected_code=200)
         device = self.get(path)
         self.assertEqual(device['admin_state'], 'ENABLED')
 

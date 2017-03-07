@@ -444,7 +444,7 @@ service VolthaLocalService {
     // Delete a device
     rpc DeleteDevice(ID) returns(google.protobuf.Empty) {
         option (google.api.http) = {
-            post: "/api/v1/local/devices/{id}/delete"
+            delete: "/api/v1/local/devices/{id}/delete"
         };
     }
 
