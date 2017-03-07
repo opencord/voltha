@@ -29,6 +29,35 @@ message DeviceTypes {
     repeated DeviceType items = 1;
 }
 
+message PmConfig {
+    enum PmType {
+    	COUNTER = 0;
+	GUAGE = 1;
+	STATE = 2;
+    }
+    string name = 1;
+    PmType type = 2;
+    bool enabled = 3; // Whether or not this metric makes it to Kafka
+    uint32 sample_freq = 4; // Sample rate in 10ths of a second
+}
+
+message PmGroupConfig {
+    string group_name = 1;
+    uint32 group_freq = 2; // Frequency applicable to the grop
+    bool enabled = 3; // Enable/disable group level only
+    repeated PmConfig metrics = 4;
+}
+
+message PmConfigs {
+    uint32 default_freq = 1; // Default sample rate
+    // Forces group names and group semantics
+    bool grouped = 2 [(access) = READ_ONLY];
+    // Allows Pm to set an individual sample frequency
+    bool freq_override = 3 [(access) = READ_ONLY];
+    repeated PmGroupConfig groups = 4; // The groups if grouped is true
+    repeated PmConfig metrics = 5; // The metrics themselves if grouped is false.
+}
+
 message Port {
     option (voltha.yang_child_rule) = MOVE_TO_PARENT_LEVEL;
 
@@ -135,6 +164,7 @@ message Device {
     repeated Port ports = 128  [(child_node) = {key: "port_no"}];
     openflow_13.Flows flows = 129 [(child_node) = {}];
     openflow_13.FlowGroups flow_groups = 130 [(child_node) = {}];
+    PmConfigs kpis = 131 [(child_node) = {}];
 
 }
 

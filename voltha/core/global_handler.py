@@ -369,6 +369,16 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             request,
             context)
 
+    #TODO: create the global PM config query function
+    @twisted_async
+    def ListDevicePmConfigs(self, request, context):
+        raise NotImplementedError('Method not implemented!')
+
+    #TODO: create the global PM config update function.
+    @twisted_async
+    def UpdateDevicePmConfigs(self, request, context):
+        raise NotImplementedError('Method not implemented!')
+
     @twisted_async
     def ListDeviceFlows(self, request, context):
         log.info('grpc-request', request=request)

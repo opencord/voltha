@@ -35,7 +35,8 @@ from voltha.adapters.interface import IAdapterInterface
 from voltha.core.flow_decomposer import *
 from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.protos.adapter_pb2 import Adapter, AdapterConfig
-from voltha.protos.device_pb2 import DeviceType, DeviceTypes, Device, Port
+from voltha.protos.device_pb2 import DeviceType, DeviceTypes, Device, Port, \
+PmConfigs, PmConfig, PmGroupConfig
 from voltha.protos.events_pb2 import KpiEvent, KpiEventType, MetricValuePairs
 from voltha.protos.health_pb2 import HealthStatus
 from voltha.protos.common_pb2 import LogLevel, OperStatus, ConnectStatus, \
@@ -46,6 +47,7 @@ from voltha.protos.openflow_13_pb2 import ofp_desc, ofp_port, OFPPF_1GB_FD, \
     OFPC_GROUP_STATS, OFPC_TABLE_STATS, OFPC_FLOW_STATS
 from voltha.protos.events_pb2 import AlarmEvent, AlarmEventType, \
     AlarmEventSeverity, AlarmEventState, AlarmEventCategory
+import sys
 
 log = structlog.get_logger()
 
@@ -330,6 +332,50 @@ class SimulatedOltAdapter(object):
             oper_status=OperStatus.ACTIVE
         ))
 
+        # then shortly after, add the supported pms for the device
+        yield asleep(0.05)
+        try:
+            log.info("Setting p")
+            p = PmsConfig(
+                default_freq=150,
+                grouped=False,
+                freq_override=False)
+            p.metrics.extend([PmConfig(name='tx_64',type=PmConfig.COUNTER,
+                                       enabled=True)])
+            p.metrics.extend([PmConfig(name='tx_65_127',
+                                       type=PmConfig.COUNTER,enabled=True)])
+            p.metrics.extend([PmConfig(name='tx_128_255',
+                                       type=PmConfig.COUNTER,enabled=True)])
+            p.metrics.extend([PmConfig(name='tx_256_511',
+                                       type=PmConfig.COUNTER,enabled=True)])
+            p.metrics.extend([PmConfig(name='tx_512_1023',
+                                       type=PmConfig.COUNTER,enabled=True)])
+            p.metrics.extend([PmConfig(name='tx_1024_1518',
+                                       type=PmConfig.COUNTER,enabled=True)])
+            p.metrics.extend([PmConfig(name='tx_1519_9k',
+                                       type=PmConfig.COUNTER,enabled=True)])
+            p.metrics.extend([PmConfig(name='rx_64',
+                                       type=PmConfig.COUNTER,enabled=True)])
+            p.metrics.extend([PmConfig(name='rx_65_127',
+                                       type=PmConfig.COUNTER,enabled=True)])
+            p.metrics.extend([PmConfig(name='rx_128_255',
+                                       type=PmConfig.COUNTER,enabled=True)])
+            p.metrics.extend([PmConfig(name='rx_256_511',
+                                       type=PmConfig.COUNTER,enabled=True)])
+            p.metrics.extend([PmConfig(name='rx_512_1023',
+                                       type=PmConfig.COUNTER,enabled=True)])
+            p.metrics.extend([PmConfig(name='rx_1024_1518',
+                                       type=PmConfig.COUNTER,enabled=True)])
+            p.metrics.extend([PmConfig(name='rx_1519_9k',
+                                       type=PmConfig.COUNTER,enabled=True)])
+
+
+            #TODO Call the adapter agend to update the pm config
+            #self.adapter_agent.update_pms_config(device.id,p)
+        except:
+            e = sys.exec_info()
+            log.error("error", error=e)
+
         # then shortly after we create the logical device with one port
         # that will correspond to the NNI port
         yield asleep(0.05)
@@ -413,6 +459,12 @@ class SimulatedOltAdapter(object):
         """
         vlan_id = seq + 100
         return vlan_id
+
+    #def update_pm_collection(self, device, pm_collection_config):
+        # This is where the metrics to be collected are configured and where
+        # the sampling frequency is set.
+        #TODO: Here.
+    #    pass
 
     def update_flows_bulk(self, device, flows, groups):
         log.debug('bulk-flow-update', device_id=device.id,
