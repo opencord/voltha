@@ -208,6 +208,30 @@
     },
     {
       "key": {
+        "uuid": "da141535_ee47431c",
+        "filename": "voltha/adapters/interface.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 100,
+      "author": {
+        "id": 1000004
+      },
+      "writtenOn": "2017-03-07T16:37:17Z",
+      "side": 1,
+      "message": "yes i agree with that. gRPC should have a single api but the adapter can have more. we can revisit the adapter api when adapters start running in their own containers",
+      "parentUuid": "da141535_335fe874",
+      "range": {
+        "startLine": 92,
+        "startChar": 0,
+        "endLine": 100,
+        "endChar": 32
+      },
+      "revId": "aa131be4a70af6e67031f82206bc24c8c8ec3737",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "da141535_1302a43e",
         "filename": "voltha/adapters/ponsim_olt/ponsim_olt.py",
         "patchSetId": 1
