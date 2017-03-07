@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "da141535_4ef3cf0a",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 411,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-03-07T15:11:36Z",
+      "side": 1,
+      "message": "Doesn\u0027t this one need to point to /api/v1/local/...",
+      "revId": "c0a91f459fd4ef84017fc3f1ef4ca97864e7fb3d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
