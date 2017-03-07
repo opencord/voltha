@@ -16,6 +16,24 @@
       "revId": "c0a91f459fd4ef84017fc3f1ef4ca97864e7fb3d",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_0eddd770",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 411,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-07T15:21:50Z",
+      "side": 1,
+      "message": "Correct, cut and paste error.",
+      "parentUuid": "da141535_4ef3cf0a",
+      "revId": "c0a91f459fd4ef84017fc3f1ef4ca97864e7fb3d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
