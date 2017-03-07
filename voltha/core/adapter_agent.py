@@ -34,10 +34,13 @@ from voltha.protos import third_party
 from voltha.protos.device_pb2 import Device, Port
 from voltha.protos.events_pb2 import KpiEvent, AlarmEvent, AlarmEventType, \
     AlarmEventSeverity, AlarmEventState, AlarmEventCategory
+from voltha.protos.device_pb2 import Device, Port, PmsConfig
+from voltha.protos.events_pb2 import KpiEvent
 from voltha.protos.voltha_pb2 import DeviceGroup, LogicalDevice, \
     LogicalPort, AdminState, OperStatus
 from voltha.registry import registry
 from voltha.core.flow_decomposer import OUTPUT
+import sys
 
 
 @implementer(IAdapterAgent)
@@ -177,6 +180,10 @@ class AdapterAgent(object):
         return self.update_flows_incrementally(
             device, flow_changes, group_changes)
 
+    #def update_pm_collection(self, device, pm_collection_config):
+    #    return self.adapter.update_pm_collection(device, pm_collection_config)
+
+
     # ~~~~~~~~~~~~~~~~~~~ Adapter-Facing Service ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def get_device(self, device_id):
@@ -285,6 +292,9 @@ class AdapterAgent(object):
             if me_as_peer in peer_port.peers:
                 peer_port.peers.remove(me_as_peer)
             self.root_proxy.update(peer_port_path, peer_port)
+
+    def update_pms_config(self, device_id, pms_config):
+        raise NotImplementedError('Method not implemented!')
 
     def _find_first_available_id(self):
         logical_devices = self.root_proxy.get('/logical_devices')
