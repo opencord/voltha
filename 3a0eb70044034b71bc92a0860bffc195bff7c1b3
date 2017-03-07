@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "da141535_0ec4b790",
+        "filename": "voltha/adapters/maple_olt/maple_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 474,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-07T15:45:07Z",
+      "side": 1,
+      "message": "I suggest to add some comments on what this function does.   In particular, if a heartbeat is missed and the device connection state change then what should the core should do with that state change.",
+      "revId": "3a0eb70044034b71bc92a0860bffc195bff7c1b3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_cebd9f04",
+        "filename": "voltha/adapters/maple_olt/maple_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 513,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-07T15:45:07Z",
+      "side": 1,
+      "message": "You will need to get the latest device instance (using the device.id), otherwise this may be referring to an older device object which would result in a deferred error.",
+      "revId": "3a0eb70044034b71bc92a0860bffc195bff7c1b3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_aeba6b08",
+        "filename": "voltha/adapters/maple_olt/maple_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 520,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-07T15:45:07Z",
+      "side": 1,
+      "message": "Same comment as above.",
+      "revId": "3a0eb70044034b71bc92a0860bffc195bff7c1b3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_eec0637e",
+        "filename": "voltha/adapters/maple_olt/maple_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 526,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-07T15:45:07Z",
+      "side": 1,
+      "message": "May be \"1\" should be a constant?",
+      "revId": "3a0eb70044034b71bc92a0860bffc195bff7c1b3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
