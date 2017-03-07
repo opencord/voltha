@@ -1,0 +1,157 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "da141535_6ebfb3d1",
+        "filename": "voltha/adapters/interface.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 155,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-07T18:43:35Z",
+      "side": 1,
+      "message": "typo for behavior",
+      "revId": "64135988ae445d68d6cfd08f850a93b71450cd77",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_8eba07e0",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 296,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-07T18:43:35Z",
+      "side": 1,
+      "message": "Will this be invoked by an adapter?",
+      "revId": "64135988ae445d68d6cfd08f850a93b71450cd77",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_ae16ebef",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 51,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-07T18:43:35Z",
+      "side": 1,
+      "message": "Should the name be pmConfigs instead?",
+      "revId": "64135988ae445d68d6cfd08f850a93b71450cd77",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_8ed32738",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 52,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-07T18:43:35Z",
+      "side": 1,
+      "message": "I don\u0027t think a device id is required.  I would think, instead, a device definition will have a reference to its PmConfigs.",
+      "revId": "64135988ae445d68d6cfd08f850a93b71450cd77",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_2ee2db03",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 149,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-07T18:43:35Z",
+      "side": 1,
+      "message": "I would think in this Device message there would be a reference to pmconfigs.",
+      "revId": "64135988ae445d68d6cfd08f850a93b71450cd77",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_cef0ffcb",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 244,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-07T18:43:35Z",
+      "side": 1,
+      "message": "Should the name be ListDevicePmConfigs?",
+      "revId": "64135988ae445d68d6cfd08f850a93b71450cd77",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_aeedcbf1",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 251,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-07T18:43:35Z",
+      "side": 1,
+      "message": "Same comment above as above.",
+      "revId": "64135988ae445d68d6cfd08f850a93b71450cd77",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_0e203748",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 254,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-07T18:43:35Z",
+      "side": 1,
+      "message": "A body will be required",
+      "revId": "64135988ae445d68d6cfd08f850a93b71450cd77",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_ee1ce315",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 468,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-07T18:43:35Z",
+      "side": 1,
+      "message": "A body will be required",
+      "revId": "64135988ae445d68d6cfd08f850a93b71450cd77",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
