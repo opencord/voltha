@@ -150,6 +150,13 @@ class IAdapterInterface(Interface):
         :return:
         """
 
+    #def update_pm_collection(device, pm_collection_config):
+        """
+        Called every time a request is made to change pm collection behavior
+        :param device: A Voltha.Device object
+        :param pm_collection_config: A Pms
+        """
+
     def send_proxied_message(proxy_address, msg):
         """
         Forward a msg to a child device of device, addressed by the given

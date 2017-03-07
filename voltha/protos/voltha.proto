@@ -240,6 +240,21 @@ service VolthaGlobalService {
         option (voltha.yang_xml_tag).xml_tag = 'ports';
     }
 
+    // List pm config of a device
+    rpc ListDevicePmConfigs(ID) returns(PmConfigs) {
+        option (google.api.http) = {
+            get: "/api/v1/devices/{id}/pm_configs"
+        };
+    }
+
+    // Update the pm config of a device
+    rpc UpdateDevicePmConfigs(ID) returns(PmConfigs) {
+        option (google.api.http) = {
+            post: "/api/v1/devices/{id}/pm_configs"
+            body: "*"
+        };
+    }
+
     // List all flows of a device
     rpc ListDeviceFlows(ID) returns(openflow_13.Flows) {
         option (google.api.http) = {
@@ -439,6 +454,21 @@ service VolthaLocalService {
             get: "/api/v1/local/devices/{id}/ports"
         };
         option (voltha.yang_xml_tag).xml_tag = 'ports';
+    }
+
+    // List pm config of a device
+    rpc ListDevicePmConfigs(ID) returns(PmConfigs) {
+        option (google.api.http) = {
+            get: "/api/v1/local/devices/{id}/pm_configs"
+        };
+    }
+
+    // Update the pm config of a device
+    rpc UpdateDevicePmConfigs(ID) returns(PmConfigs) {
+        option (google.api.http) = {
+            post: "/api/v1/local/devices/{id}/pm_configs"
+            body: "*"
+        };
     }
 
     // List all flows of a device

@@ -34,10 +34,13 @@ from voltha.protos import third_party
 from voltha.protos.device_pb2 import Device, Port
 from voltha.protos.events_pb2 import KpiEvent, AlarmEvent, AlarmEventType, \
     AlarmEventSeverity, AlarmEventState, AlarmEventCategory
+from voltha.protos.device_pb2 import Device, Port, PmConfigs
+from voltha.protos.events_pb2 import KpiEvent
 from voltha.protos.voltha_pb2 import DeviceGroup, LogicalDevice, \
     LogicalPort, AdminState, OperStatus
 from voltha.registry import registry
 from voltha.core.flow_decomposer import OUTPUT
+import sys
 
 
 @implementer(IAdapterAgent)
@@ -176,6 +179,10 @@ class AdapterAgent(object):
     def update_flows_incrementally(self, device, flow_changes, group_changes):
         return self.update_flows_incrementally(
             device, flow_changes, group_changes)
+
+    #def update_pm_collection(self, device, pm_collection_config):
+    #    return self.adapter.update_pm_collection(device, pm_collection_config)
+
 
     # ~~~~~~~~~~~~~~~~~~~ Adapter-Facing Service ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
