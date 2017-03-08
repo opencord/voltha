@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "da141535_6ecc5336",
+        "filename": "voltha/adapters/simulated_olt/simulated_olt.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 339,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-03-08T03:32:35Z",
+      "side": 1,
+      "message": "Typo causes failure while trying to enable a simulated_olt device",
+      "revId": "a2eb52b38bbdb2f3b6dbc13b9fc08c7216e9ebc9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
