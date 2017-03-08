@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "da141535_2241cf39",
+        "filename": "voltha/adapters/maple_olt/maple_olt.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-03-08T18:02:02Z",
+      "side": 1,
+      "message": "Can you reformat the file to only have 79 characters per line?",
+      "revId": "99d501d8dfe78c97a47921b9e554a432b719ae0e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
