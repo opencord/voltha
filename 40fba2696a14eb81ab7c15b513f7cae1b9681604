@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "da141535_4273a3b1",
+        "filename": "voltha/adapters/maple_olt/maple_olt.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 71,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-08T20:14:36Z",
+      "side": 1,
+      "message": "Is this just for test?",
+      "revId": "40fba2696a14eb81ab7c15b513f7cae1b9681604",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_626ea7cb",
+        "filename": "voltha/adapters/maple_olt/maple_olt.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 980,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-08T20:14:36Z",
+      "side": 1,
+      "message": "log.exception would be more appropriate",
+      "revId": "40fba2696a14eb81ab7c15b513f7cae1b9681604",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
