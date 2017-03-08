@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "da141535_42aa83d5",
+        "filename": "voltha/core/config/config_node.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 312,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-03-08T20:41:34Z",
+      "side": 1,
+      "message": "Extra comma?",
+      "range": {
+        "startLine": 312,
+        "startChar": 33,
+        "endLine": 312,
+        "endChar": 34
+      },
+      "revId": "56b3647f59d7bafd43629ac5e291f5b042c71172",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
