@@ -43,11 +43,14 @@ from voltha.protos.health_pb2 import HealthStatus
 from google.protobuf.empty_pb2 import Empty
 from voltha.protos.events_pb2 import KpiEvent, MetricValuePairs
 from voltha.protos.events_pb2 import KpiEventType
+from voltha.protos.events_pb2 import AlarmEvent, AlarmEventType, \
+    AlarmEventSeverity, AlarmEventState, AlarmEventCategory
 
 from voltha.protos.logical_device_pb2 import LogicalPort, LogicalDevice
-from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, OFPPF_1GB_FD, \
-    OFPC_GROUP_STATS, OFPC_PORT_STATS, OFPC_TABLE_STATS, OFPC_FLOW_STATS, \
-    OFPP_CONTROLLER, OFPXMC_OPENFLOW_BASIC, ofp_switch_features, ofp_desc, ofp_port
+from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, \
+    OFPPF_1GB_FD, OFPC_GROUP_STATS, OFPC_PORT_STATS, OFPC_TABLE_STATS, \
+    OFPC_FLOW_STATS, OFPP_CONTROLLER, OFPXMC_OPENFLOW_BASIC, \
+    ofp_switch_features, ofp_desc, ofp_port
 from voltha.registry import registry
 from voltha.extensions.omci.omci import *
 
@@ -64,11 +67,13 @@ class MapleOltRxHandler(pb.Root):
         self.device_id = device_id
         self.adapter_agent = adapter.adapter_agent
         self.adapter_name = adapter.name
-        self.pb_server_ip = '192.168.24.20'  # registry('main').get_args().external_host_address
+        # registry('main').get_args().external_host_address
+        self.pb_server_ip = '192.168.24.20'
         self.pb_server_port = 24497
         self.pb_server_factory = pb.PBServerFactory(self)
         # start PB server
-        self.listen_port = reactor.listenTCP(self.pb_server_port, self.pb_server_factory)
+        self.listen_port = reactor.listenTCP(self.pb_server_port,
+                                             self.pb_server_factory)
         self.omci_rx_queue = DeferredQueue()
         log.info('PB-server-started-on-port', port=self.pb_server_port)
 
@@ -128,7 +133,8 @@ class MapleOltRxHandler(pb.Root):
                  event_str=event,
                  event_data=event_data)
 
-    def remote_report_alarm(self, object, key, alarm, status, priority, alarm_data=None):
+    def remote_report_alarm(self, object, key, alarm, status, priority,
+                            alarm_data=None):
         log.info('received-alarm-msg',
                  object=object,
                  key=key,
@@ -136,6 +142,40 @@ class MapleOltRxHandler(pb.Root):
                  status=status,
                  priority=priority,
                  alarm_data=alarm_data)
+
+        id = 'voltha.{}.{}.{}'.format(self.adapter_name, self.device_id, object)
+        description = '{} Alarm - {} - {}'.format(object.upper(), alarm.upper(),
+                                                  'Raised' if status else 'Cleared')
+
+        if priority == 'low':
+            severity = AlarmEventSeverity.MINOR
+        elif priority == 'medium':
+            severity = AlarmEventSeverity.MAJOR
+        elif priority == 'high':
+            severity = AlarmEventSeverity.CRITICAL
+        else:
+            severity = AlarmEventSeverity.INDETERMINATE
+
+        try:
+            ts = arrow.utcnow().timestamp
+
+            alarm_event = self.adapter_agent.create_alarm(
+                id=id,
+                resource_id=str(key),
+                type=AlarmEventType.EQUIPMENT,
+                category=AlarmEventCategory.PON,
+                severity=severity,
+                state=AlarmEventState.RAISED if status else \
+                      AlarmEventState.CLEARED,
+                description=description,
+                context=alarm_data,
+                raised_ts = ts)
+
+            self.adapter_agent.submit_alarm(alarm_event)
+
+        except Exception as e:
+            log.exception('failed-to-submit-alarm', e=e)
+
 
 
 @implementer(IAdapterInterface)
@@ -249,14 +289,16 @@ class MaplePBClientFactory(pb.PBClientFactory, ReconnectingClientFactory):
 
     def clientConnectionLost(self, connector, reason, reconnecting=0):
         log.info('pb-client-connection-lost')
-        pb.PBClientFactory.clientConnectionLost(self, connector, reason, reconnecting=1)
+        pb.PBClientFactory.clientConnectionLost(self, connector, reason,
+                                                reconnecting=1)
         ReconnectingClientFactory.clientConnectionLost(self, connector, reason)
         log.info('pb-client-connection-lost-retrying')
 
     def clientConnectionFailed(self, connector, reason):
         log.info('pb-client-connection-failed')
         pb.PBClientFactory.clientConnectionFailed(self, connector, reason)
-        ReconnectingClientFactory.clientConnectionFailed(self, connector, reason)
+        ReconnectingClientFactory.clientConnectionFailed(self, connector,
+                                                         reason)
         log.info('pb-client-connection-failed-retrying')
 
     def disconnect(self, stopTrying=0):
@@ -328,7 +370,8 @@ class MapleOltHandler(object):
             self.log.info('set-remote-exception', exc=str(e))
 
     @inlineCallbacks
-    def send_config_classifier(self, olt_no, etype, ip_proto=None, dst_port=None):
+    def send_config_classifier(self, olt_no, etype, ip_proto=None,
+                               dst_port=None):
         self.log.info('configuring-classifier',
                       olt=olt_no,
                       etype=etype,
@@ -346,7 +389,8 @@ class MapleOltHandler(object):
             self.log.info('config-classifier-exception', exc=str(e))
 
     @inlineCallbacks
-    def send_config_acflow(self, olt_no, onu_no, etype, ip_proto=None, dst_port=None):
+    def send_config_acflow(self, olt_no, onu_no, etype, ip_proto=None,
+                           dst_port=None):
         self.log.info('configuring-acflow',
                       olt=olt_no,
                       onu=onu_no,
@@ -487,19 +531,20 @@ class MapleOltHandler(object):
     def heartbeat(self, device_id, state='run'):
         """Heartbeat OLT hardware
 
-        Call PB remote method 'heartbeat' to verify connectivity to OLT hardware.
-        If heartbeat missed self.heartbeat_failed_limit times OLT adapter is set
-        FAILED/UNREACHABLE.
-        No further action from VOLTHA core is expected as result of heartbeat failure.
-        Heartbeat continues following failure and once connectivity is restored adapter
-        state will be set to ACTIVE/REACHABLE
+        Call PB remote method 'heartbeat' to verify connectivity to OLT
+        hardware. If heartbeat missed self.heartbeat_failed_limit times OLT
+        adapter is set FAILED/UNREACHABLE.
+        No further action from VOLTHA core is expected as result of heartbeat
+        failure. Heartbeat continues following failure and once connectivity is
+        restored adapter state will be set to ACTIVE/REACHABLE
 
         Arguments:
         device_id: adapter device id
         state: desired state (stop, start, run)
         """
 
-        self.log.debug('olt-heartbeat', device=device_id, state=state, count=self.heartbeat_count)
+        self.log.debug('olt-heartbeat', device=device_id, state=state,
+                       count=self.heartbeat_count)
 
         def add_timeout(d, duration):
             return reactor.callLater(duration, d.cancel)
@@ -508,6 +553,31 @@ class MapleOltHandler(object):
             if t.active():
                 t.cancel()
                 self.log.debug('olt-heartbeat-timeout-cancelled')
+
+        def heartbeat_alarm(device_id, status, heartbeat_misses=0):
+            try:
+                ts = arrow.utcnow().timestamp
+
+                alarm_data = {'heartbeats_missed':str(heartbeat_misses)}
+
+                alarm_event = self.adapter_agent.create_alarm(
+                    id='voltha.{}.{}.olt'.format(self.adapter.name, device_id),
+                    resource_id='olt',
+                    type=AlarmEventType.EQUIPMENT,
+                    category=AlarmEventCategory.PON,
+                    severity=AlarmEventSeverity.CRITICAL,
+                    state=AlarmEventState.RAISED if status else
+                        AlarmEventState.CLEARED,
+                    description='OLT Alarm - Heartbeat - {}'.format('Raised'
+                                                                    if status
+                                                                    else 'Cleared'),
+                    context=alarm_data,
+                    raised_ts = ts)
+
+                self.adapter_agent.submit_alarm(alarm_event)
+
+            except Exception as e:
+                log.exception('failed-to-submit-alarm', e=e)
 
         if state == 'stop':
             return
@@ -528,12 +598,14 @@ class MapleOltHandler(object):
             cancel_timeout(timeout)
         except Exception as e:
             data = -1
-            self.log.info('olt-heartbeat-exception', data=data, count=self.heartbeat_miss, exc=str(e))
+            self.log.info('olt-heartbeat-exception', data=data,
+                          count=self.heartbeat_miss, exc=str(e))
 
         if data != self.heartbeat_count:
             # something is not right
             self.heartbeat_miss += 1
-            self.log.info('olt-heartbeat-miss', data=data, count=self.heartbeat_count, miss=self.heartbeat_miss)
+            self.log.info('olt-heartbeat-miss', data=data,
+                          count=self.heartbeat_count, miss=self.heartbeat_miss)
         else:
             if self.heartbeat_miss > 0:
                 self.heartbeat_miss = 0
@@ -542,17 +614,21 @@ class MapleOltHandler(object):
                 _device.oper_status = OperStatus.ACTIVE
                 _device.reason = ''
                 self.adapter_agent.update_device(_device)
+                heartbeat_alarm(device_id, 0)
 
         _device = self.adapter_agent.get_device(device_id)
-        if (self.heartbeat_miss >= self.heartbeat_failed_limit) and (_device.connect_status == ConnectStatus.REACHABLE):
-            self.log.info('olt-heartbeat-failed', data=data, count=self.heartbeat_miss)
+        if (self.heartbeat_miss >= self.heartbeat_failed_limit) and \
+           (_device.connect_status == ConnectStatus.REACHABLE):
+            self.log.info('olt-heartbeat-failed', data=data,
+                          count=self.heartbeat_miss)
             _device = self.adapter_agent.get_device(device_id)
             _device.connect_status = ConnectStatus.UNREACHABLE
             _device.oper_status = OperStatus.FAILED
             _device.reason = 'Lost connectivity to OLT'
             self.adapter_agent.update_device(_device)
+            heartbeat_alarm(device_id, 1, self.heartbeat_miss)
 
-        self.heartbeat_count += 1 
+        self.heartbeat_count += 1
         reactor.callLater(self.heartbeat_interval, self.heartbeat, device_id)
 
     @inlineCallbacks
@@ -588,7 +664,8 @@ class MapleOltHandler(object):
             ))
 
             ld = LogicalDevice(
-                # not setting id and datapth_id will let the adapter agent pick id
+                # not setting id and datapth_id will let the adapter
+                # agent pick id
                 desc=ofp_desc(
                     mfr_desc='cord project',
                     hw_desc='n/a',
@@ -846,8 +923,10 @@ class MapleOltHandler(object):
                                   action_type=action.type, in_port=_in_port)
 
                 if is_upstream(_in_port):
-                    yield self.send_config_classifier(0, _type, _ip_proto, _udp_dst)
-                    yield self.send_config_acflow(0, _in_port, _type, _ip_proto, _udp_dst)
+                    yield self.send_config_classifier(0, _type, _ip_proto,
+                                                      _udp_dst)
+                    yield self.send_config_acflow(0, _in_port, _type, _ip_proto,
+                                                  _udp_dst)
 
             except Exception as e:
                 log.exception('failed-to-install-flow', e=e, flow=flow)
@@ -890,10 +969,12 @@ class MapleOltHandler(object):
 
     @inlineCallbacks
     def send_configure_stats_collection_interval(self, olt_no, interval):
-        self.log.info('configuring-stats-collect-interval', olt=olt_no, interval=interval)
+        self.log.info('configuring-stats-collect-interval', olt=olt_no,
+                      interval=interval)
         try:
             remote = yield self.get_channel()
-            data = yield remote.callRemote('set_stats_collection_interval', interval)
+            data = yield remote.callRemote('set_stats_collection_interval',
+                                           interval)
             self.log.info('configured-stats-collect-interval', data=data)
         except Exception as e:
-            self.log.info('configure-stats-collect-interval', exc=str(e))
+            self.log.exception('configure-stats-collect-interval', exc=str(e))
