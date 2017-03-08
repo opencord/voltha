@@ -33,7 +33,8 @@ class ConfigRoot(ConfigNode):
         '_kv_store',
         '_loading',
         '_rev_cls',
-        '_deferred_callback_queue'
+        '_deferred_callback_queue',
+        '_notification_deferred_callback_queue'
     )
 
     def __init__(self, initial_data, kv_store=None, rev_cls=ConfigRevision):
@@ -45,6 +46,7 @@ class ConfigRoot(ConfigNode):
             rev_cls = PersistedConfigRevision
         self._rev_cls = rev_cls
         self._deferred_callback_queue = []
+        self._notification_deferred_callback_queue = []
         super(ConfigRoot, self).__init__(self, initial_data, False)
 
     @property
@@ -146,10 +148,36 @@ class ConfigRoot(ConfigNode):
     def enqueue_callback(self, func, *args, **kw):
         self._deferred_callback_queue.append((func, args, kw))
 
+    def enqueue_notification_callback(self, func, *args, **kw):
+        """
+        A separate queue is required for notification.  Previously, when the
+        notifications were added to the self._deferred_callback_queue there
+        was a deadlock condition where two callbacks were added (one
+        related to the model change and one for the notification related to
+        that model change).  Since the model change requires the
+        self._deferred_callback_queue to be empty then there was a deadlock
+        in that scenario.   The simple approach to avoid this problem is to
+        have separate queues for model and notification.
+        TODO: Investigate whether there is a need for the
+        self._deferred_callback_queue to handle multiple model events at the same time
+        :param func: callback function
+        :param args: args
+        :param kw: key-value args
+        :return: None
+        """
+        self._notification_deferred_callback_queue.append((func, args, kw))
+
     def execute_deferred_callbacks(self):
+        # First process the model-triggered related callbacks
         while self._deferred_callback_queue:
             func, args, kw = self._deferred_callback_queue.pop(0)
             func(*args, **kw)
+
+        # Execute the notification callbacks
+        while self._notification_deferred_callback_queue:
+            func, args, kw = self._notification_deferred_callback_queue.pop(0)
+            func(*args, **kw)
+
 
     # ~~~~~~~~~~~~~~~~ Persistence related ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

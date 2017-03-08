@@ -304,18 +304,13 @@ class ConfigNode(object):
                         proceed_on_errors=1,
                     )
 
-
-            # TODO:  This fix needs to be investigated/reworked as it causes an
-            # extra item to be queued in the main branch.  This item does
-            # not get consumed, hence preventing any device update on the
-            # main branch
-            # for change_type, data in change_announcements:
-            #     self._root.enqueue_callback(
-            #         self._mk_event_bus().advertise,
-            #         change_type,
-            #         data,
-            #         hash=rev.hash
-            #     )
+            for change_type, data in change_announcements:
+                self._root.enqueue_notification_callback(
+                    self._mk_event_bus().advertise,
+                    change_type,
+                    data,
+                    hash=rev.hash,
+                )
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ add operation ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

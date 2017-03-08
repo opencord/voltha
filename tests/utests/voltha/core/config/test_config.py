@@ -561,11 +561,7 @@ class TestEventLogic(DeepTestsBase):
             data=dumps(MessageToDict(data, True, True))
         )
 
-        # TODO:  Since the event model is commented out in config_node.py then
-        # this line needs to be commented out as well, otherwise unit test
-        # will fail, hence the build
-        # self.event_mock.assert_called_once_with('model-change-events', event)
-        self.assertTrue(True)
+        self.event_mock.assert_called_once_with('model-change-events', event)
 
     def test_remove_event(self):
         data = Adapter(
@@ -581,12 +577,7 @@ class TestEventLogic(DeepTestsBase):
             data=dumps(MessageToDict(data, True, True))
         )
 
-        # TODO:  Since the event model is commented out in config_node.py then
-        # this line needs to be commented out as well, otherwise unit test
-        # will fail, hence the build
-        # self.event_mock.assert_called_once_with('model-change-events', event)
-        self.assertTrue(True)
-
+        self.event_mock.assert_called_once_with('model-change-events', event)
 
 class TestTransactionalLogic(DeepTestsBase):
 
