@@ -38,6 +38,8 @@ voltha/**/*.desc
 
 # Editors
 *.bak
+*.project
+*.pydevproject
 
 # Docker
 .docker-base-built
