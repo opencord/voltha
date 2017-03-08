@@ -20,6 +20,7 @@ import public "logical_device.proto";
 import public "device.proto";
 import public "adapter.proto";
 import public "openflow_13.proto";
+import public "config.proto";
 
 option java_package = "org.opencord.voltha";
 option java_outer_classname = "VolthaProtos";
@@ -264,6 +265,22 @@ service VolthaGlobalService {
         };
     }
 
+    // Suppress a set of Alarms.
+    rpc SuppressAlarms(voltha.SuppressAlarm) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/instances/{id}"
+            body: "*"
+        };
+    }
+
+    // Clear a set of Alarms.
+    rpc ClearAlarms(voltha.ClearAlarm) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/instances/{id}"
+            body: "*"
+        };
+    }
+
 }
 
 /*
@@ -457,6 +474,22 @@ service VolthaLocalService {
     rpc ReceiveChangeEvents(google.protobuf.Empty)
         returns(stream openflow_13.ChangeEvent) {
         // This does not have an HTTP representation
+    }
+
+    // Suppress a set of Alarms.
+    rpc SuppressAlarms(voltha.SuppressAlarm) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local"
+            body: "*"
+        };
+    }
+
+    // Clear a set of Alarms.
+    rpc ClearAlarms(voltha.ClearAlarm) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local"
+            body: "*"
+        };
     }
 
 }
