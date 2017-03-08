@@ -1,0 +1,31 @@
+/*
+ * Proto file for Alarm Suppress and Clear Configuration
+ *
+ */
+
+syntax = "proto3";
+
+package voltha;
+
+message AlarmIds {
+    // series of unique Alarm Identifiers
+    repeated string id = 1;
+
+}
+
+message SuppressAlarm {
+    // A key/value storage where each set of AlarmIds is mapped
+    // against a string key, where the string should be the resource
+    // identifier.
+    map<string, AlarmIds> alarms = 1;
+
+}
+
+message ClearAlarm {
+    // A key/value storage where each set of AlarmIds is mapped
+    // against a string key, where the string should be the resource
+    // identifier.
+    map<string, AlarmIds> alarms = 1;
+
+}
+
