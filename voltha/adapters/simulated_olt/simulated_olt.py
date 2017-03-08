@@ -336,7 +336,7 @@ class SimulatedOltAdapter(object):
         yield asleep(0.05)
         try:
             log.info("Setting p")
-            p = PmsConfig(
+            p = PmConfigs(
                 default_freq=150,
                 grouped=False,
                 freq_override=False)
