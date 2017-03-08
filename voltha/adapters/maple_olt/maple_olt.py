@@ -43,6 +43,8 @@ from voltha.protos.health_pb2 import HealthStatus
 from google.protobuf.empty_pb2 import Empty
 from voltha.protos.events_pb2 import KpiEvent, MetricValuePairs
 from voltha.protos.events_pb2 import KpiEventType
+from voltha.protos.events_pb2 import AlarmEvent, AlarmEventType, \
+    AlarmEventSeverity, AlarmEventState, AlarmEventCategory
 
 from voltha.protos.logical_device_pb2 import LogicalPort, LogicalDevice
 from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, OFPPF_1GB_FD, \
@@ -136,6 +138,38 @@ class MapleOltRxHandler(pb.Root):
                  status=status,
                  priority=priority,
                  alarm_data=alarm_data)
+
+        id = 'voltha.{}.{}.{}'.format(self.adapter_name, self.device_id, object)
+        description = '{} Alarm - {} - {}'.format(object.upper(), alarm.upper(), 'Raised' if status else 'Cleared')
+
+        if priority == 'low':
+            severity = AlarmEventSeverity.MINOR
+        elif priority == 'medium':
+            severity = AlarmEventSeverity.MAJOR
+        elif priority == 'high':
+            severity = AlarmEventSeverity.CRITICAL
+        else:
+            severity = AlarmEventSeverity.INDETERMINATE
+
+        try:
+            ts = arrow.utcnow().timestamp
+
+            alarm_event = self.adapter_agent.create_alarm(
+                id=id,
+                resource_id=str(key),
+                type=AlarmEventType.EQUIPMENT,
+                category=AlarmEventCategory.PON,
+                severity=severity,
+                state=AlarmEventState.RAISED if status else AlarmEventState.CLEARED,
+                description=description,
+                context=alarm_data,
+                raised_ts = ts)
+
+            self.adapter_agent.submit_alarm(alarm_event)
+
+        except Exception as e:
+            log.exception('failed-to-submit-alarm', e=e)
+
 
 
 @implementer(IAdapterInterface)
@@ -509,6 +543,28 @@ class MapleOltHandler(object):
                 t.cancel()
                 self.log.debug('olt-heartbeat-timeout-cancelled')
 
+        def heartbeat_alarm(device_id, status, heartbeat_misses=0):
+            try:
+                ts = arrow.utcnow().timestamp
+
+                alarm_data = {'heartbeats_missed':str(heartbeat_misses)}
+
+                alarm_event = self.adapter_agent.create_alarm(
+                    id='voltha.{}.{}.olt'.format(self.adapter.name, device_id),
+                    resource_id='olt',
+                    type=AlarmEventType.EQUIPMENT,
+                    category=AlarmEventCategory.PON,
+                    severity=AlarmEventSeverity.CRITICAL,
+                    state=AlarmEventState.RAISED if status else AlarmEventState.CLEARED,
+                    description='OLT Alarm - Heartbeat - {}'.format('Raised' if status else 'Cleared'),
+                    context=alarm_data,
+                    raised_ts = ts)
+
+                self.adapter_agent.submit_alarm(alarm_event)
+
+            except Exception as e:
+                log.exception('failed-to-submit-alarm', e=e)
+
         if state == 'stop':
             return
 
@@ -542,6 +598,7 @@ class MapleOltHandler(object):
                 _device.oper_status = OperStatus.ACTIVE
                 _device.reason = ''
                 self.adapter_agent.update_device(_device)
+                heartbeat_alarm(device_id, 0)
 
         _device = self.adapter_agent.get_device(device_id)
         if (self.heartbeat_miss >= self.heartbeat_failed_limit) and (_device.connect_status == ConnectStatus.REACHABLE):
@@ -551,8 +608,9 @@ class MapleOltHandler(object):
             _device.oper_status = OperStatus.FAILED
             _device.reason = 'Lost connectivity to OLT'
             self.adapter_agent.update_device(_device)
+            heartbeat_alarm(device_id, 1, self.heartbeat_miss)
 
-        self.heartbeat_count += 1 
+        self.heartbeat_count += 1
         reactor.callLater(self.heartbeat_interval, self.heartbeat, device_id)
 
     @inlineCallbacks
