@@ -304,6 +304,7 @@ class SimulatedOltAdapter(object):
 
         # first we pretend that we were able to contact the device and obtain
         # additional information about it
+        #log.info("device-activation")
         device.root = True
         device.vendor = 'simulated'
         device.model = 'n/a'
@@ -312,6 +313,54 @@ class SimulatedOltAdapter(object):
         device.software_version = '1.0'
         device.serial_number = uuid4().hex
         device.connect_status = ConnectStatus.REACHABLE
+        #log.info("device-config",device=device)
+        device.pm_configs.default_freq=150
+        device.pm_configs.grouped = False
+        device.pm_configs.freq_override = False
+        #log.info("device-config",device=device)
+        device.pm_configs.metrics.extend([PmConfig(name='tx_64',
+                                                   type=PmConfig.COUNTER,
+                                                   enabled=True)])
+        device.pm_configs.metrics.extend([PmConfig(name='tx_65_127',
+                                                   type=PmConfig.COUNTER,
+                                                   enabled=True)])
+        device.pm_configs.metrics.extend([PmConfig(name='tx_128_255',
+                                                   type=PmConfig.COUNTER,
+                                                   enabled=True)])
+        device.pm_configs.metrics.extend([PmConfig(name='tx_256_511',
+                                                   type=PmConfig.COUNTER,
+                                                   enabled=True)])
+        device.pm_configs.metrics.extend([PmConfig(name='tx_512_1023',
+                                                   type=PmConfig.COUNTER,
+                                                   enabled=True)])
+        device.pm_configs.metrics.extend([PmConfig(name='tx_1024_1518',
+                                                   type=PmConfig.COUNTER,
+                                                   enabled=True)])
+        device.pm_configs.metrics.extend([PmConfig(name='tx_1519_9k',
+                                                   type=PmConfig.COUNTER,
+                                                   enabled=True)])
+        device.pm_configs.metrics.extend([PmConfig(name='rx_64',
+                                                   type=PmConfig.COUNTER,
+                                                   enabled=True)])
+        device.pm_configs.metrics.extend([PmConfig(name='rx_65_127',
+                                                   type=PmConfig.COUNTER,
+                                                   enabled=True)])
+        device.pm_configs.metrics.extend([PmConfig(name='rx_128_255',
+                                                   type=PmConfig.COUNTER,
+                                                   enabled=True)])
+        device.pm_configs.metrics.extend([PmConfig(name='rx_256_511',
+                                                   type=PmConfig.COUNTER,
+                                                   enabled=True)])
+        device.pm_configs.metrics.extend([PmConfig(name='rx_512_1023',
+                                                   type=PmConfig.COUNTER,
+                                                   enabled=True)])
+        device.pm_configs.metrics.extend([PmConfig(name='rx_1024_1518',
+                                                   type=PmConfig.COUNTER,
+                                                   enabled=True)])
+        device.pm_configs.metrics.extend([PmConfig(name='rx_1519_9k',
+                                                   type=PmConfig.COUNTER,
+                                                   enabled=True)])
+        #log.info("device-config",device=device)
         self.adapter_agent.update_device(device)
 
         # then shortly after we create some ports for the device
@@ -332,49 +381,6 @@ class SimulatedOltAdapter(object):
             oper_status=OperStatus.ACTIVE
         ))
 
-        # then shortly after, add the supported pms for the device
-        yield asleep(0.05)
-        try:
-            log.info("Setting p")
-            p = PmConfigs(
-                default_freq=150,
-                grouped=False,
-                freq_override=False)
-            p.metrics.extend([PmConfig(name='tx_64',type=PmConfig.COUNTER,
-                                       enabled=True)])
-            p.metrics.extend([PmConfig(name='tx_65_127',
-                                       type=PmConfig.COUNTER,enabled=True)])
-            p.metrics.extend([PmConfig(name='tx_128_255',
-                                       type=PmConfig.COUNTER,enabled=True)])
-            p.metrics.extend([PmConfig(name='tx_256_511',
-                                       type=PmConfig.COUNTER,enabled=True)])
-            p.metrics.extend([PmConfig(name='tx_512_1023',
-                                       type=PmConfig.COUNTER,enabled=True)])
-            p.metrics.extend([PmConfig(name='tx_1024_1518',
-                                       type=PmConfig.COUNTER,enabled=True)])
-            p.metrics.extend([PmConfig(name='tx_1519_9k',
-                                       type=PmConfig.COUNTER,enabled=True)])
-            p.metrics.extend([PmConfig(name='rx_64',
-                                       type=PmConfig.COUNTER,enabled=True)])
-            p.metrics.extend([PmConfig(name='rx_65_127',
-                                       type=PmConfig.COUNTER,enabled=True)])
-            p.metrics.extend([PmConfig(name='rx_128_255',
-                                       type=PmConfig.COUNTER,enabled=True)])
-            p.metrics.extend([PmConfig(name='rx_256_511',
-                                       type=PmConfig.COUNTER,enabled=True)])
-            p.metrics.extend([PmConfig(name='rx_512_1023',
-                                       type=PmConfig.COUNTER,enabled=True)])
-            p.metrics.extend([PmConfig(name='rx_1024_1518',
-                                       type=PmConfig.COUNTER,enabled=True)])
-            p.metrics.extend([PmConfig(name='rx_1519_9k',
-                                       type=PmConfig.COUNTER,enabled=True)])
-
-
-            #TODO Call the adapter agend to update the pm config
-            #self.adapter_agent.update_pms_config(device.id,p)
-        except:
-            e = sys.exec_info()
-            log.error("error", error=e)
 
         # then shortly after we create the logical device with one port
         # that will correspond to the NNI port
