@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "da141535_62b0e7dd",
+        "filename": "voltha/core/global_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 375,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-03-09T16:52:50Z",
+      "side": 1,
+      "message": "Do you still need to keep this around?",
+      "revId": "64b2d583d9e27a6da37923a169a031135785b606",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_42b5e3cb",
+        "filename": "voltha/core/local_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 426,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-03-09T16:52:50Z",
+      "side": 1,
+      "message": "Same comment",
+      "revId": "64b2d583d9e27a6da37923a169a031135785b606",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
