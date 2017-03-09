@@ -29,6 +29,7 @@ from voltha.protos.voltha_pb2 import \
     VolthaInstance, Adapters, LogicalDevices, LogicalDevice, Ports, \
     LogicalPorts, Devices, Device, DeviceType, \
     DeviceTypes, DeviceGroups, DeviceGroup, AdminState, OperStatus, ChangeEvent
+from voltha.protos.device_pb2 import PmConfigs
 from voltha.registry import registry
 
 log = structlog.get_logger()
@@ -420,12 +421,28 @@ class LocalHandler(VolthaLocalServiceServicer):
             context.set_code(StatusCode.NOT_FOUND)
             return Ports()
 
-    #TODO: create the global PM config query function
     @twisted_async
     def ListDevicePmConfigs(self, request, context):
-        raise NotImplementedError('Method not implemented!')
+        #raise NotImplementedError('Method not implemented!')
+        log.info('grpc-request', request=request)
 
-    #TODO: create the global PM config update function.
+        if '/' in request.id:
+            context.set_details(
+                'Malformed device id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return PmConfigs()
+
+        try:
+            device = self.root.get('/devices/{}'.format(request.id))
+            log.info('device-for-pms',device=device)
+            return device.pm_configs
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return PmConfigs()
+
+    #TODO: create the local PM config update function.
     @twisted_async
     def UpdateDevicePmConfigs(self, request, context):
         raise NotImplementedError('Method not implemented!')
