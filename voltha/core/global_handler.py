@@ -372,7 +372,25 @@ class GlobalHandler(VolthaGlobalServiceServicer):
     #TODO: create the global PM config query function
     @twisted_async
     def ListDevicePmConfigs(self, request, context):
-        raise NotImplementedError('Method not implemented!')
+        #raise NotImplementedError('Method not implemented!')
+        log.info('grpc-request', request=request)
+
+        try:
+            instance_id = self.dispatcher.instance_id_by_device_id(
+                request.id
+            )
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return PmConfigs()
+
+        return self.dispatcher.dispatch(
+            instance_id,
+            VolthaLocalServiceStub,
+            'ListDevicePmConfigs',
+            request,
+            context)
 
     #TODO: create the global PM config update function.
     @twisted_async
