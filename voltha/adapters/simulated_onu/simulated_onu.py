@@ -108,6 +108,9 @@ class SimulatedOnuAdapter(object):
     def get_device_details(self, device):
         raise NotImplementedError()
 
+    def update_pm_config(self, device, pm_configs):
+        raise NotImplementedError()
+
     @inlineCallbacks
     def _simulate_device_activation(self, device):
 

@@ -150,7 +150,7 @@ class IAdapterInterface(Interface):
         :return:
         """
 
-    #def update_pm_collection(device, pm_collection_config):
+    def update_pm_config(device, pm_configs):
         """
         Called every time a request is made to change pm collection behavior
         :param device: A Voltha.Device object

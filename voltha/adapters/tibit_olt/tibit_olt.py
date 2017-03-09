@@ -145,6 +145,9 @@ class TibitOltAdapter(object):
     def adapter_descriptor(self):
         return self.descriptor
 
+    def update_pm_config(self, device, pm_configs):
+        raise NotImplementedError()
+
     def device_types(self):
         return DeviceTypes(items=self.supported_device_types)
 

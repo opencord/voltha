@@ -109,6 +109,9 @@ class TibitOnuAdapter(object):
     def change_master_state(self, master):
         raise NotImplementedError()
 
+    def update_pm_config(self, device, pm_configs):
+        raise NotImplementedError()
+
     def adopt_device(self, device):
         log.info('adopt-device', device=device)
         reactor.callLater(0.1, self._onu_device_activation, device)

@@ -423,7 +423,6 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def ListDevicePmConfigs(self, request, context):
-        #raise NotImplementedError('Method not implemented!')
         log.info('grpc-request', request=request)
 
         if '/' in request.id:

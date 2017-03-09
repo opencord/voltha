@@ -169,6 +169,9 @@ class SimulatedOltAdapter(object):
     def get_device_details(self, device):
         raise NotImplementedError()
 
+    def update_pm_config(self, device, pm_configs):
+        raise NotImplementedError()
+
     def _tmp_populate_stuff(self):
         """
         pretend that we discovered some devices and create:
@@ -304,7 +307,6 @@ class SimulatedOltAdapter(object):
 
         # first we pretend that we were able to contact the device and obtain
         # additional information about it
-        #log.info("device-activation")
         device.root = True
         device.vendor = 'simulated'
         device.model = 'n/a'
@@ -313,11 +315,9 @@ class SimulatedOltAdapter(object):
         device.software_version = '1.0'
         device.serial_number = uuid4().hex
         device.connect_status = ConnectStatus.REACHABLE
-        #log.info("device-config",device=device)
         device.pm_configs.default_freq=150
         device.pm_configs.grouped = False
         device.pm_configs.freq_override = False
-        #log.info("device-config",device=device)
         device.pm_configs.metrics.extend([PmConfig(name='tx_64',
                                                    type=PmConfig.COUNTER,
                                                    enabled=True)])
@@ -360,7 +360,6 @@ class SimulatedOltAdapter(object):
         device.pm_configs.metrics.extend([PmConfig(name='rx_1519_9k',
                                                    type=PmConfig.COUNTER,
                                                    enabled=True)])
-        #log.info("device-config",device=device)
         self.adapter_agent.update_device(device)
 
         # then shortly after we create some ports for the device

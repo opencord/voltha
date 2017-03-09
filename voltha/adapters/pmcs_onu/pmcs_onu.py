@@ -100,6 +100,9 @@ class PmcsOnu(object):
     def deactivate_device(self, device):
         raise NotImplementedError()
 
+    def update_pm_config(self, device, pm_configs):
+        raise NotImplementedError()
+
     def update_flows_bulk(self, device, flows, groups):
         log.info('bulk-flow-update', device_id=device.id,
                   flows=flows, groups=groups)

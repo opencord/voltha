@@ -114,6 +114,9 @@ class RubyAdapter(object):
     def reenable_device(self, device):
         raise NotImplementedError()
 
+    def update_pm_config(self, device, pm_configs):
+        raise NotImplementedError()
+
     def reboot_device(self, device):
         raise NotImplementedError()
 

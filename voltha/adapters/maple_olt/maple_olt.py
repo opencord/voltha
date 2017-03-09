@@ -222,6 +222,9 @@ class MapleOltAdapter(object):
     def change_master_state(self, master):
         raise NotImplementedError()
 
+    def update_pm_config(self, device, pm_configs):
+        raise NotImplementedError()
+
     def adopt_device(self, device):
         self.devices_handlers[device.id] = MapleOltHandler(self, device.id)
         reactor.callLater(0, self.devices_handlers[device.id].activate, device)
