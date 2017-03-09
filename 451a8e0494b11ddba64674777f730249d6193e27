@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "da141535_02792b2f",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 167,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-09T15:49:13Z",
+      "side": 1,
+      "message": "Please add a note that eventually this will be a child node (for ease of operation and callbacks).",
+      "revId": "451a8e0494b11ddba64674777f730249d6193e27",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
