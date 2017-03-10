@@ -16,6 +16,24 @@
       "revId": "72acd46c0ca54adddbd8007e5fdafa4b853d24c3",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_a5ff2901",
+        "filename": "voltha/core/device_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 171,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-03-10T14:01:04Z",
+      "side": 1,
+      "message": "Mostly yes but not always. It would be clearer to use a more general purpose variable to pass additional information to the callback so I\u0027ll add a new variable.",
+      "parentUuid": "da141535_225e6f46",
+      "revId": "72acd46c0ca54adddbd8007e5fdafa4b853d24c3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
