@@ -49,13 +49,14 @@ message PmGroupConfig {
 }
 
 message PmConfigs {
-    uint32 default_freq = 1; // Default sample rate
+    string id = 1; // To work around a chameleon POST bug
+    uint32 default_freq = 2; // Default sample rate
     // Forces group names and group semantics
-    bool grouped = 2 [(access) = READ_ONLY];
+    bool grouped = 3 [(access) = READ_ONLY];
     // Allows Pm to set an individual sample frequency
-    bool freq_override = 3 [(access) = READ_ONLY];
-    repeated PmGroupConfig groups = 4; // The groups if grouped is true
-    repeated PmConfig metrics = 5; // The metrics themselves if grouped is false.
+    bool freq_override = 4 [(access) = READ_ONLY];
+    repeated PmGroupConfig groups = 5; // The groups if grouped is true
+    repeated PmConfig metrics = 6; // The metrics themselves if grouped is false.
 }
 
 message Port {
@@ -166,7 +167,7 @@ message Device {
     openflow_13.FlowGroups flow_groups = 130 [(child_node) = {}];
     // PmConfigs will eventually converted to a child node of the
     // device to falicitata callbacks and to simplify manipulation.
-    PmConfigs pm_configs = 131;
+    PmConfigs pm_configs = 131 [(child_node) = {}];
 
 }
 

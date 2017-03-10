@@ -37,12 +37,16 @@ class DeviceAgent(object):
         self.core = core
         self._tmp_initial_data = initial_data
         self.last_data = None
+        self.calback_data = None
 
         self.proxy = core.get_proxy('/devices/{}'.format(initial_data.id))
         self.flows_proxy = core.get_proxy(
             '/devices/{}/flows'.format(initial_data.id))
         self.groups_proxy = core.get_proxy(
             '/devices/{}/flow_groups'.format(initial_data.id))
+
+        self.pm_config_proxy = core.get_proxy(
+            '/devices/{}/pm_configs'.format(initial_data.id))
 
         self.proxy.register_callback(
             CallbackType.PRE_UPDATE, self._validate_update)
@@ -53,6 +57,9 @@ class DeviceAgent(object):
             CallbackType.POST_UPDATE, self._flow_table_updated)
         self.groups_proxy.register_callback(
             CallbackType.POST_UPDATE, self._group_table_updated)
+
+        self.pm_config_proxy.register_callback(
+            CallbackType.POST_UPDATE, self._pm_config_updated)
 
         # to know device capabilities
         self.device_type = core.get_proxy(
@@ -161,6 +168,10 @@ class DeviceAgent(object):
         self.last_data = device  # so that we don't propagate back
         self.proxy.update('/', device)
 
+    def update_device_pm_config(self, device_pm_config, init=False):
+        self.callback_data = init# so that we don't push init data
+        self.pm_config_proxy.update('/', device_pm_config)
+
     def _propagate_change(self, device, dry_run=False):
         self.log.info('propagate-change', device=device, dry_run=dry_run)
         if device != self.last_data:
@@ -210,6 +221,16 @@ class DeviceAgent(object):
         (AdminState.DISABLED, AdminState.ENABLED): _reenable_device
 
     }
+
+    ## <======================= PM CONFIG UPDATE HANDLING ====================
+
+    #@inlineCallbacks
+    def _pm_config_updated(self, pm_configs):
+        self.log.debug('pm-config-updated', pm_configs=pm_configs,
+                       callback_data=self.callback_data)
+        if not self.callback_data:
+            self.adapter_agent.update_adapter_pm_config(self.proxy.get('/'), pm_configs)
+        self.callback_data = None
 
     ## <======================= FLOW TABLE UPDATE HANDLING ====================
 
