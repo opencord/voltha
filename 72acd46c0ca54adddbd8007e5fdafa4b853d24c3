@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "da141535_225e6f46",
+        "filename": "voltha/core/device_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 171,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-10T04:15:19Z",
+      "side": 1,
+      "message": "Should a different variable be used?  self.last_data is mostly used in this file to store the last device info.",
+      "revId": "72acd46c0ca54adddbd8007e5fdafa4b853d24c3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
