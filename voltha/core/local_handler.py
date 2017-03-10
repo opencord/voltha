@@ -432,19 +432,36 @@ class LocalHandler(VolthaLocalServiceServicer):
             return PmConfigs()
 
         try:
-            device = self.root.get('/devices/{}'.format(request.id))
-            log.info('device-for-pms',device=device)
-            return device.pm_configs
+            pm_configs = self.root.get('/devices/{}/pm_configs'.format(request.id))
+            pm_configs.id = request.id
+            log.info('device-for-pms',pm_configs=pm_configs)
+            return pm_configs
         except KeyError:
             context.set_details(
                 'Device \'{}\' not found'.format(request.id))
             context.set_code(StatusCode.NOT_FOUND)
             return PmConfigs()
 
-    #TODO: create the local PM config update function.
     @twisted_async
     def UpdateDevicePmConfigs(self, request, context):
-        raise NotImplementedError('Method not implemented!')
+        log.info('grpc-request', request=request)
+
+        if '/' in request.id:
+            context.set_details(
+                'Malformed logical device id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return Empty()
+
+        try:
+            device = self.root.get('/devices/{}'.format(request.id))
+            agent = self.core.get_device_agent(request.id)
+            agent.update_device_pm_config(request)
+            return Empty()
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return Empty()
 
     @twisted_async
     def ListDeviceFlows(self, request, context):

@@ -210,6 +210,17 @@ class AdapterAgent(object):
         device_agent = self.core.get_device_agent(device.id)
         device_agent.update_device(device)
 
+    def update_device_pm_config(self, device_pm_config, init=False):
+        assert isinstance(device_pm_config, PmConfigs)
+
+        # we run the update through the device_agent so that the change
+        # does not loop back to the adapter unnecessarily
+        device_agent = self.core.get_device_agent(device_pm_config.id)
+        device_agent.update_device_pm_config(device_pm_config,init)
+
+    def update_adapter_pm_config(self, device, device_pm_config):
+        self.adapter.update_pm_config(device, device_pm_config)
+
     def add_port(self, device_id, port):
         assert isinstance(port, Port)
 

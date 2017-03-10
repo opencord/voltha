@@ -248,7 +248,7 @@ service VolthaGlobalService {
     }
 
     // Update the pm config of a device
-    rpc UpdateDevicePmConfigs(ID) returns(PmConfigs) {
+    rpc UpdateDevicePmConfigs(voltha.PmConfigs) returns(google.protobuf.Empty) {
         option (google.api.http) = {
             post: "/api/v1/devices/{id}/pm_configs"
             body: "*"
@@ -464,7 +464,7 @@ service VolthaLocalService {
     }
 
     // Update the pm config of a device
-    rpc UpdateDevicePmConfigs(ID) returns(PmConfigs) {
+    rpc UpdateDevicePmConfigs(voltha.PmConfigs) returns(google.protobuf.Empty) {
         option (google.api.http) = {
             post: "/api/v1/local/devices/{id}/pm_configs"
             body: "*"
