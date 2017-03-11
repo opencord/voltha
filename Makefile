@@ -102,6 +102,9 @@ netconf:
 shovel:
 	docker build -t cord/shovel -f docker/Dockerfile.shovel .
 
+dashd:
+	docker build -t cord/dashd -f docker/Dockerfile.dashd .
+
 onos:
 	docker build -t cord/onos -f docker/Dockerfile.onos docker
 
