@@ -52,6 +52,107 @@ import sys
 log = structlog.get_logger()
 
 
+class AdapterPmMetrics:
+    class Metrics:
+        def __init__(self, config, value):
+            self.config = config
+            self.value = value
+
+    def __init__(self,device):
+        self.pm_names = {'tx_64','tx_65_127', 'tx_128_255', 'tx_256_511',
+                        'tx_512_1023', 'tx_1024_1518', 'tx_1519_9k', 'rx_64',
+                        'rx_65_127', 'rx_128_255', 'rx_256_511', 'rx_512_1023',
+                        'rx_1024_1518', 'rx_1519_9k', 'tx_pkts', 'rx_pkts',
+                         'tx_bytes', 'rx_bytes'}
+        # This is just to generate more realistic looking values. This would
+        # not be implemented in a normal adapter.
+        self.rand_ranges = dict (
+            tx_64=[50, 55],
+            tx_65_127=[55,60],
+            tx_128_255=[60,65],
+            tx_256_511=[85,90],
+            tx_512_1023=[90,95],
+            tx_1024_1518=[60,65],
+            tx_1519_9k=[50,55],
+            rx_64=[50, 55],
+            rx_65_127=[55,60],
+            rx_128_255=[60,65],
+            rx_256_511=[85,90],
+            rx_512_1023=[90,95],
+            rx_1024_1518=[60,65],
+            rx_1519_9k=[50,55],
+            tx_pkts=[90,100],
+            rx_pkts=[90,100],
+            rx_bytes=[90000,100000],
+            tx_bytes=[90000,100000]
+        )
+        self.device = device
+        self.id = device.id
+        self.default_freq = 150
+        self.grouped = False
+        self.freq_override = False
+        self.pon_metrics = dict()
+        self.nni_metrics = dict()
+        self.lc = None
+        for m in self.pm_names:
+            self.pon_metrics[m] = \
+                    self.Metrics(config = PmConfig(name=m,
+                                                   type=PmConfig.COUNTER,
+                                                   enabled=True), value = 0)
+            self.nni_metrics[m] = \
+                    self.Metrics(config = PmConfig(name=m,
+                                                   type=PmConfig.COUNTER,
+                                                   enabled=True), value = 0)
+
+    def update(self, pm_config):
+        if self.default_freq != pm_config.default_freq:
+            # Update the callback to the new frequency.
+            self.default_freq = pm_config.default_freq
+            self.lc.stop()
+            self.lc.start(interval=self.default_freq/10)
+        for m in pm_config.metrics:
+            self.pon_metrics[m.name].config.enabled = m.enabled
+            self.nni_metrics[m.name].config.enabled = m.enabled
+
+    def make_proto(self):
+        pm_config = PmConfigs(
+            id=self.id,
+            default_freq=self.default_freq,
+            grouped = False,
+            freq_override = False)
+        for m in sorted(self.pon_metrics):
+            pm=self.pon_metrics[m]
+            pm_config.metrics.extend([PmConfig(name=pm.config.name,
+                                               type=pm.config.type,
+                                               enabled=pm.config.enabled)])
+        return pm_config
+
+    def collect_pon_metrics(self):
+        import random
+        rtrn_pon_metrics = dict()
+        for m in self.pm_names:
+            if self.pon_metrics[m].config.enabled:
+                self.pon_metrics[m].value += \
+                random.randint(self.rand_ranges[m][0], self.rand_ranges[m][1])
+                rtrn_pon_metrics[m] = self.pon_metrics[m].value
+        return rtrn_pon_metrics
+
+    def collect_nni_metrics(self):
+        import random
+        rtrn_nni_metrics = dict()
+        for m in self.pm_names:
+            if self.nni_metrics[m].config.enabled:
+                self.nni_metrics[m].value += \
+                random.randint(self.rand_ranges[m][0], self.rand_ranges[m][1])
+                rtrn_nni_metrics[m] = self.nni_metrics[m].value
+        return rtrn_nni_metrics
+
+    def start_collector(self, device_name, device_id, callback):
+        prefix = 'voltha.{}.{}'.format(device_name, device_id)
+        self.lc = LoopingCall(callback, device_id, prefix)
+        self.lc.start(interval=self.default_freq/10)
+
+
 @implementer(IAdapterInterface)
 class SimulatedOltAdapter(object):
     name = 'simulated_olt'
@@ -66,6 +167,7 @@ class SimulatedOltAdapter(object):
 
     app = Klein()
 
+
     def __init__(self, adapter_agent, config):
         self.adapter_agent = adapter_agent
         self.config = config
@@ -77,47 +179,7 @@ class SimulatedOltAdapter(object):
         )
         self.control_endpoint = None
         # Faked PM metrics for testing PM functionality
-        self.pon_tx_64 = 0
-        self.pon_tx_65_127 = 0
-        self.pon_tx_128_255 = 0
-        self.pon_tx_256_511 = 0
-        self.pon_tx_512_1023 = 0
-        self.pon_tx_1024_1518 = 0
-        self.pon_tx_1519_9k = 0
-
-        self.pon_rx_64 = 0
-        self.pon_rx_65_127 = 0
-        self.pon_rx_128_255 = 0
-        self.pon_rx_256_511 = 0
-        self.pon_rx_512_1023 = 0
-        self.pon_rx_1024_1518 = 0
-        self.pon_rx_1519_9k = 0
-
-        self.pon_tx_pkts = 0
-        self.pon_rx_pkts = 0
-        self.pon_tx_bytes = 0
-        self.pon_rx_bytes = 0
-
-        self.nni_tx_64 = 0
-        self.nni_tx_65_127 = 0
-        self.nni_tx_128_255 = 0
-        self.nni_tx_256_511 = 0
-        self.nni_tx_512_1023 = 0
-        self.nni_tx_1024_1518 = 0
-        self.nni_tx_1519_9k = 0
-
-        self.nni_rx_64 = 0
-        self.nni_rx_65_127 = 0
-        self.nni_rx_128_255 = 0
-        self.nni_rx_256_511 = 0
-        self.nni_rx_512_1023 = 0
-        self.nni_rx_1024_1518 = 0
-        self.nni_rx_1519_9k = 0
-
-        self.nni_tx_pkts = 0
-        self.nni_rx_pkts = 0
-        self.nni_tx_bytes = 0
-        self.nni_rx_bytes = 0
+        self.pm_metrics = None
 
     def start(self):
         log.debug('starting')
@@ -169,9 +231,11 @@ class SimulatedOltAdapter(object):
     def get_device_details(self, device):
         raise NotImplementedError()
 
-    def update_pm_config(self, device, pm_configs):
-        #raise NotImplementedError()
-        log.info("adapter-update-pm-config", device=device, pm_configs=pm_configs)
+    def update_pm_config(self, device, pm_config):
+        log.info("adapter-update-pm-config", device=device, pm_config=pm_config)
+        self.pm_metrics.update(pm_config)
+
+
 
     def _tmp_populate_stuff(self):
         """
@@ -320,56 +384,11 @@ class SimulatedOltAdapter(object):
         self.adapter_agent.update_device(device)
 
         # Now set the initial PM configuration for this device
-        pm_configs = PmConfigs(
-            id=device.id,
-            default_freq=150,
-            grouped = False,
-            freq_override = False)
+        self.pm_metrics=AdapterPmMetrics(device)
+        pm_config = self.pm_metrics.make_proto()
+        log.info("initial-pm-config", pm_config=pm_config)
+        self.adapter_agent.update_device_pm_config(pm_config,init=True)
 
-        pm_configs.metrics.extend([PmConfig(name='tx_64',
-                                            type=PmConfig.COUNTER,
-                                            enabled=True)])
-        pm_configs.metrics.extend([PmConfig(name='tx_65_127',
-                                            type=PmConfig.COUNTER,
-                                            enabled=True)])
-        pm_configs.metrics.extend([PmConfig(name='tx_128_255',
-                                            type=PmConfig.COUNTER,
-                                            enabled=True)])
-        pm_configs.metrics.extend([PmConfig(name='tx_256_511',
-                                            type=PmConfig.COUNTER,
-                                            enabled=True)])
-        pm_configs.metrics.extend([PmConfig(name='tx_512_1023',
-                                            type=PmConfig.COUNTER,
-                                            enabled=True)])
-        pm_configs.metrics.extend([PmConfig(name='tx_1024_1518',
-                                            type=PmConfig.COUNTER,
-                                            enabled=True)])
-        pm_configs.metrics.extend([PmConfig(name='tx_1519_9k',
-                                            type=PmConfig.COUNTER,
-                                            enabled=True)])
-        pm_configs.metrics.extend([PmConfig(name='rx_64',
-                                            type=PmConfig.COUNTER,
-                                            enabled=True)])
-        pm_configs.metrics.extend([PmConfig(name='rx_65_127',
-                                            type=PmConfig.COUNTER,
-                                            enabled=True)])
-        pm_configs.metrics.extend([PmConfig(name='rx_128_255',
-                                            type=PmConfig.COUNTER,
-                                            enabled=True)])
-        pm_configs.metrics.extend([PmConfig(name='rx_256_511',
-                                            type=PmConfig.COUNTER,
-                                            enabled=True)])
-        pm_configs.metrics.extend([PmConfig(name='rx_512_1023',
-                                            type=PmConfig.COUNTER,
-                                            enabled=True)])
-        pm_configs.metrics.extend([PmConfig(name='rx_1024_1518',
-                                            type=PmConfig.COUNTER,
-                                            enabled=True)])
-        pm_configs.metrics.extend([PmConfig(name='rx_1519_9k',
-                                            type=PmConfig.COUNTER,
-                                            enabled=True)])
-
-        self.adapter_agent.update_device_pm_config(pm_configs,init=True)
         # then shortly after we create some ports for the device
         yield asleep(0.05)
         nni_port = Port(
@@ -658,89 +677,8 @@ class SimulatedOltAdapter(object):
                 # Step 1: gather metrics from device (pretend it here) - examples
                 # upgraded the metrics to include packet statistics for
                 # testing.
-                nni_port_metrics = yield dict(
-                    tx_pkts=self.nni_tx_pkts + random.randint(90, 100),
-                    rx_pkts=self.nni_rx_pkts + random.randint(90, 100),
-                    tx_bytes=self.nni_tx_bytes + random.randint(90000, 100000),
-                    rx_bytes=self.nni_rx_bytes + random.randint(90000, 100000),
-                    tx_64=self.nni_tx_64 + random.randint(50, 55),
-                    tx_65_127=self.nni_tx_65_127 + random.randint(55, 60),
-                    tx_128_255=self.nni_tx_128_255 + random.randint(60, 65),
-                    tx_256_511=self.nni_tx_256_511 + random.randint(85, 90),
-                    tx_512_1023=self.nni_tx_512_1023 + random.randint(90, 95),
-                    tx_1024_1518=self.nni_tx_1024_1518 + random.randint(60,65),
-                    tx_1519_9k=self.nni_tx_1519_9k + random.randint(50, 55),
-
-                    rx_64=self.nni_tx_64 + random.randint(50, 55),
-                    rx_65_127=self.nni_tx_65_127 + random.randint(55, 60),
-                    rx_128_255=self.nni_tx_128_255 + random.randint(60, 65),
-                    rx_256_511=self.nni_tx_256_511 + random.randint(85, 90),
-                    rx_512_1023=self.nni_tx_512_1023 + random.randint(90, 95),
-                    rx_1024_1518=self.nni_tx_1024_1518 + random.randint(60,65),
-                    rx_1519_9k=self.nni_tx_1519_9k + random.randint(50, 55)
-                )
-                pon_port_metrics = yield dict(
-                    tx_pkts=self.pon_tx_pkts + random.randint(90, 100),
-                    rx_pkts=self.pon_rx_pkts + random.randint(90, 100),
-                    tx_bytes=self.pon_tx_bytes + random.randint(90000, 100000),
-                    rx_bytes=self.pon_rx_bytes + random.randint(90000, 100000),
-                    tx_64=self.pon_tx_64 + random.randint(50, 55),
-                    tx_65_127=self.pon_tx_65_127 + random.randint(55, 60),
-                    tx_128_255=self.pon_tx_128_255 + random.randint(60, 65),
-                    tx_256_511=self.pon_tx_256_511 + random.randint(85, 90),
-                    tx_512_1023=self.pon_tx_512_1023 + random.randint(90, 95),
-                    tx_1024_1518=self.pon_tx_1024_1518 + random.randint(60,65),
-                    tx_1519_9k=self.pon_tx_1519_9k + random.randint(50, 55),
-
-                    rx_64=self.pon_tx_64 + random.randint(50, 55),
-                    rx_65_127=self.pon_tx_65_127 + random.randint(55, 60),
-                    rx_128_255=self.pon_tx_128_255 + random.randint(60, 65),
-                    rx_256_511=self.pon_tx_256_511 + random.randint(85, 90),
-                    rx_512_1023=self.pon_tx_512_1023 + random.randint(90, 95),
-                    rx_1024_1518=self.pon_tx_1024_1518 + random.randint(60,65),
-                    rx_1519_9k=self.pon_tx_1519_9k + random.randint(50, 55)
-                )
-                self.pon_tx_pkts = pon_port_metrics['tx_pkts']
-                self.pon_rx_pkts = pon_port_metrics['rx_pkts']
-                self.pon_tx_bytes = pon_port_metrics['tx_bytes']
-                self.pon_rx_bytes = pon_port_metrics['rx_bytes']
-
-                self.pon_tx_64 = pon_port_metrics['tx_64']
-                self.pon_tx_65_127 = pon_port_metrics['tx_65_127']
-                self.pon_tx_128_255 = pon_port_metrics['tx_128_255']
-                self.pon_tx_256_511 = pon_port_metrics['tx_256_511']
-                self.pon_tx_512_1023 = pon_port_metrics['tx_512_1023']
-                self.pon_tx_1024_1518 = pon_port_metrics['tx_1024_1518']
-                self.pon_tx_1519_9k = pon_port_metrics['tx_1519_9k']
-
-                self.pon_rx_64 = pon_port_metrics['rx_64']
-                self.pon_rx_65_127 = pon_port_metrics['rx_65_127']
-                self.pon_rx_128_255 = pon_port_metrics['rx_128_255']
-                self.pon_rx_256_511 = pon_port_metrics['rx_256_511']
-                self.pon_rx_512_1023 = pon_port_metrics['rx_512_1023']
-                self.pon_rx_1024_1518 = pon_port_metrics['rx_1024_1518']
-                self.pon_rx_1519_9k = pon_port_metrics['rx_1519_9k']
-
-                self.nni_tx_pkts = nni_port_metrics['tx_pkts']
-                self.nni_rx_pkts = nni_port_metrics['rx_pkts']
-                self.nni_tx_bytes = nni_port_metrics['tx_bytes']
-                self.nni_rx_bytes = nni_port_metrics['rx_bytes']
-
-                self.nni_tx_64 = nni_port_metrics['tx_64']
-                self.nni_tx_65_127 = nni_port_metrics['tx_65_127']
-                self.nni_tx_128_255 = nni_port_metrics['tx_128_255']
-                self.nni_tx_256_511 = nni_port_metrics['tx_256_511']
-                self.nni_tx_512_1023 = nni_port_metrics['tx_512_1023']
-                self.nni_tx_1024_1518 = nni_port_metrics['tx_1024_1518']
-                self.nni_tx_1519_9k = nni_port_metrics['tx_1519_9k']
-
-                self.nni_rx_64 = nni_port_metrics['rx_64']
-                self.nni_rx_65_127 = nni_port_metrics['rx_65_127']
-                self.nni_rx_128_255 = nni_port_metrics['rx_128_255']
-                self.nni_rx_256_511 = nni_port_metrics['rx_256_511']
-                self.nni_rx_512_1023 = nni_port_metrics['rx_512_1023']
-                self.nni_rx_1024_1518 = nni_port_metrics['rx_1024_1518']
-                self.nni_rx_1519_9k = nni_port_metrics['rx_1519_9k']
+                nni_port_metrics = self.pm_metrics.collect_nni_metrics()
+                pon_port_metrics = self.pm_metrics.collect_pon_metrics()
 
                 olt_metrics = yield dict(
                     cpu_util=20 + 5 * random.random(),
@@ -771,9 +709,10 @@ class SimulatedOltAdapter(object):
             except Exception as e:
                 log.exception('failed-to-submit-kpis', e=e)
 
-        prefix = 'voltha.{}.{}'.format(self.name, device_id)
-        lc = LoopingCall(_collect, device_id, prefix)
-        lc.start(interval=15)  # TODO make this configurable
+        self.pm_metrics.start_collector(self.name, device_id ,_collect)
+        #prefix = 'voltha.{}.{}'.format(self.name, device_id)
+        #lc = LoopingCall(_collect, device_id, prefix)
+        #lc.start(interval=15)  # TODO make this configurable
 
     def start_alarm_simulation(self, device_id):
 
@@ -857,3 +796,5 @@ class SimulatedOltAdapter(object):
                                           logical_port_no=1,
                                           packet=eapol_start)
         return '{"status": "sent"}'
+
+
