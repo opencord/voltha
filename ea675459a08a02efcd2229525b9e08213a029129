@@ -25,6 +25,29 @@
     },
     {
       "key": {
+        "uuid": "da141535_a5b609db",
+        "filename": "voltha/adapters/simulated_olt/simulated_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 176,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-03-11T14:05:19Z",
+      "side": 1,
+      "message": "I don\u0027t see an example anywhere that initializes the supported alarm list for a device. Please provide examples of data structure initialization in the simulated OLT at least and preferably also ponsim. Integrating with the existing alarm simulation code in the simulated OLT should be done or planned for a subsequent commit.",
+      "range": {
+        "startLine": 176,
+        "startChar": 0,
+        "endLine": 176,
+        "endChar": 4
+      },
+      "revId": "ea675459a08a02efcd2229525b9e08213a029129",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "da141535_6599116e",
         "filename": "voltha/core/device_agent.py",
         "patchSetId": 1
