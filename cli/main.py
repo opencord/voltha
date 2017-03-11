@@ -278,6 +278,18 @@ class VolthaCli(Cmd):
         self.poutput('success (device id = {})'.format(device.id))
         self.default_device_id = device.id
 
+    def do_alarm_cfg(self, line):
+        """
+        config Alarm to a device. If the <id> is not provided, it will be on the last
+        pre-provisioned device.
+        """
+        device_id = line or self.default_device_id
+        self.poutput('enabling {}'.format(device_id))
+        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        stub.AlarmCfg(voltha_pb2.ID(id=device_id))
+
+        ## TODO : Write code to configure alarm.
+
     def do_enable(self, line):
         """
         Enable a device. If the <id> is not provided, it will be on the last

@@ -59,6 +59,21 @@ message PmConfigs {
     repeated PmConfig metrics = 6; // The metrics themselves if grouped is false.
 }
 
+message AlarmConfig {
+    enum Action {
+        ENABLE = 0;
+        SUPPRESS = 1;
+        CLEAR = 2;
+    }
+
+    string name = 1;  //Unique name for the alarm
+    Action action = 2; // Action on the alarm
+}
+
+message AlarmConfigs {
+    string id = 1;
+    repeated AlarmConfig alarm_cfg = 2; //List of AlarmCfg
+}
 message Port {
     option (voltha.yang_child_rule) = MOVE_TO_PARENT_LEVEL;
 
@@ -168,6 +183,7 @@ message Device {
     // PmConfigs will eventually converted to a child node of the
     // device to falicitata callbacks and to simplify manipulation.
     PmConfigs pm_configs = 131 [(child_node) = {}];
+    AlarmConfigs alarm_cfgs = 132 [(child_node) = {}];
 
 }
 

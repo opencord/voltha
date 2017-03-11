@@ -173,6 +173,9 @@ class SimulatedOltAdapter(object):
         #raise NotImplementedError()
         log.info("adapter-update-pm-config", device=device, pm_configs=pm_configs)
 
+    def update_device_alarm_config(self, device, alarm_cfgs):
+        log.info("alarm-config", device=device, alarm_cfgs=alarm_cfgs)
+
     def _tmp_populate_stuff(self):
         """
         pretend that we discovered some devices and create:

@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package schema;
 
+import "google/api/annotations.proto";
 import "google/protobuf/empty.proto";
 
 // Contains the name and content of a *.proto file
@@ -17,18 +18,21 @@ message Schemas {
     // Proto files
     repeated ProtoFile protos = 1;
 
-    // Name of proto file to generae swagger.json from
+    // Proto file name from which swagger.json shall be generated
     string swagger_from = 2;
 
-    // Prefix of proto files which would require a yang file generated for it
+    // Proto file name from which yang schemas shall be generated
     string yang_from = 3;
-
 }
 
 // Schema services
 service SchemaService {
 
     // Return active grpc schemas
-    rpc GetSchema(google.protobuf.Empty) returns (Schemas) {}
+    rpc GetSchema(google.protobuf.Empty) returns (Schemas) {
+        option (google.api.http) = {
+            get: "/schema"
+        };
+    }
 
 }

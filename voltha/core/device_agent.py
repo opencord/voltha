@@ -47,6 +47,8 @@ class DeviceAgent(object):
 
         self.pm_config_proxy = core.get_proxy(
             '/devices/{}/pm_configs'.format(initial_data.id))
+        self.alarm_proxy = core.get_proxy(
+            '/devices/{}/alarm_cfgs'.format(initial_data.id))
 
         self.proxy.register_callback(
             CallbackType.PRE_UPDATE, self._validate_update)
@@ -60,6 +62,8 @@ class DeviceAgent(object):
 
         self.pm_config_proxy.register_callback(
             CallbackType.POST_UPDATE, self._pm_config_updated)
+        self.alarm_proxy.register_callback(
+            CallbackType.POST_UPDATE, self._device_alarms)
 
         # to know device capabilities
         self.device_type = core.get_proxy(
@@ -157,6 +161,11 @@ class DeviceAgent(object):
             yield transition_handler(self, device, dry_run)
 
     @inlineCallbacks
+    def update_device_alarm_config(self, alarm_cfgs):
+        #self.last_alarm_cfg = alarm_cfg # store last configurations
+        self.alarm_proxy.update('/', alarm_cfgs)
+
+    @inlineCallbacks
     def _activate_device(self, device, dry_run=False):
         self.log.info('activate-device', device=device, dry_run=dry_run)
         if not dry_run:
@@ -232,6 +241,14 @@ class DeviceAgent(object):
             self.adapter_agent.update_adapter_pm_config(self.proxy.get('/'), pm_configs)
         self.callback_data = None
 
+    ## <======================= Device Alarm Configuratoins  ====================
+    @inlineCallbacks
+    def _device_alarms(self, alarm_cfgs):
+        self.log.debug('device-alarms',
+                  logical_device_id=self.last_data.id, alarm_cfgs=alarm_cfgs)
+        ## Should we check if the new alarm_cfgs is same as the old not update in that
+        ## case ?
+        self.adapter_agent.update_device_alarm_config(self.proxy.get('/'), alarm_cfgs)
     ## <======================= FLOW TABLE UPDATE HANDLING ====================
 
     @inlineCallbacks

@@ -34,7 +34,7 @@ from voltha.protos import third_party
 from voltha.protos.device_pb2 import Device, Port
 from voltha.protos.events_pb2 import KpiEvent, AlarmEvent, AlarmEventType, \
     AlarmEventSeverity, AlarmEventState, AlarmEventCategory
-from voltha.protos.device_pb2 import Device, Port, PmConfigs
+from voltha.protos.device_pb2 import Device, Port, PmConfigs, AlarmConfigs
 from voltha.protos.events_pb2 import KpiEvent
 from voltha.protos.voltha_pb2 import DeviceGroup, LogicalDevice, \
     LogicalPort, AdminState, OperStatus
@@ -220,6 +220,10 @@ class AdapterAgent(object):
 
     def update_adapter_pm_config(self, device, device_pm_config):
         self.adapter.update_pm_config(device, device_pm_config)
+
+    #Alarm Configuration
+    def update_device_alarm_config(self, device, alarm_cfgs):
+        self.adapter.update_device_alarm_config(device, alarm_cfgs)
 
     def add_port(self, device_id, port):
         assert isinstance(port, Port)

@@ -37,6 +37,22 @@ message InlineNode {
     string type = 2;
 }
 
+message RpcReturnDef {
+    // The gRPC methods return message types.  NETCONF expects an actual
+    // attribute as defined in the YANG schema.  The xnl_tag will be used
+    // as the top most tag when translating a gRPC response into an xml
+    // response
+    string xml_tag = 1;
+
+    // When the gRPC response is a list of items, we need to differentiate
+    // between a YANG schema attribute whose name is "items" and when "items"
+    // is used only to indicate a list of items is being returned.  The default
+    // behavior assumes a list is returned when "items" is present in
+    // the response.  This option will therefore be used when the attribute
+    // name in the YANG schema is 'items'
+    string list_items_name = 2;
+}
+
 extend google.protobuf.MessageOptions {
     // This annotation is used to indicate how a message is parsed when
     // converting from proto to yang format.
@@ -49,4 +65,8 @@ extend google.protobuf.FieldOptions {
     // If present, the field (a message reference) should be replaced by the
     // message itself.  For now, this applies only to non-repeated fields.
     InlineNode yang_inline_node = 7761776;
+}
+
+extend google.protobuf.MethodOptions {
+    RpcReturnDef yang_xml_tag = 7761777;
 }
