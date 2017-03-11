@@ -2,6 +2,29 @@
   "comments": [
     {
       "key": {
+        "uuid": "da141535_25a319a0",
+        "filename": "netconf/protos/schema.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 5,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-03-11T13:45:09Z",
+      "side": 1,
+      "message": "In my experience, anytime you execute the makefile these files get added to the staging list. You must check them out to take them out of your staging area before you git add. Or selectively git add each file you want to commit.",
+      "range": {
+        "startLine": 5,
+        "startChar": 0,
+        "endLine": 5,
+        "endChar": 6
+      },
+      "revId": "ea675459a08a02efcd2229525b9e08213a029129",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "da141535_6599116e",
         "filename": "voltha/core/device_agent.py",
         "patchSetId": 1
