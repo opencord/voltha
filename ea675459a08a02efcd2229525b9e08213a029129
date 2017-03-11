@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "da141535_6599116e",
+        "filename": "voltha/core/device_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 65,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-03-11T13:43:18Z",
+      "side": 1,
+      "message": "Since you\u0027ve registered a callback. Please execute section 3.iii of the Voltha documentation \"Volha Bringup Tests\" to ensure that flow management has not been affected. There are cases where adding a new callback causes issues. Please report back on your execution when completed.",
+      "range": {
+        "startLine": 65,
+        "startChar": 0,
+        "endLine": 65,
+        "endChar": 43
+      },
+      "revId": "ea675459a08a02efcd2229525b9e08213a029129",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
