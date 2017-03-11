@@ -18,3 +18,22 @@ services:
     - kafka
     - grafana
     restart: unless-stopped
+
+  #
+  # Single-node kafka service
+  #
+  kafka:
+    image: wurstmeister/kafka
+
+  #
+  # Single-node consul agent
+  #
+  consul:
+    image: consul:latest
+
+  #
+  # Graphite-Grafana-statsd service instance
+  # (demo place-holder for external KPI system)
+  #
+  grafana:
+    image: kamon/grafana_graphite
