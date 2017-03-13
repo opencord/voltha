@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "da141535_252559c2",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 227,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-03-13T18:53:15Z",
+      "side": 1,
+      "message": "add_port above is now an empty function that only does an assert, was this intentional?",
+      "range": {
+        "startLine": 227,
+        "startChar": 8,
+        "endLine": 227,
+        "endChar": 27
+      },
+      "revId": "6aa37d1fa9f012e44cde54679e1b8f46165b7e87",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
