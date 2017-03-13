@@ -692,6 +692,9 @@ Ether.dispatch_hook = PAS_dispatch_hook
 
 # bindings for messages received
 
+# fix for v2 of Microsemi OLT.
+bind_layers(Ether, PAS5211FrameHeader, type=0x0a00)
+
 bind_layers(PAS5211Dot3, PAS5211FrameHeader)
 bind_layers(PAS5211FrameHeader, PAS5211MsgHeader)
 
