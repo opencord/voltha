@@ -85,17 +85,21 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
 
     def stop(self):
         self.log.debug('stopping')
-        self.flows_proxy.unregister_callback(
-            CallbackType.POST_UPDATE, self._flow_table_updated)
-        self.groups_proxy.unregister_callback(
-            CallbackType.POST_UPDATE, self._group_table_updated)
-        self.self_proxy.unregister_callback(
-            CallbackType.POST_ADD, self._port_list_updated)
-        self.self_proxy.unregister_callback(
-            CallbackType.POST_REMOVE, self._port_list_updated)
+        try:
+            self.flows_proxy.unregister_callback(
+                CallbackType.POST_UPDATE, self._flow_table_updated)
+            self.groups_proxy.unregister_callback(
+                CallbackType.POST_UPDATE, self._group_table_updated)
+            self.self_proxy.unregister_callback(
+                CallbackType.POST_ADD, self._port_list_updated)
+            self.self_proxy.unregister_callback(
+                CallbackType.POST_REMOVE, self._port_list_updated)
 
-        # Remove subscription to the event bus
-        self.event_bus.unsubscribe(self.packet_in_subscription)
+            # Remove subscription to the event bus
+            self.event_bus.unsubscribe(self.packet_in_subscription)
+        except Exception, e:
+            self.log.info('stop-exception', e=e)
+
         self.log.info('stopped')
 
     def announce_flows_deleted(self, flows):
@@ -114,15 +118,6 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
 
     def signal_group_mod_error(self, code, group_mod):
         pass  # TODO
-
-    def delete_all_flows(self):
-        self.update_flow_table(mk_simple_flow_mod(
-            command=ofp.OFPFC_DELETE,
-            out_port=ofp.OFPP_ANY,
-            out_group=ofp.OFPG_ANY,
-            match_fields=[],
-            actions=[]
-        ))
 
     def update_flow_table(self, flow_mod):
 

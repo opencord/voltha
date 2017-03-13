@@ -45,7 +45,6 @@ log = structlog.get_logger()
 
 @implementer(IAdapterInterface)
 class PonSimOnuAdapter(object):
-
     name = 'ponsim_onu'
 
     supported_device_types = [
@@ -123,7 +122,7 @@ class PonSimOnuAdapter(object):
 
     def update_flows_bulk(self, device, flows, groups):
         log.info('bulk-flow-update', device_id=device.id,
-                  flows=flows, groups=groups)
+                 flows=flows, groups=groups)
         assert len(groups.items) == 0
         handler = self.devices_handlers[device.id]
         return handler.update_flow_table(flows.items)
@@ -146,7 +145,6 @@ class PonSimOnuAdapter(object):
 
 
 class PonSimOnuHandler(object):
-
     def __init__(self, adapter, device_id):
         self.adapter = adapter
         self.adapter_agent = adapter.adapter_agent
@@ -177,7 +175,7 @@ class PonSimOnuHandler(object):
         # populate device info
         device.root = True
         device.vendor = 'ponsim'
-        device.model ='n/a'
+        device.model = 'n/a'
         device.connect_status = ConnectStatus.REACHABLE
         self.adapter_agent.update_device(device)
 
@@ -250,7 +248,6 @@ class PonSimOnuHandler(object):
 
         yield self.incoming_messages.get()
 
-
     @inlineCallbacks
     def reboot(self):
         self.log.info('rebooting', device_id=self.device_id)
@@ -265,7 +262,7 @@ class PonSimOnuHandler(object):
         self.adapter_agent.update_device(device)
 
         # Sleep 10 secs, simulating a reboot
-        #TODO: send alert and clear alert after the reboot
+        # TODO: send alert and clear alert after the reboot
         yield asleep(10)
 
         # Change the operational status back to its previous state.  With a
@@ -277,7 +274,6 @@ class PonSimOnuHandler(object):
         device.connect_status = previous_conn_status
         self.adapter_agent.update_device(device)
         self.log.info('rebooted', device_id=self.device_id)
-
 
     def disable(self):
         self.log.info('disabling', device_id=self.device_id)
@@ -301,7 +297,8 @@ class PonSimOnuHandler(object):
         port_no = device.proxy_address.channel_id
         port_id = 'uni-{}'.format(port_no)
         try:
-            port = self.adapter_agent.get_logical_port(logical_device_id, port_id)
+            port = self.adapter_agent.get_logical_port(logical_device_id,
+                                                       port_id)
             self.adapter_agent.delete_logical_port(logical_device_id, port)
         except KeyError:
             self.log.info('logical-port-not-found', device_id=self.device_id,
@@ -316,14 +313,14 @@ class PonSimOnuHandler(object):
         # yield self.adapter_agent.update_logical_port(logical_device_id,
         #                                             port)
         # Unregister for proxied message
-        self.adapter_agent.unregister_for_proxied_messages(device.proxy_address)
+        self.adapter_agent.unregister_for_proxied_messages(
+            device.proxy_address)
 
         # TODO:
         # 1) Remove all flows from the device
         # 2) Remove the device from ponsim
 
         self.log.info('disabled', device_id=device.id)
-
 
     def reenable(self):
         self.log.info('re-enabling', device_id=self.device_id)
@@ -342,7 +339,11 @@ class PonSimOnuHandler(object):
         self.adapter_agent.register_for_proxied_messages(device.proxy_address)
 
         # Re-enable the ports on that device
-        self.adapter_agent.reenable_all_ports(self.device_id)
+        self.adapter_agent.enable_all_ports(self.device_id)
+
+        # Add the pon port reference to the parent
+        self.adapter_agent.add_port_reference_to_parent(device.id,
+                                                        self.pon_port)
 
         # Update the connect status to REACHABLE
         device.connect_status = ConnectStatus.REACHABLE
@@ -377,7 +378,6 @@ class PonSimOnuHandler(object):
         self.adapter_agent.update_device(device)
 
         self.log.info('re-enabled', device_id=device.id)
-
 
     def delete(self):
         self.log.info('deleting', device_id=self.device_id)

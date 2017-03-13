@@ -185,6 +185,7 @@ class PonSimOltHandler(object):
         self.io_port = None
         self.logical_device_id = None
         self.nni_port = None
+        self.ofp_port_no = None
         self.interface = registry('main').get_args().interface
 
     def __del__(self):
@@ -257,6 +258,7 @@ class PonSimOltHandler(object):
         )
         ld_initialized = self.adapter_agent.create_logical_device(ld)
         cap = OFPPF_1GB_FD | OFPPF_FIBER
+        self.ofp_port_no = info.nni_port
         self.adapter_agent.add_logical_port(ld_initialized.id, LogicalPort(
             id='nni',
             ofp_port=ofp_port(
@@ -401,11 +403,11 @@ class PonSimOltHandler(object):
         # Disable all child devices first
         self.adapter_agent.disable_all_child_devices(self.device_id)
 
-        # # Remove all child devices
-        # self.adapter_agent.remove_all_child_devices(self.device_id)
-
         # Remove the peer references from this device
         self.adapter_agent.delete_all_peer_references(self.device_id)
+
+        # Set all ports to disabled
+        self.adapter_agent.disable_all_ports(self.device_id)
 
         # close the frameio port
         registry('frameio').close_port(self.io_port)
@@ -426,6 +428,9 @@ class PonSimOltHandler(object):
         # Update the connect status to REACHABLE
         device.connect_status = ConnectStatus.REACHABLE
         self.adapter_agent.update_device(device)
+
+        # Set all ports to enabled
+        self.adapter_agent.enable_all_ports(self.device_id)
 
         ld = LogicalDevice(
             # not setting id and datapth_id will let the adapter agent pick id
@@ -453,11 +458,9 @@ class PonSimOltHandler(object):
         self.adapter_agent.add_logical_port(ld_initialized.id, LogicalPort(
             id='nni',
             ofp_port=ofp_port(
-                # port_no=info.nni_port,
-                # hw_addr=mac_str_to_tuple('00:00:00:00:00:%02x' % info.nni_port),
-                port_no=self.nni_port.port_no,
+                port_no=self.ofp_port_no,
                 hw_addr=mac_str_to_tuple(
-                    '00:00:00:00:00:%02x' % self.nni_port.port_no),
+                    '00:00:00:00:00:%02x' % self.ofp_port_no),
                 name='nni',
                 config=0,
                 state=OFPPS_LIVE,
@@ -480,7 +483,6 @@ class PonSimOltHandler(object):
 
         # Reenable all child devices
         self.adapter_agent.reenable_all_child_devices(device.id)
-
 
         # finally, open the frameio port to receive in-band packet_in messages
         self.log.info('registering-frameio')

@@ -153,7 +153,7 @@ def print_flows(what, id, type, flows, groups, printfn=_printfn):
     table.print_table(header, printfn)
 
     # see CORD-817 (https://jira.opencord.org/browse/CORD-817)
-    assert len(groups) == 0
+    # assert len(groups) == 0
 
 
 def dict2line(d):
