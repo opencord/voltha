@@ -221,9 +221,7 @@ class AdapterAgent(object):
     def update_adapter_pm_config(self, device, device_pm_config):
         self.adapter.update_pm_config(device, device_pm_config)
 
-    def add_port(self, device_id, port):
-        assert isinstance(port, Port)
-
+    def _add_peer_reference(self, device_id, port):
         # for referential integrity, add/augment references
         port.device_id = device_id
         me_as_peer = Port.PeerPort(device_id=device_id, port_no=port.port_no)
@@ -236,13 +234,30 @@ class AdapterAgent(object):
                 new.CopyFrom(me_as_peer)
             self.root_proxy.update(peer_port_path, peer_port)
 
+    def _del_peer_reference(self, device_id, port):
+        me_as_peer = Port.PeerPort(device_id=device_id, port_no=port.port_no)
+        for peer in port.peers:
+            peer_port_path = '/devices/{}/ports/{}'.format(
+                peer.device_id, peer.port_no)
+            peer_port = self.root_proxy.get(peer_port_path)
+            if me_as_peer in peer_port.peers:
+                peer_port.peers.remove(me_as_peer)
+            self.root_proxy.update(peer_port_path, peer_port)
+
+    def add_port(self, device_id, port):
+        assert isinstance(port, Port)
+
+        # for referential integrity, add/augment references
+        self._add_peer_reference(device_id, port)
+
+        # Add port
         self._make_up_to_date('/devices/{}/ports'.format(device_id),
                               port.port_no, port)
 
     def disable_all_ports(self, device_id):
         """
         Disable all ports on that device, i.e. change the admin status to
-        disable and operational status to UNKNOWN
+        disable and operational status to UNKNOWN.
         :param device_id: device id
         :return: None
         """
@@ -255,7 +270,8 @@ class AdapterAgent(object):
             self._make_up_to_date('/devices/{}/ports'.format(device_id),
                                   port.port_no, port)
 
-    def reenable_all_ports(self, device_id):
+
+    def enable_all_ports(self, device_id):
         """
         Re-enable all ports on that device, i.e. change the admin status to
         enabled and operational status to ACTIVE
@@ -293,16 +309,18 @@ class AdapterAgent(object):
         """
         assert isinstance(port, Port)
         self.log.info('delete-port-reference', device_id=device_id, port=port)
+        self._del_peer_reference(device_id, port)
 
-        # for referential integrity, remove references
-        me_as_peer = Port.PeerPort(device_id=device_id, port_no=port.port_no)
-        for peer in port.peers:
-            peer_port_path = '/devices/{}/ports/{}'.format(
-                peer.device_id, peer.port_no)
-            peer_port = self.root_proxy.get(peer_port_path)
-            if me_as_peer in peer_port.peers:
-                peer_port.peers.remove(me_as_peer)
-            self.root_proxy.update(peer_port_path, peer_port)
+    def add_port_reference_to_parent(self, device_id, port):
+        """
+        Add the port reference to the parent device
+        :param device_id: id of device containing the port
+        :param port: port to add
+        :return: None
+        """
+        assert isinstance(port, Port)
+        self.log.info('add-port-reference', device_id=device_id, port=port)
+        self._add_peer_reference(device_id, port)
 
     def _find_first_available_id(self):
         logical_devices = self.root_proxy.get('/logical_devices')
