@@ -192,7 +192,7 @@ class OltStateMachine(BaseOltAutomaton):
 
     @ATMT.receive_condition(wait_for_olt_version)
     def receive_olt_version(self, pkt):
-        log.debug("Received proto version {}".format(pkt))
+        log.debug("Received proto version")
         if PAS5211MsgGetOltVersionResponse in pkt:
             log.info("updating device")
             self.device.update_device_info_from_pkt(pkt)
