@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "da141535_c5733d14",
+        "filename": "netconf/protos/schema.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 5,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-03-13T13:06:10Z",
+      "side": 1,
+      "message": "Sure, I will remove these files in the next commit.",
+      "parentUuid": "da141535_25a319a0",
+      "range": {
+        "startLine": 5,
+        "startChar": 0,
+        "endLine": 5,
+        "endChar": 6
+      },
+      "revId": "ea675459a08a02efcd2229525b9e08213a029129",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "da141535_a5b609db",
         "filename": "voltha/adapters/simulated_olt/simulated_olt.py",
         "patchSetId": 1
@@ -36,6 +60,30 @@
       "writtenOn": "2017-03-11T14:05:19Z",
       "side": 1,
       "message": "I don\u0027t see an example anywhere that initializes the supported alarm list for a device. Please provide examples of data structure initialization in the simulated OLT at least and preferably also ponsim. Integrating with the existing alarm simulation code in the simulated OLT should be done or planned for a subsequent commit.",
+      "range": {
+        "startLine": 176,
+        "startChar": 0,
+        "endLine": 176,
+        "endChar": 4
+      },
+      "revId": "ea675459a08a02efcd2229525b9e08213a029129",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_85654547",
+        "filename": "voltha/adapters/simulated_olt/simulated_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 176,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-03-13T13:06:10Z",
+      "side": 1,
+      "message": "I am working on this. These changes will come soon as part of next commit.",
+      "parentUuid": "da141535_a5b609db",
       "range": {
         "startLine": 176,
         "startChar": 0,
@@ -82,6 +130,30 @@
       "writtenOn": "2017-03-11T13:48:17Z",
       "side": 1,
       "message": "One final comment. Please ensure the ponsim olt runs with no issues by executing section 3.iv of the voltha documentation \"ponsim OLT tests\" for the same reason mentioned above.",
+      "range": {
+        "startLine": 65,
+        "startChar": 13,
+        "endLine": 65,
+        "endChar": 24
+      },
+      "revId": "ea675459a08a02efcd2229525b9e08213a029129",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_a5604936",
+        "filename": "voltha/core/device_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 65,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-03-13T13:06:10Z",
+      "side": 1,
+      "message": "I successfully executed the \"VOLTHA Bringup Tests\" as per the manual. I had few problems while executing test cases in \"ponsim OLT tests\". These issues dont seem to be related to my changes, but rather something else in the setup. I have dropped a mail to cord-dev mailing list regarding the issue I was facing, it will be really helpful if you can share your input.",
+      "parentUuid": "da141535_e5ac018f",
       "range": {
         "startLine": 65,
         "startChar": 13,
