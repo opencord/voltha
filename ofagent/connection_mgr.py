@@ -24,6 +24,8 @@ from common.utils.asleep import asleep
 from common.utils.consulhelpers import get_endpoint_from_consul
 from structlog import get_logger
 import grpc
+from grpc import StatusCode
+from grpc._channel import _Rendezvous
 from ofagent.protos import third_party
 from protos import voltha_pb2
 from grpc_client import GrpcClient
@@ -134,6 +136,10 @@ class ConnectionManager(object):
             except Exception as e:
                 log.error('Failure to retrieve devices from '
                                'voltha: {}'.format(repr(e)))
+
+            except _Rendezvous, e:
+                if e.code() == StatusCode.UNAVAILABLE:
+                    os.system("kill -15 {}".format(os.getpid()))
 
             log.info('reconnect', after_delay=self.voltha_retry_interval)
             yield asleep(self.voltha_retry_interval)
