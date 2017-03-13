@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "da141535_253f9927",
+        "filename": "compose/docker-compose-dashd.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-13T02:32:29Z",
+      "side": 1,
+      "message": "Is this docker-compose a standalone file where all necessary services are in this file?",
+      "revId": "c2daf295645baf953b555a1d51538bb8ec903915",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
