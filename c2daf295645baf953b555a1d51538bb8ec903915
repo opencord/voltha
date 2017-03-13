@@ -16,6 +16,24 @@
       "revId": "c2daf295645baf953b555a1d51538bb8ec903915",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_e54d21c6",
+        "filename": "compose/docker-compose-dashd.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-03-13T13:14:43Z",
+      "side": 1,
+      "message": "No, it\u0027s not intended to be. It used to be prior to Ali\u0027s comment to break it out. Only immediate dependencies are specified and usually not started by the compose file. The usual way of starting dashd is after the voltha suite has been started using the --no-deps --no-recreate.",
+      "parentUuid": "da141535_253f9927",
+      "revId": "c2daf295645baf953b555a1d51538bb8ec903915",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
