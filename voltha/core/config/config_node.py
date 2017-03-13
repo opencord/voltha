@@ -309,7 +309,7 @@ class ConfigNode(object):
                     self._mk_event_bus().advertise,
                     change_type,
                     data,
-                    hash=rev.hash,
+                    hash=rev.hash
                 )
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ add operation ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

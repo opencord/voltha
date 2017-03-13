@@ -135,7 +135,8 @@ class ConfigProxy(object):
 
     def unregister_callback(self, callback_type, callback, *args, **kw):
         lst = self._callbacks.setdefault(callback_type, [])
-        lst.remove((callback, args, kw))
+        if (callback, args, kw) in lst:
+            lst.remove((callback, args, kw))
 
     # ~~~~~~~~~~~~~~~~~~~~~ Callback dispatch ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

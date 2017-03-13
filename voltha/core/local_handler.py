@@ -262,7 +262,7 @@ class LocalHandler(VolthaLocalServiceServicer):
                 'in admin state \'{}\''.format(device.admin_state)
 
         except AssertionError, e:
-            context.set_details(e.msg)
+            context.set_details(e.message)
             context.set_code(StatusCode.INVALID_ARGUMENT)
             return Device()
 
@@ -287,7 +287,7 @@ class LocalHandler(VolthaLocalServiceServicer):
             context.set_details(
                 'Malformed device id \'{}\''.format(request.id))
             context.set_code(StatusCode.INVALID_ARGUMENT)
-            return Device()
+            return Empty()
 
         try:
             path = '/devices/{}'.format(request.id)
@@ -300,9 +300,8 @@ class LocalHandler(VolthaLocalServiceServicer):
             self.root.update(path, device, strict=True)
 
         except AssertionError, e:
-            context.set_details(e.msg)
+            context.set_details(e.message)
             context.set_code(StatusCode.INVALID_ARGUMENT)
-            return Device()
 
         except KeyError:
             context.set_details(
@@ -319,8 +318,7 @@ class LocalHandler(VolthaLocalServiceServicer):
             context.set_details(
                 'Malformed device id \'{}\''.format(request.id))
             context.set_code(StatusCode.INVALID_ARGUMENT)
-            return Device()
-
+            return Empty()
         try:
             path = '/devices/{}'.format(request.id)
             device = self.root.get(path)
@@ -331,9 +329,8 @@ class LocalHandler(VolthaLocalServiceServicer):
             self.root.update(path, device, strict=True)
 
         except AssertionError, e:
-            context.set_details(e.msg)
+            context.set_details(e.message)
             context.set_code(StatusCode.INVALID_ARGUMENT)
-            return Device()
 
         except KeyError:
             context.set_details(
@@ -350,7 +347,7 @@ class LocalHandler(VolthaLocalServiceServicer):
             context.set_details(
                 'Malformed device id \'{}\''.format(request.id))
             context.set_code(StatusCode.INVALID_ARGUMENT)
-            return Device()
+            return Empty()
 
         try:
             path = '/devices/{}'.format(request.id)
@@ -358,11 +355,6 @@ class LocalHandler(VolthaLocalServiceServicer):
 
             agent = self.core.get_device_agent(device.id)
             agent.reboot_device(device)
-
-        except AssertionError, e:
-            context.set_details(e.msg)
-            context.set_code(StatusCode.INVALID_ARGUMENT)
-            return Device()
 
         except KeyError:
             context.set_details(
@@ -379,7 +371,7 @@ class LocalHandler(VolthaLocalServiceServicer):
             context.set_details(
                 'Malformed device id \'{}\''.format(request.id))
             context.set_code(StatusCode.INVALID_ARGUMENT)
-            return Device()
+            return Empty()
 
         try:
             path = '/devices/{}'.format(request.id)
@@ -391,9 +383,8 @@ class LocalHandler(VolthaLocalServiceServicer):
             self.root.remove(path)
 
         except AssertionError, e:
-            context.set_details(e.msg)
+            context.set_details(e.message)
             context.set_code(StatusCode.INVALID_ARGUMENT)
-            return Device()
 
         except KeyError:
             context.set_details(
@@ -432,9 +423,10 @@ class LocalHandler(VolthaLocalServiceServicer):
             return PmConfigs()
 
         try:
-            pm_configs = self.root.get('/devices/{}/pm_configs'.format(request.id))
+            pm_configs = self.root.get(
+                '/devices/{}/pm_configs'.format(request.id))
             pm_configs.id = request.id
-            log.info('device-for-pms',pm_configs=pm_configs)
+            log.info('device-for-pms', pm_configs=pm_configs)
             return pm_configs
         except KeyError:
             context.set_details(
