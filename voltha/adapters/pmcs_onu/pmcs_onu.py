@@ -34,6 +34,10 @@ from voltha.protos.health_pb2 import HealthStatus
 from voltha.protos.logical_device_pb2 import LogicalPort
 from voltha.protos.openflow_13_pb2 import OFPPF_1GB_FD, OFPPF_FIBER, ofp_port, OFPPS_LIVE
 
+from voltha.extensions.omci.omci_entities import CircuitPack
+from voltha.extensions.omci.omci_frame import OmciFrame
+from voltha.extensions.omci.omci_messages import OmciGet, OmciGetResponse
+
 _ = third_party
 log = structlog.get_logger()
 
@@ -208,4 +212,124 @@ class PmcsOnu(object):
 
     def _initialize_onu(self, device):
         # DO things to the ONU
+
+        # |###[ OmciFrame ]### 
+        #     |  transaction_id= 1
+        #     |  message_type= 79
+        #     |  omci      = 10
+        #     |  \omci_message\
+        #     |   |###[ OmciMibReset ]### 
+        #     |   |  entity_class= 2
+        #     |   |  entity_id = 0
+        #     |  omci_trailer= 40
+
+        msg = OmciMibReset(entity_class=2, entity_id=0)
+        response = yield send_proxied_message(message, device.proxy_address)
+
+        if OmciMibResetResponse in response ...
+
+        # ###[ PAS5211EventFrameReceived ]### 
+        #            length    = 48
+        #            port_type = 0
+        #            port_id   = 0
+        #            management_frame= 1
+        #            classification_entity= 21
+        #            l3_offset = 32
+        #            l4_offset = 19
+        #            ignored   = 24576
+        #            \frame     \
+        #             |###[ OmciFrame ]### 
+        #             |  transaction_id= 1
+        #             |  message_type= 47
+        #             |  omci      = 10
+        #             |  \omci_message\
+        #             |   |###[ OmciMibResetResponse ]### 
+        #             |   |  entity_class= 2
+        #             |   |  entity_id = 0
+        #             |   |  success_code= 0
+        #             |  omci_trailer= 40
+        #             |###[ Raw ]### 
+        #             |     load      = "nz\x9d'"
+
+        # ###[ PAS5211Dot3 ]### 
+        #   dst       = 00:0c:d5:00:01:00
+        #   src       = 90:e2:ba:82:f9:77
+        #   len       = 22
+        # ###[ PAS5211FrameHeader ]### 
+        #      part      = 1
+        #      total_parts= 1
+        #      size      = 16
+        #      magic_number= 0x1234abcd
+        # ###[ PAS5211MsgHeader ]### 
+        #         sequence_number= 51
+        #         opcode    = 0x3009
+        #         event_type= 0
+        #         channel_id= 0
+        #         onu_id    = 0
+        #         onu_session_id= 1
+        # ###[ PAS5211GetOnuAllocs ]### 
+        #            nothing   = 0
+        # ###[ Raw ]### 
+        #               load      = '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+
+
+        # ###[ PAS5211Dot3 ]### 
+        #   dst       = 00:0c:d5:00:01:00
+        #   src       = 90:e2:ba:82:f9:77
+        #   len       = 30
+        # ###[ PAS5211FrameHeader ]### 
+        #      part      = 1
+        #      total_parts= 1
+        #      size      = 24
+        #      magic_number= 0x1234abcd
+        # ###[ PAS5211MsgHeader ]### 
+        #         sequence_number= 52
+        #         opcode    = 0x3007
+        #         event_type= 0
+        #         channel_id= 0
+        #         onu_id    = -1
+        #         onu_session_id= -1
+        # ###[ PAS5211GetSnInfo ]### 
+        #            serial_number= 'PMCS\xd5b\x84\xac'
+        # ###[ Raw ]### 
+        #               load      = '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+
+        # ###[ PAS5211Dot3 ]### 
+        #   dst       = 00:0c:d5:00:01:00
+        #   src       = 90:e2:ba:82:f9:77
+        #   len       = 22
+        # ###[ PAS5211FrameHeader ]### 
+        #      part      = 1
+        #      total_parts= 1
+        #      size      = 16
+        #      magic_number= 0x1234abcd
+        # ###[ PAS5211MsgHeader ]### 
+        #         sequence_number= 53
+        #         opcode    = 0x3074
+        #         event_type= 0
+        #         channel_id= 0
+        #         onu_id    = -1
+        #         onu_session_id= -1
+        # ###[ PAS5211GetOnusRange ]### 
+        #            nothing   = 0
+        # ###[ Raw ]### 
+        #               load      = '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+
+        # ###[ PAS5211MsgSendFrame ]### 
+        #            length    = 44
+        #            port_type = 0
+        #            port_id   = 0
+        #            management_frame= 1
+        #            \frame     \
+        #             |###[ OmciFrame ]### 
+        #             |  transaction_id= 2
+        #             |  message_type= 72
+        #             |  omci      = 10
+        #             |  \omci_message\
+        #             |   |###[ OmciSet ]### 
+        #             |   |  entity_class= 262
+        #             |   |  entity_id = 32769
+        #             |   |  attributes_mask= 32768
+        #             |   |  data      = {'alloc_id': 1000}
+        #             |  omci_trailer= 40
         pass
