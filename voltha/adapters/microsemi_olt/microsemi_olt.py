@@ -27,6 +27,7 @@ from twisted.internet import reactor
 from voltha.adapters.interface import IAdapterInterface
 from voltha.adapters.microsemi_olt.ActivationWatcher import ActivationWatcher
 from voltha.adapters.microsemi_olt.DeviceManager import DeviceManager
+from voltha.adapters.microsemi_olt.OMCIProxy import OMCIProxy
 from voltha.adapters.microsemi_olt.OltStateMachine import OltStateMachine
 from voltha.adapters.microsemi_olt.PAS5211_comm import PAS5211Communication
 from voltha.protos import third_party
@@ -132,6 +133,11 @@ class RubyAdapter(object):
 
     def send_proxied_message(self, proxy_address, msg):
         log.info('send-proxied-message', proxy_address=proxy_address, msg=msg)
+        # TODO make this more efficient
+        omci_proxy = OMCIProxy(proxy_address=proxy_address,
+                               msg=msg)
+        omci_proxy.run()
+        del omci_proxy
 
     def receive_proxied_message(self, proxy_address, msg):
         raise NotImplementedError()

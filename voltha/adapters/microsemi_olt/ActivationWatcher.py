@@ -153,34 +153,19 @@ class ActivationManager(BaseOltAutomaton):
     Utility Methods
     """
 
-    def create_port(self, vendor):
-        port = Port(port_no=self.port_id,
-                    label="{} ONU".format(vendor),
-                    type=Port.ETHERNET_UNI,
-                    admin_state=AdminState.ENABLED,
-                    oper_status=OperStatus.ACTIVE
-        )
-        self.device.add_port(port)
-
     def px(self, pkt):
         return self.p(pkt, channel_id=self.channel_id,
                       onu_id=self.onu_id, onu_session_id=self.onu_session_id)
 
-    def error(self, msg):
-        log.error(msg)
-        raise self.error()
-
     def detect_onu(self):
         log.info("Activated {} ONT".format(self.vendor))
-        self.create_port(self.vendor)
-        print self.channel_id
-        print self.onu_id
         try:
             self.device.onu_detected(
                 parent_port_no=self.channel_id,
                 child_device_type='%s_onu' % self.vendor.lower(),
                 onu_id=self.onu_id,
-                serial_number=hexstring(self.serial_number)
+                serial_number=hexstring(self.serial_number),
+                onu_session_id=self.onu_session_id
             )
         except Exception as e:
             print e
@@ -443,6 +428,7 @@ class ActivationManager(BaseOltAutomaton):
     def wait_for_set_vlan_uplink_config(self, pkt):
         if PAS5211SetVlanUplinkConfigurationResponse in pkt:
             # YAY we made it.
+            # TODO update OLT with CNI port
             self.detect_onu()
             raise self.end()
 

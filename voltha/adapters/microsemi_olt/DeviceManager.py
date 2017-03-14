@@ -105,7 +105,8 @@ class DeviceManager(object):
     def onu_detected(self, parent_port_no=None,
                         child_device_type=None,
                         onu_id=None,
-                        serial_number=None):
+                        serial_number=None,
+                        onu_session_id=None):
         self.adapter_agent.child_device_detected(
             parent_device_id=self.device.id,
             parent_port_no=parent_port_no,
@@ -113,7 +114,9 @@ class DeviceManager(object):
             serial_number=serial_number,
             proxy_address=Device.ProxyAddress(
                 device_id=self.device.id,
-                channel_id=onu_id
+                channel_id=parent_port_no, # happens to be the channel id as well
+                onu_id=onu_id,
+                onu_session_id=onu_session_id
             ),
             vlan=0
         )
