@@ -132,12 +132,19 @@ class RubyAdapter(object):
                   flows=flows, groups=groups)
 
     def send_proxied_message(self, proxy_address, msg):
-        log.info('send-proxied-message', proxy_address=proxy_address, msg=msg)
-        # TODO make this more efficient
-        omci_proxy = OMCIProxy(proxy_address=proxy_address,
-                               msg=msg)
-        omci_proxy.run()
-        del omci_proxy
+        if msg.opcode == "0x302a":
+            log.info('send-omci-proxied-message', proxy_address=proxy_address, msg=msg)
+            # TODO make this more efficient
+            omci_proxy = OMCIProxy(proxy_address=proxy_address,
+                                   msg=msg)
+            omci_proxy.run()
+            del omci_proxy
+
+        else:
+            log.info('send-proxied-message', proxy_address=proxy_address, msg=msg)
+            api_proxy = APIProxy(device.proxy_address,msg)
+            api_proxy.run()
+            del api_proxy 
 
     def receive_proxied_message(self, proxy_address, msg):
         raise NotImplementedError()
