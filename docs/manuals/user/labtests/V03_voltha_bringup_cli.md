@@ -85,7 +85,7 @@ This will show the available commands:
 
 Documented commands (type help <topic>):
 ========================================
-activate_olt  edit     load             preprovision_olt  save       test
+enable        edit     load             preprovision_olt  save       test
 adapters      health   logical_device   py                set
 device        history  logical_devices  reset_history     shell
 devices       launch   pause            restart           shortcuts
@@ -158,13 +158,13 @@ success (device id = 5a324e1c3996)
 To activate the last pre-provisioned OLT:
 
 ```
-activate_olt
+enable
 ```
 
 *Example* output:
 
 ```
-(voltha) activate_olt
+(voltha) enable
 activating 5a324e1c3996
 waiting for device to be activated...
 success (logical device id = 1)
@@ -173,13 +173,13 @@ success (logical device id = 1)
 To activate an OLT given by its ID:
 
 ```
-activate_olt <ID>
+enable <ID>
 ```
 
 *Example* output:
 
 ```
-(voltha) activate_olt
+(voltha) enable
 activating 5a324e1c3996
 waiting for device to be activated...
 success (logical device id = 1)
@@ -433,7 +433,7 @@ Here is a sample CLI command sequence that preprovisions and activates an OLT, t
 ```
 test
 preprovision_olt -t maple_olt -i 10.11.12.13
-activate_olt
+enable
 install_all_sample_flows
 devices # to see the device IDs
 device 123456789ab

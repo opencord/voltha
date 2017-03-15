@@ -14,9 +14,9 @@
 
 #### Temporary Configuration
 
-* The following commands are temporary and will be removed when full 
+* The following commands are temporary and will be removed when full
   support in added to VOLTHA. The following commands add and verify
-  the VLAN 4092 interface to VOLTHA along with an IP address in the 
+  the VLAN 4092 interface to VOLTHA along with an IP address in the
   subnet used to communicate with the Maple OLT.
 
 ```
@@ -29,7 +29,7 @@ ping 192.168.24.10
 exit
 
 ```
-  
+
 
 * Start the VOLTHA CLI
 
@@ -82,7 +82,7 @@ Devices:
 * To activate the OLT, execute the following command
 
 ```
-activate_olt
+enable
 ```
 * VOLTHA should initiate a connection and activation request to the Maple OLT
 * VOLHA will create the logical OpenFlow device and ports and notify ONOS
@@ -110,7 +110,7 @@ Devices:
 ```
 
 * Activating the ONU currently initiates an OMCI exchange between
-  the OLT and ONU. In addition, EAPOL, IGMP and DHCP forwarding rules 
+  the OLT and ONU. In addition, EAPOL, IGMP and DHCP forwarding rules
   are installed.
 * Note: the automatic initiation of OMCI messaging and installation of
   forwarding rules is temporary and will be driven by flow rules in
@@ -150,6 +150,3 @@ WMM AC: Missing IEs
 * OLT / ONUs status can be seen from Device Console
 * Confirm OLT and ONUs have "oper_status" of ACTIVE
 * ONUs should not authenticate
-
-
-

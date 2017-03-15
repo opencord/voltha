@@ -62,11 +62,11 @@ Devices:
 * To activate the OLT, execute the following command
 
 ```
-activate_olt
+enable
 ```
 * VOLTHA should initiate a connection and activation request to the Tibit OLT
 * VOLHA will create the logical OpenFlow device and ports and notify ONOS
-* VOLTHA will send an OLT-Activated event notification to the PON Manager 
+* VOLTHA will send an OLT-Activated event notification to the PON Manager
 * VOLTHA will also query the OLT for the number of ONUs connected and attempt
 to activate all ONUs
 * Verify the OLT and ONU status on device console with the following command
@@ -119,7 +119,4 @@ WMM AC: Missing IEs
 
 * OLT / ONUs status can be seen from Device Console
 * Confirm OLT and ONUs have "oper_status" of ACTIVE
-* ONUs should continue to drop all the traffic coming from RG 
-
-
-
+* ONUs should continue to drop all the traffic coming from RG

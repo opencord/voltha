@@ -91,7 +91,7 @@ The value of the device id may vary from run to run.
 Next, we need to activate the OLT in voltha.
 
 ```
-activate_olt
+enable
 ```
 
 which returns
@@ -118,7 +118,7 @@ and the output should be
 +--------------+------------+------+--------------+------+-------------+-------------+----------------+----------------+------------------+-------------------------+--------------------------+
 ```
 
-Also we can observe similar output at the REST API. To use the REST, open a new shell to the server and run the following command.  Note: The port number needs to be the recorded port number from the VOLTHA installation. 
+Also we can observe similar output at the REST API. To use the REST, open a new shell to the server and run the following command.  Note: The port number needs to be the recorded port number from the VOLTHA installation.
 
 ```
 curl -s http://localhost:32863/api/v1/logical_devices  | jq .
