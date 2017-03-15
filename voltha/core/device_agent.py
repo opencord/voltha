@@ -228,8 +228,9 @@ class DeviceAgent(object):
     def _pm_config_updated(self, pm_configs):
         self.log.debug('pm-config-updated', pm_configs=pm_configs,
                        callback_data=self.callback_data)
+        device_id = self.proxy.get('/').id
         if not self.callback_data:
-            self.adapter_agent.update_adapter_pm_config(self.proxy.get('/'), pm_configs)
+            self.adapter_agent.update_adapter_pm_config(device_id, pm_configs)
         self.callback_data = None
 
     ## <======================= FLOW TABLE UPDATE HANDLING ====================

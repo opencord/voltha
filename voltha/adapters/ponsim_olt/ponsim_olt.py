@@ -19,6 +19,7 @@ Fully simulated OLT/ONU adapter.
 """
 from uuid import uuid4
 
+import arrow
 import grpc
 import structlog
 from scapy.layers.l2 import Ether, Dot1Q
@@ -28,6 +29,7 @@ from zope.interface import implementer
 
 from common.frameio.frameio import BpfProgramFilter, hexify
 from common.utils.asleep import asleep
+from twisted.internet.task import LoopingCall
 from voltha.adapters.interface import IAdapterInterface
 from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.protos import third_party
@@ -36,7 +38,9 @@ from voltha.protos.adapter_pb2 import Adapter
 from voltha.protos.adapter_pb2 import AdapterConfig
 from voltha.protos.common_pb2 import LogLevel, OperStatus, ConnectStatus, \
     AdminState
-from voltha.protos.device_pb2 import DeviceType, DeviceTypes, Port, Device
+from voltha.protos.device_pb2 import DeviceType, DeviceTypes, Port, Device, \
+PmConfig, PmConfigs
+from voltha.protos.events_pb2 import KpiEvent, KpiEventType, MetricValuePairs
 from voltha.protos.health_pb2 import HealthStatus
 from google.protobuf.empty_pb2 import Empty
 
@@ -55,6 +59,87 @@ log = structlog.get_logger()
 PACKET_IN_VLAN = 4000
 is_inband_frame = BpfProgramFilter('(ether[14:2] & 0xfff) = 0x{:03x}'.format(
     PACKET_IN_VLAN))
+
+class AdapterPmMetrics:
+    def __init__(self,device):
+        self.pm_names = {'tx_64','tx_65_127', 'tx_128_255', 'tx_256_511',
+                        'tx_512_1023', 'tx_1024_1518', 'tx_1519_9k', 'rx_64',
+                        'rx_65_127', 'rx_128_255', 'rx_256_511', 'rx_512_1023',
+                        'rx_1024_1518', 'rx_1519_9k'}
+        self.device = device
+        self.id = device.id
+        self.name = 'ponsim_olt'
+        #self.id = "abc"
+        self.default_freq = 150
+        self.grouped = False
+        self.freq_override = False
+        self.pon_metrics_config = dict()
+        self.nni_metrics_config = dict()
+        self.lc = None
+        for m in self.pm_names:
+            self.pon_metrics_config[m] = PmConfig(name=m,
+                                                  type=PmConfig.COUNTER,
+                                                  enabled=True)
+            self.nni_metrics_config[m] = PmConfig(name=m,
+                                                  type=PmConfig.COUNTER,
+                                                  enabled=True)
+
+    def update(self, pm_config):
+        if self.default_freq != pm_config.default_freq:
+            # Update the callback to the new frequency.
+            self.default_freq = pm_config.default_freq
+            self.lc.stop()
+            self.lc.start(interval=self.default_freq/10)
+        for m in pm_config.metrics:
+            self.pon_metrics_config[m.name].enabled = m.enabled
+            self.nni_metrics_config[m.name].enabled = m.enabled
+
+    def make_proto(self):
+        pm_config = PmConfigs(
+            id=self.id,
+            default_freq=self.default_freq,
+            grouped = False,
+            freq_override = False)
+        for m in sorted(self.pon_metrics_config):
+            pm=self.pon_metrics_config[m] # Either will do they're the same
+            pm_config.metrics.extend([PmConfig(name=pm.name,
+                                               type=pm.type,
+                                               enabled=pm.enabled)])
+        return pm_config
+
+    def collect_port_metrics(self, channel):
+        rtrn_port_metrics = dict()
+        stub = ponsim_pb2.PonSimStub(channel)
+        stats = stub.GetStats(Empty())
+        rtrn_port_metrics['pon'] = self.extract_pon_metrics(stats)
+        rtrn_port_metrics['nni'] = self.extract_nni_metrics(stats)
+        return rtrn_port_metrics
+
+
+    def extract_pon_metrics(self, stats):
+        rtrn_pon_metrics = dict()
+        for m in stats.metrics:
+            if m.port_name == "pon":
+                for p in m.packets:
+                    if self.pon_metrics_config[p.name].enabled:
+                        rtrn_pon_metrics[p.name] = p.value
+                return rtrn_pon_metrics
+
+    def extract_nni_metrics(self, stats):
+        rtrn_pon_metrics = dict()
+        for m in stats.metrics:
+            if m.port_name == "nni":
+                for p in m.packets:
+                    if self.pon_metrics_config[p.name].enabled:
+                        rtrn_pon_metrics[p.name] = p.value
+                return rtrn_pon_metrics
+
+    def start_collector(self, callback):
+        log.info("starting-pm-collection", device_name=self.name,
+                 device_id=self.device.id)
+        prefix = 'voltha.{}.{}'.format(self.name, self.device.id)
+        self.lc = LoopingCall(callback, self.device.id, prefix)
+        self.lc.start(interval=self.default_freq/10)
 
 
 @implementer(IAdapterInterface)
@@ -107,8 +192,10 @@ class PonSimOltAdapter(object):
     def change_master_state(self, master):
         raise NotImplementedError()
 
-    def update_pm_config(self, device, pm_configs):
-        raise NotImplementedError()
+    def update_pm_config(self, device, pm_config):
+        log.info("adapter-update-pm-config", device=device, pm_config=pm_config)
+        handler = self.devices_handlers[device.id]
+        handler.update_pm_config(device, pm_config)
 
     def adopt_device(self, device):
         self.devices_handlers[device.id] = PonSimOltHandler(self, device.id)
@@ -187,6 +274,7 @@ class PonSimOltHandler(object):
         self.nni_port = None
         self.ofp_port_no = None
         self.interface = registry('main').get_args().interface
+        self.pm_metrics = None
 
     def __del__(self):
         if self.io_port is not None:
@@ -217,6 +305,12 @@ class PonSimOltHandler(object):
         device.serial_number = device.host_and_port
         device.connect_status = ConnectStatus.REACHABLE
         self.adapter_agent.update_device(device)
+
+        # Now set the initial PM configuration for this device
+        self.pm_metrics=AdapterPmMetrics(device)
+        pm_config = self.pm_metrics.make_proto()
+        log.info("initial-pm-config", pm_config=pm_config)
+        self.adapter_agent.update_device_pm_config(pm_config,init=True)
 
         nni_port = Port(
             port_no=2,
@@ -304,6 +398,9 @@ class PonSimOltHandler(object):
             self.interface, self.rcv_io, is_inband_frame)
         self.log.info('registered-frameio')
 
+        # Start collecting stats from the device after a brief pause
+        self.start_kpi_collection(device.id)
+
     def rcv_io(self, port, frame):
         self.log.info('reveived', iface_name=port.iface_name,
                        frame_len=len(frame))
@@ -336,6 +433,10 @@ class PonSimOltHandler(object):
             flows=flows
         ))
         self.log.info('success')
+
+    def update_pm_config(self, device, pm_config):
+        log.info("handler-update-pm-config", device=device, pm_config=pm_config)
+        self.pm_metrics.update(pm_config)
 
     def send_proxied_message(self, proxy_address, msg):
         self.log.info('sending-proxied-message')
@@ -504,3 +605,36 @@ class PonSimOltHandler(object):
         # 2) Remove the device from ponsim
 
         self.log.info('deleted', device_id=self.device_id)
+
+    def start_kpi_collection(self, device_id):
+
+        def _collect(device_id, prefix):
+
+            try:
+                # Step 1: gather metrics from device
+                port_metrics = \
+                self.pm_metrics.collect_port_metrics(self.get_channel())
+
+                # Step 2: prepare the KpiEvent for submission
+                # we can time-stamp them here (or could use time derived from OLT
+                ts = arrow.utcnow().timestamp
+                kpi_event = KpiEvent(
+                    type=KpiEventType.slice,
+                    ts=ts,
+                    prefixes={
+                        # OLT NNI port
+                        prefix + '.nni': MetricValuePairs(
+                            metrics=port_metrics['nni']),
+                        # OLT PON port
+                        prefix + '.pon': MetricValuePairs(
+                            metrics=port_metrics['pon'])
+                    }
+                )
+
+                # Step 3: submit
+                self.adapter_agent.submit_kpis(kpi_event)
+
+            except Exception as e:
+                log.exception('failed-to-submit-kpis', e=e)
+        self.pm_metrics.start_collector(_collect)
+

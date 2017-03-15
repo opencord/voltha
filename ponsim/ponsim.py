@@ -26,7 +26,11 @@ from scapy.packet import Packet
 
 from common.frameio.frameio import hexify
 from voltha.protos import third_party
+from voltha.protos.ponsim_pb2 import PonSimMetrics, PonSimPortMetrics, \
+PonSimPacketCounter
+#from voltha.protos.ponsim_pb2 import
 from voltha.core.flow_decomposer import *
+from twisted.internet.task import LoopingCall
 _ = third_party
 
 
@@ -39,6 +43,94 @@ def ipv4int2str(ipv4int):
     )
 
 
+class FrameIOCounter(object):
+    class SingleFrameCounter(object):
+        def __init__(self,name,min,max):
+            # Currently there are 2 values, one for the PON interface (port 1)
+            # and one for the Network Interface (port 2). This can be extended if
+            # the virtual devices extend the number of ports. 
+            self.value = [0,0] #{PON,NI}
+            self.name = name
+            self.min =  min
+            self.max = max
+
+    def __init__(self, device):
+        self.device = device
+        self.tx_counters = dict (
+           tx_64=self.SingleFrameCounter("tx_64", 1, 64),
+           tx_65_127=self.SingleFrameCounter("tx_65_127", 65, 127),
+           tx_128_255=self.SingleFrameCounter("tx_128_255", 128, 255),
+           tx_256_511=self.SingleFrameCounter("tx_256_511", 256, 511),
+           tx_512_1023=self.SingleFrameCounter("tx_512_1023", 512, 1024),
+           tx_1024_1518=self.SingleFrameCounter("tx_1024_1518", 1024, 1518),
+           tx_1519_9k=self.SingleFrameCounter("tx_1519_9k", 1519, 9216),
+        )
+        self.rx_counters = dict(
+           rx_64=self.SingleFrameCounter("rx_64", 1, 64),
+           rx_65_127=self.SingleFrameCounter("rx_65_127", 65, 127),
+           rx_128_255=self.SingleFrameCounter("rx_128_255", 128, 255),
+           rx_256_511=self.SingleFrameCounter("rx_256_511", 256, 511),
+           rx_512_1023=self.SingleFrameCounter("rx_512_1023", 512, 1024),
+           rx_1024_1518=self.SingleFrameCounter("rx_1024_1518", 1024, 1518),
+           rx_1519_9k=self.SingleFrameCounter("rx_1519_9k", 1519, 9216)
+        )
+
+    def count_rx_frame(self, port, size):
+        log.info("counting-rx-frame", size=size, port=port)
+        for k,v in self.rx_counters.iteritems():
+            if size >= v.min and size <= v.max:
+                self.rx_counters[k].value[port-1] += 1
+                return
+        log.warn("unsupported-packet-size", size=size)
+
+    def count_tx_frame(self, port, size):
+        for k, v in self.tx_counters.iteritems():
+            if size >= v.min and size <= v.max:
+                self.tx_counters[k].value[port-1] += 1
+                return
+        log.warn("unsupported-packet-size", size=size)
+
+    def log_counts(self):
+        rx_ct_list = [(v.name, v.value[0], v.value[1]) for v in self.rx_counters.values()]
+        tx_ct_list = [(v.name, v.value[0], v.value[1]) for v in self.tx_counters.values()]
+        log.info("rx-counts",rx_ct_list=rx_ct_list)
+        log.info("tx-counts",tx_ct_list=tx_ct_list)
+
+    def make_proto(self):
+        sim_metrics = PonSimMetrics(
+            device = self.device
+        )
+        pon_port_metrics = PonSimPortMetrics (
+            port_name = "pon"
+        )
+        ni_port_metrics = PonSimPortMetrics (
+            port_name = "nni"
+        )
+        for c in sorted(self.rx_counters):
+            ctr = self.rx_counters[c]
+            pon_port_metrics.packets.extend([
+                PonSimPacketCounter(name=ctr.name,value=ctr.value[0])
+            ])
+            # Since they're identical keys, save some time and cheat
+            ni_port_metrics.packets.extend([
+                PonSimPacketCounter(name=ctr.name,value=ctr.value[1])
+            ])
+
+        for c in sorted(self.tx_counters):
+            ctr = self.tx_counters[c]
+            pon_port_metrics.packets.extend([
+                PonSimPacketCounter(name=ctr.name,value=ctr.value[0])
+            ])
+            # Since they're identical keys, save some time and cheat
+            ni_port_metrics.packets.extend([
+                PonSimPacketCounter(name=ctr.name,value=ctr.value[1])
+            ])
+        sim_metrics.metrics.extend([pon_port_metrics])
+        sim_metrics.metrics.extend([ni_port_metrics])
+
+        return sim_metrics
+
+
 class SimDevice(object):
 
     def __init__(self, name, logical_port_no):
@@ -48,18 +140,21 @@ class SimDevice(object):
         self.flows = list()
         self.log = structlog.get_logger(name=name,
                                         logical_port_no=logical_port_no)
+        self.counter = FrameIOCounter(name)
 
     def link(self, port, egress_fun):
         self.links.setdefault(port, []).append(egress_fun)
 
     def ingress(self, port, frame):
-        self.log.debug('ingress', ingress_port=port)
+        self.log.debug('ingress', ingress_port=port, name=self.name)
+        self.counter.count_rx_frame(port, len(frame["Ether"].payload))
         outcome = self.process_frame(port, frame)
         if outcome is not None:
             egress_port, egress_frame = outcome
             forwarded = 0
             links = self.links.get(egress_port)
             if links is not None:
+                self.counter.count_tx_frame(egress_port, len(egress_frame["Ether"].payload))
                 for fun in links:
                     forwarded += 1
                     self.log.debug('forwarding', egress_port=egress_port)
@@ -209,11 +304,15 @@ class PonSim(object):
     def __init__(self, onus, egress_fun):
         self.egress_fun = egress_fun
 
+        self.log = structlog.get_logger()
         # Create OLT and hook NNI port up for egress
         self.olt = SimDevice('olt', 0)
         self.olt.link(2, lambda _, frame: self.egress_fun(0, frame))
         self.devices = dict()
         self.devices[0] = self.olt
+        # TODO: This can be removed, it's for debugging purposes
+        self.lc = LoopingCall(self.olt.counter.log_counts)
+        self.lc.start(90) # To correlate with Kafka 
 
         # Create ONUs of the requested number and hook them up with OLT
         # and with egress fun
@@ -226,13 +325,19 @@ class PonSim(object):
         for i in range(onus):
             port_no = 128 + i
             onu = SimDevice('onu%d' % i, port_no)
-            onu.link(1, lambda _, frame: self.olt.ingress(1, frame))
-            onu.link(2, mk_egress_fun(port_no))
-            self.olt.link(1, mk_onu_ingress(onu))
+            onu.link(1, lambda _, frame: self.olt.ingress(1, frame)) # Send to the OLT
+            onu.link(2, mk_egress_fun(port_no)) # Send from the ONU to the world
+            self.olt.link(1, mk_onu_ingress(onu)) # Internal send to the ONU
             self.devices[port_no] = onu
+        for d in self.devices:
+            self.log.info("pon-sim-init", port=d, name=self.devices[d].name,
+                          links=self.devices[d].links)
 
     def get_ports(self):
         return sorted(self.devices.keys())
+
+    def get_stats(self):
+        return self.olt.counter.make_proto()
 
     def olt_install_flows(self, flows):
         self.olt.install_flows(flows)

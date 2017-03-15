@@ -218,7 +218,8 @@ class AdapterAgent(object):
         device_agent = self.core.get_device_agent(device_pm_config.id)
         device_agent.update_device_pm_config(device_pm_config,init)
 
-    def update_adapter_pm_config(self, device, device_pm_config):
+    def update_adapter_pm_config(self, device_id, device_pm_config):
+        device = self.get_device(device_id)
         self.adapter.update_pm_config(device, device_pm_config)
 
     def _add_peer_reference(self, device_id, port):

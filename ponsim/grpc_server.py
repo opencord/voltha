@@ -53,6 +53,10 @@ class FlowUpdateHandler(PonSimServicer):
             self.ponsim.onu_install_flows(request.port, request.flows)
         return Empty()
 
+    def GetStats(self, request, context):
+        return self.ponsim.get_stats()
+
+
 class GrpcServer(object):
 
     def __init__(self, port, ponsim):
