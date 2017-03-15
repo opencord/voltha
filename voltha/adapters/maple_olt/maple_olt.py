@@ -38,7 +38,8 @@ from voltha.protos.adapter_pb2 import Adapter
 from voltha.protos.adapter_pb2 import AdapterConfig
 from voltha.protos.common_pb2 import LogLevel, OperStatus, ConnectStatus, \
     AdminState
-from voltha.protos.device_pb2 import DeviceType, DeviceTypes, Port, Device
+from voltha.protos.device_pb2 import DeviceType, DeviceTypes, Port, Device, \
+PmConfigs, PmConfig, PmGroupConfig
 from voltha.protos.health_pb2 import HealthStatus
 from google.protobuf.empty_pb2 import Empty
 from voltha.protos.events_pb2 import KpiEvent, MetricValuePairs
@@ -60,6 +61,97 @@ log = structlog.get_logger()
 PACKET_IN_VLAN = 4091
 is_inband_frame = BpfProgramFilter('(ether[14:2] & 0xfff) = 0x{:03x}'.format(
     PACKET_IN_VLAN))
+
+
+class MapleOltPmMetrics:
+    class Metrics:
+        def __init__(self, config, value=0, is_group=False):
+            self.config = config
+            self.value = value
+            self.is_group = is_group
+
+    def __init__(self,device):
+        self.pm_names = {'tx_64','tx_65_127', 'tx_128_255', 'tx_256_511',
+                        'tx_512_1023', 'tx_1024_1518', 'tx_1519_9k', 'rx_64',
+                        'rx_65_127', 'rx_128_255', 'rx_256_511', 'rx_512_1023',
+                        'rx_1024_1518', 'rx_1519_9k', 'tx_pkts', 'rx_pkts',
+                         'tx_bytes', 'rx_bytes'}
+        self.pm_group_names = {'nni'}
+        self.device = device
+        self.id = device.id
+        self.default_freq = 150
+        self.pon_metrics = dict()
+        self.nni_metrics = dict()
+        for m in self.pm_names:
+            self.pon_metrics[m] = \
+                    self.Metrics(config = PmConfig(name=m,
+                                                   type=PmConfig.COUNTER,
+                                                   enabled=True), value = 0)
+            self.nni_metrics[m] = \
+                    self.Metrics(config = PmConfig(name=m,
+                                                   type=PmConfig.COUNTER,
+                                                   enabled=True), value = 0)
+        self.pm_group_metrics = dict()
+        for m in self.pm_group_names:
+            self.pm_group_metrics[m] = \
+                    self.Metrics(config = PmGroupConfig(group_name=m,
+                                                        group_freq=self.default_freq,
+                                                        enabled=True),
+                                                        is_group = True)
+        for m in sorted(self.nni_metrics):
+            pm=self.nni_metrics[m]
+            self.pm_group_metrics['nni'].config.metrics.extend([PmConfig(
+                                                          name=pm.config.name,
+                                                          type=pm.config.type,
+                                                          enabled=pm.config.enabled)])
+
+    @inlineCallbacks
+    def configure_pm_collection_freq(self, freq, remote):
+        log.info('configuring-pm-collection-freq',
+                      freq=freq)
+        try:
+            data = yield remote.callRemote('set_stats_collection_interval', 0,
+                                           freq)
+            log.info('configured-pm-collection-freq', data=data)
+        except Exception as e:
+            log.exception('configure-pm-collection-freq', exc=str(e))
+
+    def enable_pm_collection(self, pm_group, remote):
+        if pm_group == 'nni':
+            self.configure_pm_collection_freq(self.default_freq/10, remote)
+
+    def disable_pm_collection(self, pm_group, remote):
+        if pm_group == 'nni':
+            self.configure_pm_collection_freq(0, remote)
+
+    def update(self, device, pm_config, remote):
+        if self.default_freq != pm_config.default_freq:
+            self.default_freq = pm_config.default_freq
+
+        if pm_config.grouped is True:
+            for m in pm_config.groups:
+                self.pm_group_metrics[m.group_name].config.enabled = m.enabled
+                if m.enabled is True:
+                    self.enable_pm_collection(m.group_name, remote)
+                else:
+                    self.disable_pm_collection(m.group_name, remote)
+
+        else:
+            for m in pm_config.metrics:
+                self.pon_metrics[m.name].config.enabled = m.enabled
+                self.nni_metrics[m.name].config.enabled = m.enabled
+
+    def make_proto(self):
+        pm_config = PmConfigs(
+            id=self.id,
+            default_freq=self.default_freq,
+            grouped = True,
+            freq_override = False)
+        for m in self.pm_group_names:
+            pm_config.groups.extend([self.pm_group_metrics[m].config])
+
+        return pm_config
+
 
 
 class MapleOltRxHandler(pb.Root):
@@ -222,8 +314,10 @@ class MapleOltAdapter(object):
     def change_master_state(self, master):
         raise NotImplementedError()
 
-    def update_pm_config(self, device, pm_configs):
-        raise NotImplementedError()
+    def update_pm_config(self, device, pm_config):
+        log.info("adapter-update-pm-config", device=device, pm_config=pm_config)
+        handler = self.devices_handlers[device.id]
+        handler.update_pm_metrics(device, pm_config)
 
     def adopt_device(self, device):
         self.devices_handlers[device.id] = MapleOltHandler(self, device.id)
@@ -343,6 +437,7 @@ class MapleOltHandler(object):
         self.heartbeat_interval = 1
         self.heartbeat_failed_limit = 3
         self.command_timeout = 5
+        self.pm_metrics = None
 
     def __del__(self):
         if self.io_port is not None:
@@ -768,10 +863,20 @@ class MapleOltHandler(object):
                 vlan=vlan_id
             )
 
-        # finally, open the frameio port to receive in-band packet_in messages
+        # Open the frameio port to receive in-band packet_in messages
         self.log.info('registering-frameio')
         self.io_port = registry('frameio').open_port(
             self.interface, self.rcv_io, is_inband_frame)
+
+        # Finally set the initial PM configuration for this device
+        self.pm_metrics=MapleOltPmMetrics(device)
+        pm_config = self.pm_metrics.make_proto()
+        log.info("initial-pm-config", pm_config=pm_config)
+        self.adapter_agent.update_device_pm_config(pm_config,init=True)
+
+        # Apply the PM configuration
+        self.update_pm_metrics(device, pm_config)
+
         self.log.info('olt-activated', device=device)
 
     def rcv_io(self, port, frame):
@@ -971,13 +1076,8 @@ class MapleOltHandler(object):
         self.io_port.send(str(out_pkt))
 
     @inlineCallbacks
-    def send_configure_stats_collection_interval(self, olt_no, interval):
-        self.log.info('configuring-stats-collect-interval', olt=olt_no,
-                      interval=interval)
-        try:
-            remote = yield self.get_channel()
-            data = yield remote.callRemote('set_stats_collection_interval',
-                                           interval)
-            self.log.info('configured-stats-collect-interval', data=data)
-        except Exception as e:
-            self.log.exception('configure-stats-collect-interval', exc=str(e))
+    def update_pm_metrics(self, device, pm_config):
+        self.log.info('update-pm-metrics', device_id=device.id,
+                      pm_config=pm_config)
+        remote = yield self.get_channel()
+        self.pm_metrics.update(device, pm_config, remote)
