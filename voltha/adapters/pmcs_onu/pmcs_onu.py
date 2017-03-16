@@ -25,6 +25,7 @@ from zope.interface import implementer
 
 from voltha.adapters.interface import IAdapterInterface
 from voltha.adapters.microsemi_olt.DeviceManager import mac_str_to_tuple
+from voltha.adapters.microsemi_olt.PAS5211_constants import GEM_DIR_BIDIRECT
 from voltha.protos import third_party
 from voltha.protos.adapter_pb2 import Adapter
 from voltha.protos.adapter_pb2 import AdapterConfig
@@ -291,7 +292,7 @@ class PmcsOnu(object):
 
         if not PAS5211GetSnInfoResponse in response:
             pass
-
+PMC_OFAL.c
         # ###[ PAS5211Dot3 ]### 
         #   dst       = 00:0c:d5:00:01:00
         #   src       = 90:e2:ba:82:f9:77
@@ -318,21 +319,15 @@ class PmcsOnu(object):
 
         if not PAS5211GetOnusRangeResponse in response:
             pass       
-       
-        #  |  ###[ OmciFrame ]###
-        # | transaction_id = 2
-        # | message_type = 72
-        # | omci = 10
-        # |   \omci_message \
-        #      | |  ###[ OmciSet ]###
-        # | | entity_class = 262
-        # | | entity_id = 32769
-        # | | attributes_mask = 32768
-        # | | data = {'alloc_id': 1000}
-        # | omci_trailer = 40
+
+        # |  ###[ OmciSet ]###
+        # | entity_class = 262
+        # | entity_id = 32769
+        # | attributes_mask = 32768
+        # | data = {'alloc_id': 1000}
 
         # OmciSet
-        # TODO: maskdata
+        # PON_port_id_config_t
         msg = OmciSet(entity_class = 262, entity_id = 32769, attributes_mask = 32768,
                       data=dict(
                         alloc_id = 1000
@@ -342,35 +337,33 @@ class PmcsOnu(object):
         if not OmciSetResponse in response:
             pass
 
-
-        # ﻿  ###[ PAS5211MsgSendFrame ]###
-        # length = 44
-        # port_type = 0
-        # port_id = 0
-        # management_frame = 1
-        # \frame \
-        #  |  ###[ OmciFrame ]###
-        # | transaction_id = 3
-        # | message_type = 68
-        # | omci = 10
-        # |   \omci_message \
-        #      | |  ###[ OmciCreate ]###
-        # | | entity_class = 45
-        # | | entity_id = 1
-        # | | data = {'max_age': 5120, 'hello_time': 512, 'priority': 32768, 'port_bridging_ind': 0,
+        # |  ###[ OmciCreate ]###
+        # | entity_class = 45
+        # | entity_id = 1
+        # | data = {'max_age': 5120, 'hello_time': 512, 'priority': 32768, 'port_bridging_ind': 0,
         #             'spanning_tree_ind': 0, 'unknown_mac_address_discard': 0, 'mac_learning_depth': 128,
         #             'learning_ind': 0, 'forward_delay': 3840}
-        # | |  ###[ Raw ]###
-        # | | load = '\x00\x00\x00\n\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-        # | omci_trailer = 40
+        # |  ###[ Raw ]###
+        # | load = '\x00\x00\x00\n\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
 
+        # Found in method: pmc_omci_mac_bridge_sp_me_create from: PMC_OFAL.c
+        # Params
+        #   - priority: The bridge priority set on the LAN card
+        #   - max_age: The maximum age for an entry in the spanning tree listing
+        #   - hello_time: The time interval between hello packets
+        #   - forward_delay: The time that the bridge on the Ethernet card in the ONT retains a packet before forwarding it
+        #   - unknown_mac_address_discard: frames with unknown destination addresses will be forwarded to all allowed ports
 
-        # OmciCreate
         msg = OmciCreate(entity_class=45, entity_id=1,
                          data=dict(
-                             max_age = 5120, hello_time = 512, priority = 32768,
-                             port_bridging_ind = 0, spanning_tree_ind= 0, unknown_mac_address_discard= 0, mac_learning_depth=128
-                             learning_ind= 0, forward_delay= 3840
+                                max_age = 5120,
+                                hello_time = 512,
+                                priority = 32768,
+                                port_bridging_ind = PON_FALSE,
+                                spanning_tree_ind= PON_FALSE,
+                                unknown_mac_address_discard= 0,
+                                mac_learning_depth=128,
+                                learning_ind= PON_FALSE, forward_delay= 3840
                          ))
         response = yield self.adapter_agent.send_proxied_message(device.proxy_address, msg)
 
@@ -378,25 +371,29 @@ class PmcsOnu(object):
             pass
 
 
-        # |###[ OmciFrame ]### 
-        #     |  transaction_id= 4
-        #     |  message_type= 68
-        #     |  omci      = 10
-        #     |  \omci_message\
-        #     |   |###[ OmciCreate ]### 
-        #     |   |  entity_class= 47
-        #     |   |  entity_id = 0
-        #     |   |  data      = {'tp_pointer': 257, 'encapsulation_methods': 1, 'port_num': 0, 'port_priority': 10, 'tp_type': 1, 'port_path_cost': 100, 'port_spanning_tree_in': 0, 'lan_fcs_ind': 0, 'bridge_id_pointer': 1}
-        #     |  omci_trailer= 40
 
-        # OmciCreate
+        # |###[ OmciCreate ]###
+        # |  entity_class= 47
+        # |  entity_id = 0
+        # |  data      = {'tp_pointer': 257, 'encapsulation_methods': 1, 'port_num': 0, 'port_priority': 10, 'tp_type': 1, 'port_path_cost': 100, 'port_spanning_tree_in': 0, 'lan_fcs_ind': 0, 'bridge_id_pointer': 1}
+
+        # Found in method: pmc_omci_mac_bridge_pcd_me_create from: PMC_OFAL.c
+        # Params
+        #   - port_path_cost: The cost contribution of the port to the path cost towards the spanning tree root bridge
+        #   - bridge_id_pointer: MAC bridge controlling the port
         msg = OmciCreate(entity_class=47, entity_id=0,
                          data=dict(
-                                tp_pointer= 257, encapsulation_methods =  1,
-                                port_num = 0, port_priority = 10, tp_type = 1,
-                                port_path_cost = 100, port_spanning_tree_in = 0,
-                                lan_fcs_ind = 0, bridge_id_pointer = 1
+                                tp_pointer= 257,
+                                encapsulation_methods =  OMCI_MAC_BRIDGE_PCD_ENCAP_METHOD_LLC,
+                                port_num = 0,
+                                port_priority = 10,
+                                tp_type = 1,
+                                port_path_cost = 100,
+                                port_spanning_tree_in = PON_FALSE,
+                                lan_fcs_ind = OMCI_MAC_BRIDGE_PCD_LANFCS_FORWARDED,
+                                bridge_id_pointer = 1
                          ))
+
         response = yield self.adapter_agent.send_proxied_message(device.proxy_address, msg)
         
         if not OmciCreateResponse in response:
@@ -413,9 +410,11 @@ class PmcsOnu(object):
         # |   |  data      = {'association_type': 2, 'associated_me_pointer': 257}
         # |  omci_trailer= 40
 
+        # Found in method: pmc_omci_evto_create from: PMC_OFAL.c
         msg = OmciCreate(entity_class=171, entity_id=0,
                          data=dict(
-                                association_type= 2, associated_me_pointer= 257
+                                association_type= OMCI_EX_VLAN_TAG_OCD_ASSOCIATION_TYPE_PPTP_ETH_UNI,
+                                associated_me_pointer= 257
                          ))
         response = yield self.adapter_agent.send_proxied_message(device.proxy_address, msg)
 
@@ -434,10 +433,14 @@ class PmcsOnu(object):
         # |   |  data      = {'association_type': 2, 'input_tpid': 33024, 'associated_me_pointer': 257, 'downstream_mode': 0, 'output_tpid': 33024}
         # |  omci_trailer= 40
 
+        # Found in method: pmc_omci_evto_set from: PMC_OFAL.c
         msg = OmciSet(entity_class = 171, entity_id = 0, attributes_mask = 47616,
                       data=dict(
-                        association_type = 2, input_tpid = 33024, associated_me_pointer= 257,
-                    downstream_mode= 0, output_tpid= 33024
+                            association_type = OMCI_EX_VLAN_TAG_OCD_ASSOCIATION_TYPE_PPTP_ETH_UNI,
+                            input_tpid = 33024,
+                            associated_me_pointer= 257,
+                            downstream_mode= OMCI_EX_VLAN_TAG_OCD_DS_MODE_US_INVERSE,
+                            output_tpid= 33024
                     ))
 
         response = yield self.adapter_agent.send_proxied_message(device.proxy_address, msg)
@@ -445,66 +448,72 @@ class PmcsOnu(object):
         if not OmciSetResponse in response:
             pass
 
-        # |###[ OmciFrame ]### 
-        # |  transaction_id= 7
-        # |  message_type= 68
-        # |  omci      = 10
-        # |  \omci_message\
-        # |   |###[ OmciCreate ]### 
-        # |   |  entity_class= 130
-        # |   |  entity_id = 1
-        # |   |  data      = {'tp_pointer': 65535, 'unmarked_frame_option': 1, 'interwork_tp_pointer_for_p_bit_priority_6': 65535, 'interwork_tp_pointer_for_p_bit_priority_7': 65535, 'interwork_tp_pointer_for_p_bit_priority_4': 65535, 'interwork_tp_pointer_for_p_bit_priority_5': 65535, 'interwork_tp_pointer_for_p_bit_priority_2': 65535, 'interwork_tp_pointer_for_p_bit_priority_3': 65535, 'interwork_tp_pointer_for_p_bit_priority_0': 65535, 'interwork_tp_pointer_for_p_bit_priority_1': 65535, 'tp_type': 0, 'default_p_bit_marking': 0}
-        # |  omci_trailer= 40
+        # |###[ OmciCreate ]###
+        # |  entity_class= 130
+        # |  entity_id = 1
+        # |  data      = {'tp_pointer': 65535, 'unmarked_frame_option': 1, 'interwork_tp_pointer_for_p_bit_priority_6': 65535, 'interwork_tp_pointer_for_p_bit_priority_7': 65535, 'interwork_tp_pointer_for_p_bit_priority_4': 65535, 'interwork_tp_pointer_for_p_bit_priority_5': 65535, 'interwork_tp_pointer_for_p_bit_priority_2': 65535, 'interwork_tp_pointer_for_p_bit_priority_3': 65535, 'interwork_tp_pointer_for_p_bit_priority_0': 65535, 'interwork_tp_pointer_for_p_bit_priority_1': 65535, 'tp_type': 0, 'default_p_bit_marking': 0}
 
+        # Found in method: pmc_omci_8021p_msp_me_create from: PMC_OFAL.c
         msg = OmciCreate(entity_class=130, entity_id=1,
                          data=dict(
-                                tp_pointer= 65535, unmarked_frame_option= 1, interwork_tp_pointer_for_p_bit_priority_6= 65535, 
-                                interwork_tp_pointer_for_p_bit_priority_7= 65535, interwork_tp_pointer_for_p_bit_priority_4= 65535, 
-                                interwork_tp_pointer_for_p_bit_priority_5= 65535, interwork_tp_pointer_for_p_bit_priority_2= 65535, 
-                                interwork_tp_pointer_for_p_bit_priority_3= 65535, interwork_tp_pointer_for_p_bit_priority_0: 65535, 
-                                interwork_tp_pointer_for_p_bit_priority_1= 65535, tp_type= 0, default_p_bit_marking= 0}
+                                tp_pointer= 65535,
+                                unmarked_frame_option= OMCI_8021P_MSP_UNMARKED_FRAME_TAG_FRAME,
+                                interwork_tp_pointer_for_p_bit_priority_6= 65535,
+                                interwork_tp_pointer_for_p_bit_priority_7= 65535,
+                                interwork_tp_pointer_for_p_bit_priority_4= 65535,
+                                interwork_tp_pointer_for_p_bit_priority_5= 65535,
+                                interwork_tp_pointer_for_p_bit_priority_2= 65535,
+                                interwork_tp_pointer_for_p_bit_priority_3= 65535,
+                                interwork_tp_pointer_for_p_bit_priority_0= 65535,
+                                interwork_tp_pointer_for_p_bit_priority_1= 65535,
+                                tp_type= OMCI_8021P_MSP_TP_TYPE_NULL,
+                                default_p_bit_marking= 0
                          ))
         response = yield self.adapter_agent.send_proxied_message(device.proxy_address, msg)
 
         if not OmciCreateResponse in response:
             pass
 
-        # |###[ OmciFrame ]### 
-        # |  transaction_id= 8
-        # |  message_type= 68
-        # |  omci      = 10
-        # |  \omci_message\
-        # |   |###[ OmciCreate ]### 
-        # |   |  entity_class= 130
-        # |   |  entity_id = 1
-        # |   |  data      = {'tp_pointer': 1, 'encapsulation_methods': 1, 'port_num': 1, 'port_priority': 3, 'tp_type': 5, 'port_path_cost': 32, 'port_spanning_tree_in': 1, 'lan_fcs_ind': 0, 'bridge_id_pointer': 1}
-        # |  omci_trailer= 40
 
+        # |###[ OmciCreate ]###
+        # |  entity_class= 130
+        # |  entity_id = 1
+        # |  data      = {'tp_pointer': 1, 'encapsulation_methods': 1, 'port_num': 1, 'port_priority': 3, 'tp_type': 5, 'port_path_cost': 32, 'port_spanning_tree_in': 1, 'lan_fcs_ind': 0, 'bridge_id_pointer': 1}
+
+        # Found in method: pmc_omci_mac_bridge_pcd_me_create from: PMC_OFAL.c
+        # Params
+        #   - port_path_cost: The cost contribution of the port to the path cost towards the spanning tree root bridge
+        #   - bridge_id_pointer: MAC bridge controlling the port
         msg = OmciCreate(entity_class=130, entity_id=1,
                          data=dict(
-                                tp_pointer= 1, encapsulation_methods= 1, port_num= 1, port_priority= 3, tp_type= 5, 
-                                port_path_cost= 32, port_spanning_tree_in= 1, lan_fcs_ind= 0, bridge_id_pointer= 1
+                                tp_pointer= 1,
+                                encapsulation_methods= OMCI_MAC_BRIDGE_PCD_ENCAP_METHOD_LLC,
+                                port_num= 1,
+                                port_priority= 3,
+                                tp_type= 5,
+                                port_path_cost= 32,
+                                port_spanning_tree_in= PON_TRUE,
+                                lan_fcs_ind= OMCI_MAC_BRIDGE_PCD_LANFCS_FORWARDED,
+                                bridge_id_pointer= 1
                          ))
         response = yield self.adapter_agent.send_proxied_message(self, device.proxy_address, msg)
 
         if not OmciCreateResponse in response:
             pass
 
-        # |###[ OmciFrame ]### 
-        # |  transaction_id= 9
-        # |  message_type= 68
-        # |  omci      = 10
-        # |  \omci_message\
-        # |   |###[ OmciCreate ]### 
-        # |   |  entity_class= 268
-        # |   |  entity_id = 1
-        # |   |  data      = {'priority_queue_pointer_downstream': 0, 'direction': 3, 'tcont_pointer': 32769, 'traffic_descriptor_profile_pointer': 0, 'traffic_management_pointer_upstream': 4, 'port_id': 1000}
-        # |  omci_trailer= 40
+        # |###[ OmciCreate ]###
+        # |  entity_class= 268
+        # |  entity_id = 1
+        # |  data      = {'priority_queue_pointer_downstream': 0, 'direction': 3, 'tcont_pointer': 32769, 'traffic_descriptor_profile_pointer': 0, 'traffic_management_pointer_upstream': 4, 'port_id': 1000}
 
+        # Found in method: pmc_omci_gem_nctp_create from: PMC_OFAL.c
         msg = OmciCreate(entity_class=268, entity_id=1,
                          data=dict(
-                                priority_queue_pointer_downstream= 0, direction= 3, tcont_pointer= 32769, 
-                                traffic_descriptor_profile_pointer= 0, traffic_management_pointer_upstream= 4, 
+                                priority_queue_pointer_downstream= 0,
+                                direction= GEM_DIR_BIDIRECT,
+                                tcont_pointer= 32769,
+                                traffic_descriptor_profile_pointer= 0,
+                                traffic_management_pointer_upstream= 4,
                                 port_id= 1000
                          ))
         response = yield self.adapter_agent.send_proxied_message(device.proxy_address, msg)
@@ -512,21 +521,24 @@ class PmcsOnu(object):
         if not OmciCreateResponse in response:
             pass
 
-        # |###[ OmciFrame ]### 
-        # |  transaction_id= 10
-        # |  message_type= 68
-        # |  omci      = 10
-        # |  \omci_message\
-        # |   |###[ OmciCreate ]### 
-        # |   |  entity_class= 266
-        # |   |  entity_id = 1
-        # |   |  data      = {'gem_port_network_ctp_pointer': 1, 'gal_profile_pointer': 0, 'service_profile_pointer': 1, 'interworking_option': 5, 'interworking_tp_pointer': 0}
-        # |  omci_trailer= 40
+        # |###[ OmciCreate ]###
+        # |  entity_class= 266
+        # |  entity_id = 1
+        # |  data      = {'gem_port_network_ctp_pointer': 1, 'gal_profile_pointer': 0, 'service_profile_pointer': 1, 'interworking_option': 5, 'interworking_tp_pointer': 0}
+
+        # Found in method: pmc_omci_gem_iwtp_me_create from: PMC_OFAL.c
+        # Params
+        #   - gem_port_network_ctp_pointer: An instance identifier of the GEM Port Network CTP that is associated with this GEM Interworking Termination Point
+        #   - service_profile_pointer: The service profile type and a pointer to the instance of a service profile
+        #   - interworking_tp_pointer: Used for in the case of Circuit Emulation Services and 802.1p mapper service
+        #   - gal_profile_pointer: A pointer to an instance of the GAL Profile
 
         msg = OmciCreate(entity_class=266, entity_id=1,
                          data=dict(
-                                gem_port_network_ctp_pointer= 1, gal_profile_pointer= 0, 
-                                service_profile_pointer= 1, interworking_option= 5, 
+                                gem_port_network_ctp_pointer= 1,
+                                gal_profile_pointer= 0,
+                                service_profile_pointer= 1,
+                                interworking_option= OMCI_GEM_IWTP_IW_OPT_8021P_MAPPER,
                                 interworking_tp_pointer= 0
                          ))
         response = yield self.adapter_agent.send_proxied_message(device.proxy_address, msg)

@@ -202,6 +202,28 @@ PON_LOGICAL_OBJECT_TYPE_MAX			        = PON_LOGICAL_OBJECT_TYPE_ONU_ID_BY_ALLOC_
 PMC_OFAL_MAX_BI_DIRECTIONAL_FLOW_PER_ONU    = 16
 PMC_OFAL_START_FLOW_ID_BASE                 = 1000
 
+# OMCI
+
+OMCI_8021P_MSP_UNMARKED_FRAME_TAG_FRAME = 1
+OMCI_8021P_MSP_TP_TYPE_NULL             = 0
+
+# GEM interworking option for MAC Bridge LAN
+OMCI_GEM_IWTP_IW_OPT_8021P_MAPPER                   = 5
+#LLC frame encapsulation method
+OMCI_MAC_BRIDGE_PCD_ENCAP_METHOD_LLC                = 1
+# Frame Check Sequence will forward
+OMCI_MAC_BRIDGE_PCD_LANFCS_FORWARDED                = 0
+# in DS, perform the inverse of US operation
+OMCI_EX_VLAN_TAG_OCD_DS_MODE_US_INVERSE             = 0
+# Physical path termination point Ethernet UNI
+OMCI_EX_VLAN_TAG_OCD_ASSOCIATION_TYPE_PPTP_ETH_UNI  = 2
+
+# GEM Port Network CTP
+
+# Direction definitions
+GEM_DIR_BIDIRECT    = 3 # bi-directional
+
+
 # SLA
 
 PYTHAGORAS_UPDATE_AID_SLA                   = 21
