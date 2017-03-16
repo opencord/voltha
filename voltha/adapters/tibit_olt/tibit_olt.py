@@ -100,7 +100,7 @@ class TBJSON(Packet):
     name = "TBJSON"
     fields_desc = [StrField("data", default="")]
 
-bind_layers(Ether, TBJSON, type=0x9001)
+bind_layers(Ether, TBJSON, type=0xA8C8)
 
 SUMITOMO_ELECTRIC_INDUSTRIES_OUI=u"0025DC"
 
