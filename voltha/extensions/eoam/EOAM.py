@@ -89,7 +89,7 @@ class EOAM():
             PACKET /= frame_body
             PACKET /= EndOfPDU()
         else:
-            PACKET.lastlayer().type = 0x9001
+            PACKET.lastlayer().type = 0xA8C8
             PACKET /= frame_body
 
         if (self.verbose == True):
@@ -135,7 +135,7 @@ class EOAMPayload(Packet):
         BitField("length", 0x00, 9)
     ]
 
-bind_layers(Ether, EOAMPayload, type=0x9001)
+bind_layers(Ether, EOAMPayload, type=0xA8C8)
 
 def mcastIp2McastMac(ip):
     """ Convert a dot-notated IPv4 multicast address string into an multicast MAC address"""
@@ -148,7 +148,7 @@ class TBJSON(Packet):
     name = "TBJSON"
     fields_desc = [StrField("data", default="")]
 
-bind_layers(Ether, TBJSON, type=0x9001)
+bind_layers(Ether, TBJSON, type=0xA8C8)
 
 
 if __name__ == "__main__":
