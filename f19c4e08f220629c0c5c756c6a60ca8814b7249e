@@ -22,6 +22,30 @@
       "revId": "f19c4e08f220629c0c5c756c6a60ca8814b7249e",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_db6447e7",
+        "filename": "voltha/adapters/maple_olt/maple_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 125,
+      "author": {
+        "id": 1000074
+      },
+      "writtenOn": "2017-03-16T18:31:16Z",
+      "side": 1,
+      "message": "test comment",
+      "parentUuid": "ba092121_3b6ea3ca",
+      "range": {
+        "startLine": 125,
+        "startChar": 17,
+        "endLine": 125,
+        "endChar": 45
+      },
+      "revId": "f19c4e08f220629c0c5c756c6a60ca8814b7249e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
