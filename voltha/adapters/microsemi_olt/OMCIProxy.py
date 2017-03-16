@@ -23,11 +23,13 @@ from scapy.automaton import ATMT
 from voltha.adapters.microsemi_olt.BaseOltAutomaton import BaseOltAutomaton
 from voltha.adapters.microsemi_olt.PAS5211 import PAS5211MsgSendFrame, PAS5211MsgSendFrameResponse, \
     PAS5211EventFrameReceived
+from voltha.adapters.microsemi_olt.PAS5211_constants import PON_ENABLE, PON_TRUE
+from voltha.adapters.microsemi_olt.PAS5211_constants import PON_PORT_PON
 
 log = structlog.get_logger()
 
-class OMCIProxy(BaseOltAutomaton):
 
+class OMCIProxy(BaseOltAutomaton):
 
     proxy_address = None
     msg = None
@@ -78,8 +80,12 @@ class OMCIProxy(BaseOltAutomaton):
 
     @ATMT.condition(got_omci_msg)
     def send_omci_msg(self):
-        pkt = PAS5211MsgSendFrame(frame=self.msg, port_id=self.proxy_address.onu_id)
-        self.send(self.px(pkt))
+        log.debug('send-omci-msg')
+        send_frame = PAS5211MsgSendFrame(port_type=PON_PORT_PON, port_id=self.proxy_address.onu_id,
+                                         management_frame=PON_TRUE, frame=self.msg)
+        to_send = self.px(send_frame)
+        to_send.show()
+        self.send(to_send)
         raise self.wait_send_response()
 
     # Transitions from wait_send_response

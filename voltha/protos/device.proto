@@ -131,7 +131,7 @@ message Device {
         string device_id = 1;  // Which device to use as proxy to this device
         uint32 channel_id = 2;  // Sub-address within proxy
         uint32 onu_id = 3; // onu identifier; optional
-        uint32 onu_sesssion_id = 4; // session identifier for the ONU; optional
+        uint32 onu_session_id = 4; // session identifier for the ONU; optional
     };
 
     oneof address {

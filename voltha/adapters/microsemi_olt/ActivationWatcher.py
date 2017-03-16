@@ -35,9 +35,6 @@ from voltha.adapters.microsemi_olt.PAS5211_constants import PON_ACTIVATION_AUTH_
 from voltha.extensions.omci.omci_entities import CircuitPack
 from voltha.extensions.omci.omci_frame import OmciFrame
 from voltha.extensions.omci.omci_messages import OmciGet, OmciGetResponse
-from voltha.protos.common_pb2 import AdminState
-from voltha.protos.common_pb2 import OperStatus
-from voltha.protos.device_pb2 import Port
 
 log = structlog.get_logger()
 _verbose = False

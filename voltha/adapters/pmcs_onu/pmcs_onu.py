@@ -25,6 +25,9 @@ from zope.interface import implementer
 
 from voltha.adapters.interface import IAdapterInterface
 from voltha.adapters.microsemi_olt.DeviceManager import mac_str_to_tuple
+from voltha.adapters.microsemi_olt.PAS5211 import PAS5211GetOnuAllocs, PAS5211GetOnuAllocsResponse, PAS5211GetSnInfo, \
+    PAS5211GetSnInfoResponse, PAS5211GetOnusRange, PAS5211GetOnusRangeResponse
+from voltha.extensions.omci.omci_frame import OmciFrame
 from voltha.protos import third_party
 from voltha.protos.adapter_pb2 import Adapter
 from voltha.protos.adapter_pb2 import AdapterConfig
@@ -34,16 +37,17 @@ from voltha.protos.health_pb2 import HealthStatus
 from voltha.protos.logical_device_pb2 import LogicalPort
 from voltha.protos.openflow_13_pb2 import OFPPF_1GB_FD, OFPPF_FIBER, ofp_port, OFPPS_LIVE
 
-from voltha.extensions.omci.omci_entities import CircuitPack
-from voltha.extensions.omci.omci_frame import OmciFrame
-<<<<<<< HEAD
-from voltha.extensions.omci.omci_messages import OmciGet, OmciGetResponse
-=======
-from voltha.extensions.omci.omci_messages import OmciGet, OmciGetResponse, OmciCreate
->>>>>>> pmcs message sequence completed
+from voltha.extensions.omci.omci_messages import OmciGet, OmciGetResponse, OmciCreate, OmciMibResetResponse, OmciSet, \
+    OmciSetResponse, OmciCreateResponse, OmciMibReset
 
 _ = third_party
 log = structlog.get_logger()
+
+def sequence_generator(init):
+    num = init
+    while True:
+        yield num
+        num += 1
 
 @implementer(IAdapterInterface)
 class PmcsOnu(object):
@@ -68,6 +72,7 @@ class PmcsOnu(object):
             config=AdapterConfig(log_level=LogLevel.INFO)
         )
         self.incoming_messages = DeferredQueue()
+        self.trangen = sequence_generator(1)
 
     def start(self):
         log.debug('starting')
@@ -130,7 +135,7 @@ class PmcsOnu(object):
 
     def receive_proxied_message(self, proxy_address, msg):
         log.info('receive-proxied-message', proxy_address=proxy_address,
-                 device_id=proxy_address.device_id, msg=msg)
+                 device_id=proxy_address.device_id)
         self.incoming_messages.put(msg)
 
     def receive_packet_out(self, logical_device_id, egress_port_no, msg):
@@ -142,24 +147,24 @@ class PmcsOnu(object):
         # first we verify that we got parent reference and proxy info
         assert device.parent_id
         assert device.proxy_address.device_id
-        assert device.proxy_address.channel_id
+        assert device.proxy_address.channel_id == 0
 
         device.model = 'GPON ONU'
         device.hardware_version = 'tbd'
-        device.firware_version = 'tbd'
+        device.firmware_version = 'tbd'
         device.software_version = 'tbd'
 
         device.connect_status = ConnectStatus.REACHABLE
 
         self.adapter_agent.update_device(device)
 
-        uni_port = Port(port_no=self.port_id,
+        uni_port = Port(port_no=1000, # FIXME It becomes the alloc_id
                     label="{} ONU".format('PMCS'),
                     type=Port.ETHERNET_UNI,
                     admin_state=AdminState.ENABLED,
                     oper_status=OperStatus.ACTIVE
                     )
-        self.device.add_port(uni_port)
+        self.adapter_agent.add_port(device.id, uni_port)
 
         pon_port = Port(
             port_no=1,
@@ -186,13 +191,13 @@ class PmcsOnu(object):
         # and name for the virtual ports, as this is guaranteed to be unique
         # in the context of the OLT port, so it is also unique in the context
         # of the logical device
-        port_no = device.proxy_address.channel_id
+        port_no = device.proxy_address.channel_id # FIXME this may need to be fixed
         cap = OFPPF_1GB_FD | OFPPF_FIBER
         self.adapter_agent.add_logical_port(logical_device_id, LogicalPort(
             id=str(port_no),
             ofp_port=ofp_port(
                 port_no=port_no,
-                hw_addr=mac_str_to_tuple(device.mac_address),
+                hw_addr=mac_str_to_tuple(device.serial_number)[2:8],
                 name='uni-{}'.format(port_no),
                 config=0,
                 state=OFPPS_LIVE,
@@ -206,19 +211,20 @@ class PmcsOnu(object):
             device_port_no=uni_port.port_no
         ))
 
-        self._initialize_onu(device)
+        yield self._initialize_onu(device)
 
         # and finally update to "ACTIVE"
         device = self.adapter_agent.get_device(device.id)
         device.oper_status = OperStatus.ACTIVE
         self.adapter_agent.update_device(device)
 
-
+    @inlineCallbacks
     def _initialize_onu(self, device):
+        device = self.adapter_agent.get_device(device.id)
+        self.adapter_agent.register_for_proxied_messages(device.proxy_address)
+        log.debug("INIT", device=device)
         # DO things to the ONU
-
-
-        # |###[ OmciFrame ]### 
+        # |###[ OmciFrame ]###
         #     |  transaction_id= 1
         #     |  message_type= 79
         #     |  omci      = 10
@@ -229,11 +235,20 @@ class PmcsOnu(object):
         #     |  omci_trailer= 40
 
         # OmciMibReset
-        msg = OmciMibReset(entity_class = 2, entity_id = 0)
-        response = yield self.adapter_agent.send_proxied_message(device.proxy_address, msg)
 
-        if not OmciMibResetResponse in response:
-            pass
+        msg = OmciMibReset(entity_class = 2, entity_id = 0)
+        frame = OmciFrame(transaction_id=self.trangen.next(),
+                          message_type=OmciMibReset.message_id,
+                          omci_message=msg)
+
+
+        self.adapter_agent.send_proxied_message(device.proxy_address, frame)
+
+        response = yield self.incoming_messages.get()
+
+        if OmciMibResetResponse not in response:
+            log.error("Failed to perform a MIB reset for {}".format(device.proxy_address))
+            return
 
         # ###[ PAS5211Dot3 ]### 
         #   dst       = 00:0c:d5:00:01:00
@@ -259,10 +274,13 @@ class PmcsOnu(object):
 
         
         msg = PAS5211GetOnuAllocs()
-        response = yield self.adapter_agent.send_proxied_message(device.proxy_address, msg)
+        self.adapter_agent.send_proxied_message(device.proxy_address, msg)
 
-        if not PAS5211GetOnuAllocsResponse in response:
-            pass
+        response = yield self.incoming_messages.get()
+
+        if PAS5211GetOnuAllocsResponse not in response:
+            log.error("Failed to get alloc ids for {}".format(device.proxy_address))
+            return
 
         #  ###[ PAS5211Dot3 ]### 
         #   dst       = 00:0c:d5:00:01:00
@@ -287,10 +305,13 @@ class PmcsOnu(object):
 
 
         msg = PAS5211GetSnInfo(serial_number=device.serial_number)
-        response = yield self.adapter_agent.send_proxied_message(device.proxy_address, msg)   
+        self.adapter_agent.send_proxied_message(device.proxy_address, msg)
 
-        if not PAS5211GetSnInfoResponse in response:
-            pass
+        response = yield self.incoming_messages.get()
+
+        if PAS5211GetSnInfoResponse not in response:
+            log.error("Failed to get serial number info for {}".format(device.proxy_address))
+            return
 
         # ###[ PAS5211Dot3 ]### 
         #   dst       = 00:0c:d5:00:01:00
@@ -314,10 +335,13 @@ class PmcsOnu(object):
         #               load      = '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
         
         msg = PAS5211GetOnusRange()
-        response = yield self.adapter_agent.send_proxied_message(device.proxy_address, msg)  
+        self.adapter_agent.send_proxied_message(device.proxy_address, msg)
 
-        if not PAS5211GetOnusRangeResponse in response:
-            pass       
+        response = yield self.incoming_messages.get()
+
+        if PAS5211GetOnusRangeResponse not in response:
+            log.error("Failed to get ONU Range for {}".format(device.proxy_address))
+            return
        
         #  |  ###[ OmciFrame ]###
         # | transaction_id = 2
@@ -337,13 +361,17 @@ class PmcsOnu(object):
                       data=dict(
                         alloc_id = 1000
                     ))
-        response = yield self.adapter_agent.send_proxied_message(device.proxy_address, msg)
+        frame = OmciFrame(transaction_id=self.trangen.next(),
+                          message_type=OmciSet.message_id,
+                          omci_message=msg)
+        self.adapter_agent.send_proxied_message(device.proxy_address, frame)
 
-        if not OmciSetResponse in response:
-            pass
+        response = yield self.incoming_messages.get()
 
+        if OmciSetResponse not in response:
+            log.error("Failed to set alloc id for {}".format(device.proxy_address))
+            return
 
-        # ﻿  ###[ PAS5211MsgSendFrame ]###
         # length = 44
         # port_type = 0
         # port_id = 0
@@ -369,13 +397,19 @@ class PmcsOnu(object):
         msg = OmciCreate(entity_class=45, entity_id=1,
                          data=dict(
                              max_age = 5120, hello_time = 512, priority = 32768,
-                             port_bridging_ind = 0, spanning_tree_ind= 0, unknown_mac_address_discard= 0, mac_learning_depth=128
-                             learning_ind= 0, forward_delay= 3840
+                             port_bridging_ind = 0, spanning_tree_ind= 0, unknown_mac_address_discard= 0, mac_learning_depth=128,
+                             learning_ind=0, forward_delay=3840
                          ))
-        response = yield self.adapter_agent.send_proxied_message(device.proxy_address, msg)
+        frame = OmciFrame(transaction_id=self.trangen.next(),
+                          message_type=OmciCreate.message_id,
+                          omci_message=msg)
+        self.adapter_agent.send_proxied_message(device.proxy_address, frame)
 
-        if not OmciCreateResponse in response:
-            pass
+        response = yield self.incoming_messages.get()
+
+        if OmciCreateResponse not in response:
+            log.error("Failed to set parameter on {}".format(device.proxy_address))
+            return
 
 
         # |###[ OmciFrame ]### 
@@ -397,10 +431,18 @@ class PmcsOnu(object):
                                 port_path_cost = 100, port_spanning_tree_in = 0,
                                 lan_fcs_ind = 0, bridge_id_pointer = 1
                          ))
-        response = yield self.adapter_agent.send_proxied_message(device.proxy_address, msg)
+
+        frame = OmciFrame(transaction_id=self.trangen.next(),
+                          message_type=OmciCreate.message_id,
+                          omci_message=msg)
+
+        self.adapter_agent.send_proxied_message(device.proxy_address, frame)
+
+        response = yield self.incoming_messages.get()
         
-        if not OmciCreateResponse in response:
-            pass
+        if OmciCreateResponse not in response:
+            log.error("Failed to set info for {}".format(device.proxy_address))
+            return
 
         # |###[ OmciFrame ]### 
         # |  transaction_id= 5
@@ -417,10 +459,18 @@ class PmcsOnu(object):
                          data=dict(
                                 association_type= 2, associated_me_pointer= 257
                          ))
-        response = yield self.adapter_agent.send_proxied_message(device.proxy_address, msg)
 
-        if not OmciCreateResponse in response:
-            pass
+        frame = OmciFrame(transaction_id=self.trangen.next(),
+                          message_type=OmciCreate.message_id,
+                          omci_message=msg)
+
+        self.adapter_agent.send_proxied_message(device.proxy_address, frame)
+
+        response = yield self.incoming_messages.get()
+
+        if OmciCreateResponse not in response:
+            log.error("Failed to set association info for {}".format(device.proxy_address))
+            return
 
         # |###[ OmciFrame ]### 
         # |  transaction_id= 6
@@ -437,13 +487,20 @@ class PmcsOnu(object):
         msg = OmciSet(entity_class = 171, entity_id = 0, attributes_mask = 47616,
                       data=dict(
                         association_type = 2, input_tpid = 33024, associated_me_pointer= 257,
-                    downstream_mode= 0, output_tpid= 33024
+                        downstream_mode= 0, output_tpid= 33024
                     ))
 
-        response = yield self.adapter_agent.send_proxied_message(device.proxy_address, msg)
+        frame = OmciFrame(transaction_id=self.trangen.next(),
+                          message_type=OmciSet.message_id,
+                          omci_message=msg)
 
-        if not OmciSetResponse in response:
-            pass
+        self.adapter_agent.send_proxied_message(device.proxy_address, frame)
+
+        response = yield self.incoming_messages.get()
+
+        if OmciSetResponse not in response:
+            log.error("Failed to set association tpid info for {}".format(device.proxy_address))
+            return
 
         # |###[ OmciFrame ]### 
         # |  transaction_id= 7
@@ -453,7 +510,11 @@ class PmcsOnu(object):
         # |   |###[ OmciCreate ]### 
         # |   |  entity_class= 130
         # |   |  entity_id = 1
-        # |   |  data      = {'tp_pointer': 65535, 'unmarked_frame_option': 1, 'interwork_tp_pointer_for_p_bit_priority_6': 65535, 'interwork_tp_pointer_for_p_bit_priority_7': 65535, 'interwork_tp_pointer_for_p_bit_priority_4': 65535, 'interwork_tp_pointer_for_p_bit_priority_5': 65535, 'interwork_tp_pointer_for_p_bit_priority_2': 65535, 'interwork_tp_pointer_for_p_bit_priority_3': 65535, 'interwork_tp_pointer_for_p_bit_priority_0': 65535, 'interwork_tp_pointer_for_p_bit_priority_1': 65535, 'tp_type': 0, 'default_p_bit_marking': 0}
+        # |   |  data      = {'tp_pointer': 65535, 'unmarked_frame_option': 1, 'interwork_tp_pointer_for_p_bit_priority_6': 65535,
+        #          'interwork_tp_pointer_for_p_bit_priority_7': 65535, 'interwork_tp_pointer_for_p_bit_priority_4': 65535,
+        #           'interwork_tp_pointer_for_p_bit_priority_5': 65535, 'interwork_tp_pointer_for_p_bit_priority_2': 65535,
+        #           'interwork_tp_pointer_for_p_bit_priority_3': 65535, 'interwork_tp_pointer_for_p_bit_priority_0': 65535,
+        #           'interwork_tp_pointer_for_p_bit_priority_1': 65535, 'tp_type': 0, 'default_p_bit_marking': 0}
         # |  omci_trailer= 40
 
         msg = OmciCreate(entity_class=130, entity_id=1,
@@ -461,13 +522,21 @@ class PmcsOnu(object):
                                 tp_pointer= 65535, unmarked_frame_option= 1, interwork_tp_pointer_for_p_bit_priority_6= 65535, 
                                 interwork_tp_pointer_for_p_bit_priority_7= 65535, interwork_tp_pointer_for_p_bit_priority_4= 65535, 
                                 interwork_tp_pointer_for_p_bit_priority_5= 65535, interwork_tp_pointer_for_p_bit_priority_2= 65535, 
-                                interwork_tp_pointer_for_p_bit_priority_3= 65535, interwork_tp_pointer_for_p_bit_priority_0: 65535, 
-                                interwork_tp_pointer_for_p_bit_priority_1= 65535, tp_type= 0, default_p_bit_marking= 0}
+                                interwork_tp_pointer_for_p_bit_priority_3= 65535, interwork_tp_pointer_for_p_bit_priority_0= 65535,
+                                interwork_tp_pointer_for_p_bit_priority_1= 65535, tp_type= 0, default_p_bit_marking= 0
                          ))
-        response = yield self.adapter_agent.send_proxied_message(device.proxy_address, msg)
 
-        if not OmciCreateResponse in response:
-            pass
+        frame = OmciFrame(transaction_id=self.trangen.next(),
+                          message_type=OmciCreate.message_id,
+                          omci_message=msg)
+
+        self.adapter_agent.send_proxied_message(device.proxy_address, frame)
+
+        response = yield self.incoming_messages.get()
+
+        if OmciCreateResponse not in response:
+            log.error("Failed to set interwork info for {}".format(device.proxy_address))
+            return
 
         # |###[ OmciFrame ]### 
         # |  transaction_id= 8
@@ -485,10 +554,18 @@ class PmcsOnu(object):
                                 tp_pointer= 1, encapsulation_methods= 1, port_num= 1, port_priority= 3, tp_type= 5, 
                                 port_path_cost= 32, port_spanning_tree_in= 1, lan_fcs_ind= 0, bridge_id_pointer= 1
                          ))
-        response = yield self.adapter_agent.send_proxied_message(self, device.proxy_address, msg)
 
-        if not OmciCreateResponse in response:
-            pass
+        frame = OmciFrame(transaction_id=self.trangen.next(),
+                          message_type=OmciCreate.message_id,
+                          omci_message=msg)
+
+        self.adapter_agent.send_proxied_message(self, device.proxy_address, frame)
+
+        response = yield self.incoming_messages.get()
+
+        if OmciCreateResponse not in response:
+            log.error("Failed to set encap info for {}".format(device.proxy_address))
+            return
 
         # |###[ OmciFrame ]### 
         # |  transaction_id= 9
@@ -507,10 +584,18 @@ class PmcsOnu(object):
                                 traffic_descriptor_profile_pointer= 0, traffic_management_pointer_upstream= 4, 
                                 port_id= 1000
                          ))
-        response = yield self.adapter_agent.send_proxied_message(device.proxy_address, msg)
 
-        if not OmciCreateResponse in response:
-            pass
+        frame = OmciFrame(transaction_id=self.trangen.next(),
+                          message_type=OmciCreate.message_id,
+                          omci_message=msg)
+
+        self.adapter_agent.send_proxied_message(device.proxy_address, frame)
+
+        response = yield self.incoming_messages.get()
+
+        if OmciCreateResponse not in response:
+            log.error("Failed to priority queue for {}".format(device.proxy_address))
+            return
 
         # |###[ OmciFrame ]### 
         # |  transaction_id= 10
@@ -529,9 +614,15 @@ class PmcsOnu(object):
                                 service_profile_pointer= 1, interworking_option= 5, 
                                 interworking_tp_pointer= 0
                          ))
-        response = yield self.adapter_agent.send_proxied_message(device.proxy_address, msg)
 
-        if not OmciCreateResponse in response:
-            pass
+        frame = OmciFrame(transaction_id=self.trangen.next(),
+                          message_type=OmciCreate.message_id,
+                          omci_message=msg)
 
-        pass
+        self.adapter_agent.send_proxied_message(device.proxy_address, frame)
+
+        response = yield self.incoming_messages.get()
+
+        if OmciCreateResponse not in response:
+            log.error("Failed to set gem info for {}".format(device.proxy_address))
+            return

@@ -15,8 +15,10 @@
 #
 from uuid import uuid4
 import structlog
-from voltha.protos.common_pb2 import ConnectStatus, OperStatus
-from voltha.protos.device_pb2 import Device
+
+from voltha.adapters.microsemi_olt.PAS5211 import CHANNELS
+from voltha.protos.common_pb2 import ConnectStatus, OperStatus, AdminState
+from voltha.protos.device_pb2 import Device, Port
 from voltha.protos.logical_device_pb2 import LogicalDevice, LogicalPort
 from voltha.protos.openflow_13_pb2 import ofp_desc, ofp_switch_features, OFPC_FLOW_STATS, OFPC_TABLE_STATS, \
     OFPC_PORT_STATS, OFPC_GROUP_STATS, ofp_port, OFPPS_LIVE, OFPPF_10GB_FD, OFPPF_FIBER
@@ -52,6 +54,15 @@ class DeviceManager(object):
         self.device.serial_number = self.device.mac_address
         self.device.oper_status = ConnectStatus.REACHABLE
         self.adapter_agent.update_device(self.device)
+
+        for i in CHANNELS:
+            self.adapter_agent.add_port(self.device.id, Port(
+                port_no=i,
+                label='PON port',
+                type=Port.PON_OLT,
+                admin_state=AdminState.ENABLED,
+                oper_status=OperStatus.ACTIVE
+            ))
 
     def create_logical_device(self):
         log.info('create-logical-device')

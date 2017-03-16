@@ -26,11 +26,10 @@ from voltha.adapters.microsemi_olt.PAS5211 import PAS5211MsgSendFrame, PAS5211Ms
 
 log = structlog.get_logger()
 
-class Proxy(BaseOltAutomaton):
+class APIProxy(BaseOltAutomaton):
 
     proxy_address = None
     msg = None
-    opcode = None
 
     def parse_args(self, debug=0, store=0, **kwargs):
         self.adaptor_agent = kwargs.pop('adapter_agent')
@@ -73,10 +72,9 @@ class Proxy(BaseOltAutomaton):
     """
 
     @ATMT.condition(send_msg)
-    def send_msg(self):
-        pkt = PAS5211MsgSendFrame(frame=self.msg, port_id=self.proxy_address.onu_id)
-        opcode = packet.opcode & 0xFFFF
-        self.send(self.px(pkt))
+    def send_api_msg(self):
+        self.opcode = self.msg.opcode & 0xFF
+        self.send(self.px(self.msg))
         raise self.wait_response()
 
     # Transitions from wait_event
@@ -85,14 +83,11 @@ class Proxy(BaseOltAutomaton):
         raise self.error("No OMCI event for {}".format(self.proxy_address))
 
     @ATMT.receive_condition(wait_response)
-    def wait_response(self, pkt):
+    def wait_for_response(self, pkt):
         if PAS5211EventFrameReceived in pkt:
             rcv_opcode = pkt.opcode & 0xFF
-            if rcv_opcode==opcode:
+            if rcv_opcode == self.opcode:
                 # FIXME we may need to verify the transaction id
                 #  to make sure we have the right packet
                 self.adaptor_agent.recieve_proxied_message(self.proxy_address,pkt)
                 raise self.end()
-                
-            else:
-                raise self.error("Received opcode "+pkt.opcode+" does not match")

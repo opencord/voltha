@@ -17,19 +17,18 @@
 """
 Microsemi/Celestica Ruby vOLTHA adapter.
 """
-from common.frameio.frameio import BpfProgramFilter, FrameIOManager
-from scapy.layers.l2 import Dot3
 import structlog
 from twisted.internet import reactor
 
-
-
 from voltha.adapters.interface import IAdapterInterface
+from voltha.adapters.microsemi_olt.APIProxy import APIProxy
 from voltha.adapters.microsemi_olt.ActivationWatcher import ActivationWatcher
 from voltha.adapters.microsemi_olt.DeviceManager import DeviceManager
 from voltha.adapters.microsemi_olt.OMCIProxy import OMCIProxy
 from voltha.adapters.microsemi_olt.OltStateMachine import OltStateMachine
 from voltha.adapters.microsemi_olt.PAS5211_comm import PAS5211Communication
+from voltha.extensions.omci.omci_frame import OmciFrame
+from voltha.extensions.omci.omci_messages import OmciMessage
 from voltha.protos import third_party
 from voltha.protos.adapter_pb2 import Adapter, AdapterConfig
 from voltha.protos.common_pb2 import LogLevel
@@ -104,7 +103,7 @@ class RubyAdapter(object):
         reactor.callLater(0, self._init_olt, olt, activation)
 
         log.info('adopted-device', device=device)
-        self.olts[target] = (olt, activation)
+        self.olts[target] = (olt, activation, comm)
 
     def abandon_device(self, device):
         self._abandon(device.mac_address)
@@ -132,19 +131,29 @@ class RubyAdapter(object):
                   flows=flows, groups=groups)
 
     def send_proxied_message(self, proxy_address, msg):
-        if msg.opcode == "0x302a":
-            log.info('send-omci-proxied-message', proxy_address=proxy_address, msg=msg)
+        device = self.adaptor_agent.get_device(proxy_address.device_id)
+        _, _, comm = self.olts[device.mac_address]
+        if isinstance(msg, OmciFrame):
+            log.info('send-omci-proxied-message', proxy_address=proxy_address, device=device)
             # TODO make this more efficient
             omci_proxy = OMCIProxy(proxy_address=proxy_address,
-                                   msg=msg)
-            omci_proxy.run()
-            del omci_proxy
+                                   msg=msg,
+                                   adapter_agent=self.adaptor_agent,
+                                   target=device.mac_address,
+                                   comm=comm,
+                                   iface=self.interface)
+            omci_proxy.runbg()
+
 
         else:
-            log.info('send-proxied-message', proxy_address=proxy_address, msg=msg)
-            api_proxy = APIProxy(device.proxy_address,msg)
-            api_proxy.run()
-            del api_proxy 
+            log.info('send-proxied-message', proxy_address=proxy_address)
+            api_proxy = APIProxy(proxy_address=proxy_address,
+                                 msg=msg,
+                                 adapter_agent=self.adaptor_agent,
+                                 target=device.mac_address,
+                                 comm=comm,
+                                 iface=self.interface)
+            api_proxy.runbg()
 
     def receive_proxied_message(self, proxy_address, msg):
         raise NotImplementedError()
@@ -164,7 +173,7 @@ class RubyAdapter(object):
         activation_watch.runbg()
 
     def _abandon(self, target):
-        olt, activation = self.olts[target]
+        olt, activation, _ = self.olts[target]
         olt.stop()
         activation.stop()
         del self.olts[target]

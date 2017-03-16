@@ -111,7 +111,7 @@ class EventBus(object):
                 try:
                     candidate.callback(topic, msg)
                 except Exception, e:
-                    log.warning('callback-failed', e=e, topic=topic)
+                    log.warning('callback-failed', e=repr(e), topic=topic)
 
 
 default_bus = EventBus()
