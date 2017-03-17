@@ -46,7 +46,6 @@ from voltha.protos.common_pb2 import LogLevel
 from voltha.registry import registry, IComponent
 from common.frameio.frameio import FrameIOManager
 
-
 VERSION = '0.9.0'
 
 defs = dict(

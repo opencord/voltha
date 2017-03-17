@@ -25,7 +25,7 @@ from twisted.internet.defer import inlineCallbacks, returnValue
 from voltha.core.config.config_proxy import CallbackType
 from voltha.protos.common_pb2 import AdminState, OperStatus
 from voltha.registry import registry
-
+from voltha.protos.openflow_13_pb2 import Flows, FlowGroups
 
 class InvalidStateTransition(Exception): pass
 
@@ -183,10 +183,20 @@ class DeviceAgent(object):
         self.log.info('abandon-device', device=device, dry_run=dry_run)
         raise NotImplementedError()
 
+    def _delete_all_flows(self):
+        """ Delete all flows on the device """
+        try:
+            self.flows_proxy.update('/', Flows(items=[]))
+            self.groups_proxy.update('/', FlowGroups(items=[]))
+        except Exception, e:
+            self.exception('flow-delete-exception', e=e)
+
     @inlineCallbacks
     def _disable_device(self, device, dry_run=False):
         self.log.info('disable-device', device=device, dry_run=dry_run)
         if not dry_run:
+            # Remove all flows before disabling device
+            self._delete_all_flows()
             yield self.adapter_agent.disable_device(device)
 
     @inlineCallbacks

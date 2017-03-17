@@ -44,39 +44,40 @@ def mac_str_to_tuple(mac):
 class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
 
     def __init__(self, core, logical_device):
-        self.core = core
-        self.local_handler = core.get_local_handler()
-        self.logical_device_id = logical_device.id
+        try:
+            self.core = core
+            self.local_handler = core.get_local_handler()
+            self.logical_device_id = logical_device.id
 
-        self.root_proxy = core.get_proxy('/')
-        self.flows_proxy = core.get_proxy(
-            '/logical_devices/{}/flows'.format(logical_device.id))
-        self.groups_proxy = core.get_proxy(
-            '/logical_devices/{}/flow_groups'.format(logical_device.id))
-        # self.port_proxy = core.get_proxy(
-        #     '/logical_devices/{}/ports'.format(logical_device.id))
-        self.self_proxy = core.get_proxy(
-            '/logical_devices/{}'.format(logical_device.id))
+            self.root_proxy = core.get_proxy('/')
+            self.flows_proxy = core.get_proxy(
+                '/logical_devices/{}/flows'.format(logical_device.id))
+            self.groups_proxy = core.get_proxy(
+                '/logical_devices/{}/flow_groups'.format(logical_device.id))
+            self.self_proxy = core.get_proxy(
+                '/logical_devices/{}'.format(logical_device.id))
 
-        self.flows_proxy.register_callback(
-            CallbackType.POST_UPDATE, self._flow_table_updated)
-        self.groups_proxy.register_callback(
-            CallbackType.POST_UPDATE, self._group_table_updated)
-        # self.port_proxy.register_callback(
-        #     CallbackType.POST_UPDATE, self._port_changed)
-        self.self_proxy.register_callback(
-            CallbackType.POST_ADD, self._port_added)
-        self.self_proxy.register_callback(
-            CallbackType.POST_REMOVE, self._port_removed)
+            self.flows_proxy.register_callback(
+                CallbackType.POST_UPDATE, self._flow_table_updated)
+            self.groups_proxy.register_callback(
+                CallbackType.POST_UPDATE, self._group_table_updated)
+            self.self_proxy.register_callback(
+                CallbackType.POST_ADD, self._port_added)
+            self.self_proxy.register_callback(
+                CallbackType.POST_REMOVE, self._port_removed)
 
-        self.event_bus = EventBusClient()
-        self.packet_in_subscription = self.event_bus.subscribe(
-            topic='packet-in:{}'.format(logical_device.id),
-            callback=self.handle_packet_in_event)
+            self.port_proxy = {}
 
-        self.log = structlog.get_logger(logical_device_id=logical_device.id)
+            self.event_bus = EventBusClient()
+            self.packet_in_subscription = self.event_bus.subscribe(
+                topic='packet-in:{}'.format(logical_device.id),
+                callback=self.handle_packet_in_event)
 
-        self._routes = None
+            self.log = structlog.get_logger(logical_device_id=logical_device.id)
+
+            self._routes = None
+        except Exception, e:
+            self.log.exception('init-error', e=e)
 
     def start(self):
         self.log.debug('starting')
@@ -91,9 +92,9 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             self.groups_proxy.unregister_callback(
                 CallbackType.POST_UPDATE, self._group_table_updated)
             self.self_proxy.unregister_callback(
-                CallbackType.POST_ADD, self._port_list_updated)
+                CallbackType.POST_ADD, self._port_added)
             self.self_proxy.unregister_callback(
-                CallbackType.POST_REMOVE, self._port_list_updated)
+                CallbackType.POST_REMOVE, self._port_removed)
 
             # Remove subscription to the event bus
             self.event_bus.unsubscribe(self.packet_in_subscription)
@@ -534,6 +535,14 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         self.log.debug('port-added', port=port)
         assert isinstance(port, LogicalPort)
         self._port_list_updated(port)
+
+        # Set a proxy and callback for that specific port
+        self.port_proxy[port.id] = self.core.get_proxy(
+            '/logical_devices/{}/ports/{}'.format(self.logical_device_id,
+                                                  port.id))
+        self.port_proxy[port.id].register_callback(
+            CallbackType.POST_UPDATE, self._port_changed)
+
         self.local_handler.send_port_change_event(
             device_id=self.logical_device_id,
             port_status=ofp.ofp_port_status(
@@ -546,6 +555,12 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         self.log.debug('port-removed', port=port)
         assert isinstance(port, LogicalPort)
         self._port_list_updated(port)
+
+        # Remove the proxy references
+        self.port_proxy[port.id].unregister_callback(
+            CallbackType.POST_UPDATE, self._port_changed)
+        del self.port_proxy[port.id]
+
         self.local_handler.send_port_change_event(
             device_id=self.logical_device_id,
             port_status=ofp.ofp_port_status(
@@ -554,8 +569,8 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             )
         )
 
-    # TODO not yet hooked up
     def _port_changed(self, port):
+        self.log.debug('port-changed', port=port)
         assert isinstance(port, LogicalPort)
         self.local_handler.send_port_change_event(
             device_id=self.logical_device_id,
