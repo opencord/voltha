@@ -645,6 +645,68 @@ class PAS5211SetSVlanAtConfigResponse(PAS5211Msg):
     name = "PAS5211SetSVlanAtConfigResponse"
     fields_desc = []
 
+# typedef struct
+# {
+# 	PON_port_id_t              source_port_id;
+# 	PON_vlan_tag_t             primary_vid;
+#     PON_true_false_t           pvid_config_enabled; /* use_pvid */
+# 	PON_vlan_tag_operation_t   svlan_tag_operation;
+# 	PON_vlan_tag_operation_t   cvlan_tag_operation;
+# 	PON_vlan_tag_t             new_svlan_tag;
+# 	PON_vlan_tag_t             new_cvlan_tag;
+# 	PON_vlan_destination_t     destination;
+# } PASCOMM_msg_set_uplink_vlan_handling_t;
+
+class PAS5211SetUplinkVlanHandl(PAS5211Msg):
+    opcode = 34
+    name = "PAS5211SetUplinkVlanHandl"
+    fields_desc = [
+        LEShortField("source_port_id", None),
+        LEShortField("primary_vid", None),
+        LEShortField("pvid_config_enabled", None),
+        LEShortField("svlan_tag_operation", None),
+        LEShortField("cvlan_tag_operation", None),
+        LEShortField("new_svlan_tag", None),
+        LEShortField("new_cvlan_tag", None),
+        LEShortField("destination", None)
+    ]
+
+class PAS5211SetUplinkVlanHandlResponse(PAS5211Msg):
+    opcode = 34
+    name = "PAS5211SetUplinkVlanHandlResponse"
+    fields_desc = []
+
+# typedef struct
+# {
+#     PON_pon_network_traffic_direction_t  direction;
+#     unsigned short                       extended_svlan_type;
+#     unsigned short 	                     insertion_svlan_ethertype;
+#     unsigned short                       extended_cvlan_type;
+#     unsigned short 	                     insertion_cvlan_ethertype;
+#     PON_pcp_scheme_t                     pon_pcp_code;
+#     PON_pcp_scheme_t                     cni_pcp_code;
+# 	unsigned short                       reserved;
+# } PASCOMM_msg_set_vlan_general_configuration_t;
+class PAS5211SetVlanGenConfig(PAS5211Msg):
+    opcode = 43
+    name = "PAS5211SetVlanGenConfig"
+    fields_desc = [
+        LEShortField("direction", None),
+        LEShortField("extended_svlan_type", None),
+        LEShortField("insertion_svlan_ethertype", None),
+        LEShortField("extended_cvlan_type", None),
+        LEShortField("insertion_cvlan_ethertype", None),
+        LEShortField("pon_pcp_code", None),
+        LEShortField("cni_pcp_code", None),
+        LEShortField("reserved", None)
+    ]
+
+
+class PAS5211SetVlanGenConfigResponse(PAS5211Msg):
+    opcode = 43
+    name = "PAS5211SetVlanGenConfigResponse"
+    fields_desc = []
+
 class Frame(Packet):
     pass
 
@@ -818,6 +880,12 @@ bind_layers(PAS5211MsgHeader, PAS5211GetPortIdConfigResponse, opcode=0x2800 | 19
 
 bind_layers(PAS5211MsgHeader, PAS5211SetSVlanAtConfig, opcode=0x3000 | 63)
 bind_layers(PAS5211MsgHeader, PAS5211SetSVlanAtConfigResponse, opcode=0x2800 | 63)
+
+bind_layers(PAS5211MsgHeader, PAS5211SetUplinkVlanHandl, opcode=0x3000 | 34)
+bind_layers(PAS5211MsgHeader, PAS5211SetUplinkVlanHandlResponse, opcode=0x2800 | 34)
+
+bind_layers(PAS5211MsgHeader, PAS5211SetVlanGenConfig, opcode=0x3000 | 43)
+bind_layers(PAS5211MsgHeader, PAS5211SetVlanGenConfigResponse, opcode=0x2800 | 43)
 
 # bindings for events received
 bind_layers(PAS5211MsgHeader, PAS5211EventOnuActivation, opcode=0x2800 | 12, event_type=1)
