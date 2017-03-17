@@ -618,6 +618,32 @@ class PAS5211GetPortIdConfigResponse(PAS5211Msg):
         LEShortField("reserved", None),
     ]
 
+# typedef struct
+# {
+#     short int          svlan_id;
+# 	PON_true_false_t   forwarding_mode;
+#     PON_true_false_t   use_svlan;
+#     PON_true_false_t   use_cvlan;
+#     PON_true_false_t   use_pbits;
+#     PON_true_false_t   discard_unknown;
+# } PASCOMM_msg_set_svlan_at_configuration_t;
+class PAS5211SetSVlanAtConfig(PAS5211Msg):
+    opcode = 63
+    name = "PAS5211SetSVlanAtConfig"
+    fields_desc = [
+        LEShortField("svlan_id", None),
+        LEShortField("forwarding_mode", None),
+        LEShortField("use_svlan", None),
+        LEShortField("use_cvlan", None),
+        LEShortField("use_pbits", None),
+        LEShortField("discard_unknown", None),
+    ]
+
+
+class PAS5211SetSVlanAtConfigResponse(PAS5211Msg):
+    opcode = 63
+    name = "PAS5211SetSVlanAtConfigResponse"
+    fields_desc = []
 
 class Frame(Packet):
     pass
@@ -789,6 +815,9 @@ bind_layers(PAS5211MsgHeader, PAS5211GetOnusRangeResponse, opcode=0x2800 | 116)
 
 bind_layers(PAS5211MsgHeader, PAS5211GetPortIdConfig, opcode=0x3000 | 19)
 bind_layers(PAS5211MsgHeader, PAS5211GetPortIdConfigResponse, opcode=0x2800 | 19)
+
+bind_layers(PAS5211MsgHeader, PAS5211SetSVlanAtConfig, opcode=0x3000 | 63)
+bind_layers(PAS5211MsgHeader, PAS5211SetSVlanAtConfigResponse, opcode=0x2800 | 63)
 
 # bindings for events received
 bind_layers(PAS5211MsgHeader, PAS5211EventOnuActivation, opcode=0x2800 | 12, event_type=1)
