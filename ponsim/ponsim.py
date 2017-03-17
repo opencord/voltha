@@ -186,8 +186,14 @@ class SimDevice(object):
 
     def process_frame(self, ingress_port, ingress_frame):
         matched_mask = 0
+        highest_priority = 0
         matched_flow = None
         for flow in self.flows:
+            # flows are sorted by highest priority.
+            if matched_flow and flow.priority < highest_priority:
+                break
+
+            highest_priority = flow.priority
             current_mask = self.is_match(flow, ingress_port, ingress_frame)
             if current_mask > matched_mask:
                 matched_mask = current_mask
