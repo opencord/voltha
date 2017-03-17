@@ -46,6 +46,12 @@ from voltha.protos.common_pb2 import LogLevel
 from voltha.registry import registry, IComponent
 from common.frameio.frameio import FrameIOManager
 
+# import sys
+# sys.path.append('/cord/incubator/voltha/pycharm-debug.egg')
+# import pydevd
+# pydevd.settrace('10.176.214.236', port=7777, stdoutToServer=True, stderrToServer=True)
+# # pydevd.settrace('192.168.1.135', port=7777, stdoutToServer=True, stderrToServer=True)
+
 
 VERSION = '0.9.0'
 
