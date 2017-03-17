@@ -904,6 +904,14 @@ class Display(object):
     def __getitem__(self, key):
         self.show(key)
 
+    def walk(self, index=0):
+        while index < len(self.pkts):
+            self.show(index)
+            try:
+                input("(current packet - %s) Next packet?" % index)
+            except Exception as e:
+                pass
+            index += 1
 
 if __name__ == '__main__':
 
@@ -912,4 +920,8 @@ if __name__ == '__main__':
     import code
     packets = rdpcap(sys.argv[1])
     p = Display(packets)
+
+    def walk(index=0):
+        p.walk(index=index)
+
     code.interact(local=locals())
