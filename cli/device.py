@@ -57,6 +57,22 @@ class DeviceCli(Cmd):
 
     do_exit = Cmd.do_quit
 
+    def do_quit(self, line):
+        if self.pm_config_dirty:
+            self.poutput("Uncommited changes for " + \
+                         self.colorize(
+                             self.colorize("perf_config,", "blue"),
+                             "bold") + " please either " + self.colorize(
+                             self.colorize("commit", "blue"), "bold") + \
+                         " or " + self.colorize(
+                             self.colorize("reset", "blue"), "bold") + \
+                         " your changes using " + \
+                         self.colorize(
+                             self.colorize("perf_config", "blue"), "bold"))
+            return False
+        else:
+            return self._STOP_AND_EXIT
+
     def do_show(self, line):
         """Show detailed device information"""
         print_pb_as_table('Device {}'.format(self.device_id),
@@ -70,6 +86,22 @@ class DeviceCli(Cmd):
         print_pb_list_as_table('Device ports:', device.ports,
                                omit_fields, self.poutput)
 
+    def help_perf_config(self):
+        self.poutput(
+'''
+perfo_config [show | set | commit | reset] [-f <default frequency>] [-e <metric/group
+            name>] [-d <metric/group name>] [-o <metric/group name> <override
+            frequency>]
+Changes made by set are held locally until a commit or reset command is issued.
+A commit command will write the configuration to the device and it takes effect
+immediately. The reset command will undo any changes sinc the start of the
+device session.
+
+If grouped is tre then the -d, -e and -o commands refer to groups and not
+individual metrics.
+'''
+        )
+
     @options([
         make_option('-f', '--default_freq', action="store", dest='default_freq',
                     type='long', default=None),
@@ -77,6 +109,8 @@ class DeviceCli(Cmd):
                     default=None),
         make_option('-d', '--disable', action='append', dest='disable',
                     default=None),
+        make_option('-o', '--overried', action='store', dest='override',
+                    nargs=2, default=None, type='string'),
     ])
     def do_perf_config(self, line, opts):
         print(line)
@@ -131,7 +165,8 @@ class DeviceCli(Cmd):
                             m.enabled = False
                             self.pm_config_dirty = True
         #TODO: Add frequency overrides.
-
+        if opts.override:
+            pass
         elif line.strip() == "commit" and self.pm_config_dirty:
             stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
             stub.UpdateDevicePmConfigs(self.pm_config_last)
