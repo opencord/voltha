@@ -192,6 +192,9 @@ class PonSimOltAdapter(object):
     def change_master_state(self, master):
         raise NotImplementedError()
 
+    def update_device_alarm_config(self, device, alarm_cfgs):
+        raise NotImplementedError()
+
     def update_pm_config(self, device, pm_config):
         log.info("adapter-update-pm-config", device=device, pm_config=pm_config)
         handler = self.devices_handlers[device.id]

@@ -29,7 +29,7 @@ from voltha.protos.voltha_pb2 import \
     VolthaInstance, Adapters, LogicalDevices, LogicalDevice, Ports, \
     LogicalPorts, Devices, Device, DeviceType, \
     DeviceTypes, DeviceGroups, DeviceGroup, AdminState, OperStatus, ChangeEvent
-from voltha.protos.device_pb2 import PmConfigs
+from voltha.protos.device_pb2 import PmConfigs, AlarmConfigs
 from voltha.registry import registry
 
 log = structlog.get_logger()
@@ -452,6 +452,48 @@ class LocalHandler(VolthaLocalServiceServicer):
         except KeyError:
             context.set_details(
                 'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return Empty()
+
+    @twisted_async
+    def ListDeviceAlarmConfigs(self, request, context):
+        log.info('grpc-request', request=request)
+
+        if '/' in request.id:
+            context.set_details(
+                'Malformed device id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return AlarmConfigs()
+
+        try:
+            alarm_cfgs = self.root.get('/devices/{}/alarm_cfgs'.format(request.id))
+            alarm_cfgs.id = request.id
+            log.info('alarm-config-device',alarm_cfgs=alarm_cfgs)
+            return alarm_cfgs
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return AlarmConfigs()
+
+    @twisted_async
+    def UpdateDeviceAlarmConfigs(self, request, context):
+        log.info('grpc-request', request=request)
+
+        if '/' in request.id:
+            context.set_details(
+                'Malformed logical device id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return Empty()
+
+        try:
+            device = self.root.get('/devices/{}'.format(request.id))
+            agent = self.core.get_device_agent(request.id)
+            agent.update_device_alarm_config(request)
+            return Empty()
+        except KeyError:
+            context.set_details(
+                'Logical device \'{}\' not found'.format(request.id))
             context.set_code(StatusCode.NOT_FOUND)
             return Empty()
 

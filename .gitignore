@@ -75,6 +75,9 @@ netconf/protos/*.proto
 # Vagrant logfile
 *.log
 
+# IntelliJ IDEA files
+*.iml
+
 # gitbook artifacts
 docs/manuals/user/_book
 docs/manual/user/*.pdf

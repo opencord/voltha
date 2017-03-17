@@ -22,7 +22,7 @@ from voltha.core.config.config_root import ConfigRoot
 from voltha.protos.voltha_pb2 import \
     add_VolthaGlobalServiceServicer_to_server, VolthaLocalServiceStub, \
     VolthaGlobalServiceServicer, Voltha, VolthaInstances, VolthaInstance, \
-    LogicalDevice, Ports, Flows, FlowGroups, Device
+    LogicalDevice, Ports, Flows, FlowGroups, Device, AlarmConfigs
 from voltha.registry import registry
 from google.protobuf.empty_pb2 import Empty
 
@@ -366,6 +366,49 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             instance_id,
             VolthaLocalServiceStub,
             'ListDevicePorts',
+            request,
+            context)
+
+    @twisted_async
+    def ListDeviceAlarmConfig(self, request, context):
+        log.info('grpc-request', request=request)
+
+        try:
+            instance_id = self.dispatcher.instance_id_by_device_id(
+                request.id
+            )
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return AlarmConfigs()
+
+        return self.dispatcher.dispatch(
+            instance_id,
+            VolthaLocalServiceStub,
+            'ListDeviceAlarmConfig',
+            request,
+            context)
+
+    @twisted_async
+    def UpdateDeviceAlarmConfig(self, request, context):
+        log.info('grpc-request', request=request)
+
+        try:
+            instance_id = self.dispatcher.instance_id_by_device_id(
+                request.id
+            )
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            #return AlarmConfigs()
+            return Empty()
+
+        return self.dispatcher.dispatch(
+            instance_id,
+            VolthaLocalServiceStub,
+            'UpdateDeviceAlarmConfig',
             request,
             context)
 

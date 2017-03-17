@@ -149,6 +149,13 @@ class IAdapterInterface(Interface):
         :param group_changes:
         :return:
         """
+    def update_device_alarm_config(device, alarm_cfgs):
+        """
+        Called every time a request is made to change alarm configurations
+        :param device: A Voltha.Device object
+        :param device_alarm_config: Alarm Configuration
+        """
+
 
     def update_pm_config(device, pm_configs):
         """
