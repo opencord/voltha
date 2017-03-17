@@ -85,8 +85,8 @@ class TablePrinter(object):
         if field_key not in self.field_names:
             self.field_names[field_key] = field_name
             self._update_max_length(field_key, field_name)
-        #else:
-        #    assert self.field_names[field_key] == field_name
+        else:
+            assert self.field_names[field_key] == field_name
 
 
 def print_pb_list_as_table(header, items, fields_to_omit=None,

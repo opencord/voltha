@@ -75,13 +75,28 @@ class DeviceCli(Cmd):
 
     def do_show(self, line):
         """Show detailed device information"""
+        omit_fields = {
+            'pm_configs',
+            'flows',
+            'flow_groups',
+            'ports',
+            'parent_port_no',
+            'reason',
+            'vlan',
+            'parent_id',
+            'root',
+            'type',
+            'vendor',
+            'id'
+        }
         print_pb_as_table('Device {}'.format(self.device_id),
-                          self.get_device(depth=-1))
+                          self.get_device(depth=-1), omit_fields)
 
     def do_ports(self, line):
         """Show ports of device"""
         device = self.get_device(depth=-1)
         omit_fields = {
+            'peers'
         }
         print_pb_list_as_table('Device ports:', device.ports,
                                omit_fields, self.poutput)
