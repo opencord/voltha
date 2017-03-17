@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba092121_fb3eeb28",
+        "filename": "ponsim/ponsim.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 292,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-03-17T16:56:51Z",
+      "side": 1,
+      "message": "Is this print statement for debugging?",
+      "range": {
+        "startLine": 292,
+        "startChar": 19,
+        "endLine": 292,
+        "endChar": 25
+      },
+      "revId": "ae76d276173fc582524db6bb8383e1cc84dcb09f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_db3b2737",
+        "filename": "voltha/main.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 53,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-03-17T16:56:51Z",
+      "side": 1,
+      "message": "Are these commented out because they\u0027re for debugging?",
+      "range": {
+        "startLine": 49,
+        "startChar": 0,
+        "endLine": 53,
+        "endChar": 89
+      },
+      "revId": "ae76d276173fc582524db6bb8383e1cc84dcb09f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
