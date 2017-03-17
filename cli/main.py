@@ -153,7 +153,7 @@ class VolthaCli(Cmd):
         """List loaded adapter"""
         stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
         res = stub.ListAdapters(Empty())
-        omit_fields = {}
+        omit_fields = {'config.log_level', 'logical_device_ids'}
         print_pb_list_as_table('Adapters:', res.items, omit_fields, self.poutput)
 
     def get_devices(self):
