@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba092121_bbacf38d",
+        "filename": "voltha/adapters/microsemi_olt/PAS5211.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 819,
+      "author": {
+        "id": 1000004
+      },
+      "writtenOn": "2017-03-17T12:02:00Z",
+      "side": 1,
+      "message": "this should say 0x3000 | 63",
+      "range": {
+        "startLine": 819,
+        "startChar": 55,
+        "endLine": 819,
+        "endChar": 73
+      },
+      "revId": "5408644b6ed172ea999af080bedddd8cf03cbef8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_9ba92f7e",
+        "filename": "voltha/adapters/microsemi_olt/PAS5211.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 820,
+      "author": {
+        "id": 1000004
+      },
+      "writtenOn": "2017-03-17T12:02:00Z",
+      "side": 1,
+      "message": "this should say 0x2800 | 63",
+      "range": {
+        "startLine": 820,
+        "startChar": 63,
+        "endLine": 820,
+        "endChar": 81
+      },
+      "revId": "5408644b6ed172ea999af080bedddd8cf03cbef8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
