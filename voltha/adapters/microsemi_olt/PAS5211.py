@@ -597,6 +597,26 @@ class PAS5211GetOnusRangeResponse(PAS5211Msg):
         LEIntField("actual_max_distance", None)
     ]
 
+class PAS5211GetPortIdConfig(PAS5211Msg):
+    opcode = 19
+    name = "PAS5211GetPortIdConfig"
+    fields_desc = [
+        LEShortField("port_id", None),
+        LEShortField("reserved", None)
+    ]
+
+
+class PAS5211GetPortIdConfigResponse(PAS5211Msg):
+    opcode = 19
+    name = "PAS5211GetPortIdConfigResponse"
+    fields_desc = [
+        LEShortField("activate", None),
+        LEShortField("encryption_state", None),
+        LEShortField("alloc_id", None),
+        LEShortField("type", None),
+        LEShortField("destination", None),
+        LEShortField("reserved", None),
+    ]
 
 
 class Frame(Packet):
@@ -766,6 +786,9 @@ bind_layers(PAS5211MsgHeader, PAS5211GetSnInfoResponse, opcode=0x2800 | 7)
 
 bind_layers(PAS5211MsgHeader, PAS5211GetOnusRange, opcode=0x3000 | 116)
 bind_layers(PAS5211MsgHeader, PAS5211GetOnusRangeResponse, opcode=0x2800 | 116)
+
+bind_layers(PAS5211MsgHeader, PAS5211GetPortIdConfig, opcode=0x3000 | 19)
+bind_layers(PAS5211MsgHeader, PAS5211GetPortIdConfigResponse, opcode=0x2800 | 19)
 
 # bindings for events received
 bind_layers(PAS5211MsgHeader, PAS5211EventOnuActivation, opcode=0x2800 | 12, event_type=1)
