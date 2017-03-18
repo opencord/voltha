@@ -19,6 +19,7 @@ from twisted.internet.defer import returnValue
 
 from common.utils.grpc_utils import twisted_async
 from voltha.core.config.config_root import ConfigRoot
+from voltha.protos.device_pb2 import PmConfigs
 from voltha.protos.voltha_pb2 import \
     add_VolthaGlobalServiceServicer_to_server, VolthaLocalServiceStub, \
     VolthaGlobalServiceServicer, Voltha, VolthaInstances, VolthaInstance, \
@@ -390,10 +391,26 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             request,
             context)
 
-    #TODO: create the global PM config update function.
     @twisted_async
     def UpdateDevicePmConfigs(self, request, context):
-        raise NotImplementedError('Method not implemented!')
+        log.info('grpc-request', request=request)
+
+        try:
+            instance_id = self.dispatcher.instance_id_by_device_id(
+                request.id
+            )
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return Empty()
+
+        return self.dispatcher.dispatch(
+            instance_id,
+            VolthaLocalServiceStub,
+            'UpdateDevicePmConfigs',
+            request,
+            context)
 
     @twisted_async
     def ListDeviceFlows(self, request, context):

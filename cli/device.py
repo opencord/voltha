@@ -112,7 +112,7 @@ A commit command will write the configuration to the device and it takes effect
 immediately. The reset command will undo any changes sinc the start of the
 device session.
 
-If grouped is tre then the -d, -e and -o commands refer to groups and not
+If grouped is true then the -d, -e and -o commands refer to groups and not
 individual metrics.
 '''
         )
@@ -124,11 +124,11 @@ individual metrics.
                     default=None),
         make_option('-d', '--disable', action='append', dest='disable',
                     default=None),
-        make_option('-o', '--overried', action='store', dest='override',
+        make_option('-o', '--overried', action='append', dest='override',
                     nargs=2, default=None, type='string'),
     ])
     def do_perf_config(self, line, opts):
-        print(line)
+        #print(line)
         """Show and set the performance monitoring configuration of the device"""
 
         device = self.get_device(depth=-1)
@@ -157,6 +157,7 @@ individual metrics.
                 self.pm_config_last.default_freq = opts.default_freq
                 self.pm_config_dirty = True
 
+            # Field or group visibility
             if self.pm_config_last.grouped:
                 for g in self.pm_config_last.groups:
                     if opts.enable:
@@ -179,9 +180,63 @@ individual metrics.
                         if m.name in opts.disable:
                             m.enabled = False
                             self.pm_config_dirty = True
-        #TODO: Add frequency overrides.
-        if opts.override:
-            pass
+
+            #Frequency overrides.
+            if opts.override:
+                if self.pm_config_last.freq_override:
+                    oo = dict()
+                    for o in opts.override:
+                        oo[o[0]] = o[1]
+                    if self.pm_config_last.grouped:
+                        for g in self.pm_config_last.groups:
+                            if g.group_name in oo:
+                                try:
+                                    g.group_freq = int(oo[g.group_name])
+                                except ValueError:
+                                    self.poutput(self.colorize('Warning: ',
+                                                               'yellow') + \
+                                                 self.colorize(oo[m.name],
+                                                               'blue') +\
+                                                 " is not an integer... ignored")
+                                del oo[g.group_name]
+                                self.pm_config_dirty = True
+                    else:
+                        for m in self.pm_config_last.metrics:
+                            if m.name in oo:
+                                try:
+                                    m.sample_freq = int(oo[m.name])
+                                except ValueError:
+                                    self.poutput(self.colorize('Warning: ',
+                                                               'yellow') + \
+                                                 self.colorize(oo[m.name],
+                                                               'blue') +\
+                                                 " is not an integer... ignored")
+                                del oo[m.name]
+                                self.pm_config_dirty = True
+
+                    # If there's anything left the input was typoed
+                    if self.pm_config_last.grouped:
+                        field = 'group'
+                    else:
+                        field = 'metric'
+                    for o in oo:
+                        self.poutput(self.colorize('Warning: ', 'yellow') + \
+                                     'the parameter' + ' ' + \
+                                     self.colorize(o, 'blue') + ' is not ' + \
+                                     'a ' + field + ' name... ignored')
+                    if oo:
+                        return
+
+                else: # Frequency overrides not enabled
+                    self.poutput(self.colorize('Error: ', 'red') + \
+                                 'Individual overrides are only ' + \
+                                 'supported if ' + \
+                                 self.colorize('freq_override', 'blue') + \
+                                 ' is set to ' + self.colorize('True', 'blue'))
+                    return
+            self.poutput("Success")
+            return
+
         elif line.strip() == "commit" and self.pm_config_dirty:
             stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
             stub.UpdateDevicePmConfigs(self.pm_config_last)
@@ -190,6 +245,7 @@ individual metrics.
         elif line.strip() == "reset" and self.pm_config_dirty:
             self.pm_config_last = self.get_device(depth=-1).pm_configs
             self.pm_config_dirty = False
+
 
         omit_fields = {'groups', 'metrics', 'id'}
         print_pb_as_table('PM Config:', self.pm_config_last, omit_fields,
