@@ -585,6 +585,58 @@ class MulticastGemInterworkingTp(EntityClass):
     mandatory_operations = {OP.Create, OP.Delete, OP.Get, OP.GetNext, OP.Set}
 
 
+class AccessControlRow0(Packet):
+    name = "AccessControlRow0"
+    fields_desc = [
+        BitField("set_ctrl", 0, 2),
+        BitField("row_part_id", 0, 3),
+        BitField("test", 0, 1),
+        BitField("row_key", 0, 10),
+
+        ShortField("gem_port_id", None),
+        ShortField("vlan_id", None),
+        IPField("src_ip", None),
+        IPField("dst_ip_start", None),
+        IPField("dst_ip_end", None),
+        IntField("ipm_group_bw", None),
+        ShortField("reserved0", 0)
+    ]
+
+class AccessControlRow1(Packet):
+    name = "AccessControlRow1"
+    fields_desc = [
+        BitField("set_ctrl", 0, 2),
+        BitField("row_part_id", 0, 3),
+        BitField("test", 0, 1),
+        BitField("row_key", 0, 10),
+
+        StrFixedLenField("ipv6_src_addr_start_bytes", None, 12),
+        ShortField("preview_length", None),
+        ShortField("preview_repeat_time", None),
+        ShortField("preview_repeat_count", None),
+        ShortField("preview_reset_time", None),
+        ShortField("reserved1", 0)
+    ]
+
+class AccessControlRow2(Packet):
+    name = "AccessControlRow2"
+    fields_desc = [
+        BitField("set_ctrl", 0, 2),
+        BitField("row_part_id", 0, 3),
+        BitField("test", 0, 1),
+        BitField("row_key", 0, 10),
+
+        StrFixedLenField("ipv6_dst_addr_start_bytes", None, 12),
+        StrFixedLenField("reserved2", None, 10)
+    ]
+
+class DownstreamIgmpMulticastTci(Packet):
+    name = "DownstreamIgmpMulticastTci"
+    fields_desc = [
+        ByteField("ctrl_type", None),
+        ShortField("tci", None)
+    ]
+
 class MulticastOperationsProfile(EntityClass):
     class_id = 309
     attributes = [
@@ -604,15 +656,56 @@ class MulticastOperationsProfile(EntityClass):
         # TODO: need to make table and add column data
         ECA(StrFixedLenField("lost_groups_list_table", None, 10), {AA.R}, optional=True),
         ECA(ByteField("robustness", None), {AA.R, AA.W, AA.SBC}, optional=True),
-        ECA(IPField("querier_ip", None), {AA.R, AA.W, AA.SBC}, optional=True),
+        ECA(IntField("querier_ip", None), {AA.R, AA.W, AA.SBC}, optional=True),
         ECA(IntField("query_interval", None), {AA.R, AA.W, AA.SBC}, optional=True),
         ECA(IntField("querier_max_response_time", None), {AA.R, AA.W, AA.SBC}, optional=True),
         ECA(IntField("last_member_response_time", None), {AA.R, AA.W}, optional=True),
         ECA(ByteField("unauthorized_join_behaviour", None), {AA.R, AA.W}, optional=True),
-        ECA(ThreeBytesField("ds_igmp_mcast_tci", None), {AA.R, AA.W, AA.SBC}, optional=True),
+        ECA(StrFixedLenField("ds_igmp_mcast_tci", None, 3), {AA.R, AA.W, AA.SBC}, optional=True)
     ]
     mandatory_operations = {OP.Create, OP.Delete, OP.Set, OP.Get, OP.GetNext}
 
+class MulticastServicePackage(Packet):
+    name = "MulticastServicePackage"
+    fields_desc = [
+        BitField("set_ctrl", 0, 2),
+        BitField("reserved0", 0, 4),
+        BitField("row_key", 0, 10),
+
+        ShortField("vid_uni", None),
+        ShortField("max_simultaneous_groups", None),
+        IntField("max_multicast_bw", None),
+        ShortField("mcast_operations_profile_pointer", None),
+        StrFixedLenField("reserved1", None, 8)
+    ]
+
+class AllowedPreviewGroupsRow0(Packet):
+    name = "AllowedPreviewGroupsRow0"
+    fields_desc = [
+        BitField("set_ctrl", 0, 2),
+        BitField("row_part_id", 0, 3),
+        BitField("reserved0", 0, 1),
+        BitField("row_key", 0, 10),
+
+        StrFixedLenField("ipv6_pad", 0, 12),
+        IPField("src_ip", None),
+        ShortField("vlan_id_ani", None),
+        ShortField("vlan_id_uni", None)
+    ]
+
+class AllowedPreviewGroupsRow1(Packet):
+    name = "AllowedPreviewGroupsRow1"
+    fields_desc = [
+        BitField("set_ctrl", 0, 2),
+        BitField("row_part_id", 0, 3),
+        BitField("reserved0", 0, 1),
+        BitField("row_key", 0, 10),
+
+        StrFixedLenField("ipv6_pad", 0, 12),
+        IPField("dst_ip", None),
+        ShortField("duration", None),
+        ShortField("time_left", None)
+    ]
 
 class MulticastSubscriberConfigInfo(EntityClass):
     class_id = 310
@@ -622,6 +715,7 @@ class MulticastSubscriberConfigInfo(EntityClass):
         ECA(ShortField("mcast_operations_profile_pointer", None), {AA.R, AA.W, AA.SBC}),
         ECA(ShortField("max_simultaneous_groups", None), {AA.R, AA.W, AA.SBC}, optional=True),
         ECA(IntField("max_multicast_bandwidth", None), {AA.R, AA.W, AA.SBC}, optional=True),
+        ECA(ByteField("bandwidth_enforcement", None), {AA.R, AA.W, AA.SBC}, optional=True),
         # TODO: need to make table and add column data
         ECA(StrFixedLenField(
             "multicast_service_package_table", None, 20), {AA.R, AA.W}, optional=True),
