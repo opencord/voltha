@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba092121_5e8dc530",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 66,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-20T13:41:03Z",
+      "side": 1,
+      "message": "Refresh is not really a config.  It should simply be an API call.",
+      "revId": "9a2e16d0bf670efefb3ab104ebee1db8b6657529",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_3e821101",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-20T13:41:03Z",
+      "side": 1,
+      "message": "What does name represents?",
+      "revId": "9a2e16d0bf670efefb3ab104ebee1db8b6657529",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_1e874d11",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 76,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-20T13:41:03Z",
+      "side": 1,
+      "message": "How to suppress/enable all alarms?  Setting a config for each alarm id is not convenient/feasible in this scenario.",
+      "revId": "9a2e16d0bf670efefb3ab104ebee1db8b6657529",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_fe7b7927",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 258,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-20T13:41:03Z",
+      "side": 1,
+      "message": "Need to have a refresh alarm API .",
+      "revId": "9a2e16d0bf670efefb3ab104ebee1db8b6657529",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
