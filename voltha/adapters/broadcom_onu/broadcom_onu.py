@@ -168,7 +168,7 @@ class BroadcomOnuHandler(object):
         # populate device info
         device.root = True
         device.vendor = 'Broadcom'
-        device.model ='n/a'
+        device.model = 'n/a'
         device.hardware_version = 'to be filled'
         device.firmware_version = 'to be filled'
         device.software_version = 'to be filled'
@@ -355,7 +355,6 @@ class BroadcomOnuHandler(object):
             except Exception as e:
                 log.exception('failed-to-install-flow', e=e, flow=flow)
 
-
     def get_tx_id(self):
         self.tx_id += 1
         return self.tx_id
@@ -392,7 +391,9 @@ class BroadcomOnuHandler(object):
         )
         self.send_omci_message(frame)
 
-    def send_create_gal_ethernet_profile(self, entity_id, max_gem_payload_size):
+    def send_create_gal_ethernet_profile(self,
+                                         entity_id,
+                                         max_gem_payload_size):
         frame = OmciFrame(
             transaction_id=self.get_tx_id(),
             message_type=OmciCreate.message_id,
@@ -406,7 +407,9 @@ class BroadcomOnuHandler(object):
         )
         self.send_omci_message(frame)
 
-    def send_set_tcont(self, entity_id, alloc_id):
+    def send_set_tcont(self,
+                       entity_id,
+                       alloc_id):
         data = dict(
             alloc_id=alloc_id
         )
@@ -415,16 +418,17 @@ class BroadcomOnuHandler(object):
             message_type=OmciSet.message_id,
             omci_message=OmciSet(
                 entity_class=Tcont.class_id,
-                entity_id = entity_id,
+                entity_id=entity_id,
                 attributes_mask=Tcont.mask_for(*data.keys()),
                 data=data
             )
         )
         self.send_omci_message(frame)
 
-    def send_create_8021p_mapper_service_profile(self, entity_id):
+    def send_create_8021p_mapper_service_profile(self,
+                                                 entity_id):
         frame = OmciFrame(
-            transaction_id = self.get_tx_id(),
+            transaction_id=self.get_tx_id(),
             message_type=OmciCreate.message_id,
             omci_message=OmciCreate(
                 entity_class=Ieee8021pMapperServiceProfile.class_id,
@@ -437,9 +441,10 @@ class BroadcomOnuHandler(object):
         )
         self.send_omci_message(frame)
 
-    def send_create_mac_bridge_service_profile(self, entity_id):
+    def send_create_mac_bridge_service_profile(self,
+                                               entity_id):
         frame = OmciFrame(
-            transaction_id = self.get_tx_id(),
+            transaction_id=self.get_tx_id(),
             message_type=OmciCreate.message_id,
             omci_message=OmciCreate(
                 entity_class=MacBridgeServiceProfile.class_id,
@@ -457,9 +462,21 @@ class BroadcomOnuHandler(object):
         )
         self.send_omci_message(frame)
 
-    def send_create_gem_port_network_ctp(self, entity_id, port_id, tcont_id):
+    def send_create_gem_port_network_ctp(self,
+                                         entity_id,
+                                         port_id,
+                                         tcont_id,
+                                         direction,
+                                         tm):
+        _directions = {"upstream": 1, "downstream": 2, "bi-directional": 3}
+        if _directions.has_key(direction):
+            _direction = _directions[direction]
+        else:
+            self.log.error('invalid-gem-port-direction', direction=direction)
+            raise ValueError('Invalid GEM port direction: {_dir}'.format(_dir=direction))
+
         frame = OmciFrame(
-            transaction_id = self.get_tx_id(),
+            transaction_id=self.get_tx_id(),
             message_type=OmciCreate.message_id,
             omci_message=OmciCreate(
                 entity_class=GemPortNetworkCtp.class_id,
@@ -467,16 +484,18 @@ class BroadcomOnuHandler(object):
                 data=dict(
                     port_id=port_id,
                     tcont_pointer=tcont_id,
-                    direction=3,
-                    traffic_management_pointer_upstream=0x100
+                    direction=_direction,
+                    traffic_management_pointer_upstream=tm
                 )
             )
         )
         self.send_omci_message(frame)
 
-    def send_create_multicast_gem_interworking_tp(self, entity_id, gem_port_net_ctp_id):
+    def send_create_multicast_gem_interworking_tp(self,
+                                                  entity_id,
+                                                  gem_port_net_ctp_id):
         frame = OmciFrame(
-            transaction_id = self.get_tx_id(),
+            transaction_id=self.get_tx_id(),
             message_type=OmciCreate.message_id,
             omci_message=OmciCreate(
                 entity_class=MulticastGemInterworkingTp.class_id,
@@ -484,15 +503,18 @@ class BroadcomOnuHandler(object):
                 data=dict(
                     gem_port_network_ctp_pointer=gem_port_net_ctp_id,
                     interworking_option=0,
-                    service_profile_pointer=0x1,
+                    service_profile_pointer=0x1
                 )
             )
         )
         self.send_omci_message(frame)
 
-    def send_create_gem_inteworking_tp(self, entity_id, gem_port_net_ctp_id, service_profile_id):
+    def send_create_gem_inteworking_tp(self,
+                                       entity_id,
+                                       gem_port_net_ctp_id,
+                                       service_profile_id):
         frame = OmciFrame(
-            transaction_id = self.get_tx_id(),
+            transaction_id=self.get_tx_id(),
             message_type=OmciCreate.message_id,
             omci_message=OmciCreate(
                 entity_class=GemInterworkingTp.class_id,
@@ -508,12 +530,14 @@ class BroadcomOnuHandler(object):
         )
         self.send_omci_message(frame)
 
-    def send_set_8021p_mapper_service_profile(self, entity_id, interwork_tp_id):
+    def send_set_8021p_mapper_service_profile(self,
+                                              entity_id,
+                                              interwork_tp_id):
         data = dict(
             interwork_tp_pointer_for_p_bit_priority_0 = interwork_tp_id
         )
         frame = OmciFrame(
-            transaction_id = self.get_tx_id(),
+            transaction_id=self.get_tx_id(),
             message_type=OmciSet.message_id,
             omci_message=OmciSet(
                 entity_class=Ieee8021pMapperServiceProfile.class_id,
@@ -541,15 +565,17 @@ class BroadcomOnuHandler(object):
                     bridge_id_pointer = bridge_id,
                     port_num=port_id,
                     tp_type=tp_type,
-                    tp_pointer = tp_id
+                    tp_pointer=tp_id
                 )
             )
         )
         self.send_omci_message(frame)
 
-    def send_create_vlan_tagging_filter_data(self, entity_id, vlan_id):
+    def send_create_vlan_tagging_filter_data(self,
+                                             entity_id,
+                                             vlan_id):
         frame = OmciFrame(
-            transaction_id = self.get_tx_id(),
+            transaction_id=self.get_tx_id(),
             message_type=OmciCreate.message_id,
             omci_message=OmciCreate(
                 entity_class=VlanTaggingFilterData.class_id,
@@ -568,7 +594,7 @@ class BroadcomOnuHandler(object):
                                                                        assoc_type,
                                                                        assoc_me):
         frame = OmciFrame(
-            transaction_id = self.get_tx_id(),
+            transaction_id=self.get_tx_id(),
             message_type=OmciCreate.message_id,
             omci_message=OmciCreate(
                 entity_class=
@@ -582,20 +608,23 @@ class BroadcomOnuHandler(object):
         )
         self.send_omci_message(frame)
 
-    def send_set_extended_vlan_tagging_operation_tpid_configuration_data(self, entity_id, input_tpid, output_tpid):
+    def send_set_extended_vlan_tagging_operation_tpid_configuration_data(self,
+                                                                         entity_id,
+                                                                         input_tpid,
+                                                                         output_tpid):
         data = dict(
-            input_tpid = input_tpid,
-            output_tpid = output_tpid,
+            input_tpid=input_tpid,
+            output_tpid=output_tpid,
             downstream_mode=0,  # inverse of upstream
         )
         frame = OmciFrame(
-            transaction_id = self.get_tx_id(),
+            transaction_id=self.get_tx_id(),
             message_type=OmciSet.message_id,
             omci_message=OmciSet(
-                entity_class=\
+                entity_class=
                     ExtendedVlanTaggingOperationConfigurationData.class_id,
                 entity_id=entity_id,
-                attributes_mask= \
+                attributes_mask=
                     ExtendedVlanTaggingOperationConfigurationData.mask_for(
                         *data.keys()),
                 data=data
@@ -608,7 +637,7 @@ class BroadcomOnuHandler(object):
                                                                          filter_inner_vid,
                                                                          treatment_inner_vid):
         data = dict(
-            received_frame_vlan_tagging_operation_table=\
+            received_frame_vlan_tagging_operation_table=
                 VlanTaggingOperation(
                     filter_outer_priority=15,
                     filter_outer_vid=4096,
@@ -630,14 +659,237 @@ class BroadcomOnuHandler(object):
                 )
         )
         frame = OmciFrame(
-            transaction_id = self.get_tx_id(),
+            transaction_id=self.get_tx_id(),
             message_type=OmciSet.message_id,
             omci_message=OmciSet(
-                entity_class=\
+                entity_class=
                     ExtendedVlanTaggingOperationConfigurationData.class_id,
-                entity_id = entity_id,
-                attributes_mask= \
+                entity_id=entity_id,
+                attributes_mask=
                     ExtendedVlanTaggingOperationConfigurationData.mask_for(
+                        *data.keys()),
+                data=data
+            )
+        )
+        self.send_omci_message(frame)
+
+    def send_create_multicast_operations_profile(self,
+                                                 entity_id,
+                                                 igmp_ver):
+        frame = OmciFrame(
+            transaction_id=self.get_tx_id(),
+            message_type=OmciCreate.message_id,
+            omci_message=OmciCreate(
+                entity_class=
+                    MulticastOperationsProfile.class_id,
+                entity_id=entity_id,
+                data=dict(
+                    igmp_version=igmp_ver,
+                    igmp_function=0,
+                    immediate_leave=0
+                )
+            )
+        )
+        self.send_omci_message(frame)
+
+    def send_set_multicast_operations_profile_acl_row0(self,
+                                                       entity_id,
+                                                       acl_table,
+                                                       row_key,
+                                                       gem_port,
+                                                       vlan,
+                                                       src_ip,
+                                                       dst_ip_start,
+                                                       dst_ip_end):
+        row0 = AccessControlRow0(
+                    set_ctrl=1,
+                    row_part_id=0,
+                    test=0,
+                    row_key=row_key,
+                    gem_port_id=gem_port,
+                    vlan_id=vlan,
+                    src_ip=src_ip,
+                    dst_ip_start=dst_ip_start,
+                    dst_ip_end=dst_ip_end,
+                    ipm_group_bw=0
+                )
+
+        if acl_table == 'dynamic':
+            data = dict(
+                dynamic_access_control_list_table=row0
+            )
+        else:
+            data = dict(
+                static_access_control_list_table=row0
+            )
+
+        frame = OmciFrame(
+            transaction_id=self.get_tx_id(),
+            message_type=OmciSet.message_id,
+            omci_message=OmciSet(
+                entity_class=MulticastOperationsProfile.class_id,
+                entity_id=entity_id,
+                attributes_mask=MulticastOperationsProfile.mask_for(
+                        *data.keys()),
+                data=data
+            )
+        )
+        self.send_omci_message(frame)
+
+    def send_set_multicast_operations_profile_ds_igmp_mcast_tci(self,
+                                                                entity_id,
+                                                                ctrl_type,
+                                                                tci):
+        data = dict(
+            ds_igmp_mcast_tci=
+                DownstreamIgmpMulticastTci(
+                    ctrl_type=ctrl_type,
+                    tci=tci
+                )
+        )
+        frame = OmciFrame(
+            transaction_id=self.get_tx_id(),
+            message_type=OmciSet.message_id,
+            omci_message=OmciSet(
+                entity_class=MulticastOperationsProfile.class_id,
+                entity_id=entity_id,
+                attributes_mask=MulticastOperationsProfile.mask_for(
+                        *data.keys()),
+                data=data
+            )
+        )
+        self.send_omci_message(frame)
+
+    def send_create_multicast_subscriber_config_info(self,
+                                                     entity_id,
+                                                     me_type,
+                                                     mcast_oper_profile):
+        frame = OmciFrame(
+            transaction_id=self.get_tx_id(),
+            message_type=OmciCreate.message_id,
+            omci_message=OmciCreate(
+                entity_class=
+                MulticastSubscriberConfigInfo.class_id,
+                entity_id=entity_id,
+                data=dict(
+                    me_type=me_type,
+                    mcast_operations_profile_pointer=mcast_oper_profile
+                )
+            )
+        )
+        self.send_omci_message(frame)
+
+    def send_set_multicast_subscriber_config_info(self,
+                                                  entity_id,
+                                                  max_groups=0,
+                                                  max_mcast_bw=0,
+                                                  bw_enforcement=0):
+        data = dict(
+            max_simultaneous_groups=max_groups,
+            max_multicast_bandwidth=max_mcast_bw,
+            bandwidth_enforcement=bw_enforcement
+        )
+        frame = OmciFrame(
+            transaction_id=self.get_tx_id(),
+            message_type=OmciSet.message_id,
+            omci_message=OmciSet(
+                entity_class=MulticastSubscriberConfigInfo.class_id,
+                entity_id=entity_id,
+                attributes_mask=MulticastSubscriberConfigInfo.mask_for(
+                        *data.keys()),
+                data=data
+            )
+        )
+        self.send_omci_message(frame)
+
+    def send_set_multicast_service_package(self,
+                                           entity_id,
+                                           row_key,
+                                           vid_uni,
+                                           max_groups,
+                                           max_mcast_bw,
+                                           mcast_oper_profile):
+        data = dict(
+            multicast_service_package_table=
+                MulticastServicePackage(
+                    set_ctrl=1,
+                    row_key=row_key,
+
+                    vid_uni=vid_uni,
+                    max_simultaneous_groups=max_groups,
+                    max_multicast_bw=max_mcast_bw,
+                    mcast_operations_profile_pointer=mcast_oper_profile
+                )
+        )
+        frame = OmciFrame(
+            transaction_id=self.get_tx_id(),
+            message_type=OmciSet.message_id,
+            omci_message=OmciSet(
+                entity_class=MulticastSubscriberConfigInfo.class_id,
+                entity_id=entity_id,
+                attributes_mask=MulticastSubscriberConfigInfo.mask_for(
+                        *data.keys()),
+                data=data
+            )
+        )
+        self.send_omci_message(frame)
+
+    def send_set_multicast_allowed_preview_groups_row0(self,
+                                                       entity_id,
+                                                       row_key,
+                                                       src_ip,
+                                                       vlan_id_ani,
+                                                       vlan_id_uni):
+        data = dict(
+            allowed_preview_groups_table=
+                AllowedPreviewGroupsRow0(
+                    set_ctrl=1,
+                    row_part_id=0,
+                    row_key=row_key,
+
+                    src_ip=src_ip,
+                    vlan_id_ani=vlan_id_ani,
+                    vlan_id_uni=vlan_id_uni
+                )
+        )
+        frame = OmciFrame(
+            transaction_id=self.get_tx_id(),
+            message_type=OmciSet.message_id,
+            omci_message=OmciSet(
+                entity_class=MulticastSubscriberConfigInfo.class_id,
+                entity_id=entity_id,
+                attributes_mask=MulticastSubscriberConfigInfo.mask_for(
+                        *data.keys()),
+                data=data
+            )
+        )
+        self.send_omci_message(frame)
+
+    def send_set_multicast_allowed_preview_groups_row1(self,
+                                                       entity_id,
+                                                       row_key,
+                                                       dst_ip,
+                                                       duration,
+                                                       time_left):
+        data = dict(
+            allowed_preview_groups_table=
+                AllowedPreviewGroupsRow1(
+                    set_ctrl=1,
+                    row_part_id=1,
+                    row_key=row_key,
+
+                    dst_ip=dst_ip,
+                    duration=duration,
+                    time_left=time_left
+                )
+        )
+        frame = OmciFrame(
+            transaction_id=self.get_tx_id(),
+            message_type=OmciSet.message_id,
+            omci_message=OmciSet(
+                entity_class=MulticastSubscriberConfigInfo.class_id,
+                entity_id=entity_id,
+                attributes_mask=MulticastSubscriberConfigInfo.mask_for(
                         *data.keys()),
                 data=data
             )
@@ -649,8 +901,9 @@ class BroadcomOnuHandler(object):
         log.info('wait-for-response')
         try:
             response = yield self.incoming_messages.get()
-            resp = OmciFrame(response)
-            resp.show()
+            log.info('got-response')
+            # resp = OmciFrame(response)
+            # resp.show()
         except Exception as e:
             self.log.info('wait-for-response-exception', exc=str(e))
 
@@ -707,19 +960,23 @@ class BroadcomOnuHandler(object):
         yield self.wait_for_response()
 
         # Create AR - GemPortNetworkCtp - 256 - 1024 - 32768
-        self.send_create_gem_port_network_ctp(0x100, 0x400, 0x8000)
+        self.send_create_gem_port_network_ctp(0x100, 0x400, 0x8000, "bi-directional", 0x100)
         yield self.wait_for_response()
 
         # Create AR - GemPortNetworkCtp - 257 - 1025 - 32769
-        self.send_create_gem_port_network_ctp(0x101, 0x401, 0x8001)
+        self.send_create_gem_port_network_ctp(0x101, 0x401, 0x8001, "bi-directional", 0x100)
         yield self.wait_for_response()
 
         # Create AR - GemPortNetworkCtp - 258 - 1026 - 32770
-        self.send_create_gem_port_network_ctp(0x102, 0x402, 0x8002)
+        self.send_create_gem_port_network_ctp(0x102, 0x402, 0x8002, "bi-directional", 0x100)
         yield self.wait_for_response()
 
         # Create AR - GemPortNetworkCtp - 259 - 1027 - 32771
-        self.send_create_gem_port_network_ctp(0x103, 0x403, 0x8003)
+        self.send_create_gem_port_network_ctp(0x103, 0x403, 0x8003, "bi-directional", 0x100)
+        yield self.wait_for_response()
+
+        # Create AR - GemPortNetworkCtp - 260 - 4000 - 0
+        self.send_create_gem_port_network_ctp(0x104, 0x0FA0, 0, "downstream", 0)
         yield self.wait_for_response()
 
         # Create AR - MulticastGemInterworkingTp - 6 - 260
@@ -794,8 +1051,31 @@ class BroadcomOnuHandler(object):
         self.send_create_vlan_tagging_filter_data(0x2104, 0x0403)
         yield self.wait_for_response()
 
+        # Create AR - MulticastOperationsProfile
+        self.send_create_multicast_operations_profile(0x201, 3)
+        yield self.wait_for_response()
+
+        # Set AR - MulticastOperationsProfile - Dynamic Access Control List table
+        self.send_set_multicast_operations_profile_acl_row0(0x201,
+                                                            'dynamic',
+                                                            0,
+                                                            0x0fa0,
+                                                            0x0fa0,
+                                                            '0.0.0.0',
+                                                            '224.0.0.0',
+                                                            '239.255.255.255')
+        yield self.wait_for_response()
+
+        # Create AR - MulticastSubscriberConfigInfo
+        self.send_create_multicast_subscriber_config_info(0x201, 0, 0x201)
+        yield self.wait_for_response()
+
+        # Set AR - MulticastOperationsProfile - Downstream IGMP Multicast TCI
+        self.send_set_multicast_operations_profile_ds_igmp_mcast_tci(0x201, 3, 0x401)
+        yield self.wait_for_response()
+
         # Create AR - ExtendedVlanTaggingOperationConfigData - 514 - 2 - 0x105
-        self.send_create_extended_vlan_tagging_operation_configuration_data(0x202, 2, 0x105)
+        self.send_create_extended_vlan_tagging_operation_configuration_data(0x202, 2, 0x102)
         yield self.wait_for_response()
 
         # Set AR - ExtendedVlanTaggingOperationConfigData - 514 - 8100 - 8100
@@ -808,5 +1088,5 @@ class BroadcomOnuHandler(object):
         yield self.wait_for_response()
 
         # Create AR - MacBridgePortConfigData - 513 - 513 - 1 - 1 - 0x105
-        self.send_create_mac_bridge_port_configuration_data(0x201, 0x201, 1, 1, 0x105)
+        self.send_create_mac_bridge_port_configuration_data(0x201, 0x201, 1, 1, 0x102)
         yield self.wait_for_response()
