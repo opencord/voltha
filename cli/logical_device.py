@@ -89,6 +89,8 @@ class LogicalDeviceCli(Cmd):
             'ofp_port.advertised',
             'ofp_port.peer',
             'ofp_port.max_speed',
+            'ofp_port.supported',
+            'ofp_port.config'
         }
         print_pb_list_as_table('Logical device ports:', device.ports,
                                omit_fields, self.poutput)
