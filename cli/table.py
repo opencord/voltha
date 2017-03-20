@@ -123,7 +123,7 @@ def print_pb_list_as_table(header, items, fields_to_omit=None,
                     t.add_cell(_row, number + field_number, fname,
                                d.get(field))
                     #t.add_cell(_row, number + field.number, fname,
-                               #d.get(field.name))
+                    #           d.get(field.name))
                 field_number += 1
 
         add(row, obj)
@@ -138,8 +138,14 @@ def print_pb_as_table(header, pb, fields_to_omit={}, printfn=_printfn):
 
     def pr(_pb, prefix=''):
         d = pb2dict(_pb)
+        l=[]
+        for field in sorted(pb._fields, key=lambda f: f.number):
+            l.append(field.name)
+        for field in d:
+            if field not in l:
+                l.append(field)
         #for field in sorted(_pb._fields, key=lambda f: f.number):
-        for field in sorted(d):
+        for field in sorted(d, key=lambda f: l.index(f)):
             #fname = prefix + field.name
             fname = prefix + field
             if fname in fields_to_omit:
