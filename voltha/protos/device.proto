@@ -59,8 +59,6 @@ message PmConfigs {
     repeated PmConfig metrics = 6; // The metrics themselves if grouped is false.
 }
 
-<<<<<<< HEAD
-=======
 message AlarmAction {
     enum AlarmAction {
         ENABLE = 0;
@@ -93,7 +91,7 @@ message AlarmConfigs {
                                         // ***********************************
                                         // But not do both simultaneously
 }
->>>>>>> [ 3283 ] Support for ENABLE_ALL and SUPPRESS_ALL alarms
+
 message Port {
     option (voltha.yang_child_rule) = MOVE_TO_PARENT_LEVEL;
 
