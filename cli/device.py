@@ -75,28 +75,13 @@ class DeviceCli(Cmd):
 
     def do_show(self, line):
         """Show detailed device information"""
-        omit_fields = {
-            'pm_configs',
-            'flows',
-            'flow_groups',
-            'ports',
-            'parent_port_no',
-            'reason',
-            'vlan',
-            'parent_id',
-            'root',
-            'type',
-            'vendor',
-            'id'
-        }
         print_pb_as_table('Device {}'.format(self.device_id),
-                          self.get_device(depth=-1), omit_fields)
+                          self.get_device(depth=-1))
 
     def do_ports(self, line):
         """Show ports of device"""
         device = self.get_device(depth=-1)
         omit_fields = {
-            'peers'
         }
         print_pb_list_as_table('Device ports:', device.ports,
                                omit_fields, self.poutput)
@@ -249,7 +234,7 @@ individual metrics.
 
         omit_fields = {'groups', 'metrics', 'id'}
         print_pb_as_table('PM Config:', self.pm_config_last, omit_fields,
-                          self.poutput)
+                          self.poutput,show_nulls=True)
         if self.pm_config_last.grouped:
             #self.poutput("Supported metric groups:")
             for g in self.pm_config_last.groups:
@@ -257,7 +242,8 @@ individual metrics.
                     omit_fields = {'metrics'}
                 else:
                     omit_fields = {'group_freq','metrics'}
-                print_pb_as_table('', g, omit_fields, self.poutput) 
+                print_pb_as_table('', g, omit_fields, self.poutput,
+                                  show_nulls=True)
                 if g.enabled:
                     state = 'enabled'
                 else:
@@ -265,7 +251,7 @@ individual metrics.
                 print_pb_list_as_table(
                     'Metric group {} is {}'.format(g.name,state),
                     g.metrics, {'enabled', 'sample_freq'}, self.poutput,
-                    dividers=100)
+                    dividers=100, show_nulls=True)
         else:
             if self.pm_config_last.freq_override:
                 omit_fields = {}

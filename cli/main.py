@@ -176,13 +176,7 @@ class VolthaCli(Cmd):
             'hardware_version',
             'software_version',
             'firmware_version',
-            'serial_number',
-            'parent_port_no',
-            'vlan',
-            'ports',
-            'reason',
-            'root',
-            'parent_id'
+            'serial_number'
         }
         print_pb_list_as_table('Devices:', devices, omit_fields, self.poutput)
 
@@ -196,13 +190,7 @@ class VolthaCli(Cmd):
             'desc.sw_desc',
             'desc.dp_desc',
             'desc.serial_number',
-            'desc.serial_num',
-            'switch_features.n_buffers',
-            'switch_features.n_tables',
-            'switch_features.auxiliary_id',
-            'switch_features.datapath_id',
-            'switch_features.capabilities',
-            'ports'
+            'switch_features.capabilities'
         }
         print_pb_list_as_table('Logical devices:', res.items, omit_fields,
                                self.poutput)

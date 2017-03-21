@@ -63,24 +63,8 @@ class LogicalDeviceCli(Cmd):
 
     def do_show(self, _):
         """Show detailed logical device information"""
-        omit_fields = {
-            'flow_groups',
-            'flows',
-            'ports',
-            'switch_features.auxiliary_id',
-            'switch_features.capabilities',
-            'switch_features.datapath_id',
-            'switch_features.n_buffers',
-            'switch_features.n_tables',
-            'desc.dp_desc',
-            'desc.hw_desc',
-            'desc.mfr_desc',
-            'desc.serial_num',
-            'desc.sw_desc',
-            'datapath_id'
-        }
         print_pb_as_table('Logical device {}'.format(self.logical_device_id),
-                          self.get_logical_device(depth=-1), omit_fields)
+                          self.get_logical_device(depth=-1))
 
     def do_ports(self, _):
         """Show ports of logical device"""
@@ -88,9 +72,7 @@ class LogicalDeviceCli(Cmd):
         omit_fields = {
             'ofp_port.advertised',
             'ofp_port.peer',
-            'ofp_port.max_speed',
-            'ofp_port.supported',
-            'ofp_port.config'
+            'ofp_port.max_speed'
         }
         print_pb_list_as_table('Logical device ports:', device.ports,
                                omit_fields, self.poutput)
@@ -121,13 +103,7 @@ class LogicalDeviceCli(Cmd):
             'hardware_version',
             'software_version',
             'firmware_version',
-            'serial_number',
-            'parent_port_no',
-            'vlan',
-            'ports',
-            'reason',
-            'root',
-            'parent_id'
+            'serial_number'
         }
         print_pb_list_as_table('Devices:', devices, omit_fields, self.poutput)
 
