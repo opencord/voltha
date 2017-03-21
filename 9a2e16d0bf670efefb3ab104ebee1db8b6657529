@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "ba092121_e164fce6",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 66,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-03-21T04:00:12Z",
+      "side": 1,
+      "message": "Ok. For now, I would like to park the REFRESH feature and focus on the ENABLE/SUPPRESS alarm functionality. I can take up REFRESH feature separately if that\u0027s Ok.",
+      "parentUuid": "ba092121_5e8dc530",
+      "revId": "9a2e16d0bf670efefb3ab104ebee1db8b6657529",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ba092121_3e821101",
         "filename": "voltha/protos/device.proto",
         "patchSetId": 1
@@ -30,6 +48,24 @@
       "writtenOn": "2017-03-20T13:41:03Z",
       "side": 1,
       "message": "What does name represents?",
+      "revId": "9a2e16d0bf670efefb3ab104ebee1db8b6657529",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_9ea6bd52",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-03-21T04:00:12Z",
+      "side": 1,
+      "message": "Name is Alarm Identifier",
+      "parentUuid": "ba092121_3e821101",
       "revId": "9a2e16d0bf670efefb3ab104ebee1db8b6657529",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "ba092121_8188a023",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 76,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-03-21T04:00:12Z",
+      "side": 1,
+      "message": "Ok. I can provide Actions for SUPPRESS_ALL and ENABLE_ALL alarms as part of AlarmAction.\nENABLE_ALL/SUPPRESS_ALL should be mutually exclusive for a given AlarmConfigs message, i.e.,....\n \nIn a given AlarmConfigs message \u003d\u003e\n\nYou can have ENABLE and DISABLE for a set of Alarms\n                 OR\nENABLE_ALL or SUPPRESS_ALL Alarms available.",
+      "parentUuid": "ba092121_1e874d11",
+      "revId": "9a2e16d0bf670efefb3ab104ebee1db8b6657529",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ba092121_fe7b7927",
         "filename": "voltha/protos/voltha.proto",
         "patchSetId": 1
@@ -64,6 +118,24 @@
       "writtenOn": "2017-03-20T13:41:03Z",
       "side": 1,
       "message": "Need to have a refresh alarm API .",
+      "revId": "9a2e16d0bf670efefb3ab104ebee1db8b6657529",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_61a0ecf4",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 258,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-03-21T04:00:12Z",
+      "side": 1,
+      "message": "This is something that I can take up in the future. For now I would like to focus on Alarm Enable/Suppress to start with.",
+      "parentUuid": "ba092121_fe7b7927",
       "revId": "9a2e16d0bf670efefb3ab104ebee1db8b6657529",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
