@@ -718,7 +718,14 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             for (ingress, egress), route in self._routes.iteritems():
                 if ingress == ingress_port_no:
                     return [route[0], None]
-            raise Exception('not a single downstream route')
+
+            # This can occur is a leaf device is disabled
+            self.log.exception('no-downstream-route',
+                               ingress_port_no=ingress_port_no,
+                               egress_port_no= egress_port_no
+                               )
+            return None
+
 
         return self._routes.get((ingress_port_no, egress_port_no))
 
