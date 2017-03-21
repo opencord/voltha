@@ -52,6 +52,24 @@
       "revId": "94d3835730a8183403dcd000894ec4d8db46aa58",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_8c4d7775",
+        "filename": "common/utils/consulhelpers.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 98,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-03-21T23:13:40Z",
+      "side": 1,
+      "message": "I had look at the Consul code and it doesn\u0027t seem to me that node name is consul agent. You can however set the \u0027near\u0027 parameter to \u0027_agent\u0027 and then it would sort the list of services in the ascending order RTT from the consul agent node. \nYou may refer the Consul code https://github.com/hashicorp/consul/blob/3b3cb0d07b6e045359394b639e765a595f5c1668/consul/catalog_endpoint.go; Function of interest is below  \u003d\u003e \nfunc (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *structs.IndexedServiceNodes).",
+      "parentUuid": "da141535_88043f7f",
+      "revId": "94d3835730a8183403dcd000894ec4d8db46aa58",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
