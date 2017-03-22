@@ -34,7 +34,7 @@ from voltha.protos import third_party
 from voltha.protos.device_pb2 import Device, Port
 from voltha.protos.events_pb2 import KpiEvent, AlarmEvent, AlarmEventType, \
     AlarmEventSeverity, AlarmEventState, AlarmEventCategory
-from voltha.protos.device_pb2 import Device, Port, PmConfigs
+from voltha.protos.device_pb2 import Device, Port, PmConfigs, AlarmConfigs
 from voltha.protos.events_pb2 import KpiEvent
 from voltha.protos.voltha_pb2 import DeviceGroup, LogicalDevice, \
     LogicalPort, AdminState, OperStatus, ConnectStatus
@@ -221,6 +221,18 @@ class AdapterAgent(object):
     def update_adapter_pm_config(self, device_id, device_pm_config):
         device = self.get_device(device_id)
         self.adapter.update_pm_config(device, device_pm_config)
+
+    def update_device_alarm_config(self, device_alarm_config):
+        assert isinstance(device_alarm_config, AlarmConfigs)
+
+        # we run the update through the device_agent so that the change
+        # does not loop back to the adapter unnecessarily
+        device_agent = self.core.get_device_agent(device_alarm_config.id)
+        device_agent.update_device_alarm_config(device_alarm_config)
+
+    #Alarm Configuration
+    def update_adapter_alarm_config(self, device, alarm_cfgs):
+        self.adapter.update_device_alarm_config(device, alarm_cfgs)
 
     def _add_peer_reference(self, device_id, port):
         # for referential integrity, add/augment references

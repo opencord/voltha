@@ -287,3 +287,49 @@ individual metrics.
             groups=device['flow_groups']['items']
         )
 
+    @options([
+        make_option('-a', '--action', action='store', dest='action',
+                    help="Action on the alarm: ENABLE, SUPPRESS, REFRESH"),
+        make_option('-n', '--name', action='store', dest='name',
+                    help="Name of the Alarm"),
+    ])
+    def do_push_alarm_cfg(self, line, opts):
+        """
+        Configure Alarm to a device.
+        """
+        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        if not opts.action:
+            self.poutput("Missing 'action' field. Look for help on command")
+            raise Exception("Missing action field")
+        if opts.action not in ["ENABLE", "SUPPRESS", "REFRESH"]:
+            self.poutput("Invalid 'action' field. Look for help on command")
+            raise Exception("Invalid action field")
+        kv_alarm_cfg = dict(action=opts.action)
+        if not opts.name:
+            self.poutput("Missing 'name' field. Look for help on command")
+            raise Exception("Missing name field")
+        kv_alarm_cfg['name'] = opts.name
+
+        kv_alarm_cfgs = dict(id=self.device_id)
+        kv_alarm_cfgs['alarm_cfg'] = [kv_alarm_cfg]
+        self.poutput('{} {} {}'.format(opts.action, opts.name, self.device_id))
+
+        alarm_cfgs = voltha_pb2.AlarmConfigs(**kv_alarm_cfgs)
+        stub.UpdateDeviceAlarmConfigs(alarm_cfgs)
+        self.poutput('successfully pushed alarm config (device id = {})'.format(self.device_id))
+        self.default_device_id = self.device_id
+
+    def do_get_alarm_cfg(self, line):
+        """
+        Get the alarm configuration on the device
+        """
+        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        res = stub.ListDeviceAlarmConfigs(voltha_pb2.ID(id=self.device_id))
+        self.poutput('Alarm Config for (device id = {})'.format(self.device_id))
+        omit_fields = {
+            'adapter',
+            'Device_alarm',
+            'Device_action',
+        }
+        print_pb_list_as_table('Alarm Config:', res.alarm_cfg, omit_fields,
+                               self.poutput)
