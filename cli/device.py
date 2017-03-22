@@ -92,8 +92,8 @@ class DeviceCli(Cmd):
 perf_config [show | set | commit | reset] [-f <default frequency>] [{-e <metric/group
             name>}] [{-d <metric/group name>}] [{-o <metric/group name> <override
             frequency>}]
-
 show: displays the performance configuration of th device
+
 set: changes the parameters specified with -e, -d, and -o
 reset: reverts any changes made since the last commit
 commit: commits any changes made which applies them to the device.
@@ -272,7 +272,8 @@ individual metrics.
             else:
                 omit_fields = {'sample_freq'}
             print_pb_list_as_table('Supported metrics:', self.pm_config_last.metrics,
-                                   omit_fields, self.poutput, dividers=100)
+                                   omit_fields, self.poutput, dividers=100,
+                                   show_nulls=True)
 
 
     def do_flows(self, line):
