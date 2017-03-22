@@ -255,6 +255,43 @@ service VolthaGlobalService {
         };
     }
 
+    // List Alarm config of a device
+    rpc ListDeviceAlarmConfigs(ID) returns(AlarmConfigs) {
+        option (google.api.http) = {
+            get: "/api/v1/devices/{id}/alarm_cfgs"
+        };
+    }
+
+    // Update the alarm config of a device
+    rpc UpdateDeviceAlarmConfigs(voltha.AlarmConfigs) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/devices/{id}/alarm_cfgs"
+            body: "*"
+        };
+    }
+
+    // Refresh alarms on a device
+    rpc RefreshDeviceAlarms(voltha.RefreshAlarms) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/devices/{id}/refresh_alarms"
+            body: "*"
+        };
+    }
+
+    // Enable all alarms of the device
+    rpc EnableAllDeviceAlarms(ID) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/devices/{id}/enable_all"
+        };
+    }
+
+    // Suppress all alarms of the device
+    rpc SuppressAllDeviceAlarms(ID) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/devices/{id}/suppress_all"
+        };
+    }
+
     // List all flows of a device
     rpc ListDeviceFlows(ID) returns(openflow_13.Flows) {
         option (google.api.http) = {
@@ -468,6 +505,43 @@ service VolthaLocalService {
         option (google.api.http) = {
             post: "/api/v1/local/devices/{id}/pm_configs"
             body: "*"
+        };
+    }
+
+    // List Alarm config of a device
+    rpc ListDeviceAlarmConfigs(ID) returns(AlarmConfigs) {
+        option (google.api.http) = {
+            get: "/api/v1/local/devices/{id}/alarm_cfgs"
+        };
+    }
+
+    // Update the Alarm config of a device
+    rpc UpdateDeviceAlarmConfigs(voltha.AlarmConfigs) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/devices/{id}/alarm_cfgs"
+            body: "*"
+        };
+    }
+
+    // Refresh alarms on a device
+    rpc RefreshDeviceAlarms(voltha.RefreshAlarms) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/devices/{id}/refresh_alarms"
+            body: "*"
+        };
+    }
+
+    // Enable all alarms of the device
+    rpc EnableAllDeviceAlarms(ID) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/devices/{id}/enable_all"
+        };
+    }
+
+    // Suppress all alarms of the device
+    rpc SuppressAllDeviceAlarms(ID) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/devices/{id}/suppress_all"
         };
     }
 
