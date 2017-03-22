@@ -1,0 +1,61 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba092121_cc75af33",
+        "filename": "cli/device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 96,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-03-22T20:12:33Z",
+      "side": 1,
+      "message": "typo \"th\"",
+      "revId": "57979ecb8330d9f727cadc9834e3be50be00ed5d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_ac727b47",
+        "filename": "cli/device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 103,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-03-22T20:12:33Z",
+      "side": 1,
+      "message": "typo \"collectio\"",
+      "revId": "57979ecb8330d9f727cadc9834e3be50be00ed5d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_8c8fb723",
+        "filename": "cli/device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 107,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-03-22T20:12:33Z",
+      "side": 1,
+      "message": "typo \"frequency_overried\"",
+      "range": {
+        "startLine": 107,
+        "startChar": 12,
+        "endLine": 107,
+        "endChar": 30
+      },
+      "revId": "57979ecb8330d9f727cadc9834e3be50be00ed5d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
