@@ -197,6 +197,9 @@ class PonSimOltAdapter(object):
         handler = self.devices_handlers[device.id]
         handler.update_pm_config(device, pm_config)
 
+    def update_device_alarm_config(self, device, alarm_configs):
+        raise NotImplementedError()
+
     def adopt_device(self, device):
         self.devices_handlers[device.id] = PonSimOltHandler(self, device.id)
         reactor.callLater(0, self.devices_handlers[device.id].activate, device)

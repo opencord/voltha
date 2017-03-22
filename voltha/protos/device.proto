@@ -59,6 +59,42 @@ message PmConfigs {
     repeated PmConfig metrics = 6; // The metrics themselves if grouped is false.
 }
 
+message AlarmAction {
+    enum AlarmAction {
+        ENABLE = 0;
+        SUPPRESS = 1;
+        ENABLE_ALL = 2;
+        SUPPRESS_ALL =3;
+    }
+}
+message AlarmConfig {
+    string name = 1; // Name of the alarm. If a valid alarm name is provided, 
+                     // one of AlarmAction ENABLE or SUPPRESS is valid.
+                     // If name is not provided, then one of ENABLE_ALL or
+                     // SUPPRESS_ALL is valid.
+    AlarmAction.AlarmAction action = 2;
+}
+
+message AlarmConfigs {
+    string id = 1; // To work around a chameleon POST bug
+    repeated AlarmConfig alarm_cfg = 2; // Action ENABLE/SUPPRESS and
+                                        // ENABLE_ALL/SUPPRESS_ALL are mutually
+                                        // exclusive for a given AlarmConfigs
+                                        // message, i.e., In a given AlarmConfigs
+                                        // message =>
+                                        // You can ENABLE and DISABLE a set of
+                                        // Alarms
+                                        //               OR
+                                        // ENABLE_ALL or SUPPRESS_ALL Alarms,
+                                        // But not do both simultaneously
+}
+
+message RefreshAlarms {
+    string id = 1; // To work around a chameleon POST bug
+    repeated string name = 2; // List of Alarm Names
+                              // Absence of alarm names should refresh all alarms
+}
+
 message Port {
     option (voltha.yang_child_rule) = MOVE_TO_PARENT_LEVEL;
 
@@ -170,6 +206,7 @@ message Device {
     // PmConfigs will eventually converted to a child node of the
     // device to falicitata callbacks and to simplify manipulation.
     PmConfigs pm_configs = 131 [(child_node) = {}];
+    AlarmConfigs alarm_cfgs = 132 [(child_node) = {}];
 
 }
 
