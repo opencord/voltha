@@ -39,13 +39,16 @@ from voltha.protos.adapter_pb2 import AdapterConfig
 from voltha.protos.common_pb2 import LogLevel, OperStatus, ConnectStatus, \
     AdminState
 from voltha.protos.device_pb2 import DeviceType, DeviceTypes, Port, Device, \
-PmConfig, PmConfigs
+    PmConfig, PmConfigs
 from voltha.protos.events_pb2 import KpiEvent, KpiEventType, MetricValuePairs
+from voltha.protos.events_pb2 import AlarmEventType, AlarmEventSeverity, \
+    AlarmEventState, AlarmEventCategory
 from voltha.protos.health_pb2 import HealthStatus
 from google.protobuf.empty_pb2 import Empty
 
 from voltha.protos.logical_device_pb2 import LogicalPort, LogicalDevice
-from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, OFPPF_1GB_FD, \
+from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, \
+    OFPPF_1GB_FD, \
     OFPC_GROUP_STATS, OFPC_PORT_STATS, OFPC_TABLE_STATS, OFPC_FLOW_STATS, \
     ofp_switch_features, ofp_desc
 from voltha.protos.openflow_13_pb2 import ofp_port
@@ -55,21 +58,22 @@ from voltha.registry import registry
 _ = third_party
 log = structlog.get_logger()
 
-
 PACKET_IN_VLAN = 4000
 is_inband_frame = BpfProgramFilter('(ether[14:2] & 0xfff) = 0x{:03x}'.format(
     PACKET_IN_VLAN))
 
+
 class AdapterPmMetrics:
-    def __init__(self,device):
-        self.pm_names = {'tx_64','tx_65_127', 'tx_128_255', 'tx_256_511',
-                        'tx_512_1023', 'tx_1024_1518', 'tx_1519_9k', 'rx_64',
-                        'rx_65_127', 'rx_128_255', 'rx_256_511', 'rx_512_1023',
-                        'rx_1024_1518', 'rx_1519_9k'}
+    def __init__(self, device):
+        self.pm_names = {'tx_64', 'tx_65_127', 'tx_128_255', 'tx_256_511',
+                         'tx_512_1023', 'tx_1024_1518', 'tx_1519_9k', 'rx_64',
+                         'rx_65_127', 'rx_128_255', 'rx_256_511',
+                         'rx_512_1023',
+                         'rx_1024_1518', 'rx_1519_9k'}
         self.device = device
         self.id = device.id
         self.name = 'ponsim_olt'
-        #self.id = "abc"
+        # self.id = "abc"
         self.default_freq = 150
         self.grouped = False
         self.freq_override = False
@@ -89,7 +93,7 @@ class AdapterPmMetrics:
             # Update the callback to the new frequency.
             self.default_freq = pm_config.default_freq
             self.lc.stop()
-            self.lc.start(interval=self.default_freq/10)
+            self.lc.start(interval=self.default_freq / 10)
         for m in pm_config.metrics:
             self.pon_metrics_config[m.name].enabled = m.enabled
             self.nni_metrics_config[m.name].enabled = m.enabled
@@ -98,10 +102,10 @@ class AdapterPmMetrics:
         pm_config = PmConfigs(
             id=self.id,
             default_freq=self.default_freq,
-            grouped = False,
-            freq_override = False)
+            grouped=False,
+            freq_override=False)
         for m in sorted(self.pon_metrics_config):
-            pm=self.pon_metrics_config[m] # Either will do they're the same
+            pm = self.pon_metrics_config[m]  # Either will do they're the same
             pm_config.metrics.extend([PmConfig(name=pm.name,
                                                type=pm.type,
                                                enabled=pm.enabled)])
@@ -114,7 +118,6 @@ class AdapterPmMetrics:
         rtrn_port_metrics['pon'] = self.extract_pon_metrics(stats)
         rtrn_port_metrics['nni'] = self.extract_nni_metrics(stats)
         return rtrn_port_metrics
-
 
     def extract_pon_metrics(self, stats):
         rtrn_pon_metrics = dict()
@@ -139,12 +142,11 @@ class AdapterPmMetrics:
                  device_id=self.device.id)
         prefix = 'voltha.{}.{}'.format(self.name, self.device.id)
         self.lc = LoopingCall(callback, self.device.id, prefix)
-        self.lc.start(interval=self.default_freq/10)
+        self.lc.start(interval=self.default_freq / 10)
 
 
 @implementer(IAdapterInterface)
 class PonSimOltAdapter(object):
-
     name = 'ponsim_olt'
 
     supported_device_types = [
@@ -193,7 +195,8 @@ class PonSimOltAdapter(object):
         raise NotImplementedError()
 
     def update_pm_config(self, device, pm_config):
-        log.info("adapter-update-pm-config", device=device, pm_config=pm_config)
+        log.info("adapter-update-pm-config", device=device,
+                 pm_config=pm_config)
         handler = self.devices_handlers[device.id]
         handler.update_pm_config(device, pm_config)
 
@@ -230,7 +233,7 @@ class PonSimOltAdapter(object):
 
     def update_flows_bulk(self, device, flows, groups):
         log.info('bulk-flow-update', device_id=device.id,
-                  flows=flows, groups=groups)
+                 flows=flows, groups=groups)
         assert len(groups.items) == 0
         handler = self.devices_handlers[device.id]
         return handler.update_flow_table(flows.items)
@@ -247,7 +250,6 @@ class PonSimOltAdapter(object):
         raise NotImplementedError()
 
     def receive_packet_out(self, logical_device_id, egress_port_no, msg):
-
         def ldi_to_di(ldi):
             di = self.logical_device_id_to_root_device_id.get(ldi)
             if di is None:
@@ -262,7 +264,6 @@ class PonSimOltAdapter(object):
 
 
 class PonSimOltHandler(object):
-
     def __init__(self, adapter, device_id):
         self.adapter = adapter
         self.adapter_agent = adapter.adapter_agent
@@ -275,6 +276,7 @@ class PonSimOltHandler(object):
         self.ofp_port_no = None
         self.interface = registry('main').get_args().interface
         self.pm_metrics = None
+        self.alarm_lc = None
 
     def __del__(self):
         if self.io_port is not None:
@@ -301,16 +303,16 @@ class PonSimOltHandler(object):
 
         device.root = True
         device.vendor = 'ponsim'
-        device.model ='n/a'
+        device.model = 'n/a'
         device.serial_number = device.host_and_port
         device.connect_status = ConnectStatus.REACHABLE
         self.adapter_agent.update_device(device)
 
         # Now set the initial PM configuration for this device
-        self.pm_metrics=AdapterPmMetrics(device)
+        self.pm_metrics = AdapterPmMetrics(device)
         pm_config = self.pm_metrics.make_proto()
         log.info("initial-pm-config", pm_config=pm_config)
-        self.adapter_agent.update_device_pm_config(pm_config,init=True)
+        self.adapter_agent.update_device_pm_config(pm_config, init=True)
 
         nni_port = Port(
             port_no=2,
@@ -357,7 +359,8 @@ class PonSimOltHandler(object):
             id='nni',
             ofp_port=ofp_port(
                 port_no=info.nni_port,
-                hw_addr=mac_str_to_tuple('00:00:00:00:00:%02x' % info.nni_port),
+                hw_addr=mac_str_to_tuple(
+                    '00:00:00:00:00:%02x' % info.nni_port),
                 name='nni',
                 config=0,
                 state=OFPPS_LIVE,
@@ -401,9 +404,12 @@ class PonSimOltHandler(object):
         # Start collecting stats from the device after a brief pause
         self.start_kpi_collection(device.id)
 
+        # Start generating simulated alarms
+        self.start_alarm_simulation(device.id)
+
     def rcv_io(self, port, frame):
         self.log.info('reveived', iface_name=port.iface_name,
-                       frame_len=len(frame))
+                      frame_len=len(frame))
         pkt = Ether(frame)
         if pkt.haslayer(Dot1Q):
             outer_shim = pkt.getlayer(Dot1Q)
@@ -423,8 +429,6 @@ class PonSimOltHandler(object):
                 self.adapter_agent.send_packet_in(
                     packet=str(popped_frame), **kw)
 
-
-
     def update_flow_table(self, flows):
         stub = ponsim_pb2.PonSimStub(self.get_channel())
         self.log.info('pushing-olt-flow-table')
@@ -435,7 +439,8 @@ class PonSimOltHandler(object):
         self.log.info('success')
 
     def update_pm_config(self, device, pm_config):
-        log.info("handler-update-pm-config", device=device, pm_config=pm_config)
+        log.info("handler-update-pm-config", device=device,
+                 pm_config=pm_config)
         self.pm_metrics.update(pm_config)
 
     def send_proxied_message(self, proxy_address, msg):
@@ -472,7 +477,7 @@ class PonSimOltHandler(object):
         self.adapter_agent.update_device(device)
 
         # Sleep 10 secs, simulating a reboot
-        #TODO: send alert and clear alert after the reboot
+        # TODO: send alert and clear alert after the reboot
         yield asleep(10)
 
         # Change the operational status back to its previous state.  With a
@@ -498,7 +503,7 @@ class PonSimOltHandler(object):
 
         # Remove the logical device
         logical_device = self.adapter_agent.get_logical_device(
-                                                    self.logical_device_id)
+            self.logical_device_id)
         self.adapter_agent.delete_logical_device(logical_device)
 
         # Disable all child devices first
@@ -513,12 +518,14 @@ class PonSimOltHandler(object):
         # close the frameio port
         registry('frameio').close_port(self.io_port)
 
+        # Stop the generation of simulated alarms
+        self.stop_alarm_simulation(self.device_id)
+
         # TODO:
         # 1) Remove all flows from the device
         # 2) Remove the device from ponsim
 
         self.log.info('disabled', device_id=device.id)
-
 
     def reenable(self):
         self.log.info('re-enabling', device_id=self.device_id)
@@ -593,7 +600,6 @@ class PonSimOltHandler(object):
 
         self.log.info('re-enabled', device_id=device.id)
 
-
     def delete(self):
         self.log.info('deleting', device_id=self.device_id)
 
@@ -613,7 +619,7 @@ class PonSimOltHandler(object):
             try:
                 # Step 1: gather metrics from device
                 port_metrics = \
-                self.pm_metrics.collect_port_metrics(self.get_channel())
+                    self.pm_metrics.collect_port_metrics(self.get_channel())
 
                 # Step 2: prepare the KpiEvent for submission
                 # we can time-stamp them here (or could use time derived from OLT
@@ -636,5 +642,101 @@ class PonSimOltHandler(object):
 
             except Exception as e:
                 log.exception('failed-to-submit-kpis', e=e)
+
         self.pm_metrics.start_collector(_collect)
 
+    def start_alarm_simulation(self, device_id):
+        log.info("starting-alarm-simulation", device_id=device_id)
+
+        """Simulate periodic device alarms"""
+        import random
+
+        @inlineCallbacks
+        def _generate_alarm(device_id):
+            log.info("generate-alarm", device_id=device_id)
+
+            alarm = _prepare_alarm(device_id)
+            _raise_alarm(alarm)
+            yield asleep(random.randint(30, 50))
+            _clear_alarm(alarm)
+
+        def _prepare_alarm(device_id):
+            log.info("prepare-alarm", device_id=device_id)
+
+            try:
+                # Randomly choose values for each enum types
+                severity = random.choice(list(
+                    v for k, v in
+                    AlarmEventSeverity.DESCRIPTOR.enum_values_by_name.items()))
+
+                type = random.choice(list(
+                    v for k, v in
+                    AlarmEventType.DESCRIPTOR.enum_values_by_name.items()))
+
+                category = random.choice(list(
+                    v for k, v in
+                    AlarmEventCategory.DESCRIPTOR.enum_values_by_name.items()))
+
+                current_context = {}
+                for key, value in self.__dict__.items():
+                    current_context[key] = str(value)
+
+                return self.adapter_agent.create_alarm(
+                    resource_id=device_id,
+                    type=type.number,
+                    category=category.number,
+                    severity=severity.number,
+                    context=current_context)
+
+            except Exception as e:
+                log.exception('failed-to-prepare-alarm', e=e)
+
+        def _raise_alarm(alarm_event):
+            log.info("raise-alarm", alarm_event=alarm_event)
+
+            try:
+                alarm_event.description = \
+                    "RAISE simulated alarm - " \
+                    "resource:{} " \
+                    "type:{} " \
+                    "severity:{} " \
+                    "category:{}".format(
+                        alarm_event.resource_id,
+                        alarm_event.type,
+                        alarm_event.severity,
+                        alarm_event.category
+                    )
+
+                self.adapter_agent.submit_alarm(alarm_event)
+
+            except Exception as e:
+                log.exception('failed-to-raise-alarm', e=e)
+
+        def _clear_alarm(alarm_event):
+            log.info("clear-alarm", alarm_event=alarm_event)
+
+            try:
+                alarm_event.description = \
+                    "CLEAR simulated alarm - " \
+                    "resource:{} " \
+                    "type:{} " \
+                    "severity:{} " \
+                    "category:{}".format(
+                        alarm_event.resource_id,
+                        alarm_event.type,
+                        alarm_event.severity,
+                        alarm_event.category
+                    )
+
+                alarm_event.state = AlarmEventState.CLEARED
+                self.adapter_agent.submit_alarm(alarm_event)
+
+            except Exception as e:
+                log.exception('failed-to-clear-alarm', e=e)
+
+        self.alarm_lc = LoopingCall(_generate_alarm, device_id)
+        self.alarm_lc.start(60)
+
+    def stop_alarm_simulation(self, device_id):
+        log.info("stopping-alarm-simulation", device_id=device_id)
+        self.alarm_lc.stop()
