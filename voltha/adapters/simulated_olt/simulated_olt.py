@@ -36,7 +36,7 @@ from voltha.core.flow_decomposer import *
 from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.protos.adapter_pb2 import Adapter, AdapterConfig
 from voltha.protos.device_pb2 import DeviceType, DeviceTypes, Device, Port, \
-PmConfigs, PmConfig, PmGroupConfig
+PmConfigs, PmConfig, PmGroupConfig, AlarmConfig, AlarmAction, AlarmConfigs
 from voltha.protos.events_pb2 import KpiEvent, KpiEventType, MetricValuePairs
 from voltha.protos.health_pb2 import HealthStatus
 from voltha.protos.common_pb2 import LogLevel, OperStatus, ConnectStatus, \
@@ -50,6 +50,69 @@ from voltha.protos.events_pb2 import AlarmEvent, AlarmEventType, \
 import sys
 
 log = structlog.get_logger()
+
+
+class AdapterAlarmConfig:
+
+    SEVERITY = 0
+    EVENT_TYPE = 1
+    CATEGORY = 2
+
+    def __init__(self, device):
+        self.device = device
+        self.id = device.id
+        self.alarm_cfg = dict()
+        """
+        Sample alarm list for simulation purposes only.
+        ** A real adapter is not required to maintain a static list of alarms. **
+        This is a dictionary with key being the alarm_id and value being a tuple of
+        (<severity>,<event_type>,<category>,<description>)
+        """
+        self.alarms = {
+            "ani-hi-laser-bias": (AlarmEventSeverity.MINOR, AlarmEventType.COMMUNICATION,
+                                  AlarmEventCategory.PON, "access network high laser bias"),
+            "ani-hi-rx-opt-power": (AlarmEventSeverity.MINOR, AlarmEventType.COMMUNICATION,
+                                    AlarmEventCategory.PON, "access network low optical power"),
+            "ani-lo-rx-opt-power": (AlarmEventSeverity.MINOR, AlarmEventType.COMMUNICATION,
+                                    AlarmEventCategory.PON, "access network low optical power"),
+            "olt-los": (AlarmEventSeverity.CRITICAL, AlarmEventType.COMMUNICATION,
+                        AlarmEventCategory.PON, "PON NI Loss of Signal"),
+            "onu-df": (AlarmEventSeverity.MAJOR, AlarmEventType.COMMUNICATION,
+                       AlarmEventCategory.PON, "Deactivate Failure"),
+            "onu-dow": (AlarmEventSeverity.MAJOR, AlarmEventType.COMMUNICATION,
+                        AlarmEventCategory.PON, "Drift of Window"),
+            "onu-dying-gasp": (AlarmEventSeverity.INDETERMINATE, AlarmEventType.COMMUNICATION,
+                               AlarmEventCategory.PON, "Received Dying Gasp"),
+            "onu-lof": (AlarmEventSeverity.CRITICAL, AlarmEventType.COMMUNICATION,
+                        AlarmEventCategory.PON, "Loss of Frame"),
+            "onu-manual-power-off": (AlarmEventSeverity.MINOR, AlarmEventType.EQUIPMENT,
+                                     AlarmEventCategory.PON, "Manual power off"),
+            "onu-rdi": (AlarmEventSeverity.WARNING, AlarmEventType.COMMUNICATION,
+                        AlarmEventCategory.PON, "Remote Defect Indication"),
+            "onu-sd": (AlarmEventSeverity.CRITICAL, AlarmEventType.ENVIRONMENT,
+                       AlarmEventCategory.PON,  "Signal Degraded"),
+            "onu-sf": (AlarmEventSeverity.CRITICAL, AlarmEventType.EQUIPMENT,
+                       AlarmEventCategory.PON, "Signal Failed - ONU SFi")
+        }
+
+    def update(self, alarm_cfg):
+        log.info("updating alarm config")
+        # loop through each alarm config in the list.
+        for cfg in alarm_cfg.alarm_cfg:
+            # If the alarm did not exist in our local db and the action is
+            # to suppress it, just add the entry to our local db
+            if cfg.alarm_name not in self.alarm_cfg.keys():
+                if cfg.action != AlarmAction.SUPPRESS:
+                    log.info("{} action supported only for alarms already \
+                              configured. {} not configured yet.".
+                              format(str(cfg.action), cfg.alarm_name))
+                else:
+                    # create the entry
+                    self.alarm_cfg[cfg.alarm_name] = cfg.action
+            # If the alarm is being enabled again, just delete the entry
+            # from the list of suppressed alarms.
+            elif cfg.action == AlarmAction.ENABLE:
+                del self.alarm_cfg[cfg.alarm_name]
 
 
 class AdapterPmMetrics:
@@ -180,6 +243,7 @@ class SimulatedOltAdapter(object):
         self.control_endpoint = None
         # Faked PM metrics for testing PM functionality
         self.pm_metrics = None
+        self.alarm_cfgs = None
 
     def start(self):
         log.debug('starting')
@@ -235,7 +299,9 @@ class SimulatedOltAdapter(object):
         log.info("adapter-update-pm-config", device=device, pm_config=pm_config)
         self.pm_metrics.update(pm_config)
 
-
+    def update_device_alarm_config(self, device, alarm_cfgs):
+        log.info("adapter-update-alarm-config", device=device, alarm_cfgs=alarm_cfgs)
+        self.alarm_cfgs.update(alarm_cfgs)
 
     def _tmp_populate_stuff(self):
         """
@@ -388,6 +454,8 @@ class SimulatedOltAdapter(object):
         pm_config = self.pm_metrics.make_proto()
         log.info("initial-pm-config", pm_config=pm_config)
         self.adapter_agent.update_device_pm_config(pm_config,init=True)
+        # Set the initial Alarm configuration for this device
+        self.alarm_cfgs = AdapterAlarmConfig(device)
 
         # then shortly after we create some ports for the device
         yield asleep(0.05)
@@ -460,7 +528,7 @@ class SimulatedOltAdapter(object):
         device.oper_status = OperStatus.ACTIVE
         self.adapter_agent.update_device(device)
 
-        # reactor.callLater(0.1, self._simulate_detection_of_onus, device.id)
+        reactor.callLater(0.1, self._simulate_detection_of_onus, device.id)
         self.start_kpi_collection(device.id)
 
         self.start_alarm_simulation(device.id)
@@ -722,22 +790,37 @@ class SimulatedOltAdapter(object):
         def _generate_alarm(device_id):
 
             try:
-                # Randomly choose values for each enum types
-                severity = random.choice(list(
-                    v for k, v in
-                    AlarmEventSeverity.DESCRIPTOR.enum_values_by_name.items()))
+                # Get the set of all alarm names
+                all_alarms = set(
+                    k for k, v in
+                    self.alarm_cfgs.alarms.iteritems())
 
+                # Get the set of all suppressed alarms
+                suppressed_alarms = set(
+                    k for k, v in
+                    self.alarm_cfgs.alarm_cfg.iteritems())
+
+                # Get the list of alarms which are not suppressed
+                enabled_alarms = list(all_alarms.difference(suppressed_alarms))
+
+                # Choose a random alarm which is not suppressed
+                # If the list enabled alarms is empty, then the below
+                # statement raises an IndexError exception, so catch it!
+                alarm_name = random.choice(enabled_alarms)
+
+                # Severity of the chosen alarm
+                severity = self.alarm_cfgs.alarms[alarm_name][AdapterAlarmConfig.SEVERITY]
+
+                # Randomly choose the state of the chosen alarm
                 state = random.choice(list(
                     v for k, v in
                     AlarmEventState.DESCRIPTOR.enum_values_by_name.items()))
 
-                type = random.choice(list(
-                    v for k, v in
-                    AlarmEventType.DESCRIPTOR.enum_values_by_name.items()))
+                # Type of the chosen alarm
+                type = self.alarm_cfgs.alarms[alarm_name][AdapterAlarmConfig.EVENT_TYPE]
 
-                category = random.choice(list(
-                    v for k, v in
-                    AlarmEventCategory.DESCRIPTOR.enum_values_by_name.items()))
+                # Category of the chosen alarm
+                category = self.alarm_cfgs.alarms[alarm_name][AdapterAlarmConfig.CATEGORY]
 
                 description = "Simulated alarm - " \
                               "device:{} " \
@@ -745,26 +828,29 @@ class SimulatedOltAdapter(object):
                               "severity:{} " \
                               "state:{} " \
                               "category:{}".format(device_id,
-                                                   type.name,
-                                                   severity.name,
+                                                   str(type),
+                                                   str(severity),
                                                    state.name,
-                                                   category.name)
+                                                   str(category))
 
                 current_context = {}
                 for key, value in self.__dict__.items():
                     current_context[key] = str(value)
 
                 alarm_event = self.adapter_agent.create_alarm(
+                    id=alarm_name,
                     resource_id=device_id,
-                    type=type.number,
-                    category=category.number,
-                    severity=severity.number,
+                    type=type,
+                    category=category,
+                    severity=severity,
                     state=state.number,
                     description=description,
-                    context=current_context)
+                    context=current_context
+                )
 
                 self.adapter_agent.submit_alarm(alarm_event)
-
+            except IndexError:
+                log.info('You probably have suppressed all the alarms')
             except Exception as e:
                 log.exception('failed-to-submit-alarm', e=e)
 

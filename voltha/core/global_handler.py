@@ -19,7 +19,7 @@ from twisted.internet.defer import returnValue
 
 from common.utils.grpc_utils import twisted_async
 from voltha.core.config.config_root import ConfigRoot
-from voltha.protos.device_pb2 import PmConfigs
+from voltha.protos.device_pb2 import PmConfigs, AlarmConfigs
 from voltha.protos.voltha_pb2 import \
     add_VolthaGlobalServiceServicer_to_server, VolthaLocalServiceStub, \
     VolthaGlobalServiceServicer, Voltha, VolthaInstances, VolthaInstance, \
@@ -411,6 +411,61 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             'UpdateDevicePmConfigs',
             request,
             context)
+
+    @twisted_async
+    def ListDeviceAlarmConfig(self, request, context):
+        log.info('grpc-request', request=request)
+
+        try:
+            instance_id = self.dispatcher.instance_id_by_device_id(
+                request.id
+            )
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return AlarmConfigs()
+
+        return self.dispatcher.dispatch(
+            instance_id,
+            VolthaLocalServiceStub,
+            'ListDeviceAlarmConfig',
+            request,
+            context)
+
+    @twisted_async
+    def UpdateDeviceAlarmConfig(self, request, context):
+        log.info('grpc-request', request=request)
+
+        try:
+            instance_id = self.dispatcher.instance_id_by_device_id(
+                request.id
+            )
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            #return AlarmConfigs()
+            return Empty()
+
+        return self.dispatcher.dispatch(
+            instance_id,
+            VolthaLocalServiceStub,
+            'UpdateDeviceAlarmConfig',
+            request,
+            context)
+
+    @twisted_async
+    def RefreshDeviceAlarms(self, request, context):
+        raise NotImplementedError('Method not implemented!')
+
+    @twisted_async
+    def EnableAllDeviceAlarms(self, request, context):
+        raise NotImplementedError('Method not implemented!')
+
+    @twisted_async
+    def SuppressAllDeviceAlarms(self, request, context):
+        raise NotImplementedError('Method not implemented!')
 
     @twisted_async
     def ListDeviceFlows(self, request, context):

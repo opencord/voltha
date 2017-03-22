@@ -319,6 +319,8 @@ class MapleOltAdapter(object):
         handler = self.devices_handlers[device.id]
         handler.update_pm_metrics(device, pm_config)
 
+    def update_device_alarm_config(self, device, alarm_cfgs):
+        raise NotImplementedError()
     def adopt_device(self, device):
         self.devices_handlers[device.id] = MapleOltHandler(self, device.id)
         reactor.callLater(0, self.devices_handlers[device.id].activate, device)
