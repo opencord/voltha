@@ -134,3 +134,10 @@ message AlarmEvent {
     // Key/Value storage for extra information that may give context to the alarm
     map<string, string> context = 11;
 }
+
+message AlarmIDs {
+    // device_id
+    string id = 1;
+    // list of unique alarm_id
+    repeated string alarm_ids = 2;
+}

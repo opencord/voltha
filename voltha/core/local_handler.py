@@ -28,9 +28,9 @@ from voltha.protos.voltha_pb2 import \
     add_VolthaLocalServiceServicer_to_server, VolthaLocalServiceServicer, \
     VolthaInstance, Adapters, LogicalDevices, LogicalDevice, Ports, \
     LogicalPorts, Devices, Device, DeviceType, \
-    DeviceTypes, DeviceGroups, DeviceGroup, AdminState, OperStatus, ChangeEvent, \
-    AlarmFilter, AlarmFilters
+    DeviceTypes, DeviceGroups, DeviceGroup, AdminState, OperStatus, ChangeEvent
 from voltha.protos.device_pb2 import PmConfigs
+from voltha.protos.events_pb2 import AlarmIDs
 from voltha.registry import registry
 
 log = structlog.get_logger()
@@ -455,6 +455,82 @@ class LocalHandler(VolthaLocalServiceServicer):
                 'Device \'{}\' not found'.format(request.id))
             context.set_code(StatusCode.NOT_FOUND)
             return Empty()
+
+    @twisted_async
+    def ListSuppressedAlarms(self, request, context):
+        log.info('grpc-request', request=request)
+
+        if '/' in request.id:
+            context.set_details(
+                'Malformed device id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return AlarmIDs()
+
+        try:
+            suppressed_alarms = self.root.get('/devices/{}/suppressed_alarms'.format(request.id))
+            log.info('ListSuppressedAlarms',suppressed_alarms=suppressed_alarms)
+            return suppressed_alarms
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return AlarmIDs()
+
+    @twisted_async
+    def EnableDeviceAlarms(self, request, context):
+        log.info('grpc-request', request=request)
+
+        if '/' in request.id:
+            context.set_details(
+                'Malformed logical device id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return Empty()
+
+        try:
+            device = self.root.get('/devices/{}'.format(request.id))
+            agent = self.core.get_device_agent(request.id)
+            old_alarm_cfg = self.root.get('/devices/{}/suppressed_alarms'.format(request.id))
+            agent.enable_device_alarms(old_alarm_cfg, request)
+            return Empty()
+        except KeyError:
+            context.set_details(
+                'Logical device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return Empty()
+
+    @twisted_async
+    def SuppressDeviceAlarms(self, request, context):
+        log.info('grpc-request', request=request)
+
+        if '/' in request.id:
+            context.set_details(
+                'Malformed logical device id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return Empty()
+
+        try:
+            device = self.root.get('/devices/{}'.format(request.id))
+            agent = self.core.get_device_agent(request.id)
+            old_alarm_cfg = self.root.get('/devices/{}/suppressed_alarms'.format(request.id))
+            agent.suppress_device_alarms(old_alarm_cfg, request)
+            return Empty()
+        except KeyError:
+            context.set_details(
+                'Logical device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return Empty()
+
+    @twisted_async
+    def RefreshDeviceAlarms(self, request, context):
+        raise NotImplementedError('Method not implemented!')
+
+    @twisted_async
+    def EnableAllDeviceAlarms(self, request, context):
+        raise NotImplementedError('Method not implemented!')
+
+    @twisted_async
+    def SuppressAllDeviceAlarms(self, request, context):
+        raise NotImplementedError('Method not implemented!')
 
     @twisted_async
     def ListDeviceFlows(self, request, context):

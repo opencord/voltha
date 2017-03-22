@@ -26,6 +26,7 @@ from voltha.core.config.config_proxy import CallbackType
 from voltha.protos.common_pb2 import AdminState, OperStatus
 from voltha.registry import registry
 from voltha.protos.openflow_13_pb2 import Flows, FlowGroups
+from voltha.protos.events_pb2 import AlarmIDs
 
 class InvalidStateTransition(Exception): pass
 
@@ -47,6 +48,9 @@ class DeviceAgent(object):
 
         self.pm_config_proxy = core.get_proxy(
             '/devices/{}/pm_configs'.format(initial_data.id))
+
+        self.alarm_config_proxy = core.get_proxy(
+            '/devices/{}/suppressed_alarms'.format(initial_data.id))
 
         self.proxy.register_callback(
             CallbackType.PRE_UPDATE, self._validate_update)
@@ -156,6 +160,31 @@ class DeviceAgent(object):
             assert callable(transition_handler)
             yield transition_handler(self, device, dry_run)
 
+    def enable_device_alarms(self, suppressed_alarms, alarms_to_enable):
+        suppressed_alarm_set = set(suppressed_alarms.alarm_ids)
+        alarms_to_enable_set = set(alarms_to_enable.alarm_ids)
+        final_suppressed_alarms_list = list(suppressed_alarm_set.difference(alarms_to_enable_set))
+        suppressed_alarms = AlarmIDs(
+                               id = suppressed_alarms.id,
+                               alarm_ids = final_suppressed_alarms_list
+                            )
+
+        self.alarm_config_proxy.update('/', suppressed_alarms)
+        self._enable_device_alarms(alarms_to_enable)
+
+    def suppress_device_alarms(self, suppressed_alarms, alarms_to_suppress):
+        suppressed_alarm_set = set(suppressed_alarms.alarm_ids)
+        alarms_to_suppress_set = set(alarms_to_suppress.alarm_ids)
+        final_suppressed_alarms_list = list(suppressed_alarm_set.union(alarms_to_suppress_set))
+        suppressed_alarms = AlarmIDs(
+                               id = suppressed_alarms.id,
+                               alarm_ids = final_suppressed_alarms_list
+                            )
+
+        self.alarm_config_proxy.update('/', suppressed_alarms)
+        self._suppress_device_alarms(alarms_to_suppress)
+
+
     @inlineCallbacks
     def _activate_device(self, device, dry_run=False):
         self.log.info('activate-device', device=device, dry_run=dry_run)
@@ -243,6 +272,16 @@ class DeviceAgent(object):
             self.adapter_agent.update_adapter_pm_config(device_id, pm_configs)
         self.callback_data = None
 
+    ## <======================= Device Alarm Configuratoins  ====================
+    def _enable_device_alarms(self, alarm_ids):
+        self.log.debug('enable-device-alarms',
+                  logical_device_id=self.last_data.id, alarm_ids=alarm_ids)
+        self.adapter_agent.enable_device_alarms(self.proxy.get('/'), alarm_ids)
+
+    def _suppress_device_alarms(self, alarm_ids):
+        self.log.debug('suppress-device-alarms',
+                  logical_device_id=self.last_data.id, alarm_ids=alarm_ids)
+        self.adapter_agent.suppress_device_alarms(self.proxy.get('/'), alarm_ids)
     ## <======================= FLOW TABLE UPDATE HANDLING ====================
 
     @inlineCallbacks

@@ -108,6 +108,12 @@ class SimulatedOnuAdapter(object):
     def get_device_details(self, device):
         raise NotImplementedError()
 
+    def enable_device_alarms(self, device, alarm_ids):
+        raise NotImplementedError()
+
+    def suppress_device_alarms(self, device, alarm_ids):
+        raise NotImplementedError()
+
     def update_pm_config(self, device, pm_configs):
         raise NotImplementedError()
 

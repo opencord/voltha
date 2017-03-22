@@ -120,6 +120,12 @@ class PmcsOnu(object):
     def deactivate_device(self, device):
         raise NotImplementedError()
 
+    def enable_device_alarms(self, device, alarm_ids):
+        raise NotImplementedError()
+
+    def suppress_device_alarms(self, device, alarm_ids):
+        raise NotImplementedError()
+
     def update_pm_config(self, device, pm_configs):
         raise NotImplementedError()
 

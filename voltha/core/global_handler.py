@@ -24,6 +24,7 @@ from voltha.protos.voltha_pb2 import \
     add_VolthaGlobalServiceServicer_to_server, VolthaLocalServiceStub, \
     VolthaGlobalServiceServicer, Voltha, VolthaInstances, VolthaInstance, \
     LogicalDevice, Ports, Flows, FlowGroups, Device
+from voltha.protos.events_pb2 import AlarmIDs
 from voltha.registry import registry
 from google.protobuf.empty_pb2 import Empty
 
@@ -411,6 +412,81 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             'UpdateDevicePmConfigs',
             request,
             context)
+
+    @twisted_async
+    def ListSuppressedAlarms(self, request, context):
+        log.info('grpc-request', request=request)
+
+        try:
+            instance_id = self.dispatcher.instance_id_by_device_id(
+                request.id
+            )
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return AlarmIDs()
+
+        return self.dispatcher.dispatch(
+            instance_id,
+            VolthaLocalServiceStub,
+            'ListSuppressedAlarms',
+            request,
+            context)
+
+    @twisted_async
+    def EnableDeviceAlarms(self, request, context):
+        log.info('grpc-request', request=request)
+
+        try:
+            instance_id = self.dispatcher.instance_id_by_device_id(
+                request.id
+            )
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return Empty()
+
+        return self.dispatcher.dispatch(
+            instance_id,
+            VolthaLocalServiceStub,
+            'EnableDeviceAlarms',
+            request,
+            context)
+
+    @twisted_async
+    def SuppressDeviceAlarms(self, request, context):
+        log.info('grpc-request', request=request)
+
+        try:
+            instance_id = self.dispatcher.instance_id_by_device_id(
+                request.id
+            )
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return Empty()
+
+        return self.dispatcher.dispatch(
+            instance_id,
+            VolthaLocalServiceStub,
+            'SuppressDeviceAlarms',
+            request,
+            context)
+
+    @twisted_async
+    def RefreshDeviceAlarms(self, request, context):
+        raise NotImplementedError('Method not implemented!')
+
+    @twisted_async
+    def EnableAllDeviceAlarms(self, request, context):
+        raise NotImplementedError('Method not implemented!')
+
+    @twisted_async
+    def SuppressAllDeviceAlarms(self, request, context):
+        raise NotImplementedError('Method not implemented!')
 
     @twisted_async
     def ListDeviceFlows(self, request, context):

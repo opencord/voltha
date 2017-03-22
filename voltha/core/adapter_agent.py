@@ -30,10 +30,10 @@ from common.event_bus import EventBusClient
 from common.frameio.frameio import hexify
 from voltha.adapters.interface import IAdapterAgent
 from voltha.protos import third_party
-from voltha.core.flow_decomposer import OUTPUT
+from voltha.protos.device_pb2 import Device, Port
+from voltha.protos.events_pb2 import KpiEvent, AlarmEvent, AlarmEventType, \
+    AlarmEventSeverity, AlarmEventState, AlarmEventCategory, AlarmIDs
 from voltha.protos.device_pb2 import Device, Port, PmConfigs
-from voltha.protos.events_pb2 import AlarmEvent, AlarmEventType, \
-    AlarmEventSeverity, AlarmEventState, AlarmEventCategory
 from voltha.protos.events_pb2 import KpiEvent
 from voltha.protos.voltha_pb2 import DeviceGroup, LogicalDevice, \
     LogicalPort, AdminState, OperStatus, AlarmFilterRuleKey
@@ -218,6 +218,13 @@ class AdapterAgent(object):
     def update_adapter_pm_config(self, device_id, device_pm_config):
         device = self.get_device(device_id)
         self.adapter.update_pm_config(device, device_pm_config)
+
+    #Alarm Configuration
+    def enable_device_alarms(self, device, alarm_ids):
+        self.adapter.enable_device_alarms(device, alarm_ids)
+
+    def suppress_device_alarms(self, device, alarm_ids):
+        self.adapter.suppress_device_alarms(device, alarm_ids)
 
     def _add_peer_reference(self, device_id, port):
         # for referential integrity, add/augment references

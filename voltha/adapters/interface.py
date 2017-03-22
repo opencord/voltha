@@ -195,6 +195,19 @@ class IAdapterInterface(Interface):
         # TODO work in progress
         # ...
 
+    def enable_device_alarms(device, alarm_ids):
+        """
+        Enable alarms on the device
+        :param device: device
+        :alarm_ids: A protobuf message of AlarmIDs type
+        """
+
+    def suppress_device_alarms(device, alarm_ids):
+        """
+        suppress alarms on the device
+        :param device: device
+        :alarm_ids: A protobuf message of AlarmIDs type
+        """
 
 class IAdapterAgent(Interface):
     """
@@ -303,4 +316,17 @@ class IAdapterAgent(Interface):
         Submit an alarm on behalf of the OLT and its adapter.
         :param alarm_event_msg: A protobuf message of AlarmEvent type.
         :return: None
+        """
+    def enable_device_alarms(device, alarm_ids):
+        """
+        Enable alarms on the device
+        :param device: device
+        :alarm_ids: A protobuf message of AlarmIDs type
+        """
+
+    def suppress_device_alarms(device, alarm_ids):
+        """
+        Suppress alarms on the device
+        :param device: device
+        :alarm_ids: A protobuf message of AlarmIDs type
         """

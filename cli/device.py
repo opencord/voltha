@@ -30,6 +30,7 @@ _ = third_party
 from voltha.protos import voltha_pb2
 import sys
 from voltha.protos.device_pb2 import PmConfigs, PmConfig, PmGroupConfig
+from voltha.protos.events_pb2 import AlarmIDs
 from google.protobuf.json_format import MessageToDict
 
 # Since proto3 won't send fields that are set to 0/false/"" any object that
@@ -336,3 +337,60 @@ individual metrics.
             groups=device['flow_groups']['items']
         )
 
+    @options([
+        make_option('-n', '--alarm-name', action='store', dest='alarm_name',
+                    help="Name of the Alarm"),
+    ])
+    def do_enable_alarm(self, line, opts):
+        """
+        Enable Alarm on a device.
+        """
+        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        if not opts.alarm_name:
+            self.poutput("Missing 'alarm_name' field. Look for help on command")
+            raise Exception("Missing alarm_name field")
+        alarm_id = [opts.alarm_name]
+
+        kv_alarm_cfgs = dict(id=self.device_id)
+        kv_alarm_cfgs['alarm_ids'] = alarm_id
+        self.poutput('{} {}'.format(opts.alarm_name, self.device_id))
+
+        alarm_cfgs = voltha_pb2.AlarmIDs(**kv_alarm_cfgs)
+        stub.EnableDeviceAlarms(alarm_cfgs)
+        self.poutput('successfully pushed alarm config (device id = {})'.format(self.device_id))
+        self.default_device_id = self.device_id
+
+
+    @options([
+        make_option('-n', '--alarm-name', action='store', dest='alarm_name',
+                    help="Name of the Alarm"),
+    ])
+    def do_suppress_alarm(self, line, opts):
+        """
+        Suppress Alarm on a device.
+        """
+        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        if not opts.alarm_name:
+            self.poutput("Missing 'alarm_name' field. Look for help on command")
+            raise Exception("Missing alarm_name field")
+        alarm_id = [opts.alarm_name]
+
+        kv_alarm_cfgs = dict(id=self.device_id)
+        kv_alarm_cfgs['alarm_ids'] = alarm_id
+        self.poutput('{} {}'.format(opts.alarm_name, self.device_id))
+
+        alarm_cfgs = voltha_pb2.AlarmIDs(**kv_alarm_cfgs)
+        stub.SuppressDeviceAlarms(alarm_cfgs)
+        self.poutput('successfully pushed alarm config (device id = {})'.format(self.device_id))
+        self.default_device_id = self.device_id
+
+    def do_get_suppressed_alarms(self, line):
+        """
+        Get the suppressed alarms on the device
+        """
+        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        res = stub.ListSuppressedAlarms(voltha_pb2.ID(id=self.device_id))
+        self.poutput('Suppressed alarms for (device id = {})'.format(self.device_id))
+        omit_fields = {}
+        print_pb_as_table('Suppressed alarms:', res, omit_fields,
+                               self.poutput)
