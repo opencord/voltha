@@ -57,6 +57,8 @@ class KafkaProxy(object):
         self.kclient = None
         self.kproducer = None
         self.event_bus_publisher = None
+        self.stopping = False
+        self.faulty = False
         log.debug('initialized', endpoint=kafka_endpoint)
 
     @inlineCallbacks
@@ -67,37 +69,78 @@ class KafkaProxy(object):
         self.event_bus_publisher = yield EventBusPublisher(
             self, self.config.get('event_bus_publisher', {})).start()
         log.info('started')
+        KafkaProxy.faulty = False
+        self.stopping = False
         returnValue(self)
 
+    @inlineCallbacks
     def stop(self):
-        log.debug('stopping')
-        pass
-        log.info('stopped')
+        try:
+            log.debug('stopping-kafka-proxy')
+            try:
+                if self.kclient:
+                    yield self.kclient.close()
+                    self.kclient = None
+                    log.debug('stopped-kclient-kafka-proxy')
+            except Exception, e:
+                log.exception('failed-stopped-kclient-kafka-proxy', e=e)
+                pass
+
+            try:
+                if self.kproducer:
+                    yield self.kproducer.stop()
+                    self.kproducer = None
+                    log.debug('stopped-kproducer-kafka-proxy')
+            except Exception, e:
+                log.exception('failed-stopped-kproducer-kafka-proxy', e=e)
+                pass
+
+            #try:
+            #    if self.event_bus_publisher:
+            #        yield self.event_bus_publisher.stop()
+            #        self.event_bus_publisher = None
+            #        log.debug('stopped-event-bus-publisher-kafka-proxy')
+            #except Exception, e:
+            #    log.debug('failed-stopped-event-bus-publisher-kafka-proxy')
+            #    pass
+
+            log.debug('stopped-kafka-proxy')
+
+        except Exception, e:
+            self.kclient = None
+            self.kproducer = None
+            #self.event_bus_publisher = None
+            log.exception('failed-stopped-kafka-proxy', e=e)
+            pass
 
     def _get_kafka_producer(self):
         # PRODUCER_ACK_LOCAL_WRITE : server will wait till the data is written
         #  to a local log before sending response
+        try:
 
-        if self.kafka_endpoint.startswith('@'):
-            try:
-                _k_endpoint = get_endpoint_from_consul(self.consul_endpoint,
-                                                       self.kafka_endpoint[1:])
-                log.debug('found-kafka-service', endpoint=_k_endpoint)
+            if self.kafka_endpoint.startswith('@'):
+                try:
+                    _k_endpoint = get_endpoint_from_consul(self.consul_endpoint,
+                                                           self.kafka_endpoint[1:])
+                    log.debug('found-kafka-service', endpoint=_k_endpoint)
 
-            except Exception as e:
-                log.exception('no-kafka-service-in-consul', e=e)
+                except Exception as e:
+                    log.exception('no-kafka-service-in-consul', e=e)
 
-                self.kproducer = None
-                self.kclient = None
-                return
-        else:
-            _k_endpoint = self.kafka_endpoint
+                    self.kproducer = None
+                    self.kclient = None
+                    return
+            else:
+                _k_endpoint = self.kafka_endpoint
 
-        self.kclient = _KafkaClient(_k_endpoint)
-        self.kproducer = _kafkaProducer(self.kclient,
-                                        req_acks=PRODUCER_ACK_LOCAL_WRITE,
-                                        ack_timeout=self.ack_timeout,
-                                        max_req_attempts=self.max_req_attempts)
+            self.kclient = _KafkaClient(_k_endpoint)
+            self.kproducer = _kafkaProducer(self.kclient,
+                                            req_acks=PRODUCER_ACK_LOCAL_WRITE,
+                                            ack_timeout=self.ack_timeout,
+                                            max_req_attempts=self.max_req_attempts)
+        except Exception, e:
+            log.exception('failed-get-kafka-producer', e=e)
+            return
 
     @inlineCallbacks
     def send_message(self, topic, msg):
@@ -108,26 +151,50 @@ class KafkaProxy(object):
         # then try to get one - this happens only when we try to lookup the
         # kafka service from consul
         try:
-            if self.kproducer is None:
-                self._get_kafka_producer()
-                # Lets the next message request do the retry if still a failure
+            if self.faulty is False:
+
                 if self.kproducer is None:
-                    log.error('no-kafka-producer', endpoint=self.kafka_endpoint)
+                    self._get_kafka_producer()
+                    # Lets the next message request do the retry if still a failure
+                    if self.kproducer is None:
+                        log.error('no-kafka-producer', endpoint=self.kafka_endpoint)
+                        return
+
+                log.debug('sending-kafka-msg', topic=topic, msg=msg)
+                msgs = [msg]
+
+                if self.kproducer and self.kclient and \
+                        self.event_bus_publisher and self.faulty is False:
+                    yield self.kproducer.send_messages(topic, msgs=msgs)
+                    log.debug('sent-kafka-msg', topic=topic, msg=msg)
+                else:
                     return
 
-            log.debug('sending-kafka-msg', topic=topic, msg=msg)
-            msgs = [msg]
-            yield self.kproducer.send_messages(topic, msgs=msgs)
-            log.debug('sent-kafka-msg', topic=topic, msg=msg)
-
         except Exception, e:
+            self.faulty = True
             log.error('failed-to-send-kafka-msg', topic=topic, msg=msg, e=e)
 
             # set the kafka producer to None.  This is needed if the
             # kafka docker went down and comes back up with a different
             # port number.
-            self.kproducer = None
-            self.kclient = None
+            if self.stopping is False:
+                log.debug('stopping-kafka-proxy')
+                try:
+                    self.stopping = True
+                    self.stop()
+                    self.stopping = False
+                    self.faulty = False
+                    log.debug('stopped-kafka-proxy')
+                except Exception, e:
+                    log.exception('failed-stopping-kafka-proxy', e=e)
+                    pass
+            else:
+                log.info('already-stopping-kafka-proxy')
+
+            return
+
+    def is_faulty(self):
+        return self.faulty
 
 
 # Common method to get the singleton instance of the kafka proxy class

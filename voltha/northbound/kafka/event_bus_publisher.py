@@ -37,16 +37,25 @@ class EventBusPublisher(object):
         self.config = config
         self.topic_mappings = config.get('topic_mappings', {})
         self.event_bus = EventBusClient()
+        self.subscriptions = None
 
     def start(self):
         log.debug('starting')
+        self.subscriptions = list()
         self._setup_subscriptions(self.topic_mappings)
         log.info('started')
         return self
 
     def stop(self):
-        log.debug('stopping')
-        log.info('stopped')
+        try:
+            log.debug('stopping-event-bus')
+            if self.subscriptions:
+                for subscription in self.subscriptions:
+                    self.event_bus.unsubscribe(subscription)
+            log.info('stopped-event-bus')
+        except Exception, e:
+            log.exception('failed-stopping-event-bus', e=e)
+            return
 
     def _setup_subscriptions(self, mappings):
 
@@ -60,20 +69,22 @@ class EventBusPublisher(object):
                           mapping=mapping)
                 continue
 
-            self.event_bus.subscribe(
+            self.subscriptions.append(self.event_bus.subscribe(
                 event_bus_topic,
                 # to avoid Python late-binding to the last registered
                 # kafka_topic, we force instant binding with the default arg
-                lambda _, m, k=kafka_topic: self.forward(k, m))
+                lambda _, m, k=kafka_topic: self.forward(k, m)))
 
             log.info('event-to-kafka', kafka_topic=kafka_topic,
                      event_bus_topic=event_bus_topic)
 
     def forward(self, kafka_topic, msg):
-
-        # convert to JSON string if msg is a protobuf msg
-        if isinstance(msg, Message):
-            msg = dumps(MessageToDict(msg, True, True))
-
-        self.kafka_proxy.send_message(kafka_topic, msg)
+        try:
+            # convert to JSON string if msg is a protobuf msg
+            if isinstance(msg, Message):
+                msg = dumps(MessageToDict(msg, True, True))
+            log.debug('forward-event-bus-publisher')
+            self.kafka_proxy.send_message(kafka_topic, msg)
+        except Exception, e:
+            log.exception('failed-forward-event-bus-publisher', e=e)
 

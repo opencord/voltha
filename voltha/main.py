@@ -397,15 +397,23 @@ class Main(object):
         topic = "voltha.heartbeat"
 
         def send_msg():
-            message['ts'] = arrow.utcnow().timestamp
-            kafka_proxy.send_message(topic, dumps(message))
+            try:
+                kafka_proxy = get_kafka_proxy()
+                if kafka_proxy and not kafka_proxy.is_faulty():
+                    self.log.debug('kafka-proxy-available')
+                    message['ts'] = arrow.utcnow().timestamp
+                    self.log.debug('start-kafka-heartbeat')
+                    kafka_proxy.send_message(topic, dumps(message))
+                else:
+                    self.log.error('kafka-proxy-unavailable')
+            except Exception, e:
+                self.log.exception('failed-sending-message-heartbeat', e=e)
 
-        kafka_proxy = get_kafka_proxy()
-        if kafka_proxy:
+        try:
             lc = LoopingCall(send_msg)
             lc.start(10)
-        else:
-            self.log.error('Kafka proxy has not been created!')
+        except Exception, e:
+            self.log.exception('failed-kafka-heartbeat', e=e)
 
 
 if __name__ == '__main__':
