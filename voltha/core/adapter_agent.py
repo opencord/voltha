@@ -37,7 +37,7 @@ from voltha.protos.events_pb2 import KpiEvent, AlarmEvent, AlarmEventType, \
 from voltha.protos.device_pb2 import Device, Port, PmConfigs
 from voltha.protos.events_pb2 import KpiEvent
 from voltha.protos.voltha_pb2 import DeviceGroup, LogicalDevice, \
-    LogicalPort, AdminState, OperStatus
+    LogicalPort, AdminState, OperStatus, ConnectStatus
 from voltha.registry import registry
 from voltha.core.flow_decomposer import OUTPUT
 import sys
@@ -476,6 +476,25 @@ class AdapterAgent(object):
             # Change the admin state pf the device to DISABLE
             device = self.get_device(child_id)
             device.admin_state = AdminState.DISABLED
+            self._make_up_to_date(
+                '/devices', device.id, device)
+
+    def change_status_of_all_child_devices(self, parent_device_id, **kw):
+        """ Change status of all child devices """
+        devices = self.root_proxy.get('/devices')
+        children_ids = set(d.id for d in devices if d.parent_id == parent_device_id)
+        self.log.debug('devices-to-change-status',
+                       parent_id=parent_device_id,
+                       children_ids=children_ids)
+        for child_id in children_ids:
+            device = self.get_device(child_id)
+            for k, v in kw.items():
+                if k == 'oper_status':
+                    device.oper_status = v
+                if k == 'connect_status':
+                    device.connect_status = v
+                if k == 'admin_status':
+                    device.admin_state = v
             self._make_up_to_date(
                 '/devices', device.id, device)
 

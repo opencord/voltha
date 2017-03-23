@@ -476,6 +476,10 @@ class PonSimOltHandler(object):
         device.connect_status = ConnectStatus.UNREACHABLE
         self.adapter_agent.update_device(device)
 
+        # Update the child devices connect state to UNREACHABLE
+        self.adapter_agent.change_status_of_all_child_devices(self.device_id,
+                                    connect_status=ConnectStatus.UNREACHABLE)
+
         # Sleep 10 secs, simulating a reboot
         # TODO: send alert and clear alert after the reboot
         yield asleep(10)
@@ -488,6 +492,11 @@ class PonSimOltHandler(object):
         device.oper_status = previous_oper_status
         device.connect_status = previous_conn_status
         self.adapter_agent.update_device(device)
+
+        # Update the child devices connect state to REACHABLE
+        self.adapter_agent.change_status_of_all_child_devices(self.device_id,
+                                    connect_status=ConnectStatus.REACHABLE)
+
         self.log.info('rebooted', device_id=self.device_id)
 
     def disable(self):
