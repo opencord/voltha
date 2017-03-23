@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "ba092121_275d64ea",
+        "filename": "cli/main.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 334,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-03-23T23:10:06Z",
+      "side": 1,
+      "message": "OK",
+      "parentUuid": "ba092121_0c0cc741",
+      "range": {
+        "startLine": 281,
+        "startChar": 0,
+        "endLine": 334,
+        "endChar": 0
+      },
+      "revId": "35118c5a098e0ac2255947fed219050421e352f9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ba092121_6c1d8373",
         "filename": "voltha/adapters/simulated_olt/simulated_olt.py",
         "patchSetId": 1
@@ -88,6 +112,24 @@
     },
     {
       "key": {
+        "uuid": "ba092121_e76e4c96",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 66,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-03-23T23:10:06Z",
+      "side": 1,
+      "message": "Ok",
+      "parentUuid": "ba092121_2c40ab55",
+      "revId": "35118c5a098e0ac2255947fed219050421e352f9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ba092121_0c25e7c1",
         "filename": "voltha/protos/device.proto",
         "patchSetId": 1
@@ -105,6 +147,24 @@
     },
     {
       "key": {
+        "uuid": "ba092121_c76b4884",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 92,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-03-23T23:10:06Z",
+      "side": 1,
+      "message": "How can this be done? I thought the RPC consume a message. Is there an example in VOLTHA or elsewhere on how this could be done.",
+      "parentUuid": "ba092121_0c25e7c1",
+      "revId": "35118c5a098e0ac2255947fed219050421e352f9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ba092121_ec2193b5",
         "filename": "voltha/protos/voltha.proto",
         "patchSetId": 1
@@ -116,6 +176,24 @@
       "writtenOn": "2017-03-23T12:39:10Z",
       "side": 1,
       "message": "Can the input params just be a list of IDs?",
+      "revId": "35118c5a098e0ac2255947fed219050421e352f9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_a7685488",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 274,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-03-23T23:10:06Z",
+      "side": 1,
+      "message": "Is there any example in voltha or elsewhere on how this could be achieved.",
+      "parentUuid": "ba092121_ec2193b5",
       "revId": "35118c5a098e0ac2255947fed219050421e352f9",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
