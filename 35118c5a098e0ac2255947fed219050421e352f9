@@ -2,6 +2,75 @@
   "comments": [
     {
       "key": {
+        "uuid": "ba092121_0c0cc741",
+        "filename": "cli/main.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 334,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-03-23T14:43:17Z",
+      "side": 1,
+      "message": "This should be part of the device not the main CLI. Alarms are device specific and the management of such should be done at the device level.",
+      "range": {
+        "startLine": 281,
+        "startChar": 0,
+        "endLine": 334,
+        "endChar": 0
+      },
+      "revId": "35118c5a098e0ac2255947fed219050421e352f9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_6c1d8373",
+        "filename": "voltha/adapters/simulated_olt/simulated_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 823,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-03-23T14:43:17Z",
+      "side": 1,
+      "message": "This code would be more readable if you defined constants for the different values such as AdapterAlarmConfig.SEVERITY, AdapterAlarmConfig.TYPE, etc... rather than using 0, 1 and 2.",
+      "range": {
+        "startLine": 812,
+        "startChar": 0,
+        "endLine": 823,
+        "endChar": 64
+      },
+      "revId": "35118c5a098e0ac2255947fed219050421e352f9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_8c18d785",
+        "filename": "voltha/adapters/simulated_olt/simulated_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 857,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-03-23T14:43:17Z",
+      "side": 1,
+      "message": "This should be increased. Having simulated alarms being generated every 10 seconds is too much as a default. The previous value of 30 was more than adequate.",
+      "range": {
+        "startLine": 857,
+        "startChar": 23,
+        "endLine": 857,
+        "endChar": 25
+      },
+      "revId": "35118c5a098e0ac2255947fed219050421e352f9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ba092121_2c40ab55",
         "filename": "voltha/protos/device.proto",
         "patchSetId": 1
