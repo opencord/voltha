@@ -192,6 +192,27 @@ class SoftwareImage(EntityClass):
     ]
     mandatory_operations = {OP.Get}
 
+class PptpEthernetUni(EntityClass):
+    class_id = 11
+    attributes = [
+        ECA(ShortField("managed_entity_id", None), {AA.R, AA.SBC}),
+        ECA(ByteField("expected_type", 0), {AA.R, AA.W}),
+        ECA(ByteField("sensed_type", 0), {AA.R}),
+        ECA(ByteField("autodetection_config", 0), {AA.R}),
+        ECA(ByteField("ethernet_loopback_config", 0), {AA.R}),
+        ECA(ByteField("administrative_state", 1), {AA.R, AA.W}),
+        ECA(ByteField("operational_state", 1), {AA.R, AA.W}),
+        ECA(ByteField("config_ind", 4), {AA.R}),
+        ECA(ByteField("max_frame_size", 1518), {AA.R, AA.W}),
+        ECA(ByteField("dte_dce_ind", 0), {AA.R, AA.W}),
+        ECA(ShortField("pause_time", 0), {AA.R, AA.W}),
+        ECA(ByteField("bridged_ip_ind", 2), {AA.R, AA.W}),
+        ECA(ByteField("arc", 0), {AA.R, AA.W}),
+        ECA(ByteField("arc_interval", 0), {AA.R, AA.W}),
+        ECA(ByteField("pppoe_filter", 0), {AA.R, AA.W}),
+        ECA(ByteField("power_control", 0), {AA.R, AA.W}),
+    ]
+    mandatory_operations = {OP.Get, OP.Set}
 
 class MacBridgeServiceProfile(EntityClass):
     class_id = 45
@@ -520,7 +541,9 @@ class GemPortNetworkCtp(EntityClass):
         ECA(ByteField("uni_counter", None), {AA.R}, optional=True),
         ECA(ShortField("priority_queue_pointer_downstream", None),
             {AA.R, AA.W, AA.SBC}),
-        ECA(ByteField("encryption_state", None), {AA.R}, optional=True)
+        ECA(ByteField("encryption_state", None), {AA.R}, optional=True),
+        ECA(ShortField("traffic_desc_profile_pointer_downstream", None), {AA.R, AA.W, AA.SBC}, optional=True),
+        ECA(ShortField("encryption_key_ring", None), {AA.R, AA.W, AA.SBC}, optional=True)
     ]
     mandatory_operations = {OP.Create, OP.Delete, OP.Get, OP.Set}
 
