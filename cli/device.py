@@ -92,19 +92,19 @@ class DeviceCli(Cmd):
 perf_config [show | set | commit | reset] [-f <default frequency>] [{-e <metric/group
             name>}] [{-d <metric/group name>}] [{-o <metric/group name> <override
             frequency>}]
-show: displays the performance configuration of th device
 
+show: displays the performance configuration of the device
 set: changes the parameters specified with -e, -d, and -o
 reset: reverts any changes made since the last commit
 commit: commits any changes made which applies them to the device.
 
 -e: enable collection of the specified metric, more than one -e may be
             specified.
--d: disable collectio of the specified metric, more than on -d may be
+-d: disable collection of the specified metric, more than on -d may be
             specified.
 -o override the collection frequency of the specified metric, more than one -o
             may be specified. Note that -o isn't valid unless
-            frequency_overried is set to True for the device.
+            frequency_override is set to True for the device.
 
 Changes made by set are held locally until a commit or reset command is issued.
 A commit command will write the configuration to the device and it takes effect
