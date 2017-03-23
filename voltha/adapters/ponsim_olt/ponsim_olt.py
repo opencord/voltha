@@ -477,7 +477,7 @@ class PonSimOltHandler(object):
         self.adapter_agent.update_device(device)
 
         # Update the child devices connect state to UNREACHABLE
-        self.adapter_agent.change_status_of_all_child_devices(self.device_id,
+        self.adapter_agent.update_child_devices_state(self.device_id,
                                     connect_status=ConnectStatus.UNREACHABLE)
 
         # Sleep 10 secs, simulating a reboot
@@ -494,7 +494,7 @@ class PonSimOltHandler(object):
         self.adapter_agent.update_device(device)
 
         # Update the child devices connect state to REACHABLE
-        self.adapter_agent.change_status_of_all_child_devices(self.device_id,
+        self.adapter_agent.update_child_devices_state(self.device_id,
                                     connect_status=ConnectStatus.REACHABLE)
 
         self.log.info('rebooted', device_id=self.device_id)
@@ -516,7 +516,8 @@ class PonSimOltHandler(object):
         self.adapter_agent.delete_logical_device(logical_device)
 
         # Disable all child devices first
-        self.adapter_agent.disable_all_child_devices(self.device_id)
+        self.adapter_agent.update_child_devices_state(self.device_id,
+                                            admin_state=AdminState.DISABLED)
 
         # Remove the peer references from this device
         self.adapter_agent.delete_all_peer_references(self.device_id)
@@ -599,7 +600,8 @@ class PonSimOltHandler(object):
         self.logical_device_id = ld_initialized.id
 
         # Reenable all child devices
-        self.adapter_agent.reenable_all_child_devices(device.id)
+        self.adapter_agent.update_child_devices_state(device.id,
+                                            admin_state=AdminState.ENABLED)
 
         # finally, open the frameio port to receive in-band packet_in messages
         self.log.info('registering-frameio')

@@ -452,49 +452,29 @@ class AdapterAgent(object):
         for child_id in children_ids:
             self._remove_node('/devices', child_id)
 
-    def reenable_all_child_devices(self, parent_device_id):
-        """ Re-enable all ONUs from a given OLT """
+    def update_child_devices_state(self,
+                                   parent_device_id,
+                                   oper_status=None,
+                                   connect_status=None,
+                                   admin_state=None):
+        """ Update status of all child devices """
         devices = self.root_proxy.get('/devices')
         children_ids = set(d.id for d in devices if d.parent_id == parent_device_id)
-        self.log.debug('devices-to-reenable',
+        self.log.debug('update-devices',
                        parent_id=parent_device_id,
-                       children_ids=children_ids)
-        for child_id in children_ids:
-            device = self.get_device(child_id)
-            device.admin_state = AdminState.ENABLED
-            self._make_up_to_date(
-                '/devices', device.id, device)
+                       children_ids=children_ids,
+                       oper_status=oper_status,
+                       connect_status=connect_status,
+                       admin_state=admin_state)
 
-    def disable_all_child_devices(self, parent_device_id):
-        """ Disable all ONUs from a given OLT """
-        devices = self.root_proxy.get('/devices')
-        children_ids = set(d.id for d in devices if d.parent_id == parent_device_id)
-        self.log.debug('devices-to-disable',
-                       parent_id=parent_device_id,
-                       children_ids=children_ids)
-        for child_id in children_ids:
-            # Change the admin state pf the device to DISABLE
-            device = self.get_device(child_id)
-            device.admin_state = AdminState.DISABLED
-            self._make_up_to_date(
-                '/devices', device.id, device)
-
-    def change_status_of_all_child_devices(self, parent_device_id, **kw):
-        """ Change status of all child devices """
-        devices = self.root_proxy.get('/devices')
-        children_ids = set(d.id for d in devices if d.parent_id == parent_device_id)
-        self.log.debug('devices-to-change-status',
-                       parent_id=parent_device_id,
-                       children_ids=children_ids)
         for child_id in children_ids:
             device = self.get_device(child_id)
-            for k, v in kw.items():
-                if k == 'oper_status':
-                    device.oper_status = v
-                if k == 'connect_status':
-                    device.connect_status = v
-                if k == 'admin_status':
-                    device.admin_state = v
+            if oper_status:
+                device.oper_status = oper_status
+            if connect_status:
+                device.connect_status = connect_status
+            if admin_state:
+                device.admin_state = admin_state
             self._make_up_to_date(
                 '/devices', device.id, device)
 

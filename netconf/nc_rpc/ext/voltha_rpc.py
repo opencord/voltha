@@ -83,18 +83,29 @@ class VolthaRpc(Rpc):
                     self.request_xml)
                 return
 
-    # Helper function to parse a complex xml into a dict
     def _parse_params(self, node):
         params = {}
         if node is not None:
             for r in node:
                 children = r.getchildren()
+                tag = r.tag.replace(qmap(C.VOLTHA), "")
                 if children:
-                    params[ r.tag.replace(qmap(C.VOLTHA), "")] = \
-                        self._parse_params(children)
+                    if tag in params:
+                        if not isinstance(params[tag], list):
+                            temp = []
+                            temp.append(params[tag])
+                            params[tag] = temp
+                        params[tag].append(self._parse_params(children))
+                    else:
+                        params[tag] = self._parse_params(children)
                 else:
-                    params[
-                        r.tag.replace(qmap(C.VOLTHA), "")] = r.text
+                    # Convert string boolean to boolean
+                    if r.text == 'true':
+                        params[tag] = True
+                    elif r.text == 'false':
+                        params[tag] = False
+                    else:
+                        params[tag] = r.text
         return params
 
     def _extract_parameters(self):
