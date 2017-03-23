@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba092121_2c40ab55",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 66,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-23T12:39:10Z",
+      "side": 1,
+      "message": "This should not be part of an enum.  enable all and disable all should be different rpcs.",
+      "revId": "35118c5a098e0ac2255947fed219050421e352f9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_0c25e7c1",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 92,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-23T12:39:10Z",
+      "side": 1,
+      "message": "Why a message for alarm refresh?  Can the alarm update rpc call use a list of strings?",
+      "revId": "35118c5a098e0ac2255947fed219050421e352f9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_ec2193b5",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 274,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-23T12:39:10Z",
+      "side": 1,
+      "message": "Can the input params just be a list of IDs?",
+      "revId": "35118c5a098e0ac2255947fed219050421e352f9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
