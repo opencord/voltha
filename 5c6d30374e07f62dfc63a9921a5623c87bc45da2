@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "ba092121_47e8587c",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 64,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-03-24T19:02:54Z",
+      "side": 1,
+      "message": "Yes we need to have ENABLE option as the operator was asking to have the provision to enable/suppress individual alarms.\nBy default CRITICAL alarms are only enabled as part of adapater bringup. \nThen based on operator/user command specific/all alarms can be enabled/suppressed.",
+      "parentUuid": "ba092121_e7d76cbe",
+      "revId": "5c6d30374e07f62dfc63a9921a5623c87bc45da2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ba092121_c7c34837",
         "filename": "voltha/protos/voltha.proto",
         "patchSetId": 2
@@ -66,6 +84,24 @@
       "side": 1,
       "message": "Thanks for the explanation.   So, when updating the alarm configs, if the alarm is present then update it otherwise, add it.  Correct?   How do you handle the case where we need to remove an alarm from the config?  Would this same API be used or you will have another API?",
       "parentUuid": "ba092121_c748e8ce",
+      "revId": "5c6d30374e07f62dfc63a9921a5623c87bc45da2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_27ed648c",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 266,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-03-24T19:02:54Z",
+      "side": 1,
+      "message": "As per the implementation ONLY alarms which have ENABLE configured are pushed to eventbus and then kafka form there.\nAbsence of any configuration OR SUPPRESS configuration for any alarm means the alarm is suppressed. \nI dont think there is need to remove an Alarm from config to disable it. If there is a need to disable a configured alarm, push a SUPPRESS config for that alarm.",
+      "parentUuid": "ba092121_275fa474",
       "revId": "5c6d30374e07f62dfc63a9921a5623c87bc45da2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
