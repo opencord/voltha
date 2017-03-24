@@ -53,13 +53,18 @@ log = structlog.get_logger()
 
 
 class AdapterAlarmConfig:
+
+    SEVERITY = 0
+    EVENT_TYPE = 1
+    CATEGORY = 2
+
     def __init__(self, device):
         self.device = device
         self.id = device.id
         self.alarm_cfg = dict()
         """
         Sample alarm list for simulation purposes.
-        This is a dictionary with key being the alarm_id and tuple being
+        This is a dictionary with key being the alarm_id and value being a tuple of
         (<severity>,<event_type>,<category>,<description>)
         """
         self.alarms = {
@@ -809,7 +814,7 @@ class SimulatedOltAdapter(object):
                 ))
 
                 # Severity of the chosen alarm
-                severity = self.alarm_cfgs.alarms[alarm_name][0]
+                severity = self.alarm_cfgs.alarms[alarm_name][AdapterAlarmConfig.SEVERITY]
 
                 # Randomly choose the state of the chosen alarm
                 state = random.choice(list(
@@ -817,10 +822,10 @@ class SimulatedOltAdapter(object):
                     AlarmEventState.DESCRIPTOR.enum_values_by_name.items()))
 
                 # Type of the chosen alarm
-                type = self.alarm_cfgs.alarms[alarm_name][1]
+                type = self.alarm_cfgs.alarms[alarm_name][AdapterAlarmConfig.EVENT_TYPE]
 
                 # Category of the chosen alarm
-                category = self.alarm_cfgs.alarms[alarm_name][2]
+                category = self.alarm_cfgs.alarms[alarm_name][AdapterAlarmConfig.CATEGORY]
 
                 description = "Simulated alarm - " \
                               "device:{} " \
@@ -854,7 +859,7 @@ class SimulatedOltAdapter(object):
                 log.exception('failed-to-submit-alarm', e=e)
 
         alarm_lc = LoopingCall(_generate_alarm, device_id)
-        alarm_lc.start(10)
+        alarm_lc.start(30)
 
     # ~~~~~~~~~~~~~~~~~~~~ Embedded test Klein rest server ~~~~~~~~~~~~~~~~~~~~
 

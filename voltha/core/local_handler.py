@@ -502,6 +502,14 @@ class LocalHandler(VolthaLocalServiceServicer):
         raise NotImplementedError('Method not implemented!')
 
     @twisted_async
+    def EnableAllDeviceAlarms(self, request, context):
+        raise NotImplementedError('Method not implemented!')
+
+    @twisted_async
+    def SuppressAllDeviceAlarms(self, request, context):
+        raise NotImplementedError('Method not implemented!')
+
+    @twisted_async
     def ListDeviceFlows(self, request, context):
         log.info('grpc-request', request=request)
 

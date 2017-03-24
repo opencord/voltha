@@ -278,6 +278,20 @@ service VolthaGlobalService {
         };
     }
 
+    // Enable all alarms of the device
+    rpc EnableAllDeviceAlarms(ID) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/devices/{id}/enable_all"
+        };
+    }
+
+    // Suppress all alarms of the device
+    rpc SuppressAllDeviceAlarms(ID) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/devices/{id}/suppress_all"
+        };
+    }
+
     // List all flows of a device
     rpc ListDeviceFlows(ID) returns(openflow_13.Flows) {
         option (google.api.http) = {
@@ -514,6 +528,20 @@ service VolthaLocalService {
         option (google.api.http) = {
             post: "/api/v1/local/devices/{id}/refresh_alarms"
             body: "*"
+        };
+    }
+
+    // Enable all alarms of the device
+    rpc EnableAllDeviceAlarms(ID) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/devices/{id}/enable_all"
+        };
+    }
+
+    // Suppress all alarms of the device
+    rpc SuppressAllDeviceAlarms(ID) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/devices/{id}/suppress_all"
         };
     }
 
