@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "ba092121_e7d76cbe",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 64,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-24T18:03:55Z",
+      "side": 1,
+      "message": "Thinking about this a little bit more.  Do we need ENABLE in the config?  I assume when an Alarm is raised, VOLTHA/Adapters can either forward it to Kafka or suppress it.    In my opinion, we should only have SUPPRESS.  When a user wants to suppress a specific alarm, a AlarmConfig(id, SUPPRESS) will be added to the AlarmConfigs.   If the user wants to re-enable that alarm then that entry will be removed from the AlarmConfigs.   The API  \"enableAll\" will clear the config while the \"supressAll\" API will create a wildcard entry AlarmConfig(*, SUPPRESS) in the config.\n\nThoughts?",
+      "revId": "5c6d30374e07f62dfc63a9921a5623c87bc45da2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ba092121_c7c34837",
         "filename": "voltha/protos/voltha.proto",
         "patchSetId": 2
@@ -31,6 +48,24 @@
       "side": 1,
       "message": "Assuming the device ID is 123456789, and you would like to SUPPRESS just one Alarm \"Alarm1000\"out of 1000 alarms configured, use this RPC and body should be as below.\n\n{\n  \"id\": \"123456789\",\n  \"alarm_cfg\": [\n    {\n      \"action\": \"SUPPRESS\",\n      \"name\": \"Alarm1000\"\n    }\n  ]\n}\n\nWhen the simulated adapter gets the update alarm config request, it would take care to just SUPPRESS this alarm of 1000 configured alarms. The 999 other alarms would remain unaffected.\nI have verified such a test case to be working fine.",
       "parentUuid": "ba092121_c7c34837",
+      "revId": "5c6d30374e07f62dfc63a9921a5623c87bc45da2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_275fa474",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 266,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-24T18:03:55Z",
+      "side": 1,
+      "message": "Thanks for the explanation.   So, when updating the alarm configs, if the alarm is present then update it otherwise, add it.  Correct?   How do you handle the case where we need to remove an alarm from the config?  Would this same API be used or you will have another API?",
+      "parentUuid": "ba092121_c748e8ce",
       "revId": "5c6d30374e07f62dfc63a9921a5623c87bc45da2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
