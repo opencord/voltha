@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "ba092121_e7fe4c38",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 64,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-24T19:22:11Z",
+      "side": 1,
+      "message": "So, if an alarm is raised and is not in the config then it will be discarded unless it is critical?",
+      "parentUuid": "ba092121_47e8587c",
+      "revId": "5c6d30374e07f62dfc63a9921a5623c87bc45da2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ba092121_c7c34837",
         "filename": "voltha/protos/voltha.proto",
         "patchSetId": 2
@@ -102,6 +120,24 @@
       "side": 1,
       "message": "As per the implementation ONLY alarms which have ENABLE configured are pushed to eventbus and then kafka form there.\nAbsence of any configuration OR SUPPRESS configuration for any alarm means the alarm is suppressed. \nI dont think there is need to remove an Alarm from config to disable it. If there is a need to disable a configured alarm, push a SUPPRESS config for that alarm.",
       "parentUuid": "ba092121_275fa474",
+      "revId": "5c6d30374e07f62dfc63a9921a5623c87bc45da2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_c7fb4846",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 266,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-24T19:22:11Z",
+      "side": 1,
+      "message": "So your alarm list is a static list?   If a device gets upgraded with a new set of alarms then the adapter will need to be upgraded (hence voltha) to register this alarm?\n\nThe above logic of updating only 1 alarm does not work as it will overwrite the other 999 alarms in the config.  The code in device_agent just take whatever comes from the API and overwrite the existing data.",
+      "parentUuid": "ba092121_27ed648c",
       "revId": "5c6d30374e07f62dfc63a9921a5623c87bc45da2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
