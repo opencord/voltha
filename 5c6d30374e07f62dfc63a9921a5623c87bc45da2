@@ -2,6 +2,63 @@
   "comments": [
     {
       "key": {
+        "uuid": "ba092121_078940ca",
+        "filename": "cli/device.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 293,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-03-24T19:42:26Z",
+      "side": 1,
+      "message": "Name refers to alarm id?",
+      "revId": "5c6d30374e07f62dfc63a9921a5623c87bc45da2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_27a44456",
+        "filename": "cli/device.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 296,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-03-24T19:42:26Z",
+      "side": 1,
+      "message": "Any particular reason for using the term \"push\" instead of \"set\"?",
+      "revId": "5c6d30374e07f62dfc63a9921a5623c87bc45da2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_679a3c16",
+        "filename": "voltha/adapters/simulated_olt/simulated_olt.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 117,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-03-24T19:42:26Z",
+      "side": 1,
+      "message": "Just for readability sake, would it be possible to use \"if elif else\" structures instead of having multiple continue statements?",
+      "range": {
+        "startLine": 103,
+        "startChar": 0,
+        "endLine": 117,
+        "endChar": 49
+      },
+      "revId": "5c6d30374e07f62dfc63a9921a5623c87bc45da2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ba092121_e7d76cbe",
         "filename": "voltha/protos/device.proto",
         "patchSetId": 2
@@ -49,6 +106,23 @@
       "side": 1,
       "message": "So, if an alarm is raised and is not in the config then it will be discarded unless it is critical?",
       "parentUuid": "ba092121_47e8587c",
+      "revId": "5c6d30374e07f62dfc63a9921a5623c87bc45da2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_879550e6",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 69,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-03-24T19:42:26Z",
+      "side": 1,
+      "message": "The use of \"name\" is confusing since it refers to the alarm id.  Can we change this to something like alarm_id.",
       "revId": "5c6d30374e07f62dfc63a9921a5623c87bc45da2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
