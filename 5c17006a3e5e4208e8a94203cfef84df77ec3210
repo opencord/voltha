@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba092121_67bb5cc5",
+        "filename": "voltha/main.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 402,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-24T14:43:34Z",
+      "side": 1,
+      "message": "pythonic way is \"not KafkaProxy.faulty",
+      "revId": "5c17006a3e5e4208e8a94203cfef84df77ec3210",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_87b670db",
+        "filename": "voltha/northbound/kafka/event_bus_publisher.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-24T14:43:34Z",
+      "side": 1,
+      "message": "Should this be a list?",
+      "revId": "5c17006a3e5e4208e8a94203cfef84df77ec3210",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_47b058dd",
+        "filename": "voltha/northbound/kafka/kafka_proxy.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 39,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-24T14:43:34Z",
+      "side": 1,
+      "message": "Why not have a class method to check if the proxy is faulty?",
+      "revId": "5c17006a3e5e4208e8a94203cfef84df77ec3210",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_27b564cd",
+        "filename": "voltha/northbound/kafka/kafka_proxy.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 174,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-24T14:43:34Z",
+      "side": 1,
+      "message": "Once faulty, kafka docker is killed?",
+      "revId": "5c17006a3e5e4208e8a94203cfef84df77ec3210",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
