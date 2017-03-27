@@ -150,7 +150,7 @@ There are a lot of things going on between these containers:
    docker-compose -f compose/docker-compose-system-test.yml ps
    ```
    
-   Naturally, you can always use plan docker commands too:
+   Naturally, you can always use plain docker commands too:
    
    ```
    docker ps -a
@@ -165,7 +165,7 @@ There are a lot of things going on between these containers:
    This shall list something like this:
    
    ```
-  {
+   {
       "zookeeper": [],
       "chameleon-rest": [],
       "consul": [],
@@ -177,10 +177,10 @@ There are a lot of things going on between these containers:
       "kafka": [],
       "voltha-grpc": [],
       "voltha-health": []
-  }  
+   }
    ```
    
-   You don't see registrator istelf, and you see multiple entries for consul. More importantly you see voltha as a service called "voltha-health" (referring to the REST health check service of voltha). You can query additional info on this endpoint from consul:
+   You don't see registrator itself, and you see multiple entries for consul. More importantly you see voltha as a service called "voltha-health" (referring to the REST health check service of voltha). You can query additional info on this endpoint from consul:
    
    ```
    curl -s http://localhost:8500/v1/catalog/service/voltha-health | jq -r .
