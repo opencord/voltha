@@ -166,7 +166,7 @@ services:
       "-v"
     ]
     ports:
-    - 8881
+    - "8881:8881"
     depends_on:
     - consul
     - voltha
