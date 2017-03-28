@@ -329,6 +329,24 @@
       "revId": "5c6d30374e07f62dfc63a9921a5623c87bc45da2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_8d88d123",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 266,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-28T17:02:02Z",
+      "side": 1,
+      "message": "Would it be more flexible to allow the NB to add/remove alarms in the suppressed list?   This way it can be future proof.",
+      "parentUuid": "ba092121_925eace8",
+      "revId": "5c6d30374e07f62dfc63a9921a5623c87bc45da2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
