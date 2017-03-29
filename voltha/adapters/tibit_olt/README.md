@@ -11,7 +11,7 @@ to activate a Tibit PON.  These steps assume:
   interface as \<interface\>.
 * All commands are to be executed from the root dir of the voltha project
 
-
+##
 ## Step 1: Launch Voltha support applications and Chameleon
 
 Open a shell and execute the following commands.
