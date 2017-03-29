@@ -16,8 +16,9 @@
 import inspect
 
 import sys
+from binascii import hexlify
 from scapy.fields import ByteField, ShortField, MACField, BitField, IPField
-from scapy.fields import IntField, StrFixedLenField, ThreeBytesField
+from scapy.fields import IntField, StrFixedLenField
 from scapy.packet import Packet
 
 from voltha.extensions.omci.omci_defs import OmciUninitializedFieldError, \
@@ -417,10 +418,7 @@ class ExtendedVlanTaggingOperationConfigurationData(EntityClass):
         ECA(ShortField("input_tpid", None), {AA.R, AA.W}),
         ECA(ShortField("output_tpid", None), {AA.R, AA.W}),
         ECA(ByteField("downstream_mode", None), {AA.R, AA.W}),
-        ECA(StrFixedLenField(
-            "received_frame_vlan_tagging_operation_table", None, 16),
-        # "received_frame_vlan_tagging_operation_table", None, VlanTaggingOperation),
-    {AA.R, AA.W}),
+        ECA(StrFixedLenField("received_frame_vlan_tagging_operation_table", VlanTaggingOperation, 16), {AA.R, AA.W}),
         ECA(ShortField("associated_me_pointer", None), {AA.R, AA.W, AA.SBC})
     ]
     mandatory_operations = {OP.Create, OP.Delete, OP.Set, OP.Get, OP.GetNext}

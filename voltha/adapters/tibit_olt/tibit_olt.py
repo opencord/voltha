@@ -41,7 +41,8 @@ from voltha.extensions.eoam.EOAM_TLV import DOLTObject, \
      PortIngressRuleResultCopy, PortIngressRuleResultReplace, \
      PortIngressRuleResultDelete, PortIngressRuleResultOLTQueue, \
      PortIngressRuleResultOLTBroadcastQueue, \
-     PortIngressRuleTerminator, AddPortIngressRule, CablelabsOUI, PonPortObject
+     PortIngressRuleTerminator, AddPortIngressRule, CablelabsOUI, \
+     ItuOUI, PonPortObject
 from voltha.extensions.eoam.EOAM_TLV import PortIngressRuleHeader
 from voltha.extensions.eoam.EOAM_TLV import ClauseSubtypeEnum
 from voltha.extensions.eoam.EOAM_TLV import RuleOperatorEnum
@@ -102,7 +103,11 @@ class TBJSON(Packet):
 
 bind_layers(Ether, TBJSON, type=0xA8C8)
 
-SUMITOMO_ELECTRIC_INDUSTRIES_OUI=u"0025DC"
+TIBIT_COMMUNICATIONS_OUI=u'000CE2'
+SUMITOMO_ELECTRIC_INDUSTRIES_OUI=u'0025DC'
+
+ADTRAN_SHORTENED_VSSN=u'4144'                 # 'AD'
+TIBIT_SHORTENED_VSSN=u'5442'                 # 'TB'
 
 @implementer(IAdapterInterface)
 class TibitOltAdapter(object):
@@ -294,74 +299,70 @@ class TibitOltAdapter(object):
 
         jdev = json.loads(response.payload.payload.body.load)
         onu_mac = ''
+        child_device_name = ''
         for macid in jdev['results']:
             if macid['macid'] is None:
                 log.info('MAC ID is NONE %s' % str(macid['macid']))
             elif macid['macid'][:6].upper() == SUMITOMO_ELECTRIC_INDUSTRIES_OUI:
-                onu_mac = macid['macid']
+                onu_mac_string = macid['macid']
                 log.info('SUMITOMO mac address %s' % str(macid['macid']))
-                log.info('activate-olt-for-onu-%s' % onu_mac)
-                # Convert from string to colon separated form
-                onu_mac = ':'.join(s.encode('hex') for s in onu_mac.decode('hex'))
-                vlan_id = self._olt_side_onu_activation(int(macid['macid'][-4:-2], 16))
-                self.adapter_agent.child_device_detected(
-                    parent_device_id=device.id,
-                    parent_port_no=1,
-                    child_device_type='dpoe_onu',
-                    mac_address = onu_mac,
-                    proxy_address=Device.ProxyAddress(
-                        device_id=device.id,
-                        channel_id=vlan_id
-                        ),
-                        vlan=vlan_id
-                    )
+                child_device_name = 'dpoe_onu'
+
+            elif macid['macid'][:4].upper() == ADTRAN_SHORTENED_VSSN:
+                onu_mac_string = macid['macid']
+                log.info('ADTRAN mac address %s' % str(macid['macid']))
+                child_device_name = 'adtran_onu'
 
             else:
                 onu_mac_string = '000c' + macid.get('macid', 'e2000000')[4:]
-                log.info('activate-olt-for-onu-%s' % onu_mac)
-                # Convert from string to colon separated form
-                onu_mac = ':'.join(s.encode('hex') for s in onu_mac_string.decode('hex'))
-                serial_num = int(macid['macid'][-4:-2], 16)
-                vlan_id = self._olt_side_onu_activation(serial_num)
-                self.adapter_agent.child_device_detected(
-                    parent_device_id=device.id,
-                    parent_port_no=1,
-                    child_device_type='tibit_onu',
-                    mac_address = onu_mac,
-                    proxy_address=Device.ProxyAddress(
-                        device_id=device.id,
-                        channel_id=vlan_id
-                        ),
-                        vlan=vlan_id
-                    )
+                log.info('TIBIT mac address %s' % onu_mac)
+                child_device_name = 'tibit_onu'
 
-                ## Automatically setup default downstream control frames flow (in this case VLAN 4000)
-                Clause = {v: k for k, v in ClauseSubtypeEnum.iteritems()}
-                Operator = {v: k for k, v in RuleOperatorEnum.iteritems()}
-                packet_out_rule = (
-                        Ether(dst=device.mac_address) /
-                        Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) /
-                        EOAMPayload(
-                            body=CablelabsOUI() / DPoEOpcode_SetRequest() /
-                            NetworkToNetworkPortObject()/
-                            PortIngressRuleHeader(precedence=13)/
-                            PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
-                                                               operator=Operator['=='],
-                                                               match=TIBIT_PACKET_OUT_VLAN)/
-                            PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=1,
-                                                               operator=Operator['=='], match=vlan_id)/
-                            PortIngressRuleResultOLTQueue(unicastvssn="TBIT", unicastlink=int(onu_mac_string[4:], 16))/
-                            PortIngressRuleResultForward()/
-                            PortIngressRuleResultDelete(fieldcode=Clause['C-VLAN Tag'])/
-                            PortIngressRuleTerminator()/
-                            AddPortIngressRule()))
+            # Convert from string to colon separated form
+            onu_mac = ':'.join(s.encode('hex') for s in onu_mac_string.decode('hex'))
+            log.info('activate-olt-for-onu-%s' % onu_mac)
+            mac_octet_4 = int(macid['macid'][-4:-2], 16)
+            vlan_id = self._olt_side_onu_activation(mac_octet_4)
+            self.adapter_agent.child_device_detected(
+                parent_device_id=device.id,
+                parent_port_no=1,
+                child_device_type=child_device_name,
+                mac_address = onu_mac,
+                proxy_address=Device.ProxyAddress(
+                    device_id=device.id,
+                    channel_id=vlan_id
+                    ),
+                    vlan=vlan_id
+                )
 
-                self.io_port.send(str(packet_out_rule))
-                while True:
-                    response = yield self.incoming_queues[olt_mac].get()
-                    # verify response and if not the expected response
-                    if 1: # TODO check if it is really what we expect, and wait if not
-                        break
+            ## Automatically setup default downstream control frames flow (in this case VLAN 4000)
+            ## on the OLT for the new ONU/ONT device
+            Clause = {v: k for k, v in ClauseSubtypeEnum.iteritems()}
+            Operator = {v: k for k, v in RuleOperatorEnum.iteritems()}
+            packet_out_rule = (
+                Ether(dst=device.mac_address) /
+                Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) /
+                EOAMPayload(
+                    body=CablelabsOUI() / DPoEOpcode_SetRequest() /
+                    NetworkToNetworkPortObject()/
+                    PortIngressRuleHeader(precedence=13)/
+                    PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
+                                                       operator=Operator['=='],
+                                                       match=TIBIT_PACKET_OUT_VLAN)/
+                    PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=1,
+                                                       operator=Operator['=='], match=vlan_id)/
+                    PortIngressRuleResultOLTQueue(unicastvssn="TBIT", unicastlink=int(onu_mac_string[4:], 16))/
+                    PortIngressRuleResultForward()/
+                    PortIngressRuleResultDelete(fieldcode=Clause['C-VLAN Tag'])/
+                    PortIngressRuleTerminator()/
+                    AddPortIngressRule()))
+
+            self.io_port.send(str(packet_out_rule))
+            while True:
+                response = yield self.incoming_queues[olt_mac].get()
+                # verify response and if not the expected response
+                if 1: # TODO check if it is really what we expect, and wait if not
+                    break
 
             # also record the vlan_id -> (device_id, logical_device_id, linkid) for
             # later use.  The linkid is the macid returned.
@@ -563,11 +564,13 @@ class TibitOltAdapter(object):
                             dn_req /= PortIngressRuleResultForward()
                             if _outer_vid == MULTICAST_VLAN:
                                 dn_req /= PortIngressRuleResultOLTBroadcastQueue()
-                            else:
+                            elif _inner_vid is not None:
                                 serial = _inner_vid - 200
                                 link = (0xe222 << 16) | (serial << 8)
                                 dn_req /= PortIngressRuleResultOLTQueue(unicastvssn="TBIT",
                                                                         unicastlink=link)
+                            elif _inner_vid is None:
+                                log.info('#### action.type == OUTPUT INNER VID is NONE ####')
 
                         elif action.type == POP_VLAN:
                             log.info('#### action.type == POP_VLAN ####')
@@ -769,10 +772,23 @@ class TibitOltAdapter(object):
     def send_proxied_message(self, proxy_address, msg):
         log.info('send-proxied-message', proxy_address=proxy_address)
         device = self.adapter_agent.get_device(proxy_address.device_id)
-        frame = Ether(dst=device.mac_address) / \
-                Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) / \
-                Dot1Q(vlan=proxy_address.channel_id, prio=TIBIT_MGMT_PRIORITY) / \
-                msg
+
+        mac_address = self.vlan_to_device_ids[proxy_address.channel_id][2].upper()
+
+        if mac_address.startswith(TIBIT_SHORTENED_VSSN):
+            # Send straight OAM
+            frame = Ether(dst=device.mac_address) / \
+              Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) / \
+              Dot1Q(vlan=proxy_address.channel_id, prio=TIBIT_MGMT_PRIORITY) / \
+              msg
+        else:
+            # Use the standard to send OMCI over OAM
+            encapsulated_omci = EOAMPayload(body=ItuOUI()/msg)
+
+            frame = Ether(dst=device.mac_address) / \
+              Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) / \
+              Dot1Q(vlan=proxy_address.channel_id, prio=TIBIT_MGMT_PRIORITY) / \
+              encapsulated_omci
 
         self.io_port.send(str(frame))
 
@@ -876,4 +892,3 @@ class TibitOltAdapter(object):
         prefix = 'voltha.{}.{}'.format(self.name, device_id)
         lc = LoopingCall(_collect, device_id, prefix)
         lc.start(interval=15)  # TODO make this configurable
-

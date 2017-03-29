@@ -97,6 +97,13 @@ class BroadcomOUI(Packet):
                     XByteField("oui1", 0x0D),
                     XByteField("oui2", 0xB6)]
 
+class ItuOUI(Packet):
+    """ Organizationally Unique Identifier (Tibit)"""
+    name = "Organizationally Unique Identifier (ITU)"
+    fields_desc  = [XByteField("oui0", 0x00),
+                    XByteField("oui1", 0x19),
+                    XByteField("oui2", 0xA7)]
+
 class DPoEOpcode_GetRequest(Packet):
     """ DPoE Opcode"""
     name = "DPoE Opcode"
