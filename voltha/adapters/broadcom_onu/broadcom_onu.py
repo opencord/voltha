@@ -632,10 +632,10 @@ class BroadcomOnuHandler(object):
         )
         self.send_omci_message(frame)
 
-    def send_set_extended_vlan_tagging_operation_vlan_configuration_data(self,
-                                                                         entity_id,
-                                                                         filter_inner_vid,
-                                                                         treatment_inner_vid):
+    def send_set_extended_vlan_tagging_operation_vlan_configuration_data_untagged(self,
+                                                                                  entity_id,
+                                                                                  filter_inner_vid,
+                                                                                  treatment_inner_vid):
         data = dict(
             received_frame_vlan_tagging_operation_table=
                 VlanTaggingOperation(
@@ -654,6 +654,51 @@ class BroadcomOnuHandler(object):
                     treatment_outer_tpid_de=0,
 
                     treatment_inner_priority=0,
+                    treatment_inner_vid=treatment_inner_vid,
+                    treatment_inner_tpid_de=4
+                )
+        )
+        frame = OmciFrame(
+            transaction_id=self.get_tx_id(),
+            message_type=OmciSet.message_id,
+            omci_message=OmciSet(
+                entity_class=
+                    ExtendedVlanTaggingOperationConfigurationData.class_id,
+                entity_id=entity_id,
+                attributes_mask=
+                    ExtendedVlanTaggingOperationConfigurationData.mask_for(
+                        *data.keys()),
+                data=data
+            )
+        )
+        self.send_omci_message(frame)
+
+    def send_set_extended_vlan_tagging_operation_vlan_configuration_data_single_tag(self,
+                                                                                    entity_id,
+                                                                                    filter_inner_priority,
+                                                                                    filter_inner_vid,
+                                                                                    filter_inner_tpid_de,
+                                                                                    treatment_tags_to_remove,
+                                                                                    treatment_inner_priority,
+                                                                                    treatment_inner_vid):
+        data = dict(
+            received_frame_vlan_tagging_operation_table=
+                VlanTaggingOperation(
+                    filter_outer_priority=15,
+                    filter_outer_vid=4096,
+                    filter_outer_tpid_de=0,
+
+                    filter_inner_priority=filter_inner_priority,
+                    filter_inner_vid=filter_inner_vid,
+                    filter_inner_tpid_de=filter_inner_tpid_de,
+                    filter_ether_type=0,
+
+                    treatment_tags_to_remove=treatment_tags_to_remove,
+                    treatment_outer_priority=15,
+                    treatment_outer_vid=0,
+                    treatment_outer_tpid_de=0,
+
+                    treatment_inner_priority=treatment_inner_priority,
                     treatment_inner_vid=treatment_inner_vid,
                     treatment_inner_tpid_de=4
                 )
@@ -1084,7 +1129,12 @@ class BroadcomOnuHandler(object):
 
         # Set AR - ExtendedVlanTaggingOperationConfigData
         #          514 - RxVlanTaggingOperationTable - add VLAN 1025 to untagged pkts
-        self.send_set_extended_vlan_tagging_operation_vlan_configuration_data(0x202, 0x1000, 0x401)
+        #self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_untagged(0x202, 0x1000, 0x401)
+        #yield self.wait_for_response()
+
+        # Set AR - ExtendedVlanTaggingOperationConfigData
+        #          514 - RxVlanTaggingOperationTable - add VLAN 1025 to priority tagged pkts
+        self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_single_tag(0x202, 0, 0, 0, 1, 8, 0x401)
         yield self.wait_for_response()
 
         # Create AR - MacBridgePortConfigData - 513 - 513 - 1 - 1 - 0x105
