@@ -12,8 +12,9 @@
 
 from scapy.packet import Packet
 from scapy.fields import ByteEnumField, XShortField, XByteField, MACField, \
-    ByteField, BitEnumField, BitField
-from scapy.fields import XLongField, StrField, XIntField
+    ByteField, BitEnumField, BitField, ShortField
+from scapy.fields import XLongField, StrField, StrFixedLenField, XIntField, \
+    FieldLenField, StrLenField, IntField
 
 # This library strives to be an implementation of the following standard:
 
@@ -52,20 +53,21 @@ DPoEOpcodeEnum = {
     0x05: "Dynamic IP Multicast Control",
     0x06: "Multicast Register",
     0x07: "Multicast Register Response",
+    0x09: "File Transfer",
     }
 
 ### Table 20 - DPoE Variable Response Codes
 DPoEVariableResponseCodes = {
-    0x80, "No Error",
-    0x81, "Too Long",
-    0x86, "Bad Parameters",
-    0x87, "No Resources",
-    0x88, "System Busy",
-    0xa0, "Undetermined Error",
-    0xa1, "Unsupported",
-    0xa2, "May Be Corrupted",
-    0xa3, "Hardware Failure",
-    0xa4, "Overflow",
+    0x80: "No Error",
+    0x81: "Too Long",
+    0x86: "Bad Parameters",
+    0x87: "No Resources",
+    0x88: "System Busy",
+    0xa0: "Undetermined Error",
+    0xa1: "Unsupported",
+    0xa2: "May Be Corrupted",
+    0xa3: "Hardware Failure",
+    0xa4: "Overflow",
     }
 
 class SlowProtocolsSubtype(Packet):
@@ -96,6 +98,13 @@ class BroadcomOUI(Packet):
     fields_desc  = [XByteField("oui0", 0x00),
                     XByteField("oui1", 0x0D),
                     XByteField("oui2", 0xB6)]
+
+class TibitOUI(Packet):
+    """ Organizationally Unique Identifier (Tibit)"""
+    name = "Organizationally Unique Identifier (Tibit)"
+    fields_desc  = [XByteField("oui0", 0x2A),
+                    XByteField("oui1", 0xEA),
+                    XByteField("oui2", 0x15)]
 
 class ItuOUI(Packet):
     """ Organizationally Unique Identifier (Tibit)"""
@@ -147,6 +156,12 @@ class MulticastRegisterSet(Packet):
                    XShortField("MulticastLink", 0x0000),
                    XShortField("UnicastLink", 0x0000),
                    ]
+
+class TibitOpcode_OmciMessage(Packet):
+    """ DPoE Opcode"""
+    name = "Tibit Opcode"
+    fields_desc  = [ByteEnumField("opcode", 0xA0, DPoEOpcodeEnum)]
+
 ####
 #### PORT OBJECTS
 ####
@@ -210,6 +225,19 @@ class OLTUnicastLogicalLink(Packet):
                    XByteField("pad", 0),
                    ]
 
+class OLTEPONUnicastLogicalLink(Packet):
+    """ Object Context: OLT Unicast Logical Link """
+    name = "Object Context: OLT Unicast Logical Link"
+    fields_desc = [XByteField("branch", 0xD6),
+                   XShortField("leaf", 0x000a),
+                   XByteField("length", 10),
+                   XByteField("pon", 0),
+                   XIntField("unicastvssn", 0x00000000),
+                   XIntField("unicastlink", 0x00000000),
+                   XByteField("pad", 0),
+                   ]
+
+
 # __TIBIT_OLT_OAM__: Defined by Tibit
 class NetworkToNetworkPortObject(Packet):
     """ Object Context: Network-to-Network (NNI) Port Object """
@@ -239,6 +267,14 @@ class QueueObject(Packet):
                    XByteField("number", 0)
                    ]
 
+class ONUObject(Packet):
+    """ Object Context: ONU Object """
+    name = "Object Context: ONU Object"
+    fields_desc = [XByteField("branch", 0xD6),
+                   XShortField("leaf", 0x0009),
+                   XByteField("length", 6),
+                   MACField("mac", "54:42:e2:22:11:00")
+                   ]
 
 ####
 #### 0x09 - BRANCH ATTRIBUTES
@@ -294,6 +330,12 @@ class DateOfManufacture(Packet):
     name = "Variable Descriptor: Date of Manufacture"
     fields_desc = [XByteField("branch", 0xD7),
                    XShortField("leaf", 0x0005)]
+
+class ManufacturerInfo(Packet):
+    """ Variable Descriptor: ManufacturerInfo """
+    name = "Variable Descriptor: ManufacturerInfo"
+    fields_desc = [XByteField("branch", 0xD7),
+                   XShortField("leaf", 0x0006)]
 
 class MaxLogicalLinks(Packet):
     """ Variable Descriptor: Max Logical Links """
@@ -573,6 +615,8 @@ class FirmwareFilename(Packet):
     fields_desc = [XByteField("branch", 0xD7),
                    XShortField("leaf", 0x010e),
                    ]
+
+
 ####
 #### 0xD9 - MAC Table Operations - Dynamic and Static
 ####
@@ -627,6 +671,48 @@ class DeleteStaticMacAddress(Packet):
 #### 0xd7 - STATISTICS
 ####
 
+class RxFramesGreen(Packet):
+    """ Variable Descriptor: RxFramesGreen """
+    name = "Variable Descriptor: RxFramesGreen"
+    fields_desc = [XByteField("branch", 0xD7),
+                   XShortField("leaf", 0x0201),
+                   ]
+
+class TxFramesGreen(Packet):
+    """ Variable Descriptor: TxFramesGreen """
+    name = "Variable Descriptor: TxFramesGreen"
+    fields_desc = [XByteField("branch", 0xD7),
+                   XShortField("leaf", 0x0202),
+                   ]
+
+class RxFrame_64(Packet):
+    """ Variable Descriptor: RxFrame_64 """
+    name = "Variable Descriptor: RxFrame_64"
+    fields_desc = [XByteField("branch", 0xD7),
+                   XShortField("leaf", 0x0204),
+                   ]
+
+class RxFrame_65_127(Packet):
+    """ Variable Descriptor: RxFrame_65_127 """
+    name = "Variable Descriptor: RxFrame_65_127"
+    fields_desc = [XByteField("branch", 0xD7),
+                   XShortField("leaf", 0x0205),
+                   ]
+
+class RxFrame_128_255(Packet):
+    """ Variable Descriptor: RxFrame_128_255 """
+    name = "Variable Descriptor: RxFrame_128_255"
+    fields_desc = [XByteField("branch", 0xD7),
+                   XShortField("leaf", 0x0206),
+                   ]
+
+class RxFrame_256_511(Packet):
+    """ Variable Descriptor: RxFrame_256_511 """
+    name = "Variable Descriptor: RxFrame_256_511"
+    fields_desc = [XByteField("branch", 0xD7),
+                   XShortField("leaf", 0x0207),
+                   ]
+
 class RxFrame_512_1023(Packet):
     """ Variable Descriptor: RxFrame_512_1023 """
     name = "Variable Descriptor: RxFrame_512_1023"
@@ -634,11 +720,67 @@ class RxFrame_512_1023(Packet):
                    XShortField("leaf", 0x0208),
                    ]
 
+class RxFrame_1024_1518(Packet):
+    """ Variable Descriptor: RxFrame_1024_1518 """
+    name = "Variable Descriptor: RxFrame_1024_1518"
+    fields_desc = [XByteField("branch", 0xD7),
+                   XShortField("leaf", 0x0209),
+                   ]
+
+class RxFrame_1519Plus(Packet):
+    """ Variable Descriptor: RxFrame_1024_1518 """
+    name = "Variable Descriptor: RxFrame_1024_1518"
+    fields_desc = [XByteField("branch", 0xD7),
+                   XShortField("leaf", 0x020A),
+                   ]
+
+class TxFrame_64(Packet):
+    """ Variable Descriptor: TxFrame_64 """
+    name = "Variable Descriptor: TxFrame_64"
+    fields_desc = [XByteField("branch", 0xD7),
+                   XShortField("leaf", 0x020B),
+                   ]
+
+class TxFrame_65_127(Packet):
+    """ Variable Descriptor: TxFrame_65_127 """
+    name = "Variable Descriptor: TxFrame_65_127"
+    fields_desc = [XByteField("branch", 0xD7),
+                   XShortField("leaf", 0x020C),
+                   ]
+
+class TxFrame_128_255(Packet):
+    """ Variable Descriptor: TxFrame_128_255 """
+    name = "Variable Descriptor: TxFrame_128_255"
+    fields_desc = [XByteField("branch", 0xD7),
+                   XShortField("leaf", 0x020D),
+                   ]
+
+class TxFrame_256_511(Packet):
+    """ Variable Descriptor: TxFrame_256_511 """
+    name = "Variable Descriptor: TxFrame_256_511"
+    fields_desc = [XByteField("branch", 0xD7),
+                   XShortField("leaf", 0x020E),
+                   ]
+
 class TxFrame_512_1023(Packet):
     """ Variable Descriptor: TxFrame_512_1023 """
     name = "Variable Descriptor: TxFrame_512_1023"
     fields_desc = [XByteField("branch", 0xD7),
-                   XShortField("leaf", 0x020f),
+                   XShortField("leaf", 0x020F),
+                   ]
+
+class TxFrame_1024_1518(Packet):
+    """ Variable Descriptor: TxFrame_1024_1518 """
+    name = "Variable Descriptor: TxFrame_1024_1518"
+    fields_desc = [XByteField("branch", 0xD7),
+                   XShortField("leaf", 0x0210),
+                   ]
+
+class TxFrame_1519Plus(Packet):
+    """ Variable Descriptor: TxFrame_1024_1518 """
+    name = "Variable Descriptor: TxFrame_1024_1518"
+    fields_desc = [XByteField("branch", 0xD7),
+                   XShortField("leaf", 0x0211),
                    ]
 
 class FramesDropped(Packet):
@@ -1109,6 +1251,143 @@ class DeletePortIngressRule(Packet):
                    ]
 
 ####
+#### 0xb7 - TIBIT ATTRIBUTES
+####
+class OltMode(Packet):
+    """ Variable Descriptor: OLT Mode """
+    name = "Variable Descriptor: "
+    fields_desc = [XByteField("branch", 0xB7),
+                   XShortField("leaf", 0x0101),
+                   ]
+
+class OltPonAdminState(Packet):
+    """ Variable Descriptor: OLT PON Admin State """
+    name = "Variable Descriptor: "
+    fields_desc = [XByteField("branch", 0xB7),
+                   XShortField("leaf", 0x0102),
+                   ]
+
+class OltPonAdminStateSet(Packet):
+    """ Variable Container: OLT PON Admin State """
+    name = "Variable Container: "
+    fields_desc = [XByteField("branch", 0xB7),
+                   XShortField("leaf", 0x0102),
+                   XByteField("length", 1),
+                   XByteField("value", 0),
+                   ]
+
+class TibitLinkMacTable(Packet):
+    """ Variable Descriptor: Link MAC Table """
+    name = "Variable Descriptor: "
+    fields_desc = [XByteField("branch", 0xB7),
+                   XShortField("leaf", 0x0103),
+                   ]
+
+class TibitKeyExchange(Packet):
+    """ Variable Descriptor: Key Exchange """
+    name = "Variable Descriptor: "
+    fields_desc = [XByteField("branch", 0xB7),
+                   XShortField("leaf", 0x0104),
+                   ]
+
+class TibitKeyExchangeSet(Packet):
+    """ Variable Descriptor: Key Exchange Set"""
+    name = "Variable Container: "
+    fields_desc = [XByteField("branch", 0xB7),
+                   XShortField("leaf", 0x0104),
+                   XByteField("length", 2),
+                   XShortField("value", 0x1234),
+                  ]
+
+UpstreamSlaSubtypeEnum = { 0x00: "Terminator",
+                           0x01: "Header",
+                           0x02: "Max Grant Period",
+                           0x03: "Min Grant Period",
+                           0x04: "Service Limit",
+                           0x05: "Fixed Rate",
+                           0x06: "Guaranteed Rate",
+                           0x07: "Best Effort Rate",
+                           0x08: "Max Burst Size",
+                           0x09: "Priority",
+                         }
+
+class UpstreamSla(Packet):
+    """ Variable Descriptor: Upstream SLA """
+    name = "Variable Descriptor: Upstream SLA"
+    fields_desc = [XByteField("branch", 0xB7),
+                   XShortField("leaf", 0x0621),
+                   ]
+
+class UpstreamSlaHeader(Packet):
+    """ Variable Descriptor: Upstream SLA Header """
+    name = "Variable Descriptor: Upstream SLA Header"
+    fields_desc = [XByteField("branch", 0xB7),
+                   XShortField("leaf", 0x0621),
+                   ByteField("length", 1),
+                   XByteField("subtype", 1),
+                   ]
+
+class UpstreamSlaTerminator(Packet):
+    """ Variable Descriptor: Upstream SLA Terminator """
+    name = "Variable Descriptor: Upstream SLA Terminator"
+    fields_desc = [XByteField("branch", 0xB7),
+                   XShortField("leaf", 0x0621),
+                   ByteField("length", 1),
+                   XByteField("subtype", 0),
+                   ]
+
+class UpstreamSlaSettingLength01(Packet):
+    """ Variable Descriptor: Upstream SLA Setting """
+    name = "Variable Descriptor: Upstream SLA Setting"
+    fields_desc = [XByteField("branch", 0xB7),
+                   XShortField("leaf", 0x0621),
+                   ByteField("length", 3),
+                   XByteField("subtype", 0),
+                   XByteField("setting_len", 1),
+                   ByteField("setting_val", 0),
+                   ]
+
+class UpstreamSlaSettingLength02(Packet):
+    """ Variable Descriptor: Upstream SLA Setting """
+    name = "Variable Descriptor: Upstream SLA Setting"
+    fields_desc = [XByteField("branch", 0xB7),
+                   XShortField("leaf", 0x0621),
+                   ByteField("length", 4),
+                   XByteField("subtype", 0),
+                   XByteField("setting_len", 2),
+                   ShortField("setting_val", 0),
+                   ]
+
+class UpstreamSlaSettingLength04(Packet):
+    """ Variable Descriptor: Upstream SLA Setting """
+    name = "Variable Descriptor: Upstream SLA Setting"
+    fields_desc = [XByteField("branch", 0xB7),
+                   XShortField("leaf", 0x0621),
+                   ByteField("length", 6),
+                   XByteField("subtype", 0),
+                   XByteField("setting_len", 4),
+                   IntField("setting_val", 0),
+                   ]
+
+class SlaPriorityType(Packet):
+    """ Variable Descriptor: SLA Priority Type """
+    name = "Variable Descriptor: "
+    fields_desc = [XByteField("branch", 0xB7),
+                   XShortField("leaf", 0x0622),
+                   ]
+
+class SlaPriorityTypeSet(Packet):
+    """ Variable Container: SLA Priority Type """
+    name = "Variable Container: "
+    fields_desc = [XByteField("branch", 0xB7),
+                   XShortField("leaf", 0x0622),
+                   XByteField("length", 1),
+                   XByteField("value", 1),
+                   ]
+
+
+
+####
 #### 0xd9 - BRANCH ATTRIBUTES
 ####
 
@@ -1150,6 +1429,31 @@ class CurrentAlarmSummary(Packet):
     name = "Variable Descriptor: Current Alarm Summary"
     fields_desc = [XByteField("branch", 0xD9),
                    XShortField("leaf", 0x0301)]
+
+class DeviceReset(Packet):
+    """ Variable Descriptor: Device Reset """
+    name = "Variable Descriptor: Device Reset"
+    fields_desc = [XByteField("branch", 0xD9),
+                   XShortField("leaf", 0x0001),
+                   XByteField("length", 0x80),
+                   ]
+
+class TibitDeviceReset(Packet):
+    """ Variable Descriptor: Tibit Device Reset """
+    name = "Variable Descriptor: Tibit Device Reset"
+    fields_desc = [XByteField("branch", 0xB9),
+                   XShortField("leaf", 0x0001),
+                   XByteField("length", 0x80),
+                   ]
+
+class TibitApplySla(Packet):
+    """ Variable Descriptor: Apply SLA """
+    name = "Variable Descriptor: Apply Sla"
+    fields_desc = [XByteField("branch", 0xB9),
+                   XShortField("leaf", 0x0601),
+                   XByteField("length", 0x80),
+                   XByteField("value", 0),
+                   ]
 
 
 ##
@@ -1216,6 +1520,15 @@ class Clause30AttributesMacEnable(Packet):
                    XShortField("leaf", 0x001a),
                    XByteField("length", 1),
                    XByteField("value", 1),
+                   ]
+
+class GenericTLV(Packet):
+    """ Variable Descriptor: Generic TLV """
+    name = "Variable Descriptor: Generic TLV"
+    fields_desc = [XByteField("branch", 0x00),
+                   XShortField("leaf", 0x0000),
+                   FieldLenField("length", None, length_of="value", fmt="B"),
+                   StrLenField("value", "", length_from=lambda x:x.length),
                    ]
 
 class EndOfPDU(Packet):
