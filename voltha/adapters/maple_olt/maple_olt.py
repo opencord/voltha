@@ -268,6 +268,25 @@ class MapleOltRxHandler(pb.Root):
         except Exception as e:
             log.exception('failed-to-submit-alarm', e=e)
 
+    def remote_onu_down_event(self, onu_no):
+        log.info('received-onu-down-event',
+                 onu_no=onu_no)
+        olt_handler = self.adapter_agent.get_device(self.device_id)
+        #import pdb; pdb.set_trace()
+        lgcl_port = self.adapter_agent.get_logical_port(olt_handler.parent_id, 'uni-{}'.format(onu_no + 1024));
+        lgcl_port.ofp_port.state=OFPPS_LINK_DOWN
+        self.adapter_agent.update_logical_port(olt_handler.parent_id, lgcl_port)
+
+    def remote_onu_up_event(self, onu_no):
+        log.info('received-onu-up-event',
+                 onu_no=onu_no)
+        olt_handler = self.adapter_agent.get_device(self.device_id)
+        #import pdb; pdb.set_trace()
+        lgcl_port = self.adapter_agent.get_logical_port(olt_handler.parent_id, 'uni-{}'.format(onu_no + 1024));
+        lgcl_port.ofp_port.state=OFPPS_LIVE
+        self.adapter_agent.update_logical_port(olt_handler.parent_id, lgcl_port)
+
+
 
 
 @implementer(IAdapterInterface)
