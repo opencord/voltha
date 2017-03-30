@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y git maven unzip
 RUN git config --global http.sslverify false && \
     git clone https://alshabibi@bitbucket.org/alshabibi/onos-apps.git
     
-RUN cd $ONOS/onos-apps/apps && mvn clean install
+RUN cd $ONOS/onos-apps/apps && mvn  -DskipTests=true clean install
 
 WORKDIR $ONOS
 
