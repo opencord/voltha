@@ -19,6 +19,8 @@ Tibit ONU device adapter
 """
 
 import json
+import time
+import struct
 
 from uuid import uuid4
 
@@ -60,10 +62,29 @@ from voltha.extensions.eoam.EOAM_TLV import ClearStaticMacTable
 from voltha.extensions.eoam.EOAM_TLV import DeviceId
 from voltha.extensions.eoam.EOAM_TLV import ClauseSubtypeEnum
 from voltha.extensions.eoam.EOAM_TLV import RuleOperatorEnum
+from voltha.extensions.eoam.EOAM_TLV import DPoEVariableResponseCodes
+from voltha.extensions.eoam.EOAM_TLV import TibitOUI
 
 from voltha.extensions.eoam.EOAM import EOAMPayload, CablelabsOUI
 from voltha.extensions.eoam.EOAM import DPoEOpcode_GetRequest, DPoEOpcode_SetRequest
 from voltha.extensions.eoam.EOAM import mcastIp2McastMac
+
+TIBIT_MSG_WAIT_TIME = 3
+
+### Received OAM Message Types
+RxedOamMsgTypeEnum = {
+    "Unknown": 0x00,
+    # Info PDU - not currently used
+    "Info": 0x01,
+    # Event Notification - Tibit or DPoE Event
+    "Event Notification": 0x02,
+    "DPoE Get Response": 0x03,
+    "DPoE Set Response": 0x04,
+    # Specifically - a File Transfer ACK
+    "DPoE File Transfer": 0x05,
+    # Contains an embedded OMCI message
+    "OMCI Message": 0x06,
+    }
 
 @implementer(IAdapterInterface)
 class TibitOnuAdapter(object):
@@ -220,6 +241,7 @@ class TibitOnuAdapter(object):
     def get_device_details(self, device):
         raise NotImplementedError()
 
+    @inlineCallbacks
     def update_flows_bulk(self, device, flows, groups):
         log.info('########################################')
         log.info('bulk-flow-update', device_id=device.id,
@@ -237,7 +259,7 @@ class TibitOnuAdapter(object):
 
             if in_port == 2:
                 log.info('#### Upstream Rule ####')
-                dn_req = EOAMPayload(body=CablelabsOUI() /
+                dn_req = EOAMPayload(body=TibitOUI() /
                                      DPoEOpcode_SetRequest())
 
                 for field in get_ofb_fields(flow):
@@ -343,16 +365,48 @@ class TibitOnuAdapter(object):
                         b = int(hex(_ipv4_dst)[4:6], 16)
                         c = int(hex(_ipv4_dst)[6:8], 16)
                         d = int(hex(_ipv4_dst)[8:], 16)
-                        dn_req = EOAMPayload(body=CablelabsOUI() /
+                        dn_req = EOAMPayload(body=TibitOUI() /
                                           DPoEOpcode_SetRequest() /
                                           AddStaticMacAddress(
                                               mac=mcastIp2McastMac('%d.%d.%d.%d' % (a,b,c,d)))
                                           )
+
                         # send message
+                        
                         log.info('ONU-send-proxied-message')
                         self.adapter_agent.send_proxied_message(device.proxy_address,
                                                                 dn_req)
 
+                        # Get and process the Set Response
+                        ack = False
+                        start_time = time.time()
+
+                        # Loop until we have a set response or timeout
+                        while not ack:
+                            frame = yield self.incoming_messages.get()
+                            #TODO - Need to add propoer timeout functionality
+                            #if (time.time() - start_time) > TIBIT_MSG_WAIT_TIME or (frame is None):
+                            #    break  # don't wait forever
+
+                            respType = self._voltha_get_oam_msg_type(frame)
+                            log.info('Received OAM Message 0x %s' % str(respType))
+
+                            #Check that the message received is a Set Response
+                            if (respType == RxedOamMsgTypeEnum["DPoE Set Response"]):
+                                ack = True
+                            else:
+                                # Handle unexpected events/OMCI messages
+                                self._voltha_check_resp(frame)
+
+                        # Verify Set Response
+                        if ack:
+                            (rc,branch,leaf,status) = self._voltha_check_set_resp(frame)
+                            log.info('REturn from Set resp')
+                            if (rc == True):
+                                log.info('Set Response had no errors')
+                            else:
+                                log.info('Set Respose had errors')
+                                log.info('Branch 0x{:X} Leaf 0x{:0>4X} {}'.format(branch, leaf, DPoEVariableResponseCodes[status]))
 
                     else:
                         raise NotImplementedError('field.type={}'.format(
@@ -401,6 +455,7 @@ class TibitOnuAdapter(object):
                   proxy_address=proxy_address, msg=msg.show(dump=True))
         self.incoming_messages.put(msg)
 
+
     @inlineCallbacks
     def _message_exchange(self, device):
 
@@ -412,20 +467,21 @@ class TibitOnuAdapter(object):
             _ = yield self.incoming_messages.get()
 
         # construct message
-        msg = EOAMPayload(body=CablelabsOUI() /
+        msg = EOAMPayload(body=TibitOUI() /
                           DPoEOpcode_GetRequest() /
                           DeviceId()
                           )
 
         # send message
         log.info('ONU-send-proxied-message')
+
         self.adapter_agent.send_proxied_message(device.proxy_address, msg)
 
         # wait till we detect incoming message
         yield self.incoming_messages.get()
 
         # construct install of igmp query address
-        msg = EOAMPayload(body=CablelabsOUI() /
+        msg = EOAMPayload(body=TibitOUI() /
                           DPoEOpcode_SetRequest() /
                           AddStaticMacAddress(mac='01:00:5e:00:00:01')
                           )
@@ -435,7 +491,38 @@ class TibitOnuAdapter(object):
         self.adapter_agent.send_proxied_message(device.proxy_address, msg)
 
         # wait till we detect incoming message
-        yield self.incoming_messages.get()
+        #frame = yield self.incoming_messages.get()
+
+        # Get and process the Set Response
+        ack = False
+        start_time = time.time()
+
+        # Loop until we have a set response or timeout
+        while not ack:
+            frame = yield self.incoming_messages.get()
+            #TODO - Need to add propoer timeout functionality
+            #if (time.time() - start_time) > TIBIT_MSG_WAIT_TIME or (frame is None):
+            #    break  # don't wait forever
+
+            respType = self._voltha_get_oam_msg_type(frame)
+            log.info('Received OAM Message 0x %s' % str(respType))
+
+            #Check that the message received is a Set Response
+            if (respType == RxedOamMsgTypeEnum["DPoE Set Response"]):
+                ack = True
+            else:
+                # Handle unexpected events/OMCI messages
+                self._voltha_check_resp(frame)
+
+        # Verify Set Response
+        if ack:
+            (rc,branch,leaf,status) = self._voltha_check_set_resp(frame)
+            log.info('REturn from Set resp')
+            if (rc == True):
+                log.info('Set Response had no errors')
+            else:
+                log.info('Set Respose had errors')
+                log.info('Branch 0x{:X} Leaf 0x{:0>4X} {}'.format(branch, leaf, DPoEVariableResponseCodes[status]))
 
         # by returning we allow the device to be shown as active, which
         # indirectly verified that message passing works
@@ -496,4 +583,273 @@ class TibitOnuAdapter(object):
         prefix = 'voltha.{}.{}'.format(self.name, device_id)
         lc = LoopingCall(_collect, device_id, prefix)
         lc.start(interval=15)  # TODO make this configurable
+
+    def _voltha_get_oam_msg_type(self, frame):
+        respType = RxedOamMsgTypeEnum["Unknown"]
+        recv_frame = frame
+        payload = recv_frame.payload
+        if hasattr(payload, 'body'):
+            loadstr       = payload.body.load
+            bytesRead = 0;
+            if (payload.opcode == 0xFE):
+
+                # Extract the OUI
+                (oui_hi, oui_lo) = struct.unpack_from('>BH', loadstr, bytesRead)
+                oui = (oui_hi << 16) | oui_lo
+                log.debug('oui: 0x %06x' % oui)
+                bytesRead += 3
+
+                # If this is the ITU OUI, then there is an embedded OMCI message
+                if (oui == 0x0019A7):
+                    respType = RxedOamMsgTypeEnum["OMCI Message"]
+
+                # Treat Cablelabs OUI and Tibit OUI as the same
+                elif ((oui == 0x001000) or (oui == 0x2AEA15)):
+
+                    (dpoeOpcode) = struct.unpack_from('>B', loadstr, bytesRead)[0]
+                    bytesRead += 1
+
+                    # Get Response
+                    if (dpoeOpcode == 0x02):
+                        respType = RxedOamMsgTypeEnum["DPoE Get Response"]
+
+                    # Set Response
+                    elif (dpoeOpcode == 0x04):
+                        respType = RxedOamMsgTypeEnum["DPoE Set Response"]
+
+                    # File Transfer ACK
+                    elif (dpoeOpcode == 0x09):
+                        respType = RxedOamMsgTypeEnum["DPoE File Transfer"]
+
+                else:
+                    log.info('Unsupported OAM OUI 0x{:0>6X}'.format(oui))
+
+            # Handle OAM Event Notification
+            elif (payload.opcode == 0x01):
+                respType = RxedOamMsgTypeEnum["Event Notification"]
+            else:
+                log.info('Unsupported OAM Opcode {}'.format(payload.opcode))
+        else:
+            log.debug('received frame has no payload')
+
+        return respType
+
+
+    def _voltha_check_set_resp(self, frame):
+        rc = False
+        branch = 0
+        leaf = 0
+        status = 0
+
+        recv_frame = frame
+        payload = recv_frame.payload
+        if hasattr(payload, 'body'):
+            loadstr   = payload.body.load
+            bytesRead = 0;
+            if (payload.opcode == 0xFE):
+
+                # Extract the OUI
+                (oui_hi, oui_lo) = struct.unpack_from('>BH', loadstr, bytesRead)
+                oui = (oui_hi << 16) | oui_lo
+                log.info('oui: 0x %06x' % oui)
+                bytesRead += 3
+
+                # Treat Cablelabs OUI and Tibit OUI as the same
+                if ((oui == 0x001000) or (oui == 0x2AEA15)):
+                    (dpoeOpcode) = struct.unpack_from('>B', loadstr, bytesRead)[0]
+                    bytesRead += 1
+
+                    startOfTlvs = bytesRead
+                    # Set Response
+                    if (dpoeOpcode == 0x04):
+                        test =1
+                        (rc,branch,leaf,status) = self._voltha_check_set_resp_attrs(loadstr, startOfTlvs)
+                        if (rc == True):
+                            log.info('Set Response had no errors')
+                        else:
+                            log.debug('Branch 0x{:X} Leaf 0x{:0>4X} {}'.format(branch, leaf, DPoEVariableResponseCodes[status]))
+                    else:
+                        log.info('Unsupported DPoE Opcode: {} ({:0>2X})'.format(DPoEOpcodeEnum[dpoeOpcode], dpoeOpcode))
+                else:
+                    log.info('Unsupported OAM OUI 0x{:0>6X}'. format(oui))
+            else:
+                log.info('Unsupported OAM Opcode {}'.format(payload.opcode))
+        else:
+            log.debug('received frame has no payload')
+
+        return rc,branch,leaf,status
+    
+
+    def _voltha_check_resp(self, frame):
+        recv_frame = frame
+        payload = recv_frame.payload
+        if hasattr(payload, 'body'):
+            loadstr   = payload.body.load
+            bytesRead = 0;
+            if (payload.opcode == 0xFE):
+                
+                # Extract the OUI
+                (oui_hi, oui_lo) = struct.unpack_from('>BH', loadstr, bytesRead)
+                oui = (oui_hi << 16) | oui_lo
+                log.info('oui: 0x %06x' % oui)
+                bytesRead += 3
+
+                # If this is the ITU OUI, then there is an embedded OMCI message
+                if (oui == 0x0019A7):
+                    self._voltha_handle_omci(loadstr,bytesRead)
+
+                # Treat Cablelabs OUI and Tibit OUI as the same
+                elif ((oui == 0x001000) or (oui == 0x2AEA15)):
+                    log.debug('Recieved Response OUI 0x{:0>6X}'. format(oui))
+                else:
+                    log.info('Unsupported OAM OUI 0x{:0>6X}'. format(oui))
+
+            # Handle OAM Event Notification
+            elif (payload.opcode == 0x01):
+                self._voltha_handle_oam_event(loadstr, bytesRead)
+            else:
+                log.info('Unsupported OAM Opcode {}'.format(payload.opcode))
+
+        else:
+            log.debug('received frame has no payload')
+
+
+    def _voltha_handle_oam_event(self, loadstr, startOfEvent):
+        bytesRead = startOfEvent
+        (seq_num, tlv_type, ev_len, oui_hi, oui_lo) = struct.unpack_from('>HBBBH', loadstr, bytesRead)
+        oui = (oui_hi << 16) | oui_lo
+
+        log.info('seq_num:        0x%04x' % seq_num)
+        log.info('tlv_type:       0x%' % tlv_type)
+        log.info('ev_len:         0x%x' % ev_len)
+        log.info('oui:            0x%06x"'% oui)
+
+        if (tlv_type != 0xFE):
+            log.debug('unexpected tlv_type 0x%x (expected 0xFE)' % tlv_type)
+        elif (oui == 0x001000):
+            log.debug('DPoE Event')
+            ## TODO - Handle DPoE Event/Alarm
+        elif (oui == 0x2AEA15):
+            log.debug('Tibit-specific Event')
+
+            # TODO - Handle addition/removal of links
+
+            bytesRead = 7
+
+            # TODO - Check OUI and parse Source and Reference Object Contexts
+    
+
+    def _voltha_handle_omci(self, loadstr, startOfEvent):
+        bytesRead = startOfEvent
+        log.debug('OMCI Message')
+
+        # TODO - Handle OMCI message
+
+
+
+    def _voltha_handle_get_value(self, loadstr, startOfTlvs, queryBranch, queryLeaf):
+        retVal = False;
+        value = 0
+        branch = 0
+        leaf = 0
+        bytesRead = startOfTlvs
+        loadstrlen    = len(loadstr)
+
+        while (bytesRead <= loadstrlen):
+            (branch, leaf) = struct.unpack_from('>BH', loadstr, bytesRead)
+
+            if (branch != 0):
+                bytesRead += 3
+                length = struct.unpack_from('>B', loadstr, bytesRead)[0]
+                bytesRead += 1
+
+                if (length == 1):
+                    value = struct.unpack_from(">B", loadstr, bytesRead)[0]
+                elif (length == 2):
+                    value = struct.unpack_from(">H", loadstr, bytesRead)[0]
+                elif (length == 4):
+                    value = struct.unpack_from(">I", loadstr, bytesRead)[0]
+                elif (length == 8):
+                    value = struct.unpack_from(">Q", loadstr, bytesRead)[0]
+                else:
+                    if (length >= 0x80):
+                        log.info('Branch 0x{:0>2X} Leaf 0x{:0>4X} {}'.format(branch, leaf, DPoEVariableResponseCodes[length]))
+                        # Set length to zero so bytesRead doesn't get mistakenly incremented below
+                        length = 0
+                    else:
+                        # Attributes with a length of zero are actually 128 bytes long
+                        if (length == 0):
+                            length = 128;
+                        valStr = ">{}s".format(length)
+                        value = struct.unpack_from(valStr, loadstr, bytesRead)[0]
+
+                if (length > 0):
+                    bytesRead += length
+
+                if (branch != 0xD6):
+                    if ( ((queryBranch == 0) and (queryLeaf == 0)) or
+                         ((queryBranch == branch) and (queryLeaf == leaf)) ):
+                        # Prevent zero-lengthed values from returning success
+                        if (length > 0):
+                            retVal = True;
+                        break
+            else:
+                break
+
+        if (retVal == False):
+            value = 0
+
+        return retVal,bytesRead,value,branch,leaf
+
+    def _voltha_check_set_resp_attrs(self, loadstr, startOfTlvs):
+        retVal = True;
+        branch = 0
+        leaf = 0
+        length = 0
+        bytesRead = startOfTlvs
+        loadstrlen    = len(loadstr)
+
+        while (bytesRead <= loadstrlen):
+            (branch, leaf) = struct.unpack_from('>BH', loadstr, bytesRead)
+
+            if (branch != 0):
+                bytesRead += 3
+                length = struct.unpack_from('>B', loadstr, bytesRead)[0]
+                bytesRead += 1
+
+                if (length >= 0x80):
+                    log.debug('Branch 0x{:0>2X} Leaf 0x{:0>4X} {}'.format(branch, leaf, DPoEVariableResponseCodes[length]))
+                    if (length > 0x80):
+                        retVal = False;
+                        break;
+                else:
+                    bytesRead += length
+
+            else:
+                break
+
+        return retVal,branch,leaf,length
+
+
+
+    def _voltha_handle_fx_ack(self, loadstr, startOfXfer, block_number):
+        retVal = False
+        (fx_opcode, acked_block, response_code) = struct.unpack_from('>BHB', loadstr, startOfXfer)
+
+        log.debug('fx_opcode:      0x%x' % fx_opcode)
+        log.debug('acked_block:    0x%x' % acked_block)
+        log.debug('response_code:  0x%x' % response_code)
+
+
+
+        if (fx_opcode != 0x03):
+            log.debug('unexpected fx_opcode 0x%x (expected 0x03)' % fx_opcode)
+        elif (acked_block != block_number):
+            log.debug('unexpected acked_block 0x%x (expected 0x%x)' % (acked_block, block_number))
+        elif (response_code != 0):
+            log.debug('unexpected response_code 0x%x (expected 0x00)' % response_code)
+        else:
+            retVal = True;
+
+
 
