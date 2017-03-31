@@ -1,0 +1,10 @@
+#!/bin/ash
+
+while true; do
+    curl -H "Content-Type: application/json" -sSL --fail http://${ONOS_USER:-"karaf"}:${ONOS_PASSWORD:-"karaf"}@${ONOS_CONNECTION:-"localhost:8181"}/onos/v1/network/configuration -d @/data/onos-config.json
+    if [ $? -eq 0 ]; then
+        break
+    fi
+    sleep ${ONOS_SLEEP_DELAY:-30}
+done
+echo "Configuraton pushed to ${ONOS_CONNECTION:-'localhost:8181'} at $(date)"
