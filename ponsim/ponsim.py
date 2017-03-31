@@ -20,15 +20,21 @@ Simple PON Simulator which would not be needed if openvswitch could do
 handle 0-tagged packets (no comment).
 """
 import structlog
-from scapy.layers.inet import IP, UDP
+import random
+import arrow
+import json
+from scapy.layers.inet import IP, UDP, TCP, Raw
 from scapy.layers.l2 import Ether, Dot1Q
 from scapy.packet import Packet
 
 from voltha.protos import third_party
 from voltha.protos.ponsim_pb2 import PonSimMetrics, PonSimPortMetrics, \
     PonSimPacketCounter
+from voltha.protos.events_pb2 import AlarmEventType, AlarmEventSeverity, \
+    AlarmEventState, AlarmEventCategory
 from voltha.core.flow_decomposer import *
 from twisted.internet.task import LoopingCall
+from twisted.internet import reactor
 
 _ = third_party
 
@@ -145,6 +151,79 @@ class FrameIOCounter(object):
         sim_metrics.metrics.extend([ni_port_metrics])
 
         return sim_metrics
+
+
+class SimAlarms:
+    def __init__(self):
+        self.lc = None
+
+    @staticmethod
+    def _prepare_alarm():
+        alarm_event = dict()
+
+        try:
+            # Randomly choose values for each enum types
+            alm_severity = random.choice(list(
+                v for k, v in
+                AlarmEventSeverity.DESCRIPTOR.enum_values_by_name.items()))
+
+            alm_type = random.choice(list(
+                v for k, v in
+                AlarmEventType.DESCRIPTOR.enum_values_by_name.items()))
+
+            alm_category = random.choice(list(
+                v for k, v in
+                AlarmEventCategory.DESCRIPTOR.enum_values_by_name.items()))
+
+            alarm_event['severity'] = alm_severity.number
+            alarm_event['type'] = alm_type.number
+            alarm_event['category'] = alm_category.number
+            alarm_event['state'] = AlarmEventState.RAISED
+            alarm_event['ts'] = arrow.utcnow().timestamp
+            alarm_event['description'] = "{}.{} alarm".format(alm_type.name, alm_category.name)
+
+            return alarm_event
+
+        except Exception as e:
+            log.exception('failed-to-prepare-alarm', e=e)
+
+    @staticmethod
+    def _raise_alarm(alarm_event, olt, egress):
+        try:
+            frame = Ether() / Dot1Q(vlan=4000) / IP() / TCP() / Raw(load=json.dumps(alarm_event))
+            egress(0, frame)
+
+        except Exception as e:
+            log.exception('failed-to-raise-alarm', e=e)
+
+    @staticmethod
+    def _clear_alarm(alarm_event, olt, egress):
+        try:
+            alarm_event['state'] = AlarmEventState.CLEARED
+            frame = Ether() / Dot1Q(vlan=4000) / IP() / TCP() / Raw(load=json.dumps(alarm_event))
+            egress(0, frame)
+
+        except Exception as e:
+            log.exception('failed-to-clear-alarm', e=e)
+
+    def _generate_alarm(self, olt, egress):
+        try:
+            alarm = self._prepare_alarm()
+            self._raise_alarm(alarm, olt, egress)
+            reactor.callLater(random.randint(20, 60), self._clear_alarm, alarm, olt, egress)
+        except Exception as e:
+            log.exception(e=e)
+
+    def start_simulation(self, olt, egress, config):
+        log.info("starting-alarm-simulation")
+
+        """Simulate periodic device alarms"""
+        self.lc = LoopingCall(self._generate_alarm, olt, egress)
+        self.lc.start(config['frequency'])
+
+    def stop_simulation(self):
+        log.info("stopping-alarm-simulation")
+        self.lc.stop()
 
 
 class SimDevice(object):
@@ -338,7 +417,7 @@ class SimDevice(object):
 
 
 class PonSim(object):
-    def __init__(self, onus, egress_fun):
+    def __init__(self, onus, egress_fun, alarm_config):
         self.egress_fun = egress_fun
 
         self.log = structlog.get_logger()
@@ -371,6 +450,10 @@ class PonSim(object):
         for d in self.devices:
             self.log.info("pon-sim-init", port=d, name=self.devices[d].name,
                           links=self.devices[d].links)
+
+        if alarm_config['simulation']:
+            self.alarms = SimAlarms()
+            self.alarms.start_simulation(self.olt, self.egress_fun, alarm_config)
 
     def get_ports(self):
         return sorted(self.devices.keys())

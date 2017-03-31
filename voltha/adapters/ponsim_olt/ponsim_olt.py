@@ -21,8 +21,10 @@ from uuid import uuid4
 
 import arrow
 import grpc
+import json
 import structlog
 from scapy.layers.l2 import Ether, Dot1Q
+from scapy.layers.inet import Raw
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
 from zope.interface import implementer
@@ -41,8 +43,6 @@ from voltha.protos.common_pb2 import LogLevel, OperStatus, ConnectStatus, \
 from voltha.protos.device_pb2 import DeviceType, DeviceTypes, Port, Device, \
     PmConfig, PmConfigs
 from voltha.protos.events_pb2 import KpiEvent, KpiEventType, MetricValuePairs
-from voltha.protos.events_pb2 import AlarmEventType, AlarmEventSeverity, \
-    AlarmEventState, AlarmEventCategory
 from voltha.protos.health_pb2 import HealthStatus
 from google.protobuf.empty_pb2 import Empty
 
@@ -145,6 +145,36 @@ class AdapterPmMetrics:
         prefix = 'voltha.{}.{}'.format(self.name, self.device.id)
         self.lc = LoopingCall(callback, self.device.id, prefix)
         self.lc.start(interval=self.default_freq / 10)
+
+
+class AdapterAlarms:
+    def __init__(self, adapter, device):
+        self.adapter = adapter
+        self.device = device
+        self.lc = None
+
+    def send_alarm(self, context_data, alarm_data):
+        try:
+            current_context = {}
+            for key, value in context_data.__dict__.items():
+                current_context[key] = str(value)
+
+            alarm_event = self.adapter.adapter_agent.create_alarm(
+                resource_id=self.device.id,
+                description="{}.{} - {}".format(self.adapter.name, self.device.id,
+                                                alarm_data['description']) if 'description' in alarm_data else None,
+                type=alarm_data['type'] if 'type' in alarm_data else None,
+                category=alarm_data['category'] if 'category' in alarm_data else None,
+                severity=alarm_data['severity'] if 'severity' in alarm_data else None,
+                state=alarm_data['state'] if 'state' in alarm_data else None,
+                raised_ts=alarm_data['ts'] if 'ts' in alarm_data else 0,
+                context=current_context
+            )
+
+            self.adapter.adapter_agent.submit_alarm(alarm_event)
+
+        except Exception as e:
+            log.exception('failed-to-send-alarm', e=e)
 
 
 @implementer(IAdapterInterface)
@@ -278,7 +308,7 @@ class PonSimOltHandler(object):
         self.ofp_port_no = None
         self.interface = registry('main').get_args().interface
         self.pm_metrics = None
-        self.alarm_lc = None
+        self.alarms = None
 
     def __del__(self):
         if self.io_port is not None:
@@ -315,6 +345,9 @@ class PonSimOltHandler(object):
         pm_config = self.pm_metrics.make_proto()
         log.info("initial-pm-config", pm_config=pm_config)
         self.adapter_agent.update_device_pm_config(pm_config, init=True)
+
+        # Setup alarm handler
+        self.alarms = AdapterAlarms(self.adapter, device)
 
         nni_port = Port(
             port_no=2,
@@ -406,9 +439,6 @@ class PonSimOltHandler(object):
         # Start collecting stats from the device after a brief pause
         self.start_kpi_collection(device.id)
 
-        # Start generating simulated alarms
-        self.start_alarm_simulation(device.id)
-
     def rcv_io(self, port, frame):
         self.log.info('reveived', iface_name=port.iface_name,
                       frame_len=len(frame))
@@ -430,6 +460,9 @@ class PonSimOltHandler(object):
                 self.log.info('sending-packet-in', **kw)
                 self.adapter_agent.send_packet_in(
                     packet=str(popped_frame), **kw)
+            elif pkt.haslayer(Raw):
+                raw_data = json.loads(pkt.getlayer(Raw).load)
+                self.alarms.send_alarm(self, raw_data)
 
     def update_flow_table(self, flows):
         stub = ponsim_pb2.PonSimStub(self.get_channel())
@@ -480,7 +513,7 @@ class PonSimOltHandler(object):
 
         # Update the child devices connect state to UNREACHABLE
         self.adapter_agent.update_child_devices_state(self.device_id,
-                                    connect_status=ConnectStatus.UNREACHABLE)
+                                                      connect_status=ConnectStatus.UNREACHABLE)
 
         # Sleep 10 secs, simulating a reboot
         # TODO: send alert and clear alert after the reboot
@@ -497,7 +530,7 @@ class PonSimOltHandler(object):
 
         # Update the child devices connect state to REACHABLE
         self.adapter_agent.update_child_devices_state(self.device_id,
-                                    connect_status=ConnectStatus.REACHABLE)
+                                                      connect_status=ConnectStatus.REACHABLE)
 
         self.log.info('rebooted', device_id=self.device_id)
 
@@ -519,7 +552,7 @@ class PonSimOltHandler(object):
 
         # Disable all child devices first
         self.adapter_agent.update_child_devices_state(self.device_id,
-                                            admin_state=AdminState.DISABLED)
+                                                      admin_state=AdminState.DISABLED)
 
         # Remove the peer references from this device
         self.adapter_agent.delete_all_peer_references(self.device_id)
@@ -529,9 +562,6 @@ class PonSimOltHandler(object):
 
         # close the frameio port
         registry('frameio').close_port(self.io_port)
-
-        # Stop the generation of simulated alarms
-        self.stop_alarm_simulation(self.device_id)
 
         # TODO:
         # 1) Remove all flows from the device
@@ -603,7 +633,7 @@ class PonSimOltHandler(object):
 
         # Reenable all child devices
         self.adapter_agent.update_child_devices_state(device.id,
-                                            admin_state=AdminState.ENABLED)
+                                                      admin_state=AdminState.ENABLED)
 
         # finally, open the frameio port to receive in-band packet_in messages
         self.log.info('registering-frameio')
@@ -657,99 +687,3 @@ class PonSimOltHandler(object):
                 log.exception('failed-to-submit-kpis', e=e)
 
         self.pm_metrics.start_collector(_collect)
-
-    def start_alarm_simulation(self, device_id):
-        log.info("starting-alarm-simulation", device_id=device_id)
-
-        """Simulate periodic device alarms"""
-        import random
-
-        @inlineCallbacks
-        def _generate_alarm(device_id):
-            log.info("generate-alarm", device_id=device_id)
-
-            alarm = _prepare_alarm(device_id)
-            _raise_alarm(alarm)
-            yield asleep(random.randint(30, 50))
-            _clear_alarm(alarm)
-
-        def _prepare_alarm(device_id):
-            log.info("prepare-alarm", device_id=device_id)
-
-            try:
-                # Randomly choose values for each enum types
-                severity = random.choice(list(
-                    v for k, v in
-                    AlarmEventSeverity.DESCRIPTOR.enum_values_by_name.items()))
-
-                type = random.choice(list(
-                    v for k, v in
-                    AlarmEventType.DESCRIPTOR.enum_values_by_name.items()))
-
-                category = random.choice(list(
-                    v for k, v in
-                    AlarmEventCategory.DESCRIPTOR.enum_values_by_name.items()))
-
-                current_context = {}
-                for key, value in self.__dict__.items():
-                    current_context[key] = str(value)
-
-                return self.adapter_agent.create_alarm(
-                    resource_id=device_id,
-                    type=type.number,
-                    category=category.number,
-                    severity=severity.number,
-                    context=current_context)
-
-            except Exception as e:
-                log.exception('failed-to-prepare-alarm', e=e)
-
-        def _raise_alarm(alarm_event):
-            log.info("raise-alarm", alarm_event=alarm_event)
-
-            try:
-                alarm_event.description = \
-                    "RAISE simulated alarm - " \
-                    "resource:{} " \
-                    "type:{} " \
-                    "severity:{} " \
-                    "category:{}".format(
-                        alarm_event.resource_id,
-                        alarm_event.type,
-                        alarm_event.severity,
-                        alarm_event.category
-                    )
-
-                self.adapter_agent.submit_alarm(alarm_event)
-
-            except Exception as e:
-                log.exception('failed-to-raise-alarm', e=e)
-
-        def _clear_alarm(alarm_event):
-            log.info("clear-alarm", alarm_event=alarm_event)
-
-            try:
-                alarm_event.description = \
-                    "CLEAR simulated alarm - " \
-                    "resource:{} " \
-                    "type:{} " \
-                    "severity:{} " \
-                    "category:{}".format(
-                        alarm_event.resource_id,
-                        alarm_event.type,
-                        alarm_event.severity,
-                        alarm_event.category
-                    )
-
-                alarm_event.state = AlarmEventState.CLEARED
-                self.adapter_agent.submit_alarm(alarm_event)
-
-            except Exception as e:
-                log.exception('failed-to-clear-alarm', e=e)
-
-        self.alarm_lc = LoopingCall(_generate_alarm, device_id)
-        self.alarm_lc.start(60)
-
-    def stop_alarm_simulation(self, device_id):
-        log.info("stopping-alarm-simulation", device_id=device_id)
-        self.alarm_lc.stop()
