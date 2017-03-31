@@ -22,7 +22,7 @@ include setup.mk
 
 VENVDIR := venv-$(shell uname -s | tr '[:upper:]' '[:lower:]')
 
-.PHONY: $(DIRS) $(DIRS_CLEAN) $(DIRS_FLAKE8) flake8 docker-base voltha chameleon ofagent podder netconf shovel onos
+.PHONY: $(DIRS) $(DIRS_CLEAN) $(DIRS_FLAKE8) flake8 docker-base voltha ofagent podder netconf shovel onos
 
 default: build
 
@@ -76,19 +76,13 @@ help:
 
 build: protos containers
 
-containers: docker-base voltha chameleon ofagent podder netconf shovel onos tester
+containers: docker-base voltha ofagent podder netconf shovel onos tester
 
 docker-base:
 	docker build -t cord/voltha-base -f docker/Dockerfile.base .
 
 voltha:
 	docker build -t cord/voltha -f docker/Dockerfile.voltha .
-
-chameleon:
-	mkdir tmp.chameleon
-	cp -R chameleon/* tmp.chameleon
-	docker build -t cord/chameleon -f docker/Dockerfile.chameleon .
-	rm -rf tmp.chameleon
 
 ofagent:
 	docker build -t cord/ofagent -f docker/Dockerfile.ofagent .
@@ -113,7 +107,6 @@ tester:
 
 protos:
 	make -C voltha/protos
-	make -C chameleon/protos
 	make -C ofagent/protos
 	make -C netconf/protos
 
@@ -168,7 +161,7 @@ utest-with-coverage: venv protos
 	@ echo "Executing all unit tests and producing coverage results"
 	. ${VENVDIR}/bin/activate && \
         for d in $$(find ./tests/utests -depth -type d); do echo $$d:; \
-	nosetests --with-xcoverage --with-xunit --cover-package=voltha,common,ofagent,chameleon $$d; done
+	nosetests --with-xcoverage --with-xunit --cover-package=voltha,common,ofagent $$d; done
 
 itest: venv run-as-root-tests
 	@ echo "Executing all integration tests"
