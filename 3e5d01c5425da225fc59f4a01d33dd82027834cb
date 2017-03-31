@@ -1,0 +1,89 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba092121_9fb6b4db",
+        "filename": "Makefile",
+        "patchSetId": 3
+      },
+      "lineNbr": 115,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2017-03-31T16:32:06Z",
+      "side": 1,
+      "message": "end of line space",
+      "revId": "3e5d01c5425da225fc59f4a01d33dd82027834cb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_7fbbe0c4",
+        "filename": "docker/Dockerfile.onos",
+        "patchSetId": 3
+      },
+      "lineNbr": 13,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2017-03-31T16:32:06Z",
+      "side": 1,
+      "message": "spaces",
+      "revId": "3e5d01c5425da225fc59f4a01d33dd82027834cb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_5fb01cdd",
+        "filename": "docker/config/netcfg.json",
+        "patchSetId": 3
+      },
+      "lineNbr": 9,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2017-03-31T16:32:06Z",
+      "side": 1,
+      "message": "tabs and spacing issues",
+      "revId": "3e5d01c5425da225fc59f4a01d33dd82027834cb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_3fb568cd",
+        "filename": "docker/config/netcfg.json",
+        "patchSetId": 3
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2017-03-31T16:32:06Z",
+      "side": 1,
+      "message": "end of line space",
+      "revId": "3e5d01c5425da225fc59f4a01d33dd82027834cb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_1fcaa44f",
+        "filename": "docker/config/netcfg.json",
+        "patchSetId": 3
+      },
+      "lineNbr": 89,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2017-03-31T16:32:06Z",
+      "side": 1,
+      "message": "end of line space",
+      "revId": "3e5d01c5425da225fc59f4a01d33dd82027834cb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
