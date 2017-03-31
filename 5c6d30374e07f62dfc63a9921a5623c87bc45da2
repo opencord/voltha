@@ -190,6 +190,24 @@
     },
     {
       "key": {
+        "uuid": "ba092121_7f652044",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 64,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-31T20:33:09Z",
+      "side": 1,
+      "message": "Having a static list of alarms limit the design.  It\u0027s better to keep only the SUPPRESS and only keep a list of SUPRESSED alarm ids.",
+      "parentUuid": "ba092121_f247281c",
+      "revId": "5c6d30374e07f62dfc63a9921a5623c87bc45da2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ba092121_879550e6",
         "filename": "voltha/protos/device.proto",
         "patchSetId": 2
@@ -362,6 +380,24 @@
       "side": 1,
       "message": "I can consider this review comment as part of another Jira ticket on my name. For now I need the alarm configuration available part of voltha going for the PoC at ATT. So, it would be great if the current framework as it is available now to be merged and any further comments can be taken as part of bug/enhancement tracked on Jira on my name.",
       "parentUuid": "ba092121_8d88d123",
+      "revId": "5c6d30374e07f62dfc63a9921a5623c87bc45da2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_3f5fa874",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 266,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-31T20:33:09Z",
+      "side": 1,
+      "message": "For additional enhancements it\u0027s ok to follow-up with Jira tickets.    There are some comments that needs to be addressed though.",
+      "parentUuid": "ba092121_1f6d0433",
       "revId": "5c6d30374e07f62dfc63a9921a5623c87bc45da2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
