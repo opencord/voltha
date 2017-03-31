@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba092121_1fa3c49f",
+        "filename": "docker/config/netcfg.json",
+        "patchSetId": 1
+      },
+      "lineNbr": 11,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2017-03-31T16:22:57Z",
+      "side": 1,
+      "message": "tabs / indentation",
+      "range": {
+        "startLine": 11,
+        "startChar": 0,
+        "endLine": 11,
+        "endChar": 3
+      },
+      "revId": "7d9c36a5d97e90190cab9199f32a238a9ec68ed6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_5f993c6d",
+        "filename": "docker/config/netcfg.json",
+        "patchSetId": 1
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2017-03-31T16:22:57Z",
+      "side": 1,
+      "message": "end of line space",
+      "range": {
+        "startLine": 22,
+        "startChar": 4,
+        "endLine": 22,
+        "endChar": 5
+      },
+      "revId": "7d9c36a5d97e90190cab9199f32a238a9ec68ed6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_3f9e8857",
+        "filename": "docker/config/netcfg.json",
+        "patchSetId": 1
+      },
+      "lineNbr": 89,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2017-03-31T16:22:57Z",
+      "side": 1,
+      "message": "end of line space",
+      "range": {
+        "startLine": 89,
+        "startChar": 13,
+        "endLine": 89,
+        "endChar": 14
+      },
+      "revId": "7d9c36a5d97e90190cab9199f32a238a9ec68ed6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
