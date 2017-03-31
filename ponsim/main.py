@@ -113,6 +113,13 @@ def parse_args():
                         action='count',
                         help=_help)
 
+    _help = 'enable generation of simulated alarms'
+    parser.add_argument('-a', '--alarms',
+                        dest='alarms',
+                        action='store_true',
+                        default=False,
+                        help=_help)
+
     _help = 'omit startup banner log lines'
     parser.add_argument('-n', '--no-banner',
                         dest='no_banner',
@@ -158,7 +165,7 @@ class Main(object):
             iface_map = self.setup_networking_assets(self.args.name,
                                                      self.args.onus)
             self.io = yield RealIo(iface_map).start()
-            self.ponsim = PonSim(self.args.onus, self.io.egress)
+            self.ponsim = PonSim(self.args.onus, self.io.egress, self.args.alarms)
             self.io.register_ponsim(self.ponsim)
 
             self.grpc_server = GrpcServer(self.args.grpc_port, self.ponsim)
