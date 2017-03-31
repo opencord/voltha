@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "ba092121_5f837ccc",
+        "filename": "ponsim/main.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 117,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-03-31T19:24:53Z",
+      "side": 1,
+      "message": "Yes ... i was just thinking of that as i was waiting for an alarm to come in. :)",
+      "parentUuid": "ba092121_3f11e8ac",
+      "revId": "4da5a841a9e358e973b7b4ccb668382fd91feb12",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ba092121_5f0c9c94",
         "filename": "voltha/adapters/ponsim_olt/ponsim_olt.py",
         "patchSetId": 2
@@ -30,6 +48,24 @@
       "writtenOn": "2017-03-31T19:20:11Z",
       "side": 1,
       "message": "Will there be messages received that are not really alarms?",
+      "revId": "4da5a841a9e358e973b7b4ccb668382fd91feb12",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_7f7e40e6",
+        "filename": "voltha/adapters/ponsim_olt/ponsim_olt.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 461,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-03-31T19:24:53Z",
+      "side": 1,
+      "message": "Not at the moment since there are no other packets that have the Raw block.  I think we need to have some sort of value to identify the type of packet.  Not sure if i need to do this now though",
+      "parentUuid": "ba092121_5f0c9c94",
       "revId": "4da5a841a9e358e973b7b4ccb668382fd91feb12",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
