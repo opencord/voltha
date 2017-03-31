@@ -102,7 +102,7 @@ commit: commits any changes made which applies them to the device.
             specified.
 -d: disable collection of the specified metric, more than on -d may be
             specified.
--o override the collection frequency of the specified metric, more than one -o
+-o: override the collection frequency of the specified metric, more than one -o
             may be specified. Note that -o isn't valid unless
             frequency_override is set to True for the device.
 
