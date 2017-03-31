@@ -20,7 +20,7 @@ Maple OLT/ONU adapter.
 from uuid import uuid4
 
 import arrow
-import structlog
+import binascii
 from scapy.layers.l2 import Ether, Dot1Q
 from twisted.internet import reactor
 from twisted.internet.protocol import ReconnectingClientFactory
@@ -153,10 +153,11 @@ class MapleOltPmMetrics:
         return pm_config
 
 
-
 class MapleOltRxHandler(pb.Root):
-    def __init__(self, device_id, adapter):
+    def __init__(self, device_id, adapter, onu_queue):
         self.device_id = device_id
+        self.adapter = adapter
+        self.onu_discovered_queue = onu_queue
         self.adapter_agent = adapter.adapter_agent
         self.adapter_name = adapter.name
         # registry('main').get_args().external_host_address
@@ -192,9 +193,9 @@ class MapleOltRxHandler(pb.Root):
     def receive_omci_msg(self):
         return self.omci_rx_queue.get()
 
-    def remote_report_stats(self, object, key, stats_data):
+    def remote_report_stats(self, _object, key, stats_data):
         log.info('received-stats-msg',
-                 object=object,
+                 object=_object,
                  key=key,
                  stats=stats_data)
 
@@ -218,23 +219,29 @@ class MapleOltRxHandler(pb.Root):
         except Exception as e:
             log.exception('failed-to-submit-kpis', e=e)
 
-    def remote_report_event(self, object, key, event, event_data=None):
+    def remote_report_event(self, _object, key, event, event_data=None):
+        def _convert_serial_data(data):
+            b = bytearray()
+            b.extend(data)
+
+            return binascii.hexlify(b)
+
         log.info('received-event-msg',
-                 object=object,
+                 object=_object,
                  key=key,
                  event_str=event,
                  event_data=event_data)
 
-        if object == 'device':
+        if _object == 'device':
             # key: {'device_id': <int>}
             # event: 'state-changed'
             #     event_data: {'state_change_successful': <False|True>,
             #                  'new_state': <str> ('active-working'|'inactive')}
             pass
-        elif object == 'nni':
+        elif _object == 'nni':
             # key: {'device_id': <int>, 'nni': <int>}
             pass
-        elif object == 'pon_ni':
+        elif _object == 'pon_ni':
             # key: {'device_id': <int>, 'pon_ni': <int>}
             # event: 'state-changed'
             #     event_data: {'state_change_successful': <False|True>,
@@ -252,9 +259,19 @@ class MapleOltRxHandler(pb.Root):
             #                  'step_tuning_time': <int>
             #                  'attenuation': <int>
             #                  'power_levelling_caps': <int>}
-            pass
-        elif object == 'onu':
-            # key: {'device_id': <int>, 'pon_ni': <int>}, 'onu_id': <int>}
+            if 'onu-discovered' == event and event_data is not None:
+                event_data['_device_id'] = key['device_id'] if 'device_id' in key else None
+                event_data['_pon_id'] = key['pon_id'] if 'pon_id' in key else None
+                event_data['_vendor_id'] = _convert_serial_data(event_data['serial_num_vendor_id']) \
+                    if 'serial_num_vendor_id' in event_data else None
+                event_data['_vendor_specific'] = _convert_serial_data(event_data['serial_num_vendor_specific']) \
+                    if 'serial_num_vendor_specific' in event_data else None
+
+                self.onu_discovered_queue.put(event_data)
+                log.info('onu-discovered-event-added-to-queue', event_data=event_data)
+
+        elif _object == 'onu':
+            # key: {'device_id': <int>, 'pon_ni': <int>, 'onu_id': <int>}
             # event: 'activation-completed'
             #     event_data: {'activation_successful': <False|True>,
             #                  act_fail_reason': <str>}
@@ -277,31 +294,31 @@ class MapleOltRxHandler(pb.Root):
             #     event_data: {'serial_num-vendor_id': <str>
             #                  'serial_num-vendor_specific: <str>}
             pass
-        elif object == 'alloc_id':
-            # key: {'device_id': <int>, 'pon_ni': <int>}, 'onu_id': <int>, 'alloc_id': ,<int>}
+        elif _object == 'alloc_id':
+            # key: {'device_id': <int>, 'pon_ni': <int>, 'onu_id': <int>, 'alloc_id': ,<int>}
             pass
-        elif object == 'gem_port':
-            # key: {'device_id': <int>, 'pon_ni': <int>}, 'onu_id': <int>, 'gem_port': ,<int>}
+        elif _object == 'gem_port':
+            # key: {'device_id': <int>, 'pon_ni': <int>, 'onu_id': <int>, 'gem_port': ,<int>}
             pass
-        elif object == 'trx':
+        elif _object == 'trx':
             # key: {'device_id': <int>, 'pon_ni': <int>}
             pass
-        elif object == 'flow_map':
+        elif _object == 'flow_map':
             # key: {'device_id': <int>, 'pon_ni': <int>}
             pass
 
-    def remote_report_alarm(self, object, key, alarm, status, priority,
+    def remote_report_alarm(self, _object, key, alarm, status, priority,
                             alarm_data=None):
         log.info('received-alarm-msg',
-                 object=object,
+                 object=_object,
                  key=key,
                  alarm=alarm,
                  status=status,
                  priority=priority,
                  alarm_data=alarm_data)
 
-        id = 'voltha.{}.{}.{}'.format(self.adapter_name, self.device_id, object)
-        description = '{} Alarm - {} - {}'.format(object.upper(), alarm.upper(),
+        id = 'voltha.{}.{}.{}'.format(self.adapter_name, self.device_id, _object)
+        description = '{} Alarm - {} - {}'.format(_object.upper(), alarm.upper(),
                                                   'Raised' if status else 'Cleared')
 
         if priority == 'low':
@@ -322,8 +339,7 @@ class MapleOltRxHandler(pb.Root):
                 type=AlarmEventType.EQUIPMENT,
                 category=AlarmEventCategory.PON,
                 severity=severity,
-                state=AlarmEventState.RAISED if status else \
-                      AlarmEventState.CLEARED,
+                state=AlarmEventState.RAISED if status else AlarmEventState.CLEARED,
                 description=description,
                 context=alarm_data,
                 raised_ts = ts)
@@ -340,11 +356,10 @@ class MapleOltRxHandler(pb.Root):
             # status: <False|True>
             pass
         elif object == 'onu':
-            # key: {'device_id': <int>, 'pon_ni': <int>}, 'onu_id': <int>}
+            # key: {'device_id': <int>, 'pon_ni': <int>, 'onu_id': <int>}
             # alarm: <'los'|'lob'|'lopc_miss'|'los_mic_err'|'dow'|'sf'|'sd'|'suf'|'df'|'tiw'|'looc'|'dg'>
             # status: <False|True>
             pass
-
 
 @implementer(IAdapterInterface)
 class MapleOltAdapter(object):
@@ -396,6 +411,7 @@ class MapleOltAdapter(object):
         handler.update_pm_metrics(device, pm_config)
 
     def adopt_device(self, device):
+        log.info("adopt-device", device=device)
         self.devices_handlers[device.id] = MapleOltHandler(self, device.id)
         reactor.callLater(0, self.devices_handlers[device.id].activate, device)
         return device
@@ -507,7 +523,8 @@ class MapleOltHandler(object):
         self.pbc_factory = MaplePBClientFactory()
         self.pbc_port = 24498
         self.tx_id = 0
-        self.rx_handler = MapleOltRxHandler(self.device_id, self.adapter)
+        self.onu_discovered_queue = DeferredQueue()
+        self.rx_handler = MapleOltRxHandler(self.device_id, self.adapter, self.onu_discovered_queue)
         self.heartbeat_count = 0
         self.heartbeat_miss = 0
         self.heartbeat_interval = 1
@@ -522,6 +539,18 @@ class MapleOltHandler(object):
 
     def get_channel(self):
         return self.pbc_factory.getChannel()
+
+    def get_proxy_channel_id_from_onu(self, onu_id):
+        return onu_id << 4
+
+    def get_onu_from_channel_id(self, channel_id):
+        return channel_id >> 4
+
+    def get_tunnel_tag_from_onu(self, onu):
+        return 1024 + (onu * 16)
+
+    def get_onu_from_tunnel_tag(self, tunnel_tag):
+        return (tunnel_tag - 1024) / 16
 
     def get_new_onu_id(self, vendor, vendor_specific):
         onu_id = None
@@ -562,14 +591,6 @@ class MapleOltHandler(object):
                       vendor_specific=sn_vendor_specific,
                       onus=self.onus)
         return None
-
-    def get_vlan_from_onu(self, onu):
-        vlan = onu + 1024
-        return vlan
-
-    def get_onu_from_vlan(self, vlan):
-        onu = vlan - 1024
-        return onu
 
     @inlineCallbacks
     def send_set_remote(self):
@@ -847,8 +868,84 @@ class MapleOltHandler(object):
         reactor.callLater(self.heartbeat_interval, self.heartbeat, device_id)
 
     @inlineCallbacks
+    def arrive_onu(self):
+        self.log.info('arrive-onu waiting')
+        _data = yield self.onu_discovered_queue.get()
+
+        ok_to_arrive = False
+        olt_id = _data['_device_id']
+        pon_id = _data['_pon_id']
+        onu_id = self.onu_serial_exists(_data['_vendor_id'], _data['_vendor_specific'])
+        self.log.info('arrive-onu-detected', olt_id=olt_id, pon_ni=pon_id, onu_data=_data, onus=self.onus)
+
+        if _data['onu_id'] == 65535:
+            if onu_id is not None:
+                self.log.info('onu-activation-already-in-progress',
+                              vendor=_data['_vendor_id'],
+                              vendor_specific=_data['_vendor_specific'],
+                              onus=self.onus)
+            else:
+                onu_id = self.get_new_onu_id(_data['_vendor_id'],
+                                             _data['_vendor_specific'])
+                self.log.info('assigned-onu-id',
+                              onu_id=onu_id,
+                              vendor=_data['_vendor_id'],
+                              vendor_specific=_data['_vendor_specific'],
+                              onus=self.onus)
+                ok_to_arrive = True
+        else:
+            vendor_id, vendor_specific = self.onu_exists(_data['onu_id'])
+            if vendor_id is not None and vendor_id == _data['_vendor_id'] and \
+               vendor_specific is not None and vendor_specific == _data['_vendor_specific']:
+                onu_id = _data['onu_id']
+                self.log.info('re-discovered-existing-onu',
+                              onu_id=onu_id,
+                              vendor=_data['_vendor_id'],
+                              vendor_specific=_data['_vendor_specific'])
+                ok_to_arrive = True
+            else:
+                self.log.info('onu-id-serial-number-mismatch-detected',
+                              onu_id=onu_id,
+                              vendor_id=vendor_id,
+                              new_vendor_id=_data['_vendor_id'],
+                              vendor_specific=vendor_specific,
+                              new_vendor_specific=_data['_vendor_specific'])
+
+        if onu_id is not None and ok_to_arrive:
+            self.log.info('arriving-onu', onu_id=onu_id)
+            tunnel_tag = self.get_tunnel_tag_from_onu(onu_id)
+            yield self.send_create_onu(pon_id,
+                                       onu_id,
+                                       _data['_vendor_id'],
+                                       _data['_vendor_specific'])
+            yield self.send_configure_alloc_id(pon_id, onu_id, tunnel_tag)
+            yield self.send_configure_unicast_gem(pon_id, onu_id, tunnel_tag)
+            yield self.send_configure_multicast_gem(pon_id, onu_id, 4000)
+            yield self.send_activate_onu(pon_id, onu_id)
+
+            self.adapter_agent.child_device_detected(
+                parent_device_id=self.device_id,
+                parent_port_no=100,
+                child_device_type='broadcom_onu',
+                proxy_address=Device.ProxyAddress(
+                    device_id=self.device_id,
+                    channel_id=self.get_proxy_channel_id_from_onu(onu_id),  # c-vid
+                    onu_id=onu_id,
+                    onu_session_id=tunnel_tag  # tunnel_tag/gem_port, alloc_id
+                ),
+                vlan=tunnel_tag,
+                serial_number=_data['_vendor_specific']
+            )
+
+        reactor.callLater(1, self.arrive_onu)
+
+    @inlineCallbacks
     def activate(self, device):
         self.log.info('activating-olt', device=device)
+
+        while self.onu_discovered_queue.pending:
+            _ = yield self.onu_discovered_queue.get()
+
         if self.logical_device_id is None:
             if not device.ipv4_address:
                 device.oper_status = OperStatus.FAILED
@@ -863,7 +960,7 @@ class MapleOltHandler(object):
             self.adapter_agent.update_device(device)
 
             nni_port = Port(
-                port_no=2,
+                port_no=1,
                 label='NNI facing Ethernet port',
                 type=Port.ETHERNET_NNI,
                 admin_state=AdminState.ENABLED,
@@ -871,7 +968,7 @@ class MapleOltHandler(object):
             )
             self.adapter_agent.add_port(device.id, nni_port)
             self.adapter_agent.add_port(device.id, Port(
-                port_no=1,
+                port_no=100,
                 label='PON port',
                 type=Port.PON_OLT,
                 admin_state=AdminState.ENABLED,
@@ -960,25 +1057,6 @@ class MapleOltHandler(object):
         yield self.send_set_remote()
         yield self.send_connect_olt(0)
         yield self.send_activate_olt(0)
-        # register ONUS per uni port until done asynchronously
-        for onu_no in [1]:
-            vlan_id = self.get_vlan_from_onu(onu_no)
-            yield self.send_create_onu(0, onu_no, '4252434d', '12345678')
-            yield self.send_configure_alloc_id(0, onu_no, vlan_id)
-            yield self.send_configure_unicast_gem(0,onu_no, vlan_id)
-            yield self.send_configure_multicast_gem(0, onu_no, 4000)
-            yield self.send_activate_onu(0, onu_no)
-
-            self.adapter_agent.child_device_detected(
-                parent_device_id=device.id,
-                parent_port_no=1,
-                child_device_type='broadcom_onu',
-                proxy_address=Device.ProxyAddress(
-                    device_id=device.id,
-                    channel_id=vlan_id
-                ),
-                vlan=vlan_id
-            )
 
         # Open the frameio port to receive in-band packet_in messages
         self.log.info('registering-frameio')
@@ -986,6 +1064,7 @@ class MapleOltHandler(object):
             self.interface, self.rcv_io, is_inband_frame)
 
         # Finally set the initial PM configuration for this device
+        # TODO: if arrive_onu not working, the following PM stuff was commented out during testing
         self.pm_metrics=MapleOltPmMetrics(device)
         pm_config = self.pm_metrics.make_proto()
         log.info("initial-pm-config", pm_config=pm_config)
@@ -993,6 +1072,8 @@ class MapleOltHandler(object):
 
         # Apply the PM configuration
         self.update_pm_metrics(device, pm_config)
+
+        reactor.callLater(1, self.arrive_onu)
 
         self.log.info('olt-activated', device=device)
 
@@ -1023,10 +1104,11 @@ class MapleOltHandler(object):
         self.log.info('bulk-flow-update', device_id=device.id, flows=flows)
 
         def is_downstream(port):
-            return port == 2  # Need a better way
+            return not is_upstream(port)
 
         def is_upstream(port):
-            return not is_downstream(port)
+            return port == 100  # Need a better way
+
 
         for flow in flows:
             _type = None
@@ -1104,7 +1186,7 @@ class MapleOltHandler(object):
                                       ipv4_dst=_ipv4_src)
 
                     elif field.type == fd.METADATA:
-                        _metadata = field.metadata
+                        _metadata = field.table_metadata
                         self.log.info('field-type-metadata',
                                       metadata=_metadata)
 
@@ -1147,14 +1229,17 @@ class MapleOltHandler(object):
                         log.error('unsupported-action-type',
                                   action_type=action.type, in_port=_in_port)
 
-                if is_upstream(_in_port):
-                    yield self.send_config_classifier(0, _type, _ip_proto,
-                                                      _udp_dst)
-                    yield self.send_config_acflow(0, _in_port, _type, _ip_proto,
-                                                  _udp_dst)
+                if is_upstream(_in_port) and \
+                        (_type == 0x888e or
+                        (_type == 0x800 and (_ip_proto == 2 or _ip_proto == 17))):
+                    yield self.send_config_classifier(0, _type, _ip_proto, _udp_dst)
+                    yield self.send_config_acflow(0, _in_port, _type, _ip_proto, _udp_dst)
+
+
 
             except Exception as e:
                 log.exception('failed-to-install-flow', e=e, flow=flow)
+
 
 
     @inlineCallbacks
@@ -1171,7 +1256,7 @@ class MapleOltHandler(object):
             yield remote.callRemote("send_omci",
                                     0,
                                     0,
-                                    self.get_onu_from_vlan(proxy_address.channel_id),
+                                    self.get_onu_from_channel_id(proxy_address.channel_id),
                                     msg)
             onu, rmsg = yield self.rx_handler.receive_omci_msg()
             self.adapter_agent.receive_proxied_message(proxy_address, rmsg)
