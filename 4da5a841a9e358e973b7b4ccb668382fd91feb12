@@ -69,6 +69,24 @@
       "revId": "4da5a841a9e358e973b7b4ccb668382fd91feb12",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_ff501060",
+        "filename": "voltha/adapters/ponsim_olt/ponsim_olt.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 461,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-03-31T20:44:59Z",
+      "side": 1,
+      "message": "For ponsim it\u0027s a special case as both the ponsim olt and onu send msgs via the same interface.  It\u0027s ok for now.. Maybe add a TODO or open a minor jira item.",
+      "parentUuid": "ba092121_7f7e40e6",
+      "revId": "4da5a841a9e358e973b7b4ccb668382fd91feb12",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
