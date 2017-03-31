@@ -19,6 +19,7 @@ COPY config/app-install.sh .
 
 RUN sh $ONOS/app-install.sh
 
-RUN touch $ONOS/apps/org.onosproject.dhcp/active
+#RUN touch $ONOS/apps/org.onosproject.dhcp/active
+RUN touch $ONOS/apps/org.onosproject.hostprovider/active
 
 COPY config/netcfg.json $KARAF_ROOT/../config/network-cfg.json
