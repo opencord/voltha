@@ -27,75 +27,75 @@ class DashTemplate(object):
         self.panels = [
             dict(
                 title = "%port% Packet Receive Statistics",
-                rx_64 = \
-                ("alias(perSecond(voltha.%device%.%deviceId%.%port%.rx_64), "
+                rx_64_pkts = \
+                ("alias(perSecond(voltha.%device%.%deviceId%.%port%.rx_64_pkts), "
                  "'64b pkts/sec')"
                 ),
-                rx_65_127 = \
+                rx_65_127_pkts = \
                 ("alias(perSecond("
-                 "voltha.%device%.%deviceId%.%port%.rx_65_127),"
+                 "voltha.%device%.%deviceId%.%port%.rx_65_127_pkts), "
                  " '65-127b pkts/sec')"
                 ),
-                rx_128_255 = \
+                rx_128_255_pkts = \
                 ("alias(perSecond("
-                 "voltha.%device%.%deviceId%.%port%.rx_128_255), "
+                 "voltha.%device%.%deviceId%.%port%.rx_128_255_pkts), "
                  "'128-255b pkts/sec')"
                 ),
-                rx_256_511 = \
+                rx_256_511_pkts = \
                 ("alias(perSecond"
-                 "(voltha.%device%.%deviceId%.%port%.rx_256_511), "
+                 "(voltha.%device%.%deviceId%.%port%.rx_256_511_pkts), "
                  "'256-511b pkts/sec')"
                 ),
-                rx_512_1023 = \
+                rx_512_1023_pkts = \
                 ("alias(perSecond("
-                 "voltha.%device%.%deviceId%.%port%.rx_512_1023), "
+                 "voltha.%device%.%deviceId%.%port%.rx_512_1023_pkts), "
                  "'512-1023b pkts/sec')"
                 ),
-                rx_1024_1518 = \
+                rx_1024_1518_pkts = \
                 ("alias(perSecond("
-                 "voltha.%device%.%deviceId%.%port%.rx_1024_1518), "
+                 "voltha.%device%.%deviceId%.%port%.rx_1024_1518_pkts), "
                  "'1024-1518b pkts/sec')"
                 ),
-                rx_1519_9k = \
+                rx_1519_9k_pkts = \
                 ("alias(perSecond("
-                 "voltha.%device%.%deviceId%.%port%.rx_1519_9k), "
+                 "voltha.%device%.%deviceId%.%port%.rx_1519_9k_pkts), "
                  "'1519b-9kb pkts/sec')"
                 )
             ),
             dict(
                 title = "%port% Packet Send Statistics",
-                tx_64 = \
-                ("alias(perSecond(voltha.%device%.%deviceId%.%port%.tx_64), "
+                tx_64_pkts = \
+                ("alias(perSecond(voltha.%device%.%deviceId%.%port%.tx_64_pkts), "
                  "'64b pkts/sec')"
                 ),
-                tx_65_127 = \
+                tx_65_127_pkts = \
                 ("alias(perSecond("
-                 "voltha.%device%.%deviceId%.%port%.tx_65_127), "
+                 "voltha.%device%.%deviceId%.%port%.tx_65_127_pkts), "
                  "'65-127b pkts/sec')"
                 ),
-                tx_128_255 = \
+                tx_128_255_pkts = \
                 ("alias(perSecond("
-                 "voltha.%device%.%deviceId%.%port%.tx_128_255), "
+                 "voltha.%device%.%deviceId%.%port%.tx_128_255_pkts), "
                  "'128-255b pkts/sec')"
                 ),
-                tx_256_511 = \
+                tx_256_511_pkts = \
                 ("alias(perSecond("
-                 "voltha.%device%.%deviceId%.%port%.tx_256_511), "
+                 "voltha.%device%.%deviceId%.%port%.tx_256_511_pkts), "
                  "'256-511b pkts/sec')"
                 ),
-                tx_512_1023 = \
+                tx_512_1023_pkts = \
                 ("alias(perSecond("
-                 "voltha.%device%.%deviceId%.%port%.tx_512_1023), "
+                 "voltha.%device%.%deviceId%.%port%.tx_512_1023_pkts), "
                  "'512-1023b pkts/sec')"
                 ),
-                tx_1024_1518 = \
+                tx_1024_1518_pkts = \
                 ("alias(perSecond("
-                 "voltha.%device%.%deviceId%.%port%.tx_1024_1518), "
+                 "voltha.%device%.%deviceId%.%port%.tx_1024_1518_pkts), "
                  "'1024-1518b pkts/sec')"
                 ),
-                tx_1519_9k = \
+                tx_1519_9k_pkts = \
                 ("alias(perSecond("
-                 "voltha.%device%.%deviceId%.%port%.tx_1519_9k), "
+                 "voltha.%device%.%deviceId%.%port%.tx_1519_9k_pkts), "
                  "'1519b-9kb pkts/sec')"
                 )
             )

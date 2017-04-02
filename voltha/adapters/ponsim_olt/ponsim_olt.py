@@ -65,11 +65,13 @@ is_inband_frame = BpfProgramFilter('(ether[14:2] & 0xfff) = 0x{:03x}'.format(
 
 class AdapterPmMetrics:
     def __init__(self, device):
-        self.pm_names = {'tx_64', 'tx_65_127', 'tx_128_255', 'tx_256_511',
-                         'tx_512_1023', 'tx_1024_1518', 'tx_1519_9k', 'rx_64',
-                         'rx_65_127', 'rx_128_255', 'rx_256_511',
-                         'rx_512_1023',
-                         'rx_1024_1518', 'rx_1519_9k'}
+        self.pm_names = {'tx_64_pkts', 'tx_65_127_pkts', 'tx_128_255_pkts',
+                         'tx_256_511_pkts', 'tx_512_1023_pkts',
+                         'tx_1024_1518_pkts', 'tx_1519_9k_pkts',
+                         'rx_64_pkts', 'rx_65_127_pkts',
+                         'rx_128_255_pkts', 'rx_256_511_pkts',
+                         'rx_512_1023_pkts', 'rx_1024_1518_pkts',
+                         'rx_1519_9k_pkts'}
         self.device = device
         self.id = device.id
         self.name = 'ponsim_olt'
