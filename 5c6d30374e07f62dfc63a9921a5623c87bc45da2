@@ -208,6 +208,24 @@
     },
     {
       "key": {
+        "uuid": "ba092121_420e0336",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 64,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-04-03T18:17:18Z",
+      "side": 1,
+      "message": "Sure. I will make changes to push all alarms to kafka unless SUPPRESSed. The adapter wont maintain a static list of alarms, but only list of SUPPRESed alarms. The ENABLE command will be valid only for for the alarms in the SUPPRESed list.",
+      "parentUuid": "ba092121_7f652044",
+      "revId": "5c6d30374e07f62dfc63a9921a5623c87bc45da2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ba092121_879550e6",
         "filename": "voltha/protos/device.proto",
         "patchSetId": 2
@@ -398,6 +416,24 @@
       "side": 1,
       "message": "For additional enhancements it\u0027s ok to follow-up with Jira tickets.    There are some comments that needs to be addressed though.",
       "parentUuid": "ba092121_1f6d0433",
+      "revId": "5c6d30374e07f62dfc63a9921a5623c87bc45da2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_6209072c",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 266,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-04-03T18:17:18Z",
+      "side": 1,
+      "message": "Ok. I will push the changes for other review comments shortly",
+      "parentUuid": "ba092121_3f5fa874",
       "revId": "5c6d30374e07f62dfc63a9921a5623c87bc45da2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
