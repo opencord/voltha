@@ -263,7 +263,7 @@ individual metrics.
                 else:
                     state = 'disabled'
                 print_pb_list_as_table(
-                    'Metric group {} is {}'.format(g.name,state),
+                    'Metric group {} is {}'.format(g.group_name,state),
                     g.metrics, {'enabled', 'sample_freq'}, self.poutput,
                     dividers=100, show_nulls=True)
         else:
