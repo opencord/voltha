@@ -77,22 +77,22 @@ class FrameIOCounter(object):
     def __init__(self, device):
         self.device = device
         self.tx_counters = dict(
-            tx_64=self.SingleFrameCounter("tx_64", 1, 64),
-            tx_65_127=self.SingleFrameCounter("tx_65_127", 65, 127),
-            tx_128_255=self.SingleFrameCounter("tx_128_255", 128, 255),
-            tx_256_511=self.SingleFrameCounter("tx_256_511", 256, 511),
-            tx_512_1023=self.SingleFrameCounter("tx_512_1023", 512, 1024),
-            tx_1024_1518=self.SingleFrameCounter("tx_1024_1518", 1024, 1518),
-            tx_1519_9k=self.SingleFrameCounter("tx_1519_9k", 1519, 9216),
+            tx_64_pkts=self.SingleFrameCounter("tx_64_pkts", 1, 64),
+            tx_65_127_pkts=self.SingleFrameCounter("tx_65_127_pkts", 65, 127),
+            tx_128_255_pkts=self.SingleFrameCounter("tx_128_255_pkts", 128, 255),
+            tx_256_511_pkts=self.SingleFrameCounter("tx_256_511_pkts", 256, 511),
+            tx_512_1023_pkts=self.SingleFrameCounter("tx_512_1023_pkts", 512, 1024),
+            tx_1024_1518_pkts=self.SingleFrameCounter("tx_1024_1518_pkts", 1024, 1518),
+            tx_1519_9k_pkts=self.SingleFrameCounter("tx_1519_9k_pkts", 1519, 9216),
         )
         self.rx_counters = dict(
-            rx_64=self.SingleFrameCounter("rx_64", 1, 64),
-            rx_65_127=self.SingleFrameCounter("rx_65_127", 65, 127),
-            rx_128_255=self.SingleFrameCounter("rx_128_255", 128, 255),
-            rx_256_511=self.SingleFrameCounter("rx_256_511", 256, 511),
-            rx_512_1023=self.SingleFrameCounter("rx_512_1023", 512, 1024),
-            rx_1024_1518=self.SingleFrameCounter("rx_1024_1518", 1024, 1518),
-            rx_1519_9k=self.SingleFrameCounter("rx_1519_9k", 1519, 9216)
+            rx_64_pkts=self.SingleFrameCounter("rx_64_pkts", 1, 64),
+            rx_65_127_pkts=self.SingleFrameCounter("rx_65_127_pkts", 65, 127),
+            rx_128_255_pkts=self.SingleFrameCounter("rx_128_255_pkts", 128, 255),
+            rx_256_511_pkts=self.SingleFrameCounter("rx_256_511_pkts", 256, 511),
+            rx_512_1023_pkts=self.SingleFrameCounter("rx_512_1023_pkts", 512, 1024),
+            rx_1024_1518_pkts=self.SingleFrameCounter("rx_1024_1518_pkts", 1024, 1518),
+            rx_1519_9k_pkts=self.SingleFrameCounter("rx_1519_9k_pkts", 1519, 9216)
         )
 
     def count_rx_frame(self, port, size):
