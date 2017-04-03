@@ -79,6 +79,7 @@ import requests
 import json
 import re
 import sys
+import time
 from dashd.dash_template import DashTemplate
 
 log = get_logger()
@@ -97,9 +98,16 @@ class DashDaemon(object):
         self.topic = topic
         self.dash_template = DashTemplate(grafana_url)
         self.grafana_url = grafana_url
-        self.kafka_endpoint = get_endpoint_from_consul(consul_endpoint,
-                                                       'kafka')
-        # print('kafka endpoint: ', self.kafka_endpoint)
+        self.kafka_endpoint = None
+        self.consul_endpoint = consul_endpoint
+        while True:
+            try:
+                self.kafka_endpoint = get_endpoint_from_consul(self.consul_endpoint,
+                'kafka')
+                break
+            except:
+                log.error("unable-to-communicate-with-consul")
+            time.sleep(10)
         self.on_start_callback = None
 
         self._client = KafkaClient(self.kafka_endpoint)
@@ -118,12 +126,15 @@ class DashDaemon(object):
         try:
             while not partitions:
                 yield self._client.load_metadata_for_topics(self.topic)
+                #self._client.load_metadata_for_topics(self.topic)
                 e = self._client.metadata_error_for_topic(self.topic)
                 if e:
                     log.warning('no-metadata-for-topic', error=e,
                                 topic=self.topic)
                 else:
                     partitions = self._client.topic_partitions[self.topic]
+                    break
+                time.sleep(20)
         except KafkaUnavailableError:
             log.error("unable-to-communicate-with-Kafka-brokers")
             self.stop()
@@ -147,7 +158,30 @@ class DashDaemon(object):
         # they'll be deleted. If they are valid then they'll persist.
         #print("Starting main loop")
         try:
-            r = requests.get(self.grafana_url + "/search?")
+            while True:
+                r = requests.get(self.grafana_url + "/datasources")
+                if r.status_code == requests.codes.ok:
+                    break
+                else:
+                    time.sleep(10)
+            j = r.json()
+            data_source = False
+            for i in j:
+                if i["name"] == "Voltha Stats":
+                     data_source = True
+                     break
+            if not data_source:
+                r = requests.post(self.grafana_url + "/datasources",
+                data = {"name":"Voltha Stats","type":"graphite",
+                        "access":"proxy","url":"http://localhost:81"})
+                log.info('data-source-added',status=r.status_code, text=r.text)
+
+            while True:
+                r = requests.get(self.grafana_url + "/search?")
+                if r.status_code == requests.codes.ok:
+                    break
+                else:
+                    time.sleep(10)
             j = r.json()
             for i in j:
                 # Look for dashboards that have a title of *olt.[[:hexidgit:]].
