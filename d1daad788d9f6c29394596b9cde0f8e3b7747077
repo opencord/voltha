@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "ba092121_e2b8772c",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 3
+      },
+      "lineNbr": 79,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-04-04T20:29:33Z",
+      "side": 1,
+      "message": "Thanks for the comments.\nDid you mean to put these comments under AlarmConfig section. \nChanging this RPC would mean I need to quite a bit of re-work, as this affects the protos, core and adapters. Let me have a look.",
+      "parentUuid": "ba092121_42aa83d5",
+      "revId": "d1daad788d9f6c29394596b9cde0f8e3b7747077",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ba092121_22af8fe5",
         "filename": "voltha/protos/voltha.proto",
         "patchSetId": 3
