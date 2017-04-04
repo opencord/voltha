@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba092121_42aa83d5",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 3
+      },
+      "lineNbr": 79,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-04-04T18:57:09Z",
+      "side": 1,
+      "message": "Since the actions are really RPC calls then it may make sense to simplify the interfaces as follows:\n\n1) The RPCs really refer to a list of alarms ids to suppress or enable after a suppression.   Therefore, it\u0027s better to only create the alarmid(s) messages as shown below.  These messages should be in the event.proto file, not in the device.proto.\n\nmessage AlarmID {\n     string id \u003d 1;\n}\n\nmessage AlarmIDs {\n     repeated AlarmID \u003d 1\n}\n\n2)  Instead of the \"UpdateDeviceAlarmConfigs(voltha.AlarmConfigs)\" rpc call, it\u0027s better to have these two calls:\n\n\u003e EnableAlarm(AlarmIDs) return ...\n\u003e SupressAlarm(AlarmIDs) return ...",
+      "revId": "d1daad788d9f6c29394596b9cde0f8e3b7747077",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_22af8fe5",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 3
+      },
+      "lineNbr": 266,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-04-04T18:57:09Z",
+      "side": 1,
+      "message": "See comments made in device.proto",
+      "revId": "d1daad788d9f6c29394596b9cde0f8e3b7747077",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
