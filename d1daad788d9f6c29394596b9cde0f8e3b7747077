@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "ba092121_c251f3d9",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 3
+      },
+      "lineNbr": 79,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-04-05T19:04:20Z",
+      "side": 1,
+      "message": "Yes, the comments apply to all alarm messages that are used in the rpc parameters.   These messages should be put in the Events.proto.   The alarm configs (i.e. those in the model) can be put in the Device.proto.  In the Device.proto, in Device Message instead of having \"AlarmConfigs alarm_cfgs \u003d 132\", you would have \"AlarmIDs suppressed_ids \u003d 132\".",
+      "parentUuid": "ba092121_e2b8772c",
+      "revId": "d1daad788d9f6c29394596b9cde0f8e3b7747077",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ba092121_22af8fe5",
         "filename": "voltha/protos/voltha.proto",
         "patchSetId": 3
