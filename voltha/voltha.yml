@@ -27,6 +27,13 @@ logging:
             tag: voltha.logging
             formatter: fluent_fmt
             level: DEBUG
+        localRotatingFile:
+            class: logging.handlers.RotatingFileHandler
+            filename: voltha.log
+            formatter: default
+            maxBytes: 2097152
+            backupCount: 10
+            level: DEBUG
         null:
             class: logging.NullHandler
 
@@ -38,10 +45,13 @@ logging:
             handlers: [null]
             propagate: False
         '': # root logger
-            handlers: [console, fluent]
+            handlers: [console, fluent, localRotatingFile]
             level: INFO # this can be bumped up/down by -q and -v command line
                         # options
             propagate: False
+
+core:
+    management_vlan: 4091
 
 coordinator:
     voltha_kv_prefix: 'service/voltha'
@@ -72,3 +82,4 @@ kafka-proxy:
             'kpis':
                 kafka_topic: 'voltha.kpis'
                 filters:     [null]
+
