@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "ba092121_9f18f485",
+        "filename": "voltha/adapters/maple_olt/maple_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 271,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-04-05T17:58:01Z",
+      "side": 1,
+      "message": "These methods are invoked by the BAL(Broadcom Adaptation Layer) software provided by Broadcom. BAL is used to configure the OLT and ONU devices. Whenever the ONU goes down(eg: when the PON cable connected to ONU is unplugged) the BAL software will call these methods to indicate PORT is down.\nAs an example we can say, the invocation of this method is similar to \"report_alarm\" method invocation.",
+      "parentUuid": "ba092121_9f31140e",
+      "revId": "2499878bdcad6442b74705d59b9cf59ed253f0d1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ba092121_7f364005",
         "filename": "voltha/adapters/maple_olt/maple_olt.py",
         "patchSetId": 1
@@ -36,6 +54,24 @@
     },
     {
       "key": {
+        "uuid": "ba092121_bf2bb893",
+        "filename": "voltha/adapters/maple_olt/maple_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 274,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-04-05T17:58:01Z",
+      "side": 1,
+      "message": "Its an OLT Device.",
+      "parentUuid": "ba092121_7f364005",
+      "revId": "2499878bdcad6442b74705d59b9cf59ed253f0d1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ba092121_5f3b7ceb",
         "filename": "voltha/adapters/maple_olt/maple_olt.py",
         "patchSetId": 1
@@ -47,6 +83,24 @@
       "writtenOn": "2017-04-03T16:06:18Z",
       "side": 1,
       "message": "What should be the various states of the olt device when the logical port is down.",
+      "revId": "2499878bdcad6442b74705d59b9cf59ed253f0d1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_7f1d2073",
+        "filename": "voltha/adapters/maple_olt/maple_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 278,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-04-05T17:58:01Z",
+      "side": 1,
+      "message": "I think the when the PORT goes down the state of the OLT device remains the same. Only the ports connected to OLT should show disabled.",
+      "parentUuid": "ba092121_5f3b7ceb",
       "revId": "2499878bdcad6442b74705d59b9cf59ed253f0d1",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
