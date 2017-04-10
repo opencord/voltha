@@ -1021,7 +1021,7 @@ class MapleOltHandler(object):
                         self.log.info('action-type-set-field',
                                       field=_field, in_port=_in_port)
                         if _field.type == fd.VLAN_VID:
-                            self.log.info('et-field-type-valn-vid',
+                            self.log.info('set-field-type-vlan-vid',
                                           vlan_vid=_field.vlan_vid & 0xfff)
                         else:
                             self.log.error('unsupported-action-set-field-type',

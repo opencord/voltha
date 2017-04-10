@@ -234,7 +234,7 @@ There are a lot of things going on between these containers:
    ```
 
 
-4. In addition to the docker log stream, Voltha is explicitly hooked up to the fluentd log collector infrastructure. We are not using fluentd to its full potential yet, but establising the connection to fluentd and funelling structured logs to fluentd is already in place. To see the fluentd log stream, you can run:
+4. In addition to the docker log stream, Voltha is explicitly hooked up to the fluentd log collector infrastructure. We are not using fluentd to its full potential yet, but establishing the connection to fluentd and funnelling structured logs to fluentd is already in place. To see the fluentd log stream, you can run:
   
    ```
    tail -F /tmp/fluentd/*.log
