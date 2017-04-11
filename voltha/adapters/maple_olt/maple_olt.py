@@ -225,6 +225,71 @@ class MapleOltRxHandler(pb.Root):
                  event_str=event,
                  event_data=event_data)
 
+        if object == 'device':
+            # key: {'device_id': <int>}
+            # event: 'state-changed'
+            #     event_data: {'state_change_successful': <False|True>,
+            #                  'new_state': <str> ('active-working'|'inactive')}
+            pass
+        elif object == 'nni':
+            # key: {'device_id': <int>, 'nni': <int>}
+            pass
+        elif object == 'pon_ni':
+            # key: {'device_id': <int>, 'pon_ni': <int>}
+            # event: 'state-changed'
+            #     event_data: {'state_change_successful': <False|True>,
+            #                  'new_state': <str> ('active-working'|'inactive')}
+            #
+            # event: 'onu-discovered'
+            #     event_data: {'serial_num_vendor_id': <str>
+            #                  'serial_num_vendor_specific': <str>
+            #                  'ranging_time': <int>
+            #                  'onu_id': <int>
+            #                  'us_line_rate': <int> (0=2.5G, 1=10G)
+            #                  'ds_pon_id': <int>
+            #                  'us_pon_id': <int>
+            #                  'tuning_granularity': <int>
+            #                  'step_tuning_time': <int>
+            #                  'attenuation': <int>
+            #                  'power_levelling_caps': <int>}
+            pass
+        elif object == 'onu':
+            # key: {'device_id': <int>, 'pon_ni': <int>}, 'onu_id': <int>}
+            # event: 'activation-completed'
+            #     event_data: {'activation_successful': <False|True>,
+            #                  act_fail_reason': <str>}
+            #
+            # event: 'deactivation-completed'
+            #     event_data: {'deactivation_successful': <False|True>}
+            #
+            # event: 'ranging-completed'
+            #     event_data: {'ranging_successful': <False|True>,
+            #                  'ranging_fail_reason': <str>,
+            #                  'eqd': <int>,
+            #                  'number_of_ploams': <int>,
+            #                  'power_level': <int>}
+            #
+            # event: 'enable-completed'
+            #     event_data: {'serial_num-vendor_id': <str>
+            #                  'serial_num-vendor_specific: <str>}
+            #
+            # event: 'disable-completed'
+            #     event_data: {'serial_num-vendor_id': <str>
+            #                  'serial_num-vendor_specific: <str>}
+            pass
+        elif object == 'alloc_id':
+            # key: {'device_id': <int>, 'pon_ni': <int>}, 'onu_id': <int>, 'alloc_id': ,<int>}
+            pass
+        elif object == 'gem_port':
+            # key: {'device_id': <int>, 'pon_ni': <int>}, 'onu_id': <int>, 'gem_port': ,<int>}
+            pass
+        elif object == 'trx':
+            # key: {'device_id': <int>, 'pon_ni': <int>}
+            pass
+        elif object == 'flow_map':
+            # key: {'device_id': <int>, 'pon_ni': <int>}
+            pass
+
     def remote_report_alarm(self, object, key, alarm, status, priority,
                             alarm_data=None):
         log.info('received-alarm-msg',
@@ -268,6 +333,17 @@ class MapleOltRxHandler(pb.Root):
         except Exception as e:
             log.exception('failed-to-submit-alarm', e=e)
 
+        # take action based on alarm type, only pon_ni and onu objects report alarms
+        if object == 'pon_ni':
+            # key: {'device_id': <int>, 'pon_ni': <int>}
+            # alarm: 'los'
+            # status: <False|True>
+            pass
+        elif object == 'onu':
+            # key: {'device_id': <int>, 'pon_ni': <int>}, 'onu_id': <int>}
+            # alarm: <'los'|'lob'|'lopc_miss'|'los_mic_err'|'dow'|'sf'|'sd'|'suf'|'df'|'tiw'|'looc'|'dg'>
+            # status: <False|True>
+            pass
 
 
 @implementer(IAdapterInterface)
@@ -438,6 +514,7 @@ class MapleOltHandler(object):
         self.heartbeat_failed_limit = 3
         self.command_timeout = 5
         self.pm_metrics = None
+        self.onus = {}
 
     def __del__(self):
         if self.io_port is not None:
@@ -445,6 +522,46 @@ class MapleOltHandler(object):
 
     def get_channel(self):
         return self.pbc_factory.getChannel()
+
+    def get_new_onu_id(self, vendor, vendor_specific):
+        onu_id = None
+        for i in range(0, 63):
+            if i not in self.onus:
+                onu_id = i
+                break
+
+        if onu_id is not None:
+            self.onus[onu_id] = {'onu_id': onu_id,
+                                 'vendor': vendor,
+                                 'vendor_specific': vendor_specific}
+        return onu_id
+
+    def onu_exists(self, onu_id):
+        if onu_id in self.onus:
+            self.log.info('onu-exists',
+                          onu_id=onu_id,
+                          vendor=self.onus[onu_id]['vendor'],
+                          vendor_specific=self.onus[onu_id]['vendor_specific'])
+            return self.onus[onu_id]['vendor'], self.onus[onu_id]['vendor_specific']
+        else:
+            self.log.info('onu-does-not-exist', onu_id=onu_id)
+            return None, None
+
+    def onu_serial_exists(self, sn_vendor, sn_vendor_specific):
+        for key, value in self.onus.iteritems():
+            if sn_vendor in value.itervalues() and sn_vendor_specific in value.itervalues():
+                self.log.info('onu-serial-number-exists',
+                              onu_id=value['onu_id'],
+                              vendor=sn_vendor,
+                              vendor_specific=sn_vendor_specific,
+                              onus=self.onus)
+                return value['onu_id']
+
+        self.log.info('onu-serial-number-does-not-exist',
+                      vendor=sn_vendor,
+                      vendor_specific=sn_vendor_specific,
+                      onus=self.onus)
+        return None
 
     def get_vlan_from_onu(self, onu):
         vlan = onu + 1024
