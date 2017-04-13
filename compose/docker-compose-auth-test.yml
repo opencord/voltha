@@ -2,18 +2,18 @@ version: '2'
 
 services:
 
-# freeradius:
-#  image: "marcelmaatkamp/freeradius"
-#  ports:
-#   - "1812:1812/udp"
-#   - "1813:1813"
-#   - "18120:18120"
-#  volumes:
-#   - "./data/clients.conf:/etc/raddb/clients.conf"
-#   - "./data/users:/etc/raddb/users"
-#  networks:
-#   authnet:
-#    ipv4_address: 172.25.0.100
+ freeradius:
+  image: "marcelmaatkamp/freeradius"
+  ports:
+   - "1812:1812/udp"
+   - "1813:1813"
+   - "18120:18120"
+  volumes:
+   - "./data/clients.conf:/etc/raddb/clients.conf"
+   - "./data/users:/etc/raddb/users"
+  networks:
+   authnet:
+    ipv4_address: 172.25.0.100
 
  onos:
   image: "cord/onos"
@@ -27,16 +27,16 @@ services:
     authnet:
      ipv4_address: 172.25.0.200
 
- onos_config_push:
-  image: onos-config-push:phase2
-  environment:
-   ONOS_CONNECTION: 'onos:8181'
-  volumes:
-   - "../docker/config/netcfg.json:/data/onos-config.json"
-  networks:
-   authnet:
-  links:
-   - "onos:onos"
+# onos_config_push:
+#  image: onos-config-push:phase2
+#  environment:
+#   ONOS_CONNECTION: 'onos:8181'
+#  volumes:
+#   - "../docker/config/netcfg.json:/data/onos-config.json"
+#  networks:
+#   authnet:
+#  links:
+#   - "onos:onos"
 
 # freeradius-test:
 #  image: "marcelmaatkamp/freeradius"

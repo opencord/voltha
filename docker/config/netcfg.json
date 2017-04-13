@@ -2,10 +2,10 @@
   "apps": {
     "org.opencord.aaa": {
       "AAA": {
-        "radiusIp": "1.2.3.4",
-	    "nasIp": "5.6.7.8",
+        "radiusIp": "172.25.0.100",
+	"nasIp": "5.6.7.8",
         "radiusServerPort": "1812",
-        "radiusSecret": "letmein",
+        "radiusSecret": "SECRET",
 	"bindings" : [
 		{
 		 "mac" : "de:ad:be:ef:ba:11",
