@@ -100,6 +100,7 @@ class DashDaemon(object):
         self.grafana_url = grafana_url
         self.kafka_endpoint = None
         self.consul_endpoint = consul_endpoint
+        retrys = 10
         while True:
             try:
                 self.kafka_endpoint = get_endpoint_from_consul(self.consul_endpoint,
@@ -107,6 +108,11 @@ class DashDaemon(object):
                 break
             except:
                 log.error("unable-to-communicate-with-consul")
+                self.stop()
+            retrys -= 1
+            if retrys == 0:
+                log.error("unable-to-communicate-with-consul")
+                self.stop()
             time.sleep(10)
         self.on_start_callback = None
 
@@ -158,11 +164,16 @@ class DashDaemon(object):
         # they'll be deleted. If they are valid then they'll persist.
         #print("Starting main loop")
         try:
+            retrys = 10
             while True:
                 r = requests.get(self.grafana_url + "/datasources")
                 if r.status_code == requests.codes.ok:
                     break
                 else:
+                    retrys -= 1
+                    if retrys == 0:
+                        log.error("unable-to-communicate-with-grafana")
+                        self.stop()
                     time.sleep(10)
             j = r.json()
             data_source = False
@@ -176,11 +187,16 @@ class DashDaemon(object):
                         "access":"proxy","url":"http://localhost:81"})
                 log.info('data-source-added',status=r.status_code, text=r.text)
 
+            retrys = 10
             while True:
                 r = requests.get(self.grafana_url + "/search?")
                 if r.status_code == requests.codes.ok:
                     break
                 else:
+                    retrys -= 1
+                    if retrys == 0:
+                        log.error("unable-to-communicate-with-grafana")
+                        self.stop()
                     time.sleep(10)
             j = r.json()
             for i in j:
