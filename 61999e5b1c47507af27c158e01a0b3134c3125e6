@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba092121_ce547c23",
+        "filename": "dashd/dashd_impl.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 129,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2017-04-21T16:09:52Z",
+      "side": 1,
+      "message": "any reason not to just delete this line?",
+      "revId": "61999e5b1c47507af27c158e01a0b3134c3125e6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
