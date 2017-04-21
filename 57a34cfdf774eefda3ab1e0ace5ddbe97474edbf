@@ -16,6 +16,24 @@
       "revId": "57a34cfdf774eefda3ab1e0ace5ddbe97474edbf",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_6909ea2b",
+        "filename": "cli/device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 37,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-04-21T17:24:23Z",
+      "side": 1,
+      "message": "This isn\u0027t part of my update :) I\u0027ll fix it none the less.",
+      "parentUuid": "ba092121_ee2e20a5",
+      "revId": "57a34cfdf774eefda3ab1e0ace5ddbe97474edbf",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
