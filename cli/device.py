@@ -28,12 +28,13 @@ from voltha.protos import third_party
 
 _ = third_party
 from voltha.protos import voltha_pb2
+import sys
 from voltha.protos.device_pb2 import PmConfigs, PmConfig, PmGroupConfig
 from google.protobuf.json_format import MessageToDict
 
 # Since proto3 won't send fields that are set to 0/false/"" any object that
 # might have those values set in them needs to be replicated here such that the
-# fields can be adequately 
+# fields can be adequately
 
 class DeviceCli(Cmd):
 
@@ -85,6 +86,54 @@ class DeviceCli(Cmd):
         }
         print_pb_list_as_table('Device ports:', device.ports,
                                omit_fields, self.poutput)
+
+    def complete_perf_config(self, text, line, begidx, endidx):
+        sub_cmds = {"show", "set", "commit", "reset"}
+        sub_opts = {"-f", "-e", "-d", "-o"}
+        # Help the interpreter complete the paramters.
+        completions = []
+        if not self.pm_config_last:
+            device = self.get_device(depth=-1)
+            self.pm_config_last = device.pm_configs
+        m_names = [d.name for d in self.pm_config_last.metrics]
+        cur_cmd = line.strip().split(" ")
+        try:
+            if not text and len(cur_cmd) == 1:
+                completions = ("show", "set", "commit", "reset")
+            elif len(cur_cmd) == 2:
+                if "set" == cur_cmd[1]:
+                    completions = [d for d in sub_opts]
+                else:
+                    completions = [d for d in sub_cmds if d.startswith(text)]
+            elif len(cur_cmd) > 2 and cur_cmd[1] == "set":
+                if cur_cmd[len(cur_cmd)-1] == "-":
+                    completions = [list(d)[1] for d in sub_opts]
+                elif cur_cmd[len(cur_cmd)-1] == "-f":
+                    completions = ("\255","Please enter a sampling frequency in 10ths of a second")
+                elif cur_cmd[len(cur_cmd)-2] == "-f":
+                    completions = [d for d in sub_opts]
+                elif cur_cmd[len(cur_cmd)-1] in {"-e","-d","-o"}:
+                    if self.pm_config_last.grouped:
+                        pass
+                    else:
+                        completions = [d.name for d in self.pm_config_last.metrics]
+                elif cur_cmd[len(cur_cmd)-2] in {"-e","-d"}:
+                    if text and text not in m_names:
+                        completions = [d for d in m_names if d.startswith(text)]
+                    else:
+                        completions = [d for d in sub_opts]
+                elif cur_cmd[len(cur_cmd)-2] == "-o":
+                    if cur_cmd[len(cur_cmd)-1] in [d.name for d in self.pm_config_last.metrics]:
+                        completions = ("\255","Please enter a sampling frequency in 10ths of a second")
+                    else:
+                        completions = [d for d in m_names if d.startswith(text)]
+                elif cur_cmd[len(cur_cmd)-3] == "-o":
+                    completions = [d for d in sub_opts]
+        except:
+            e = sys.exc_info()
+            print(e)
+        return completions
+
 
     def help_perf_config(self):
         self.poutput(
