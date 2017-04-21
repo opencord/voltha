@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba092121_ee2e20a5",
+        "filename": "cli/device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 37,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2017-04-21T16:35:10Z",
+      "side": 1,
+      "message": "space at end",
+      "revId": "57a34cfdf774eefda3ab1e0ace5ddbe97474edbf",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
