@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba092121_6958cafa",
+        "filename": "dashd/dashd_impl.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 104,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2017-04-23T16:50:02Z",
+      "side": 1,
+      "message": "Why no change `while True` to `while retrys \u003e 0` and then the `if retries \u003d\u003d 0` after the loop? Does really change the code, more curious why one v. the other?",
+      "range": {
+        "startLine": 104,
+        "startChar": 14,
+        "endLine": 104,
+        "endChar": 18
+      },
+      "revId": "3483a5d06b6e4bd942124b45c82a65cdfbbc9c67",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
