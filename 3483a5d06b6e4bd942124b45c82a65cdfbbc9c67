@@ -22,6 +22,30 @@
       "revId": "3483a5d06b6e4bd942124b45c82a65cdfbbc9c67",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_c968f689",
+        "filename": "dashd/dashd_impl.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 104,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-04-23T20:29:04Z",
+      "side": 1,
+      "message": "There are 3 conditions that terminate the loop, a success condition and 2 error conditions. Rather that putting a condition in the while statement that needs to be checked for when the loop exits again to determine if an error occurred, all 3 conditions are checked for in the loop body, one error in the try/except segment, one in the expiration of the counter, and the success again in the try/except. Putting a single one of these in the wile condition might cause the code to be misread in the future as the only terminating condition.",
+      "parentUuid": "ba092121_6958cafa",
+      "range": {
+        "startLine": 104,
+        "startChar": 14,
+        "endLine": 104,
+        "endChar": 18
+      },
+      "revId": "3483a5d06b6e4bd942124b45c82a65cdfbbc9c67",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
