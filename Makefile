@@ -111,6 +111,12 @@ vcli:
 portainer:
 	portainer/buildPortainer.sh
 
+nginx:
+	docker build -t voltha/nginx -f docker/Dockerfile.nginx .
+
+grafana:
+	docker build -t voltha/grafana -f docker/Dockerfile.grafana .
+
 onos:
 	docker build -t cord/onos -f docker/Dockerfile.onos docker
 
@@ -119,6 +125,7 @@ tester:
 
 config-push:
 	docker build -t cord/config-push -f docker/Dockerfile.configpush docker	
+
 
 protos:
 	make -C voltha/protos
@@ -142,6 +149,7 @@ fetch:
 	docker pull ubuntu:xenial
 	docker pull wurstmeister/kafka:latest
 	docker pull wurstmeister/zookeeper:latest
+	docker pull nginx:latest
 	docker pull portainer/portainer:latest
 
 purge-venv:

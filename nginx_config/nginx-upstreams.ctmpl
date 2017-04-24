@@ -1,0 +1,5 @@
+upstream api-docker {
+    {{range service "portainer" "any"}}
+    server {{.Address}}:{{.Port}};
+    {{end}}
+}
