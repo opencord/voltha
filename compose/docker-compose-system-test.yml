@@ -146,6 +146,18 @@ services:
     - default
     - ponmgmt
 
+  #
+  # Voltha cli container
+  #
+  vcli:
+    image: cord/vcli
+    environment:
+      DOCKER_HOST_IP: "${DOCKER_HOST_IP}"
+    ports:
+    - "5022:22"
+    depends_on:
+    - voltha
+
 #############################################
 # Item below this line will soon be removed.#
 #############################################
