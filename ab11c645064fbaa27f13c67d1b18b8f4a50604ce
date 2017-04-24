@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba092121_a9882223",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 33,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-04-24T15:13:22Z",
+      "side": 0,
+      "message": "It appears that third_party has dropped from the imports. I think this is necessary for openflow?",
+      "range": {
+        "startLine": 33,
+        "startChar": 26,
+        "endLine": 33,
+        "endChar": 37
+      },
+      "revId": "ab11c645064fbaa27f13c67d1b18b8f4a50604ce",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
