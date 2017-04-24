@@ -1,0 +1,11 @@
+FROM centurylink/ca-certs
+
+COPY tmp_portainer /
+
+VOLUME /data
+
+WORKDIR /
+
+EXPOSE 9000
+
+ENTRYPOINT ["/portainer"]

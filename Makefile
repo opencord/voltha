@@ -22,7 +22,7 @@ include setup.mk
 
 VENVDIR := venv-$(shell uname -s | tr '[:upper:]' '[:lower:]')
 
-.PHONY: $(DIRS) $(DIRS_CLEAN) $(DIRS_FLAKE8) flake8 docker-base voltha chameleon ofagent podder netconf shovel onos
+.PHONY: $(DIRS) $(DIRS_CLEAN) $(DIRS_FLAKE8) flake8 docker-base voltha chameleon ofagent podder netconf shovel onos dashd vcli portainer
 
 default: build
 
@@ -76,7 +76,7 @@ help:
 
 build: protos containers
 
-containers: docker-base voltha chameleon ofagent podder netconf shovel onos tester config-push
+containers: docker-base voltha chameleon ofagent podder netconf shovel onos tester config-push dashd vcli portainer
 
 docker-base:
 	docker build -t cord/voltha-base -f docker/Dockerfile.base .
@@ -107,6 +107,9 @@ dashd:
 
 vcli:
 	docker build -t cord/vcli -f docker/Dockerfile.cli .
+
+portainer:
+	portainer/buildPortainer.sh
 
 onos:
 	docker build -t cord/onos -f docker/Dockerfile.onos docker
@@ -139,6 +142,7 @@ fetch:
 	docker pull ubuntu:xenial
 	docker pull wurstmeister/kafka:latest
 	docker pull wurstmeister/zookeeper:latest
+	docker pull portainer/portainer:latest
 
 purge-venv:
 	rm -fr ${VENVDIR}
