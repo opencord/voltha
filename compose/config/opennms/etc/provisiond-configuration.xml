@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<provisiond-configuration 
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+  xsi:schemaLocation="http://xmlns.opennms.org/xsd/config/provisiond-configuration"
+   
+  foreign-source-dir="/opt/opennms/etc/foreign-sources" 
+  requistion-dir="/opt/opennms/etc/imports"
+   
+  importThreads="8" scanThreads="10" rescanThreads="10" writeThreads="8" >
+  
+  <!--  
+    http://www.quartz-scheduler.org/documentation/quartz-1.x/tutorials/crontrigger
+        Field Name     Allowed Values      Allowed Special Characters
+        Seconds        0-59                , - * /
+        Minutes        0-59                , - * /
+        Hours          0-23                , - * /
+        Day-of-month   1-31                , - * ? / L W C
+        Month          1-12 or JAN-DEC     , - * /
+        Day-of-Week    1-7 or SUN-SAT      , - * ? / L C #
+        Year (Opt)     empty, 1970-2099    , - * /
+   -->
+   
+  <!-- sample, do a zone transfer from localhost at midnight, and import any nodes defined
+  <requisition-def import-name="localhost" import-url-resource="dns://localhost/localhost">
+    <cron-schedule>0 0 0 * * ? *</cron-schedule>
+  </requisition-def>
+  -->
+
+  <!-- sample, import virtual machines and host systems from a VMware vCenter server
+
+    import-url-resource should look like
+
+      vmware://HOSTNAME_OR_IP_ADDRESS[/foreignSource-Name][?parameters]
+
+    where possible parameters are:
+
+       importIPv4Only -
+         Imports only IPv4 Interfaces
+         Default: false
+
+       importIPv6Only -
+         Imports only IPv6 Interfaces
+         Default: false
+
+       topologyNetworks -
+         Add the network information to the VMWare Topology
+         Default: true
+
+       topologyDatastores -
+         Add the datastores information to the VMWare Topology
+         Default: true
+
+       topologyPortGroups -
+         Add the port groups information (distributed virtual switches) to the VMWare Topology
+         Default: false
+
+       importVMPoweredOn -
+         Controls whether powered on machines should be imported.
+         Default: true
+
+       importVMPoweredOff -
+         Controls whether powered off machines should be imported.
+         Default: false
+
+       importVMSuspended -
+         Controls whether suspended machines should be imported.
+         Default: false
+
+       importVMAll -
+         Imports all virtual machines and ignores importVMPoweredOn,
+         importVMPoweredOff and importVMSuspended parameters
+         Default: false
+
+       importVMOnly -
+         Imports only virtual machines and ignores hosts.
+         Default: false
+
+       importHostPoweredOn -
+         Controls whether powered on host systems should be imported.
+         Default: true
+
+       importHostPoweredOff -
+         Controls whether powered off host systems should be imported.
+         Default: false
+
+       importHostStandBy -
+         Controls whether stand-by host systems should be imported.
+         Default: false
+
+       importHostUnknown -
+         Controls whether host systems with a unknown power state should be imported.
+         Default: false
+
+       importHostAll -
+         Imports all host systems and ignores importHostPoweredOn,
+         importHostPoweredOff and importHostSuspended parameters
+         Default: false
+
+       importHostOnly -
+         Imports only host systems and ignores VMs.
+         Default: false
+
+       virtualMachineServices -
+         Bound this services to imported virtual machines, values should be seperated by ','.
+         Default: VMware-ManagedEntity,VMware-VirtualMachine
+
+       hostSystemServices -
+         Bound this services to imported host systems, values should be seperated by ','.
+         Default: VMware-ManagedEntity,VMware-HostSystem,VMwareCim-HostSystem
+
+       username -
+         The username to use to authenticate against the VMware vCenter server. 
+
+       password - 
+         The password to use to authenticate against the VMware vCenter server       
+ 
+       key -
+         Use this key to lookup a user defined attributes for entities being imported, only virtual machines
+         and host systems with a matching key=value pair will be imported. Can only be in conjunction with the 'value'
+         parameter, and can only be specified once. 
+         If you need to specify several attributes, use the _[customAttributeName] method described below.
+
+       value -
+         This value must match the user defined attribute with the name defined by the parameter 'key' on the VMware
+         management server for an entity to be imported, can only be used in conjunction with the 'key' parameter, 
+         and can only be specified once.  If you need to specify several attributes, use the _[customAttributeName] 
+         method described below.
+
+       _[customAttributeName] = [customAttributeValue]
+
+       Filtering the requisition with the key/value pair parameters as described above allows to filter only by one user
+       defined attribute. This use case is for those situations on which it is required to match more than one parameter.
+       If the content of customAttributeValue starts with '~', the rest of it will be treated as a regular expresion. In
+       this case, the real value must match the provided expression.
+
+       IMPORTANT:
+       - importVMOnly and importHostOnly can't be true simultaneously.
+       - importIPv4Only and importIPv6Only can't be true simultaneously.
+       - if topologyNetworks is false, the port group information won't be added.
+
+     Examples for import-url-resource:
+       vmware://vcenter.mydomain.org?importHostPoweredOff=true
+       vmware://172.16.123.100/vCenterImport?key=shouldImport;value=1
+       vmware://172.16.123.100/vCenterImport?_shouldImport=1
+       vmware://172.16.123.100/vCenterImport?_shouldImport=1;username=opennms;password=secret
+       vmware://[2001:db8:0:8d3:0:8a2e:70:7344]?virtualMachineServices=VM-SERVICE1,VM-SERVICE2
+
+  <requisition-def import-name="the-import-name-to-use" import-url-resource="vmware://ip-address-or-hostname/foreignSource-Name?parameters">
+    <cron-schedule>0 0 0 * * ? *</cron-schedule>
+  </requisition-def>
+
+  -->
+
+</provisiond-configuration>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<pluginManagerData>
+    <pluginServerPassword>admin</pluginServerPassword>
+    <pluginServerUsername>admin</pluginServerUsername>
+    <pluginServerUrl>http://localhost:8980/opennms</pluginServerUrl>
+    <licenceShoppingCartUrl>http://opennms.org</licenceShoppingCartUrl>
+    <karafDataMap/>
+    <karafManifestEntryMap/>
+</pluginManagerData>

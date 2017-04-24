@@ -1,0 +1,53 @@
+version: '2'
+services:
+  database_data:
+    image: tianon/true
+    volumes:
+        - /var/lib/postgresql/data
+
+  database:
+    image: postgres:9.6.1
+    env_file:
+      - ./config/opennms/env/postgres.env
+    ports:
+      - "15432:5432"
+    depends_on:
+      - database_data
+    volumes_from:
+      - database_data:rw
+
+  opennms_data:
+    image: tianon/true
+    volumes:
+      - /var/log/opennms
+      - /var/opennms/rrd
+      - /var/opennms/reports
+
+  opennms_cleanup:
+    image: bash
+    command: rm -f /opt/opennms/etc/configured
+    volumes:
+      - ./config/opennms/etc:/opt/opennms/etc
+
+  opennms:
+    image: opennms/horizon-core-web:19.0.1-1
+    env_file:
+      - ./config/opennms/env/opennms.env
+      - ./config/opennms/env/postgres.env
+    depends_on:
+      - database
+      - opennms_data
+      - opennms_cleanup
+    volumes_from:
+      - opennms_data:rw
+    volumes:
+      - ./config/opennms/etc:/opt/opennms/etc
+    command: ["-s"]
+    ports:
+      - "8980:8980"
+      - "18980:18980"
+      - "1099:1099"
+      - "18101:8101"
+      - "61616:61616"
+      - "5817:5817"
+      - "162:162/udp"
