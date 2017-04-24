@@ -328,7 +328,7 @@ class MapleOltRxHandler(pb.Root):
                 context=alarm_data,
                 raised_ts = ts)
 
-            self.adapter_agent.submit_alarm(alarm_event)
+            self.adapter_agent.submit_alarm(self.device_id, alarm_event)
 
         except Exception as e:
             log.exception('failed-to-submit-alarm', e=e)
@@ -789,7 +789,7 @@ class MapleOltHandler(object):
                     context=alarm_data,
                     raised_ts = ts)
 
-                self.adapter_agent.submit_alarm(alarm_event)
+                self.adapter_agent.submit_alarm(device_id, alarm_event)
 
             except Exception as e:
                 log.exception('failed-to-submit-alarm', e=e)
