@@ -765,7 +765,7 @@ class SimulatedOltAdapter(object):
                     description=description,
                     context=current_context)
 
-                self.adapter_agent.submit_alarm(alarm_event)
+                self.adapter_agent.submit_alarm(device_id, alarm_event)
 
             except Exception as e:
                 log.exception('failed-to-submit-alarm', e=e)

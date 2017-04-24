@@ -503,3 +503,57 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context)
 
 
+    @twisted_async
+    def CreateAlarmFilter(self, request, context):
+        log.info('grpc-request', request=request)
+        # TODO dispatching to local instead of passing it to leader
+        return self.dispatcher.dispatch(
+            self.instance_id,
+            VolthaLocalServiceStub,
+            'CreateAlarmFilter',
+            request,
+            context)
+
+    @twisted_async
+    def GetAlarmFilter(self, request, context):
+        log.warning('temp-limited-implementation')
+        # TODO dispatching to local instead of collecting all
+        return self.dispatcher.dispatch(
+            self.instance_id,
+            VolthaLocalServiceStub,
+            'GetAlarmFilter',
+            request,
+            context)
+
+    @twisted_async
+    def UpdateAlarmFilter(self, request, context):
+        log.info('grpc-request', request=request)
+        # TODO dispatching to local instead of passing it to leader
+        return self.dispatcher.dispatch(
+            self.instance_id,
+            VolthaLocalServiceStub,
+            'UpdateAlarmFilter',
+            request,
+            context)
+
+    @twisted_async
+    def DeleteAlarmFilter(self, request, context):
+        log.info('grpc-request', request=request)
+        # TODO dispatching to local instead of passing it to leader
+        return self.dispatcher.dispatch(
+            self.instance_id,
+            VolthaLocalServiceStub,
+            'DeleteAlarmFilter',
+            request,
+            context)
+
+    @twisted_async
+    def ListAlarmFilters(self, request, context):
+        log.warning('temp-limited-implementation')
+        # TODO dispatching to local instead of collecting all
+        return self.dispatcher.dispatch(
+            self.instance_id,
+            VolthaLocalServiceStub,
+            'ListAlarmFilters',
+            Empty(),
+            context)

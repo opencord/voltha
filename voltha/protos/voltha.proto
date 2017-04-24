@@ -39,6 +39,32 @@ message DeviceGroups {
     repeated DeviceGroup items = 1;
 }
 
+
+message AlarmFilterRuleKey {
+    enum AlarmFilterRuleKey {
+        id = 0;
+        type = 1;
+        severity = 2;
+        resource_id = 3;
+        category = 4;
+        device_id = 5;
+    }
+}
+
+message AlarmFilterRule {
+    AlarmFilterRuleKey.AlarmFilterRuleKey key = 1;
+    string value = 2;
+}
+message AlarmFilter {
+    string id = 1 [(access) = READ_ONLY];
+
+    repeated AlarmFilterRule rules = 2;
+}
+
+message AlarmFilters {
+    repeated AlarmFilter filters = 1;
+}
+
 // Top-level (root) node for a Voltha Instance
 message VolthaInstance {
     option (yang_message_rule) = CREATE_BOTH_GROUPING_AND_CONTAINER;
@@ -60,6 +86,8 @@ message VolthaInstance {
     repeated DeviceType device_types = 14 [(child_node) = {key: "id"}];
 
     repeated DeviceGroup device_groups = 15 [(child_node) = {key: "id"}];
+
+    repeated AlarmFilter alarm_filters = 16 [(child_node) = {key: "id"}];
 }
 
 message VolthaInstances {
@@ -303,6 +331,37 @@ service VolthaGlobalService {
         };
     }
 
+    rpc CreateAlarmFilter(AlarmFilter) returns(AlarmFilter) {
+        option (google.api.http) = {
+            post: "/api/v1/alarm_filters"
+            body: "*"
+        };
+    }
+
+    rpc GetAlarmFilter(ID) returns(AlarmFilter) {
+        option (google.api.http) = {
+            get: "/api/v1/alarm_filters/{id}"
+        };
+    }
+
+    rpc UpdateAlarmFilter(AlarmFilter) returns(AlarmFilter) {
+        option (google.api.http) = {
+            put: "/api/v1/alarm_filters/{id}"
+            body: "*"
+        };
+    }
+
+    rpc DeleteAlarmFilter(ID) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/api/v1/alarm_filters/{id}"
+        };
+    }
+
+    rpc ListAlarmFilters(google.protobuf.Empty) returns(AlarmFilters) {
+        option (google.api.http) = {
+            get: "/api/v1/alarm_filters"
+        };
+    }
 }
 
 /*
@@ -536,4 +595,35 @@ service VolthaLocalService {
         // This does not have an HTTP representation
     }
 
+    rpc CreateAlarmFilter(AlarmFilter) returns(AlarmFilter) {
+        option (google.api.http) = {
+            post: "/api/v1/local/alarm_filters"
+            body: "*"
+        };
+    }
+
+    rpc GetAlarmFilter(ID) returns(AlarmFilter) {
+        option (google.api.http) = {
+            get: "/api/v1/local/alarm_filters/{id}"
+        };
+    }
+
+    rpc UpdateAlarmFilter(AlarmFilter) returns(AlarmFilter) {
+        option (google.api.http) = {
+            put: "/api/v1/local/alarm_filters/{id}"
+            body: "*"
+        };
+    }
+
+    rpc DeleteAlarmFilter(ID) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/api/v1/local/alarm_filters/{id}"
+        };
+    }
+
+    rpc ListAlarmFilters(google.protobuf.Empty) returns(AlarmFilters) {
+        option (google.api.http) = {
+            get: "/api/v1/local/alarm_filters"
+        };
+    }
 }
