@@ -105,6 +105,9 @@ shovel:
 dashd:
 	docker build -t cord/dashd -f docker/Dockerfile.dashd .
 
+vcli:
+	docker build -t cord/vcli -f docker/Dockerfile.cli .
+
 onos:
 	docker build -t cord/onos -f docker/Dockerfile.onos docker
 
