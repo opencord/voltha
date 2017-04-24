@@ -1,0 +1,32 @@
+version: '2'
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:5.2.2
+    environment:
+      - transport.host=localhost
+      - transport.tcp.port=9300
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    networks:
+      - docker_elastic
+
+  logstash:
+    build: ./elasticsearch/logstash
+    environment:
+      - log.level=info
+    command: logstash -f /etc/logstash/conf.d/
+    volumes:
+      - ./elasticsearch/logstash/config:/etc/logstash/conf.d
+    ports:
+      - "5000:5000"
+    networks:
+      - docker_elastic
+    depends_on:
+      - elasticsearch
+
+networks:
+  docker_elastic:
+    driver: bridge

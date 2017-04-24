@@ -1,0 +1,45 @@
+version: '2'
+services:
+  database_data:
+    image: tianon/true
+    volumes:
+        - /var/lib/postgresql/data
+
+  database:
+    image: postgres:9.6.1
+    env_file:
+      - ./opennms/env/postgres.env
+    ports:
+      - "15432:5432"
+    depends_on:
+      - database_data
+    volumes_from:
+      - database_data:rw
+
+  opennms_data:
+    image: tianon/true
+    volumes:
+      - /var/log/opennms
+      - /var/opennms/rrd
+      - /var/opennms/reports
+
+  opennms:
+    build: ./opennms
+    env_file:
+      - ./opennms/env/opennms.env
+      - ./opennms/env/postgres.env
+    depends_on:
+      - database
+      - opennms_data
+    volumes_from:
+      - opennms_data:rw
+    volumes:
+      - ./opennms/etc:/tmp/opennms/etc
+    ports:
+      - "8980:8980"
+      - "18980:18980"
+      - "1099:1099"
+      - "18101:8101"
+      - "61616:61616"
+      - "5817:5817"
+      - "162:162/udp"
