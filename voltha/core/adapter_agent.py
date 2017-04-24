@@ -18,9 +18,8 @@
 Agent to play gateway between CORE and an individual adapter.
 """
 from uuid import uuid4
-import arrow
-import re
 
+import arrow
 import structlog
 from google.protobuf.json_format import MessageToJson
 from scapy.packet import Packet
@@ -31,16 +30,14 @@ from common.event_bus import EventBusClient
 from common.frameio.frameio import hexify
 from voltha.adapters.interface import IAdapterAgent
 from voltha.protos import third_party
-from voltha.protos.device_pb2 import Device, Port
-from voltha.protos.events_pb2 import KpiEvent, AlarmEvent, AlarmEventType, \
-    AlarmEventSeverity, AlarmEventState, AlarmEventCategory
+from voltha.core.flow_decomposer import OUTPUT
 from voltha.protos.device_pb2 import Device, Port, PmConfigs
+from voltha.protos.events_pb2 import AlarmEvent, AlarmEventType, \
+    AlarmEventSeverity, AlarmEventState, AlarmEventCategory
 from voltha.protos.events_pb2 import KpiEvent
 from voltha.protos.voltha_pb2 import DeviceGroup, LogicalDevice, \
-    LogicalPort, AdminState, OperStatus, ConnectStatus
+    LogicalPort, AdminState, OperStatus, AlarmFilterRuleKey
 from voltha.registry import registry
-from voltha.core.flow_decomposer import OUTPUT
-import sys
 
 
 @implementer(IAdapterAgent)
@@ -180,7 +177,7 @@ class AdapterAgent(object):
         return self.update_flows_incrementally(
             device, flow_changes, group_changes)
 
-    #def update_pm_collection(self, device, pm_collection_config):
+    # def update_pm_collection(self, device, pm_collection_config):
     #    return self.adapter.update_pm_collection(device, pm_collection_config)
 
 
@@ -216,7 +213,7 @@ class AdapterAgent(object):
         # we run the update through the device_agent so that the change
         # does not loop back to the adapter unnecessarily
         device_agent = self.core.get_device_agent(device_pm_config.id)
-        device_agent.update_device_pm_config(device_pm_config,init)
+        device_agent.update_device_pm_config(device_pm_config, init)
 
     def update_adapter_pm_config(self, device_id, device_pm_config):
         device = self.get_device(device_id)
@@ -270,7 +267,6 @@ class AdapterAgent(object):
             port.oper_status = OperStatus.UNKNOWN
             self._make_up_to_date('/devices/{}/ports'.format(device_id),
                                   port.port_no, port)
-
 
     def enable_all_ports(self, device_id):
         """
@@ -361,7 +357,6 @@ class AdapterAgent(object):
 
         return logical_device
 
-
     def delete_logical_device(self, logical_device):
         """
         This will remove the logical device as well as all logical ports
@@ -378,7 +373,6 @@ class AdapterAgent(object):
         # device 'remove callbacks' as well as logical ports 'remove
         # callbacks' if present
         self._remove_node('/logical_devices', logical_device.id)
-
 
     def receive_packet_out(self, logical_device_id, ofp_packet_out):
 
@@ -563,10 +557,43 @@ class AdapterAgent(object):
             context=context
         )
 
-    def submit_alarm(self, alarm_event_msg):
+    def filter_alarm(self, device_id, alarm_event):
+        alarm_filters = self.root_proxy.get('/alarm_filters')
+
+        rule_values = {
+            'id': alarm_event.id,
+            'type': AlarmEventType.AlarmEventType.Name(alarm_event.type),
+            'category': AlarmEventCategory.AlarmEventCategory.Name(alarm_event.category),
+            'severity': AlarmEventSeverity.AlarmEventSeverity.Name(alarm_event.severity),
+            'resource_id': alarm_event.resource_id,
+            'device_id': device_id
+        }
+
+        for alarm_filter in alarm_filters:
+            if alarm_filter.rules:
+                exclude = True
+                for rule in alarm_filter.rules:
+                    self.log.debug("compare-alarm-event",
+                                   key=AlarmFilterRuleKey.AlarmFilterRuleKey.Name(rule.key),
+                                   actual=rule_values[AlarmFilterRuleKey.AlarmFilterRuleKey.Name(rule.key).lower()],
+                                   expected=rule.value.lower())
+                    exclude = exclude and \
+                              (rule_values[AlarmFilterRuleKey.AlarmFilterRuleKey.Name(
+                                  rule.key).lower()] == rule.value.lower())
+                    if not exclude:
+                        break
+
+                if exclude:
+                    self.log.info("filtered-alarm-event", alarm=alarm_event)
+                    return True
+
+        return False
+
+    def submit_alarm(self, device_id, alarm_event_msg):
         try:
             assert isinstance(alarm_event_msg, AlarmEvent)
-            self.event_bus.publish('alarms', alarm_event_msg)
+            if not self.filter_alarm(device_id, alarm_event_msg):
+                self.event_bus.publish('alarms', alarm_event_msg)
 
         except Exception as e:
             self.log.exception('failed-alarm-submission',

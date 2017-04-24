@@ -28,7 +28,8 @@ from voltha.protos.voltha_pb2 import \
     add_VolthaLocalServiceServicer_to_server, VolthaLocalServiceServicer, \
     VolthaInstance, Adapters, LogicalDevices, LogicalDevice, Ports, \
     LogicalPorts, Devices, Device, DeviceType, \
-    DeviceTypes, DeviceGroups, DeviceGroup, AdminState, OperStatus, ChangeEvent
+    DeviceTypes, DeviceGroups, DeviceGroup, AdminState, OperStatus, ChangeEvent, \
+    AlarmFilter, AlarmFilters
 from voltha.protos.device_pb2 import PmConfigs
 from voltha.registry import registry
 
@@ -588,3 +589,87 @@ class LocalHandler(VolthaLocalServiceServicer):
         assert isinstance(port_status, ofp_port_status)
         event = ChangeEvent(id=device_id, port_status=port_status)
         self.core.change_event_queue.put(event)
+
+
+    @twisted_async
+    def ListAlarmFilters(self, request, context):
+        try:
+            filters = self.root.get('/alarm_filters')
+            return AlarmFilters(filters=filters)
+        except KeyError:
+            context.set_code(StatusCode.NOT_FOUND)
+            return AlarmFilters()
+
+    @twisted_async
+    def GetAlarmFilter(self, request, context):
+        if '/' in request.id:
+            context.set_details(
+                'Malformed alarm filter id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return AlarmFilter()
+
+        try:
+            alarm_filter = self.root.get('/alarm_filters/{}'.format(request.id))
+            return alarm_filter
+        except KeyError:
+            context.set_details(
+                'Alarm filter \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return AlarmFilter()
+
+    @twisted_async
+    def DeleteAlarmFilter(self, request, context):
+        if '/' in request.id:
+            context.set_details(
+                'Malformed alarm filter id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return Empty()
+
+        try:
+            self.root.remove('/alarm_filters/{}'.format(request.id))
+        except KeyError:
+            context.set_code(StatusCode.NOT_FOUND)
+
+        return Empty()
+
+    @twisted_async
+    def CreateAlarmFilter(self, request, context):
+        log.info('grpc-request', request=request)
+
+        try:
+            assert isinstance(request, AlarmFilter)
+            alarm_filter = request
+            assert alarm_filter.id == '', 'Alarm filter to be created cannot have id yet'
+
+        except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return AlarmFilter()
+
+        # fill additional data
+        alarm_filter.id = uuid4().hex[:12]
+
+        # add device to tree
+        self.root.add('/alarm_filters', alarm_filter)
+
+        return request
+
+    @twisted_async
+    def UpdateAlarmFilter(self, request, context):
+        if '/' in request.id:
+            context.set_details(
+                'Malformed alarm filter id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return AlarmFilter()
+
+        try:
+            assert isinstance(request, AlarmFilter)
+            alarm_filter = self.root.get('/alarm_filters/{}'.format(request.id))
+            self.root.update('/alarm_filters/{}'.format(request.id), request)
+
+            return request
+        except KeyError:
+            context.set_details(
+                'Alarm filter \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return AlarmFilter()

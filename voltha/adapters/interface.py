@@ -298,7 +298,7 @@ class IAdapterAgent(Interface):
         :return: None
         """
 
-    def submit_alarm(alarm_event_msg):
+    def submit_alarm(device_id, alarm_event_msg):
         """
         Submit an alarm on behalf of the OLT and its adapter.
         :param alarm_event_msg: A protobuf message of AlarmEvent type.
