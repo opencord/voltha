@@ -1,0 +1,89 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba092121_49b066f4",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1140,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-04-24T14:30:40Z",
+      "side": 1,
+      "message": "Is \u0027message_exchange\u0027 still required?   \u0027new_message_exchange\u0027 may not be a good name as soon it won\u0027t be new anymore :)",
+      "revId": "6f42c802b28c09b3a9ecb8a59382078e940447e3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_e9c73a63",
+        "filename": "voltha/adapters/maple_olt/maple_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 160,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-04-24T14:30:40Z",
+      "side": 1,
+      "message": "Does not seem to be used inside the MapleOltRxHandler.",
+      "revId": "6f42c802b28c09b3a9ecb8a59382078e940447e3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_29ce5284",
+        "filename": "voltha/adapters/maple_olt/maple_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 265,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-04-24T14:30:40Z",
+      "side": 1,
+      "message": "Do you need to check whether event_data[\u0027serial_num_vendor_id\u0027] is None first?",
+      "revId": "6f42c802b28c09b3a9ecb8a59382078e940447e3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_09cb8e73",
+        "filename": "voltha/adapters/maple_olt/maple_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 266,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-04-24T14:30:40Z",
+      "side": 1,
+      "message": "Save comment as above",
+      "revId": "6f42c802b28c09b3a9ecb8a59382078e940447e3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_c9c47661",
+        "filename": "voltha/adapters/maple_olt/maple_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 944,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-04-24T14:30:40Z",
+      "side": 1,
+      "message": "What is the scenario where we will need to ignore all the onus in the queue during the olt activation?  Will these discovery messages be lost?",
+      "revId": "6f42c802b28c09b3a9ecb8a59382078e940447e3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
