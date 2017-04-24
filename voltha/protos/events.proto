@@ -134,3 +134,29 @@ message AlarmEvent {
     // Key/Value storage for extra information that may give context to the alarm
     map<string, string> context = 11;
 }
+
+
+message AlarmFilterRuleKey {
+    enum AlarmFilterRuleKey {
+        id = 0;
+        type = 1;
+        severity = 2;
+        resource_id = 3;
+        category = 4;
+        device_id = 5;
+    }
+}
+
+message AlarmFilterRule {
+    AlarmFilterRuleKey.AlarmFilterRuleKey key = 1;
+    string value = 2;
+}
+message AlarmFilter {
+    string id = 1 [(access) = READ_ONLY];
+
+    repeated AlarmFilterRule rules = 2;
+}
+
+message AlarmFilters {
+    repeated AlarmFilter filters = 1;
+}

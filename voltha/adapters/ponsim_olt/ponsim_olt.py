@@ -171,7 +171,7 @@ class AdapterAlarms:
                 context=current_context
             )
 
-            self.adapter.adapter_agent.submit_alarm(alarm_event)
+            self.adapter.adapter_agent.submit_alarm(self.device.id, alarm_event)
 
         except Exception as e:
             log.exception('failed-to-send-alarm', e=e)

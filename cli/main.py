@@ -17,28 +17,28 @@
 import argparse
 import os
 import readline
+import sys
 from optparse import make_option
 from time import sleep, time
 
-import sys
-from consul import Consul
 import grpc
 import requests
 from cmd2 import Cmd, options
+from consul import Consul
 from google.protobuf.empty_pb2 import Empty
 from simplejson import dumps
 
 from cli.device import DeviceCli
+from cli.alarm_filters import AlarmFiltersCli
 from cli.logical_device import LogicalDeviceCli
-from cli.table import TablePrinter, print_pb_list_as_table
+from cli.table import print_pb_list_as_table
 from voltha.core.flow_decomposer import *
 from voltha.protos import third_party
 from voltha.protos import voltha_pb2
 from voltha.protos.openflow_13_pb2 import FlowTableUpdate, FlowGroupTableUpdate
 
 _ = third_party
-from cli.utils import pb2dict, dict2line
-
+from cli.utils import pb2dict
 
 defs = dict(
     # config=os.environ.get('CONFIG', './cli.yml'),
@@ -57,8 +57,8 @@ __ _____| | |_| |_  __ _   / __| |  |_ _|
 (to exit type quit or hit Ctrl-D)
 """
 
-class VolthaCli(Cmd):
 
+class VolthaCli(Cmd):
     prompt = 'voltha'
     history_file_name = '.voltha_cli_history'
 
@@ -213,14 +213,14 @@ class VolthaCli(Cmd):
 
     def device_ids(self, force_refresh=False):
         if force_refresh or self.device_ids is None or \
-                (time() - self.device_ids_cache_ts) > 1:
+                        (time() - self.device_ids_cache_ts) > 1:
             self.device_ids_cache = [d.id for d in self.get_devices()]
             self.device_ids_cache_ts = time()
         return self.device_ids_cache
 
     def logical_device_ids(self, force_refresh=False):
         if force_refresh or self.logical_device_ids is None or \
-                (time() - self.logical_device_ids_cache_ts) > 1:
+                        (time() - self.logical_device_ids_cache_ts) > 1:
             self.logical_device_ids_cache = [d.id for d
                                              in self.get_logical_devices()]
             self.logical_device_ids_cache_ts = time()
@@ -254,7 +254,7 @@ class VolthaCli(Cmd):
 
     @options([
         make_option('-t', '--device-type', action="store", dest='device_type',
-                     help="Device type", default='simulated_olt'),
+                    help="Device type", default='simulated_olt'),
         make_option('-m', '--mac-address', action='store', dest='mac_address',
                     default='00:0c:e2:31:40:00'),
         make_option('-i', '--ip-address', action='store', dest='ip_address'),
@@ -364,20 +364,23 @@ class VolthaCli(Cmd):
                       self.voltha_sim_rest)
         sub.cmdloop()
 
+    def do_alarm_filters(self, line):
+        sub = AlarmFiltersCli(self.get_channel)
+        sub.cmdloop()
+
 
 class TestCli(VolthaCli):
-
     def __init__(self, history, get_channel, voltha_grpc, voltha_sim_rest):
         VolthaCli.__init__(self, voltha_grpc, voltha_sim_rest)
         self.history = history
         self.get_channel = get_channel
         self.prompt = '(' + self.colorize(self.colorize('test', 'cyan'),
-            'bold') + ') '
+                                          'bold') + ') '
 
     def get_device(self, device_id, depth=0):
         stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
         res = stub.GetDevice(voltha_pb2.ID(id=device_id),
-                             metadata=(('get-depth', str(depth)), ))
+                             metadata=(('get-depth', str(depth)),))
         return res
 
     def do_arrive_onus(self, line):
@@ -523,7 +526,6 @@ class TestCli(VolthaCli):
         stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
 
         for uni_port_no, c_vid in unis:
-
             # Controller-bound flows
             stub.UpdateLogicalDeviceFlowTable(FlowTableUpdate(
                 id=logical_device_id,
@@ -649,7 +651,7 @@ class TestCli(VolthaCli):
                 group_id=2,
                 buckets=[
                     ofp.ofp_bucket(actions=[pop_vlan(), output(unis[0][0])])
-#                    ofp.ofp_bucket(actions=[pop_vlan(), output(unis[1][0])])
+                    #                    ofp.ofp_bucket(actions=[pop_vlan(), output(unis[1][0])])
                 ]
             )
         ))

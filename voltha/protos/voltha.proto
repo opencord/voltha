@@ -21,6 +21,7 @@ import public "logical_device.proto";
 import public "device.proto";
 import public "adapter.proto";
 import public "openflow_13.proto";
+import public "events.proto";
 
 option java_package = "org.opencord.voltha";
 option java_outer_classname = "VolthaProtos";
@@ -60,6 +61,8 @@ message VolthaInstance {
     repeated DeviceType device_types = 14 [(child_node) = {key: "id"}];
 
     repeated DeviceGroup device_groups = 15 [(child_node) = {key: "id"}];
+
+    repeated AlarmFilter alarm_filters = 16 [(child_node) = {key: "id"}];
 }
 
 message VolthaInstances {
@@ -303,6 +306,37 @@ service VolthaGlobalService {
         };
     }
 
+    rpc CreateAlarmFilter(AlarmFilter) returns(AlarmFilter) {
+        option (google.api.http) = {
+            post: "/api/v1/alarm_filters"
+            body: "*"
+        };
+    }
+
+    rpc GetAlarmFilter(ID) returns(AlarmFilter) {
+        option (google.api.http) = {
+            get: "/api/v1/alarm_filters/{id}"
+        };
+    }
+
+    rpc UpdateAlarmFilter(AlarmFilter) returns(AlarmFilter) {
+        option (google.api.http) = {
+            put: "/api/v1/alarm_filters/{id}"
+            body: "*"
+        };
+    }
+
+    rpc DeleteAlarmFilter(ID) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/api/v1/alarm_filters/{id}"
+        };
+    }
+
+    rpc ListAlarmFilters(google.protobuf.Empty) returns(AlarmFilters) {
+        option (google.api.http) = {
+            get: "/api/v1/alarm_filters"
+        };
+    }
 }
 
 /*
@@ -536,4 +570,35 @@ service VolthaLocalService {
         // This does not have an HTTP representation
     }
 
+    rpc CreateAlarmFilter(AlarmFilter) returns(AlarmFilter) {
+        option (google.api.http) = {
+            post: "/api/v1/local/alarm_filters"
+            body: "*"
+        };
+    }
+
+    rpc GetAlarmFilter(ID) returns(AlarmFilter) {
+        option (google.api.http) = {
+            get: "/api/v1/local/alarm_filters/{id}"
+        };
+    }
+
+    rpc UpdateAlarmFilter(AlarmFilter) returns(AlarmFilter) {
+        option (google.api.http) = {
+            put: "/api/v1/local/alarm_filters/{id}"
+            body: "*"
+        };
+    }
+
+    rpc DeleteAlarmFilter(ID) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/api/v1/local/alarm_filters/{id}"
+        };
+    }
+
+    rpc ListAlarmFilters(google.protobuf.Empty) returns(AlarmFilters) {
+        option (google.api.http) = {
+            get: "/api/v1/local/alarm_filters"
+        };
+    }
 }
