@@ -1,3 +1,8 @@
+upstream api-grafana {
+    {{range service "grafana-web-ui" "any"}}
+    server {{.Address}}:{{.Port}};
+    {{end}}
+}
 upstream api-docker {
     {{range service "portainer" "any"}}
     server {{.Address}}:{{.Port}};
