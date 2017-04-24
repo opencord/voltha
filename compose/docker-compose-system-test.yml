@@ -75,7 +75,7 @@ services:
   # (demo place-holder for external KPI system)
   #
   grafana:
-    image: kamon/grafana_graphite
+    image: voltha/grafana
     ports:
     - "8882:80"
     - "2003:2003"
@@ -88,6 +88,7 @@ services:
       SERVICE_2004_NAME: "carbon-pickle-intake"
       SERVICE_8126_NAME: "statsd-tcp-intake"
       SERVICE_8125_NAME: "statsd-udp-intake"
+      GR_SERVER_ROOT_URL: "http://localhost:80/grafana/"
 
   #
   # Shovel (Kafka-graphite-gateway)
