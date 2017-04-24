@@ -242,6 +242,21 @@ services:
     volumes:
     - "/var/run/docker.sock:/tmp/docker.sock"
 
+  #
+  # Docker ui
+  #
+  portainer:
+    image: voltha/portainer
+    ports:
+    - "9000:9000"
+    environment:
+      CONSUL_ADDR: "${DOCKER_HOST_IP}:8500"
+    depends_on:
+    - nginx
+    restart: unless-stopped
+    volumes:
+    - "/var/run/docker.sock:/var/run/docker.sock"
+
 networks:
   default:
     driver: bridge
