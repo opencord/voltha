@@ -1,0 +1,113 @@
+<events xmlns="http://xmlns.opennms.org/xsd/eventconf">
+    <!-- output events: Linux  -->
+    <event>
+        <uei>uei.opennms.org/vendor/voltha/alarmRaised</uei>
+        <event-label>vOLT-HA - Alarm Raised Event</event-label>
+        <descr>
+            AlarmId: %parm[AlarmId]%&lt;br/&gt;
+            ResourceId: %parm[ResourceId]%&lt;br/&gt;
+            Description: %parm[Description]%&lt;br/&gt;
+            Type: %parm[Type]%&lt;br/&gt;
+            Category: %parm[Category]%&lt;br/&gt;
+            State: %parm[State]%&lt;br/&gt;
+            Severity: %parm[Severity]%&lt;br/&gt;
+            RaisedTime: %parm[RaisedTime]%&lt;br/&gt;
+            ReportedTime: %parm[ReportedTime]%&lt;br/&gt;
+            ChangedTime: %parm[ChangedTime]%&lt;br/&gt;
+            Context: %parm[Context]%&lt;br/&gt;
+        </descr>
+        <logmsg dest='donotpersist'>
+            %parm[Description]%&lt;br/&gt;
+            Type: %parm[Type]%
+        </logmsg>
+        <severity>Warning</severity>
+        <operinstruct></operinstruct>
+        <alarm-data reduction-key="%uei%:%nodeid%:%parm[AlarmId]%:%parm[ResourceId]%:%parm[Type]%:%parm[Category]%" alarm-type="1" auto-clean="false">
+            <update-field field-name="severity" update-on-reduction="true"/>
+        </alarm-data>
+    </event>
+    <event>
+        <uei>uei.opennms.org/vendor/voltha/alarmRaisedCorrelated</uei>
+        <event-label>vOLT-HA - Alarm Raised and Correlated Event</event-label>
+        <descr>
+            AlarmId: %parm[AlarmId]%&lt;br/&gt;
+            ResourceId: %parm[ResourceId]%&lt;br/&gt;
+            Description: %parm[Description]%&lt;br/&gt;
+            Type: %parm[Type]%&lt;br/&gt;
+            Category: %parm[Category]%&lt;br/&gt;
+            State: %parm[State]%&lt;br/&gt;
+            Severity: %parm[Severity]%&lt;br/&gt;
+            RaisedTime: %parm[RaisedTime]%&lt;br/&gt;
+            ReportedTime: %parm[ReportedTime]%&lt;br/&gt;
+            ChangedTime: %parm[ChangedTime]%&lt;br/&gt;
+            Context: %parm[Context]%&lt;br/&gt;
+        </descr>
+        <logmsg dest='logndisplay'>
+            %parm[Description]%&lt;br/&gt;
+            Type: %parm[Type]%
+        </logmsg>
+        <severity>Warning</severity>
+        <operinstruct></operinstruct>
+        <alarm-data reduction-key="%uei%:%nodeid%:%parm[AlarmId]%:%parm[ResourceId]%:%parm[Type]%:%parm[Category]%" alarm-type="1" auto-clean="false">
+            <update-field field-name="severity" update-on-reduction="true"/>
+        </alarm-data>
+    </event>
+    <event>
+        <uei>uei.opennms.org/vendor/voltha/alarmCleared</uei>
+        <event-label>vOLT-HA - Alarm Cleared Event</event-label>
+        <descr>
+            AlarmId: %parm[AlarmId]%&lt;br/&gt;
+            ResourceId: %parm[ResourceId]%&lt;br/&gt;
+            Description: %parm[Description]%&lt;br/&gt;
+            Type: %parm[Type]%&lt;br/&gt;
+            Category: %parm[Category]%&lt;br/&gt;
+            State: %parm[State]%&lt;br/&gt;
+            Severity: %parm[Severity]%&lt;br/&gt;
+            RaisedTime: %parm[RaisedTime]%&lt;br/&gt;
+            ReportedTime: %parm[ReportedTime]%&lt;br/&gt;
+            ChangedTime: %parm[ChangedTime]%&lt;br/&gt;
+            Context: %parm[Context]%&lt;br/&gt;
+        </descr>
+        <logmsg dest='donotpersist'>
+            %parm[Description]%&lt;br/&gt;
+            Type: %parm[Type]%
+        </logmsg>
+        <severity>Normal</severity>
+        <operinstruct></operinstruct>
+        <alarm-data reduction-key="%uei%:%nodeid%:%parm[AlarmId]%:%parm[ResourceId]%:%parm[Type]%:%parm[Category]%"
+                    alarm-type="2"
+                    clear-key="uei.opennms.org/vendor/voltha/alarmRaised:%nodeid%:%parm[AlarmId]%:%parm[ResourceId]%:%parm[Type]%:%parm[Category]%"
+                    auto-clean="true">
+            <update-field field-name="severity" update-on-reduction="true"/>
+        </alarm-data>
+    </event>
+    <event>
+        <uei>uei.opennms.org/vendor/voltha/alarmClearedCorrelated</uei>
+        <event-label>vOLT-HA - Alarm Cleared and Correlated Event</event-label>
+        <descr>
+            AlarmId: %parm[AlarmId]%&lt;br/&gt;
+            ResourceId: %parm[ResourceId]%&lt;br/&gt;
+            Description: %parm[Description]%&lt;br/&gt;
+            Type: %parm[Type]%&lt;br/&gt;
+            Category: %parm[Category]%&lt;br/&gt;
+            State: %parm[State]%&lt;br/&gt;
+            Severity: %parm[Severity]%&lt;br/&gt;
+            RaisedTime: %parm[RaisedTime]%&lt;br/&gt;
+            ReportedTime: %parm[ReportedTime]%&lt;br/&gt;
+            ChangedTime: %parm[ChangedTime]%&lt;br/&gt;
+            Context: %parm[Context]%&lt;br/&gt;
+        </descr>
+        <logmsg dest='logndisplay'>
+            %parm[Description]%&lt;br/&gt;
+            Type: %parm[Type]%
+        </logmsg>
+        <severity>Normal</severity>
+        <operinstruct></operinstruct>
+        <alarm-data reduction-key="%uei%:%nodeid%:%parm[AlarmId]%:%parm[ResourceId]%:%parm[Type]%:%parm[Category]%"
+                    alarm-type="2"
+                    clear-key="uei.opennms.org/vendor/voltha/alarmRaisedCorrelated:%nodeid%:%parm[AlarmId]%:%parm[ResourceId]%:%parm[Type]%:%parm[Category]%"
+                    auto-clean="true">
+            <update-field field-name="severity" update-on-reduction="true"/>
+        </alarm-data>
+    </event>
+</events>
