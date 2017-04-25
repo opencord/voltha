@@ -8,6 +8,11 @@ upstream api-swagger {
     server {{.Address}}:{{.Port}};
     {{end}}
 }
+upstream api-consul {
+    {{range service "consul-rest" "any"}}
+    server {{.Address}}:{{.Port}};
+    {{end}}
+}
 upstream api-docker {
     {{range service "portainer" "any"}}
     server {{.Address}}:{{.Port}};
