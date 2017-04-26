@@ -21,6 +21,7 @@ Some consul related convenience functions
 from structlog import get_logger
 from consul import Consul
 from random import randint
+from common.utils.nethelpers import get_my_primary_local_ipv4
 
 log = get_logger()
 
@@ -77,9 +78,13 @@ def get_all_services(consul_endpoint):
 
     return services
 
-
 def get_endpoint_from_consul(consul_endpoint, service_name):
-    """Look up, from consul, the service name specified by service-name
+    """
+    Get endpoint of service_name from consul.
+    :param consul_endpoint: a <host>:<port> string
+    :param service_name: name of service for which endpoint
+                         needs to be found.
+    :return: service endpoint if available, else exit.
     """
     log.debug('getting-service-info', service=service_name)
 
@@ -91,9 +96,24 @@ def get_endpoint_from_consul(consul_endpoint, service_name):
             'Cannot find service {} in consul'.format(service_name))
         os.exit(1)
 
-    # pick local addresses when resolving a service via consul
-    # see CORD-818 (https://jira.opencord.org/browse/CORD-818)
+    """ Get host IPV4 address
+    """
+    local_ipv4 = get_my_primary_local_ipv4()
+    """ If host IP address from where the request came in matches
+        the IP address of the requested service's host IP address,
+        pick the endpoint
+    """
+    for i in range(len(services)):
+        service = services[i]
+        if service['ServiceAddress'] == local_ipv4:
+            log.debug("picking address locally")
+            endpoint = '{}:{}'.format(service['ServiceAddress'],
+	                              service['ServicePort'])
+            return endpoint
 
+    """ If service is not available locally, picak a random
+        endpoint for the service from the list
+    """
     service = services[randint(0, len(services) - 1)]
     endpoint = '{}:{}'.format(service['ServiceAddress'],
                               service['ServicePort'])
