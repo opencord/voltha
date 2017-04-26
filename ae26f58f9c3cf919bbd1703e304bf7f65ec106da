@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba092121_846303b1",
+        "filename": "voltha/adapters/adtran_olt/adtran_device_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 489,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-04-26T14:24:56Z",
+      "side": 1,
+      "message": "Some changes were recently made to the alarm api.  You will need to also include the device id as a parameter.\n\ne.g.\nself.adapter_agent.submit_alarm(device_id, alarm_event)",
+      "revId": "ae26f58f9c3cf919bbd1703e304bf7f65ec106da",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
