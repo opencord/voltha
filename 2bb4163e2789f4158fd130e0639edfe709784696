@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba092121_840ae3d0",
+        "filename": "common/utils/consulhelpers.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 106,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-04-26T15:10:42Z",
+      "side": 1,
+      "message": "Is the RTT from the requested service container and the container from where the request is made? How does Consul  figure that out? Would we gain in time if we prioritize a service present locally instead of remotely?   Given that the service may be invoked multiple times then it would make more sense to use a local service instead of a remote one.\n\nCan you add a test case showing how this can be used and also showing the gain in total time (i.e. the total time the get_endpoint_from_consul takes with and without specifying a node)? \n\nAlso, wouldn\u0027t node always be localhost?",
+      "revId": "2bb4163e2789f4158fd130e0639edfe709784696",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
