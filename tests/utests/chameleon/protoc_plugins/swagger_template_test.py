@@ -16,6 +16,7 @@
 import json
 import os
 from unittest import TestCase
+from mock import Mock
 
 from chameleon.protoc_plugins.descriptor_parser import DescriptorParser
 from chameleon.protoc_plugins.swagger_template \
@@ -37,6 +38,22 @@ class SwaggerTemplateTests(TestCase):
                                                     fold_comments=True)
         swagger = native_descriptors_to_swagger(native_data)
         return swagger
+
+    def test_swagger_url(self):
+
+        grpc = {
+            '_channel': {
+                '_Rendezvous': {}
+            }
+        }
+        from chameleon.web_server.web_server import WebServer
+        server = yield WebServer(9101, '/', '/swagger', grpc)
+        server.app = 'app'
+
+        server.add_swagger_routes = Mock()
+
+        self.assertEqual(server.add_swagger_routes.call_count, 1)
+        server.add_swagger_routes.assert_called_once_with('app', '/swagger')
 
     def test_empty_def(self):
 
