@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba092121_8add4d45",
+        "filename": "common/utils/consulhelpers.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 81,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-04-28T15:18:55Z",
+      "side": 1,
+      "message": "You can still add the node params.  The difference will be that you will get all the services using the RTT.  You will pick localhost first, if present.  If not present then pick the first node in the list.",
+      "revId": "f615836e149121af7dab162675b7b5ee956dcd75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
