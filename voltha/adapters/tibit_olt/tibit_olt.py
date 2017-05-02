@@ -919,6 +919,9 @@ class TibitOltAdapter(object):
 
         self.io_port.send(str(frame))
 
+    def receive_inter_adapter_message(self, msg):
+        raise NotImplementedError()
+
     def start_kpi_collection(self, device_id):
         """ Periodic KPI metric collection from the device """
         import random
