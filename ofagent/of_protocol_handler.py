@@ -42,6 +42,7 @@ class OpenFlowProtocolHandler(object):
         self.agent = agent
         self.cxn = cxn
         self.rpc = rpc
+        self.role = None
 
     @inlineCallbacks
     def start(self):
@@ -108,12 +109,16 @@ class OpenFlowProtocolHandler(object):
         raise NotImplementedError()
 
     def handle_flow_mod_request(self, req):
-        try:
-            grpc_req = to_grpc(req)
-        except Exception, e:
-            log.exception('failed-to-convert', e=e)
-        else:
-            return self.rpc.update_flow_table(self.device_id, grpc_req)
+        if self.role == ofp.OFPCR_ROLE_MASTER or self.role == ofp.OFPCR_ROLE_EQUAL:
+           try:
+              grpc_req = to_grpc(req)
+           except Exception, e:
+              log.exception('failed-to-convert', e=e)
+           else:
+              return self.rpc.update_flow_table(self.device_id, grpc_req)
+
+        elif self.role == ofp.OFPCR_ROLE_SLAVE:
+           self.cxn.send(ofp.message.bad_request_error_msg(code=ofp.OFPBRC_IS_SLAVE))
 
     def handle_get_async_request(self, req):
         raise NotImplementedError()
@@ -126,21 +131,33 @@ class OpenFlowProtocolHandler(object):
 
     @inlineCallbacks
     def handle_group_mod_request(self, req):
-        yield self.rpc.update_group_table(self.device_id, to_grpc(req))
+        if self.role == ofp.OFPCR_ROLE_MASTER or self.role == ofp.OFPCR_ROLE_EQUAL:
+           yield self.rpc.update_group_table(self.device_id, to_grpc(req))
+        elif self.role == ofp.OFPCR_ROLE_SLAVE:
+           self.cxn.send(ofp.message.bad_request_error_msg(code=ofp.OFPBRC_IS_SLAVE))
+
 
     def handle_meter_mod_request(self, req):
         raise NotImplementedError()
 
     def handle_role_request(self, req):
-        # Handle role messages appropriately to support multiple controllers
-        # see https://jira.opencord.org/browse/CORD-824
-        if req.role != ofp.OFPCR_ROLE_MASTER:
-            raise NotImplementedError()
-        self.cxn.send(ofp.message.role_reply(
+        # https://jira.opencord.org/browse/CORD-1174
+        # Need to handle generator_id
+        if req.role == ofp.OFPCR_ROLE_MASTER or req.role == ofp.OFPCR_ROLE_SLAVE:
+           self.role = req.role
+           self.cxn.send(ofp.message.role_reply(
             xid=req.xid, role=req.role, generation_id=req.generation_id))
+        elif req.role == ofp.OFPCR_ROLE_EQUAL:
+           self.role = req.role
+           self.cxn.send(ofp.message.role_reply(
+            xid=req.xid, role=req.role))
 
     def handle_packet_out_request(self, req):
-        self.rpc.send_packet_out(self.device_id, to_grpc(req))
+        if self.role == ofp.OFPCR_ROLE_MASTER or self.role == ofp.OFPCR_ROLE_EQUAL:
+           self.rpc.send_packet_out(self.device_id, to_grpc(req))
+
+        elif self.role == ofp.OFPCR_ROLE_SLAVE:
+           self.cxn.send(ofp.message.bad_request_error_msg(code=ofp.OFPBRC_IS_SLAVE))
 
     def handle_set_config_request(self, req):
         # Handle set config appropriately
@@ -270,8 +287,9 @@ class OpenFlowProtocolHandler(object):
     }
 
     def forward_packet_in(self, ofp_packet_in):
-        log.info('sending-packet-in', ofp_packet_in=ofp_packet_in)
-        self.cxn.send(to_loxi(ofp_packet_in))
+        if self.role == ofp.OFPCR_ROLE_MASTER or self.role == ofp.OFPCR_ROLE_EQUAL:
+           log.info('sending-packet-in', ofp_packet_in=ofp_packet_in)
+           self.cxn.send(to_loxi(ofp_packet_in))
 
     def forward_port_status(self, ofp_port_status):
         self.cxn.send(to_loxi(ofp_port_status))

@@ -60,10 +60,10 @@ def parse_args():
         default=defs['consul'],
         help=_help)
 
-    _help = '<hostname>:<port> to openflow controller (default: %s)' % \
+    _help = '<hostname1>:<port1> <hostname2>:<port2> <hostname3>:<port3> ... <hostnamen>:<portn>   to openflow controller (default: %s)' % \
             defs['controller']
     parser.add_argument(
-        '-O', '--controller', dest='controller', action='store',
+        '-O', '--controller',nargs = '*', dest='controller', action='store',
         default=defs['controller'],
         help=_help)
 

@@ -1,0 +1,46 @@
+#!/bin/bash
+# -----------------------------------------------------------------------------
+# Forms ONOS cluster using REST API of each separate instance.
+# -----------------------------------------------------------------------------
+
+[ $# -lt 2 ] && echo "usage: $(basename $0) ip1 ip2..." && exit 1
+
+# Scan arguments for user/password or other options...
+while getopts u:p:s: o; do
+    case "$o" in
+        u) user=$OPTARG;;
+        p) password=$OPTARG;;
+        s) partitionsize=$OPTARG;;
+    esac
+done
+ONOS_WEB_USER=${ONOS_WEB_USER:-onos} # ONOS WEB User defaults to 'onos'
+ONOS_WEB_PASS=${ONOS_WEB_PASS:-rocks} # ONOS WEB Password defaults to 'rocks'
+user=${user:-$ONOS_WEB_USER}
+password=${password:-$ONOS_WEB_PASS}
+let OPC=$OPTIND-1
+shift $OPC
+
+ip=$1
+shift
+nodes=$*
+
+ipPrefix=${ip%.*}
+
+aux=/tmp/${ipPrefix}.cluster.json
+trap "rm -f $aux" EXIT
+
+echo "{ \"nodes\": [ { \"ip\": \"$ip\" }" > $aux
+for node in $nodes; do
+    echo ", { \"ip\": \"$node\" }" >> $aux
+done
+echo "], \"ipPrefix\": \"$ipPrefix.*\"" >> $aux
+if ! [ -z ${partitionsize} ]; then
+    echo ", \"partitionSize\": $partitionsize" >> $aux
+fi
+echo " }" >> $aux
+
+for node in $ip $nodes; do
+    echo "Forming cluster on $node..."
+    curl --user $user:$password -X POST \
+        http://$node:8181/onos/v1/cluster/configuration -d @$aux
+done
