@@ -507,6 +507,16 @@ class AdapterAgent(object):
         topic = self._gen_rx_proxy_address_topic(proxy_address)
         self.event_bus.publish(topic, msg)
 
+    def register_for_adapter_messages(self):
+        self.event_bus.subscribe(self.adapter_name,
+            lambda t, m: self.adapter.receive_adapter_message(m))
+
+    def unregister_for_adapter_messages(self):
+        self.event_bus.unsubscribe(self.adapter_name)
+
+    def publish_adapter_message(self, topic, msg):
+        self.event_bus.publish(topic, msg)
+
     # ~~~~~~~~~~~~~~~~~~ Handling packet-in and packet-out ~~~~~~~~~~~~~~~~~~~~
 
     def send_packet_in(self, logical_device_id, logical_port_no, packet):

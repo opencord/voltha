@@ -294,6 +294,7 @@ class MapleOltRxHandler(pb.Root):
             #     event_data: {'serial_num-vendor_id': <str>
             #                  'serial_num-vendor_specific: <str>}
             pass
+
         elif _object == 'alloc_id':
             # key: {'device_id': <int>, 'pon_ni': <int>, 'onu_id': <int>, 'alloc_id': ,<int>}
             pass
@@ -385,6 +386,9 @@ class MapleOltAdapter(object):
         self.devices_handlers = dict()  # device_id -> MapleOltHandler()
         self.logical_device_id_to_root_device_id = dict()
 
+        # register for adapter messages
+        self.adapter_agent.register_for_adapter_messages()
+
     def start(self):
         log.debug('starting')
         log.info('started')
@@ -465,6 +469,8 @@ class MapleOltAdapter(object):
         handler = self.devices_handlers[device_id]
         handler.packet_out(egress_port_no, msg)
 
+    def receive_adapter_message(self, msg):
+        pass
 
 class MaplePBClientFactory(pb.PBClientFactory, ReconnectingClientFactory):
     channel = None
