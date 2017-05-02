@@ -293,7 +293,15 @@ class MapleOltRxHandler(pb.Root):
             # event: 'disable-completed'
             #     event_data: {'serial_num-vendor_id': <str>
             #                  'serial_num-vendor_specific: <str>}
-            pass
+            event_dict = {'event':event, 'event_data':event_data}
+
+            # Get child_device from onu_id
+            child_device = self.adapter_agent.get_child_device(self.device_id, onu_id=key['onu_id'])
+            assert child_device is not None
+
+            # Send the event message to the ONU adapter
+            self.adapter_agent.publish_inter_adapter_message(child_device.id, event_dict)
+
         elif _object == 'alloc_id':
             # key: {'device_id': <int>, 'pon_ni': <int>, 'onu_id': <int>, 'alloc_id': ,<int>}
             pass
@@ -385,6 +393,9 @@ class MapleOltAdapter(object):
         self.devices_handlers = dict()  # device_id -> MapleOltHandler()
         self.logical_device_id_to_root_device_id = dict()
 
+        # register for adapter messages
+        self.adapter_agent.register_for_inter_adapter_messages()
+
     def start(self):
         log.debug('starting')
         log.info('started')
@@ -465,6 +476,8 @@ class MapleOltAdapter(object):
         handler = self.devices_handlers[device_id]
         handler.packet_out(egress_port_no, msg)
 
+    def receive_inter_adapter_message(self, msg):
+        pass
 
 class MaplePBClientFactory(pb.PBClientFactory, ReconnectingClientFactory):
     channel = None

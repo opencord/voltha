@@ -192,6 +192,17 @@ class IAdapterInterface(Interface):
         :return: None
         """
 
+    def receive_inter_adapter_message(msg):
+        """
+        Called when the adapter recieves a message that was sent to it directly
+        from another adapter. An adapter may register for these messages by calling
+        the register_for_inter_adapter_messages() method in the adapter agent.
+        Note that it is the responsibility of the sending and receiving
+        adapters to properly encode and decode the message.
+        :param msg: The message contents.
+        :return: None
+        """
+
         # TODO work in progress
         # ...
 
