@@ -186,6 +186,43 @@ class AdapterAgent(object):
     def get_device(self, device_id):
         return self.root_proxy.get('/devices/{}'.format(device_id))
 
+    def get_child_device(self, parent_device_id, **kwargs):
+        """
+        Retrieve a child device object belonging
+        to the specified parent device based on some match
+        criteria. The first child device that matches the
+        provided criteria is returned.
+        :param parent_device_id: parent's device id
+        :param **kwargs: arbitrary list of match criteria
+        :return: Child Device Object or None
+        """
+        # Get all arguments to be used for comparison
+        # Note that for now we are only matching on the ONU ID
+        # Other matching fields can be added as required in the future
+        onu_id = kwargs.pop('onu_id', None)
+        if onu_id is None: return None
+
+        # Get all devices
+        devices = self.root_proxy.get('/devices')
+
+        # Get all child devices with the same parent ID
+        children_ids = set(d.id for d in devices if d.parent_id == parent_device_id)
+
+        # Loop through all the child devices with this parent ID
+        for child_id in children_ids:
+            found = True
+            device = self.get_device(child_id)
+
+            # Does this child device match the passed in ONU ID?
+            if device.proxy_address.onu_id != onu_id:
+                found = False
+
+            # Return the matched child device
+            if found is True:
+                return device
+
+        return None
+
     def add_device(self, device):
         assert isinstance(device, Device)
         self._make_up_to_date('/devices', device.id, device)
@@ -506,6 +543,22 @@ class AdapterAgent(object):
     def receive_proxied_message(self, proxy_address, msg):
         topic = self._gen_rx_proxy_address_topic(proxy_address)
         self.event_bus.publish(topic, msg)
+
+    def register_for_inter_adapter_messages(self):
+        self.event_bus.subscribe(self.adapter_name,
+            lambda t, m: self.adapter.receive_inter_adapter_message(m))
+
+    def unregister_for_inter_adapter_messages(self):
+        self.event_bus.unsubscribe(self.adapter_name)
+
+    def publish_inter_adapter_message(self, device_id, msg):
+        # Get the device from the device_id
+        device = self.get_device(device_id)
+        assert device is not None
+
+        # Publish a message to the adapter that is responsible
+        # for managing this device
+        self.event_bus.publish(device.type, msg)
 
     # ~~~~~~~~~~~~~~~~~~ Handling packet-in and packet-out ~~~~~~~~~~~~~~~~~~~~
 

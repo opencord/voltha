@@ -448,3 +448,6 @@ class DPoEOnuAdapter(object):
     def receive_packet_out(self, logical_device_id, egress_port_no, msg):
         log.info('packet-out', logical_device_id=logical_device_id,
                  egress_port_no=egress_port_no, msg_len=len(msg))
+
+    def receive_inter_adapter_message(self, msg):
+        raise NotImplementedError()

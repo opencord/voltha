@@ -68,6 +68,9 @@ class BroadcomOnuAdapter(object):
         )
         self.devices_handlers = dict()  # device_id -> BroadcomOnuHandler()
 
+        # register for adapter messages
+        self.adapter_agent.register_for_inter_adapter_messages()
+
     def start(self):
         log.debug('starting')
         log.info('started')
@@ -138,6 +141,9 @@ class BroadcomOnuAdapter(object):
         log.info('packet-out', logical_device_id=logical_device_id,
                  egress_port_no=egress_port_no, msg_len=len(msg))
 
+    def receive_inter_adapter_message(self, msg):
+        log.info('receive_inter_adapter_message', msg=msg)
+
 
 class BroadcomOnuHandler(object):
 
@@ -164,6 +170,7 @@ class BroadcomOnuHandler(object):
         # register for proxied messages right away
         self.proxy_address = device.proxy_address
         self.adapter_agent.register_for_proxied_messages(device.proxy_address)
+
 
         # populate device info
         device.root = True

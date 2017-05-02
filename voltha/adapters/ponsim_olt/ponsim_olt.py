@@ -294,6 +294,9 @@ class PonSimOltAdapter(object):
         handler = self.devices_handlers[device_id]
         handler.packet_out(egress_port_no, msg)
 
+    def receive_inter_adapter_message(self, msg):
+        raise NotImplementedError()
+
 
 class PonSimOltHandler(object):
     def __init__(self, adapter, device_id):
