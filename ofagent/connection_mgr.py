@@ -39,18 +39,19 @@ log = get_logger()
 
 class ConnectionManager(object):
 
-    def __init__(self, consul_endpoint, voltha_endpoint, controller_endpoint,
+    def __init__(self, consul_endpoint, voltha_endpoint, controller_endpoints,
                  voltha_retry_interval=0.5, devices_refresh_interval=5):
 
         log.info('init-connection-manager')
-        self.controller_endpoint = controller_endpoint
+        log.info('list-of-controllers',controller_endpoints=controller_endpoints)
+        self.controller_endpoints = controller_endpoints
         self.consul_endpoint = consul_endpoint
         self.voltha_endpoint = voltha_endpoint
 
         self.channel = None
         self.grpc_client = None  # single, shared gRPC client to Voltha
 
-        self.agent_map = {}  # datapath_id -> Agent()
+        self.agent_map = {}  # (datapath_id, controller_endpoint) -> Agent()
         self.device_id_to_datapath_id_map = {}
 
         self.voltha_retry_interval = voltha_retry_interval
@@ -156,7 +157,7 @@ class ConnectionManager(object):
 
         # Use datapath ids for deciding what's new and what's obsolete
         desired_datapath_ids = set(d.datapath_id for d in devices)
-        current_datapath_ids = set(self.agent_map.iterkeys())
+        current_datapath_ids = set(datapath_ids[0] for datapath_ids in self.agent_map.iterkeys())
 
         # if identical, nothing to do
         if desired_datapath_ids == current_datapath_ids:
@@ -182,18 +183,20 @@ class ConnectionManager(object):
     def create_agent(self, device):
         datapath_id = device.datapath_id
         device_id = device.id
-        agent = Agent(self.controller_endpoint, datapath_id,
+        for controller_endpoint in self.controller_endpoints:
+            agent = Agent(controller_endpoint, datapath_id,
                       device_id, self.grpc_client)
-        agent.start()
-        self.agent_map[datapath_id] = agent
-        self.device_id_to_datapath_id_map[device_id] = datapath_id
+            agent.start()
+            self.agent_map[(datapath_id,controller_endpoint)] = agent
+            self.device_id_to_datapath_id_map[device_id] = datapath_id
 
     def delete_agent(self, datapath_id):
-        agent = self.agent_map[datapath_id]
-        device_id = agent.get_device_id()
-        agent.stop()
-        del self.agent_map[datapath_id]
-        del self.device_id_to_datapath_id_map[device_id]
+        for controller_endpoint in self.controller_endpoints:
+            agent = self.agent_map[(datapath_id,controller_endpoint)]
+            device_id = agent.get_device_id()
+            agent.stop()
+            del self.agent_map[(datapath_id,controller_endpoint)]
+            del self.device_id_to_datapath_id_map[device_id]
 
     @inlineCallbacks
     def monitor_logical_devices(self):
@@ -214,11 +217,13 @@ class ConnectionManager(object):
     def forward_packet_in(self, device_id, ofp_packet_in):
         datapath_id = self.device_id_to_datapath_id_map.get(device_id, None)
         if datapath_id:
-            agent = self.agent_map[datapath_id]
-            agent.forward_packet_in(ofp_packet_in)
+           for controller_endpoint in self.controller_endpoints:
+               agent = self.agent_map[(datapath_id,controller_endpoint)]
+               agent.forward_packet_in(ofp_packet_in)
 
     def forward_change_event(self, device_id, event):
         datapath_id = self.device_id_to_datapath_id_map.get(device_id, None)
         if datapath_id:
-            agent = self.agent_map[datapath_id]
-            agent.forward_change_event(event)
+           for controller_endpoint in self.controller_endpoints:
+               agent = self.agent_map[(datapath_id,controller_endpoint)]
+               agent.forward_change_event(event)
