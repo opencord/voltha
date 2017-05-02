@@ -141,8 +141,8 @@ class OpenFlowProtocolHandler(object):
         raise NotImplementedError()
 
     def handle_role_request(self, req):
-        # Handle role messages appropriately to support multiple controllers
-        # see https://jira.opencord.org/browse/CORD-824
+        # https://jira.opencord.org/browse/CORD-1174
+        # Need to handle generator_id
         if req.role == ofp.OFPCR_ROLE_MASTER or req.role == ofp.OFPCR_ROLE_SLAVE:
            self.role = req.role
            self.cxn.send(ofp.message.role_reply(
