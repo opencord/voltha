@@ -1,0 +1,90 @@
+version: '2'
+services:
+
+  voltha:
+    image: cord/voltha
+    command: [
+      "/voltha/voltha/main.py",
+      "--rest-port=8880",
+      "--grpc-port=50555",
+      "--instance-id-is-container-name"
+    ]
+    ports:
+    - 8880:8880
+    - 50055:50555
+    - 18880
+    volumes:
+    - "/var/run/docker.sock:/tmp/docker.sock"
+  #
+  # Chameleon server instance(s)
+  #
+  chameleon:
+    image: cord/chameleon
+    command: [
+      "/chameleon/chameleon/main.py",
+      "--rest-port=8881",
+      "--grpc-endpoint=${DOCKER_HOST_IP}:50055",
+      "--instance-id-is-container-name"
+    ]
+    ports:
+    - 8881:8881
+    volumes:
+    - "/var/run/docker.sock:/tmp/docker.sock"
+  #
+  # onos-1
+  #
+  onos1:
+    image: onosproject/onos:1.8
+    container_name: onos1
+    ports:
+    - 6633:6653
+    - 8101:8101
+    - 8181:8181
+    environment:
+      ONOS_APPS: drivers,openflow
+    volumes:
+    - "/var/run/docker.sock:/tmp/docker.sock"
+    restart: unless-stopped
+
+  #
+  # onos-2
+  #
+  onos2:
+    image: onosproject/onos:1.8
+    container_name: onos2
+    ports:
+    - 6644:6653
+    - 8102:8101
+    - 8182:8181
+    environment:
+      ONOS_APPS: drivers,openflow
+    volumes:
+    - "/var/run/docker.sock:/tmp/docker.sock"
+    restart: unless-stopped
+
+  #
+  # onos-3
+  #
+  onos3:
+    image: onosproject/onos:1.8
+    container_name: onos3
+    ports:
+    - 6655:6653
+    - 8103:8101
+    - 8183:8181
+    environment:
+      ONOS_APPS: drivers,openflow
+    volumes:
+    - "/var/run/docker.sock:/tmp/docker.sock"
+    restart: unless-stopped
+  #
+  # ofagent server instance
+  #
+  ofagent:
+    image: cord/ofagent
+    command: /ofagent/ofagent/main.py --grpc-endpoint=${DOCKER_HOST_IP}:50055 --controller ${DOCKER_HOST_IP}:6633 ${DOCKER_HOST_IP}:6644 ${DOCKER_HOST_IP}:6655
+    depends_on:
+    - voltha
+    volumes:
+    - "/var/run/docker.sock:/tmp/docker.sock"
+    restart: unless-stopped
