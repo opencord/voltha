@@ -192,6 +192,15 @@ class IAdapterInterface(Interface):
         :return: None
         """
 
+    def receive_inter_adapter_message(msg):
+        """
+        Pass an async message received from another adapter to this device.
+        Note that it is currently the responsibility of each adapter to properly
+        encode and decode the message.
+        :param msg: (str) The actual message received.
+        :return: None
+        """
+
         # TODO work in progress
         # ...
 
