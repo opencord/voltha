@@ -67,6 +67,24 @@
       "revId": "f5101822e019b0abeba0bdbee099cca49f4f3898",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_500c8242",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 517,
+      "author": {
+        "id": 1000129
+      },
+      "writtenOn": "2017-05-03T17:17:23Z",
+      "side": 1,
+      "message": "Agreed that\u0027s probably a better solution. \nFor the ONU adapter that is not a problem since it can easily access it\u0027s parent device ID. For the OLT adapter however, there is currently no easy way to find out the device_id of any of the OLT\u0027s child devices.\nI am suggesting a change to the \"child_device_detected\" method in adapter_agent in order to have it return the \"device_id\" of the child device that was created. What do you think of that?",
+      "parentUuid": "ba092121_1093aafb",
+      "revId": "f5101822e019b0abeba0bdbee099cca49f4f3898",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
