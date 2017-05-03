@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba092121_f08f16cb",
+        "filename": "voltha/adapters/interface.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 195,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-03T13:58:23Z",
+      "side": 1,
+      "message": "Rename to \u0027receive_inter_adapter_message\u0027",
+      "revId": "f5101822e019b0abeba0bdbee099cca49f4f3898",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_508922c9",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 510,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-03T13:58:23Z",
+      "side": 1,
+      "message": "I would rename it to \u0027register_for_inter_adapter_message\u0027",
+      "revId": "f5101822e019b0abeba0bdbee099cca49f4f3898",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_3086aeba",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 514,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-03T13:58:23Z",
+      "side": 1,
+      "message": "Similar comment as above",
+      "revId": "f5101822e019b0abeba0bdbee099cca49f4f3898",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_1093aafb",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 517,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-03T13:58:23Z",
+      "side": 1,
+      "message": "Typically, an adapter won\u0027t know which adapter is managing a device. (for instance, a broadcom onu may be managed by a tibit_onu adapter).     However, the adapter knows which device it controls.   For the publish scenario, the method signature should be \u0027publish_inter_adapter_message(self, device_id, msg)\u0027  and it would be up to the adapter_agent to figure out which adapter topic to send this message.",
+      "revId": "f5101822e019b0abeba0bdbee099cca49f4f3898",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
