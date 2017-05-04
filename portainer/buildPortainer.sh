@@ -1,6 +1,6 @@
 #!/bin/bash
 
-docker run --rm -d --name pbuild -p 9999:9000 portainer/portainer
+docker run -d --name pbuild -p 9999:9000 portainer/portainer
 rm -fr tmp_portainer
 mkdir tmp_portainer
 docker cp pbuild:/ tmp_portainer
@@ -13,9 +13,16 @@ s~constant("USERS_ENDPOINT","api/users")~constant("USERS_ENDPOINT","docker/api/u
 s~constant("ENDPOINTS_ENDPOINT","api/endpoints")~constant("ENDPOINTS_ENDPOINT","docker/api/endpoints")~
 s~constant("TEMPLATES_ENDPOINT","api/templates")~constant("TEMPLATES_ENDPOINT","docker/api/templates")~
 ' tmp_portainer/js/app.*.js
-
+sed -i -e '
+s~href="~href="docker/~
+s~href='\''~href='\''docker/~
+s~src="~src="docker/~
+s~src='\''~src='\''docker/~
+s~"images/logo.png"~"docker/images/logo.png"~
+' tmp_portainer/index.html
 
 docker build -t voltha/portainer -f docker/Dockerfile.portainer .
 rm -fr tmp_portainer
 docker stop pbuild
+docker rm -f pbuild
 
