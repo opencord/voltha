@@ -37,6 +37,23 @@
     },
     {
       "key": {
+        "uuid": "ba092121_33791830",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 195,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-04T16:01:22Z",
+      "side": 1,
+      "message": "If onu_id is None then we should return right away.  Should be at start of method.",
+      "revId": "910850f0f71e650bccae1058db50b8c4980d4215",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ba092121_139f3461",
         "filename": "voltha/core/adapter_agent.py",
         "patchSetId": 2
@@ -66,6 +83,24 @@
       "side": 1,
       "message": "Sure, I could do that. I had the logic written this way so it would be easier to add on future checks in the loop.",
       "parentUuid": "ba092121_139f3461",
+      "revId": "910850f0f71e650bccae1058db50b8c4980d4215",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_1376143f",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 202,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-04T16:01:22Z",
+      "side": 1,
+      "message": "ok, in that case just leave it as is.",
+      "parentUuid": "ba092121_b38d2834",
       "revId": "910850f0f71e650bccae1058db50b8c4980d4215",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
