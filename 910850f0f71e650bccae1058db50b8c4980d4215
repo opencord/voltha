@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba092121_33923858",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 190,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-04T15:32:52Z",
+      "side": 1,
+      "message": "Write a comment that for now we are looking for device that matches the onu_id only.",
+      "revId": "910850f0f71e650bccae1058db50b8c4980d4215",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_139f3461",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 202,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-04T15:32:52Z",
+      "side": 1,
+      "message": "Alternatively, you could have:\n\nif onu_id is not None and \\\n   device.proxy_address is not None and \\\n   device.proxy_address.onu_id \u003d\u003d onu_id:\n   return device",
+      "revId": "910850f0f71e650bccae1058db50b8c4980d4215",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_f39ba070",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 542,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-04T15:32:52Z",
+      "side": 1,
+      "message": "- Add a comment that the publishing is intended to the adapter that manages that device_id or something in that nature.  Otherwise, it could be confused as if we are publishing to the device itself.\n\n- Check also for None",
+      "revId": "910850f0f71e650bccae1058db50b8c4980d4215",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
