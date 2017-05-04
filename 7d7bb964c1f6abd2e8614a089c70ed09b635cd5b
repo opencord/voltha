@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba092121_33a0f88f",
+        "filename": "portainer/buildPortainer.sh",
+        "patchSetId": 1
+      },
+      "lineNbr": 3,
+      "author": {
+        "id": 1000113
+      },
+      "writtenOn": "2017-05-04T17:08:47Z",
+      "side": 1,
+      "message": "I think We\u0027ve to start this Container in the Background. \nSomething like: docker run  --name pbuild -p 9999:9000 portainer/portainer \u0026 . Otherwise It was not proceeding further for me..  Otherwise looks fine..",
+      "revId": "7d7bb964c1f6abd2e8614a089c70ed09b635cd5b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
