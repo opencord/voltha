@@ -16,6 +16,24 @@
       "revId": "ae26f58f9c3cf919bbd1703e304bf7f65ec106da",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_2472f77c",
+        "filename": "voltha/adapters/adtran_olt/adtran_device_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 489,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2017-05-10T16:01:44Z",
+      "side": 1,
+      "message": "Yes, I saw that yesterday afternoon when I did a sync to the repo.  Will make the change this morning, test, and submit patch.",
+      "parentUuid": "ba092121_846303b1",
+      "revId": "ae26f58f9c3cf919bbd1703e304bf7f65ec106da",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
