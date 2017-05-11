@@ -354,6 +354,12 @@ class SimulatedOnuAdapter(object):
         # just place incoming message to a list
         self.incoming_messages.put((proxy_address, msg))
 
+    def suppress_alarm(self, filter):
+        raise NotImplementedError()
+
+    def unsuppress_alarm(self, filter):
+        raise NotImplementedError()
+
     @inlineCallbacks
     def _simulate_message_exchange(self, device):
 
