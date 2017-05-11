@@ -177,6 +177,12 @@ class AdapterAgent(object):
         return self.update_flows_incrementally(
             device, flow_changes, group_changes)
 
+    def suppress_alarms(self, filter):
+        return self.adapter.suppress_alarms(filter)
+
+    def unsuppress_alarms(self, filter):
+        return self.adapter.unsuppress_alarms(filter)
+
     # def update_pm_collection(self, device, pm_collection_config):
     #    return self.adapter.update_pm_collection(device, pm_collection_config)
 

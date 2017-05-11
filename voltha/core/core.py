@@ -30,9 +30,10 @@ from voltha.core.dispatcher import Dispatcher
 from voltha.core.global_handler import GlobalHandler
 from voltha.core.local_handler import LocalHandler
 from voltha.core.logical_device_agent import LogicalDeviceAgent
+from voltha.core.alarm_filter_agent import AlarmFilterAgent
 from voltha.protos.voltha_pb2 import \
     VolthaLocalServiceStub, \
-    Device, LogicalDevice
+    Device, LogicalDevice, AlarmFilter
 from voltha.registry import IComponent
 
 log = structlog.get_logger()
@@ -58,6 +59,7 @@ class VolthaCore(object):
         self.local_root_proxy = None
         self.device_agents = {}
         self.logical_device_agents = {}
+        self.alarm_filter_agents = {}
         self.packet_in_queue = Queue()
         self.change_event_queue = Queue()
 
@@ -72,6 +74,7 @@ class VolthaCore(object):
             CallbackType.POST_ADD, self._post_add_callback)
         self.local_root_proxy.register_callback(
             CallbackType.POST_REMOVE, self._post_remove_callback)
+
         log.info('started')
         returnValue(self)
 
@@ -92,6 +95,8 @@ class VolthaCore(object):
             self._handle_add_device(data)
         elif isinstance(data, LogicalDevice):
             self._handle_add_logical_device(data)
+        elif isinstance(data, AlarmFilter):
+            self._handle_add_alarm_filter(data)
         else:
             pass  # ignore others
 
@@ -101,6 +106,8 @@ class VolthaCore(object):
             self._handle_remove_device(data)
         elif isinstance(data, LogicalDevice):
             self._handle_remove_logical_device(data)
+        elif isinstance(data, AlarmFilter):
+            self._handle_remove_alarm_filter(data)
         else:
             pass  # ignore others
 
@@ -141,3 +148,18 @@ class VolthaCore(object):
 
     def get_logical_device_agent(self, logical_device_id):
         return self.logical_device_agents[logical_device_id]
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~ AlarmFilterAgent Mgmt ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    @inlineCallbacks
+    def _handle_add_alarm_filter(self, alarm_filter):
+        assert isinstance(alarm_filter, AlarmFilter)
+        assert alarm_filter.id not in self.alarm_filter_agents
+        agent = yield AlarmFilterAgent(self, alarm_filter).start()
+        self.alarm_filter_agents[alarm_filter.id] = agent
+
+    @inlineCallbacks
+    def _handle_remove_alarm_filter(self, alarm_filter):
+        if alarm_filter.id in self.alarm_filter_agents:
+            yield self.alarm_filter_agents[alarm_filter.id].stop()
+            del self.alarm_filter_agents[alarm_filter.id]
