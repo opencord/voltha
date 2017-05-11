@@ -168,6 +168,12 @@ class RubyAdapter(object):
     def receive_inter_adapter_message(self, msg):
         raise NotImplementedError()
 
+    def suppress_alarm(self, filter):
+        raise NotImplementedError()
+
+    def unsuppress_alarm(self, filter):
+        raise NotImplementedError()
+
     ##
     # Private methods
     ##

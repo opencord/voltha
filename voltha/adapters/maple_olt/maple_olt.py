@@ -479,6 +479,13 @@ class MapleOltAdapter(object):
     def receive_inter_adapter_message(self, msg):
         pass
 
+    def suppress_alarm(self, filter):
+        raise NotImplementedError()
+
+    def unsuppress_alarm(self, filter):
+        raise NotImplementedError()
+
+
 class MaplePBClientFactory(pb.PBClientFactory, ReconnectingClientFactory):
     channel = None
     maxDelay = 60

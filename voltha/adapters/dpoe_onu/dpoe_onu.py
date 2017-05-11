@@ -393,6 +393,12 @@ class DPoEOnuAdapter(object):
                   proxy_address=proxy_address, msg=msg)
         self.incoming_messages.put(msg)
 
+    def suppress_alarm(self, filter):
+        raise NotImplementedError()
+
+    def unsuppress_alarm(self, filter):
+        raise NotImplementedError()
+
     @inlineCallbacks
     def _message_exchange(self, device):
 

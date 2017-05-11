@@ -203,6 +203,20 @@ class IAdapterInterface(Interface):
         :return: None
         """
 
+    def suppress_alarm(filter):
+        """
+        Inform an adapter that all incoming alarms should be suppressed
+        :param filter: A Voltha.AlarmFilter object.
+        :return: (Deferred) Shall be fired to acknowledge the suppression.
+        """
+
+    def unsuppress_alarm(filter):
+        """
+        Inform an adapter that all incoming alarms should resume
+        :param filter: A Voltha.AlarmFilter object.
+        :return: (Deferred) Shall be fired to acknowledge the unsuppression.
+        """
+
         # TODO work in progress
         # ...
 

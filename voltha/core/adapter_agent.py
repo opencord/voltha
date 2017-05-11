@@ -177,6 +177,12 @@ class AdapterAgent(object):
         return self.update_flows_incrementally(
             device, flow_changes, group_changes)
 
+    def suppress_alarm(self, filter):
+        return self.adapter.suppress_alarm(filter)
+
+    def unsuppress_alarm(self, filter):
+        return self.adapter.unsuppress_alarm(filter)
+
     # def update_pm_collection(self, device, pm_collection_config):
     #    return self.adapter.update_pm_collection(device, pm_collection_config)
 
@@ -628,11 +634,11 @@ class AdapterAgent(object):
                 for rule in alarm_filter.rules:
                     self.log.debug("compare-alarm-event",
                                    key=AlarmFilterRuleKey.AlarmFilterRuleKey.Name(rule.key),
-                                   actual=rule_values[AlarmFilterRuleKey.AlarmFilterRuleKey.Name(rule.key).lower()],
+                                   actual=rule_values[AlarmFilterRuleKey.AlarmFilterRuleKey.Name(rule.key)].lower(),
                                    expected=rule.value.lower())
                     exclude = exclude and \
                               (rule_values[AlarmFilterRuleKey.AlarmFilterRuleKey.Name(
-                                  rule.key).lower()] == rule.value.lower())
+                                  rule.key)].lower() == rule.value.lower())
                     if not exclude:
                         break
 
