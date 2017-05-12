@@ -1,0 +1,123 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba092121_7f0f51e2",
+        "filename": "voltha/adapters/interface.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 206,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-12T14:02:50Z",
+      "side": 1,
+      "message": "To be consistent with the other methods, change the name to singular.",
+      "revId": "80728a7b9591898da00b98916de43eeb54b1669b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_ff6b6183",
+        "filename": "voltha/core/alarm_filter_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 44,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-12T14:02:50Z",
+      "side": 1,
+      "message": "Do you need adapter_agent?",
+      "revId": "80728a7b9591898da00b98916de43eeb54b1669b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_df689d89",
+        "filename": "voltha/core/alarm_filter_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-12T14:02:50Z",
+      "side": 1,
+      "message": "The method name is a little bit confusing as it says \u0027cleanup\u0027 but the action taken is \u0027unsuppress\u0027.",
+      "revId": "80728a7b9591898da00b98916de43eeb54b1669b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_bf05e9c3",
+        "filename": "voltha/core/alarm_filter_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 107,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-12T14:02:50Z",
+      "side": 1,
+      "message": "Could be a candidate for its own method as it is used above as well.",
+      "revId": "80728a7b9591898da00b98916de43eeb54b1669b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_9f0a25d1",
+        "filename": "voltha/core/alarm_filter_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 114,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-12T14:02:50Z",
+      "side": 1,
+      "message": "Same comments as above - a parameter (bool) for suppress and unsuppressed",
+      "revId": "80728a7b9591898da00b98916de43eeb54b1669b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_1f6f3594",
+        "filename": "voltha/core/core.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 106,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-12T14:02:50Z",
+      "side": 1,
+      "message": "You will need to handle alarm filter for that given device as well.",
+      "revId": "80728a7b9591898da00b98916de43eeb54b1669b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_3f72f97c",
+        "filename": "voltha/core/core.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 157,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-12T14:02:50Z",
+      "side": 1,
+      "message": "Is it an overkill to have an alarmfilter agent per alarmfilter id?",
+      "revId": "80728a7b9591898da00b98916de43eeb54b1669b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
