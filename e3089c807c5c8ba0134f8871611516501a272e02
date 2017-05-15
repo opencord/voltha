@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba092121_5fbb6d72",
+        "filename": "ofagent/connection_mgr.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-15T13:53:18Z",
+      "side": 1,
+      "message": "Please follow the log formatting already set (i.e. using a \u0027-\u0027 in the text and key-value pair in the description)",
+      "revId": "e3089c807c5c8ba0134f8871611516501a272e02",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_bfbcc96d",
+        "filename": "ofagent/of_protocol_handler.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 120,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-15T13:53:18Z",
+      "side": 1,
+      "message": "Do you need this code to run if an exception is raise above (line 116)?",
+      "revId": "e3089c807c5c8ba0134f8871611516501a272e02",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_9fc105e7",
+        "filename": "ofagent/of_protocol_handler.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 136,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-15T13:53:18Z",
+      "side": 1,
+      "message": "maybe easier to read if it was an if .. elif . statement",
+      "revId": "e3089c807c5c8ba0134f8871611516501a272e02",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_7fb6318c",
+        "filename": "ofagent/of_protocol_handler.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 147,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-15T13:53:18Z",
+      "side": 1,
+      "message": "What of the req.role \u003d\u003d ...ROLE_EQUAL?",
+      "revId": "e3089c807c5c8ba0134f8871611516501a272e02",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
