@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba092121_71c42592",
+        "filename": "ofagent/connection_mgr.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 160,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-16T13:46:12Z",
+      "side": 1,
+      "message": "Is set(self.agent_map.iterkeys()) required?  I would think self.agent_map.iterkeys() would be sufficient in this case.  Thoughts?",
+      "revId": "8938f5454b08bb675cb4813559c72aad7be0057b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
