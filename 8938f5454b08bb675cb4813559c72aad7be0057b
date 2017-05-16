@@ -39,6 +39,30 @@
       "revId": "8938f5454b08bb675cb4813559c72aad7be0057b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_f1b6f5db",
+        "filename": "ofagent/connection_mgr.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 160,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-16T17:33:41Z",
+      "side": 1,
+      "message": "I don\u0027t see the change.",
+      "parentUuid": "ba092121_b1abdd88",
+      "range": {
+        "startLine": 160,
+        "startChar": 75,
+        "endLine": 160,
+        "endChar": 79
+      },
+      "revId": "8938f5454b08bb675cb4813559c72aad7be0057b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
