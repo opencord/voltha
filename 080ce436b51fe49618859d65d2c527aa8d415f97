@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba092121_311a2d18",
+        "filename": "voltha/core/alarm_filter_agent.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 28,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-16T15:54:20Z",
+      "side": 1,
+      "message": "Since you will always have one instance of an alarmfilteragent in a running voltha instance, would it be preferable to make this a singleton object?",
+      "revId": "080ce436b51fe49618859d65d2c527aa8d415f97",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_d1d89155",
+        "filename": "voltha/core/alarm_filter_agent.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-16T15:54:20Z",
+      "side": 1,
+      "message": "Should this method really be \"add_filter\"?",
+      "revId": "080ce436b51fe49618859d65d2c527aa8d415f97",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_b1dd1d45",
+        "filename": "voltha/core/alarm_filter_agent.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 54,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-16T15:54:20Z",
+      "side": 1,
+      "message": "Should this method really be \"remove_filter\"?",
+      "revId": "080ce436b51fe49618859d65d2c527aa8d415f97",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_91e21902",
+        "filename": "voltha/core/alarm_filter_agent.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 69,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-16T15:54:20Z",
+      "side": 1,
+      "message": "Should this method really be \"remove_device_filter\"?",
+      "revId": "080ce436b51fe49618859d65d2c527aa8d415f97",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
