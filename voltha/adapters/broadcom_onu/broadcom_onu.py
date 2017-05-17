@@ -20,7 +20,7 @@ Broadcom OLT/ONU adapter.
 
 from uuid import uuid4
 import structlog
-from twisted.internet import reactor
+from twisted.internet import reactor, task
 from twisted.internet.defer import DeferredQueue, inlineCallbacks
 from zope.interface import implementer
 
@@ -143,6 +143,11 @@ class BroadcomOnuAdapter(object):
 
     def receive_inter_adapter_message(self, msg):
         log.info('receive_inter_adapter_message', msg=msg)
+        proxy_address = msg['proxy_address']
+        assert proxy_address is not None
+
+        handler = self.devices_handlers[proxy_address.channel_id]
+        handler.event_messages.put(msg)
 
     def suppress_alarm(self, filter):
         raise NotImplementedError()
@@ -158,11 +163,55 @@ class BroadcomOnuHandler(object):
         self.device_id = device_id
         self.log = structlog.get_logger(device_id=device_id)
         self.incoming_messages = DeferredQueue()
+        self.event_messages = DeferredQueue()
         self.proxy_address = None
         self.tx_id = 0
 
+        # Start looping call to handle received ONU event messages
+        eventMsgLC = task.LoopingCall(self.handle_onu_events, self.event_messages)
+        eventMsgLC.start(0.01)
+
     def receive_message(self, msg):
         self.incoming_messages.put(msg)
+
+    @inlineCallbacks
+    def handle_onu_events(self, event_messages_q):
+        event_msg = yield event_messages_q.get()
+
+        if event_msg['event'] == 'activation-completed':
+
+            if event_msg['event_data']['activation_successful'] == True:
+                reactor.callLater(1,
+                  self.message_exchange,
+                  self.proxy_address.onu_id,
+                  self.proxy_address.onu_session_id,
+                  self.proxy_address.channel_id)
+
+                device = self.adapter_agent.get_device(self.device_id)
+                device.oper_status = OperStatus.ACTIVE
+                self.adapter_agent.update_device(device)
+
+            else:
+                device = self.adapter_agent.get_device(self.device_id)
+                device.oper_status = OperStatus.FAILED
+                self.adapter_agent.update_device(device)
+
+        elif event_msg['event'] == 'deactivation-completed':
+            device = self.adapter_agent.get_device(self.device_id)
+            device.oper_status = OperStatus.DISCOVERED
+            self.adapter_agent.update_device(device)
+
+        elif event_msg['event'] == 'ranging-completed':
+
+            if event_msg['event_data']['ranging_successful'] == True:
+                device = self.adapter_agent.get_device(self.device_id)
+                device.oper_status = OperStatus.ACTIVATING
+                self.adapter_agent.update_device(device)
+
+            else:
+                device = self.adapter_agent.get_device(self.device_id)
+                device.oper_status = OperStatus.FAILED
+                self.adapter_agent.update_device(device)
 
     def activate(self, device):
         self.log.info('activating')
@@ -244,14 +293,8 @@ class BroadcomOnuHandler(object):
                 device_port_no=uni_port.port_no
             ))
 
-            reactor.callLater(10,
-                              self.message_exchange,
-                              self.proxy_address.onu_id,
-                              self.proxy_address.onu_session_id,
-                              port_no)
-
         device = self.adapter_agent.get_device(device.id)
-        device.oper_status = OperStatus.ACTIVE
+        device.oper_status = OperStatus.DISCOVERED
         self.adapter_agent.update_device(device)
 
     @inlineCallbacks
