@@ -293,14 +293,17 @@ class MapleOltRxHandler(pb.Root):
             # event: 'disable-completed'
             #     event_data: {'serial_num-vendor_id': <str>
             #                  'serial_num-vendor_specific: <str>}
-            event_dict = {'event':event, 'event_data':event_data}
 
             # Get child_device from onu_id
             child_device = self.adapter_agent.get_child_device(self.device_id, onu_id=key['onu_id'])
             assert child_device is not None
 
+            # Build the message, the ONU adapter uses the proxy_address
+            # to uniquely identify a specific ONU
+            msg = {'proxy_address':child_device.proxy_address, 'event':event, 'event_data':event_data}
+
             # Send the event message to the ONU adapter
-            self.adapter_agent.publish_inter_adapter_message(child_device.id, event_dict)
+            self.adapter_agent.publish_inter_adapter_message(child_device.id, msg)
 
         elif _object == 'alloc_id':
             # key: {'device_id': <int>, 'pon_ni': <int>, 'onu_id': <int>, 'alloc_id': ,<int>}
