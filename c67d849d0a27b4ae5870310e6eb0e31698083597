@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba092121_b144fd74",
+        "filename": "ofagent/of_protocol_handler.py",
+        "patchSetId": 6
+      },
+      "lineNbr": 159,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-05-17T04:59:53Z",
+      "side": 1,
+      "message": "Good to have this as \u0027elif\u0027 just like other sections..",
+      "revId": "c67d849d0a27b4ae5870310e6eb0e31698083597",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
