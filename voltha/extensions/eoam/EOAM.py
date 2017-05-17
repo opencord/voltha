@@ -24,11 +24,22 @@ from scapy.layers.l2 import Ether, Dot1Q
 from scapy.sendrecv import sendp
 from scapy.fields import PacketField
 from scapy.packet import bind_layers
+from scapy.fields import StrField, X3BytesField
+from scapy.packet import Packet
+from scapy.fields import ByteEnumField, XShortField, XByteField, MACField, \
+    ByteField, BitEnumField, BitField, ShortField
+from scapy.fields import XLongField, StrFixedLenField, XIntField, \
+    FieldLenField, StrLenField, IntField
 
 import fcntl, socket, struct # for get hw address
 
 # TODO should remove import *
 from EOAM_TLV import *
+
+OAM_ETHERTYPE = 0xA8C8
+CableLabs_OUI = 0x001000
+Tibit_OUI = 0x2AEA15
+IEEE_OUI = 0x0019A7
 
 EOAM_MULTICAST_ADDRESS = '01:80:c2:00:00:02'
 IGMP_MULTICAST_ADDRESS = '01:00:5e:00:00:01'   # for test
@@ -124,31 +135,74 @@ class EOAM():
         return ':'.join(['%02x' % ord(char) for char in info[18:24]])
 
 
+#TODO - This is duplicated from eoam_messages.py and renamed to EOAMRespPayload
 class EOAMPayload(Packet):
     name = 'EOAM Payload'
     fields_desc = [
         ByteEnumField("subtype", 0x03, SlowProtocolsSubtypeEnum),
         XShortField("flags", 0x0050),
         XByteField("opcode", 0xfe),
-        PacketField("body", None, Packet),
-        BitEnumField("type", 0x00, 7, TLV_dictionary),
-        BitField("length", 0x00, 9)
+#        PacketField("body", None, Packet),
     ]
 
-bind_layers(Ether, EOAMPayload, type=0xA8C8)
+bind_layers(Ether, EOAMPayload, type=OAM_ETHERTYPE)
+
+
+#TODO - This is duplicated from eoam_messages.py
+class EOAMEvent(Packet):
+    name = 'EOAM Event'
+    fields_desc = [
+        XShortField("sequence", 0x0001),
+        XByteField("tlv_type", 0xfe),
+        XByteField("length", 0x01),
+        X3BytesField("oui", 0x001000),
+        PacketField("body", None, Packet),
+    ]
+
+bind_layers(EOAMPayload, EOAMEvent, opcode=0x01)
+
+#TODO - This is duplicated from eoam_messages.py
+class EOAM_VendSpecificMsg(Packet):
+    name = "Vendor-Specific OAM"
+    fields_desc  = [
+        X3BytesField("oui", 0x001000),
+    ]
+
+bind_layers(EOAMPayload, EOAM_VendSpecificMsg, opcode=0xFE)
+
+#TODO - This is duplicated from eoam_messages.py
+class EOAM_OmciMsg(Packet):
+    name = "OAM-encapsulated OMCI Message"
+    fields_desc  = [
+        PacketField("body", None, Packet),
+    ]
+
+bind_layers(EOAM_VendSpecificMsg, EOAM_OmciMsg, oui=0x0019A7)
+
+#TODO - This is duplicated from eoam_messages.py
+class EOAM_TibitMsg(Packet):
+    name = "Tibit OAM Message"
+    fields_desc  = [
+        ByteEnumField("dpoe_opcode", 0x01, DPoEOpcodeEnum),
+        PacketField("body", None, Packet),
+    ]
+
+bind_layers(EOAM_VendSpecificMsg, EOAM_TibitMsg, oui=0x2AEA15)
+
+#TODO - This is duplicated from eoam_messages.py
+class EOAM_DpoeMsg(Packet):
+    name = "DPoE OAM Message"
+    fields_desc  = [
+        ByteEnumField("dpoe_opcode", 0x01, DPoEOpcodeEnum),
+        PacketField("body", None, Packet),
+    ]
+
+bind_layers(EOAM_VendSpecificMsg, EOAM_DpoeMsg, oui=0x001000)
 
 def mcastIp2McastMac(ip):
     """ Convert a dot-notated IPv4 multicast address string into an multicast MAC address"""
     digits = [int(d) for d in ip.split('.')]
     return '01:00:5e:%02x:%02x:%02x' % (digits[1] & 0x7f, digits[2] & 0xff, digits[3] & 0xff)
-
-
-class TBJSON(Packet):
-    """ TBJSON 'packet' layer. """
-    name = "TBJSON"
-    fields_desc = [StrField("data", default="")]
-
-bind_layers(Ether, TBJSON, type=0xA8C8)
 
 
 if __name__ == "__main__":
