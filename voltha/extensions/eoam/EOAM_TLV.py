@@ -133,6 +133,11 @@ class DPoEOpcode_MulticastRegisterResponse(Packet):
     name = "DPoE Opcode"
     fields_desc  = [ByteEnumField("opcode", 0x07, DPoEOpcodeEnum)]
 
+class DPoEOpcode_FileTransfer(Packet):
+    """ DPoE Opcode"""
+    name = "DPoE Opcode"
+    fields_desc  = [ByteEnumField("opcode", 0x09, DPoEOpcodeEnum)]
+
 class MulticastRegisterSetSumitomo01(Packet):
     """ Multicast Register: Multicast Register Set Sumitomo 01 """
     name = "Multicast Register: Multicast Register Set Sumitomo 01"
@@ -156,11 +161,6 @@ class MulticastRegisterSet(Packet):
                    XShortField("MulticastLink", 0x0000),
                    XShortField("UnicastLink", 0x0000),
                    ]
-
-class TibitOpcode_OmciMessage(Packet):
-    """ DPoE Opcode"""
-    name = "Tibit Opcode"
-    fields_desc  = [ByteEnumField("opcode", 0xA0, DPoEOpcodeEnum)]
 
 ####
 #### PORT OBJECTS
@@ -898,6 +898,9 @@ class FECModeSet(Packet):
     name = "Variable Descriptor: FEC Mode"
     fields_desc = [XByteField("branch", 0xD7),
                    XShortField("leaf", 0x0605),
+                   XByteField("length", 2),
+                   XByteField("downstream", 0x01),
+                   XByteField("upstream", 0x01),
                    ]
 
 class MediaType(Packet):
@@ -1087,9 +1090,27 @@ class PortIngressRuleResultOLTQueue(Packet):
                    XByteField("instance", 0),
                    XByteField("pon", 0),
                    StrField("unicastvssn", "TBIT"),
-                   XIntField("unicastlink", 0xe2222900),
+                   XIntField("unicastlink", 0x00000000),
                    XByteField("pad", 0),
                    ]
+
+class PortIngressRuleResultOLTEPONQueue(Packet):
+    """ Variable Descriptor: Port Ingress Rule Result OLT Queue """
+    name = "Variable Descriptor: Port Ingress Rule Result OLT Queue"
+    fields_desc = [XByteField("branch", 0xD7),
+                   XShortField("leaf", 0x0501),
+                   ByteField("length", 15),
+                   XByteField("result", 3),
+                   XByteField("oltqueuerule", 0x13),
+                   XShortField("objecttype", 0x0001),
+                   XByteField("instance", 0),
+                   XByteField("pon", 0),
+                   XIntField("unicastvssn", 0x00000000),
+                   XIntField("unicastlink", 0x00000000),
+                   XByteField("pad", 0),
+                   ]
+
+
 
 # __TIBIT_OLT_OAM__: Defined by Tibit
 class PortIngressRuleResultOLTBroadcastQueue(Packet):
@@ -1260,6 +1281,15 @@ class OltMode(Packet):
                    XShortField("leaf", 0x0101),
                    ]
 
+class OltModeSet(Packet):
+    """ Variable Descriptor: OLT Mode """
+    name = "Variable Descriptor: "
+    fields_desc = [XByteField("branch", 0xB7),
+                   XShortField("leaf", 0x0101),
+                   XByteField("length", 1),
+                   XByteField("value", 0),
+                   ]
+
 class OltPonAdminState(Packet):
     """ Variable Descriptor: OLT PON Admin State """
     name = "Variable Descriptor: "
@@ -1298,6 +1328,66 @@ class TibitKeyExchangeSet(Packet):
                    XByteField("length", 2),
                    XShortField("value", 0x1234),
                   ]
+
+class OnuMode(Packet):
+    """ Variable Descriptor: ONU Mode """
+    name = "Variable Descriptor: "
+    fields_desc = [XByteField("branch", 0xB7),
+                   XShortField("leaf", 0x0105),
+                   ]
+
+class OnuModeSet(Packet):
+    """ Variable Descriptor: ONU Mode """
+    name = "Variable Descriptor: "
+    fields_desc = [XByteField("branch", 0xB7),
+                   XShortField("leaf", 0x0105),
+                   XByteField("length", 1),
+                   XByteField("value", 0),
+                   ]
+
+class TibitGrantSpacing(Packet):
+    """ Variable Descriptor: Grant Spacing """
+    name = "Variable Descriptor: "
+    fields_desc = [XByteField("branch", 0xB7),
+                   XShortField("leaf", 0x0106),
+                   ]
+
+class TibitGrantSpacingSet(Packet):
+    """ Variable Descriptor: Grant Spacing """
+    name = "Variable Descriptor: "
+    fields_desc = [XByteField("branch", 0xB7),
+                   XShortField("leaf", 0x0106),
+                   XByteField("length", 1),
+                   XByteField("value", 0),
+                   ]                   
+
+class TibitBurstOverheadProfiles(Packet):
+    """ Variable Descriptor: Burst Overhead Profiles """
+    name = "Variable Descriptor: "
+    fields_desc = [XByteField("branch", 0xB7),
+                   XShortField("leaf", 0x0107),
+                   ]
+
+class TibitBurstOverheadProfilesSet(Packet):
+    """ Variable Descriptor: Burst Overhead Profiles """
+    name = "Variable Descriptor: "
+    fields_desc = [XByteField("branch", 0xB7),
+                   XShortField("leaf", 0x0107),
+                   # Length is one + 5 for each entry
+                   XByteField("length", 6),
+                   XByteField("num_profiles", 1),
+                   ]
+
+class TibitBurstOverheadProfilesEntry(Packet):
+    """ Variable Descriptor: Burst Overhead Profile Entry """
+    name = "Burst Profile Entry:"
+    fields_desc = [XByteField("laser_on_time", 0x28),
+                   XByteField("laser_off_time", 0x28),
+                   XShortField("sync_time", 0x0040),
+                   XByteField("us_fec", 1),
+                   ]
+
+
 
 UpstreamSlaSubtypeEnum = { 0x00: "Terminator",
                            0x01: "Header",
