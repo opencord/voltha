@@ -144,6 +144,9 @@ class BroadcomOnuAdapter(object):
     def receive_inter_adapter_message(self, msg):
         log.info('receive_inter_adapter_message', msg=msg)
 
+    def update_adapter_config(self, adapter_config):
+        raise NotImplementedError()
+
     def suppress_alarm(self, filter):
         raise NotImplementedError()
 

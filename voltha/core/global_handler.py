@@ -557,3 +557,25 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             'ListAlarmFilters',
             Empty(),
             context)
+
+    @twisted_async
+    def UpdateAdapterConfig(self, request, context):
+        log.info('grpc-request', request=request)
+        # TODO dispatching to local instead of passing it to leader
+        return self.dispatcher.dispatch(
+            self.instance_id,
+            VolthaLocalServiceStub,
+            'UpdateAdapterConfig',
+            request,
+            context)
+
+    @twisted_async
+    def GetAdapterConfig(self, request, context):
+        log.info('grpc-request', request=request)
+        # TODO dispatching to local instead of passing it to leader
+        return self.dispatcher.dispatch(
+            self.instance_id,
+            VolthaLocalServiceStub,
+            'GetAdapterConfig',
+            request,
+            context)

@@ -479,6 +479,9 @@ class MapleOltAdapter(object):
     def receive_inter_adapter_message(self, msg):
         pass
 
+    def update_adapter_config(self, adapter_config):
+        raise NotImplementedError()
+
     def suppress_alarm(self, filter):
         raise NotImplementedError()
 

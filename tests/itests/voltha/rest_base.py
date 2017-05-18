@@ -5,11 +5,17 @@ from requests import get, post, put, patch, delete
 class RestBase(TestCase):
 
     base_url = 'http://localhost:8881'
+    sim_rest = 'http://localhost:18880'
 
     def url(self, path):
         while path.startswith('/'):
             path = path[1:]
         return self.base_url + '/' + path
+
+    def url_sim_rest(self, path):
+        while path.startswith('/'):
+            path = path[1:]
+        return self.sim_rest + '/' + path
 
     def verify_content_type_and_return(self, response, expected_content_type):
         if 200 <= response.status_code < 300:
@@ -28,6 +34,14 @@ class RestBase(TestCase):
     def get(self, path, expected_code=200,
             expected_content_type='application/json'):
         r = get(self.url(path))
+        self.assertEqual(r.status_code, expected_code,
+                         msg='Code %d!=%d; msg:%s' % (
+                             r.status_code, expected_code, r.content))
+        return self.verify_content_type_and_return(r, expected_content_type)
+
+    def get_sim_rest(self, path, expected_code=200,
+            expected_content_type='text/html'):
+        r = get(self.url_sim_rest(path))
         self.assertEqual(r.status_code, expected_code,
                          msg='Code %d!=%d; msg:%s' % (
                              r.status_code, expected_code, r.content))

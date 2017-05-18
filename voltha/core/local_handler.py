@@ -26,7 +26,7 @@ from voltha.protos.openflow_13_pb2 import PacketIn, Flows, FlowGroups, \
     ofp_port_status
 from voltha.protos.voltha_pb2 import \
     add_VolthaLocalServiceServicer_to_server, VolthaLocalServiceServicer, \
-    VolthaInstance, Adapters, LogicalDevices, LogicalDevice, Ports, \
+    VolthaInstance, Adapter, Adapters, LogicalDevices, LogicalDevice, Ports, \
     LogicalPorts, Devices, Device, DeviceType, \
     DeviceTypes, DeviceGroups, DeviceGroup, AdminState, OperStatus, ChangeEvent, \
     AlarmFilter, AlarmFilters
@@ -673,3 +673,44 @@ class LocalHandler(VolthaLocalServiceServicer):
                 'Alarm filter \'{}\' not found'.format(request.id))
             context.set_code(StatusCode.NOT_FOUND)
             return AlarmFilter()
+
+    @twisted_async
+    def UpdateAdapterConfig(self, request, context):
+        log.info('grpc-request', request=request)
+
+        if '/' in request.id:
+            context.set_details(
+                'Malformed Adapter id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return Empty()
+
+        try:
+            adapter_agent = registry('adapter_loader').get_agent(request.id)
+            adapter_agent.update_adapter_config(request)
+            return Empty()
+        except KeyError:
+            context.set_details(
+                'Adapter \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return Empty()
+
+    @twisted_async
+    def GetAdapterConfig(self, request, context):
+        log.info('grpc-request', request=request)
+
+        if '/' in request.id:
+            context.set_details(
+                'Malformed adapter id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return Adapter()
+
+        try:
+            adapter = self.root.get(
+                '/adapters/{}'.format(request.id))
+            log.info('adapter-config', adapter=adapter)
+            return adapter
+        except KeyError:
+            context.set_details(
+                'Adapter \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return Adapter()

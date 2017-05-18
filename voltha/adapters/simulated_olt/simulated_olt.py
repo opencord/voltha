@@ -169,6 +169,8 @@ class SimulatedOltAdapter(object):
 
     app = Klein()
 
+    # A dummy operator_assgnd_dev_id to be used for the simulated_olt
+    operator_assgnd_dev_id = "123"
 
     def __init__(self, adapter_agent, config):
         self.adapter_agent = adapter_agent
@@ -182,6 +184,14 @@ class SimulatedOltAdapter(object):
         self.control_endpoint = None
         # Faked PM metrics for testing PM functionality
         self.pm_metrics = None
+
+        # Configuration related to ONU auto-registration and
+        # provisioning
+        self.disable_auto_registration = False
+        self.explicit_config_onus = {}
+        self.default_config_onus = {}
+
+        log.info("Simulated OLT instantiated")
 
     def start(self):
         log.debug('starting')
@@ -237,7 +247,56 @@ class SimulatedOltAdapter(object):
         log.info("adapter-update-pm-config", device=device, pm_config=pm_config)
         self.pm_metrics.update(pm_config)
 
+    def update_adapter_config(self, adapter_config):
+        # place holder for explicit configuration for ONUs with specific
+        # serial numbers
+        explicit_config_onu_map = {}
+        # place holder for default configuration, to be used only when
+        # auto registration is enabled. For now, the default registration
+        # consists of set of ONU IDs to be used for unknown ONUs
+        default_config_onu_map = {}
 
+        self.disable_auto_registration = \
+            adapter_config.config.disable_auto_registration
+        if adapter_config.config.onu_prov_cfgs:
+            for onu_prov_cfg in adapter_config.config.onu_prov_cfgs:
+                # configurations are per operator_assgnd_dev_id
+                operator_assgnd_dev_id = onu_prov_cfg.operator_assgnd_dev_id
+                for explicit_onu_cfg in onu_prov_cfg.explicit_onu_cfgs:
+                    explicit_config_onu_map[explicit_onu_cfg.onu_id] = {
+                        'onu_id': explicit_onu_cfg.onu_id,
+                        'serial_number': explicit_onu_cfg.serial_number
+                    }
+                for default_onu_cfg in onu_prov_cfg.default_onu_cfgs:
+                    default_config_onu_map[default_onu_cfg.onu_id] = {
+                        'onu_id': default_onu_cfg.onu_id
+                    }
+
+                # update the local db
+                self.explicit_config_onus[operator_assgnd_dev_id] = explicit_config_onu_map
+                self.default_config_onus[operator_assgnd_dev_id] = default_config_onu_map
+
+    def _populate_default_onu_config(self, operator_assgnd_dev_id):
+        """
+        This is to allow couple of ONUs to get activated even without
+        any specific adapter configuration. This basically consists
+        of ONU IDs to be used for unregistered ONU serial numbers.
+
+        :param operator_assgnd_dev_id: identifies the OLT
+        :return: default_config_onus
+        """
+        default_config_onu_map = dict()
+        default_config_onu_map[1] = {
+            'onu_id': 1
+        }
+        default_config_onu_map[2] = {
+            'onu_id': 2
+        }
+        self.default_config_onus[operator_assgnd_dev_id] = default_config_onu_map
+
+    def _get_next_operator_assgnd_dev_id(self):
+        self.operator_assgnd_dev_id = str(int(self.operator_assgnd_dev_id) + 1)
+        return self.operator_assgnd_dev_id
 
     def _tmp_populate_stuff(self):
         """
@@ -259,6 +318,7 @@ class SimulatedOltAdapter(object):
             software_version='1.0',
             serial_number=uuid4().hex,
             adapter=self.name,
+            operator_assgnd_dev_id=self.operator_assgnd_dev_id,
             oper_status=OperStatus.DISCOVERED
         )
         self.adapter_agent.add_device(olt)
@@ -381,8 +441,12 @@ class SimulatedOltAdapter(object):
         device.firmware_version = 'n/a'
         device.software_version = '1.0'
         device.serial_number = uuid4().hex
+        device.operator_assgnd_dev_id = self._get_next_operator_assgnd_dev_id()
         device.connect_status = ConnectStatus.REACHABLE
 
+        # now lets allow couple of ONUs to come up when auto-registration
+        # is enabled (default configuration).
+        self._populate_default_onu_config(device.operator_assgnd_dev_id)
         self.adapter_agent.update_device(device)
 
         # Now set the initial PM configuration for this device
@@ -469,20 +533,54 @@ class SimulatedOltAdapter(object):
 
     @inlineCallbacks
     def _simulate_detection_of_onus(self, device_id):
-        for i in xrange(1, 5):
-            log.info('activate-olt-for-onu-{}'.format(i))
-            vlan_id = self._olt_side_onu_activation(i)
+        onu_cnt = 0
+        explicit_config_onu_map = dict()
+        default_config_onu_map = dict()
+        device = self.adapter_agent.get_device(device_id)
+        operator_assgnd_dev_id = device.operator_assgnd_dev_id
+        if operator_assgnd_dev_id in self.explicit_config_onus:
+            explicit_config_onu_map = self.explicit_config_onus[operator_assgnd_dev_id]
+        if operator_assgnd_dev_id in self.default_config_onus:
+            default_config_onu_map = self.default_config_onus[operator_assgnd_dev_id]
+        for onu_id, onu_info in explicit_config_onu_map.iteritems():
+            log.info('activate-olt-for-onu-{}'.format(onu_id))
+            vlan_id = self._olt_side_onu_activation(onu_cnt)
             yield asleep(0.05)
             self.adapter_agent.child_device_detected(
                 parent_device_id=device_id,
                 parent_port_no=1,
                 child_device_type='simulated_onu',
+                serial_number=onu_info['serial_number'],
                 proxy_address=Device.ProxyAddress(
                     device_id=device_id,
-                    channel_id=vlan_id
+                    channel_id=vlan_id,
+                    onu_id=onu_info['onu_id']
                 ),
                 vlan=vlan_id
             )
+            onu_cnt += 1
+
+        if not self.disable_auto_registration:
+            for onu_id, onu_info in default_config_onu_map.iteritems():
+                log.info('activate-olt-for-onu-{}'.format(onu_id))
+                vlan_id = self._olt_side_onu_activation(onu_cnt)
+                yield asleep(0.05)
+                self.adapter_agent.child_device_detected(
+                    parent_device_id=device_id,
+                    parent_port_no=1,
+                    child_device_type='simulated_onu',
+                    serial_number=uuid4().hex,
+                    proxy_address=Device.ProxyAddress(
+                        device_id=device_id,
+                        channel_id=vlan_id,
+                        onu_id=onu_info['onu_id']
+                    ),
+                    vlan=vlan_id
+                )
+                onu_cnt += 1
+        else:
+            yield asleep(0.05)
+            log.info('onu-auto-registration-disabled')
 
     def _olt_side_onu_activation(self, seq):
         """
