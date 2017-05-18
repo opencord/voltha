@@ -362,6 +362,19 @@ service VolthaGlobalService {
             get: "/api/v1/alarm_filters"
         };
     }
+
+    rpc UpdateAdapterConfig(Adapter) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            put: "/api/v1/adapters/{id}"
+            body: "*"
+        };
+    }
+
+    rpc GetAdapterConfig(ID) returns(Adapter) {
+        option (google.api.http) = {
+            get: "/api/v1/adapters/{id}"
+        };
+    }
 }
 
 /*
@@ -624,6 +637,19 @@ service VolthaLocalService {
     rpc ListAlarmFilters(google.protobuf.Empty) returns(AlarmFilters) {
         option (google.api.http) = {
             get: "/api/v1/local/alarm_filters"
+        };
+    }
+
+    rpc UpdateAdapterConfig(voltha.Adapter) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+           put: "/api/v1/local/adapters/{id}"
+           body: "*"
+        };
+    }
+
+    rpc GetAdapterConfig(ID) returns(voltha.Adapter) {
+        option (google.api.http) = {
+            get: "/api/v1/local/adapters/{id}"
         };
     }
 }
