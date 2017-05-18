@@ -553,6 +553,9 @@ class TibitOnuAdapter(object):
     def unsuppress_alarm(self, filter):
         raise NotImplementedError()
 
+    def update_adapter_config(self, adapter_config):
+        raise NotImplementedError()
+
     def start_kpi_collection(self, device_id):
 
         """TMP Simulate periodic KPI metric collection from the device"""

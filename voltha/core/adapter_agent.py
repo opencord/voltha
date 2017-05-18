@@ -186,6 +186,9 @@ class AdapterAgent(object):
     # def update_pm_collection(self, device, pm_collection_config):
     #    return self.adapter.update_pm_collection(device, pm_collection_config)
 
+    def update_adapter_config(self, adapter_config):
+        assert adapter_config.id == self.adapter_name
+        self.adapter.update_adapter_config(adapter_config)
 
     # ~~~~~~~~~~~~~~~~~~~ Adapter-Facing Service ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

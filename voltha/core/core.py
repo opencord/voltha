@@ -27,12 +27,14 @@ from zope.interface import implementer
 from voltha.core.alarm_filter_agent import AlarmFilterAgent
 from voltha.core.config.config_proxy import CallbackType
 from voltha.core.device_agent import DeviceAgent
+from voltha.core.adapter_config_agent import AdapterConfigAgent
 from voltha.core.dispatcher import Dispatcher
 from voltha.core.global_handler import GlobalHandler
 from voltha.core.local_handler import LocalHandler
 from voltha.core.logical_device_agent import LogicalDeviceAgent
 from voltha.protos.voltha_pb2 import \
     Device, LogicalDevice, AlarmFilter
+from voltha.protos.adapter_pb2 import Adapter
 from voltha.registry import IComponent
 
 log = structlog.get_logger()
@@ -95,6 +97,8 @@ class VolthaCore(object):
             self._handle_add_logical_device(data)
         elif isinstance(data, AlarmFilter):
             self._handle_add_alarm_filter(data)
+        elif isinstance(data, Adapter):
+            self._handle_add_adapter_config(data)
         else:
             pass  # ignore others
 
@@ -160,3 +164,8 @@ class VolthaCore(object):
     def _handle_remove_alarm_filter(self, alarm_filter):
         assert isinstance(alarm_filter, AlarmFilter)
         yield AlarmFilterAgent(self).remove_filter(alarm_filter)
+
+    @inlineCallbacks
+    def _handle_add_adapter_config(self, adapter_config):
+        assert isinstance(adapter_config, Adapter)
+        yield AdapterConfigAgent(self).add_adapter_config(adapter_config)
