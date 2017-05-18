@@ -203,6 +203,13 @@ class IAdapterInterface(Interface):
         :return: None
         """
 
+    def update_adapter_config(adapter_config):
+        """
+        Called when configuration for ONU provisioning needs to be updated
+        :param adapter_config: adapter configuration
+        :return: None
+        """
+
     def suppress_alarm(filter):
         """
         Inform an adapter that all incoming alarms should be suppressed

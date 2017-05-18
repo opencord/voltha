@@ -149,15 +149,19 @@ message Device {
 
     };
 
-    ProxyAddress proxy_address = 19;
 
     AdminState.AdminState admin_state = 16;
 
     OperStatus.OperStatus oper_status = 17 [(access) = READ_ONLY];
 
+    ConnectStatus.ConnectStatus connect_status = 18 [(access) = READ_ONLY];
+
+    ProxyAddress proxy_address = 19;
+
     string reason = 22 [(access) = READ_ONLY];  //  Used in FAILED state
 
-    ConnectStatus.ConnectStatus connect_status = 18 [(access) = READ_ONLY];
+    // Could be nas_id or some other. Specific to operator
+    string operator_assgnd_dev_id = 23 [(access) = READ_ONLY];
 
     // TODO additional common attribute here
 

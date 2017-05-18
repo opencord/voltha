@@ -303,6 +303,8 @@ class PonSimOltAdapter(object):
     def unsuppress_alarm(self, filter):
         raise NotImplementedError()
 
+    def update_adapter_config(self, adapter_config):
+        raise NotImplementedError()
 
 class PonSimOltHandler(object):
     def __init__(self, adapter, device_id):

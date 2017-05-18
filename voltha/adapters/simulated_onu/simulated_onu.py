@@ -126,7 +126,7 @@ class SimulatedOnuAdapter(object):
         device.hardware_version = 'n/a'
         device.firmware_version = 'n/a'
         device.software_version = '1.0'
-        device.serial_number = uuid4().hex
+        # device.serial_number = uuid4().hex
         device.connect_status = ConnectStatus.REACHABLE
         self.adapter_agent.update_device(device)
 
@@ -387,4 +387,7 @@ class SimulatedOnuAdapter(object):
                  egress_port_no=egress_port_no, msg_len=len(msg))
 
     def receive_inter_adapter_message(self, msg):
+        raise NotImplementedError()
+
+    def update_adapter_config(self, adapter_config):
         raise NotImplementedError()

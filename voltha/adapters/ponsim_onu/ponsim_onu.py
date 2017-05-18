@@ -152,6 +152,8 @@ class PonSimOnuAdapter(object):
     def unsuppress_alarm(self, filter):
         raise NotImplementedError()
 
+    def update_adapter_config(self, adapter_config):
+        raise NotImplementedError()
 
 class PonSimOnuHandler(object):
     def __init__(self, adapter, device_id):

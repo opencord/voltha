@@ -1157,6 +1157,9 @@ class TibitOltAdapter(object):
     def unsuppress_alarm(self, filter):
         raise NotImplementedError()
 
+    def update_adapter_config(self, adapter_config):
+        raise NotImplementedError()
+
     def start_kpi_collection(self, device_id):
         """ Periodic KPI metric collection from the device """
         import random
