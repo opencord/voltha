@@ -1464,16 +1464,6 @@ class TibitOltAdapter(object):
 
                 # Get Response
                 if (dpoeOpcode == 0x02):
-                    # Get a specific TLV value
-                    branch = 0xD7
-                    leaf = 0x0006
-                    (rc,bytesRead,value,retbranch,retleaf) = self._handle_get_value(loadstr, startOfTlvs, branch, leaf)
-                    if (rc == True):
-                        log.info('Branch 0x{:X} Leaf 0x{:0>4X}  value = {}'.format(branch, leaf, value))
-                    else:
-                        log.info('Branch 0x{:X} Leaf 0x{:0>4X}  no value'.format(branch, leaf))
-
-                    # Walk through all TLV values
                     bytesRead = 0
                     rc = True
                     while(rc == True):
