@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "ba092121_873adb34",
+        "filename": "voltha/protos/adapter.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-05-19T14:29:53Z",
+      "side": 1,
+      "message": "I understand oneof concept of proto, but it was not clear why it should be used in this context",
+      "parentUuid": "ba092121_27f2ef9a",
+      "revId": "31544b3bb0800423d7cc1bbc627bf584727568f5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ba092121_a7e71fe4",
         "filename": "voltha/protos/device.proto",
         "patchSetId": 1
