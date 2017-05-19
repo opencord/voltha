@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba092121_47ce035c",
+        "filename": "voltha/protos/adapter.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-19T13:55:03Z",
+      "side": 1,
+      "message": "Why not use the concept of oneof in proto?  This looks too hacky.",
+      "revId": "31544b3bb0800423d7cc1bbc627bf584727568f5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_a7e71fe4",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 165,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-19T13:55:03Z",
+      "side": 1,
+      "message": "Not every device is an olt.  The name needs to be changed.",
+      "revId": "31544b3bb0800423d7cc1bbc627bf584727568f5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_87ec1bc9",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 643,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-19T13:55:03Z",
+      "side": 1,
+      "message": "Shoud this be Adapter instead of voltha.Adapter?",
+      "revId": "31544b3bb0800423d7cc1bbc627bf584727568f5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_67d107fb",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 650,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-19T13:55:03Z",
+      "side": 1,
+      "message": "Same comment",
+      "revId": "31544b3bb0800423d7cc1bbc627bf584727568f5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
