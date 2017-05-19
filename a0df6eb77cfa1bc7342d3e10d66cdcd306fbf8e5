@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba092121_07d80b1c",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 171,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-19T14:05:58Z",
+      "side": 1,
+      "message": "Should this really be a looping call?",
+      "revId": "a0df6eb77cfa1bc7342d3e10d66cdcd306fbf8e5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
