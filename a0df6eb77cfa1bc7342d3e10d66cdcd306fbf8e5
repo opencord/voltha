@@ -16,6 +16,24 @@
       "revId": "a0df6eb77cfa1bc7342d3e10d66cdcd306fbf8e5",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_67f8e77c",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 171,
+      "author": {
+        "id": 1000129
+      },
+      "writtenOn": "2017-05-19T14:22:07Z",
+      "side": 1,
+      "message": "Spoke to Steve and it doesn\u0027t need to be a looping call no.\nWe can call the method once here and then have it call itself at the end.\nI will make that change.",
+      "parentUuid": "ba092121_07d80b1c",
+      "revId": "a0df6eb77cfa1bc7342d3e10d66cdcd306fbf8e5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
