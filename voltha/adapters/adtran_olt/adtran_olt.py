@@ -309,3 +309,11 @@ class AdtranOltAdapter(object):
         """
         log.info('rx_inter_adapter_msg')
         raise NotImplementedError()
+
+    def suppress_alarm(self, filter):
+        log.info('suppress_alarm', filter=filter)
+        raise NotImplementedError()
+
+    def unsuppress_alarm(self, filter):
+        log.info('unsuppress_alarm', filter=filter)
+        raise NotImplementedError()
