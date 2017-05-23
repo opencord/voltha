@@ -32,6 +32,9 @@ log = structlog.get_logger()
 
 class Agent(protocol.ClientFactory):
 
+    generation_is_defined = False
+    cached_generation_id = None
+
     def __init__(self,
                  controller_endpoint,
                  datapath_id,
