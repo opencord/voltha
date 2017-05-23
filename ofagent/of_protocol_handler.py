@@ -141,16 +141,22 @@ class OpenFlowProtocolHandler(object):
         raise NotImplementedError()
 
     def handle_role_request(self, req):
-        # https://jira.opencord.org/browse/CORD-1174
-        # Need to handle generator_id
         if req.role == ofp.OFPCR_ROLE_MASTER or req.role == ofp.OFPCR_ROLE_SLAVE:
-           self.role = req.role
-           self.cxn.send(ofp.message.role_reply(
-            xid=req.xid, role=req.role, generation_id=req.generation_id))
+            if self.agent.generation_is_defined and (
+                    ((req.generation_id - self.agent.cached_generation_id) & 0xffffffffffffffff) if abs(
+                    req.generation_id - self.agent.cached_generation_id) > 0x7fffffffffffffff else (
+                    req.generation_id - self.agent.cached_generation_id)) < 0:
+                self.cxn.send(ofp.message.bad_request_error_msg(code=ofp.OFPRRFC_STALE))
+            else:
+                self.agent.generation_is_defined = True
+                self.agent.cached_generation_id = req.generation_id
+                self.role = req.role
+                self.cxn.send(ofp.message.role_reply(
+                 xid=req.xid, role=req.role, generation_id=req.generation_id))
         elif req.role == ofp.OFPCR_ROLE_EQUAL:
-           self.role = req.role
-           self.cxn.send(ofp.message.role_reply(
-            xid=req.xid, role=req.role))
+            self.role = req.role
+            self.cxn.send(ofp.message.role_reply(
+             xid=req.xid, role=req.role))
 
     def handle_packet_out_request(self, req):
         if self.role == ofp.OFPCR_ROLE_MASTER or self.role == ofp.OFPCR_ROLE_EQUAL:
