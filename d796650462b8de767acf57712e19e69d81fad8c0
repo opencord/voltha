@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba092121_c53c4b96",
+        "filename": "ofagent/of_protocol_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 145,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-05-24T09:10:36Z",
+      "side": 1,
+      "message": "\"self.agent.cached_generation_id \u003e req.generation_id\" would be just monotonic. What we need is monotonically increasing. Isn\u0027t it?",
+      "revId": "d796650462b8de767acf57712e19e69d81fad8c0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
