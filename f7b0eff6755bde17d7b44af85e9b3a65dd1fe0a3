@@ -1,0 +1,123 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba092121_256c279c",
+        "filename": "tests/itests/voltha/rest_base.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-24T14:56:38Z",
+      "side": 1,
+      "message": "There won\u0027t be a sim rest interface available for production.  Please use the base_url for your testing.",
+      "revId": "f7b0eff6755bde17d7b44af85e9b3a65dd1fe0a3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_e5050fc3",
+        "filename": "tests/itests/voltha/test_voltha_adapter_config.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 103,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-24T14:56:38Z",
+      "side": 1,
+      "message": "Can you add a test for the default case?",
+      "revId": "f7b0eff6755bde17d7b44af85e9b3a65dd1fe0a3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_0569238b",
+        "filename": "tests/itests/voltha/test_voltha_adapter_config.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 194,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-24T14:56:38Z",
+      "side": 1,
+      "message": "Please use the chameleon rest when making these tests.   This test bypass the entire voltha, which is not really the purpose of the test.",
+      "revId": "f7b0eff6755bde17d7b44af85e9b3a65dd1fe0a3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_456f1b93",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 190,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-24T14:56:38Z",
+      "side": 1,
+      "message": "Please see other examples in voltha on how data models are changed and callbacks get triggered.   This code does not align with the rest of voltha.",
+      "revId": "f7b0eff6755bde17d7b44af85e9b3a65dd1fe0a3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_65721f7e",
+        "filename": "voltha/core/local_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 688,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-24T14:56:38Z",
+      "side": 1,
+      "message": "You should not use registry in this layer.   At this layer you should only address the data model to prevent code coupling.   Look at examples like device_agent or Alarm Agent to adjust the code.",
+      "revId": "f7b0eff6755bde17d7b44af85e9b3a65dd1fe0a3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_851413f6",
+        "filename": "voltha/protos/adapter.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-24T14:56:38Z",
+      "side": 1,
+      "message": "Is this an id given to an OLT?  If yes, then the message name is misleading.",
+      "revId": "f7b0eff6755bde17d7b44af85e9b3a65dd1fe0a3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_c50a0bd2",
+        "filename": "voltha/protos/adapter.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 51,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-24T14:56:38Z",
+      "side": 1,
+      "message": "Should the name really be \"auto_registration\" only?",
+      "revId": "f7b0eff6755bde17d7b44af85e9b3a65dd1fe0a3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
