@@ -63,7 +63,7 @@ from voltha.extensions.eoam.EOAM_TLV import ClauseSubtypeEnum
 from voltha.extensions.eoam.EOAM_TLV import RuleOperatorEnum
 from voltha.extensions.eoam.EOAM_TLV import DPoEVariableResponseCodes, DPoEOpcodeEnum
 from voltha.extensions.eoam.EOAM_TLV import VendorName, OltMode, HardwareVersion, ManufacturerInfo
-from voltha.extensions.eoam.EOAM_TLV import TibitLinkMacTable
+from voltha.extensions.eoam.EOAM_TLV import TibitLinkMacTable, OltPonAdminStateSet, TibitDeviceReset
 from voltha.extensions.eoam.EOAM_TLV import SlowProtocolsSubtypeEnum
 from voltha.extensions.eoam.EOAM_TLV import EndOfPDU
 
@@ -710,14 +710,68 @@ class TibitOltAdapter(object):
     def abandon_device(self, device):
         raise NotImplementedError(0
                                   )
+    @inlineCallbacks
     def disable_device(self, device):
-        raise NotImplementedError()
+        log.info('Disabling OLT: {}'.format(device.mac_address))
+        yield self.change_device_state(device, 0)
 
+        # Disable all child devices
+        self.adapter_agent.update_child_devices_state(device.id,
+                                                      admin_state=AdminState.DISABLED)
+
+    @inlineCallbacks
     def reenable_device(self, device):
-        raise NotImplementedError()
+        log.info('Re-enabling OLT: {}'.format(device.mac_address))
+        yield self.change_device_state(device, 1)
 
+        # Reenable all child devices
+        self.adapter_agent.update_child_devices_state(device.id,
+                                                      admin_state=AdminState.ENABLED)
+
+
+    @inlineCallbacks
     def reboot_device(self, device):
-        raise NotImplementedError()
+        log.info('Rebooting OLT: {}'.format(device.mac_address))
+
+        # Update the operational status to ACTIVATING and connect status to
+        # UNREACHABLE
+        previous_oper_status = device.oper_status
+        previous_conn_status = device.connect_status
+        device.oper_status = OperStatus.ACTIVATING
+        device.connect_status = ConnectStatus.UNREACHABLE
+        self.adapter_agent.update_device(device)
+
+        # Update the child devices connect state to UNREACHABLE
+        self.adapter_agent.update_child_devices_state(device.id,
+                                                      connect_status=ConnectStatus.UNREACHABLE)
+
+        msg = (
+            Ether(dst=device.mac_address) /
+            Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) /
+            EOAMPayload() / EOAM_VendSpecificMsg(oui=Tibit_OUI) /
+            EOAM_TibitMsg(dpoe_opcode = Dpoe_Opcodes["Set Request"], 
+                          body=TibitDeviceReset())/
+            EndOfPDU()
+            )
+        olt_mac = device.mac_address
+        action = "Device Reset"
+        log.info('OLT-send to {} for OLT: {}'.format(action, olt_mac))
+        self.io_port.send(str(msg))
+
+        # Get and process the Set Response
+        rc = []
+        yield self._handle_set_resp(olt_mac, action, rc)
+
+        # Change the operational status back to its previous state.
+        device.oper_status = previous_oper_status
+        device.connect_status = previous_conn_status
+        self.adapter_agent.update_device(device)
+
+        # Update the child devices connect state to REACHABLE
+        self.adapter_agent.update_child_devices_state(device.id,
+                                                      connect_status=ConnectStatus.REACHABLE)
+        log.info('OLT Rebooted: {}'.format(device.mac_address))
+
 
     def delete_device(self, device):
         raise NotImplementedError()
@@ -1517,3 +1571,27 @@ class TibitOltAdapter(object):
             log.info('BAD OLT-response received for {} for OLT: {}'.format(action, olt_mac))
 
         retcode.append(rc)
+
+    @inlineCallbacks
+    def change_device_state(self, device, state=0):
+        # construct PON Admin State attribute
+        msg = (
+            Ether(dst=device.mac_address) /
+            Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) /
+            EOAMPayload() / EOAM_VendSpecificMsg(oui=Tibit_OUI) /
+            EOAM_TibitMsg(dpoe_opcode = Dpoe_Opcodes["Set Request"], 
+                          body=PonPortObject()/OltPonAdminStateSet(value=state))/
+            EndOfPDU()
+            )
+        olt_mac = device.mac_address
+        if state is 0:
+            stateStr = "disabled"
+        else:
+            stateStr = "enabled"
+        action = "Set PON Admin State to " + stateStr
+        log.info('OLT-send to {} for OLT: {}'.format(action, olt_mac))
+        self.io_port.send(str(msg))
+
+        # Get and process the Set Response
+        rc = []
+        yield self._handle_set_resp(olt_mac, action, rc)

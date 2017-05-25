@@ -66,7 +66,7 @@ from voltha.extensions.eoam.EOAM_TLV import RuleOperatorEnum
 from voltha.extensions.eoam.EOAM_TLV import DPoEOpcodeEnum, DPoEVariableResponseCodes
 from voltha.extensions.eoam.EOAM_TLV import DPoEOpcode_MulticastRegister, MulticastRegisterSet
 from voltha.extensions.eoam.EOAM_TLV import VendorName, OnuMode, HardwareVersion, ManufacturerInfo
-from voltha.extensions.eoam.EOAM_TLV import SlowProtocolsSubtypeEnum
+from voltha.extensions.eoam.EOAM_TLV import SlowProtocolsSubtypeEnum, DeviceReset
 from voltha.extensions.eoam.EOAM_TLV import EndOfPDU
 
 from voltha.extensions.eoam.EOAM import EOAMPayload, EOAMEvent, EOAM_VendSpecificMsg
@@ -234,13 +234,47 @@ class TibitOnuAdapter(object):
         raise NotImplementedError(0
                                   )
     def disable_device(self, device):
-        raise NotImplementedError()
+        log.info('disable-device', device_id=device.id)
+        return device
 
     def reenable_device(self, device):
-        raise NotImplementedError()
+        log.info('reenable-device', device_id=device.id)
+        return device
 
+    @inlineCallbacks
     def reboot_device(self, device):
-        raise NotImplementedError()
+        log.info('Rebooting ONU: {}'.format(device.mac_address))
+
+        # Update the operational status to ACTIVATING and connect status to
+        # UNREACHABLE
+        previous_oper_status = device.oper_status
+        previous_conn_status = device.connect_status
+        device.oper_status = OperStatus.ACTIVATING
+        device.connect_status = ConnectStatus.UNREACHABLE
+        self.adapter_agent.update_device(device)
+
+        msg = (
+            EOAMPayload() / EOAM_VendSpecificMsg(oui=CableLabs_OUI) /
+            EOAM_DpoeMsg(dpoe_opcode = Dpoe_Opcodes["Set Request"], 
+                         body=DeviceReset())/
+            EndOfPDU()
+            )
+
+        action = "Device Reset"
+
+        # send message
+        log.info('ONU-send-proxied-message to {} for ONU: {}'.format(action, device.mac_address))
+        self.adapter_agent.send_proxied_message(device.proxy_address, msg)
+
+        rc = []
+        yield self._handle_set_resp(device, action, rc)
+
+        # Change the operational status back to its previous state.
+        device.oper_status = previous_oper_status
+        device.connect_status = previous_conn_status
+        self.adapter_agent.update_device(device)
+
+        log.info('ONU Rebooted: {}'.format(device.mac_address))
 
     def delete_device(self, device):
         raise NotImplementedError()
