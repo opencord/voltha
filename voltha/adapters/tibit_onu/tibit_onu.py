@@ -21,6 +21,7 @@ Tibit ONU device adapter
 import json
 import time
 import struct
+import re
 
 from uuid import uuid4
 
@@ -62,8 +63,11 @@ from voltha.extensions.eoam.EOAM_TLV import ClearStaticMacTable
 from voltha.extensions.eoam.EOAM_TLV import DeviceId
 from voltha.extensions.eoam.EOAM_TLV import ClauseSubtypeEnum
 from voltha.extensions.eoam.EOAM_TLV import RuleOperatorEnum
-from voltha.extensions.eoam.EOAM_TLV import DPoEVariableResponseCodes
+from voltha.extensions.eoam.EOAM_TLV import DPoEOpcodeEnum, DPoEVariableResponseCodes
 from voltha.extensions.eoam.EOAM_TLV import DPoEOpcode_MulticastRegister, MulticastRegisterSet
+from voltha.extensions.eoam.EOAM_TLV import VendorName, OnuMode, HardwareVersion, ManufacturerInfo
+from voltha.extensions.eoam.EOAM_TLV import SlowProtocolsSubtypeEnum
+from voltha.extensions.eoam.EOAM_TLV import EndOfPDU
 
 from voltha.extensions.eoam.EOAM import EOAMPayload, EOAMEvent, EOAM_VendSpecificMsg
 from voltha.extensions.eoam.EOAM import EOAM_OmciMsg, EOAM_TibitMsg, EOAM_DpoeMsg
@@ -88,6 +92,9 @@ RxedOamMsgTypeEnum = {
     "OMCI Message": 0x06,
     }
 
+Dpoe_Opcodes = {v: k for k, v in DPoEOpcodeEnum.iteritems()}
+
+
 @implementer(IAdapterInterface)
 class TibitOnuAdapter(object):
 
@@ -111,6 +118,7 @@ class TibitOnuAdapter(object):
             config=AdapterConfig(log_level=LogLevel.INFO)
         )
         self.incoming_messages = DeferredQueue()
+        self.mode = "GPON"
 
     def start(self):
         log.debug('starting')
@@ -147,14 +155,9 @@ class TibitOnuAdapter(object):
         assert device.proxy_address.device_id
         assert device.proxy_address.channel_id
 
-        # TODO: For now, pretend that we were able to contact the device and obtain
-        # additional information about it.  Should add real message.
+        # Device information will be updated later on
         device.vendor = 'Tibit Communications, Inc.'
         device.model = '10G GPON ONU'
-        device.hardware_version = 'fa161020'
-        device.firmware_version = '16.12.02'
-        device.software_version = '1.0'
-        device.serial_number = uuid4().hex
         device.connect_status = ConnectStatus.REACHABLE
         self.adapter_agent.update_device(device)
 
@@ -252,6 +255,13 @@ class TibitOnuAdapter(object):
                  flows=flows, groups=groups)
         assert len(groups.items) == 0, "Cannot yet deal with groups"
 
+        # Clear the existing entries in the Static MAC Address Table
+        yield self._send_clear_static_mac_table(device)
+
+        # Re-add the IGMP Multicast Address
+        yield self._send_igmp_mcast_addr(device)
+
+
         Clause = {v: k for k, v in ClauseSubtypeEnum.iteritems()}
         Operator = {v: k for k, v in RuleOperatorEnum.iteritems()}
 
@@ -266,7 +276,7 @@ class TibitOnuAdapter(object):
 
                 up_req = (
                     EOAMPayload() / EOAM_VendSpecificMsg(oui=CableLabs_OUI) /
-                    EOAM_DpoeMsg(dpoe_opcode=0x03)
+                    EOAM_DpoeMsg(dpoe_opcode=Dpoe_Opcodes["Set Request"])
                     )
 
                 #TODO - There is no body to the message above, is there ever an Upstream Rule
@@ -376,44 +386,18 @@ class TibitOnuAdapter(object):
                         d = int(hex(_ipv4_dst)[8:], 16)
                         dn_req = (
                             EOAMPayload() / EOAM_VendSpecificMsg(oui=CableLabs_OUI) /
-                            EOAM_DpoeMsg(dpoe_opcode=0x03, body=AddStaticMacAddress(mac=mcastIp2McastMac('%d.%d.%d.%d' % (a,b,c,d)))
+                            EOAM_DpoeMsg(dpoe_opcode=Dpoe_Opcodes["Set Request"], body=AddStaticMacAddress(mac=mcastIp2McastMac('%d.%d.%d.%d' % (a,b,c,d)))
                             ))
                         
                         # send message
-
-                        log.info('ONU-send-proxied-message to Set Static IP MCAST address for ONU: {}'.format(device.mac_address))
+                        action = "Set Static IP MCAST address"
+                        log.info('ONU-send-proxied-message to {} for ONU: {}'.format(action, device.mac_address))
                         self.adapter_agent.send_proxied_message(device.proxy_address,
                                                                 dn_req)
 
                         # Get and process the Set Response
-                        ack = False
-                        start_time = time.time()
-
-                        # Loop until we have a set response or timeout
-                        while not ack:
-                            frame = yield self.incoming_messages.get()
-                            #TODO - Need to add propoer timeout functionality
-                            #if (time.time() - start_time) > TIBIT_MSG_WAIT_TIME or (frame is None):
-                            #    break  # don't wait forever
-
-                            respType = self._get_oam_msg_type(frame)
-                            log.info('Received OAM Message 0x %s' % str(respType))
-
-                            #Check that the message received is a Set Response
-                            if (respType == RxedOamMsgTypeEnum["DPoE Set Response"]):
-                                ack = True
-                            else:
-                                # Handle unexpected events/OMCI messages
-                                self._check_resp(frame)
-
-                        # Verify Set Response
-                        if ack:
-                            log.info('ONU-response received for Set Static IP MCAST address for ONU: {}'.format(device.mac_address))
-                            (rc,branch,leaf,status) = self._check_set_resp(frame)
-                            if (rc == True):
-                                log.info('Set Response had no errors')
-                            else:
-                                log.info('Set Response had errors - Branch 0x{:X} Leaf 0x{:0>4X} {}'.format(branch, leaf, DPoEVariableResponseCodes[status]))
+                        rc = []
+                        yield self._handle_set_resp(device, action, rc)
 
                     else:
                         raise NotImplementedError('field.type={}'.format(
@@ -462,7 +446,6 @@ class TibitOnuAdapter(object):
                   proxy_address=proxy_address, msg=msg.show(dump=True))
         self.incoming_messages.put(msg)
 
-
     @inlineCallbacks
     def _message_exchange(self, device):
 
@@ -473,81 +456,52 @@ class TibitOnuAdapter(object):
         while self.incoming_messages.pending:
             _ = yield self.incoming_messages.get()
 
-        # construct message
-        msg = (
+        # send out ping frame to ONU device get device information
+        ping_frame = (
             EOAMPayload() / EOAM_VendSpecificMsg(oui=CableLabs_OUI) /
-            EOAM_DpoeMsg(dpoe_opcode=0x01,body=DeviceId())
+            EOAM_DpoeMsg(dpoe_opcode=Dpoe_Opcodes["Get Request"],
+                         body=VendorName() /
+                              OnuMode() /
+                              HardwareVersion() /
+                              ManufacturerInfo()
+                              ) /
+            EndOfPDU()
             )
 
-        # send message
-        log.info('ONU-send-proxied-message to Get Device Id for ONU: {}'.format(device.mac_address))
+        log.info('ONU-send-proxied-message to Get Version Info for ONU: {}'.format(device.mac_address))
+        self.adapter_agent.send_proxied_message(device.proxy_address, ping_frame)
 
-        self.adapter_agent.send_proxied_message(device.proxy_address, msg)
-
-        # wait till we detect incoming message
-        yield self.incoming_messages.get()
-
-        log.info('ONU-response received for Get Device Id for ONU: {}'.format(device.mac_address))
-
-        #TODO Add a timeout to the above, if we do not recieve a message
-
-        #The above get request/ get response is done to verify the message exchange is
-        #functioning correctly, there is nothing to store from the response
-
-        # construct install of igmp query address
-        msg = (
-            EOAMPayload() / EOAM_VendSpecificMsg(oui=CableLabs_OUI) /
-            EOAM_DpoeMsg(dpoe_opcode=0x03,body=AddStaticMacAddress(mac='01:00:5e:00:00:01')
-            ))
-
-        # send message
-        log.info('ONU-send-proxied-message to Set Static IGMP MAC address for ONU: {}'.format(device.mac_address))
-        self.adapter_agent.send_proxied_message(device.proxy_address, msg)
-
-        # Get and process the Set Response
+        # Loop until we have a Get Response
         ack = False
-        start_time = time.time()
-
-        # Loop until we have a set response or timeout
         while not ack:
             frame = yield self.incoming_messages.get()
-            #TODO - Need to add propoer timeout functionality
-            #if (time.time() - start_time) > TIBIT_MSG_WAIT_TIME or (frame is None):
-            #    break  # don't wait forever
 
             respType = self._get_oam_msg_type(frame)
-            log.info('Received OAM Message 0x %s' % str(respType))
-
-            #Check that the message received is a Set Response
-            if (respType == RxedOamMsgTypeEnum["DPoE Set Response"]):
+         
+            if (respType == RxedOamMsgTypeEnum["DPoE Get Response"]):
                 ack = True
             else:
                 # Handle unexpected events/OMCI messages
                 self._check_resp(frame)
 
-        # Verify Set Response
         if ack:
-            log.info('ONU-response received for Set Static IGMP MAC address for ONU: {}'.format(device.mac_address))
-            (rc,branch,leaf,status) = self._check_set_resp(frame)
-            if (rc == True):
-                log.info('Set Response had no errors')
-            else:
-                log.info('Set Response had errors - Branch 0x{:X} Leaf 0x{:0>4X} {}'.format(branch, leaf, DPoEVariableResponseCodes[status]))
+            log.info('ONU-response received for Get Version Info for ONU: {}'.format(device.mac_address))
 
-        # construct multicast LLID set
-        # TODO - This is needed to support multicast traffic for GPON. This should only be done for a 
-        #        a GPON ONU and the UnicastLink value needs to come from the OLT. This will work only for
-        #        a single GPON ONU.
-        msg = (
-            EOAMPayload() / EOAM_VendSpecificMsg(oui=CableLabs_OUI) /
-            EOAM_DpoeMsg(dpoe_opcode=0x06,body=MulticastRegisterSet(MulticastLink=0x10bc, UnicastLink=0x1008)
-            ))
+            self._process_ping_frame_response(device, frame)
 
-        # send message
-        log.info('ONU-send-proxied-message to Set Static IGMP MAC address for ONU: {}'.format(device.mac_address))
-        self.adapter_agent.send_proxied_message(device.proxy_address, msg)
 
-        # The MulticastRegisterSet does not currently return a response. Just hope it worked.
+        if self.mode.upper()[0] == "G":  # GPON
+            # construct multicast LLID set
+            msg = (
+                EOAMPayload() / EOAM_VendSpecificMsg(oui=CableLabs_OUI) /
+                EOAM_DpoeMsg(dpoe_opcode=Dpoe_Opcodes["Multicast Register"],body=MulticastRegisterSet(MulticastLink=0x10bc, UnicastLink=0)
+                ))
+
+            # send message
+            log.info('ONU-send-proxied-message to Multicast Register Set for ONU: {}'.format(device.mac_address))
+            self.adapter_agent.send_proxied_message(device.proxy_address, msg)
+
+            # The MulticastRegisterSet does not currently return a response. Just hope it worked.
 
         # by returning we allow the device to be shown as active, which
         # indirectly verified that message passing works
@@ -557,6 +511,12 @@ class TibitOnuAdapter(object):
                  egress_port_no=egress_port_no, msg_len=len(msg))
 
     def receive_inter_adapter_message(self, msg):
+        raise NotImplementedError()
+
+    def suppress_alarm(self, filter):
+        raise NotImplementedError()
+
+    def unsuppress_alarm(self, filter):
         raise NotImplementedError()
 
     def suppress_alarm(self, filter):
@@ -620,7 +580,6 @@ class TibitOnuAdapter(object):
 
 
 # Methods for Get / Set  Response Processing from eoam_messages
-
 
     def _get_oam_msg_type(self, frame):
 
@@ -833,7 +792,6 @@ class TibitOnuAdapter(object):
 
         return retVal,branch,leaf,length
 
-        
     def _handle_fx_ack(self, loadstr, startOfXfer, block_number):
         retVal = False
         (fx_opcode, acked_block, response_code) = struct.unpack_from('>BHB', loadstr, startOfXfer)
@@ -850,5 +808,147 @@ class TibitOnuAdapter(object):
         elif (response_code != 0):
             log.info('unexpected response_code 0x%x (expected 0x00)' % response_code)
         else:
-            retVal = True;    
+            retVal = True;
+
+    @inlineCallbacks
+    def _send_igmp_mcast_addr(self, device):
+        # construct install of igmp query address
+        msg = (
+            EOAMPayload() / EOAM_VendSpecificMsg(oui=CableLabs_OUI) /
+            EOAM_DpoeMsg(dpoe_opcode=Dpoe_Opcodes["Set Request"],body=AddStaticMacAddress(mac='01:00:5e:00:00:01')
+            ))
+
+        action = "Set Static IGMP MAC address"
+
+        # send message
+        log.info('ONU-send-proxied-message to {} for ONU: {}'.format(action, device.mac_address))
+        self.adapter_agent.send_proxied_message(device.proxy_address, msg)
+
+        rc = []
+        yield self._handle_set_resp(device, action, rc)
+
+
+    @inlineCallbacks
+    def _send_clear_static_mac_table(self, device):
+        # construct install of igmp query address
+        msg = (
+            EOAMPayload() / EOAM_VendSpecificMsg(oui=CableLabs_OUI) /
+            EOAM_DpoeMsg(dpoe_opcode=Dpoe_Opcodes["Set Request"],body=ClearStaticMacTable()
+            ))
+
+        action = "Clear Static MAC Table"
+
+        # send message
+        log.info('ONU-send-proxied-message to {} for ONU: {}'.format(action, device.mac_address))
+        self.adapter_agent.send_proxied_message(device.proxy_address, msg)
+
+        rc = []
+        yield self._handle_set_resp(device, action, rc)
     
+
+    @inlineCallbacks
+    def _handle_set_resp(self, device, action, retcode):
+        # Get and process the Set Response
+        ack = False
+        start_time = time.time()
+
+        # Loop until we have a set response or timeout
+        while not ack:
+            frame = yield self.incoming_messages.get()
+            #TODO - Need to add propoer timeout functionality
+            #if (time.time() - start_time) > TIBIT_MSG_WAIT_TIME or (frame is None):
+            #    break  # don't wait forever
+
+            respType = self._get_oam_msg_type(frame)
+            log.info('Received OAM Message 0x %s' % str(respType))
+
+            #Check that the message received is a Set Response
+            if (respType == RxedOamMsgTypeEnum["DPoE Set Response"]):
+                ack = True
+            else:
+                # Handle unexpected events/OMCI messages
+                self._check_resp(frame)
+
+        # Verify Set Response
+        rc = False
+        if ack:
+            (rc,branch,leaf,status) = self._check_set_resp(frame)
+            if (rc is False):
+                log.info('Set Response had errors - Branch 0x{:X} Leaf 0x{:0>4X} {}'.format(branch, leaf, DPoEVariableResponseCodes[status]))
+        
+        if (rc is True):
+            log.info('ONU-response received for {} for ONU: {}'.format(action, device.mac_address))
+        else:
+            log.info('BAD ONU-response received for {} for ONU: {}'.format(action, device.mac_address))
+
+        retcode.append(rc)
+
+    def _process_ping_frame_response(self, device, frame):
+
+        vendor = [0xD7, 0x0011]
+        ponMode = [0xB7, 0x0105]
+        hw_version = [0xD7, 0x0013]
+        manufacturer =  [0xD7, 0x0006]
+        branch_leaf_pairs = [vendor, ponMode, hw_version, manufacturer]
+                    
+        for pair in branch_leaf_pairs:
+            temp_pair = pair
+            (rc, value) = (self._get_value_from_msg(frame, pair[0], pair[1]))
+            temp_pair.append(rc)
+            temp_pair.append(value)
+            if rc:
+                overall_rc = True
+            else: 
+                log.info('Failed to get valid response for Branch 0x{:X} Leaf 0x{:0>4X} '.format(temp_pair[0], temp_pair[1]))
+                ack = True
+
+        if vendor[rc]:
+            device.vendor = vendor.pop()
+            if device.vendor.endswith(''):
+                device.vendor = device.vendor[:-1]
+        else:
+            device.vendor = "UNKNOWN"
+            
+        # mode: 3 = EPON OLT, 7 = GPON OLT
+        # mode: 2 = EPON ONU, 6 = GPON ONU    
+        if ponMode[rc]:
+            value = ponMode.pop()
+            mode = "UNKNOWN"
+            self.mode = "UNKNOWN"
+
+            if value == 6:
+                mode = "10G GPON ONU"
+                self.mode = "GPON"
+            if value == 2:
+                mode = "10G EPON ONU"
+                self.mode = "EPON"
+            if value == 1:
+                mode = "10G Point to Point"
+                self.mode = "Unsupported"
+
+            device.model = mode
+
+        else:
+            device.model = "UNKNOWN"
+            self.mode = "UNKNOWN"
+
+        log.info("PON Mode is {}".format(self.mode))
+                
+        if hw_version[rc]:
+            device.hardware_version = hw_version.pop()
+            if device.hardware_version.endswith(''):
+                device.hardware_version = device.hardware_version[:-1]
+        else:
+            device.hardware_version = "UNKNOWN"
+
+        if manufacturer[rc]:
+            manu_value = manufacturer.pop()
+            device.firmware_version = re.search('\Firmware: (.+?) ', manu_value).group(1)
+            device.software_version = re.search('\Build: (.+?) ', manu_value).group(1)
+            device.serial_number = re.search('\Serial #: (.+?) ', manu_value).group(1)
+        else:
+            device.firmware_version = "UNKNOWN"
+            device.software_version = "UNKNOWN"
+            device.serial_number = "UNKNOWN"
+
+        device.connect_status = ConnectStatus.REACHABLE

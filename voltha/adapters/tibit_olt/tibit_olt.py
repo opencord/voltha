@@ -134,6 +134,9 @@ RxedOamMsgTypeEnum = {
     "OMCI Message": 0x06,
     }
 
+Dpoe_Opcodes = {v: k for k, v in DPoEOpcodeEnum.iteritems()}
+
+
 # TODO: This information should be conveyed to the adapter
 # from a higher level.
 MULTICAST_VLAN = 140
@@ -414,7 +417,7 @@ class TibitOltAdapter(object):
                             Ether(dst=device.mac_address) /
                             Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) /
                             EOAMPayload() / EOAM_VendSpecificMsg(oui=Tibit_OUI) /
-                            EOAM_TibitMsg(dpoe_opcode=0x03,
+                            EOAM_TibitMsg(dpoe_opcode=Dpoe_Opcodes["Set Request"],
                                 body=NetworkToNetworkPortObject()/
                                 PortIngressRuleHeader(precedence=13)/
                                 PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
@@ -430,56 +433,33 @@ class TibitOltAdapter(object):
                             EndOfPDU()
                             )
 
+                        action = "Set DS Rule for ONU to strip C Tag"
+                        log.info('OLT-send to {} for OLT: {}'.format(action, olt_mac))
                         self.io_port.send(str(packet_out_rule))
 
                         # Get and process the Set Response
-                        ack = False
-                        start_time = time.time()
+                        rc = []
+                        yield self._handle_set_resp(olt_mac, action, rc)
 
-                        # Loop until we have a set response or timeout
-                        while not ack:
+                        if rc[0] is True:
+                            # also record the vlan_id -> (device_id, logical_device_id, linkid) for
+                            # later use.  The linkid is the macid returned.
 
-                            frame = yield self.incoming_queues[olt_mac].get()
-                            #TODO - Need to add proper timeout functionality
-                            #if (time.time() - start_time) > TIBIT_MSG_WAIT_TIME or (frame is None):
-                            #    break  # don't wait forever
-
-                            respType = self._get_oam_msg_type(frame)
-
-                            #Check that the message received is a Set Response
-                            if (respType == RxedOamMsgTypeEnum["DPoE Set Response"]):
-                                ack = True
-                            else:
-                                # Handle unexpected events/OMCI messages
-                                self._check_resp(frame)
-
-                        # Verify Set Response
-                        if ack:
-                            (rc,branch,leaf,status) = self._check_set_resp(frame)
-                            if (rc == True):
-                                log.info('Set Response had no errors')
-
-                                # also record the vlan_id -> (device_id, logical_device_id, linkid) for
-                                # later use.  The linkid is the macid returned.
-
-                                self.vlan_to_device_ids[vlan_id] = (device.id, device.parent_id, linkAddr)
+                            self.vlan_to_device_ids[vlan_id] = (device.id, device.parent_id, linkAddr)
 
 
-                                self.adapter_agent.child_device_detected(
-                                    parent_device_id=device.id,
-                                    parent_port_no=1,
-                                    child_device_type=child_device_name,
-                                    mac_address = onu_mac,
-                                    proxy_address=Device.ProxyAddress(
-                                        device_id=device.id,
-                                        channel_id=vlan_id
-                                        ),
-                                        vlan=vlan_id
-                                )
+                            self.adapter_agent.child_device_detected(
+                                parent_device_id=device.id,
+                                parent_port_no=1,
+                                child_device_type=child_device_name,
+                                mac_address = onu_mac,
+                                proxy_address=Device.ProxyAddress(
+                                    device_id=device.id,
+                                    channel_id=vlan_id
+                                    ),
+                                    vlan=vlan_id
+                            )
 
-                            else:
-                                log.info('Set Response had errors')
-                                log.info('Branch 0x{:X} Leaf 0x{:0>4X} {}'.format(branch, leaf, DPoEVariableResponseCodes[status]))
 
                     # END linkAddr is not none
             else:
@@ -573,7 +553,7 @@ class TibitOltAdapter(object):
             Ether(dst=mac_address) /
             Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) /
             EOAMPayload() / EOAM_VendSpecificMsg(oui=Tibit_OUI) /
-            EOAM_TibitMsg(dpoe_opcode=0x01,body=VendorName() /
+            EOAM_TibitMsg(dpoe_opcode=Dpoe_Opcodes["Get Request"],body=VendorName() /
                                                 OltMode() /
                                                 HardwareVersion() /
                                                 ManufacturerInfo()
@@ -604,6 +584,8 @@ class TibitOltAdapter(object):
 
         if vendor[rc]:
             device.vendor = vendor.pop()
+            if device.vendor.endswith(''):
+                device.vendor = device.vendor[:-1]
         else:
             device.vendor = "UNKNOWN"
             
@@ -634,6 +616,8 @@ class TibitOltAdapter(object):
                 
         if hw_version[rc]:
             device.hardware_version = hw_version.pop()
+            if device.hardware_version.endswith(''):
+                device.hardware_version = device.hardware_version[:-1]
         else:
             device.hardware_version = "UNKNOWN"
 
@@ -654,7 +638,7 @@ class TibitOltAdapter(object):
             Ether(dst=mac_address) /
             Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) /
             EOAMPayload() / EOAM_VendSpecificMsg(oui=Tibit_OUI) /
-            EOAM_TibitMsg(dpoe_opcode=0x01,body=TibitLinkMacTable()
+            EOAM_TibitMsg(dpoe_opcode=Dpoe_Opcodes["Get Request"],body=TibitLinkMacTable()
                             )/
             EndOfPDU()
             )
@@ -672,7 +656,7 @@ class TibitOltAdapter(object):
             Ether(dst=olt_mac_address) /
             Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) /
             EOAMPayload() / EOAM_VendSpecificMsg(oui=Tibit_OUI) /
-            EOAM_TibitMsg(dpoe_opcode=0x01,
+            EOAM_TibitMsg(dpoe_opcode=Dpoe_Opcodes["Get Request"],
                           body=OLTUnicastLogicalLink(unicastvssn=vssn, unicastlink=link)/
                                 #RxFramesGreen()/
                                 #TxFramesGreen()/
@@ -701,7 +685,7 @@ class TibitOltAdapter(object):
             Ether(dst=mac_address) /
             Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) /
             EOAMPayload() / EOAM_VendSpecificMsg(oui=Tibit_OUI) /
-            EOAM_TibitMsg(dpoe_opcode=0x01, body=NetworkToNetworkPortObject()/
+            EOAM_TibitMsg(dpoe_opcode=Dpoe_Opcodes["Get Request"], body=NetworkToNetworkPortObject()/
                                 #RxFramesGreen()/
                                 #TxFramesGreen()/
                                 RxFrame_64()/
@@ -885,40 +869,18 @@ class TibitOltAdapter(object):
                         Ether(dst=device.mac_address) /
                         Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) /
                         EOAMPayload() / EOAM_VendSpecificMsg(oui=Tibit_OUI) /
-                        EOAM_TibitMsg(dpoe_opcode = 0x03, body=dn_req)/
+                        EOAM_TibitMsg(dpoe_opcode = Dpoe_Opcodes["Set Request"], body=dn_req)/
                         EndOfPDU()
                     )
 
+                    # Send OAM Request
+                    action = "Set DS Rule"
+                    log.info('OLT-send to {} for OLT: {}'.format(action, olt_mac))
                     self.io_port.send(str(msg))
 
                     # Get and process the Set Response
-                    ack = False
-                    start_time = time.time()
-
-                    # Loop until we have a set response or timeout
-                    while not ack:
-                        frame = yield self.incoming_queues[olt_mac].get()
-                        #TODO - Need to add proper timeout functionality
-                        #if (time.time() - start_time) > TIBIT_MSG_WAIT_TIME or (frame is None):
-                        #    break  # don't wait forever
-
-                        respType = self._get_oam_msg_type(frame)
-
-                        #Check that the message received is a Set Response
-                        if (respType == RxedOamMsgTypeEnum["DPoE Set Response"]):
-                            ack = True
-                        else:
-                            # Handle unexpected events/OMCI messages
-                            self._check_resp(frame)
-
-                    # Verify Set Response
-                    if ack:
-                        (rc,branch,leaf,status) = self._check_set_resp(frame)
-                        if (rc == True):
-                            log.info('Set Response had no errors')
-                        else:
-                            log.info('Set Response had errors')
-                            log.info('Branch 0x{:X} Leaf 0x{:0>4X} {}'.format(branch, leaf, DPoEVariableResponseCodes[status]))
+                    rc = []
+                    yield self._handle_set_resp(olt_mac, action, rc)
 
                 elif in_port == 1:
                     # Upstream rule
@@ -1066,40 +1028,18 @@ class TibitOltAdapter(object):
                         Ether(dst=device.mac_address) /
                         Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) /
                         EOAMPayload() / EOAM_VendSpecificMsg(oui=Tibit_OUI) /
-                        EOAM_TibitMsg(dpoe_opcode = 0x03, body=up_req)/
+                        EOAM_TibitMsg(dpoe_opcode = Dpoe_Opcodes["Set Request"], body=up_req)/
                         EndOfPDU()
                     )
 
+                    # Send OAM Request
+                    action = "Set US Rule"
+                    log.info('OLT-send to {} for OLT: {}'.format(action, olt_mac))
                     self.io_port.send(str(msg))
 
                     # Get and process the Set Response
-                    ack = False
-                    start_time = time.time()
-
-                    # Loop until we have a set response or timeout
-                    while not ack:
-                        frame = yield self.incoming_queues[olt_mac].get()
-                        #TODO - Need to add proper timeout functionality
-                        #if (time.time() - start_time) > TIBIT_MSG_WAIT_TIME or (frame is None):
-                        #    break  # don't wait forever
-
-                        respType = self._get_oam_msg_type(frame)
-
-                        #Check that the message received is a Set Response
-                        if (respType == RxedOamMsgTypeEnum["DPoE Set Response"]):
-                            ack = True
-                        else:
-                            # Handle unexpected events/OMCI messages
-                            self._check_resp(frame)
-
-                    # Verify Set Response
-                    if ack:
-                        (rc,branch,leaf,status) = self._check_set_resp(frame)
-                        if (rc == True):
-                            log.info('Set Response had no errors')
-                        else:
-                            log.info('Set Respose had errors')
-                            log.info('Branch 0x{:X} Leaf 0x{:0>4X} {}'.format(branch, leaf, DPoEVariableResponseCodes[status]))
+                    rc = []
+                    yield self._handle_set_resp(olt_mac, action, rc)
 
                 else:
                     raise Exception('Port should be 1 or 2 by our convention')
@@ -1156,6 +1096,12 @@ class TibitOltAdapter(object):
 
     def receive_inter_adapter_message(self, msg):
         raise NotImplementedError()    
+
+    def suppress_alarm(self, filter):
+        raise NotImplementedError()
+
+    def unsuppress_alarm(self, filter):
+        raise NotImplementedError()
 
     def suppress_alarm(self, filter):
         raise NotImplementedError()
@@ -1541,4 +1487,39 @@ class TibitOltAdapter(object):
         elif (response_code != 0):
             log.info('unexpected response_code 0x%x (expected 0x00)' % response_code)
         else:
-            retVal = True;    
+            retVal = True;
+
+    @inlineCallbacks
+    def _handle_set_resp(self, olt_mac, action, retcode):
+        # Get and process the Set Response
+        ack = False
+
+        # Loop until we have a set response
+        while not ack:
+            frame = yield self.incoming_queues[olt_mac].get()
+
+            #TODO - Need to add proper timeout functionality
+
+            respType = self._get_oam_msg_type(frame)
+            log.info('Received OAM Message 0x %s' % str(respType))
+
+            #Check that the message received is a Set Response
+            if (respType == RxedOamMsgTypeEnum["DPoE Set Response"]):
+                ack = True
+            else:
+                # Handle unexpected events/OMCI messages
+                self._check_resp(frame)
+
+        # Verify Set Response
+        rc = False
+        if ack:
+            (rc,branch,leaf,status) = self._check_set_resp(frame)
+            if (rc is False):
+                log.info('Set Response had errors - Branch 0x{:X} Leaf 0x{:0>4X} {}'.format(branch, leaf, DPoEVariableResponseCodes[status]))
+        
+        if (rc is True):
+            log.info('OLT-response received for {} for OLT: {}'.format(action, olt_mac))
+        else:
+            log.info('BAD OLT-response received for {} for OLT: {}'.format(action, olt_mac))
+
+        retcode.append(rc)
