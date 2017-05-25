@@ -24,6 +24,7 @@ import structlog
 from twisted.internet.defer import inlineCallbacks, returnValue
 from zope.interface import implementer
 
+from voltha.core.alarm_filter_agent import AlarmFilterAgent
 from voltha.core.config.config_proxy import CallbackType
 from voltha.core.device_agent import DeviceAgent
 from voltha.core.dispatcher import Dispatcher
@@ -31,8 +32,7 @@ from voltha.core.global_handler import GlobalHandler
 from voltha.core.local_handler import LocalHandler
 from voltha.core.logical_device_agent import LogicalDeviceAgent
 from voltha.protos.voltha_pb2 import \
-    VolthaLocalServiceStub, \
-    Device, LogicalDevice
+    Device, LogicalDevice, AlarmFilter
 from voltha.registry import IComponent
 
 log = structlog.get_logger()
@@ -40,7 +40,6 @@ log = structlog.get_logger()
 
 @implementer(IComponent)
 class VolthaCore(object):
-
     def __init__(self, instance_id, version, log_level):
         self.instance_id = instance_id
         self.stopped = False
@@ -58,6 +57,7 @@ class VolthaCore(object):
         self.local_root_proxy = None
         self.device_agents = {}
         self.logical_device_agents = {}
+        self.alarm_filter_agent = None
         self.packet_in_queue = Queue()
         self.change_event_queue = Queue()
 
@@ -72,6 +72,7 @@ class VolthaCore(object):
             CallbackType.POST_ADD, self._post_add_callback)
         self.local_root_proxy.register_callback(
             CallbackType.POST_REMOVE, self._post_remove_callback)
+
         log.info('started')
         returnValue(self)
 
@@ -92,6 +93,8 @@ class VolthaCore(object):
             self._handle_add_device(data)
         elif isinstance(data, LogicalDevice):
             self._handle_add_logical_device(data)
+        elif isinstance(data, AlarmFilter):
+            self._handle_add_alarm_filter(data)
         else:
             pass  # ignore others
 
@@ -101,6 +104,8 @@ class VolthaCore(object):
             self._handle_remove_device(data)
         elif isinstance(data, LogicalDevice):
             self._handle_remove_logical_device(data)
+        elif isinstance(data, AlarmFilter):
+            self._handle_remove_alarm_filter(data)
         else:
             pass  # ignore others
 
@@ -118,6 +123,8 @@ class VolthaCore(object):
     @inlineCallbacks
     def _handle_remove_device(self, device):
         if device.id in self.device_agents:
+            AlarmFilterAgent(self).remove_device_filters(device)
+
             yield self.device_agents[device.id].stop(device)
             del self.device_agents[device.id]
 
@@ -141,3 +148,15 @@ class VolthaCore(object):
 
     def get_logical_device_agent(self, logical_device_id):
         return self.logical_device_agents[logical_device_id]
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~ AlarmFilterAgent Mgmt ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    @inlineCallbacks
+    def _handle_add_alarm_filter(self, alarm_filter):
+        assert isinstance(alarm_filter, AlarmFilter)
+        yield AlarmFilterAgent(self).add_filter(alarm_filter)
+
+    @inlineCallbacks
+    def _handle_remove_alarm_filter(self, alarm_filter):
+        assert isinstance(alarm_filter, AlarmFilter)
+        yield AlarmFilterAgent(self).remove_filter(alarm_filter)

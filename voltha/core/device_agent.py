@@ -102,6 +102,22 @@ class DeviceAgent(object):
         if not dry_run:
             yield self.adapter_agent.get_device_details(device)
 
+    @inlineCallbacks
+    def suppress_alarm(self, filter):
+        self.log.debug('suppress-alarms')
+        try:
+            yield self.adapter_agent.suppress_alarm(filter)
+        except Exception as e:
+            self.log.exception(e.message)
+
+    @inlineCallbacks
+    def unsuppress_alarm(self, filter):
+        self.log.debug('unsuppress-alarms')
+        try:
+            yield self.adapter_agent.unsuppress_alarm(filter)
+        except Exception as e:
+            self.log.exception(e.message)
+
     def _set_adapter_agent(self):
         adapter_name = self._tmp_initial_data.adapter
         if adapter_name == '':
