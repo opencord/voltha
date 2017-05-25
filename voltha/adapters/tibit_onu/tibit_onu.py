@@ -519,15 +519,6 @@ class TibitOnuAdapter(object):
     def unsuppress_alarm(self, filter):
         raise NotImplementedError()
 
-<<<<<<< HEAD
-=======
-    def suppress_alarm(self, filter):
-        raise NotImplementedError()
-
-    def unsuppress_alarm(self, filter):
-        raise NotImplementedError()
-
->>>>>>> 934d288488cba51c1513c38405f5bc0b243d4879
     def start_kpi_collection(self, device_id):
 
         """TMP Simulate periodic KPI metric collection from the device"""
@@ -581,19 +572,11 @@ class TibitOnuAdapter(object):
         lc = LoopingCall(_collect, device_id, prefix)
         lc.start(interval=15)  # TODO make this configurable
 
-<<<<<<< HEAD
 
 # Methods for Get / Set  Response Processing from eoam_messages
 
     def _get_oam_msg_type(self, frame):
 
-=======
-
-# Methods for Get / Set  Response Processing from eoam_messages
-
-    def _get_oam_msg_type(self, frame):
-
->>>>>>> 934d288488cba51c1513c38405f5bc0b243d4879
         respType = RxedOamMsgTypeEnum["Unknown"]
         recv_frame = frame
 

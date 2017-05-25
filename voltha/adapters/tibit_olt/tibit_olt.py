@@ -642,7 +642,6 @@ class TibitOltAdapter(object):
                             )/
             EndOfPDU()
             )
-<<<<<<< HEAD
         return str(frame)
 
     def _make_link_stats_frame(self, olt_mac_address, onu_mac_address):
@@ -681,46 +680,6 @@ class TibitOltAdapter(object):
 
         return str(frame)
 
-=======
-        return str(frame)
-
-    def _make_link_stats_frame(self, olt_mac_address, onu_mac_address):
-
-        if self.mode.upper()[0] == "G":  # GPON
-            vssn = "TBIT"
-            link = int(onu_mac_address[4:12], 16)
-        else:                       # EPON
-            vssn = int(onu_mac_address[0:8].rjust(8,"0"), 16)
-            link = int((onu_mac_address[8:10]+"02").ljust(8,"0"), 16)
-        frame = (
-            Ether(dst=olt_mac_address) /
-            Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) /
-            EOAMPayload() / EOAM_VendSpecificMsg(oui=Tibit_OUI) /
-            EOAM_TibitMsg(dpoe_opcode=Dpoe_Opcodes["Get Request"],
-                          body=OLTUnicastLogicalLink(unicastvssn=vssn, unicastlink=link)/
-                                #RxFramesGreen()/
-                                #TxFramesGreen()/
-                                RxFrame_64()/
-                                RxFrame_65_127()/
-                                RxFrame_128_255()/
-                                RxFrame_256_511()/
-                                RxFrame_512_1023()/
-                                RxFrame_1024_1518()/
-                                RxFrame_1519Plus()/
-                                TxFrame_64()/
-                                TxFrame_65_127()/
-                                TxFrame_128_255()/
-                                TxFrame_256_511()/
-                                TxFrame_512_1023()/
-                                TxFrame_1024_1518()/
-                                TxFrame_1519Plus()
-                            )/
-            EndOfPDU()
-            )
-
-        return str(frame)
-
->>>>>>> 934d288488cba51c1513c38405f5bc0b243d4879
     def _make_nni_stats_frame(self, mac_address):
         frame = (
             Ether(dst=mac_address) /
@@ -1142,15 +1101,6 @@ class TibitOltAdapter(object):
         raise NotImplementedError()
 
     def unsuppress_alarm(self, filter):
-<<<<<<< HEAD
-=======
-        raise NotImplementedError()
-
-    def suppress_alarm(self, filter):
-        raise NotImplementedError()
-
-    def unsuppress_alarm(self, filter):
->>>>>>> 934d288488cba51c1513c38405f5bc0b243d4879
         raise NotImplementedError()
 
     def start_kpi_collection(self, device_id):
