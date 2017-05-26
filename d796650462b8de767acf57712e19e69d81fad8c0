@@ -16,6 +16,23 @@
       "revId": "d796650462b8de767acf57712e19e69d81fad8c0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_da3d61bd",
+        "filename": "ofagent/of_protocol_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 146,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-26T18:40:51Z",
+      "side": 1,
+      "message": "According to the openflow spec the difference between the cached generation id and new generation id should be:  \n\nI.e. distance() is the unsigned difference between the sequence numbers, interpreted as a two’s complement\nsigned value. This results in a positive distance if a is greater than b (in a circular sense) but\nless than “half the sequence number space” away from it. It results in a negative distance otherwise\n(a \u003c b).\n\nWhile the statement is confusing, it means that we should cater for a generation_id that wraps around and also allow for a difference up to half the difference between them.\n\nThoughts?",
+      "revId": "d796650462b8de767acf57712e19e69d81fad8c0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
