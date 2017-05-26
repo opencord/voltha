@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "9a0e1d27_b72e48a4",
+        "filename": "tests/itests/voltha/rest_base.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-05-26T07:33:47Z",
+      "side": 1,
+      "message": "Agree that sim_rest is not for production.\nBut, sim_rest is used in this itest to only facilitate detection of ONUs. The simulated adapter exposes a rest interface on port 18880 to provide support for detection of ONUs (API \"detect_onu\"). So, I guess it is fine. Please let me know our thoughts.",
+      "parentUuid": "ba092121_256c279c",
+      "revId": "f7b0eff6755bde17d7b44af85e9b3a65dd1fe0a3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ba092121_e5050fc3",
         "filename": "tests/itests/voltha/test_voltha_adapter_config.py",
         "patchSetId": 2
@@ -36,6 +54,24 @@
     },
     {
       "key": {
+        "uuid": "9a0e1d27_17173453",
+        "filename": "tests/itests/voltha/test_voltha_adapter_config.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 103,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-05-26T07:33:47Z",
+      "side": 1,
+      "message": "By default case, do you mean, where there is no explicit adapter config and auto_registration is enabled?",
+      "parentUuid": "ba092121_e5050fc3",
+      "revId": "f7b0eff6755bde17d7b44af85e9b3a65dd1fe0a3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ba092121_0569238b",
         "filename": "tests/itests/voltha/test_voltha_adapter_config.py",
         "patchSetId": 2
@@ -47,6 +83,24 @@
       "writtenOn": "2017-05-24T14:56:38Z",
       "side": 1,
       "message": "Please use the chameleon rest when making these tests.   This test bypass the entire voltha, which is not really the purpose of the test.",
+      "revId": "f7b0eff6755bde17d7b44af85e9b3a65dd1fe0a3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_972b4494",
+        "filename": "tests/itests/voltha/test_voltha_adapter_config.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 194,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-05-26T07:33:47Z",
+      "side": 1,
+      "message": "This call is only to signal the arrival of ONUs at simulated_olt. The simulated_olt adapter is already exposing REST interface on port 18880 to signal arrival of ONUs. I am using this framework in itest. \nPlease let me know how I can signal arrival of ONUs for simulated_olt via chameleon REST.",
+      "parentUuid": "ba092121_0569238b",
       "revId": "f7b0eff6755bde17d7b44af85e9b3a65dd1fe0a3",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -87,6 +141,24 @@
     },
     {
       "key": {
+        "uuid": "9a0e1d27_37123863",
+        "filename": "voltha/core/local_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 688,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-05-26T07:33:47Z",
+      "side": 1,
+      "message": "OK",
+      "parentUuid": "ba092121_65721f7e",
+      "revId": "f7b0eff6755bde17d7b44af85e9b3a65dd1fe0a3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ba092121_851413f6",
         "filename": "voltha/protos/adapter.proto",
         "patchSetId": 2
@@ -104,6 +176,24 @@
     },
     {
       "key": {
+        "uuid": "9a0e1d27_7718b084",
+        "filename": "voltha/protos/adapter.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-05-26T07:33:47Z",
+      "side": 1,
+      "message": "sure, I will change it",
+      "parentUuid": "ba092121_851413f6",
+      "revId": "f7b0eff6755bde17d7b44af85e9b3a65dd1fe0a3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ba092121_c50a0bd2",
         "filename": "voltha/protos/adapter.proto",
         "patchSetId": 2
@@ -115,6 +205,24 @@
       "writtenOn": "2017-05-24T14:56:38Z",
       "side": 1,
       "message": "Should the name really be \"auto_registration\" only?",
+      "revId": "f7b0eff6755bde17d7b44af85e9b3a65dd1fe0a3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_571dac72",
+        "filename": "voltha/protos/adapter.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 51,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-05-26T07:33:47Z",
+      "side": 1,
+      "message": "I think \"disable_auto_registration\" is fine.\nWith flag name as \"auto_registration\" and default value of False will mislead as \"Disable auto_registration\"; and this is not what we need. \nPlease let me know if this is fine.",
+      "parentUuid": "ba092121_c50a0bd2",
       "revId": "f7b0eff6755bde17d7b44af85e9b3a65dd1fe0a3",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
