@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a0e1d27_7ddd2f14",
+        "filename": "ansible/roles/docker/templates/daemon.json",
+        "patchSetId": 1
+      },
+      "lineNbr": 2,
+      "author": {
+        "id": 1000113
+      },
+      "writtenOn": "2017-05-30T21:31:29Z",
+      "side": 1,
+      "message": "What\u0027s the relationship of hostname: `vinstall` and \"registry_url: 10.100.198.220:5000/\" in the other file: \"ansible/group_vars/all\" . Shouldn\u0027t they be the \nsame?",
+      "revId": "9521fed0e156efee42d55f8c9e3ff0c7f8df344e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
