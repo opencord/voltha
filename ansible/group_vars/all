@@ -7,3 +7,5 @@ jenkins_ip: 10.100.198.220
 debian_version: xenial
 docker_cfg: docker.cfg
 docker_cfg_dest: /etc/default/docker
+docker_daemon_json: daemon.json
+docker_daemon_json_dest: /etc/docker

@@ -37,6 +37,13 @@
   register: copy_result
   tags: [docker]
 
+- name: Enable insecure install registry
+  template:
+    src: "{{ docker_daemon_json }}"
+    dest: "{{ docker_daemon_json_dest }}"
+  register: copy_result
+  tags: [docker]
+
 - name: Debian Daemon is reloaded
   command: systemctl daemon-reload
   when: copy_result|changed and is_systemd is defined
