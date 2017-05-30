@@ -16,6 +16,24 @@
       "revId": "9521fed0e156efee42d55f8c9e3ff0c7f8df344e",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_1d8873e6",
+        "filename": "ansible/roles/docker/templates/daemon.json",
+        "patchSetId": 1
+      },
+      "lineNbr": 2,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-05-30T23:29:59Z",
+      "side": 1,
+      "message": "The registry_url at 10.100.198.220 is for a registry local to the volha machine (10.100.198.220 is one of the voltha addresses if the VM is created using vagrant). The registry at vinstall is on a remote reachable machine who\u0027s hostname is vinstall. So no they shouldn\u0027t be the same.",
+      "parentUuid": "9a0e1d27_7ddd2f14",
+      "revId": "9521fed0e156efee42d55f8c9e3ff0c7f8df344e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
