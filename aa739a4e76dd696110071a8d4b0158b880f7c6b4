@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a0e1d27_bde4e7ac",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 192,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-05-31T01:37:54Z",
+      "side": 1,
+      "message": "This is not what I meant when I mentioned the callback model.   The NBI (e.g. REST) will make a change to the model which in this case is the adapter config.  There should be a callback added to the model such that any change to the model will trigger the callback.  Take a look at the DeviceAgent.",
+      "revId": "aa739a4e76dd696110071a8d4b0158b880f7c6b4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
