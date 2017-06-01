@@ -1,0 +1,7 @@
+{
+  "ca_file": "/consul/config/voltha-CA-template.pem",
+  "cert_file": "/consul/config/voltha-cert-template.crt",
+  "key_file": "/consul/config/voltha-pvt-template.key",
+  "verify_incoming": true,
+  "verify_outgoing": true
+}
