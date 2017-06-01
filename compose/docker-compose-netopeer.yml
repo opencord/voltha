@@ -1,0 +1,6 @@
+version: '2'
+services:
+  netopeer:
+    image: cord/netopeer
+    ports:
+      - "1830:830"
