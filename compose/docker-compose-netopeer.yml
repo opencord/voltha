@@ -1,0 +1,6 @@
+version: '2'
+services:
+  netopeer:
+    build: ../netopeer
+    ports:
+      - "1830:830"
