@@ -99,6 +99,9 @@ podder:
 netconf:
 	docker build -t cord/netconf -f docker/Dockerfile.netconf .
 
+netopeer:
+	docker build -t cord/netopeer -f docker/Dockerfile.netopeer .
+
 shovel:
 	docker build -t cord/shovel -f docker/Dockerfile.shovel .
 
