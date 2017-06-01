@@ -16,6 +16,24 @@
       "revId": "aa739a4e76dd696110071a8d4b0158b880f7c6b4",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_e0f518cc",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 192,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-06-01T04:04:23Z",
+      "side": 1,
+      "message": "I am sorry, the line \"_make_up_to_date\" wasn\u0027t supposed to be present. I had implemented the callback model in my previous commit. Please look at local_handler.py, core.py and adapter_config_agent.py",
+      "parentUuid": "9a0e1d27_bde4e7ac",
+      "revId": "aa739a4e76dd696110071a8d4b0158b880f7c6b4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
