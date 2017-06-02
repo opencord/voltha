@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "9a0e1d27_403ba4eb",
+        "filename": "compose/docker-compose-system-test.yml",
+        "patchSetId": 2
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1000113
+      },
+      "writtenOn": "2017-06-02T04:59:16Z",
+      "side": 1,
+      "message": "I followed the NGINX Config Style which is coming off /cord/incubator/voltha/nginx_config. So, PKI files need to be at /consul/config/ directory of the Container.. So, what\u0027s your thoughts on this ?",
+      "parentUuid": "9a0e1d27_604fc893",
+      "range": {
+        "startLine": 46,
+        "startChar": 6,
+        "endLine": 46,
+        "endChar": 59
+      },
+      "revId": "08afef8831ece1c69e7c147488a3fd4bad659954",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a0e1d27_4044c473",
         "filename": "compose/docker-compose-system-test.yml",
         "patchSetId": 2
