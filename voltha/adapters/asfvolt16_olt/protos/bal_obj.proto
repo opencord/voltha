@@ -1,0 +1,79 @@
+//
+// Copyright 2017 the original author or authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
+syntax = "proto3";
+
+import "bal_msg_type.proto";
+import "bal_osmsg.proto";
+import "bal_model_ids.proto";
+import "bal_errno.proto";
+
+/*
+ * The BAL common message header
+ */
+message bal_comm_msg_hdr
+{
+    uint32         version_major = 2;   /**< Header Major version number */
+    uint32         version_minor = 3;   /**< Header Minor version number */
+    BalMsgType  msg_type = 4;        /**< Request / Response / Ack / Indication */
+    uint32         msg_id = 5;          /**< Message ID – the ID of the message (subID under the message type) */
+    uint32         ex_id = 6;           /**< Exchange ID for message tracking between endpoints */
+    BalSubsystem    sender = 7;          /**< Sender subsystem - used for additional validation */
+    uint32         timestamp = 8;       /**< Timestamp when the message was sent */
+    uint64            scratchpad = 10;      /**< Scratchpad used for inter-thread communication */
+    bytes          payload = 11;       /**< Payload follows the header */
+}
+
+/** Helper type to determine what the data format of a message should look like */
+enum Bal_mgt_group
+{
+    BCMBAL_MGT_GROUP_KEY = 0;               /**< Key that uniquely identifies object instance */
+    BCMBAL_MGT_GROUP_CFG = 1;               /**< Configuration (get/set/clear) */
+    BCMBAL_MGT_GROUP_STAT = 2;              /**< Statistics */
+    BCMBAL_MGT_GROUP_AUTO = 3;              /**< Autonomous indications */
+    BCMBAL_MGT_GROUP_AUTO_CFG = 4;          /**< Autonomous indication configuration */
+    BCMBAL_MGT_GROUP__NUM_OF = 5;
+}
+
+/** Object message type. Can be a combination of flags. */
+enum BalObj_msg_type
+{
+    BCMBAL_OBJ_MSG_TYPE_INVALID  = 0;
+    BCMBAL_OBJ_MSG_TYPE_GET   = 0x01;   /**< Get configuration parameters */
+    BCMBAL_OBJ_MSG_TYPE_SET   = 0x02;   /**< Set configuration parameters */
+    BCMBAL_OBJ_MSG_TYPE_CLEAR = 0x04;   /**< Clear configuration parameters */
+}
+
+/** Object message direction - request or response. */
+enum BalObj_msg_dir
+{
+    BCMBAL_OBJ_MSG_DIR_REQUEST = 0;
+    BCMBAL_OBJ_MSG_DIR_RESPONS = 1;
+}
+
+/** Information common to all BAL objects */
+message BalObj
+{
+    bal_comm_msg_hdr     comm_hdr = 1;      /**< Communication header */
+    uint32    version = 2;       /**< Version of the Object definition/messageure */
+    BalObjId        obj_type = 3;      /**< An enumerated ID associated with the object being specified */
+    Bal_mgt_group     group = 4;         /**< Management group */
+    uint32             subgroup = 5;      /**< Subgroup for indications */
+    BalObj_msg_type  type = 6;          /**< Type (e.g. get / set / clear)  */
+    BalObj_msg_dir   dir = 7;           /**< Direction - request / response */
+    BalErrno		     status = 8;        /**< BAL status code (BCM_ERR_OK–success, error code otherwise) */
+    uint64 presence_mask = 9; /**< Indicates which attribute parameters are present */
+}
