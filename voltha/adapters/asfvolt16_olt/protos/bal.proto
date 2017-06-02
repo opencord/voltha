@@ -1,0 +1,66 @@
+//
+// Copyright 2017 the original author or authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "bal_obj.proto";
+import "bal_model_types.proto";
+import "bal_errno.proto";
+
+message BalErr {
+    BalErrno err = 1;
+}
+
+/**
+ * BAL configuration object
+ */
+message BalCfg {
+    BalObj hdr = 1;     // Transport header
+    oneof obj {
+        BalAccessTerminalCfg cfg = 2;   // Access Terminal
+        BalFlowCfg flow = 3;        // Flow
+        BalGroupCfg group = 4;
+        BalInterfaceCfg interface = 5;
+        BalPacketCfg packet = 6;
+        BalSubscriberTerminalCfg terminal = 7;
+        BalTmQueueCfg tm_queue_cfg = 8;
+        BalTmSchedCfg tm_sched_cfg = 9;
+    }
+}
+
+message BalInit {
+    string balapi_mgmt_ip_port = 1;     // IP:port of the BAL API management queue
+    string core_mgmt_ip_port = 2;       // IP:port of the core management queue
+}
+
+service Bal {
+    /**
+     * Initialize the BAL Public API internal data structures
+     **/
+    rpc BalApiInit(BalInit) returns(BalErr) {}
+    /**
+     * Un-initialize the BAL Public API internal data structures
+     **/
+    rpc BalApiFinish(google.protobuf.Empty) returns(BalErr) {}
+    /**
+     * BAL Public API Set (or modify) command.
+     *
+     * Set (or modify) the specified object instance (with implicit creation
+     * of dynamic objects) associated with the specified access-terminal device.
+     **/
+    rpc BalCfgSet(BalCfg) returns(BalErr) {}
+}
