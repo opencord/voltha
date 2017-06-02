@@ -570,10 +570,20 @@ class TibitOnuAdapter(object):
 
 
         if self.mode.upper()[0] == "G":  # GPON
+
+            hw_vers = int(device.hardware_version[2:], 16)
+
+            if hw_vers >= 0x170517:
+                mcastLidx = 0x14bc
+            else:
+                mcastLidx = 0x10bc
+
+            log.info("Using Multicast LIDX {:04X}".format(mcastLidx))
+
             # construct multicast LLID set
             msg = (
                 EOAMPayload() / EOAM_VendSpecificMsg(oui=CableLabs_OUI) /
-                EOAM_DpoeMsg(dpoe_opcode=Dpoe_Opcodes["Multicast Register"],body=MulticastRegisterSet(MulticastLink=0x10bc, UnicastLink=0)
+                EOAM_DpoeMsg(dpoe_opcode=Dpoe_Opcodes["Multicast Register"],body=MulticastRegisterSet(MulticastLink=mcastLidx, UnicastLink=0)
                 ))
 
             # send message

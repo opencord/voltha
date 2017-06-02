@@ -1103,14 +1103,20 @@ class TibitOltAdapter(object):
               Dot1Q(vlan=proxy_address.channel_id, prio=TIBIT_MGMT_PRIORITY) / \
               msg
         else:
-            # Use the standard to send OMCI over OAM
-            encapsulated_omci = EOAM_OmciMsg(body=msg)
+
+            # Can receive OMCI frames encoded as strings or as byte-arrays
+            try:
+                msgBytes = bytearray.fromhex(msg)
+                encapsulated_omci = EOAM_OmciMsg(body=msgBytes)
+            except ValueError:
+                encapsulated_omci = EOAM_OmciMsg(body=msg)
 
             frame = Ether(dst=device.mac_address) / \
               Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) / \
               Dot1Q(vlan=proxy_address.channel_id, prio=TIBIT_MGMT_PRIORITY) / \
               EOAMPayload() / EOAM_VendSpecificMsg(oui=IEEE_OUI) / \
-              encapsulated_omci
+              encapsulated_omci /\
+              EndOfPDU()
 
         self.io_port.send(str(frame))
 
