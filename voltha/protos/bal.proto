@@ -1,0 +1,215 @@
+/*
+ * bal.proto
+ *
+ * Protobuf definition of gRPC interface to Broadcom's Broadband Adaptation Layer (BAL)
+ *
+ * <<Reference to BAL API documentation >>
+ */
+
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "google/api/annotations.proto";
+
+enum BalErr {
+    BAL_OK = 0;
+    BAL_ERROR = 1;
+}
+
+message BalErrMsg {
+    BalErr err = 1;
+}
+
+// Admin state values for access terminal object.
+enum BalState {
+    BAL_STATE_UP = 0;		// Admin state up
+    BAL_STATE_DOWN = 1;		// Admin state down
+    BAL_STATE_TESTING = 2;	// Admin state testing
+}
+
+// Oper status values.
+enum BalStatus {
+    BAL_STATUS_UP = 0;		// Oper status up
+    BAL_STATUS_DOWN =  1;	// Oper status down
+    BAL_STATUS_TESTING = 2;	// Oper status testing
+    BAL_STATUS_UNKNOWN = 3;	// Oper status unknown
+    BAL_STATUS_DORMANT = 4;	// Oper status dormant
+    BAL_STATUS_NOT_PRESENT = 5;	// Oper status not present
+    BAL_STATUS_LOWER_LAYER_DOWN = 6;	// Oper status lower layer down
+}
+
+// Classifier ID.
+enum BalClassifierId {
+    BAL_CLASSIFIER_ID_O_TPID = 0;	// Outer TPID of the packet to be classified.
+    BAL_CLASSIFIER_ID_O_VID = 1;	// Outer VID of the packet to be classified.
+    BAL_CLASSIFIER_ID_I_TPID = 2;	// Inner TPID of the packet to be classified.
+    BAL_CLASSIFIER_ID_I_VID = 3;	// Inner VID of the packet to be classified.
+    BAL_CLASSIFIER_ID_O_PBITS = 4;	// Outer PBITS of the packet to be classified.
+    BAL_CLASSIFIER_ID_I_PBITS = 5;	// Inner PBITS of the packet to be classified.
+    BAL_CLASSIFIER_ID_ETHER_TYPE = 6;	// Ethertype of the packet to be classified.
+    BAL_CLASSIFIER_ID_DST_MAC = 7;	// Destination MAC address of the packet to be classified.
+    BAL_CLASSIFIER_ID_SRC_MAC = 8;	// Source MAC address of the packet to be classified.
+    BAL_CLASSIFIER_ID_IP_PROTO = 9;	// IP protocol of the packet to be classified.
+    BAL_CLASSIFIER_ID_DST_IP = 10;	// Destination IP address of the packet to be classified.
+    BAL_CLASSIFIER_ID_SRC_IP = 11;	// Source IP address of the packet to be classified.
+    BAL_CLASSIFIER_ID_SRC_PORT = 12;	// Source port of the packet to be classified.
+    BAL_CLASSIFIER_ID_DST_PORT = 13;	// Destination port of the packet to be classified.
+    BAL_CLASSIFIER_ID_PKT_TAG_TYPE = 14;	// The tag type of the ingress packets.
+    BAL_CLASSIFIER_ID_ALL = 15;		// All fields.
+}
+
+// Packet tag type.
+enum BalPktTagType {
+    BAL_PKT_TAG_TYPE_UNTAGGED = 0;	// Untagged.
+    BAL_PKT_TAG_TYPE_SINGLE_TAG = 1;	// Single tag.
+    BAL_PKT_TAG_TYPE_DOUBLE_TAG = 2;	// Double tag.
+}
+
+//Interworking Function Mode.
+enum BalIwfMode {
+    BAL_IWF_MODE_DIRECT_MAPPING = 0;	// Direct mapping.
+    BAL_IWF_MODE_PER_FLOW = 1;		// Per flow.
+    BAL_IWF_MODE__NUM_OF = 2;		//  Number of enum entries, not an entry itself.
+}
+
+message BalClassifier {
+    BalClassifierId presence_mask = 1;	//Presence Mask
+    uint32 o_tpid = 2;		// Outer TPID of the packet to be classified
+    uint32 o_vid = 3;		// Outer VID of the packet to be classified 
+    uint32 i_tpid = 4;		// Inner TPID of the packet to be classified 
+    uint32 i_vid = 5;		// Inner VID of the packet to be classified
+    uint32 o_pbits = 6;		// Outer PBITS of the packet to be classified
+    uint32 i_pbits = 7;		// Inner PBITS of the packet to be classified
+    uint32 ether_type = 8;	// Ethertype of the packet to be classified
+    //bcmos_mac_address dst_mac = 9;	// Destination MAC address of the packet to be classified
+    //bcmos_mac_address src_mac = 10;	// Source MAC address of the packet to be classified
+    uint32 ip_proto = 11;		// IP protocol of the packet to be classified
+    //bcmos_ipv4_address dst_ip = 12;	// Destination IP address of the packet to be classified
+    //bcmos_ipv4_address src_ip = 13;	// Source IP address of the packet to be classified
+    uint32 src_port = 14;		// Source port of the packet to be classified
+    uint32 dst_port = 15;		// Destination port of the packet to be classified
+    BalPktTagType pkt_tag_type = 16;	// The tag type of the ingress packets
+}
+
+enum BalActionId {
+    BAL_ACTION_ID_CMDS_BITMASK = 0;	// Commands bitmask.
+    BAL_ACTION_ID_O_VID = 1;		// Outer vid.
+    BAL_ACTION_ID_O_PBITS = 2;		// Outer pbits.
+    BAL_ACTION_ID_O_TPID = 3;		// Outer tpid.
+    BAL_ACTION_ID_I_VID = 4;		// Inner vid.
+    BAL_ACTION_ID_I_PBITS = 5;		// Inner pbits.
+    BAL_ACTION_ID_I_TPID = 6;		// Inner tpid.
+    BAL_ACTION_ID_ALL = 7;		// All fields.
+}
+
+enum BalActionCmdId {
+    BAL_ACTION_CMD_ID_ADD_OUTER_TAG = 0;	// Add outer tag.
+    BAL_ACTION_CMD_ID_REMOVE_OUTER_TAG = 1;	// Remove outer tag.
+    BAL_ACTION_CMD_ID_XLATE_OUTER_TAG = 2;	// Translate outer tag.
+    BAL_ACTION_CMD_ID_XLATE_TWO_TAGS = 3;	// Translate two tags.
+    BAL_ACTION_CMD_ID_DISCARD_DS_BCAST = 4;	// Used to satisfy TR-156 Issue 3 R-111.
+    BAL_ACTION_CMD_ID_DISCARD_DS_UNKNOWN = 5;	// Used to satisfy TR-156 Issue 3 R-109.
+    BAL_ACTION_CMD_ID_ADD_TWO_TAGS = 6;		// Add two tags.
+    BAL_ACTION_CMD_ID_REMOVE_TWO_TAGS = 7;	// Remove two tags.
+    BAL_ACTION_CMD_ID_REMARK_PBITS = 8;		// Set the outer tag pbits.
+    BAL_ACTION_CMD_ID_COPY_PBITS = 9;		// Copy the inner pbits to outer pbits.
+    BAL_ACTION_CMD_ID_REVERSE_COPY_PBITS = 10;	// Copy the outer pbits to inner pbits.
+    BAL_ACTION_CMD_ID_DSCP_TO_PBITS = 11;	// Copy the L4 DSCP to outer pbits.
+    BAL_ACTION_CMD_ID_TRAP_TO_HOST = 12;	// Not a valid action for a group object member.
+}
+
+message BalAction {
+    BalActionId presence_mask = 1;	// Presence Mask
+    BalActionCmdId cmds_bitmask = 2;	// Commands bitmask
+    uint32 o_vid = 3;			// Outer vid
+    uint32 o_pbits = 4;			// Outer pbits
+    uint32 o_tpid = 5;			// Outer tpid
+    uint32 i_vid = 6;			// Inner vid
+    uint32 i_pbits = 7;			// Inner pbits
+    uint32 i_tpid = 8;			// Inner tpid
+}
+
+enum BalSlaId {
+    BAL_SLA_ID_MIN_RATE = 0;		// The minimal rate for this flow, in kilobits per second (optional)
+    BAL_SLA_ID_MAX_RATE = 1;		// The maximum rate for this flow, in kilobits per second (optional)
+    BAL_SLA_ID_ALL = 2;			// All fields.
+}
+
+message BalSla {
+    BalSlaId presence_mask = 1;		// Presence Mask
+    uint32 min_rate = 2;		// The minimal rate for this flow, in kilobits per second (optional) 
+    uint32 max_rate = 3;		// The maximum rate for this flow, in kilobits per second (optional) 
+}
+
+enum BalFlowType {
+    BAL_FLOW_TYPE_UPSTREAM = 0;		// Upstream flow.
+    BAL_FLOW_TYPE_DOWNSTREAM = 1;	// Downstream Flow.
+    BAL_FLOW_TYPE_BROADCAST = 2;	// Broadcast Flow.
+    BAL_FLOW_TYPE_MULTICAST = 3;	// Multicast Flow.
+}
+
+// KEYS
+message BalFlowKey {
+    uint32 flow_id = 1;		// ID of the flow object instance being referenced
+    BalFlowType flow_type = 2;	// Type of the flow, Upstream, Downstream, Broadcast or Multicast
+}
+
+message BalAccessTerminalKey {
+    uint32 access_term_id = 1;
+}
+
+message BalFlowCfgData {
+    BalState admin_state = 1; 	// Administrative state 
+    BalStatus oper_status = 2;	// Operational status
+    uint32 access_int_id = 3;	// ID of the subscriber side interface
+    uint32 network_int_id = 4;	// ID of the network side interface
+    uint32 sub_term_id = 5;	// ID of the subscriber terminal device
+    uint32 svc_port_id = 6;	// ID of the service port (for GPON/XGPON - GEM ID) 
+    uint32 agg_port_id = 7;	// ID of the aggregate port (for GPON/XGPON - ALLOC ID) 
+    bool resolve_mac = 8;	// Flag indicating if the MAC address table should be used in DS GEM resolution
+    uint32 base_tc_id = 9;	// Base index of the TC object(s) to be used for this flow
+    BalClassifier classifier = 10;	// Classifier for this flow
+    BalAction action = 11;	// Action associated with the flow
+    BalSla sla = 12;		// SLA parameters for this flow
+    uint64 cookie = 13;		// Application cookie
+    uint32 priority = 14;	// Priority for this flow in case of multiple match
+    uint32 group_id = 15;	// Multicast group associated with this flow, valid for type MULTICAST only
+}
+
+message BalFlowCfg {
+    BalFlowKey key =  1;	// Key
+    BalFlowCfgData data = 2;	// Flow properties that must be set by the user
+}
+
+message BalAccessTerminalCfgData {
+    BalState admin_state = 1;	// Administrative state. 
+    BalStatus oper_status = 2;	// Operational status. 
+    BalIwfMode iwf_mode = 3;	// The interworking mode. 
+}
+
+message BalAccessTerminalCfg {
+    BalAccessTerminalKey key =  1;	// Key
+    BalAccessTerminalCfgData data = 2;	// Flow properties that must be set by the user
+}
+
+message BalCfg {
+}
+
+message BalCfgMsg {
+    BalCfg hdr = 1;		// Transport header
+    oneof obj {
+        BalFlowCfg flow = 2;		// Flow
+        BalAccessTerminalCfg cfg = 3;	// Access Terminal
+    }
+}
+
+message BalInitMsg {
+    string balapi_mgmt_ip_port = 1;
+    string core_mgmt_ip_port = 2;
+}
+
+service Bal {
+    rpc BalApiInit(BalInitMsg) returns(BalErrMsg) {}
+    rpc BalApiFinish(google.protobuf.Empty) returns(BalErrMsg) {}
+    rpc BalCfgSet(BalCfgMsg) returns(BalErrMsg) {}
+}
