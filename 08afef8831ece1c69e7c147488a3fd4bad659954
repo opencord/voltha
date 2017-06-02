@@ -110,6 +110,23 @@
       "revId": "08afef8831ece1c69e7c147488a3fd4bad659954",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_2b465124",
+        "filename": "consul_config/voltha-cert-template.crt",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000196
+      },
+      "writtenOn": "2017-06-02T17:28:21Z",
+      "side": 1,
+      "message": "How were the certificates generated (e.g. what Common Name was specified)? What is the certificate deployment strategy? Will there be a separate certificate per server? Is any thought being given to using a wild-carded domain name as the Common Name? This would reduce the number of required certificates? If so, is Consul\u0027s DNS server being considered as the repository of Consul-named services? How will this change when we move to a HA implementation where the DNS of Docker\u0027s swarm engine is leveraged?",
+      "revId": "08afef8831ece1c69e7c147488a3fd4bad659954",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
