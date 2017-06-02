@@ -273,6 +273,9 @@ class VolthaCli(Cmd):
             kw['mac_address'] = opts.mac_address
         else:
             raise Exception('Either IP address or Mac Address is needed')
+        # Pass any extra arguments past '--' to the device as custom arguments
+        kw['extra_args'] = line
+
         device = voltha_pb2.Device(**kw)
         device = stub.CreateDevice(device)
         self.poutput('success (device id = {})'.format(device.id))

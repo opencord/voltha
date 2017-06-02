@@ -148,6 +148,7 @@ message Device {
         string host_and_port = 21;
 
     };
+    string extra_args = 23;  // Used to pass additional device specific arguments
 
     ProxyAddress proxy_address = 19;
 
