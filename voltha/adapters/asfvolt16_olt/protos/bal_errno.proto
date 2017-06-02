@@ -1,0 +1,63 @@
+//
+// Copyright 2017 the original author or authors.
+//
+// Licensed under the Apache License; Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing; software
+// distributed under the License is distributed on an "AS IS" BASIS;
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND; either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
+syntax = "proto3";
+
+/** Error codes */
+enum BalErrno
+{
+    BAL_ERR_OK                                 =  0;   /**< OK */
+    BAL_ERR_IN_PROGRESS                        = -1;   /**< Operation is in progress */
+    BAL_ERR_PARM                               = -2;   /**< Error in parameters */
+    BAL_ERR_NOMEM                              = -3;   /**< No memory */
+    BAL_ERR_NORES                              = -4;   /**< No resources */
+    BAL_ERR_INTERNAL                           = -5;   /**< Internal error */
+    BAL_ERR_NOENT                              = -6;   /**< Entry doesn't exist */
+    BAL_ERR_NODEV                              = -7;   /**< Device doesn't exist */
+    BAL_ERR_ALREADY                            = -8;   /**< Entry already exists */
+    BAL_ERR_RANGE                              = -9;   /**< Out of range */
+    BAL_ERR_PERM                               = -10;  /**< No permission to perform an operation */
+    BAL_ERR_NOT_SUPPORTED                      = -11;  /**< Operation is not supported */
+    BAL_ERR_PARSE                              = -12;  /**< Parsing error */
+    BAL_ERR_INVALID_OP                         = -13;  /**< Invalid operation */
+    BAL_ERR_IO                                 = -14;  /**< I/O error */
+    BAL_ERR_STATE                              = -15;  /**< Object is in bad state */
+    BAL_ERR_DELETED                            = -16;  /**< Object is deleted */
+    BAL_ERR_TOO_MANY                           = -17;  /**< Too many objects */
+    BAL_ERR_NO_MORE                            = -18;  /**< No more entries */
+    BAL_ERR_OVERFLOW                           = -19;  /**< Buffer overflow */
+    BAL_ERR_COMM_FAIL                          = -20;  /**< Communication failure */
+    BAL_ERR_NOT_CONNECTED                      = -21;  /**< No connection with the target system */
+    BAL_ERR_SYSCALL_ERR                        = -22;  /**< System call returned error */
+    BAL_ERR_MSG_ERROR                          = -23;  /**< Received message is insane */
+    BAL_ERR_TOO_MANY_REQS                      = -24;  /**< Too many outstanding requests */
+    BAL_ERR_TIMEOUT                            = -25;  /**< Operation timed out */
+    BAL_ERR_TOO_MANY_FRAGS                     = -26;  /**< Too many fragments */
+    BAL_ERR_NULL                               = -27;  /**< Got NULL pointer */
+    BAL_ERR_READ_ONLY                          = -28;  /**< Attempt to set read-only parameter */
+    BAL_ERR_ONU_ERR_RESP                       = -29;  /**< ONU returned an error response */
+    BAL_ERR_MANDATORY_PARM_IS_MISSING          = -30;  /**< Mandatory parameter is missing */
+    BAL_ERR_KEY_RANGE                          = -31;  /**< Key field was out of range */
+    BAL_ERR_QUEUE_EMPTY                        = -32;  /**< Rx PCIe queue empty */
+    BAL_ERR_QUEUE_FULL                         = -33;  /**< Tx PCIe queue full */
+    BAL_ERR_TOO_LONG                           = -34;  /**< Processing is taking too long; but will finish eventually */
+    BAL_ERR_INSUFFICIENT_LIST_MEM              = -35;  /**< Not enough memory was provided for variable-length lists */
+
+    BAL_ERR_OUT_OF_SYNC                        = -36;  /**< Sequence number or operation step was out of sync. */
+    BAL_ERR_CHECKSUM                           = -37;  /**< Checksum error */
+    BAL_ERR_IMAGE_TYPE                         = -38;  /**< Unsupported file/image type */
+    BAL_ERR_INCOMPLETE_TERMINATION             = -39;  /**< Incomplete premature termination */
+}

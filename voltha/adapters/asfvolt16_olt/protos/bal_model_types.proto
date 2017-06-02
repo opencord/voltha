@@ -1,0 +1,1065 @@
+//
+// Copyright 2017 the original author or authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
+syntax = "proto3";
+
+import "bal_obj.proto";
+
+/** action ID.
+ */
+enum BalActionId {
+    BAL_ACTION_ID_NONE           = 0;
+    BAL_ACTION_ID_CMDS_BITMASK   = 0x0001;           /**< Commands bitmask. */
+    BAL_ACTION_ID_O_VID          = 0x0002;           /**< Outer vid. */
+    BAL_ACTION_ID_O_PBITS        = 0x0004;           /**< Outer pbits. */
+    BAL_ACTION_ID_O_TPID         = 0x0008;           /**< Outer tpid. */
+    BAL_ACTION_ID_I_VID          = 0x0010;           /**< Inner vid. */
+    BAL_ACTION_ID_I_PBITS        = 0x0020;           /**< Inner pbits. */
+    BAL_ACTION_ID_I_TPID         = 0x0040;           /**< Inner tpid. */
+    BAL_ACTION_ID_ALL            = 0x007F;           /**< All fields */
+}
+
+/** actionCmdId.
+ */
+enum BalActionCmdId {
+    BAL_ACTION_CMD_ID_NONE               = 0;
+    BAL_ACTION_CMD_ID_ADD_OUTER_TAG      = 0x0001;   /**< Add outer tag. */
+    BAL_ACTION_CMD_ID_REMOVE_OUTER_TAG   = 0x0002;   /**< Remove outer tag. */
+    BAL_ACTION_CMD_ID_XLATE_OUTER_TAG    = 0x0004;   /**< Translate outer tag. */
+    BAL_ACTION_CMD_ID_XLATE_TWO_TAGS     = 0x0008;   /**< Translate two tags. */
+    BAL_ACTION_CMD_ID_DISCARD_DS_BCAST   = 0x0010;   /**< Used to satisfy TR-156 Issue 3 R-111 */
+    BAL_ACTION_CMD_ID_DISCARD_DS_UNKNOWN = 0x0020;   /**< Used to satisfy TR-156 Issue 3 R-109 */
+    BAL_ACTION_CMD_ID_ADD_TWO_TAGS       = 0x0040;   /**< Add two tags. */
+    BAL_ACTION_CMD_ID_REMOVE_TWO_TAGS    = 0x0080;   /**< Remove two tags. */
+    BAL_ACTION_CMD_ID_REMARK_PBITS       = 0x0100;   /**< Set the outer tag pbits */
+    BAL_ACTION_CMD_ID_COPY_PBITS         = 0x0200;   /**< Copy the inner pbits to outer pbits */
+    BAL_ACTION_CMD_ID_REVERSE_COPY_PBITS = 0x0400;   /**< Copy the outer pbits to inner pbits */
+    BAL_ACTION_CMD_ID_DSCP_TO_PBITS      = 0x0800;   /**< Copy the L4 DSCP to outer pbits */
+    BAL_ACTION_CMD_ID_TRAP_TO_HOST       = 0x1000;   /**< Not a valid action for a group object member */
+}
+
+/** classifier ID.
+ */
+enum BalClassifierId {
+    BAL_CLASSIFIER_ID_NONE               = 0;
+    BAL_CLASSIFIER_ID_O_TPID             = 0x0001;   /**< Outer TPID of the packet to be classified */
+    BAL_CLASSIFIER_ID_O_VID              = 0x0002;   /**< Outer VID of the packet to be classified */
+    BAL_CLASSIFIER_ID_I_TPID             = 0x0004;   /**< Inner TPID of the packet to be classified */
+    BAL_CLASSIFIER_ID_I_VID              = 0x0008;   /**< Inner VID of the packet to be classified */
+    BAL_CLASSIFIER_ID_O_PBITS            = 0x0010;   /**< Outer PBITS of the packet to be classified */
+    BAL_CLASSIFIER_ID_I_PBITS            = 0x0020;   /**< Inner PBITS of the packet to be classified */
+    BAL_CLASSIFIER_ID_ETHER_TYPE         = 0x0040;   /**< Ethertype of the packet to be classified */
+    BAL_CLASSIFIER_ID_DST_MAC            = 0x0080;   /**< Destination MAC address of the packet to be classified */
+    BAL_CLASSIFIER_ID_SRC_MAC            = 0x0100;   /**< Source MAC address of the packet to be classified */
+    BAL_CLASSIFIER_ID_IP_PROTO           = 0x0200;   /**< IP protocol of the packet to be classified */
+    BAL_CLASSIFIER_ID_DST_IP             = 0x0400;   /**< Destination IP address of the packet to be classified */
+    BAL_CLASSIFIER_ID_SRC_IP             = 0x0800;   /**< Source IP address of the packet to be classified */
+    BAL_CLASSIFIER_ID_SRC_PORT           = 0x1000;   /**< Source port of the packet to be classified */
+    BAL_CLASSIFIER_ID_DST_PORT           = 0x2000;   /**< Destination port of the packet to be classified */
+    BAL_CLASSIFIER_ID_PKT_TAG_TYPE       = 0x4000;   /**< The tag type of the ingress packets */
+    BAL_CLASSIFIER_ID_ALL                = 0x7FFF;   /**< All fields */
+}
+
+/** Packet tag type.
+ */
+enum BalPktTagType {
+    BAL_PKT_TAG_TYPE_NONE                = 0;
+    BAL_PKT_TAG_TYPE_UNTAGGED            = 0x0001;   /**< Untagged. */
+    BAL_PKT_TAG_TYPE_SINGLE_TAG          = 0x0002;   /**< Single tag. */
+    BAL_PKT_TAG_TYPE_DOUBLE_TAG          = 0x0004;   /**< Double tag. */
+}
+
+/** Generic enable/disable enumeration
+ */
+enum BalControl {
+    BAL_CONTROL_DISABLE                  = 0;        /**< disable. */
+    BAL_CONTROL_ENABLE                   = 1;        /**< enable. */
+    BAL_CONTROL__NUM_OF                  = 2;	/**< Number of enum entries, not an entry itself. */
+}
+
+/** Destination type.
+ */
+enum BalDestType {
+    BAL_DEST_TYPE_INVALID                = 0;
+    BAL_DEST_TYPE_NNI                    = 1;        /**< for packets being sent to the NNI */
+    BAL_DEST_TYPE_SUB_TERM               = 2;        /**< for packets being sent to a subscriber terminal */
+    BAL_DEST_TYPE_HOST                   = 3;        /**<  for packet indications received from NNI or SUB_TERM and being sent to the host */
+}
+
+/** Downstrean action for unknown packets.
+ */
+enum BalDsMissMode {
+    BAL_DS_MISS_MODE_DISCARD             = 0;        /**< Discard. */
+    BAL_DS_MISS_MODE_BROADCAST           = 1;        /**< Broadcast. */
+    BAL_DS_MISS_MODE_VID                 = 2;        /**< Vid. */
+    BAL_DS_MISS_MODE__NUM_OF             = 3;        /**< Number of enum entries, not an entry itself. */
+}
+
+/** Extra BW Eligibility Type
+ */
+enum BalExtraBwEligibilityType
+{
+    BAL_EXTRA_BW_ELIGIBILITY_TYPE_NONE       = 0;    /**< None */
+    BAL_EXTRA_BW_ELIGIBILITY_TYPE_NOT_ASSURED= 1;    /**< Not assured */
+    BAL_EXTRA_BW_ELIGIBILITY_TYPE_BEST_EFFORT= 2;    /**< Best effort */
+    BAL_EXTRA_BW_ELIGIBILITY_TYPE__NUM_OF    = 3;    /**< Number of enum entries, not an entry itself. */
+}
+
+/** Flow Type.
+ */
+enum BalFlowType {
+    BAL_FLOW_TYPE_INVALID                    = 0;
+    BAL_FLOW_TYPE_UPSTREAM                   = 1;    /**< Upstream flow */
+    BAL_FLOW_TYPE_DOWNSTREAM                 = 2;    /**< Downstream Flow */
+    BAL_FLOW_TYPE_BROADCAST                  = 3;    /**< Broadcast Flow */
+    BAL_FLOW_TYPE_MULTICAST                  = 4;    /**< Multicast Flow */
+}
+
+/** Member operation type.
+ */
+enum BalGroupMemberCmd
+{
+    BAL_GROUP_MEMBER_CMD_INVALID             = 0;
+    BAL_GROUP_MEMBER_CMD_ADD_MEMBERS         = 1;    /**< Add new members. */
+    BAL_GROUP_MEMBER_CMD_REM_MEMBERS         = 2;    /**< Remove existing members. */
+    BAL_GROUP_MEMBER_CMD_SET_MEMBERS         = 3;    /**< Replace members with new set. */
+}
+
+/** owner of the group
+ */
+enum BalGroupOwner
+{
+    BAL_GROUP_OWNER_NONE                     = 0;    /**< no owner */
+    BAL_GROUP_OWNER_MULTICAST                = 1;    /**< used as multicast group */
+    BAL_GROUP_OWNER_UNICAST                  = 2;    /**< used as unicast group */
+    BAL_GROUP_OWNER__NUM_OF                  = 3;    /**< Number of enum entries, not an entry itself. */
+}
+
+/** Interface type.
+ */
+enum BalIntfType {
+    BAL_INTF_TYPE_NNI                        = 0;    /**< NNI Interface. */
+    BAL_INTF_TYPE_PON                        = 1;    /**< POIN Interface. */
+    BAL_INTF_TYPE__NUM_OF                    = 2;    /**< Number of enum entries, not an entry itself. */
+}
+
+/** Interworking Function Mode.
+ */
+enum BalIwfMode {
+    BAL_IWF_MODE_DIRECT_MAPPING              = 0;    /**< Direct mapping. */
+    BAL_IWF_MODE_PER_FLOW                    = 1;    /**< Per flow . */
+    BAL_IWF_MODE__NUM_OF                     = 2;    /**< Number of enum entries, not an entry itself. */
+}
+
+/** SLA ID.
+ */
+enum BalSlaId {
+    BAL_SLA_ID_NONE                          = 0;
+    BAL_SLA_ID_MIN_RATE                      = 0x0001;   /**< The minimal rate for this flow, in kilobits per second (optional) */
+    BAL_SLA_ID_MAX_RATE                      = 0x0002;   /**< The maximum rate for this flow, in kilobits per second (optional) */
+    BAL_SLA_ID_ALL                           = 0x0003;   /**< All fields */
+}
+
+/** Admin state values for access terminal object
+ */
+enum BalState {
+    BAL_STATE_INVALID                        = 0;
+    BAL_STATE_UP                             = 1;        /**< Admin state up */
+    BAL_STATE_DOWN                           = 2;        /**< Admin state down */
+    BAL_STATE_TESTING                        = 3;        /**< Admin state testing */
+}
+
+/** Oper status values
+ */
+enum BalStatus {
+    BAL_STATUS_INVALID                       = 0;
+    BAL_STATUS_UP                            = 1;        /**< Oper status up */
+    BAL_STATUS_DOWN                          = 2;        /**< Oper status down */
+    BAL_STATUS_TESTING                       = 3;        /**< Oper status testing */
+    BAL_STATUS_NOT_PRESENT                   = 4;        /**< Oper status not present */
+    BAL_STATUS_LOWER_LAYER_DOWN              = 5;        /**< Oper status lower layer down */
+    BAL_STATUS_UNKNOWN                       = 6;        /**< Oper status unknown */
+}
+
+/** Buffer Admission Control Type
+ */
+enum BalTmBacType {
+    BAL_TM_BAC_TYPE_TAILDROP                 = 0;        /**< Taildrop  */
+    BAL_TM_BAC_TYPE_WTAILDROP                = 1;        /**< Weighted taildrop */
+    BAL_TM_BAC_TYPE_RED                      = 2;        /**< Random Early Discard */
+    BAL_TM_BAC_TYPE_WRED                     = 3;        /**< Weighted Random Early Discard */
+    BAL_TM_BAC_TYPE__NUM_OF                  = 4;        /**< Number of enum entries, not an entry itself. */
+}
+
+/** TM Creation Mode
+ */
+enum BalTmCreationMode {
+    BAL_TM_CREATION_MODE_MANUAL              = 0;            /**< tm object created manually */
+    BAL_TM_CREATION_MODE_AUTO                = 1;            /**< tm object created automatically */
+    BAL_TM_CREATION_MODE__NUM_OF             = 2;            /**< Number of enum entries, not an entry itself. */
+}
+
+/** Scheduling Level for the Children TM
+ */
+enum BalTmSchedChildType {
+    BAL_TM_SCHED_CHILD_TYPE_QUEUE            = 0;            /**< Queue-level scheduler */
+    BAL_TM_SCHED_CHILD_TYPE_SCHED            = 1;            /**< Scheduler-level scheduler */
+    BAL_TM_SCHED_CHILD_TYPE__NUM_OF          = 2;            /**< Number of enum entries, not an entry itself. */
+}
+
+/** Traffic Direction
+ */
+enum BalTmSchedDir {
+    BAL_TM_SCHED_DIR_INVALID                 = 0;
+    BAL_TM_SCHED_DIR_US                      = 1;            /**< Upstream */
+    BAL_TM_SCHED_DIR_DS                      = 2;            /**< Downstream */
+}
+
+/** TM Scheduler Owner Type
+ */
+enum BalTmSchedOwnerType
+{
+    BAL_TM_SCHED_OWNER_TYPE_UNDEFINED        = 0;            /**< Undefined */
+    BAL_TM_SCHED_OWNER_TYPE_INTERFACE        = 1;            /**< Interface */
+    BAL_TM_SCHED_OWNER_TYPE_SUB_TERM         = 2;            /**< Subscriber terminal */
+    BAL_TM_SCHED_OWNER_TYPE_AGG_PORT         = 3;            /**< TM scheduler is owned by aggregation port */
+    BAL_TM_SCHED_OWNER_TYPE_UNI              = 4;            /**< TM scheduler is owned by UNI port */
+    BAL_TM_SCHED_OWNER_TYPE_VIRTUAL          = 5;            /**< Other unspecified owner */
+    BAL_TM_SCHED_OWNER_TYPE__NUM_OF          = 6;            /**< Number of enum entries, not an entry itself. */
+}
+
+/** TmSchedOwner aggPort ID.
+ */
+enum BalTmSchedOwnerAggPortId
+{
+    BAL_TM_SCHED_OWNER_AGG_PORT_ID_NONE          = 0;
+    BAL_TM_SCHED_OWNER_AGG_PORT_ID_INTF_ID       = 0x0001;   /**< PON interface id */
+    BAL_TM_SCHED_OWNER_AGG_PORT_ID_SUB_TERM_ID   = 0x0002;   /**< Subscriber terminal id */
+    BAL_TM_SCHED_OWNER_AGG_PORT_ID_AGG_PORT_ID   = 0x0004;   /**< Aggregation port id */
+    BAL_TM_SCHED_OWNER_AGG_PORT_ID_ALL           = 0x0007;   /**< All fields */
+}
+
+/** TmSchedParent ID.
+ */
+enum BalTmSchedParentId
+{
+    BAL_TM_SCHED_PARENT_ID_NONE                  = 0;
+    BAL_TM_SCHED_PARENT_ID_SCHED_ID              = 0x0001;   /**< Parent scheduler id */
+    BAL_TM_SCHED_PARENT_ID_PRIORITY              = 0x0002;   /**< Priority */
+    BAL_TM_SCHED_PARENT_ID_WEIGHT                = 0x0004;   /**< Weight */
+    BAL_TM_SCHED_PARENT_ID_ALL                   = 0x0007;   /**< All fields */
+}
+
+/** Scheduler Type
+ */
+enum BalTmSchedType
+{
+    BAL_TM_SCHED_TYPE_NONE                       = 0;        /**< NO scheduling */
+    BAL_TM_SCHED_TYPE_WFQ                        = 1;        /**< Weighted Fair Queue */
+    BAL_TM_SCHED_TYPE_SP                         = 2;        /**< Strict Priority */
+    BAL_TM_SCHED_TYPE_SP_WFQ                     = 3;        /**< Hybrid SP + WFQ */
+    BAL_TM_SCHED_TYPE__NUM_OF                    = 4;        /**< Number of enum entries, not an entry itself. */
+}
+
+/** TmShaping ID.
+ */
+enum BalTmShapingId
+{
+    BAL_TM_SHAPING_ID_NONE                       = 0;
+    BAL_TM_SHAPING_ID_SBR                        = 0x0001;   /**< Sustained Bit Rate (kbps) */
+    BAL_TM_SHAPING_ID_PBR                        = 0x0002;   /**< Peak Bit Rate (kbps) */
+    BAL_TM_SHAPING_ID_BURST                      = 0x0004;   /**< Max Burst Bytes at Peak Bit Rate */
+    BAL_TM_SHAPING_ID_ALL                        = 0x0007;   /**< All fields */
+}
+
+/** TmTcontSla ID.
+ */
+enum BalTmTcontSlaId
+{
+    BAL_TM_TCONT_SLA_ID_NONE                     = 0;
+    BAL_TM_TCONT_SLA_ID_EXTRA_BW_ELIG            = 0x0001;   /**< Extra BW eligibility type */
+    BAL_TM_TCONT_SLA_ID_NRT_CBR                  = 0x0002;   /**< NRT CBR */
+    BAL_TM_TCONT_SLA_ID_RT_CBR                   = 0x0004;   /**< RT_CBR */
+    BAL_TM_TCONT_SLA_ID_RT_PROFILE               = 0x0008;   /**< RT Profile */
+    BAL_TM_TCONT_SLA_ID_NRT_PROFILE              = 0x0010;   /**< NRT Profile */
+    BAL_TM_TCONT_SLA_ID_ALL                      = 0x001F;   /**< All fields */
+}
+
+/** Transceiver types
+ */
+enum BalTrxType
+{
+    BAL_TRX_TYPE_GPON_SPS_43_48                  = 0;        /**< gpon_sps_43_48. */
+    BAL_TRX_TYPE_GPON_SPS_SOG_4321               = 1;        /**< gpon_sps_sog_4321. */
+    BAL_TRX_TYPE_GPON_LTE_3680_M                 = 2;        /**< gpon_lte_3680_m. */
+    BAL_TRX_TYPE_GPON_SOURCE_PHOTONICS           = 3;        /**< gpon_source_photonics. */
+    BAL_TRX_TYPE_GPON_LTE_3680_P                 = 4;        /**< gpon_lte_3680_p. */
+    BAL_TRX_TYPE_XGPON_LTH_7222_PC               = 5;        /**< xgpon_lth_7222_pc. */
+    BAL_TRX_TYPE_XGPON_LTH_7226_PC               = 6;        /**< xgpon_lth_7226_pc. */
+    BAL_TRX_TYPE_XGPON_LTH_5302_PC               = 7;        /**< xgpon_lth_5302_pc. */
+    BAL_TRX_TYPE__NUM_OF                         = 8;        /**< Number of enum entries, not an entry itself. */
+}
+
+/** action.
+ */
+message BalAction
+{
+    BalActionId presence_mask = 1;     /**< Presence Mask. */
+    BalActionCmdId cmds_bitmask = 2;  /**< Commands bitmask. */
+    uint32 o_vid = 3;                     /**< Outer vid. */
+    uint32 o_pbits = 4;                    /**< Outer pbits. */
+    uint32 o_tpid = 5;                    /**< Outer tpid. */
+    uint32 i_vid = 6;                     /**< Inner vid. */
+    uint32 i_pbits = 7;                    /**< Inner pbits. */
+    uint32 i_tpid = 8;                    /**< Inner tpid. */
+}
+
+/** Variable-length list of aggregationPortId.
+ */
+message BalAggregationPortIdList
+{
+    uint32 len = 1;                        /**< List length in uint8 (bytes). */
+    repeated uint32 val = 2;    /**< List contents. */
+}
+
+/** classifier.
+ */
+message BalClassifier
+{
+    BalClassifierId presence_mask = 1; /**< Presence Mask. */
+    uint32 o_tpid = 2;                    /**< Outer TPID of the packet to be classified */
+    uint32 o_vid = 3;                     /**< Outer VID of the packet to be classified */
+    uint32 i_tpid = 4;                    /**< Inner TPID of the packet to be classified */
+    uint32 i_vid = 5;                     /**< Inner VID of the packet to be classified */
+    uint32 o_pbits = 6;                    /**< Outer PBITS of the packet to be classified */
+    uint32 i_pbits = 7;                    /**< Inner PBITS of the packet to be classified */
+    uint32 ether_type = 8;                /**< Ethertype of the packet to be classified */
+    bytes dst_mac = 9;          /**< Destination MAC address of the packet to be classified */
+    bytes src_mac = 10;          /**< Source MAC address of the packet to be classified */
+    uint32 ip_proto = 11;                   /**< IP protocol of the packet to be classified */
+    uint32 dst_ip = 12;          /**< Destination IP address of the packet to be classified */
+    uint32 src_ip = 13;          /**< Source IP address of the packet to be classified */
+    uint32 src_port = 14;                  /**< Source port of the packet to be classified */
+    uint32 dst_port = 15;                  /**< Destination port of the packet to be classified */
+    BalPktTagType pkt_tag_type = 16;   /**< The tag type of the ingress packets */
+}
+
+/** Packet destination.
+ */
+message BalDestNni {
+    uint32 int_id = 1;      /**< Interface ID. */
+}
+
+message BalDestSubTerm {
+    uint32 sub_term_id = 1;  /**< Subscriber terminal ID. */
+    uint32 sub_term_uni = 2;      /**< Subscriber terminal UNI. */
+    uint32 int_id = 3;            /**< Interface ID. */
+}
+
+message BalDest
+{
+    BalDestType type = 1;              /**< packet destination type. */
+    oneof u {
+        BalDestNni nni = 2;
+        BalDestSubTerm sub_term = 3;
+    }
+}
+
+/** Variable-length list of flowId.
+ */
+message BalFlowIdList
+{
+    uint32 len = 1;           /**< List length. */
+    repeated uint32 val = 2;    /**< List contents. */
+}
+
+/** Queue Reference
+ */
+message BalTmQueue_ref
+{
+    uint32 sched_id = 1;    /**< Scheduler (Tmsched) ID */
+    uint32 queue_id = 2;    /**< Queue ID */
+}
+
+/** Group Member Info.
+ */
+message BalGroupMemberInfo
+{
+    uint32 intf_id = 1;             /**< Access interface id for this member */
+    uint32 svc_port_id = 2; /**< The multicast "GEM" for this member */
+    BalAction action = 3;               /**< VLAN actions */
+    BalTmQueue_ref queue = 4;          /**< Egress queue */
+}
+
+/** Variable-length list of groupMemberInfo.
+ */
+message BalGroupMemberInfoList_u16
+{
+    uint32 len = 1;                   /**< List length. */
+    repeated BalGroupMemberInfo val = 2;  /**< List contents. */
+}
+
+/** Serial number.
+ */
+message BalSerialNumber
+{
+    string vendor_id = 1;       /**< vendor id. */
+    string vendor_specific = 2; /**< vendor specific. */
+}
+
+/** Variable-length list of servicePortId.
+ */
+message uint32List_u8
+{
+    uint32 len = 1;                    /**< List length. */
+    repeated uint32 val = 2;    /**< List contents. */
+}
+
+/** SLA.
+ */
+message BalSla
+{
+    BalSlaId presence_mask = 1;    /**< Presence Mask. */
+    uint32 min_rate = 2;              /**< The minimal rate for this flow, in kilobits per second (optional) */
+    uint32 max_rate = 3;              /**< The maximum rate for this flow, in kilobits per second (optional) */
+}
+
+/** Variable-length list of subId.
+ */
+message uint32List_u16
+{
+    uint32 len = 1;       /**< List length. */
+    repeated uint32 val = 2; /**< List contents. */
+}
+
+/** Random Early Discard Configuration
+ */
+message BalTmred
+{
+    uint32 min_threshold = 1;   /**< Min threshold in percent of max queue size */
+    uint32 max_threshold = 2;   /**< Max threshold in percent of max queue size */
+    uint32 max_probability = 3; /**< Discard probability for occupancy between min_threshold and max_threshold */
+}
+
+/** Queue Buffer Admission Control
+ */
+message BalTMBacTaildrop
+{
+    uint32 max_size = 1;      /**< max number of packets in the queue */
+}
+
+message BalTMBacRed
+{
+    BalTmred red = 1;      /**< Random Early Discard configuration */
+}
+message BalTMBacWred {
+    BalTmred green = 1;    /**< Green Random Early Discard Configuration */
+    BalTmred yellow = 2;   /**< Yellow Random Early Discard Configuration */
+    BalTmred red = 3;      /**< Red Random Early Discard Configuration */
+}
+
+message BalTmBac
+{
+    BalTmBacType type = 1;        /**< Buffer Admission Control Type */
+    oneof u {
+        BalTMBacTaildrop taildrop = 2;
+        BalTMBacRed red = 3;
+        BalTMBacWred wred = 4;
+    }
+}
+
+/** Variable-length list of TmQueueId.
+ */
+message BalTmQueueIdList
+{
+    uint32 len = 1;                /**< List length. */
+    repeated uint32 val = 2;    /**< List contents. */
+}
+
+/** Variable-length list of TmSchedId.
+ */
+message BalTmSchedIdList
+{
+    uint32 len = 1;                /**< List length. */
+    repeated uint32 val = 2;    /**< List contents. */
+}
+
+/** TM Scheduler Owner
+ */
+message BalTmSchedOwnerInterface
+{
+    BalIntfType intf_type = 1; /**< Interface Type */
+    uint32 intf_id = 2;     /**< Interface ID */
+}
+
+message BalTmSchedOwnerSubTerm
+{
+    uint32 intf_id = 1;     /**< PON interface id */
+    uint32 sub_term_id = 2;  /**< Subscriber terminal ID */
+}
+
+message BalTmSchedOwnerAggPort
+{
+    BalTmSchedOwnerAggPortId presence_mask = 1;    /**< Presence Mask. */
+    uint32 intf_id = 2;                        /**< PON interface id */
+    uint32 sub_term_id = 3;              /**< Subscriber terminal id */
+    uint32 agg_port_id = 4; /**< Aggregation port id */
+}
+
+message BalTmSchedOwnerUni
+{
+    uint32 intf_id = 1;                        /**< PON interface id */
+    uint32 sub_term_id = 2;              /**< Subscriber terminal id */
+    uint32 idx = 3;    /**< Index at subscriber terminal */
+}
+
+message BalTmSchedOwnerVirtual
+{
+    uint32 idx = 1;   /**< Owner index */
+}
+
+message BalTmSchedOwner
+{
+    BalTmSchedOwnerType type = 1;    /**< Owner type */
+    oneof u {
+        BalTmSchedOwnerInterface interface = 2;
+        BalTmSchedOwnerSubTerm sub_term = 3;
+        BalTmSchedOwnerAggPort agg_port = 4;
+        BalTmSchedOwnerUni uni = 5;
+        BalTmSchedOwnerVirtual virtual = 6;
+    }
+}
+
+/** Scheduling Parent Connect Point
+ */
+message BalTmSchedParent
+{
+    BalTmSchedParentId presence_mask = 1;    /**< Presence Mask. */
+    uint32 sched_id = 2;                /**< Parent scheduler id */
+    uint32 priority = 3;                /**< Priority */
+    uint32 weight = 4;                    /**< Weight */
+}
+
+/** Shaping Parameters
+ */
+message BalTmShaping
+{
+    BalTmShapingId presence_mask = 1; /**< Presence Mask. */
+    uint32 sbr = 2;                       /**< Sustained Bit Rate (kbps) */
+    uint32 pbr = 3;                       /**< Peak Bit Rate (kbps) */
+    uint32 burst = 4;                     /**< Max Burst Bytes at Peak Bit Rate */
+}
+
+/** ITU-PON Extended SLA Parameters
+ */
+message BalTmTcontSla
+{
+    BalTmTcontSlaId presence_mask = 1;           /**< Presence Mask. */
+    BalExtraBwEligibilityType extra_bw_elig = 2; /**< Extra BW eligibility type */
+    uint32 nrt_cbr = 3;        /**< NRT CBR */
+    uint32 rt_cbr = 4;         /**< RT_CBR */
+    uint32 rt_profile = 5;     /**< RT Profile */
+    uint32 nrt_profile = 6;    /**< NRT Profile */
+}
+
+/** Variable-length list of U8.
+ */
+message BalU8List
+{
+    uint32 len = 1;   /**< List length. */
+    repeated uint32 val = 2;   /**< List contents. */
+}
+
+/** Structure definition for the "key" group of the "access_terminal" object.
+ */
+message BalAccessTerminalKey
+{
+    uint32 access_term_id = 1;    /**< Reserved (set to 0) */
+}
+
+/** Structure definition for the "cfg" group of the "access_terminal" object.
+ */
+message BalAccessTerminalCfgData
+{
+    BalState admin_state = 1;   /**< Administrative state */
+    BalStatus oper_status = 2;  /**< Operational status */
+    BalIwfMode iwf_mode = 3;   /**< The interworking mode */
+}
+
+/** Transport message definition for "cfg" group of "access_terminal" object.
+ */
+message BalAccessTerminalCfg
+{
+    BalAccessTerminalKey key = 1; /**< Object key. */
+    BalAccessTerminalCfgData data = 2;   /**< All properties that must be set by the user. */
+}
+
+/** Structure definition for the "ind" group of the "access_terminal" object.
+ */
+message BalAccessTerminalIndData
+{
+    BalState admin_state = 1;   /**< Current administrative state */
+    BalStatus oper_status = 2;  /**< Current operational status */
+    BalIwfMode iwf_mode = 3;   /**< The interworking mode */
+}
+
+/** Transport message definition for "ind" group of "access_terminal" object.
+ */
+message BalAccessTerminalInd
+{
+    BalObj hdr = 1;                        /**< Transport header. */
+    BalAccessTerminalKey key = 2;         /**< Object key. */
+    BalAccessTerminalIndData data = 3;   /**< All properties that must be set by the user. */
+}
+
+/** Structure definition for the "key" group of the "flow" object.
+ */
+message BalFlowKey
+{
+    uint32 flow_id = 1;     /**< The ID of the flow object instance being referenced */
+    BalFlowType flow_type = 2; /**< The type of the flow, Upstream, Downstream, Broadcast or Multicast */
+}
+
+/** Structure definition for the "cfg" group of the "flow" object.
+ */
+message BalFlowCfgData
+{
+    BalState admin_state = 1;               /**< Administrative state */
+    BalStatus oper_status = 2;              /**< Operational status */
+    uint32 access_int_id = 3;           /**< The ID of the subscriber side interface; i.e. PON */
+    uint32 network_int_id = 4;          /**< The ID of the network side interface; i.e. NNI */
+    uint32 sub_term_id = 5;              /**< The ID of the subsccriber terminal device */
+    uint32 sub_term_uni_idx = 6;               /**< The index of the subsccriber terminal uni port the flow is related to */
+    uint32 svc_port_id = 7;     /**< The ID of the service port (for GPON/XGPON - GEM ID) */
+    uint32 agg_port_id = 8; /**< The ID of the aggregate port (for GPON/XGPON - ALLOC ID) */
+    bool resolve_mac = 9;                 /**< A flag indicating if the MAC address table should be used in DS GEM resolution */
+    BalClassifier classifier = 10;           /**< The classifier for this flow */
+    BalAction action = 11;                   /**< The action associated with the flow */
+    BalSla sla = 12;             /**< SLA parameters for this flow */
+    uint64 cookie = 13;       /**< Application cookie */
+    uint32 priority = 14;          /**< Priority for this flow in case of multiple match. */
+    uint32 group_id = 15;   /**< RW - The multicast group associated with this flow, valid for type MULTICAST only */
+    BalTmQueue_ref queue = 16;  /**< Egress queue */
+}
+
+/** Transport message definition for "cfg" group of "flow" object.
+ */
+message BalFlowCfg
+{
+    BalFlowKey key = 1;        /**< Object key. */
+    BalFlowCfgData data = 2;  /**< All properties that must be set by the user. */
+}
+
+/** Structure definition for the "stat" group of the "flow" object.
+ */
+message BalFlowStatData
+{
+    uint64 rx_packets = 1;    /**< Received packets. */
+    uint64 rx_bytes = 2;      /**< Received bytes. */
+    uint64 tx_packets = 3;    /**< Transmitted packets. */
+    uint64 tx_bytes = 4;      /**< Transmitted bytes. */
+}
+
+/** Transport message definition for "stat" group of "flow" object.
+ */
+message BalFlowStat
+{
+    BalObj hdr = 1;            /**< Transport header. */
+    BalFlowKey key = 2;        /**< Object key. */
+    BalFlowStatData data = 3; /**< All properties that must be set by the user. */
+}
+
+/** Structure definition for the "ind" group of the "flow" object.
+ */
+message BalFlowIndData
+{
+    BalState admin_state = 1;       /**< Administrative state */
+    BalStatus oper_status = 2;      /**< Operational Status */
+    uint32 access_int_id = 3;         /**< The ID of the subscriber side interface; i.e. PON */
+    uint32 network_int_id = 4;        /**< The ID of the network side interface; i.e. NNI */
+    uint32 sub_term_id = 5;           /**< The ID of the subsccriber terminal device */
+    uint32 svc_port_id = 6;           /**< The ID of the service port (for GPON/XGPON - GEM ID) */
+    uint32 agg_port_id = 7;           /**< The ID of the aggregate port (for GPON/XGPON - ALLOC ID) */
+    bool resolve_mac = 8;         /**< A flag indicating if the MAC address table should be used in DS GEM resolution */
+    uint32 base_tc_id = 9;            /**< The base index of the TC object(s) to be used for this flow */
+    BalClassifier classifier = 10;   /**< The classifier for this flow */
+    BalAction action = 11;           /**< The action associated with the flow */
+    BalSla sla = 12;                 /**< SLA parameters for this flow */
+    uint32 cookie = 13;                /**< Application cookie */
+    uint32 priority = 14;              /**< Priority for this flow in case of multiple match. */
+}
+
+/** Transport message definition for "ind" group of "flow" object.
+ */
+message BalFlowInd
+{
+    BalObj hdr = 1;            /**< Transport header. */
+    BalFlowKey key = 2;        /**< Object key. */
+    BalFlowIndData data = 3;  /**< All properties that must be set by the user. */
+}
+
+/** Structure definition for the "key" group of the "group" object.
+ */
+message BalGroupKey
+{
+    uint32 group_id = 1;   /**< The ID of the group object instance being referenced */
+}
+
+/** Structure definition for the "cfg" group of the "group" object.
+ */
+message BalGroupCfgData
+{
+    BalGroupMemberCmd members_cmd = 1;        /**< Membership operation commands. */
+    BalGroupMemberInfoList_u16 members = 2;  /**< The list of members associated with this group */
+    uint64 cookie = 3;                       /**< Application cookie */
+    BalFlowIdList flows = 4;              /**< List of flows associated with this group */
+    BalGroupOwner owner = 5;                   /**< Owner of the group. */
+}
+
+/** Transport message definition for "cfg" group of "group" object.
+ */
+message BalGroupCfg
+{
+    BalGroupKey key = 1;       /**< Object key. */
+    BalGroupCfgData data = 2; /**< All properties that must be set by the user. */
+}
+
+/** Structure definition for the "key" group of the "interface" object.
+ */
+message BalInterfaceKey
+{
+    uint32 intf_id = 1;           /**< intf_id. */
+    BalIntfType intf_type = 2; /**< intfType. */
+}
+
+/** Structure definition for the "cfg" group of the "interface" object.
+ */
+message BalInterfaceCfgData
+{
+    BalState admin_state = 1;   /**< Administrative state */
+    BalStatus oper_status = 2;  /**< Operational status */
+    uint32 min_data_agg_port_id = 3;    /**< The minimum agg_portId that is allowed in the system */
+    uint32 min_data_svc_port_id = 4;        /**< The minimum svc_portId that is allowed in the system */
+    BalTrxType transceiver_type = 5;                   /**< The transceiver type used on an interface */
+    BalDsMissMode ds_miss_mode = 6;                   /**< Defines the action to take for unknown downstream packets */
+    uint32 mtu = 7;                   /**< The MTU for an interface */
+    BalControl flow_control = 8;    /**< Flow control enable or disable */
+    uint32 ds_tm = 9;       /**< Downstream scheduler and shaper */
+    uint32 us_tm = 10;       /**< Upstream scheduler and shaper */
+    uint32List_u16 sub_term_id_list = 11;    /**< A list of subscriber terminal ids configured on this interface */
+}
+
+/** Transport message definition for "cfg" group of "interface" object.
+ */
+message BalInterfaceCfg
+{
+    BalInterfaceKey key = 1;       /**< Object key. */
+    BalInterfaceCfgData data = 2; /**< All properties that must be set by the user. */
+}
+
+/** Structure definition for the "stat" group of the "interface" object.
+ */
+message BalInterfaceStatData
+{
+    uint64 rx_packets = 1;    /**< Recieved packets. */
+    uint64 rx_bytes = 2;      /**< Received bytes. */
+    uint64 tx_packets = 3;    /**< Transmitted packets. */
+    uint64 tx_bytes = 4;      /**< Transmitted bytes. */
+}
+
+/** Transport message definition for "stat" group of "interface" object.
+ */
+message BalInterfaceStat
+{
+    BalObj hdr = 1;                    /**< Transport header. */
+    BalInterfaceKey key = 2;           /**< Object key. */
+    BalInterfaceStatData data = 3;    /**< All properties that must be set by the user. */
+}
+
+/** Structure definition for the "ind" group of the "interface" object.
+ */
+message BalInterfaceIndData
+{
+    BalState admin_state = 1;           /**< Current administrative state */
+    BalStatus oper_status = 2;          /**< Current operational state */
+    uint32 min_data_agg_port_id = 3;      /**< The minimum agg_port_id that is allowed in the system */
+    uint32 min_data_svc_port_id = 4;      /**< The minimum svc_port_id that is allowed in the system */
+    BalTrxType transceiver_type = 5;   /**< The transceiver type used on an interface */
+    BalDsMissMode ds_miss_mode = 6;   /**< Defines the action to take for DS unknown packets */
+    uint32 mtu = 7;                       /**< The MTU for an interface */
+    BalControl flow_control = 8;        /**< Flow control enable or disable */
+    uint32 ds_tm = 9;           /**< Downstream scheduler and shaper */
+    uint32 us_tm = 10;           /**< Upstream scheduler and shaper */
+}
+
+/** Transport message definition for "ind" group of "interface" object.
+ */
+message BalInterfaceInd
+{
+    BalObj hdr = 1;                /**< Transport header. */
+    BalInterfaceKey key = 2;       /**< Object key. */
+    BalInterfaceIndData data = 3; /**< All properties that must be set by the user. */
+}
+
+/** Structure definition for the "key" group of the "packet" object.
+ */
+message BalPacketKey
+{
+    uint32 reserved = 1;              /**< Reserved key field. */
+    BalDest packet_send_dest = 2;   /**< Packet destination. */
+}
+
+/** Structure definition for the "cfg" group of the "packet" object.
+ */
+message BalPacketCfgData
+{
+    uint32 flow_id = 1;             /**< N/A for sending a packet */
+    BalFlowType flow_type = 2;         /**< Flow Type. */
+    uint32 intf_id = 3;             /**< Interface ID. */
+    BalIntfType intf_type = 4;         /**< Interface Type. */
+    uint32 svc_port = 5;    /**< N/A for sending a packet */
+    uint64 flow_cookie = 6;          /**< N/A for sending a packet */
+    BalU8List pkt = 7;             /**< Packet Data. */
+}
+
+/** Transport message definition for "cfg" group of "packet" object.
+ */
+message BalPacketCfg
+{
+    BalPacketKey key = 1;          /**< Object key. */
+    BalPacketCfgData data = 2;    /**< All properties that must be set by the user. */
+}
+
+/** Structure definition for the "ind" group of the "packet" object.
+ */
+message BalPacketIndData
+{
+    uint32 flow_id = 1;             /**< N/A for sending a packet */
+    BalFlowType flow_type = 2;         /**< Flow Type. */
+    uint32 intf_id = 3;             /**< Interface ID. */
+    BalIntfType intf_type = 4;         /**< Interface Type. */
+    uint32 svc_port = 5;    /**< N/A for sending a packet */
+    uint64 flow_cookie = 6;          /**< N/A for sending a packet */
+    BalU8List pkt = 7;             /**< Packet Data. */
+}
+
+/** Transport message definition for "ind" group of "packet" object.
+ */
+message BalPacketInd
+{
+    BalObj hdr = 1;                /**< Transport header. */
+    BalPacketKey key = 2;          /**< Object key. */
+    BalPacketIndData data = 3;    /**< All properties that must be set by the user. */
+}
+
+/** Structure definition for the "key" group of the "subscriber_terminal"
+ * object.
+ */
+message BalSubscriberTerminalKey
+{
+    uint32 sub_term_id = 1;  /**< sub_termId. */
+    uint32 intf_id = 2;     /**< intf_id. */
+}
+
+/** Structure definition for the "cfg" group of the "subscriber_terminal"
+ * object.
+ */
+message BalSubscriberTerminalCfgData
+{
+    BalState admin_state = 1;           /**< Administrative state */
+    BalStatus oper_status = 2;          /**< Operational status */
+    BalSerialNumber serial_number = 3; /**< The serial number of an  ITU PON (GPON/XG-PON1/XGS-PON/NG-PON2) subscriber terminal */
+    string password = 4;           /**< The password of a GPON subscriber terminal */
+    string registration_id = 5;                 /**< ONU registration ID of an  ITU PON (XG-PON1/XGS-PON/NG-PON2) subscriber terminal */
+    uint32 svc_port_id = 6;                     /**< The management service port ID (for PON, the ONU ID) */
+    bytes mac_address = 7;                          /**< The Ethernet MAC address of an EPON subscriber terminal */
+    uint32 ds_tm = 8;                               /**< Downstream scheduler and shaper */
+    uint32 us_tm = 9;                               /**< Upstream scheduler and shaper */
+    uint32List_u8 svc_port_id_list = 10;        /**< A list of bearer traffic svc_port_ids associated with this subscriber terminal */
+    BalAggregationPortIdList agg_port_id_list = 11;    /**< A list of aggrPort_ids associated with this subscriber terminal */
+}
+
+/** Transport message definition for "cfg" group of "subscriber_terminal"
+ * object.
+ */
+message BalSubscriberTerminalCfg
+{
+    BalSubscriberTerminalKey key = 1; /**< Object key. */
+    BalSubscriberTerminalCfgData data = 2;   /**< All properties that must be set by the user. */
+}
+
+/** Structure definition for the "stat" group of the "subscriber_terminal"
+ * object.
+ */
+message BalSubscriberTerminalStatData
+{
+    uint64 rx_packets = 1;    /**< Received packets on specified object */
+    uint64 rx_bytes = 2;      /**< Received bytes on specified object */
+    uint64 tx_packets = 3;    /**< Transmitted packets on specified object */
+    uint64 tx_bytes = 4;      /**< Transmittted bytes on specified object */
+}
+
+/** Transport message definition for "stat" group of "subscriber_terminal"
+ * object.
+ */
+message BalSubscriberTerminalStat
+{
+    BalObj hdr = 1;                    /**< Transport header. */
+    BalSubscriberTerminalKey key = 2; /**< Object key. */
+    BalSubscriberTerminalStatData data = 3;  /**< All properties that must be set by the user. */
+}
+
+/** Structure definition for the "ind" group of the "subscriber_terminal"
+ * object.
+ */
+message BalSubscriberTerminalIndData
+{
+    BalState admin_state = 1;               /**< Current administrative state */
+    BalStatus oper_status = 2;              /**< Current operational status */
+    BalSerialNumber serial_number = 3;     /**< The serial number of an  ITU PON (GPON/XG-PON1/XGS-PON/NG-PON2) subscriber terminal */
+    string password = 4;               /**< The password of a GPON subscriber terminal */
+    string registration_id = 5; /**< ONU registration ID of an  ITU PON (XG-PON1/XGS-PON/NG-PON2) subscriber terminal */
+    uint32 svc_port_id = 6;                   /**< The service port ID (for PON, the ONU ID) */
+    bytes mac_address = 7;          /**< The Ethernet MAC address of an epon subscriber terminal */
+    uint32 ds_tm = 8;               /**< Downstream scheduler and shaper */
+    uint32 us_tm = 9;               /**< Upstream scheduler and shaper */
+}
+
+/** Transport message definition for "ind" group of "subscriber_terminal"
+ * object.
+ */
+message BalSubscriberTerminalInd
+{
+    BalObj hdr = 1;                    /**< Transport header. */
+    BalSubscriberTerminalKey key = 2; /**< Object key. */
+    BalSubscriberTerminalIndData data = 3;   /**< All properties that must be set by the user. */
+}
+
+/** Structure definition for the "key" group of the "TmQueue" object.
+ */
+message BalTmQueueKey
+{
+    uint32 sched_id = 1;    /**< Scheduler that owns the queue */
+    BalTmSchedDir sched_dir = 2;  /**< sched dir. */
+    uint32 id = 3;          /**< Queue id */
+}
+
+/** Structure definition for the "cfg" group of the "TmQueue" object.
+ */
+message BalTmQueueCfgData
+{
+    uint32 priority = 1;            /**< Scheduling priority */
+    uint32 weight = 2;                /**< Scheduling weight */
+    BalTmShaping rate = 3;                 /**< Rate shaping parameters */
+    BalTmBac bac = 4;                      /**< Buffer admission control */
+    BalTmCreationMode creation_mode = 5;  /**< Creation mode */
+    uint32 ref_count = 6;                      /**< reference count (flows) */
+}
+
+/** Transport message definition for "cfg" group of "TmQueue" object.
+ */
+message BalTmQueueCfg
+{
+    BalTmQueueKey key = 1;        /**< Object key. */
+    BalTmQueueCfgData data = 2;  /**< All properties that must be set by the user. */
+}
+
+/** Structure definition for the "stat" group of the "TmQueue" object.
+ */
+message BalTmQueueStatData
+{
+    uint64 packets_ok = 1;        /**< Packets transmitted succewssfully */
+    uint64 bytes_ok = 2;          /**< Bytes transmitted successfully */
+    uint64 packets_discarded = 3; /**< Packets discarded */
+    uint64 bytes_discarded = 4;   /**< Bytes discarded */
+}
+
+/** Transport message definition for "stat" group of "TmQueue" object.
+ */
+message BalTmQueueStat
+{
+    BalObj hdr = 1;                /**< Transport header. */
+    BalTmQueueKey key = 2;        /**< Object key. */
+    BalTmQueueStatData data = 3; /**< All properties that must be set by the user. */
+}
+
+/** Structure definition for the "ind" group of the "TmQueue" object.
+ *
+ * Tm Queue Indication
+ */
+message BalTmQueueIndData
+{
+    uint32 ret = 1;   /**< ret */
+}
+
+/** Transport message definition for "ind" group of "TmQueue" object.
+ */
+message BalTmQueueInd
+{
+    BalObj hdr = 1;                /**< Transport header. */
+    BalTmQueueKey key = 2;        /**< Object key. */
+    BalTmQueueIndData data = 3;  /**< All properties that must be set by the user. */
+}
+
+/** Structure definition for the "key" group of the "TmSched" object.
+ */
+message BalTmSchedKey
+{
+    BalTmSchedDir dir = 1;    /**< Traffic direction */
+    uint32 id = 2;      /**< ID */
+}
+
+/** Structure definition for the "cfg" group of the "TmSched" object.
+ */
+message BalTmSchedCfgData
+{
+    BalTmSchedOwner owner = 1;        /**< owner. */
+    BalTmSchedType sched_type = 2;    /**< Scheduler type */
+    BalTmSchedParent sched_parent = 3;            /**< Scheduling parameters for parent scheduler */
+    BalTmSchedChildType sched_child_type = 4;    /**< Scheduling level for children tm  */
+    BalTmShaping rate = 5;                 /**< Rate shaping parameters */
+    BalTmTcontSla tcont_sla = 6;          /**< Additional SLA parameters for aggPort owner */
+    BalTmCreationMode creation_mode = 7;  /**< Creation mode */
+    BalTmQueueIdList queues = 8;      /**< Subsidiary queues */
+    BalTmSchedIdList sub_scheds = 9;  /**< Subsidiary schedulers */
+    uint32 num_priorities = 10;                 /**< Max number of strict priority scheduling elements */
+}
+
+/** Transport message definition for "cfg" group of "Tmsched" object.
+ */
+message BalTmSchedCfg
+{
+    BalTmSchedKey key = 1;        /**< Object key. */
+    BalTmSchedCfgData data = 2;  /**< All properties that must be set by the user. */
+}
+
+/** Structure definition for the "ind" group of the "TmSched" object.
+ *
+ * Tm Sched Indication
+ */
+message BalTmSchedIndData
+{
+    uint32 ret = 1;   /**< ret */
+}
+
+/** Transport message definition for "ind" group of "TmSched" object.
+ */
+message BalTmSchedInd
+{
+    BalObj hdr = 1;                /**< Transport header. */
+    BalTmSchedKey key = 2;        /**< Object key. */
+    BalTmSchedIndData data = 3;  /**< All properties that must be set by the user. */
+}

@@ -1,0 +1,424 @@
+//
+// Copyright 2017 the original author or authors.
+//
+// Licensed under the Apache License; Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing; software
+// distributed under the License is distributed on an "AS IS" BASIS;
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND; either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
+syntax = "proto3";
+
+/** Identifiers for all properties contained in the access_terminal_cfg group. 
+ */
+enum BalAccessTerminalCfgId
+{
+    BAL_ACCESS_TERMINAL_CFG_ID_ADMIN_STATE   = 0;    /**< Administrative state. */
+    BAL_ACCESS_TERMINAL_CFG_ID_OPER_STATUS   = 1;    /**< Operational status. */
+    BAL_ACCESS_TERMINAL_CFG_ID_IWF_MODE      = 2;    /**< Interworking function mode. */
+}
+
+/** Identifiers for all properties contained in the access_terminal_ind group. 
+ */
+enum BalAccessTerminalIndId
+{
+    BAL_ACCESS_TERMINAL_IND_ID_ADMIN_STATE   = 0;    /**< Administrative state. */
+    BAL_ACCESS_TERMINAL_IND_ID_OPER_STATUS   = 1;    /**< Operational status. */
+    BAL_ACCESS_TERMINAL_IND_ID_IWF_MODE      = 2;    /**< Interworking function mode. */
+}
+
+/** Identifiers for all properties contained in the access_terminal_key group. 
+ */
+enum BalAccessTerminalKeyId
+{
+    BAL_ACCESS_TERMINAL_KEY_ID_ACCESS_TERM_ID= 0;    /**< access_term_id. */
+}
+
+/** Identifiers for all properties contained in the flow_cfg group. 
+ */
+enum BalFlowCfgId
+{
+    BAL_FLOW_CFG_ID_ADMIN_STATE              = 0;    /**< Administrative state. */
+    BAL_FLOW_CFG_ID_OPER_STATUS              = 1;    /**< Operational status. */
+    BAL_FLOW_CFG_ID_ACCESS_INT_ID            = 2;    /**< Access Interface ID. */
+    BAL_FLOW_CFG_ID_NETWORK_INT_ID           = 3;    /**< Network Interface ID. */
+    BAL_FLOW_CFG_ID_SUB_TERM_ID              = 4;    /**< Subscriber Terminal ID. */
+    BAL_FLOW_CFG_ID_SUB_TERM_UNI_IDX         = 5;    /**< Subscriber Terminal uni port index. */
+    BAL_FLOW_CFG_ID_SVC_PORT_ID              = 6;    /**< Service Port ID. */
+    BAL_FLOW_CFG_ID_AGG_PORT_ID              = 7;    /**< Aggregate port ID. */
+    BAL_FLOW_CFG_ID_RESOLVE_MAC              = 8;    /**< Resolve mac. */
+    BAL_FLOW_CFG_ID_CLASSIFIER               = 9;    /**< Classifier. */
+    BAL_FLOW_CFG_ID_ACTION                   = 10;   /**< Action. */
+    BAL_FLOW_CFG_ID_SLA                      = 11;   /**< SLA. */
+    BAL_FLOW_CFG_ID_COOKIE                   = 12;   /**< Cookie. */
+    BAL_FLOW_CFG_ID_PRIORITY                 = 13;   /**< Priority. */
+    BAL_FLOW_CFG_ID_GROUP_ID                 = 14;   /**< Group ID. */
+    BAL_FLOW_CFG_ID_QUEUE                    = 15;   /**< Egress queue. */
+}
+
+/** Identifiers for all properties contained in the flow_ind group. 
+ */
+enum BalFlowIndId
+{
+    BAL_FLOW_IND_ID_ADMIN_STATE              = 0;    /**< Administrative state. */
+    BAL_FLOW_IND_ID_OPER_STATUS              = 1;    /**< Operational status. */
+    BAL_FLOW_IND_ID_ACCESS_INT_ID            = 2;    /**< Access interface ID. */
+    BAL_FLOW_IND_ID_NETWORK_INT_ID           = 3;    /**< Network Interface ID. */
+    BAL_FLOW_IND_ID_SUB_TERM_ID              = 4;    /**< Subscriber terminal ID. */
+    BAL_FLOW_IND_ID_SVC_PORT_ID              = 5;    /**< Service port ID. */
+    BAL_FLOW_IND_ID_AGG_PORT_ID              = 6;    /**< Aggregate port ID. */
+    BAL_FLOW_IND_ID_RESOLVE_MAC              = 7;    /**< Resolve mac. */
+    BAL_FLOW_IND_ID_BASE_TC_ID               = 8;    /**< Base TCONT ID. */
+    BAL_FLOW_IND_ID_CLASSIFIER               = 9;    /**< Classifier. */
+    BAL_FLOW_IND_ID_ACTION                   = 10;   /**< Action. */
+    BAL_FLOW_IND_ID_SLA                      = 11;   /**< SLA. */
+    BAL_FLOW_IND_ID_COOKIE                   = 12;   /**< Cookie. */
+    BAL_FLOW_IND_ID_PRIORITY                 = 13;   /**< Priority. */
+}
+
+/** Identifiers for all properties contained in the flow_key group. 
+ */
+enum BalFlowKeyId
+{
+    BAL_FLOW_KEY_ID_FLOW_ID                  = 0;    /**< Flow ID. */
+    BAL_FLOW_KEY_ID_FLOW_TYPE                = 1;    /**< Flow type. */
+}
+
+/** Identifiers for all properties contained in the flow_stat group. 
+ */
+enum BalFlowStatId
+{
+    BAL_FLOW_STAT_ID_RX_PACKETS              = 0;    /**< Received packets. */
+    BAL_FLOW_STAT_ID_RX_BYTES                = 1;    /**< Received bytes. */
+    BAL_FLOW_STAT_ID_TX_PACKETS              = 2;    /**< Transmitted packets. */
+    BAL_FLOW_STAT_ID_TX_BYTES                = 3;    /**< Transmitted bytes. */
+}
+
+/** Identifiers for all properties contained in the group_cfg group. 
+ */
+enum BalGroupCfgId
+{
+    BAL_GROUP_CFG_ID_MEMBERS_CMD             = 0;    /**< Membership operation commands. */
+    BAL_GROUP_CFG_ID_MEMBERS                 = 1;    /**< Member. */
+    BAL_GROUP_CFG_ID_COOKIE                  = 2;    /**< Application cookie. */
+    BAL_GROUP_CFG_ID_FLOWS                   = 3;    /**< List of flows associated with the group . */
+    BAL_GROUP_CFG_ID_OWNER                   = 4;    /**< Owner of the group. */
+}
+
+/** Identifiers for all properties contained in the group_key group. 
+ */
+enum BalGroupKeyId
+{
+    BAL_GROUP_KEY_ID_GROUP_ID                = 0;    /**< Group ID. */
+}
+
+/** Identifiers for all properties contained in the interface_cfg group. 
+ */
+enum BalInterfaceCfgId
+{
+    BAL_INTERFACE_CFG_ID_ADMIN_STATE         = 0;            /**< Administrative state. */
+    BAL_INTERFACE_CFG_ID_OPER_STATUS         = 1;            /**< Operational status. */
+    BAL_INTERFACE_CFG_ID_MIN_DATA_AGG_PORT_ID= 2;            /**< Minimum aggregate port ID. */
+    BAL_INTERFACE_CFG_ID_MIN_DATA_SVC_PORT_ID= 3;            /**< Minimum service port ID. */
+    BAL_INTERFACE_CFG_ID_TRANSCEIVER_TYPE    = 4;            /**< Transceiver type. */
+    BAL_INTERFACE_CFG_ID_DS_MISS_MODE        = 5;            /**< Downstream unknown packet action. */
+    BAL_INTERFACE_CFG_ID_MTU                 = 6;            /**< MTU. */
+    BAL_INTERFACE_CFG_ID_FLOW_CONTROL        = 7;            /**< Flow control. */
+    BAL_INTERFACE_CFG_ID_DS_TM               = 8;            /**< Downstream scheduler and shaper. */
+    BAL_INTERFACE_CFG_ID_US_TM               = 9;            /**< Upstream scheduler and shaper. */
+    BAL_INTERFACE_CFG_ID_SUB_TERM_ID_LIST    = 10;           /**< Sub-term id list. */
+}
+
+/** Identifiers for all properties contained in the interface_ind group. 
+ */
+enum BalInterfaceIndId
+{
+    BAL_INTERFACE_IND_ID_ADMIN_STATE         = 0;            /**< Administrative state. */
+    BAL_INTERFACE_IND_ID_OPER_STATUS         = 1;            /**< Operational status. */
+    BAL_INTERFACE_IND_ID_MIN_DATA_AGG_PORT_ID= 2;            /**< Minimum aggregate port ID. */
+    BAL_INTERFACE_IND_ID_MIN_DATA_SVC_PORT_ID= 3;            /**< Minimum service port ID. */
+    BAL_INTERFACE_IND_ID_TRANSCEIVER_TYPE    = 4;            /**< Transceiver type. */
+    BAL_INTERFACE_IND_ID_DS_MISS_MODE        = 5;            /**< Downstream unknown packet action. */
+    BAL_INTERFACE_IND_ID_MTU                 = 6;            /**< MTU. */
+    BAL_INTERFACE_IND_ID_FLOW_CONTROL        = 7;            /**< Flow control. */
+    BAL_INTERFACE_IND_ID_DS_TM               = 8;            /**< Downstream scheduler and shaper. */
+    BAL_INTERFACE_IND_ID_US_TM               = 9;            /**< Upstream scheduler and shaper. */
+}
+
+/** Identifiers for all properties contained in the interface_key group. 
+ */
+enum BalInterfaceKeyId
+{
+    BAL_INTERFACE_KEY_ID_INTF_ID             = 0;            /**< intf_id. */
+    BAL_INTERFACE_KEY_ID_INTF_TYPE           = 1;            /**< intf_type. */
+}
+
+/** Identifiers for all properties contained in the interface_stat group. 
+ */
+enum BalInterfaceStatId
+{
+    BAL_INTERFACE_STAT_ID_RX_PACKETS         = 0;            /**< Recieved packets. */
+    BAL_INTERFACE_STAT_ID_RX_BYTES           = 1;            /**< Received bytes. */
+    BAL_INTERFACE_STAT_ID_TX_PACKETS         = 2;            /**< Transmitted packets. */
+    BAL_INTERFACE_STAT_ID_TX_BYTES           = 3;            /**< Transmitted bytes. */
+}
+
+/** Identifiers for all properties contained in the packet_cfg group. 
+ */
+enum BalPacketCfgId
+{
+    BAL_PACKET_CFG_ID_FLOW_ID                = 0;            /**< Flow Id. */
+    BAL_PACKET_CFG_ID_FLOW_TYPE              = 1;            /**< Flow Type. */
+    BAL_PACKET_CFG_ID_INTF_ID                = 2;            /**< Interface ID. */
+    BAL_PACKET_CFG_ID_INTF_TYPE              = 3;            /**< Interface Type. */
+    BAL_PACKET_CFG_ID_SVC_PORT               = 4;            /**< Service Port. */
+    BAL_PACKET_CFG_ID_FLOW_COOKIE            = 5;            /**< Flow Cookie. */
+    BAL_PACKET_CFG_ID_PKT                    = 6;            /**< Packet Data. */
+}
+
+/** Identifiers for all properties contained in the packet_ind group. 
+ */
+enum BalPacketIndId
+{
+    BAL_PACKET_IND_ID_FLOW_ID                = 0;            /**< Flow Id. */
+    BAL_PACKET_IND_ID_FLOW_TYPE              = 1;            /**< Flow Type. */
+    BAL_PACKET_IND_ID_INTF_ID                = 2;            /**< Interface ID. */
+    BAL_PACKET_IND_ID_INTF_TYPE              = 3;            /**< Interface Type. */
+    BAL_PACKET_IND_ID_SVC_PORT               = 4;            /**< Service Port. */
+    BAL_PACKET_IND_ID_FLOW_COOKIE            = 5;            /**< Flow Cookie. */
+    BAL_PACKET_IND_ID_PKT                    = 6;            /**< Packet Data. */
+}
+
+/** Identifiers for all properties contained in the packet_key group. 
+ */
+enum BalPacketKeyId
+{
+    BAL_PACKET_KEY_ID_RESERVED               = 0;            /**< Reserved key field. */
+    BAL_PACKET_KEY_ID_PACKET_SEND_DEST       = 1;            /**< Packet destination. */
+}
+
+/** Identifiers for all properties contained in the subscriber_terminal_cfg 
+ * group. 
+ */
+enum BalSubscriberTerminalCfgId
+{
+    BAL_SUBSCRIBER_TERMINAL_CFG_ID_ADMIN_STATE       = 0;    /**< Administrative state. */
+    BAL_SUBSCRIBER_TERMINAL_CFG_ID_OPER_STATUS       = 1;    /**< Operational status. */
+    BAL_SUBSCRIBER_TERMINAL_CFG_ID_SERIAL_NUMBER     = 2;    /**< Serial number. */
+    BAL_SUBSCRIBER_TERMINAL_CFG_ID_PASSWORD          = 3;    /**< Password. */
+    BAL_SUBSCRIBER_TERMINAL_CFG_ID_REGISTRATION_ID   = 4;    /**< Registration id. */
+    BAL_SUBSCRIBER_TERMINAL_CFG_ID_SVC_PORT_ID       = 5;    /**< Service port ID. */
+    BAL_SUBSCRIBER_TERMINAL_CFG_ID_MAC_ADDRESS       = 6;    /**< MAC address. */
+    BAL_SUBSCRIBER_TERMINAL_CFG_ID_DS_TM             = 7;    /**< Downstream scheduler and shaper. */
+    BAL_SUBSCRIBER_TERMINAL_CFG_ID_US_TM             = 8;    /**< Upstream scheduler and shaper. */
+    BAL_SUBSCRIBER_TERMINAL_CFG_ID_SVC_PORT_ID_LIST  = 9;    /**< svc_port_id list. */
+    BAL_SUBSCRIBER_TERMINAL_CFG_ID_AGG_PORT_ID_LIST  = 10;   /**< agg_port_id list. */
+}
+
+/** Identifiers for all properties contained in the subscriber_terminal_ind 
+ * group. 
+ */
+enum BalSubscriberTerminalIndId
+{
+    BAL_SUBSCRIBER_TERMINAL_IND_ID_ADMIN_STATE       = 0;    /**< Administrative state. */
+    BAL_SUBSCRIBER_TERMINAL_IND_ID_OPER_STATUS       = 1;    /**< Operational status. */
+    BAL_SUBSCRIBER_TERMINAL_IND_ID_SERIAL_NUMBER     = 2;    /**< Serial number. */
+    BAL_SUBSCRIBER_TERMINAL_IND_ID_PASSWORD          = 3;    /**< Password. */
+    BAL_SUBSCRIBER_TERMINAL_IND_ID_REGISTRATION_ID   = 4;    /**< Registration id. */
+    BAL_SUBSCRIBER_TERMINAL_IND_ID_SVC_PORT_ID       = 5;    /**< Service port ID. */
+    BAL_SUBSCRIBER_TERMINAL_IND_ID_MAC_ADDRESS       = 6;    /**< MAC address. */
+    BAL_SUBSCRIBER_TERMINAL_IND_ID_DS_TM             = 7;    /**< Downstream scheduler and shaper. */
+    BAL_SUBSCRIBER_TERMINAL_IND_ID_US_TM             = 8;    /**< Upstream scheduler and shaper. */
+}
+
+/** Identifiers for all properties contained in the subscriber_terminal_key 
+ * group. 
+ */
+enum BalSubscriberTerminalKeyId
+{
+    BAL_SUBSCRIBER_TERMINAL_KEY_ID_SUB_TERM_ID       = 0;    /**< sub_term_id. */
+    BAL_SUBSCRIBER_TERMINAL_KEY_ID_INTF_ID           = 1;    /**< intf_id. */
+}
+
+/** Identifiers for all properties contained in the subscriber_terminal_stat 
+ * group. 
+ */
+enum BalSubscriberTerminalStatId
+{
+    BAL_SUBSCRIBER_TERMINAL_STAT_ID_RX_PACKETS       = 0;    /**< Received  packets. */
+    BAL_SUBSCRIBER_TERMINAL_STAT_ID_RX_BYTES         = 1;    /**< Received bytes. */
+    BAL_SUBSCRIBER_TERMINAL_STAT_ID_TX_PACKETS       = 2;    /**< Transmitted packets. */
+    BAL_SUBSCRIBER_TERMINAL_STAT_ID_TX_BYTES         = 3;    /**< Transmitted bytes. */
+}
+
+/** Identifiers for all properties contained in the tm_queue_cfg group. 
+ */
+enum BalTmQueueCfgId
+{
+    BAL_TM_QUEUE_CFG_ID_PRIORITY                     = 0;    /**< priority. */
+    BAL_TM_QUEUE_CFG_ID_WEIGHT                       = 1;    /**< weight. */
+    BAL_TM_QUEUE_CFG_ID_RATE                         = 2;    /**< rate. */
+    BAL_TM_QUEUE_CFG_ID_BAC                          = 3;    /**< bac. */
+    BAL_TM_QUEUE_CFG_ID_CREATION_MODE                = 4;    /**< creation_mode. */
+    BAL_TM_QUEUE_CFG_ID_REF_COUNT                    = 5;    /**< ref_count. */
+}
+
+/** Identifiers for all properties contained in the tm_queue_ind group. 
+ */
+enum BalTmQueueIndId
+{
+    BAL_TM_QUEUE_IND_ID_RET                          = 0;    /**< ret. */
+}
+
+/** Identifiers for all properties contained in the tm_queue_key group. 
+ */
+enum BalTmQueueKeyId
+{
+    BAL_TM_QUEUE_KEY_ID_SCHED_ID                     = 0;    /**< sched_id. */
+    BAL_TM_QUEUE_KEY_ID_SCHED_DIR                    = 1;    /**< sched dir. */
+    BAL_TM_QUEUE_KEY_ID_ID                           = 2;    /**< id. */
+}
+
+/** Identifiers for all properties contained in the tm_queue_stat group. 
+ */
+enum BalTmQueueStatId
+{
+    BAL_TM_QUEUE_STAT_ID_PACKETS_OK                  = 0;    /**< packets_ok. */
+    BAL_TM_QUEUE_STAT_ID_BYTES_OK                    = 1;    /**< bytes_ok. */
+    BAL_TM_QUEUE_STAT_ID_PACKETS_DISCARDED           = 2;    /**< packets_discarded. */
+    BAL_TM_QUEUE_STAT_ID_BYTES_DISCARDED             = 3;    /**< bytes_discarded. */
+}
+
+/** Identifiers for all properties contained in the tmSched_cfg group. 
+ */
+enum BalTmSchedCfgId
+{
+    BAL_TM_SCHED_CFG_ID_OWNER                        = 0;    /**< owner. */
+    BAL_TM_SCHED_CFG_ID_SCHED_TYPE                   = 1;    /**< type. */
+    BAL_TM_SCHED_CFG_ID_SCHED_PARENT                 = 2;    /**< parent. */
+    BAL_TM_SCHED_CFG_ID_SCHED_CHILD_TYPE             = 3;    /**< child_type. */
+    BAL_TM_SCHED_CFG_ID_RATE                         = 4;    /**< rate. */
+    BAL_TM_SCHED_CFG_ID_TCONT_SLA                    = 5;    /**< tcont_sla. */
+    BAL_TM_SCHED_CFG_ID_CREATION_MODE                = 6;    /**< creation_mode. */
+    BAL_TM_SCHED_CFG_ID_QUEUES                       = 7;    /**< queues. */
+    BAL_TM_SCHED_CFG_ID_SUB_SCHEDS                   = 8;    /**< sub_scheds. */
+    BAL_TM_SCHED_CFG_ID_NUM_PRIORITIES               = 9;    /**< num_priorities. */
+}
+
+/** Identifiers for all properties contained in the tm_sched_ind group. 
+ */
+enum BalTmSchedIndId
+{
+    BAL_TM_SCHED_IND_ID_RET                          = 0;    /**< ret. */
+}
+
+/** Identifiers for all properties contained in the tm_sched_key group. 
+ */
+enum BalTmSchedKeyId
+{
+    BAL_TM_SCHED_KEY_ID_DIR                          = 0;    /**< dir. */
+    BAL_TM_SCHED_KEY_ID_ID                           = 1;    /**< id. */
+}
+
+/** Identifiers for all objects in the system. 
+ */
+enum BalObjId
+{
+    BAL_OBJ_ID_ACCESS_TERMINAL                       = 0;    /**< BAL Access Terminal */
+    BAL_OBJ_ID_FLOW                                  = 1;    /**< BAL Flow */
+    BAL_OBJ_ID_GROUP                                 = 2;    /**< BAL Group */
+    BAL_OBJ_ID_INTERFACE                             = 3;    /**< BAL Interface */
+    BAL_OBJ_ID_PACKET                                = 4;    /**< packet */
+    BAL_OBJ_ID_SUBSCRIBER_TERMINAL                   = 5;    /**< BAL Subscriber Terminal */
+    BAL_OBJ_ID_TM_QUEUE                              = 6;    /**< tm_queue */
+    BAL_OBJ_ID_TM_SCHED                              = 7;    /**< tm_sched */
+}
+
+/** Identifiers for all possible groups under all objects in the system. 
+ */
+enum BalObjGroupId
+{
+    BAL_OBJ_GROUP_ID_ACCESS_TERMINAL_KEY             = 0;    /**< BAL Access Terminal - key */
+    BAL_OBJ_GROUP_ID_ACCESS_TERMINAL_CFG             = 1;    /**< BAL Access Terminal - cfg */
+    BAL_OBJ_GROUP_ID_ACCESS_TERMINAL_IND             = 2;    /**< BAL Access Terminal - Access Terminal Indication */
+    BAL_OBJ_GROUP_ID_FLOW_KEY                        = 3;    /**< BAL Flow - key */
+    BAL_OBJ_GROUP_ID_FLOW_CFG                        = 4;    /**< BAL Flow - cfg */
+    BAL_OBJ_GROUP_ID_FLOW_STAT                       = 5;    /**< BAL Flow - stat */
+    BAL_OBJ_GROUP_ID_FLOW_IND                        = 6;    /**< BAL Flow - Flow Indication */
+    BAL_OBJ_GROUP_ID_GROUP_KEY                       = 7;    /**< BAL Group - key */
+    BAL_OBJ_GROUP_ID_GROUP_CFG                       = 8;    /**< BAL Group - cfg */
+    BAL_OBJ_GROUP_ID_INTERFACE_KEY                   = 9;    /**< BAL Interface - key */
+    BAL_OBJ_GROUP_ID_INTERFACE_CFG                   = 10;   /**< BAL Interface - cfg */
+    BAL_OBJ_GROUP_ID_INTERFACE_STAT                  = 11;   /**< BAL Interface - stat */
+    BAL_OBJ_GROUP_ID_INTERFACE_IND                   = 12;   /**< BAL Interface - Interface Indication */
+    BAL_OBJ_GROUP_ID_PACKET_KEY                      = 13;   /**< packet - key */
+    BAL_OBJ_GROUP_ID_PACKET_CFG                      = 14;   /**< packet - cfg */
+    BAL_OBJ_GROUP_ID_PACKET_IND                      = 15;   /**< packet - Packet indication */
+    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_KEY         = 16;   /**< BAL Subscriber Terminal - key */
+    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_CFG         = 17;   /**< BAL Subscriber Terminal - cfg */
+    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_STAT        = 18;   /**< BAL Subscriber Terminal - stat */
+    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_IND         = 19;   /**< BAL Subscriber Terminal - Subscriber Terminal Indication */
+    BAL_OBJ_GROUP_ID_TM_QUEUE_KEY                    = 20;   /**< tm_queue - key */
+    BAL_OBJ_GROUP_ID_TM_QUEUE_CFG                    = 21;   /**< tm_queue - cfg */
+    BAL_OBJ_GROUP_ID_TM_QUEUE_STAT                   = 22;   /**< tm_queue - stat */
+    BAL_OBJ_GROUP_ID_TM_QUEUE_IND                    = 23;   /**< tm_queue - Tm Queue Indication */
+    BAL_OBJ_GROUP_ID_TM_SCHED_KEY                    = 24;   /**< tm_sched - key */
+    BAL_OBJ_GROUP_ID_TM_SCHED_CFG                    = 25;   /**< tm_sched - cfg */
+    BAL_OBJ_GROUP_ID_TM_SCHED_IND                    = 26;   /**< tm_sched - Tm Sched Indication */
+}
+
+/** List of all access_terminal groups of type auto. 
+ */
+enum BalAccessTerminalAutoId
+{
+    BAL_ACCESS_TERMINAL_AUTO_ID_IND                  = 0;    /**< Access Terminal Indication. */
+}
+
+/** List of all flow groups of type auto. 
+ */
+enum BalFlowAutoId
+{
+    BAL_FLOW_AUTO_ID_IND                             = 0;    /**< Flow Indication. */
+}
+
+/** List of all interface groups of type auto. 
+ */
+enum BalInterfaceAutoId
+{
+    BAL_INTERFACE_AUTO_ID_IND                        = 0;    /**< Interface Indication. */
+}
+
+/** List of all packet groups of type auto. 
+ */
+enum BalPacketAutoId
+{
+    BAL_PACKET_AUTO_ID_IND                           = 0;    /**< Packet indication. */
+}
+
+/** List of all subscriber_terminal groups of type auto. 
+ */
+enum BalSubscriberTerminalAutoId
+{
+    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_IND              = 0;    /**< Subscriber Terminal Indication. */
+}
+
+/** List of all tm_queue groups of type auto. 
+ */
+enum BalTmQueueAutoId
+{
+    BAL_TM_QUEUE_AUTO_ID_IND                         = 0;    /**< Tm Queue Indication. */
+}
+
+/** List of all tm_sched groups of type auto. 
+ */
+enum BalTmSchedAutoId
+{
+    BAL_TM_SCHED_AUTO_ID_IND                         = 0;    /**< Tm Sched Indication. */
+}
