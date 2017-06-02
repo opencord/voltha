@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a0e1d27_604fc893",
+        "filename": "compose/docker-compose-system-test.yml",
+        "patchSetId": 2
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-06-02T00:45:26Z",
+      "side": 1,
+      "message": "Having an external volume is fine for testing and development. When the final solution is deployed, I would recommend against external volumes.",
+      "range": {
+        "startLine": 46,
+        "startChar": 6,
+        "endLine": 46,
+        "endChar": 59
+      },
+      "revId": "08afef8831ece1c69e7c147488a3fd4bad659954",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_4044c473",
+        "filename": "compose/docker-compose-system-test.yml",
+        "patchSetId": 2
+      },
+      "lineNbr": 62,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-06-02T00:45:26Z",
+      "side": 1,
+      "message": "Same comment as above.",
+      "range": {
+        "startLine": 62,
+        "startChar": 5,
+        "endLine": 62,
+        "endChar": 53
+      },
+      "revId": "08afef8831ece1c69e7c147488a3fd4bad659954",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
