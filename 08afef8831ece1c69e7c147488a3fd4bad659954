@@ -93,6 +93,23 @@
       "revId": "08afef8831ece1c69e7c147488a3fd4bad659954",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_6bd56942",
+        "filename": "consul_config/ports.json",
+        "patchSetId": 2
+      },
+      "lineNbr": 4,
+      "author": {
+        "id": 1000196
+      },
+      "writtenOn": "2017-06-02T17:14:24Z",
+      "side": 1,
+      "message": "Don\u0027t containers other than Registrator use http://8500 to communicate with Consul.  Won\u0027t those communications break after port 8500 is mapped to a HTTPS service; the client container will not be performing a TLS handshake?",
+      "revId": "08afef8831ece1c69e7c147488a3fd4bad659954",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
