@@ -1,0 +1,66 @@
+//
+// Copyright 2017 the original author or authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
+syntax = "proto3";
+
+/* BAL subsystem */
+enum BalSubsystem
+{
+    BAL_SUBSYSTEM_CORE = 0;
+    BAL_SUBSYSTEM_MAC_UTIL = 1;
+    BAL_SUBSYSTEM_SWITCH_UTIL = 2;
+    BAL_SUBSYSTEM_PUBLIC_API = 3;
+    BAL_SUBSYSTEM__NUM_OF = 4;
+}
+
+/** BAL OS message
+ * \ingroup system_msg
+ */
+enum BcmosMsgId
+{
+    BCMOS_MSG_ID__BEGIN = 0;
+
+    /* Messages used internally by OS abstraction. Do not touch */
+    BCMOS_MSG_ID_INTERNAL_TIMER = 1;            /**< Internal "timer message" type */
+    BCMOS_MSG_ID_INTERNAL_EVENT = 2;            /**< Internal "event message" type */
+    BCMOS_MSG_ID_INTERNAL_IPC = 3;
+
+    /* Application messages */
+    BCMOS_MSG_ID_IPC_PING = 4;                  /*** Inter-process communication ping */
+
+    /* Core/Switch util messages */
+    BCMBAL_SWITCH_UTIL_MSG = 5;
+
+    /* Core/Mac util messages */
+    BCMBAL_MAC_UTIL_MSG = 6;
+
+    /* Core<->Public API messages */
+    BCMBAL_MGMT_MSG = 7;
+
+    /* Core->Public API indication messages (both auto and "normal") */
+    BCMBAL_MGMT_API_IND_MSG = 8;
+
+    BCMOS_MSG_ID_EON_PROXY_RX = 9;
+    BCMOS_MSG_ID_EON_DESTROY_STATE = 10;
+
+    BCMOS_MSG_ID_EPON_OAM_PROXY_RX = 11;
+    BCMOS_MSG_ID_EPON_OAM_TIMEOUT = 12;
+
+	BCMOS_MSG_ID_OMCI_TRANSPORT_SEND = 13;
+
+    BCMOS_MSG_ID__END = 14;
+    BCMOS_MSG_ID__FORCE16 = 0x7fff;
+}
