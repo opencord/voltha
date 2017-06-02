@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "9a0e1d27_2b5c1125",
+        "filename": "compose/docker-compose-system-test.yml",
+        "patchSetId": 2
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-06-02T12:25:06Z",
+      "side": 1,
+      "message": "This was done to simplify development but in the final product this will be copied directly into the container. It\u0027s easier during development to make changes on a running system and signal it to reload it\u0027s config when the files are external. Once everything is debugged and worked out this is no longer necessary and makes the containers more independent.",
+      "parentUuid": "9a0e1d27_403ba4eb",
+      "range": {
+        "startLine": 46,
+        "startChar": 6,
+        "endLine": 46,
+        "endChar": 59
+      },
+      "revId": "08afef8831ece1c69e7c147488a3fd4bad659954",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a0e1d27_4044c473",
         "filename": "compose/docker-compose-system-test.yml",
         "patchSetId": 2
