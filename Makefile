@@ -81,8 +81,11 @@ containers: docker-base voltha chameleon ofagent podder netconf shovel onos test
 docker-base:
 	docker build -t cord/voltha-base -f docker/Dockerfile.base .
 
-voltha:
+voltha: voltha-adapters
 	docker build -t cord/voltha -f docker/Dockerfile.voltha .
+
+voltha-adapters:
+	make -C voltha/adapters
 
 chameleon:
 	mkdir tmp.chameleon
