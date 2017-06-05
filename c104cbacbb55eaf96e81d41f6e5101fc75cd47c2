@@ -2,6 +2,29 @@
   "comments": [
     {
       "key": {
+        "uuid": "9a0e1d27_066824b9",
+        "filename": "voltha/protos/bal.proto",
+        "patchSetId": 6
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1000103
+      },
+      "writtenOn": "2017-06-05T10:40:56Z",
+      "side": 1,
+      "message": "Since this file is an adaptation of bal_model_types.h, can we have the enum value same as in that file. This helps in mapping the same in any client server adaptations.",
+      "range": {
+        "startLine": 25,
+        "startChar": 20,
+        "endLine": 25,
+        "endChar": 21
+      },
+      "revId": "c104cbacbb55eaf96e81d41f6e5101fc75cd47c2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a0e1d27_265c4825",
         "filename": "voltha/protos/bal.proto",
         "patchSetId": 6
