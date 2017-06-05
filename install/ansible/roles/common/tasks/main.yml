@@ -1,0 +1,48 @@
+- name: JQ is present
+  apt:
+    name: jq
+    force: yes
+  tags: [common]
+
+- name: Host is present
+  lineinfile:
+    dest: /etc/hosts
+    regexp: "^{{ item.host_ip }}"
+    line: "{{ item.host_ip }} {{ item.host_name }}"
+  with_items: "{{ hosts }}"
+  tags: [common]
+
+- name: Latest apt packages
+  apt:
+    name: "{{ item }}"
+  with_items: "{{ use_latest_for }}"
+  when: target != "cluster"
+  tags: [common]
+
+- name: Services are not running
+  service:
+    name: "{{ item }}"
+    state: stopped
+  ignore_errors: yes
+  with_items: "{{ obsolete_services }}"
+  tags: [common]
+
+- name: Ensure there is a .ssh directory for /root
+  file:
+    path: "{{ ansible_env['HOME'] }}/.ssh"
+    state: directory
+    owner: root
+    group: root
+
+- name: Ensure known_hosts file is absent
+  file:
+    path: "{{ ansible_env['HOME'] }}/.ssh/known_hosts"
+    state: absent
+
+- name: Disable Known Host Checking
+  copy:
+    src: files/ssh_config
+    dest: "{{ ansible_env['HOME'] }}/.ssh/config"
+    owner: root
+    group: root
+    mode: 0600

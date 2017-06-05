@@ -1,0 +1,37 @@
+ip: "{{ facter_ipaddress_eth1 }}"
+consul_extra: ""
+proxy_url: http://{{ facter_ipaddress_eth1 }}
+proxy_url2: http://{{ facter_ipaddress_eth1 }}
+registry_url: 10.100.198.220:5000/
+jenkins_ip: 10.100.198.220
+debian_version: xenial
+docker_cfg: docker.cfg
+docker_cfg_dest: /etc/default/docker
+docker_registry: "localhost:5000"
+docker_push_registry: "vinstall:5000"
+cord_home: /home/volthainstall/cord
+voltha_containers:
+  - voltha/nginx
+  - voltha/grafana
+  - voltha/portainer
+  - cord/vcli
+  - cord/dashd
+  - cord/config-push
+  - cord/tester
+  - cord/onos
+  - cord/shovel
+  - cord/netconf
+  - cord/podder
+  - cord/ofagent
+  - cord/chameleon
+  - cord/voltha
+  - cord/voltha-base
+  - nginx
+  - consul
+  - fluent/fluentd
+  - portainer/portainer
+  - wurstmeister/kafka
+  - wurstmeister/zookeeper
+  - kamon/grafana_graphite
+  - gliderlabs/registrator
+  - centurylink/ca-certs

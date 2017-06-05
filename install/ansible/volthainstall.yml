@@ -1,0 +1,17 @@
+- hosts: installer
+  remote_user: vinstall
+  serial: 1
+  vars:
+    target: installer
+  roles:
+    - common
+    - docker
+    - docker-compose
+    - installer
+    - docker-registry
+#    - apt-repository
+- hosts: voltha
+  remote_user: vagrant
+  serial: 1
+  roles:
+    - push-images

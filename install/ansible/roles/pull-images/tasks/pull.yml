@@ -1,0 +1,12 @@
+- name: Docker containers for Voltha are pulled
+  command: docker pull {{ docker_registry }}/{{ item }}
+  with_items: "{{ voltha_containers }}"
+  tags: [pull]
+- name: Docker images are re-tagged to expected names
+  command: docker tag {{ docker_registry }}/{{ item }} {{ item }}
+  with_items: "{{ voltha_containers }}"
+  tags: [pull]
+- name: Old docker image tags are removed
+  command: docker rmi {{ docker_registry }}/{{ item }}
+  with_items: "{{ voltha_containers }}"
+  tags: [pull]

@@ -1,0 +1,12 @@
+- hosts: cluster
+  remote_user: voltha
+  serial: 1
+  vars:
+    target: cluster
+  roles:
+    - common
+    - voltha
+    - docker
+    - docker-compose
+    - pull-images
+    - java

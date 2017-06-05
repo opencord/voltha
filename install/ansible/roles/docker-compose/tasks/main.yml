@@ -1,0 +1,12 @@
+- name: Executable is downloaded
+  get_url:
+    url: https://github.com/docker/compose/releases/download/1.9.0/docker-compose-Linux-x86_64
+    dest: /home/vinstall
+    mode: 0644
+  when: target == "installer"
+- name: Executable is present
+  copy:
+    src: /home/vinstall/docker-compose-Linux-x86_64
+    dest: /usr/local/bin/docker-compose
+    mode: 0755
+  when: target == "cluster"

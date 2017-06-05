@@ -1,0 +1,45 @@
+- name: The apt-repository is copied
+  copy:
+    src: "{{ cord_home }}/incubator/voltha/install/apt-mirror"
+    dest: /home/vinstall
+    owner: vinstall
+    group: vinstall
+  tags: [apt]
+- name: Nginx is installed
+  apt:
+    name: nginx
+    state: latest
+  tags: [apt]
+
+- name: Nginx config is copied
+  copy:
+    src: "{{ cord_home }}/incubator/voltha/install/nginx-default"
+    dest: /etc/nginx/sites-enabled/default
+  register: copy_result
+  tags: [apt]
+
+- name: nginx is restarted
+  command: service nginx restart
+  when: copy_result|changed
+  tags: [apt]
+
+#- name: NFS is installed TESTING ONLY REMOVE FOR PRODUCTION
+#  apt:
+#    name: nfs-common
+#    state: latest
+#  tags: [apt]
+#
+#- name: Apt repo is mounted TESTING ONLY REMOVE FOR PRODUCTION
+#  mount:
+#    name: /home/vinstall/apt-mirror
+#    src: "{{ mount_host }}:{{ cord_home }}/incubator/voltha/install/apt-mirror"
+#    fstype: nfs
+#    state: mounted
+#  tags: [apt]
+
+- name: Links to the repos are created
+  file:
+    src: /home/vinstall/apt-mirror/mirror/archive.ubuntu.com/ubuntu
+    dest: /var/www/ubuntu
+    state: link
+  tags: [apt]
