@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "9a0e1d27_466e1ccb",
+        "filename": "voltha/protos/bal.proto",
+        "patchSetId": 6
+      },
+      "lineNbr": 42,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-06-05T10:04:31Z",
+      "side": 1,
+      "message": "Adding more information.\nThe values of each field should represent the presence of bits in \"BalClassifierId presence_mask\". \neg: \nBAL_CLASSIFIER_ID_O_TPID \u003d 0x0001;   // Outer TPID of the packet to be classified.\n    BAL_CLASSIFIER_ID_O_VID \u003d0x0002;    // Outer VID of the packet to be classified.\n    BAL_CLASSIFIER_ID_I_TPID \u003d 0x0004;   // Inner TPID of the packet to be classified.\n           .\n           .\n           .",
+      "parentUuid": "9a0e1d27_265c4825",
+      "range": {
+        "startLine": 42,
+        "startChar": 5,
+        "endLine": 42,
+        "endChar": 20
+      },
+      "revId": "c104cbacbb55eaf96e81d41f6e5101fc75cd47c2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a0e1d27_e63d30bd",
         "filename": "voltha/protos/bal.proto",
         "patchSetId": 6
