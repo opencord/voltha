@@ -6,9 +6,7 @@ Start with an installation of Ubuntu16.04LTS on a bare metal server that is capa
   
   ```
   
-  voltha> wget http://releases.ubuntu.com/16.04.2/ubuntu-16.04.2-server-amd64.iso?_ga=2.265030799.1261020773.1494452518-1341183294.1494452430
-  voltha> mv ubuntu-16.04.2-server-amd64.iso\?_ga\=2.265030799.1261020773.1494452518-1341183294.1494452430  ~
-  voltha> mv ubuntu-16.04.2-server-amd64.iso\?_ga\=2.265030799.1261020773.1494452518-1341183294.1494452430 ubuntu-16.04.2-server-amd64.iso
+  voltha> wget http://releases.ubuntu.com/xenial/ubuntu-16.04.2-server-i386.iso
   voltha> echo "virt-install -n Ubuntu16.04 -r 1024 --vcpus=2 --disk size=50 -c ubuntu-16.04.2-server-amd64.iso --accelerate --network network=default,model=virtio --connect=qemu:///system --vnc --noautoconsole -v" > Ubuntu16.04Vm
   voltha> . Ubuntu16.04Vm
   voltha> virt-manager
@@ -38,8 +36,7 @@ vagrant@voltha$ sudo mv tmp.sudo /etc/sudoers.d/vagrant
 ## Install and configure vagrant
 Vagrant comes with the Ubuntu 16.04 but it doesn't work with kvm. Downloading and installing the version from hashicorp solves the problem.
 ```
-voltha> wget https://releases.hashicorp.com/vagrant/1.9.3/vagrant_1.9.3_x86_64.deb?_ga=1.18905464.1971983098.1491789316
-voltha> mv vagrant_1.9.3_x86_64.deb\?_ga\=1.18905464.1971983098.1491789316 vagrant_1.9.3_x86_64.deb
+voltha> wget https://releases.hashicorp.com/vagrant/1.9.5/vagrant_1.9.3_x86_64.deb
 voltha> sudo dpkg -i vagrant_1.9.3_x86_64.deb
 voltha> vagrant plugin install vagrant-cachier
 voltha> sudo apt-get install libvirt-dev
@@ -87,11 +84,11 @@ voltha>  repo sync
 ## Run vagrant to Create a Voltha VM
 First create the voltah VM using vagrant.
 ```
-voltha> vagrant VAGRANT_VAGRANTFILE=Vagrantfile.libvirt up
+voltha> vagrant up
 ```
 Finally, log into the vm using vagrant.
 ```
-voltha> vagrantVAGRANT_VAGRANTFILE=Vagrantfile.libvirt ssh
+voltha> vagrant ssh
 ```
 
 That's it! Enjoy voltha running in QEMU/KVM virtual machines.
