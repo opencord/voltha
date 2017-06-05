@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a0e1d27_66524015",
+        "filename": "voltha/protos/bal.proto",
+        "patchSetId": 6
+      },
+      "lineNbr": 162,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-06-05T04:46:42Z",
+      "side": 1,
+      "message": "Good, this looks to be accurate.  Did you take it from bal_model_types.h? BAL 2.2?",
+      "revId": "c104cbacbb55eaf96e81d41f6e5101fc75cd47c2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
