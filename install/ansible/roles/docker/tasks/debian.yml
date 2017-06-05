@@ -1,0 +1,91 @@
+- name: Debian add Docker repository and update apt cache
+  apt_repository:
+    repo: deb https://apt.dockerproject.org/repo ubuntu-{{ debian_version }} main
+    update_cache: yes
+    state: present
+  when: target == "installer"
+  tags: [docker]
+
+- name: Debian Docker is present
+  apt:
+    name: docker-engine
+    state: latest
+    force: yes
+  when: target == "installer"
+  tags: [docker]
+
+#- name: Docker deb install file is present
+#  get_url:
+#    url: https://apt.dockerproject.org/repo/pool/main/d/docker-engine/docker-engine_17.05.0~ce-0~ubuntu-xenial_amd64.deb
+#    dest: /home/vinstall
+#    owner: vinstall
+#    group: vinstall
+#  when: target == "installer"
+#  tags: [docker]
+
+#- name: Docker dependencies satisfied
+#  apt:
+#    name: libltdl7
+#    state: latest
+#    force: yes
+#  when: target == "cluster"
+#  tags: [docker]
+
+#- name: Docker install deb file is copied
+#  copy:
+#    src: /home/vinstall/docker-engine_17.05.0~ce-0~ubuntu-xenial_amd64.deb
+#    dest: /home/voltha
+#  when: target == "cluster"
+#  tags: [docker]
+
+#- name: Docker engine is installed
+#  apt:
+#    deb: /home/vinstall/docker-engine_17.05.0~ce-0~ubuntu-xenial_amd64.deb
+#  when: target == "cluster"
+#  tags: [docker]
+
+- name: Debian python-pip is present
+  apt: name=python-pip state=present
+  tags: [docker]
+
+- name: Debian docker-py is present
+  pip:
+    name: docker-py
+    version: 1.6.0
+    state: present
+  when: target == "installer"
+  tags: [docker]
+
+- name: netifaces pip package is present
+  pip:
+    name: netifaces
+    version: 0.10.4
+    state: present
+  when: target == "installer"
+  tags: [docker]
+
+- name: Debian files are present
+  template:
+    src: "{{ docker_cfg }}"
+    dest: "{{ docker_cfg_dest }}"
+  register: copy_result
+  tags: [docker]
+
+- name: Debian Daemon is reloaded
+  command: systemctl daemon-reload
+  when: copy_result|changed and is_systemd is defined
+  tags: [docker]
+
+- name: vagrant user is added to the docker group
+  user:
+    name: "{{ ansible_env['SUDO_USER'] }}"
+    group: docker
+  register: user_result
+  tags: [docker]
+
+- name: Debian Docker service is restarted
+  service:
+    name: docker
+    state: restarted
+  when: copy_result|changed or user_result|changed
+  tags: [docker]

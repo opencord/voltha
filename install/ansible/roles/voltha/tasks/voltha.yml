@@ -1,0 +1,57 @@
+- name: Required directory exists
+  file:
+    path: /cord/incubator/voltha
+    state: directory
+    owner: voltha
+    group: voltha
+  tags: [voltha]
+
+- name: Required directories are copied
+  copy:
+    src: /home/vinstall/{{ item }}
+    dest: /cord/incubator/voltha
+    owner: voltha
+    group: voltha
+  with_items:
+    - compose
+    - nginx_config
+    - docker-py
+    - netifaces
+    - deb_files
+  tags: [voltha]
+
+- name: Nginx module symlink is present
+  file:
+    dest: /cord/incubator/voltha/nginx_config/modules
+    src: ../../usr/lib/nginx/modules
+    state: link
+    follow: no
+    force: yes
+  tags: [voltha]
+
+- name: Nginx statup script is executable
+  file:
+    path: /cord/incubator/voltha/nginx_config/start_service.sh
+    mode: 0755
+  tags: [voltha]
+
+- name: Dependent software is installed
+  command: dpkg -i /cord/incubator/voltha/deb_files/{{ item }}
+  with_items: "{{ deb_files }}"
+  when: target == "cluster"
+  ignore_errors: true
+  tags: [voltha]
+
+- name: Dependent software is initialized
+  command: apt-get -f install
+  when: target == "cluster"
+  tags: [voltha]
+
+- name: Python packages are installe
+  command: pip install {{ item }} --no-index --find-links file:///cord/incubator/voltha/{{ item }}
+  with_items:
+    - docker-py
+    - netifaces
+  when: target == "cluster"
+  tags: [voltha]
+

@@ -1,0 +1,49 @@
+- name: Ansible repository is available
+  apt_repository:
+    repo: 'ppa:ansible/ansible'
+  tags: [installer]
+- name: Debian ansible is present
+  apt:
+    name: ansible
+    state: latest
+    force: yes
+  tags: [installer]
+- name: Installer files and directories are copied
+  copy:
+    src: "{{ cord_home }}/incubator/voltha/{{ item }}"
+    dest: /home/vinstall
+    owner: vinstall
+    group: vinstall
+  with_items:
+    - install/installer.sh
+    - install/install.cfg
+    - install/ansible
+    - compose
+    - nginx_config
+  tags: [installer]
+- name: Determine if test mode is active
+  local_action: stat path="{{ cord_home }}/incubator/voltha/install/.test"
+  register: file
+  ignore_errors: True
+- name: Test mode file is copied
+  copy:
+    src: "{{ cord_home }}/incubator/voltha/install/.test"
+    dest: /home/vinstall
+  when: file.stat.exists
+- name: The installer is made executable
+  file:
+    path: /home/vinstall/installer.sh
+    mode: 0744
+  tags: [installer]
+- name: Python docker-py 1.6.0 package source is available
+  command: pip download -d /home/vinstall/docker-py "docker-py==1.6.0"
+  tags: [installer]
+- name: Python netifaces 0.10.4 package source is available
+  command: pip download -d /home/vinstall/netifaces "netifaces==0.10.4"
+  tags: [installer]
+- name: Deb files are saved.
+  command: cp -r /var/cache/apt/archives /home/vinstall
+  tags: [installer]
+- name: Deb file directory is renamed
+  command: mv /home/vinstall/archives /home/vinstall/deb_files
+  tags: [installer]

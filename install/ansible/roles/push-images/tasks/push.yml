@@ -1,0 +1,12 @@
+- name: Docker images are re-tagged to registry for push
+  command: docker tag {{ item }} {{ docker_push_registry }}/{{ item }}
+  with_items: "{{ voltha_containers }}"
+  tags: [push]
+- name: Docker containers for Voltha are pushed
+  command: docker push {{ docker_push_registry }}/{{ item }}
+  with_items: "{{ voltha_containers }}"
+  tags: [push]
+- name: Temporary registry push tags are removed
+  command: docker rmi {{ docker_push_registry }}/{{ item }}
+  with_items: "{{ voltha_containers }}"
+  tags: [push]

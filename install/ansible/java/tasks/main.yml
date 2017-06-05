@@ -1,0 +1,5 @@
+- name: Package is present
+  apt:
+    name=openjdk-8-jdk
+    state=present
+  tags: [java]

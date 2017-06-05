@@ -1,0 +1,15 @@
+- Create an installer tar file when not run in test mode
+  - This file should include:
+    - The qcow2 image for the installer
+    - The KVM xml metadata for the installer
+    - The private key to access the VM
+    - The bootstrap script to launch the installer
+  - In the future, it could include (which would make it 1 or 2G larger).
+    - The .deb file to install vagrant
+    - .vagrant.d directory with all the configs and boxes
+- Clean up the ansible scripts
+  - Create a cluster-host role
+    - Install all dependent software using dpkg and pip
+  - Move the pull and push roles into the voltha role
+    - Use the target selector to trigger the appropriate ones
+    - OR create voltha-deploy and voltha-create roles (TBD)
