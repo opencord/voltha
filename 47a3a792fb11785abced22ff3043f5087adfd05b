@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a0e1d27_f13de8bc",
+        "filename": "netopeer/voltha-transapi/autom4te.cache/output.0",
+        "patchSetId": 2
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-06-06T14:09:23Z",
+      "side": 1,
+      "message": "Are all these cache files required here? Aren\u0027t they just recreated when the build is launched?",
+      "range": {
+        "startLine": 1,
+        "startChar": 0,
+        "endLine": 1,
+        "endChar": 5
+      },
+      "revId": "47a3a792fb11785abced22ff3043f5087adfd05b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
