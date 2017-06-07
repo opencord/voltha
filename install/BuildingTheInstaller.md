@@ -128,11 +128,73 @@ You can use ``ha-serv2`` or ``ha-serv3`` in place of ``ha-serv1`` above. Log int
 Once logged into the voltha instance follow the usual procedure to start voltha and validate that it's operating correctly.
 
 ### Building the installer in production mode
-Production mode should be used if the installer created is going to be used in a production environment. In this case, an archive file is created that contains the VM image, the KVM xml metadata file for the VM, the debian vagrant file, the private key to access the vM, and a bootstrap script that sets up the VM, fires it up, and logs into it.
+Production mode should be used if the installer created is going to be used in a production environment. In this case, an archive file is created that contains the VM image, the KVM xml metadata file for the VM, the private key to access the vM, and a bootstrap script that sets up the VM, fires it up, and logs into it.
+
+The archive file and a script called ``installVoltha.sh`` are both placed in a directory named ``volthaInstaller``. If the resulting archive file is greater than 2G, it's broken into 1.8G parts named ``installer.part<XX>`` where XX is a number starting at 00 and going as high as necessary based on the archive size.
 
 To build the installer in production mode type:
 ``./CreateInstaller.sh``
 
-This will take a while and when it completes a file named ``VolthaInstallerV1.0.tar.bz2`` will have been created. Put this file on a usb flash drive that's been formatted using the ext4 filesystem and it's ready to be carried to the installation site.
+This will take a while and when it completes a directory name ``volthaInstaller`` will have been created. Copy all the files in this directory to a USB Flash drive or other portable media and carry to the installation site.
 
-***More to come on this as things evolve.***
+## Installing Voltha
+
+To install voltha access to a bare metal server running Ubuntu Server 16.04LTS with QEMU/KVM virtualization and OpenSSH installed is required. If the server meets these basic requirements then insert the portable media, mount it, and copy all the files on the media to a directory on the server. Change into that directory and type ``./installVoltha.sh`` which should produce the following output:
+```
+Checking for the installer archive installer.tar.bz2
+Checking for the installer archive parts installer.part*
+Creating the installer archive installer.tar.bz2
+Extracting the content of the installer archive installer.tar.bz2
+Starting the installer{NC}
+Defining the  vInstaller virtual machine
+Creating the storage for the vInstaller virtual machine
+Pool installer created
+
+Vol vInstaller.qcow2 created from input vol vInstaller.qcow2
+
+Pool installer destroyed
+
+Domain vInstaller defined from tmp.xml
+
+Starting the vInstaller virtual machine
+Waiting for the VM's IP address
+Waiting for the VM's IP address
+Waiting for the VM's IP address
+             .
+             :
+Waiting for the VM's IP address
+Warning: Permanently added '192.168.122.24' (ECDSA) to the list of known hosts.
+Welcome to Ubuntu 16.04.2 LTS (GNU/Linux 4.4.0-62-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/advantage
+
+7 packages can be updated.
+7 updates are security updates.
+
+
+Last login: Tue Jun  6 16:55:48 2017 from 192.168.121.1
+vinstall@vinstall:~$
+```
+
+This might take a little while but once the prompt is presented there are 2 values that need to be configured after which the installer can be launched. (***Note:*** This will change over time as the HA solution evolves. As this happens this document will be updated)
+
+Use your favorite editor to edit the file ``install.cfg`` which should contain the following lines:
+```
+# Configure the hosts that will make up the cluster
+# hosts="192.168.121.195 192.168.121.2 192.168.121.215"
+#
+# Configure the user name to initilly log into those hosts as.
+# iUser="vagrant"
+```
+
+Uncomment the `hosts` line and replace the list of ip addresses on the line with the list of ip addresses for your deployment. These can be either VMs or bare metal servers, it makes no difference to the installer.
+
+Next uncomment the iUser line and change the userid that will be used to log into the target hosts (listed above) and save the file. The installer will create a new user named voltha on each of those hosts and use that account to complete the installation.
+
+Make sure that all the hosts that are being installed to have Ubuntu server 16.04LTS installed with OpenSSH. Also make sure that they're all reachable by attempting an ssh login to each with the user id provided on the iUser line.
+
+Once `install.cfg` file has been updated and reachability has been confirmed, start the installation with the command `./installer.sh`.
+
+Once launched, the installer will prompt for the password 3 times for each of the hosts the installation is being performed on. Once these have been provided, the installer will proceed without prompting for anything else. 

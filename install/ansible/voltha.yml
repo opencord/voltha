@@ -5,8 +5,8 @@
     target: cluster
   roles:
     - common
-    - voltha
+    - cluster-host
     - docker
     - docker-compose
-    - pull-images
+    - voltha
     - java

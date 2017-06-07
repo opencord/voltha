@@ -1,3 +1,7 @@
+- Update the ansible scripts to install docker in swarm mode
+  - 3 Master nodes.
+**** DONE **** DONE **** DONE **** DONE **** DONE **** DONE **** DONE **** DONE **** DONE **** DONE ****
+
 - Create an installer tar file when not run in test mode
   - This file should include:
     - The qcow2 image for the installer
@@ -13,3 +17,4 @@
   - Move the pull and push roles into the voltha role
     - Use the target selector to trigger the appropriate ones
     - OR create voltha-deploy and voltha-create roles (TBD)
+

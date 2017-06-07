@@ -9,9 +9,10 @@
     - docker-compose
     - installer
     - docker-registry
-#    - apt-repository
 - hosts: voltha
   remote_user: vagrant
   serial: 1
+  vars:
+    target: installer
   roles:
-    - push-images
+    - voltha

@@ -2,7 +2,6 @@
 
 baseImage="Ubuntu1604LTS"
 iVmName="Ubuntu1604LTS-1"
-iVmNetwork="vagrant-libvirt"
 shutdownTimeout=5
 ipTimeout=10
 
@@ -74,9 +73,9 @@ HERE
 	echo -e "${lBlue}Transfering pre-configuration script to ${yellow}$i${NC}"
 	if [ -d ".test" ]; then
 		echo -e "${red}Test mode set!!${lBlue} Using pre-populated ssh key for ${yellow}$i${NC}"
-		scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i .test/$i bash_login.sh vagrant@$i:.bash_login
+		scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i .test/$i bash_login.sh $iUser@$i:.bash_login
 	else
-		scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no bash_login.sh vagrant@$i:.bash_login
+		scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no bash_login.sh $iUser@$i:.bash_login
 	fi
 	rm bash_login.sh
 
@@ -84,9 +83,9 @@ HERE
 	echo -e "${lBlue}Running the pre-configuration script on ${yellow}$i${NC}"
 	if [ -d ".test" ]; then
 		echo -e "${red}Test mode set!!${lBlue} Using pre-populated ssh key for ${yellow}$i${NC}"
-		ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i .test/$i vagrant@$i
+		ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i .test/$i $iUser@$i
 	else
-		ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no vagrant@$i
+		ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no $iUser@$i
 	fi
 
 	# Configure ansible and ssh for silent operation

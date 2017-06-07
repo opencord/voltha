@@ -8,7 +8,7 @@
 # usage devCopyTiInstaller.sh <ip-address>
 
 
-rm -f install.cfg
+sed -i -e '/^#/!d' install.cfg
 rm -fr .test
 mkdir .test
 hosts=""
@@ -20,3 +20,4 @@ do
 	cat .vagrant/machines/$hName/libvirt/private_key > .test/$ipAddr
 done
 echo "hosts=\"$hosts\"" >> install.cfg
+echo 'iUser="vagrant"' >> install.cfg
