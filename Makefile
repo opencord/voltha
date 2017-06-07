@@ -24,7 +24,23 @@ VENVDIR := venv-$(shell uname -s | tr '[:upper:]' '[:lower:]')
 
 .PHONY: $(DIRS) $(DIRS_CLEAN) $(DIRS_FLAKE8) flake8 docker-base voltha chameleon ofagent podder netconf shovel onos dashd vcli portainer grafana nginx
 
-default: build
+# This should to be the first and default target in this Makefile
+help:
+	@echo "Usage: make [<target>]"
+	@echo "where available targets are:"
+	@echo
+	@echo "build        : Build the Voltha protos and docker images"
+	@echo "clean        : Remove files created by the build and tests"
+	@echo "distclean    : Remove venv directory"
+	@echo "fetch        : Pre-fetch artifacts for subsequent local builds"
+	@echo "flake8       : Run specifically flake8 tests"
+	@echo "help         : Print this help"
+	@echo "protos       : Compile all grpc/protobuf files"
+	@echo "rebuild-venv : Rebuild local Python virtualenv from scratch"
+	@echo "venv         : Build local Python virtualenv if did not exist yet"
+	@echo "utest        : Run all unit tests"
+	@echo "itest        : Run all integration tests"
+	@echo
 
 ## New directories can be added here
 DIRS:=\
@@ -57,22 +73,6 @@ $(DIRS_FLAKE8):
 	@echo "    FLAKE8 $(basename $@)"
 	-$(Q)$(MAKE) -C $(basename $@) flake8
 
-help:
-	@echo "Usage: make [<target>]"
-	@echo "where available targets are:"
-	@echo
-	@echo "build        : Build the Voltha docker images (default target)"
-	@echo "clean        : Remove files created by the build and tests"
-	@echo "distclean    : Remove venv directory"
-	@echo "fetch        : Pre-fetch artifacts for subsequent local builds"
-	@echo "flake8       : Run specifically flake8 tests"
-	@echo "help         : Print this help"
-	@echo "protos       : Compile all grpc/protobuf files"
-	@echo "rebuild-venv : Rebuild local Python virtualenv from scratch"
-	@echo "venv         : Build local Python virtualenv if did not exist yet"
-	@echo "utest        : Run all unit tests"
-	@echo "itest        : Run all integration tests"
-	@echo
 
 build: protos containers
 

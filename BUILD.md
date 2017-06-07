@@ -35,7 +35,7 @@ vagrant ssh # the rest to be executed inside the vagrant VM
 cd /cord/incubator/voltha
 . env.sh
 make fetch
-make
+make build
 ```
 
 The above has generated a new Docker image '''cord/voltha''' inside the VM. To see it, run:
@@ -366,7 +366,7 @@ Potential issues and workaround:
 These steps are not different from the Vagrant path:
 
 ```
-make
+make build
 ```
 
 Then you shall be able to see the created image and run the container:
