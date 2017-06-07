@@ -1,0 +1,49 @@
+# Note: When the target == "cluster" the installer
+# is running to install voltha in the cluster hosts.
+# Whe the target == "installer" the installer is being
+# created.
+- name: Required configuration directories are copied
+  copy:
+    src: "/home/vinstall/{{ item }}"
+    dest: "{{ target_voltha_home }}"
+    owner: voltha
+    group: voltha
+  with_items:
+    - docker-py
+    - netifaces
+    - deb_files
+  when: target == "cluster"
+  tags: [voltha]
+
+- name: Dependent software is installed
+  command: dpkg -i "{{ target_voltha_home }}/deb_files/{{ item }}"
+  with_items: "{{ deb_files }}"
+  when: target == "cluster"
+  ignore_errors: true
+  when: target == "cluster"
+  tags: [voltha]
+
+- name: Dependent software is initialized
+  command: apt-get -f install
+  when: target == "cluster"
+  tags: [voltha]
+
+- name: Python packages are installe
+  command: pip install {{ item }} --no-index --find-links "file://{{ target_voltha_home }}/{{ item }}"
+  with_items:
+    - docker-py
+    - netifaces
+  when: target == "cluster"
+  tags: [voltha]
+
+- name: Configuration directories are deleted
+  file:
+    path: "{{ target_voltha_home }}/{{ item }}"
+    state: absent
+  with_items:
+    - docker-py
+    - netifaces
+    - deb_files
+  when: target == "cluster"
+  tags: [voltha]
+

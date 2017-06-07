@@ -1,5 +1,5 @@
 <domain type='kvm'>
-  <name>{{VMName}}</name>
+  <name>{{ VMName }}</name>
   <memory unit='KiB'>1048576</memory>
   <currentMemory unit='KiB'>1048576</currentMemory>
   <vcpu placement='static'>2</vcpu>
@@ -30,7 +30,7 @@
     <emulator>/usr/bin/kvm-spice</emulator>
     <disk type='file' device='disk'>
       <driver name='qemu' type='qcow2'/>
-      <source file='/var/lib/libvirt/images/{{VMName}}.qcow2'/>
+      <source file='/var/lib/libvirt/images/{{ VMName }}.qcow2'/>
       <target dev='hda' bus='ide'/>
       <address type='drive' controller='0' bus='0' target='0' unit='0'/>
     </disk>
@@ -64,7 +64,7 @@
     </controller>
     <interface type='network'>
       <mac address='52:54:00:ed:19:74'/>
-      <source network='{{VMNetwork}}'/>
+      <source network='{{ VMNetwork }}'/>
       <model type='virtio'/>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x03' function='0x0'/>
     </interface>

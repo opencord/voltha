@@ -1,8 +1,11 @@
 #!/bin/bash
 
 baseImage="Ubuntu1604LTS"
-iVmName="Ubuntu1604LTS-1"
+iVmName="vInstaller"
 iVmNetwork="vagrant-libvirt"
+installerArchive="installer.tar.bz2"
+installerDirectory="volthaInstaller"
+installerPart="installer.part"
 shutdownTimeout=5
 ipTimeout=10
 
@@ -34,10 +37,10 @@ echo -e "${lBlue}Ensure that ${lCyan}ansible${lBlue} is installed${NC}"
 aInst=`which ansible`
 
 if [ -z "$aInst" ]; then
-	sudo apt-get install software-properties-common
+	sudo apt-get install -y software-properties-common
 	sudo apt-add-repository ppa:ansible/ansible
 	sudo apt-get update
-	sudo apt-get install ansible
+	sudo apt-get install -y ansible
 fi
 unset vInst
 
@@ -58,15 +61,18 @@ if [ $# -eq 1 -a "$1" == "test" ]; then
 	./devSetHostList.sh
 else
 	rm -fr .test
+	# Clean out the install config file keeping only the commented lines
+        # which serve as documentation.
+	sed -i -e '/^#/!d' install.cfg
 fi
 
 # Shut down the domain in case it's running.
 echo -e "${lBlue}Shut down the ${lCyan}$iVmName${lBlue} VM if running${NC}"
 ctr=0
 vStat=`virsh list | grep $iVmName`
+virsh shutdown $iVmName
 while [ ! -z "$vStat" ];
 do
-	virsh shutdown $iVmName
 	echo "Waiting for $iVmName to shut down"
 	sleep 2
 	vStat=`virsh list | grep $iVmName`
@@ -93,7 +99,7 @@ virsh vol-clone "${baseImage}.qcow2" "${iVmName}.qcow2" default
 
 # Create the xml file and define the VM for virsh
 echo -e "${lBlue}Defining the  ${lCyan}$iVmName${lBlue} virtual machine${NC}"
-cat vmTemplate.xml | sed -e "s/{{VMName}}/$iVmName/g" | sed -e "s/{{VMNetwork}}/$iVmNetwork/g" > tmp.xml
+cat vmTemplate.xml | sed -e "s/{{ VMName }}/$iVmName/g" | sed -e "s/{{ VMNetwork }}/$iVmNetwork/g" > tmp.xml
 
 virsh define tmp.xml
 
@@ -186,4 +192,89 @@ echo "ansible_ssh_private_key_file: $wd/key.pem" > ansible/host_vars/$ipAddr
 # Launch the ansible playbook
 echo -e "${lBlue}Launching the ansible playbook${NC}"
 ansible-playbook ansible/volthainstall.yml -i ansible/hosts/installer
+if [ $? -ne 0 ]; then
+	echo -e "${red}PLAYBOOK FAILED, Exiting${NC}"
+	exit
+fi
 ansible-playbook ansible/volthainstall.yml -i ansible/hosts/voltha
+if [ $? -ne 0 ]; then
+	echo -e "${red}PLAYBOOK FAILED, Exiting${NC}"
+	exit
+fi
+
+if [ $# -eq 1 -a "$1" == "test" ]; then
+	echo -e "${lBlue}Testing, the install image ${red}WILL NOT#{lBlue} be built${NC}"
+else
+	echo -e "${lBlue}Building, the install image (this can take a while)${NC}"
+	# Create a temporary directory for all the installer files
+        mkdir tmp_installer
+        cp vmTemplate.xml tmp_installer
+	# Shut down the installer vm
+	ctr=0
+	vStat=`virsh list | grep $iVmName`
+	virsh shutdown $iVmName
+	while [ ! -z "$vStat" ];
+	do
+		echo "Waiting for $iVmName to shut down"
+		sleep 2
+		vStat=`virsh list | grep $iVmName`
+		ctr=`expr $ctr + 1`
+		if [ $ctr -eq $shutdownTimeout ]; then
+			echo -e "${red}Tired of waiting, forcing the VM off${NC}"
+			virsh destroy $iVmName
+			vStat=`virsh list | grep $iVmName`
+		fi
+	done
+        # Copy the install bootstrap script to the installer directory
+        cp BootstrapInstaller.sh tmp_installer
+        # Copy the private key to access the VM
+        cp key.pem tmp_installer
+        pushd tmp_installer > /dev/null 2>&1
+        # Copy the vm image to the installer directory
+	virsh vol-dumpxml $iVmName.qcow2 default  | sed -e 's/<key.*key>//' | sed -e '/^[ ]*$/d' > ${iVmName}_volume.xml
+	virsh pool-create-as installer --type dir --target `pwd`
+	virsh vol-create-from installer ${iVmName}_volume.xml $iVmName.qcow2 --inputpool default
+	virsh pool-destroy installer
+	# The image is copied in as root. It needs to have ownership changed
+	# this will result in a password prompt.
+	sudo chown `whoami`.`whoami` $iVmName.qcow2
+	# Now create the installer tar file
+        tar cjf ../$installerArchive .
+        popd > /dev/null 2>&1
+	# Clean up
+	rm -fr tmp_installer
+	# Final location for the installer
+	rm -fr $installerDirectory
+	mkdir $installerDirectory
+	cp installVoltha.sh $installerDirectory
+	# Check the image size and determine if it needs to be split.
+        # To be safe, split the image into chunks smaller than 2G so that
+        # it will fit on a FAT32 volume.
+	fSize=`ls -l $installerArchive | awk '{print $5'}`
+	if [ $fSize -gt 2000000000 ]; then
+		echo -e "${lBlue}Installer file too large, breaking into parts${NC}"
+		# The file is too large, breaking it up into parts
+		sPos=0
+		fnn="00"
+		while dd if=$installerArchive of=${installerDirectory}/${installerPart}$fnn \
+			bs=1900MB count=1 skip=$sPos > /dev/null 2>&1
+		do
+			sPos=`expr $sPos + 1`
+			if [ ! -s ${installerDirectory}/${installerPart}$fnn ]; then
+				rm -f ${installerDirectory}/${installerPart}$fnn
+				break
+			fi
+			if [ $sPos -lt 10 ]; then
+				fnn="0$sPos"
+			else
+				fnn="$sPos"
+			fi
+		done
+	else
+		cp $installerArchive $installerDirectory
+	fi
+	# Clean up
+	rm $installerArchive
+	echo -e "${lBlue}The install image is built and can be found in ${yellow}$installerDirectory${NC}"
+	echo -e "${lBlue}Copy all the files in ${yellow}$installerDirectory${lBlue} to the traasnport media${NC}"
+fi

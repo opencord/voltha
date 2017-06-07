@@ -1,57 +1,93 @@
+# Note: When the target == "cluster" the installer
+# is running to install voltha in the cluster hosts.
+# Whe the target == "installer" the installer is being
+# created.
+- name: The environment is properly set on login
+  template:
+    src: bashrc.j2
+    dest: "{{ target_voltha_home }}/.bashrc"
+    owner: voltha
+    group: voltha
+    mode: "u=rw,g=r,o=r"
+  when: target == "cluster"
+  tags: [voltha]
+  
+- name: The .bashrc file is executed on ssh login
+  template:
+    src: bash_profile.j2
+    dest: "{{ target_voltha_home }}/.bash_profile"
+    owner: voltha
+    group: voltha
+    mode: "u=rw,g=r,o=r"
+  when: target == "cluster"
+  tags: [voltha]
+  
 - name: Required directory exists
   file:
-    path: /cord/incubator/voltha
+    path: "{{ target_voltha_dir }}"
     state: directory
     owner: voltha
     group: voltha
+  when: target == "cluster"
   tags: [voltha]
 
 - name: Required directories are copied
   copy:
-    src: /home/vinstall/{{ item }}
-    dest: /cord/incubator/voltha
+    src: "/home/vinstall/{{ item }}"
+    dest: "{{ target_voltha_dir }}"
     owner: voltha
     group: voltha
   with_items:
     - compose
     - nginx_config
-    - docker-py
-    - netifaces
-    - deb_files
+  when: target == "cluster"
   tags: [voltha]
 
 - name: Nginx module symlink is present
   file:
-    dest: /cord/incubator/voltha/nginx_config/modules
+    dest: "{{ target_voltha_dir }}/nginx_config/modules"
     src: ../../usr/lib/nginx/modules
     state: link
     follow: no
     force: yes
+  when: target == "cluster"
   tags: [voltha]
 
 - name: Nginx statup script is executable
   file:
-    path: /cord/incubator/voltha/nginx_config/start_service.sh
+    path: "{{ target_voltha_dir }}/nginx_config/start_service.sh"
     mode: 0755
-  tags: [voltha]
-
-- name: Dependent software is installed
-  command: dpkg -i /cord/incubator/voltha/deb_files/{{ item }}
-  with_items: "{{ deb_files }}"
-  when: target == "cluster"
-  ignore_errors: true
-  tags: [voltha]
-
-- name: Dependent software is initialized
-  command: apt-get -f install
   when: target == "cluster"
   tags: [voltha]
 
-- name: Python packages are installe
-  command: pip install {{ item }} --no-index --find-links file:///cord/incubator/voltha/{{ item }}
-  with_items:
-    - docker-py
-    - netifaces
+- name: Docker containers for Voltha are pulled
+  command: docker pull {{ docker_registry }}/{{ item }}
+  with_items: "{{ voltha_containers }}"
+  when: target == "cluster"
+  tags: [voltha]
+- name: Docker images are re-tagged to expected names
+  command: docker tag {{ docker_registry }}/{{ item }} {{ item }}
+  with_items: "{{ voltha_containers }}"
+  when: target == "cluster"
+  tags: [voltha]
+- name: Old docker image tags are removed
+  command: docker rmi {{ docker_registry }}/{{ item }}
+  with_items: "{{ voltha_containers }}"
   when: target == "cluster"
   tags: [voltha]
 
+- name: Docker images are re-tagged to registry for push
+  command: docker tag {{ item }} {{ docker_push_registry }}/{{ item }}
+  with_items: "{{ voltha_containers }}"
+  when: target == "installer"
+  tags: [voltha]
+- name: Docker containers for Voltha are pushed
+  command: docker push {{ docker_push_registry }}/{{ item }}
+  with_items: "{{ voltha_containers }}"
+  when: target == "installer"
+  tags: [voltha]
+- name: Temporary registry push tags are removed
+  command: docker rmi {{ docker_push_registry }}/{{ item }}
+  with_items: "{{ voltha_containers }}"
+  when: target == "installer"
+  tags: [voltha]

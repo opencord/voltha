@@ -14,38 +14,11 @@
   when: target == "installer"
   tags: [docker]
 
-#- name: Docker deb install file is present
-#  get_url:
-#    url: https://apt.dockerproject.org/repo/pool/main/d/docker-engine/docker-engine_17.05.0~ce-0~ubuntu-xenial_amd64.deb
-#    dest: /home/vinstall
-#    owner: vinstall
-#    group: vinstall
-#  when: target == "installer"
-#  tags: [docker]
-
-#- name: Docker dependencies satisfied
-#  apt:
-#    name: libltdl7
-#    state: latest
-#    force: yes
-#  when: target == "cluster"
-#  tags: [docker]
-
-#- name: Docker install deb file is copied
-#  copy:
-#    src: /home/vinstall/docker-engine_17.05.0~ce-0~ubuntu-xenial_amd64.deb
-#    dest: /home/voltha
-#  when: target == "cluster"
-#  tags: [docker]
-
-#- name: Docker engine is installed
-#  apt:
-#    deb: /home/vinstall/docker-engine_17.05.0~ce-0~ubuntu-xenial_amd64.deb
-#  when: target == "cluster"
-#  tags: [docker]
-
 - name: Debian python-pip is present
-  apt: name=python-pip state=present
+  apt:
+    name: python-pip
+    state: present
+  when: target == "installer"
   tags: [docker]
 
 - name: Debian docker-py is present
@@ -64,7 +37,7 @@
   when: target == "installer"
   tags: [docker]
 
-- name: Debian files are present
+- name: Docker config files are present
   template:
     src: "{{ docker_cfg }}"
     dest: "{{ docker_cfg_dest }}"

@@ -1,4 +1,10 @@
 # Building a vOLT-HA Virtual Machine  Using Vagrant on QEMU/KVM
+***
+**++Table of Contents++**
+
+[TOC]
+***
+##Bare Metal Setup
 Start with an installation of Ubuntu16.04LTS on a bare metal server that is capable of virtualization. How to determine this is beyond the scope of this document. When installing the image ensure that both "OpenSSH server" and "Virtualization Machine Host" are chosen in addition to the default "standard system utilities". Once the installation is complete, login to the box and type ``virsh list``. If this doesnt work then you'll need to troubleshoot the installation. If it works, then proceed to the next section.
 
 ##Create the base ubuntu/xenial box
@@ -84,6 +90,7 @@ voltha>  repo sync
 ## Run vagrant to Create a Voltha VM
 First create the voltah VM using vagrant.
 ```
+voltha> cd cord/incubator/voltha
 voltha> vagrant up
 ```
 Finally, log into the vm using vagrant.
