@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a0e1d27_11773cd6",
+        "filename": "install/ansible/voltha.retry",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-06-07T03:24:54Z",
+      "side": 1,
+      "message": "Should the voltha.retry file be there. I think this is a temporary file that gets created during ansible-playbook execution.",
+      "revId": "07ada4e83c109f37c3e791f0b365fd1580e44924",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
