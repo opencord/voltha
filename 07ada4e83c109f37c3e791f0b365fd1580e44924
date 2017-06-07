@@ -2,6 +2,57 @@
   "comments": [
     {
       "key": {
+        "uuid": "9a0e1d27_31400056",
+        "filename": "install/ansible/group_vars/all",
+        "patchSetId": 1
+      },
+      "lineNbr": 12,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-06-07T12:45:04Z",
+      "side": 1,
+      "message": "Which host is this?",
+      "revId": "07ada4e83c109f37c3e791f0b365fd1580e44924",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_1125fcc1",
+        "filename": "install/ansible/hosts/installer",
+        "patchSetId": 1
+      },
+      "lineNbr": 2,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-06-07T12:45:04Z",
+      "side": 1,
+      "message": "Is this address meant to be hardcoded?",
+      "revId": "07ada4e83c109f37c3e791f0b365fd1580e44924",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_f12168b5",
+        "filename": "install/ansible/hosts/voltha",
+        "patchSetId": 1
+      },
+      "lineNbr": 2,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-06-07T12:45:04Z",
+      "side": 1,
+      "message": "Is this address meant to be hardcoded?",
+      "revId": "07ada4e83c109f37c3e791f0b365fd1580e44924",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a0e1d27_11773cd6",
         "filename": "install/ansible/voltha.retry",
         "patchSetId": 1
