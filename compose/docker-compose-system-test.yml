@@ -53,7 +53,7 @@ services:
       "-ip=${DOCKER_HOST_IP}",
       "-retry-attempts", "100",
       # "-internal",
-      "consul://consul-tls:8500"
+      "consul://consul:8500"
     ]
     links:
     - consul
