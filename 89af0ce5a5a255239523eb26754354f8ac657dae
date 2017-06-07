@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a0e1d27_6c79ff92",
+        "filename": "Makefile",
+        "patchSetId": 1
+      },
+      "lineNbr": 27,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-07T14:41:41Z",
+      "side": 1,
+      "message": "Do you want to update it with the other makes, like make voltha, make chameleon, etc?",
+      "revId": "89af0ce5a5a255239523eb26754354f8ac657dae",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
