@@ -1,12 +1,14 @@
 from unittest import main
+
+import simplejson
+from google.protobuf.json_format import MessageToDict
+
 from common.utils.consulhelpers import get_endpoint_from_consul
 from tests.itests.docutests.test_utils import \
     run_long_running_command_with_timeout
 from tests.itests.voltha.rest_base import RestBase
-from google.protobuf.json_format import MessageToDict
 from voltha.protos.device_pb2 import Device
-import simplejson, jsonschema
-import re
+from voltha.protos.voltha_pb2 import AlarmFilter
 
 # ~~~~~~~ Common variables ~~~~~~~
 
@@ -18,31 +20,11 @@ COMMANDS = dict(
     kafka_client_alarm_check="kafkacat -o end -b {} -C -t voltha.alarms -c 2",
 )
 
-ALARM_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "id": {"type": "string"},
-        "type": {"type": "string"},
-        "category": {"type": "string"},
-        "state": {"type": "string"},
-        "severity": {"type": "string"},
-        "resource_id": {"type": "string"},
-        "raised_ts": {"type": "number"},
-        "reported_ts": {"type": "number"},
-        "changed_ts": {"type": "number"},
-        "description": {"type": "string"},
-        "context": {
-            "type": "object",
-            "additionalProperties": {"type": "string"}
-        }
-    }
-}
-
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-class VolthaAlarmEventTests(RestBase):
+class VolthaAlarmFilterTests(RestBase):
     # Retrieve details on the REST entry point
     rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'chameleon-rest')
 
@@ -81,19 +63,22 @@ class VolthaAlarmEventTests(RestBase):
         self.verify_rest()
 
         # Create a new device
-        device = self.add_device()
+        device_not_filtered = self.add_device()
+        device_filtered = self.add_device()
+
+        self.add_device_id_filter(device_filtered['id'])
 
         # Activate the new device
-        self.activate_device(device['id'])
+        self.activate_device(device_not_filtered['id'])
+        self.activate_device(device_filtered['id'])
 
-        # The simulated olt device should start generating alarms periodically
-        alarm = self.get_alarm_event(device['id'])
+        # The simulated olt devices should start generating alarms periodically
 
-        # Make sure that the schema is valid
-        self.validate_alarm_event_schema(alarm)
+        # We should see alarms generated for the non filtered device
+        self.get_alarm_event(device_not_filtered['id'])
 
-        # Validate the constructed alarm id
-        self.verify_alarm_event_id(device['id'], alarm['id'])
+        # We should not see any alarms from the filtered device
+        self.get_alarm_event(device_filtered['id'], True)
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -110,6 +95,22 @@ class VolthaAlarmEventTests(RestBase):
                            expected_code=200)
         return device
 
+    # Create a filter against a specific device id
+    def add_device_id_filter(self, device_id):
+        rules = list()
+        rule = dict()
+
+        # Create a filter with a single rule
+        rule['key'] = 'device_id'
+        rule['value'] = device_id
+        rules.append(rule)
+
+        alarm_filter = AlarmFilter(rules=rules)
+        alarm_filter = self.post('/api/v1/local/alarm_filters', MessageToDict(alarm_filter),
+                                 expected_code=200)
+
+        return alarm_filter
+
     # Active the simulated device.
     # This will trigger the simulation of random alarms
     def activate_device(self, device_id):
@@ -119,7 +120,7 @@ class VolthaAlarmEventTests(RestBase):
         self.assertEqual(device['admin_state'], 'ENABLED')
 
     # Retrieve a sample alarm for a specific device
-    def get_alarm_event(self, device_id):
+    def get_alarm_event(self, device_id, expect_failure=False):
         cmd = COMMANDS['kafka_client_alarm_check'].format(self.kafka_endpoint)
         kafka_client_output = run_long_running_command_with_timeout(cmd, 30)
 
@@ -142,39 +143,17 @@ class VolthaAlarmEventTests(RestBase):
             except Exception as e:
                 continue
 
-        self.assertTrue(
-            found,
-            'Failed to find kafka alarm with device id:{}'.format(device_id))
+        if not expect_failure:
+            self.assertTrue(
+                found,
+                'Failed to find kafka alarm with device id:{}'.format(device_id))
+        else:
+            self.assertFalse(
+                found,
+                'Found a kafka alarm with device id:{}.  It should have been filtered'.format(
+                    device_id))
 
         return alarm_data
-
-    # Verify that the alarm follows the proper schema structure
-    def validate_alarm_event_schema(self, alarm):
-        try:
-            jsonschema.validate(alarm, ALARM_SCHEMA)
-        except Exception as e:
-            self.assertTrue(
-                False, 'Validation failed for alarm : {}'.format(e.message))
-
-    # Verify that alarm identifier based on the format generated by default.
-    def verify_alarm_event_id(self, device_id, alarm_id):
-        prefix = re.findall(r"(voltha)\.(\w+)\.(\w+)", alarm_id)
-
-        self.assertEqual(
-            len(prefix), 1,
-            'Failed to parse the alarm id: {}'.format(alarm_id))
-        self.assertEqual(
-            len(prefix[0]), 3,
-            'Expected id format: voltha.<adapter name>.<device id>')
-        self.assertEqual(
-            prefix[0][0], 'voltha',
-            'Expected id format: voltha.<adapter name>.<device id>')
-        self.assertEqual(
-            prefix[0][1], 'simulated_olt',
-            'Expected id format: voltha.<adapter name>.<device id>')
-        self.assertEqual(
-            prefix[0][2], device_id,
-            'Expected id format: voltha.<adapter name>.<device id>')
 
 
 if __name__ == '__main__':
