@@ -109,14 +109,14 @@ class VolthaAlarmEventTests(RestBase):
     # This will trigger the simulation of random alarms
     def activate_device(self, device_id):
         path = '/api/v1/local/devices/{}'.format(device_id)
-        self.post(path + '/activate', expected_code=200)
+        self.post(path + '/enable', expected_code=200)
         device = self.get(path)
         self.assertEqual(device['admin_state'], 'ENABLED')
 
     # Retrieve a sample alarm for a specific device
     def get_alarm_event(self, device_id):
         cmd = COMMANDS['kafka_client_alarm_check'].format(self.kafka_endpoint)
-        kafka_client_output = run_long_running_command_with_timeout(cmd, 20)
+        kafka_client_output = run_long_running_command_with_timeout(cmd, 30)
 
         # Verify the kafka client output
         found = False
