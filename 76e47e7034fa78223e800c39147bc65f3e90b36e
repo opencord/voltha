@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a0e1d27_ac8f17cc",
+        "filename": "voltha/adapters/Makefile",
+        "patchSetId": 9
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-08T16:11:20Z",
+      "side": 1,
+      "message": "This makefile seems to be specific to asfvolt16_olt.  Can it be moved to the asfvolt16_olt directory?",
+      "revId": "76e47e7034fa78223e800c39147bc65f3e90b36e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_8cbc536e",
+        "filename": "voltha/adapters/asfvolt16_olt/protos/bal.proto",
+        "patchSetId": 9
+      },
+      "lineNbr": 48,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-08T16:11:20Z",
+      "side": 1,
+      "message": "I suspect this will eventually be augmented with more rpcs.  Having some comments on what each rps does would be nice.",
+      "revId": "76e47e7034fa78223e800c39147bc65f3e90b36e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
