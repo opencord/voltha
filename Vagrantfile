@@ -1,6 +1,10 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
+require 'yaml'
+
+settings = YAML.load_file 'settings.vagrant.yaml'
+
 Vagrant.configure(2) do |config|
 
   if /cygwin|mswin|mingw|bccwin|wince|emx/ =~ RUBY_PLATFORM
@@ -10,9 +14,17 @@ Vagrant.configure(2) do |config|
     Provider = "virtualbox"
   elsif RUBY_PLATFORM =~ /linux/
     puts("Configuring for linux")
-    config.vm.synced_folder "../..", "/cord", type: "nfs"
-    Box = "ubuntu1604"
-    Provider = "libvirt"
+    if settings['vProvider'] == "virtualbox"
+      puts("Using the virtualbox configuration");
+      config.vm.synced_folder "../..", "/cord"
+      Box = "ubuntu/xenial64"
+      Provider = "virtualbox"
+    else
+      puts("Using the QEMU/KVM configuration");
+      config.vm.synced_folder "../..", "/cord", type: "nfs"
+      Box = "ubuntu1604"
+      Provider = "libvirt"
+    end
   else
     puts("Configuring for other")
     config.vm.synced_folder "../..", "/cord"
