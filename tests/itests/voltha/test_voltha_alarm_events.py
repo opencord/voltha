@@ -14,7 +14,8 @@ LOCAL_CONSUL = "localhost:8500"
 
 COMMANDS = dict(
     kafka_client_run="kafkacat -b {} -L",
-    kafka_client_alarm_check="kafkacat -o -5 -b {} -C -t voltha.alarms -c 10",
+    kafka_client_send_msg='echo hello | kafkacat -b {} -P -t voltha.alarms -c 1',
+    kafka_client_alarm_check="kafkacat -o end -b {} -C -t voltha.alarms -c 2",
 )
 
 ALARM_SCHEMA = {
@@ -53,7 +54,11 @@ class VolthaAlarmEventTests(RestBase):
 
     # ~~~~~~~~~~~~ Tests ~~~~~~~~~~~~
 
-    def test_alarm_topic_exists(self):
+    def test_1_alarm_topic_exists(self):
+        # Produce a message to ensure that the topic exists
+        cmd = COMMANDS['kafka_client_send_msg'].format(self.kafka_endpoint)
+        run_long_running_command_with_timeout(cmd, 5)
+
         # We want to make sure that the topic is available on the system
         expected_pattern = ['voltha.alarms']
 
@@ -71,7 +76,7 @@ class VolthaAlarmEventTests(RestBase):
         self.assertTrue(found,
                         'Failed to find topic {}'.format(expected_pattern))
 
-    def test_alarm_generated_by_adapter(self):
+    def test_2_alarm_generated_by_adapter(self):
         # Verify that REST calls can be made
         self.verify_rest()
 
@@ -109,35 +114,39 @@ class VolthaAlarmEventTests(RestBase):
     # This will trigger the simulation of random alarms
     def activate_device(self, device_id):
         path = '/api/v1/local/devices/{}'.format(device_id)
-        self.post(path + '/activate', expected_code=200)
+        self.post(path + '/enable', expected_code=200)
         device = self.get(path)
         self.assertEqual(device['admin_state'], 'ENABLED')
 
     # Retrieve a sample alarm for a specific device
     def get_alarm_event(self, device_id):
         cmd = COMMANDS['kafka_client_alarm_check'].format(self.kafka_endpoint)
-        kafka_client_output = run_long_running_command_with_timeout(cmd, 20)
+        kafka_client_output = run_long_running_command_with_timeout(cmd, 30)
 
         # Verify the kafka client output
         found = False
-        self.alarm_data = None
+        alarm_data = None
 
         for out in kafka_client_output:
-            self.alarm_data = simplejson.loads(out)
+            # Catch any error that might occur while reading the kafka messages
+            try:
+                alarm_data = simplejson.loads(out)
+                print alarm_data
 
-            print self.alarm_data
+                if not alarm_data or 'resource_id' not in alarm_data:
+                    continue
+                elif alarm_data['resource_id'] == device_id:
+                    found = True
+                    break
 
-            if 'resource_id' not in self.alarm_data:
+            except Exception as e:
                 continue
-            elif self.alarm_data['resource_id'] == device_id:
-                found = True
-                break
 
         self.assertTrue(
             found,
             'Failed to find kafka alarm with device id:{}'.format(device_id))
 
-        return self.alarm_data
+        return alarm_data
 
     # Verify that the alarm follows the proper schema structure
     def validate_alarm_event_schema(self, alarm):
