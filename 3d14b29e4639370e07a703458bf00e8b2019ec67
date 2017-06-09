@@ -107,6 +107,24 @@
     },
     {
       "key": {
+        "uuid": "9a0e1d27_003c872e",
+        "filename": "tests/itests/voltha/test_persistence.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 37,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-09T22:11:33Z",
+      "side": 1,
+      "message": "I updated it but as expected it does not make a time difference.  I will keep the change to be consistent with the alarm test.",
+      "parentUuid": "9a0e1d27_6099036e",
+      "revId": "3d14b29e4639370e07a703458bf00e8b2019ec67",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a0e1d27_c0c44f61",
         "filename": "tests/itests/voltha/test_persistence.py",
         "patchSetId": 1
@@ -135,6 +153,24 @@
       "writtenOn": "2017-06-09T19:54:50Z",
       "side": 1,
       "message": "Did you want to deal with the case when the topic is not yet available?",
+      "revId": "3d14b29e4639370e07a703458bf00e8b2019ec67",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_c0d7afec",
+        "filename": "tests/itests/voltha/test_persistence.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 619,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-09T22:11:33Z",
+      "side": 1,
+      "message": "Since these tests verify that alarms are generated upon voltha restart then seeing alarms is sufficient as is proves the topic has been created",
+      "parentUuid": "9a0e1d27_a0a15bab",
       "revId": "3d14b29e4639370e07a703458bf00e8b2019ec67",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -217,6 +253,24 @@
       "side": 1,
       "message": "When does this reconciliation happen and which component invokes it?   Remember this code is invoked from data that would in principle already have been reconciled unless the instance went down right before the reconciliation.",
       "parentUuid": "9a0e1d27_e09e3363",
+      "revId": "3d14b29e4639370e07a703458bf00e8b2019ec67",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_40ecbfc7",
+        "filename": "voltha/core/core.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 122,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-09T22:11:33Z",
+      "side": 1,
+      "message": "No changes required as the non-device filters are strictly data which are   used by the adapters when needed.",
+      "parentUuid": "9a0e1d27_20a30ba0",
       "revId": "3d14b29e4639370e07a703458bf00e8b2019ec67",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
