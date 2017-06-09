@@ -26,8 +26,8 @@ class RestBase(TestCase):
                 return response.content
 
     def get(self, path, expected_code=200,
-            expected_content_type='application/json'):
-        r = get(self.url(path))
+            expected_content_type='application/json', headers=None):
+        r = get(self.url(path), headers=headers)
         self.assertEqual(r.status_code, expected_code,
                          msg='Code %d!=%d; msg:%s' % (
                              r.status_code, expected_code, r.content))

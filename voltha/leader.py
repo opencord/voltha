@@ -21,10 +21,15 @@ from structlog import get_logger
 from twisted.internet import reactor
 from twisted.internet.base import DelayedCall
 from twisted.internet.defer import inlineCallbacks, DeferredList
+from simplejson import dumps, loads
 
 from common.utils.asleep import asleep
 
 log = get_logger()
+
+
+class ConfigMappingException(Exception):
+    pass
 
 
 class Leader(object):
@@ -37,6 +42,7 @@ class Leader(object):
 
     ID_EXTRACTOR = '^(%s)([^/]+)$'
     ASSIGNMENT_EXTRACTOR = '^%s(?P<member_id>[^/]+)/(?P<work_id>[^/]+)$'
+    CORE_STORE_KEY_EXTRACTOR = '^%s(?P<core_store_id>[^/]+)/root$'
 
     # Public methods:
 
@@ -48,13 +54,22 @@ class Leader(object):
 
         self.workload = []
         self.members = []
+        self.core_store_ids = []
+        self.core_store_assignment = None
+
         self.reassignment_soak_timer = None
 
         self.workload_id_match = re.compile(
-             self.ID_EXTRACTOR % self.coord.workload_prefix).match
+            self.ID_EXTRACTOR % self.coord.workload_prefix).match
 
         self.member_id_match = re.compile(
             self.ID_EXTRACTOR % self.coord.membership_prefix).match
+
+        self.core_data_id_match = re.compile(
+            self.CORE_STORE_KEY_EXTRACTOR % self.coord.core_store_prefix).match
+
+        self.core_store_assignment_key = self.coord.core_store_prefix + \
+                                         '/assignment'
 
         self.assignment_match = re.compile(
             self.ASSIGNMENT_EXTRACTOR % self.coord.assignment_prefix).match
@@ -118,8 +133,8 @@ class Leader(object):
 
             if workload != self.workload:
                 log.info('workload-changed',
-                              old_workload_count=len(self.workload),
-                              new_workload_count=len(workload))
+                         old_workload_count=len(self.workload),
+                         new_workload_count=len(workload))
                 self.workload = workload
                 self._restart_reassignment_soak_timer()
 
@@ -136,21 +151,72 @@ class Leader(object):
                 reactor.callLater(0, self._track_workload, index)
 
     @inlineCallbacks
+    def _get_core_store_mappings(self):
+        # Get the mapping record
+        (_, mappings) = yield self.coord.kv_get(
+            self.core_store_assignment_key, recurse=True)
+        if mappings:
+            self.core_store_assignment = loads(mappings[0]['Value'])
+            return
+        else:  # Key has not been created yet
+            # Create the key with an empty dictionary value
+            value = dict()
+            result = yield self.coord.kv_put(self.core_store_assignment_key,
+                                             dumps(value))
+            if not result:
+                raise ConfigMappingException(self.instance_id)
+
+            # Ensure the record was created
+            (_, mappings) = yield self.coord.kv_get(
+                self.core_store_assignment_key, recurse=True)
+
+            self.core_store_assignment = loads(mappings[0]['Value'])
+
+    @inlineCallbacks
+    def _update_core_store_references(self):
+        try:
+            # Get the current set of configs keys
+            (_, results) = yield self.coord.kv_get(
+                self.coord.core_store_prefix, recurse=False, keys=True)
+
+            matches = (self.core_data_id_match(e) for e in results or [])
+            core_ids = [m.group(1) for m in matches if m is not None]
+
+            self.core_store_ids = core_ids
+
+            # Update the config mapping
+            self._get_core_store_mappings()
+
+            log.debug('core-data', core_ids=core_ids,
+                      assignment=self.core_store_assignment)
+
+        except Exception, e:
+            log.exception('get-config-error', e=e)
+
+    @inlineCallbacks
     def _track_members(self, index):
 
         try:
             (index, results) = yield self.coord.kv_get(
                 self.coord.membership_prefix, index=index, recurse=True)
 
-            matches = (self.member_id_match(e['Key']) for e in results or [])
+            # Only members with valid session are considered active
+            matches = (self.member_id_match(e['Key'])
+                       for e in results if 'Session' in e)
             members = [m.group(2) for m in matches if m is not None]
 
+            log.debug('active-members', active_members=members)
+
+            # Check if the two sets are the same
             if members != self.members:
+                # update the current set of config
+                yield self._update_core_store_references()
                 log.info('membership-changed',
-                              old_members_count=len(self.members),
-                              new_members_count=len(members))
+                         prev_members=self.members,
+                         curr_members=members,
+                         core_store_mapping=self.core_store_assignment)
                 self.members = members
-                self._restart_reassignment_soak_timer()
+                self._restart_core_store_reassignment_soak_timer()
 
         except Exception, e:
             log.exception('members-track-error', e=e)
@@ -173,6 +239,93 @@ class Leader(object):
 
         self.reassignment_soak_timer = reactor.callLater(
             self.soak_time, self._reassign_work)
+
+    def _restart_core_store_reassignment_soak_timer(self):
+
+        if self.reassignment_soak_timer is not None:
+            assert isinstance(self.reassignment_soak_timer, DelayedCall)
+            if not self.reassignment_soak_timer.called:
+                self.reassignment_soak_timer.cancel()
+
+        self.reassignment_soak_timer = reactor.callLater(
+            self.soak_time, self._reassign_core_stores)
+
+    @inlineCallbacks
+    def _reassign_core_stores(self):
+
+        def _get_new_str_id(max_val_in_str):
+            return str(int(max_val_in_str) + 1)
+
+        def _get_core_data_id_from_instance(instance_name):
+            for id, instance in self.core_store_assignment.iteritems():
+                if instance == instance_name:
+                    return id
+
+        try:
+            log.debug('reassign-core-stores', curr_members=self.members)
+
+            # 1. clear the mapping for instances that are no longer running
+            updated_mapping = dict()
+            existing_active_config_members = set()
+            cleared_config_ids = set()
+            inactive_members = set()
+            log.debug('previous-assignment',
+                      core_store_assignment=self.core_store_assignment)
+            if self.core_store_assignment:
+                for id, instance in self.core_store_assignment.iteritems():
+                    if instance not in self.members:
+                        updated_mapping[id] = None
+                        cleared_config_ids.add(id)
+                        inactive_members.add(instance)
+                    else:
+                        updated_mapping[id] = instance
+                        existing_active_config_members.add(instance)
+
+            # 2. Update the mapping with the new set
+            current_id = max(self.core_store_assignment) \
+                if self.core_store_assignment else '0'
+            for instance in self.members:
+                if instance not in existing_active_config_members:
+                    # Add the member to the config map
+                    if cleared_config_ids:
+                        # There is an empty slot
+                        next_id = cleared_config_ids.pop()
+                        updated_mapping[next_id] = instance
+                    else:
+                        # There are no empty slot, create new ids
+                        current_id = _get_new_str_id(current_id)
+                        updated_mapping[current_id] = instance
+
+            self.core_store_assignment = updated_mapping
+            log.debug('updated-assignment',
+                      core_store_assignment=self.core_store_assignment)
+
+            # 3. save the mapping into consul
+            yield self.coord.kv_put(self.core_store_assignment_key,
+                                    dumps(self.core_store_assignment))
+
+            # 4. Assign the new workload to the newly created members
+            curr_members_set = set(self.members)
+            new_members = curr_members_set.difference(
+                existing_active_config_members)
+            for new_member in new_members:
+                yield self.coord.kv_put(
+                    self.coord.assignment_prefix
+                    + new_member + '/' +
+                    self.coord.core_storage_suffix,
+                    _get_core_data_id_from_instance(new_member))
+
+            # 5. Remove non-existent members
+            for member in inactive_members:
+                yield self.coord.kv_delete(
+                    self.coord.assignment_prefix + member, recurse=True)
+                yield self.coord.kv_delete(
+                    self.coord.membership_prefix + member,
+                    recurse=True)
+
+        except Exception as e:
+            log.exception('config-reassignment-failure', e=e)
+            self._restart_core_store_reassignment_soak_timer()
 
     @inlineCallbacks
     def _reassign_work(self):
@@ -206,12 +359,12 @@ class Leader(object):
             wanted_assignments = dict()  # member_id -> set(work_id)
             _ = [
                 wanted_assignments.setdefault(ring.get_node(work), set())
-                .add(work)
+                    .add(work)
                 for work in self.workload
             ]
             for (member, work) in sorted(wanted_assignments.iteritems()):
                 log.info('assignment',
-                              member=member, work_count=len(work))
+                         member=member, work_count=len(work))
 
             # Step 2: discover current assignment (from consul)
 
@@ -225,7 +378,7 @@ class Leader(object):
             _ = [
                 current_assignments.setdefault(
                     m.groupdict()['member_id'], set())
-                .add(m.groupdict()['work_id'])
+                    .add(m.groupdict()['work_id'])
                 for m, e in matches if m is not None
             ]
 

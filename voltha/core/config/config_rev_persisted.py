@@ -34,7 +34,7 @@ class PersistedConfigRevision(ConfigRevision):
     __slots__ = ('_kv_store',)
 
     def __init__(self, branch, data, children=None):
-        self._kv_store = branch._node._root.kv_store
+        self._kv_store = branch._node._root._kv_store
         super(PersistedConfigRevision, self).__init__(branch, data, children)
 
     def _finalize(self):
@@ -43,38 +43,47 @@ class PersistedConfigRevision(ConfigRevision):
 
     def __del__(self):
         try:
-            if self._config.__weakref__ is None:
-                del self._kv_store[self._config._hash]
-            assert self.__weakref__ is None
-            del self._kv_store[self._hash]
+            if self._hash:
+                if self._config.__weakref__ is None:
+                    if self._config._hash in self._kv_store:
+                        del self._kv_store[self._config._hash]
+                assert self.__weakref__ is None
+                if self._hash in self._kv_store:
+                    del self._kv_store[self._hash]
         except Exception, e:
             # this should never happen
-            log.exception('del-error', hash=hash, e=e)
+            log.exception('del-error', hash=self.hash, e=e)
 
     def store(self):
-        # crude serialization of children hash and config data hash
-        if self._hash in self._kv_store:
-            return
 
-        self.store_config()
+        try:
+            # crude serialization of children hash and config data hash
+            if self._hash in self._kv_store:
+                return
 
-        children_lists = {}
-        for field_name, children in self._children.iteritems():
-            hashes = [rev.hash for rev in children]
-            children_lists[field_name] = hashes
+            self.store_config()
 
-        data = dict(
-            children=children_lists,
-            config=self._config._hash
-        )
-        blob = dumps(data)
-        if self.compress:
-            blob = compress(blob)
+            children_lists = {}
+            for field_name, children in self._children.iteritems():
+                hashes = [rev.hash for rev in children]
+                children_lists[field_name] = hashes
 
-        self._kv_store[self._hash] = blob
+            data = dict(
+                children=children_lists,
+                config=self._config._hash
+            )
+            blob = dumps(data)
+            if self.compress:
+                blob = compress(blob)
+
+            self._kv_store[self._hash] = blob
+
+        except Exception, e:
+            log.exception('store-error', e=e)
 
     @classmethod
     def load(cls, branch, kv_store, msg_cls, hash):
+        #  Update the branch's config store
         blob = kv_store[hash]
         if cls.compress:
             blob = decompress(blob)
@@ -106,6 +115,7 @@ class PersistedConfigRevision(ConfigRevision):
         blob = self._config._data.SerializeToString()
         if self.compress:
             blob = compress(blob)
+
         self._kv_store[self._config._hash] = blob
 
     @classmethod

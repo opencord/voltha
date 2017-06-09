@@ -29,6 +29,9 @@ from voltha.core.config.merge_3way import merge_3way
 from voltha.protos import third_party
 from voltha.protos import meta_pb2
 
+import structlog
+
+log = structlog.get_logger()
 
 def message_to_dict(m):
     return MessageToDict(m, True, True, False)
@@ -240,10 +243,21 @@ class ConfigNode(object):
                 children = copy(rev._children[name])
                 idx, child_rev = find_rev_by_key(children, field.key, key)
                 child_node = child_rev.node
+                # chek if deep copy will work better
                 new_child_rev = child_node.update(
                     path, data, strict, txid, mk_branch)
                 if new_child_rev.hash == child_rev.hash:
-                    # no change, we can return
+                    # When the new_child_rev goes out of scope,
+                    # it's destructor gets invoked as it is not being
+                    # referred by any other data structures.  To prevent
+                    # this to trigger the hash it is holding from being
+                    # erased in the db, its hash is set to None.  If the
+                    # new_child_rev object is pointing at the same address
+                    # as the child_rev address then do not clear the hash
+                    if new_child_rev != child_rev:
+                        log.debug('clear-hash',
+                             hash=new_child_rev.hash, object_ref=new_child_rev)
+                        new_child_rev.clear_hash()
                     return branch._latest
                 if getattr(new_child_rev.data, field.key) != key:
                     raise ValueError('Cannot change key field')
@@ -284,9 +298,14 @@ class ConfigNode(object):
             return branch._latest
 
     def _make_latest(self, branch, rev, change_announcements=()):
-        branch._latest = rev
+        # Update the latest branch only when the hash between the previous
+        # data and the new rev is different, otherwise this will trigger the
+        # data already saved in the db (with that hash) to be erased
         if rev.hash not in branch._revs:
             branch._revs[rev.hash] = rev
+
+        if not branch._latest or rev.hash != branch._latest.hash:
+            branch._latest = rev
 
         # announce only if this is main branch
         if change_announcements and branch._txid is None:
@@ -591,7 +610,7 @@ class ConfigNode(object):
         root = self._root
         kv_store = root._kv_store
 
-        branch = ConfigBranch(self, self._auto_prune)
+        branch = ConfigBranch(node=self, auto_prune=self._auto_prune)
         rev = PersistedConfigRevision.load(
             branch, kv_store, self._type, latest_hash)
         self._make_latest(branch, rev)

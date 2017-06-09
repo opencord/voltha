@@ -48,6 +48,7 @@ from common.frameio.frameio import FrameIOManager
 
 VERSION = '0.9.0'
 
+
 defs = dict(
     config=os.environ.get('CONFIG', './voltha.yml'),
     consul=os.environ.get('CONSUL', 'localhost:8500'),
@@ -249,11 +250,20 @@ class Main(object):
         if not args.no_banner:
             print_banner(self.log)
 
+        # Create a unique instnce id using the passed-in instanceid and
+        # UTC timestamp
+        current_time = arrow.utcnow().timestamp
+        self.instance_id = self.args.instance_id + '_' + str(current_time)
+
+        # Every voltha instance is given a core_storage id where the
+        # instance data is stored
+        self.core_store_id = None
+
         self.startup_components()
 
         if not args.no_heartbeat:
             self.start_heartbeat()
-            self.start_kafka_heartbeat(args.instance_id)
+            self.start_kafka_heartbeat(self.instance_id)
 
         self.manhole = None
 
@@ -284,17 +294,37 @@ class Main(object):
                     internal_host_address=self.args.internal_host_address,
                     external_host_address=self.args.external_host_address,
                     rest_port=self.args.rest_port,
-                    instance_id=self.args.instance_id,
+                    instance_id=self.instance_id,
                     config=self.config,
                     consul=self.args.consul)
             ).start()
 
-            init_rest_service(self.args.rest_port)
+            self.log.info('waiting-for-config-assignment')
+
+            # Wait until we get a config id before we proceed
+            self.core_store_id, store_prefix = \
+                yield registry('coordinator').get_core_store_id_and_prefix()
+
+            self.log.info('store-id', core_store_id=self.core_store_id)
 
             yield registry.register(
                 'grpc_server',
                 VolthaGrpcServer(self.args.grpc_port)
             ).start()
+
+            yield registry.register(
+                'core',
+                VolthaCore(
+                    instance_id=self.instance_id,
+                    core_store_id = self.core_store_id,
+                    version=VERSION,
+                    log_level=LogLevel.INFO
+                )
+            ).start(config_backend=load_backend(store_id=self.core_store_id,
+                                                store_prefix=store_prefix,
+                                                args=self.args))
+
+            init_rest_service(self.args.rest_port)
 
             yield registry.register(
                 'kafka_proxy',
@@ -304,15 +334,6 @@ class Main(object):
                     config=self.config.get('kafka-proxy', {})
                 )
             ).start()
-
-            yield registry.register(
-                'core',
-                VolthaCore(
-                    instance_id=self.args.instance_id,
-                    version=VERSION,
-                    log_level=LogLevel.INFO
-                )
-            ).start(config_backend=load_backend(self.args))
 
             yield registry.register(
                 'frameio',
@@ -332,10 +353,17 @@ class Main(object):
             if self.args.manhole_port is not None:
                 self.start_manhole(self.args.manhole_port)
 
+            # Now that all components are loaded, in the scenario where this
+            # voltha instance is picking up an existing set of data (from a
+            # voltha instance that dies/stopped) then we need to setup this
+            # instance from where the previous one left
+
+            yield registry('core').reconcile_data()
+
             self.log.info('started-internal-services')
 
         except Exception as e:
-            self.log.exception('Failure to start all components {}'.format(e))
+            self.log.exception('Failure-to-start-all-components', e=e)
 
     def start_manhole(self, port):
         self.manhole = Manhole(

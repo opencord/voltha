@@ -125,8 +125,8 @@ def parse_args():
                         dest='alarm_frequency',
                         action='store',
                         type=int,
-                        metavar="[30-300]",
-                        choices=range(30,301),
+                        metavar="[5-300]",
+                        choices=range(5,301),
                         default=60,
                         help=_help)
 

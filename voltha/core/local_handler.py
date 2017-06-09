@@ -37,22 +37,30 @@ log = structlog.get_logger()
 
 
 class LocalHandler(VolthaLocalServiceServicer):
-    def __init__(self, core, **init_kw):
+    def __init__(self, core, instance_id, core_store_id, **init_kw):
         self.core = core
+        self.instance_id = instance_id
+        self.core_store_id = core_store_id
         self.init_kw = init_kw
         self.root = None
+        self.started_with_existing_data = False
         self.stopped = False
 
     def start(self, config_backend=None):
         log.debug('starting')
         if config_backend:
             if 'root' in config_backend:
-                # This is going to block the entire reactor until loading is completed
-                log.info('loading config from persisted backend')
-                self.root = ConfigRoot.load(VolthaInstance,
-                                            kv_store=config_backend)
+                # This is going to block the entire reactor until loading is
+                # completed
+                log.info('loading-config-from-persisted-backend')
+                try:
+                    self.root = ConfigRoot.load(VolthaInstance,
+                                                kv_store=config_backend)
+                    self.started_with_existing_data = True
+                except Exception, e:
+                    log.exception('Failure-loading-from-backend', e=e)
             else:
-                log.info('initializing new config')
+                log.info('initializing-a-new-config')
                 self.root = ConfigRoot(VolthaInstance(**self.init_kw),
                                        kv_store=config_backend)
         else:
@@ -70,6 +78,9 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     def get_proxy(self, path, exclusive=False):
         return self.root.get_proxy(path, exclusive)
+
+    def has_started_with_existing_data(self):
+        return self.started_with_existing_data
 
     # gRPC service method implementations. BE CAREFUL; THESE ARE CALLED ON
     # the gRPC threadpool threads.
@@ -337,6 +348,9 @@ class LocalHandler(VolthaLocalServiceServicer):
             context.set_details(
                 'Device \'{}\' not found'.format(request.id))
             context.set_code(StatusCode.NOT_FOUND)
+
+        except Exception, e:
+            log.exception('disable-exception', e=e)
 
         return Empty()
 

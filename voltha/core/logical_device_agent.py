@@ -79,9 +79,15 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         except Exception, e:
             self.log.exception('init-error', e=e)
 
-    def start(self):
+    def start(self, reconcile=False):
         self.log.debug('starting')
-        self.log.info('started')
+        if reconcile:
+            # Register the callbacks for the ports
+            ports = self.self_proxy.get('/ports')
+            for port in ports:
+                self._reconcile_port(port)
+            self.log.debug('ports-reconciled', ports=ports)
+        self.log.debug('started')
         return self
 
     def stop(self):
@@ -101,7 +107,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         except Exception, e:
             self.log.info('stop-exception', e=e)
 
-        self.log.info('stopped')
+        self.log.debug('stopped')
 
     def announce_flows_deleted(self, flows):
         for f in flows:
@@ -550,6 +556,18 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
                 desc=port.ofp_port
             )
         )
+
+    def _reconcile_port(self, port):
+        self.log.debug('reconcile-port', port=port)
+        assert isinstance(port, LogicalPort)
+        self._port_list_updated(port)
+
+        # Set a proxy and callback for that specific port
+        self.port_proxy[port.id] = self.core.get_proxy(
+            '/logical_devices/{}/ports/{}'.format(self.logical_device_id,
+                                                  port.id))
+        self.port_proxy[port.id].register_callback(
+            CallbackType.POST_UPDATE, self._port_changed)
 
     def _port_removed(self, port):
         self.log.debug('port-removed', port=port)
