@@ -2,6 +2,131 @@
   "comments": [
     {
       "key": {
+        "uuid": "9a0e1d27_20ce6b84",
+        "filename": "common/event_bus.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 115,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-06-09T19:54:50Z",
+      "side": 1,
+      "message": "Do you still need to keep this one around?",
+      "revId": "3d14b29e4639370e07a703458bf00e8b2019ec67",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_00cb6773",
+        "filename": "ponsim/main.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 128,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-06-09T19:54:50Z",
+      "side": 1,
+      "message": "Should we allow low intervals?",
+      "revId": "3d14b29e4639370e07a703458bf00e8b2019ec67",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_e0c75363",
+        "filename": "tests/itests/voltha/test_persistence.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 37,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-06-09T19:54:50Z",
+      "side": 1,
+      "message": "I changed my original test file to use the \"end\" offset and reduced the count to 2.  This way you don\u0027t need to wait 10 * frequency.",
+      "revId": "3d14b29e4639370e07a703458bf00e8b2019ec67",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_c0c44f61",
+        "filename": "tests/itests/voltha/test_persistence.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-06-09T19:54:50Z",
+      "side": 1,
+      "message": "Same comment",
+      "revId": "3d14b29e4639370e07a703458bf00e8b2019ec67",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_a0a15bab",
+        "filename": "tests/itests/voltha/test_persistence.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 619,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-06-09T19:54:50Z",
+      "side": 1,
+      "message": "Did you want to deal with the case when the topic is not yet available?",
+      "revId": "3d14b29e4639370e07a703458bf00e8b2019ec67",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_60822302",
+        "filename": "voltha/coordinator.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 210,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-06-09T19:54:50Z",
+      "side": 1,
+      "message": "Do you need these?",
+      "range": {
+        "startLine": 208,
+        "startChar": 1,
+        "endLine": 210,
+        "endChar": 1
+      },
+      "revId": "3d14b29e4639370e07a703458bf00e8b2019ec67",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_e09e3363",
+        "filename": "voltha/core/core.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 122,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-06-09T19:54:50Z",
+      "side": 1,
+      "message": "Can you check if all alarm filters are reconciled? i.e. the ones that are not necessarily linked to a specific device id",
+      "revId": "3d14b29e4639370e07a703458bf00e8b2019ec67",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a0e1d27_80a657c0",
         "filename": "voltha/core/logical_device_agent.py",
         "patchSetId": 1
@@ -18,6 +143,52 @@
         "startChar": 0,
         "endLine": 519,
         "endChar": 51
+      },
+      "revId": "3d14b29e4639370e07a703458bf00e8b2019ec67",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_60ab438a",
+        "filename": "voltha/main.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 56,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-06-09T19:54:50Z",
+      "side": 1,
+      "message": "Do you still need this?",
+      "range": {
+        "startLine": 52,
+        "startChar": 0,
+        "endLine": 56,
+        "endChar": 87
+      },
+      "revId": "3d14b29e4639370e07a703458bf00e8b2019ec67",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_40b03ff4",
+        "filename": "voltha/worker.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 173,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-06-09T19:54:50Z",
+      "side": 1,
+      "message": "Typo...",
+      "range": {
+        "startLine": 173,
+        "startChar": 17,
+        "endLine": 173,
+        "endChar": 33
       },
       "revId": "3d14b29e4639370e07a703458bf00e8b2019ec67",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
