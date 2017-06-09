@@ -342,6 +342,7 @@ class TibitOltAdapter(object):
             mac_table = [0xB7, 0x0103]
             links = []
             branch_leaf_pairs = [mac_table]
+            overall_rc = False
 
             for pair in branch_leaf_pairs:
                 temp_pair = pair
@@ -352,9 +353,8 @@ class TibitOltAdapter(object):
                     overall_rc = True
                 else: 
                     log.info('Failed to get valid response for Branch 0x{:X} Leaf 0x{:0>4X} '.format(temp_pair[0], temp_pair[1]))
-                    ack = True
 
-            if mac_table[rc]:
+            if overall_rc and mac_table[rc]:
                 value = mac_table.pop()
                 macLen = 0
                 while (macLen < len(value)):
@@ -391,7 +391,10 @@ class TibitOltAdapter(object):
                         Operator = {v: k for k, v in RuleOperatorEnum.iteritems()}
 
                         if self.mode.upper()[0] == "G":  # GPON
-                            vssn = "TBIT"
+                            if child_device_name is 'tibit_onu':
+                                vssn = "TBIT"
+                            elif child_device_name is 'adtran_onu':
+                                vssn = "ADTN"
                             link = int(onu_mac_string[4:12], 16)
                             resultOltQueue = "PortIngressRuleResultOLTQueue(unicastvssn=vssn, unicastlink=link)"
                         else:                       # EPON
@@ -602,6 +605,7 @@ class TibitOltAdapter(object):
                 
         if hw_version[rc]:
             device.hardware_version = hw_version.pop()
+            device.hardware_version = device.hardware_version.replace("FA","")
             if device.hardware_version.endswith(''):
                 device.hardware_version = device.hardware_version[:-1]
         else:
