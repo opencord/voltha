@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a0e1d27_80a657c0",
+        "filename": "voltha/core/logical_device_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 519,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-06-09T19:43:05Z",
+      "side": 1,
+      "message": "Is this code still required?",
+      "range": {
+        "startLine": 519,
+        "startChar": 0,
+        "endLine": 519,
+        "endChar": 51
+      },
+      "revId": "3d14b29e4639370e07a703458bf00e8b2019ec67",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
