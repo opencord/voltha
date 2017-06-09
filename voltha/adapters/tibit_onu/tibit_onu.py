@@ -571,7 +571,7 @@ class TibitOnuAdapter(object):
 
         if self.mode.upper()[0] == "G":  # GPON
 
-            hw_vers = int(device.hardware_version[2:], 16)
+            hw_vers = int(device.hardware_version, 16)
 
             if hw_vers >= 0x170517:
                 mcastLidx = 0x14bc
@@ -790,6 +790,7 @@ class TibitOnuAdapter(object):
                 
         if hw_version[rc]:
             device.hardware_version = hw_version.pop()
+            device.hardware_version = device.hardware_version.replace("FA","")
             if device.hardware_version.endswith(''):
                 device.hardware_version = device.hardware_version[:-1]
         else:
