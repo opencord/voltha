@@ -215,6 +215,9 @@ class SimulatedOltAdapter(object):
         reactor.callLater(0.2, self._simulate_device_activation, device)
         return device
 
+    def reconcile_device(self, device):
+        raise NotImplementedError()
+
     def abandon_device(self, device):
         raise NotImplementedError()
 

@@ -192,6 +192,9 @@ class TibitOltAdapter(object):
         self._activate_io_port()
         reactor.callLater(0, self._launch_device_activation, device)
 
+    def reconcile_device(self, device):
+        raise NotImplementedError()
+
     def _activate_io_port(self):
         if self.io_port is None:
             self.io_port = registry('frameio').open_port(

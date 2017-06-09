@@ -81,6 +81,19 @@ class IAdapterInterface(Interface):
         :return: (Deferred) Shall be fired to acknowledge device ownership.
         """
 
+    def reconcile_device(device):
+        """
+        Make sure the adapter looks after given device. Called when this 
+        device has changed ownership from another Voltha instance to 
+        this one (typically, this occurs when the previous voltha 
+        instance went down). 
+        :param device: A voltha.Device object, with possible device-type
+        specific extensions. Such extensions shall be described as part of
+        the device type specification returned by device_types().
+        :return: (Deferred) Shall be fired to acknowledge device ownership.
+        """
+
+
     def abandon_device(device):
         """
         Make sur ethe adapter no longer looks after device. This is called

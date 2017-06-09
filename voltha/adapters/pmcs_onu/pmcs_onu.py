@@ -99,6 +99,9 @@ class PmcsOnu(object):
         reactor.callLater(0.1, self._onu_device_activation, device)
         return device
 
+    def reconcile_device(self, device):
+        raise NotImplementedError()
+
     def abandon_device(self, device):
         raise NotImplementedError()
 

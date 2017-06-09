@@ -430,6 +430,9 @@ class MapleOltAdapter(object):
         reactor.callLater(0, self.devices_handlers[device.id].activate, device)
         return device
 
+    def reconcile_device(self, device):
+        raise NotImplementedError()
+
     def abandon_device(self, device):
         raise NotImplementedError()
 

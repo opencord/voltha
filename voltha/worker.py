@@ -18,7 +18,7 @@ import re
 from structlog import get_logger
 from twisted.internet import reactor
 from twisted.internet.base import DelayedCall
-from twisted.internet.defer import inlineCallbacks, returnValue
+from twisted.internet.defer import inlineCallbacks, returnValue, Deferred
 
 from common.utils.asleep import asleep
 
@@ -51,6 +51,10 @@ class Worker(object):
         self.assignment_match = re.compile(
             self.ASSIGNMENT_EXTRACTOR % self.coord.assignment_prefix).match
 
+        self.mycore_store_id = None
+
+        self.wait_for_core_store_assignment = Deferred()
+
     @inlineCallbacks
     def start(self):
         log.debug('starting')
@@ -64,6 +68,15 @@ class Worker(object):
             if not self.assignment_soak_timer.called:
                 self.assignment_soak_timer.cancel()
         log.info('stopped')
+
+    @inlineCallbacks
+    def get_core_store_id(self):
+        if self.mycore_store_id:
+            returnValue(self.mycore_store_id)
+        else:
+            # Let's wait until we get assigned a store_id from the leader
+            val = yield self.wait_for_core_store_assignment
+            returnValue(val)
 
     # Private methods:
 
@@ -88,15 +101,25 @@ class Worker(object):
                 self.coord.assignment_prefix + self.instance_id,
                 index=index, recurse=True)
 
-            matches = [
-                (self.assignment_match(e['Key']), e) for e in results or []]
+            # 1. Check whether we have been assigned a full voltha instance
+            if results and not self.mycore_store_id:
+                # We have no store id set yet
+                core_stores = [c['Value'] for c in results if
+                           c['Key'] == self.coord.assignment_prefix +
+                           self.instance_id + '/' +
+                           self.coord.core_storage_suffix]
+                if core_stores:
+                    self.mycore_store_id = core_stores[0]
+                    log.debug('store-assigned',
+                             mycore_store_id=self.mycore_store_id)
+                    self._stash_and_restart_core_store_soak_timer()
 
-            my_workload = set([
-                m.groupdict()['work_id'] for m, e in matches if m is not None
-            ])
-
-            if my_workload != self.my_workload:
-                self._stash_and_restart_soak_timer(my_workload)
+            # 2.  Check whether we have been assigned a work item
+            if results and self.mycore_store_id:
+                # Check for difference between current worload and newer one
+                # TODO: Depending on how workload gets load balanced we may
+                # need to add workload distribution here
+                pass
 
         except Exception, e:
             log.exception('assignments-track-error', e=e)
@@ -127,8 +150,25 @@ class Worker(object):
         Called when finally the dust has settled on our assignments.
         :return: None
         """
-        log.info('my-assignments-changed',
-                      old_count=len(self.my_workload),
-                      new_count=len(self.my_candidate_workload))
+        log.debug('my-assignments-changed',
+                 old_count=len(self.my_workload),
+                 new_count=len(self.my_candidate_workload),
+                 workload=self.my_workload)
         self.my_workload, self.my_candidate_workload = \
             self.my_candidate_workload, None
+
+    def _stash_and_restart_core_store_soak_timer(self):
+
+        log.debug('re-start-assignment-config-soaking')
+
+        if self.assignment_soak_timer is not None:
+            if not self.assignment_soak_timer.called:
+                self.assignment_soak_timer.cancel()
+
+        self.assignment_soak_timer = reactor.callLater(
+            self.soak_time, self._process_config_assignment)
+
+    def _process_config_assignment(self):
+        log.debug('process-config-assignment',
+                 mycore_store_id=self.mycore_store_id)
+        self.wait_for_core_store_assignment.callback(self.mycore_store_id)

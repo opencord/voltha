@@ -81,6 +81,9 @@ class Coordinator(object):
                 self.config['assignment_key'], 'assignments'), ''))
         self.workload_prefix = '/'.join((self.prefix, self.config.get(
                 self.config['workload_key'], 'work'), ''))
+        self.core_store_prefix = '/'.join((self.prefix, self.config.get(
+                self.config['core_store_key'], 'data/core')))
+        self.core_storage_suffix='core_store'
 
         self.retries = 0
         self.instance_id = instance_id
@@ -137,6 +140,13 @@ class Coordinator(object):
         else:
             self.wait_for_leader_deferreds.append(d)
             return d
+
+
+    # Wait for a core data id to be assigned to this voltha instance
+    @inlineCallbacks
+    def get_core_store_id_and_prefix(self):
+        core_store_id = yield self.worker.get_core_store_id()
+        returnValue((core_store_id, self.core_store_prefix))
 
     # Proxy methods for consul with retry support
 
@@ -196,7 +206,7 @@ class Coordinator(object):
 
             # create consul session
             self.session_id = yield self.consul.session.create(
-                behavior='delete', ttl=10, lock_delay=1)
+                behavior='release', ttl=60, lock_delay=1)
             log.info('created-consul-session', session_id=self.session_id)
 
             # start renewing session it 3 times within the ttl

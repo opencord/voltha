@@ -40,10 +40,11 @@ log = structlog.get_logger()
 
 @implementer(IComponent)
 class VolthaCore(object):
-    def __init__(self, instance_id, version, log_level):
+    def __init__(self, instance_id, core_store_id, version, log_level):
         self.instance_id = instance_id
         self.stopped = False
         self.dispatcher = Dispatcher(self, instance_id)
+        self.core_store_id = core_store_id
         self.global_handler = GlobalHandler(
             dispatcher=self.dispatcher,
             instance_id=instance_id,
@@ -52,6 +53,7 @@ class VolthaCore(object):
         self.local_handler = LocalHandler(
             core=self,
             instance_id=instance_id,
+            core_store_id=core_store_id,
             version=version,
             log_level=log_level)
         self.local_root_proxy = None
@@ -83,6 +85,54 @@ class VolthaCore(object):
 
     def get_local_handler(self):
         return self.local_handler
+
+    @inlineCallbacks
+    def reconcile_data(self):
+        # This method is used to trigger the necessary APIs when a voltha
+        # instance is started using an existing config
+        if self.local_handler.has_started_with_existing_data():
+            log.info('reconciliation-started')
+
+            # 1. Reconcile the logical device agents as they will be
+            # referred by the device agents
+            logical_devices = self.local_root_proxy.get('/logical_devices')
+            for logical_device in logical_devices:
+                self._handle_reconcile_logical_device(logical_device,
+                                                      reconcile=True)
+
+            # 2. Reconcile the device agents
+            devices = self.local_root_proxy.get('/devices')
+
+            # First create the device agents for the ONU without reconciling
+            # them.  Reconciliation will be triggered by the OLT adapter after
+            # it finishes reconciling the OLT.  Note that the device_agent
+            # handling the ONU should be present before the ONU reconciliation
+            # occurs
+            for device in devices:
+                if device.type.endswith("_onu"):
+                    yield self._handle_reconcile_existing_device(
+                        device=device, reconcile=False)
+
+            # Then reconcile the OLT devices
+            for device in devices:
+                if device.type.endswith("_olt"):
+                    yield self._handle_reconcile_existing_device(
+                        device=device, reconcile=True)
+
+            # 3. Reconcile the alarm filters
+            alarm_filters = self.local_root_proxy.get('/alarm_filters')
+            for alarm_filter in alarm_filters:
+                yield self._handle_add_alarm_filter(alarm_filter)
+
+            log.info('reconciliation-ends')
+        else:
+            log.info('no-existing-data-to-reconcile')
+
+    def _get_devices(self):
+        pass
+
+    def _get_logical_devices(self):
+        pass
 
     def get_proxy(self, path, exclusive=False):
         return self.local_handler.get_proxy(path, exclusive)
@@ -121,6 +171,15 @@ class VolthaCore(object):
         self.device_agents[device.id] = yield DeviceAgent(self, device).start()
 
     @inlineCallbacks
+    def _handle_reconcile_existing_device(self, device, reconcile):
+        assert isinstance(device, Device)
+        assert device.id not in self.device_agents
+        # We need to provide the existing device data to the start function
+        self.device_agents[device.id] = \
+            yield DeviceAgent(self, device).start(device=device,
+                                                  reconcile=reconcile)
+
+    @inlineCallbacks
     def _handle_remove_device(self, device):
         if device.id in self.device_agents:
             AlarmFilterAgent(self).remove_device_filters(device)
@@ -138,6 +197,16 @@ class VolthaCore(object):
         assert isinstance(logical_device, LogicalDevice)
         assert logical_device.id not in self.logical_device_agents
         agent = yield LogicalDeviceAgent(self, logical_device).start()
+        self.logical_device_agents[logical_device.id] = agent
+
+    @inlineCallbacks
+    def _handle_reconcile_logical_device(self, logical_device, reconcile):
+        assert isinstance(logical_device, LogicalDevice)
+        assert logical_device.id not in self.logical_device_agents
+        log.info('reconcile', reconcile=reconcile)
+        agent = yield LogicalDeviceAgent(self,
+                                         logical_device).start(
+            reconcile=reconcile)
         self.logical_device_agents[logical_device.id] = agent
 
     @inlineCallbacks

@@ -14,6 +14,10 @@
 #
 from consul import Consul
 
+import structlog
+
+log = structlog.get_logger()
+
 
 class ConsulStore(object):
     """ Config kv store for consul with a cache for quicker subsequent reads
@@ -56,23 +60,28 @@ class ConsulStore(object):
             return False
 
     def __setitem__(self, key, value):
-        assert isinstance(value, basestring)
-        self._cache[key] = value
-        self._consul.kv.put(self.make_path(key), value)
+        try:
+            assert isinstance(value, basestring)
+            self._cache[key] = value
+            self._consul.kv.put(self.make_path(key), value)
+        except Exception, e:
+            log.exception('cannot-set-item', e=e)
 
     def __delitem__(self, key):
         self._cache.pop(key, None)
         self._consul.kv.delete(self.make_path(key))
 
 
-def load_backend(args):
+def load_backend(store_id, store_prefix, args):
     """ Return the kv store backend based on the command line arguments
     """
     # TODO: Make this more dynamic
 
     def load_consul_store():
+        instance_core_store_prefix = '{}/{}'.format(store_prefix, store_id)
+
         host, port = args.consul.split(':', 1)
-        return ConsulStore(host, int(port), 'service/voltha/config_data')
+        return ConsulStore(host, int(port), instance_core_store_prefix)
 
     loaders = {
         'none': lambda: None,

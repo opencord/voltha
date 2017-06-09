@@ -50,6 +50,7 @@ services:
     command: [
       "-ip=${DOCKER_HOST_IP}",
       "-retry-attempts", "100",
+      "-cleanup",
       # "-internal",
       "consul://consul:8500"
     ]
@@ -123,6 +124,7 @@ services:
       "--kafka=@kafka",
       "--instance-id-is-container-name",
       "--interface=eth1",
+      "--backend=consul",
       "-v"
     ]
     ports:

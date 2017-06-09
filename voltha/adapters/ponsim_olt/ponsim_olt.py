@@ -161,17 +161,22 @@ class AdapterAlarms:
 
             alarm_event = self.adapter.adapter_agent.create_alarm(
                 resource_id=self.device.id,
-                description="{}.{} - {}".format(self.adapter.name, self.device.id,
-                                                alarm_data['description']) if 'description' in alarm_data else None,
+                description="{}.{} - {}".format(self.adapter.name,
+                                                self.device.id,
+                                                alarm_data[
+                                                    'description']) if 'description' in alarm_data else None,
                 type=alarm_data['type'] if 'type' in alarm_data else None,
-                category=alarm_data['category'] if 'category' in alarm_data else None,
-                severity=alarm_data['severity'] if 'severity' in alarm_data else None,
+                category=alarm_data[
+                    'category'] if 'category' in alarm_data else None,
+                severity=alarm_data[
+                    'severity'] if 'severity' in alarm_data else None,
                 state=alarm_data['state'] if 'state' in alarm_data else None,
                 raised_ts=alarm_data['ts'] if 'ts' in alarm_data else 0,
                 context=current_context
             )
 
-            self.adapter.adapter_agent.submit_alarm(self.device.id, alarm_event)
+            self.adapter.adapter_agent.submit_alarm(self.device.id,
+                                                    alarm_event)
 
         except Exception as e:
             log.exception('failed-to-send-alarm', e=e)
@@ -237,6 +242,23 @@ class PonSimOltAdapter(object):
         reactor.callLater(0, self.devices_handlers[device.id].activate, device)
         return device
 
+    def reconcile_device(self, device):
+        try:
+            self.devices_handlers[device.id] = PonSimOltHandler(self,
+                                                                device.id)
+            # Work only required for devices that are in ENABLED state
+            if device.admin_state == AdminState.ENABLED:
+                reactor.callLater(0,
+                                  self.devices_handlers[device.id].reconcile,
+                                  device)
+            else:
+                # Invoke the children reconciliation which would setup the
+                # basic children data structures
+                self.adapter_agent.reconcile_child_devices(device.id)
+            return device
+        except Exception, e:
+            log.exception('Exception', e=e)
+
     def abandon_device(self, device):
         raise NotImplementedError()
 
@@ -257,6 +279,7 @@ class PonSimOltAdapter(object):
 
     def delete_device(self, device):
         log.info('delete-device', device_id=device.id)
+        #  TODO: Update the logical device mapping
         reactor.callLater(0, self.devices_handlers[device.id].delete)
         return device
 
@@ -328,6 +351,12 @@ class PonSimOltHandler(object):
             device = self.adapter_agent.get_device(self.device_id)
             self.channel = grpc.insecure_channel(device.host_and_port)
         return self.channel
+
+    def _get_nni_port(self):
+        ports = self.adapter_agent.get_ports(self.device_id, Port.ETHERNET_NNI)
+        if ports:
+            # For now, we use on one NNI port
+            return ports[0]
 
     def activate(self, device):
         self.log.info('activating')
@@ -448,8 +477,66 @@ class PonSimOltHandler(object):
         # Start collecting stats from the device after a brief pause
         self.start_kpi_collection(device.id)
 
+    def reconcile(self, device):
+        self.log.info('reconciling-OLT-device-starts')
+
+        if not device.host_and_port:
+            device.oper_status = OperStatus.FAILED
+            device.reason = 'No host_and_port field provided'
+            self.adapter_agent.update_device(device)
+            return
+
+        try:
+            stub = ponsim_pb2.PonSimStub(self.get_channel())
+            info = stub.GetDeviceInfo(Empty())
+            log.info('got-info', info=info)
+            # TODO: Verify we are connected to the same device we are
+            # reconciling - not much data in ponsim to differentiate at the
+            # time
+            device.oper_status = OperStatus.ACTIVE
+            self.adapter_agent.update_device(device)
+            self.ofp_port_no = info.nni_port
+            self.nni_port = self._get_nni_port()
+        except Exception, e:
+            log.exception('device-unreachable', e=e)
+            device.connect_status = ConnectStatus.UNREACHABLE
+            device.oper_status = OperStatus.UNKNOWN
+            self.adapter_agent.update_device(device)
+            return
+
+        # Now set the initial PM configuration for this device
+        self.pm_metrics = AdapterPmMetrics(device)
+        pm_config = self.pm_metrics.make_proto()
+        log.info("initial-pm-config", pm_config=pm_config)
+        self.adapter_agent.update_device_pm_config(pm_config, init=True)
+
+        # Setup alarm handler
+        self.alarms = AdapterAlarms(self.adapter, device)
+
+        # TODO: Is there anything required to verify nni and PON ports
+
+        # Set the logical device id
+        device = self.adapter_agent.get_device(device.id)
+        if device.parent_id:
+            self.logical_device_id = device.parent_id
+            self.adapter_agent.reconcile_logical_device(device.parent_id)
+        else:
+            self.log.info('no-logical-device-set')
+
+        # Reconcile child devices
+        self.adapter_agent.reconcile_child_devices(device.id)
+
+        # finally, open the frameio port to receive in-band packet_in messages
+        self.io_port = registry('frameio').open_port(
+            self.interface, self.rcv_io, is_inband_frame)
+
+        # Start collecting stats from the device after a brief pause
+        self.start_kpi_collection(device.id)
+
+        self.log.info('reconciling-OLT-device-ends')
+
     def rcv_io(self, port, frame):
-        self.log.info('reveived', iface_name=port.iface_name,
+        self.log.info('received', iface_name=port.iface_name,
                       frame_len=len(frame))
         pkt = Ether(frame)
         if pkt.haslayer(Dot1Q):
@@ -572,6 +659,12 @@ class PonSimOltHandler(object):
         # close the frameio port
         registry('frameio').close_port(self.io_port)
 
+        #  Update the logice device mapping
+        if self.logical_device_id in \
+                self.adapter.logical_device_id_to_root_device_id:
+            del self.adapter.logical_device_id_to_root_device_id[
+                self.logical_device_id]
+
         # TODO:
         # 1) Remove all flows from the device
         # 2) Remove the device from ponsim
@@ -583,6 +676,15 @@ class PonSimOltHandler(object):
 
         # Get the latest device reference
         device = self.adapter_agent.get_device(self.device_id)
+
+        # Set the ofp_port_no and nni_port in case we bypassed the reconcile
+        # process if the device was in DISABLED state on voltha restart
+        if not self.ofp_port_no and not self.nni_port:
+            stub = ponsim_pb2.PonSimStub(self.get_channel())
+            info = stub.GetDeviceInfo(Empty())
+            log.info('got-info', info=info)
+            self.ofp_port_no = info.nni_port
+            self.nni_port = self._get_nni_port()
 
         # Update the connect status to REACHABLE
         device.connect_status = ConnectStatus.REACHABLE
@@ -645,10 +747,8 @@ class PonSimOltHandler(object):
                                                       admin_state=AdminState.ENABLED)
 
         # finally, open the frameio port to receive in-band packet_in messages
-        self.log.info('registering-frameio')
         self.io_port = registry('frameio').open_port(
             self.interface, self.rcv_io, is_inband_frame)
-        self.log.info('registered-frameio')
 
         self.log.info('re-enabled', device_id=device.id)
 

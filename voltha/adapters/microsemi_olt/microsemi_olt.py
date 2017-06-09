@@ -105,6 +105,9 @@ class RubyAdapter(object):
         log.info('adopted-device', device=device)
         self.olts[target] = (olt, activation, comm)
 
+    def reconcile_device(self, device):
+        raise NotImplementedError()
+
     def abandon_device(self, device):
         self._abandon(device.mac_address)
 
