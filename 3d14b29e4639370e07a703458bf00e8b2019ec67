@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "9a0e1d27_e0751333",
+        "filename": "common/event_bus.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 115,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-09T20:07:23Z",
+      "side": 1,
+      "message": "Sure can clean up",
+      "parentUuid": "9a0e1d27_20ce6b84",
+      "revId": "3d14b29e4639370e07a703458bf00e8b2019ec67",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a0e1d27_00cb6773",
         "filename": "ponsim/main.py",
         "patchSetId": 1
@@ -36,6 +54,24 @@
     },
     {
       "key": {
+        "uuid": "9a0e1d27_80941738",
+        "filename": "ponsim/main.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 128,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-09T20:07:23Z",
+      "side": 1,
+      "message": "Since the default is already 60 and it\u0027s for simulated devices then it makes sense to allow a low range.  It was definitely required for my tests otherwise I will have to wait at least 2 mins to show absence of alarms.",
+      "parentUuid": "9a0e1d27_00cb6773",
+      "revId": "3d14b29e4639370e07a703458bf00e8b2019ec67",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a0e1d27_e0c75363",
         "filename": "tests/itests/voltha/test_persistence.py",
         "patchSetId": 1
@@ -47,6 +83,24 @@
       "writtenOn": "2017-06-09T19:54:50Z",
       "side": 1,
       "message": "I changed my original test file to use the \"end\" offset and reduced the count to 2.  This way you don\u0027t need to wait 10 * frequency.",
+      "revId": "3d14b29e4639370e07a703458bf00e8b2019ec67",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_6099036e",
+        "filename": "tests/itests/voltha/test_persistence.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 37,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-09T20:07:23Z",
+      "side": 1,
+      "message": "I am not using the same method of invoking the command.  In my case i stop right away on the first occurrence of a condition.  The only time I wait longer would be to guarantee there are no alarms produced.",
+      "parentUuid": "9a0e1d27_e0c75363",
       "revId": "3d14b29e4639370e07a703458bf00e8b2019ec67",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -110,6 +164,30 @@
     },
     {
       "key": {
+        "uuid": "9a0e1d27_409eff57",
+        "filename": "voltha/coordinator.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 210,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-09T20:07:23Z",
+      "side": 1,
+      "message": "No, there are not required, in fact it was dangerous to have them.",
+      "parentUuid": "9a0e1d27_60822302",
+      "range": {
+        "startLine": 208,
+        "startChar": 1,
+        "endLine": 210,
+        "endChar": 1
+      },
+      "revId": "3d14b29e4639370e07a703458bf00e8b2019ec67",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a0e1d27_e09e3363",
         "filename": "voltha/core/core.py",
         "patchSetId": 1
@@ -127,6 +205,24 @@
     },
     {
       "key": {
+        "uuid": "9a0e1d27_20a30ba0",
+        "filename": "voltha/core/core.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 122,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-09T20:07:23Z",
+      "side": 1,
+      "message": "When does this reconciliation happen and which component invokes it?   Remember this code is invoked from data that would in principle already have been reconciled unless the instance went down right before the reconciliation.",
+      "parentUuid": "9a0e1d27_e09e3363",
+      "revId": "3d14b29e4639370e07a703458bf00e8b2019ec67",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a0e1d27_80a657c0",
         "filename": "voltha/core/logical_device_agent.py",
         "patchSetId": 1
@@ -138,6 +234,30 @@
       "writtenOn": "2017-06-09T19:43:05Z",
       "side": 1,
       "message": "Is this code still required?",
+      "range": {
+        "startLine": 519,
+        "startChar": 0,
+        "endLine": 519,
+        "endChar": 51
+      },
+      "revId": "3d14b29e4639370e07a703458bf00e8b2019ec67",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_00924757",
+        "filename": "voltha/core/logical_device_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 519,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-09T20:07:23Z",
+      "side": 1,
+      "message": "It was there to track a bug.  No longer required.",
+      "parentUuid": "9a0e1d27_80a657c0",
       "range": {
         "startLine": 519,
         "startChar": 0,
@@ -173,6 +293,30 @@
     },
     {
       "key": {
+        "uuid": "9a0e1d27_00a0078f",
+        "filename": "voltha/main.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 56,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-09T20:07:23Z",
+      "side": 1,
+      "message": "No, just debugging stuff.",
+      "parentUuid": "9a0e1d27_60ab438a",
+      "range": {
+        "startLine": 52,
+        "startChar": 0,
+        "endLine": 56,
+        "endChar": 87
+      },
+      "revId": "3d14b29e4639370e07a703458bf00e8b2019ec67",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a0e1d27_40b03ff4",
         "filename": "voltha/worker.py",
         "patchSetId": 1
@@ -184,6 +328,30 @@
       "writtenOn": "2017-06-09T19:54:50Z",
       "side": 1,
       "message": "Typo...",
+      "range": {
+        "startLine": 173,
+        "startChar": 17,
+        "endLine": 173,
+        "endChar": 33
+      },
+      "revId": "3d14b29e4639370e07a703458bf00e8b2019ec67",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_e0acf38e",
+        "filename": "voltha/worker.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 173,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-09T20:07:23Z",
+      "side": 1,
+      "message": "Will fix :)",
+      "parentUuid": "9a0e1d27_40b03ff4",
       "range": {
         "startLine": 173,
         "startChar": 17,
