@@ -8,7 +8,7 @@ node('build') {
             sh 'vagrant up voltha'
 
             stage 'Build voltha'
-            sh 'vagrant ssh -c "cd /cord/incubator/voltha && source env.sh && make fetch && make" voltha'
+            sh 'vagrant ssh -c "cd /cord/incubator/voltha && source env.sh && make fetch && make build" voltha'
 
             stage 'Bring up voltha containers'
             sh 'vagrant ssh -c "cd /cord/incubator/voltha && source env.sh && docker-compose -f compose/docker-compose-system-test.yml up -d" voltha'
