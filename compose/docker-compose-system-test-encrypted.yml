@@ -42,6 +42,8 @@ services:
       SERVICE_8300_IGNORE: "yes"
       SERVICE_8400_IGNORE: "yes"
       SERVICE_8500_NAME: "consul-rest"
+    volumes:
+    - "/cord/incubator/voltha/consul_config:/consul/config"
   #
   # Registrator
   #
@@ -57,6 +59,11 @@ services:
     - consul
     volumes:
     - "/var/run/docker.sock:/tmp/docker.sock"
+    - "/cord/incubator/voltha/reg_config:/reg/config"
+    environment:
+      CONSUL_CACERT: "/reg/config/voltha-CA-template.pem"
+      CONSUL_TLSCERT: "/reg/config/voltha-cert-template.crt"
+      CONSUL_TLSKEY: "/reg/config/voltha-pvt-template.key"
 
   #
   # Fluentd log server
