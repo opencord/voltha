@@ -152,6 +152,9 @@ class AdapterAgent(object):
     def adopt_device(self, device):
         return self.adapter.adopt_device(device)
 
+    def reconcile_device(self, device):
+        return self.adapter.reconcile_device(device)
+
     def abandon_device(self, device):
         return self.adapter.abandon_device(device)
 
@@ -295,6 +298,12 @@ class AdapterAgent(object):
         self._make_up_to_date('/devices/{}/ports'.format(device_id),
                               port.port_no, port)
 
+    def get_ports(self, device_id, port_type):
+        # assert Port.PortType.DESCRIPTOR.values_by_name[port_type]
+        ports = self.root_proxy.get('/devices/{}/ports'.format(device_id))
+        return [p for p in ports if p.type == port_type]
+
+
     def disable_all_ports(self, device_id):
         """
         Disable all ports on that device, i.e. change the admin status to
@@ -400,6 +409,21 @@ class AdapterAgent(object):
 
         return logical_device
 
+    def reconcile_logical_device(self, logical_device_id):
+        """
+        This is called by the adapter to reconcile the physical device with 
+        the logical device.  For now, we only set the packet-out subscription
+        :param logical_device_id: 
+        :return: 
+        """
+        # Keep a reference to the packet out subscription as it will be
+        # referred during removal
+        self.packet_out_subscription = self.event_bus.subscribe(
+            topic='packet-out:{}'.format(logical_device_id),
+            callback=lambda _, p: self.receive_packet_out(logical_device_id, p)
+        )
+
+
     def delete_logical_device(self, logical_device):
         """
         This will remove the logical device as well as all logical ports
@@ -449,6 +473,30 @@ class AdapterAgent(object):
             '/logical_devices/{}/ports'.format(logical_device_id),
             port.id, port)
 
+    def get_child_devices(self, parent_device_id):
+        try:
+            devices = self.root_proxy.get('/devices')
+            children = [d for d in devices if d.parent_id == parent_device_id]
+            return children
+        except Exception, e:
+            self.log.exception('failure', e=e)
+
+    def subscribe_to_proxy_child_messages(self, proxy_address):
+        topic = self._gen_tx_proxy_address_topic(proxy_address)
+        self._tx_event_subscriptions[topic] = self.event_bus.subscribe(
+            topic, lambda t, m: self._send_proxied_message(proxy_address, m))
+
+    def reconcile_child_devices(self, parent_device_id):
+        children = self.get_child_devices(parent_device_id)
+        for child in children:
+            # First subscribe to proxy messages from a chile device
+            self.subscribe_to_proxy_child_messages(child.proxy_address)
+
+            # Then trigger the reconciliation of the existing child device
+            device_agent = self.core.get_device_agent(child.id)
+            device_agent.reconcile_existing_device(child)
+
+
     def child_device_detected(self,
                               parent_device_id,
                               parent_port_no,
@@ -472,6 +520,16 @@ class AdapterAgent(object):
         topic = self._gen_tx_proxy_address_topic(proxy_address)
         self._tx_event_subscriptions[topic] = self.event_bus.subscribe(
             topic, lambda t, m: self._send_proxied_message(proxy_address, m))
+
+    def get_child_device_with_proxy_address(self, proxy_address):
+        # Proxy address is defined as {parent id, channel_id}
+        devices = self.root_proxy.get('/devices')
+        children_ids = set(d.id for d in devices if d.parent_id ==
+                           proxy_address.device_id)
+        for child_id in children_ids:
+            device = self.get_device(child_id)
+            if device.proxy_address == proxy_address:
+                return device
 
     def remove_all_logical_ports(self, logical_device_id):
         """ Remove all logical ports from a given logical device"""

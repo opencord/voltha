@@ -69,11 +69,19 @@ class DeviceAgent(object):
         self.log = structlog.get_logger(device_id=initial_data.id)
 
     @inlineCallbacks
-    def start(self):
-        self.log.debug('starting')
+    def start(self, device=None, reconcile=False):
+        self.log.info('starting', device=device)
         self._set_adapter_agent()
-        yield self._process_update(self._tmp_initial_data)
+        if device:
+            # Starting from an existing data, so set the last_data
+            self.last_data = device
+            if reconcile:
+                self.reconcile_existing_device(device)
+        else:
+            yield self._process_update(self._tmp_initial_data)
+
         del self._tmp_initial_data
+
         self.log.info('started')
         returnValue(self)
 
@@ -90,15 +98,16 @@ class DeviceAgent(object):
             CallbackType.POST_UPDATE, self._process_update)
         self.log.info('stopped')
 
+
     @inlineCallbacks
     def reboot_device(self, device, dry_run=False):
-        self.log.info('reboot-device', device=device, dry_run=dry_run)
+        self.log.debug('reboot-device', device=device, dry_run=dry_run)
         if not dry_run:
             yield self.adapter_agent.reboot_device(device)
 
     @inlineCallbacks
     def get_device_details(self, device, dry_run=False):
-        self.log.info('get-device-details', device=device, dry_run=dry_run)
+        self.log.debug('get-device-details', device=device, dry_run=dry_run)
         if not dry_run:
             yield self.adapter_agent.get_device_details(device)
 
@@ -117,6 +126,14 @@ class DeviceAgent(object):
             yield self.adapter_agent.unsuppress_alarm(filter)
         except Exception as e:
             self.log.exception(e.message)
+
+    @inlineCallbacks
+    def reconcile_existing_device(self, device, dry_run=False):
+        self.log.debug('reconcile-existing-device',
+                      device=device,
+                      dry_run=False)
+        if not dry_run:
+            yield self.adapter_agent.reconcile_device(device)
 
     def _set_adapter_agent(self):
         adapter_name = self._tmp_initial_data.adapter
@@ -161,6 +178,8 @@ class DeviceAgent(object):
         old_admin_state = getattr(self.last_data, 'admin_state',
                                    AdminState.UNKNOWN)
         new_admin_state = device.admin_state
+        self.log.debug('device-admin-states', old_state=old_admin_state,
+                      new_state=new_admin_state, dry_run=dry_run)
         transition_handler = self.admin_state_fsm.get(
             (old_admin_state, new_admin_state), None)
         if transition_handler is None:
@@ -174,7 +193,7 @@ class DeviceAgent(object):
 
     @inlineCallbacks
     def _activate_device(self, device, dry_run=False):
-        self.log.info('activate-device', device=device, dry_run=dry_run)
+        self.log.debug('activate-device', device=device, dry_run=dry_run)
         if not dry_run:
             device.oper_status = OperStatus.ACTIVATING
             self.update_device(device)
@@ -189,14 +208,14 @@ class DeviceAgent(object):
         self.pm_config_proxy.update('/', device_pm_config)
 
     def _propagate_change(self, device, dry_run=False):
-        self.log.info('propagate-change', device=device, dry_run=dry_run)
+        self.log.debug('propagate-change', device=device, dry_run=dry_run)
         if device != self.last_data:
             raise NotImplementedError()
         else:
             self.log.debug('no-op')
 
     def _abandon_device(self, device, dry_run=False):
-        self.log.info('abandon-device', device=device, dry_run=dry_run)
+        self.log.debug('abandon-device', device=device, dry_run=dry_run)
         raise NotImplementedError()
 
     def _delete_all_flows(self):
@@ -209,21 +228,24 @@ class DeviceAgent(object):
 
     @inlineCallbacks
     def _disable_device(self, device, dry_run=False):
-        self.log.info('disable-device', device=device, dry_run=dry_run)
-        if not dry_run:
-            # Remove all flows before disabling device
-            self._delete_all_flows()
-            yield self.adapter_agent.disable_device(device)
+        try:
+            self.log.debug('disable-device', device=device, dry_run=dry_run)
+            if not dry_run:
+                # Remove all flows before disabling device
+                self._delete_all_flows()
+                yield self.adapter_agent.disable_device(device)
+        except Exception, e:
+            self.log.exception('error', e=e)
 
     @inlineCallbacks
     def _reenable_device(self, device, dry_run=False):
-        self.log.info('reenable-device', device=device, dry_run=dry_run)
+        self.log.debug('reenable-device', device=device, dry_run=dry_run)
         if not dry_run:
             yield self.adapter_agent.reenable_device(device)
 
     @inlineCallbacks
     def _delete_device(self, device, dry_run=False):
-        self.log.info('delete-device', device=device, dry_run=dry_run)
+        self.log.debug('delete-device', device=device, dry_run=dry_run)
         if not dry_run:
             yield self.adapter_agent.delete_device(device)
 

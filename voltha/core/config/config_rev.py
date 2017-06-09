@@ -32,6 +32,9 @@ from common.utils.json_format import MessageToJson
 from voltha.protos import third_party
 from voltha.protos import meta_pb2
 
+import structlog
+
+log = structlog.get_logger()
 
 def is_proto_message(o):
     """
@@ -283,6 +286,9 @@ class ConfigRevision(object):
     @property
     def type(self):
         return self._config.data.__class__
+
+    def clear_hash(self):
+        self._hash = None
 
     def get(self, depth):
         """

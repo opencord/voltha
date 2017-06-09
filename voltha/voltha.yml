@@ -55,6 +55,7 @@ core:
 
 coordinator:
     voltha_kv_prefix: 'service/voltha'
+    core_store_key: 'data/core'
     leader_key: 'leader'
     membership_key: 'members'
     assignment_key: 'assignments'

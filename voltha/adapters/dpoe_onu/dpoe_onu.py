@@ -115,6 +115,9 @@ class DPoEOnuAdapter(object):
         reactor.callLater(0.1, self._onu_device_activation, device)
         return device
 
+    def reconcile_device(self, device):
+        raise NotImplementedError()
+
     @inlineCallbacks
     def _onu_device_activation(self, device):
         # first we verify that we got parent reference and proxy info
