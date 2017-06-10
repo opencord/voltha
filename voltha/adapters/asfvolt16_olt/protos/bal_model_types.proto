@@ -331,8 +331,7 @@ message BalAction
  */
 message BalAggregationPortIdList
 {
-    uint32 len = 1;                        /**< List length in uint8 (bytes). */
-    repeated uint32 val = 2;    /**< List contents. */
+    repeated uint32 val = 1;    /**< List contents. */
 }
 
 /** classifier.
@@ -382,8 +381,7 @@ message BalDest
  */
 message BalFlowIdList
 {
-    uint32 len = 1;           /**< List length. */
-    repeated uint32 val = 2;    /**< List contents. */
+    repeated uint32 val = 1;    /**< List contents. */
 }
 
 /** Queue Reference
@@ -406,10 +404,9 @@ message BalGroupMemberInfo
 
 /** Variable-length list of groupMemberInfo.
  */
-message BalGroupMemberInfoList_u16
+message BalGroupMemberInfoList
 {
-    uint32 len = 1;                   /**< List length. */
-    repeated BalGroupMemberInfo val = 2;  /**< List contents. */
+    repeated BalGroupMemberInfo val = 1;  /**< List contents. */
 }
 
 /** Serial number.
@@ -422,10 +419,9 @@ message BalSerialNumber
 
 /** Variable-length list of servicePortId.
  */
-message uint32List_u8
+message SvcPortIdList
 {
-    uint32 len = 1;                    /**< List length. */
-    repeated uint32 val = 2;    /**< List contents. */
+    repeated uint32 val = 1;    /**< List contents. */
 }
 
 /** SLA.
@@ -439,10 +435,9 @@ message BalSla
 
 /** Variable-length list of subId.
  */
-message uint32List_u16
+message SubTermIdList
 {
-    uint32 len = 1;       /**< List length. */
-    repeated uint32 val = 2; /**< List contents. */
+    repeated uint32 val = 1; /**< List contents. */
 }
 
 /** Random Early Discard Configuration
@@ -485,16 +480,14 @@ message BalTmBac
  */
 message BalTmQueueIdList
 {
-    uint32 len = 1;                /**< List length. */
-    repeated uint32 val = 2;    /**< List contents. */
+    repeated uint32 val = 1;    /**< List contents. */
 }
 
 /** Variable-length list of TmSchedId.
  */
 message BalTmSchedIdList
 {
-    uint32 len = 1;                /**< List length. */
-    repeated uint32 val = 2;    /**< List contents. */
+    repeated uint32 val = 1;    /**< List contents. */
 }
 
 /** TM Scheduler Owner
@@ -573,14 +566,6 @@ message BalTmTcontSla
     uint32 rt_cbr = 4;         /**< RT_CBR */
     uint32 rt_profile = 5;     /**< RT Profile */
     uint32 nrt_profile = 6;    /**< NRT Profile */
-}
-
-/** Variable-length list of U8.
- */
-message BalU8List
-{
-    uint32 len = 1;   /**< List length. */
-    repeated uint32 val = 2;   /**< List contents. */
 }
 
 /** Structure definition for the "key" group of the "access_terminal" object.
@@ -723,7 +708,7 @@ message BalGroupKey
 message BalGroupCfgData
 {
     BalGroupMemberCmd members_cmd = 1;        /**< Membership operation commands. */
-    BalGroupMemberInfoList_u16 members = 2;  /**< The list of members associated with this group */
+    BalGroupMemberInfoList members = 2;  /**< The list of members associated with this group */
     uint64 cookie = 3;                       /**< Application cookie */
     BalFlowIdList flows = 4;              /**< List of flows associated with this group */
     BalGroupOwner owner = 5;                   /**< Owner of the group. */
@@ -759,7 +744,7 @@ message BalInterfaceCfgData
     BalControl flow_control = 8;    /**< Flow control enable or disable */
     uint32 ds_tm = 9;       /**< Downstream scheduler and shaper */
     uint32 us_tm = 10;       /**< Upstream scheduler and shaper */
-    uint32List_u16 sub_term_id_list = 11;    /**< A list of subscriber terminal ids configured on this interface */
+    SubTermIdList sub_term_id_list = 11;    /**< A list of subscriber terminal ids configured on this interface */
 }
 
 /** Transport message definition for "cfg" group of "interface" object.
@@ -832,7 +817,7 @@ message BalPacketCfgData
     BalIntfType intf_type = 4;         /**< Interface Type. */
     uint32 svc_port = 5;    /**< N/A for sending a packet */
     uint64 flow_cookie = 6;          /**< N/A for sending a packet */
-    BalU8List pkt = 7;             /**< Packet Data. */
+    bytes pkt = 7;             /**< Packet Data. */
 }
 
 /** Transport message definition for "cfg" group of "packet" object.
@@ -853,7 +838,7 @@ message BalPacketIndData
     BalIntfType intf_type = 4;         /**< Interface Type. */
     uint32 svc_port = 5;    /**< N/A for sending a packet */
     uint64 flow_cookie = 6;          /**< N/A for sending a packet */
-    BalU8List pkt = 7;             /**< Packet Data. */
+    bytes pkt = 7;             /**< Packet Data. */
 }
 
 /** Transport message definition for "ind" group of "packet" object.
@@ -888,7 +873,7 @@ message BalSubscriberTerminalCfgData
     bytes mac_address = 7;                          /**< The Ethernet MAC address of an EPON subscriber terminal */
     uint32 ds_tm = 8;                               /**< Downstream scheduler and shaper */
     uint32 us_tm = 9;                               /**< Upstream scheduler and shaper */
-    uint32List_u8 svc_port_id_list = 10;        /**< A list of bearer traffic svc_port_ids associated with this subscriber terminal */
+    SvcPortIdList svc_port_id_list = 10;        /**< A list of bearer traffic svc_port_ids associated with this subscriber terminal */
     BalAggregationPortIdList agg_port_id_list = 11;    /**< A list of aggrPort_ids associated with this subscriber terminal */
 }
 
