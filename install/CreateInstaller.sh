@@ -203,7 +203,7 @@ if [ $? -ne 0 ]; then
 fi
 
 if [ $# -eq 1 -a "$1" == "test" ]; then
-	echo -e "${lBlue}Testing, the install image ${red}WILL NOT#{lBlue} be built${NC}"
+	echo -e "${lBlue}Testing, the install image ${red}WILL NOT${lBlue} be built${NC}"
 else
 	echo -e "${lBlue}Building, the install image (this can take a while)${NC}"
 	# Create a temporary directory for all the installer files

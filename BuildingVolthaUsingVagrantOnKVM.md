@@ -12,7 +12,7 @@ Start with an installation of Ubuntu16.04LTS on a bare metal server that is capa
   
   ```
   
-  voltha> wget http://releases.ubuntu.com/xenial/ubuntu-16.04.2-server-i386.iso
+  voltha> wget http://releases.ubuntu.com/xenial/ubuntu-16.04.2-server-amd64.iso
   voltha> echo "virt-install -n Ubuntu16.04 -r 1024 --vcpus=2 --disk size=50 -c ubuntu-16.04.2-server-amd64.iso --accelerate --network network=default,model=virtio --connect=qemu:///system --vnc --noautoconsole -v" > Ubuntu16.04Vm
   voltha> . Ubuntu16.04Vm
   voltha> virt-manager
@@ -37,6 +37,12 @@ Add a vagrant file to /etc/sudoers.d/vagrant with the following:
 ```
 vagrant@voltha$ echo "vagrant ALL=(ALL) NOPASSWD:ALL" > tmp.sudo
 vagrant@voltha$ sudo mv tmp.sudo /etc/sudoers.d/vagrant
+```
+
+That's all that's required to prepare the VM imsage to be vagrant enabled. Before proceeding to the next step, shut down the vm.
+
+```
+vagrant@voltha$ sudo telinit 0
 ```
 
 ## Install and configure vagrant
@@ -75,10 +81,27 @@ config.vm.define "new" do |custombox|
 end
 HERE
 voltha> tar czvf ubuntu1604.box ./metadata.json ./Vagrantfile ./box.img
-voltha> vagrant box add ubuntu1604.box
+voltha> vagrant box add --name ubuntu1604 ubuntu1604.box
 ```
 ##Download the voltha tree
 The voltha tree contains the Vagrant files required to build a multitude of VMs required to both run, test, and also to deploy voltha. The easiest approach is to download the entire tree rather than trying to extract the specific ``Vagrantfile(s)`` required.
+
+Create a .gitconfig file using your favorite editor and add the following:
+```
+# This is Git's per-user configuration file.
+[user]
+        name = Your Name
+        email = your.email@your.organization.com
+[color]
+        ui = auto
+[review "https://gerrit.opencord.org/"]
+        username=yourusername
+[push]
+        default = simple
+
+```
+
+Now you can install the repo command and pull the voltha repo.
 ```
 voltha> sudo apt-get install repo
 voltha> mkdir cord

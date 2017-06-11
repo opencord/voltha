@@ -4,17 +4,18 @@
 
 [TOC]
 ***
-## Bare Metal Setup
+## Set up the Dependencies
+### Bare Metal Setup
 **Note:** *If you've already prepared the bare metal machine and have the voltha tree downloaded from haing followed the document ``Building a vOLT-HA Virtual Machine  Using Vagrant on QEMU/KVM`` then skip to [Running the Installer](#Building-the-installer).
 
 Start with an installation of Ubuntu16.04LTS on a bare metal server that is capable of virtualization. How to determine this is beyond the scope of this document. When installing the image ensure that both "OpenSSH server" and "Virtualization Machine Host" are chosen in addition to the default "standard system utilities". Once the installation is complete, login to the box and type ``virsh list``. If this doesnt work then you'll need to troubleshoot the installation. If it works, then proceed to the next section.
 
-##Create the base ubuntu/xenial box
+###Create the base ubuntu/xenial box
   Though there are some flavors of ubuntu boxes available but they usually have additional features installed or missing so it's best to just create the image from the ubuntu installation iso image.
   
   ```
   
-  voltha> wget http://releases.ubuntu.com/xenial/ubuntu-16.04.2-server-i386.iso
+  voltha> wget http://releases.ubuntu.com/xenial/ubuntu-16.04.2-server-amd64.iso
   voltha> echo "virt-install -n Ubuntu16.04 -r 1024 --vcpus=2 --disk size=50 -c ubuntu-16.04.2-server-amd64.iso --accelerate --network network=default,model=virtio --connect=qemu:///system --vnc --noautoconsole -v" > Ubuntu16.04Vm
   voltha> . Ubuntu16.04Vm
   voltha> virt-manager
@@ -41,7 +42,7 @@ vagrant@voltha$ echo "vagrant ALL=(ALL) NOPASSWD:ALL" > tmp.sudo
 vagrant@voltha$ sudo mv tmp.sudo /etc/sudoers.d/vagrant
 ```
 
-## Install and configure vagrant
+### Install and configure vagrant
 Vagrant comes with the Ubuntu 16.04 but it doesn't work with kvm. Downloading and installing the version from hashicorp solves the problem.
 ```
 voltha> wget https://releases.hashicorp.com/vagrant/1.9.5/vagrant_1.9.3_x86_64.deb
@@ -50,7 +51,7 @@ voltha> vagrant plugin install vagrant-cachier
 voltha> sudo apt-get install libvirt-dev
 voltha> vagrant plugin install vagrant-libvirt
 ```
-## Create the default vagrant box
+### Create the default vagrant box
 
 When doing this, be careful that you're not in a directory where a Vagrantfile already exists or you'll trash it. It is recommended that a temporary directory is created to perform these actions and then removed once the new box has been added to vagrant.
 ```
@@ -79,7 +80,7 @@ HERE
 voltha> tar czvf ubuntu1604.box ./metadata.json ./Vagrantfile ./box.img
 voltha> vagrant box add ubuntu1604.box
 ```
-##Download the voltha tree
+###Download the voltha tree
 The voltha tree contains the Vagrant files required to build a multitude of VMs required to both run, test, and also to deploy voltha. The easiest approach is to download the entire tree rather than trying to extract the specific ``Vagrantfile(s)`` required.
 ```
 voltha> sudo apt-get install repo
@@ -90,7 +91,7 @@ voltha>  repo init -u https://gerrit.opencord.org/manifest -g voltha
 voltha>  repo sync
 ```
 
-## Run vagrant to Create a Voltha VM
+### Run vagrant to Create a Voltha VM
 First create the voltah VM using vagrant.
 ```
 voltha> vagrant up
@@ -109,11 +110,13 @@ To build the installer in test mode go to the installer directory
 then type
 ``./CreateInstaller.sh test``.
 
+You will be prompted for a password 3 times early in the installation as the installer bootstraps itself. The password is `vinstall` in each case. After this, the installer can run un-attended for the remainder of the installation.
+
 This will take a while so doing something else in the mean-time is recommended.
 
 ### Running the installer in test mode
-Once the creation has completed determine the ip address of the VM with the following virs command:
-``virsh domifaddr Ubuntu16.04LTS-1``
+Once the creation has completed determine the ip address of the VM with the following virsh command:
+``virsh domifaddr vInstaller``
 using the ip address provided log into the installer using
 ``ssh -i key.pem vinstall@<ip-address-from-above>``
 
@@ -124,7 +127,8 @@ In test mode it'll just launch with no prompts and install voltha on the 3 VMs c
 Once the installation completes, determine the ip-address of one of the cluster VMs.
 ``virsh domifaddr ha-serv1``
 You can use ``ha-serv2`` or ``ha-serv3`` in place of ``ha-serv1`` above. Log into the VM
-``ssh voltah@<ip-address-from-above>``
+``ssh voltha@<ip-address-from-above>``
+The password is `voltha`.
 Once logged into the voltha instance follow the usual procedure to start voltha and validate that it's operating correctly.
 
 ### Building the installer in production mode
@@ -135,11 +139,13 @@ The archive file and a script called ``installVoltha.sh`` are both placed in a d
 To build the installer in production mode type:
 ``./CreateInstaller.sh``
 
+You will be prompted for a password 3 times early in the installation as the installer bootstraps itself. The password is `vinstall` in each case. After this, the installer can run un-attended for the remainder of the installation.
+
 This will take a while and when it completes a directory name ``volthaInstaller`` will have been created. Copy all the files in this directory to a USB Flash drive or other portable media and carry to the installation site.
 
 ## Installing Voltha
 
-To install voltha access to a bare metal server running Ubuntu Server 16.04LTS with QEMU/KVM virtualization and OpenSSH installed is required. If the server meets these basic requirements then insert the portable media, mount it, and copy all the files on the media to a directory on the server. Change into that directory and type ``./installVoltha.sh`` which should produce the following output:
+To install voltha access to a bare metal server running Ubuntu Server 16.04LTS with QEMU/KVM virtualization and OpenSSH installed is required. If the server meets these basic requirements then insert the removable media, mount it, and copy all the files on the media to a directory on the server. Change into that directory and type ``./installVoltha.sh`` which should produce the following output:
 ```
 Checking for the installer archive installer.tar.bz2
 Checking for the installer archive parts installer.part*

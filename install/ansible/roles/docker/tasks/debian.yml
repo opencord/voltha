@@ -24,7 +24,7 @@
 - name: Debian docker-py is present
   pip:
     name: docker-py
-    version: 1.6.0
+    version: "{{ docker_py_version }}"
     state: present
   when: target == "installer"
   tags: [docker]
@@ -32,7 +32,7 @@
 - name: netifaces pip package is present
   pip:
     name: netifaces
-    version: 0.10.4
+    version: "{{ netifaces_version }}"
     state: present
   when: target == "installer"
   tags: [docker]
@@ -49,7 +49,7 @@
   when: copy_result|changed and is_systemd is defined
   tags: [docker]
 
-- name: vagrant user is added to the docker group
+- name: Sudo user is added to the docker group
   user:
     name: "{{ ansible_env['SUDO_USER'] }}"
     group: docker

@@ -36,11 +36,11 @@
     path: /home/vinstall/installer.sh
     mode: 0744
   tags: [installer]
-- name: Python docker-py 1.6.0 package source is available
-  command: pip download -d /home/vinstall/docker-py "docker-py==1.6.0"
+- name: Python docker-py {{ docker_py_version }} package source is available
+  command: pip download -d /home/vinstall/docker-py "docker-py=={{ docker_py_version }}"
   tags: [installer]
-- name: Python netifaces 0.10.4 package source is available
-  command: pip download -d /home/vinstall/netifaces "netifaces==0.10.4"
+- name: Python netifaces {{ netifaces_version }} package source is available
+  command: pip download -d /home/vinstall/netifaces "netifaces=={{ netifaces_version }}"
   tags: [installer]
 - name: Deb file directory doesn't exist
   file:

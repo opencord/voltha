@@ -1,10 +1,5 @@
 #!/bin/bash
 
-baseImage="Ubuntu1604LTS"
-iVmName="Ubuntu1604LTS-1"
-shutdownTimeout=5
-ipTimeout=10
-
 lBlue='\033[1;34m'
 green='\033[0;32m'
 orange='\033[0;33m'
@@ -38,7 +33,6 @@ echo "	StrictHostKeyChecking no" >> ~/.ssh/config
 echo "	UserKnownHostsFile /dev/null" >> ~/.ssh/config
 
 sudo cp ~/.ssh/config /root/.ssh/config
-
 
 for i in $hosts
 do
@@ -106,8 +100,34 @@ do
 echo "  - `basename $i`" >> ansible/group_vars/all
 done
 
+# Make sure the ssh keys propagate to all hosts allowing passwordless logins between them
+echo -e "${lBlue}Propagating ssh keys${NC}"
+cp -r .keys ansible/roles/cluster-host/files/.keys
+
 # Running ansible
 echo -e "${lBlue}Running ansible${NC}"
 cp ansible/ansible.cfg .ansible.cfg
 sudo ansible-playbook ansible/voltha.yml -i ansible/hosts/cluster
+
+# Now initialize the the docker swarm cluster with managers.
+# The first server needs to be the primary swarm manager
+# the other nodes are backup mangers that join the swarm.
+# In the future, worker nodes will likely be added.
+
+echo "[swarm-master]" > ansible/hosts/swarm-master
+echo "[swarm-master-backup]" > ansible/hosts/swarm-master-backup
+
+ctr=1
+for i in $hosts
+do
+        if [ $ctr -eq 1 ]; then
+                echo  $i >> ansible/hosts/swarm-master
+		echo "swarm_master_addr: \"$i\"" >> ansible/group_vars/all
+		ctr=0
+        else
+                echo  $i >> ansible/hosts/swarm-master-backup
+        fi
+done
+sudo ansible-playbook ansible/swarm-master.yml -i ansible/hosts/swarm-master
+sudo ansible-playbook ansible/swarm-master-backup.yml -i ansible/hosts/swarm-master-backup
 

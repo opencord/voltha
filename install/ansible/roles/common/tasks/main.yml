@@ -2,6 +2,7 @@
   apt:
     name: jq
     force: yes
+  when: target != "cluster"
   tags: [common]
 
 - name: Host is present

@@ -1,0 +1,7 @@
+- hosts: swarm-master
+  remote_user: voltha
+  serial: 1
+  vars:
+    target: swarm-master
+  roles:
+    - swarm

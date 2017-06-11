@@ -1,0 +1,24 @@
+---
+- name: Ensure Swarm Master Initialization
+  command: "docker swarm init --advertise-addr {{ swarm_master_addr }}"
+  when: target == "swarm-master"
+  tags: [swarm]
+
+- name: Capture Swarm Cluster Manager Token
+  become: voltha
+  shell: ssh -i /home/voltha/.keys/{{ swarm_master_addr }} voltha@{{ swarm_master_addr }} sudo docker swarm join-token -q manager 2>/dev/null
+  register: manager_token
+  changed_when: false
+  when: target == "swarm-master-backup"
+  tags: [swarm]
+
+- name: Debug
+  debug:
+    msg: "TOKEN: {{ manager_token.stdout }}"
+  when: target == "swarm-master-backup"
+  tags: [swarm]
+
+- name: Join Swarm Cluster
+  command: "docker swarm join --token {{ manager_token.stdout }} {{ swarm_master_addr }}:2377"
+  when: target == "swarm-master-backup"
+  tags: [swarm]
