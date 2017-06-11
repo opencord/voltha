@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a0e1d27_a0315b0d",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_olt.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 49,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-06-11T03:01:13Z",
+      "side": 1,
+      "message": "Since we are targeting ASFvOLT16 hardware the vendor string should be \"Edgecore\"",
+      "revId": "069e079f34834ea214c5f937f70e557b8186f44e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_80365702",
+        "filename": "voltha/adapters/asfvolt16_olt/protos/bal_model_types.proto",
+        "patchSetId": 5
+      },
+      "lineNbr": 334,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-06-11T03:01:13Z",
+      "side": 1,
+      "message": "You are dropping all the len fields here.  Don\u0027t need it because the length is carried in the protobuf payload, right?",
+      "revId": "069e079f34834ea214c5f937f70e557b8186f44e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
