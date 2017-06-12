@@ -140,6 +140,17 @@ class AdtranOltAdapter(object):
         reactor.callLater(0, self.devices_handlers[device.id].activate, device)
         return device
 
+
+    def reconcile_device(self, device):
+        """
+        TODO:  Is invoked whenever a Voltha instance is started using data 
+        from a failed instance. 
+        :param device: 
+        :return: 
+        """
+        raise NotImplementedError()
+
+
     def abandon_device(self, device):
         """
         Make sure the adapter no longer looks after device. This is called
