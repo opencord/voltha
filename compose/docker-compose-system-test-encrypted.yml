@@ -30,8 +30,8 @@ services:
   # Single-node consul agent
   #
   consul:
-    image: consul:latest
-    command: agent -server -bootstrap -client 0.0.0.0 -ui
+    image: voltha/consul
+    command: agent -server -bootstrap -client 0.0.0.0 -ui 
     ports:
     - "8300:8300"
     - "8400:8400"
@@ -42,24 +42,21 @@ services:
       SERVICE_8300_IGNORE: "yes"
       SERVICE_8400_IGNORE: "yes"
       SERVICE_8500_NAME: "consul-rest"
-    volumes:
-    - "/cord/incubator/voltha/consul_config:/consul/config"
   #
   # Registrator
   #
   registrator:
-    image: gliderlabs/registrator:latest
+    image: voltha/registrator
     command: [
       "-ip=${DOCKER_HOST_IP}",
       "-retry-attempts", "100",
       # "-internal",
-      "consul://consul:8500"
+      "consul://consul-tls:8501"
     ]
     links:
     - consul
     volumes:
     - "/var/run/docker.sock:/tmp/docker.sock"
-    - "/cord/incubator/voltha/reg_config:/reg/config"
     environment:
       CONSUL_CACERT: "/reg/config/voltha-CA-template.pem"
       CONSUL_TLSCERT: "/reg/config/voltha-cert-template.crt"
