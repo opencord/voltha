@@ -22,7 +22,7 @@ include setup.mk
 
 VENVDIR := venv-$(shell uname -s | tr '[:upper:]' '[:lower:]')
 
-.PHONY: $(DIRS) $(DIRS_CLEAN) $(DIRS_FLAKE8) flake8 docker-base voltha chameleon ofagent podder netconf shovel onos dashd vcli portainer grafana nginx
+.PHONY: $(DIRS) $(DIRS_CLEAN) $(DIRS_FLAKE8) flake8 docker-base voltha chameleon ofagent podder netconf shovel onos dashd vcli portainer grafana nginx consul registrator
 
 # This should to be the first and default target in this Makefile
 help:
@@ -55,6 +55,8 @@ help:
 	@echo "portainer    : Build the portainer docker container"
 	@echo "grafana      : Build the grafana docker container"
 	@echo "nginx        : Build the nginx docker container"
+	@echo "consul       : Build the consul docker container"
+	@echo "registrator  : Build the registrator docker container"
 	@echo
 
 ## New directories can be added here
@@ -91,7 +93,7 @@ $(DIRS_FLAKE8):
 
 build: protos containers
 
-containers: docker-base voltha chameleon ofagent podder netconf shovel onos tester config-push dashd vcli portainer grafana nginx
+containers: docker-base voltha chameleon ofagent podder netconf shovel onos tester config-push dashd vcli portainer grafana nginx consul registrator
 
 docker-base:
 	docker build -t cord/voltha-base -f docker/Dockerfile.base .
@@ -134,6 +136,12 @@ portainer:
 
 nginx:
 	docker build -t voltha/nginx -f docker/Dockerfile.nginx .
+
+consul:
+	docker build -t voltha/consul -f docker/Dockerfile.consul .
+
+registrator:
+	docker build -t voltha/registrator -f docker/Dockerfile.registrator .
 
 grafana:
 	docker build -t voltha/grafana -f docker/Dockerfile.grafana .
