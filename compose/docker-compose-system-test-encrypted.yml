@@ -30,8 +30,8 @@ services:
   # Single-node consul agent
   #
   consul:
-    image: consul:latest
-    command: agent -server -bootstrap -client 0.0.0.0 -ui
+    image: voltha/consul
+    command: consul agent -server -bootstrap -client 0.0.0.0 -ui --data-dir=/consul/data
     ports:
     - "8300:8300"
     - "8400:8400"
@@ -42,8 +42,6 @@ services:
       SERVICE_8300_IGNORE: "yes"
       SERVICE_8400_IGNORE: "yes"
       SERVICE_8500_NAME: "consul-rest"
-    volumes:
-    - "/cord/incubator/voltha/consul_config:/consul/config"
   #
   # Registrator
   #
@@ -53,7 +51,7 @@ services:
       "-ip=${DOCKER_HOST_IP}",
       "-retry-attempts", "100",
       # "-internal",
-      "consul://consul:8500"
+      "consul://consul-tls:8501"
     ]
     links:
     - consul
@@ -288,7 +286,7 @@ services:
     - portainer
     restart: unless-stopped
     volumes:
-    - "/cord/incubator/voltha/nginx_config:/nginx_config"
+    - "/home/cord/cord/incubator/voltha/nginx_config:/nginx_config"
 
   #
   # Docker ui
