@@ -33,6 +33,29 @@
       "revId": "e06e35d3adee9821e16d536436dab62cd77dd947",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_23caf54f",
+        "filename": "voltha/adapters/asfvolt16_olt/protos/bal_indications.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 175,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-06-13T04:53:27Z",
+      "side": 1,
+      "message": "Can we move this service to bal.proto file. As all services are defined in that.",
+      "range": {
+        "startLine": 175,
+        "startChar": 8,
+        "endLine": 175,
+        "endChar": 14
+      },
+      "revId": "e06e35d3adee9821e16d536436dab62cd77dd947",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
