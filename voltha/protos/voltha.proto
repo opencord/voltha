@@ -41,6 +41,8 @@ message DeviceGroups {
 
 
 message AlarmFilterRuleKey {
+    option (yang_child_rule) = MOVE_TO_PARENT_LEVEL;
+    
     enum AlarmFilterRuleKey {
         id = 0;
         type = 1;
