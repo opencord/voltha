@@ -21,21 +21,16 @@ Fully simulated OLT/ONU adapter.
 import structlog
 from twisted.internet import reactor
 from twisted.internet.defer import DeferredQueue, inlineCallbacks
-from zope.interface import implementer
 from common.utils.asleep import asleep
 
-from voltha.adapters.interface import IAdapterInterface
+from voltha.adapters.iadapter import IAdapter
 from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.protos import third_party
-from voltha.protos.adapter_pb2 import Adapter
-from voltha.protos.adapter_pb2 import AdapterConfig
-from voltha.protos.common_pb2 import LogLevel, OperStatus, ConnectStatus, \
-    AdminState
-from voltha.protos.device_pb2 import DeviceType, DeviceTypes, Port
-from voltha.protos.health_pb2 import HealthStatus
+from voltha.protos.common_pb2 import OperStatus, ConnectStatus, AdminState
+from voltha.protos.device_pb2 import Port
 from voltha.protos.logical_device_pb2 import LogicalPort
 from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, \
-    OFPPF_1GB_FD, OFPPC_NO_RECV
+    OFPPF_1GB_FD
 from voltha.protos.openflow_13_pb2 import ofp_port
 from voltha.protos.ponsim_pb2 import FlowTable
 
@@ -43,51 +38,14 @@ _ = third_party
 log = structlog.get_logger()
 
 
-@implementer(IAdapterInterface)
-class PonSimOnuAdapter(object):
-    name = 'ponsim_onu'
-
-    supported_device_types = [
-        DeviceType(
-            id=name,
-            adapter=name,
-            accepts_bulk_flow_update=True
-        )
-    ]
-
+class PonSimOnuAdapter(IAdapter):
     def __init__(self, adapter_agent, config):
-        self.adapter_agent = adapter_agent
-        self.config = config
-        self.descriptor = Adapter(
-            id=self.name,
-            vendor='Voltha project',
-            version='0.4',
-            config=AdapterConfig(log_level=LogLevel.INFO)
-        )
+        super(PonSimOnuAdapter, self).__init__(adapter_agent=adapter_agent,
+                                               config=config,
+                                               name='ponsim_onu',
+                                               vendor='Voltha project',
+                                               version='0.4')
         self.devices_handlers = dict()  # device_id -> PonSimOltHandler()
-
-    def start(self):
-        log.debug('starting')
-        log.info('started')
-
-    def stop(self):
-        log.debug('stopping')
-        log.info('stopped')
-
-    def adapter_descriptor(self):
-        return self.descriptor
-
-    def device_types(self):
-        return DeviceTypes(items=self.supported_device_types)
-
-    def health(self):
-        return HealthStatus(state=HealthStatus.HealthState.HEALTHY)
-
-    def change_master_state(self, master):
-        raise NotImplementedError()
-
-    def update_pm_config(self, device, pm_configs):
-        raise NotImplementedError()
 
     def adopt_device(self, device):
         self.devices_handlers[device.id] = PonSimOnuHandler(self, device.id)
@@ -102,9 +60,6 @@ class PonSimOnuAdapter(object):
                               self.devices_handlers[device.id].reconcile,
                               device)
         return device
-
-    def abandon_device(self, device):
-        raise NotImplementedError()
 
     def disable_device(self, device):
         log.info('disable-device', device_id=device.id)
@@ -136,9 +91,6 @@ class PonSimOnuAdapter(object):
         handler = self.devices_handlers[device.id]
         return handler.update_flow_table(flows.items)
 
-    def update_flows_incrementally(self, device, flow_changes, group_changes):
-        raise NotImplementedError()
-
     def send_proxied_message(self, proxy_address, msg):
         log.info('send-proxied-message', proxy_address=proxy_address, msg=msg)
 
@@ -156,16 +108,6 @@ class PonSimOnuAdapter(object):
     def receive_packet_out(self, logical_device_id, egress_port_no, msg):
         log.info('packet-out', logical_device_id=logical_device_id,
                  egress_port_no=egress_port_no, msg_len=len(msg))
-
-    def receive_inter_adapter_message(self, msg):
-        raise NotImplementedError()
-
-    def suppress_alarm(self, filter):
-        raise NotImplementedError()
-
-    def unsuppress_alarm(self, filter):
-        raise NotImplementedError()
-
 
 class PonSimOnuHandler(object):
     def __init__(self, adapter, device_id):

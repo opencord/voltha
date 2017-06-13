@@ -18,109 +18,14 @@
 Asfvolt16 OLT adapter
 """
 
-import structlog
-from zope.interface import implementer
+from voltha.adapters.iadapter import IAdapter
 
-from voltha.protos.device_pb2 import DeviceType, DeviceTypes
-from voltha.adapters.interface import IAdapterInterface
-from voltha.protos.adapter_pb2 import Adapter
-from voltha.protos.adapter_pb2 import AdapterConfig
-from voltha.protos.common_pb2 import LogLevel
-
-log = structlog.get_logger()
-
-@implementer(IAdapterInterface)
-class Asfvolt16Adapter(object):
-    name = 'asfvolt16_olt'
-
-    supported_device_types = [
-        DeviceType(
-            id=name,
-            adapter=name,
-            accepts_bulk_flow_update=False
-        )
-    ]
-
+class Asfvolt16Adapter(IAdapter):
     def __init__(self, adapter_agent, config):
-        self.adapter_agent = adapter_agent
-        self.config = config
-        self.descriptor = Adapter(
-            id=self.name,
-            vendor='Edgecore',
-            version='0.1',
-            config=AdapterConfig(log_level=LogLevel.INFO)
-        )
-
+        super(Asfvolt16Adapter, self).__init__(adapter_agent=adapter_agent,
+                                               config=config,
+                                               name='asfvolt16_olt',
+                                               vendor='Edgecore',
+                                               version='0.1')
         # register for adapter messages
         self.adapter_agent.register_for_inter_adapter_messages()
-
-    def start(self):
-        log.debug('starting')
-        log.info('started')
-
-    def stop(self):
-        log.debug('stopping')
-        log.info('stopped')
-
-    def adapter_descriptor(self):
-        return self.descriptor
-
-    def device_types(self):
-        return DeviceTypes(items=self.supported_device_types)
-
-    def health(self):
-        raise NotImplementedError()
-
-    def change_master_state(self, master):
-        raise NotImplementedError()
-
-    def update_pm_config(self, device, pm_config):
-        raise NotImplementedError()
-
-    def adopt_device(self, device):
-        raise NotImplementedError()
-
-    def reconcile_device(self, device):
-        raise NotImplementedError()
-
-    def abandon_device(self, device):
-        raise NotImplementedError()
-
-    def disable_device(self, device):
-        raise NotImplementedError()
-
-    def reenable_device(self, device):
-        raise NotImplementedError()
-
-    def reboot_device(self, device):
-        raise NotImplementedError()
-
-    def delete_device(self, device):
-        raise NotImplementedError()
-
-    def get_device_details(self, device):
-        raise NotImplementedError()
-
-    def update_flows_bulk(self, device, flows, groups):
-        raise NotImplementedError()
-
-    def update_flows_incrementally(self, device, flow_changes, group_changes):
-        raise NotImplementedError()
-
-    def send_proxied_message(self, proxy_address, msg):
-        raise NotImplementedError()
-
-    def receive_proxied_message(self, proxy_address, msg):
-        raise NotImplementedError()
-
-    def receive_packet_out(self, logical_device_id, egress_port_no, msg):
-        raise NotImplementedError()
-
-    def receive_inter_adapter_message(self, msg):
-        raise NotImplementedError()
-
-    def suppress_alarm(self, filter):
-        raise NotImplementedError()
-
-    def unsuppress_alarm(self, filter):
-        raise NotImplementedError()
