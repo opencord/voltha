@@ -48,6 +48,12 @@
   when: target == "cluster"
   tags: [cluster_host]
 
+- name: apt lists are up-to-date
+  copy:
+    src: "/var/lib/apt/lists"
+    dest: "/var/lib/apt"
+  tags: [cluster_host]
+
 - name: Dependent software is installed
   command: dpkg -i "{{ target_voltha_home }}/deb_files/{{ item }}"
   with_items: "{{ deb_files }}"

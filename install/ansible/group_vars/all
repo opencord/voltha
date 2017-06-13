@@ -8,6 +8,8 @@ target_voltha_dir: /cord/incubator/voltha
 docker_py_version: "1.7.0"
 netifaces_version: "0.10.4"
 target_voltha_home: /home/voltha
+docker_daemon_json: daemon.json
+docker_daemon_json_dest: /etc/docker
 voltha_containers:
   - voltha/nginx
   - voltha/grafana

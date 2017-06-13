@@ -1,5 +1,9 @@
 ---
+# The name to use for the server
+server_name: "voltha"
 # Use virtualbox for development
 vProvider: "virtualbox"
+# This determines if test mode is active
+testMode: "false"
 # Use KVM for production
 #vProvider: "KVM"

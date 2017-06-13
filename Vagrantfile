@@ -21,9 +21,14 @@ Vagrant.configure(2) do |config|
       Provider = "virtualbox"
     else
       puts("Using the QEMU/KVM configuration");
-      config.vm.synced_folder "../..", "/cord", type: "nfs"
       Box = "ubuntu1604"
       Provider = "libvirt"
+      if settings['testMode'] == "true"
+          config.vm.synced_folder ".", "/vagrant", disabled: true
+          config.vm.synced_folder "../..", "/cord", type: "rsync", rsync__exclude: [".git", "venv-linux"]
+      else
+          config.vm.synced_folder "../..", "/cord", type: "nfs"
+      end
     end
   else
     puts("Configuring for other")
@@ -32,10 +37,10 @@ Vagrant.configure(2) do |config|
     Provider = "virtualbox"
   end
 
-  config.vm.define "voltha" do |d|
+  config.vm.define "#{settings['server_name']}" do |d|
     d.ssh.forward_agent = true
     d.vm.box = Box
-    d.vm.hostname = "voltha"
+    d.vm.hostname = "#{settings['server_name']}"
     d.vm.network "private_network", ip: "10.100.198.220"
     d.vm.provision :shell, path: "ansible/scripts/bootstrap_ansible.sh"
     d.vm.provision :shell, inline: "PYTHONUNBUFFERED=1 ansible-playbook /cord/incubator/voltha/ansible/voltha.yml -c local"

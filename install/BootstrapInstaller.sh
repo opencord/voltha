@@ -17,6 +17,13 @@ lGrey='\033[1;37m'
 lCyan='\033[1;36m'
 
 wd=`pwd`
+
+# Check if a specific network was specified on the command line.
+# This is used mostly for testing.
+if [ $# -eq 1 ]; then
+	iVmNetwork=$1
+fi
+
 # Update the XML file with the VM information
 echo -e "${lBlue}Defining the  ${lCyan}$iVmName${lBlue} virtual machine${NC}"
 cat vmTemplate.xml | sed -e "s/{{ VMName }}/$iVmName/g" | sed -e "s/{{ VMNetwork }}/$iVmNetwork/g" > tmp.xml

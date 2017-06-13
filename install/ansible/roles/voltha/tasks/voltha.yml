@@ -76,6 +76,30 @@
   when: target == "cluster"
   tags: [voltha]
 
+# Update the insecure registry to reflect the current installer.
+# The installer name can change depending on whether test mode
+# is being used or not.
+- name: Enable insecure install registry
+  template:
+    src: "{{ docker_daemon_json }}"
+    dest: "{{ docker_daemon_json_dest }}"
+  register: copy_result
+  when: target == "installer"
+  tags: [voltha]
+
+- name: Debain Daemon is reloaded
+  command: systemctl daemon-reload
+  when: copy_result|changed and is_systemd is defined and target == "installer"
+  tags: [voltha]
+
+- name: Debian Docker service is restarted
+  service:
+    name: docker
+    state: restarted
+  when: copy_result|changed or user_result|changed
+  when: target == "installer"
+  tags: [voltha]
+
 - name: Docker images are re-tagged to registry for push
   command: docker tag {{ item }} {{ docker_push_registry }}/{{ item }}
   with_items: "{{ voltha_containers }}"

@@ -9,4 +9,4 @@
     - docker
     - docker-compose
     - voltha
-    - java
+#    - java

@@ -7,12 +7,13 @@
 
 # usage devCopyTiInstaller.sh <ip-address>
 
+uId=`id -u`
 
 sed -i -e '/^#/!d' install.cfg
 rm -fr .test
 mkdir .test
 hosts=""
-for i in `virsh list | awk '{print $2}' | grep ha-serv`
+for i in `virsh list | awk '{print $2}' | grep ha-serv${uId}-`
 do
 	ipAddr=`virsh domifaddr $i | tail -n +3 | head -n 1 | awk '{print $4}' | sed -e 's~/.*~~'`
 	hosts="$hosts $ipAddr"

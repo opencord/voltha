@@ -1,7 +1,8 @@
 #!/bin/bash
 
-baseImage="Ubuntu1604LTS"
+
 iVmName="vInstaller"
+baseImage="Ubuntu1604LTS"
 iVmNetwork="vagrant-libvirt"
 installerArchive="installer.tar.bz2"
 installerDirectory="volthaInstaller"
@@ -19,6 +20,7 @@ dGrey='\033[1;30m'
 lGrey='\033[1;37m'
 lCyan='\033[1;36m'
 
+uId=`id -u`
 wd=`pwd`
 
 # Validate that vagrant is installed.
@@ -46,25 +48,44 @@ unset vInst
 
 # Ensure that the voltha VM is running so that images can be secured
 echo -e "${lBlue}Ensure that the ${lCyan}voltha VM${lBlue} is running${NC}"
-vVM=`virsh list | grep voltha_voltha`
+vVM=`virsh list | grep voltha_voltha${uId}`
 
 if [ -z "$vVM" ]; then
-	./BuildVoltha.sh
+	./BuildVoltha.sh $1
 fi
 
 # Verify if this is intended to be a test environment, if so start 3 VMs
 # to emulate the production installation cluster.
 if [ $# -eq 1 -a "$1" == "test" ]; then
 	echo -e "${lBlue}Testing, create the ${lCyan}ha-serv${lBlue} VMs${NC}"
-	vagrant destroy ha-serv{1,2,3}
-	vagrant up ha-serv{1,2,3}
+	# Update the vagrant settings file
+	sed -i -e '/server_name/s/.*/server_name: "ha-serv'${uId}'-"/' settings.vagrant.yaml
+	sed -i -e '/docker_push_registry/s/.*/docker_push_registry: "vinstall'${uId}':5000"/' ansible/group_vars/all
+	sed -i -e "/vinstall/s/vinstall/vinstall${uId}/" ../ansible/roles/docker/templates/daemon.json
+
+	# Set the insecure registry configuration based on the installer hostname
+	echo -e "${lBlue}Set up the inescure registry hostname ${lCyan}vinstall${uId}${NC}"
+	echo '{' > ansible/roles/voltha/templates/daemon.json
+	echo '"insecure-registries" : ["vinstall'${uId}':5000"]' >> ansible/roles/voltha/templates/daemon.json
+	echo '}' >> ansible/roles/voltha/templates/daemon.json
+
+	vagrant destroy ha-serv${uId}-{1,2,3}
+	vagrant up ha-serv${uId}-{1,2,3}
 	./devSetHostList.sh
+	# Change the installer name
+	iVmName="vInstaller${uId}"
 else
 	rm -fr .test
 	# Clean out the install config file keeping only the commented lines
         # which serve as documentation.
 	sed -i -e '/^#/!d' install.cfg
+	# Set the insecure registry configuration based on the installer hostname
+	echo -e "${lBlue}Set up the inescure registry hostname ${lCyan}vinstall${uId}${NC}"
+	echo '{' > ansible/roles/voltha/templates/daemon.json
+	echo '"insecure-registries" : ["vinstall:5000"]' >> ansible/roles/voltha/templates/daemon.json
+	echo '}' >> ansible/roles/voltha/templates/daemon.json
 fi
+
 
 # Shut down the domain in case it's running.
 echo -e "${lBlue}Shut down the ${lCyan}$iVmName${lBlue} VM if running${NC}"
@@ -155,6 +176,15 @@ rm bash_login.sh
 echo -e "${lBlue}Running the pre-configuration script on the VM${NC}"
 ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no vinstall@$ipAddr 
 
+# If we're in test mode, change the hostname of the installer vm
+if [ $# -eq 1 -a "$1" == "test" ]; then
+	echo -e "${lBlue}Test mode, change the installer host name to ${yellow}vinstall${uId}${NC}"
+	ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem vinstall@$ipAddr \
+		sudo hostnamectl set-hostname vinstall${uId}
+	ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem vinstall@$ipAddr \
+		sudo service networking restart
+fi
+
 # Install python which is required for ansible
 echo -e "${lBlue}Installing python${NC}"
 ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem vinstall@$ipAddr sudo apt-get update 
@@ -177,10 +207,10 @@ echo 'DOCKER_OPTS="$DOCKER_OPTS --insecure-registry '$ipAddr':5000 -H tcp://0.0.
 
 # Add the voltha vm's information to the ansible tree
 echo -e "${lBlue}Add the voltha vm and key to the ansible accessible hosts${NC}"
-vIpAddr=`virsh domifaddr voltha_voltha | tail -n +3 | awk '{ print $4 }' | sed -e 's~/.*~~'`
+vIpAddr=`virsh domifaddr voltha_voltha${uId} | tail -n +3 | awk '{ print $4 }' | sed -e 's~/.*~~'`
 echo "[voltha]" > ansible/hosts/voltha
 echo $vIpAddr >> ansible/hosts/voltha
-echo "ansible_ssh_private_key_file: $wd/../.vagrant/machines/voltha/libvirt/private_key" > ansible/host_vars/$vIpAddr
+echo "ansible_ssh_private_key_file: $wd/../.vagrant/machines/voltha${uId}/libvirt/private_key" > ansible/host_vars/$vIpAddr
 
 
 # Prepare to launch the ansible playbook to configure the installer VM

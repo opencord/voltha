@@ -15,6 +15,7 @@ Vagrant.configure(2) do |config|
       d.ssh.forward_agent = true
       d.vm.box = settings["box_source"]
       d.vm.hostname = "#{settings['server_name']}#{i}"
+      d.vm.provision :shell, inline: "apt-get -y install python"
       d.vm.provider "libvirt" do |v|
         v.memory = 6144
       end

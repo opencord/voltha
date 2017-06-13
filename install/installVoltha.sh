@@ -43,4 +43,4 @@ echo -e "${lBlue}Extracting the content of the installer archive ${lCyan}$instal
 tar xjf $installerArchive
 echo -e "${lBlue}Starting the installer{NC}"
 chmod u+x BootstrapInstaller.sh
-./BootstrapInstaller.sh
+./BootstrapInstaller.sh "$@"
