@@ -36,6 +36,24 @@
     },
     {
       "key": {
+        "uuid": "9a0e1d27_e3c3dd36",
+        "filename": "voltha/adapters/asfvolt16_olt/protos/bal_indications.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 163,
+      "author": {
+        "id": 1000103
+      },
+      "writtenOn": "2017-06-13T05:00:31Z",
+      "side": 1,
+      "message": "keyStr is an additional info that is present with the particular object. eg: for interface object its the intf_id, for flow object its the flow_id and flow direction. It doesnt have a fixed structure for all objects, hence keyStr is used in BAL.",
+      "parentUuid": "9a0e1d27_833c2195",
+      "revId": "e06e35d3adee9821e16d536436dab62cd77dd947",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a0e1d27_23caf54f",
         "filename": "voltha/adapters/asfvolt16_olt/protos/bal_indications.proto",
         "patchSetId": 1
