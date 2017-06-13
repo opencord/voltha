@@ -46,7 +46,7 @@ message BalAlarmInfo{
     uint32  NoOfAlarmsPresent = 1;  //number of alarms present in the BAL system currently
     BalOnuAlarmInfo onuAlarmInfo = 2; //ONU alarm info
     BalOltAlarmInfo oltAlarmInfo = 3; //OLT alarm info
-}	
+}   
 
 //NNI statistics
 message BalNniStatsInfo{
@@ -146,7 +146,7 @@ enum BalIndStatsType{
     BAL_IND_PON_STATS     = 1;
     BAL_IND_PON_GEM_STATS = 2;
     BAL_IND_ONU_STATS     = 3;
-}	
+}   
 
 message BalIndStatsInfo{
     uint32                device_id = 1; //pon interface number of the corresponding OLT
@@ -165,7 +165,7 @@ message BalIndications{
           bytes        pktData = 4; //raw packet in case of object type is PACKET
           BalAlarmInfo balAlarmInfo = 5; //alarm info from BAL
           BalIndStatsInfo balStatsInfo = 6; //statistics info from BAL
-    }	
+    }   
 }
  
 message BalErr {
