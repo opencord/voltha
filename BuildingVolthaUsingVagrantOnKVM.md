@@ -36,6 +36,7 @@ vagrant@voltha$ sudo mkdir /root/.ssh
 Add a vagrant file to /etc/sudoers.d/vagrant with the following:
 ```
 vagrant@voltha$ echo "vagrant ALL=(ALL) NOPASSWD:ALL" > tmp.sudo
+vagrant@voltha$ sudo chown root.root tmp.sudo
 vagrant@voltha$ sudo mv tmp.sudo /etc/sudoers.d/vagrant
 ```
 

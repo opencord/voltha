@@ -16,69 +16,32 @@ Start with an installation of Ubuntu16.04LTS on a bare metal server that is capa
   ```
   
   voltha> wget http://releases.ubuntu.com/xenial/ubuntu-16.04.2-server-amd64.iso
-  voltha> echo "virt-install -n Ubuntu16.04 -r 1024 --vcpus=2 --disk size=50 -c ubuntu-16.04.2-server-amd64.iso --accelerate --network network=default,model=virtio --connect=qemu:///system --vnc --noautoconsole -v" > Ubuntu16.04Vm
+  voltha> echo "virt-install -n Ubuntu1604LTS -r 1024 --vcpus=2 --disk size=50 -c ubuntu-16.04.2-server-amd64.iso --accelerate --network network=default,model=virtio --connect=qemu:///system --vnc --noautoconsole -v" > Ubuntu16.04Vm
   voltha> . Ubuntu16.04Vm
   voltha> virt-manager
 ```
 Once the virt manager opens, open the console of the Ubuntu16.04 VM and follow the installation process.
-When promprompted use the hostname ``voltha``. Also when prompted you should create one user ``Vagrant Vagrant`` and use the offered up userid of ``vagrant``. When prompted for the password of the vagrant user, use ``vagrant``. When asked if a weak password should be used, select yes. Don't encrypt the home directory. Select the OpenSSH server when prompted for packages to install.
+When promprompted use the hostname ``vinstall``. Also when prompted you should create one user ``vinstall vinstall`` and use the offered up userid of ``vinstall``. When prompted for the password of the vagrant user, use ``vinstall``. When asked if a weak password should be used, select yes. Don't encrypt the home directory. Select the OpenSSH server when prompted for packages to install.
 Once the installation is complete, run the VM and log in as vagrant password vagrant and install the default vagrant key (this can be done one of two ways, through virt-manager and the console or by uing ssh from the hypervisor host, the virt-manager method is shown below):
 ```
-vagrant@voltha$ mkdir -p /home/vagrant/.ssh
-vagrant@voltha$ chmod 0700 /home/vagrant/.ssh
-vagrant@voltha$ wget --no-check-certificate \
-    https://raw.github.com/mitchellh/vagrant/master/keys/vagrant.pub \
-    -O /home/vagrant/.ssh/authorized_keys
-vagrant@voltha$ chmod 0600 /home/vagrant/.ssh/authorized_keys
-vagrant@voltha$ chown -R vagrant /home/vagrant/.ssh
+vinstall@voltha$ mkdir -p /home/vinstall/.ssh
+vagrant@voltha$ chmod 0700 /home/vinstall/.ssh
+vagrant@voltha$ chown -R vagrant.vagrant /home/vagrant/.ssh
 ```
 Also create a .ssh directory for the root user:
 ```
 vagrant@voltha$ sudo mkdir /root/.ssh
 ```
-Add a vagrant file to /etc/sudoers.d/vagrant with the following:
+Add a vinstall file to /etc/sudoers.d/vinstall with the following:
 ```
-vagrant@voltha$ echo "vagrant ALL=(ALL) NOPASSWD:ALL" > tmp.sudo
-vagrant@voltha$ sudo mv tmp.sudo /etc/sudoers.d/vagrant
+vagrant@voltha$ echo "vinstall ALL=(ALL) NOPASSWD:ALL" > tmp.sudo
+vagrant@voltha$ sudo chown root.root tmp.sudo
+vagrant@voltha$ sudo mv tmp.sudo /etc/sudoers.d/vinstall
 ```
+Shut down the VM.
 
-### Install and configure vagrant
-Vagrant comes with the Ubuntu 16.04 but it doesn't work with kvm. Downloading and installing the version from hashicorp solves the problem.
 ```
-voltha> wget https://releases.hashicorp.com/vagrant/1.9.5/vagrant_1.9.3_x86_64.deb
-voltha> sudo dpkg -i vagrant_1.9.3_x86_64.deb
-voltha> vagrant plugin install vagrant-cachier
-voltha> sudo apt-get install libvirt-dev
-voltha> vagrant plugin install vagrant-libvirt
-```
-### Create the default vagrant box
-
-When doing this, be careful that you're not in a directory where a Vagrantfile already exists or you'll trash it. It is recommended that a temporary directory is created to perform these actions and then removed once the new box has been added to vagrant.
-```
-voltha> cp /var/lib/libvirt/images/Ubuntu16.04.qcow2 box.img
-voltha> echo '{
-"provider"     : "libvirt",
-"format"       : "qcow2",
-"virtual_size" : 50
-}' > metadata.json
-voltha> cat <<HERE > Vagrantfile
-Vagrant.configure("2") do |config|
-     config.vm.provider :libvirt do |libvirt|
-     libvirt.driver = "kvm"
-     libvirt.host = 'localhost'
-     libvirt.uri = 'qemu:///system'
-     end
-config.vm.define "new" do |custombox|
-     custombox.vm.box = "custombox"       
-     custombox.vm.provider :libvirt do |test|
-     test.memory = 1024
-     test.cpus = 1
-     end
-     end
-end
-HERE
-voltha> tar czvf ubuntu1604.box ./metadata.json ./Vagrantfile ./box.img
-voltha> vagrant box add ubuntu1604.box
+vinstall@voltha$ sudo telinit 0
 ```
 ###Download the voltha tree
 The voltha tree contains the Vagrant files required to build a multitude of VMs required to both run, test, and also to deploy voltha. The easiest approach is to download the entire tree rather than trying to extract the specific ``Vagrantfile(s)`` required.
@@ -92,6 +55,8 @@ voltha>  repo sync
 ```
 
 ### Run vagrant to Create a Voltha VM
+***Note:*** If you haven't done so, please follow the steps provided in the document `BulindingVolthaOnVagrantUsingKVM.md` to create the base voltha VM box for vagrant.
+
 First create the voltah VM using vagrant.
 ```
 voltha> vagrant up
@@ -145,7 +110,9 @@ This will take a while and when it completes a directory name ``volthaInstaller`
 
 ## Installing Voltha
 
-To install voltha access to a bare metal server running Ubuntu Server 16.04LTS with QEMU/KVM virtualization and OpenSSH installed is required. If the server meets these basic requirements then insert the removable media, mount it, and copy all the files on the media to a directory on the server. Change into that directory and type ``./installVoltha.sh`` which should produce the following output:
+To install voltha access to a bare metal server running Ubuntu Server 16.04LTS with QEMU/KVM virtualization and OpenSSH installed is required. If the server meets these basic requirements then insert the removable media, mount it, and copy all the files on the media to a directory on the server. Change into that directory and type ``./installVoltha.sh`` which should produce the output shown after the *Note*:
+
+***Note:*** If you are a tester and are installing to 3 vagrant VMs on the same server as the installer is running and haven't used test mode, please add the network name that your 3 VMs are using to the the `installVoltha.sh` command. In other words your command should be `./installVoltha.sh <network-name>`. The network name for a vagrant VM is typically `vagrant-libvirt` under QEMU/KVM. If in doubt type `virsh net-list` and verify this. If a network is not provided then the `default` network is used and the target machines should be reachable directly from the installer.
 ```
 Checking for the installer archive installer.tar.bz2
 Checking for the installer archive parts installer.part*
@@ -202,5 +169,6 @@ Next uncomment the iUser line and change the userid that will be used to log int
 Make sure that all the hosts that are being installed to have Ubuntu server 16.04LTS installed with OpenSSH. Also make sure that they're all reachable by attempting an ssh login to each with the user id provided on the iUser line.
 
 Once `install.cfg` file has been updated and reachability has been confirmed, start the installation with the command `./installer.sh`.
+
 
 Once launched, the installer will prompt for the password 3 times for each of the hosts the installation is being performed on. Once these have been provided, the installer will proceed without prompting for anything else. 
