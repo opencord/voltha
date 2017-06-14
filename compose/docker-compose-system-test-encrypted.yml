@@ -31,7 +31,7 @@ services:
   #
   consul:
     image: voltha/consul
-    command: agent -server -bootstrap -client 0.0.0.0 -ui 
+    command: agent -server -bootstrap -client 0.0.0.0 -ui
     ports:
     - "8300:8300"
     - "8400:8400"
@@ -51,7 +51,7 @@ services:
       "-ip=${DOCKER_HOST_IP}",
       "-retry-attempts", "100",
       # "-internal",
-      "consul://consul-tls:8501"
+      "consul-tls://consul:8501"
     ]
     links:
     - consul
@@ -59,8 +59,8 @@ services:
     - "/var/run/docker.sock:/tmp/docker.sock"
     environment:
       CONSUL_CACERT: "/reg/config/voltha-CA-template.pem"
-      CONSUL_TLSCERT: "/reg/config/voltha-cert-template.crt"
-      CONSUL_TLSKEY: "/reg/config/voltha-pvt-template.key"
+      CONSUL_CLIENT_CERT: "/reg/config/voltha-cert-template.crt"
+      CONSUL_CLIENT_KEY: "/reg/config/voltha-pvt-template.key"
 
   #
   # Fluentd log server
@@ -285,7 +285,7 @@ services:
     - portainer
     restart: unless-stopped
     volumes:
-    - "/cord/incubator/voltha/nginx_config:/nginx_config"
+    - "/home/cord/cord/incubator/voltha/nginx_config:/nginx_config"
 
   #
   # Docker ui

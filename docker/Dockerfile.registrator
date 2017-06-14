@@ -15,8 +15,10 @@
 # limitations under the License.
 #
 
-FROM gliderlabs/registrator
+FROM gliderlabs/registrator:master
 
+#FROM registrator:dev
+#ENTRYPOINT ["/bin/registrator"]
 # Create Registrator Config Directory
 RUN mkdir -p /reg/config 
 COPY reg_config /reg/config

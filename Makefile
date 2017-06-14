@@ -56,7 +56,6 @@ help:
 	@echo "grafana      : Build the grafana docker container"
 	@echo "nginx        : Build the nginx docker container"
 	@echo "consul       : Build the consul docker container"
-	@echo "registrator  : Build the registrator docker container"
 	@echo
 
 ## New directories can be added here
@@ -174,7 +173,7 @@ distclean: clean
 fetch:
 	docker pull consul:latest
 	docker pull fluent/fluentd:latest
-	docker pull gliderlabs/registrator:latest
+	docker pull gliderlabs/registrator:master
 	docker pull ubuntu:xenial
 	docker pull wurstmeister/kafka:latest
 	docker pull wurstmeister/zookeeper:latest
