@@ -80,6 +80,9 @@ class Asfvolt16Adapter(object):
     def adopt_device(self, device):
         raise NotImplementedError()
 
+    def reconcile_device(self, device):
+        raise NotImplementedError()
+
     def abandon_device(self, device):
         raise NotImplementedError()
 
