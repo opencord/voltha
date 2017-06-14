@@ -20,6 +20,12 @@ rm -f ansible/host_vars/*
 # Source the configuration information
 . install.cfg
 
+if [ -z "$hosts" ]; then
+	echo -e "${red}No hosts specifed!!${NC}"
+	echo -e "${red}Did you forget to update the config file ${yellow}installer.cfg${red}?${NC}"
+	exit
+fi
+
 # Create the key directory
 mkdir .keys
 
@@ -102,12 +108,45 @@ done
 
 # Make sure the ssh keys propagate to all hosts allowing passwordless logins between them
 echo -e "${lBlue}Propagating ssh keys${NC}"
-cp -r .keys ansible/roles/cluster-host/files/.keys
+cp -r .keys ansible/roles/cluster-host/files
 
 # Running ansible
 echo -e "${lBlue}Running ansible${NC}"
 cp ansible/ansible.cfg .ansible.cfg
 sudo ansible-playbook ansible/voltha.yml -i ansible/hosts/cluster
+
+# Now all 3 servers need to be rebooted because of software installs.
+# Reboot them and wait patiently until they all come back.
+# Note this destroys the registry tunnel wich is no longer needed.
+hList=""
+for i in $hosts
+do
+	echo -e "${lBlue}Rebooting cluster hosts${NC}"
+	ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i .keys/$i  voltha@$i sudo telinit 6
+	hList="$i $hList"
+done
+
+# Give the hosts time to shut down so that pings stop working or the
+# script just falls through the next loop and the rest fails.
+echo -e "${lBlue}Waiting for shutdown${NC}"
+sleep 5
+
+
+while [ ! -z "$hList" ];
+do
+	# Attempt to ping the VMs on the list one by one.
+	echo -e "${lBlue}Waiting for hosts to reboot ${yellow}$hList${NC}"
+	for i in $hList
+	do
+		ping -q -c 1 $i > /dev/null 2>&1
+		ret=$?
+		if [ $ret -eq 0 ]; then
+			ipExpr=`echo $i | sed -e "s/\./[.]/g"`
+			hList=`echo $hList | sed -e "s/$ipExpr//" | sed -e "s/^ //" | sed -e "s/ $//"`
+		fi
+	done
+	
+done
 
 # Now initialize the the docker swarm cluster with managers.
 # The first server needs to be the primary swarm manager
