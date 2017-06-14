@@ -84,6 +84,34 @@ HERE
 voltha> tar czvf ubuntu1604.box ./metadata.json ./Vagrantfile ./box.img
 voltha> vagrant box add --name ubuntu1604 ubuntu1604.box
 ```
+***Important Note:*** Because of a known issue with Ubuntu 16.04 LTS, it is likely the VM booted by vagrant may be assigned a different interface name (ens5 instead of ens3 for example). If this happens, vagrant will hang waiting for an IP address. The following workaround needs to be applied.
+
+#### Woraround if your vagrant VM hangs
+
+From virt-manager open the console and log into the running vagrant box and do the following. Remember the userid is `vagrant` and the password is vagrant `vagrant`. First check the name that the interface was assigned:
+```
+vagrant@voltha$ ifconfig -a
+```
+There should be 2 interfaces ensX and lo. Make note of what X is for the ensX interface, log out, and close the console window.
+
+Now using virt manager again, boot up Ubuntu16.04 and open the console window for it. Remember the userid is `vagrant` and the password is `vagrant`. Use your favorite editor (vi in this case)
+```
+vagrant@voltha$ sudo vi /etc/network/interfaces
+```
+In there you should see references to ensY which doesn't correspond to the ensX you saw earlier. Find and replace all instances of ensY with ensX then shutdown the VM.
+```
+vagrant@voltha$ telinit 0
+```
+
+Now go back to where you were running vagrant up and hit ctrl-c to kill vagrant and shutdown the VM it can't coonect to.
+
+Issue the following vagrant command to blow away the defective box.
+```
+vagrant box remove Ubuntu1604
+```
+
+Now go back to create the default vagrant box and repeat those steps and the problem will no longer occur.
+
 ##Download the voltha tree
 The voltha tree contains the Vagrant files required to build a multitude of VMs required to both run, test, and also to deploy voltha. The easiest approach is to download the entire tree rather than trying to extract the specific ``Vagrantfile(s)`` required.
 
