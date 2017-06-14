@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a0e1d27_36cfd1b2",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_olt.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 32,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-14T13:48:50Z",
+      "side": 1,
+      "message": "It\u0027s good to clearly specify the params, e.g. name\u003d\u0027asfvolt16_olt\u0027, version\u003d\u00270.1., etc",
+      "revId": "b9ade125cf2de847f9e172ddbe4228877066b6c7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_f6c0397e",
+        "filename": "voltha/adapters/ponsim_olt/ponsim_olt.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 184,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-14T13:48:50Z",
+      "side": 1,
+      "message": "For now, if you want to update ponsim to use the abstract class then update both ponsim_olt and ponsim_onu.  Also, you will need to run the  integration tests on them before the code can be merged.   The integration tests can be found under tests/itests/voltha.",
+      "revId": "b9ade125cf2de847f9e172ddbe4228877066b6c7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
