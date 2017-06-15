@@ -22,6 +22,30 @@
       "revId": "a260f5b2b90d8a07463e2e7d196557ff7a2eee26",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_f9926a9e",
+        "filename": "docker/Dockerfile.registrator",
+        "patchSetId": 1
+      },
+      "lineNbr": 21,
+      "author": {
+        "id": 1000113
+      },
+      "writtenOn": "2017-06-15T14:30:35Z",
+      "side": 1,
+      "message": "Yes, I will. I left them in there because I don\u0027t know when the fixes will be available in gliderlabs/registrator:master.  In case we\u0027ve to build from Source, then we need these 2 directives.",
+      "parentUuid": "9a0e1d27_b95e3211",
+      "range": {
+        "startLine": 20,
+        "startChar": 0,
+        "endLine": 21,
+        "endChar": 32
+      },
+      "revId": "a260f5b2b90d8a07463e2e7d196557ff7a2eee26",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
