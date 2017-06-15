@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "9a0e1d27_b9e3d232",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_olt.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 32,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-06-15T18:10:47Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "9a0e1d27_f9ab8ad4",
+      "revId": "5a9e9b4129ce178000b3fdb89d919b1895f03b1a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a0e1d27_b9b51233",
         "filename": "voltha/adapters/iadapter.py",
         "patchSetId": 7
@@ -30,6 +48,24 @@
       "writtenOn": "2017-06-15T13:10:07Z",
       "side": 1,
       "message": "accepts_bulk_flow_update should default to True since bulk flow updates are all that is currently supported in voltha. The device_agent will not send the adapter flow or group table updates if this capability is not enabled. All adapters other than asfvolt16_olt currently set this to True. This should be set True for asfvolt16_olt as well.",
+      "revId": "5a9e9b4129ce178000b3fdb89d919b1895f03b1a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_99d00e55",
+        "filename": "voltha/adapters/iadapter.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 44,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-06-15T18:10:47Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "9a0e1d27_b9b51233",
       "revId": "5a9e9b4129ce178000b3fdb89d919b1895f03b1a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
