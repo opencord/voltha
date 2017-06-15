@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a0e1d27_b95e3211",
+        "filename": "docker/Dockerfile.registrator",
+        "patchSetId": 1
+      },
+      "lineNbr": 21,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-06-15T11:31:28Z",
+      "side": 1,
+      "message": "Please remove this commented out code in a future commit.",
+      "range": {
+        "startLine": 20,
+        "startChar": 0,
+        "endLine": 21,
+        "endChar": 32
+      },
+      "revId": "a260f5b2b90d8a07463e2e7d196557ff7a2eee26",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
