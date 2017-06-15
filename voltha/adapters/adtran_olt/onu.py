@@ -24,6 +24,7 @@ log = structlog.get_logger()
 
 _VSSN_TO_VENDOR = {
     'adtn': 'adtran_onu',
+    'adtr': 'adtran_onu',
     'bcm?': 'broadcom_onu',  # TODO: Get actual VSSN for this vendor
     'dp??': 'dpoe_onu',  # TODO: Get actual VSSN for this vendor
     'pmc?': 'pmcs_onu',  # TODO: Get actual VSSN for this vendor
@@ -75,6 +76,7 @@ class Onu(object):
                            'enable': enabled})
         uri = AdtranOltHandler.GPON_PON_ONU_CONFIG_URI.format(pon_id)
         name = 'onu-create-{}-{}-{}: {}'.format(pon_id, self.onu_id, self.serial_number, enabled)
+
         return self.parent.parent.rest_client.request('POST', uri, data=data, name=name)
 
     def set_config(self, leaf, value):
