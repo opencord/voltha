@@ -146,8 +146,8 @@ class OltState(object):
             mobility protecting state.
                 onu-bit-octects:
                   type binary { length "4 .. 1024"; }
-                  description  each bit position indicates corresponding ONU's status 
-                               (true or false) whether that ONU's is in 
+                  description  each bit position indicates corresponding ONU's status
+                               (true or false) whether that ONU's is in
                                wavelength mobility protecting state or not
                                For 128 ONTs per PON, the size of this
                                array will be 16. onu-bit-octects[0] and MSB bit in that byte
@@ -164,7 +164,7 @@ class OltState(object):
         def discovered_onu(self):
             """
             Immutable Set of each Optical Network Unit(ONU) that has been activated via discovery
-                key/value: serial-number (string)               
+                key/value: serial-number (string)
             """
             return frozenset([sn['serial-number'] for sn in self._packet.get('discovered-onu', [])
                               if 'serial-number' in sn])

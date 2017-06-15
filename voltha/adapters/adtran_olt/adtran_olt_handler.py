@@ -22,14 +22,11 @@ from twisted.internet.defer import returnValue, inlineCallbacks
 
 from adtran_device_handler import AdtranDeviceHandler
 from codec.olt_state import OltState
+from flow.flow_entry import FlowEntry
 from net.adtran_zmq import AdtranZmqClient
 from voltha.extensions.omci.omci import *
-from voltha.protos.common_pb2 import OperStatus, AdminState
+from voltha.protos.common_pb2 import AdminState
 from voltha.protos.device_pb2 import Device
-from voltha.protos.openflow_13_pb2 import OFPPF_100GB_FD, OFPPF_FIBER, OFPPS_LIVE
-
-
-# from ncclient import manager
 
 
 class AdtranOltHandler(AdtranDeviceHandler):
@@ -85,7 +82,48 @@ class AdtranOltHandler(AdtranDeviceHandler):
         AdtranDeviceHandler.__del__(self)
 
     def __str__(self):
-        return "AdtranOltHandler: {}:{}".format(self.ip_address, self.rest_port)
+        return "AdtranOltHandler: {}".format(self.ip_address)
+
+    @inlineCallbacks
+    def get_device_info(self, device):
+        """
+        Perform an initial network operation to discover the device hardware
+        and software version. Serial Number would be helpful as well.
+
+        Upon successfully retrieving the information, remember to call the
+        'start_heartbeat' method to keep in contact with the device being managed
+
+        :param device: A voltha.Device object, with possible device-type
+                specific extensions. Such extensions shall be described as part of
+                the device type specification returned by device_types().
+        """
+        from codec.physical_entities_state import PhysicalEntitiesState
+
+        device = {}
+
+        if self.is_virtual_olt:
+            returnValue(device)
+
+        pe_state = PhysicalEntitiesState(self.netconf_client)
+        self.startup = pe_state.get_state()
+        results = yield self.startup
+
+        modules = pe_state.get_physical_entities('adtn-phys-mod:module')
+        if isinstance(modules, list):
+            module = modules[0]
+            name = str(module['model-name']).translate(None, '?')
+            model = str(module['model-number']).translate(None, '?')
+
+            device['model'] = '{} - {}'.format(name, model) if len(name) > 0 else \
+                module['parent-entity']
+            device['hardware_version'] = str(module['hardware-revision']).translate(None, '?')
+            device['serial_number'] = str(module['serial-number']).translate(None, '?')
+            device['vendor'] = 'Adtran, Inc.'
+            software = module['software']['software']
+            device['firmware_version'] = str(software['startup-revision']).translate(None, '?')
+            device['software_version'] = str(software['running-revision']).translate(None, '?')
+
+        returnValue(device)
 
     @inlineCallbacks
     def enumerate_northbound_ports(self, device):
@@ -96,40 +134,24 @@ class AdtranOltHandler(AdtranDeviceHandler):
                 specific extensions.
         :return: (Deferred or None).
         """
-        # TODO: For now, hard code some JSON. Eventually will be XML from NETConf
+        try:
+            from codec.ietf_interfaces import IetfInterfacesState
+            from nni_port import MockNniPort
 
-        ports = [
-            {'port_no': 1,
-             'admin_state': AdminState.ENABLED,
-             'oper_status': OperStatus.ACTIVE,
-             'ofp_state': OFPPS_LIVE,
-             'ofp_capabilities': OFPPF_100GB_FD | OFPPF_FIBER,
-             'current_speed': OFPPF_100GB_FD,
-             'max_speed': OFPPF_100GB_FD},
-            {'port_no': 2,
-             'admin_state': AdminState.ENABLED,
-             'oper_status': OperStatus.ACTIVE,
-             'ofp_state': OFPPS_LIVE,
-             'ofp_capabilities': OFPPF_100GB_FD | OFPPF_FIBER,
-             'current_speed': OFPPF_100GB_FD,
-             'max_speed': OFPPF_100GB_FD},
-            {'port_no': 3,
-             'admin_state': AdminState.ENABLED,
-             'oper_status': OperStatus.ACTIVE,
-             'ofp_state': OFPPS_LIVE,
-             'ofp_capabilities': OFPPF_100GB_FD | OFPPF_FIBER,
-             'current_speed': OFPPF_100GB_FD,
-             'max_speed': OFPPF_100GB_FD},
-            {'port_no': 4,
-             'admin_state': AdminState.ENABLED,
-             'oper_status': OperStatus.ACTIVE,
-             'ofp_state': OFPPS_LIVE,
-             'ofp_capabilities': OFPPF_100GB_FD | OFPPF_FIBER,
-             'current_speed': OFPPF_100GB_FD,
-             'max_speed': OFPPF_100GB_FD}
-        ]
+            if self.is_virtual_olt:
+                results = MockNniPort.get_nni_port_state_results()
+            else:
+                ietf_interfaces = IetfInterfacesState(self.netconf_client)
+                self.startup = ietf_interfaces.get_state()
+                results = yield self.startup
 
-        yield returnValue(ports)
+            ports = ietf_interfaces.get_nni_port_entries(results)
+
+            yield returnValue(ports)
+
+        except Exception as e:
+            log.exception('enumerate_northbound_ports', e=e)
+            raise
 
     def process_northbound_ports(self, device, results):
         """
@@ -141,14 +163,15 @@ class AdtranOltHandler(AdtranDeviceHandler):
                 you implemented. The type and contents are up to you to
         :return: (Deferred or None).
         """
-        from nni_port import NniPort
+        from nni_port import NniPort, MockNniPort
 
         for port in results:
             port_no = port['port_no']
             self.log.info('Processing northbound port {}/{}'.format(port_no, port['port_no']))
             assert port_no
             assert port_no not in self.northbound_ports
-            self.northbound_ports[port_no] = NniPort(self, **port)
+            self.northbound_ports[port_no] = NniPort(self, **port) if not self.is_virtual_olt \
+                else MockNniPort(self, **port)
 
         self.num_northbound_ports = len(self.northbound_ports)
 
@@ -182,11 +205,9 @@ class AdtranOltHandler(AdtranDeviceHandler):
         from pon_port import PonPort
 
         for pon in results:
-
             # Number PON Ports after the NNI ports
             pon_id = pon['pon-id']
             log.info('Processing pon port {}'.format(pon_id))
-
             assert pon_id not in self.southbound_ports
 
             admin_state = AdminState.ENABLED if pon.get('enabled',
@@ -198,13 +219,12 @@ class AdtranOltHandler(AdtranDeviceHandler):
                                                     admin_state=admin_state)
 
             # TODO: For now, limit number of PON ports to make debugging easier
-
             if len(self.southbound_ports) >= self.max_ports:
                 break
 
         self.num_southbound_ports = len(self.southbound_ports)
 
-    def complete_device_specific_activation(self, device, results):
+    def complete_device_specific_activation(self, device, reconciling):
         """
         Perform an initial network operation to discover the device hardware
         and software version. Serial Number would be helpful as well.
@@ -215,9 +235,8 @@ class AdtranOltHandler(AdtranDeviceHandler):
                 specific extensions. Such extensions shall be described as part of
                 the device type specification returned by device_types().
 
-        :param results: (dict) original adtran-hello RESTCONF results body
+        :param reconciling: (boolean) True if taking over for another VOLTHA
         """
-        #
         # For the pizzabox OLT, periodically query the OLT state of all PONs. This
         # is simpler then having each PON port do its own poll.  From this, we can:
         #
@@ -228,15 +247,53 @@ class AdtranOltHandler(AdtranDeviceHandler):
         # o TODO Update some PON level statistics
 
         self.zmq_client = AdtranZmqClient(self.ip_address, self.rx_packet)
-        # self.nc_client = manager.connect(host='',  # self.ip_address,
-        #                                  username=self.rest_username,
-        #                                  password=self.rest_password,
-        #                                  hostkey_verify=False,
-        #                                  allow_agent=False,
-        #                                  look_for_keys=False)
-
         self.status_poll = reactor.callLater(1, self.poll_for_status)
         return None
+
+    def disable(self):
+        c, self.zmq_client = self.zmq_client, None
+        if c is not None:
+            c.shutdown()
+
+        d, self.status_poll = self.status_poll, None
+        if d is not None:
+            d.cancel()
+
+        super(AdtranOltHandler, self).disable()
+
+    def reenable(self):
+        super(AdtranOltHandler, self).reenable()
+
+        self.zmq_client = AdtranZmqClient(self.ip_address, self.rx_packet)
+        self.status_poll = reactor.callLater(1, self.poll_for_status)
+
+    def reboot(self):
+        c, self.zmq_client = self.zmq_client, None
+        if c is not None:
+            c.shutdown()
+
+        d, self.status_poll = self.status_poll, None
+        if d is not None:
+            d.cancel()
+
+        super(AdtranOltHandler, self).reboot()
+
+    def _finish_reboot(self, timeout, previous_oper_status, previous_conn_status):
+        super(AdtranOltHandler, self)._finish_reboot(timeout, previous_oper_status, previous_conn_status)
+
+        self.zmq_client = AdtranZmqClient(self.ip_address, self.rx_packet)
+        self.status_poll = reactor.callLater(1, self.poll_for_status)
+
+    def delete(self):
+        c, self.zmq_client = self.zmq_client, None
+        if c is not None:
+            c.shutdown()
+
+        d, self.status_poll = self.status_poll, None
+        if d is not None:
+            d.cancel()
+
+        super(AdtranOltHandler, self).delete()
 
     def rx_packet(self, message):
         try:
@@ -314,7 +371,18 @@ class AdtranOltHandler(AdtranDeviceHandler):
     @inlineCallbacks
     def update_flow_table(self, flows, device):
         self.log.info('bulk-flow-update', device_id=device.id, flows=flows)
-        raise NotImplementedError('TODO: Not yet implemented')
+
+        for flow in flows:
+            # TODO: Do we get duplicates here (ie all flows re-pushed on each individual flow add?)
+
+            flow_entry = FlowEntry.create(flow, self)
+
+            if flow_entry is not None:
+                flow_entry.install()
+
+                if flow_entry.name not in self.flow_entries:
+                    # TODO: Do we get duplicates here (ie all flows re-pushed on each individual flow add?)
+                    self.flow_entries[flow_entry.name] = flow_entry
 
     @inlineCallbacks
     def send_proxied_message(self, proxy_address, msg):

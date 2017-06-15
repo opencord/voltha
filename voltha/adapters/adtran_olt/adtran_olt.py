@@ -68,7 +68,6 @@ class AdtranOltAdapter(object):
 
         :return: (None or Deferred)
         """
-        log.debug('starting', interface=self.interface)
         log.info('started', interface=self.interface)
 
     def stop(self):
@@ -78,7 +77,6 @@ class AdtranOltAdapter(object):
 
         :return: (None or Deferred)
         """
-        log.debug('stopping', interface=self.interface)
         log.info('stopped', interface=self.interface)
 
     def adapter_descriptor(self):
@@ -140,16 +138,21 @@ class AdtranOltAdapter(object):
         reactor.callLater(0, self.devices_handlers[device.id].activate, device)
         return device
 
-
     def reconcile_device(self, device):
         """
-        TODO:  Is invoked whenever a Voltha instance is started using data 
-        from a failed instance. 
-        :param device: 
-        :return: 
-        """
-        raise NotImplementedError()
+        Make sure the adapter looks after given device. Called when this device has
+        changed ownership from another Voltha instance to this one (typically, this
+        occurs when the previous voltha instance went down).
 
+        :param device: A voltha.Device object, with possible device-type specific
+                       extensions. Such extensions shall be described as part of
+                       the device type specification returned by device_types().
+        :return: (Deferred) Shall be fired to acknowledge device ownership.
+        """
+        log.info('reconcile-device', device=device)
+        self.devices_handlers[device.id] = AdtranOltHandler(self, device.id)
+        reactor.callLater(0, self.devices_handlers[device.id].activate, device, reconciling=True)
+        return device
 
     def abandon_device(self, device):
         """
@@ -160,12 +163,13 @@ class AdtranOltAdapter(object):
         :return: (Deferred) Shall be fired to acknowledge abandonment.
         """
         log.info('abandon-device', device=device)
-        handler = self.devices_handlers.pop(device.id)
-
-        if handler is not None:
-            reactor.callLater(0, handler.deactivate, device)
-
-        return device
+        raise NotImplementedError()
+        # handler = self.devices_handlers.pop(device.id)
+        #
+        # if handler is not None:
+        #     reactor.callLater(0, handler.deactivate, device)
+        #
+        # return device
 
     def disable_device(self, device):
         """
@@ -176,7 +180,8 @@ class AdtranOltAdapter(object):
         :return: (Deferred) Shall be fired to acknowledge disabling the device.
         """
         log.debug('disable_device', device=device)
-        raise NotImplementedError()
+        reactor.callLater(0, self.devices_handlers[device.id].disable)
+        return device
 
     def reenable_device(self, device):
         """
@@ -187,7 +192,8 @@ class AdtranOltAdapter(object):
         :return: (Deferred) Shall be fired to acknowledge re-enabling the device.
         """
         log.debug('reenable_device', device=device)
-        raise NotImplementedError()
+        reactor.callLater(0, self.devices_handlers[device.id].reenable)
+        return device
 
     def reboot_device(self, device):
         """
@@ -198,7 +204,8 @@ class AdtranOltAdapter(object):
         :return: (Deferred) Shall be fired to acknowledge the reboot.
         """
         log.info('reboot_device', device=device)
-        raise NotImplementedError()
+        reactor.callLater(0, self.devices_handlers[device.id].reboot)
+        return device
 
     def self_test_device(self, device):
         """
@@ -218,7 +225,8 @@ class AdtranOltAdapter(object):
         :return: (Deferred) Shall be fired to acknowledge the deletion.
         """
         log.info('delete_device', device=device)
-        raise NotImplementedError()
+        reactor.callLater(0, self.devices_handlers[device.id].delete)
+        return device
 
     def get_device_details(self, device):
         """
@@ -245,7 +253,7 @@ class AdtranOltAdapter(object):
         log.info('bulk-flow-update', device_id=device.id, flows=flows,
                  groups=groups)
         assert len(groups.items) == 0, "Cannot yet deal with groups"
-        raise NotImplementedError()
+
         handler = self.devices_handlers[device.id]
         return handler.update_flow_table(flows.items, device)
 

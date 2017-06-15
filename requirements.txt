@@ -47,6 +47,8 @@ nosexcover==1.0.11
 zmq>=0.0.0
 pyzmq>=16.0.2
 txZMQ==0.8.0
+ncclient==0.5.3
+xmltodict==0.11.0
 dicttoxml
 
 # python-consul>=0.6.1  we need the pre-released version for now, because 0.6.1 does not

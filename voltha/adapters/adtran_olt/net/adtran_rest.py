@@ -23,6 +23,13 @@ from twisted.internet.error import ConnectionClosed
 log = structlog.get_logger()
 
 
+class RestInvalidResponseCode(Exception):
+    def __init__(self, message, url, code):
+        super(RestInvalidResponseCode, self).__init__(message)
+        self.url = url
+        self.code = code
+
+
 class AdtranRestClient(object):
     """
     Performs Adtran RESTCONF requests
@@ -70,14 +77,17 @@ class AdtranRestClient(object):
         :param password: (string) Password for credentials
         :param timeout: (int) Number of seconds to wait for a response before timing out
         """
-        self.ip = host_ip
-        self.rest_port = port
-        self.username = username
-        self.password = password
-        self.timeout = timeout
+        self._ip = host_ip
+        self._port = port
+        self._username = username
+        self._password = password
+        self._timeout = timeout
+
+    def __str__(self):
+        return "AdtranRestClient {}@{}:{}".format(self._username, self._ip, self._port)
 
     @inlineCallbacks
-    def request(self, method, uri, data=None, name=''):
+    def request(self, method, uri, data=None, name='', timeout=None):
         """
         Send a REST request to the Adtran device
 
@@ -91,31 +101,34 @@ class AdtranRestClient(object):
         if method.upper() not in self._valid_methods:
             raise NotImplementedError("REST method '{}' is not supported".format(method))
 
-        url = 'http://{}:{}{}{}'.format(self.ip, self.rest_port,
+        url = 'http://{}:{}{}{}'.format(self._ip, self._port,
                                         '/' if uri[0] != '/' else '',
                                         uri)
+        response = None
+        timeout = timeout or self._timeout
+
         try:
             if method.upper() == 'GET':
                 response = yield treq.get(url,
-                                          auth=(self.username, self.password),
-                                          timeout=self.timeout,
+                                          auth=(self._username, self._password),
+                                          timeout=timeout,
                                           headers=self.REST_GET_REQUEST_HEADER)
             elif method.upper() == 'POST' or method.upper() == 'PUT':
                 response = yield treq.post(url,
                                            data=data,
-                                           auth=(self.username, self.password),
-                                           timeout=self.timeout,
+                                           auth=(self._username, self._password),
+                                           timeout=timeout,
                                            headers=self.REST_POST_REQUEST_HEADER)
             elif method.upper() == 'PATCH':
                 response = yield treq.patch(url,
                                             data=data,
-                                            auth=(self.username, self.password),
-                                            timeout=self.timeout,
+                                            auth=(self._username, self._password),
+                                            timeout=timeout,
                                             headers=self.REST_PATCH_REQUEST_HEADER)
             elif method.upper() == 'DELETE':
                 response = yield treq.delete(url,
-                                             auth=(self.username, self.password),
-                                             timeout=self.timeout,
+                                             auth=(self._username, self._password),
+                                             timeout=timeout,
                                              headers=self.REST_DELETE_REQUEST_HEADER)
             else:
                 raise NotImplementedError("REST method '{}' is not supported".format(method))
@@ -126,7 +139,7 @@ class AdtranRestClient(object):
         except ConnectionClosed:
             returnValue(None)
 
-        except Exception, e:
+        except Exception as e:
             log.exception("REST {} '{}' request to '{}' failed: {}".format(method, name, url, str(e)))
             raise
 
@@ -134,7 +147,7 @@ class AdtranRestClient(object):
             message = "REST {} '{}' request to '{}' failed with status code {}".format(method, name,
                                                                                        url, response.code)
             log.error(message)
-            raise Exception(message)
+            raise RestInvalidResponseCode(message, url, response.code)
 
         if response.code == self.HTTP_NO_CONTENT:
             returnValue(None)
@@ -154,7 +167,7 @@ class AdtranRestClient(object):
             try:
                 result = json.loads(content)
 
-            except Exception, e:
+            except Exception as e:
                 log.exception("REST {} '{}' JSON decode of '{}' failure: {}".format(method, name,
                                                                                     url, str(e)))
                 raise

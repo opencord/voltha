@@ -32,8 +32,8 @@ _OLT_TASK_ZEROMQ_OMCI_TCP_PORT = 25656
 class AdtranZmqClient(object):
     """
     Adtran ZeroMQ Client for PON Agent packet in/out service
-    
-    PON Agent expects and external PAIR socket with 
+
+    PON Agent expects and external PAIR socket with
     """
 
     def __init__(self, ip_address, rx_callback=None,
@@ -53,6 +53,10 @@ class AdtranZmqClient(object):
         except Exception as e:
             log.exception(e.message)
 
+    def shutdown(self):
+        self.socket.onReceive = AdtranZmqClient.rx_nop
+        self.socket.shutdown()
+
     @staticmethod
     def rx_nop(message):
         log.debug('Discarding ZMQ message, no receiver specified')
@@ -61,11 +65,11 @@ class AdtranZmqClient(object):
     def encode_omci_message(msg, pon_index, onu_id):
         """
         Create an OMCI Tx Packet for the specified ONU
-        
-        :param msg: (str) OMCI message to send 
+
+        :param msg: (str) OMCI message to send
         :param pon_index: (unsigned int) PON Port index
         :param onu_id: (unsigned int) ONU ID
-        
+
         :return: (bytes) octet string to send
         """
         assert msg
@@ -79,8 +83,8 @@ class AdtranZmqClient(object):
     def decode_packet(packet):
         """
         Decode the packet provided by the ZMQ client
-        
-        :param packet: (bytes) Packet 
+
+        :param packet: (bytes) Packet
         :return: (long, long, bytes, boolean) PON Index, ONU ID, Frame Contents (OMCI or Ethernet),\
                                               and a flag indicating if it is OMCI
         """
@@ -96,8 +100,8 @@ class AdtranZmqClient(object):
     def _decode_omci_message(packet):
         """
         Decode the packet provided by the ZMQ client
-        
-        :param packet: (bytes) Packet 
+
+        :param packet: (bytes) Packet
         :return: (long, long, bytes) PON Index, ONU ID, OMCI Frame Contents
         """
         (pon_index, onu_id) = struct.unpack_from('!II', packet)
