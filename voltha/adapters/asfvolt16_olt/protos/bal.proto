@@ -47,6 +47,19 @@ message BalInit {
     string core_mgmt_ip_port = 2;       // IP:port of the core management queue
 }
 
+message BalKey {
+    BalObj hdr = 1;     // Transport header
+    oneof obj {
+        BalAccessTerminalKey access_term_key = 2;
+        BalFlowKey flow_key = 3;
+        BalGroupKey group_key = 4;
+        BalInterfaceKey interface_key = 5;
+        BalSubscriberTerminalKey terminal_key = 6;
+        BalTmQueueKey tm_queue_key = 7;
+        BalTmSchedKey tm_sched_key = 8;
+    }
+}
+
 service Bal {
     /**
      * Initialize the BAL Public API internal data structures
@@ -63,4 +76,5 @@ service Bal {
      * of dynamic objects) associated with the specified access-terminal device.
      **/
     rpc BalCfgSet(BalCfg) returns(BalErr) {}
+    rpc BalCfgClear(BalKey) returns(BalErr) {}
 }
