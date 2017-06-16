@@ -20,8 +20,8 @@ from google.protobuf.empty_pb2 import Empty
 from grpc import StatusCode
 
 from common.utils.grpc_utils import twisted_async
+from common.utils.id_generation import create_cluster_device_id
 from voltha.core.config.config_root import ConfigRoot
-from voltha.core.config.config_backend import ConsulStore
 from voltha.protos.openflow_13_pb2 import PacketIn, Flows, FlowGroups, \
     ofp_port_status
 from voltha.protos.voltha_pb2 import \
@@ -279,7 +279,8 @@ class LocalHandler(VolthaLocalServiceServicer):
             return Device()
 
         # fill additional data
-        device.id = uuid4().hex[:12]
+        device.id = create_cluster_device_id(self.core_store_id)
+        log.debug('device-id-created', device_id=device.id)
         device_type = known_device_types[device.type]
         device.adapter = device_type.adapter
         if device.admin_state != AdminState.PREPROVISIONED:
