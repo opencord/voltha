@@ -32,6 +32,7 @@ from voltha.adapters.interface import IAdapterInterface
 from voltha.core.adapter_agent import AdapterAgent
 from voltha.protos import third_party
 from voltha.registry import IComponent
+from voltha.adapters.iadapter import IAdapter
 
 log = structlog.get_logger()
 
@@ -85,6 +86,7 @@ class AdapterLoader(object):
                     for attr_name in dir(module):
                         cls = getattr(module, attr_name)
                         if isinstance(cls, type) and \
+                                cls is not IAdapter and \
                                 IAdapterInterface.implementedBy(cls):
                             verifyClass(IAdapterInterface, cls)
                             yield adapter_name, cls
