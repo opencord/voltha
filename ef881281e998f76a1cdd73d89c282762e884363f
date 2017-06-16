@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a0e1d27_d9768606",
+        "filename": "voltha/adapters/loader.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 92,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-16T20:32:15Z",
+      "side": 1,
+      "message": "What will be returned if the cls is IAdapter? None?",
+      "revId": "ef881281e998f76a1cdd73d89c282762e884363f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
