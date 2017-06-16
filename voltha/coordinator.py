@@ -29,6 +29,7 @@ from leader import Leader
 from common.utils.asleep import asleep
 from voltha.registry import IComponent
 from worker import Worker
+from simplejson import dumps, loads
 
 log = get_logger()
 
@@ -224,10 +225,17 @@ class Coordinator(object):
         yield self._retry(self._do_create_membership_record)
         reactor.callLater(0, self._maintain_membership_record)
 
+    def _create_membership_record_data(self):
+        member_record = dict()
+        member_record['status'] = 'alive'
+        member_record['host_address'] = self.external_host_address
+        return member_record
+
     @inlineCallbacks
     def _do_create_membership_record(self):
         result = yield self.consul.kv.put(
-            self.membership_record_key, 'alive',
+            self.membership_record_key,
+            dumps(self._create_membership_record_data()),
             acquire=self.session_id)
         if not result:
             raise StaleMembershipEntryException(self.instance_id)
@@ -242,7 +250,9 @@ class Coordinator(object):
                                                     index=index)
                 log.debug('membership-record-change-detected',
                                index=index, record=record)
-                if record is None or record['Session'] != self.session_id:
+                if record is None or \
+                    'Session' not in record or \
+                    record['Session'] != self.session_id:
                     log.debug('remaking-membership-record')
                     yield self._retry(self._do_create_membership_record)
 

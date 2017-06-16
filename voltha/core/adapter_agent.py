@@ -28,6 +28,7 @@ from zope.interface import implementer
 
 from common.event_bus import EventBusClient
 from common.frameio.frameio import hexify
+from common.utils.id_generation import create_cluster_logical_device_ids
 from voltha.adapters.interface import IAdapterAgent
 from voltha.protos import third_party
 from voltha.core.flow_decomposer import OUTPUT
@@ -375,10 +376,12 @@ class AdapterAgent(object):
         logical_devices = self.root_proxy.get('/logical_devices')
         existing_ids = set(ld.id for ld in logical_devices)
         existing_datapath_ids = set(ld.datapath_id for ld in logical_devices)
+        core_id = registry('core').core_store_id
         i = 1
         while True:
-            if i not in existing_datapath_ids and str(i) not in existing_ids:
-                return i
+            ld_id, dp_id = create_cluster_logical_device_ids(core_id, i)
+            if dp_id not in existing_datapath_ids and ld_id not in existing_ids:
+                return ld_id, dp_id
             i += 1
 
     def get_logical_device(self, logical_device_id):
@@ -393,9 +396,9 @@ class AdapterAgent(object):
         assert isinstance(logical_device, LogicalDevice)
 
         if not logical_device.id:
-            id = self._find_first_available_id()
-            logical_device.id = str(id)
-            logical_device.datapath_id = id
+            ld_id, dp_id = self._find_first_available_id()
+            logical_device.id = ld_id
+            logical_device.datapath_id = dp_id
 
         self._make_up_to_date('/logical_devices',
                               logical_device.id, logical_device)
