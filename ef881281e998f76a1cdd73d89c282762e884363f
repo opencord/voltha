@@ -16,6 +16,24 @@
       "revId": "ef881281e998f76a1cdd73d89c282762e884363f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_19dbdeee",
+        "filename": "voltha/adapters/loader.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 92,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-06-16T20:54:44Z",
+      "side": 1,
+      "message": "To explain what is happening, try the following:\n$ python\nPython 2.7.12 (default, Nov 19 2016, 06:48:10) \n[GCC 5.4.0 20160609] on linux2\nType \"help\", \"copyright\", \"credits\" or \"license\" for more information.\n\u003e\u003e\u003e import voltha.adapters.ponsim_olt.ponsim_olt\n\u003e\u003e\u003e dir(voltha.adapters.ponsim_olt.ponsim_olt)\n[\u0027AdapterAlarms\u0027, \u0027AdapterPmMetrics\u0027, \u0027AdminState\u0027, \u0027BpfProgramFilter\u0027, \u0027ConnectStatus\u0027, \u0027Device\u0027, \u0027Dot1Q\u0027, \u0027Empty\u0027, \u0027Ether\u0027, \u0027FlowTable\u0027, \u0027IAdapter\u0027, \u0027KpiEvent\u0027, \u0027KpiEventType\u0027, \u0027LogicalDevice\u0027, \u0027LogicalPort\u0027, \u0027LoopingCall\u0027, \u0027MetricValuePairs\u0027, \u0027OFPC_FLOW_STATS\u0027, \u0027OFPC_GROUP_STATS\u0027, \u0027OFPC_PORT_STATS\u0027, \u0027OFPC_TABLE_STATS\u0027, \u0027OFPPF_1GB_FD\u0027, \u0027OFPPF_FIBER\u0027, \u0027OFPPS_LIVE\u0027, \u0027OperStatus\u0027, \u0027PACKET_IN_VLAN\u0027, \u0027PmConfig\u0027, \u0027PmConfigs\u0027, \u0027PonSimOltAdapter\u0027, \u0027PonSimOltHandler\u0027, \u0027Port\u0027, \u0027Raw\u0027, \u0027_\u0027, \u0027__builtins__\u0027, \u0027__doc__\u0027, \u0027__file__\u0027, \u0027__name__\u0027, \u0027__package__\u0027, \u0027arrow\u0027, \u0027asleep\u0027, \u0027grpc\u0027, \u0027hexify\u0027, \u0027inlineCallbacks\u0027, \u0027is_inband_frame\u0027, \u0027json\u0027, \u0027log\u0027, \u0027mac_str_to_tuple\u0027, \u0027ofp_desc\u0027, \u0027ofp_port\u0027, \u0027ofp_switch_features\u0027, \u0027ponsim_pb2\u0027, \u0027reactor\u0027, \u0027registry\u0027, \u0027structlog\u0027, \u0027third_party\u0027, \u0027uuid4\u0027]\n\u003e\u003e\u003e \nNotice that the dir() function return all attributes of the adapter module being loaded. Observe that \"IAdapter\" is also an attribute returned. When the __find_adapter() function iterates over all the attributes, the \"IAdapter\" happens to satisfy the conditions being checked:\n                    for attr_name in dir(module):\n                        cls \u003d getattr(module, attr_name)\n                        if isinstance(cls, type) and \\\n                                cls is not IAdapter and \\\n                                IAdapterInterface.implementedBy(cls):\n                            verifyClass(IAdapterInterface, cls)\n                            yield adapter_name, cls\nThe fix just skips over the IAdaper attribute in the for() loop.",
+      "parentUuid": "9a0e1d27_d9768606",
+      "revId": "ef881281e998f76a1cdd73d89c282762e884363f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
