@@ -41,6 +41,6 @@ fi
 # Extract the installer files and bootstrap the installer
 echo -e "${lBlue}Extracting the content of the installer archive ${lCyan}$installerArchive${NC}"
 tar xjf $installerArchive
-echo -e "${lBlue}Starting the installer{NC}"
+echo -e "${lBlue}Starting the installer${NC}"
 chmod u+x BootstrapInstaller.sh
 ./BootstrapInstaller.sh "$@"

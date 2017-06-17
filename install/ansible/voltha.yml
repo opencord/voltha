@@ -9,4 +9,10 @@
     - docker
     - docker-compose
     - voltha
-#    - java
+- hosts: swarm-master
+  remote_user: voltha
+  serial: 1
+  vars:
+    target: startup
+  roles:
+    - voltha

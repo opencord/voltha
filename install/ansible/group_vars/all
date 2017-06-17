@@ -35,3 +35,4 @@ voltha_containers:
   - kamon/grafana_graphite
   - gliderlabs/registrator
   - centurylink/ca-certs
+  - zookeeper

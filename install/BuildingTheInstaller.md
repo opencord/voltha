@@ -6,12 +6,21 @@
 ***
 ## Set up the Dependencies
 ### Bare Metal Setup
-**Note:** *If you've already prepared the bare metal machine and have the voltha tree downloaded from haing followed the document ``Building a vOLT-HA Virtual Machine  Using Vagrant on QEMU/KVM`` then skip to [Running the Installer](#Building-the-installer).
+The bare metal machine MUST have ubuntu server 16.04 LTS installed with the following packages (and only the following packages) selected during installation:
+```
+[*] standard system utilities
+[*] Virtual Machine host
+[*] OpenSSH server
+```
+This will ensure that the user you've defined during the installation can run the virsh shell as a standard user rather than as the root user. This is necessary to ensure the installer software operates as designed. Please ensure that ubuntu **server** is installed and ***NOT*** ubuntu desktop.
+![Ubuntu Installer Graphic](file:///C:Users/sslobodr/Documents/Works In Progress/2017/voltha/UbuntuInstallLaptop.png)
+**Note:** *If you've already prepared the bare metal machine and have the voltha tree downloaded from haing followed the document ``Building a vOLT-HA Virtual Machine  Using Vagrant on QEMU/KVM`` then skip to [Building the Installer](#Building-the-installer).
 
-Start with an installation of Ubuntu16.04LTS on a bare metal server that is capable of virtualization. How to determine this is beyond the scope of this document. When installing the image ensure that both "OpenSSH server" and "Virtualization Machine Host" are chosen in addition to the default "standard system utilities". Once the installation is complete, login to the box and type ``virsh list``. If this doesnt work then you'll need to troubleshoot the installation. If it works, then proceed to the next section.
+Start with a clean installation of Ubuntu16.04 LTS on a bare metal server that is capable of virtualization selecting the packages outlined above. How to determine this is beyond the scope of this document. Once the installation is complete, login to the box and type ``virsh list``. If this doesnt work then you'll need to troubleshoot the installation. If it works, then proceed to the next section. Please note use exactly `virsh list` ***NOT*** `sudo virsh list`. If  you must use the `sudo`command then the installation was not performed properly and should be repeated. If you're familiar with the KVM environment there are steps to solve this and other issues but this is also beyond the scope of this document.
 
 ###Create the base ubuntu/xenial box
-  Though there are some flavors of ubuntu boxes available but they usually have additional features installed or missing so it's best to just create the image from the ubuntu installation iso image.
+  Though there are some flavors of ubuntu boxes available but they usually have additional features installed. It is essential for the installer to start from a base install of ubuntu with absolutely no other software installed. To ensure the base image for the installer is a clean ubuntu server install and nothing but a clean ubuntu server install it is best to just create the image from the ubuntu installation iso image.
+The primary reason for this requirement is for the installer to determine all the packages that were installed. The only way to guarantee that this list will be correct is to start from a well known image.
   
   ```
   

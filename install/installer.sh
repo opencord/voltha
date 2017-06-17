@@ -100,6 +100,10 @@ HERE
 done
 # Add the dependent software list to the cluster variables
 echo -e "${lBlue}Setting up dependent software${NC}"
+# Delete any grub updates since the boot disk is almost
+# guaranteed not to be the same device as the installer.
+mkdir grub_updates
+sudo mv deb_files/*grub* grub_updates
 echo "deb_files:" >> ansible/group_vars/all
 for i in deb_files/*.deb
 do
@@ -167,6 +171,7 @@ do
                 echo  $i >> ansible/hosts/swarm-master-backup
         fi
 done
-sudo ansible-playbook ansible/swarm-master.yml -i ansible/hosts/swarm-master
-sudo ansible-playbook ansible/swarm-master-backup.yml -i ansible/hosts/swarm-master-backup
+sudo ansible-playbook ansible/swarm.yml -i ansible/hosts/swarm-master
+sudo ansible-playbook ansible/swarm.yml -i ansible/hosts/swarm-master-backup
+sudo ansible-playbook ansible/voltha.yml -i ansible/hosts/swarm-master
 
