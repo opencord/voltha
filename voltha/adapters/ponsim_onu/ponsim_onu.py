@@ -39,12 +39,15 @@ log = structlog.get_logger()
 
 class PonSimOnuAdapter(OnuAdapter):
     def __init__(self, adapter_agent, config):
+        #DeviceType of ONU should be same as VENDOR ID of ONU Serial Number as specified by standard
+        #requires for identifying correct adapter or ranged ONU
         super(PonSimOnuAdapter, self).__init__(adapter_agent=adapter_agent,
                                                config=config,
                                                device_handler_class = PonSimOnuHandler,
                                                name='ponsim_onu',
                                                vendor='Voltha project',
-                                               version='0.4')
+                                               version='0.4',
+                                               device_type='PSMO')
 
 class PonSimOnuHandler(object):
     def __init__(self, adapter, device_id):

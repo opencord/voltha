@@ -537,6 +537,18 @@ class TibitOnuAdapter(object):
                   proxy_address=proxy_address, msg=msg.show(dump=True))
         self.incoming_messages.put(msg)
 
+    def create_interface(self, device, data):
+        raise NotImplementedError()
+
+    def update_interface(self, device, data):
+        raise NotImplementedError()
+
+    def remove_interface(self, device, data):
+        raise NotImplementedError()
+
+    def receive_onu_detect_state(self, device_id, state):
+        raise NotImplementedError()
+
     @inlineCallbacks
     def _message_exchange(self, device):
 

@@ -471,3 +471,19 @@ class PonSim(object):
         if not isinstance(frame, Packet):
             frame = Ether(frame)
         self.devices[port].ingress(2, frame)
+
+class XPonSim(object):
+    def __init__(self):
+        self.log = structlog.get_logger()
+
+    def CreateInterface(self, request):
+        self.log.info("create-interface-request", interface_type = request.WhichOneof("interface_type"), data = request)
+        return
+
+    def UpdateInterface(self, request):
+        self.log.info("update-interface-request", interface_type = request.WhichOneof("interface_type"), data = request)
+        return
+
+    def RemoveInterface(self, request):
+        self.log.info("remove-interface-request", interface_type = request.WhichOneof("interface_type"), data = request)
+        return

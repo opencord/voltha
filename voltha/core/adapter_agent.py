@@ -41,7 +41,6 @@ from voltha.protos.voltha_pb2 import DeviceGroup, LogicalDevice, \
 from voltha.registry import registry
 from common.utils.id_generation import create_cluster_device_id
 
-
 @implementer(IAdapterAgent)
 class AdapterAgent(object):
     """
@@ -66,6 +65,7 @@ class AdapterAgent(object):
         self.event_bus = EventBusClient()
         self.packet_out_subscription = None
         self.log = structlog.get_logger(adapter_name=adapter_name)
+        self._onu_detect_event_subscriptions = {}
 
     @inlineCallbacks
     def start(self):
@@ -194,6 +194,15 @@ class AdapterAgent(object):
     # def update_pm_collection(self, device, pm_collection_config):
     #    return self.adapter.update_pm_collection(device, pm_collection_config)
 
+    def create_interface (self, device, data):
+        return self.adapter.create_interface (device, data)
+
+    def update_interface (self, device, data):
+        return self.adapter.update_interface (device, data)
+
+    def remove_interface(self, device, data):
+        return self.adapter.remove_interface(device, data)
+
 
     # ~~~~~~~~~~~~~~~~~~~ Adapter-Facing Service ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -211,10 +220,11 @@ class AdapterAgent(object):
         :return: Child Device Object or None
         """
         # Get all arguments to be used for comparison
-        # Note that for now we are only matching on the ONU ID
+        # Note that for now we are only matching on the ONU ID & SERIAL NUMBER
         # Other matching fields can be added as required in the future
         onu_id = kwargs.pop('onu_id', None)
-        if onu_id is None: return None
+        serial_number = kwargs.pop('serial_number', None)
+        if onu_id is None and serial_number is None: return None
 
         # Get all devices
         devices = self.root_proxy.get('/devices')
@@ -228,8 +238,22 @@ class AdapterAgent(object):
             device = self.get_device(child_id)
 
             # Does this child device match the passed in ONU ID?
-            if device.proxy_address.onu_id != onu_id:
-                found = False
+            found_onu_id = False
+            if onu_id is not None:
+                if device.proxy_address.onu_id == onu_id:
+                    found_onu_id = True
+
+            # Does this child device match the passed in SERIAL NUMBER?
+            found_serial_number = False
+            if serial_number is not None:
+                if device.serial_number == serial_number:
+                    found_serial_number = True
+            # Match ONU ID and SERIAL NUMBER
+            if onu_id is not None and serial_number is not None:
+                found = found_onu_id & found_serial_number
+            # Otherwise ONU ID or SERIAL NUMBER
+            else:
+                found = found_onu_id | found_serial_number
 
             # Return the matched child device
             if found is True:
@@ -509,17 +533,17 @@ class AdapterAgent(object):
                               parent_port_no,
                               child_device_type,
                               proxy_address,
+                              admin_state,
                               **kw):
         # we create new ONU device objects and insert them into the config
-        # TODO should we auto-enable the freshly created device? Probably.
         device = Device(
             id=create_cluster_device_id(self.core.core_store_id),
             # id=uuid4().hex[:12],
             type=child_device_type,
             parent_id=parent_device_id,
             parent_port_no=parent_port_no,
-            admin_state=AdminState.ENABLED,
             proxy_address=proxy_address,
+            admin_state=admin_state,
             **kw
         )
         self._make_up_to_date(
@@ -580,6 +604,13 @@ class AdapterAgent(object):
                 device.admin_state = admin_state
             self._make_up_to_date(
                 '/devices', device.id, device)
+
+    def delete_child_device(self, parent_device_id, child_device_id):
+        onu_device = self.root_proxy.get('/devices/{}'.format(child_device_id))
+        if onu_device is not None:
+            if onu_device.parent_id == parent_device_id:
+                self.log.debug('deleting-child-device', parent_device_id=parent_device_id, child_device_id=child_device_id)
+                self._remove_node('/devices', child_device_id)
 
     def _gen_rx_proxy_address_topic(self, proxy_address):
         """Generate unique topic name specific to this proxy address for rx"""
@@ -723,3 +754,28 @@ class AdapterAgent(object):
         except Exception as e:
             self.log.exception('failed-alarm-submission',
                                type=type(alarm_event_msg))
+
+    # ~~~~~~~~~~~~~~~~~~~ Handle ONU detect ~~~~~~~~~~~~~~~~~~~~~
+
+    def _gen_onu_detect_proxy_address_topic(self, device_id):
+        """Generate unique topic name specific to this device id for onu detect"""
+        topic = str('onu_detect:{}'.format(device_id))
+        return topic
+
+    def register_for_onu_detect_state(self, device_id):
+        topic = self._gen_onu_detect_proxy_address_topic(device_id)
+        self._onu_detect_event_subscriptions[topic] = self.event_bus.subscribe(
+            topic,
+            lambda t, m: self._forward_onu_detect_state(device_id, m))
+
+    def unregister_for_onu_detect_state(self, device_id):
+        topic = self._gen_onu_detect_proxy_address_topic(device_id)
+        self.event_bus.unsubscribe(self._onu_detect_event_subscriptions[topic])
+        del self._onu_detect_event_subscriptions[topic]
+
+    def _forward_onu_detect_state(self, device_id, state):
+        self.adapter.receive_onu_detect_state(device_id, state)
+
+    def forward_onu_detect_state(self, device_id, state):
+        topic = self._gen_onu_detect_proxy_address_topic(device_id)
+        self.event_bus.publish(topic, state)

@@ -494,12 +494,23 @@ class MapleOltAdapter(object):
     def receive_inter_adapter_message(self, msg):
         pass
 
+    def create_interface(self, device, data):
+        raise NotImplementedError()
+
+    def update_interface(self, device, data):
+        raise NotImplementedError()
+
+    def remove_interface(self, device, data):
+        raise NotImplementedError()
+
+    def receive_onu_detect_state(self, device_id, state):
+        raise NotImplementedError()
+
     def suppress_alarm(self, filter):
         raise NotImplementedError()
 
     def unsuppress_alarm(self, filter):
         raise NotImplementedError()
-
 
 class MaplePBClientFactory(pb.PBClientFactory, ReconnectingClientFactory):
     channel = None
@@ -968,6 +979,7 @@ class MapleOltHandler(object):
                     onu_id=onu_id,
                     onu_session_id=tunnel_tag  # tunnel_tag/gem_port, alloc_id
                 ),
+                admin_state=AdminState.ENABLED,
                 vlan=tunnel_tag,
                 serial_number=_data['_vendor_specific']
             )

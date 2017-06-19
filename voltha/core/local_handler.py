@@ -32,6 +32,7 @@ from voltha.protos.voltha_pb2 import \
     AlarmFilter, AlarmFilters, SelfTestResponse
 from voltha.protos.device_pb2 import PmConfigs, Images
 from voltha.registry import registry
+from requests.api import request
 
 log = structlog.get_logger()
 
@@ -65,6 +66,8 @@ class LocalHandler(VolthaLocalServiceServicer):
                                        kv_store=config_backend)
         else:
             self.root = ConfigRoot(VolthaInstance(**self.init_kw))
+
+        self.core.xpon_handler.start(self.root)
 
         registry('grpc_server').register(
             add_VolthaLocalServiceServicer_to_server, self)
@@ -563,6 +566,120 @@ class LocalHandler(VolthaLocalServiceServicer):
                 'Device group \'{}\' not found'.format(request.id))
             context.set_code(StatusCode.NOT_FOUND)
             return DeviceGroup()
+
+    # bbf_fiber rpcs start
+    @twisted_async
+    def GetAllChannelgroupConfig(self, request, context):
+        return self.core.xpon_handler.get_all_channel_group_config(request, context)
+
+    @twisted_async
+    def CreateChannelgroup(self, request, context):
+        return self.core.xpon_handler.create_channel_group(request, context)
+
+    @twisted_async
+    def UpdateChannelgroup(self, request, context):
+        return self.core.xpon_handler.update_channel_group(request, context)
+
+    @twisted_async
+    def DeleteChannelgroup(self, request, context):
+        return self.core.xpon_handler.delete_channel_group(request, context)
+
+    @twisted_async
+    def GetAllChannelpartitionConfig(self, request, context):
+        return self.core.xpon_handler.get_all_channel_partition_config(request, context)
+
+    @twisted_async
+    def CreateChannelpartition(self, request, context):
+        return self.core.xpon_handler.create_channel_partition(request, context)
+
+    @twisted_async
+    def UpdateChannelpartition(self, request, context):
+        return self.core.xpon_handler.update_channel_partition(request, context)
+
+    @twisted_async
+    def DeleteChannelpartition(self, request, context):
+        return self.core.xpon_handler.delete_channel_partition(request, context)
+
+    @twisted_async
+    def GetAllChannelpairConfig(self, request, context):
+        return self.core.xpon_handler.get_all_channel_pair_config(request, context)
+
+    @twisted_async
+    def CreateChannelpair(self, request, context):
+        return self.core.xpon_handler.create_channel_pair(request, context)
+
+    @twisted_async
+    def UpdateChannelpair(self, request, context):
+        return self.core.xpon_handler.update_channel_pair(request, context)
+
+    @twisted_async
+    def DeleteChannelpair(self, request, context):
+        return self.core.xpon_handler.delete_channel_pair(request, context)
+
+    @twisted_async
+    def GetAllChannelterminationConfig(self, request, context):
+        return self.core.xpon_handler.get_all_channel_termination_config(request, context)
+
+    @twisted_async
+    def CreateChanneltermination(self, request, context):
+        return self.core.xpon_handler.create_channel_termination(request, context)
+
+    @twisted_async
+    def UpdateChanneltermination(self, request, context):
+        return self.core.xpon_handler.update_channel_termination(request, context)
+
+    @twisted_async
+    def DeleteChanneltermination(self, request, context):
+        return self.core.xpon_handler.delete_channel_termination(request, context)
+
+    @twisted_async
+    def GetAllOntaniConfig(self, request, context):
+        return self.core.xpon_handler.get_all_ont_ani_config(request, context)
+
+    @twisted_async
+    def CreateOntani(self, request, context):
+        return self.core.xpon_handler.create_ont_ani(request, context)
+
+    @twisted_async
+    def UpdateOntani(self, request, context):
+        return self.core.xpon_handler.update_ont_ani(request, context)
+
+    @twisted_async
+    def DeleteOntani(self, request, context):
+        return self.core.xpon_handler.delete_ont_ani(request, context)
+
+    @twisted_async
+    def GetAllVOntaniConfig(self, request, context):
+        return self.core.xpon_handler.get_all_v_ont_ani_config(request, context)
+
+    @twisted_async
+    def CreateVOntani(self, request, context):
+        return self.core.xpon_handler.create_v_ont_ani(request, context)
+
+    @twisted_async
+    def UpdateVOntani(self, request, context):
+        return self.core.xpon_handler.update_v_ont_ani(request, context)
+
+    @twisted_async
+    def DeleteVOntani(self, request, context):
+        return self.core.xpon_handler.delete_v_ont_ani(request, context)
+
+    @twisted_async
+    def GetAllVEnetConfig(self, request, context):
+        return self.core.xpon_handler.get_all_v_enet_config(request, context)
+
+    @twisted_async
+    def CreateVEnet(self, request, context):
+        return self.core.xpon_handler.create_v_enet(request, context)
+
+    @twisted_async
+    def UpdateVEnet(self, request, context):
+        return self.core.xpon_handler.update_v_enet(request, context)
+
+    @twisted_async
+    def DeleteVEnet(self, request, context):
+        return self.core.xpon_handler.delete_v_enet(request, context)
+    # bbf_fiber rpcs end
 
     def StreamPacketsOut(self, request_iterator, context):
 

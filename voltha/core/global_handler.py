@@ -502,6 +502,316 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             log.info('grpc-success-response', response=response)
             returnValue(response)
 
+    # bbf_fiber rpcs start
+    @twisted_async
+    def GetAllChannelgroupConfig(self, request, context):
+        log.warning('temp-limited-implementation')
+        # TODO dispatching to local instead of collecting all
+        return self.dispatcher.dispatch(
+            self.instance_id,
+            VolthaLocalServiceStub,
+            'GetAllChannelgroupConfig',
+            request,
+            context)
+
+    @twisted_async
+    def CreateChannelgroup(self, request, context):
+        log.warning('temp-limited-implementation')
+        # TODO dispatching to local instead of collecting all
+        return self.dispatcher.dispatch(
+            self.instance_id,
+            VolthaLocalServiceStub,
+            'CreateChannelgroup',
+            request,
+            context)
+
+    @twisted_async
+    def UpdateChannelgroup(self, request, context):
+        log.warning('temp-limited-implementation')
+        # TODO dispatching to local instead of collecting all
+        return self.dispatcher.dispatch(
+            self.instance_id,
+            VolthaLocalServiceStub,
+            'UpdateChannelgroup',
+            request,
+            context)
+
+    @twisted_async
+    def DeleteChannelgroup(self, request, context):
+        log.warning('temp-limited-implementation')
+        # TODO dispatching to local instead of collecting all
+        return self.dispatcher.dispatch(
+            self.instance_id,
+            VolthaLocalServiceStub,
+            'DeleteChannelgroup',
+            request,
+            context)
+
+    @twisted_async
+    def GetAllChannelpartitionConfig(self, request, context):
+        log.warning('temp-limited-implementation')
+        # TODO dispatching to local instead of collecting all
+        return self.dispatcher.dispatch(
+            self.instance_id,
+            VolthaLocalServiceStub,
+            'GetAllChannelpartitionConfig',
+            request,
+            context)
+
+    @twisted_async
+    def CreateChannelpartition(self, request, context):
+        log.warning('temp-limited-implementation')
+        # TODO dispatching to local instead of collecting all
+        return self.dispatcher.dispatch(
+            self.instance_id,
+            VolthaLocalServiceStub,
+            'CreateChannelpartition',
+            request,
+            context)
+
+    @twisted_async
+    def UpdateChannelpartition(self, request, context):
+        log.warning('temp-limited-implementation')
+        # TODO dispatching to local instead of collecting all
+        return self.dispatcher.dispatch(
+            self.instance_id,
+            VolthaLocalServiceStub,
+            'UpdateChannelpartition',
+            request,
+            context)
+
+    @twisted_async
+    def DeleteChannelpartition(self, request, context):
+        log.warning('temp-limited-implementation')
+        # TODO dispatching to local instead of collecting all
+        return self.dispatcher.dispatch(
+            self.instance_id,
+            VolthaLocalServiceStub,
+            'DeleteChannelpartition',
+            request,
+            context)
+
+    @twisted_async
+    def GetAllChannelpairConfig(self, request, context):
+        log.warning('temp-limited-implementation')
+        # TODO dispatching to local instead of collecting all
+        return self.dispatcher.dispatch(
+            self.instance_id,
+            VolthaLocalServiceStub,
+            'GetAllChannelpairConfig',
+            request,
+            context)
+
+    @twisted_async
+    def CreateChannelpair(self, request, context):
+        log.warning('temp-limited-implementation')
+        # TODO dispatching to local instead of collecting all
+        return self.dispatcher.dispatch(
+            self.instance_id,
+            VolthaLocalServiceStub,
+            'CreateChannelpair',
+            request,
+            context)
+
+    @twisted_async
+    def UpdateChannelpair(self, request, context):
+        log.warning('temp-limited-implementation')
+        # TODO dispatching to local instead of collecting all
+        return self.dispatcher.dispatch(
+            self.instance_id,
+            VolthaLocalServiceStub,
+            'UpdateChannelpair',
+            request,
+            context)
+
+    @twisted_async
+    def DeleteChannelpair(self, request, context):
+        log.warning('temp-limited-implementation')
+        # TODO dispatching to local instead of collecting all
+        return self.dispatcher.dispatch(
+            self.instance_id,
+            VolthaLocalServiceStub,
+            'DeleteChannelpair',
+            request,
+            context)
+
+    @twisted_async
+    def GetAllChannelterminationConfig(self, request, context):
+        log.warning('temp-limited-implementation')
+        # TODO dispatching to local instead of collecting all
+        return self.dispatcher.dispatch(
+            self.instance_id,
+            VolthaLocalServiceStub,
+            'GetAllChannelterminationConfig',
+            request,
+            context)
+
+    @twisted_async
+    def CreateChanneltermination(self, request, context):
+        log.warning('temp-limited-implementation')
+        # TODO dispatching to local instead of collecting all
+        return self.dispatcher.dispatch(
+            self.instance_id,
+            VolthaLocalServiceStub,
+            'CreateChanneltermination',
+            request,
+            context)
+
+    @twisted_async
+    def UpdateChanneltermination(self, request, context):
+        log.warning('temp-limited-implementation')
+        # TODO dispatching to local instead of collecting all
+        return self.dispatcher.dispatch(
+            self.instance_id,
+            VolthaLocalServiceStub,
+            'UpdateChanneltermination',
+            request,
+            context)
+
+    @twisted_async
+    def DeleteChanneltermination(self, request, context):
+        log.warning('temp-limited-implementation')
+        # TODO dispatching to local instead of collecting all
+        return self.dispatcher.dispatch(
+            self.instance_id,
+            VolthaLocalServiceStub,
+            'DeleteChanneltermination',
+            request,
+            context)
+
+    @twisted_async
+    def GetAllOntaniConfig(self, request, context):
+        log.warning('temp-limited-implementation')
+        # TODO dispatching to local instead of collecting all
+        return self.dispatcher.dispatch(
+            self.instance_id,
+            VolthaLocalServiceStub,
+            'GetAllOntaniConfig',
+            request,
+            context)
+
+    @twisted_async
+    def CreateOntani(self, request, context):
+        log.warning('temp-limited-implementation')
+        # TODO dispatching to local instead of collecting all
+        return self.dispatcher.dispatch(
+            self.instance_id,
+            VolthaLocalServiceStub,
+            'CreateOntani',
+            request,
+            context)
+
+    @twisted_async
+    def UpdateOntani(self, request, context):
+        log.warning('temp-limited-implementation')
+        # TODO dispatching to local instead of collecting all
+        return self.dispatcher.dispatch(
+            self.instance_id,
+            VolthaLocalServiceStub,
+            'UpdateOntani',
+            request,
+            context)
+
+    @twisted_async
+    def DeleteOntani(self, request, context):
+        log.warning('temp-limited-implementation')
+        # TODO dispatching to local instead of collecting all
+        return self.dispatcher.dispatch(
+            self.instance_id,
+            VolthaLocalServiceStub,
+            'DeleteOntani',
+            request,
+            context)
+
+    @twisted_async
+    def GetAllVOntaniConfig(self, request, context):
+        log.warning('temp-limited-implementation')
+        # TODO dispatching to local instead of collecting all
+        return self.dispatcher.dispatch(
+            self.instance_id,
+            VolthaLocalServiceStub,
+            'GetAllVOntaniConfig',
+            request,
+            context)
+
+    @twisted_async
+    def CreateVOntani(self, request, context):
+        log.warning('temp-limited-implementation')
+        # TODO dispatching to local instead of collecting all
+        return self.dispatcher.dispatch(
+            self.instance_id,
+            VolthaLocalServiceStub,
+            'CreateVOntani',
+            request,
+            context)
+
+    @twisted_async
+    def UpdateVOntani(self, request, context):
+        log.warning('temp-limited-implementation')
+        # TODO dispatching to local instead of collecting all
+        return self.dispatcher.dispatch(
+            self.instance_id,
+            VolthaLocalServiceStub,
+            'UpdateVOntani',
+            request,
+            context)
+
+    @twisted_async
+    def DeleteVOntani(self, request, context):
+        log.warning('temp-limited-implementation')
+        # TODO dispatching to local instead of collecting all
+        return self.dispatcher.dispatch(
+            self.instance_id,
+            VolthaLocalServiceStub,
+            'DeleteVOntani',
+            request,
+            context)
+
+    @twisted_async
+    def GetAllVEnetConfig(self, request, context):
+        log.warning('temp-limited-implementation')
+        # TODO dispatching to local instead of collecting all
+        return self.dispatcher.dispatch(
+            self.instance_id,
+            VolthaLocalServiceStub,
+            'GetAllVEnetConfig',
+            request,
+            context)
+
+    @twisted_async
+    def CreateVEnet(self, request, context):
+        log.warning('temp-limited-implementation')
+        # TODO dispatching to local instead of collecting all
+        return self.dispatcher.dispatch(
+            self.instance_id,
+            VolthaLocalServiceStub,
+            'CreateVEnet',
+            request,
+            context)
+
+    @twisted_async
+    def UpdateVEnet(self, request, context):
+        log.warning('temp-limited-implementation')
+        # TODO dispatching to local instead of collecting all
+        return self.dispatcher.dispatch(
+            self.instance_id,
+            VolthaLocalServiceStub,
+            'UpdateVEnet',
+            request,
+            context)
+
+    @twisted_async
+    def DeleteVEnet(self, request, context):
+        log.warning('temp-limited-implementation')
+        # TODO dispatching to local instead of collecting all
+        return self.dispatcher.dispatch(
+            self.instance_id,
+            VolthaLocalServiceStub,
+            'DeleteVEnet',
+            request,
+            context)
+    # bbf_fiber rpcs end
+
     @twisted_async
     @inlineCallbacks
     def CreateAlarmFilter(self, request, context):

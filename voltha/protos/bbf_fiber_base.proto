@@ -1,0 +1,111 @@
+syntax = "proto3";
+package bbf_fiber;
+
+import public "meta.proto";
+import "ietf_interfaces.proto";
+import "bbf_fiber_channelgroup_body.proto";
+import "bbf_fiber_channelpartition_body.proto";
+import "bbf_fiber_channelpair_body.proto";
+import "bbf_fiber_channeltermination_body.proto";
+import "bbf_fiber_ontani_body.proto";
+import "bbf_fiber_v_ontani_body.proto";
+import "bbf_fiber_v_enet_body.proto";
+
+message ChannelgroupConfig
+{
+	ietf_interfaces.Interface interface = 1;
+	ChannelgroupConfigData data = 2;
+	string name = 3;
+
+}
+
+message ChannelpartitionConfig
+{
+	ietf_interfaces.Interface interface = 1;
+	ChannelpartitionConfigData data = 2;
+	string name = 3;
+}
+
+message ChannelpairConfig
+{
+	ietf_interfaces.Interface interface = 1;
+	ChannelpairConfigData data = 2;
+	string name = 3;
+}
+message ChannelpairOper
+{
+	ietf_interfaces.Interface interface = 1;
+	ChannelpairOperData operdata = 2;
+	string name = 3;
+}
+
+message ChannelterminationConfig
+{
+	string id = 1; // To work around a chameleon POST bug
+	ietf_interfaces.Interface interface = 2;
+	ChannelterminationConfigData data = 3;
+	string name = 4;
+}
+message ChannelterminationOper
+{
+	ietf_interfaces.Interface interface = 1;
+	ChannelterminationOperData data = 2;
+	string name = 3;
+}
+
+
+message OntaniConfig
+{
+	ietf_interfaces.Interface interface = 1;
+	OntaniConfigData data = 2;
+	string name = 3;
+}
+message OntaniOper
+{
+	ietf_interfaces.Interface interface = 1;
+	OntaniOperData data = 2;
+	string name = 3;
+}
+
+message VOntaniConfig
+{
+	ietf_interfaces.Interface interface = 1;
+	VOntaniConfigData data = 2;
+	string name = 3;
+}
+
+message VEnetConfig
+{
+	ietf_interfaces.Interface interface = 1;
+	VEnetConfigData data = 2;
+	string name = 3;
+}
+
+message AllChannelgroupConfig
+{
+	repeated ChannelgroupConfig channelgroup_config = 1 [(voltha.child_node) = {key: "name"}];
+}
+message AllChannelpartitionConfig
+{
+	repeated ChannelpartitionConfig channelpartition_config = 1 [(voltha.child_node) = {key: "name"}];
+}
+message AllChannelpairConfig
+{
+	repeated ChannelpairConfig channelpair_config = 1 [(voltha.child_node) = {key: "name"}];
+}
+message AllChannelterminationConfig
+{
+	repeated ChannelterminationConfig channeltermination_config = 1 [(voltha.child_node) = {key: "name"}];
+}
+message AllOntaniConfig
+{
+	repeated OntaniConfig ontani_config = 1 [(voltha.child_node) = {key: "name"}];
+}
+message AllVOntaniConfig
+{
+	repeated VOntaniConfig v_ontani_config = 1 [(voltha.child_node) = {key: "name"}];
+}
+message AllVEnetConfig
+{
+	repeated VEnetConfig v_enet_config = 1 [(voltha.child_node) = {key: "name"}];
+}

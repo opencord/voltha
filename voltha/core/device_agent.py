@@ -23,7 +23,7 @@ from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, returnValue
 
 from voltha.core.config.config_proxy import CallbackType
-from voltha.protos.common_pb2 import AdminState, OperStatus
+from voltha.protos.common_pb2 import AdminState, OperStatus, ConnectStatus
 from voltha.registry import registry
 from voltha.protos.openflow_13_pb2 import Flows, FlowGroups
 
@@ -208,6 +208,9 @@ class DeviceAgent(object):
     def update_device(self, device):
         self.last_data = device  # so that we don't propagate back
         self.proxy.update('/', device)
+        if device.oper_status == OperStatus.ACTIVE and device.connect_status == ConnectStatus.REACHABLE:
+            self.log.info('replay-create-interfaces ', device=device.id)
+            self.core.xpon_agent.replay_interface(device.id)
 
     def update_device_pm_config(self, device_pm_config, init=False):
         self.callback_data = init# so that we don't push init data
@@ -333,4 +336,3 @@ class DeviceAgent(object):
 
         else:
             raise NotImplementedError()
-

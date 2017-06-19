@@ -34,14 +34,14 @@ log = structlog.get_logger()
 
 @implementer(IAdapterInterface)
 class IAdapter(object):
-    def __init__(self, adapter_agent, config, device_handler_class, name, vendor, version):
+    def __init__(self, adapter_agent, config, device_handler_class, name, vendor, version, device_type):
         log.debug('Initializing adapter: {} {} {}'.format(vendor, name, version))
         self.adapter_agent = adapter_agent
         self.config = config
         self.name = name
         self.supported_device_types = [
             DeviceType(
-                id=name,
+                id=device_type,
                 adapter=name,
                 accepts_bulk_flow_update=True
             )
@@ -147,17 +147,30 @@ class IAdapter(object):
     def unsuppress_alarm(self, filter):
         raise NotImplementedError()
 
+    def create_interface(self, device, data):
+        raise NotImplementedError()
+
+    def update_interface(self, device, data):
+        raise NotImplementedError()
+
+    def remove_interface(self, device, data):
+        raise NotImplementedError()
+
+    def receive_onu_detect_state(self, proxy_address, state):
+        raise NotImplementedError()
+
 """
 OLT Adapter base class
 """
 class OltAdapter(IAdapter):
-    def __init__(self, adapter_agent, config, device_handler_class, name, vendor, version):
+    def __init__(self, adapter_agent, config, device_handler_class, name, vendor, version, device_type):
         super(OltAdapter, self).__init__(adapter_agent,
                                          config,
                                          device_handler_class,
                                          name,
                                          vendor,
-                                         version)
+                                         version,
+                                         device_type)
         self.logical_device_id_to_root_device_id = dict()
 
     def reconcile_device(self, device):
@@ -198,13 +211,15 @@ class OltAdapter(IAdapter):
 ONU Adapter base class
 """
 class OnuAdapter(IAdapter):
-    def __init__(self, adapter_agent, config, device_handler_class, name, vendor, version):
+    def __init__(self, adapter_agent, config, device_handler_class, name, vendor, version, device_type):
         super(OnuAdapter, self).__init__(adapter_agent,
                                          config,
                                          device_handler_class,
                                          name,
                                          vendor,
-                                         version)
+                                         version,
+                                         device_type)
+
     def reconcile_device(self, device):
         self.devices_handlers[device.id] = self.device_handler_class(self, device.id)
         # Reconcile only if state was ENABLED

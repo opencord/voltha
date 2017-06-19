@@ -154,6 +154,18 @@ class PmcsOnu(object):
         log.info('packet-out', logical_device_id=logical_device_id,
                  egress_port_no=egress_port_no, msg_len=len(msg))
 
+    def create_interface(self, device, data):
+        raise NotImplementedError()
+
+    def update_interface(self, device, data):
+        raise NotImplementedError()
+
+    def remove_interface(self, device, data):
+        raise NotImplementedError()
+
+    def receive_onu_detect_state(self, device_id, state):
+        raise NotImplementedError()
+
     def receive_inter_adapter_message(self, msg):
         raise NotImplementedError()
 

@@ -31,6 +31,8 @@ from grpc_server import GrpcServer
 from ponsim import PonSim
 from realio import RealIo
 
+from ponsim import XPonSim
+
 defs = dict(
     config=os.environ.get('CONFIG', './ponsim.yml'),
     grpc_port=int(os.environ.get('GRPC_PORT', 50060)),
@@ -157,6 +159,7 @@ class Main(object):
         # components
         self.io = None
         self.ponsim = None
+        self.x_pon_sim = None
         self.grpc_server = None
 
         self.alarm_config = dict()
@@ -182,7 +185,9 @@ class Main(object):
             self.ponsim = PonSim(self.args.onus, self.io.egress, self.alarm_config)
             self.io.register_ponsim(self.ponsim)
 
-            self.grpc_server = GrpcServer(self.args.grpc_port, self.ponsim)
+            self.x_pon_sim = XPonSim()
+
+            self.grpc_server = GrpcServer(self.args.grpc_port, self.ponsim, self.x_pon_sim)
             yield self.grpc_server.start()
 
             self.log.info('started-internal-services')

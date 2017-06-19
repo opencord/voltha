@@ -29,6 +29,7 @@ from google.protobuf.empty_pb2 import Empty
 from simplejson import dumps
 
 from cli.device import DeviceCli
+from cli.xpon import XponCli
 from cli.alarm_filters import AlarmFiltersCli
 from cli.logical_device import LogicalDeviceCli
 from cli.table import print_pb_list_as_table
@@ -240,6 +241,15 @@ class VolthaCli(Cmd):
             completions = [d for d in self.logical_device_ids()
                            if d.startswith(text)]
         return completions
+
+    def do_xpon(self, line):
+        """xpon <optional> [device_ID] - Enter xpon level command mode"""
+        device_id = line.strip()
+        if not device_id:
+            sub = XponCli(self.get_channel, "")
+        else:
+            sub = XponCli(self.get_channel, device_id)
+        sub.cmdloop()
 
     def do_pdb(self, line):
         """Launch PDB debug prompt in CLI (for CLI development)"""

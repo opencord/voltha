@@ -133,5 +133,5 @@ class PersistedConfigRevision(ConfigRevision):
 def tmp_cls_loader(module_name, cls_name):
     # TODO this shall be generalized
     from voltha.protos import voltha_pb2, health_pb2, adapter_pb2, \
-        logical_device_pb2, device_pb2, openflow_13_pb2
+        logical_device_pb2, device_pb2, openflow_13_pb2, bbf_fiber_base_pb2
     return getattr(locals()[module_name], cls_name)

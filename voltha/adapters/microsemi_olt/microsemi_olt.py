@@ -142,6 +142,18 @@ class RubyAdapter(object):
         log.debug('bulk-flow-update', device_id=device.id,
                   flows=flows, groups=groups)
 
+    def create_interface(self, device, data):
+        raise NotImplementedError()
+
+    def update_interface(self, device, data):
+        raise NotImplementedError()
+
+    def remove_interface(self, device, data):
+        raise NotImplementedError()
+
+    def receive_onu_detect_state(self, device_id, state):
+        raise NotImplementedError()
+
     def send_proxied_message(self, proxy_address, msg):
         device = self.adaptor_agent.get_device(proxy_address.device_id)
         _, _, comm = self.olts[device.mac_address]

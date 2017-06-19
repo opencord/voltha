@@ -23,6 +23,8 @@ from voltha.protos.ponsim_pb2 import PonSimServicer, \
     add_PonSimServicer_to_server, PonSimDeviceInfo
 from google.protobuf.empty_pb2 import Empty
 
+from voltha.protos.ponsim_pb2 import XPonSimServicer, add_XPonSimServicer_to_server
+
 _ = third_party
 
 log = structlog.get_logger()
@@ -56,19 +58,39 @@ class FlowUpdateHandler(PonSimServicer):
     def GetStats(self, request, context):
         return self.ponsim.get_stats()
 
+class XPonHandler(XPonSimServicer):
+
+    def __init__(self, thread_pool, x_pon_sim):
+        self.thread_pool = thread_pool
+        self.x_pon_sim = x_pon_sim
+
+    def CreateInterface(self, request, context):
+        self.x_pon_sim.CreateInterface(request)
+        return Empty()
+
+    def UpdateInterface(self, request, context):
+        self.x_pon_sim.UpdateInterface(request)
+        return Empty()
+
+    def RemoveInterface(self, request, context):
+        self.x_pon_sim.RemoveInterface(request)
+        return Empty()
 
 class GrpcServer(object):
 
-    def __init__(self, port, ponsim):
+    def __init__(self, port, ponsim, x_pon_sim):
         self.port = port
         self.thread_pool = futures.ThreadPoolExecutor(max_workers=10)
         self.server = grpc.server(self.thread_pool)
         self.ponsim = ponsim
+        self.x_pon_sim = x_pon_sim
 
     def start(self):
         log.debug('starting')
         handler = FlowUpdateHandler(self.thread_pool, self.ponsim)
         add_PonSimServicer_to_server(handler, self.server)
+        x_pon_handler = XPonHandler(self.thread_pool, self.x_pon_sim)
+        add_XPonSimServicer_to_server(x_pon_handler, self.server)
         self.server.add_insecure_port('[::]:%s' % self.port)
         self.server.start()
         log.info('started')

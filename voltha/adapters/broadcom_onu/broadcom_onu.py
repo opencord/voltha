@@ -164,6 +164,18 @@ class BroadcomOnuAdapter(object):
     def suppress_alarm(self, filter):
         raise NotImplementedError()
 
+    def create_interface(self, device, data):
+        raise NotImplementedError()
+
+    def update_interface(self, device, data):
+        raise NotImplementedError()
+
+    def remove_interface(self, device, data):
+        raise NotImplementedError()
+
+    def receive_onu_detect_state(self, device_id, state):
+        raise NotImplementedError()
+
     def unsuppress_alarm(self, filter):
         raise NotImplementedError()
 

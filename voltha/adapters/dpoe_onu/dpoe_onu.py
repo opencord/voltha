@@ -410,6 +410,18 @@ class DPoEOnuAdapter(object):
                   proxy_address=proxy_address, msg=msg)
         self.incoming_messages.put(msg)
 
+    def create_interface(self, device, data):
+        raise NotImplementedError()
+
+    def update_interface(self, device, data):
+        raise NotImplementedError()
+
+    def remove_interface(self, device, data):
+        raise NotImplementedError()
+
+    def receive_onu_detect_state(self, device_id, state):
+        raise NotImplementedError()
+
     def suppress_alarm(self, filter):
         raise NotImplementedError()
 

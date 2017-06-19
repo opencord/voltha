@@ -345,3 +345,15 @@ class AdtranOltAdapter(object):
     def unsuppress_alarm(self, filter):
         log.info('unsuppress_alarm', filter=filter)
         raise NotImplementedError()
+
+    def create_interface(self, device, data):
+        raise NotImplementedError()
+
+    def update_interface(self, device, data):
+        raise NotImplementedError()
+
+    def remove_interface(self, device, data):
+        raise NotImplementedError()
+
+    def receive_onu_detect_state(self, device_id, state):
+        raise NotImplementedError()

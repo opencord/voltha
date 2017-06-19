@@ -4,7 +4,7 @@ package voltha;
 
 import "google/protobuf/empty.proto";
 import "openflow_13.proto";
-
+import "bbf_fiber_base.proto";
 
 message PonSimDeviceInfo {
     int32 nni_port = 1;
@@ -31,6 +31,19 @@ message PonSimMetrics {
     repeated PonSimPortMetrics metrics = 2;
 }
 
+message InterfaceConfig
+{
+     oneof interface_type
+     {
+        bbf_fiber.ChannelgroupConfig        channel_group_config         = 1;
+        bbf_fiber.ChannelpartitionConfig    channel_partition_config     = 2;
+        bbf_fiber.ChannelpairConfig         channel_pair_config          = 3;
+        bbf_fiber.ChannelterminationConfig  channel_termination_config   = 4;
+        bbf_fiber.OntaniConfig              ont_ani_config               = 5;
+        bbf_fiber.VOntaniConfig             vont_ani_config              = 6;
+        bbf_fiber.VEnetConfig               venet_config                 = 7;
+     }
+}
 
 service PonSim {
 
@@ -42,4 +55,17 @@ service PonSim {
 
     rpc GetStats(google.protobuf.Empty)
         returns(PonSimMetrics) {}
+
+}
+
+service XPonSim
+{
+    rpc CreateInterface(InterfaceConfig)
+        returns(google.protobuf.Empty) {}
+
+    rpc UpdateInterface(InterfaceConfig)
+        returns(google.protobuf.Empty) {}
+
+    rpc RemoveInterface(InterfaceConfig)
+        returns(google.protobuf.Empty) {}
 }

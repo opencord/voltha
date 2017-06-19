@@ -815,6 +815,18 @@ class SimulatedOltAdapter(object):
         alarm_lc = LoopingCall(_generate_alarm, device_id)
         alarm_lc.start(30)
 
+    def create_interface(self, device, data):
+        raise NotImplementedError()
+
+    def update_interface(self, device, data):
+        raise NotImplementedError()
+
+    def remove_interface(self, device, data):
+        raise NotImplementedError()
+
+    def receive_onu_detect_state(self, device_id, state):
+        raise NotImplementedError()
+
     # ~~~~~~~~~~~~~~~~~~~~ Embedded test Klein rest server ~~~~~~~~~~~~~~~~~~~~
 
     def get_test_control_site(self):
