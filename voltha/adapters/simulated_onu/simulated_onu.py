@@ -357,6 +357,18 @@ class SimulatedOnuAdapter(object):
         # just place incoming message to a list
         self.incoming_messages.put((proxy_address, msg))
 
+    def createInterface(self, device, data):
+        raise NotImplementedError()
+
+    def updateInterface(self, device, data):
+        raise NotImplementedError()
+    
+    def removeInterface(self, device, data):
+        raise NotImplementedError()
+
+    def forward_onu_detect_state(self, device_id, state):
+        raise NotImplementedError()
+
     def suppress_alarm(self, filter):
         raise NotImplementedError()
 

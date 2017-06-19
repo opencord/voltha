@@ -129,6 +129,7 @@ class DeviceManager(object):
                 onu_id=onu_id,
                 onu_session_id=onu_session_id
             ),
+            admin_state=AdminState.ENABLED,
             vlan=0
         )
 

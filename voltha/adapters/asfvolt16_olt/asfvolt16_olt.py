@@ -27,7 +27,8 @@ class Asfvolt16Adapter(IAdapter):
                                                device_handler_class = Asfvolt16Handler,
                                                name='asfvolt16_olt',
                                                vendor='Edgecore',
-                                               version='0.1')
+                                               version='0.1',
+                                               deviceType='asfvolt16_olt')
         # register for adapter messages
         self.adapter_agent.register_for_inter_adapter_messages()
 

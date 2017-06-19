@@ -1,0 +1,56 @@
+syntax = "proto3";
+package bbf_fiber_types;
+
+enum auth_method_type
+{
+	serial_number               = 0;
+	loid                        = 1;
+	registration_id             = 2;
+	omci                        = 3;
+	dot1x                       = 4;
+
+}
+enum raman_mitigation_type
+{
+	raman_none                  = 0;
+	raman_miller                = 1;
+	raman_8b10b                 = 2;
+
+}
+enum pon_id_odn_class_type 
+{
+	class_a                     = 0;
+	class_b                     = 1;
+	class_b_plus                = 2; 
+	class_c                     = 3;
+	class_c_plus                = 4;  
+	class_auto                  = 255;
+}
+enum  channelpair_speed_type 
+{
+	unplanned_cp_speed = 0;
+	down_10_up_10 = 1;
+	down_10_up_2dot5 = 2;
+	down_2dot5_up_2dot5 = 3;
+}
+
+enum channelpair_type 
+{
+        channelpair = 0;
+        channelpair_xgs = 1;
+}
+
+enum type_b_role_type 
+{
+	primary = 0;
+	secondary = 1;
+}
+
+enum type_b_role_state_type 
+{
+	active = 0;
+	standby = 1;
+}
+
+
+

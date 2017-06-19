@@ -34,6 +34,10 @@ from voltha.core.logical_device_agent import LogicalDeviceAgent
 from voltha.protos.voltha_pb2 import \
     Device, LogicalDevice, AlarmFilter
 from voltha.registry import IComponent
+from xpon_agent import XponAgent
+from xpon_handler import XponHandler
+from voltha.protos.bbf_fiber_base_pb2 import channelgroup_config, channelpartition_config, \
+    channelpair_config, ontani_config, v_ontani_config, v_enet_config
 
 log = structlog.get_logger()
 
@@ -50,6 +54,7 @@ class VolthaCore(object):
             instance_id=instance_id,
             version=version,
             log_level=log_level)
+        self.xpon_handler = XponHandler(self)
         self.local_handler = LocalHandler(
             core=self,
             instance_id=instance_id,
@@ -62,6 +67,7 @@ class VolthaCore(object):
         self.alarm_filter_agent = None
         self.packet_in_queue = Queue()
         self.change_event_queue = Queue()
+        self.xpon_agent = XponAgent(self)
 
     @inlineCallbacks
     def start(self, config_backend=None):
@@ -143,6 +149,10 @@ class VolthaCore(object):
             self._handle_add_device(data)
         elif isinstance(data, LogicalDevice):
             self._handle_add_logical_device(data)
+        elif isinstance(data, (channelgroup_config, channelpartition_config,
+                               channelpair_config, ontani_config, v_ontani_config,
+                               v_enet_config)):
+            self.xpon_agent.createInterface(data)
         elif isinstance(data, AlarmFilter):
             self._handle_add_alarm_filter(data)
         else:
@@ -154,6 +164,10 @@ class VolthaCore(object):
             self._handle_remove_device(data)
         elif isinstance(data, LogicalDevice):
             self._handle_remove_logical_device(data)
+        elif isinstance(data, (channelgroup_config, channelpartition_config,
+                                channelpair_config, ontani_config, v_ontani_config,
+                                v_enet_config)):
+            self.xpon_agent.removeInterface(data)
         elif isinstance(data, AlarmFilter):
             self._handle_remove_alarm_filter(data)
         else:
@@ -169,6 +183,7 @@ class VolthaCore(object):
         path = '/devices/{}'.format(device.id)
         assert device.id not in self.device_agents
         self.device_agents[device.id] = yield DeviceAgent(self, device).start()
+        self.xpon_agent.registerInterface(device.id, path, update=False)
 
     @inlineCallbacks
     def _handle_reconcile_existing_device(self, device, reconcile):
@@ -182,8 +197,10 @@ class VolthaCore(object):
     @inlineCallbacks
     def _handle_remove_device(self, device):
         if device.id in self.device_agents:
+            path = '/devices/{}'.format(device.id)
+            self.xpon_agent.unregisterInterface(device.id, path, update=False)
             AlarmFilterAgent(self).remove_device_filters(device)
-
+            
             yield self.device_agents[device.id].stop(device)
             del self.device_agents[device.id]
 

@@ -372,7 +372,8 @@ class PonPort(object):
         adapter.child_device_detected(parent_device_id=olt.device_id,
                                       parent_port_no=self.port_number,
                                       child_device_type=onu.vendor_device,
-                                      proxy_address=proxy)
+                                      proxy_address=proxy,
+                                      admin_state=AdminState.ENABLED)
 
     def get_next_onu_id(self):
         used_ids = [onu.onu_id for onu in self.onus]

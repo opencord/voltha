@@ -21,6 +21,8 @@ import public "logical_device.proto";
 import public "device.proto";
 import public "adapter.proto";
 import public "openflow_13.proto";
+import "bbf_fiber.proto";
+import "bbf_fiber_base.proto";
 
 option java_package = "org.opencord.voltha";
 option java_outer_classname = "VolthaProtos";
@@ -90,6 +92,18 @@ message VolthaInstance {
     repeated DeviceGroup device_groups = 15 [(child_node) = {key: "id"}];
 
     repeated AlarmFilter alarm_filters = 16 [(child_node) = {key: "id"}];
+
+    repeated bbf_fiber.channelgroup_config channel_groups = 17 [(child_node) = {key: "name"}];
+
+    repeated bbf_fiber.channelpartition_config channel_partitions = 18 [(child_node) = {key: "name"}];
+
+    repeated bbf_fiber.channelpair_config channel_pairs = 19 [(child_node) = {key: "name"}];
+
+    repeated bbf_fiber.ontani_config ont_anis = 20 [(child_node) = {key: "name"}];
+
+    repeated bbf_fiber.v_ontani_config v_ont_anis = 21 [(child_node) = {key: "name"}];
+    
+    repeated bbf_fiber.v_enet_config v_enets = 22 [(child_node) = {key: "name"}];
 }
 
 message VolthaInstances {
@@ -115,6 +129,17 @@ message Voltha {
 
     repeated DeviceGroup device_groups = 15 [(child_node) = {key: "id"}];
 
+    repeated bbf_fiber.channelgroup_config channel_groups = 16 [(child_node) = {key: "name"}];
+
+    repeated bbf_fiber.channelpartition_config channel_partitions = 17 [(child_node) = {key: "name"}];
+
+    repeated bbf_fiber.channelpair_config channel_pairs = 18 [(child_node) = {key: "name"}];
+
+    repeated bbf_fiber.ontani_config ont_anis = 19 [(child_node) = {key: "name"}];
+
+    repeated bbf_fiber.v_ontani_config v_ont_anis = 20 [(child_node) = {key: "name"}];
+    
+    repeated bbf_fiber.v_enet_config v_enets = 21 [(child_node) = {key: "name"}];
 }
 
 
@@ -364,6 +389,246 @@ service VolthaGlobalService {
             get: "/api/v1/alarm_filters"
         };
     }
+    
+    // List all Channel Groups
+    rpc getAllChannelGroupConfig(google.protobuf.Empty) returns(bbf_fiber.allchannelgroup_config) {
+        option (google.api.http) = {
+            get: "/api/v1/channel_groups"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Create Channel Group
+    rpc createChannelGroup(bbf_fiber.channelgroup_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/channel_groups/{name}"
+            body: "*"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Update Channel Group
+    rpc updateChannelGroup(bbf_fiber.channelgroup_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/channel_groups/{name}/modify"
+            body: "*"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Delete Channel Group
+    rpc deleteChannelGroup(bbf_fiber.channelgroup_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/api/v1/channel_groups/{name}/delete"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // List all channel partitions 
+    rpc getAllChannelPartitionConfig(google.protobuf.Empty) returns(bbf_fiber.allchannelpartition_config) {
+        option (google.api.http) = {
+            get: "/api/v1/channel_partitions"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Create a channel partition
+    rpc createChannelPartition(bbf_fiber.channelpartition_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/channel_partitions/{name}"
+            body: "*"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Update a channel partition
+    rpc updateChannelPartition(bbf_fiber.channelpartition_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/channel_partitions/{name}/modify"
+            body: "*"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Delete a channel partition
+    rpc deleteChannelPartition(bbf_fiber.channelpartition_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/api/v1/channel_partitions/{name}/delete"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    
+    // List all channel pairs managed by this Voltha instance
+    rpc getAllChannelPairConfig(google.protobuf.Empty) returns(bbf_fiber.allchannelpair_config) {
+        option (google.api.http) = {
+            get: "/api/v1/channel_pairs"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Create a channel pair
+    rpc createChannelPair(bbf_fiber.channelpair_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/channel_pairs/{name}"
+            body: "*"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Update a channel pair
+    rpc updateChannelPair(bbf_fiber.channelpair_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/channel_pairs/{name}/modify"
+            body: "*"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Delete a channel pair
+    rpc deleteChannelPair(bbf_fiber.channelpair_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/api/v1/channel_pairs/{name}/delete"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // List all channel terminations managed by this Voltha instance
+    rpc getAllChannelTerminationConfig(ID) returns(bbf_fiber.allchanneltermination_config) {
+        option (google.api.http) = {
+            get: "/api/v1/devices/{id}/channel_terminations"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Create a channel termination
+    rpc createChannelTermination(bbf_fiber.channeltermination_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/devices/{id}/channel_terminations/{name}"
+            body: "*"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Update a channel termination
+    rpc updateChannelTermination(bbf_fiber.channeltermination_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/devices/{id}/channel_terminations/{name}/modify"
+            body: "*"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Delete a channel termination
+    rpc deleteChannelTermination(bbf_fiber.channeltermination_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/api/v1/devices/{id}/channel_terminations/{name}/delete"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // List all ont configs managed by this Voltha instance
+    rpc getAllOntAniConfig(google.protobuf.Empty) returns(bbf_fiber.allontani_config) {
+        option (google.api.http) = {
+            get: "/api/v1/ont_anis"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Create an ont configs
+    rpc createOntAni(bbf_fiber.ontani_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/ont_anis/{name}"
+            body: "*"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Update an ont configs
+    rpc updateOntAni(bbf_fiber.ontani_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/ont_anis/{name}/modify"
+            body: "*"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Delete an ont configs
+    rpc deleteOntAni(bbf_fiber.ontani_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/api/v1/ont_anis/{name}/delete"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // List all V ont configs managed by this Voltha instance
+    rpc getAllVOntAniConfig(google.protobuf.Empty) returns(bbf_fiber.allvontani_config) {
+        option (google.api.http) = {
+            get: "/api/v1/v_ont_anis"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Create a v ont configs
+    rpc createVOntAni(bbf_fiber.v_ontani_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/v_ont_anis/{name}"
+            body: "*"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Update a v ont configs
+    rpc updateVOntAni(bbf_fiber.v_ontani_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/v_ont_anis/{name}/modify"
+            body: "*"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Delete a v ont configs
+    rpc deleteVOntAni(bbf_fiber.v_ontani_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/api/v1/v_ont_anis/{name}/delete"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // List all venet configs managed by this Voltha instance
+    rpc getAllVEnetConfig(google.protobuf.Empty) returns(bbf_fiber.allvenet_config) {
+        option (google.api.http) = {
+            get: "/api/v1/v_enets"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Create venet configs
+    rpc createVEnet(bbf_fiber.v_enet_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/v_enets/{name}"
+            body: "*"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Update venet configs
+    rpc updateVEnet(bbf_fiber.v_enet_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/v_enets/{name}/modify"
+            body: "*"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Delete venet configs
+    rpc deleteVEnet(bbf_fiber.v_enet_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/api/v1/v_enets/{name}/delete"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
 }
 
 /*
@@ -579,7 +844,245 @@ service VolthaLocalService {
             get: "/api/v1/local/device_groups/{id}"
         };
     }
+    // List all channel groups managed by this Voltha instance
+    rpc getAllChannelGroupConfig(google.protobuf.Empty) returns(bbf_fiber.allchannelgroup_config) {
+        option (google.api.http) = {
+            get: "/api/v1/local/channel_groups"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Create a channel group
+    rpc createChannelGroup(bbf_fiber.channelgroup_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/channel_groups/{name}"
+            body: "*"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Update a channel group
+    rpc updateChannelGroup(bbf_fiber.channelgroup_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/channel_groups/{name}/modify"
+            body: "*"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Delate a channel group
+    rpc deleteChannelGroup(bbf_fiber.channelgroup_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/api/v1/local/channel_groups/{name}/delete"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // List all channel partitions managed by this Voltha instance
+    rpc getAllChannelPartitionConfig(google.protobuf.Empty) returns(bbf_fiber.allchannelpartition_config) {
+        option (google.api.http) = {
+            get: "/api/v1/local/channel_partitions"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Create a channel partition
+    rpc createChannelPartition(bbf_fiber.channelpartition_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/channel_partitions/{name}"
+            body: "*"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Update a channel partition
+    rpc updateChannelPartition(bbf_fiber.channelpartition_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/channel_partitions/{name}/modify"
+            body: "*"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Delete a channel partition
+    rpc deleteChannelPartition(bbf_fiber.channelpartition_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/api/v1/local/channel_partitions/{name}/delete"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // List all channel pairs managed by this Voltha instance
+    rpc getAllChannelPairConfig(google.protobuf.Empty) returns(bbf_fiber.allchannelpair_config) {
+        option (google.api.http) = {
+            get: "/api/v1/local/channel_pairs"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Create a channel pair
+    rpc createChannelPair(bbf_fiber.channelpair_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/channel_pairs/{name}"
+            body: "*"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Update a channel pair
+    rpc updateChannelPair(bbf_fiber.channelpair_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/channel_pairs/{name}/modify"
+            body: "*"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Delete a channel pair
+    rpc deleteChannelPair(bbf_fiber.channelpair_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/api/v1/local/channel_pairs/{name}/delete"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
 
+    // List all channel terminations managed by this Voltha instance
+    rpc getAllChannelTerminationConfig(ID) returns(bbf_fiber.allchanneltermination_config) {
+        option (google.api.http) = {
+            get: "/api/v1/local/devices/{id}/channel_terminations"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Create a channel termination
+    rpc createChannelTermination(bbf_fiber.channeltermination_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/devices/{id}/channel_terminations/{name}"
+            body: "*"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Update a channel termination
+    rpc updateChannelTermination(bbf_fiber.channeltermination_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/devices/{id}/channel_terminations/{name}/modify"
+            body: "*"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Delete a channel termination
+    rpc deleteChannelTermination(bbf_fiber.channeltermination_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/api/v1/local/devices/{id}/channel_terminations/{name}/delete"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // List all ont configs managed by this Voltha instance
+    rpc getAllOntAniConfig(google.protobuf.Empty) returns(bbf_fiber.allontani_config) {
+        option (google.api.http) = {
+            get: "/api/v1/local/ont_anis"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Create an ont configs
+    rpc createOntAni(bbf_fiber.ontani_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/ont_anis/{name}"
+            body: "*"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Update an ont configs
+    rpc updateOntAni(bbf_fiber.ontani_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/ont_anis/{name}/modify"
+            body: "*"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Delete an ont configs
+    rpc deleteOntAni(bbf_fiber.ontani_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/api/v1/local/ont_anis/{name}/delete"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // List all V ont configs managed by this Voltha instance
+    rpc getAllVOntAniConfig(google.protobuf.Empty) returns(bbf_fiber.allvontani_config) {
+        option (google.api.http) = {
+            get: "/api/v1/local/v_ont_anis"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Create a v ont configs
+    rpc createVOntAni(bbf_fiber.v_ontani_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/v_ont_anis/{name}"
+            body: "*"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Update a v ont configs
+    rpc updateVOntAni(bbf_fiber.v_ontani_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/v_ont_anis/{name}/modify"
+            body: "*"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Delete a v ont configs
+    rpc deleteVOntAni(bbf_fiber.v_ontani_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/api/v1/local/v_ont_anis/{name}/delete"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // List all venet configs managed by this Voltha instance
+    rpc getAllVEnetConfig(google.protobuf.Empty) returns(bbf_fiber.allvenet_config) {
+        option (google.api.http) = {
+            get: "/api/v1/local/v_enets"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Create venet configs
+    rpc createVEnet(bbf_fiber.v_enet_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/v_enets/{name}"
+            body: "*"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Update venet configs
+    rpc updateVEnet(bbf_fiber.v_enet_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/v_enets/{name}/modify"
+            body: "*"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
+    // Delete venet configs
+    rpc deleteVEnet(bbf_fiber.v_enet_config) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/api/v1/local/v_enets/{name}/delete"
+        };
+        // option (voltha.yang_xml_tag).xml_tag = '';
+        // option (voltha.yang_xml_tag).list_items_name = '';
+    }
     // Stream control packets to the dataplane
     rpc StreamPacketsOut(stream openflow_13.PacketOut)
         returns(google.protobuf.Empty) {

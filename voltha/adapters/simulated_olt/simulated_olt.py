@@ -484,6 +484,7 @@ class SimulatedOltAdapter(object):
                     device_id=device_id,
                     channel_id=vlan_id
                 ),
+                admin_state=AdminState.ENABLED,
                 vlan=vlan_id
             )
 
@@ -784,6 +785,18 @@ class SimulatedOltAdapter(object):
 
         alarm_lc = LoopingCall(_generate_alarm, device_id)
         alarm_lc.start(30)
+
+    def createInterface(self, device, data):
+        raise NotImplementedError()
+
+    def updateInterface(self, device, data):
+        raise NotImplementedError()
+    
+    def removeInterface(self, device, data):
+        raise NotImplementedError()
+
+    def forward_onu_detect_state(self, device_id, state):
+        raise NotImplementedError()
 
     # ~~~~~~~~~~~~~~~~~~~~ Embedded test Klein rest server ~~~~~~~~~~~~~~~~~~~~
 
