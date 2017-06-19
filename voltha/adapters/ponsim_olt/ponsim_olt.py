@@ -179,22 +179,18 @@ class PonSimOltAdapter(IAdapter):
     def __init__(self, adapter_agent, config):
         super(PonSimOltAdapter, self).__init__(adapter_agent=adapter_agent,
                                                config=config,
+                                               device_handler_class=PonSimOltHandler,
                                                name='ponsim_olt',
                                                vendor='Voltha project',
                                                version='0.4')
-        self.devices_handlers = dict()  # device_id -> PonSimOltHandler()
         self.logical_device_id_to_root_device_id = dict()
+
 
     def update_pm_config(self, device, pm_config):
         log.info("adapter-update-pm-config", device=device,
                  pm_config=pm_config)
         handler = self.devices_handlers[device.id]
         handler.update_pm_config(device, pm_config)
-
-    def adopt_device(self, device):
-        self.devices_handlers[device.id] = PonSimOltHandler(self, device.id)
-        reactor.callLater(0, self.devices_handlers[device.id].activate, device)
-        return device
 
     def reconcile_device(self, device):
         try:
@@ -212,39 +208,6 @@ class PonSimOltAdapter(IAdapter):
             return device
         except Exception, e:
             log.exception('Exception', e=e)
-
-    def disable_device(self, device):
-        log.info('disable-device', device_id=device.id)
-        reactor.callLater(0, self.devices_handlers[device.id].disable)
-        return device
-
-    def reenable_device(self, device):
-        log.info('reenable-device', device_id=device.id)
-        reactor.callLater(0, self.devices_handlers[device.id].reenable)
-        return device
-
-    def reboot_device(self, device):
-        log.info('reboot-device', device_id=device.id)
-        reactor.callLater(0, self.devices_handlers[device.id].reboot)
-        return device
-
-    def delete_device(self, device):
-        log.info('delete-device', device_id=device.id)
-        #  TODO: Update the logical device mapping
-        reactor.callLater(0, self.devices_handlers[device.id].delete)
-        return device
-
-    def update_flows_bulk(self, device, flows, groups):
-        log.info('bulk-flow-update', device_id=device.id,
-                 flows=flows, groups=groups)
-        assert len(groups.items) == 0
-        handler = self.devices_handlers[device.id]
-        return handler.update_flow_table(flows.items)
-
-    def send_proxied_message(self, proxy_address, msg):
-        log.info('send-proxied-message', proxy_address=proxy_address, msg=msg)
-        handler = self.devices_handlers[proxy_address.device_id]
-        handler.send_proxied_message(proxy_address, msg)
 
     def receive_packet_out(self, logical_device_id, egress_port_no, msg):
         def ldi_to_di(ldi):
