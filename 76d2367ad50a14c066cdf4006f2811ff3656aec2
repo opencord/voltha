@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "9a0e1d27_343fc927",
+        "filename": "voltha/adapters/ponsim_olt/ponsim_olt.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 186,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-19T13:45:00Z",
+      "side": 1,
+      "message": "Any reason why you do not pass it as a parameter when initializing the base class?",
+      "parentUuid": "9a0e1d27_d4ee4db4",
+      "revId": "76d2367ad50a14c066cdf4006f2811ff3656aec2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a0e1d27_74fe616d",
         "filename": "voltha/adapters/ponsim_onu/ponsim_onu.py",
         "patchSetId": 3
