@@ -20,6 +20,7 @@ Adapter abstract base class
 
 import structlog
 from zope.interface import implementer
+from twisted.internet import reactor
 
 from voltha.protos.device_pb2 import DeviceType, DeviceTypes
 from voltha.adapters.interface import IAdapterInterface
@@ -32,7 +33,7 @@ log = structlog.get_logger()
 
 @implementer(IAdapterInterface)
 class IAdapter(object):
-    def __init__(self, adapter_agent, config, name, vendor, version):
+    def __init__(self, adapter_agent, config, device_handler_class, name, vendor, version):
         log.debug('Initializing adapter: {} {} {}'.format(vendor, name, version))
         self.adapter_agent = adapter_agent
         self.config = config
@@ -50,6 +51,8 @@ class IAdapter(object):
             version=version,
             config=AdapterConfig(log_level=LogLevel.INFO)
         )
+        self.devices_handlers = dict()  # device_id -> Olt/OnuHandler()
+        self.device_handler_class = device_handler_class
 
     def start(self):
         log.info('Starting adapter: {}'.format(self.name))
@@ -73,7 +76,9 @@ class IAdapter(object):
         raise NotImplementedError()
 
     def adopt_device(self, device):
-        raise NotImplementedError()
+        self.devices_handlers[device.id] = self.device_handler_class(self, device.id)
+        reactor.callLater(0, self.devices_handlers[device.id].activate, device)
+        return device
 
     def reconcile_device(self, device):
         raise NotImplementedError()
@@ -82,28 +87,43 @@ class IAdapter(object):
         raise NotImplementedError()
 
     def disable_device(self, device):
-        raise NotImplementedError()
+        log.info('disable-device', device_id=device.id)
+        reactor.callLater(0, self.devices_handlers[device.id].disable)
+        return device
 
     def reenable_device(self, device):
-        raise NotImplementedError()
+        log.info('reenable-device', device_id=device.id)
+        reactor.callLater(0, self.devices_handlers[device.id].reenable)
+        return device
 
     def reboot_device(self, device):
-        raise NotImplementedError()
+        log.info('reboot-device', device_id=device.id)
+        reactor.callLater(0, self.devices_handlers[device.id].reboot)
+        return device
 
     def delete_device(self, device):
-        raise NotImplementedError()
+        log.info('delete-device', device_id=device.id)
+        #  TODO: Update the logical device mapping
+        reactor.callLater(0, self.devices_handlers[device.id].delete)
+        return device
 
     def get_device_details(self, device):
         raise NotImplementedError()
 
     def update_flows_bulk(self, device, flows, groups):
-        raise NotImplementedError()
+        log.info('bulk-flow-update', device_id=device.id,
+                 flows=flows, groups=groups)
+        assert len(groups.items) == 0
+        handler = self.devices_handlers[device.id]
+        return handler.update_flow_table(flows.items)
 
     def update_flows_incrementally(self, device, flow_changes, group_changes):
         raise NotImplementedError()
 
     def send_proxied_message(self, proxy_address, msg):
-        raise NotImplementedError()
+        log.info('send-proxied-message', proxy_address=proxy_address, msg=msg)
+        handler = self.devices_handlers[proxy_address.device_id]
+        handler.send_proxied_message(proxy_address, msg)
 
     def receive_proxied_message(self, proxy_address, msg):
         raise NotImplementedError()

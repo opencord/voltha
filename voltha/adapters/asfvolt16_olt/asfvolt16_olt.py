@@ -24,8 +24,12 @@ class Asfvolt16Adapter(IAdapter):
     def __init__(self, adapter_agent, config):
         super(Asfvolt16Adapter, self).__init__(adapter_agent=adapter_agent,
                                                config=config,
+                                               device_handler_class = Asfvolt16Handler,
                                                name='asfvolt16_olt',
                                                vendor='Edgecore',
                                                version='0.1')
         # register for adapter messages
         self.adapter_agent.register_for_inter_adapter_messages()
+
+class Asfvolt16Handler(object):
+    pass
