@@ -158,6 +158,24 @@ class Get(Rpc):
             {'subclass': 'device_groups',
              'rpc': 'VolthaLocalService-ListDeviceGroups'
              },
+            {'subclass': 'channel_groups',
+             'rpc': 'VolthaLocalService-getAllChannelGroupConfig'
+             },
+            {'subclass': 'channel_partitions',
+             'rpc': 'VolthaLocalService-getAllChannelPartitionConfig'
+             },
+            {'subclass': 'channel_pairs',
+             'rpc': 'VolthaLocalService-getAllChannelPairConfig'
+             },
+            {'subclass': 'channel_terminations',
+             'rpc': 'VolthaLocalService-getAllChannelTerminationConfig'
+             },
+            {'subclass': 'ont_anis',
+             'rpc': 'VolthaLocalService-getAllOntAniConfig'
+             },
+            {'subclass': 'v_ont_anis',
+             'rpc': 'VolthaLocalService-getAllVOntAniConfig'
+             },
         ],
         'VolthaInstances': [
             {'subclass': None,

@@ -29,3 +29,15 @@ class Asfvolt16Adapter(IAdapter):
                                                version='0.1')
         # register for adapter messages
         self.adapter_agent.register_for_inter_adapter_messages()
+    
+    def createInterface(self, device, data):
+        raise NotImplementedError()
+
+    def updateInterface(self, device, data):
+        raise NotImplementedError()
+    
+    def removeInterface(self, device, data):
+        raise NotImplementedError()
+
+    def forward_onu_detect_state(self, device_id, state):
+        raise NotImplementedError()

@@ -1,0 +1,135 @@
+syntax = "proto3";
+package bbf_fiber;
+
+import public "meta.proto";
+import "ietf_interfaces.proto";
+import "bbf_fiber_channelgroup_body.proto";
+import "bbf_fiber_channelpartition_body.proto";
+import "bbf_fiber_channelpair_body.proto";
+import "bbf_fiber_channeltermination_body.proto";
+import "bbf_fiber_ontani_body.proto";
+import "bbf_fiber_v_ontani_body.proto";
+import "bbf_fiber_v_enet_body.proto";
+
+message channelgroup_config
+{
+	ietf_interfaces.interface interface = 1;
+	channelgroup_config_data data = 2;
+	string name = 3 ;
+
+}
+message channelgroup_oper
+{
+	ietf_interfaces.interface interface = 1;
+	channelgroup_oper_data data = 2;
+	string name = 3 ;
+}
+
+
+message channelpartition_config
+{
+	ietf_interfaces.interface interface = 1;
+	channelpartition_config_data data = 2;
+	string name = 3 ;
+}
+message channelpartition_oper
+{
+	ietf_interfaces.interface interface = 1;
+	channelpartition_oper_data data = 2;
+	string name = 3 ;
+}
+
+message channelpair_config
+{
+	ietf_interfaces.interface interface = 1;
+	channelpair_config_data data = 2;
+	string name = 3 ;
+}
+message channelpair_oper
+{
+	ietf_interfaces.interface interface = 1;
+	channelpair_oper_data operdata= 2;
+	string name = 3 ;
+}
+
+message channeltermination_config
+{
+	string id = 1; // To work around a chameleon POST bug
+	ietf_interfaces.interface interface = 2;
+	channeltermination_config_data data = 3;
+	string name = 4 ;
+}
+message channeltermination_oper
+{
+	ietf_interfaces.interface interface = 1;
+	channeltermination_oper_data data = 2;
+	string name = 3 ;
+}
+
+
+message ontani_config
+{
+	ietf_interfaces.interface interface = 1;
+	ontani_config_data data = 2;
+	string name = 3 ;
+}
+message ontani_oper
+{
+	ietf_interfaces.interface interface = 1;
+	ontani_oper_data data = 2;
+	string name = 3 ;
+}
+
+message v_ontani_config
+{
+	ietf_interfaces.interface interface = 1;
+	v_ontani_config_data data = 2;
+	string name = 3 ;
+}
+message v_ontani_oper
+{
+	ietf_interfaces.interface interface = 1;
+	v_ontani_oper_data data = 2;
+	string name = 3 ;
+}
+message v_enet_config
+{
+	ietf_interfaces.interface interface = 1;
+	v_enet_config_data data = 2;
+	string name = 3 ;
+}
+message v_enet_oper
+{
+	ietf_interfaces.interface interface = 1;
+	v_enet_oper_data data = 2;
+	string name = 3 ;
+}
+
+message allchannelgroup_config
+{
+	repeated channelgroup_config channelgroup_config = 1 [(voltha.child_node) = {key: "name"}];
+}
+message allchannelpartition_config
+{
+	repeated channelpartition_config channelpartition_config = 1 [(voltha.child_node) = {key: "name"}];
+}
+message allchannelpair_config
+{
+	repeated channelpair_config channelpair_config = 1 [(voltha.child_node) = {key: "name"}];
+}
+message allchanneltermination_config
+{
+	repeated channeltermination_config channeltermination_config = 1 [(voltha.child_node) = {key: "name"}];
+}
+message allontani_config
+{
+	repeated ontani_config ontani_config = 1 [(voltha.child_node) = {key: "name"}];
+}
+message allvontani_config
+{
+	repeated v_ontani_config v_ontani_config = 1 [(voltha.child_node) = {key: "name"}];
+}
+message allvenet_config
+{
+	repeated v_enet_config v_enet_config = 1 [(voltha.child_node) = {key: "name"}];
+}

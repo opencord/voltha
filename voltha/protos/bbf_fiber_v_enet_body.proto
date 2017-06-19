@@ -1,0 +1,8 @@
+syntax = "proto3";
+package bbf_fiber;
+
+message v_enet_config_data {
+	string v_ontani_ref = 1 ;
+}
+message v_enet_oper_data {
+}

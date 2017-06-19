@@ -1,0 +1,51 @@
+syntax = "proto3";
+package ietf_interfaces;
+
+message interfaces {
+	repeated interface all_interfaces = 1;
+}
+message interface {
+	string name = 1 ;
+	string description = 2 ;
+	string type = 3 ;
+	bool enabled = 4;
+	enum link_up_down_trap_enable_type
+	{
+		trap_disabled = 0 ;
+		trap_enabled = 1 ;
+	}
+        link_up_down_trap_enable_type link_up_down_trap_enable = 5;
+}
+
+message interfaces_state {
+	repeated interface_state all_interfacs = 1;
+}
+message interface_state {
+	string name = 1 ;
+	string type = 2 ;
+	enum admin_status_type
+	{
+		admin_down = 0 ;
+		admin_testing = 1 ;
+		admin_up = 2 ;
+	}
+        admin_status_type admin_status = 3;
+	enum oper_status_type
+	{
+		dormant = 0 ;
+		lower_layer_down = 1 ;
+		unknown = 2 ;
+		testing = 3 ;
+		up = 4 ;
+		down = 5 ;
+		not_present = 6 ;
+	}
+	oper_status_type oper_status = 4;
+	string last_change = 5 ;
+	int32 if_index = 6 ;
+	string phys_address = 7 ;
+	repeated string higher_layer_if = 8 ;
+	repeated string lower_layer_if = 9 ;
+	uint64 speed = 10 ;
+}
+

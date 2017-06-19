@@ -233,6 +233,32 @@ class IAdapterInterface(Interface):
         # TODO work in progress
         # ...
 
+    # PON Mgnt APIs #
+    def createInterface(device, data):
+        """
+        API to create various interfaces (only some PON interfaces as of now)
+        in the devices
+        """
+    
+    def updateInterface(device, data):
+        """
+        API to update various interfaces (only some PON interfaces as of now)
+        in the devices
+        """
+    
+    def removeInterface(device, data):
+        """
+        API to delete various interfaces (only some PON interfaces as of now)
+        in the devices
+        """
+    
+    def forward_onu_detect_state(proxy_address, state):
+        """
+        Forward onu detect state to ONU adapter.
+        :param proxy_address: ................ONU device id.
+        :param state: ONU detect state (bool)
+        :return: None
+        """
 
 class IAdapterAgent(Interface):
     """
@@ -269,6 +295,7 @@ class IAdapterAgent(Interface):
                               parent_port_no,
                               child_device_type,
                               proxy_address,
+                              admin_state,
                               **kw):
         # TODO add doc
         """"""
@@ -340,5 +367,25 @@ class IAdapterAgent(Interface):
         """
         Submit an alarm on behalf of the OLT and its adapter.
         :param alarm_event_msg: A protobuf message of AlarmEvent type.
+        :return: None
+        """
+
+    def register_for_onu_detect_state(proxy_address):
+        """
+
+        :return: None
+        """
+
+    def unregister_for_onu_detect_state(proxy_address):
+        """
+
+        :return: None
+        """
+
+    def forward_onu_detect_state(proxy_address, state):
+        """
+        Forward onu detect state to ONU adapter.
+        :param proxy_address: ..................ONU device id.
+        :param state: ONU detect state (bool)
         :return: None
         """

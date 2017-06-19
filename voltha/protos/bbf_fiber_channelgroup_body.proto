@@ -1,0 +1,25 @@
+syntax = "proto3";
+package bbf_fiber;
+import public "meta.proto";
+import "bbf_fiber_types.proto";
+
+message channelgroup_config_data {
+	uint32 polling_period = 1;
+	bbf_fiber_types.raman_mitigation_type raman_mitigation = 2;
+	string system_id = 3 ;
+}
+message channelgroup_oper_data {
+	repeated upstream_channelid_already_allocated upstream_channelid_already_allocated = 1 [(voltha.child_node) = {key: "upstream_channelid"}];
+	repeated downstream_channelid_already_allocated downstream_channelid_already_allocated = 2 [(voltha.child_node) = {key: "downstream_channelid"}];
+	repeated downstream_wavelength_already_allocated downstream_wavelength_already_allocated = 3 [(voltha.child_node) = {key: "downstream_wavelength"}];
+}
+message upstream_channelid_already_allocated {
+	string upstream_channelid = 1 ;
+}
+message downstream_channelid_already_allocated {
+	string downstream_channelid = 1 ;
+}
+message downstream_wavelength_already_allocated {
+	string downstream_wavelength = 1 ;
+}
+

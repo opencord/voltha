@@ -49,6 +49,12 @@ from voltha.protos.openflow_13_pb2 import ofp_port
 from voltha.protos.ponsim_pb2 import FlowTable
 from voltha.registry import registry
 
+from voltha.protos.bbf_fiber_base_pb2 import \
+    channelgroup_config, channelpartition_config, channelpair_config, channeltermination_config, \
+    ontani_config, v_ontani_config, v_enet_config
+
+from voltha.protos.ponsim_pb2 import InterfaceConfig
+
 _ = third_party
 log = structlog.get_logger()
 
@@ -181,7 +187,8 @@ class PonSimOltAdapter(IAdapter):
                                                config=config,
                                                name='ponsim_olt',
                                                vendor='Voltha project',
-                                               version='0.4')
+                                               version='0.4',
+                                               deviceType='ponsim_olt')
         self.devices_handlers = dict()  # device_id -> PonSimOltHandler()
         self.logical_device_id_to_root_device_id = dict()
 
@@ -258,6 +265,21 @@ class PonSimOltAdapter(IAdapter):
         device_id = ldi_to_di(logical_device_id)
         handler = self.devices_handlers[device_id]
         handler.packet_out(egress_port_no, msg)
+
+    def createInterface(self, device, data):
+        log.info('createInterface', device_id=device.id)
+        reactor.callLater(0, self.devices_handlers[device.id].createInterface, data)
+
+    def updateInterface(self, device, data):
+        log.info('updateInterface', device_id=device.id)
+        reactor.callLater(0, self.devices_handlers[device.id].updateInterface, data)
+    
+    def removeInterface(self, device, data):
+        log.info('removeInterface', device_id=device.id)
+        reactor.callLater(0, self.devices_handlers[device.id].removeInterface, data)
+
+    def forward_onu_detect_state(self, device_id, state):
+        raise NotImplementedError()
 
 class PonSimOltHandler(object):
     def __init__(self, adapter, device_id):
@@ -392,11 +414,12 @@ class PonSimOltHandler(object):
             self.adapter_agent.child_device_detected(
                 parent_device_id=device.id,
                 parent_port_no=1,
-                child_device_type='ponsim_onu',
+                child_device_type='PSMO', #''ponsim_onu', # refers notes from ponsim_onu
                 proxy_address=Device.ProxyAddress(
                     device_id=device.id,
                     channel_id=vlan_id
                 ),
+                admin_state=AdminState.ENABLED,
                 vlan=vlan_id
             )
 
@@ -728,3 +751,47 @@ class PonSimOltHandler(object):
                 log.exception('failed-to-submit-kpis', e=e)
 
         self.pm_metrics.start_collector(_collect)
+
+    def getInterfaceConfig(self, data):
+        interfaceConfig = InterfaceConfig()
+        if isinstance(data, channelgroup_config):
+            interfaceConfig.channel_group_config.CopyFrom(data)
+        elif isinstance(data, channelpartition_config):
+            interfaceConfig.channel_partition_config.CopyFrom(data)
+        elif isinstance(data, channelpair_config):
+            interfaceConfig.channel_pair_config.CopyFrom(data)
+        elif isinstance(data, channeltermination_config):
+            interfaceConfig.channel_termination_config.CopyFrom(data)
+        elif isinstance(data, ontani_config):
+            interfaceConfig.ont_ani_config.CopyFrom(data)
+        elif isinstance(data, v_ontani_config):
+            interfaceConfig.vont_ani_config.CopyFrom(data)
+        elif isinstance(data, v_enet_config):
+            interfaceConfig.venet_config.CopyFrom(data)
+        else:
+            return None
+        return interfaceConfig
+
+    def createInterface(self, data):
+        interfaceConfig = self.getInterfaceConfig(data)
+        if interfaceConfig is not None:
+            self.log.info('forwarding create interface request to olt for interface type', interface_type=type(data))
+            stub = ponsim_pb2.XPonSimStub(self.get_channel())
+            stub.CreateInterface(interfaceConfig)
+            self.log.info('success')
+
+    def updateInterface(self, data):
+        interfaceConfig = self.getInterfaceConfig(data)
+        if interfaceConfig is not None:
+            self.log.info('forwarding update interface request to olt for interface type', interface_type=type(data))
+            stub = ponsim_pb2.XPonSimStub(self.get_channel())
+            stub.UpdateInterface(interfaceConfig)
+            self.log.info('success')
+
+    def removeInterface(self, data):
+        interfaceConfig = self.getInterfaceConfig(data)
+        if interfaceConfig is not None:
+            self.log.info('forwarding remove interface request to olt for interface type', interface_type=type(data))
+            stub = ponsim_pb2.XPonSimStub(self.get_channel())
+            stub.RemoveInterface(interfaceConfig)
+            self.log.info('success')

@@ -32,14 +32,14 @@ log = structlog.get_logger()
 
 @implementer(IAdapterInterface)
 class IAdapter(object):
-    def __init__(self, adapter_agent, config, name, vendor, version):
+    def __init__(self, adapter_agent, config, name, vendor, version, deviceType):
         log.debug('Initializing adapter: {} {} {}'.format(vendor, name, version))
         self.adapter_agent = adapter_agent
         self.config = config
         self.name = name
         self.supported_device_types = [
             DeviceType(
-                id=name,
+                id=deviceType,
                 adapter=name,
                 accepts_bulk_flow_update=True
             )
@@ -118,4 +118,16 @@ class IAdapter(object):
         raise NotImplementedError()
 
     def unsuppress_alarm(self, filter):
+        raise NotImplementedError()
+
+    def createInterface(self, device, data):
+        raise NotImplementedError()
+
+    def updateInterface(self, device, data):
+        raise NotImplementedError()
+
+    def removeInterface(self, device, data):
+        raise NotImplementedError()
+
+    def forward_onu_detect_state(self, proxy_address, state):
         raise NotImplementedError()

@@ -40,11 +40,14 @@ log = structlog.get_logger()
 
 class PonSimOnuAdapter(IAdapter):
     def __init__(self, adapter_agent, config):
+        #DeviceType of ONU should be same as VENDOR ID of ONU Serial Number as specified by standard
+        #requires for identifying correct adapter or ranged ONU
         super(PonSimOnuAdapter, self).__init__(adapter_agent=adapter_agent,
                                                config=config,
                                                name='ponsim_onu',
                                                vendor='Voltha project',
-                                               version='0.4')
+                                               version='0.4',
+                                               deviceType='PSMO')
         self.devices_handlers = dict()  # device_id -> PonSimOltHandler()
 
     def adopt_device(self, device):
@@ -108,6 +111,18 @@ class PonSimOnuAdapter(IAdapter):
     def receive_packet_out(self, logical_device_id, egress_port_no, msg):
         log.info('packet-out', logical_device_id=logical_device_id,
                  egress_port_no=egress_port_no, msg_len=len(msg))
+
+    def createInterface(self, device, data):
+        raise NotImplementedError()
+
+    def updateInterface(self, device, data):
+        raise NotImplementedError()
+    
+    def removeInterface(self, device, data):
+        raise NotImplementedError()
+
+    def forward_onu_detect_state(self, device_id, state):
+        raise NotImplementedError()
 
 class PonSimOnuHandler(object):
     def __init__(self, adapter, device_id):
