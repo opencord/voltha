@@ -46,14 +46,6 @@ if [ -z "$aInst" ]; then
 fi
 unset vInst
 
-# Ensure that the voltha VM is running so that images can be secured
-echo -e "${lBlue}Ensure that the ${lCyan}voltha VM${lBlue} is running${NC}"
-vVM=`virsh list | grep voltha_voltha${uId}`
-
-if [ -z "$vVM" ]; then
-	./BuildVoltha.sh $1
-fi
-
 # Verify if this is intended to be a test environment, if so start 3 VMs
 # to emulate the production installation cluster.
 if [ $# -eq 1 -a "$1" == "test" ]; then
@@ -185,6 +177,19 @@ if [ $# -eq 1 -a "$1" == "test" ]; then
 		sudo service networking restart
 fi
 
+# Ensure that the voltha VM is running so that images can be secured
+echo -e "${lBlue}Ensure that the ${lCyan}voltha VM${lBlue} is running${NC}"
+vVM=`virsh list | grep voltha_voltha${uId}`
+
+if [ -z "$vVM" ]; then
+	if [ $# -eq 1 -a "$1" == "test" ]; then
+		./BuildVoltha.sh $1
+	else
+		# Default to installer mode 
+		./BuildVoltha.sh install
+	fi
+fi
+
 # Install python which is required for ansible
 echo -e "${lBlue}Installing python${NC}"
 ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem vinstall@$ipAddr sudo apt-get update 
@@ -276,7 +281,7 @@ else
 	# Final location for the installer
 	rm -fr $installerDirectory
 	mkdir $installerDirectory
-	cp installVoltha.sh $installerDirectory
+	cp deployInstaller.sh $installerDirectory
 	# Check the image size and determine if it needs to be split.
         # To be safe, split the image into chunks smaller than 2G so that
         # it will fit on a FAT32 volume.

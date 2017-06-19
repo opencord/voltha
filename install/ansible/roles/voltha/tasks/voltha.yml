@@ -31,27 +31,55 @@
   when: target == "cluster"
   tags: [voltha]
 
-- name: Required directories are copied
-  copy:
+#- name: Required directories are copied
+#  copy:
+#    src: "/home/vinstall/{{ item }}"
+#    dest: "{{ target_voltha_dir }}"
+#    owner: voltha
+#    group: voltha
+#  with_items:
+#    - compose
+#    - nginx_config
+#  when: target == "cluster"
+#  tags: [voltha]
+
+- name: Installer files and directories are copied
+  synchronize:
     src: "/home/vinstall/{{ item }}"
     dest: "{{ target_voltha_dir }}"
-    owner: voltha
-    group: voltha
+    archive: no
+    owner: no
+    perms: no
+    recursive: yes
+    links: yes
   with_items:
     - compose
     - nginx_config
   when: target == "cluster"
   tags: [voltha]
 
-- name: Nginx module symlink is present
+- name: Installer directories are owned by voltha
   file:
-    dest: "{{ target_voltha_dir }}/nginx_config/modules"
-    src: ../../usr/lib/nginx/modules
-    state: link
+    path: /home/vinstall/{{ item }}
+    owner: voltha
+    group: voltha
+    recurse: yes
     follow: no
-    force: yes
+  with_items:
+    - compose
+    - nginx_config
   when: target == "cluster"
   tags: [voltha]
+
+#- name: Nginx module symlink is present
+#  file:
+#    dest: "{{ target_voltha_dir }}/nginx_config/modules"
+#    src: ../../usr/lib/nginx/modules
+#    state: link
+#    follow: no
+#    force: yes
+#  when: target == "cluster"
+#  tags: [voltha]
 
 - name: Nginx statup script is executable
   file:
@@ -105,6 +133,11 @@
     name: docker
     state: restarted
   when: copy_result|changed or user_result|changed
+  when: target == "installer"
+  tags: [voltha]
+
+- name: TEMPORARY RULE TO INSTALL ZOOKEEPER
+  command: docker pull zookeeper
   when: target == "installer"
   tags: [voltha]
 

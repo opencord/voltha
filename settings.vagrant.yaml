@@ -5,5 +5,7 @@ server_name: "voltha"
 vProvider: "virtualbox"
 # This determines if test mode is active
 testMode: "false"
+# This determines if installer mode is active
+installMode: "false"
 # Use KVM for production
 #vProvider: "KVM"

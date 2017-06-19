@@ -35,18 +35,33 @@
     mode: 0600
   tags: [cluster_host]
 
+#- name: Required configuration directories are copied
+#  copy:
+#    src: "/home/vinstall/{{ item }}"
+#    dest: "{{ target_voltha_home }}"
+#    owner: voltha
+#    group: voltha
+#  with_items:
+#    - docker-py
+#    - netifaces
+#    - deb_files
+#  when: target == "cluster"
+#  tags: [cluster_host]
+
 - name: Required configuration directories are copied
-  copy:
+  synchronize:
     src: "/home/vinstall/{{ item }}"
     dest: "{{ target_voltha_home }}"
-    owner: voltha
-    group: voltha
+    archive: no
+    owner: no
+    perms: no
+    recursive: yes
+    links: yes
   with_items:
     - docker-py
     - netifaces
     - deb_files
-  when: target == "cluster"
-  tags: [cluster_host]
+  tags: [cluster-host]
 
 - name: apt lists are up-to-date
   copy:

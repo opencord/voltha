@@ -16,7 +16,7 @@ This will ensure that the user you've defined during the installation can run th
 ![Ubuntu Installer Graphic](file:///C:Users/sslobodr/Documents/Works In Progress/2017/voltha/UbuntuInstallLaptop.png)
 **Note:** *If you've already prepared the bare metal machine and have the voltha tree downloaded from haing followed the document ``Building a vOLT-HA Virtual Machine  Using Vagrant on QEMU/KVM`` then skip to [Building the Installer](#Building-the-installer).
 
-Start with a clean installation of Ubuntu16.04 LTS on a bare metal server that is capable of virtualization selecting the packages outlined above. How to determine this is beyond the scope of this document. Once the installation is complete, login to the box and type ``virsh list``. If this doesnt work then you'll need to troubleshoot the installation. If it works, then proceed to the next section. Please note use exactly `virsh list` ***NOT*** `sudo virsh list`. If  you must use the `sudo`command then the installation was not performed properly and should be repeated. If you're familiar with the KVM environment there are steps to solve this and other issues but this is also beyond the scope of this document.
+Start with a clean installation of Ubuntu16.04 LTS on a bare metal server that is capable of virtualization. How to determine this is beyond th scope of this document. Ensure that package selection is as outlined above. Once the installation is complete, login to the box and type ``virsh list``. If this doesnt work then you'll need to troubleshoot the installation. If it works, then proceed to the next section. Please note use exactly `virsh list` ***NOT*** `sudo virsh list`. If  you must use the `sudo`command then the installation was not performed properly and should be repeated. If you're familiar with the KVM environment there are steps to solve this and other issues but this is also beyond the scope of this document. So if unfamiluar with the KVM environment a re-installation exactly as outlined above is required.
 
 ###Create the base ubuntu/xenial box
   Though there are some flavors of ubuntu boxes available but they usually have additional features installed. It is essential for the installer to start from a base install of ubuntu with absolutely no other software installed. To ensure the base image for the installer is a clean ubuntu server install and nothing but a clean ubuntu server install it is best to just create the image from the ubuntu installation iso image.
@@ -30,31 +30,47 @@ The primary reason for this requirement is for the installer to determine all th
   voltha> virt-manager
 ```
 Once the virt manager opens, open the console of the Ubuntu16.04 VM and follow the installation process.
-When promprompted use the hostname ``vinstall``. Also when prompted you should create one user ``vinstall vinstall`` and use the offered up userid of ``vinstall``. When prompted for the password of the vagrant user, use ``vinstall``. When asked if a weak password should be used, select yes. Don't encrypt the home directory. Select the OpenSSH server when prompted for packages to install.
-Once the installation is complete, run the VM and log in as vagrant password vagrant and install the default vagrant key (this can be done one of two ways, through virt-manager and the console or by uing ssh from the hypervisor host, the virt-manager method is shown below):
+When promprompted use the hostname ``vinstall``. Also when prompted you should create one user ``vinstall vinstall`` and use the offered up userid of ``vinstall``. When prompted for the password of the vinstall user, use ``vinstall``. When asked if a weak password should be used, select yes. Don't encrypt the home directory. Select the OpenSSH server when prompted for packages to install. The last 3 lines of your package selection screen should look likethis. Everything above `standard system utilities` should **not** be selected.
 ```
-vinstall@voltha$ mkdir -p /home/vinstall/.ssh
-vagrant@voltha$ chmod 0700 /home/vinstall/.ssh
-vagrant@voltha$ chown -R vagrant.vagrant /home/vagrant/.ssh
+[*] standard system utilities
+[ ] Virtual Machine host
+[*] OpenSSH server
 ```
-Also create a .ssh directory for the root user:
+
+Once the installation is complete, run the VM and log in as vinstall password vinstall.
+Create a .ssh directory for the root user:
 ```
-vagrant@voltha$ sudo mkdir /root/.ssh
+vinstall@vinstall$ sudo mkdir /root/.ssh
 ```
 Add a vinstall file to /etc/sudoers.d/vinstall with the following:
 ```
-vagrant@voltha$ echo "vinstall ALL=(ALL) NOPASSWD:ALL" > tmp.sudo
-vagrant@voltha$ sudo chown root.root tmp.sudo
-vagrant@voltha$ sudo mv tmp.sudo /etc/sudoers.d/vinstall
+vinstallvinstallvoltha$ echo "vinstall ALL=(ALL) NOPASSWD:ALL" > tmp.sudo
+vinstall@vinstall$ sudo chown root.root tmp.sudo
+vinstall@vinstall$ sudo mv tmp.sudo /etc/sudoers.d/vinstall
 ```
 Shut down the VM.
 
 ```
-vinstall@voltha$ sudo telinit 0
+vinstall@vinstall$ sudo telinit 0
 ```
 ###Download the voltha tree
-The voltha tree contains the Vagrant files required to build a multitude of VMs required to both run, test, and also to deploy voltha. The easiest approach is to download the entire tree rather than trying to extract the specific ``Vagrantfile(s)`` required.
+The voltha tree contains the Vagrant files required to build a multitude of VMs required to both run, test, and also to deploy voltha. The easiest approach is to download the entire tree rather than trying to extract the specific ``Vagrantfile(s)`` required. If you haven't done so perviously, do the following.
 ```
+Create a .gitconfig file using your favorite editor and add the following:
+```
+# This is Git's per-user configuration file.
+[user]
+        name = Your Name
+        email = your.email@your.organization.com
+[color]
+        ui = auto
+[review "https://gerrit.opencord.org/"]
+        username=yourusername
+[push]
+        default = simple
+
+```
+
 voltha> sudo apt-get install repo
 voltha> mkdir cord
 voltha>  sudo ln -s /cord `pwd`/cord
@@ -66,6 +82,24 @@ voltha>  repo sync
 ### Run vagrant to Create a Voltha VM
 ***Note:*** If you haven't done so, please follow the steps provided in the document `BulindingVolthaOnVagrantUsingKVM.md` to create the base voltha VM box for vagrant.
 
+Determine your numberic id using the following command:
+```
+voltha> id -u
+```
+
+Edit the vagrant configuration in `settings.vagrant.yaml` and ensure that the following variables are set and use the value above for `<yourid>`:
+```
+---
+# The name to use for the server
+server_name: "voltha<yourid>"
+# Use virtualbox for development
+# vProvider: "virtualbox"
+# This determines if test mode is active
+testMode: "true"
+# Use KVM for production
+vProvider: "KVM"
+```
+
 First create the voltah VM using vagrant.
 ```
 voltha> vagrant up
@@ -74,15 +108,24 @@ Finally, if required, log into the vm using vagrant.
 ```
 voltha> vagrant ssh
 ```
+If you were able to start the voltha VM using Vagrant you can proceed to the next step. If you weren't able to start a voltha VM using vagrant please troubleshoot the issue before proceeding any further.
+
 ## Building the Installer
+Before building the installer, destroy any running voltha VM by first ensuring your config file `settings.vagrant.yaml` is set as specified above then peforming the following:
+
+```
+voltha> cd ~/cord/incubator/voltha
+voltha> vagrant destroy
+```
+
 There are 2 different ways to build the installer in production and in test mode.
 ### Building the installer in test mode
 Test mode is useful for testers and developers. The installer build script will also launch 3 vagrant VMs that will be install targets and configure the installer to use them without having to supply passwords for each. This speeds up the subsequent install/test cycle.
 
 To build the installer in test mode go to the installer directory
-``cd /cord/incubator/voltha/install``
+``voltha> cd ~/cord/incubator/voltha/install``
 then type
-``./CreateInstaller.sh test``.
+``voltha> ./CreateInstaller.sh test``.
 
 You will be prompted for a password 3 times early in the installation as the installer bootstraps itself. The password is `vinstall` in each case. After this, the installer can run un-attended for the remainder of the installation.
 
@@ -108,7 +151,7 @@ Once logged into the voltha instance follow the usual procedure to start voltha 
 ### Building the installer in production mode
 Production mode should be used if the installer created is going to be used in a production environment. In this case, an archive file is created that contains the VM image, the KVM xml metadata file for the VM, the private key to access the vM, and a bootstrap script that sets up the VM, fires it up, and logs into it.
 
-The archive file and a script called ``installVoltha.sh`` are both placed in a directory named ``volthaInstaller``. If the resulting archive file is greater than 2G, it's broken into 1.8G parts named ``installer.part<XX>`` where XX is a number starting at 00 and going as high as necessary based on the archive size.
+The archive file and a script called ``deployInstaller.sh`` are both placed in a directory named ``volthaInstaller``. If the resulting archive file is greater than 2G, it's broken into 1.8G parts named ``installer.part<XX>`` where XX is a number starting at 00 and going as high as necessary based on the archive size.
 
 To build the installer in production mode type:
 ``./CreateInstaller.sh``
@@ -119,9 +162,9 @@ This will take a while and when it completes a directory name ``volthaInstaller`
 
 ## Installing Voltha
 
-To install voltha access to a bare metal server running Ubuntu Server 16.04LTS with QEMU/KVM virtualization and OpenSSH installed is required. If the server meets these basic requirements then insert the removable media, mount it, and copy all the files on the media to a directory on the server. Change into that directory and type ``./installVoltha.sh`` which should produce the output shown after the *Note*:
+To install voltha access to a bare metal server running Ubuntu Server 16.04LTS with QEMU/KVM virtualization and OpenSSH installed is required. If the server meets these basic requirements then insert the removable media, mount it, and copy all the files on the media to a directory on the server. Change into that directory and type ``./deployInstaller.sh`` which should produce the output shown after the *Note*:
 
-***Note:*** If you are a tester and are installing to 3 vagrant VMs on the same server as the installer is running and haven't used test mode, please add the network name that your 3 VMs are using to the the `installVoltha.sh` command. In other words your command should be `./installVoltha.sh <network-name>`. The network name for a vagrant VM is typically `vagrant-libvirt` under QEMU/KVM. If in doubt type `virsh net-list` and verify this. If a network is not provided then the `default` network is used and the target machines should be reachable directly from the installer.
+***Note:*** If you are a tester and are installing to 3 vagrant VMs on the same server as the installer is running and haven't used test mode, please add the network name that your 3 VMs are using to the the `deployInstaller.sh` command. In other words your command should be `./deployInstaller.sh <network-name>`. The network name for a vagrant VM is typically `vagrant-libvirt` under QEMU/KVM. If in doubt type `virsh net-list` and verify this. If a network is not provided then the `default` network is used and the target machines should be reachable directly from the installer.
 ```
 Checking for the installer archive installer.tar.bz2
 Checking for the installer archive parts installer.part*

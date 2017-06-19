@@ -4,8 +4,17 @@
 
 [TOC]
 ***
-##Bare Metal Setup
-Start with an installation of Ubuntu16.04LTS on a bare metal server that is capable of virtualization. How to determine this is beyond the scope of this document. When installing the image ensure that both "OpenSSH server" and "Virtualization Machine Host" are chosen in addition to the default "standard system utilities". Once the installation is complete, login to the box and type ``virsh list``. If this doesnt work then you'll need to troubleshoot the installation. If it works, then proceed to the next section.
+### Bare Metal Setup
+The bare metal machine MUST have ubuntu server 16.04 LTS installed with the following packages (and only the following packages) selected during installation:
+```
+[*] standard system utilities
+[*] Virtual Machine host
+[*] OpenSSH server
+```
+This will ensure that the user you've defined during the installation can run the virsh shell as a standard user rather than as the root user. This is necessary to ensure the installer software operates as designed. Please ensure that ubuntu **server** is installed and ***NOT*** ubuntu desktop.
+![Ubuntu Installer Graphic](file:///C:Users/sslobodr/Documents/Works In Progress/2017/voltha/UbuntuInstallLaptop.png)
+
+Start with a clean installation of Ubuntu16.04 LTS on a bare metal server that is capable of virtualization. How to determine this is beyond th scope of this document. Ensure that package selection is as outlined above. Once the installation is complete, login to the box and type ``virsh list``. If this doesnt work then you'll need to troubleshoot the installation. If it works, then proceed to the next section. Please note use exactly `virsh list` ***NOT*** `sudo virsh list`. If  you must use the `sudo`command then the installation was not performed properly and should be repeated. If you're familiar with the KVM environment there are steps to solve this and other issues but this is also beyond the scope of this document. So if unfamiluar with the KVM environment a re-installation exactly as outlined above is required.
 
 ##Create the base ubuntu/xenial box
   Though there are some flavors of ubuntu boxes available but they usually have additional features installed or missing so it's best to just create the image from the ubuntu installation iso image.
@@ -18,7 +27,12 @@ Start with an installation of Ubuntu16.04LTS on a bare metal server that is capa
   voltha> virt-manager
 ```
 Once the virt manager opens, open the console of the Ubuntu16.04 VM and follow the installation process.
-When promprompted use the hostname ``voltha``. Also when prompted you should create one user ``Vagrant Vagrant`` and use the offered up userid of ``vagrant``. When prompted for the password of the vagrant user, use ``vagrant``. When asked if a weak password should be used, select yes. Don't encrypt the home directory. Select the OpenSSH server when prompted for packages to install.
+When promprompted use the hostname ``voltha``. Also when prompted you should create one user ``Vagrant Vagrant`` and use the offered up userid of ``vagrant``. When prompted for the password of the vagrant user, use ``vagrant``. When asked if a weak password should be used, select yes. Don't encrypt the home directory. Select the OpenSSH server when prompted for packages to install. The last 3 lines of your package selection screen should look likethis. Everything above `standard system utilities` should **not** be selected.
+```
+[*] standard system utilities
+[ ] Virtual Machine host
+[*] OpenSSH server
+```
 Once the installation is complete, run the VM and log in as vagrant password vagrant and install the default vagrant key (this can be done one of two ways, through virt-manager and the console or by uing ssh from the hypervisor host, the virt-manager method is shown below):
 ```
 vagrant@voltha$ mkdir -p /home/vagrant/.ssh
@@ -142,7 +156,7 @@ voltha>  repo sync
 ## Run vagrant to Create a Voltha VM
 First create the voltah VM using vagrant.
 ```
-voltha> cd cord/incubator/voltha
+voltha> cd ~/cord/incubator/voltha
 voltha> vagrant up
 ```
 Finally, log into the vm using vagrant.

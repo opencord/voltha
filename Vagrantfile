@@ -23,9 +23,9 @@ Vagrant.configure(2) do |config|
       puts("Using the QEMU/KVM configuration");
       Box = "ubuntu1604"
       Provider = "libvirt"
-      if settings['testMode'] == "true"
+      if settings['testMode'] == "true" or settings['installMode'] == "true"
           config.vm.synced_folder ".", "/vagrant", disabled: true
-          config.vm.synced_folder "../..", "/cord", type: "rsync", rsync__exclude: [".git", "venv-linux"]
+          config.vm.synced_folder "../..", "/cord", type: "rsync", rsync__exclude: [".git", "venv-linux", "install/volthaInstaller", "install/volthaInstaller-2"], rsync__args: ["--verbose", "--archive", "--delete", "-z", "--links"]
       else
           config.vm.synced_folder "../..", "/cord", type: "nfs"
       end
