@@ -29,3 +29,7 @@ class Asfvolt16Adapter(IAdapter):
                                                version='0.1')
         # register for adapter messages
         self.adapter_agent.register_for_inter_adapter_messages()
+        self.device_handler_class = Asfvolt16Handler
+
+class Asfvolt16Handler(object):
+    pass

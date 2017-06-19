@@ -42,54 +42,13 @@ class PonSimOnuAdapter(IAdapter):
     def __init__(self, adapter_agent, config):
         super(PonSimOnuAdapter, self).__init__(adapter_agent=adapter_agent,
                                                config=config,
+                                               device_handler_class = PonSimOnuHandler,
                                                name='ponsim_onu',
                                                vendor='Voltha project',
                                                version='0.4')
-        self.devices_handlers = dict()  # device_id -> PonSimOltHandler()
-
-    def adopt_device(self, device):
-        self.devices_handlers[device.id] = PonSimOnuHandler(self, device.id)
-        reactor.callLater(0, self.devices_handlers[device.id].activate, device)
-        return device
-
-    def reconcile_device(self, device):
-        self.devices_handlers[device.id] = PonSimOnuHandler(self, device.id)
-        # Reconcile only if state was ENABLED
-        if device.admin_state == AdminState.ENABLED:
-            reactor.callLater(0,
-                              self.devices_handlers[device.id].reconcile,
-                              device)
-        return device
-
-    def disable_device(self, device):
-        log.info('disable-device', device_id=device.id)
-        reactor.callLater(0, self.devices_handlers[device.id].disable)
-        return device
-
-    def reenable_device(self, device):
-        log.info('reenable-device', device_id=device.id)
-        reactor.callLater(0, self.devices_handlers[device.id].reenable)
-        return device
-
-    def reboot_device(self, device):
-        log.info('rebooting', device_id=device.id)
-        reactor.callLater(0, self.devices_handlers[device.id].reboot)
-        return device
-
-    def delete_device(self, device):
-        log.info('delete-device', device_id=device.id)
-        reactor.callLater(0, self.devices_handlers[device.id].delete)
-        return device
 
     def get_device_details(self, device):
         raise NotImplementedError()
-
-    def update_flows_bulk(self, device, flows, groups):
-        log.info('bulk-flow-update', device_id=device.id,
-                 flows=flows, groups=groups)
-        assert len(groups.items) == 0
-        handler = self.devices_handlers[device.id]
-        return handler.update_flow_table(flows.items)
 
     def send_proxied_message(self, proxy_address, msg):
         log.info('send-proxied-message', proxy_address=proxy_address, msg=msg)
