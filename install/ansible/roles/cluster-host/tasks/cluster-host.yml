@@ -78,7 +78,7 @@
   tags: [cluster_host]
 
 - name: Dependent software is initialized
-  command: apt-get -f install
+  command: apt-get -y -f install
   when: target == "cluster"
   tags: [cluster_host]
 
