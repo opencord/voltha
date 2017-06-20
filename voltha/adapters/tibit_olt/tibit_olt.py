@@ -52,7 +52,7 @@ from voltha.extensions.eoam.EOAM import RxedOamMsgTypeEnum, Dpoe_Opcodes, get_oa
     handle_get_value, get_value_from_msg, check_set_resp, check_resp
 
 from voltha.extensions.eoam.EOAM_TLV import DOLTObject, \
-     NetworkToNetworkPortObject, OLTUnicastLogicalLink, \
+     NetworkToNetworkPortObject, OLTUnicastLogicalLink, OLTEPONUnicastLogicalLink, \
      PortIngressRuleClauseMatchLength01, AddStaticMacAddress, \
      PortIngressRuleClauseMatchLength02, PortIngressRuleResultForward, \
      PortIngressRuleResultSet, PortIngressRuleResultInsert, \
@@ -402,7 +402,7 @@ class TibitOltAdapter(object):
                             resultOltQueue = "PortIngressRuleResultOLTQueue(unicastvssn=vssn, unicastlink=link)"
                         else:                       # EPON
                             vssn = int(onu_mac_string[0:8].rjust(8,"0"), 16)
-                            link = int((onu_mac_string[8:10]+"02").ljust(8,"0"), 16)
+                            link = int((onu_mac_string[8:12]).ljust(8,"0"), 16)
                             resultOltQueue = "PortIngressRuleResultOLTEPONQueue(unicastvssn=vssn, unicastlink=link)"
 
                         packet_out_rule = (
@@ -438,7 +438,6 @@ class TibitOltAdapter(object):
                             # later use.  The linkid is the macid returned.
 
                             self.vlan_to_device_ids[vlan_id] = (device.id, device.parent_id, linkAddr)
-
 
                             self.adapter_agent.child_device_detected(
                                 parent_device_id=device.id,
@@ -642,15 +641,18 @@ class TibitOltAdapter(object):
         if self.mode.upper()[0] == "G":  # GPON
             vssn = "TBIT"
             link = int(onu_mac_address[4:12], 16)
+            logical_link = "OLTUnicastLogicalLink(unicastvssn=vssn, unicastlink=link)"
         else:                       # EPON
             vssn = int(onu_mac_address[0:8].rjust(8,"0"), 16)
-            link = int((onu_mac_address[8:10]+"02").ljust(8,"0"), 16)
+            link = int((onu_mac_address[8:12]).ljust(8,"0"), 16)
+            logical_link = "OLTEPONUnicastLogicalLink(unicastvssn=vssn, unicastlink=link)"
+
         frame = (
             Ether(dst=olt_mac_address) /
             Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) /
             EOAMPayload() / EOAM_VendSpecificMsg(oui=Tibit_OUI) /
             EOAM_TibitMsg(dpoe_opcode=Dpoe_Opcodes["Get Request"],
-                          body=OLTUnicastLogicalLink(unicastvssn=vssn, unicastlink=link)/
+                          body=eval(logical_link)/
                                 #RxFramesGreen()/
                                 #TxFramesGreen()/
                                 RxFrame_64()/
@@ -866,7 +868,7 @@ class TibitOltAdapter(object):
                                     resultOltQueue = "PortIngressRuleResultOLTQueue(unicastvssn=vssn, unicastlink=link)"
                                 else:                       # EPON
                                     vssn = int(mac_address[0:8].rjust(8,"0"), 16)
-                                    link = int((mac_address[8:10]+"02").ljust(8,"0"), 16)
+                                    link = int((mac_address[8:12]).ljust(8,"0"), 16)
                                     resultOltQueue = "PortIngressRuleResultOLTEPONQueue(unicastvssn=vssn, unicastlink=link)"
 
                                 dn_req /= eval(resultOltQueue)
@@ -988,7 +990,7 @@ class TibitOltAdapter(object):
                                 logical_link = "OLTUnicastLogicalLink(unicastvssn=vssn, unicastlink=link)"
                             else:                       # EPON
                                 vssn = int(mac_address[0:8].rjust(8,"0"), 16)
-                                link = int((mac_address[8:10]+"02").ljust(8,"0"), 16)
+                                link = int((mac_address[8:12]).ljust(8,"0"), 16)
                                 logical_link = "OLTEPONUnicastLogicalLink(unicastvssn=vssn, unicastlink=link)"
 
                             up_req_link /= eval(logical_link)
