@@ -177,6 +177,7 @@ fetch:
 	docker pull ubuntu:xenial
 	docker pull wurstmeister/kafka:latest
 	docker pull wurstmeister/zookeeper:latest
+	docker pull zookeeper:latest
 	docker pull nginx:latest
 	docker pull portainer/portainer:latest
 
