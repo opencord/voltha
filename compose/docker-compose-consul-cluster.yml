@@ -1,0 +1,62 @@
+version: "3"
+services:
+
+#
+# Deploying a Consul cluster using this file assumes that overlay network 'voltha_net'
+# has already been created. To deploy the cluster, issue the command:
+#
+#     docker stack deploy -c docker-compose-consul-cluster.yml consul
+#
+# This command will create overlay network 'consul_net'.
+#
+
+  consul:
+    image: consul:latest
+
+    # Deploy to all docker manager nodes
+    deploy:
+      mode: global
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+    environment:
+      CONSUL_LOCAL_CONFIG: "{disable_update_check: true}"
+      CONSUL_BIND_INTERFACE: eth0
+    entrypoint:
+      - consul
+      - agent
+      - -server
+      - -bootstrap-expect=3
+      - -config-dir=/consul/config
+      - -data-dir=/consul/data              # mandatory property
+      - -bind={{ GetInterfaceIP "eth0" }}
+      - -client=0.0.0.0
+      - -ui
+      - -retry-join=10.10.10.2
+      - -retry-join=10.10.10.3
+      - -retry-join=10.10.10.4
+      - -retry-join=10.10.10.5
+      - -retry-join=10.10.10.6
+      - -retry-join=10.10.10.7
+    networks:
+      - net
+      - voltha-net
+    ports:
+      - "8300:8300"
+      - "8400:8400"
+      - "8500:8500"
+      - "8600:8600/udp"
+
+networks:
+  net:
+    driver: overlay
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.10.10.0/29
+  voltha-net:
+    external:
+      name: voltha_net
+
