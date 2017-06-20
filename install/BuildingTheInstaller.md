@@ -44,7 +44,7 @@ vinstall@vinstall$ sudo mkdir /root/.ssh
 ```
 Add a vinstall file to /etc/sudoers.d/vinstall with the following:
 ```
-vinstallvinstallvoltha$ echo "vinstall ALL=(ALL) NOPASSWD:ALL" > tmp.sudo
+vinstall@vinstall$ echo "vinstall ALL=(ALL) NOPASSWD:ALL" > tmp.sudo
 vinstall@vinstall$ sudo chown root.root tmp.sudo
 vinstall@vinstall$ sudo mv tmp.sudo /etc/sudoers.d/vinstall
 ```
@@ -111,7 +111,19 @@ voltha> vagrant ssh
 If you were able to start the voltha VM using Vagrant you can proceed to the next step. If you weren't able to start a voltha VM using vagrant please troubleshoot the issue before proceeding any further.
 
 ## Building the Installer
-Before building the installer, destroy any running voltha VM by first ensuring your config file `settings.vagrant.yaml` is set as specified above then peforming the following:
+Before you begin please ensure that the following information exists in `~/.ssh/config`:
+```
+Host *
+        StrictHostKeyChecking no
+        UserKnownHostsFile /dev/null
+```
+
+Also please copy the ansible configuration to `~/.ansible.cfg`:
+```
+cp ~/cord/incubator/voltha/install/ansible/ansible.cfg ~/.ansible.cfg
+```
+
+Also destroy any running voltha VM by first ensuring your config file `settings.vagrant.yaml` is set as specified above then peforming the following:
 
 ```
 voltha> cd ~/cord/incubator/voltha
