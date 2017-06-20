@@ -123,6 +123,8 @@ Also please copy the ansible configuration to `~/.ansible.cfg`:
 cp ~/cord/incubator/voltha/install/ansible/ansible.cfg ~/.ansible.cfg
 ```
 
+Also please change the value of the `cord_home` variable in the `install/ansible/group_vars/all` to refer to the location of your cord directory. This is usually in your home directory but it can be anywhere so the installer can't guess at it.
+
 Also destroy any running voltha VM by first ensuring your config file `settings.vagrant.yaml` is set as specified above then peforming the following:
 
 ```
