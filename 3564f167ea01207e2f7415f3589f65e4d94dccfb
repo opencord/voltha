@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a0e1d27_8fc1e0e6",
+        "filename": "compose/docker-compose-kafka-cluster.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 57,
+      "author": {
+        "id": 1000196
+      },
+      "writtenOn": "2017-06-20T16:01:48Z",
+      "side": 1,
+      "message": "I believe you have to add voltha_net as an external network so that voltha can communicate with the kafka instances.",
+      "range": {
+        "startLine": 57,
+        "startChar": 0,
+        "endLine": 57,
+        "endChar": 8
+      },
+      "revId": "3564f167ea01207e2f7415f3589f65e4d94dccfb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
