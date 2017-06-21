@@ -77,4 +77,5 @@ service Bal {
      **/
     rpc BalCfgSet(BalCfg) returns(BalErr) {}
     rpc BalCfgClear(BalKey) returns(BalErr) {}
+    rpc BalCfgGet(BalKey) returns(BalCfg) {}
 }
