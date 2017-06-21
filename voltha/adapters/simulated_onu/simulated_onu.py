@@ -20,6 +20,7 @@ Mock device adapter for testing.
 from uuid import uuid4
 
 import structlog
+import datetime
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, DeferredQueue
 from zope.interface import implementer
@@ -29,7 +30,8 @@ from voltha.adapters.interface import IAdapterInterface
 from voltha.core.flow_decomposer import *
 from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.protos.adapter_pb2 import Adapter, AdapterConfig
-from voltha.protos.device_pb2 import DeviceType, DeviceTypes, Device, Port
+from voltha.protos.device_pb2 import DeviceType, DeviceTypes, Device, Port, \
+     SoftwareImage
 from voltha.protos.health_pb2 import HealthStatus
 from voltha.protos.common_pb2 import LogLevel, OperStatus, ConnectStatus, \
     AdminState
@@ -131,6 +133,24 @@ class SimulatedOnuAdapter(object):
         device.software_version = '1.0'
         device.serial_number = uuid4().hex
         device.connect_status = ConnectStatus.REACHABLE
+
+        image1 = SoftwareImage(software_patch_name="onu_candidate1",
+                               software_version=device.software_version,
+                               hash="1234567892",
+                               install_datetime=datetime.datetime.utcnow().isoformat(),
+                               is_active=True,
+                               is_committed=True,
+                               is_valid=True)
+        image2 = SoftwareImage(software_patch_name="onu_candidate2",
+                               software_version=device.software_version,
+                               hash="1234567893",
+                               install_datetime=datetime.datetime.utcnow().isoformat(),
+                               is_active=False,
+                               is_committed=False,
+                               is_valid=True)
+
+        device.image_list.image.extend([image1, image2])
+
         self.adapter_agent.update_device(device)
 
         # then shortly after we create some ports for the device

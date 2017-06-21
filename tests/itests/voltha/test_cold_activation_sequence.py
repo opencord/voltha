@@ -82,7 +82,11 @@ class TestColdActivationSequence(RestBase):
             lambda: self.get(path)['oper_status'] == 'ACTIVE',
             timeout=0.5)
         device = self.get(path)
-        self.assertNotEqual(device['software_version'], '')
+        software_image_list = device['image_list']
+        software_image = software_image_list['image']
+        image_1 = software_image[0]
+        software_version = image_1['software_version']
+        self.assertNotEqual(software_version, '')
         self.assertEqual(device['connect_status'], 'REACHABLE')
 
         ports = self.get(path + '/ports')['items']
