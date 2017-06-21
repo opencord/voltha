@@ -32,7 +32,7 @@ from voltha.protos import third_party
 from voltha.protos.adapter_pb2 import Adapter
 from voltha.protos.adapter_pb2 import AdapterConfig
 from voltha.protos.common_pb2 import LogLevel, ConnectStatus, AdminState, OperStatus
-from voltha.protos.device_pb2 import DeviceType, DeviceTypes, Port
+from voltha.protos.device_pb2 import DeviceType, DeviceTypes, Port, Image
 from voltha.protos.health_pb2 import HealthStatus
 from voltha.protos.logical_device_pb2 import LogicalPort
 from voltha.protos.openflow_13_pb2 import OFPPF_1GB_FD, OFPPF_FIBER, ofp_port, OFPPS_LIVE
@@ -164,7 +164,9 @@ class PmcsOnu(object):
         device.model = 'GPON ONU'
         device.hardware_version = 'tbd'
         device.firmware_version = 'tbd'
-        device.software_version = 'tbd'
+        device.images.image.extend([
+                                     Image(version="tbd")
+                                   ])
 
         device.connect_status = ConnectStatus.REACHABLE
 

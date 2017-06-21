@@ -21,6 +21,7 @@ from uuid import uuid4
 
 import arrow
 import structlog
+import datetime
 from klein import Klein
 from scapy.layers.l2 import Ether, EAPOL, Padding
 from twisted.internet import endpoints
@@ -36,7 +37,7 @@ from voltha.core.flow_decomposer import *
 from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.protos.adapter_pb2 import Adapter, AdapterConfig
 from voltha.protos.device_pb2 import DeviceType, DeviceTypes, Device, Port, \
-PmConfigs, PmConfig, PmGroupConfig
+PmConfigs, PmConfig, PmGroupConfig, Image
 from voltha.protos.events_pb2 import KpiEvent, KpiEventType, MetricValuePairs
 from voltha.protos.health_pb2 import HealthStatus
 from voltha.protos.common_pb2 import LogLevel, OperStatus, ConnectStatus, \
@@ -382,9 +383,26 @@ class SimulatedOltAdapter(object):
         device.model = 'n/a'
         device.hardware_version = 'n/a'
         device.firmware_version = 'n/a'
-        device.software_version = '1.0'
         device.serial_number = uuid4().hex
         device.connect_status = ConnectStatus.REACHABLE
+
+        image1 = Image(name="olt_candidate1",
+                       version="1.0",
+                       hash="",
+                       install_datetime=datetime.datetime.utcnow().isoformat(),
+                       is_active=True,
+                       is_committed=True,
+                       is_valid=True)
+
+        image2 = Image(name="olt_candidate2",
+                       version="1.0",
+                       hash="",
+                       install_datetime=datetime.datetime.utcnow().isoformat(),
+                       is_active=False,
+                       is_committed=False,
+                       is_valid=True)
+
+        device.images.image.extend([image1, image2])
 
         self.adapter_agent.update_device(device)
 

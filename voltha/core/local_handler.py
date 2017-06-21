@@ -30,7 +30,7 @@ from voltha.protos.voltha_pb2 import \
     LogicalPorts, Devices, Device, DeviceType, \
     DeviceTypes, DeviceGroups, DeviceGroup, AdminState, OperStatus, ChangeEvent, \
     AlarmFilter, AlarmFilters
-from voltha.protos.device_pb2 import PmConfigs
+from voltha.protos.device_pb2 import PmConfigs, Images
 from voltha.registry import registry
 
 log = structlog.get_logger()
@@ -688,3 +688,23 @@ class LocalHandler(VolthaLocalServiceServicer):
                 'Alarm filter \'{}\' not found'.format(request.id))
             context.set_code(StatusCode.NOT_FOUND)
             return AlarmFilter()
+
+    @twisted_async
+    def GetImages(self, request, context):
+        log.info('grpc-request', request=request)
+
+        if '/' in request.id:
+            context.set_details(
+                'Malformed device id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return Images()
+
+        try:
+            device = self.root.get('/devices/' + request.id)
+            return device.images
+
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return Images()

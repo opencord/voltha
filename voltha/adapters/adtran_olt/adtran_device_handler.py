@@ -30,6 +30,7 @@ from voltha.protos import third_party
 from voltha.protos.common_pb2 import OperStatus, AdminState, ConnectStatus
 from voltha.protos.events_pb2 import AlarmEventType, \
     AlarmEventSeverity, AlarmEventState, AlarmEventCategory
+from voltha.protos.device_pb2 import Image
 from voltha.protos.logical_device_pb2 import LogicalDevice
 from voltha.protos.openflow_13_pb2 import ofp_desc, ofp_switch_features, OFPC_PORT_STATS, \
     OFPC_GROUP_STATS, OFPC_TABLE_STATS, OFPC_FLOW_STATS
@@ -175,7 +176,9 @@ class AdtranDeviceHandler(object):
             device.model = 'TODO: Adtran PizzaBox, YUM'
             device.hardware_version = 'TODO: H/W Version'
             device.firmware_version = 'TODO: S/W Version'
-            device.software_version = 'TODO: S/W Version'
+            device.images.image.extend([
+                                         Image(version="TODO: S/W Version")
+                                       ])
             device.serial_number = 'TODO: Serial Number'
 
             device.root = True
@@ -219,11 +222,16 @@ class AdtranDeviceHandler(object):
             # Complete activation by setting up logical device for this OLT and saving
             # off the devices parent_id
 
+            # There could be multiple software version on the device,
+            # active, standby etc. Choose the active or running software
+            # below. See simulated_olt for example implementation
+            version = device.images.image[0].version
+
             ld = LogicalDevice(
                 # NOTE: not setting id and datapath_id will let the adapter agent pick id
                 desc=ofp_desc(mfr_desc=device.vendor,
                               hw_desc=device.hardware_version,
-                              sw_desc=device.software_version,
+                              sw_desc=version,
                               serial_num=device.serial_number,
                               dp_desc='n/a'),
                 switch_features=ofp_switch_features(n_buffers=256,  # TODO fake for now

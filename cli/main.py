@@ -174,7 +174,7 @@ class VolthaCli(Cmd):
             'vendor',
             'model',
             'hardware_version',
-            'software_version',
+            'images',
             'firmware_version',
             'serial_number'
         }
