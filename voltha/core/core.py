@@ -182,7 +182,10 @@ class VolthaCore(object):
     @inlineCallbacks
     def _handle_remove_device(self, device):
         if device.id in self.device_agents:
-            AlarmFilterAgent(self).remove_device_filters(device)
+            if self.alarm_filter_agent is not None:
+                self.alarm_filter_agent.remove_device_filters(device)
+
+            log.debug('removed-device-filter', device)
 
             yield self.device_agents[device.id].stop(device)
             del self.device_agents[device.id]
@@ -223,9 +226,14 @@ class VolthaCore(object):
     @inlineCallbacks
     def _handle_add_alarm_filter(self, alarm_filter):
         assert isinstance(alarm_filter, AlarmFilter)
-        yield AlarmFilterAgent(self).add_filter(alarm_filter)
+        # Create an agent if it does not yet exist
+        if self.alarm_filter_agent is None:
+            self.alarm_filter_agent = AlarmFilterAgent(self)
+
+        yield self.alarm_filter_agent.add_filter(alarm_filter)
 
     @inlineCallbacks
     def _handle_remove_alarm_filter(self, alarm_filter):
         assert isinstance(alarm_filter, AlarmFilter)
-        yield AlarmFilterAgent(self).remove_filter(alarm_filter)
+        if self.alarm_filter_agent is not None:
+            yield self.alarm_filter_agent.remove_filter(alarm_filter)

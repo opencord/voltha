@@ -40,7 +40,6 @@ class AlarmFilterAgent(object):
 
         self.log = structlog.get_logger()
 
-    @inlineCallbacks
     def add_filter(self, alarm_filter):
         self.log.debug('starting')
 
@@ -52,15 +51,16 @@ class AlarmFilterAgent(object):
         self.self_proxies[alarm_filter.id].register_callback(
             CallbackType.POST_UPDATE, self._process_filter)
 
-        yield self._process_filter(alarm_filter)
+        self._process_filter(alarm_filter)
 
         self.log.info('started')
 
-    @inlineCallbacks
+        return self
+
     def remove_filter(self, alarm_filter):
         self.log.debug('stopping')
 
-        yield self._review_filter(alarm_filter)
+        self._review_filter(alarm_filter, teardown=True)
 
         self.self_proxies[alarm_filter.id].unregister_callback(
             CallbackType.PRE_UPDATE, self._review_filter)
@@ -83,11 +83,12 @@ class AlarmFilterAgent(object):
 
         self.log.debug('cleaned')
 
-    def _review_filter(self, alarm_filter=None):
+    def _review_filter(self, alarm_filter=None, teardown=False):
         # UPDATE scenario:
         #
         # When a filter is updated, we need to review the content of the previous filter
-        # to ensure that nothing is left un-managed and not cleaned up.
+        # to ensure that nothing is left un-managed and not cleaned up.  If the filter
+        # actually changed, it will be re-applied (including suppression)
         #
         # TEAR DOWN scenario:
         # When a filter is deleted, we need to go through the rules
@@ -96,11 +97,10 @@ class AlarmFilterAgent(object):
         if alarm_filter is not None:
             current_filter = self.self_proxies[alarm_filter.id].get()
 
-            # Find any device id rules contained in the filter that might have changed
-            rules_to_clean = [r for r in current_filter.rules if
-                              r.key == AlarmFilterRuleKey.device_id and r not in alarm_filter.rules]
+            # Find any rules contained in the filter that might have changed
+            rules_to_clean = [r for r in current_filter.rules if r not in alarm_filter.rules]
 
-            if not rules_to_clean:
+            if not rules_to_clean and not teardown:
                 # There are no rules from the current filter that require a clean up
                 return
 
