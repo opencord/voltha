@@ -18,7 +18,7 @@ import structlog
 
 from voltha.adapters.microsemi_olt.PAS5211 import CHANNELS
 from voltha.protos.common_pb2 import ConnectStatus, OperStatus, AdminState
-from voltha.protos.device_pb2 import Device, Port
+from voltha.protos.device_pb2 import Device, Port, Image
 from voltha.protos.logical_device_pb2 import LogicalDevice, LogicalPort
 from voltha.protos.openflow_13_pb2 import ofp_desc, ofp_switch_features, OFPC_FLOW_STATS, OFPC_TABLE_STATS, \
     OFPC_PORT_STATS, OFPC_GROUP_STATS, ofp_port, OFPPS_LIVE, OFPPF_10GB_FD, OFPPF_FIBER
@@ -50,7 +50,13 @@ class DeviceManager(object):
         self.device.firmware_version = '{}.{}.{}'.format(pkt.major_firmware_version,
                                                          pkt.minor_firmware_version,
                                                          pkt.build_firmware_version)
-        self.device.software_version = '0.0.1'
+
+        # There could be multiple software version on the device,
+        # active, standby etc. Choose the active or running software
+        # below. See simulated_olt for example implementation
+        self.device.images.image.extend([
+                                          Image(version="0.0.1")
+                                        ])
         self.device.serial_number = self.device.mac_address
         self.device.oper_status = ConnectStatus.REACHABLE
         self.adapter_agent.update_device(self.device)

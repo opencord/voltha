@@ -32,7 +32,7 @@ from voltha.protos.adapter_pb2 import Adapter
 from voltha.protos.adapter_pb2 import AdapterConfig
 from voltha.protos.common_pb2 import LogLevel, OperStatus, ConnectStatus, \
     AdminState
-from voltha.protos.device_pb2 import DeviceType, DeviceTypes, Port
+from voltha.protos.device_pb2 import DeviceType, DeviceTypes, Port, Image
 from voltha.protos.health_pb2 import HealthStatus
 from voltha.protos.logical_device_pb2 import LogicalPort
 from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, OFPPF_1GB_FD
@@ -244,7 +244,9 @@ class BroadcomOnuHandler(object):
         device.model = 'n/a'
         device.hardware_version = 'to be filled'
         device.firmware_version = 'to be filled'
-        device.software_version = 'to be filled'
+        device.images.image.extend([
+                                        Image(version="to be filled")
+                                       ])
         device.connect_status = ConnectStatus.REACHABLE
         self.adapter_agent.update_device(device)
 

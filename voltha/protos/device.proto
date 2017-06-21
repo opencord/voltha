@@ -59,6 +59,37 @@ message PmConfigs {
     repeated PmConfig metrics = 6; // The metrics themselves if grouped is false.
 }
 
+// Describes instance of software image on the device
+message Image {
+    string name = 1;                // software patch name
+    string version = 2;             // version of software
+    string hash = 3;                // md5 hash
+    string install_datetime = 4;    // combined date and time expressed in UTC.
+                                    // use ISO 8601 format for date and time
+
+    // The active software image is one that is currently loaded and executing
+    // in the ONU or circuit pack. Under normal operation, one software image
+    // is always active while the other is inactive. Under no circumstances are
+    // both software images allowed to be active at the same time
+    bool is_active = 5;             // True if the image is active
+
+    // The committed software image is loaded and executed upon reboot of the
+    // ONU and/or circuit pack. During normal operation, one software image is
+    // always committed, while the other is uncommitted.
+    bool is_committed = 6;          // True if the image is committed
+
+    // A software image is valid if it has been verified to be an executable
+    // code image. The verification mechanism is not subject to standardization;
+    // however, it should include at least a data integrity (e.g., CRC) check of
+    // the entire code image.
+    bool is_valid = 7;              // True if the image is valid
+}
+
+// List of software on the device
+message Images {
+    repeated Image image = 1;
+}
+
 message Port {
     option (voltha.yang_child_rule) = MOVE_TO_PARENT_LEVEL;
 
@@ -118,7 +149,8 @@ message Device {
     string model = 6 [(access) = READ_ONLY];
     string hardware_version = 7 [(access) = READ_ONLY];
     string firmware_version = 8 [(access) = READ_ONLY];
-    string software_version = 9 [(access) = READ_ONLY];
+    // List of software on the device
+    Images images = 9 [(access) = READ_ONLY];
     string serial_number = 10 [(access) = READ_ONLY];
 
     // Addapter that takes care of device

@@ -91,7 +91,7 @@ from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.protos.adapter_pb2 import Adapter, AdapterConfig
 from voltha.protos.common_pb2 import LogLevel, ConnectStatus
 from voltha.protos.common_pb2 import OperStatus, AdminState
-from voltha.protos.device_pb2 import Device, Port
+from voltha.protos.device_pb2 import Device, Port, Image
 from voltha.protos.device_pb2 import DeviceType, DeviceTypes
 from voltha.protos.events_pb2 import KpiEvent, MetricValuePairs
 from voltha.protos.events_pb2 import KpiEventType
@@ -260,11 +260,17 @@ class TibitOltAdapter(object):
             log.info('create-logical-device')
             # then shortly after we create the logical device with one port
             # that will correspond to the NNI port
+
+            # There could be multiple software version on the device,
+            # active, standby etc. Choose the active or running software
+            # below. See simulated_olt for example implementation
+            version = device.images.image[0].version
+
             ld = LogicalDevice(
                 desc=ofp_desc(
                     mfr_desc=device.vendor,
                     hw_desc=device.hardware_version,
-                    sw_desc=device.software_version,
+                    sw_desc=version,
                     serial_num=uuid4().hex,
                     dp_desc='n/a'
                 ),
@@ -616,11 +622,16 @@ class TibitOltAdapter(object):
         if manufacturer[rc]:
             manu_value = manufacturer.pop()
             device.firmware_version = re.search('\Firmware: (.+?) ', manu_value).group(1)
-            device.software_version = re.search('\Build: (.+?) ', manu_value).group(1)
+            # There could be multiple software versions on the device (one active, other
+            # standby etc.). Look for simulated_olt for example implementation.
+            image_1 = Image(version = \
+                                  re.search('\Build: (.+?) ', manu_value).group(1))
+            device.images.image.extend([ image_1 ])
             device.serial_number = re.search('\Serial #: (.+?) ', manu_value).group(1)
         else:
             device.firmware_version = "UNKNOWN"
-            device.software_version = "UNKNOWN"
+            image_1 = Image(version="UNKNOWN")
+            device.images.image.extend([ image_1 ])
             device.serial_number = "UNKNOWN"
         device.root = True
         device.connect_status = ConnectStatus.REACHABLE

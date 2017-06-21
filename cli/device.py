@@ -336,3 +336,10 @@ individual metrics.
             groups=device['flow_groups']['items']
         )
 
+    def do_images(self, line):
+        """Show software images on the device"""
+        device = self.get_device(depth=-1)
+        omit_fields = {}
+        print_pb_list_as_table('Software Images:', device.images.image,
+                               omit_fields, self.poutput, show_nulls=True)
+

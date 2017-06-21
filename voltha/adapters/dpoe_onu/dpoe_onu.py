@@ -37,7 +37,7 @@ from voltha.core.logical_device_agent import mac_str_to_tuple
 
 from voltha.adapters.interface import IAdapterInterface
 from voltha.protos.adapter_pb2 import Adapter, AdapterConfig
-from voltha.protos.device_pb2 import Port
+from voltha.protos.device_pb2 import Port, Image
 from voltha.protos.device_pb2 import DeviceType, DeviceTypes
 from voltha.protos.health_pb2 import HealthStatus
 from voltha.protos.common_pb2 import LogLevel, ConnectStatus
@@ -131,7 +131,12 @@ class DPoEOnuAdapter(object):
         device.model = '10G EPON ONU'
         device.hardware_version = 'fa161020'
         device.firmware_version = '16.12.02'
-        device.software_version = '1.0'
+
+        # There could be multiple software versions on the device (one active, other
+        # standby etc.). Look for simulated_olt for example implementation.
+        device.images.image.extend([
+                                     Image(version="1.0")
+                                   ])
         device.serial_number = uuid4().hex
         device.connect_status = ConnectStatus.REACHABLE
         self.adapter_agent.update_device(device)

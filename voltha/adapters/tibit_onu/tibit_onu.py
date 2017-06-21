@@ -40,7 +40,7 @@ from voltha.core.logical_device_agent import mac_str_to_tuple
 from common.frameio.frameio import BpfProgramFilter, hexify
 from voltha.adapters.interface import IAdapterInterface
 from voltha.protos.adapter_pb2 import Adapter, AdapterConfig
-from voltha.protos.device_pb2 import Port
+from voltha.protos.device_pb2 import Port, Image
 from voltha.protos.device_pb2 import DeviceType, DeviceTypes
 from voltha.protos.events_pb2 import KpiEventType
 from voltha.protos.events_pb2 import MetricValuePairs, KpiEvent
@@ -802,11 +802,14 @@ class TibitOnuAdapter(object):
         if manufacturer[rc]:
             manu_value = manufacturer.pop()
             device.firmware_version = re.search('\Firmware: (.+?) ', manu_value).group(1)
-            device.software_version = re.search('\Build: (.+?) ', manu_value).group(1)
+            image_1 = Image(version = \
+                                    re.search('\Build: (.+?) ', manu_value).group(1))
+            device.images.image.extend([ image_1 ])
             device.serial_number = re.search('\Serial #: (.+?) ', manu_value).group(1)
         else:
             device.firmware_version = "UNKNOWN"
-            device.software_version = "UNKNOWN"
+            image_1 = Image(version="UNKNOWN")
+            device.images.image.extend([ image_1 ])
             device.serial_number = "UNKNOWN"
 
         device.connect_status = ConnectStatus.REACHABLE
