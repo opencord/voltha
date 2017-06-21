@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a0e1d27_caeea6b4",
+        "filename": "voltha/core/local_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 710,
+      "author": {
+        "id": 1000217
+      },
+      "writtenOn": "2017-06-21T21:04:01Z",
+      "side": 1,
+      "message": "shall we consider adding CLI and Adapter Interface for this call?",
+      "range": {
+        "startLine": 693,
+        "startChar": 4,
+        "endLine": 710,
+        "endChar": 38
+      },
+      "revId": "d00f020db7a94c86b51d8509e02a19a135e47fd4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
