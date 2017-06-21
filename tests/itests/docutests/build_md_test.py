@@ -113,6 +113,15 @@ command_defs = dict(
 class BuildMdTests(TestCase):
     # docker_client = Client(base_url='unix://var/run/docker.sock')
 
+    def wait_till(self, msg, predicate, interval=0.1, timeout=5.0):
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            if predicate():
+                return
+            time.sleep(interval)
+        self.fail('Timed out while waiting for condition: {}'.format(msg))
+
+
     def test_01_setup(self):
         print "Test_01_setup_Start:------------------"
         t0 = time.time()
@@ -352,6 +361,12 @@ class BuildMdTests(TestCase):
         print "Test_07_start_all_containers_Start:------------------ "
         t0 = time.time()
 
+        def is_voltha_ensemble_ready():
+            res =  verify_all_services_healthy(LOCAL_CONSUL)
+            if not res:
+                print "Not all consul services are ready ..."
+            return res
+
         try:
             # Pre-test - clean up all running docker containers
             print "Pre-test: Removing all running containers ..."
@@ -372,12 +387,14 @@ class BuildMdTests(TestCase):
             out, err, rc = run_command_to_completion_with_raw_stdout(cmd)
             self.assertEqual(rc, 0)
 
+            # Instead of using only a fixed timeout:
+            #   1) wait until the services are ready (polling per second)
+            #   2) bail out after a longer timeout.
             print "Waiting for all containers to be ready ..."
-            time.sleep(10)
-            rc = verify_all_services_healthy(LOCAL_CONSUL)
-            if not  rc:
-                print "Not all services are up"
-            self.assertEqual(rc, True)
+            self.wait_till('Not all services are up',
+                           is_voltha_ensemble_ready,
+                           interval=1,
+                           timeout=30)
 
             # verify that all containers are running
             print "Verify all services are running using docker command ..."
@@ -461,7 +478,7 @@ class BuildMdTests(TestCase):
             self.assertTrue(found)
 
             print "Verify kafka client is receiving the heartbeat messages from voltha..."
-            expected_pattern = ['heartbeat', 'compose_voltha_1']
+            expected_pattern = ['heartbeat', 'voltha_instance']
             cmd = command_defs['kafka_client_heart_check'].format(kafka_endpoint)
             kafka_client_output = run_long_running_command_with_timeout(cmd, 20)
 
