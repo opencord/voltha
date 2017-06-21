@@ -58,6 +58,8 @@ services:
 networks:
     net:
         driver: overlay
+        driver_opts:
+           encrypted: "true"
 
     voltha-net:
         external:
