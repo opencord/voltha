@@ -158,17 +158,17 @@
   tags: [voltha]
 
 - name: consul overlay network exists
-  command: docker network create --driver overlay --subnet 10.10.10.0/29 consul_net
+  command: docker network create --opt encrypted=true --driver overlay --subnet 10.10.10.0/29 consul_net
   when: target == "startup"
   tags: [voltha]
 
 - name: kafka overlay network exists
-  command: docker network create --driver overlay --subnet 10.10.11.0/24 kafka_net
+  command: docker network create --opt encrypted=true --driver overlay --subnet 10.10.11.0/24 kafka_net
   when: target == "startup"
   tags: [voltha]
 
 - name: voltha overlay network exists
-  command: docker network create --driver overlay --subnet 10.10.12.0/24 voltha_net
+  command: docker network create --opt encrypted=true --driver overlay --subnet 10.10.12.0/24 voltha_net
   when: target == "startup"
   tags: [voltha]
 
