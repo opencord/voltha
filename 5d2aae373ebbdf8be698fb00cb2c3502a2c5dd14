@@ -303,6 +303,23 @@
     },
     {
       "key": {
+        "uuid": "9a0e1d27_65fead6d",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 98,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-22T20:42:48Z",
+      "side": 1,
+      "message": "What\u0027s the content of name?   How to you guarantee that the name is not reused across a cluster?   It\u0027s better to add an Id (in a similar way as a device id) and use that  as a key.   This will scale better as that id would be prefixed by the voltha instance id, hence making it unique across the cluster and also will be consistent with the existing rpcs.",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a0e1d27_25a315a0",
         "filename": "voltha/protos/voltha.proto",
         "patchSetId": 2
