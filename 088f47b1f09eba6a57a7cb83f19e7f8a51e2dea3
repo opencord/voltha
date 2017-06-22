@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a0e1d27_a53725b0",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 64,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-22T14:35:29Z",
+      "side": 1,
+      "message": "How about patch_name, version?\n\nThanks for the explanation for committed, active and valid.  Please add these comments here.\n\nThe explanation for active and committed seems to be the same.    Can we have a situation where an image is committed but not active?    Who determines if an image is invalid?",
+      "revId": "088f47b1f09eba6a57a7cb83f19e7f8a51e2dea3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_e5bd1d04",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 368,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-22T14:35:29Z",
+      "side": 1,
+      "message": "Thanks for chaning the proto message to Image and Images.  Do you mind change the rpcs to be consistent to image as well, e.g. GetImages?",
+      "revId": "088f47b1f09eba6a57a7cb83f19e7f8a51e2dea3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
