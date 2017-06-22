@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a0e1d27_6526ad6a",
+        "filename": "install/containers.cfg",
+        "patchSetId": 1
+      },
+      "lineNbr": 11,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-22T16:07:32Z",
+      "side": 1,
+      "message": "Will there be a separate update with specific version for images we are pulling from the web?\u003e",
+      "revId": "ba9cbd8c494b46da2004c9241296ec53665ae894",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
