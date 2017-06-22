@@ -2,6 +2,244 @@
   "comments": [
     {
       "key": {
+        "uuid": "9a0e1d27_65e7cde5",
+        "filename": "voltha/adapters/ponsim_olt/ponsim_olt.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 244,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-22T19:48:27Z",
+      "side": 1,
+      "message": "Is it the OLT that sends this message to the ONU adapter after it detects the ONU?",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_85e2e1d3",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 222,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-22T19:48:27Z",
+      "side": 1,
+      "message": "This will break previous code where only inu_id is required.  If there is only 1 KV in the arguments then it\u0027s a valid call.",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_65990d6e",
+        "filename": "voltha/core/core.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 152,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-22T19:48:27Z",
+      "side": 1,
+      "message": "If an interface belongs to a device then this code belongs to the \"/device/\" path which means device_agent.\n\nThe / (root) is for elements belonging to the top layer, e.g. device, logical_device, alarm_filter, etc.",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_459e0958",
+        "filename": "voltha/core/core.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 167,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-22T19:48:27Z",
+      "side": 1,
+      "message": "Same as above",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_e5c3dd36",
+        "filename": "voltha/core/xpon_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 49,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-22T19:48:27Z",
+      "side": 1,
+      "message": "Please follow the voltha/python method name convention.  this method should have been named get_all_channel_group_config(....)",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_45b5e9cb",
+        "filename": "voltha/core/xpon_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 84,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-22T19:48:27Z",
+      "side": 1,
+      "message": "There seems some special characters in the file.",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_25caf54f",
+        "filename": "voltha/core/xpon_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 86,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-22T19:48:27Z",
+      "side": 1,
+      "message": "Follow the logging pattern.  This should have been log.debug(\u0027updating-channel-group\u0027, name\u003drequest.name)",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_05c7f146",
+        "filename": "voltha/core/xpon_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 114,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-22T19:48:27Z",
+      "side": 1,
+      "message": "why reference?",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_c5c0d92c",
+        "filename": "voltha/core/xpon_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 201,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-22T19:48:27Z",
+      "side": 1,
+      "message": "reference?",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_85bb01c4",
+        "filename": "voltha/protos/bbf_fiber_channelgroup_body.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 12,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-22T19:48:27Z",
+      "side": 1,
+      "message": "Make sure that a NBI call to extract this data works as the in most cases the keys are named \u0027id\u0027.",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_a5b605db",
+        "filename": "voltha/protos/bbf_fiber_channelpartition_body.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 13,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-22T19:48:27Z",
+      "side": 1,
+      "message": "empty?",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_c5a9f97c",
+        "filename": "voltha/protos/bbf_fiber_types.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-22T19:48:27Z",
+      "side": 1,
+      "message": "enum should be capitalized.",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_e5acfd8e",
+        "filename": "voltha/protos/bbf_fiber_v_enet_body.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-22T19:48:27Z",
+      "side": 1,
+      "message": "empty?",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_05a0118f",
+        "filename": "voltha/protos/bbf_fiber_v_ontani_body.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 13,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-22T19:48:27Z",
+      "side": 1,
+      "message": "empty?",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a0e1d27_0a3c9e2e",
         "filename": "voltha/protos/ietf_interfaces.proto",
         "patchSetId": 2
@@ -42,6 +280,40 @@
         "endLine": 28,
         "endChar": 12
       },
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_65b0eddd",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 96,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-22T19:48:27Z",
+      "side": 1,
+      "message": "Make sure that a NBI call to extract this data works as the in most cases the keys are named \u0027id\u0027.",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_25a315a0",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 398,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-22T19:48:27Z",
+      "side": 1,
+      "message": "These are added in the rpcs but commented out.  Follow the other rpcs as example to set these values.",
       "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
