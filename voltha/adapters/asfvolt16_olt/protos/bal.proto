@@ -77,5 +77,8 @@ service Bal {
      **/
     rpc BalCfgSet(BalCfg) returns(BalErr) {}
     rpc BalCfgClear(BalKey) returns(BalErr) {}
+    /**
+     * BAl Public API to ger configuration info from OLT
+     **/
     rpc BalCfgGet(BalKey) returns(BalCfg) {}
 }
