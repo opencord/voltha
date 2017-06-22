@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "9a0e1d27_c568d989",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 64,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-06-22T15:28:37Z",
+      "side": 1,
+      "message": "Do you wan",
+      "parentUuid": "9a0e1d27_a53725b0",
+      "revId": "088f47b1f09eba6a57a7cb83f19e7f8a51e2dea3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a0e1d27_e5bd1d04",
         "filename": "voltha/protos/voltha.proto",
         "patchSetId": 2
@@ -30,6 +48,24 @@
       "writtenOn": "2017-06-22T14:35:29Z",
       "side": 1,
       "message": "Thanks for chaning the proto message to Image and Images.  Do you mind change the rpcs to be consistent to image as well, e.g. GetImages?",
+      "revId": "088f47b1f09eba6a57a7cb83f19e7f8a51e2dea3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_850ae1d0",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 368,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-06-22T15:28:37Z",
+      "side": 1,
+      "message": "Ok",
+      "parentUuid": "9a0e1d27_e5bd1d04",
       "revId": "088f47b1f09eba6a57a7cb83f19e7f8a51e2dea3",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
