@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a0e1d27_0a3c9e2e",
+        "filename": "voltha/protos/ietf_interfaces.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 14,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-06-22T14:30:06Z",
+      "side": 1,
+      "message": "enums should follow the convention set for voltha code which is all upper case.",
+      "range": {
+        "startLine": 14,
+        "startChar": 2,
+        "endLine": 14,
+        "endChar": 15
+      },
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_ea484ace",
+        "filename": "voltha/protos/ietf_interfaces.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 28,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-06-22T14:30:06Z",
+      "side": 1,
+      "message": "Same comment for all enums defined in all proto files.",
+      "range": {
+        "startLine": 28,
+        "startChar": 2,
+        "endLine": 28,
+        "endChar": 12
+      },
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
