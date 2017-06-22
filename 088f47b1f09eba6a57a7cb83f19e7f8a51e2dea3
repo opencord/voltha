@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "9a0e1d27_4514c9f4",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 64,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-06-22T15:37:54Z",
+      "side": 1,
+      "message": "I will change software_patch_name and software_version to name and version.\n\nCommitted and active are not the same. As I mentioned earlier, the committed software image is\nloaded and executed upon reboot of the ONU and/or circuit pack. The active software image is one that is currently\nloaded and executing in the ONU or circuit pack. You may refer OMCI Spec G.988, section I.3 for more details on this.\n\nYes, it is possible that an image is committed but not active. The committed image will become active on the next reboot of the device. \nThe device (ONU/OLT) is supposed validate the image.",
+      "parentUuid": "9a0e1d27_c568d989",
+      "revId": "088f47b1f09eba6a57a7cb83f19e7f8a51e2dea3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a0e1d27_e5bd1d04",
         "filename": "voltha/protos/voltha.proto",
         "patchSetId": 2
