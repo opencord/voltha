@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "9a0e1d27_8a68aef6",
+        "filename": "cli/main.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 177,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-22T01:22:10Z",
+      "side": 1,
+      "message": "\"images\" is cleaner",
+      "revId": "d00f020db7a94c86b51d8509e02a19a135e47fd4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a0e1d27_caeea6b4",
         "filename": "voltha/core/local_handler.py",
         "patchSetId": 1
@@ -19,6 +36,108 @@
         "endLine": 710,
         "endChar": 38
       },
+      "revId": "d00f020db7a94c86b51d8509e02a19a135e47fd4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_6ab67a8c",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 63,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-22T01:22:10Z",
+      "side": 1,
+      "message": "Would it be simpler to just call it Image?",
+      "revId": "d00f020db7a94c86b51d8509e02a19a135e47fd4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_2ab0828a",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 69,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-22T01:22:10Z",
+      "side": 1,
+      "message": "What does is mean an image is active, committed, valid?  Can all of them be true simultaneously?",
+      "revId": "d00f020db7a94c86b51d8509e02a19a135e47fd4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_4abbb672",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 75,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-22T01:22:10Z",
+      "side": 1,
+      "message": "And this would be named Images",
+      "revId": "d00f020db7a94c86b51d8509e02a19a135e47fd4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_aa637219",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 139,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-22T01:22:10Z",
+      "side": 1,
+      "message": "Would be cleaner if it was \" Images images\u003d9\"",
+      "revId": "d00f020db7a94c86b51d8509e02a19a135e47fd4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_ca8fc6cb",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 370,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-22T01:22:10Z",
+      "side": 1,
+      "message": "The rpc name is about software image but the get is about software info.   Can the two be reconciled with a consistent naming?",
+      "revId": "d00f020db7a94c86b51d8509e02a19a135e47fd4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_aabc926d",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 640,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-22T01:22:10Z",
+      "side": 1,
+      "message": "Same comment as above.",
       "revId": "d00f020db7a94c86b51d8509e02a19a135e47fd4",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
