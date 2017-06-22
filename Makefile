@@ -92,6 +92,11 @@ $(DIRS_FLAKE8):
 
 build: protos containers
 
+production: protos prod-containers
+
+
+prod-containers: docker-base voltha chameleon ofagent netconf shovel dashd vcli grafana consul registrator
+
 containers: docker-base voltha chameleon ofagent podder netconf shovel onos tester config-push dashd vcli portainer grafana nginx consul registrator
 
 docker-base:
