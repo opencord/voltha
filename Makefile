@@ -31,6 +31,7 @@ help:
 	@echo
 	@echo "build        : Build the Voltha protos and docker images.\n\
                If this is the first time you are building, choose \"make build\" option."
+	@echo "production   : Build voltha for production deployment"
 	@echo "clean        : Remove files created by the build and tests"
 	@echo "distclean    : Remove venv directory"
 	@echo "fetch        : Pre-fetch artifacts for subsequent local builds"
@@ -91,6 +92,11 @@ $(DIRS_FLAKE8):
 
 
 build: protos containers
+
+production: protos prod-containers
+
+
+prod-containers: docker-base voltha chameleon ofagent netconf shovel dashd vcli grafana consul registrator
 
 containers: docker-base voltha chameleon ofagent podder netconf shovel onos tester config-push dashd vcli portainer grafana nginx consul registrator
 
