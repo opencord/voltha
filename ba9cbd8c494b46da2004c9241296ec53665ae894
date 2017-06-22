@@ -16,6 +16,24 @@
       "revId": "ba9cbd8c494b46da2004c9241296ec53665ae894",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_85d8a154",
+        "filename": "install/containers.cfg",
+        "patchSetId": 1
+      },
+      "lineNbr": 11,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-06-22T17:02:41Z",
+      "side": 1,
+      "message": "Yes, once we\u0027ve decided what versions we would like to settle on, we can update the information in all the build files and in the installer.",
+      "parentUuid": "9a0e1d27_6526ad6a",
+      "revId": "ba9cbd8c494b46da2004c9241296ec53665ae894",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
