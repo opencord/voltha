@@ -1,5 +1,5 @@
-- include: debian.yml
-  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
-
-- include: centos.yml
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+- name: The insecure docker registry is started
+  command: docker run --restart=always -d -p 5000:5000 --name registry registry:2
+  register: result
+  ignore_errors: true
+  tags: [docker]

@@ -1,2 +1,101 @@
-- include: cluster-host.yml
-  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+# Note: When the target == "cluster" the installer
+# is running to install voltha in the cluster hosts.
+# Whe the target == "installer" the installer is being
+# created.
+- name: A .ssh directory for the voltha user exists
+  file:
+    #path: "{{ ansible_env['HOME'] }}/.ssh"
+    path: "/home/voltha/.ssh"
+    state: directory
+    owner: voltha
+    group: voltha
+  tags: [cluster_host]
+
+- name: known_hosts file is absent for the voltha user
+  file:
+    path: "/home/voltha/.ssh/known_hosts"
+    state: absent
+  tags: [cluster_host]
+
+- name: Known host checking is disabled
+  copy:
+    src: files/ssh_config
+    dest: "/home/voltha/.ssh/config"
+    owner: voltha
+    group: voltha
+    mode: 0600
+  tags: [cluster_host]
+
+- name: Cluster host keys are propagated to all hosts in the cluster
+  copy:
+    src: files/.keys
+    dest: "/home/voltha"
+    owner: voltha
+    group: voltha
+    mode: 0600
+  tags: [cluster_host]
+
+#- name: Required configuration directories are copied
+#  copy:
+#    src: "/home/vinstall/{{ item }}"
+#    dest: "{{ target_voltha_home }}"
+#    owner: voltha
+#    group: voltha
+#  with_items:
+#    - docker-py
+#    - netifaces
+#    - deb_files
+#  when: target == "cluster"
+#  tags: [cluster_host]
+
+- name: Required configuration directories are copied
+  synchronize:
+    src: "/home/vinstall/{{ item }}"
+    dest: "{{ target_voltha_home }}"
+    archive: no
+    owner: no
+    perms: no
+    recursive: yes
+    links: yes
+  with_items:
+    - docker-py
+    - netifaces
+    - deb_files
+  tags: [cluster-host]
+
+- name: apt lists are up-to-date
+  copy:
+    src: "/var/lib/apt/lists"
+    dest: "/var/lib/apt"
+  tags: [cluster_host]
+
+- name: Dependent software is installed (this takes about 10 Min, DONT'T PANIC, go for coffee instead)
+  command: dpkg -R -i "{{ target_voltha_home }}/deb_files"
+#  ignore_errors: true
+  when: target == "cluster"
+  tags: [cluster_host]
+
+#- name: Dependent software is initialized
+#  command: apt-get -y -f install
+#  when: target == "cluster"
+#  tags: [cluster_host]
+
+- name: Python packages are installed
+  command: pip install {{ item }} --no-index --find-links "file://{{ target_voltha_home }}/{{ item }}"
+  with_items:
+    - docker-py
+    - netifaces
+  when: target == "cluster"
+  tags: [cluster_host]
+
+- name: Configuration directories are deleted
+  file:
+    path: "{{ target_voltha_home }}/{{ item }}"
+    state: absent
+  with_items:
+    - docker-py
+    - netifaces
+    - deb_files
+  when: target == "cluster"
+  tags: [cluster_host]
+

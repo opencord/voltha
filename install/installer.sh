@@ -104,11 +104,15 @@ echo -e "${lBlue}Setting up dependent software${NC}"
 # guaranteed not to be the same device as the installer.
 mkdir grub_updates
 sudo mv deb_files/*grub* grub_updates
-echo "deb_files:" >> ansible/group_vars/all
-for i in deb_files/*.deb
-do
-echo "  - `basename $i`" >> ansible/group_vars/all
-done
+# Sort the packages in dependency order to get rid of scary non-errors
+# that are issued by ansible.
+#echo -e "${lBlue}Dependency sorting dependent software${NC}"
+#./sort_packages.sh
+#echo "deb_files:" >> ansible/group_vars/all
+#for i in `cat sortedDebs.txt`
+#do
+#echo "  - $i" >> ansible/group_vars/all
+#done
 
 # Make sure the ssh keys propagate to all hosts allowing passwordless logins between them
 echo -e "${lBlue}Propagating ssh keys${NC}"

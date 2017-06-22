@@ -10,29 +10,3 @@ netifaces_version: "0.10.4"
 target_voltha_home: /home/voltha
 docker_daemon_json: daemon.json
 docker_daemon_json_dest: /etc/docker
-voltha_containers:
-  - voltha/nginx
-  - voltha/grafana
-  - voltha/portainer
-  - cord/vcli
-  - cord/dashd
-  - cord/config-push
-  - cord/tester
-  - cord/onos
-  - cord/shovel
-  - cord/netconf
-  - cord/podder
-  - cord/ofagent
-  - cord/chameleon
-  - cord/voltha
-  - cord/voltha-base
-  - nginx
-  - consul
-  - fluent/fluentd
-  - portainer/portainer
-  - wurstmeister/kafka
-  - wurstmeister/zookeeper
-  - kamon/grafana_graphite
-  - gliderlabs/registrator
-  - centurylink/ca-certs
-  - zookeeper

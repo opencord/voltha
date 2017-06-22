@@ -1,2 +1,98 @@
-- include: installer.yml
-  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+- name: Ansible repository is available
+  apt_repository:
+    repo: 'ppa:ansible/ansible'
+  tags: [installer]
+- name: Debian ansible is present
+  apt:
+    name: ansible
+    state: latest
+    force: yes
+  tags: [installer]
+#- name: Installer files and directories are copied
+#  copy:
+#    src: "{{ cord_home }}/incubator/voltha/{{ item }}"
+#    dest: /home/vinstall
+#    owner: vinstall
+#    group: vinstall
+#    follow: no
+#  with_items:
+#    - install/installer.sh
+#    - install/install.cfg
+#    - install/ansible
+#    - compose
+#    - nginx_config
+- name: Installer files and directories are copied
+  synchronize:
+    src: "{{ cord_home }}/incubator/voltha/{{ item }}"
+    dest: /home/vinstall
+    archive: no
+    owner: no
+    perms: no
+    recursive: yes
+    links: yes
+  with_items:
+    - install/sort_packages.sh
+    - install/sort_packages.py
+    - install/installer.sh
+    - install/install.cfg
+    - install/ansible
+    - compose
+    - nginx_config
+  tags: [installer]
+- name: Installer directories are owned by vinstall
+  file:
+    path: /home/vinstall/{{ item }}
+    owner: vinstall
+    group: vinstall
+    recurse: yes
+    follow: no
+  with_items:
+    - ansible
+    - compose
+    - nginx_config
+  tags: [installer]
+- name: Installer files are owned by vinstall
+  file:
+    path: /home/vinstall/{{ item }}
+    owner: vinstall
+    group: vinstall
+    follow: no
+  with_items:
+    - sort_packages.sh
+    - sort_packages.py
+    - installer.sh
+    - install.cfg
+  tags: [installer]
+
+- name: Determine if test mode is active
+  become: false
+  local_action: stat path="{{ cord_home }}/incubator/voltha/install/.test"
+  register: file
+  ignore_errors: true
+- name: Test mode file is copied
+  copy:
+    src: "{{ cord_home }}/incubator/voltha/install/.test"
+    dest: /home/vinstall
+  when: file.stat.exists
+- name: The installer is made executable
+  file:
+    path: /home/vinstall/installer.sh
+    mode: 0744
+  tags: [installer]
+- name: Python docker-py {{ docker_py_version }} package source is available
+  command: pip download -d /home/vinstall/docker-py "docker-py=={{ docker_py_version }}"
+  tags: [installer]
+- name: Python netifaces {{ netifaces_version }} package source is available
+  command: pip download -d /home/vinstall/netifaces "netifaces=={{ netifaces_version }}"
+  tags: [installer]
+- name: Deb file directory doesn't exist
+  file:
+    path: /home/vinstall/deb_files
+    state: absent
+  tags: [installer]
+- name: Deb files are saved.
+  command: cp -r /var/cache/apt/archives /home/vinstall
+  tags: [installer]
+- name: Deb file directory is renamed
+  command: mv /home/vinstall/archives /home/vinstall/deb_files
+  tags: [installer]

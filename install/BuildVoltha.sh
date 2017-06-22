@@ -47,4 +47,20 @@ ipAddr=`virsh domifaddr $vmName | tail -n +3 | awk '{ print $4 }' | sed -e 's~/.
 
 
 # Run all the build commands
-ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i .vagrant/machines/voltha${uId}/libvirt/private_key vagrant@$ipAddr "cd /cord/incubator/voltha && . env.sh && make fetch && make build"
+ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i .vagrant/machines/voltha${uId}/libvirt/private_key vagrant@$ipAddr "cd /cord/incubator/voltha && . env.sh && make fetch && make production" | tee voltha_build.tmp
+
+rtrn=$#
+
+if [ $rtrn -ne 0 ]; then
+	rm -f voltha_build.tmp
+	exit 1
+fi
+
+egrep 'Makefile:[0-9]+: recipe for target .* failed' voltha_build.tmp
+
+rtrn=$#
+rm -f voltha_build.tmp
+if [ $rtrn -eq 0 ]; then
+	# An error occured, notify the caller
+	exit 1
+fi

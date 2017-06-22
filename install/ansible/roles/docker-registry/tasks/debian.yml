@@ -1,5 +1,0 @@
-- name: The insecure docker registry is started
-  command: docker run --restart=always -d -p 5000:5000 --name registry registry:2
-  register: result
-  ignore_errors: true
-  tags: [docker]

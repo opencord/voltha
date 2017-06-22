@@ -2,6 +2,7 @@
 
 
 iVmName="vInstaller"
+vVmName="voltha_voltha"
 baseImage="Ubuntu1604LTS"
 iVmNetwork="vagrant-libvirt"
 installerArchive="installer.tar.bz2"
@@ -73,6 +74,7 @@ else
 	sed -i -e '/^#/!d' install.cfg
 	# Set the insecure registry configuration based on the installer hostname
 	echo -e "${lBlue}Set up the inescure registry hostname ${lCyan}vinstall${uId}${NC}"
+	sed -i -e '/docker_push_registry/s/.*/docker_push_registry: "vinstall:5000"/' ansible/group_vars/all
 	echo '{' > ansible/roles/voltha/templates/daemon.json
 	echo '"insecure-registries" : ["vinstall:5000"]' >> ansible/roles/voltha/templates/daemon.json
 	echo '}' >> ansible/roles/voltha/templates/daemon.json
@@ -184,11 +186,31 @@ vVM=`virsh list | grep voltha_voltha${uId}`
 if [ -z "$vVM" ]; then
 	if [ $# -eq 1 -a "$1" == "test" ]; then
 		./BuildVoltha.sh $1
+		rtrn=$#
 	else
 		# Default to installer mode 
 		./BuildVoltha.sh install
+		rtrn=$#
+	fi
+	if [ $rtrn -ne 0 ]; then
+		echo -e "${red}Voltha build failed!! ${yellow}Please review the log and correct${lBlue} is running${NC}"
+		exit 1
 	fi
 fi
+
+# Extract all the image names and tags from the running voltha VM
+# No Don't do this, it's too error prone if the voltha VM is not 
+# built correctly, going with a static list for now.
+#echo -e "${lBlue}Extracting the docker image list from the voltha VM${NC}"
+#volIpAddr=`virsh domifaddr $vVmName${uId} | tail -n +3 | awk '{ print $4 }' | sed -e 's~/.*~~'`
+#ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i ../.vagrant/machines/voltha${uId}/libvirt/private_key vagrant@$volIpAddr "docker image ls" > images.tmp
+#cat images.tmp | grep -v 5000 | tail -n +2 | awk '{printf("  - %s:%s\n", $1, $2)}' > image-list.cfg
+#rm -f images.tmp
+#sed -i -e '/voltha_containers:/,$d' ansible/group_vars/all
+#echo "voltha_containers:" >> ansible/group_vars/all
+echo -e "${lBlue}Set up the docker image list from ${yellow}containers.cfg${NC}"
+sed -i -e '/voltha_containers:/,$d' ansible/group_vars/all
+cat containers.cfg >> ansible/group_vars/all
 
 # Install python which is required for ansible
 echo -e "${lBlue}Installing python${NC}"
