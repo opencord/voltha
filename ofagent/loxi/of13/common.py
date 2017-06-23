@@ -1947,6 +1947,21 @@ class hello_elem_versionbitmap(hello_elem):
 
 hello_elem.subtypes[1] = hello_elem_versionbitmap
 
+class hello_elem_bitmap(loxi.OFObject):
+
+    def __init__(self, version_list=None):
+        if version_list != None:
+            self.version_list = version_list
+        else:
+            self.version_list = []
+        self.bitmap = 0
+        for version in version_list:
+            self.bitmap = self.bitmap | 1 << version
+        return
+
+    def pack(self):
+        return struct.pack("!L", self.bitmap)
+
 class match_v3(loxi.OFObject):
     type = 1
 
