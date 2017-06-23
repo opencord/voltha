@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a0e1d27_055b7155",
+        "filename": "ofagent/loxi/of13/common.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1956,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-23T14:46:54Z",
+      "side": 1,
+      "message": "Why set to 0 and not None?",
+      "revId": "ab71a5c75fe34d77d1077e3769e08fe103e61d7a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a0e1d27_c5545923",
+        "filename": "ofagent/of_protocol_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 59,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-23T14:46:54Z",
+      "side": 1,
+      "message": "if bitmaps \u003d[2], does it imply version 3 (i.e. 1.3)?",
+      "revId": "ab71a5c75fe34d77d1077e3769e08fe103e61d7a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
