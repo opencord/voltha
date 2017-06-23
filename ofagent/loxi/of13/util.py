@@ -121,3 +121,13 @@ def pack_checksum_128(value):
 def unpack_checksum_128(reader):
     hi, lo = reader.read("!QQ")
     return (hi << 64) | lo
+
+def bitmap_to_version(bitmaps):
+    versions = [i * 32 + shift
+                for i, bitmap in enumerate(bitmaps)
+                for shift in range(31) if bitmap & (1 << shift)]
+    return versions
+
+def verify_version_support(msg,version_list):
+    version_list_sup = bitmap_to_version([msg.elements[0].bitmaps[0].value])
+    return any(i in version_list_sup for i in version_list)

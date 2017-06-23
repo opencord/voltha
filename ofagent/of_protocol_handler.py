@@ -27,6 +27,8 @@ class OpenFlowProtocolError(Exception): pass
 
 class OpenFlowProtocolHandler(object):
 
+    ofp_version = [4]  # OFAgent supported versions
+
     def __init__(self, datapath_id, device_id, agent, cxn, rpc):
         """
         The upper half of the OpenFlow protocol, focusing on message
@@ -51,16 +53,22 @@ class OpenFlowProtocolHandler(object):
         log.debug('starting')
 
         try:
+            support = False
             # send initial hello message
-            self.cxn.send(ofp.message.hello())
-
+            self.cxn.send(ofp.message.hello(elements=[ofp.common.hello_elem_versionbitmap(
+                bitmaps = [ofp.common.hello_elem_bitmap(self.ofp_version)])]))
             # expect to receive a hello message
             msg = yield self.cxn.recv_class(ofp.message.hello)
-            # verify version compatibility (must list version 1.3)
-            # and negotiate if not.
-            # see https://jira.opencord.org/browse/CORD-822
+            # supports only ofp_versions till 31 and single bitmap.
+            if msg:
+                support = ofp.util.verify_version_support(msg,self.ofp_version)
+                if not support:
+                    self.cxn.send(ofp.message.hello_failed_error_msg(
+                        xid=msg.xid, code=ofp.OFPHFC_INCOMPATIBLE,
+                        data='i support only 1.3'))
+                    log.error('peer-do-not-support-OpenFlow-version',self.ofp_version)
 
-            while True:
+            while support:
                 req = yield self.cxn.recv_any()
                 handler = self.main_handlers.get(req.type, None)
                 if handler:
