@@ -18,9 +18,9 @@
 Asfvolt16 OLT adapter
 """
 
-from voltha.adapters.iadapter import IAdapter
+from voltha.adapters.iadapter import OltAdapter
 
-class Asfvolt16Adapter(IAdapter):
+class Asfvolt16Adapter(OltAdapter):
     def __init__(self, adapter_agent, config):
         super(Asfvolt16Adapter, self).__init__(adapter_agent=adapter_agent,
                                                config=config,
@@ -32,4 +32,50 @@ class Asfvolt16Adapter(IAdapter):
         self.adapter_agent.register_for_inter_adapter_messages()
 
 class Asfvolt16Handler(object):
-    pass
+    def __init__(self, adapter, device_id):
+        pass
+
+    def __del__(self):
+        pass
+
+    def get_channel(self):
+        pass
+
+    def _get_nni_port(self):
+        pass
+
+    def activate(self, device):
+        pass
+
+    def reconcile(self, device):
+        pass
+
+    def rcv_io(self, port, frame):
+        pass
+
+    def update_flow_table(self, flows):
+        pass
+
+    def update_pm_config(self, device, pm_config):
+        pass
+
+    def send_proxied_message(self, proxy_address, msg):
+        pass
+
+    def packet_out(self, egress_port, msg):
+        pass
+
+    def reboot(self):
+        pass
+
+    def disable(self):
+        pass
+
+    def reenable(self):
+        pass
+
+    def delete(self):
+        pass
+
+    def start_kpi_collection(self, device_id):
+        pass

@@ -30,9 +30,8 @@ from zope.interface.verify import verifyClass
 
 from voltha.adapters.interface import IAdapterInterface
 from voltha.core.adapter_agent import AdapterAgent
-from voltha.protos import third_party
 from voltha.registry import IComponent
-from voltha.adapters.iadapter import IAdapter
+from voltha.adapters.iadapter import IAdapter, OltAdapter, OnuAdapter
 
 log = structlog.get_logger()
 
@@ -87,6 +86,8 @@ class AdapterLoader(object):
                         cls = getattr(module, attr_name)
                         if isinstance(cls, type) and \
                                 cls is not IAdapter and \
+                                cls is not OltAdapter and \
+                                cls is not OnuAdapter and \
                                 IAdapterInterface.implementedBy(cls):
                             verifyClass(IAdapterInterface, cls)
                             yield adapter_name, cls

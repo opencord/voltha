@@ -25,13 +25,12 @@ import json
 import structlog
 from scapy.layers.l2 import Ether, Dot1Q
 from scapy.layers.inet import Raw
-from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
 
 from common.frameio.frameio import BpfProgramFilter, hexify
 from common.utils.asleep import asleep
 from twisted.internet.task import LoopingCall
-from voltha.adapters.iadapter import IAdapter
+from voltha.adapters.iadapter import OltAdapter
 from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.protos import third_party
 from voltha.protos import ponsim_pb2
@@ -175,7 +174,7 @@ class AdapterAlarms:
         except Exception as e:
             log.exception('failed-to-send-alarm', e=e)
 
-class PonSimOltAdapter(IAdapter):
+class PonSimOltAdapter(OltAdapter):
     def __init__(self, adapter_agent, config):
         super(PonSimOltAdapter, self).__init__(adapter_agent=adapter_agent,
                                                config=config,
@@ -183,44 +182,12 @@ class PonSimOltAdapter(IAdapter):
                                                name='ponsim_olt',
                                                vendor='Voltha project',
                                                version='0.4')
-        self.logical_device_id_to_root_device_id = dict()
-
 
     def update_pm_config(self, device, pm_config):
         log.info("adapter-update-pm-config", device=device,
                  pm_config=pm_config)
         handler = self.devices_handlers[device.id]
         handler.update_pm_config(device, pm_config)
-
-    def reconcile_device(self, device):
-        try:
-            self.devices_handlers[device.id] = PonSimOltHandler(self,
-                                                                device.id)
-            # Work only required for devices that are in ENABLED state
-            if device.admin_state == AdminState.ENABLED:
-                reactor.callLater(0,
-                                  self.devices_handlers[device.id].reconcile,
-                                  device)
-            else:
-                # Invoke the children reconciliation which would setup the
-                # basic children data structures
-                self.adapter_agent.reconcile_child_devices(device.id)
-            return device
-        except Exception, e:
-            log.exception('Exception', e=e)
-
-    def receive_packet_out(self, logical_device_id, egress_port_no, msg):
-        def ldi_to_di(ldi):
-            di = self.logical_device_id_to_root_device_id.get(ldi)
-            if di is None:
-                logical_device = self.adapter_agent.get_logical_device(ldi)
-                di = logical_device.root_device_id
-                self.logical_device_id_to_root_device_id[ldi] = di
-            return di
-
-        device_id = ldi_to_di(logical_device_id)
-        handler = self.devices_handlers[device_id]
-        handler.packet_out(egress_port_no, msg)
 
 class PonSimOltHandler(object):
     def __init__(self, adapter, device_id):
