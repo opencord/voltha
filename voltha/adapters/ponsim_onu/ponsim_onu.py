@@ -19,11 +19,10 @@ Fully simulated OLT/ONU adapter.
 """
 
 import structlog
-from twisted.internet import reactor
 from twisted.internet.defer import DeferredQueue, inlineCallbacks
 from common.utils.asleep import asleep
 
-from voltha.adapters.iadapter import IAdapter
+from voltha.adapters.iadapter import OnuAdapter
 from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.protos import third_party
 from voltha.protos.common_pb2 import OperStatus, ConnectStatus, AdminState
@@ -38,7 +37,7 @@ _ = third_party
 log = structlog.get_logger()
 
 
-class PonSimOnuAdapter(IAdapter):
+class PonSimOnuAdapter(OnuAdapter):
     def __init__(self, adapter_agent, config):
         super(PonSimOnuAdapter, self).__init__(adapter_agent=adapter_agent,
                                                config=config,
@@ -46,27 +45,6 @@ class PonSimOnuAdapter(IAdapter):
                                                name='ponsim_onu',
                                                vendor='Voltha project',
                                                version='0.4')
-
-    def get_device_details(self, device):
-        raise NotImplementedError()
-
-    def send_proxied_message(self, proxy_address, msg):
-        log.info('send-proxied-message', proxy_address=proxy_address, msg=msg)
-
-    def receive_proxied_message(self, proxy_address, msg):
-        log.info('receive-proxied-message', proxy_address=proxy_address,
-                 device_id=proxy_address.device_id, msg=msg)
-        # Device_id from the proxy_address is the olt device id. We need to
-        # get the onu device id using the port number in the proxy_address
-        device = self.adapter_agent. \
-            get_child_device_with_proxy_address(proxy_address)
-        if device:
-            handler = self.devices_handlers[device.id]
-            handler.receive_message(msg)
-
-    def receive_packet_out(self, logical_device_id, egress_port_no, msg):
-        log.info('packet-out', logical_device_id=logical_device_id,
-                 egress_port_no=egress_port_no, msg_len=len(msg))
 
 class PonSimOnuHandler(object):
     def __init__(self, adapter, device_id):

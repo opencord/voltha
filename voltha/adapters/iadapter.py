@@ -22,6 +22,7 @@ import structlog
 from zope.interface import implementer
 from twisted.internet import reactor
 
+from voltha.protos.common_pb2 import AdminState
 from voltha.protos.device_pb2 import DeviceType, DeviceTypes
 from voltha.adapters.interface import IAdapterInterface
 from voltha.protos.adapter_pb2 import Adapter
@@ -72,9 +73,6 @@ class IAdapter(object):
     def change_master_state(self, master):
         raise NotImplementedError()
 
-    def update_pm_config(self, device, pm_config):
-        raise NotImplementedError()
-
     def adopt_device(self, device):
         self.devices_handlers[device.id] = self.device_handler_class(self, device.id)
         reactor.callLater(0, self.devices_handlers[device.id].activate, device)
@@ -120,10 +118,14 @@ class IAdapter(object):
     def update_flows_incrementally(self, device, flow_changes, group_changes):
         raise NotImplementedError()
 
+    def update_pm_config(self, device, pm_config):
+        log.info("adapter-update-pm-config", device=device,
+                 pm_config=pm_config)
+        handler = self.devices_handlers[device.id]
+        handler.update_pm_config(device, pm_config)
+
     def send_proxied_message(self, proxy_address, msg):
-        log.info('send-proxied-message', proxy_address=proxy_address, msg=msg)
-        handler = self.devices_handlers[proxy_address.device_id]
-        handler.send_proxied_message(proxy_address, msg)
+        raise NotImplementedError()
 
     def receive_proxied_message(self, proxy_address, msg):
         raise NotImplementedError()
@@ -139,3 +141,81 @@ class IAdapter(object):
 
     def unsuppress_alarm(self, filter):
         raise NotImplementedError()
+
+"""
+OLT Adapter base class
+"""
+class OltAdapter(IAdapter):
+    def __init__(self, adapter_agent, config, device_handler_class, name, vendor, version):
+        super(OltAdapter, self).__init__(adapter_agent,
+                                         config,
+                                         device_handler_class,
+                                         name,
+                                         vendor,
+                                         version)
+        self.logical_device_id_to_root_device_id = dict()
+
+    def reconcile_device(self, device):
+        try:
+            self.devices_handlers[device.id] = self.device_handler_class(self, device.id)
+            # Work only required for devices that are in ENABLED state
+            if device.admin_state == AdminState.ENABLED:
+                reactor.callLater(0,
+                                  self.devices_handlers[device.id].reconcile,
+                                  device)
+            else:
+                # Invoke the children reconciliation which would setup the
+                # basic children data structures
+                self.adapter_agent.reconcile_child_devices(device.id)
+            return device
+        except Exception, e:
+            log.exception('Exception', e=e)
+
+    def send_proxied_message(self, proxy_address, msg):
+        log.info('send-proxied-message', proxy_address=proxy_address, msg=msg)
+        handler = self.devices_handlers[proxy_address.device_id]
+        handler.send_proxied_message(proxy_address, msg)
+
+    def receive_packet_out(self, logical_device_id, egress_port_no, msg):
+        def ldi_to_di(ldi):
+            di = self.logical_device_id_to_root_device_id.get(ldi)
+            if di is None:
+                logical_device = self.adapter_agent.get_logical_device(ldi)
+                di = logical_device.root_device_id
+                self.logical_device_id_to_root_device_id[ldi] = di
+            return di
+
+        device_id = ldi_to_di(logical_device_id)
+        handler = self.devices_handlers[device_id]
+        handler.packet_out(egress_port_no, msg)
+
+"""
+ONU Adapter base class
+"""
+class OnuAdapter(IAdapter):
+    def __init__(self, adapter_agent, config, device_handler_class, name, vendor, version):
+        super(OnuAdapter, self).__init__(adapter_agent,
+                                         config,
+                                         device_handler_class,
+                                         name,
+                                         vendor,
+                                         version)
+    def reconcile_device(self, device):
+        self.devices_handlers[device.id] = self.device_handler_class(self, device.id)
+        # Reconcile only if state was ENABLED
+        if device.admin_state == AdminState.ENABLED:
+            reactor.callLater(0,
+                              self.devices_handlers[device.id].reconcile,
+                              device)
+        return device
+
+    def receive_proxied_message(self, proxy_address, msg):
+        log.info('receive-proxied-message', proxy_address=proxy_address,
+                 device_id=proxy_address.device_id, msg=msg)
+        # Device_id from the proxy_address is the olt device id. We need to
+        # get the onu device id using the port number in the proxy_address
+        device = self.adapter_agent. \
+            get_child_device_with_proxy_address(proxy_address)
+        if device:
+            handler = self.devices_handlers[device.id]
+            handler.receive_message(msg)
