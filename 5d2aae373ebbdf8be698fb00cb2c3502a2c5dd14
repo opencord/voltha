@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "5a202591_d592dc9e",
+        "filename": "voltha/adapters/ponsim_olt/ponsim_olt.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 244,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-06-26T20:53:55Z",
+      "side": 1,
+      "message": "Yes.\nCorrections: API forward_onu_detect_state will be renamed to receive_onu_detect_state for better understanding.",
+      "parentUuid": "9a0e1d27_65e7cde5",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a0e1d27_85e2e1d3",
         "filename": "voltha/core/adapter_agent.py",
         "patchSetId": 2
@@ -30,6 +48,24 @@
       "writtenOn": "2017-06-22T19:48:27Z",
       "side": 1,
       "message": "This will break previous code where only inu_id is required.  If there is only 1 KV in the arguments then it\u0027s a valid call.",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_15f854e4",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 222,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-06-26T20:53:55Z",
+      "side": 1,
+      "message": "It can take either 1 or 2 KVs, e.g., search by onu id or serial number or by both.",
+      "parentUuid": "9a0e1d27_85e2e1d3",
       "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "5a202591_d5d9bc84",
+        "filename": "voltha/core/core.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 152,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-06-26T20:53:55Z",
+      "side": 1,
+      "message": "This was already agreed upon to separate xPON specific code in xpon_agent.\nFYI, https://wiki.opencord.org/display/CORD/vOLTHA+-+xPON+Hardware+Abstraction?preview\u003d/2555912/2556751/xPON%20in%20VOLTHA%20-%20Proposal.pdf",
+      "parentUuid": "9a0e1d27_65990d6e",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a0e1d27_459e0958",
         "filename": "voltha/core/core.py",
         "patchSetId": 2
@@ -64,6 +118,24 @@
       "writtenOn": "2017-06-22T19:48:27Z",
       "side": 1,
       "message": "Same as above",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_b5e64043",
+        "filename": "voltha/core/core.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 167,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-06-26T20:53:55Z",
+      "side": 1,
+      "message": "Same as above explanation.",
+      "parentUuid": "9a0e1d27_459e0958",
       "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -87,6 +159,24 @@
     },
     {
       "key": {
+        "uuid": "5a202591_95e34433",
+        "filename": "voltha/core/xpon_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 49,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-06-26T20:53:55Z",
+      "side": 1,
+      "message": "Accepted. It will be corrected.",
+      "parentUuid": "9a0e1d27_e5c3dd36",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a0e1d27_45b5e9cb",
         "filename": "voltha/core/xpon_handler.py",
         "patchSetId": 2
@@ -98,6 +188,24 @@
       "writtenOn": "2017-06-22T19:48:27Z",
       "side": 1,
       "message": "There seems some special characters in the file.",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_75d0a853",
+        "filename": "voltha/core/xpon_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 84,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-06-26T20:53:55Z",
+      "side": 1,
+      "message": "Accepted. It will be removed.",
+      "parentUuid": "9a0e1d27_45b5e9cb",
       "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -121,6 +229,24 @@
     },
     {
       "key": {
+        "uuid": "5a202591_35ca30a2",
+        "filename": "voltha/core/xpon_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 86,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-06-26T20:53:55Z",
+      "side": 1,
+      "message": "Accepted. It will be corrected.",
+      "parentUuid": "9a0e1d27_25caf54f",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a0e1d27_05c7f146",
         "filename": "voltha/core/xpon_handler.py",
         "patchSetId": 2
@@ -138,6 +264,24 @@
     },
     {
       "key": {
+        "uuid": "5a202591_15cf34b2",
+        "filename": "voltha/core/xpon_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 114,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-06-26T20:53:55Z",
+      "side": 1,
+      "message": "Because channel group can be referenced by channel partition or channel pair.",
+      "parentUuid": "9a0e1d27_05c7f146",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a0e1d27_c5c0d92c",
         "filename": "voltha/core/xpon_handler.py",
         "patchSetId": 2
@@ -149,6 +293,24 @@
       "writtenOn": "2017-06-22T19:48:27Z",
       "side": 1,
       "message": "reference?",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_f5c39888",
+        "filename": "voltha/core/xpon_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 201,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-06-26T20:53:55Z",
+      "side": 1,
+      "message": "Because channel partition can be referenced by channel pair or vont ani.",
+      "parentUuid": "9a0e1d27_c5c0d92c",
       "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -189,6 +351,24 @@
     },
     {
       "key": {
+        "uuid": "5a202591_d5c09c7e",
+        "filename": "voltha/protos/bbf_fiber_channelpartition_body.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 13,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-06-26T20:53:55Z",
+      "side": 1,
+      "message": "This proto is auto generated from yang and there is nothing in oper_data.",
+      "parentUuid": "9a0e1d27_a5b605db",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a0e1d27_c5a9f97c",
         "filename": "voltha/protos/bbf_fiber_types.proto",
         "patchSetId": 2
@@ -200,6 +380,24 @@
       "writtenOn": "2017-06-22T19:48:27Z",
       "side": 1,
       "message": "enum should be capitalized.",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_b5bd2005",
+        "filename": "voltha/protos/bbf_fiber_types.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-06-26T20:53:55Z",
+      "side": 1,
+      "message": "Accepted. It will be corrected.\nThese are auto generated from yang and yang2proto tool will be corrected to do capitalization in future sprint.",
+      "parentUuid": "9a0e1d27_c5a9f97c",
       "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -223,6 +421,24 @@
     },
     {
       "key": {
+        "uuid": "5a202591_95ba2409",
+        "filename": "voltha/protos/bbf_fiber_v_enet_body.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-06-26T20:53:55Z",
+      "side": 1,
+      "message": "This proto is auto generated from yang and there is nothing in oper_data.",
+      "parentUuid": "9a0e1d27_e5acfd8e",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a0e1d27_05a0118f",
         "filename": "voltha/protos/bbf_fiber_v_ontani_body.proto",
         "patchSetId": 2
@@ -240,6 +456,24 @@
     },
     {
       "key": {
+        "uuid": "5a202591_753788b1",
+        "filename": "voltha/protos/bbf_fiber_v_ontani_body.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 13,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-06-26T20:53:55Z",
+      "side": 1,
+      "message": "This proto is auto generated from yang and there is nothing in oper_data.",
+      "parentUuid": "9a0e1d27_05a0118f",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a0e1d27_0a3c9e2e",
         "filename": "voltha/protos/ietf_interfaces.proto",
         "patchSetId": 2
@@ -251,6 +485,30 @@
       "writtenOn": "2017-06-22T14:30:06Z",
       "side": 1,
       "message": "enums should follow the convention set for voltha code which is all upper case.",
+      "range": {
+        "startLine": 14,
+        "startChar": 2,
+        "endLine": 14,
+        "endChar": 15
+      },
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_553c8c93",
+        "filename": "voltha/protos/ietf_interfaces.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 14,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-06-26T20:53:55Z",
+      "side": 1,
+      "message": "Accepted. It will be corrected.\nThese are auto generated from yang and yang2proto tool will be corrected to do capitalization in future sprint.",
+      "parentUuid": "9a0e1d27_0a3c9e2e",
       "range": {
         "startLine": 14,
         "startChar": 2,
@@ -286,6 +544,30 @@
     },
     {
       "key": {
+        "uuid": "5a202591_3541100c",
+        "filename": "voltha/protos/ietf_interfaces.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 28,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-06-26T20:53:55Z",
+      "side": 1,
+      "message": "Accepted. It will be corrected.\nThese are auto generated from yang and yang2proto tool will be corrected to do capitalization in future sprint.",
+      "parentUuid": "9a0e1d27_ea484ace",
+      "range": {
+        "startLine": 28,
+        "startChar": 2,
+        "endLine": 28,
+        "endChar": 12
+      },
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a0e1d27_65b0eddd",
         "filename": "voltha/protos/voltha.proto",
         "patchSetId": 2
@@ -303,6 +585,24 @@
     },
     {
       "key": {
+        "uuid": "5a202591_15461424",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 96,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-06-26T20:53:55Z",
+      "side": 1,
+      "message": "We have tested this and also demonstrated it to everyone in Sprint 1 demo. It works.",
+      "parentUuid": "9a0e1d27_65b0eddd",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a0e1d27_65fead6d",
         "filename": "voltha/protos/voltha.proto",
         "patchSetId": 2
@@ -314,6 +614,24 @@
       "writtenOn": "2017-06-22T20:42:48Z",
       "side": 1,
       "message": "What\u0027s the content of name?   How to you guarantee that the name is not reused across a cluster?   It\u0027s better to add an Id (in a similar way as a device id) and use that  as a key.   This will scale better as that id would be prefixed by the voltha instance id, hence making it unique across the cluster and also will be consistent with the existing rpcs.",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_f54a7826",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 98,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-06-26T20:53:55Z",
+      "side": 1,
+      "message": "The id is the name.\nFYI, bbf standard yang model WT-385:\nhttps://wiki.opencord.org/display/CORD/vOLTHA+-+xPON+Hardware+Abstraction?preview\u003d/2555912/2556857/WT-385_draft1.pdf",
+      "parentUuid": "9a0e1d27_65fead6d",
       "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
