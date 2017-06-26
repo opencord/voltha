@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5a202591_b54ac053",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-06-26T14:03:42Z",
+      "side": 1,
+      "message": "Could you please add \"not implemented\" exceptions to all these functions until such time as they are implemented? If they are implemented as no-ops then please put a comment to that effect inside each function.",
+      "range": {
+        "startLine": 36,
+        "startChar": 8,
+        "endLine": 36,
+        "endChar": 12
+      },
+      "revId": "456d9eb0c10986e291b731030712a9a16d53340d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
