@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5a202591_d5c65c49",
+        "filename": "install/CreateInstaller.sh",
+        "patchSetId": 2
+      },
+      "lineNbr": 74,
+      "author": {
+        "id": 1000196
+      },
+      "writtenOn": "2017-06-27T17:12:18Z",
+      "side": 1,
+      "message": "Typo",
+      "range": {
+        "startLine": 74,
+        "startChar": 29,
+        "endLine": 74,
+        "endChar": 37
+      },
+      "revId": "6128779ae36dd02ea7ef1002d977e66f50e5151f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_55e24cd6",
+        "filename": "install/ansible/roles/cluster-host/tasks/main.yml",
+        "patchSetId": 2
+      },
+      "lineNbr": 72,
+      "author": {
+        "id": 1000196
+      },
+      "writtenOn": "2017-06-27T17:12:18Z",
+      "side": 1,
+      "message": "Typo",
+      "range": {
+        "startLine": 72,
+        "startChar": 46,
+        "endLine": 72,
+        "endChar": 50
+      },
+      "revId": "6128779ae36dd02ea7ef1002d977e66f50e5151f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
