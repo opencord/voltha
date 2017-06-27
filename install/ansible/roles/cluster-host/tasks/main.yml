@@ -69,7 +69,7 @@
     dest: "/var/lib/apt"
   tags: [cluster_host]
 
-- name: Dependent software is installed (this takes about 10 Min, DONT'T PANIC, go for coffee instead)
+- name: Dependent software is installed (this cand take about 10 Min, DONT'T PANIC, go for coffee instead)
   command: dpkg -R -i "{{ target_voltha_home }}/deb_files"
 #  ignore_errors: true
   when: target == "cluster"
