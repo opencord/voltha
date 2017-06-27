@@ -55,7 +55,7 @@ vinstall@vinstall$ sudo telinit 0
 ```
 ###Download the voltha tree
 The voltha tree contains the Vagrant files required to build a multitude of VMs required to both run, test, and also to deploy voltha. The easiest approach is to download the entire tree rather than trying to extract the specific ``Vagrantfile(s)`` required. If you haven't done so perviously, do the following.
-```
+
 Create a .gitconfig file using your favorite editor and add the following:
 ```
 # This is Git's per-user configuration file.
@@ -69,7 +69,6 @@ Create a .gitconfig file using your favorite editor and add the following:
 [push]
         default = simple
 
-```
 
 voltha> sudo apt-get install repo
 voltha> mkdir cord
@@ -125,6 +124,7 @@ cp ~/cord/incubator/voltha/install/ansible/ansible.cfg ~/.ansible.cfg
 
 Also please change the value of the `cord_home` variable in the `install/ansible/group_vars/all` to refer to the location of your cord directory. This is usually in your home directory but it can be anywhere so the installer can't guess at it.
 
+
 Also destroy any running voltha VM by first ensuring your config file `settings.vagrant.yaml` is set as specified above then peforming the following:
 
 ```
@@ -145,22 +145,27 @@ You will be prompted for a password 3 times early in the installation as the ins
 
 This will take a while so doing something else in the mean-time is recommended.
 
-### Running the installer in test mode
-Once the creation has completed determine the ip address of the VM with the following virsh command:
-``virsh domifaddr vInstaller``
-using the ip address provided log into the installer using
-``ssh -i key.pem vinstall@<ip-address-from-above>``
-
-Finally, start the installer.
-``./installer.sh``
-In test mode it'll just launch with no prompts and install voltha on the 3 VMs created at the same time that the installer was created (ha-serv1, ha-serv2, and ha-serv3). This step takes quite a while since 3 different voltha installs are taking place, one for each of the 3 VMs in the cluster.
-
 Once the installation completes, determine the ip-address of one of the cluster VMs.
-``virsh domifaddr ha-serv1``
-You can use ``ha-serv2`` or ``ha-serv3`` in place of ``ha-serv1`` above. Log into the VM
-``ssh voltha@<ip-address-from-above>``
+``virsh domifaddr install_ha-serv<yourId>-1``
+You can use ``install_ha-serv<yourId>-2`` or ``install_ha-serv<yourId>-3`` in place of ``install_ha-serv<yourId>-1`` above. `<yourId> can be determined by issuing the command:
+```
+voltha> id -u
+```
+Log into the VM
+```
+voltha> ssh voltha@<ip-address-from-above>
+```
 The password is `voltha`.
-Once logged into the voltha instance follow the usual procedure to start voltha and validate that it's operating correctly.
+Once logged into the voltha instance you can validate that the instance is running correctly.
+
+The install process adds information to the build tree which needs to be cleaned up between runs. To clean up after you're done issue the following:
+```
+voltha> cd ~/cord/incubator/voltha/install
+voltha> ./cleanup
+```
+
+This step will not destroy the VMs, only remove files that are created during the install process to facilitate debugging. As the installer stabilizes this may be done automatically at the end of an installation run.
+
 
 ### Building the installer in production mode
 Production mode should be used if the installer created is going to be used in a production environment. In this case, an archive file is created that contains the VM image, the KVM xml metadata file for the VM, the private key to access the vM, and a bootstrap script that sets up the VM, fires it up, and logs into it.
@@ -175,6 +180,8 @@ You will be prompted for a password 3 times early in the installation as the ins
 This will take a while and when it completes a directory name ``volthaInstaller`` will have been created. Copy all the files in this directory to a USB Flash drive or other portable media and carry to the installation site.
 
 ## Installing Voltha
+
+The targets for the installation can be either bare metal servers or VMs running ubuntu server 16.04 LTS. The he userid used for installation (see below) must have sudo rights. This is automatic for the user created during ubuntu installation. If you've created another user to use for installation, please ensure they have sudo rights.
 
 To install voltha access to a bare metal server running Ubuntu Server 16.04LTS with QEMU/KVM virtualization and OpenSSH installed is required. If the server meets these basic requirements then insert the removable media, mount it, and copy all the files on the media to a directory on the server. Change into that directory and type ``./deployInstaller.sh`` which should produce the output shown after the *Note*:
 
@@ -235,6 +242,5 @@ Next uncomment the iUser line and change the userid that will be used to log int
 Make sure that all the hosts that are being installed to have Ubuntu server 16.04LTS installed with OpenSSH. Also make sure that they're all reachable by attempting an ssh login to each with the user id provided on the iUser line.
 
 Once `install.cfg` file has been updated and reachability has been confirmed, start the installation with the command `./installer.sh`.
-
 
 Once launched, the installer will prompt for the password 3 times for each of the hosts the installation is being performed on. Once these have been provided, the installer will proceed without prompting for anything else. 

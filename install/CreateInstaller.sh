@@ -47,24 +47,22 @@ if [ -z "$aInst" ]; then
 fi
 unset vInst
 
-# Verify if this is intended to be a test environment, if so start 3 VMs
-# to emulate the production installation cluster.
+# Verify if this is intended to be a test environment, if so
+# configure the 3 VMs which will be started later to emulate
+# the production installation cluster.
 if [ $# -eq 1 -a "$1" == "test" ]; then
-	echo -e "${lBlue}Testing, create the ${lCyan}ha-serv${lBlue} VMs${NC}"
+	echo -e "${lBlue}Testing, configure the ${lCyan}ha-serv${lBlue} VMs${NC}"
 	# Update the vagrant settings file
 	sed -i -e '/server_name/s/.*/server_name: "ha-serv'${uId}'-"/' settings.vagrant.yaml
 	sed -i -e '/docker_push_registry/s/.*/docker_push_registry: "vinstall'${uId}':5000"/' ansible/group_vars/all
 	sed -i -e "/vinstall/s/vinstall/vinstall${uId}/" ../ansible/roles/docker/templates/daemon.json
 
 	# Set the insecure registry configuration based on the installer hostname
-	echo -e "${lBlue}Set up the inescure registry hostname ${lCyan}vinstall${uId}${NC}"
+	echo -e "${lBlue}Set up the inescure registry config for hostname ${lCyan}vinstall${uId}${NC}"
 	echo '{' > ansible/roles/voltha/templates/daemon.json
 	echo '"insecure-registries" : ["vinstall'${uId}':5000"]' >> ansible/roles/voltha/templates/daemon.json
 	echo '}' >> ansible/roles/voltha/templates/daemon.json
 
-	vagrant destroy ha-serv${uId}-{1,2,3}
-	vagrant up ha-serv${uId}-{1,2,3}
-	./devSetHostList.sh
 	# Change the installer name
 	iVmName="vInstaller${uId}"
 else
@@ -73,7 +71,7 @@ else
         # which serve as documentation.
 	sed -i -e '/^#/!d' install.cfg
 	# Set the insecure registry configuration based on the installer hostname
-	echo -e "${lBlue}Set up the inescure registry hostname ${lCyan}vinstall${uId}${NC}"
+	echo -e "${lBlue}Set up the inescure registry config for hostname ${lCyan}vinstall${uId}${NC}"
 	sed -i -e '/docker_push_registry/s/.*/docker_push_registry: "vinstall:5000"/' ansible/group_vars/all
 	echo '{' > ansible/roles/voltha/templates/daemon.json
 	echo '"insecure-registries" : ["vinstall:5000"]' >> ansible/roles/voltha/templates/daemon.json
@@ -171,12 +169,18 @@ echo -e "${lBlue}Running the pre-configuration script on the VM${NC}"
 ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no vinstall@$ipAddr 
 
 # If we're in test mode, change the hostname of the installer vm
+# also start the 3 vagrant target VMs
 if [ $# -eq 1 -a "$1" == "test" ]; then
 	echo -e "${lBlue}Test mode, change the installer host name to ${yellow}vinstall${uId}${NC}"
 	ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem vinstall@$ipAddr \
 		sudo hostnamectl set-hostname vinstall${uId}
 	ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem vinstall@$ipAddr \
 		sudo service networking restart
+
+	echo -e "${lBlue}Testing, start the ${lCyan}ha-serv${lBlue} VMs${NC}"
+	vagrant destroy ha-serv${uId}-{1,2,3}
+	vagrant up ha-serv${uId}-{1,2,3}
+	./devSetHostList.sh
 fi
 
 # Ensure that the voltha VM is running so that images can be secured
@@ -186,11 +190,11 @@ vVM=`virsh list | grep voltha_voltha${uId}`
 if [ -z "$vVM" ]; then
 	if [ $# -eq 1 -a "$1" == "test" ]; then
 		./BuildVoltha.sh $1
-		rtrn=$#
+		rtrn=$?
 	else
 		# Default to installer mode 
 		./BuildVoltha.sh install
-		rtrn=$#
+		rtrn=$?
 	fi
 	if [ $rtrn -ne 0 ]; then
 		echo -e "${red}Voltha build failed!! ${yellow}Please review the log and correct${lBlue} is running${NC}"
@@ -199,18 +203,24 @@ if [ -z "$vVM" ]; then
 fi
 
 # Extract all the image names and tags from the running voltha VM
-# No Don't do this, it's too error prone if the voltha VM is not 
-# built correctly, going with a static list for now.
-#echo -e "${lBlue}Extracting the docker image list from the voltha VM${NC}"
-#volIpAddr=`virsh domifaddr $vVmName${uId} | tail -n +3 | awk '{ print $4 }' | sed -e 's~/.*~~'`
-#ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i ../.vagrant/machines/voltha${uId}/libvirt/private_key vagrant@$volIpAddr "docker image ls" > images.tmp
-#cat images.tmp | grep -v 5000 | tail -n +2 | awk '{printf("  - %s:%s\n", $1, $2)}' > image-list.cfg
-#rm -f images.tmp
-#sed -i -e '/voltha_containers:/,$d' ansible/group_vars/all
-#echo "voltha_containers:" >> ansible/group_vars/all
-echo -e "${lBlue}Set up the docker image list from ${yellow}containers.cfg${NC}"
-sed -i -e '/voltha_containers:/,$d' ansible/group_vars/all
-cat containers.cfg >> ansible/group_vars/all
+# when running in test mode. This will provide the entire suite
+# of available containers to the VM cluster.
+
+if [ $# -eq 1 -a "$1" == "test" ]; then
+	echo -e "${lBlue}Extracting the docker image list from the voltha VM${NC}"
+	volIpAddr=`virsh domifaddr $vVmName${uId} | tail -n +3 | awk '{ print $4 }' | sed -e 's~/.*~~'`
+	ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i ../.vagrant/machines/voltha${uId}/libvirt/private_key vagrant@$volIpAddr "docker image ls" > images.tmp
+	cat images.tmp | grep -v 5000 | tail -n +2 | awk '{printf("  - %s:%s\n", $1, $2)}' > image-list.cfg
+	rm -f images.tmp
+	sed -i -e '/voltha_containers:/,$d' ansible/group_vars/all
+	echo "voltha_containers:" >> ansible/group_vars/all
+	cat image-list.cfg >> ansible/group_vars/all
+	rm -f image-list.cfg
+else
+	echo -e "${lBlue}Set up the docker image list from ${yellow}containers.cfg${NC}"
+	sed -i -e '/voltha_containers:/,$d' ansible/group_vars/all
+	cat containers.cfg >> ansible/group_vars/all
+fi
 
 # Install python which is required for ansible
 echo -e "${lBlue}Installing python${NC}"
@@ -261,6 +271,36 @@ fi
 
 if [ $# -eq 1 -a "$1" == "test" ]; then
 	echo -e "${lBlue}Testing, the install image ${red}WILL NOT${lBlue} be built${NC}"
+
+
+	# Reboot the installer
+	echo -e "${lBlue}Rebooting the installer${NC}"
+	ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem vinstall@$ipAddr sudo telinit 6
+	# Wait for the host to shut down
+	sleep 5
+
+	ctr=0
+	ipAddr=""
+	while [ -z "$ipAddr" ];
+	do
+		echo -e "${lBlue}Waiting for the VM's IP address${NC}"
+		ipAddr=`virsh domifaddr $iVmName | tail -n +3 | awk '{ print $4 }' | sed -e 's~/.*~~'`
+		sleep 3
+		if [ $ctr -eq $ipTimeout ]; then
+			echo -e "${red}Tired of waiting, please adjust the ipTimeout if the VM is slow to start${NC}"
+			exit
+		fi
+		ctr=`expr $ctr + 1`
+	done
+
+	echo -e "${lBlue}Running the installer${NC}"
+	echo "~/installer.sh" > tmp_bash_login
+	echo "rm ~/.bash_login" >> tmp_bash_login
+	echo "logout" >> tmp_bash_login
+	scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem tmp_bash_login vinstall@$ipAddr:.bash_login
+	rm -f tmp_bash_login
+	ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem vinstall@$ipAddr
+
 else
 	echo -e "${lBlue}Building, the install image (this can take a while)${NC}"
 	# Create a temporary directory for all the installer files

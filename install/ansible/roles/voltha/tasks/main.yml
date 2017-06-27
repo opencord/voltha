@@ -31,18 +31,6 @@
   when: target == "cluster"
   tags: [voltha]
 
-#- name: Required directories are copied
-#  copy:
-#    src: "/home/vinstall/{{ item }}"
-#    dest: "{{ target_voltha_dir }}"
-#    owner: voltha
-#    group: voltha
-#  with_items:
-#    - compose
-#    - nginx_config
-#  when: target == "cluster"
-#  tags: [voltha]
-
 - name: Installer files and directories are copied
   synchronize:
     src: "/home/vinstall/{{ item }}"
@@ -70,16 +58,6 @@
     - nginx_config
   when: target == "cluster"
   tags: [voltha]
-
-#- name: Nginx module symlink is present
-#  file:
-#    dest: "{{ target_voltha_dir }}/nginx_config/modules"
-#    src: ../../usr/lib/nginx/modules
-#    state: link
-#    follow: no
-#    force: yes
-#  when: target == "cluster"
-#  tags: [voltha]
 
 - name: Nginx statup script is executable
   file:
@@ -136,10 +114,10 @@
   when: target == "installer"
   tags: [voltha]
 
-#- name: TEMPORARY RULE TO INSTALL ZOOKEEPER
-#  command: docker pull zookeeper
-#  when: target == "installer"
-#  tags: [voltha]
+- name: TEMPORARY RULE TO INSTALL ZOOKEEPER
+  command: docker pull zookeeper
+  when: target == "installer"
+  tags: [voltha]
 
 - name: Docker images are re-tagged to registry for push
   command: docker tag {{ item }} {{ docker_push_registry }}/{{ item }}
@@ -157,47 +135,17 @@
   when: target == "installer"
   tags: [voltha]
 
-- name: consul overlay network exists
-  command: docker network create --driver overlay --subnet 10.10.10.0/29 consul_net
-  when: target == "startup"
-  tags: [voltha]
-
-- name: kafka overlay network exists
-  command: docker network create --driver overlay --subnet 10.10.11.0/24 kafka_net
-  when: target == "startup"
-  tags: [voltha]
-
 - name: voltha overlay network exists
-  command: docker network create --driver overlay --subnet 10.10.12.0/24 voltha_net
+  command: docker network create --opt encrypted=true --driver overlay --subnet 10.10.12.0/24 voltha_net
   when: target == "startup"
   tags: [voltha]
 
 - name: consul cluster is running
-  command: docker service create --name consul --network consul_net --network voltha_net -e 'CONSUL_BIND_INTERFACE=eth0' --mode global --publish "8300:8300" --publish "8400:8400" --publish "8500:8500" --publish "8600:8600/udp" --mount type=bind,source=/cord/incubator/voltha/consul_config,destination=/consul/config consul agent -config-dir /consul/config
-  when: target == "startup"
-  tags: [voltha]
-
-- name: zookeeper node zk1 is running
-  command: docker service create --name zk1 --network kafka_net --network voltha_net -e 'ZOO_MY_ID=1' -e "ZOO_SERVERS=server.1=0.0.0.0:2888:3888 server.2=zk2:2888:3888 server.3=zk3:2888:3888" zookeeper
-  when: target == "startup"
-  tags: [voltha]
-
-- name: zookeeper node zk2 is running
-  command: docker service create --name zk2 --network kafka_net --network voltha_net -e 'ZOO_MY_ID=2' -e "server.1=zk1:2888:3888 server.2=0.0.0.0:2888:3888 server.3=zk3:2888:3888" zookeeper
-  when: target == "startup"
-  tags: [voltha]
-
-- name: zookeeper node zk3 is running
-  command: docker service create --name zk3 --network kafka_net --network voltha_net -e 'ZOO_MY_ID=3' -e "ZOO_SERVERS=server.1=zk1:2888:3888 server.2=zk2:2888:3888 server.3=0.0.0.0:2888:3888" zookeeper
+  command: docker stack deploy -c {{ target_voltha_dir }}/compose/docker-compose-consul-cluster.yml consul
   when: target == "startup"
   tags: [voltha]
 
 - name: kafka is running
-  command: docker service create --name kafka --network voltha_net  -e "KAFKA_ADVERTISED_PORT=9092" -e "KAFKA_ZOOKEEPER_CONNECT=zk1:2181,zk2:2181,zk3:2181" -e "KAFKA_HEAP_OPTS=-Xmx256M -Xms128M" --mode global --publish "9092:9092" wurstmeister/kafka
-  when: target == "startup"
-  tags: [voltha]
-
-- name: voltha is running on a single host for testing
-  command: docker service create --name voltha_core --network voltha_net cord/voltha voltha/voltha/main.py -v --consul=consul:8500 --kafka=kafka
+  command: docker stack deploy -c {{ target_voltha_dir}}/compose/docker-compose-kafka-cluster.yml kafka
   when: target == "startup"
   tags: [voltha]
