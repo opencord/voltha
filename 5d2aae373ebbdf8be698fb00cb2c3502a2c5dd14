@@ -72,6 +72,24 @@
     },
     {
       "key": {
+        "uuid": "5a202591_959b4472",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 222,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-27T13:10:11Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5a202591_15f854e4",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a0e1d27_65990d6e",
         "filename": "voltha/core/core.py",
         "patchSetId": 2
@@ -107,6 +125,24 @@
     },
     {
       "key": {
+        "uuid": "5a202591_7588a822",
+        "filename": "voltha/core/core.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 152,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-27T13:10:11Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5a202591_d5d9bc84",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a0e1d27_459e0958",
         "filename": "voltha/core/core.py",
         "patchSetId": 2
@@ -135,6 +171,24 @@
       "writtenOn": "2017-06-26T20:53:55Z",
       "side": 1,
       "message": "Same as above explanation.",
+      "parentUuid": "9a0e1d27_459e0958",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_558dac30",
+        "filename": "voltha/core/core.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 167,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-27T13:10:11Z",
+      "side": 1,
+      "message": "Done",
       "parentUuid": "9a0e1d27_459e0958",
       "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
@@ -317,6 +371,24 @@
     },
     {
       "key": {
+        "uuid": "5a202591_35823001",
+        "filename": "voltha/core/xpon_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 201,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-27T13:10:11Z",
+      "side": 1,
+      "message": "I meant the local reference variable does not seem to be used.",
+      "parentUuid": "5a202591_f5c39888",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a0e1d27_85bb01c4",
         "filename": "voltha/protos/bbf_fiber_channelgroup_body.proto",
         "patchSetId": 2
@@ -433,6 +505,24 @@
       "side": 1,
       "message": "This proto is auto generated from yang and there is nothing in oper_data.",
       "parentUuid": "9a0e1d27_e5acfd8e",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_d5789c2d",
+        "filename": "voltha/protos/bbf_fiber_v_enet_body.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-27T13:10:11Z",
+      "side": 1,
+      "message": "Not sure how you autogenerate them.  If you use the yang2proto script in Voltha then I suggest that you will need some adjustments in the proto definitions as the yand2proto script is not complete and fully implemented.",
+      "parentUuid": "5a202591_95ba2409",
       "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -632,6 +722,41 @@
       "side": 1,
       "message": "The id is the name.\nFYI, bbf standard yang model WT-385:\nhttps://wiki.opencord.org/display/CORD/vOLTHA+-+xPON+Hardware+Abstraction?preview\u003d/2555912/2556857/WT-385_draft1.pdf",
       "parentUuid": "9a0e1d27_65fead6d",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_15873411",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 98,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-27T13:10:11Z",
+      "side": 1,
+      "message": "How do we invoke the \u0027/api/v1/channel_partitions/{name}\u0027 API to get the required information across partitions?  If \u0027name\u0027 is just a string of characters then it won\u0027t guarantee uniqueness.  I suggest to add another id (a string of 12 hex) which would be used to query the data.  And this would apply to all objects that would be queried from the NBO api.",
+      "parentUuid": "5a202591_f54a7826",
+      "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_f57b9827",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 132,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-27T13:10:11Z",
+      "side": 1,
+      "message": "Since these bbf_fiber are repeated in both voltha and volthainstance messages then I suggest to create a separate message for all of them (e.g. bbf_fiber message) and just refers to it in both voltha and volthainstance.",
       "revId": "5d2aae373ebbdf8be698fb00cb2c3502a2c5dd14",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
