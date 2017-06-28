@@ -168,6 +168,9 @@ class AdapterAgent(object):
     def reboot_device(self, device):
         return self.adapter.reboot_device(device)
 
+    def self_test(self, device):
+        return self.adapter.self_test_device(device)
+
     def delete_device(self, device):
         return self.adapter.delete_device(device)
 

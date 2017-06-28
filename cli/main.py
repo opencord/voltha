@@ -324,6 +324,20 @@ class VolthaCli(Cmd):
         except Exception, e:
             self.poutput('Error rebooting {}.  Error:{}'.format(device_id, e))
 
+    def do_self_test(self, line):
+        """
+        Self Test a device. ID of the device needs to be provided
+        """
+        device_id = line or self.default_device_id
+        self.poutput('Self Testing {}'.format(device_id))
+        try:
+            stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+            res = stub.SelfTest(voltha_pb2.ID(id=device_id))
+            self.poutput('Self Tested {}'.format(device_id))
+            self.poutput(dumps(pb2dict(res), indent=4))
+        except Exception, e:
+            self.poutput('Error in self test {}.  Error:{}'.format(device_id, e))
+
     def do_delete(self, line):
         """
         Deleting a device. ID of the device needs to be provided

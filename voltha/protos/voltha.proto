@@ -117,6 +117,18 @@ message Voltha {
 
 }
 
+// Device Self Test Response
+message SelfTestResponse {
+    option (yang_child_rule) = MOVE_TO_PARENT_LEVEL;
+
+	enum SelfTestResult  {
+	    SUCCESS = 0;
+	    FAILURE = 1;
+	    NOT_SUPPORTED = 2;
+	    UNKNOWN_ERROR = 3;
+    }
+    SelfTestResult result = 1;
+}
 
 /*
  * Cluster-wide Voltha APIs
@@ -368,6 +380,12 @@ service VolthaGlobalService {
     rpc GetImages(ID) returns(Images) {
         option (google.api.http) = {
             get: "/api/v1/devices/{id}/images"
+        };
+    }
+
+    rpc SelfTest(ID) returns(SelfTestResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/devices/{id}/self_test"
         };
     }
 }
@@ -638,6 +656,12 @@ service VolthaLocalService {
     rpc GetImages(ID) returns(Images) {
         option (google.api.http) = {
             get: "/api/v1/local/devices/{id}/images"
+        };
+    }
+
+    rpc SelfTest(ID) returns(SelfTestResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/local/devices/{id}/self_test"
         };
     }
 }
