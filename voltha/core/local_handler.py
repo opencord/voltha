@@ -29,7 +29,7 @@ from voltha.protos.voltha_pb2 import \
     VolthaInstance, Adapters, LogicalDevices, LogicalDevice, Ports, \
     LogicalPorts, Devices, Device, DeviceType, \
     DeviceTypes, DeviceGroups, DeviceGroup, AdminState, OperStatus, ChangeEvent, \
-    AlarmFilter, AlarmFilters
+    AlarmFilter, AlarmFilters, SelfTestResponse
 from voltha.protos.device_pb2 import PmConfigs, Images
 from voltha.registry import registry
 
@@ -708,3 +708,27 @@ class LocalHandler(VolthaLocalServiceServicer):
                 'Device \'{}\' not found'.format(request.id))
             context.set_code(StatusCode.NOT_FOUND)
             return Images()
+
+    @twisted_async
+    def SelfTest(self, request, context):
+        log.info('grpc-request', request=request)
+
+        if '/' in request.id:
+            context.set_details(
+                'Malformed device id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return SelfTestResponse()
+
+        try:
+            path = '/devices/{}'.format(request.id)
+            device = self.root.get(path)
+
+            agent = self.core.get_device_agent(device.id)
+            resp = agent.self_test(device)
+            return resp.result
+
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return SelfTestResponse()
