@@ -1,0 +1,174 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5a202591_d83691e7",
+        "filename": "voltha/adapters/iadapter.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 102,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-28T13:58:45Z",
+      "side": 1,
+      "message": "self_test",
+      "revId": "290235d6d41205940e2776a770a65964b4685e2e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_f8394dd9",
+        "filename": "voltha/adapters/interface.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 130,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-28T13:58:45Z",
+      "side": 1,
+      "message": "self_test_device(device) to be consistent.",
+      "revId": "290235d6d41205940e2776a770a65964b4685e2e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_582ba182",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 171,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-28T13:58:45Z",
+      "side": 1,
+      "message": "self_test(..) would be better.",
+      "revId": "290235d6d41205940e2776a770a65964b4685e2e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_3820e59a",
+        "filename": "voltha/core/device_agent.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 108,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-28T13:58:45Z",
+      "side": 1,
+      "message": "self_test(...) would be better.",
+      "revId": "290235d6d41205940e2776a770a65964b4685e2e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_182529ab",
+        "filename": "voltha/core/global_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 581,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-28T13:58:45Z",
+      "side": 1,
+      "message": "SelfTest(..) would be better",
+      "revId": "290235d6d41205940e2776a770a65964b4685e2e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_b833d5f5",
+        "filename": "voltha/core/local_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 728,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-28T13:58:45Z",
+      "side": 1,
+      "message": "Is resp.result a SelfTestResponse object?",
+      "revId": "290235d6d41205940e2776a770a65964b4685e2e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_9819397c",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 122,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-28T13:58:45Z",
+      "side": 1,
+      "message": "Add a \"option (yang_child_rule) \u003d MOVE_TO_PARENT_LEVEL\" annotation to this message, similar to how enums are defined in common.proto.  This will allow the YANG module to be correctly generated for Netconf.",
+      "revId": "290235d6d41205940e2776a770a65964b4685e2e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_784d3d72",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 128,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-28T13:58:45Z",
+      "side": 1,
+      "message": "Using the same name for message and enum would lead to confusion later on.  Please change the name to avoid this potential confusion.",
+      "revId": "290235d6d41205940e2776a770a65964b4685e2e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_78265dbc",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 384,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-28T13:58:45Z",
+      "side": 1,
+      "message": "Why not just \"SelfTest\"?",
+      "revId": "290235d6d41205940e2776a770a65964b4685e2e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_58528114",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 660,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-28T13:58:45Z",
+      "side": 1,
+      "message": "Is this returning the message or the enum?   Please see comments above.",
+      "revId": "290235d6d41205940e2776a770a65964b4685e2e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
