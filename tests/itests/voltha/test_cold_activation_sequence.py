@@ -7,9 +7,17 @@ from voltha.protos.device_pb2 import Device
 from voltha.protos.common_pb2 import AdminState, OperStatus
 from voltha.protos import openflow_13_pb2 as ofp
 from tests.itests.voltha.rest_base import RestBase
+from common.utils.consulhelpers import get_endpoint_from_consul
 
+LOCAL_CONSUL = "localhost:8500"
 
 class TestColdActivationSequence(RestBase):
+
+    # Retrieve details of the REST entry point
+    rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'chameleon-rest')
+
+    # Construct the base_url
+    base_url = 'http://' + rest_endpoint
 
     def wait_till(self, msg, predicate, interval=0.1, timeout=5.0):
         deadline = time() + timeout
@@ -128,8 +136,8 @@ class TestColdActivationSequence(RestBase):
                 if d['parent_id'] == olt_id
             ]
         self.wait_till(
-            'find four ONUs linked to the olt device',
-            lambda: len(find_our_onus()) >= 4,
+            'find ONUs linked to the olt device',
+            lambda: len(find_our_onus()) >= 1,
             2
         )
 

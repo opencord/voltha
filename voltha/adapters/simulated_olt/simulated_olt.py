@@ -483,7 +483,7 @@ class SimulatedOltAdapter(object):
         device.oper_status = OperStatus.ACTIVE
         self.adapter_agent.update_device(device)
 
-        # reactor.callLater(0.1, self._simulate_detection_of_onus, device.id)
+        reactor.callLater(0.1, self._simulate_detection_of_onus, device.id)
         self.start_kpi_collection(device.id)
 
         self.start_alarm_simulation(device.id)
