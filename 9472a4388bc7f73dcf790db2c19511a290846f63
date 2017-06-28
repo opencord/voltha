@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5a202591_b84ab553",
+        "filename": "ofagent/of_protocol_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 62,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-28T14:03:24Z",
+      "side": 1,
+      "message": "31?",
+      "revId": "9472a4388bc7f73dcf790db2c19511a290846f63",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_9847f94b",
+        "filename": "ofagent/of_protocol_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 65,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-28T14:03:24Z",
+      "side": 1,
+      "message": "If msg is None this code will be run.  Should it?",
+      "revId": "9472a4388bc7f73dcf790db2c19511a290846f63",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_78741d9c",
+        "filename": "ofagent/of_protocol_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 68,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-28T14:03:24Z",
+      "side": 1,
+      "message": "Error log is confusing.  Should it show the version the peer support and the list of supported ones in the log?  Will be easier to debug.",
+      "revId": "9472a4388bc7f73dcf790db2c19511a290846f63",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
