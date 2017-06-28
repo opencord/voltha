@@ -65,6 +65,15 @@ class Asfvolt16Handler(object):
     def packet_out(self, egress_port, msg):
         raise NotImplementedError()
 
+    def self_test_req(self, device):
+        """
+        This is called to Self a device based on a NBI call.
+        :param device: A Voltha.Device object.
+        :return: Will return result of self test
+        """
+        log.info('self-test-req', device=device.id)
+        raise NotImplementedError()
+
     def reboot(self):
         raise NotImplementedError()
 
