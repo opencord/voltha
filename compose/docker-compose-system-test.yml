@@ -154,6 +154,10 @@ services:
   #
   vcli:
     image: cord/vcli
+    command: [
+      "/cli/cli/setup.sh",
+      "-L"
+    ]
     environment:
       DOCKER_HOST_IP: "${DOCKER_HOST_IP}"
     ports:
