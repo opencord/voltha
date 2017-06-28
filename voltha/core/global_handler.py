@@ -23,7 +23,7 @@ from voltha.protos.device_pb2 import PmConfigs, Images
 from voltha.protos.voltha_pb2 import \
     add_VolthaGlobalServiceServicer_to_server, VolthaLocalServiceStub, \
     VolthaGlobalServiceServicer, Voltha, VolthaInstances, VolthaInstance, \
-    LogicalDevice, Ports, Flows, FlowGroups, Device
+    LogicalDevice, Ports, Flows, FlowGroups, Device, SelfTestResponse
 from voltha.registry import registry
 from google.protobuf.empty_pb2 import Empty
 
@@ -574,5 +574,26 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             instance_id,
             VolthaLocalServiceStub,
             'GetImages',
+            request,
+            context)
+
+    @twisted_async
+    def SelfTest(self, request, context):
+        log.info('grpc-request', request=request)
+
+        try:
+            instance_id = self.dispatcher.instance_id_by_device_id(
+                request.id
+            )
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return SelfTestResponse()
+
+        return self.dispatcher.dispatch(
+            instance_id,
+            VolthaLocalServiceStub,
+            'SelfTest',
             request,
             context)

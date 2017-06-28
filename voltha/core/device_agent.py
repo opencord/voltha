@@ -98,12 +98,18 @@ class DeviceAgent(object):
             CallbackType.POST_UPDATE, self._process_update)
         self.log.info('stopped')
 
-
     @inlineCallbacks
     def reboot_device(self, device, dry_run=False):
         self.log.debug('reboot-device', device=device, dry_run=dry_run)
         if not dry_run:
             yield self.adapter_agent.reboot_device(device)
+
+    @inlineCallbacks
+    def self_test(self, device, dry_run=False):
+        self.log.debug('self-test-device', device=device, dry_run=dry_run)
+        if not dry_run:
+            result = yield self.adapter_agent.self_test(device)
+            returnValue(result)
 
     @inlineCallbacks
     def get_device_details(self, device, dry_run=False):

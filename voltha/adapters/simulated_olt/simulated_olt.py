@@ -22,6 +22,7 @@ from uuid import uuid4
 import arrow
 import structlog
 import datetime
+import random
 from klein import Klein
 from scapy.layers.l2 import Ether, EAPOL, Padding
 from twisted.internet import endpoints
@@ -38,6 +39,7 @@ from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.protos.adapter_pb2 import Adapter, AdapterConfig
 from voltha.protos.device_pb2 import DeviceType, DeviceTypes, Device, Port, \
 PmConfigs, PmConfig, PmGroupConfig, Image
+from voltha.protos.voltha_pb2 import SelfTestResponse
 from voltha.protos.events_pb2 import KpiEvent, KpiEventType, MetricValuePairs
 from voltha.protos.health_pb2 import HealthStatus
 from voltha.protos.common_pb2 import LogLevel, OperStatus, ConnectStatus, \
@@ -241,7 +243,14 @@ class SimulatedOltAdapter(object):
         log.info("adapter-update-pm-config", device=device, pm_config=pm_config)
         self.pm_metrics.update(pm_config)
 
-
+    def self_test_device(self, device):
+        log.info("run-self-test-on-device", device=device.id)
+        result = SelfTestResponse(result = random.choice([
+            SelfTestResponse.SUCCESS,
+            SelfTestResponse.FAILURE,
+            SelfTestResponse.NOT_SUPPORTED,
+            SelfTestResponse.UNKNOWN_ERROR]))
+        return result
 
     def _tmp_populate_stuff(self):
         """

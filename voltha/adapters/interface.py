@@ -127,6 +127,13 @@ class IAdapterInterface(Interface):
         :return: (Deferred) Shall be fired to acknowledge the reboot.
         """
 
+    def self_test_device(device):
+        """
+        This is called to Self a device based on a NBI call.
+        :param device: A Voltha.Device object.
+        :return: Will return result of self test
+        """
+
     def delete_device(device):
         """
         This is called to delete a device from the PON based on a NBI call.

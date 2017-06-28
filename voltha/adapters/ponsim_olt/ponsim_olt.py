@@ -492,6 +492,15 @@ class PonSimOltHandler(object):
 
         self.log.info('rebooted', device_id=self.device_id)
 
+    def self_test_device(self, device):
+        """
+        This is called to Self a device based on a NBI call.
+        :param device: A Voltha.Device object.
+        :return: Will return result of self test
+        """
+        log.info('self-test-device', device=device.id)
+        raise NotImplementedError()
+
     def disable(self):
         self.log.info('disabling', device_id=self.device_id)
 

@@ -200,6 +200,15 @@ class AdtranOltAdapter(object):
         log.info('reboot_device', device=device)
         raise NotImplementedError()
 
+    def self_test_device(self, device):
+        """
+        This is called to Self a device based on a NBI call.
+        :param device: A Voltha.Device object.
+        :return: Will return result of self test
+        """
+        log.info('self-test-device', device=device.id)
+        raise NotImplementedError()
+
     def delete_device(self, device):
         """
         This is called to delete a device from the PON based on a NBI call.

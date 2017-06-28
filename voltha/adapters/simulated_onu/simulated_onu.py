@@ -21,6 +21,7 @@ from uuid import uuid4
 
 import structlog
 import datetime
+import random
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, DeferredQueue
 from zope.interface import implementer
@@ -33,6 +34,7 @@ from voltha.protos.adapter_pb2 import Adapter, AdapterConfig
 from voltha.protos.device_pb2 import DeviceType, DeviceTypes, Device, Port, \
      Image
 from voltha.protos.health_pb2 import HealthStatus
+from voltha.protos.voltha_pb2 import SelfTestResponse
 from voltha.protos.common_pb2 import LogLevel, OperStatus, ConnectStatus, \
     AdminState
 from voltha.protos.logical_device_pb2 import LogicalDevice, LogicalPort
@@ -115,6 +117,15 @@ class SimulatedOnuAdapter(object):
 
     def update_pm_config(self, device, pm_configs):
         raise NotImplementedError()
+
+    def self_test_device(self, device):
+        log.info("run-self-test-on-device", device=device.id)
+        result = SelfTestResponse(result = random.choice([
+            SelfTestResponse.SUCCESS,
+            SelfTestResponse.FAILURE,
+            SelfTestResponse.NOT_SUPPORTED,
+            SelfTestResponse.UNKNOWN_ERROR]))
+        return result
 
     @inlineCallbacks
     def _simulate_device_activation(self, device):

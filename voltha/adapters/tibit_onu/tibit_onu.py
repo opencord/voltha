@@ -276,6 +276,15 @@ class TibitOnuAdapter(object):
 
         log.info('ONU Rebooted: {}'.format(device.mac_address))
 
+    def self_test_device(self, device):
+        """
+        This is called to Self a device based on a NBI call.
+        :param device: A Voltha.Device object.
+        :return: Will return result of self test
+        """
+        log.info('self-test-device', device=device.id)
+        raise NotImplementedError()
+
     def delete_device(self, device):
         raise NotImplementedError()
 

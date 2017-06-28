@@ -99,6 +99,11 @@ class IAdapter(object):
         reactor.callLater(0, self.devices_handlers[device.id].reboot)
         return device
 
+    def self_test_device(self, device):
+        log.info('self-test-req', device_id=device.id)
+        result = reactor.callLater(0, self.devices_handlers[device.id].self_test_device)
+        return result
+
     def delete_device(self, device):
         log.info('delete-device', device_id=device.id)
         #  TODO: Update the logical device mapping
