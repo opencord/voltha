@@ -11,6 +11,11 @@ installerPart="installer.part"
 shutdownTimeout=5
 ipTimeout=10
 
+# Command line argument variables
+testMode="no"
+
+
+
 lBlue='\033[1;34m'
 green='\033[0;32m'
 orange='\033[0;33m'
@@ -24,6 +29,24 @@ lCyan='\033[1;36m'
 uId=`id -u`
 wd=`pwd`
 
+parse_args()
+{
+	for i in $@
+	do
+		case "$i" in
+			"test" )
+				testMode="yes"
+				echo -e "${lBlue}Test mode is ${green}enabled${NC}"
+				;;
+		esac
+	done
+}
+
+
+######################################
+# MAIN MAIN MAIN MAIN MAIN MAIN MAIN #
+######################################
+parse_args $@
 # Validate that vagrant is installed.
 echo -e "${lBlue}Ensure that ${lCyan}vagrant${lBlue} is installed${NC}"
 vInst=`which vagrant`
@@ -50,15 +73,15 @@ unset vInst
 # Verify if this is intended to be a test environment, if so
 # configure the 3 VMs which will be started later to emulate
 # the production installation cluster.
-if [ $# -eq 1 -a "$1" == "test" ]; then
-	echo -e "${lBlue}Testing, configure the ${lCyan}ha-serv${lBlue} VMs${NC}"
+if [ "$testMode" == "yes" ]; then
+	echo -e "${lBlue}Test mode ${green}enabled${lBlue}, configure the ${lCyan}ha-serv${lBlue} VMs${NC}"
 	# Update the vagrant settings file
 	sed -i -e '/server_name/s/.*/server_name: "ha-serv'${uId}'-"/' settings.vagrant.yaml
 	sed -i -e '/docker_push_registry/s/.*/docker_push_registry: "vinstall'${uId}':5000"/' ansible/group_vars/all
 	sed -i -e "/vinstall/s/vinstall/vinstall${uId}/" ../ansible/roles/docker/templates/daemon.json
 
 	# Set the insecure registry configuration based on the installer hostname
-	echo -e "${lBlue}Set up the inescure registry config for hostname ${lCyan}vinstall${uId}${NC}"
+	echo -e "${lBlue}Set up the insecure registry config for hostname ${lCyan}vinstall${uId}${NC}"
 	echo '{' > ansible/roles/voltha/templates/daemon.json
 	echo '"insecure-registries" : ["vinstall'${uId}':5000"]' >> ansible/roles/voltha/templates/daemon.json
 	echo '}' >> ansible/roles/voltha/templates/daemon.json
@@ -170,8 +193,8 @@ ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no vinstall@$ipAddr
 
 # If we're in test mode, change the hostname of the installer vm
 # also start the 3 vagrant target VMs
-if [ $# -eq 1 -a "$1" == "test" ]; then
-	echo -e "${lBlue}Test mode, change the installer host name to ${yellow}vinstall${uId}${NC}"
+if [ "$testMode" == "yes" ]; then
+	echo -e "${lBlue}Test mode, change the installer host name to ${lCyan}vinstall${uId}${NC}"
 	ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem vinstall@$ipAddr \
 		sudo hostnamectl set-hostname vinstall${uId}
 	ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem vinstall@$ipAddr \
@@ -188,7 +211,7 @@ echo -e "${lBlue}Ensure that the ${lCyan}voltha VM${lBlue} is running${NC}"
 vVM=`virsh list | grep voltha_voltha${uId}`
 
 if [ -z "$vVM" ]; then
-	if [ $# -eq 1 -a "$1" == "test" ]; then
+	if [ "$testMode" == "yes" ]; then
 		./BuildVoltha.sh $1
 		rtrn=$?
 	else
@@ -197,7 +220,7 @@ if [ -z "$vVM" ]; then
 		rtrn=$?
 	fi
 	if [ $rtrn -ne 0 ]; then
-		echo -e "${red}Voltha build failed!! ${yellow}Please review the log and correct${lBlue} is running${NC}"
+		echo -e "${red}Voltha build failed!! ${lCyan}Please review the log and correct${lBlue} is running${NC}"
 		exit 1
 	fi
 fi
@@ -206,7 +229,7 @@ fi
 # when running in test mode. This will provide the entire suite
 # of available containers to the VM cluster.
 
-if [ $# -eq 1 -a "$1" == "test" ]; then
+if [ "$testMode" == "yes" ]; then
 	echo -e "${lBlue}Extracting the docker image list from the voltha VM${NC}"
 	volIpAddr=`virsh domifaddr $vVmName${uId} | tail -n +3 | awk '{ print $4 }' | sed -e 's~/.*~~'`
 	ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i ../.vagrant/machines/voltha${uId}/libvirt/private_key vagrant@$volIpAddr "docker image ls" > images.tmp
@@ -217,7 +240,7 @@ if [ $# -eq 1 -a "$1" == "test" ]; then
 	cat image-list.cfg >> ansible/group_vars/all
 	rm -f image-list.cfg
 else
-	echo -e "${lBlue}Set up the docker image list from ${yellow}containers.cfg${NC}"
+	echo -e "${lBlue}Set up the docker image list from ${lCyan}containers.cfg${NC}"
 	sed -i -e '/voltha_containers:/,$d' ansible/group_vars/all
 	cat containers.cfg >> ansible/group_vars/all
 fi
@@ -232,12 +255,6 @@ echo -e "${lBlue}Ensure that the VM is up-to-date${NC}"
 ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem vinstall@$ipAddr sudo apt-get update 
 ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem vinstall@$ipAddr sudo apt-get -y upgrade 
 
-
-
-# Copy the apt repository to the VM because it's way too slow using ansible
-#echo -e "${red}NOT COPYING${lBlue} the apt-repository to the VM, ${red}TESTING ONLY REMOVE FOR PRODUCTION${NC}"
-#echo -e "${lBlue}Copy the apt-repository to the VM${NC}"
-#scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem -r apt-mirror vinstall@$ipAddr:apt-mirror
 
 # Create the docker.cfg file in the ansible tree using the VMs IP address
 echo 'DOCKER_OPTS="$DOCKER_OPTS --insecure-registry '$ipAddr':5000 -H tcp://0.0.0.0:2375 -H unix:///var/run/docker.sock --registry-mirror=http://'$ipAddr':5001"' > ansible/roles/docker/templates/docker.cfg
@@ -256,20 +273,26 @@ echo "[installer]" > ansible/hosts/installer
 echo "$ipAddr" >> ansible/hosts/installer
 echo "ansible_ssh_private_key_file: $wd/key.pem" > ansible/host_vars/$ipAddr
 
-# Launch the ansible playbook
-echo -e "${lBlue}Launching the ansible playbook${NC}"
+# Launch the ansible playbooks
+
+echo -e "${lBlue}Launching the ${lCyan}volthainstall${lBlue} ansible playbook on the installer vm${NC}"
 ansible-playbook ansible/volthainstall.yml -i ansible/hosts/installer
-if [ $? -ne 0 ]; then
-	echo -e "${red}PLAYBOOK FAILED, Exiting${NC}"
-	exit
-fi
-ansible-playbook ansible/volthainstall.yml -i ansible/hosts/voltha
-if [ $? -ne 0 ]; then
+rtrn=$?
+if [ $rtrn -ne 0 ]; then
 	echo -e "${red}PLAYBOOK FAILED, Exiting${NC}"
 	exit
 fi
 
-if [ $# -eq 1 -a "$1" == "test" ]; then
+
+echo -e "${lBlue}Launching the ${lCyan}volthainstall${lBlue} ansible playbook on the voltha vm${NC}"
+ansible-playbook ansible/volthainstall.yml -i ansible/hosts/voltha
+rtrn=$?
+if [ $rtrn -ne 0 ]; then
+	echo -e "${red}PLAYBOOK FAILED, Exiting${NC}"
+	exit
+fi
+
+if [ "$testMode" == "yes" ]; then
 	echo -e "${lBlue}Testing, the install image ${red}WILL NOT${lBlue} be built${NC}"
 
 
@@ -372,6 +395,6 @@ else
 	fi
 	# Clean up
 	rm $installerArchive
-	echo -e "${lBlue}The install image is built and can be found in ${yellow}$installerDirectory${NC}"
-	echo -e "${lBlue}Copy all the files in ${yellow}$installerDirectory${lBlue} to the traasnport media${NC}"
+	echo -e "${lBlue}The install image is built and can be found in ${lCyan}$installerDirectory${NC}"
+	echo -e "${lBlue}Copy all the files in ${lCyan}$installerDirectory${lBlue} to the traasnport media${NC}"
 fi

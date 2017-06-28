@@ -4,7 +4,7 @@ rm -f ansible/host_vars/*
 rm -f ansible/roles/voltha/templates/daemon.json
 rm -fr volthaInstaller-2/
 rm -fr volthaInstaller/
-rm -f ansible/volthainstall.retry
+rm -f ansible/*.retry
 rm -fr .test
 rm -f key.pem
 sed -i -e '/voltha_containers:/,$d' ansible/group_vars/all
