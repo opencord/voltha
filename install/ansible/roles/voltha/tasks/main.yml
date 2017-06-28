@@ -137,15 +137,18 @@
 
 - name: voltha overlay network exists
   command: docker network create --opt encrypted=true --driver overlay --subnet 10.10.12.0/24 voltha_net
+  become: voltha
   when: target == "startup"
   tags: [voltha]
 
 - name: consul cluster is running
   command: docker stack deploy -c {{ target_voltha_dir }}/compose/docker-compose-consul-cluster.yml consul
+  become: voltha
   when: target == "startup"
   tags: [voltha]
 
 - name: kafka is running
   command: docker stack deploy -c {{ target_voltha_dir}}/compose/docker-compose-kafka-cluster.yml kafka
+  become: voltha
   when: target == "startup"
   tags: [voltha]
