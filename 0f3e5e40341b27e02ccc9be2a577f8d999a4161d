@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5a202591_b5576026",
+        "filename": "voltha/adapters/simulated_olt/simulated_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 248,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-06-28T10:18:43Z",
+      "side": 1,
+      "message": "Can you please try to align the characters within the 80 character limit for this line",
+      "revId": "0f3e5e40341b27e02ccc9be2a577f8d999a4161d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_95546422",
+        "filename": "voltha/adapters/simulated_olt/simulated_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 249,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-06-28T10:18:43Z",
+      "side": 1,
+      "message": "Can you please move this log.info at the start of self_test_req function.",
+      "revId": "0f3e5e40341b27e02ccc9be2a577f8d999a4161d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_d55adc4f",
+        "filename": "voltha/core/local_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 728,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-06-28T10:18:43Z",
+      "side": 1,
+      "message": "The SelfTestReq rpc is supposed to return SelfTestResponse. I think the \"resp\" itself is SelfTestResponse. So, shouldn\u0027t you be returning \"resp\" and not \"resp.result\".",
+      "revId": "0f3e5e40341b27e02ccc9be2a577f8d999a4161d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_f55dd849",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 123,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-06-28T10:18:43Z",
+      "side": 1,
+      "message": "Correct indentation",
+      "revId": "0f3e5e40341b27e02ccc9be2a577f8d999a4161d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
