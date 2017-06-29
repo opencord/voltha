@@ -22,7 +22,9 @@ from common.utils.grpc_utils import twisted_async
 from common.utils.id_generation import \
     create_cluster_id, create_empty_broadcast_id
 from voltha.core.config.config_root import ConfigRoot
-from voltha.protos.device_pb2 import PmConfigs, Images
+from voltha.protos.device_pb2 import PmConfigs, Images, \
+    ImageDownload, ImageDownloads
+from voltha.protos.common_pb2 import OperationResp
 from voltha.protos.voltha_pb2 import \
     add_VolthaGlobalServiceServicer_to_server, VolthaLocalServiceStub, \
     VolthaGlobalServiceServicer, Voltha, VolthaInstances, VolthaInstance, \
@@ -1519,6 +1521,161 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_details('Device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(SelfTestResponse())
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
+
+    @twisted_async
+    @inlineCallbacks
+    def DownloadImage(self, request, context):
+        try:
+            log.info('grpc-request', request=request)
+            response = yield self.dispatcher.dispatch('DownloadImage',
+                                                      request,
+                                                      context,
+                                                      id=request.id)
+            log.info('grpc-response', response=response)
+        except Exception as e:
+            log.exception('grpc-exception', e=e)
+
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('Device \'{}\' error'.format(request.id))
+            context.set_code(response.error_code)
+            returnValue(OperationResp(code=OperationResp.OPERATION_FAILURE))
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
+
+    @twisted_async
+    @inlineCallbacks
+    def GetImageDownloadStatus(self, request, context):
+        try:
+            log.info('grpc-request', request=request)
+            response = yield self.dispatcher.dispatch('GetImageDownloadStatus',
+                                                      request,
+                                                      context,
+                                                      id=request.id)
+            log.info('grpc-response', response=response)
+        except Exception as e:
+            log.exception('grpc-exception', e=e)
+
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('Device \'{}\' error'.format(request.id))
+            context.set_code(response.error_code)
+            returnValue(ImageDownloads())
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
+
+    @twisted_async
+    @inlineCallbacks
+    def GetImageDownload(self, request, context):
+        try:
+            log.info('grpc-request', request=request)
+            response = yield self.dispatcher.dispatch('GetImageDownload',
+                                                      request,
+                                                      context,
+                                                      id=request.id)
+            log.info('grpc-response', response=response)
+        except Exception as e:
+            log.exception('grpc-exception', e=e)
+
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('Device \'{}\' error'.format(request.id))
+            context.set_code(response.error_code)
+            returnValue(ImageDownload())
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
+
+    @twisted_async
+    @inlineCallbacks
+    def ListImageDownloads(self, request, context):
+        try:
+            log.info('grpc-request', request=request)
+            response = yield self.dispatcher.dispatch('ListImageDownloads',
+                                                      request,
+                                                      context,
+                                                      id=request.id)
+            log.info('grpc-response', response=response)
+        except Exception as e:
+            log.exception('grpc-exception', e=e)
+
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('Device \'{}\' error'.format(request.id))
+            context.set_code(response.error_code)
+            returnValue(ImageDownloads())
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
+
+
+    @twisted_async
+    @inlineCallbacks
+    def CancelImageDownload(self, request, context):
+        try:
+            log.info('grpc-request', request=request)
+            response = yield self.dispatcher.dispatch('CancelImageDownload',
+                                                      request,
+                                                      context,
+                                                      id=request.id)
+            log.info('grpc-response', response=response)
+        except Exception as e:
+            log.exception('grpc-exception', e=e)
+
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('Device \'{}\' error'.format(request.id))
+            context.set_code(response.error_code)
+            returnValue(OperationResp(code=OperationResp.OPERATION_FAILURE))
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
+
+    @twisted_async
+    @inlineCallbacks
+    def ActivateImageUpdate(self, request, context):
+        try:
+            log.info('grpc-request', request=request)
+            response = yield self.dispatcher.dispatch('ActivateImageUpdate',
+                                                      request,
+                                                      context,
+                                                      id=request.id)
+            log.info('grpc-response', response=response)
+        except Exception as e:
+            log.exception('grpc-exception', e=e)
+
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('Device \'{}\' error'.format(request.id))
+            context.set_code(response.error_code)
+            returnValue(OperationResp(code=OperationResp.OPERATION_FAILURE))
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
+
+    @twisted_async
+    @inlineCallbacks
+    def RevertImageUpdate(self, request, context):
+        try:
+            log.info('grpc-request', request=request)
+            response = yield self.dispatcher.dispatch('RevertImageUpdate',
+                                                      request,
+                                                      context,
+                                                      id=request.id)
+            log.info('grpc-response', response=response)
+        except Exception as e:
+            log.exception('grpc-exception', e=e)
+
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('Device \'{}\' error'.format(request.id))
+            context.set_code(response.error_code)
+            returnValue(OperationResp(code=OperationResp.OPERATION_FAILURE))
         else:
             log.info('grpc-success-response', response=response)
             returnValue(response)

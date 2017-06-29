@@ -159,3 +159,8 @@ def print_flows(what, id, type, flows, groups, printfn=_printfn):
 def dict2line(d):
     assert isinstance(d, dict)
     return ', '.join('{}: {}'.format(k, v) for k, v in sorted(d.items()))
+
+def enum2name(msg_obj, enum_type, enum_value):
+    descriptor = msg_obj.DESCRIPTOR.enum_types_by_name[enum_type]
+    name = descriptor.values_by_number[enum_value].name
+    return name

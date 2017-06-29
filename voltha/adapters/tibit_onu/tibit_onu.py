@@ -369,6 +369,21 @@ class TibitOnuAdapter(object):
 
         log.info('ONU Rebooted: {}'.format(device.mac_address))
 
+    def download_image(self, device, request):
+        raise NotImplementedError()
+
+    def get_image_download_status(self, device, request):
+        raise NotImplementedError()
+
+    def cancel_image_download(self, device, request):
+        raise NotImplementedError()
+
+    def activate_image_update(self, device, request):
+        raise NotImplementedError()
+
+    def revert_image_update(self, device, request):
+        raise NotImplementedError()
+
     def self_test_device(self, device):
         """
         This is called to Self a device based on a NBI call.

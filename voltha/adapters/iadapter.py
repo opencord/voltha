@@ -100,6 +100,21 @@ class IAdapter(object):
         reactor.callLater(0, self.devices_handlers[device.id].reboot)
         return device
 
+    def download_image(self, device, request):
+        raise NotImplementedError()
+
+    def get_image_download_status(self, device, request):
+        raise NotImplementedError()
+
+    def cancel_image_download(self, device, request):
+        raise NotImplementedError()
+
+    def activate_image_update(self, device, request):
+        raise NotImplementedError()
+
+    def revert_image_update(self, device, request):
+        raise NotImplementedError()
+
     def self_test_device(self, device):
         log.info('self-test-req', device_id=device.id)
         result = reactor.callLater(0, self.devices_handlers[device.id].self_test_device)

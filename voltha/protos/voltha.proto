@@ -360,6 +360,73 @@ service VolthaGlobalService {
         };
     }
 
+    // Request an image download to the standby partition
+    // of a device.
+    // Note that the call is expected to be non-blocking.
+    rpc DownloadImage(ImageDownload) returns(OperationResp) {
+        option (google.api.http) = {
+            post: "/api/v1/devices/{id}/image_downloads/{name}"
+            body: "*"
+        };
+    }
+
+    // Get image download status on a device
+    // The request retrieves progress on device and updates db record
+    rpc GetImageDownloadStatus(ImageDownload) returns(ImageDownload) {
+        option (google.api.http) = {
+            get: "/api/v1/devices/{id}/image_downloads/{name}/status"
+        };
+    }
+
+    // Get image download db record
+    rpc GetImageDownload(ImageDownload) returns(ImageDownload) {
+        option (google.api.http) = {
+            get: "/api/v1/devices/{id}/image_downloads/{name}"
+        };
+    }
+
+    // List image download db records for a given device
+    rpc ListImageDownloads(ID) returns(ImageDownloads) {
+        option (google.api.http) = {
+            get: "/api/v1/devices/{id}/image_downloads"
+        };
+    }
+
+    // Cancel an existing image download process on a device
+    rpc CancelImageDownload(ImageDownload) returns(OperationResp) {
+        option (google.api.http) = {
+            delete: "/api/v1/devices/{id}/image_downloads/{name}"
+        };
+    }
+
+    // Activate the specified image at a standby partition
+    // to active partition.
+    // Depending on the device implementation, this call
+    // may or may not cause device reboot.
+    // If no reboot, then a reboot is required to make the
+    // activated image running on device
+    // Note that the call is expected to be non-blocking.
+    rpc ActivateImageUpdate(ImageDownload) returns(OperationResp) {
+        option (google.api.http) = {
+            post: "/api/v1/devices/{id}/image_downloads/{name}/image_update"
+            body: "*"
+        };
+    }
+
+    // Revert the specified image at standby partition
+    // to active partition, and revert to previous image
+    // Depending on the device implementation, this call
+    // may or may not cause device reboot.
+    // If no reboot, then a reboot is required to make the
+    // previous image running on device
+    // Note that the call is expected to be non-blocking.
+    rpc RevertImageUpdate(ImageDownload) returns(OperationResp) {
+        option (google.api.http) = {
+            post: "/api/v1/devices/{id}/image_downloads/{name}/image_revert"
+            body: "*"
+        };
+    }
+
     // List ports of a device
     rpc ListDevicePorts(ID) returns(Ports) {
         option (google.api.http) = {
@@ -983,6 +1050,69 @@ service VolthaLocalService {
     rpc DeleteDevice(ID) returns(google.protobuf.Empty) {
         option (google.api.http) = {
             delete: "/api/v1/local/devices/{id}/delete"
+        };
+    }
+
+    // Request an image download to the standby partition
+    // of a device.
+    // Note that the call is expected to be non-blocking
+    rpc DownloadImage(ImageDownload) returns(OperationResp) {
+        option (google.api.http) = {
+            post: "/api/v1/local/devices/{id}/image_downloads/{name}"
+            body: "*"
+        };
+    }
+
+    // Get image download status on a device
+    // The request retrieves progress on device and updates db record
+    rpc GetImageDownloadStatus(ImageDownload) returns(ImageDownload) {
+        option (google.api.http) = {
+            get: "/api/v1/local/devices/{id}/image_downloads/{name}/status"
+        };
+    }
+
+    // Get image download db record
+    rpc GetImageDownload(ImageDownload) returns(ImageDownload) {
+        option (google.api.http) = {
+            get: "/api/v1/local/devices/{id}/image_downloads/{name}"
+        };
+    }
+
+    // List image download db records for a given device
+    rpc ListImageDownloads(ID) returns(ImageDownloads) {
+        option (google.api.http) = {
+            get: "/api/v1/local/devices/{id}/image_downloads"
+        };
+    }
+
+    // Cancel an image download process on a device
+    rpc CancelImageDownload(ImageDownload) returns(OperationResp) {
+        option (google.api.http) = {
+            delete: "/api/v1/local/devices/{id}/image_downloads/{name}"
+        };
+    }
+
+    // Install and Activate a downloaded image from standby
+    // partition to active partition
+    // A subsequent call to reboot will cause the newly update image
+    // to become active
+    // Note that the call is expected to be non-blocking.
+    rpc ActivateImageUpdate(ImageDownload) returns(OperationResp) {
+        option (google.api.http) = {
+            post: "/api/v1/local/devices/{id}/image_downloads/{name}/image_update"
+            body: "*"
+        };
+    }
+
+    // Uninstall and deactivate an image update on a device,
+    // and revert back to pre update image
+    // A subsequent call to reboot will cause the pre update image
+    // to become active
+    // Note that the call is expected to be non-blocking.
+    rpc RevertImageUpdate(ImageDownload) returns(OperationResp) {
+        option (google.api.http) = {
+            post: "/api/v1/local/devices/{id}/image_downloads/{name}/image_revert"
+            body: "*"
         };
     }
 

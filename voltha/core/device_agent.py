@@ -23,7 +23,9 @@ from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, returnValue
 
 from voltha.core.config.config_proxy import CallbackType
-from voltha.protos.common_pb2 import AdminState, OperStatus, ConnectStatus
+from voltha.protos.common_pb2 import AdminState, OperStatus, ConnectStatus, \
+                                     OperationResp
+from voltha.protos.device_pb2 import ImageDownload
 from voltha.registry import registry
 from voltha.protos.openflow_13_pb2 import Flows, FlowGroups
 
@@ -47,6 +49,8 @@ class DeviceAgent(object):
 
         self.pm_config_proxy = core.get_proxy(
             '/devices/{}/pm_configs'.format(initial_data.id))
+
+        self.img_dnld_proxies = {}
 
         self.proxy.register_callback(
             CallbackType.PRE_UPDATE, self._validate_update)
@@ -103,6 +107,98 @@ class DeviceAgent(object):
         self.log.debug('reboot-device', device=device, dry_run=dry_run)
         if not dry_run:
             yield self.adapter_agent.reboot_device(device)
+
+    def register_image_download(self, request):
+        try:
+            self.log.debug('register-image-download', request=request)
+            path = '/devices/{}/image_downloads/{}'.format(request.id, request.name)
+            self.img_dnld_proxies[request.name] = self.core.get_proxy(path)
+            self.img_dnld_proxies[request.name].register_callback(
+                CallbackType.POST_UPDATE, self._update_image)
+            # trigger update callback
+            request.state = ImageDownload.DOWNLOAD_REQUESTED
+            self.img_dnld_proxies[request.name].update('/', request)
+        except Exception as e:
+                self.log.exception(e.message)
+
+    def activate_image_update(self, request):
+        try:
+            self.log.debug('activate-image-download', request=request)
+            request.image_state = ImageDownload.IMAGE_ACTIVATE
+            self.img_dnld_proxies[request.name].update('/', request)
+        except Exception as e:
+                self.log.exception(e.message)
+
+    def revert_image_update(self, request):
+        try:
+            self.log.debug('revert-image-download', request=request)
+            request.image_state = ImageDownload.IMAGE_REVERT
+            self.img_dnld_proxies[request.name].update('/', request)
+        except Exception as e:
+                self.log.exception(e.message)
+
+    @inlineCallbacks
+    def _download_image(self, device, img_dnld):
+        try:
+            self.log.debug('download-image', img_dnld=img_dnld)
+            yield self.adapter_agent.download_image(device, img_dnld)
+        except Exception as e:
+            self.log.exception(e.message)
+
+    def get_image_download_status(self, request):
+        try:
+            self.log.debug('get-image-download-status',
+                    request=request)
+            device = self.proxy.get('/')
+            self.adapter_agent.get_image_download_status(device, request)
+        except Exception as e:
+            self.log.exception(e.message)
+
+    def cancel_image_download(self, img_dnld):
+        try:
+            self.log.debug('cancel-image-download',
+                    img_dnld=img_dnld)
+            device = self.proxy.get('/')
+            self.adapter_agent.cancel_image_download(device, img_dnld)
+        except Exception as e:
+            self.log.exception(e.message)
+
+    def update_device_image_download(self, img_dnld):
+        try:
+            self.log.debug('update-device-image-download',
+                    img_dnld=img_dnld)
+            self.proxy.update('/image_downloads/{}'\
+                    .format(img_dnld.name), img_dnld)
+        except Exception as e:
+            self.log.exception(e.message)
+
+    def unregister_device_image_download(self, name):
+        try:
+            self.log.debug('unregister-device-image-download',
+                            name=name)
+            self.self_proxies[name].unregister_callback(
+                CallbackType.POST_ADD, self._download_image)
+            self.self_proxies[name].unregister_callback(
+                CallbackType.POST_UPDATE, self._process_image)
+        except Exception as e:
+                self.log.exception(e.message)
+
+    @inlineCallbacks
+    def _update_image(self, img_dnld):
+        try:
+            self.log.debug('update-image', img_dnld=img_dnld)
+            # handle download
+            if img_dnld.state == ImageDownload.DOWNLOAD_REQUESTED:
+                device = self.proxy.get('/')
+                yield self._download_image(device, img_dnld)
+            if img_dnld.image_state == ImageDownload.IMAGE_ACTIVATE:
+                device = self.proxy.get('/')
+                yield self.adapter_agent.activate_image_update(device, img_dnld)
+            elif img_dnld.image_state == ImageDownload.IMAGE_REVERT:
+                device = self.proxy.get('/')
+                yield self.adapter_agent.revert_image_update(device, img_dnld)
+        except Exception as e:
+                self.log.exception(e.message)
 
     @inlineCallbacks
     def self_test(self, device, dry_run=False):
@@ -267,6 +363,7 @@ class DeviceAgent(object):
 
         (AdminState.PREPROVISIONED, AdminState.UNKNOWN): False,
         (AdminState.PREPROVISIONED, AdminState.ENABLED): _activate_device,
+        (AdminState.PREPROVISIONED, AdminState.DOWNLOADING_IMAGE): False,
 
         (AdminState.ENABLED, AdminState.UNKNOWN): False,
         (AdminState.ENABLED, AdminState.ENABLED): _propagate_change,
@@ -275,7 +372,10 @@ class DeviceAgent(object):
 
         (AdminState.DISABLED, AdminState.UNKNOWN): False,
         (AdminState.DISABLED, AdminState.PREPROVISIONED): _abandon_device,
-        (AdminState.DISABLED, AdminState.ENABLED): _reenable_device
+        (AdminState.DISABLED, AdminState.ENABLED): _reenable_device,
+        (AdminState.DISABLED, AdminState.DOWNLOADING_IMAGE): False,
+
+        (AdminState.DOWNLOADING_IMAGE, AdminState.DISABLED): False
 
     }
 
