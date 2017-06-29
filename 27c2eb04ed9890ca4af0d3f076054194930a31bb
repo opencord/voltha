@@ -138,6 +138,23 @@
     },
     {
       "key": {
+        "uuid": "5a202591_1b81a34a",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 276,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-29T20:47:31Z",
+      "side": 1,
+      "message": "If you want this generic then it may make sense to create an RPCResponse in common.proto that could be reused.",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_bb618fd5",
         "filename": "voltha/protos/device.proto",
         "patchSetId": 1
