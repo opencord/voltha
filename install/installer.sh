@@ -121,7 +121,7 @@ cp -r .keys ansible/roles/cluster-host/files
 # Running ansible
 echo -e "${lBlue}Running ansible${NC}"
 cp ansible/ansible.cfg .ansible.cfg
-sudo ansible-playbook ansible/voltha.yml -i ansible/hosts/cluster
+ansible-playbook ansible/voltha.yml -i ansible/hosts/cluster
 
 # Now all 3 servers need to be rebooted because of software installs.
 # Reboot them and wait patiently until they all come back.
@@ -175,7 +175,7 @@ do
                 echo  $i >> ansible/hosts/swarm-master-backup
         fi
 done
-sudo ansible-playbook ansible/swarm.yml -i ansible/hosts/swarm-master
-sudo ansible-playbook ansible/swarm.yml -i ansible/hosts/swarm-master-backup
-sudo ansible-playbook ansible/voltha.yml -i ansible/hosts/swarm-master
+ansible-playbook ansible/swarm.yml -i ansible/hosts/swarm-master
+ansible-playbook ansible/swarm.yml -i ansible/hosts/swarm-master-backup
+ansible-playbook ansible/voltha.yml -i ansible/hosts/swarm-master
 

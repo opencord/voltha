@@ -31,37 +31,11 @@
     recursive: yes
     links: yes
   with_items:
-    - install/sort_packages.sh
-    - install/sort_packages.py
     - install/installer.sh
     - install/install.cfg
     - install/ansible
     - compose
     - nginx_config
-  tags: [installer]
-- name: Installer directories are owned by vinstall
-  file:
-    path: /home/vinstall/{{ item }}
-    owner: vinstall
-    group: vinstall
-    recurse: yes
-    follow: no
-  with_items:
-    - ansible
-    - compose
-    - nginx_config
-  tags: [installer]
-- name: Installer files are owned by vinstall
-  file:
-    path: /home/vinstall/{{ item }}
-    owner: vinstall
-    group: vinstall
-    follow: no
-  with_items:
-    - sort_packages.sh
-    - sort_packages.py
-    - installer.sh
-    - install.cfg
   tags: [installer]
 
 - name: Determine if test mode is active
@@ -95,4 +69,31 @@
   tags: [installer]
 - name: Deb file directory is renamed
   command: mv /home/vinstall/archives /home/vinstall/deb_files
+  tags: [installer]
+- name: Installer directories are owned by vinstall
+  file:
+    path: /home/vinstall/{{ item }}
+    owner: vinstall
+    group: vinstall
+    recurse: yes
+    follow: no
+  with_items:
+    - ansible
+    - compose
+    - nginx_config
+    - .ansible
+    - deb_files
+    - docker-py
+    - netifaces
+  tags: [installer]
+- name: Installer files are owned by vinstall
+  file:
+    path: /home/vinstall/{{ item }}
+    owner: vinstall
+    group: vinstall
+    follow: no
+  with_items:
+    - installer.sh
+    - install.cfg
+    - docker-compose-Linux-x86_64
   tags: [installer]

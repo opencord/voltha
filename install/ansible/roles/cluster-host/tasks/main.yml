@@ -64,10 +64,19 @@
   tags: [cluster-host]
 
 - name: apt lists are up-to-date
-  copy:
+  synchronize:
     src: "/var/lib/apt/lists"
-    dest: "/var/lib/apt"
+    dest: "/var/lib/apt/lists"
+    archive: no
+    owner: no
+    perms: no
+    rsync_opts:
+      - "--exclude=lock"
+      - "--exclude=partial"
+    recursive: yes
+    links: yes
   tags: [cluster_host]
+
 
 - name: Dependent software is installed (this can take about 10 Min, DONT'T PANIC, go for coffee instead)
   command: dpkg -R -i "{{ target_voltha_home }}/deb_files"
