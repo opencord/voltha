@@ -209,3 +209,79 @@ message Device {
 message Devices {
     repeated Device items = 1;
 }
+
+message SoftwareDownloadReq {
+    // Device Identifier
+    string id = 1;
+
+    // URL where the image is available
+    // should include username password
+    string url = 2;
+
+    // Optional: CRC of the image to be verified aginst
+    uint32 crc =3;
+
+    // Optional: only applicable to blocking download
+    uint32 timeout=4;
+}
+
+message SoftwareDownloadStatus {
+
+    enum SoftwareDownloadState {
+        DOWNLOAD_SUCCEEDED = 0;
+        DOWNLOAD_REQUESTED = 1;
+        DOWNLOAD_STARTED = 2;
+        DOWNLOAD_FAILED = 3;
+        DOWNLOAD_UNSUPPORTED = 4;
+    }
+
+    enum SoftwareDownloadReason {
+        NO_ERROR = 0;
+        INVALID_URL = 1;
+        DEVICE_BUSY = 2;
+        INSUFFICIENT_SPACE = 3;
+        UNKNOWN_ERROR = 4;
+    }
+
+    // Return code
+    SoftwareDownloadState state = 1;
+
+    // Downloaded version
+    string downloaded_version = 2;
+
+    // Bytes downloaded
+    uint32 downloaded_bytes = 3;
+
+    // Optional: download reason
+    SoftwareDownloadReason reason= 4;
+
+    // Optional: addtional info
+    string addtional_info = 5;
+}
+
+message SoftwareUpdateReq {
+    // Device Identifier
+    string id = 1;
+
+    // Save current configuration
+    bool save_config = 2;
+
+    // Software version to update to
+    string software_version = 3;
+
+    // Image local location
+    string local_dir = 4;
+}
+
+message OperationResp {
+    enum OperationReturnCode {
+        OPERATION_SUCCESS = 0;
+        OPERATION_FAILURE = 1;
+        OPERATION_UNSUPPORTED = 2;
+    }
+    // Return code
+    OperationReturnCode code = 1;
+
+    // Addtional Info
+    string addtional_info = 2;
+}

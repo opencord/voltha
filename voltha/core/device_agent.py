@@ -24,6 +24,7 @@ from twisted.internet.defer import inlineCallbacks, returnValue
 
 from voltha.core.config.config_proxy import CallbackType
 from voltha.protos.common_pb2 import AdminState, OperStatus
+from voltha.protos.device_pb2 import OperationResp, SoftwareDownloadStatus
 from voltha.registry import registry
 from voltha.protos.openflow_13_pb2 import Flows, FlowGroups
 
@@ -98,12 +99,82 @@ class DeviceAgent(object):
             CallbackType.POST_UPDATE, self._process_update)
         self.log.info('stopped')
 
-
     @inlineCallbacks
     def reboot_device(self, device, dry_run=False):
         self.log.debug('reboot-device', device=device, dry_run=dry_run)
         if not dry_run:
             yield self.adapter_agent.reboot_device(device)
+
+    @inlineCallbacks
+    def request_software_download(self, device, request, dry_run=False):
+        self.log.debug('request-software-download',
+                device=device, dry_run=dry_run)
+        response = OperationResp()
+        if not dry_run:
+            try:
+                response = yield \
+                    self.adapter_agent.request_software_download(device, request)
+            except Exception as e:
+                self.log.exception(e.message)
+                response = OperationResp(code=OperationResp.OPERATION_UNSUPPORTED)
+        returnValue(response)
+
+    @inlineCallbacks
+    def get_software_download_status(self, device, dry_run=False):
+        self.log.debug('get-software-download-status',
+                device=device, dry_run=dry_run)
+        response = SoftwareDownloadStatus()
+        if not dry_run:
+            try:
+                response = yield \
+                    self.adapter_agent.get_software_download_status(device)
+            except Exception as e:
+                self.log.exception(e.message)
+                response = SoftwareDownloadStatus(state=\
+                        SoftwareDownloadStatus.DOWNLOAD_UNSUPPORTED)
+        returnValue(response)
+
+    @inlineCallbacks
+    def cancel_software_download(self, device, dry_run=False):
+        self.log.debug('cancel-software-download',
+                device=device, dry_run=dry_run)
+        response = OperationResp()
+        if not dry_run:
+            try:
+                response = yield \
+                    self.adapter_agent.cancel_software_download(device)
+            except Exception as e:
+                self.log.exception(e.message)
+                response = OperationResp(code=OperationResp.OPERATION_UNSUPPORTED)
+        returnValue(response)
+
+    @inlineCallbacks
+    def activate_software_update(self, device, request, dry_run=False):
+        self.log.debug('activate-software-update',
+                device=device, dry_run=dry_run)
+        response = OperationResp()
+        if not dry_run:
+            try:
+                response = yield \
+                    self.adapter_agent.activate_software_update(device, request)
+            except Exception as e:
+                self.log.exception(e.message)
+                response = OperationResp(code=OperationResp.OPERATION_UNSUPPORTED)
+        returnValue(response)
+
+    @inlineCallbacks
+    def revert_software_update(self, device, request, dry_run=False):
+        self.log.debug('revert-software-update',
+                device=device, dry_run=dry_run)
+        response = OperationResp()
+        if not dry_run:
+            try:
+                response = yield \
+                    self.adapter_agent.revert_software_update(device, request)
+            except Exception as e:
+                self.log.exception(e.message)
+                response = OperationResp(code=OperationResp.OPERATION_UNSUPPORTED)
+        returnValue(response)
 
     @inlineCallbacks
     def get_device_details(self, device, dry_run=False):
@@ -137,14 +208,17 @@ class DeviceAgent(object):
 
     def _set_adapter_agent(self):
         adapter_name = self._tmp_initial_data.adapter
+        self.log.info('++++first adapter_name', adapter_name=adapter_name)
         if adapter_name == '':
             proxy = self.core.get_proxy('/')
             known_device_types = dict(
                 (dt.id, dt) for dt in proxy.get('/device_types'))
             device_type = known_device_types[self._tmp_initial_data.type]
             adapter_name = device_type.adapter
+            self.log.info('++++adapter_name', adapter_name=adapter_name)
         assert adapter_name != ''
         self.adapter_agent = registry('adapter_loader').get_agent(adapter_name)
+        self.log.info('++++adapter_agent', adapter_agent=self.adapter_agent)
 
     @inlineCallbacks
     def _validate_update(self, device):

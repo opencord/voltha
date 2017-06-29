@@ -23,6 +23,7 @@ from time import sleep, time
 
 import grpc
 import requests
+import json
 from cmd2 import Cmd, options
 from consul import Consul
 from google.protobuf.empty_pb2 import Empty
@@ -38,7 +39,7 @@ from voltha.protos import voltha_pb2
 from voltha.protos.openflow_13_pb2 import FlowTableUpdate, FlowGroupTableUpdate
 
 _ = third_party
-from cli.utils import pb2dict
+from cli.utils import pb2dict, enum2name
 
 defs = dict(
     # config=os.environ.get('CONFIG', './cli.yml'),
@@ -323,6 +324,150 @@ class VolthaCli(Cmd):
             self.poutput('rebooted {}'.format(device_id))
         except Exception, e:
             self.poutput('Error rebooting {}.  Error:{}'.format(device_id, e))
+
+    @options([
+        make_option('-i', '--id', action="store", dest='device_id',
+                    help="Device Id"),
+        make_option('-u', '--url', action='store', dest='url',
+                    help="URL to get sw image"),
+        make_option('-c', '--crc', action='store', dest='crc',
+                    help="CRC code to verify with", default=0),
+        make_option('-t', '--timeout', action='store', dest='timeout',
+                    help="Timeout for the request", default=0),
+    ])
+    def do_sw_dnld_request(self, line, opts):
+        """
+        Request software download to a device
+        """
+        self.poutput('device_id {}'.format(opts.device_id))
+        self.poutput('url {}'.format(opts.url))
+        self.poutput('crc {}'.format(opts.crc))
+        self.poutput('timeout {}'.format(opts.timeout))
+        if opts.device_id and opts.url:
+            kw = dict(id=opts.device_id)
+            kw['url'] = opts.url
+        else:
+            self.poutput('Device ID and URL are needed')
+            raise Exception('URL is needed')
+        self.poutput('request software download {} {}'\
+                .format(kw['id'], kw['url']))
+        kw['crc'] = long(opts.crc)
+        kw['timeout'] = long(opts.timeout)
+        try:
+            request = voltha_pb2.SoftwareDownloadReq(**kw)
+            stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+            response = stub.RequestSoftwareDownload(request)
+        except Exception as e:
+            self.poutput('Error request software download {}. Error:{}'.format(kw['id'], e))
+        name = enum2name(voltha_pb2.OperationResp,
+                        'OperationReturnCode', response.code)
+        self.poutput('response: {}'.format(name))
+        self.poutput('{}'.format(response))
+
+    def do_sw_dnld_status(self, line):
+        """
+        Get a software download status
+        """
+        device_id = line or self.default_device_id
+        self.poutput('get sw dnld status {}'.format(device_id))
+        try:
+            stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+            status = stub.GetSoftwareDownloadStatus(voltha_pb2.ID(id=device_id))
+        except Exception as e:
+            self.poutput('Error get sw dnld status {}. Error:{}'.format(device_id, e))
+        state = enum2name(voltha_pb2.SoftwareDownloadStatus,
+                        'SoftwareDownloadState', status.state)
+        self.poutput('state: {}'.format(state))
+        reason = enum2name(voltha_pb2.SoftwareDownloadStatus,
+                        'SoftwareDownloadReason', status.reason)
+        self.poutput('reason: {}'.format(reason))
+        self.poutput('{}'.format(status))
+
+    def do_sw_dnld_cancel(self, line):
+        """
+        Cancel a requested software download
+        """
+        device_id = line or self.default_device_id
+        self.poutput('cancel sw dnld {}'.format(device_id))
+        try:
+            stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+            response = stub.CancelSoftwareDownload(voltha_pb2.ID(id=device_id))
+        except Exception as e:
+            self.poutput('Error cancel sw dnld {}. Error:{}'.format(device_id, e))
+        name = enum2name(voltha_pb2.OperationResp,
+                        'OperationReturnCode', response.code)
+        self.poutput('response: {}'.format(name))
+        self.poutput('{}'.format(response))
+
+    @options([
+        make_option('-i', '--id', action="store", dest='device_id',
+                    help="Device Id"),
+        make_option('-s', '--save', action='store', dest='save_config',
+                    help="Save Config", default=True),
+        make_option('-v', '--sw_ver', action='store', dest='sw_ver',
+                    help="Software Version to activate to"),
+        make_option('-d', '--dir', action='store', dest='local_dir',
+                    help="Software image on device location"),
+    ])
+    def do_sw_update_activate(self, line, opts):
+        """
+        Activate a software update on device
+        """
+        if opts.device_id and opts.sw_ver and opts.local_dir:
+            kw = dict(id=opts.device_id)
+            kw['software_version'] = opts.sw_ver
+            kw['local_dir'] = opts.local_dir
+        else:
+            self.poutput('Device ID, SW version, and Location are needed')
+            raise Exception('Device ID, SW version, and Location are needed')
+        kw['save_config'] = json.loads(opts.save_config.lower())
+        self.poutput('activate software update {} {}'\
+                .format(kw['id'], kw['software_version']))
+        try:
+            request = voltha_pb2.SoftwareUpdateReq(**kw)
+            stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+            response = stub.ActivateSoftwareUpdate(request)
+        except Exception as e:
+            self.poutput('Error activate sw image {}. Error:{}'.format(kw['id'], e))
+        name = enum2name(voltha_pb2.OperationResp,
+                        'OperationReturnCode', response.code)
+        self.poutput('response: {}'.format(name))
+        self.poutput('{}'.format(response))
+
+    @options([
+        make_option('-i', '--id', action="store", dest='device_id',
+                    help="Device Id"),
+        make_option('-s', '--save', action='store', dest='save_config',
+                    help="Save Config", default=True),
+        make_option('-v', '--sw_ver', action='store', dest='sw_ver',
+                    help="Software Version to activate to"),
+        make_option('-d', '--dir', action='store', dest='local_dir',
+                    help="Software image on device location"),
+    ])
+    def do_sw_update_revert(self, line, opts):
+        """
+        Revert a software update on device
+        """
+        if opts.device_id and opts.sw_ver and opts.local_dir:
+            kw = dict(id=opts.device_id)
+            kw['software_version'] = opts.sw_ver
+            kw['local_dir'] = opts.local_dir
+        else:
+            self.poutput('Device ID, SW version, and Location are needed')
+            raise Exception('Device ID, SW version, and Location are needed')
+        kw['save_config'] = json.loads(opts.save_config.lower())
+        self.poutput('revert software update {} {}'\
+                .format(kw['id'], kw['software_version']))
+        try:
+            request = voltha_pb2.SoftwareUpdateReq(**kw)
+            stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+            response = stub.RevertSoftwareUpdate(request)
+        except Exception as e:
+            self.poutput('Error revert sw update {}. Error:{}'.format(kw['id'], e))
+        name = enum2name(voltha_pb2.OperationResp,
+                        'OperationReturnCode', response.code)
+        self.poutput('response: {}'.format(name))
+        self.poutput('{}'.format(response))
 
     def do_delete(self, line):
         """

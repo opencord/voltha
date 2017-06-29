@@ -127,6 +127,51 @@ class IAdapterInterface(Interface):
         :return: (Deferred) Shall be fired to acknowledge the reboot.
         """
 
+    def request_software_download(device, request):
+        """
+        This is called to request downloading a specified software into
+        a device based on a NBI call.  The admin state of the device will
+        not change after the download.
+        :param device: A Voltha.Device object.
+                       A Voltha.SoftwareDownloadRequest object.
+        :return: (Deferred) OperationResponse object.
+        """
+
+    def get_software_download_status(device):
+        """
+        This is called to inquire about a requested software download
+        status based on a NBI call.
+        :param device: A Voltha.Device object.
+        :return: (Deferred) SoftwareDownloadStatus object.
+        """
+
+    def cancel_software_download(device):
+        """
+        This is called to cancel a requested software download
+        based on a NBI call.  The admin state of the device will not
+        change after the download.
+        :param device: A Voltha.Device object.
+        :return: (Deferred) OperationResponse object.
+        """
+
+    def activate_software_update(device, request):
+        """
+        This is called to activate a downloaded software image on
+        device based on a NBI call.
+        :param device: A Voltha.Device object.
+                       A Voltha.SoftwareUpdateRequest object.
+        :return: (Deferred) OperationResponse object.
+        """
+
+    def revert_software_update(device, request):
+        """
+        This is called to revert to previous software image on
+        device based on a NBI call.
+        :param device: A Voltha.Device object.
+                       A Voltha.SoftwareUpdateRequest object.
+        :return: (Deferred) OperationResponse object.
+        """
+
     def delete_device(device):
         """
         This is called to delete a device from the PON based on a NBI call.

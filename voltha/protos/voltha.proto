@@ -262,6 +262,44 @@ service VolthaGlobalService {
         };
     }
 
+    // Request software download to a device
+    rpc RequestSoftwareDownload(voltha.SoftwareDownloadReq) returns(OperationResp) {
+        option (google.api.http) = {
+            post: "/api/v1/devices/{id}/request_software_download"
+            body: "*"
+        };
+    }
+
+    // Get software download status on a device
+    rpc GetSoftwareDownloadStatus(ID) returns(SoftwareDownloadStatus) {
+        option (google.api.http) = {
+            get: "/api/v1/devices/{id}/get_software_download_status"
+        };
+    }
+
+    // Cancel an existing software download process on a device
+    rpc CancelSoftwareDownload(ID) returns(OperationResp) {
+        option (google.api.http) = {
+            post: "/api/v1/devices/{id}/cancel_software_download"
+        };
+    }
+
+    // Activate updatig a device software
+    rpc ActivateSoftwareUpdate(voltha.SoftwareUpdateReq) returns(OperationResp) {
+        option (google.api.http) = {
+            post: "/api/v1/devices/{id}/activate_software_update"
+            body: "*"
+        };
+    }
+
+    // Revert software update on a device
+    rpc RevertSoftwareUpdate(SoftwareUpdateReq) returns(OperationResp) {
+        option (google.api.http) = {
+            post: "/api/v1/devices/{id}/revert_software_update"
+            body: "*"
+        };
+    }
+
     // List ports of a device
     rpc ListDevicePorts(ID) returns(Ports) {
         option (google.api.http) = {
@@ -512,6 +550,45 @@ service VolthaLocalService {
     rpc DeleteDevice(ID) returns(google.protobuf.Empty) {
         option (google.api.http) = {
             delete: "/api/v1/local/devices/{id}/delete"
+        };
+    }
+
+    // Request software download to a device
+    rpc RequestSoftwareDownload(voltha.SoftwareDownloadReq) returns(OperationResp) {
+        option (google.api.http) = {
+            post: "/api/v1/local/devices/{id}/request_software_download"
+            body: "*"
+        };
+    }
+
+    // Get software download status on a device
+    rpc GetSoftwareDownloadStatus(ID) returns(SoftwareDownloadStatus) {
+        option (google.api.http) = {
+            get: "/api/v1/local/devices/{id}/get_software_download_status"
+        };
+    }
+
+    // Cancel an existing software download process on a device
+    rpc CancelSoftwareDownload(ID) returns(OperationResp) {
+        option (google.api.http) = {
+            post: "/api/v1/local/devices/{id}/cancel_software_download"
+            body: "*"
+        };
+    }
+
+    // Activate updatig a device software
+    rpc ActivateSoftwareUpdate(voltha.SoftwareUpdateReq) returns(OperationResp) {
+        option (google.api.http) = {
+            post: "/api/v1/local/devices/{id}/activate_software_update"
+            body: "*"
+        };
+    }
+
+    // Revert software update on a device
+    rpc RevertSoftwareUpdate(voltha.SoftwareUpdateReq) returns(OperationResp) {
+        option (google.api.http) = {
+            post: "/api/v1/local/devices/{id}/revert_software_update"
+            body: "*"
         };
     }
 

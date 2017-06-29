@@ -217,6 +217,21 @@ class DPoEOnuAdapter(object):
     def reboot_device(self, device):
         raise NotImplementedError()
 
+    def request_software_download(self, device, request):
+        raise NotImplementedError()
+
+    def get_software_download_status(self, device):
+        raise NotImplementedError()
+
+    def cancel_software_download(self, device):
+        raise NotImplementedError()
+
+    def activate_software_update(self, device, request):
+        raise NotImplementedError()
+
+    def revert_software_update(self, device, request):
+        raise NotImplementedError()
+
     def delete_device(self, device):
         raise NotImplementedError()
 

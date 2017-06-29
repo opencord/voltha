@@ -168,6 +168,21 @@ class AdapterAgent(object):
     def reboot_device(self, device):
         return self.adapter.reboot_device(device)
 
+    def request_software_download(self, device, request):
+        return self.adapter.request_software_download(device, request)
+
+    def get_software_download_status(self, device):
+        return self.adapter.get_software_download_status(device)
+
+    def cancel_software_download(self, device):
+        return self.adapter.cancel_software_download(device)
+
+    def activate_software_update(self, device, request):
+        return self.adapter.activate_software_update(device, request)
+
+    def revert_software_update(self, device, request):
+        return self.adapter.revert_software_update(device, request)
+
     def delete_device(self, device):
         return self.adapter.delete_device(device)
 

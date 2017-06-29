@@ -19,7 +19,8 @@ from twisted.internet.defer import returnValue
 
 from common.utils.grpc_utils import twisted_async
 from voltha.core.config.config_root import ConfigRoot
-from voltha.protos.device_pb2 import PmConfigs, Images
+from voltha.protos.device_pb2 import PmConfigs, Images, \
+    OperationResp, SoftwareDownloadStatus
 from voltha.protos.voltha_pb2 import \
     add_VolthaGlobalServiceServicer_to_server, VolthaLocalServiceStub, \
     VolthaGlobalServiceServicer, Voltha, VolthaInstances, VolthaInstance, \
@@ -346,6 +347,111 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             instance_id,
             VolthaLocalServiceStub,
             'DeleteDevice',
+            request,
+            context)
+
+    @twisted_async
+    def RequestSoftwareDownload(self, request, context):
+        log.info('grpc-request', request=request)
+
+        try:
+            instance_id = self.dispatcher.instance_id_by_device_id(
+                request.id
+            )
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return OperationResp()
+
+        return self.dispatcher.dispatch(
+            instance_id,
+            VolthaLocalServiceStub,
+            'RequestSoftwareDownload',
+            request,
+            context)
+
+    @twisted_async
+    def GetSoftwareDownloadStatus(self, request, context):
+        log.info('grpc-request', request=request)
+
+        try:
+            instance_id = self.dispatcher.instance_id_by_device_id(
+                request.id
+            )
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return SoftwareDownloadStatus()
+
+        return self.dispatcher.dispatch(
+            instance_id,
+            VolthaLocalServiceStub,
+            'GetSoftwareDownloadStatus',
+            request,
+            context)
+
+    @twisted_async
+    def CancelSoftwareDownload(self, request, context):
+        log.info('grpc-request', request=request)
+
+        try:
+            instance_id = self.dispatcher.instance_id_by_device_id(
+                request.id
+            )
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return OperationResp()
+
+        return self.dispatcher.dispatch(
+            instance_id,
+            VolthaLocalServiceStub,
+            'CancelSoftwareDownload',
+            request,
+            context)
+
+    @twisted_async
+    def ActivateSoftwareUpdate(self, request, context):
+        log.info('grpc-request', request=request)
+
+        try:
+            instance_id = self.dispatcher.instance_id_by_device_id(
+                request.id
+            )
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return OperationResp()
+
+        return self.dispatcher.dispatch(
+            instance_id,
+            VolthaLocalServiceStub,
+            'ActivateSoftwareUpdate',
+            request,
+            context)
+
+    @twisted_async
+    def RevertSoftwareUpdate(self, request, context):
+        log.info('grpc-request', request=request)
+
+        try:
+            instance_id = self.dispatcher.instance_id_by_device_id(
+                request.id
+            )
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return OperationResp()
+
+        return self.dispatcher.dispatch(
+            instance_id,
+            VolthaLocalServiceStub,
+            'RevertSoftwareUpdate',
             request,
             context)
 

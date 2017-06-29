@@ -200,6 +200,61 @@ class AdtranOltAdapter(object):
         log.info('reboot_device', device=device)
         raise NotImplementedError()
 
+    def request_software_download(self, device, request):
+        """
+        This is called to request downloading a specified software into
+        a device based on a NBI call.  The admin state of the device will
+        not change after the download.
+        :param device: A Voltha.Device object.
+                       A Voltha.SoftwareDownloadRequest object.
+        :return: (Deferred) OperationResponse object.
+        """
+        log.info('request_software_download', device=device)
+        raise NotImplementedError()
+
+    def get_software_download_status(self, device):
+        """
+        This is called to inquire about a requested software download
+        status based on a NBI call.
+        :param device: A Voltha.Device object.
+        :return: (Deferred) SoftwareDownloadStatus object.
+        """
+        log.info('get_software_download_status', device=device)
+        raise NotImplementedError()
+
+    def cancel_software_download(self, device):
+        """
+        This is called to cancel a requested software download
+        based on a NBI call.  The admin state of the device will not
+        change after the download.
+        :param device: A Voltha.Device object.
+        :return: (Deferred) OperationResponse object.
+        """
+        log.info('cancel_software_download', device=device)
+        raise NotImplementedError()
+
+    def activate_software_update(self, device, request):
+        """
+        This is called to activate a downloaded software image on
+        device based on a NBI call.
+        :param device: A Voltha.Device object.
+                       A Voltha.SoftwareUpdateRequest object.
+        :return: (Deferred) OperationResponse object.
+        """
+        log.info('activate_software_update', device=device)
+        raise NotImplementedError()
+
+    def revert_software_update(self, device, request):
+        """
+        This is called to revert to previous software image on
+        device based on a NBI call.
+        :param device: A Voltha.Device object.
+                       A Voltha.SoftwareUpdateRequest object.
+        :return: (Deferred) OperationResponse object.
+        """
+        log.info('revert_software_update', device=device)
+        raise NotImplementedError()
+
     def delete_device(self, device):
         """
         This is called to delete a device from the PON based on a NBI call.

@@ -37,7 +37,8 @@ from voltha.core.flow_decomposer import *
 from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.protos.adapter_pb2 import Adapter, AdapterConfig
 from voltha.protos.device_pb2 import DeviceType, DeviceTypes, Device, Port, \
-PmConfigs, PmConfig, PmGroupConfig, Image
+     PmConfigs, PmConfig, PmGroupConfig, Image, OperationResp, \
+     SoftwareDownloadStatus
 from voltha.protos.events_pb2 import KpiEvent, KpiEventType, MetricValuePairs
 from voltha.protos.health_pb2 import HealthStatus
 from voltha.protos.common_pb2 import LogLevel, OperStatus, ConnectStatus, \
@@ -234,14 +235,79 @@ class SimulatedOltAdapter(object):
     def delete_device(self, device):
         raise NotImplementedError()
 
+    def request_software_download(self, device, request):
+        log.info('request-sw-download', device=device, request=request)
+        response = OperationResp(code=OperationResp.OPERATION_FAILURE,
+                                 addtional_info='unknown error')
+        try:
+            # initiate requesting software download to device
+            # set response based on cmd exec status
+            response = OperationResp(code=OperationResp.OPERATION_SUCCESS,
+                                     addtional_info='download requested successfully')
+        except Exception as e:
+            log.exception(e.message)
+        return response
+
+    def get_software_download_status(self, device):
+        log.info('get-sw-download-status', device=device)
+        #status = SoftwareDownloadStatus()
+        status = SoftwareDownloadStatus(state=SoftwareDownloadStatus.DOWNLOAD_FAILED,
+                                        reason=SoftwareDownloadStatus.UNKNOWN_ERROR)
+        try:
+            # initiate query for progress of download to device
+            # set status based on query output
+            status = SoftwareDownloadStatus(state=SoftwareDownloadStatus.DOWNLOAD_SUCCEEDED,
+                                            downloaded_version='v1.1.0',
+                                            downloaded_bytes=65536)
+        except Exception as e:
+            log.exception(e.message)
+        return status
+
+    def cancel_software_download(self, device):
+        log.info('cancel-sw-download', device=device)
+        response = OperationResp(code=OperationResp.OPERATION_FAILURE,
+                                 addtional_info='unknown error')
+        try:
+            # intiate cancelling software download to device
+            # set response based on cmd exec status
+            response = OperationResp(code=OperationResp.OPERATION_SUCCESS,
+                                     addtional_info='download cancelled successfully')
+        except Exception as e:
+            log.exception(e.message)
+        return response
+
+    def activate_software_update(self, device, request):
+        log.info('activate-sw-upgrade', device=device, request=request)
+        response = OperationResp(code=OperationResp.OPERATION_FAILURE,
+                                 addtional_info='unknown error')
+        try:
+            # initiate activating software update to device
+            # set response based on cmd exec status
+            response = OperationResp(code=OperationResp.OPERATION_SUCCESS,
+                                     addtional_info='update activated successfully')
+        except Exception as e:
+            log.exception(e.message)
+        return response
+
+    def revert_software_update(self, device, request):
+        log.info('revert-sw-upgrade', device=device, request=request)
+        response = OperationResp(code=OperationResp.OPERATION_FAILURE,
+                                 addtional_info='unknown error')
+        try:
+            # initiate reverting software update to device
+            # set response based on cmd exec status
+            response = OperationResp(code=OperationResp.OPERATION_SUCCESS,
+                                     addtional_info='update reverted successfully')
+        except Exception as e:
+            log.exception(e.message)
+        return response
+
     def get_device_details(self, device):
         raise NotImplementedError()
 
     def update_pm_config(self, device, pm_config):
         log.info("adapter-update-pm-config", device=device, pm_config=pm_config)
         self.pm_metrics.update(pm_config)
-
-
 
     def _tmp_populate_stuff(self):
         """
