@@ -23,6 +23,7 @@ from time import sleep, time
 
 import grpc
 import requests
+import json
 from cmd2 import Cmd, options
 from consul import Consul
 from google.protobuf.empty_pb2 import Empty
@@ -35,11 +36,11 @@ from cli.logical_device import LogicalDeviceCli
 from cli.table import print_pb_list_as_table
 from voltha.core.flow_decomposer import *
 from voltha.protos import third_party
-from voltha.protos import voltha_pb2
+from voltha.protos import voltha_pb2, common_pb2
 from voltha.protos.openflow_13_pb2 import FlowTableUpdate, FlowGroupTableUpdate
 
 _ = third_party
-from cli.utils import pb2dict
+from cli.utils import pb2dict, enum2name
 
 defs = dict(
     # config=os.environ.get('CONFIG', './cli.yml'),
@@ -333,6 +334,158 @@ class VolthaCli(Cmd):
             self.poutput('rebooted {}'.format(device_id))
         except Exception, e:
             self.poutput('Error rebooting {}.  Error:{}'.format(device_id, e))
+
+    @options([
+        make_option('-i', '--id', action="store", dest='device_id',
+                    help="Device Id"),
+        make_option('-u', '--url', action='store', dest='url',
+                    help="URL to get sw image"),
+        make_option('-c', '--crc', action='store', dest='crc',
+                    help="CRC code to verify with", default=0),
+        make_option('-t', '--timeout', action='store', dest='timeout',
+                    help="Timeout for the request", default=0),
+    ])
+    def do_img_dnld(self, line, opts):
+        """
+        Request image download to a device
+        """
+        self.poutput('device_id {}'.format(opts.device_id))
+        self.poutput('url {}'.format(opts.url))
+        self.poutput('crc {}'.format(opts.crc))
+        self.poutput('timeout {}'.format(opts.timeout))
+        if opts.device_id and opts.url:
+            kw = dict(id=opts.device_id)
+            kw['url'] = opts.url
+        else:
+            self.poutput('Device ID and URL are needed')
+            raise Exception('Device ID and URL are needed')
+        self.poutput('download image {} {}'\
+                .format(kw['id'], kw['url']))
+        kw['crc'] = long(opts.crc)
+        kw['timeout'] = long(opts.timeout)
+        try:
+            request = voltha_pb2.ImageDownloadReq(**kw)
+            stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+            response = stub.DownloadImage(request)
+        except Exception as e:
+            self.poutput('Error download image {}. Error:{}'.format(kw['id'], e))
+        name = enum2name(common_pb2.OperationResp,
+                        'OperationReturnCode', response.code)
+        self.poutput('response: {}'.format(name))
+        self.poutput('{}'.format(response))
+
+    def do_img_dnld_status(self, line):
+        """
+        Get a image download status
+        """
+        device_id = line or self.default_device_id
+        self.poutput('get img dnld status {}'.format(device_id))
+        try:
+            stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+            status = stub.GetImageDownloadStatus(voltha_pb2.ID(id=device_id))
+        except Exception as e:
+            self.poutput('Error get img dnld status {}. Error:{}'.format(device_id, e))
+        state = enum2name(voltha_pb2.ImageDownloadStatus,
+                        'ImageDownloadState', status.state)
+        self.poutput('state: {}'.format(state))
+        reason = enum2name(voltha_pb2.ImageDownloadStatus,
+                        'ImageDownloadFailureReason', status.reason)
+        self.poutput('reason: {}'.format(reason))
+        self.poutput('{}'.format(status))
+
+    def do_img_dnld_cancel(self, line):
+        """
+        Cancel a requested image download
+        """
+        device_id = line or self.default_device_id
+        self.poutput('cancel sw dnld {}'.format(device_id))
+        try:
+            stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+            response = stub.CancelImageDownload(voltha_pb2.ID(id=device_id))
+        except Exception as e:
+            self.poutput('Error cancel sw dnld {}. Error:{}'.format(device_id, e))
+        name = enum2name(common_pb2.OperationResp,
+                        'OperationReturnCode', response.code)
+        self.poutput('response: {}'.format(name))
+        self.poutput('{}'.format(response))
+
+    @options([
+        make_option('-i', '--id', action="store", dest='device_id',
+                    help="Device Id"),
+        make_option('-s', '--save', action='store', dest='save_config',
+                    help="Save Config", default="True"),
+        make_option('-v', '--sw_ver', action='store', dest='sw_ver',
+                    help="Image Version to activate to"),
+        make_option('-d', '--dir', action='store', dest='local_dir',
+                    help="Image on device location"),
+    ])
+    def do_img_update_activate(self, line, opts):
+        """
+        Activate a image update on device
+        """
+        try:
+            if opts.device_id and opts.sw_ver and opts.local_dir:
+                kw = dict(id=opts.device_id)
+                kw['software_version'] = opts.sw_ver
+                kw['local_dir'] = opts.local_dir
+            else:
+                self.poutput('Device ID, SW version, and Location are needed')
+                raise Exception('Device ID, SW version, and Location are needed')
+            kw['save_config'] = json.loads(opts.save_config.lower())
+            self.poutput('activate image update {} {} {} {}'.format( \
+                        kw['id'], kw['software_version'],
+                        kw['local_dir'], kw['save_config']))
+        except Exception as e:
+            self.poutput('Error activate image {}. Error:{}'.format(kw['id'], e))
+        try:
+            request = voltha_pb2.ImageUpdateReq(**kw)
+            stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+            response = stub.ActivateImageUpdate(request)
+        except Exception as e:
+            self.poutput('Error activate image {}. Error:{}'.format(kw['id'], e))
+        name = enum2name(common_pb2.OperationResp,
+                        'OperationReturnCode', response.code)
+        self.poutput('response: {}'.format(name))
+        self.poutput('{}'.format(response))
+
+    @options([
+        make_option('-i', '--id', action="store", dest='device_id',
+                    help="Device Id"),
+        make_option('-s', '--save', action='store', dest='save_config',
+                    help="Save Config", default="True"),
+        make_option('-v', '--sw_ver', action='store', dest='sw_ver',
+                    help="Image Version to activate to"),
+        make_option('-d', '--dir', action='store', dest='local_dir',
+                    help="Image on device location"),
+    ])
+    def do_img_update_revert(self, line, opts):
+        """
+        Revert a image update on device
+        """
+        try:
+            if opts.device_id and opts.sw_ver and opts.local_dir:
+                kw = dict(id=opts.device_id)
+                kw['software_version'] = opts.sw_ver
+                kw['local_dir'] = opts.local_dir
+            else:
+                self.poutput('Device ID, SW version, and Location are needed')
+                raise Exception('Device ID, SW version, and Location are needed')
+                kw['save_config'] = json.loads(opts.save_config.lower())
+                self.poutput('revert image update {} {} {} {}'.format( \
+                            kw['id'], kw['software_version'],
+                            kw['local_dir'], kw['save_config']))
+        except Exception as e:
+            self.poutput('Error revert image {}. Error:{}'.format(kw['id'], e))
+        try:
+            request = voltha_pb2.ImageUpdateReq(**kw)
+            stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+            response = stub.RevertImageUpdate(request)
+        except Exception as e:
+            self.poutput('Error revert image update {}. Error:{}'.format(kw['id'], e))
+        name = enum2name(common_pb2.OperationResp,
+                        'OperationReturnCode', response.code)
+        self.poutput('response: {}'.format(name))
+        self.poutput('{}'.format(response))
 
     def do_self_test(self, line):
         """
