@@ -23,7 +23,9 @@ from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, returnValue
 
 from voltha.core.config.config_proxy import CallbackType
-from voltha.protos.common_pb2 import AdminState, OperStatus, ConnectStatus
+from voltha.protos.common_pb2 import AdminState, OperStatus, ConnectStatus, \
+                                     OperationResp
+from voltha.protos.device_pb2 import ImageDownloadStatus
 from voltha.registry import registry
 from voltha.protos.openflow_13_pb2 import Flows, FlowGroups
 
@@ -105,6 +107,76 @@ class DeviceAgent(object):
             yield self.adapter_agent.reboot_device(device)
 
     @inlineCallbacks
+    def download_image(self, device, request, dry_run=False):
+        self.log.debug('download-image',
+                device=device, dry_run=dry_run)
+        response = OperationResp()
+        if not dry_run:
+            try:
+                response = yield \
+                    self.adapter_agent.download_image(device, request)
+            except Exception as e:
+                self.log.exception(e.message)
+                response = OperationResp(code=OperationResp.OPERATION_UNSUPPORTED)
+        returnValue(response)
+
+    @inlineCallbacks
+    def get_image_download_status(self, device, dry_run=False):
+        self.log.debug('get-image-download-status',
+                device=device, dry_run=dry_run)
+        response = ImageDownloadStatus()
+        if not dry_run:
+            try:
+                response = yield \
+                    self.adapter_agent.get_image_download_status(device)
+            except Exception as e:
+                self.log.exception(e.message)
+                response = ImageDownloadStatus(state=\
+                        ImageDownloadStatus.DOWNLOAD_UNSUPPORTED)
+        returnValue(response)
+
+    @inlineCallbacks
+    def cancel_image_download(self, device, dry_run=False):
+        self.log.debug('cancel-image-download',
+                device=device, dry_run=dry_run)
+        response = OperationResp()
+        if not dry_run:
+            try:
+                response = yield \
+                    self.adapter_agent.cancel_image_download(device)
+            except Exception as e:
+                self.log.exception(e.message)
+                response = OperationResp(code=OperationResp.OPERATION_UNSUPPORTED)
+        returnValue(response)
+
+    @inlineCallbacks
+    def activate_image_update(self, device, request, dry_run=False):
+        self.log.debug('activate-image-update',
+                device=device, dry_run=dry_run)
+        response = OperationResp()
+        if not dry_run:
+            try:
+                response = yield \
+                    self.adapter_agent.activate_image_update(device, request)
+            except Exception as e:
+                self.log.exception(e.message)
+                response = OperationResp(code=OperationResp.OPERATION_UNSUPPORTED)
+        returnValue(response)
+
+    @inlineCallbacks
+    def revert_image_update(self, device, request, dry_run=False):
+        self.log.debug('revert-image-update',
+                device=device, dry_run=dry_run)
+        response = OperationResp()
+        if not dry_run:
+            try:
+                response = yield \
+                    self.adapter_agent.revert_image_update(device, request)
+            except Exception as e:
+                self.log.exception(e.message)
+                response = OperationResp(code=OperationResp.OPERATION_UNSUPPORTED)
+        returnValue(response)
+
     def self_test(self, device, dry_run=False):
         self.log.debug('self-test-device', device=device, dry_run=dry_run)
         if not dry_run:

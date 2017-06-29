@@ -38,7 +38,8 @@ from voltha.core.flow_decomposer import *
 from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.protos.adapter_pb2 import Adapter, AdapterConfig
 from voltha.protos.device_pb2 import DeviceType, DeviceTypes, Device, Port, \
-PmConfigs, PmConfig, PmGroupConfig, Image
+     PmConfigs, PmConfig, PmGroupConfig, Image, ImageDownloadStatus
+from voltha.protos.common_pb2 import OperationResp
 from voltha.protos.voltha_pb2 import SelfTestResponse
 from voltha.protos.events_pb2 import KpiEvent, KpiEventType, MetricValuePairs
 from voltha.protos.health_pb2 import HealthStatus
@@ -235,6 +236,72 @@ class SimulatedOltAdapter(object):
 
     def delete_device(self, device):
         raise NotImplementedError()
+
+    def download_image(self, device, request):
+        log.info('download-image', device=device, request=request)
+        response = OperationResp(code=OperationResp.OPERATION_FAILURE,
+                                 additional_info='unknown error')
+        try:
+            # initiate requesting software download to device
+            # set response based on cmd exec status
+            response = OperationResp(code=OperationResp.OPERATION_SUCCESS,
+                                     additional_info='download requested successfully')
+        except Exception as e:
+            log.exception(e.message)
+        return response
+
+    def get_image_download_status(self, device):
+        log.info('get-image-download-status', device=device)
+        status = ImageDownloadStatus(state=ImageDownloadStatus.DOWNLOAD_FAILED,
+                                     reason=ImageDownloadStatus.UNKNOWN_ERROR)
+        try:
+            # initiate query for progress of download to device
+            # set status based on query output
+            status = ImageDownloadStatus(state=ImageDownloadStatus.DOWNLOAD_SUCCEEDED,
+                                            downloaded_version='v1.1.0',
+                                            downloaded_bytes=65536)
+        except Exception as e:
+            log.exception(e.message)
+        return status
+
+    def cancel_image_download(self, device):
+        log.info('cancel-sw-download', device=device)
+        response = OperationResp(code=OperationResp.OPERATION_FAILURE,
+                                 additional_info='unknown error')
+        try:
+            # intiate cancelling software download to device
+            # set response based on cmd exec status
+            response = OperationResp(code=OperationResp.OPERATION_SUCCESS,
+                                     additional_info='download cancelled successfully')
+        except Exception as e:
+            log.exception(e.message)
+        return response
+
+    def activate_image_update(self, device, request):
+        log.info('activate-image-update', device=device, request=request)
+        response = OperationResp(code=OperationResp.OPERATION_FAILURE,
+                                 additional_info='unknown error')
+        try:
+            # initiate activating software update to device
+            # set response based on cmd exec status
+            response = OperationResp(code=OperationResp.OPERATION_SUCCESS,
+                                     additional_info='update activated successfully')
+        except Exception as e:
+            log.exception(e.message)
+        return response
+
+    def revert_image_update(self, device, request):
+        log.info('revert-image-updade', device=device, request=request)
+        response = OperationResp(code=OperationResp.OPERATION_FAILURE,
+                                 additional_info='unknown error')
+        try:
+            # initiate reverting software update to device
+            # set response based on cmd exec status
+            response = OperationResp(code=OperationResp.OPERATION_SUCCESS,
+                                     additional_info='update reverted successfully')
+        except Exception as e:
+            log.exception(e.message)
+        return response
 
     def get_device_details(self, device):
         raise NotImplementedError()
@@ -512,6 +579,7 @@ class SimulatedOltAdapter(object):
                         device_id=device_id,
                         channel_id=vlan_id
                     ),
+                    admin_state=AdminState.ENABLED,
                     vlan=vlan_id
                 )
         except Exception as e:

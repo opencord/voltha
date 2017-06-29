@@ -85,3 +85,18 @@ message ConnectStatus {
         REACHABLE = 2;
     }
 }
+
+message OperationResp {
+    option (yang_child_rule) = MOVE_TO_PARENT_LEVEL;
+
+    enum OperationReturnCode {
+        OPERATION_SUCCESS = 0;
+        OPERATION_FAILURE = 1;
+        OPERATION_UNSUPPORTED = 2;
+    }
+    // Return code
+    OperationReturnCode code = 1;
+
+    // Additional Info
+    string additional_info = 2;
+}
