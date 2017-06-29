@@ -23,12 +23,13 @@ from cmd2 import Cmd, options
 from simplejson import dumps
 
 from cli.table import print_pb_as_table, print_pb_list_as_table
-from cli.utils import print_flows, pb2dict
+from cli.utils import print_flows, pb2dict, enum2name
 from voltha.protos import third_party
 
 _ = third_party
-from voltha.protos import voltha_pb2
+from voltha.protos import voltha_pb2, common_pb2
 import sys
+import json
 from voltha.protos.device_pb2 import PmConfigs, PmConfig, PmGroupConfig
 from google.protobuf.json_format import MessageToDict
 
@@ -343,3 +344,233 @@ individual metrics.
         print_pb_list_as_table('Software Images:', device.images.image,
                                omit_fields, self.poutput, show_nulls=True)
 
+    @options([
+        make_option('-u', '--url', action='store', dest='url',
+                    help="URL to get sw image"),
+        make_option('-n', '--name', action='store', dest='name',
+                    help="Image name"),
+        make_option('-c', '--crc', action='store', dest='crc',
+                    help="CRC code to verify with", default=0),
+        make_option('-v', '--version', action='store', dest='version',
+                    help="Image version", default=0),
+    ])
+    def do_img_dnld_request(self, line, opts):
+        """
+        Request image download to a device
+        """
+        device = self.get_device(depth=-1)
+        self.poutput('device_id {}'.format(device.id))
+        self.poutput('name {}'.format(opts.name))
+        self.poutput('url {}'.format(opts.url))
+        self.poutput('crc {}'.format(opts.crc))
+        self.poutput('version {}'.format(opts.version))
+        try:
+            device_id = device.id
+            if device_id and opts.name and opts.url:
+                kw = dict(id=device_id)
+                kw['name'] = opts.name
+                kw['url'] = opts.url
+            else:
+                self.poutput('Device ID and URL are needed')
+                raise Exception('Device ID and URL are needed')
+        except Exception as e:
+            self.poutput('Error request img dnld {}.  Error:{}'.format(device_id, e))
+            return
+        kw['crc'] = long(opts.crc)
+        kw['image_version'] = opts.version
+        response = None
+        try:
+            request = voltha_pb2.ImageDownload(**kw)
+            stub = self.get_stub()
+            response = stub.DownloadImage(request)
+        except Exception as e:
+            self.poutput('Error download image {}. Error:{}'.format(kw['id'], e))
+            return
+        name = enum2name(common_pb2.OperationResp,
+                        'OperationReturnCode', response.code)
+        self.poutput('response: {}'.format(name))
+        self.poutput('{}'.format(response))
+
+    @options([
+        make_option('-n', '--name', action='store', dest='name',
+                    help="Image name"),
+    ])
+    def do_img_dnld_status(self, line, opts):
+        """
+        Get a image download status
+        """
+        device = self.get_device(depth=-1)
+        self.poutput('device_id {}'.format(device.id))
+        self.poutput('name {}'.format(opts.name))
+        try:
+            device_id = device.id
+            if device_id and opts.name:
+                kw = dict(id=device_id)
+                kw['name'] = opts.name
+            else:
+                self.poutput('Device ID, Image Name are needed')
+                raise Exception('Device ID, Image Name are needed')
+        except Exception as e:
+            self.poutput('Error get img dnld status {}.  Error:{}'.format(device_id, e))
+            return
+        status = None
+        try:
+            img_dnld = voltha_pb2.ImageDownload(**kw)
+            stub = self.get_stub()
+            status = stub.GetImageDownloadStatus(img_dnld)
+        except Exception as e:
+            self.poutput('Error get img dnld status {}. Error:{}'.format(device_id, e))
+            return
+        fields_to_omit = {
+              'crc',
+              'local_dir',
+        }
+        try:
+            print_pb_as_table('ImageDownload Status:', status, fields_to_omit, self.poutput)
+        except Exception, e:
+            self.poutput('Error {}.  Error:{}'.format(device_id, e))
+
+    def do_img_dnld_list(self, line):
+        """
+        List all image download records for a given device
+        """
+        device = self.get_device(depth=-1)
+        device_id = device.id
+        self.poutput('Get all img dnld records {}'.format(device_id))
+        try:
+            stub = self.get_stub()
+            img_dnlds = stub.ListImageDownloads(voltha_pb2.ID(id=device_id))
+        except Exception, e:
+            self.poutput('Error list img dnlds {}.  Error:{}'.format(device_id, e))
+            return
+        fields_to_omit = {
+              'crc',
+              'local_dir',
+        }
+        try:
+            print_pb_list_as_table('ImageDownloads:', img_dnlds.items, fields_to_omit, self.poutput)
+        except Exception, e:
+            self.poutput('Error {}.  Error:{}'.format(device_id, e))
+
+
+    @options([
+        make_option('-n', '--name', action='store', dest='name',
+                    help="Image name"),
+    ])
+    def do_img_dnld_cancel(self, line, opts):
+        """
+        Cancel a requested image download
+        """
+        device = self.get_device(depth=-1)
+        self.poutput('device_id {}'.format(device.id))
+        self.poutput('name {}'.format(opts.name))
+        device_id = device.id
+        try:
+            if device_id and opts.name:
+                kw = dict(id=device_id)
+                kw['name'] = opts.name
+            else:
+                self.poutput('Device ID, Image Name are needed')
+                raise Exception('Device ID, Image Name are needed')
+        except Exception as e:
+            self.poutput('Error cancel sw dnld {}. Error:{}'.format(device_id, e))
+            return
+        response = None
+        try:
+            img_dnld = voltha_pb2.ImageDownload(**kw)
+            stub = self.get_stub()
+            img_dnld = stub.GetImageDownload(img_dnld)
+            response = stub.CancelImageDownload(img_dnld)
+        except Exception as e:
+            self.poutput('Error cancel sw dnld {}. Error:{}'.format(device_id, e))
+            return
+        name = enum2name(common_pb2.OperationResp,
+                        'OperationReturnCode', response.code)
+        self.poutput('response: {}'.format(name))
+        self.poutput('{}'.format(response))
+
+    @options([
+        make_option('-n', '--name', action='store', dest='name',
+                    help="Image name"),
+        make_option('-s', '--save', action='store', dest='save_config',
+                    help="Save Config", default="True"),
+        make_option('-d', '--dir', action='store', dest='local_dir',
+                    help="Image on device location"),
+    ])
+    def do_img_activate(self, line, opts):
+        """
+        Activate an image update on device
+        """
+        device = self.get_device(depth=-1)
+        device_id = device.id
+        try:
+            if device_id and opts.name and opts.local_dir:
+                kw = dict(id=device_id)
+                kw['name'] = opts.name
+                kw['local_dir'] = opts.local_dir
+            else:
+                self.poutput('Device ID, Image Name, and Location are needed')
+                raise Exception('Device ID, Image Name, and Location are needed')
+        except Exception as e:
+            self.poutput('Error activate image {}. Error:{}'.format(device_id, e))
+            return
+        kw['save_config'] = json.loads(opts.save_config.lower())
+        self.poutput('activate image update {} {} {} {}'.format( \
+                    kw['id'], kw['name'],
+                    kw['local_dir'], kw['save_config']))
+        response = None
+        try:
+            img_dnld = voltha_pb2.ImageDownload(**kw)
+            stub = self.get_stub()
+            img_dnld = stub.GetImageDownload(img_dnld)
+            response = stub.ActivateImageUpdate(img_dnld)
+        except Exception as e:
+            self.poutput('Error activate image {}. Error:{}'.format(kw['id'], e))
+            return
+        name = enum2name(common_pb2.OperationResp,
+                        'OperationReturnCode', response.code)
+        self.poutput('response: {}'.format(name))
+        self.poutput('{}'.format(response))
+
+    @options([
+        make_option('-n', '--name', action='store', dest='name',
+                    help="Image name"),
+        make_option('-s', '--save', action='store', dest='save_config',
+                    help="Save Config", default="True"),
+        make_option('-d', '--dir', action='store', dest='local_dir',
+                    help="Image on device location"),
+    ])
+    def do_img_revert(self, line, opts):
+        """
+        Revert an image update on device
+        """
+        device = self.get_device(depth=-1)
+        device_id = device.id
+        try:
+            if device_id and opts.name and opts.local_dir:
+                kw = dict(id=device_id)
+                kw['name'] = opts.name
+                kw['local_dir'] = opts.local_dir
+            else:
+                self.poutput('Device ID, Image Name, and Location are needed')
+                raise Exception('Device ID, Image Name, and Location are needed')
+        except Exception as e:
+            self.poutput('Error revert image {}. Error:{}'.format(device_id, e))
+            return
+        kw['save_config'] = json.loads(opts.save_config.lower())
+        self.poutput('revert image update {} {} {} {}'.format( \
+                    kw['id'], kw['name'],
+                    kw['local_dir'], kw['save_config']))
+        response = None
+        try:
+            img_dnld = voltha_pb2.ImageDownload(**kw)
+            stub = self.get_stub()
+            img_dnld = stub.GetImageDownload(img_dnld)
+            response = stub.RevertImageUpdate(img_dnld)
+        except Exception as e:
+            self.poutput('Error revert image {}. Error:{}'.format(kw['id'], e))
+            return
+        name = enum2name(common_pb2.OperationResp,
+                        'OperationReturnCode', response.code)
+        self.poutput('response: {}'.format(name))
+        self.poutput('{}'.format(response))

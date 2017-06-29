@@ -40,6 +40,10 @@ message AdminState {
         // The device is disabled and shall not perform its intended forwarding
         // functions other than being available for re-activation.
         DISABLED = 2;
+
+        // The deive is in the state of image download
+        DOWNLOADING_IMAGE = 4;
+
     }
 }
 
@@ -84,4 +88,19 @@ message ConnectStatus {
         // There is live communication between device and Voltha
         REACHABLE = 2;
     }
+}
+
+message OperationResp {
+    option (yang_child_rule) = MOVE_TO_PARENT_LEVEL;
+
+    enum OperationReturnCode {
+        OPERATION_SUCCESS = 0;
+        OPERATION_FAILURE = 1;
+        OPERATION_UNSUPPORTED = 2;
+    }
+    // Return code
+    OperationReturnCode code = 1;
+
+    // Additional Info
+    string additional_info = 2;
 }

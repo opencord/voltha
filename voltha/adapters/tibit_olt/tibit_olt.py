@@ -34,8 +34,6 @@ from scapy.fields import ByteEnumField, XShortField, XByteField, MACField, \
 from scapy.fields import XLongField, StrFixedLenField, XIntField, \
     FieldLenField, StrLenField, IntField
 
-
-
 from twisted.internet import reactor
 from twisted.internet.defer import DeferredQueue, inlineCallbacks
 from twisted.internet.task import LoopingCall
@@ -861,6 +859,21 @@ class TibitOltAdapter(object):
         self.adapter_agent.update_child_devices_state(device.id,
                                                       connect_status=ConnectStatus.REACHABLE)
         log.info('OLT Rebooted: {}'.format(device.mac_address))
+
+    def download_image(self, device, request):
+        raise NotImplementedError()
+
+    def get_image_download_status(self, device, request):
+        raise NotImplementedError()
+
+    def cancel_image_download(self, device, request):
+        raise NotImplementedError()
+
+    def activate_image_update(self, device, request):
+        raise NotImplementedError()
+
+    def revert_image_update(self, device, request):
+        raise NotImplementedError()
 
     def self_test_device(self, device):
         """
