@@ -86,6 +86,29 @@ if [ "$testMode" == "yes" ]; then
 	echo '"insecure-registries" : ["vinstall'${uId}':5000"]' >> ansible/roles/voltha/templates/daemon.json
 	echo '}' >> ansible/roles/voltha/templates/daemon.json
 
+	# Check to make sure that the vagrant-libvirt network is both defined and started
+	echo -e "${lBlue}Verify tha the ${lCyan}vagrant-libvirt${lBlue} network is defined and started${NC}"
+	virsh net-list | grep "vagrant-libvirt" > /dev/null
+	rtrn=$?
+	if [ $rtrn -eq 1 ]; then
+		# The network isn't running, check if it's defined
+		virsh net-list --all | grep "vagrant-libvirt" > /dev/null
+		rtrn=$?
+		if [ $rtrn -eq 1 ]; then
+			# Not defined either
+			echo -e "${lBlue}Defining the ${lCyan}vagrant-libvirt${lBlue} network${NC}"
+			virsh net-define vagrant-libvirt.xml
+			echo -e "${lBlue}Starting the ${lCyan}vagrant-libvirt${lBlue} network${NC}"
+			virsh net-start vagrant-libvirt
+		else
+			# Defined but not started
+			echo -e "${lBlue}Starting the ${lCyan}vagrant-libvirt${lBlue} network${NC}"
+			virsh net-start vagrant-libvirt
+		fi
+	else
+		echo -e "${lBlue}The ${lCyan}vagrant-libvirt${lBlue} network is ${green} running${NC}"
+	fi
+
 	# Change the installer name
 	iVmName="vInstaller${uId}"
 else
