@@ -169,6 +169,21 @@ class AdapterAgent(object):
     def reboot_device(self, device):
         return self.adapter.reboot_device(device)
 
+    def download_image(self, device, request):
+        return self.adapter.download_image(device, request)
+
+    def get_image_download_status(self, device):
+        return self.adapter.get_image_download_status(device)
+
+    def cancel_image_download(self, device):
+        return self.adapter.cancel_image_download(device)
+
+    def activate_image_update(self, device, request):
+        return self.adapter.activate_image_update(device, request)
+
+    def revert_image_update(self, device, request):
+        return self.adapter.revert_image_update(device, request)
+
     def self_test(self, device):
         return self.adapter.self_test_device(device)
 
