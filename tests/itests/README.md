@@ -69,6 +69,8 @@ sudo -s
 ``` 
 Run the test:
 ``` 
+cd /cord/incubator/voltha
+. ./env.sh
 nosetests -s tests/itests/voltha/test_device_state_changes.py
 ```  
 
@@ -93,6 +95,8 @@ echo 8 > /sys/class/net/ponmgmt/bridge/group_fwd_mask
 
 Run the test:
 ``` 
+cd /cord/incubator/voltha
+. ./env.sh
 nosetests -s tests/itests/voltha/test_persistence.py
 ```  
 
@@ -108,6 +112,14 @@ docker-compose -f compose/docker-compose-system-test.yml up -d
 nosetests -s tests/itests/voltha/test_voltha_rest_apis.py
 ```    
 
-* Voltha_alarm_events: TODO
+* **Voltha_alarm_events**: TODO
 
-* Voltha_alarm_filters: TODO
+* **Voltha_alarm_filters**: TODO
+
+* **Dispatcher**:  This test exercises the requests forwarding via the Global 
+handler.
+```
+cd /cord/incubator/voltha
+. ./env.sh
+nosetests -s tests/itests/voltha/test_dispatcher.py
+```  

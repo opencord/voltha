@@ -24,6 +24,7 @@ from twisted.internet.defer import inlineCallbacks, DeferredList
 from simplejson import dumps, loads
 
 from common.utils.asleep import asleep
+from common.utils.id_generation import get_next_core_id
 
 log = get_logger()
 
@@ -67,9 +68,6 @@ class Leader(object):
 
         self.core_data_id_match = re.compile(
             self.CORE_STORE_KEY_EXTRACTOR % self.coord.core_store_prefix).match
-
-        self.core_store_assignment_key = self.coord.core_store_prefix + \
-                                         '/assignment'
 
         self.assignment_match = re.compile(
             self.ASSIGNMENT_EXTRACTOR % self.coord.assignment_prefix).match
@@ -155,21 +153,22 @@ class Leader(object):
         try:
             # Get the mapping record
             (_, mappings) = yield self.coord.kv_get(
-                self.core_store_assignment_key, recurse=True)
+                self.coord.core_store_assignment_key, recurse=True)
             if mappings:
                 self.core_store_assignment = loads(mappings[0]['Value'])
                 return
             else:  # Key has not been created yet
                 # Create the key with an empty dictionary value
                 value = dict()
-                result = yield self.coord.kv_put(self.core_store_assignment_key,
-                                                 dumps(value))
+                result = yield self.coord.kv_put(
+                    self.coord.core_store_assignment_key,
+                    dumps(value))
                 if not result:
                     raise ConfigMappingException(self.instance_id)
 
                 # Ensure the record was created
                 (_, mappings) = yield self.coord.kv_get(
-                    self.core_store_assignment_key, recurse=True)
+                    self.coord.core_store_assignment_key, recurse=True)
 
                 self.core_store_assignment = loads(mappings[0]['Value'])
 
@@ -205,9 +204,9 @@ class Leader(object):
                 self.coord.membership_prefix, index=index, recurse=True)
 
             # Only members with valid session are considered active
-            members = [{'id':self.member_id_match(e['Key']).group(2),
+            members = [{'id': self.member_id_match(e['Key']).group(2),
                         'host': loads(e['Value'])['host_address']}
-                            for e in results if 'Session' in e ]
+                       for e in results if 'Session' in e]
 
             log.info('active-members', active_members=members)
 
@@ -257,9 +256,6 @@ class Leader(object):
     @inlineCallbacks
     def _reassign_core_stores(self):
 
-        def _get_new_str_id(max_val_in_str):
-            return str(int(max_val_in_str) + 1)
-
         def _get_core_data_id_from_instance(instance_name):
             for id, instance in self.core_store_assignment.iteritems():
                 if instance and instance['id'] == instance_name:
@@ -287,7 +283,7 @@ class Leader(object):
 
             # 2. Update the mapping with the new set
             current_id = max(self.core_store_assignment) \
-                            if self.core_store_assignment else '0'
+                if self.core_store_assignment else '0000'
             for instance in self.members:
                 if instance['id'] not in existing_active_config_members:
                     # Add the member to the config map
@@ -297,21 +293,22 @@ class Leader(object):
                         updated_mapping[next_id] = instance
                     else:
                         # There are no empty slot, create new ids
-                        current_id = _get_new_str_id(current_id)
+                        current_id = get_next_core_id(current_id)
                         updated_mapping[current_id] = instance
 
             self.core_store_assignment = updated_mapping
             log.info('updated-assignment',
-                      core_store_assignment=self.core_store_assignment,
-                      inactive_members=inactive_members)
+                     core_store_assignment=self.core_store_assignment,
+                     inactive_members=inactive_members)
 
             # 3. save the mapping into consul
-            yield self.coord.kv_put(self.core_store_assignment_key,
+            yield self.coord.kv_put(self.coord.core_store_assignment_key,
                                     dumps(self.core_store_assignment))
 
             # 4. Assign the new workload to the newly created members
             curr_members_set = set([m['id'] for m in self.members])
-            new_members = curr_members_set.difference(existing_active_config_members)
+            new_members = curr_members_set.difference(
+                existing_active_config_members)
             for new_member_id in new_members:
                 yield self.coord.kv_put(
                     self.coord.assignment_prefix
@@ -331,88 +328,88 @@ class Leader(object):
             log.exception('config-reassignment-failure', e=e)
             self._restart_core_store_reassignment_soak_timer()
 
-    # @inlineCallbacks
-    # def _reassign_work(self):
-    #
-    #     log.info('reassign-work')
-    #
-    #     # Plan
-    #     #
-    #     # Step 1: calculate desired assignment from current members and
-    #     #         workload list (e.g., using consistent hashing or any other
-    #     #         algorithm
-    #     # Step 2: collect current assignments from consul
-    #     # Step 3: find the delta between the desired and actual assignments:
-    #     #         these form two lists:
-    #     #         1. new assignments to be made
-    #     #         2. obsolete assignments to be revoked
-    #     #         graceful handling may be desirable when moving existing
-    #     #         assignment from existing member to another member (to make
-    #     #         sure it is abandoned by old member before new takes charge)
-    #     # Step 4: orchestrate the assignment by adding/deleting(/locking)
-    #     #         entries in consul
-    #     #
-    #     # We must make sure while we are working on this, we do not re-enter
-    #     # into same method!
-    #
-    #     try:
-    #
-    #         # Step 1: generate wanted assignment (mapping work to members)
-    #
-    #         ring = HashRing(self.members)
-    #         wanted_assignments = dict()  # member_id -> set(work_id)
-    #         _ = [
-    #             wanted_assignments.setdefault(ring.get_node(work), set())
-    #                 .add(work)
-    #             for work in self.workload
-    #         ]
-    #         for (member, work) in sorted(wanted_assignments.iteritems()):
-    #             log.info('assignment',
-    #                      member=member, work_count=len(work))
-    #
-    #         # Step 2: discover current assignment (from consul)
-    #
-    #         (_, results) = yield self.coord.kv_get(
-    #             self.coord.assignment_prefix, recurse=True)
-    #
-    #         matches = [
-    #             (self.assignment_match(e['Key']), e) for e in results or []]
-    #
-    #         current_assignments = dict()  # member_id -> set(work_id)
-    #         _ = [
-    #             current_assignments.setdefault(
-    #                 m.groupdict()['member_id'], set())
-    #                 .add(m.groupdict()['work_id'])
-    #             for m, e in matches if m is not None
-    #         ]
-    #
-    #         # Step 3: handle revoked assignments first on a per member basis
-    #
-    #         for member_id, current_work in current_assignments.iteritems():
-    #             assert isinstance(current_work, set)
-    #             wanted_work = wanted_assignments.get(member_id, set())
-    #             work_to_revoke = current_work.difference(wanted_work)
-    #
-    #             # revoking work by simply deleting the assignment entry
-    #             # TODO if we want some feedback to see that member abandoned
-    #             # work, we could add a consul-based protocol here
-    #             for work_id in work_to_revoke:
-    #                 yield self.coord.kv_delete(
-    #                     self.coord.assignment_prefix
-    #                     + member_id + '/' + work_id)
-    #
-    #         # Step 4: assign new work as needed
-    #
-    #         for member_id, wanted_work in wanted_assignments.iteritems():
-    #             assert isinstance(wanted_work, set)
-    #             current_work = current_assignments.get(member_id, set())
-    #             work_to_assign = wanted_work.difference(current_work)
-    #
-    #             for work_id in work_to_assign:
-    #                 yield self.coord.kv_put(
-    #                     self.coord.assignment_prefix
-    #                     + member_id + '/' + work_id, '')
-    #
-    #     except Exception, e:
-    #         log.exception('failed-reassignment', e=e)
-    #         self._restart_reassignment_soak_timer()  # try again in a while
+            # @inlineCallbacks
+            # def _reassign_work(self):
+            #
+            #     log.info('reassign-work')
+            #
+            #     # Plan
+            #     #
+            #     # Step 1: calculate desired assignment from current members and
+            #     #         workload list (e.g., using consistent hashing or any other
+            #     #         algorithm
+            #     # Step 2: collect current assignments from consul
+            #     # Step 3: find the delta between the desired and actual assignments:
+            #     #         these form two lists:
+            #     #         1. new assignments to be made
+            #     #         2. obsolete assignments to be revoked
+            #     #         graceful handling may be desirable when moving existing
+            #     #         assignment from existing member to another member (to make
+            #     #         sure it is abandoned by old member before new takes charge)
+            #     # Step 4: orchestrate the assignment by adding/deleting(/locking)
+            #     #         entries in consul
+            #     #
+            #     # We must make sure while we are working on this, we do not re-enter
+            #     # into same method!
+            #
+            #     try:
+            #
+            #         # Step 1: generate wanted assignment (mapping work to members)
+            #
+            #         ring = HashRing(self.members)
+            #         wanted_assignments = dict()  # member_id -> set(work_id)
+            #         _ = [
+            #             wanted_assignments.setdefault(ring.get_node(work), set())
+            #                 .add(work)
+            #             for work in self.workload
+            #         ]
+            #         for (member, work) in sorted(wanted_assignments.iteritems()):
+            #             log.info('assignment',
+            #                      member=member, work_count=len(work))
+            #
+            #         # Step 2: discover current assignment (from consul)
+            #
+            #         (_, results) = yield self.coord.kv_get(
+            #             self.coord.assignment_prefix, recurse=True)
+            #
+            #         matches = [
+            #             (self.assignment_match(e['Key']), e) for e in results or []]
+            #
+            #         current_assignments = dict()  # member_id -> set(work_id)
+            #         _ = [
+            #             current_assignments.setdefault(
+            #                 m.groupdict()['member_id'], set())
+            #                 .add(m.groupdict()['work_id'])
+            #             for m, e in matches if m is not None
+            #         ]
+            #
+            #         # Step 3: handle revoked assignments first on a per member basis
+            #
+            #         for member_id, current_work in current_assignments.iteritems():
+            #             assert isinstance(current_work, set)
+            #             wanted_work = wanted_assignments.get(member_id, set())
+            #             work_to_revoke = current_work.difference(wanted_work)
+            #
+            #             # revoking work by simply deleting the assignment entry
+            #             # TODO if we want some feedback to see that member abandoned
+            #             # work, we could add a consul-based protocol here
+            #             for work_id in work_to_revoke:
+            #                 yield self.coord.kv_delete(
+            #                     self.coord.assignment_prefix
+            #                     + member_id + '/' + work_id)
+            #
+            #         # Step 4: assign new work as needed
+            #
+            #         for member_id, wanted_work in wanted_assignments.iteritems():
+            #             assert isinstance(wanted_work, set)
+            #             current_work = current_assignments.get(member_id, set())
+            #             work_to_assign = wanted_work.difference(current_work)
+            #
+            #             for work_id in work_to_assign:
+            #                 yield self.coord.kv_put(
+            #                     self.coord.assignment_prefix
+            #                     + member_id + '/' + work_id, '')
+            #
+            #     except Exception, e:
+            #         log.exception('failed-reassignment', e=e)
+            #         self._restart_reassignment_soak_timer()  # try again in a while

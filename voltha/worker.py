@@ -19,6 +19,7 @@ from structlog import get_logger
 from twisted.internet import reactor
 from twisted.internet.base import DelayedCall
 from twisted.internet.defer import inlineCallbacks, returnValue, Deferred
+from simplejson import dumps, loads
 
 from common.utils.asleep import asleep
 
@@ -46,6 +47,7 @@ class Worker(object):
         self.my_workload = set()  # list of work_id's assigned to me
 
         self.assignment_soak_timer = None
+        self.assignment_core_store_soak_timer = None
         self.my_candidate_workload = set()  # we stash here during soaking
 
         self.assignment_match = re.compile(
@@ -55,10 +57,13 @@ class Worker(object):
 
         self.wait_for_core_store_assignment = Deferred()
 
+        self.peers_map = None
+
     @inlineCallbacks
     def start(self):
         log.debug('starting')
         yield self._start_tracking_my_assignments()
+        yield self._start_tracking_my_peers()
         log.info('started')
         returnValue(self)
 
@@ -79,15 +84,15 @@ class Worker(object):
             returnValue(val)
 
     # Private methods:
-
     def _start_tracking_my_assignments(self):
         reactor.callLater(0, self._track_my_assignments, 0)
 
+    def _start_tracking_my_peers(self):
+        reactor.callLater(0, self._track_my_peers, 0)
+
     @inlineCallbacks
     def _track_my_assignments(self, index):
-
         try:
-
             # if there is no leader yet, wait for a stable leader
             d = self.coord.wait_for_a_leader()
             if not d.called:
@@ -105,13 +110,13 @@ class Worker(object):
             if results and not self.mycore_store_id:
                 # We have no store id set yet
                 core_stores = [c['Value'] for c in results if
-                           c['Key'] == self.coord.assignment_prefix +
-                           self.instance_id + '/' +
-                           self.coord.core_storage_suffix]
+                               c['Key'] == self.coord.assignment_prefix +
+                               self.instance_id + '/' +
+                               self.coord.core_storage_suffix]
                 if core_stores:
                     self.mycore_store_id = core_stores[0]
                     log.debug('store-assigned',
-                             mycore_store_id=self.mycore_store_id)
+                              mycore_store_id=self.mycore_store_id)
                     self._stash_and_restart_core_store_soak_timer()
 
             # 2.  Check whether we have been assigned a work item
@@ -130,8 +135,39 @@ class Worker(object):
             # to prevent flood
 
         finally:
-            if not self.halted:
+            if not self.halted and not self.mycore_store_id:
                 reactor.callLater(0, self._track_my_assignments, index)
+
+    @inlineCallbacks
+    def _track_my_peers(self, index):
+        try:
+            if self.mycore_store_id:
+                # Wait for updates to the store assigment key
+                (index, mappings) = yield self.coord.kv_get(
+                    self.coord.core_store_assignment_key,
+                    index=index,
+                    recurse=True)
+                if mappings:
+                    new_map = loads(mappings[0]['Value'])
+                    # Remove my id from my peers list
+                    new_map.pop(self.mycore_store_id)
+                    if self.peers_map is None or self.peers_map != new_map:
+                        self.coord.publish_peers_map_change(new_map)
+                        self.peers_map = new_map
+                        log.debug('peer-mapping-changed', mapping=new_map)
+
+        except Exception, e:
+            log.exception('peer-track-error', e=e)
+            yield asleep(
+                self.coord.worker_config.get(
+                    self.coord.worker_config[
+                        'assignments_track_error_to_avoid_flood'], 1))
+            # to prevent flood
+        finally:
+            if not self.halted:
+                # Wait longer if we have not received a core id yet
+                reactor.callLater(0 if self.mycore_store_id else 5,
+                                  self._track_my_peers, index)
 
     def _stash_and_restart_soak_timer(self, candidate_workload):
 
@@ -151,9 +187,9 @@ class Worker(object):
         :return: None
         """
         log.debug('my-assignments-changed',
-                 old_count=len(self.my_workload),
-                 new_count=len(self.my_candidate_workload),
-                 workload=self.my_workload)
+                  old_count=len(self.my_workload),
+                  new_count=len(self.my_candidate_workload),
+                  workload=self.my_workload)
         self.my_workload, self.my_candidate_workload = \
             self.my_candidate_workload, None
 
@@ -161,14 +197,14 @@ class Worker(object):
 
         log.debug('re-start-assignment-config-soaking')
 
-        if self.assignment_soak_timer is not None:
-            if not self.assignment_soak_timer.called:
-                self.assignment_soak_timer.cancel()
+        if self.assignment_core_store_soak_timer is not None:
+            if not self.assignment_core_store_soak_timer.called:
+                self.assignment_core_store_soak_timer.cancel()
 
-        self.assignment_soak_timer = reactor.callLater(
+        self.assignment_core_store_soak_timer = reactor.callLater(
             self.soak_time, self._process_config_assignment)
 
     def _process_config_assignment(self):
         log.debug('process-config-assignment',
-                 mycore_store_id=self.mycore_store_id)
+                  mycore_store_id=self.mycore_store_id)
         self.wait_for_core_store_assignment.callback(self.mycore_store_id)

@@ -317,6 +317,7 @@ class Main(object):
                 VolthaCore(
                     instance_id=self.instance_id,
                     core_store_id = self.core_store_id,
+                    grpc_port=self.args.grpc_port,
                     version=VERSION,
                     log_level=LogLevel.INFO
                 )

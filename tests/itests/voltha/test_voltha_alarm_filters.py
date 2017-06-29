@@ -91,7 +91,7 @@ class VolthaAlarmFilterTests(RestBase):
         device = Device(
             type='simulated_olt',
         )
-        device = self.post('/api/v1/local/devices', MessageToDict(device),
+        device = self.post('/api/v1/devices', MessageToDict(device),
                            expected_code=200)
         return device
 
@@ -106,7 +106,7 @@ class VolthaAlarmFilterTests(RestBase):
         rules.append(rule)
 
         alarm_filter = AlarmFilter(rules=rules)
-        alarm_filter = self.post('/api/v1/local/alarm_filters', MessageToDict(alarm_filter),
+        alarm_filter = self.post('/api/v1/alarm_filters', MessageToDict(alarm_filter),
                                  expected_code=200)
 
         return alarm_filter
@@ -114,7 +114,7 @@ class VolthaAlarmFilterTests(RestBase):
     # Active the simulated device.
     # This will trigger the simulation of random alarms
     def activate_device(self, device_id):
-        path = '/api/v1/local/devices/{}'.format(device_id)
+        path = '/api/v1/devices/{}'.format(device_id)
         self.post(path + '/enable', expected_code=200)
         device = self.get(path)
         self.assertEqual(device['admin_state'], 'ENABLED')

@@ -39,6 +39,7 @@ from voltha.protos.events_pb2 import KpiEvent
 from voltha.protos.voltha_pb2 import DeviceGroup, LogicalDevice, \
     LogicalPort, AdminState, OperStatus, AlarmFilterRuleKey
 from voltha.registry import registry
+from common.utils.id_generation import create_cluster_device_id
 
 
 @implementer(IAdapterAgent)
@@ -512,7 +513,8 @@ class AdapterAgent(object):
         # we create new ONU device objects and insert them into the config
         # TODO should we auto-enable the freshly created device? Probably.
         device = Device(
-            id=uuid4().hex[:12],
+            id=create_cluster_device_id(self.core.core_store_id),
+            # id=uuid4().hex[:12],
             type=child_device_type,
             parent_id=parent_device_id,
             parent_port_no=parent_port_no,
