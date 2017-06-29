@@ -1,0 +1,242 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5a202591_5b871b62",
+        "filename": "tests/itests/voltha/test_voltha_software_update.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-29T20:45:23Z",
+      "side": 1,
+      "message": "Please add the tests to test the globalinstance api as well.",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_7b82d753",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 213,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-29T20:45:23Z",
+      "side": 1,
+      "message": "DownloadImage ..",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_9b5ed311",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 228,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-29T20:45:23Z",
+      "side": 1,
+      "message": "Please rename to ImageDownloadStatus",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_db644be7",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 229,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-29T20:45:23Z",
+      "side": 1,
+      "message": "Please add \"option (yang_child_rule) \u003d MOVE_TO_PARENT_LEVEL;\" to allow proper proto to YANG conversion in the Netconf server. Similar to common.proto.",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_7b9bf7c9",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 230,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-29T20:45:23Z",
+      "side": 1,
+      "message": "ImageDownloadState ...\n\nPlease update this commit accordingly",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_1baac3d4",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 231,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-29T20:45:23Z",
+      "side": 1,
+      "message": "Any need to have DOWNLOAD_ before the names?",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_3ba57f04",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 238,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-29T20:45:23Z",
+      "side": 1,
+      "message": "ImageDownloadFailureReason",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_5ba03bf4",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 259,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-29T20:45:23Z",
+      "side": 1,
+      "message": "typo",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_bb618fd5",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 285,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-29T20:45:23Z",
+      "side": 1,
+      "message": "Type",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_9bb5b333",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 265,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-29T20:45:23Z",
+      "side": 1,
+      "message": "Are these rpcs a blocking call?  What a success mean?\n\nHow long do these operations take?  What happen on failure? Operator has to retry?",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_5b795b92",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 266,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-29T20:45:23Z",
+      "side": 1,
+      "message": "\"Image\" has been a name already used in Voltha.  I suggest change Software to Image.\n\nAlso, try to have a an rpc name starting with a verb and avoid request in the name as all rpc are requests.  In this case the name \"DownloadImage\" would be more appropriate.\n\nThis should be applied to all rpcs",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_3b6e9fca",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 268,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-29T20:45:23Z",
+      "side": 1,
+      "message": "same here, download_image",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_1b73e3b2",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 287,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-29T20:45:23Z",
+      "side": 1,
+      "message": "What Activate actually do?  Please provide more explanation.",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_fb6707e9",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 557,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-29T20:45:23Z",
+      "side": 1,
+      "message": "Please see comments above.",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
