@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5a202591_b86bd584",
+        "filename": "tests/itests/voltha/test_cold_activation_sequence.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 17,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-06-29T01:14:03Z",
+      "side": 1,
+      "message": "You probably want Rich to switch this over to DNS for use with Docker Swarm.",
+      "range": {
+        "startLine": 17,
+        "startChar": 4,
+        "endLine": 17,
+        "endChar": 76
+      },
+      "revId": "b96ee0a30bcf98ee09208e857bcc172dfee36ff1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_98681989",
+        "filename": "tests/itests/voltha/test_voltha_rest_apis.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-06-29T01:14:03Z",
+      "side": 1,
+      "message": "Same as the previous comment.",
+      "range": {
+        "startLine": 25,
+        "startChar": 4,
+        "endLine": 25,
+        "endChar": 76
+      },
+      "revId": "b96ee0a30bcf98ee09208e857bcc172dfee36ff1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
