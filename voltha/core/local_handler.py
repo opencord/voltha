@@ -30,7 +30,8 @@ from voltha.protos.voltha_pb2 import \
     LogicalPorts, Devices, Device, DeviceType, \
     DeviceTypes, DeviceGroups, DeviceGroup, AdminState, OperStatus, ChangeEvent, \
     AlarmFilter, AlarmFilters, SelfTestResponse
-from voltha.protos.device_pb2 import PmConfigs, Images
+from voltha.protos.device_pb2 import PmConfigs, Images, ImageDownload, ImageDownloads
+from voltha.protos.common_pb2 import OperationResp
 from voltha.registry import registry
 from requests.api import request
 
@@ -371,7 +372,9 @@ class LocalHandler(VolthaLocalServiceServicer):
         try:
             path = '/devices/{}'.format(request.id)
             device = self.root.get(path)
-
+            assert device.admin_state != AdminState.DOWNLOADING_IMAGE, \
+                'Device to reboot cannot be ' \
+                'in admin state \'{}\''.format(device.admin_state)
             agent = self.core.get_device_agent(device.id)
             agent.reboot_device(device)
 
@@ -381,6 +384,210 @@ class LocalHandler(VolthaLocalServiceServicer):
             context.set_code(StatusCode.NOT_FOUND)
 
         return Empty()
+
+    @twisted_async
+    def DownloadImage(self, request, context):
+        log.info('grpc-request', request=request)
+
+        if '/' in request.id:
+            context.set_details(
+                'Malformed device id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return OperationResp(code=OperationResp.OPERATION_FAILURE)
+
+        try:
+            path = '/devices/{}'.format(request.id)
+            device = self.root.get(path)
+            assert isinstance(request, ImageDownload)
+            self.root.add('/devices/{}/image_downloads'.\
+                    format(request.id), request)
+            assert device.admin_state == AdminState.ENABLED, \
+                'Device to DOWNLOADING_IMAGE cannot be ' \
+                'in admin state \'{}\''.format(device.admin_state)
+            device.admin_state = AdminState.DOWNLOADING_IMAGE
+            self.root.update(path, device, strict=True)
+            agent = self.core.get_device_agent(device.id)
+            agent.register_image_download(request)
+            return OperationResp(code=OperationResp.OPERATION_SUCCESS)
+
+        except AssertionError as e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return OperationResp(code=OperationResp.OPERATION_UNSUPPORTED)
+
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return OperationResp(code=OperationResp.OPERATION_FAILURE)
+
+        except Exception as e:
+            log.exception(e.message)
+            context.set_code(StatusCode.NOT_FOUND)
+            return OperationResp(code=OperationResp.OPERATION_FAILURE)
+
+    @twisted_async
+    def GetImageDownloadStatus(self, request, context):
+        log.info('grpc-request', request=request)
+
+        if '/' in request.id:
+            context.set_details(
+                'Malformed device id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            response = ImageDownload(state=ImageDownload.DOWNLOAD_UNKNOWN)
+            return response
+
+        try:
+            path = '/devices/{}'.format(request.id)
+            device = self.root.get(path)
+            agent = self.core.get_device_agent(device.id)
+            img_dnld = self.root.get('/devices/{}/image_downloads/{}'.\
+                    format(request.id, request.name))
+            agent.get_image_download_status(img_dnld)
+            try:
+                response = self.root.get('/devices/{}/image_downloads/{}'.\
+                        format(request.id, request.name))
+            except Exception as e:
+                log.exception(e.message)
+            return response
+
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            response = ImageDownload(state=ImageDownload.DOWNLOAD_UNKNOWN)
+            return response
+        except Exception as e:
+            log.exception(e.message)
+            response = ImageDownload(state=ImageDownload.DOWNLOAD_FAILED)
+            return response
+
+    @twisted_async
+    def GetImageDownload(self, request, context):
+        log.info('grpc-request', request=request)
+
+        if '/' in request.id:
+            context.set_details(
+                'Malformed device id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            response = ImageDownload(state=ImageDownload.DOWNLOAD_UNKNOWN)
+            return response
+
+        try:
+            response = self.root.get('/devices/{}/image_downloads/{}'.\
+                    format(request.id, request.name))
+            return response
+
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            response = ImageDownload(state=ImageDownload.DOWNLOAD_UNKNOWN)
+            return response
+
+    @twisted_async
+    def ListImageDownloads(self, request, context):
+        log.info('grpc-request', request=request)
+
+        if '/' in request.id:
+            context.set_details(
+                'Malformed device id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            response = ImageDownload(state=ImageDownload.DOWNLOAD_UNKNOWN)
+            return response
+
+        try:
+            response = self.root.get('/devices/{}/image_downloads'.\
+                    format(request.id))
+            return ImageDownloads(items=response)
+
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            response = ImageDownload(state=ImageDownload.DOWNLOAD_UNKNOWN)
+            return response
+
+    @twisted_async
+    def CancelImageDownload(self, request, context):
+        log.info('grpc-request', request=request)
+
+        if '/' in request.id:
+            context.set_details(
+                'Malformed device id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return OperationResp(code=OperationResp.OPERATION_FAILURE)
+
+        try:
+            assert isinstance(request, ImageDownload)
+            path = '/devices/{}'.format(request.id)
+            device = self.root.get(path)
+            assert device.admin_state == AdminState.DOWNLOADING_IMAGE, \
+                'Device to cancel DOWNLOADING_IMAGE cannot be ' \
+                'in admin state \'{}\''.format(device.admin_state)
+            agent = self.core.get_device_agent(device.id)
+            agent.cancel_image_download(request)
+            return OperationResp(code=OperationResp.OPERATION_SUCCESS)
+
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return OperationResp(code=OperationResp.OPERATION_FAILURE)
+
+    @twisted_async
+    def ActivateImageUpdate(self, request, context):
+        log.info('grpc-request', request=request)
+
+        if '/' in request.id:
+            context.set_details(
+                'Malformed device id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return OperationResp(code=OperationResp.OPERATION_FAILURE)
+
+        try:
+            assert isinstance(request, ImageDownload)
+            path = '/devices/{}'.format(request.id)
+            device = self.root.get(path)
+            assert device.admin_state == AdminState.ENABLED, \
+                'Device to activate image cannot be ' \
+                'in admin state \'{}\''.format(device.admin_state)
+            agent = self.core.get_device_agent(device.id)
+            agent.activate_image_update(request)
+            return OperationResp(code=OperationResp.OPERATION_SUCCESS)
+
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return OperationResp(code=OperationResp.OPERATION_FAILURE)
+
+    @twisted_async
+    def RevertImageUpdate(self, request, context):
+        log.info('grpc-request', request=request)
+
+        if '/' in request.id:
+            context.set_details(
+                'Malformed device id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return OperationResp(code=OperationResp.OPERATION_FAILURE)
+
+        try:
+            assert isinstance(request, ImageDownload)
+            path = '/devices/{}'.format(request.id)
+            device = self.root.get(path)
+            assert device.admin_state == AdminState.ENABLED, \
+                'Device to revert image cannot be ' \
+                'in admin state \'{}\''.format(device.admin_state)
+            agent = self.core.get_device_agent(device.id)
+            agent.revert_image_update(request)
+            return OperationResp(code=OperationResp.OPERATION_SUCCESS)
+
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return OperationResp(code=OperationResp.OPERATION_FAILURE)
 
     @twisted_async
     def DeleteDevice(self, request, context):
