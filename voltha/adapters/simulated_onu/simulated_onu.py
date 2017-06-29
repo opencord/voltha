@@ -109,6 +109,21 @@ class SimulatedOnuAdapter(object):
     def reboot_device(self, device):
         raise NotImplementedError()
 
+    def download_image(self, device, request):
+        raise NotImplementedError()
+
+    def get_image_download_status(self, device, request):
+        raise NotImplementedError()
+
+    def cancel_image_download(self, device, request):
+        raise NotImplementedError()
+
+    def activate_image_update(self, device, request):
+        raise NotImplementedError()
+
+    def revert_image_update(self, device, request):
+        raise NotImplementedError()
+
     def delete_device(self, device):
         raise NotImplementedError()
 
