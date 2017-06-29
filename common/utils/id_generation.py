@@ -17,6 +17,21 @@
 
 from uuid import uuid4
 
+
+BROADCAST_CORE_ID=hex(0xFFFF)[2:]
+
+def get_next_core_id(current_id_in_hex_str):
+    """
+    :param current_id_in_hex_str: a hex string of the maximum core id 
+    assigned without the leading 0x characters
+    :return: current_id_in_hex_str + 1 in hex string 
+    """
+    if not current_id_in_hex_str or current_id_in_hex_str == '':
+        return '0001'
+    else:
+        return format(int(current_id_in_hex_str, 16) + 1, '04x')
+
+
 def create_cluster_logical_device_ids(core_id, switch_id):
     """
     Creates a logical device id and an OpenFlow datapath id that is unique 
@@ -28,9 +43,21 @@ def create_cluster_logical_device_ids(core_id, switch_id):
     """
     switch_id = format(switch_id, '012x')
     id = '{}{}'.format(format(int(core_id), '04x'), switch_id)
-    hex_int=int(id,16)
+    hex_int = int(id, 16)
     return id, hex_int
 
+def is_broadcast_core_id(id):
+    assert id and len(id) == 16
+    return id[:4] == BROADCAST_CORE_ID
+
+def create_cluster_id():
+    """
+    Returns an id that is common across all voltha instances.  The id  
+    is a str of 64 bits.  The lower 48 bits refers to an id specific to that 
+    object while the upper 16 bits refers a broadcast core_id
+    :return: An common id across all Voltha instances
+    """
+    return '{}{}'.format(BROADCAST_CORE_ID, uuid4().hex[:12])
 
 def create_cluster_device_id(core_id):
     """
@@ -42,9 +69,11 @@ def create_cluster_device_id(core_id):
     """
     return '{}{}'.format(format(int(core_id), '04x'), uuid4().hex[:12])
 
+
 def get_core_id_from_device_id(device_id):
     # Device id is a string and the first 4 characters represent the core_id
-    assert device_id and device_id.len() == 16
+    assert device_id and len(device_id) == 16
+    # Get the leading 4 hexs and remove leading 0's
     return device_id[:4]
 
 
@@ -55,8 +84,10 @@ def get_core_id_from_logical_device_id(logical_device_id):
     :param logical_device_id: 
     :return: core_id string
     """
-    assert logical_device_id and logical_device_id.len() == 16
+    assert logical_device_id and len(logical_device_id) == 16
+    # Get the leading 4 hexs and remove leading 0's
     return logical_device_id[:4]
+
 
 def get_core_id_from_datapath_id(datapath_id):
     """
@@ -68,6 +99,6 @@ def get_core_id_from_datapath_id(datapath_id):
     """
     assert datapath_id
     # Get the hex string and remove the '0x' prefix
-    id_in_hex_str=hex(datapath_id)[2:]
-    assert id_in_hex_str.len() > 12
+    id_in_hex_str = hex(datapath_id)[2:]
+    assert len(id_in_hex_str) > 12
     return id_in_hex_str[:-12]

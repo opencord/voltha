@@ -625,6 +625,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
         try:
             alarm_filter = self.root.get('/alarm_filters/{}'.format(request.id))
+
             return alarm_filter
         except KeyError:
             context.set_details(
@@ -654,15 +655,12 @@ class LocalHandler(VolthaLocalServiceServicer):
         try:
             assert isinstance(request, AlarmFilter)
             alarm_filter = request
-            assert alarm_filter.id == '', 'Alarm filter to be created cannot have id yet'
-
+            assert alarm_filter.id is not None, 'Local Alarm filter to be ' \
+                                              'created must have id'
         except AssertionError, e:
             context.set_details(e.message)
             context.set_code(StatusCode.INVALID_ARGUMENT)
             return AlarmFilter()
-
-        # fill additional data
-        alarm_filter.id = uuid4().hex[:12]
 
         # add device to tree
         self.root.add('/alarm_filters', alarm_filter)
