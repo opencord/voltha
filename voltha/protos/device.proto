@@ -95,6 +95,76 @@ message Images {
     repeated Image image = 1;
 }
 
+message ImageDownload {
+    option (yang_child_rule) = MOVE_TO_PARENT_LEVEL;
+
+    enum ImageDownloadState {
+        DOWNLOAD_UNKNOWN = 0;
+        DOWNLOAD_SUCCEEDED = 1;
+        DOWNLOAD_REQUESTED = 2;
+        DOWNLOAD_STARTED = 3;
+        DOWNLOAD_FAILED = 4;
+        DOWNLOAD_UNSUPPORTED = 5;
+    }
+
+    enum ImageDownloadFailureReason {
+        NO_ERROR = 0;
+        INVALID_URL = 1;
+        DEVICE_BUSY = 2;
+        INSUFFICIENT_SPACE = 3;
+        UNKNOWN_ERROR = 4;
+    }
+
+    enum ImageActivateState {
+        IMAGE_UNKNOWN = 0;
+        IMAGE_INACTIVE = 1;
+        IMAGE_ACTIVATE = 2;
+        IMAGE_ACTIVE = 3;
+        IMAGE_REVERT = 4;
+    }
+
+    // Device Identifier
+    string id = 1;
+
+    // Image unique identifier
+    string name = 2;
+
+    // URL where the image is available
+    // should include username password
+    string url = 3;
+
+    // CRC of the image to be verified aginst
+    uint32 crc = 4;
+
+    // Download state
+    ImageDownloadState state = 5;
+
+    // Downloaded version
+    string image_version = 6;
+
+    // Bytes downloaded
+    uint32 downloaded_bytes = 7;
+
+    // Download failure reason
+    ImageDownloadFailureReason reason= 8;
+
+    // Additional info
+    string additional_info = 9;
+
+    // Save current configuration
+    bool save_config = 10;
+
+    // Image local location
+    string local_dir = 11;
+
+    // Image activation state
+    ImageActivateState image_state = 12;
+}
+
+message ImageDownloads {
+    repeated ImageDownload items = 2;
+}
+
 message Port {
     option (voltha.yang_child_rule) = MOVE_TO_PARENT_LEVEL;
 
@@ -213,6 +283,7 @@ message Device {
     // Channel Terminations for the OLT device
     repeated bbf_fiber.ChannelterminationConfig channel_terminations = 132 [(child_node) = {key: "name"}];
 
+    repeated ImageDownload image_downloads = 133 [(child_node) = {key: "name"}];
 }
 
 message Devices {

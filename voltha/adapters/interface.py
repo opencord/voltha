@@ -127,6 +127,66 @@ class IAdapterInterface(Interface):
         :return: (Deferred) Shall be fired to acknowledge the reboot.
         """
 
+    def download_image(device, request):
+        """
+        This is called to request downloading a specified image into
+        the standby partition of a device based on a NBI call.
+        This call is expected to be non-blocking.
+        :param device: A Voltha.Device object.
+                       A Voltha.ImageDownload object.
+        :return: (Deferred) Shall be fired to acknowledge the download.
+        """
+
+    def get_image_download_status(device, request):
+        """
+        This is called to inquire about a requested image download
+        status based on a NBI call.
+        The adapter is expected to update the DownloadImage DB object
+        with the query result
+        :param device: A Voltha.Device object.
+                       A Voltha.ImageDownload object.
+        :return: (Deferred) Shall be fired to acknowledge
+        """
+
+    def cancel_image_download(device, request):
+        """
+        This is called to cancel a requested image download
+        based on a NBI call.  The admin state of the device will not
+        change after the download.
+        :param device: A Voltha.Device object.
+                       A Voltha.ImageDownload object.
+        :return: (Deferred) Shall be fired to acknowledge
+        """
+
+    def activate_image_update(device, request):
+        """
+        This is called to activate a downloaded image from
+        a standby partition into active partition.
+        Depending on the device implementation, this call
+        may or may not cause device reboot.
+        If no reboot, then a reboot is required to make the
+        activated image running on device
+        This call is expected to be non-blocking.
+        :param device: A Voltha.Device object.
+                       A Voltha.ImageDownload object.
+        :return: (Deferred) OperationResponse object.
+        """
+
+    def revert_image_update(device, request):
+        """
+        This is called to deactivate the specified image at
+        active partition, and revert to previous image at
+        standby partition.
+        Depending on the device implementation, this call
+        may or may not cause device reboot.
+        If no reboot, then a reboot is required to make the
+        previous image running on device
+        This call is expected to be non-blocking.
+        :param device: A Voltha.Device object.
+                       A Voltha.ImageDownload object.
+        :return: (Deferred) OperationResponse object.
+        """
+
     def self_test_device(device):
         """
         This is called to Self a device based on a NBI call.
