@@ -213,3 +213,70 @@ message Device {
 message Devices {
     repeated Device items = 1;
 }
+
+message ImageDownloadReq {
+    // Device Identifier
+    string id = 1;
+
+    // URL where the image is available
+    // should include username password
+    string url = 2;
+
+    // CRC of the image to be verified aginst
+    uint32 crc =3;
+
+    // Only applicable to devices where their download
+    // implementation is blocking
+    // not applicable to devices where their download
+    // implementation is non-blocking
+    uint32 timeout=4;
+}
+
+message ImageDownloadStatus {
+    option (yang_child_rule) = MOVE_TO_PARENT_LEVEL;
+
+    enum ImageDownloadState {
+        DOWNLOAD_SUCCEEDED = 0;
+        DOWNLOAD_REQUESTED = 1;
+        DOWNLOAD_STARTED = 2;
+        DOWNLOAD_FAILED = 3;
+        DOWNLOAD_UNSUPPORTED = 4;
+    }
+
+    enum ImageDownloadFailureReason {
+        NO_ERROR = 0;
+        INVALID_URL = 1;
+        DEVICE_BUSY = 2;
+        INSUFFICIENT_SPACE = 3;
+        UNKNOWN_ERROR = 4;
+    }
+
+    // Return code
+    ImageDownloadState state = 1;
+
+    // Downloaded version
+    string downloaded_version = 2;
+
+    // Bytes downloaded
+    uint32 downloaded_bytes = 3;
+
+    // Download failure reason
+    ImageDownloadFailureReason reason= 4;
+
+    // Additional info
+    string additional_info = 5;
+}
+
+message ImageUpdateReq {
+    // Device Identifier
+    string id = 1;
+
+    // Save current configuration
+    bool save_config = 2;
+
+    // Software version to update to
+    string software_version = 3;
+
+    // Image local location
+    string local_dir = 4;
+}
