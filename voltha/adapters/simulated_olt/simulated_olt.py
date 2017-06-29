@@ -38,7 +38,8 @@ from voltha.core.flow_decomposer import *
 from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.protos.adapter_pb2 import Adapter, AdapterConfig
 from voltha.protos.device_pb2 import DeviceType, DeviceTypes, Device, Port, \
-PmConfigs, PmConfig, PmGroupConfig, Image
+     PmConfigs, PmConfig, PmGroupConfig, Image, ImageDownload
+from voltha.protos.common_pb2 import OperationResp
 from voltha.protos.voltha_pb2 import SelfTestResponse
 from voltha.protos.events_pb2 import KpiEvent, KpiEventType, MetricValuePairs
 from voltha.protos.health_pb2 import HealthStatus
@@ -235,6 +236,78 @@ class SimulatedOltAdapter(object):
 
     def delete_device(self, device):
         raise NotImplementedError()
+
+    def download_image(self, device, request):
+        log.info('download-image', device=device, request=request)
+        try:
+            # initiate requesting software download to device
+            pass
+        except Exception as e:
+            log.exception(e.message)
+
+    def get_image_download_status(self, device, request):
+        log.info('get-image-download-status', device=device,\
+                request=request)
+        try:
+            download_completed = True
+            for each in request.image_download:
+                # initiate query for progress of download to device
+                state = random.choice([ImageDownload.DOWNLOAD_SUCCEEDED,
+                                            ImageDownload.DOWNLOAD_STARTED,
+                                            ImageDownload.DOWNLOAD_FAILED])
+                if each.state != ImageDownload.DOWNLOAD_SUCCEEDED:
+                    download_completed = False
+                each.image_version = 'v1.1.0'
+                each.downloaded_bytes = random.choice(range(1024,65536))
+            # update status based on query output
+            self.adapter_agent.update_image_download(request)
+            if download_completed == True:
+                # restore admin state to enabled
+                device.admin_state = AdminState.ENABLED
+                self.adapter_agent.update_device(device)
+                # TODO:
+                # the device admin state will also restore
+                # when adapter receiving event notification
+                # this will be handled in event handler
+        except Exception as e:
+            log.exception(e.message)
+
+    def cancel_image_download(self, device, request):
+        log.info('cancel-sw-download', device=device,
+                request=request)
+        try:
+            # restore admin state to enabled
+            device.admin_state = AdminState.ENABLED
+            self.adapter_agent.update_device(device)
+            # intiate cancelling software download to device
+        except Exception as e:
+            log.exception(e.message)
+
+    def activate_image_update(self, device, request):
+        log.info('activate-image-update', device=device, request=request)
+        response = OperationResp(code=OperationResp.OPERATION_FAILURE,
+                                 additional_info='unknown error')
+        try:
+            # initiate activating software update to device
+            # set response based on cmd exec status
+            response = OperationResp(code=OperationResp.OPERATION_SUCCESS,
+                                     additional_info='update activated successfully')
+        except Exception as e:
+            log.exception(e.message)
+        return response
+
+    def revert_image_update(self, device, request):
+        log.info('revert-image-updade', device=device, request=request)
+        response = OperationResp(code=OperationResp.OPERATION_FAILURE,
+                                 additional_info='unknown error')
+        try:
+            # initiate reverting software update to device
+            # set response based on cmd exec status
+            response = OperationResp(code=OperationResp.OPERATION_SUCCESS,
+                                     additional_info='update reverted successfully')
+        except Exception as e:
+            log.exception(e.message)
+        return response
 
     def get_device_details(self, device):
         raise NotImplementedError()

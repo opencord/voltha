@@ -23,7 +23,9 @@ from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, returnValue
 
 from voltha.core.config.config_proxy import CallbackType
-from voltha.protos.common_pb2 import AdminState, OperStatus, ConnectStatus
+from voltha.protos.common_pb2 import AdminState, OperStatus, ConnectStatus, \
+                                     OperationResp
+from voltha.protos.device_pb2 import ImageDownload
 from voltha.registry import registry
 from voltha.protos.openflow_13_pb2 import Flows, FlowGroups
 
@@ -47,6 +49,9 @@ class DeviceAgent(object):
 
         self.pm_config_proxy = core.get_proxy(
             '/devices/{}/pm_configs'.format(initial_data.id))
+
+        self.img_dnld_proxy = core.get_proxy(
+            '/devices/{}/image_downloads'.format(initial_data.id))
 
         self.proxy.register_callback(
             CallbackType.PRE_UPDATE, self._validate_update)
@@ -103,8 +108,72 @@ class DeviceAgent(object):
         self.log.debug('reboot-device', device=device, dry_run=dry_run)
         if not dry_run:
             yield self.adapter_agent.reboot_device(device)
+                self.log.exception(e.message)
 
     @inlineCallbacks
+    def _download_image(self, device, dry_run=False):
+        try:
+            self.log.debug('download-image', device=device, dry_run=dry_run)
+            if not dry_run:
+                img_dnld = device.image_downloads
+                yield self.adapter_agent.download_image(device, img_dnld)
+        except Exception as e:
+                self.log.exception(e.message)
+
+    def get_image_download_status(self, request):
+        try:
+            self.log.debug('handle-image-download-status',
+                    request=request)
+            device = self.proxy.get('/')
+            self.adapter_agent.get_image_download_status(device, request)
+        except Exception as e:
+            self.log.exception(e.message)
+
+    def cancel_image_download(self, img_dnld):
+        try:
+            self.log.debug('cancel-image-download',
+                    img_dnld=img_dnld)
+            device = self.proxy.get('/')
+            self.adapter_agent.cancel_image_download(device, img_dnld)
+        except Exception as e:
+            self.log.exception(e.message)
+
+    def update_device_image_download(self, img_dnld):
+        try:
+            self.log.debug('update-device-image-download',
+                    img_dnld=img_dnld)
+            self.img_dnld_proxy.update('/', img_dnld)
+        except Exception as e:
+            self.log.exception(e.message)
+
+    @inlineCallbacks
+    def activate_image_update(self, device, request, dry_run=False):
+        self.log.debug('activate-image-update',
+                device=device, dry_run=dry_run)
+        response = OperationResp()
+        if not dry_run:
+            try:
+                response = yield \
+                    self.adapter_agent.activate_image_update(device, request)
+            except Exception as e:
+                self.log.exception(e.message)
+                response = OperationResp(code=OperationResp.OPERATION_UNSUPPORTED)
+        returnValue(response)
+
+    @inlineCallbacks
+    def revert_image_update(self, device, request, dry_run=False):
+        self.log.debug('revert-image-update',
+                device=device, dry_run=dry_run)
+        response = OperationResp()
+        if not dry_run:
+            try:
+                response = yield \
+                    self.adapter_agent.revert_image_update(device, request)
+            except Exception as e:
+                self.log.exception(e.message)
+                response = OperationResp(code=OperationResp.OPERATION_UNSUPPORTED)
+        returnValue(response)
+
     def self_test(self, device, dry_run=False):
         self.log.debug('self-test-device', device=device, dry_run=dry_run)
         if not dry_run:
@@ -272,6 +341,7 @@ class DeviceAgent(object):
         (AdminState.ENABLED, AdminState.ENABLED): _propagate_change,
         (AdminState.ENABLED, AdminState.DISABLED): _disable_device,
         (AdminState.ENABLED, AdminState.PREPROVISIONED): _abandon_device,
+        (AdminState.ENABLED, AdminState.DOWNLOAD_IMAGE): _download_image,
 
         (AdminState.DISABLED, AdminState.UNKNOWN): False,
         (AdminState.DISABLED, AdminState.PREPROVISIONED): _abandon_device,

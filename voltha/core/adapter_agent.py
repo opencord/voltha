@@ -169,6 +169,21 @@ class AdapterAgent(object):
     def reboot_device(self, device):
         return self.adapter.reboot_device(device)
 
+    def download_image(self, device, request):
+        return self.adapter.download_image(device, request)
+
+    def get_image_download_status(self, device, request):
+        return self.adapter.get_image_download_status(device, request)
+
+    def cancel_image_download(self, device, request):
+        return self.adapter.cancel_image_download(device, request)
+
+    def activate_image_update(self, device, request):
+        return self.adapter.activate_image_update(device, request)
+
+    def revert_image_update(self, device, request):
+        return self.adapter.revert_image_update(device, request)
+
     def self_test(self, device):
         return self.adapter.self_test_device(device)
 
@@ -293,6 +308,16 @@ class AdapterAgent(object):
     def update_adapter_pm_config(self, device_id, device_pm_config):
         device = self.get_device(device_id)
         self.adapter.update_pm_config(device, device_pm_config)
+
+    def update_image_download(self, img_dnld):
+        self.log.info('update-image-download', img_dnld=img_dnld)
+        try:
+            # we run the update through the device_agent so that the change
+            # does not loop back to the adapter unnecessarily
+            device_agent = self.core.get_device_agent(img_dnld.id)
+            device_agent.update_device_image_download(img_dnld)
+        except Exception as e:
+            self.log.exception(e.message)
 
     def _add_peer_reference(self, device_id, port):
         # for referential integrity, add/augment references
