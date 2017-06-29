@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "5a202591_38ab458b",
+        "filename": "ofagent/of_protocol_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 62,
+      "author": {
+        "id": 1000180
+      },
+      "writtenOn": "2017-06-29T07:08:24Z",
+      "side": 1,
+      "message": "The number of bitmaps included\nin the field depends on the highest version number supported : ofp versions 0 to 31 are encoded in\nthe first bitmap. I mean as of now we support only till version 31. Ofp version number 4 would mean 1.3, 5 would mean 1.4 and so on. \n\nRef: Openflow 1.3.4 specs - 7.5.1 Hello - Last para.",
+      "parentUuid": "5a202591_b84ab553",
+      "revId": "9472a4388bc7f73dcf790db2c19511a290846f63",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_9847f94b",
         "filename": "ofagent/of_protocol_handler.py",
         "patchSetId": 2
@@ -36,6 +54,24 @@
     },
     {
       "key": {
+        "uuid": "5a202591_58a601c3",
+        "filename": "ofagent/of_protocol_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 65,
+      "author": {
+        "id": 1000180
+      },
+      "writtenOn": "2017-06-29T07:08:24Z",
+      "side": 1,
+      "message": "Agree. I will change this",
+      "parentUuid": "5a202591_9847f94b",
+      "revId": "9472a4388bc7f73dcf790db2c19511a290846f63",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_78741d9c",
         "filename": "ofagent/of_protocol_handler.py",
         "patchSetId": 2
@@ -47,6 +83,24 @@
       "writtenOn": "2017-06-28T14:03:24Z",
       "side": 1,
       "message": "Error log is confusing.  Should it show the version the peer support and the list of supported ones in the log?  Will be easier to debug.",
+      "revId": "9472a4388bc7f73dcf790db2c19511a290846f63",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_18b089f3",
+        "filename": "ofagent/of_protocol_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 68,
+      "author": {
+        "id": 1000180
+      },
+      "writtenOn": "2017-06-29T07:08:24Z",
+      "side": 1,
+      "message": "Ok. I will include",
+      "parentUuid": "5a202591_78741d9c",
       "revId": "9472a4388bc7f73dcf790db2c19511a290846f63",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
