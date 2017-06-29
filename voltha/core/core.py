@@ -40,10 +40,18 @@ log = structlog.get_logger()
 
 @implementer(IComponent)
 class VolthaCore(object):
-    def __init__(self, instance_id, core_store_id, version, log_level):
+    def __init__(self,
+                 instance_id,
+                 core_store_id,
+                 grpc_port,
+                 version,
+                 log_level):
         self.instance_id = instance_id
         self.stopped = False
-        self.dispatcher = Dispatcher(self, instance_id)
+        self.dispatcher = Dispatcher(self,
+                                     instance_id,
+                                     core_store_id,
+                                     grpc_port)
         self.core_store_id = core_store_id
         self.global_handler = GlobalHandler(
             dispatcher=self.dispatcher,

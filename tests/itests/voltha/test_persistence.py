@@ -691,14 +691,14 @@ class TestConsulPersistence(RestBase):
         rules.append(rule)
 
         alarm_filter = AlarmFilter(rules=rules)
-        alarm_filter = self.post('/api/v1/local/alarm_filters',
+        alarm_filter = self.post('/api/v1/alarm_filters',
                                  MessageToDict(alarm_filter),
                                  expected_code=200)
         self.assertIsNotNone(alarm_filter)
         return alarm_filter
 
     def remove_device_filter(self, alarm_filter_id):
-        path = '/api/v1/local/alarm_filters/{}'.format(alarm_filter_id)
+        path = '/api/v1/alarm_filters/{}'.format(alarm_filter_id)
         self.delete(path, expected_code=200)
         alarm_filter = self.get(path, expected_code=404)
         self.assertIsNone(alarm_filter)

@@ -27,6 +27,7 @@ from zope.interface import implementer
 
 from leader import Leader
 from common.utils.asleep import asleep
+from common.utils.message_queue import MessageQueue
 from voltha.registry import IComponent
 from worker import Worker
 from simplejson import dumps, loads
@@ -75,16 +76,18 @@ class Coordinator(object):
             'tracking_loop_delay', 1)
         self.prefix = self.config.get('voltha_kv_prefix', 'service/voltha')
         self.leader_prefix = '/'.join((self.prefix, self.config.get(
-                self.config['leader_key'], 'leader')))
+            self.config['leader_key'], 'leader')))
         self.membership_prefix = '/'.join((self.prefix, self.config.get(
-                self.config['membership_key'], 'members'), ''))
+            self.config['membership_key'], 'members'), ''))
         self.assignment_prefix = '/'.join((self.prefix, self.config.get(
-                self.config['assignment_key'], 'assignments'), ''))
+            self.config['assignment_key'], 'assignments'), ''))
         self.workload_prefix = '/'.join((self.prefix, self.config.get(
-                self.config['workload_key'], 'work'), ''))
+            self.config['workload_key'], 'work'), ''))
         self.core_store_prefix = '/'.join((self.prefix, self.config.get(
-                self.config['core_store_key'], 'data/core')))
-        self.core_storage_suffix='core_store'
+            self.config['core_store_key'], 'data/core')))
+        self.core_store_assignment_key = self.core_store_prefix + \
+                                         '/assignment'
+        self.core_storage_suffix = 'core_store'
 
         self.retries = 0
         self.instance_id = instance_id
@@ -109,6 +112,8 @@ class Coordinator(object):
         self.consul = Consul(host=host, port=port)
 
         self.wait_for_leader_deferreds = []
+
+        self.peers_mapping_queue = MessageQueue()
 
     def start(self):
         log.debug('starting')
@@ -142,12 +147,17 @@ class Coordinator(object):
             self.wait_for_leader_deferreds.append(d)
             return d
 
-
     # Wait for a core data id to be assigned to this voltha instance
     @inlineCallbacks
     def get_core_store_id_and_prefix(self):
         core_store_id = yield self.worker.get_core_store_id()
         returnValue((core_store_id, self.core_store_prefix))
+
+    def recv_peers_map(self):
+        return self.peers_mapping_queue.get()
+
+    def publish_peers_map_change(self, msg):
+        self.peers_mapping_queue.put(msg)
 
     # Proxy methods for consul with retry support
 
@@ -249,10 +259,10 @@ class Coordinator(object):
                                                     self.membership_record_key,
                                                     index=index)
                 log.debug('membership-record-change-detected',
-                               index=index, record=record)
+                          index=index, record=record)
                 if record is None or \
-                    'Session' not in record or \
-                    record['Session'] != self.session_id:
+                                'Session' not in record or \
+                                record['Session'] != self.session_id:
                     log.debug('remaking-membership-record')
                     yield self._retry(self._do_create_membership_record)
 
@@ -292,7 +302,7 @@ class Coordinator(object):
             (index, record) = yield self._retry(self.consul.kv.get,
                                                 self.leader_prefix)
             log.debug('leadership-key',
-                           i_am_leader=result, index=index, record=record)
+                      i_am_leader=result, index=index, record=record)
 
             if record is not None:
                 if result is True:
@@ -314,7 +324,7 @@ class Coordinator(object):
                                                      self.leader_prefix,
                                                      index=index)
                 log.debug('leader-key-change',
-                               index=index, updated=updated)
+                          index=index, updated=updated)
                 if updated is None or updated != last:
                     # leadership has changed or vacated (or forcefully
                     # removed), apply now

@@ -499,20 +499,23 @@ class SimulatedOltAdapter(object):
 
     @inlineCallbacks
     def _simulate_detection_of_onus(self, device_id):
-        for i in xrange(1, 5):
-            log.info('activate-olt-for-onu-{}'.format(i))
-            vlan_id = self._olt_side_onu_activation(i)
-            yield asleep(0.05)
-            self.adapter_agent.child_device_detected(
-                parent_device_id=device_id,
-                parent_port_no=1,
-                child_device_type='simulated_onu',
-                proxy_address=Device.ProxyAddress(
-                    device_id=device_id,
-                    channel_id=vlan_id
-                ),
-                vlan=vlan_id
-            )
+        try:
+            for i in xrange(1, 5):
+                log.info('activate-olt-for-onu-{}'.format(i))
+                vlan_id = self._olt_side_onu_activation(i)
+                yield asleep(0.05)
+                self.adapter_agent.child_device_detected(
+                    parent_device_id=device_id,
+                    parent_port_no=1,
+                    child_device_type='simulated_onu',
+                    proxy_address=Device.ProxyAddress(
+                        device_id=device_id,
+                        channel_id=vlan_id
+                    ),
+                    vlan=vlan_id
+                )
+        except Exception as e:
+            log.exception('error', e=e)
 
     def _olt_side_onu_activation(self, seq):
         """
