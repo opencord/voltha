@@ -207,6 +207,75 @@ class AdtranOltAdapter(object):
         reactor.callLater(0, self.devices_handlers[device.id].reboot)
         return device
 
+    def download_image(self, device, request):
+        """
+        This is called to request downloading a specified image into
+        the standby partition of a device based on a NBI call.
+        This call is expected to be non-blocking. But
+        depending on physical device's implementation, the call
+        could also be blocking. In this case, the timeout value
+        in DownloadImage should be set and used to prevent
+        infinite blocking.
+        :param device: A Voltha.Device object.
+                       A Voltha.ImageDownloadReq object.
+        :return: (Deferred) OperationResponse object.
+        """
+        log.info('image_download', device=device, request=request)
+        raise NotImplementedError()
+
+    def get_image_download_status(self, device):
+        """
+        This is called to inquire about a requested image download
+        status based on a NBI call.
+        :param device: A Voltha.Device object.
+        :return: (Deferred) ImageDownloadStatus object.
+        """
+        log.info('get_image_download_status', device=device)
+        raise NotImplementedError()
+
+    def cancel_image_download(self, device):
+        """
+        This is called to cancel a requested image download
+        based on a NBI call.  The admin state of the device will not
+        change after the download.
+        :param device: A Voltha.Device object.
+        :return: (Deferred) OperationResponse object.
+        """
+        log.info('cancel_image_download', device=device)
+        raise NotImplementedError()
+
+    def activate_image_update(self, device, request):
+        """
+        This is called to activate a downloaded image from
+        a standby partition into active partition.
+        Depending on the device implementation, this call
+        may or may not cause device reboot.
+        If no reboot, then a reboot is required to make the
+        activated image running on device
+        :param device: A Voltha.Device object.
+                       A Voltha.ImageUpdateReq object.
+        :return: (Deferred) OperationResponse object.
+        """
+        log.info('activate_image_update', device=device, \
+                request=request)
+        raise NotImplementedError()
+
+    def revert_image_update(self, device, request):
+        """
+        This is called to revert to previous image on
+        device based on a NBI call.
+        Depending on the device implementation, this call
+        may or may not cause device reboot.
+        If no reboot, then a reboot is required to make the
+        previous image running on device
+        :param device: A Voltha.Device object.
+                       A Voltha.ImageUpdateReq object.
+        :return: (Deferred) OperationResponse object.
+        """
+        log.info('revert_image_update', device=device, \
+                request=request)
+        raise NotImplementedError()
+
     def self_test_device(self, device):
         """
         This is called to Self a device based on a NBI call.

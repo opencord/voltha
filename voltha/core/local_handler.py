@@ -30,7 +30,8 @@ from voltha.protos.voltha_pb2 import \
     LogicalPorts, Devices, Device, DeviceType, \
     DeviceTypes, DeviceGroups, DeviceGroup, AdminState, OperStatus, ChangeEvent, \
     AlarmFilter, AlarmFilters, SelfTestResponse
-from voltha.protos.device_pb2 import PmConfigs, Images
+from voltha.protos.device_pb2 import PmConfigs, Images, ImageDownloadStatus
+from voltha.protos.common_pb2 import OperationResp
 from voltha.registry import registry
 from requests.api import request
 
@@ -381,6 +382,126 @@ class LocalHandler(VolthaLocalServiceServicer):
             context.set_code(StatusCode.NOT_FOUND)
 
         return Empty()
+
+    @twisted_async
+    def DownloadImage(self, request, context):
+        log.info('grpc-request', request=request)
+
+        if '/' in request.id:
+            context.set_details(
+                'Malformed device id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return OperationResp()
+
+        try:
+            path = '/devices/{}'.format(request.id)
+            device = self.root.get(path)
+
+            agent = self.core.get_device_agent(device.id)
+            response = agent.download_image(device, request)
+            return response
+
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return OperationResp()
+
+    @twisted_async
+    def GetImageDownloadStatus(self, request, context):
+        log.info('grpc-request', request=request)
+
+        if '/' in request.id:
+            context.set_details(
+                'Malformed device id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return SoftwareDownloadStatus()
+
+        try:
+            path = '/devices/{}'.format(request.id)
+            device = self.root.get(path)
+
+            agent = self.core.get_device_agent(device.id)
+            response = agent.get_image_download_status(device)
+            return response
+
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return ImageDownloadStatus()
+
+    @twisted_async
+    def CancelImageDownload(self, request, context):
+        log.info('grpc-request', request=request)
+
+        if '/' in request.id:
+            context.set_details(
+                'Malformed device id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return OperationResp()
+
+        try:
+            path = '/devices/{}'.format(request.id)
+            device = self.root.get(path)
+
+            agent = self.core.get_device_agent(device.id)
+            response = agent.cancel_image_download(device)
+            return response
+
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return OperationResp()
+
+    @twisted_async
+    def ActivateImageUpdate(self, request, context):
+        log.info('grpc-request', request=request)
+
+        if '/' in request.id:
+            context.set_details(
+                'Malformed device id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return OperationResp()
+
+        try:
+            path = '/devices/{}'.format(request.id)
+            device = self.root.get(path)
+
+            agent = self.core.get_device_agent(device.id)
+            response = agent.activate_image_update(device, request)
+            return response
+
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return OperationResp()
+
+    @twisted_async
+    def RevertImageUpdate(self, request, context):
+        log.info('grpc-request', request=request)
+
+        if '/' in request.id:
+            context.set_details(
+                'Malformed device id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return OperationResp()
+
+        try:
+            path = '/devices/{}'.format(request.id)
+            device = self.root.get(path)
+
+            agent = self.core.get_device_agent(device.id)
+            response = agent.revert_image_update(device, request)
+            return response
+
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return OperationResp()
 
     @twisted_async
     def DeleteDevice(self, request, context):
