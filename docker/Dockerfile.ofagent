@@ -39,6 +39,7 @@ RUN mkdir /ofagent && touch /ofagent/__init__.py
 ENV PYTHONPATH=/ofagent
 COPY common /ofagent/common
 COPY ofagent /ofagent/ofagent
+COPY pki /ofagent/pki
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 
