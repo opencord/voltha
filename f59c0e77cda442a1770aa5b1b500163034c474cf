@@ -19,6 +19,23 @@
     },
     {
       "key": {
+        "uuid": "5a202591_5b65db43",
+        "filename": "ofagent/agent.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 92,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-06-30T07:57:54Z",
+      "side": 1,
+      "message": "Little confused here. The ONOS is the secure server and the ofagent is the client. So, shouldn\u0027t the ONOS be using the cert and key. The ofagent receives the cert during the initial ssl handshake. Why is ofagent reading the cert and key file ?",
+      "revId": "f59c0e77cda442a1770aa5b1b500163034c474cf",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_9b737315",
         "filename": "ofagent/agent.py",
         "patchSetId": 2
