@@ -287,7 +287,7 @@ services:
     - portainer
     restart: unless-stopped
     volumes:
-    - "/cord/incubator/voltha/nginx_config:/nginx_config"
+    - "/home/cord/cord-2/incubator/voltha/nginx_config:/nginx_config"
 
   #
   # Docker ui
