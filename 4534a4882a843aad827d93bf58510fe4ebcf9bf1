@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5a202591_7b31b70a",
+        "filename": "common/utils/id_generation.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 30,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-06-30T14:47:25Z",
+      "side": 1,
+      "message": "Not for release 1.0 but at some future release would we not be better off using a uuid for each core? My thoughts are that if multiple voltha clusters are running in a CO it would be good to ensure that they are fully differentiated.",
+      "range": {
+        "startLine": 30,
+        "startChar": 16,
+        "endLine": 30,
+        "endChar": 20
+      },
+      "revId": "4534a4882a843aad827d93bf58510fe4ebcf9bf1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_5b36fb04",
+        "filename": "common/utils/id_generation.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 32,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-06-30T14:47:25Z",
+      "side": 1,
+      "message": "If we follow the above logic, this would need to be another uuid. I guess we could map those to 0001 .. 9999 to get a sequential number f other code relies on that.",
+      "range": {
+        "startLine": 32,
+        "startChar": 22,
+        "endLine": 32,
+        "endChar": 56
+      },
+      "revId": "4534a4882a843aad827d93bf58510fe4ebcf9bf1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_1b176353",
+        "filename": "voltha/leader.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 331,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-06-30T14:47:25Z",
+      "side": 1,
+      "message": "If this block of code is no longer required it should probably be deleted in a subsequent update.",
+      "range": {
+        "startLine": 331,
+        "startChar": 12,
+        "endLine": 331,
+        "endChar": 30
+      },
+      "revId": "4534a4882a843aad827d93bf58510fe4ebcf9bf1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
