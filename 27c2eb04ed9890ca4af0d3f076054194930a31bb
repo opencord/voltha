@@ -19,6 +19,57 @@
     },
     {
       "key": {
+        "uuid": "5a202591_9bf8134b",
+        "filename": "voltha/core/device_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 211,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-06-30T09:31:51Z",
+      "side": 1,
+      "message": "Was this debug statement introduced for your own debugging? Can you please remove it or introduced consistent debug logs. Same comments applicable at other places in this file",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_7b9537e3",
+        "filename": "voltha/core/device_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 218,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-06-30T09:31:51Z",
+      "side": 1,
+      "message": "Correction",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_5b9a7b15",
+        "filename": "voltha/core/device_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 221,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-06-30T09:31:51Z",
+      "side": 1,
+      "message": "Correction",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_7b82d753",
         "filename": "voltha/protos/device.proto",
         "patchSetId": 1
@@ -30,6 +81,58 @@
       "writtenOn": "2017-06-29T20:45:23Z",
       "side": 1,
       "message": "DownloadImage ..",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_3b9fbf05",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 213,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-06-30T09:31:51Z",
+      "side": 1,
+      "message": "Can you please clarify a point for  me. If there are two banks on the device for software images, does the SoftwareDownloadReq need to specify the bank to which the image is to be download. Or is it implicitly understood that the image is always downloaded to the inactive bank",
+      "parentUuid": "5a202591_7b82d753",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_9b4a53ab",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 221,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-06-30T09:31:51Z",
+      "side": 1,
+      "message": "Technically all elements in a gRPC message are optional. So, I would think that mentioning an IE as Optional in Proto message is not necessary. Of course the adapter or whichever entity is ultimately consuming the message can decide if the element was necessary and return a Failure or take appropriate action. Every adapter can have different behavior on how it treats certain elements in a message as per its implementation",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_3bd1ffcd",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 225,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-06-30T09:31:51Z",
+      "side": 1,
+      "message": "Same comment applies as above for \"Optional\"",
       "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -234,6 +337,40 @@
       "writtenOn": "2017-06-29T20:45:23Z",
       "side": 1,
       "message": "What Activate actually do?  Please provide more explanation.",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_dbfe8b38",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 288,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-06-30T09:31:51Z",
+      "side": 1,
+      "message": "voltha.SoftwareUpdateReq? Just SoftwareUpdateReq should work, just like other places in the file. Can you please correct the same at other places (in your new changes)",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_bbfbcf46",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 296,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-06-30T09:31:51Z",
+      "side": 1,
+      "message": "This rpc consumes the same message as RequestSoftwareDownload. How is this rpc different? What is the adapter supposed to do on receving this request.",
       "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
