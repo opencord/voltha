@@ -343,6 +343,58 @@
     },
     {
       "key": {
+        "uuid": "5a202591_3b3b3fed",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 268,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-06-30T14:46:36Z",
+      "side": 1,
+      "message": "The request path should follow the REST convention as much as possible, i.e. promote the use of nouns without specifying command specific details.  The HTTP operation should match what needs to be performed, i.e. POST for setup/create/new, DELETE for cancel/remove/delete, GET to retrieve objects details, PUT to update an existing object.  In this case, the path could be\n\npost: \"/api/v1/local/devices/{id}/software_download\"",
+      "parentUuid": "5a202591_3b6e9fca",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_1b408355",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 276,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-06-30T14:46:36Z",
+      "side": 1,
+      "message": "Same REST convention comment.\n\nget: \"/api/v1/devices/{id}/software_download\"",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_fb24a7c7",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 283,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-06-30T14:46:36Z",
+      "side": 1,
+      "message": "Same REST convention comment.\n\ndelete: \"/api/v1/devices/{id}/software_download\"",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_1b73e3b2",
         "filename": "voltha/protos/voltha.proto",
         "patchSetId": 1
@@ -377,6 +429,23 @@
     },
     {
       "key": {
+        "uuid": "5a202591_db21ebb5",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 290,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-06-30T14:46:36Z",
+      "side": 1,
+      "message": "Same REST convention comment.\n\npost: \"/api/v1/devices/{id}/software_update\"",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_bbfbcf46",
         "filename": "voltha/protos/voltha.proto",
         "patchSetId": 1
@@ -394,6 +463,23 @@
     },
     {
       "key": {
+        "uuid": "5a202591_bb2e2fa4",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 298,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-06-30T14:46:36Z",
+      "side": 1,
+      "message": "Same REST convention comment.\n\ndelete: \"/api/v1/devices/{id}/software_update\"",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_fb6707e9",
         "filename": "voltha/protos/voltha.proto",
         "patchSetId": 1
@@ -405,6 +491,91 @@
       "writtenOn": "2017-06-29T20:45:23Z",
       "side": 1,
       "message": "Please see comments above.",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_9b2b7394",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 559,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-06-30T14:46:36Z",
+      "side": 1,
+      "message": "Same REST convention comment.\n\npost: \"/api/v1/local/devices/{id}/software_download\"",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_7b189784",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 567,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-06-30T14:46:36Z",
+      "side": 1,
+      "message": "get: \"/api/v1/local/devices/{id}/software_download\"",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_5b1ddb72",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 574,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-06-30T14:46:36Z",
+      "side": 1,
+      "message": "delete: \"/api/v1/local/devices/{id}/software_download\"",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_3b121f63",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 582,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-06-30T14:46:36Z",
+      "side": 1,
+      "message": "post: \"/api/v1/local/devices/{id}/software_update\"",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_fb0b8729",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 590,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-06-30T14:46:36Z",
+      "side": 1,
+      "message": "delete: \"/api/v1/local/devices/{id}/software_update\"",
       "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
