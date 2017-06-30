@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "5a202591_3e09ed2c",
+        "filename": "common/utils/id_generation.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 30,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-30T15:08:37Z",
+      "side": 1,
+      "message": "Good point.  With Openflow an ID is 64 bits where the low 48 bits are reserved for the switch id and the high 16 bits are up to the implementers.  So we pretty much have 4 hex for the core id.  We could configure each cluster to start with a specific 4 hex number (or having a range of core_ids they can use) to avoid collision.",
+      "parentUuid": "5a202591_7b31b70a",
+      "range": {
+        "startLine": 30,
+        "startChar": 16,
+        "endLine": 30,
+        "endChar": 20
+      },
+      "revId": "4534a4882a843aad827d93bf58510fe4ebcf9bf1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_5b36fb04",
         "filename": "common/utils/id_generation.py",
         "patchSetId": 2
@@ -48,6 +72,30 @@
     },
     {
       "key": {
+        "uuid": "5a202591_7e4d2572",
+        "filename": "common/utils/id_generation.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 32,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-30T15:08:37Z",
+      "side": 1,
+      "message": "The mapping is from 0001 to FFFE.   FFFF is used for IDs that are common across all voltha instances (used at this time for alarm filters).",
+      "parentUuid": "5a202591_5b36fb04",
+      "range": {
+        "startLine": 32,
+        "startChar": 22,
+        "endLine": 32,
+        "endChar": 56
+      },
+      "revId": "4534a4882a843aad827d93bf58510fe4ebcf9bf1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_1b176353",
         "filename": "voltha/leader.py",
         "patchSetId": 2
@@ -59,6 +107,30 @@
       "writtenOn": "2017-06-30T14:47:25Z",
       "side": 1,
       "message": "If this block of code is no longer required it should probably be deleted in a subsequent update.",
+      "range": {
+        "startLine": 331,
+        "startChar": 12,
+        "endLine": 331,
+        "endChar": 30
+      },
+      "revId": "4534a4882a843aad827d93bf58510fe4ebcf9bf1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_5e526914",
+        "filename": "voltha/leader.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 331,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-30T15:08:37Z",
+      "side": 1,
+      "message": "I was thinking of keeping it commented for now.  It will be handy when we want to load balance across voltha instances (i.e. moving OLTs from one voltha instance  to another one.",
+      "parentUuid": "5a202591_1b176353",
       "range": {
         "startLine": 331,
         "startChar": 12,
