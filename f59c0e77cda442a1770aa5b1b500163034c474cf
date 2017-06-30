@@ -36,6 +36,24 @@
     },
     {
       "key": {
+        "uuid": "5a202591_be4a9d53",
+        "filename": "ofagent/agent.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 92,
+      "author": {
+        "id": 1000113
+      },
+      "writtenOn": "2017-06-30T16:01:07Z",
+      "side": 1,
+      "message": "ONOS does both sides Certificate validation - It presents its own certificate and asks the Client which is OFAgent in this case to present its Certificate, So OFAgent also needs its own cert, key. And ONOS needs its cert, key and ca-root cert - combines all three into a single file called keystore.",
+      "parentUuid": "5a202591_5b65db43",
+      "revId": "f59c0e77cda442a1770aa5b1b500163034c474cf",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_9b737315",
         "filename": "ofagent/agent.py",
         "patchSetId": 2
