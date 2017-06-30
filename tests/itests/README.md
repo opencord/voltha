@@ -23,8 +23,24 @@ cd /cord/incubator/voltha
 . ./env.sh
 nosetests -s tests/itests/docutests/build_md_test.py
 ```
-* **Ofagent_multicontroller_failover**: TODO   
+* **Ofagent_multicontroller_failover**: This tests the OFAgent capability
+to work seamlessly with multiple ONOS controllers. Note that no dockers
+containers should be running(to avoid host side port usage conflicts).
+Also note this test takes a while to run (close to 5 mins).
+The steps it follows are
+    * Spawns three ONOS controllers and clusters them.
+    * Spawns required Voltha components.
+    * OFagent establishes connection with the three spawned controllers.
+    * Adds simulated OLT and enables it.
+    * Identifies the ONOS controller having the Mastership role for the
+      above added OLT and kills it.
+    * Tests if new master is chosen among the remaining two ONOS controllers.
 
+```
+cd /cord/incubator/voltha
+. ./env.sh
+nosetests -s tests/itests/ofagent/test_ofagent_multicontroller_failover.py
+```
 * **Frameio**:  This tests the packet send/receive/filter capabilities of the 
 FrameIOManager.   This test needs to run as root.
 ```
