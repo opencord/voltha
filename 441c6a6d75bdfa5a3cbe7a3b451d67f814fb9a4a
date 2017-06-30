@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5a202591_decaf96d",
+        "filename": "ofagent/agent.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 93,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-06-30T19:53:45Z",
+      "side": 1,
+      "message": "Can these be passed as args to ofagent instead?",
+      "revId": "441c6a6d75bdfa5a3cbe7a3b451d67f814fb9a4a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
