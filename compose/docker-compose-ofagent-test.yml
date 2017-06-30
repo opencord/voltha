@@ -1,18 +1,58 @@
 version: '2'
 services:
 
+  consul:
+    image: consul:latest
+    command: agent -server -bootstrap -client 0.0.0.0 -ui
+    ports:
+    - "8300:8300"
+    - "8400:8400"
+    - "8500:8500"
+    - "8600:8600/udp"
+    environment:
+      #SERVICE_53_IGNORE: "yes"
+      SERVICE_8300_IGNORE: "yes"
+      SERVICE_8400_IGNORE: "yes"
+      SERVICE_8500_NAME: "consul-rest"
+  #
+  # Registrator
+  #
+  registrator:
+    image: gliderlabs/registrator:latest
+    command: [
+      "-ip=${DOCKER_HOST_IP}",
+      "-retry-attempts", "100",
+      "-cleanup",
+      # "-internal",
+      "consul://consul:8500"
+    ]
+    links:
+    - consul
+    volumes:
+    - "/var/run/docker.sock:/tmp/docker.sock"
+  #
+  # Voltha server instance(s)
+  #
   voltha:
     image: cord/voltha
     command: [
       "/voltha/voltha/main.py",
+      "-v",
+      "--consul=${DOCKER_HOST_IP}:8500",
       "--rest-port=8880",
       "--grpc-port=50555",
-      "--instance-id-is-container-name"
+      "--backend=consul",
+      "-v"
     ]
+
     ports:
     - 8880:8880
     - 50055:50555
     - 18880
+    depends_on:
+    - consul
+    links:
+    - consul
     volumes:
     - "/var/run/docker.sock:/tmp/docker.sock"
   #
