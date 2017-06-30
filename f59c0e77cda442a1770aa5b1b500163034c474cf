@@ -54,6 +54,24 @@
     },
     {
       "key": {
+        "uuid": "5a202591_7e74059c",
+        "filename": "ofagent/agent.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 92,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-06-30T16:16:56Z",
+      "side": 1,
+      "message": "Should we put this whole block under some error handling mechanism. You are trying to read a file and file doesnt exist, so should we switch to plain tcp connection OR we return failure etc. Just a thought..",
+      "parentUuid": "5a202591_be4a9d53",
+      "revId": "f59c0e77cda442a1770aa5b1b500163034c474cf",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_9b737315",
         "filename": "ofagent/agent.py",
         "patchSetId": 2
