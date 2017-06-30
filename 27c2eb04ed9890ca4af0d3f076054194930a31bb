@@ -19,6 +19,23 @@
     },
     {
       "key": {
+        "uuid": "5a202591_fb8827c8",
+        "filename": "voltha/adapters/simulated_olt/simulated_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 279,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-06-30T09:35:22Z",
+      "side": 1,
+      "message": "Once the software is activated, I think the software_version should be updated to the device in the config_root. There is a \"images\" field per device that has all the details of the software.",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_9bf8134b",
         "filename": "voltha/core/device_agent.py",
         "patchSetId": 1
