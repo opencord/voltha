@@ -19,6 +19,8 @@ import sys
 import structlog
 from twisted.internet import protocol
 from twisted.internet import reactor
+from twisted.internet import reactor, ssl
+from twisted.internet import reactor
 from twisted.internet.defer import Deferred, inlineCallbacks
 
 import loxi.of13 as of13
@@ -87,7 +89,19 @@ class Agent(protocol.ClientFactory):
         while not self.exiting:
             host, port = self.resolve_endpoint(self.controller_endpoint)
             log.info('connecting', host=host, port=port)
-            self.connector = reactor.connectTCP(host, port, self)
+            try:
+               with open("/ofagent/pki/voltha.key") as keyFile:
+                    with open("/ofagent/pki/voltha.crt") as certFile:
+                         clientCert = ssl.PrivateCertificate.loadPEM(
+                              keyFile.read() + certFile.read())
+
+               ctx = clientCert.options()
+               self.connector = reactor.connectSSL(host, port, self, ctx)
+
+            except Exception as error:
+                log.error(event, reason=reason)
+
+
             self.d_disconnected = Deferred()
             yield self.d_disconnected
             log.debug('reconnect', after_delay=self.retry_interval)
