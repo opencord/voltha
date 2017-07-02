@@ -42,7 +42,7 @@ cd ~/voltha
 In a third terminal, issue the following REST requests:
 
 ```
-curl -s http://localhost:8881/api/v1/local/adapters | jq
+curl -k -s http://localhost:8881/api/v1/local/adapters | jq
 ```
 
 This should list (among other entries) two entries for Broadcom devices:
@@ -51,7 +51,7 @@ one for the Maple OLT and one for the Broadcom ONU.
 The following request should show the device types supported:
 
 ```
-curl -s http://localhost:8881/api/v1/local/device_types | jq
+curl -k -s http://localhost:8881/api/v1/local/device_types | jq
 ```
 
 This should include two entries for Broadcom devices, one for the OLT
@@ -62,7 +62,7 @@ and one for the ONU.
 Issue the following command to pre-provision the Maple OLT:
 
 ```
-curl -s -X POST -d '{"type": "maple_olt", "ipv4_address": "111.111.111.111"}' \
+curl -k -s -X POST -d '{"type": "maple_olt", "ipv4_address": "111.111.111.111"}' \
     http://localhost:8881/api/v1/local/devices | jq '.' | tee olt.json
 ```
 
@@ -104,14 +104,14 @@ OLT_ID=$(jq .id olt.json | sed 's/"//g')
 To activate the OLT, issue the following using the OLT_ID memorized above:
 
 ```
-curl -s -X POST http://localhost:8881/api/v1/local/devices/$OLT_ID/activate
+curl -k -s -X POST http://localhost:8881/api/v1/local/devices/$OLT_ID/activate
 ```
 
 After this, if you retrieve the state of the OLT device, it should be enabled
 and in the 'ACTIVATING' operational status:
 
 ```
-curl -s http://localhost:8881/api/v1/local/devices/$OLT_ID | jq '.oper_status,.admin_state'
+curl -k -s http://localhost:8881/api/v1/local/devices/$OLT_ID | jq '.oper_status,.admin_state'
 "ACTIVATING"
 "ENABLED"
 ```
@@ -120,9 +120,9 @@ When the device is ACTIVE, the logical devices and logical ports should be creat
 the logical devices and logical ports, use the following commands.
 
 ```
-curl -s http://localhost:8881/api/v1/local/logical_devices | jq '.'
+curl -k -s http://localhost:8881/api/v1/local/logical_devices | jq '.'
 # Note: Need to pull out logical device id.
-curl -s http://localhost:8881/api/v1/local/logical_devices/47d2bb42a2c6/ports | jq '.'
+curl -k -s http://localhost:8881/api/v1/local/logical_devices/47d2bb42a2c6/ports | jq '.'
 ```
 
 

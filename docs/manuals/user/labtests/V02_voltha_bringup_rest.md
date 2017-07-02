@@ -86,7 +86,7 @@ To find out what the port is, do either of the following:
   To show the health status of Voltha:
  
   ```
-  curl -s $VOLTHAURL/health | jq '.'
+  curl -k -s $VOLTHAURL/health | jq '.'
   ```
   Expect to see:
   
@@ -99,7 +99,7 @@ To find out what the port is, do either of the following:
   To show the list of loaded adapters in Voltha 
   
   ```
-  curl -s $VOLTHAURL/adapters | jq '.'
+  curl -k -s $VOLTHAURL/adapters | jq '.'
   ```
   Expect to see a list similar to this snippet (we show here only the beginning):
   
@@ -131,7 +131,7 @@ To find out what the port is, do either of the following:
   You can list only the names of the adapters:
   
   ```
-  curl -s $VOLTHAURL/adapters | jq '.items[].id'
+  curl -k -s $VOLTHAURL/adapters | jq '.items[].id'
   ```
   
   This will show something like:

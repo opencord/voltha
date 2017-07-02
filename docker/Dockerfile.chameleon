@@ -38,6 +38,7 @@ RUN apt-get update && \
 RUN mkdir /chameleon && touch /chameleon/__init__.py
 ENV PYTHONPATH=/chameleon
 COPY tmp.chameleon /chameleon/chameleon
+COPY pki /chameleon/pki
 
 # Exposing process and default entry point
 CMD ["python", "chameleon/chameleon/main.py"]
