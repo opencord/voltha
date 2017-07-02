@@ -25,7 +25,7 @@ class GlobalRestCalls(RestBase):
     rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'chameleon-rest')
 
     # Construct the base_url
-    base_url = 'http://' + rest_endpoint
+    base_url = 'https://' + rest_endpoint
     
     def test_01_global_rest_apis(self):
         # ~~~~~~~~~~~~~~~~~~~ GLOBAL TOP-LEVEL SERVICES~ ~~~~~~~~~~~~~~~~~~~~~~
@@ -283,7 +283,7 @@ class TestLocalRestCalls(RestBase):
     rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'chameleon-rest')
 
     # Construct the base_url
-    base_url = 'http://' + rest_endpoint
+    base_url = 'https://' + rest_endpoint
 
     def test_02_local_rest_apis(self):
         # ~~~~~~~~~~~~~~~~ VOLTHA INSTANCE LEVEL OPERATIONS ~~~~~~~~~~~~~~~~~~~
@@ -447,7 +447,7 @@ class TestGlobalNegativeCases(RestBase):
     rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'chameleon-rest')
 
     # Construct the base_url
-    base_url = 'http://' + rest_endpoint
+    base_url = 'https://' + rest_endpoint
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~ NEGATIVE TEST CASES ~~~~~~~~~~~~~~~~~~~~~~~~~~
 

@@ -49,7 +49,7 @@ In the second terminal, start chameleon:
 ```
 cd /voltha
 . env.sh
-./chameleon/main.py
+/chameleon/main.py -f pki/voltha.crt -k pki/voltha.key
 ```
 
 In the third terminal, start ofagent:
@@ -65,19 +65,19 @@ Open a fourth terminal and run some sanity checks:
 To see we can reach Voltha via REST:
 
 ```
-curl -s http://localhost:8881/health | jq '.'
+curl -k -s https://localhost:8881/health | jq '.'
 ```
 
 and
 
 ```
-curl -s -H 'Get-Depth: 2' http://localhost:8881/api/v1/local | jq '.'
+curl -k -s -H 'Get-Depth: 2' https://localhost:8881/api/v1/local | jq '.'
 ```
 
 To verify we have exactly one logical device (this is important for olt-oftest, which assumes this):
 
 ```
-curl -s http://localhost:8881/api/v1/local/logical_devices | jq '.items'
+curl -k -s https://localhost:8881/api/v1/local/logical_devices | jq '.items'
 ```
 
 Check in the output that there is one entry in the logical device list, along these lines:
@@ -111,7 +111,7 @@ Check in the output that there is one entry in the logical device list, along th
 To verify that the above logical device has all three logical ports, run this:
 
 ```
-curl -s http://localhost:8881/api/v1/local/logical_devices/simulated1/ports | jq '.items'
+curl -k -s https://localhost:8881/api/v1/local/logical_devices/simulated1/ports | jq '.items'
 ```
 
 This shall have three entries, one OLT NNI port and two ONU (UNI) ports. Make note of the corresponding
@@ -127,8 +127,8 @@ Finally, check the flow and flow_group tables of the logical device; they should
 
 
 ```
-curl -s http://localhost:8881/api/v1/local/logical_devices/simulated1/flows | jq '.items'
-curl -s http://localhost:8881/api/v1/local/logical_devices/simulated1/flow_groups | jq '.items'
+curl -k -s https://localhost:8881/api/v1/local/logical_devices/simulated1/flows | jq '.items'
+curl -k -s https://localhost:8881/api/v1/local/logical_devices/simulated1/flow_groups | jq '.items'
 ```
 
 ### Create fake interfaces needed by olt-oftest
