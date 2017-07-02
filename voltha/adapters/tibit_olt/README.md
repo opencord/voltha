@@ -25,7 +25,7 @@ $ . ./env.sh
 In the same shell, launch chameleon. The command below assumes that you are in the top level Voltha directory.
 
 ```
-(venv-linux)$ ./chameleon/main.py
+(venv-linux)$ ./chameleon/main.py  -f pki/voltha.crt -k pki/voltha.key
 ```
 
 ## Step 2: Launch Voltha with the proper interface value.
@@ -52,7 +52,7 @@ $ sudo ip link set <interface> promisc on
 In a third terminal, issue the following REST requests:
 
 ```
-$ curl -s http://localhost:8881/api/v1/local/adapters | jq
+$ curl -k -s https://localhost:8881/api/v1/local/adapters | jq
 ```
 
 This should list (among other entries) two entries for Tibit devices,
@@ -61,7 +61,7 @@ one for the Tibit OLT and one for the Tibit ONU.
 The following request should show the device types supported:
 
 ```
-$ curl -s http://localhost:8881/api/v1/local/device_types | jq
+$ curl -k -s https://localhost:8881/api/v1/local/device_types | jq
 ```
 
 This should include two entries for Tibit devices, one for the OLT
@@ -72,8 +72,8 @@ and one for the ONU.
 Issue the following command to pre-provision the Tibit OLT:
 
 ```
-curl -s -X POST -d '{"type": "tibit_olt", "mac_address": "00:0c:e2:31:06:00"}' \
-    http://localhost:8881/api/v1/local/devices | jq '.' | tee olt.json
+curl -k -s -X POST -d '{"type": "tibit_olt", "mac_address": "00:0c:e2:31:06:00"}' \
+    https://localhost:8881/api/v1/local/devices | jq '.' | tee olt.json
 ```
 
 This will return a complete Device JSON object, including a
@@ -114,7 +114,7 @@ OLT_ID=$(jq .id olt.json | sed 's/"//g')
 To activate the OLT, issue the following using the OLT_ID memorized above:
 
 ```
-curl -s -X POST http://localhost:8881/api/v1/local/devices/$OLT_ID/activate
+curl -k -s -X POST https://localhost:8881/api/v1/local/devices/$OLT_ID/activate
 ```
 
 After this, if you retrieve the state of the OLT device, it should be
@@ -123,7 +123,7 @@ enabled and in the 'ACTIVE' operational status.  If it is not in the
 OLT device was not successful.
 
 ```
-curl http://localhost:8881/api/v1/local/devices/$OLT_ID | jq '.oper_status,.admin_state'
+curl https://localhost:8881/api/v1/local/devices/$OLT_ID | jq '.oper_status,.admin_state'
 "ACTIVE"
 "ENABLED"
 ```
@@ -131,9 +131,9 @@ When the device is ACTIVE, the logical devices and logical ports should be creat
 the logical devices and logical ports, use the following commands.
 
 ```
-curl -s http://localhost:8881/api/v1/local/logical_devices | jq '.'
+curl -k -s https://localhost:8881/api/v1/local/logical_devices | jq '.'
 # Note: Need to pull out logical device id.
-curl -s http://localhost:8881/api/v1/local/logical_devices/47d2bb42a2c6/ports | jq '.'
+curl -k -s https://localhost:8881/api/v1/local/logical_devices/47d2bb42a2c6/ports | jq '.'
 ```
 
 ## Running the ONOS olt-test

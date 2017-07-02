@@ -29,7 +29,7 @@ class VolthaAlarmFilterTests(RestBase):
     rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'chameleon-rest')
 
     # Construct the base_url
-    base_url = 'http://' + rest_endpoint
+    base_url = 'https://' + rest_endpoint
 
     # Start by querying consul to get the endpoint details
     kafka_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'kafka')

@@ -1,5 +1,6 @@
 from unittest import main
 from time import time, sleep
+from common.utils.consulhelpers import get_endpoint_from_consul
 from tests.itests.voltha.rest_base import RestBase
 from google.protobuf.json_format import MessageToDict
 from voltha.protos.device_pb2 import Device
@@ -42,6 +43,7 @@ IMAGES_SCHEMA = {
     "type": "object"
 }
 
+LOCAL_CONSUL = "localhost:8500"
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -55,10 +57,10 @@ IMAGES_SCHEMA = {
 
 class VolthaDeviceManagementRetrieveSoftwareInfo(RestBase):
     # Retrieve details on the REST entry point
-    rest_endpoint = "127.0.0.1:8881"
+    rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'chameleon-rest')
 
     # Construct the base_url
-    base_url = 'http://' + rest_endpoint
+    base_url = 'https://' + rest_endpoint
 
     def wait_till(self, msg, predicate, interval=0.1, timeout=5.0):
         deadline = time() + timeout
