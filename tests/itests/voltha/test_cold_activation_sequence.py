@@ -17,7 +17,7 @@ class TestColdActivationSequence(RestBase):
     rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'chameleon-rest')
 
     # Construct the base_url
-    base_url = 'http://' + rest_endpoint
+    base_url = 'https://' + rest_endpoint
 
     def wait_till(self, msg, predicate, interval=0.1, timeout=5.0):
         deadline = time() + timeout

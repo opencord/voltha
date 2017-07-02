@@ -2,7 +2,7 @@
 
 ### Test Objective
 
-* The purpose of this test is to verify REST-based HTTP connectivity to Voltha, including
+* The purpose of this test is to verify REST-based HTTPS connectivity to Voltha, including
   * Swagger UI access for exploring APIs
   * Command-line REST requests using curl
 
@@ -15,7 +15,7 @@
 
 To conveniently explore the REST APIs exposed by Voltha, point your browser to the default REST port on the
 Voltha integrartion server's Swagger end-point using the URL
-```http://<server>:<chameleon-port>/#/VolthaLocalService```, where
+```https://<server>:<chameleon-port>/#/VolthaLocalService```, where
 
 * ```<server>``` is the IP address or hostname of your Voltha integration server,
 * ```<chameleon-port``` is the TCP port assigned to the Chameleon REST front-end.
@@ -58,7 +58,7 @@ To find out what the port is, do either of the following:
   Either way, make note of the port-number and use this to talk to the REST APIs.
   
   Using the proper URL, which in our case was
- ```http://10.100.198.220:32794/#/VolthaLocalService``` shall lead you to the
+ ```https://10.100.198.220:32794/#/VolthaLocalService``` shall lead you to the
  following view in your browser:
 
   ![Initial swagger view](./swagger_1.png "Initial swagger screen")
@@ -80,13 +80,13 @@ To find out what the port is, do either of the following:
   For convenience, setup an env var for the b ase URL:
  
   ```
-  export VOLTHAURL='http://10.100.198.220:32794/api/v1/local'
+  export VOLTHAURL='https://10.100.198.220:32794/api/v1/local'
   ```
  
   To show the health status of Voltha:
  
   ```
-  curl -s $VOLTHAURL/health | jq '.'
+  curl -k -s $VOLTHAURL/health | jq '.'
   ```
   Expect to see:
   
@@ -99,7 +99,7 @@ To find out what the port is, do either of the following:
   To show the list of loaded adapters in Voltha 
   
   ```
-  curl -s $VOLTHAURL/adapters | jq '.'
+  curl -k -s $VOLTHAURL/adapters | jq '.'
   ```
   Expect to see a list similar to this snippet (we show here only the beginning):
   
@@ -131,7 +131,7 @@ To find out what the port is, do either of the following:
   You can list only the names of the adapters:
   
   ```
-  curl -s $VOLTHAURL/adapters | jq '.items[].id'
+  curl -k -s $VOLTHAURL/adapters | jq '.items[].id'
   ```
   
   This will show something like:

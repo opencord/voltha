@@ -271,7 +271,7 @@ class DispatcherTest(RestBase):
     def set_rest_endpoint(self):
         self.rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL,
                                                       'chameleon-rest')
-        self.base_url = 'http://' + self.rest_endpoint
+        self.base_url = 'https://' + self.rest_endpoint
 
     def set_kafka_endpoint(self):
         self.kafka_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'kafka')

@@ -49,9 +49,9 @@ command_defs = dict(
     onos1_ip="docker inspect --format '{{ .NetworkSettings.Networks.compose_default.IPAddress }}' onos1",
     onos2_ip ="docker inspect --format '{{ .NetworkSettings.Networks.compose_default.IPAddress }}' onos2",
     onos3_ip="docker inspect --format '{{ .NetworkSettings.Networks.compose_default.IPAddress }}' onos3",
-    add_olt='''curl -s -X POST -d '{"type": "simulated_olt", "mac_address": "01:0c:e2:31:40:00"}' \
-               http://localhost:8881/api/v1/local/devices''',
-    enable_olt="curl -s -X POST http://localhost:8881/api/v1/local/devices/",
+    add_olt='''curl -k -s -X POST -d '{"type": "simulated_olt", "mac_address": "01:0c:e2:31:40:00"}' \
+               https://localhost:8881/api/v1/local/devices''',
+    enable_olt="curl -k -s -X POST https://localhost:8881/api/v1/local/devices/",
     onos1_devices="curl -u karaf:karaf  http://localhost:8181/onos/v1/devices",
     onos2_devices="curl -u karaf:karaf  http://localhost:8182/onos/v1/devices",
     onos3_devices="curl -u karaf:karaf  http://localhost:8183/onos/v1/devices")

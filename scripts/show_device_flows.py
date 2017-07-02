@@ -13,11 +13,11 @@ Usage: {} <device-id>
 Make sure you have VOLTHA_BASE_URL environment variable
 defined, examples:
 
-export VOLTHA_BASE_URL=http://localhost:8881/api/v1
+export VOLTHA_BASE_URL=https://localhost:8881/api/v1
 
 or
 
-export VOLTHA_BASE_URL=http://10.100.192.220:8881/api/v1
+export VOLTHA_BASE_URL=https://10.100.192.220:8881/api/v1
 """.format(sys.argv[0])
 
     def main(self):
