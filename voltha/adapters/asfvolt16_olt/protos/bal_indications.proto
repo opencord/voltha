@@ -19,6 +19,7 @@ syntax = "proto3";
 import "bal_model_ids.proto";
 import "bal_errno.proto";
 import "bal_model_types.proto";
+import "bal.proto";
 
 enum BalAlarmIndStatus{
     BAL_ALARM_IND_CLEARED = 0; //Alarm cleared
@@ -149,33 +150,43 @@ enum BalIndStatsType{
 }
 
 message BalIndStatsInfo{
-    uint32                device_id = 1; //pon interface number of the corresponding OLT
-    BalIndStatsType       stats_type = 2; //type of statistics
-    BalNniStatsInfo       nni_stats = 3; //nni statistics info
-    BalPonNiStatsInfo     pon_ni_stats = 4; //pon based statistics
-    BalPonGemStatsInfo    pon_gem_stats = 5; //gem port based statistics
-    BalOnuStatsInfo       onu_stats = 6; //onu statistics
+    uint32                device_id = 1; //OLT number
+    uint32                pon_ni = 2; //pon interface number of the corresponding OLT
+    BalIndStatsType       stats_type = 3; //type of statistics
+    BalNniStatsInfo       nni_stats = 4; //nni statistics info
+    BalPonNiStatsInfo     pon_ni_stats = 5; //pon based statistics
+    BalPonGemStatsInfo    pon_gem_stats = 6; //gem port based statistics
+    BalOnuStatsInfo       onu_stats = 7; //onu statistics
 }
 
-message BalIndications{
+message BalOmciRespInfo{
+    bytes  balOmciResp = 1; //response msg
+    uint32 pon_ni = 2; //pon interface number
+    uint32 onu_id = 3; //onu id
+    uint32 port_id = 4; //port id
+    uint32 crc_ok = 5; //crc status
+}
+
+message BalObjInd{
     BalObjId     objType = 1; //type of object for which the indications have been received
     BalErrno     status  = 2; //status of the indication received from BAL utilities
     string       keyStr  = 3; //key string containing additional data
     oneof u {
-          bytes        pktData = 4; //raw packet in case of object type is PACKET
-          BalAlarmInfo balAlarmInfo = 5; //alarm info from BAL
-          BalIndStatsInfo balStatsInfo = 6; //statistics info from BAL
-    }
+        bytes        pktData = 4; //raw packet in case of object type is PACKET
+	}
 }
 
-message BalErr {
-    BalErrno err = 1;
+message BalIndications{
+    oneof u {
+          BalObjInd balObjInfo = 1; //raw packet in case of object type is PACKET
+          BalAlarmInfo balAlarmInfo = 2; //alarm info from BAL
+          BalIndStatsInfo balStatsInfo = 3; //statistics info from BAL
+          BalOmciRespInfo balOmciRespInfo = 4; // OMCI response
+    }
 }
 
 service BalInd {
 
     //Handling of bal indications from the device
     rpc BalIndInfo(BalIndications) returns(BalErr) {}
-
 }
-
