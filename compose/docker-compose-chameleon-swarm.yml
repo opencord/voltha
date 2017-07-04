@@ -1,0 +1,40 @@
+#
+# This Docker stackfile deploys a chameleon swarm, one container per node.
+#
+# Chameleon depends on the following being present:
+# - the 'voltha_net' overlay network
+# - the Voltha service
+#
+# To deploy the stack, issue the command:
+#
+#     docker stack deploy -c docker-compose-chameleon-swarm.yml chameleon
+#
+
+version: "3"
+services:
+  chameleon:
+    image: cord/chameleon:latest
+    deploy:
+      mode: global
+    environment:
+      SERVICE_8881_NAME: "chameleon-rest"
+    entrypoint:
+      - /chameleon/chameleon/main.py
+      - -v
+      - --consul=consul:8500
+      - --fluentd=fluentd:24224
+      - --rest-port=8881
+      - --grpc-endpoint=voltha:50555
+      - --instance-id-is-container-name
+    networks:
+      - voltha-net
+    ports:
+      - "8881:8881"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock
+      
+networks:
+  voltha-net:
+    external:
+      name: voltha_net
+
