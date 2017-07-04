@@ -7,6 +7,8 @@ MAINTAINER Nathan Knuth   <nathan.knuth@tibitcom.com>
 ENV APPS=/root/onos/apps ONOS=/root/onos KARAF_M2=/root/onos/apache-karaf-3.0.5/system VERSION=1.2-SNAPSHOT
 ENV AUX=$APPS/aux
 
+ENV JAVA_OPTS="${JAVA_OPTS:--DenableOFTLS=true -Djavax.net.ssl.keyStore=/home/sdn/wiki/onos.jks -Djavax.net.ssl.keyStorePassword=222222 -Djavax.net.ssl.trustStore=/home/sdn/wiki/onos.jks -Djavax.net.ssl.trustStorePassword=222222}"
+
 RUN apt-get update && apt-get install -y git maven unzip 
 RUN git config --global http.sslverify false && \
     git clone https://alshabibi@bitbucket.org/alshabibi/onos-apps.git
@@ -23,3 +25,7 @@ RUN sh $ONOS/app-install.sh
 RUN touch $ONOS/apps/org.onosproject.hostprovider/active
 
 COPY config/netcfg.json $KARAF_ROOT/../config/network-cfg.json
+
+# Create ONOS Key Directory
+RUN mkdir -p /home/sdn/wiki
+COPY onos_cfg/ /home/sdn/wiki
