@@ -34,6 +34,24 @@
       "revId": "b332153607b4410465fe8f233728450fa7a20d2e",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_49575103",
+        "filename": "tests/itests/voltha/rest_base.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-07-04T14:22:05Z",
+      "side": 1,
+      "message": "Would it be possible to add some tests where verify\u003dTrue?",
+      "parentUuid": "5a202591_a93025e9",
+      "revId": "b332153607b4410465fe8f233728450fa7a20d2e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
