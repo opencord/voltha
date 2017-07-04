@@ -16,6 +16,24 @@
       "revId": "b332153607b4410465fe8f233728450fa7a20d2e",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_a93025e9",
+        "filename": "tests/itests/voltha/rest_base.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-07-04T14:16:25Z",
+      "side": 1,
+      "message": "Yes, current test cases will run without verification of SSL certificates. I have verified this. Since, we use self signed certificates during development it is required that we set the \"verify\" flag to False.",
+      "parentUuid": "5a202591_093a79cd",
+      "revId": "b332153607b4410465fe8f233728450fa7a20d2e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
