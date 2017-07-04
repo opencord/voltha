@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "5a202591_5e870962",
+        "filename": "tests/itests/voltha/test_voltha_software_update.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-04T22:10:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5a202591_5b871b62",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_fb8827c8",
         "filename": "voltha/adapters/simulated_olt/simulated_olt.py",
         "patchSetId": 1
@@ -30,6 +48,24 @@
       "writtenOn": "2017-06-30T09:35:22Z",
       "side": 1,
       "message": "Once the software is activated, I think the software_version should be updated to the device in the config_root. There is a \"images\" field per device that has all the details of the software.",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_5e3149a1",
+        "filename": "voltha/adapters/simulated_olt/simulated_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 279,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-04T22:10:09Z",
+      "side": 1,
+      "message": "This is how I would assume the procedure works:\n\n- download_image: download image into standby partition of the device\n- activate_image_update: change standby partition to active partition. \n- reboot_device: make image on active partition running on device. The reboot_device api should query the image info when it reestablishes connection to the device.",
+      "parentUuid": "5a202591_fb8827c8",
       "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "5a202591_5e0a69d3",
+        "filename": "voltha/core/device_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 211,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-04T22:10:09Z",
+      "side": 1,
+      "message": "yeah, it is the leftover debug msgs. I will clean up",
+      "parentUuid": "5a202591_9bf8134b",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_7b9537e3",
         "filename": "voltha/core/device_agent.py",
         "patchSetId": 1
@@ -70,6 +124,24 @@
     },
     {
       "key": {
+        "uuid": "5a202591_3e0fade3",
+        "filename": "voltha/core/device_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 218,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-04T22:10:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5a202591_7b9537e3",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_5b9a7b15",
         "filename": "voltha/core/device_agent.py",
         "patchSetId": 1
@@ -81,6 +153,24 @@
       "writtenOn": "2017-06-30T09:31:51Z",
       "side": 1,
       "message": "Correction",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_1e14f1f3",
+        "filename": "voltha/core/device_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 221,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-04T22:10:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5a202591_5b9a7b15",
       "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -122,6 +212,42 @@
     },
     {
       "key": {
+        "uuid": "5a202591_7e3765b1",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 213,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-04T22:10:09Z",
+      "side": 1,
+      "message": "Your 2nd point is the correct answer. It is implicitly understood that the image is always downloaded to the inactive/standby bank/partition on the device.\n\nI will add inline comments to its rpc function.",
+      "parentUuid": "5a202591_3b9fbf05",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_db920b9f",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 213,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-04T22:10:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5a202591_7b82d753",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_9b4a53ab",
         "filename": "voltha/protos/device.proto",
         "patchSetId": 1
@@ -133,6 +259,24 @@
       "writtenOn": "2017-06-30T09:31:51Z",
       "side": 1,
       "message": "Technically all elements in a gRPC message are optional. So, I would think that mentioning an IE as Optional in Proto message is not necessary. Of course the adapter or whichever entity is ultimately consuming the message can decide if the element was necessary and return a Failure or take appropriate action. Every adapter can have different behavior on how it treats certain elements in a message as per its implementation",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_7e5e45eb",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 221,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-04T22:10:09Z",
+      "side": 1,
+      "message": "ok, i will remove the \"optional\" wording.",
+      "parentUuid": "5a202591_9b4a53ab",
       "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -156,6 +300,24 @@
     },
     {
       "key": {
+        "uuid": "5a202591_5e6389b1",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 225,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-04T22:10:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5a202591_3bd1ffcd",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_9b5ed311",
         "filename": "voltha/protos/device.proto",
         "patchSetId": 1
@@ -167,6 +329,24 @@
       "writtenOn": "2017-06-29T20:45:23Z",
       "side": 1,
       "message": "Please rename to ImageDownloadStatus",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_3bf33f0c",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 228,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-04T22:10:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5a202591_9b5ed311",
       "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -190,6 +370,24 @@
     },
     {
       "key": {
+        "uuid": "5a202591_5ba6fbc2",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 229,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-04T22:10:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5a202591_db644be7",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_7b9bf7c9",
         "filename": "voltha/protos/device.proto",
         "patchSetId": 1
@@ -201,6 +399,24 @@
       "writtenOn": "2017-06-29T20:45:23Z",
       "side": 1,
       "message": "ImageDownloadState ...\n\nPlease update this commit accordingly",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_1bf883e4",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 230,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-04T22:10:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5a202591_7b9bf7c9",
       "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -224,6 +440,24 @@
     },
     {
       "key": {
+        "uuid": "5a202591_fbdca776",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 231,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-04T22:10:09Z",
+      "side": 1,
+      "message": "this message will be returned to REST client or CLI client, I thought have download prefix would make it more readable.",
+      "parentUuid": "5a202591_1baac3d4",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_3ba57f04",
         "filename": "voltha/protos/device.proto",
         "patchSetId": 1
@@ -235,6 +469,24 @@
       "writtenOn": "2017-06-29T20:45:23Z",
       "side": 1,
       "message": "ImageDownloadFailureReason",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_dbd9eb84",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 238,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-04T22:10:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5a202591_3ba57f04",
       "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -258,6 +510,24 @@
     },
     {
       "key": {
+        "uuid": "5a202591_bbe62f43",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 259,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-04T22:10:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5a202591_5ba03bf4",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_1b81a34a",
         "filename": "voltha/protos/device.proto",
         "patchSetId": 1
@@ -269,6 +539,24 @@
       "writtenOn": "2017-06-29T20:47:31Z",
       "side": 1,
       "message": "If you want this generic then it may make sense to create an RPCResponse in common.proto that could be reused.",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_3bca1fa2",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 276,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-04T22:10:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5a202591_1b81a34a",
       "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -292,6 +580,24 @@
     },
     {
       "key": {
+        "uuid": "5a202591_1bcf63b2",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 285,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-04T22:10:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5a202591_bb618fd5",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_9bb5b333",
         "filename": "voltha/protos/voltha.proto",
         "patchSetId": 1
@@ -309,6 +615,24 @@
     },
     {
       "key": {
+        "uuid": "5a202591_5b639bb1",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 265,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-04T22:10:09Z",
+      "side": 1,
+      "message": "the call is expected to be non-blocking. But depending on the physical device implementation, the call could also be blocking. In this case, the timeout value in DownloadImage should be set and used to prevent infinitely blocking.\n\ni have added inline comments to the code.",
+      "parentUuid": "5a202591_9bb5b333",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_5b795b92",
         "filename": "voltha/protos/voltha.proto",
         "patchSetId": 1
@@ -320,6 +644,24 @@
       "writtenOn": "2017-06-29T20:45:23Z",
       "side": 1,
       "message": "\"Image\" has been a name already used in Voltha.  I suggest change Software to Image.\n\nAlso, try to have a an rpc name starting with a verb and avoid request in the name as all rpc are requests.  In this case the name \"DownloadImage\" would be more appropriate.\n\nThis should be applied to all rpcs",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_fbf827c6",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 266,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-04T22:10:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5a202591_5b795b92",
       "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -361,6 +703,42 @@
     },
     {
       "key": {
+        "uuid": "5a202591_1b1403f4",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 268,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-04T22:10:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5a202591_3b6e9fca",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_de92f99e",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 268,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-04T22:10:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5a202591_3b3b3fed",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_1b408355",
         "filename": "voltha/protos/voltha.proto",
         "patchSetId": 1
@@ -372,6 +750,24 @@
       "writtenOn": "2017-06-30T14:46:36Z",
       "side": 1,
       "message": "Same REST convention comment.\n\nget: \"/api/v1/devices/{id}/software_download\"",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_be8f3d75",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 276,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-04T22:10:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5a202591_1b408355",
       "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -395,6 +791,24 @@
     },
     {
       "key": {
+        "uuid": "5a202591_9e8c8181",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 283,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-04T22:10:09Z",
+      "side": 1,
+      "message": "Since we don\u0027t actually store this image_download object in voltha data, we are not able to use delete here. So I kept it a post method but change it to noun.",
+      "parentUuid": "5a202591_fb24a7c7",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_1b73e3b2",
         "filename": "voltha/protos/voltha.proto",
         "patchSetId": 1
@@ -406,6 +820,24 @@
       "writtenOn": "2017-06-29T20:45:23Z",
       "side": 1,
       "message": "What Activate actually do?  Please provide more explanation.",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_9bfff3aa",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 287,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-04T22:10:09Z",
+      "side": 1,
+      "message": "this is to activate a downloaded image from standby partition to active partition.\n\ni have added inline comments.",
+      "parentUuid": "5a202591_1b73e3b2",
       "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -429,6 +861,24 @@
     },
     {
       "key": {
+        "uuid": "5a202591_7ee9a519",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 288,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-04T22:10:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5a202591_dbfe8b38",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_db21ebb5",
         "filename": "voltha/protos/voltha.proto",
         "patchSetId": 1
@@ -440,6 +890,24 @@
       "writtenOn": "2017-06-30T14:46:36Z",
       "side": 1,
       "message": "Same REST convention comment.\n\npost: \"/api/v1/devices/{id}/software_update\"",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_5eeee923",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 290,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-04T22:10:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5a202591_db21ebb5",
       "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -463,6 +931,24 @@
     },
     {
       "key": {
+        "uuid": "5a202591_3ef32d0c",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 296,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-04T22:10:09Z",
+      "side": 1,
+      "message": "Actually it consumes different message (ImageUpdateReq vs. DownloadImage) from RequestSoftwareDownload(now renamed to DownloadImage). It is symmetrical to ActivateSoftwareUpdate.\n\nActivateImageUpdate: activates the specified software from standby partition to active partition. \n\nRevertImageUpdate: deactivates and specified image from active partition, and revert to previous image at standby partition.\n\nFor both of those rpc calls, Depending on the device implementation, this call may or may not cause device reboot. If no reboot, the a reboot_device is required to make the image running.\n\nI will add those to inline comments",
+      "parentUuid": "5a202591_bbfbcf46",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_bb2e2fa4",
         "filename": "voltha/protos/voltha.proto",
         "patchSetId": 1
@@ -474,6 +960,24 @@
       "writtenOn": "2017-06-30T14:46:36Z",
       "side": 1,
       "message": "Same REST convention comment.\n\ndelete: \"/api/v1/devices/{id}/software_update\"",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_fedc9576",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 298,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-04T22:10:09Z",
+      "side": 1,
+      "message": "Since we don\u0027t actually store this image_download object in voltha data, we are not able to use delete here. So I kept it a post method but change it to noun.",
+      "parentUuid": "5a202591_bb2e2fa4",
       "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -497,6 +1001,24 @@
     },
     {
       "key": {
+        "uuid": "5a202591_dbca0b6e",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 557,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-04T22:10:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5a202591_fb6707e9",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_9b2b7394",
         "filename": "voltha/protos/voltha.proto",
         "patchSetId": 1
@@ -508,6 +1030,24 @@
       "writtenOn": "2017-06-30T14:46:36Z",
       "side": 1,
       "message": "Same REST convention comment.\n\npost: \"/api/v1/local/devices/{id}/software_download\"",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_7ed08553",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 559,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-04T22:10:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5a202591_9b2b7394",
       "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -531,6 +1071,24 @@
     },
     {
       "key": {
+        "uuid": "5a202591_5ed5c941",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 567,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-04T22:10:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5a202591_7b189784",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_5b1ddb72",
         "filename": "voltha/protos/voltha.proto",
         "patchSetId": 1
@@ -542,6 +1100,24 @@
       "writtenOn": "2017-06-30T14:46:36Z",
       "side": 1,
       "message": "delete: \"/api/v1/local/devices/{id}/software_download\"",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_3eca0da2",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 574,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-04T22:10:09Z",
+      "side": 1,
+      "message": "Since we don\u0027t actually store this image_download object in voltha data, we are not able to use delete here. So I kept it a post method but change it to noun.",
+      "parentUuid": "5a202591_5b1ddb72",
       "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -565,6 +1141,24 @@
     },
     {
       "key": {
+        "uuid": "5a202591_1ecf51b2",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 582,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-04T22:10:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5a202591_3b121f63",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_fb0b8729",
         "filename": "voltha/protos/voltha.proto",
         "patchSetId": 1
@@ -576,6 +1170,24 @@
       "writtenOn": "2017-06-30T14:46:36Z",
       "side": 1,
       "message": "delete: \"/api/v1/local/devices/{id}/software_update\"",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_fec37588",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 590,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-04T22:10:09Z",
+      "side": 1,
+      "message": "Same as above. Since we don\u0027t actually store this image_download object in voltha data, we are not able to use delete here. So I kept it a post method but change it to noun.",
+      "parentUuid": "5a202591_fb0b8729",
       "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
