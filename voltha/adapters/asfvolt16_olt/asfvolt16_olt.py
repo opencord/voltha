@@ -20,7 +20,7 @@ Asfvolt16 OLT adapter
 
 import structlog
 from voltha.adapters.iadapter import OltAdapter
-from voltha.adapters.asfvolt16.asfvolt16_device_handler import Asfvolt16Handler
+from voltha.adapters.asfvolt16_olt.asfvolt16_device_handler import Asfvolt16Handler
 
 log = structlog.get_logger()
 

@@ -36,7 +36,7 @@ from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, \
     ofp_switch_features, ofp_desc, ofp_port
 from voltha.core.logical_device_agent import mac_str_to_tuple
 import voltha.core.flow_decomposer as fd
-from voltha.adapters.asfvolt16.asfvolt16_rx_handler import Asfvolt16RxHandler
+from voltha.adapters.asfvolt16_olt.asfvolt16_rx_handler import Asfvolt16RxHandler
 
 log = structlog.get_logger()
 
