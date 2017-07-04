@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5a202591_093a79cd",
+        "filename": "tests/itests/voltha/rest_base.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-07-04T13:26:10Z",
+      "side": 1,
+      "message": "Since Verify is set to False, does it mean that the existing tests will run without verification of the SSL certificate?",
+      "revId": "b332153607b4410465fe8f233728450fa7a20d2e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
