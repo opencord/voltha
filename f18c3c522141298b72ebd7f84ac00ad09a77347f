@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5a202591_0913995d",
+        "filename": "voltha/adapters/asfvolt16_olt/protos/bal.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 65,
+      "author": {
+        "id": 1000074
+      },
+      "writtenOn": "2017-07-04T12:59:06Z",
+      "side": 1,
+      "message": "onu_nu should be changed to onu_no for consistency",
+      "revId": "f18c3c522141298b72ebd7f84ac00ad09a77347f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
