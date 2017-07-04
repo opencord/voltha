@@ -16,6 +16,24 @@
       "revId": "f18c3c522141298b72ebd7f84ac00ad09a77347f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_c91c816d",
+        "filename": "voltha/adapters/asfvolt16_olt/protos/bal.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 65,
+      "author": {
+        "id": 1000103
+      },
+      "writtenOn": "2017-07-04T13:04:07Z",
+      "side": 1,
+      "message": "I will use \"onu_id\" instead, as the same has been used in other proto files",
+      "parentUuid": "5a202591_0913995d",
+      "revId": "f18c3c522141298b72ebd7f84ac00ad09a77347f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
