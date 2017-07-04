@@ -52,6 +52,24 @@
       "revId": "b332153607b4410465fe8f233728450fa7a20d2e",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_c94a4155",
+        "filename": "tests/itests/voltha/rest_base.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-07-04T14:27:03Z",
+      "side": 1,
+      "message": "I can add a test which makes a REST call with \"verify\u003dTrue\" and I will expect that the REST call will fail since we use self-signed certificate. Does this suffice your request?",
+      "parentUuid": "5a202591_49575103",
+      "revId": "b332153607b4410465fe8f233728450fa7a20d2e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
