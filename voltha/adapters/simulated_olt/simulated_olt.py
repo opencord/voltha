@@ -512,6 +512,7 @@ class SimulatedOltAdapter(object):
                         device_id=device_id,
                         channel_id=vlan_id
                     ),
+                    admin_state=AdminState.ENABLED,
                     vlan=vlan_id
                 )
         except Exception as e:

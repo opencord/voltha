@@ -173,7 +173,11 @@ class Dispatcher(object):
                                       request,
                                       context)
         # Then get peers results
+        current_responses = [result]
         for core_id in self.peers_map:
+            if core_id == self.core_store_id:
+                continue # already processed
+
             if self.peers_map[core_id] and self.grpc_conn_map[core_id]:
                 res = yield self._dispatch_to_peer(core_id,
                                                    method_name,
@@ -183,8 +187,9 @@ class Dispatcher(object):
                     log.warning('ignoring-peer',
                                 core_id=core_id,
                                 error_code=res.error_code)
-                else:
+                elif res not in current_responses:
                     result.MergeFrom(res)
+                    current_responses.append(res)
         returnValue(result)
 
     def _local_dispatch(self, core_id, method_name, request, context):

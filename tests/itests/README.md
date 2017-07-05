@@ -94,7 +94,7 @@ nosetests -s tests/itests/voltha/test_device_state_changes.py
 of configurations in between to ensure data integrity is preserved.
         
 During this test, the user will be prompted to start ponsim.  Use 
-these commands to run ponsim with 1 OLT and 4 ONUs. THis will also 
+these commands to run ponsim with 1 OLT and 4 ONUs. This will also 
 enable alarm at a frequency of 5 seconds:
 ``` 
 sudo -s
@@ -134,6 +134,25 @@ nosetests -s tests/itests/voltha/test_voltha_rest_apis.py
 
 * **Dispatcher**:  This test exercises the requests forwarding via the Global 
 handler.
+
+During this test, the user will be prompted to start ponsim.  Use 
+these commands to run ponsim with 1 OLT and 4 ONUs.
+
+``` 
+sudo -s
+. ./env.sh
+./ponsim/main.py -v -o 4 
+``` 
+
+The user will also be prompted to enable port forwarding on ponmgmt 
+bridge. Use these commands:
+
+``` 
+sudo -s
+echo 8 > /sys/class/net/ponmgmt/bridge/group_fwd_mask            
+``` 
+
+Run the test:
 ```
 cd /cord/incubator/voltha
 . ./env.sh
