@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5a202591_6931eda1",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 6
+      },
+      "lineNbr": 23,
+      "author": {
+        "id": 1000180
+      },
+      "writtenOn": "2017-07-05T09:48:15Z",
+      "side": 1,
+      "message": "All OLT PON Configuration protos imports have been removed here ? Same at other places too. A lot of changes will be lost. Please resolve.",
+      "range": {
+        "startLine": 23,
+        "startChar": 32,
+        "endLine": 23,
+        "endChar": 34
+      },
+      "revId": "e97fcd4fca6a451fcaa1744653200a35bb9582ca",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
