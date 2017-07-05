@@ -633,6 +633,24 @@
     },
     {
       "key": {
+        "uuid": "5a202591_49b4f1f1",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 265,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-07-05T13:48:06Z",
+      "side": 1,
+      "message": "This is a blocking request since it relies on the physical device implementation.",
+      "parentUuid": "5a202591_5b639bb1",
+      "revId": "27c2eb04ed9890ca4af0d3f076054194930a31bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_5b795b92",
         "filename": "voltha/protos/voltha.proto",
         "patchSetId": 1
