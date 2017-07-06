@@ -42,6 +42,11 @@ message BalCfg {
     }
 }
 
+message BalAccessTerminalCfgMsg {
+    BalObj hdr = 1;     // Transport header
+    BalAccessTerminalCfg cfg = 2;   // Access Terminal
+}
+
 message BalInit {
     string balapi_mgmt_ip_port = 1;     // IP:port of the BAL API management queue
     string core_mgmt_ip_port = 2;       // IP:port of the core management queue
@@ -76,6 +81,7 @@ service Bal {
      * of dynamic objects) associated with the specified access-terminal device.
      **/
     rpc BalCfgSet(BalCfg) returns(BalErr) {}
+    rpc BalAccessTerminalCfgSet(BalAccessTerminalCfgMsg) returns(BalErr) {}
     rpc BalCfgClear(BalKey) returns(BalErr) {}
     rpc BalCfgGet(BalKey) returns(BalCfg) {}
 }
