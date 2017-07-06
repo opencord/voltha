@@ -40,28 +40,28 @@ message Bal_comm_msg_hdr
 /** Helper type to determine what the data format of a message should look like */
 enum Bal_mgt_group
 {
-    BCMBAL_MGT_GROUP_KEY = 0;               /**< Key that uniquely identifies object instance */
-    BCMBAL_MGT_GROUP_CFG = 1;               /**< Configuration (get/set/clear) */
-    BCMBAL_MGT_GROUP_STAT = 2;              /**< Statistics */
-    BCMBAL_MGT_GROUP_AUTO = 3;              /**< Autonomous indications */
-    BCMBAL_MGT_GROUP_AUTO_CFG = 4;          /**< Autonomous indication configuration */
-    BCMBAL_MGT_GROUP__NUM_OF = 5;
+    BAL_MGT_GROUP_KEY = 0;               /**< Key that uniquely identifies object instance */
+    BAL_MGT_GROUP_CFG = 1;               /**< Configuration (get/set/clear) */
+    BAL_MGT_GROUP_STAT = 2;              /**< Statistics */
+    BAL_MGT_GROUP_AUTO = 3;              /**< Autonomous indications */
+    BAL_MGT_GROUP_AUTO_CFG = 4;          /**< Autonomous indication configuration */
+    BAL_MGT_GROUP__NUM_OF = 5;
 }
 
 /** Object message type. Can be a combination of flags. */
 enum BalObj_msg_type
 {
-    BCMBAL_OBJ_MSG_TYPE_INVALID  = 0;
-    BCMBAL_OBJ_MSG_TYPE_GET   = 0x01;   /**< Get configuration parameters */
-    BCMBAL_OBJ_MSG_TYPE_SET   = 0x02;   /**< Set configuration parameters */
-    BCMBAL_OBJ_MSG_TYPE_CLEAR = 0x04;   /**< Clear configuration parameters */
+    BAL_OBJ_MSG_TYPE_INVALID  = 0;
+    BAL_OBJ_MSG_TYPE_GET   = 0x01;   /**< Get configuration parameters */
+    BAL_OBJ_MSG_TYPE_SET   = 0x02;   /**< Set configuration parameters */
+    BAL_OBJ_MSG_TYPE_CLEAR = 0x04;   /**< Clear configuration parameters */
 }
 
 /** Object message direction - request or response. */
 enum BalObj_msg_dir
 {
-    BCMBAL_OBJ_MSG_DIR_REQUEST = 0;
-    BCMBAL_OBJ_MSG_DIR_RESPONS = 1;
+    BAL_OBJ_MSG_DIR_REQUEST = 0;
+    BAL_OBJ_MSG_DIR_RESPONS = 1;
 }
 
 /** Information common to all BAL objects */
