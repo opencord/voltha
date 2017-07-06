@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "5a202591_64523415",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 67,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-07-06T13:31:38Z",
+      "side": 1,
+      "message": "You should use yield and @inlinecallbacks for operations that deal with IO or have any form of wait.",
+      "parentUuid": "5a202591_0413805d",
+      "range": {
+        "startLine": 67,
+        "startChar": 15,
+        "endLine": 67,
+        "endChar": 22
+      },
+      "revId": "f5c6000da50513fd38b0c1353406edad0066f809",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_e40f642d",
         "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
         "patchSetId": 1
