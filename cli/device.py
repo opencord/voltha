@@ -38,9 +38,9 @@ from google.protobuf.json_format import MessageToDict
 
 class DeviceCli(Cmd):
 
-    def __init__(self, get_channel, device_id):
+    def __init__(self, device_id, get_stub):
         Cmd.__init__(self)
-        self.get_channel = get_channel
+        self.get_stub = get_stub
         self.device_id = device_id
         self.prompt = '(' + self.colorize(
             self.colorize('device {}'.format(device_id), 'red'), 'bold') + ') '
@@ -51,7 +51,7 @@ class DeviceCli(Cmd):
         self._cmdloop()
 
     def get_device(self, depth=0):
-        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        stub = self.get_stub()
         res = stub.GetDevice(voltha_pb2.ID(id=self.device_id),
                              metadata=(('get-depth', str(depth)), ))
         return res
@@ -286,7 +286,7 @@ individual metrics.
             return
 
         elif line.strip() == "commit" and self.pm_config_dirty:
-            stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+            stub = self.get_stub()
             stub.UpdateDevicePmConfigs(self.pm_config_last)
             self.pm_config_last = self.get_device(depth=-1).pm_configs
             self.pm_config_dirty = False

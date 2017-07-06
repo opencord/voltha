@@ -48,6 +48,7 @@ defs = dict(
                                         'localhost:50055'),
     voltha_sim_rest_endpoint=os.environ.get('VOLTHA_SIM_REST_ENDPOINT',
                                             'localhost:18880'),
+    global_request=os.environ.get('GLOBAL_REQUEST', False)
 )
 
 banner = """\
@@ -66,6 +67,7 @@ class VolthaCli(Cmd):
     # Settable CLI parameters
     voltha_grpc = 'localhost:50055'
     voltha_sim_rest = 'localhost:18880'
+    global_request = False
     max_history_lines = 500
     default_device_id = None
     default_logical_device_id = None
@@ -86,13 +88,15 @@ class VolthaCli(Cmd):
     del Cmd.do_load
     del Cmd.do__relative_load
 
-    def __init__(self, voltha_grpc, voltha_sim_rest):
+    def __init__(self, voltha_grpc, voltha_sim_rest, global_request=False):
         VolthaCli.voltha_grpc = voltha_grpc
         VolthaCli.voltha_sim_rest = voltha_sim_rest
+        VolthaCli.global_request = global_request
         Cmd.__init__(self)
         self.prompt = '(' + self.colorize(
             self.colorize(self.prompt, 'blue'), 'bold') + ') '
         self.channel = None
+        self.stub = None
         self.device_ids_cache = None
         self.device_ids_cache_ts = time()
         self.logical_device_ids_cache = None
@@ -135,6 +139,14 @@ class VolthaCli(Cmd):
             self.channel = grpc.insecure_channel(self.voltha_grpc)
         return self.channel
 
+    def get_stub(self):
+        if self.stub is None:
+            self.stub = \
+                voltha_pb2.VolthaGlobalServiceStub(self.get_channel()) \
+                    if self.global_request else \
+                        voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        return self.stub
+
     # ~~~~~~~~~~~~~~~~~ ACTUAL COMMAND IMPLEMENTATIONS ~~~~~~~~~~~~~~~~~~~~~~~~
 
     def do_reset_history(self, line):
@@ -152,18 +164,18 @@ class VolthaCli(Cmd):
 
     def do_adapters(self, line):
         """List loaded adapter"""
-        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        stub = self.get_stub()
         res = stub.ListAdapters(Empty())
         omit_fields = {'config.log_level', 'logical_device_ids'}
         print_pb_list_as_table('Adapters:', res.items, omit_fields, self.poutput)
 
     def get_devices(self):
-        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        stub = self.get_stub()
         res = stub.ListDevices(Empty())
         return res.items
 
     def get_logical_devices(self):
-        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        stub = self.get_stub()
         res = stub.ListLogicalDevices(Empty())
         return res.items
 
@@ -183,7 +195,7 @@ class VolthaCli(Cmd):
 
     def do_logical_devices(self, line):
         """List logical devices in Voltha"""
-        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        stub = self.get_stub()
         res = stub.ListLogicalDevices(Empty())
         omit_fields = {
             'desc.mfr_desc',
@@ -201,7 +213,7 @@ class VolthaCli(Cmd):
         device_id = line.strip() or self.default_device_id
         if not device_id:
             raise Exception('<device-id> parameter needed')
-        sub = DeviceCli(self.get_channel, device_id)
+        sub = DeviceCli(device_id, self.get_stub)
         sub.cmdloop()
 
     def do_logical_device(self, line):
@@ -209,7 +221,7 @@ class VolthaCli(Cmd):
         logical_device_id = line.strip() or self.default_logical_device_id
         if not logical_device_id:
             raise Exception('<logical-device-id> parameter needed')
-        sub = LogicalDeviceCli(self.get_channel, logical_device_id)
+        sub = LogicalDeviceCli(logical_device_id, self.get_stub)
         sub.cmdloop()
 
     def device_ids(self, force_refresh=False):
@@ -273,7 +285,7 @@ class VolthaCli(Cmd):
     ])
     def do_preprovision_olt(self, line, opts):
         """Preprovision a new OLT with given device type"""
-        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        stub = self.get_stub()
         kw = dict(type=opts.device_type)
         if opts.host_and_port:
             kw['host_and_port'] = opts.host_and_port
@@ -299,7 +311,7 @@ class VolthaCli(Cmd):
         device_id = line or self.default_device_id
         self.poutput('enabling {}'.format(device_id))
         try:
-            stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+            stub = self.get_stub()
             stub.EnableDevice(voltha_pb2.ID(id=device_id))
 
             while True:
@@ -328,7 +340,7 @@ class VolthaCli(Cmd):
         device_id = line or self.default_device_id
         self.poutput('rebooting {}'.format(device_id))
         try:
-            stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+            stub = self.get_stub()
             stub.RebootDevice(voltha_pb2.ID(id=device_id))
             self.poutput('rebooted {}'.format(device_id))
         except Exception, e:
@@ -341,7 +353,7 @@ class VolthaCli(Cmd):
         device_id = line or self.default_device_id
         self.poutput('Self Testing {}'.format(device_id))
         try:
-            stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+            stub = self.get_stub()
             res = stub.SelfTest(voltha_pb2.ID(id=device_id))
             self.poutput('Self Tested {}'.format(device_id))
             self.poutput(dumps(pb2dict(res), indent=4))
@@ -355,7 +367,7 @@ class VolthaCli(Cmd):
         device_id = line or self.default_device_id
         self.poutput('deleting {}'.format(device_id))
         try:
-            stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+            stub = self.get_stub()
             stub.DeleteDevice(voltha_pb2.ID(id=device_id))
             self.poutput('deleted {}'.format(device_id))
         except Exception, e:
@@ -368,7 +380,7 @@ class VolthaCli(Cmd):
         device_id = line
         self.poutput('disabling {}'.format(device_id))
         try:
-            stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+            stub = self.get_stub()
             stub.DisableDevice(voltha_pb2.ID(id=device_id))
 
             # Do device query and verify that the device admin status is
@@ -387,25 +399,25 @@ class VolthaCli(Cmd):
 
     def do_test(self, line):
         """Enter test mode, which makes a bunch on new commands available"""
-        sub = TestCli(self.history, self.get_channel, self.voltha_grpc,
-                      self.voltha_sim_rest)
+        sub = TestCli(self.history, self.voltha_grpc,
+                      self.get_stub, self.voltha_sim_rest)
         sub.cmdloop()
 
     def do_alarm_filters(self, line):
-        sub = AlarmFiltersCli(self.get_channel)
+        sub = AlarmFiltersCli(self.get_stub)
         sub.cmdloop()
 
 
 class TestCli(VolthaCli):
-    def __init__(self, history, get_channel, voltha_grpc, voltha_sim_rest):
+    def __init__(self, history, voltha_grpc, get_stub, voltha_sim_rest):
         VolthaCli.__init__(self, voltha_grpc, voltha_sim_rest)
         self.history = history
-        self.get_channel = get_channel
+        self.get_stub = get_stub
         self.prompt = '(' + self.colorize(self.colorize('test', 'cyan'),
                                           'bold') + ') '
 
     def get_device(self, device_id, depth=0):
-        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        stub = self.get_stub()
         res = stub.GetDevice(voltha_pb2.ID(id=device_id),
                              metadata=(('get-depth', str(depth)),))
         return res
@@ -432,7 +444,7 @@ class TestCli(VolthaCli):
         Return the NNI port number and the first usable UNI port of logical
         device, and the vlan associated with the latter.
         """
-        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        stub = self.get_stub()
         ports = stub.ListLogicalDevicePorts(
             voltha_pb2.ID(id=logical_device_id)).items
         nni = None
@@ -464,7 +476,7 @@ class TestCli(VolthaCli):
         nni_port_no, unis = self.get_logical_ports(logical_device_id)
 
         # construct and push flow rule
-        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        stub = self.get_stub()
         for uni_port_no, _ in unis:
             update = FlowTableUpdate(
                 id=logical_device_id,
@@ -495,7 +507,7 @@ class TestCli(VolthaCli):
         nni_port_no, unis = self.get_logical_ports(logical_device_id)
 
         # construct and push flow rules
-        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        stub = self.get_stub()
 
         for uni_port_no, _ in unis:
             stub.UpdateLogicalDeviceFlowTable(FlowTableUpdate(
@@ -550,7 +562,7 @@ class TestCli(VolthaCli):
         nni_port_no, unis = self.get_logical_ports(logical_device_id)
 
         # construct and push flow rules
-        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        stub = self.get_stub()
 
         for uni_port_no, c_vid in unis:
             # Controller-bound flows
@@ -733,7 +745,7 @@ class TestCli(VolthaCli):
         nni_port_no, unis = self.get_logical_ports(logical_device_id)
 
         # construct and push flow rules
-        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        stub = self.get_stub()
 
         # Controller-bound flows
         for uni_port_no, _ in unis:
@@ -760,7 +772,7 @@ class TestCli(VolthaCli):
         Remove all flows and flow groups from given logical device
         """
         logical_device_id = line or self.default_logical_device_id
-        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        stub = self.get_stub()
         stub.UpdateLogicalDeviceFlowTable(FlowTableUpdate(
             id=logical_device_id,
             flow_mod=ofp.ofp_flow_mod(
@@ -812,6 +824,10 @@ if __name__ == '__main__':
     parser.add_argument(
         '-L', '--lookup', action='store_true', help=_help)
 
+    _help = 'All requests to the Voltha gRPC service are global'
+    parser.add_argument(
+        '-G', '--global_request', action='store_true', help=_help)
+
     _help = '<hostname>:<port> of Voltha gRPC service (default={})'.format(
         defs['voltha_grpc_endpoint'])
     parser.add_argument('-g', '--grpc-endpoint', action='store',
@@ -844,7 +860,8 @@ if __name__ == '__main__':
         args.sim_rest_endpoint = '{}:{}'.format(services[0]['ServiceAddress'],
                                                 services[0]['ServicePort'])
 
-    c = VolthaCli(args.grpc_endpoint, args.sim_rest_endpoint)
+    c = VolthaCli(args.grpc_endpoint, args.sim_rest_endpoint,
+                  args.global_request)
     c.poutput(banner)
     c.load_history()
     c.cmdloop()

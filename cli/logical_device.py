@@ -33,9 +33,9 @@ from voltha.protos import voltha_pb2
 
 class LogicalDeviceCli(Cmd):
 
-    def __init__(self, get_channel, logical_device_id):
+    def __init__(self, logical_device_id, get_stub):
         Cmd.__init__(self)
-        self.get_channel = get_channel
+        self.get_stub = get_stub
         self.logical_device_id = logical_device_id
         self.prompt = '(' + self.colorize(
             self.colorize('logical device {}'.format(logical_device_id), 'red'),
@@ -45,17 +45,17 @@ class LogicalDeviceCli(Cmd):
         self._cmdloop()
 
     def get_logical_device(self, depth=0):
-        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        stub = self.get_stub()
         res = stub.GetLogicalDevice(voltha_pb2.ID(id=self.logical_device_id),
                                     metadata=(('get-depth', str(depth)), ))
         return res
 
     def get_device(self, id):
-        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        stub = self.get_stub()
         return stub.GetDevice(voltha_pb2.ID(id=id))
 
     def get_devices(self):
-        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        stub = self.get_stub()
         res = stub.ListDevices(Empty())
         return res.items
 

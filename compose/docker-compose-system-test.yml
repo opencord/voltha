@@ -156,7 +156,8 @@ services:
     image: cord/vcli
     command: [
       "/cli/cli/setup.sh",
-      "-L"
+      "-L",
+      "-G"
     ]
     environment:
       DOCKER_HOST_IP: "${DOCKER_HOST_IP}"

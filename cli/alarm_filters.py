@@ -32,9 +32,9 @@ _ = third_party
 
 
 class AlarmFiltersCli(Cmd):
-    def __init__(self, get_channel):
+    def __init__(self, get_stub):
         Cmd.__init__(self)
-        self.get_channel = get_channel
+        self.get_stub = get_stub
         self.prompt = '(' + self.colorize(
             self.colorize('alarm_filters', 'red'), 'bold') + ') '
 
@@ -57,7 +57,7 @@ Valid options:
         make_option('-i', '--filter-id', action="store", dest='filter_id')
     ])
     def do_show(self, line, opts):
-        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        stub = self.get_stub()
 
         if not opts.filter_id:
             result = stub.ListAlarmFilters(Empty())
@@ -145,7 +145,7 @@ create -r device_id:754f9dcbe4a6
     ])
     def do_create(self, line, opts):
         if opts.filter_rules:
-            stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+            stub = self.get_stub()
             result = stub.CreateAlarmFilter(voltha_pb2.AlarmFilter(rules=opts.filter_rules))
             print_pb_list_as_table("Rules for Filter ID = {}:".format(result.id),
                                    result.rules, {}, self.poutput)
@@ -172,7 +172,7 @@ Valid options:
                                        'bold') + ' to update')
             return
 
-        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        stub = self.get_stub()
         stub.DeleteAlarmFilter(voltha_pb2.ID(id=opts.filter_id))
 
     def help_update(self):
@@ -230,7 +230,7 @@ update -i 9da115b900bc -r type:environment severity:indeterminate resource_id:15
             return
 
         if opts.filter_rules:
-            stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+            stub = self.get_stub()
             result = stub.UpdateAlarmFilter(
                 voltha_pb2.AlarmFilter(id=opts.filter_id, rules=opts.filter_rules)
             )
