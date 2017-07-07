@@ -19,7 +19,7 @@ import random
 import structlog
 from enum import Enum
 from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks, returnValue, succeed
+from twisted.internet.defer import inlineCallbacks, returnValue, succeed, fail
 
 from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.protos.common_pb2 import OperStatus, AdminState
@@ -48,6 +48,7 @@ class NniPort(object):
         assert 'port_no' in kwargs
 
         self.log = structlog.get_logger(port_no=kwargs.get('port_no'))
+        self.log.info('Creating NNI Port')
 
         self._port_no = kwargs.get('port_no')
         self._name = kwargs.get('name', 'nni-{}'.format(self._port_no))
@@ -57,25 +58,21 @@ class NniPort(object):
 
         self._deferred = None
         self._state = NniPort.State.INITIAL
-        self.log.info('Creating NNI Port')
 
         # Local cache of NNI configuration
 
         self._enabled = None
 
         # And optional parameters
+        # TODO: Currently cannot update admin/oper status, so create this enabled and active
+        # self._admin_state = kwargs.pop('admin_state', AdminState.UNKNOWN)
+        # self._oper_status = kwargs.pop('oper_status', OperStatus.UNKNOWN)
+        self._admin_state = AdminState.ENABLED
+        self._oper_status = OperStatus.ACTIVE
 
-        self._admin_state = kwargs.pop('admin_state', AdminState.UNKNOWN)
-        self._oper_status = kwargs.pop('oper_status', OperStatus.UNKNOWN)
         self._label = kwargs.pop('label', 'NNI port {}'.format(self._port_no))
-        self._mac_address = kwargs.pop('mac_address',
-                                       '08:00:{}{}:{}{}:{}{}:00'.format(random.randint(0, 9),
-                                                                        random.randint(0, 9),
-                                                                        random.randint(0, 9),
-                                                                        random.randint(0, 9),
-                                                                        random.randint(0, 9),
-                                                                        random.randint(0, 9)))
-
+        self._mac_address = kwargs.pop('mac_address', '00:00:00:00:00:00')
+        # TODO: Get with JOT and find out how to pull out MAC Address via NETCONF
         # TODO: May need to refine capabilities into current, advertised, and peer
 
         self._ofp_capabilities = kwargs.pop('ofp_capabilities', OFPPF_100GB_FD | OFPPF_FIBER)
@@ -96,6 +93,10 @@ class NniPort(object):
     @property
     def port_number(self):
         return self._port_no
+
+    @property
+    def name(self):
+        return self._name
 
     @property
     def olt(self):
@@ -177,7 +178,6 @@ class NniPort(object):
         self._deferred = reactor.callLater(0, self._finish_startup)
         return self._deferred
 
-    @inlineCallbacks
     def _finish_startup(self):
         if self._state != NniPort.State.INITIAL:
             returnValue('Done')
@@ -187,23 +187,20 @@ class NniPort(object):
         if self._enabled:
             self._admin_state = AdminState.ENABLED
             self._oper_status = OperStatus.ACTIVE  # TODO: is this correct, how do we tell GRPC
-            self._state = NniPort.State.RUNNING
+            self._update_adapter_agent()
 
             # TODO: Start status polling of NNI interfaces
             self._deferred = None  # = reactor.callLater(3, self.do_stuff)
 
-            self._update_adapter_agent()
-            returnValue('Enabled')
-
+            self._state = NniPort.State.RUNNING
         else:
             # Startup failed. Could be due to object creation with an invalid initial admin_status
             #                 state.  May want to schedule a start to occur again if this happens
             self._admin_state = AdminState.DISABLED
             self._oper_status = OperStatus.UNKNOWN
-            self._state = NniPort.State.STOPPED
-
             self._update_adapter_agent()
-            returnValue('Disabled')
+
+            self._state = NniPort.State.STOPPED
 
     def stop(self):
         if self._state == NniPort.State.STOPPED:
@@ -305,16 +302,12 @@ class MockNniPort(NniPort):
           <data>
             <interfaces-state xmlns="urn:ietf:params:xml:ns:yang:ietf-interfaces">
               <interface><name>hundred-gigabit-ethernet 0/1</name></interface>
-              <interface><name>hundred-gigabit-ethernet 0/2</name></interface>
-              <interface><name>hundred-gigabit-ethernet 0/3</name></interface>
-              <interface><name>hundred-gigabit-ethernet 0/4</name></interface>
             </interfaces-state>
           </data>
         </rpc-reply>
         """
         return GetReply(raw)
 
-    @inlineCallbacks
     def reset(self):
         """
         Set the NNI Port to a known good state on initial port startup.  Actual
@@ -322,7 +315,7 @@ class MockNniPort(NniPort):
         """
         if self._state != NniPort.State.INITIAL:
             self.log.error('Reset ignored, only valid during initial startup', state=self._state)
-            returnValue('Ignored')
+            return fail()
 
         self.log.info('Reset {}'.format(self._label))
 
@@ -330,9 +323,8 @@ class MockNniPort(NniPort):
 
         self._enabled = True
         self._admin_state = AdminState.ENABLED
-        returnValue('Enabled')
+        return succeed('Enabled')
 
-    @inlineCallbacks
     def set_config(self, leaf, value):
 
         if leaf == 'enabled':
@@ -340,4 +332,4 @@ class MockNniPort(NniPort):
         else:
             raise NotImplemented("Leaf '{}' is not supported".format(leaf))
 
-        returnValue('Success')
+        return succeed('Success')

@@ -14,27 +14,18 @@
 # limitations under the License.
 #
 
-import random
-
 from enum import Enum
-import structlog
 from twisted.internet.defer import inlineCallbacks, returnValue
-
-from voltha.core.logical_device_agent import mac_str_to_tuple
-from voltha.protos.common_pb2 import OperStatus, AdminState
-from voltha.protos.device_pb2 import Port
-from voltha.protos.logical_device_pb2 import LogicalPort
-from voltha.protos.openflow_13_pb2 import OFPPF_100GB_FD, OFPPF_FIBER, OFPPS_LIVE, ofp_port
-
-import voltha.core.flow_decomposer as fd
+from voltha.core.flow_decomposer import *
 
 log = structlog.get_logger()
-
-_evc_list = {}      # Key -> Name: List of encoded EVCs
 
 EVC_NAME_FORMAT = 'EVC-VOLTHA-{}-{}'
 EVC_NAME_REGEX = 'EVC-VOLTHA-{}'.format('regex-here')
 DEFAULT_STPID = 0x8100
+
+_xml_header = '<evcs xmlns="http://www.adtran.com/ns/yang/adtran-evcs"><evc>'
+_xml_trailer = '</evc></evcs>'
 
 
 class EVC(object):
@@ -42,64 +33,85 @@ class EVC(object):
     Class to wrap EVC functionality
     """
     class SwitchingMethod(Enum):
-        SINGLE_TAGGED = 0
-        DOUBLE_TAGGED = 1
-        MAC_SWITCHED = 2
+        SINGLE_TAGGED = 1
+        DOUBLE_TAGGED = 2
+        MAC_SWITCHED = 3
+        DOUBLE_TAGGED_MAC_SWITCHED = 4
+        DEFAULT = SINGLE_TAGGED
+
+        @staticmethod
+        def xml(value):
+            if value is None:
+                value = EVC.SwitchingMethod.DEFAULT
+            if value == EVC.SwitchingMethod.SINGLE_TAGGED:
+                return '<single-tag-switched/>'
+            elif value == EVC.SwitchingMethod.DOUBLE_TAGGED:
+                return '<double-tag-switched/>'
+            elif value == EVC.SwitchingMethod.MAC_SWITCHED:
+                return '<mac-switched/>'
+            elif value == EVC.SwitchingMethod.DOUBLE_TAGGED_MAC_SWITCHED:
+                return '<double-tag-mac-switched/>'
+            raise ValueError('Invalid SwitchingMethod enumeration')
 
     class Men2UniManipulation(Enum):
-        SYMETRIC = 0
-        POP_OUT_TAG_ONLY = 1
+        SYMETRIC = 1
+        POP_OUT_TAG_ONLY = 2
+        DEFAULT = SYMETRIC
+
+        @staticmethod
+        def xml(value):
+            if value is None:
+                value = EVC.Men2UniManipulation.DEFAULT
+            fmt = '<men-to-uni-tag-manipulation>{}</men-to-uni-tag-manipulation>'
+            if value == EVC.Men2UniManipulation.SYMETRIC:
+                return fmt.format('<symetric/>')
+            elif value == EVC.Men2UniManipulation.POP_OUT_TAG_ONLY:
+                return fmt.format('<pop-outer-tag-only/>')
+            raise ValueError('Invalid Men2UniManipulation enumeration')
 
     class ElineFlowType(Enum):
-        NNI_TO_UNI = 0,
-        UNI_TO_NNI = 1,
-        NNI_TO_NNI = 2,
-        ACL_FILTER = 3,
-        UNKNOWN = 4,
-        UNSUPPORTED = 5     # Or Invalid
+        NNI_TO_UNI = 1
+        UNI_TO_NNI = 2
+        NNI_TO_NNI = 3
+        ACL_FILTER = 4
+        UNKNOWN = 5
+        UNSUPPORTED = 5    # Or Invalid
 
     def __init__(self, flow_entry):
         self._installed = False
         self._status_message = None
-        self._parent = flow_entry           # FlowEntry parent
-        self._flow = flow_entry.flow
-        self._handler = flow_entry.handler
-        self._evc_maps = []                 # One if E-Line
+        self._flow = flow_entry
+        self._name = self._create_name()
+        self._evc_maps = {}             # Map Name -> evc-map
 
         self._flow_type = EVC.ElineFlowType.UNKNOWN
 
         # EVC related properties
-        self._name = EVC.flow_to_name(flow_entry.flow, flow_entry.handler)
         self._enabled = True
-        self._ce_vlan_preservation = True
         self._men_ports = []
-        self._s_tag = -1
-        self._stpid = DEFAULT_STPID
+        self._s_tag = None
+        self._stpid = None
+        self._switching_method = None
 
-        self._switching_method = EVC.SwitchingMethod.SINGLE_TAGGED
-        self._men_to_uni_tag_manipulation = EVC.Men2UniManipulation.SYMETRIC
+        self._ce_vlan_preservation = None
+        self._men_to_uni_tag_manipulation = None
 
-        self._valid = self._decode()
+        try:
+            self._valid = self._decode()
 
-    @staticmethod
-    def flow_to_name(flow, handler):
-        return EVC_NAME_FORMAT.format(flow.id, handler.id)
+        except Exception as e:
+            log.exception('Failure during EVC decode', e=e)
+            self._valid = False
 
-    @staticmethod
-    def create(flow_entry):
-        # Does it already exist?
+    def _create_name(self):
+        #
+        # TODO: Take into account selection criteria and output to make the name
+        #
+        return EVC_NAME_FORMAT.format(self._flow.device_id, self._flow.flow_id)
 
-        evc = _evc_list.get(EVC.flow_to_name(flow_entry.flow, flow_entry.handler))
-
-        if evc is None:
-            evc = EVC(flow_entry.flow, flow_entry.handler)
-
-            if evc is not None:
-                pass    # Look up any EVC that
-                return
-            pass        # Start decode here
-
-        return evc
+    @property
+    def name(self):
+        return self._name
 
     @property
     def valid(self):
@@ -113,162 +125,225 @@ class EVC(object):
     def status(self):
         return self._status_message
 
+    @status.setter
+    def status(self, value):
+        self._status_message = value
+
+    @property
+    def s_tag(self):
+        return self._s_tag
+
+    @property
+    def stpid(self):
+        return self._stpid
+
+    @stpid.setter
+    def stpid(self, value):
+        assert self._stpid is None or self._stpid == value
+        self._stpid = value
+
+    @property
+    def switching_method(self):
+        return self._switching_method
+
+    @switching_method.setter
+    def switching_method(self, value):
+        assert self._switching_method is None or self._switching_method == value
+        self._switching_method = value
+
+    @property
+    def ce_vlan_preservation(self):
+        return self._ce_vlan_preservation
+
+    @ce_vlan_preservation.setter
+    def ce_vlan_preservation(self, value):
+        assert self._ce_vlan_preservation is None or self._ce_vlan_preservation == value
+        self.ce_vlan_preservation = value
+
+    @property
+    def men_to_uni_tag_manipulation(self):
+        return self._men_to_uni_tag_manipulation
+
+    @men_to_uni_tag_manipulation.setter
+    def men_to_uni_tag_manipulation(self, value):
+        assert self._men_to_uni_tag_manipulation is None or self._men_to_uni_tag_manipulation == value
+        self._men_to_uni_tag_manipulation = value
+
+    @property
+    def flow_entry(self):
+        return self._flow
+
+    @property
+    def evc_maps(self):
+        """
+        Get all EVC Maps that reference this EVC
+        :return: list of EVCMap
+        """
+        return self._evc_maps.values()
+
+    def add_evc_map(self, evc_map):
+        if self._evc_maps is not None:
+            self._evc_maps[evc_map.name] = evc_map
+
+    def remove_evc_map(self, evc_map):
+        if self._evc_maps is not None and evc_map.name in self._evc_maps:
+            del self._evc_maps[evc_map.name]
+
+    @inlineCallbacks
     def install(self):
-        if not self._installed:
-            if self._name in _evc_list:
-                self._status_message = "EVC '{}' already is installed".format(self._name)
-                raise Exception(self._status_message)   # TODO: A unique exception type would work here
+        if self._valid and not self._installed:
+            xml = _xml_header
+            xml += '<name>{}</name>'.format(self.name)
+            xml += '<enabled>{}</enabled>'.format(self._enabled)
+            xml += '<ce-vlan-preservation>{}</ce-vlan-preservation>'.\
+                format(self._ce_vlan_preservation or True)
 
-            raise NotImplemented('TODO: Implement this')
-            # xml = '<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">' \
-            #       '<evcs xmlns="http://www.adtran.com/ns/yang/adtran-evcs">' \
-            #       '<adtn-evc:evc xmlns:adtn-evc="http://www.adtran.com/ns/yang/adtran-evcs">'
-            #
-            # xml += '<adtn-evc:name>' + name + '</adtn-evc:name>'
-            #
-            # if stag:
-            #     xml += '<adtn-evc:stag>' + stag + '</adtn-evc:stag>'
-            #
-            # if preserve:
-            #     xml += '<adtn-evc:ce-vlan-preservation>' + preserve + '</adtn-evc:ce-vlan-preservation>'
-            #
-            # if enabled:
-            #     xml += '<adtn-evc:enabled>' + enabled + '</adtn-evc:enabled>'
-            # else:
-            #     xml += '<adtn-evc:enabled>' + "true" + '</adtn-evc:enabled>'
-            #
-            # xml += '</adtn-evc:evc></evc></config>'
-            #
-            # print "Creating EVC %s" % name
-            #
-            # print mgr.mgr.edit_config(target="running",
-            #                           config=xml,
-            #                           default_operation="merge",
-            #                           format="xml")
+            if self._s_tag is not None:
+                xml += '<stag>{}</stag>'.format(self._s_tag)
+                xml += '<stag-tpid>{:#x}</stag-tpid>'.format(self._stpid or DEFAULT_STPID)
+            else:
+                xml += 'no-stag/'
 
-            self._installed = True
-            _evc_list[self.name] = self
-            pass
+            for port in self._men_ports:
+                xml += '<men-ports>{}</men-ports>'.format(port)
 
-        return self._installed
+            xml += EVC.Men2UniManipulation.xml(self._men_to_uni_tag_manipulation)
+            xml += EVC.SwitchingMethod.xml(self._switching_method)
+            xml += _xml_trailer
 
+            log.debug("Creating EVC {}: '{}'".format(self.name, xml))
+
+            try:
+                results = yield self._flow.handler.netconf_client.edit_config(xml,
+                                                                              default_operation='create',
+                                                                              lock_timeout=30)
+                self._installed = results.ok
+                if results.ok:
+                    self.status = ''
+                else:
+                    self.status = results.error                    # TODO: Save off error status
+
+            except Exception as e:
+                log.exception('Failed to install EVC', name=self.name, e=e)
+                raise
+
+        returnValue(self._installed and self._valid)
+
+    @inlineCallbacks
     def remove(self):
         if self._installed:
-            raise NotImplemented('TODO: Implement this')
-            # xml = '<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">' \
-            #       '<evcs xmlns="http://www.adtran.com/ns/yang/adtran-evcs">' \
-            #       '<adtn-evc:evc xmlns:adtn-evc="http://www.adtran.com/ns/yang/adtran-evcs" nc:operation="delete">'
-            #
-            # xml += '<adtn-evc:name>' + name + '</adtn-evc:name>'
-            #
-            # xml += '</adtn-evc:evc></evc></config>'
-            #
-            # print "Deleting EVC %s" % name
-            #
-            # print mgr.mgr.edit_config(target="running",
-            #                           config=xml,
-            #                           default_operation="merge",
-            #                           format="xml")
+            xml = _xml_header + '<name>{}</name>'.format(self.name) + _xml_trailer
 
-            self._installed = False
-            _evc_list.pop(self.name)
+            log.debug("Deleting EVC {}: '{}'".format(self.name, xml))
+
+            try:
+                results = yield self._flow.handler.netconf_client.edit_config(xml,
+                                                                              default_operation='delete',
+                                                                              lock_timeout=30)
+                self._installed = not results.ok
+                if results.ok:
+                    self.status = ''
+                else:
+                    self.status = results.error             # TODO: Save off error status
+
+            except Exception as e:
+                log.exception('Failed to remove EVC', name=self.name, e=e)
+                raise
+
+            # TODO: Do we remove evc-maps as well reference here or maybe have a 'delete' function?
             pass
 
-        return not self._installed
+        returnValue(not self._installed)
 
+    @inlineCallbacks
     def enable(self):
-        if not self._enabled:
-            raise NotImplemented("TODO: Implement this")
-            self._enabled = False
+        if self.installed and not self._enabled:
+            xml = _xml_header + '<name>{}</name>'.format(self.name)
+            xml += '<enabled>true</enabled>' + _xml_trailer
 
+            log.debug("Enabling EVC {}: '{}'".format(self.name, xml))
+
+            try:
+                results = yield self._flow.handler.netconf_client.edit_config(xml,
+                                                                              default_operation='merge',
+                                                                              lock_timeout=30)
+                self._enabled = results.ok
+                if results.ok:
+                    self.status = ''
+                else:
+                    self.status = results.error       # TODO: Save off error status
+
+            except Exception as e:
+                log.exception('Failed to enable EVC', name=self.name, e=e)
+                raise
+
+        returnValue(self.installed and self._enabled)
+
+    @inlineCallbacks
     def disable(self):
-        if self._enabled:
-            raise NotImplemented("TODO: Implement this")
-            self._enabled = True
+        if self.installed and self._enabled:
+            xml = _xml_header + '<name>{}</name>'.format(self.name)
+            xml += '<enabled>false</enabled>' + _xml_trailer
+
+            log.debug("Disabling EVC {}: '{}'".format(self.name, xml))
+
+            try:
+                results = yield self._flow.handler.netconf_client.edit_config(xml,
+                                                                              default_operation='merge',
+                                                                              lock_timeout=30)
+                self._enabled = not results.ok
+                if results.ok:
+                    self.status = ''
+                else:
+                    self.status = results.error      # TODO: Save off error status
+
+            except Exception as e:
+                log.exception('Failed to disable EVC', name=self.name, e=e)
+                raise
+
+        returnValue(self.installed and not self._enabled)
+
+    @inlineCallbacks
+    def delete(self):
+        """
+        Remove from hardware and delete/clean-up
+        """
+        try:
+            self._valid = False
+            succeeded = yield self.remove()
+            # TODO: On timeout or other NETCONF error, should we schedule cleanup later?
+
+        except Exception:
+            succeeded = False
+
+        finally:
+            self._flow = None
+            self._evc_maps = None
+
+        returnValue(succeeded)
 
     def _decode(self):
         """
-        Examine flow rules and extract appropriate settings for both this EVC
-        and creates any EVC-Maps required.
+        Examine flow rules and extract appropriate settings for this EVC
         """
-        from evc_map import EVCMap
-
-        # Determine this flow's type
-
-        status = self._decode_traffic_selector() and self._decode_traffic_treatment()
-
-        if status:
-            ingress_map = EVCMap.createIngressMap(self._flow, self._device)
-            egress_map = EVCMap.createEgressMap(self._flow, self._device)
-
-            status = ingress_map.valid and egress_map.valid
-
-            if status:
-                self._evc_maps.append(ingress_map)
-                self._evc_maps.append(egress_map)
-            else:
-                self._status_message = 'Ingress MAP invalid: {}'.format(ingress_map.status)\
-                    if not ingress_map.valid else 'Egress MAP invalid: {}'.format(egress_map.status)
-
-        return status
-
-    def _is_men_port(self, port):
-        return port in self._handler.northbound_ports(port)
-
-    def _is_uni_port(self, port):
-        return port in self._handler.southbound_ports(port)
-
-    def _is_logical_port(self, port):
-        return not self._is_men_port(port) and not self._is_uni_port(port)
-
-    def _get_port_name(self, port):
-        if self._is_logical_port(port):
-            raise NotImplemented('TODO: Logical ports not yet supported')
-
-        if self._is_men_port(port):
-            return self._handler.northbound_ports[port].name
-
-        return None
-
-    def _decode_traffic_selector(self):
-        """
-        Extract EVC related traffic selection settings
-        """
-        in_port = fd.get_in_port(self._flow)
-        assert in_port is not None
-
-        if self._is_men_port(in_port):
-            log.debug('in_port is a MEN Port', port=in_port)
-            self._men_ports.append(self._get_port_name(in_port))
+        if self._flow.handler.is_nni_port(self._flow.in_port):
+            self._men_ports.append(self._flow.handler.get_port_name(self._flow.in_port))
         else:
-            pass    # UNI Ports handled in the EVC Maps
+            self._status_message = 'EVCs with UNI ports are not supported'
+            return False    # UNI Ports handled in the EVC Maps
 
-        for field in fd.get_ofb_fields(self._flow):
-            log.debug('Found OFB field', field=field)
-            self._status_message = 'Unsupported field.type={}'.format(field.type)
-            return False
+        self._s_tag = self._flow.vlan_id
 
-        return True
+        if self._flow.inner_vid is not None:
+            self._switching_method = EVC.SwitchingMethod.DOUBLE_TAGGED
 
-    def _decode_traffic_treatment(self):
-        out_port = fd.get_out_port(self._flow)
-        num_outputs = 0
-
-        if self._is_men_port(out_port):
-            log.debug('out_port is a MEN Port', port=out_port)
-            self._men_ports.append(self._get_port_name(out_port))
-        else:
-            pass  # UNI Ports handled in the EVC Maps
-
-        for action in fd.get_actions(self._flow):
-            if action.type == fd.OUTPUT:
-                num_outputs += 1            # Handled earlier
-                assert num_outputs <= 1     # Only E-LINE supported and no UNI<->UNI
-
-            else:
-                # TODO: May need to modify ce-preservation
-                log.debug('Found action', action=action)
-
+        # Note: The following fields will get set when the first EVC-MAP
+        #       is associated with this object. Once set, they cannot be changed to
+        #       another value.
+        #  self._stpid
+        #  self._switching_method
+        #  self._ce_vlan_preservation
+        #  self._men_to_uni_tag_manipulation
         return True
 
     # BULK operations

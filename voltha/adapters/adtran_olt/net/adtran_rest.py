@@ -137,7 +137,7 @@ class AdtranRestClient(object):
             raise
 
         except ConnectionClosed:
-            returnValue(None)
+            returnValue(ConnectionClosed)
 
         except Exception as e:
             log.exception("REST {} '{}' request to '{}' failed: {}".format(method, name, url, str(e)))

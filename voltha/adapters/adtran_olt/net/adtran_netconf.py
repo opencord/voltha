@@ -299,7 +299,7 @@ class AdtranNetconfClient(object):
         finally:
             if lock_timeout > 0:
                 try:
-                    yield self._session.lock(target, lock_timeout)
+                    yield self._session.unlock(target)
 
                 except Exception as e:
                     log.exception('edit_config unlock Exception: {}'.format(e.message))

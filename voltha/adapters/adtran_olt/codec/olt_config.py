@@ -32,7 +32,7 @@ class OltConfig(object):
         self._pons = None
 
     def __str__(self):
-        return "OltConfig: {}".format(self.software_version)
+        return "OltConfig: {}".format(self.olt_id)
 
     @property
     def olt_id(self):

@@ -18,14 +18,14 @@ import pprint
 import random
 
 from twisted.internet import reactor
-from twisted.internet.defer import returnValue, inlineCallbacks
+from twisted.internet.defer import returnValue, inlineCallbacks, succeed
 
 from adtran_device_handler import AdtranDeviceHandler
 from codec.olt_state import OltState
 from flow.flow_entry import FlowEntry
 from net.adtran_zmq import AdtranZmqClient
 from voltha.extensions.omci.omci import *
-from voltha.protos.common_pb2 import AdminState
+from voltha.protos.common_pb2 import AdminState, OperStatus
 from voltha.protos.device_pb2 import Device
 
 
@@ -61,7 +61,6 @@ class AdtranOltHandler(AdtranDeviceHandler):
         self.initial_onu_state = AdminState.DISABLED
 
         self.zmq_client = None
-        self.nc_client = None
 
     def __del__(self):
         # OLT Specific things here.
@@ -108,20 +107,23 @@ class AdtranOltHandler(AdtranDeviceHandler):
         self.startup = pe_state.get_state()
         results = yield self.startup
 
-        modules = pe_state.get_physical_entities('adtn-phys-mod:module')
-        if isinstance(modules, list):
-            module = modules[0]
-            name = str(module['model-name']).translate(None, '?')
-            model = str(module['model-number']).translate(None, '?')
+        if results.ok:
+            modules = pe_state.get_physical_entities('adtn-phys-mod:module')
+            if isinstance(modules, list):
+                module = modules[0]
+                name = str(module['model-name']).translate(None, '?')
+                model = str(module['model-number']).translate(None, '?')
 
-            device['model'] = '{} - {}'.format(name, model) if len(name) > 0 else \
-                module['parent-entity']
-            device['hardware_version'] = str(module['hardware-revision']).translate(None, '?')
-            device['serial_number'] = str(module['serial-number']).translate(None, '?')
-            device['vendor'] = 'Adtran, Inc.'
-            software = module['software']['software']
-            device['firmware_version'] = str(software['startup-revision']).translate(None, '?')
-            device['software_version'] = str(software['running-revision']).translate(None, '?')
+                device['model'] = '{} - {}'.format(name, model) if len(name) > 0 else \
+                    module['parent-entity']
+                device['hardware_version'] = str(module['hardware-revision']).translate(None, '?')
+                device['serial_number'] = str(module['serial-number']).translate(None, '?')
+                device['vendor'] = 'Adtran, Inc.'
+                device['firmware_version'] = str(device.get('firmware-revision', 'unknown')).translate(None, '?')
+                software = module['software']['software']
+                device['running-revision'] = str(software['running-revision']).translate(None, '?')
+                device['candidate-revision'] = str(software['candidate-revision']).translate(None, '?')
+                device['startup-revision'] = str(software['startup-revision']).translate(None, '?')
 
         returnValue(device)
 
@@ -138,15 +140,15 @@ class AdtranOltHandler(AdtranDeviceHandler):
             from codec.ietf_interfaces import IetfInterfacesState
             from nni_port import MockNniPort
 
+            ietf_interfaces = IetfInterfacesState(self.netconf_client)
+
             if self.is_virtual_olt:
                 results = MockNniPort.get_nni_port_state_results()
             else:
-                ietf_interfaces = IetfInterfacesState(self.netconf_client)
                 self.startup = ietf_interfaces.get_state()
                 results = yield self.startup
 
             ports = ietf_interfaces.get_nni_port_entries(results)
-
             yield returnValue(ports)
 
         except Exception as e:
@@ -172,6 +174,10 @@ class AdtranOltHandler(AdtranDeviceHandler):
             assert port_no not in self.northbound_ports
             self.northbound_ports[port_no] = NniPort(self, **port) if not self.is_virtual_olt \
                 else MockNniPort(self, **port)
+
+            # TODO: For now, limit number of NNI ports to make debugging easier
+            if len(self.northbound_ports) >= self.max_nni_ports:
+                break
 
         self.num_northbound_ports = len(self.northbound_ports)
 
@@ -219,7 +225,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
                                                     admin_state=admin_state)
 
             # TODO: For now, limit number of PON ports to make debugging easier
-            if len(self.southbound_ports) >= self.max_ports:
+            if len(self.southbound_ports) >= self.max_pon_ports:
                 break
 
         self.num_southbound_ports = len(self.southbound_ports)
@@ -247,8 +253,8 @@ class AdtranOltHandler(AdtranDeviceHandler):
         # o TODO Update some PON level statistics
 
         self.zmq_client = AdtranZmqClient(self.ip_address, self.rx_packet)
-        self.status_poll = reactor.callLater(1, self.poll_for_status)
-        return None
+        self.status_poll = reactor.callLater(5, self.poll_for_status)
+        return succeed('Done')
 
     def disable(self):
         c, self.zmq_client = self.zmq_client, None
@@ -303,7 +309,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
 
             if is_omci:
                 proxy_address = Device.ProxyAddress(device_id=self.device_id,
-                                                    channel_id=self._get_channel_id(pon_id, onu_id),
+                                                    channel_id=self.get_channel_id(pon_id, onu_id),
                                                     onu_id=onu_id)
 
                 self.adapter_agent.receive_proxied_message(proxy_address, msg)
@@ -320,23 +326,24 @@ class AdtranOltHandler(AdtranDeviceHandler):
 
         device = self.adapter_agent.get_device(self.device_id)
 
-        if device.admin_state == AdminState.ENABLED:
+        if device.admin_state == AdminState.ENABLED and\
+                device.oper_status != OperStatus.ACTIVATING and\
+                self.rest_client is not None:
             uri = AdtranOltHandler.GPON_OLT_HW_STATE_URI
             name = 'pon-status-poll'
             self.startup = self.rest_client.request('GET', uri, name=name)
             self.startup.addBoth(self.status_poll_complete)
+        else:
+            self.startup = reactor.callLater(0, self.status_poll_complete, 'inactive')
 
     def status_poll_complete(self, results):
         """
         Results of the status poll
-        
-        :param results: 
+        :param results:
         """
-        self.log.debug('Status poll results: {}'.
-                       format(pprint.PrettyPrinter().pformat(results)))
-
         if isinstance(results, dict) and 'pon' in results:
             try:
+                self.log.debug('Status poll success')
                 for pon_id, pon in OltState(results).pons.iteritems():
                     if pon_id in self.southbound_ports:
                         self.southbound_ports[pon_id].process_status_poll(pon)
@@ -361,7 +368,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
         if d is not None:
             d.cancel()
 
-        self.pons.clear()
+        # self.pons.clear()
 
         # TODO: Any other? OLT specific deactivate steps
 
@@ -370,19 +377,72 @@ class AdtranOltHandler(AdtranDeviceHandler):
 
     @inlineCallbacks
     def update_flow_table(self, flows, device):
-        self.log.info('bulk-flow-update', device_id=device.id, flows=flows)
+        """
+        Update the flow table on the OLT.  If an existing flow is not in the list, it needs
+        to be removed from the device.
+
+        :param flows: List of flows that should be installed upon completion of this function
+        :param device: A voltha.Device object, with possible device-type
+                       specific extensions.
+        """
+        self.log.info('bulk-flow-update: {} flows'.format(len(flows)),
+                      device_id=device.id, flows=flows)
+
+        valid_flows = []
 
         for flow in flows:
             # TODO: Do we get duplicates here (ie all flows re-pushed on each individual flow add?)
 
-            flow_entry = FlowEntry.create(flow, self)
+            try:
+                # Try to create an EVC.
+                #
+                # The first result is the flow entry that was created. This could be a match to an
+                # existing flow since it is a bulk update.  None is returned only if no match to
+                # an existing entry is found and decode failed (unsupported field)
+                #
+                # The second result is the EVC this flow should be added to. This could be an
+                # existing flow (so your adding another EVC-MAP) or a brand new EVC (no existing
+                # EVC-MAPs).  None is returned if there are not a valid EVC that can be created YET.
 
-            if flow_entry is not None:
-                flow_entry.install()
+                valid_flow, evc = FlowEntry.create(flow, self)
 
-                if flow_entry.name not in self.flow_entries:
-                    # TODO: Do we get duplicates here (ie all flows re-pushed on each individual flow add?)
-                    self.flow_entries[flow_entry.name] = flow_entry
+                if valid_flow is not None:
+                    valid_flows.append(valid_flow.flow_id)
+
+                if evc is not None:
+                    try:
+                        results = yield evc.install()
+
+                        if evc.name not in self.evcs:
+                            self.evcs[evc.name] = evc
+                        else:
+                            # TODO: Do we get duplicates here (ie all flows re-pushed on each individual flow add?)
+                            pass
+
+                        # Also make sure all EVC MAPs are installed
+
+                        for evc_map in evc.evc_maps:
+                            try:
+                                results = yield evc_map.install()
+                                pass                                # TODO: What to do on error?
+
+                            except Exception as e:
+                                evc_map.status = 'Exception during EVC-MAP Install: {}'.format(e.message)
+                                self.log.exception(evc_map.status, e=e)
+
+                    except Exception as e:
+                        evc.status = 'Exception during EVC Install: {}'.format(e.message)
+                        self.log.exception(evc.status, e=e)
+
+            except Exception as e:
+                self.log.exception('Failure during bulk flow update - add', e=e)
+
+        # Now drop all flows from this device that were not in this bulk update
+        try:
+            FlowEntry.drop_missing_flows(device.id, valid_flows)
+
+        except Exception as e:
+            self.log.exception('Failure during bulk flow update - remove', e=e)
 
     @inlineCallbacks
     def send_proxied_message(self, proxy_address, msg):
@@ -417,13 +477,14 @@ class AdtranOltHandler(AdtranDeviceHandler):
                 return AdtranDeviceHandler.parse_module_revision(item.get('revision', None))
         return None
 
-    def _onu_offset(self, onu_id):
-        return self.num_northbound_ports + self.num_southbound_ports + onu_id
-
-    def _get_channel_id(self, pon_id, onu_id):
+    def get_channel_id(self, pon_id, onu_id):
         from pon_port import PonPort
-
         return self._onu_offset(onu_id) + (pon_id * PonPort.MAX_ONUS_SUPPORTED)
+
+    def _onu_offset(self, onu_id):
+        # Start ONU's just past the southbound PON port numbers. Since ONU ID's start
+        # at zero, add one
+        return self.num_northbound_ports + self.num_southbound_ports + onu_id + 1
 
     def _channel_id_to_pon_id(self, channel_id, onu_id):
         from pon_port import PonPort
@@ -432,3 +493,25 @@ class AdtranOltHandler(AdtranDeviceHandler):
 
     def _pon_id_to_port_number(self, pon_id):
         return pon_id + 1 + self.num_northbound_ports
+
+    def _port_number_to_pon_id(self, port):
+        return port - 1 - self.num_northbound_ports
+
+    def is_pon_port(self, port):
+        return self._port_number_to_pon_id(port) in self.southbound_ports
+
+    def is_uni_port(self, port):
+        return port >= self._onu_offset(0)  # TODO: Really need to rework this one...
+
+    def get_port_name(self, port):
+        if self.is_nni_port(port):
+            return self.northbound_ports[port].name
+
+        if self.is_pon_port(port):
+            return self.southbound_ports[self._port_number_to_pon_id(port)].name
+
+        if self.is_uni_port(port):
+            return self.northbound_ports[port].name
+
+        if self.is_logical_port(port):
+            raise NotImplemented('TODO: Logical ports not yet supported')

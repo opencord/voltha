@@ -1,3 +1,19 @@
+#
+# Copyright 2017-present Adtran, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 from twisted.internet.defer import inlineCallbacks, returnValue
 import xmltodict
 import structlog
@@ -195,12 +211,14 @@ class IetfInterfacesState(object):
         # If port up and ready: OFPPS_LIVE
         # If port config bit is down: OFPPC_PORT_DOWN
         # If port state bit is down: OFPPS_LINK_DOWN
-        if IetfInterfacesState._get_admin_state(entry) == AdminState.ENABLED:
-            return OFPPS_LIVE \
-                if IetfInterfacesState._get_oper_status(entry) == OperStatus.ACTIVE \
-                else OFPPS_LINK_DOWN
-
-        return OFPPC_PORT_DOWN
+        # if IetfInterfacesState._get_admin_state(entry) == AdminState.ENABLED:
+        #     return OFPPS_LIVE \
+        #         if IetfInterfacesState._get_oper_status(entry) == OperStatus.ACTIVE \
+        #         else OFPPS_LINK_DOWN
+        #
+        # return OFPPC_PORT_DOWN
+        # TODO: Update of openflow port state is not supported, so always say we are alive
+        return OFPPS_LIVE
 
     @staticmethod
     def _get_of_capabilities(entry):
@@ -247,7 +265,9 @@ class IetfInterfacesState(object):
             40000000000: OFPPF_40GB_FD,
             100000000000: OFPPF_100GB_FD,
         }
-        return speed_map.get(speed, OFPPF_OTHER)
+        # return speed_map.get(speed, OFPPF_OTHER)
+        # TODO: For now, force 100 GB
+        return OFPPF_100GB_FD
 
     @staticmethod
     def get_nni_port_entries(rpc_reply, nni_type='ethernet'):
@@ -262,6 +282,8 @@ class IetfInterfacesState(object):
         ports = []
         result_dict = xmltodict.parse(rpc_reply.data_xml)
         entries = result_dict['data']['interfaces-state']['interface']
+        if not isinstance(entries, list):
+            entries = [entries]
         nni_ports = [entry for entry in entries if 'name' in entry and nni_type in entry['name']]
 
         for entry in nni_ports:
