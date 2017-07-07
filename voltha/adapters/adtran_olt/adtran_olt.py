@@ -213,8 +213,11 @@ class AdtranOltAdapter(object):
         :param device: A Voltha.Device object.
         :return: Will return result of self test
         """
+        from voltha.protos.voltha_pb2 import SelfTestResponse
         log.info('self-test-device', device=device.id)
-        raise NotImplementedError()
+
+        # TODO: Support self test?
+        return SelfTestResponse(result=SelfTestResponse.NOT_SUPPORTED)
 
     def delete_device(self, device):
         """
@@ -277,7 +280,8 @@ class AdtranOltAdapter(object):
         :param pm_configs: A Pms
         """
         log.debug('update_pm_config', device=device, pm_configs=pm_configs)
-        raise NotImplementedError()
+        handler = self.devices_handlers[device.id]
+        handler.update_pm_config(device, pm_configs)
 
     def send_proxied_message(self, proxy_address, msg):
         """
@@ -323,7 +327,18 @@ class AdtranOltAdapter(object):
         """
         log.info('packet-out', logical_device_id=logical_device_id,
                  egress_port_no=egress_port_no, msg_len=len(msg))
-        raise NotImplementedError()
+
+        def ldi_to_di(ldi):
+            di = self.logical_device_id_to_root_device_id.get(ldi)
+            if di is None:
+                logical_device = self.adapter_agent.get_logical_device(ldi)
+                di = logical_device.root_device_id
+                self.logical_device_id_to_root_device_id[ldi] = di
+            return di
+
+        device_id = ldi_to_di(logical_device_id)
+        handler = self.devices_handlers[device_id]
+        handler.packet_out(egress_port_no, msg)
 
     def receive_inter_adapter_message(self, msg):
         """
@@ -339,21 +354,50 @@ class AdtranOltAdapter(object):
         raise NotImplementedError()
 
     def suppress_alarm(self, filter):
+        """
+        Inform an adapter that all incoming alarms should be suppressed
+        :param filter: A Voltha.AlarmFilter object.
+        :return: (Deferred) Shall be fired to acknowledge the suppression.
+        """
         log.info('suppress_alarm', filter=filter)
         raise NotImplementedError()
 
     def unsuppress_alarm(self, filter):
+        """
+        Inform an adapter that all incoming alarms should resume
+        :param filter: A Voltha.AlarmFilter object.
+        :return: (Deferred) Shall be fired to acknowledge the unsuppression.
+        """
         log.info('unsuppress_alarm', filter=filter)
         raise NotImplementedError()
 
+    # PON Mgnt APIs #
     def create_interface(self, device, data):
+        """
+        API to create various interfaces (only some PON interfaces as of now)
+        in the devices
+        """
         raise NotImplementedError()
 
     def update_interface(self, device, data):
+        """
+        API to update various interfaces (only some PON interfaces as of now)
+        in the devices
+        """
         raise NotImplementedError()
 
     def remove_interface(self, device, data):
+        """
+        API to delete various interfaces (only some PON interfaces as of now)
+        in the devices
+        """
         raise NotImplementedError()
 
     def receive_onu_detect_state(self, device_id, state):
+        """
+        Receive onu detect state in ONU adapter
+        :param proxy_address: ONU device address
+        :param state: ONU detect state (bool)
+        :return: None
+        """
         raise NotImplementedError()

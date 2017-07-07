@@ -24,6 +24,7 @@ import time
 
 import arrow
 import structlog
+import json
 from twisted.internet import reactor, defer
 from twisted.internet.defer import inlineCallbacks, returnValue
 
@@ -38,10 +39,17 @@ from voltha.protos.logical_device_pb2 import LogicalDevice
 from voltha.protos.openflow_13_pb2 import ofp_desc, ofp_switch_features, OFPC_PORT_STATS, \
     OFPC_GROUP_STATS, OFPC_TABLE_STATS, OFPC_FLOW_STATS
 from voltha.registry import registry
-
+from adapter_alarms import AdapterAlarms
+from common.frameio.frameio import BpfProgramFilter, hexify
+from adapter_pm_metrics import AdapterPmMetrics
 from common.utils.asleep import asleep
+from scapy.layers.l2 import Ether, Dot1Q
+from scapy.layers.inet import Raw
 
 _ = third_party
+
+_PACKET_IN_VLAN = 4000
+_is_inband_frame = BpfProgramFilter('(ether[14:2] & 0xfff) = 0x{:03x}'.format(_PACKET_IN_VLAN))
 
 
 class AdtranDeviceHandler(object):
@@ -86,6 +94,8 @@ class AdtranDeviceHandler(object):
         self.io_port = None
         self.logical_device_id = None
         self.interface = registry('main').get_args().interface
+        self.pm_metrics = None
+        self.alarms = None
 
         # Northbound and Southbound ports
         self.northbound_ports = {}  # port number -> Port
@@ -104,13 +114,13 @@ class AdtranDeviceHandler(object):
         self.rest_port = None
         self.rest_username = username
         self.rest_password = password
-        self.rest_client = None
+        self._rest_client = None
 
         # NETCONF Client
         self.netconf_port = None
         self.netconf_username = username
         self.netconf_password = password
-        self.netconf_client = None
+        self._netconf_client = None
 
         # Heartbeat support
         self.heartbeat_count = 0
@@ -125,24 +135,26 @@ class AdtranDeviceHandler(object):
         self.is_virtual_olt = False
 
         # Installed flows
-        self.flow_entries = {}  # Flow ID/name -> FlowEntry
+        self.evcs = {}  # Flow ID/name -> FlowEntry
 
         # TODO Remove items below after one PON fully supported and working as expected
-        self.max_ports = 1
+        self.max_nni_ports = 1
+        self.max_pon_ports = 1
 
     def __del__(self):
         # Kill any startup or heartbeat defers
 
         d, self.startup = self.startup, None
+        h, self.heartbeat = self.heartbeat, None
+        ldi, self.logical_device_id = self.logical_device_id, None
+
         if d is not None:
             d.cancel()
 
-        ldi, self.logical_device_id = self.logical_device_id, None
-
-        h, self.heartbeat = self.heartbeat, None
-
         if h is not None:
             h.cancel()
+
+        self._deactivate_io_port()
 
         # Remove the logical device
 
@@ -155,6 +167,14 @@ class AdtranDeviceHandler(object):
 
     def __str__(self):
         return "AdtranDeviceHandler: {}".format(self.ip_address)
+
+    @property
+    def netconf_client(self):
+        return self._netconf_client
+
+    @property
+    def rest_client(self):
+        return self._rest_client
 
     def parse_provisioning_options(self, device):
         if not device.ipv4_address:
@@ -209,7 +229,7 @@ class AdtranDeviceHandler(object):
         :param reconciling: If True, this adapter is taking over for a previous adapter
                             for an existing OLT
         """
-        self.log.info('AdtranDeviceHandler.activating', device=device, reconciling=reconciling)
+        self.log.info('AdtranDeviceHandler.activating', reconciling=reconciling)
 
         if self.logical_device_id is None:
             # Parse our command line options for this device
@@ -238,24 +258,13 @@ class AdtranDeviceHandler(object):
             ############################################################################
             # Start initial discovery of NETCONF support (if any)
 
-<<<<<<< HEAD
-            device.model = 'TODO: Adtran PizzaBox, YUM'
-            device.hardware_version = 'TODO: H/W Version'
-            device.firmware_version = 'TODO: S/W Version'
-            device.images.image.extend([
-                                         Image(version="TODO: S/W Version")
-                                       ])
-            device.serial_number = 'TODO: Serial Number'
-=======
-            if not self.is_virtual_olt:
-                try:
-                    self.startup = self.make_netconf_connection()
-                    yield self.startup
->>>>>>> c577acb... netconf client support and disable-enable support
+            try:
+                self.startup = self.make_netconf_connection()
+                yield self.startup
 
-                except Exception as e:
-                    self.log.exception('Initial NETCONF connection failed', e=e)
-                    self.activate_failed(device, e.message, reachable=False)
+            except Exception as e:
+                self.log.exception('Initial NETCONF connection failed', e=e)
+                self.activate_failed(device, e.message, reachable=False)
 
             ############################################################################
             # Get the device Information
@@ -271,9 +280,22 @@ class AdtranDeviceHandler(object):
                     device.model = results.get('model', 'unknown')
                     device.hardware_version = results.get('hardware_version', 'unknown')
                     device.firmware_version = results.get('firmware_version', 'unknown')
-                    device.software_version = results.get('software_version', 'unknown')
                     device.serial_number = results.get('serial_number', 'unknown')
 
+                    def get_software_images():
+                        leafs = ['running-revision', 'candidate-revision', 'startup-revision']
+                        image_names = list(set([results.get(img, 'unknown') for img in leafs]))
+
+                        images = []
+                        for name in image_names:
+                            # TODO: Look into how to find out hash, is_valid, and install date/time
+                            image = Image(name=name, version=name,
+                                          is_active=(name == results.get('running-revision', 'xxx')),
+                                          is_committed=(name == results.get('startup-revision', 'xxx')))
+                            images.append(image)
+                        return images
+
+                    device.images.image.extend(get_software_images())
                     device.root = True
                     device.vendor = results.get('vendor', 'Adtran, Inc.')
                     device.connect_status = ConnectStatus.REACHABLE
@@ -299,7 +321,6 @@ class AdtranDeviceHandler(object):
             except Exception as e:
                 self.log.exception('Northbound port enumeration and creation failed', e=e)
                 self.activate_failed(device, e.message)
-                results = None
 
             try:
                 # Enumerate and create southbound interfaces
@@ -318,62 +339,6 @@ class AdtranDeviceHandler(object):
                 self.log.exception('Southbound port enumeration and creation failed', e=e)
                 self.activate_failed(device, e.message)
 
-<<<<<<< HEAD
-            # Complete activation by setting up logical device for this OLT and saving
-            # off the devices parent_id
-
-            # There could be multiple software version on the device,
-            # active, standby etc. Choose the active or running software
-            # below. See simulated_olt for example implementation
-            version = device.images.image[0].version
-
-            ld = LogicalDevice(
-                # NOTE: not setting id and datapath_id will let the adapter agent pick id
-                desc=ofp_desc(mfr_desc=device.vendor,
-                              hw_desc=device.hardware_version,
-                              sw_desc=version,
-                              serial_num=device.serial_number,
-                              dp_desc='n/a'),
-                switch_features=ofp_switch_features(n_buffers=256,  # TODO fake for now
-                                                    n_tables=2,  # TODO ditto
-                                                    capabilities=(OFPC_FLOW_STATS |
-                                                                  OFPC_TABLE_STATS |
-                                                                  OFPC_PORT_STATS |
-                                                                  OFPC_GROUP_STATS)),  # TODO and ditto
-                root_device_id=device.id)
-
-            ld_initialized = self.adapter_agent.create_logical_device(ld)
-
-            # Create logical ports for all southbound and northbound interfaces
-
-            for port in self.northbound_ports.itervalues():
-                lp = port.get_logical_port()
-                if lp is not None:
-                    self.adapter_agent.add_logical_port(ld_initialized.id, lp)
-
-            for port in self.southbound_ports.itervalues():
-                lp = port.get_logical_port()
-                if lp is not None:
-                    self.adapter_agent.add_logical_port(ld_initialized.id, lp)
-
-            # Set the downlinks in a known good initial state
-
-            try:
-                for port in self.southbound_ports.itervalues():
-                    self.startup = port.reset()
-                    yield self.startup
-
-            except Exception as e:
-                self.log.exception('Failed to reset southbound ports to known good initial state', e=e)
-                self.activate_failed(device, e.message)
-
-            # Start/stop the interfaces as needed
-
-            try:
-                for port in self.northbound_ports.itervalues():
-                    self.startup = port.start()
-                    yield self.startup
-=======
             if reconciling:
                 if device.admin_state == AdminState.ENABLED:
                     if device.parent_id:
@@ -381,25 +346,46 @@ class AdtranDeviceHandler(object):
                         self.adapter_agent.reconcile_logical_device(device.parent_id)
                     else:
                         self.log.info('no-logical-device-set')
->>>>>>> c577acb... netconf client support and disable-enable support
 
                 # Reconcile child devices
                 self.adapter_agent.reconcile_child_devices(device.id)
+                ld_initialized = self.adapter_agent.get_logical_device()
+                assert device.parent_id == ld_initialized.id
+
             else:
                 # Complete activation by setting up logical device for this OLT and saving
                 # off the devices parent_id
 
-                self.logical_device_id = self.create_logical_device(device)
+                ld_initialized = self.create_logical_device(device)
 
+            ############################################################################
+            # Setup PM configuration for this device
+
+            # self.pm_metrics = AdapterPmMetrics(device)
+            # pm_config = self.pm_metrics.make_proto()
+            # self.log.info("initial-pm-config", pm_config=pm_config)
+            # self.adapter_agent.update_device_pm_config(pm_config, init=True)
+
+            ############################################################################
+            # Setup Alarm handler
+
+            self.alarms = AdapterAlarms(self.adapter, device)
+
+            ############################################################################
             # Create logical ports for all southbound and northbound interfaces
+            try:
+                self.startup = self.create_logical_ports(device, ld_initialized, reconciling)
+                yield self.startup
 
-            self.create_logical_ports(device, self.logical_device_id, reconciling)
+            except Exception as e:
+                self.log.exception('Logical port creation failed', e=e)
+                self.activate_failed(device, e.message)
 
             # Complete device specific steps
             try:
+                self.log.debug('Performing final device specific activation procedures')
                 self.startup = self.complete_device_specific_activation(device, reconciling)
-                if self.startup is not None:
-                    yield self.startup
+                yield self.startup
 
             except Exception as e:
                 self.log.exception('Device specific activation failed', e=e)
@@ -407,12 +393,22 @@ class AdtranDeviceHandler(object):
 
             # Schedule the heartbeat for the device
 
-            self.start_heartbeat(delay=10)
+            self.log.debug('Starting heartbeat')
+            self.start_heartbeat(delay=5)
 
             device = self.adapter_agent.get_device(device.id)
-            device.parent_id = self.logical_device_id
+            device.parent_id = ld_initialized.id
             device.oper_status = OperStatus.ACTIVE
+            device.reason = ''
             self.adapter_agent.update_device(device)
+
+            # finally, open the frameio port to receive in-band packet_in messages
+            self._activate_io_port()
+
+            # Start collecting stats from the device after a brief pause
+            reactor.callLater(5, self.start_kpi_collection, device.id)
+
+            self.log.info('Activated')
 
     def activate_failed(self, device, reason, reachable=True):
         """
@@ -433,47 +429,87 @@ class AdtranDeviceHandler(object):
         self.adapter_agent.update_device(device)
         raise RuntimeError('Failed to activate OLT: {}'.format(device.reason))
 
+    @inlineCallbacks
     def make_netconf_connection(self, connect_timeout=None):
         ############################################################################
         # Start initial discovery of NETCONF support
 
-        if self.netconf_client is None:
-            self.netconf_client = AdtranNetconfClient(self.ip_address,
-                                                      self.netconf_port,
-                                                      self.netconf_username,
-                                                      self.netconf_password,
-                                                      self.timeout)
-        if self.netconf_client.connected:
-            return defer.returnValue(True)
+        client = self._netconf_client
+
+        if client is None:
+            if not self.is_virtual_olt:
+                client = AdtranNetconfClient(self.ip_address,
+                                             self.netconf_port,
+                                             self.netconf_username,
+                                             self.netconf_password,
+                                             self.timeout)
+            else:
+                from voltha.adapters.adtran_olt.net.mock_netconf_client import MockNetconfClient
+                client = MockNetconfClient(self.ip_address,
+                                           self.netconf_port,
+                                           self.netconf_username,
+                                           self.netconf_password,
+                                           self.timeout)
+        if client.connected:
+            self._netconf_client = client
+            returnValue(True)
 
         timeout = connect_timeout or self.timeout
-        return self.netconf_client.connect(timeout)
 
+        try:
+            request = client.connect(timeout)
+            results = yield request
+            self._netconf_client = client
+            returnValue(results)
+
+        except Exception as e:
+            self.log.exception('Failed to create NETCONF Client', e=e)
+            self._netconf_client = None
+            raise
+
+    @inlineCallbacks
     def make_restconf_connection(self, get_timeout=None):
-        if self.rest_client is None:
-            self.rest_client = AdtranRestClient(self.ip_address,
-                                                self.rest_port,
-                                                self.rest_username,
-                                                self.rest_password,
-                                                self.timeout)
+        client = self._rest_client
+
+        if client is None:
+            client = AdtranRestClient(self.ip_address,
+                                      self.rest_port,
+                                      self.rest_username,
+                                      self.rest_password,
+                                      self.timeout)
 
         timeout = get_timeout or self.timeout
-        return self.rest_client.request('GET', self.HELLO_URI, name='hello', timeout=timeout)
+
+        try:
+            request = client.request('GET', self.HELLO_URI, name='hello', timeout=timeout)
+            results = yield request
+            if isinstance(results, dict) and 'module-info' in results:
+                self._rest_client = client
+                returnValue(results)
+            else:
+                from twisted.internet.error import ConnectError
+                self._rest_client = None
+                raise ConnectError(string='Results received but unexpected data type or contents')
+        except Exception:
+            self._rest_client = None
+            raise
 
     def create_logical_device(self, device):
+        version = device.images.image[0].version
+
         ld = LogicalDevice(
             # NOTE: not setting id and datapath_id will let the adapter agent pick id
             desc=ofp_desc(mfr_desc=device.vendor,
                           hw_desc=device.hardware_version,
-                          sw_desc=device.software_version,
+                          sw_desc=version,
                           serial_num=device.serial_number,
                           dp_desc='n/a'),
             switch_features=ofp_switch_features(n_buffers=256,  # TODO fake for now
                                                 n_tables=2,  # TODO ditto
                                                 capabilities=(
-                                                    # OFPC_FLOW_STATS |  # TODO: Enable if we support it
-                                                    # OFPC_TABLE_STATS | # TODO: Enable if we support it
-                                                    # OFPC_GROUP_STATS | # TODO: Enable if we support it
+                                                    OFPC_FLOW_STATS |
+                                                    OFPC_TABLE_STATS |
+                                                    OFPC_GROUP_STATS |
                                                     OFPC_PORT_STATS)),
             root_device_id=device.id)
 
@@ -483,6 +519,7 @@ class AdtranDeviceHandler(object):
 
     @inlineCallbacks
     def create_logical_ports(self, device, ld_initialized, reconciling):
+        results = defer.fail()
 
         if not reconciling:
             for port in self.northbound_ports.itervalues():
@@ -498,49 +535,33 @@ class AdtranDeviceHandler(object):
             # Set the ports in a known good initial state
             try:
                 for port in self.northbound_ports.itervalues():
-                    self.startup = port.reset()
+                    self.startup = yield port.reset()
                     results = yield self.startup
-                    self.log.debug('Northbound Port reset results', results=results)
 
-            except Exception as e:
-                self.log.exception('Failed to reset northbound ports to known good initial state', e=e)
-                self.activate_failed(device, e.message)
-
-            try:
                 for port in self.southbound_ports.itervalues():
-                    self.startup = port.reset()
+                    self.startup = yield port.reset()
                     results = yield self.startup
-                    self.log.debug('Southbound Port reset results', results=results)
 
             except Exception as e:
-                self.log.exception('Failed to reset southbound ports to known good initial state', e=e)
-                self.activate_failed(device, e.message)
+                    self.log.exception('Failed to reset ports to known good initial state', e=e)
+                    self.activate_failed(device, e.message)
 
         # Start/stop the interfaces as needed
-        try:
-            for port in self.northbound_ports.itervalues():
-                self.startup = port.start()
-                results = yield self.startup
-                self.log.debug('Northbound Port start results', results=results)
 
-        except Exception as e:
-            self.log.exception('Failed to start northbound port(s)', e=e)
-            self.activate_failed(device, e.message)
+        for port in self.northbound_ports.itervalues():
+            self.startup = port.start()
+            results = yield self.startup
 
-        try:
-            if reconciling:
-                start_downlinks = device.admin_state == AdminState.ENABLED
-            else:
-                start_downlinks = self.initial_port_state == AdminState.ENABLED
+        if reconciling:
+            start_downlinks = device.admin_state == AdminState.ENABLED
+        else:
+            start_downlinks = self.initial_port_state == AdminState.ENABLED
 
-            for port in self.southbound_ports.itervalues():
-                self.startup = port.start() if start_downlinks else port.stop()
-                results = yield self.startup
-                self.log.debug('Southbound Port start results', results=results)
+        for port in self.southbound_ports.itervalues():
+            self.startup = port.start() if start_downlinks else port.stop()
+            results = yield self.startup
 
-        except Exception as e:
-            self.log.exception('Failed to start southbound port(s)', e=e)
-            self.activate_failed(device, e.message)
+        returnValue(results)
 
     @inlineCallbacks
     def device_information(self, device):
@@ -618,9 +639,26 @@ class AdtranDeviceHandler(object):
         """
         yield defer.Deferred(lambda c: c.callback("Not Required"))
 
+    # TODO: Move some of the items below from here and the EVC to a utility class
+
+    def is_nni_port(self, port):
+        return port in self.northbound_ports
+
+    def is_uni_port(self, port):
+        raise NotImplementedError('implement in derived class')
+
+    def is_pon_port(self, port):
+        raise NotImplementedError('implement in derived class')
+
+    def is_logical_port(self, port):
+        return not self.is_nni_port(port) and not self.is_uni_port(port) and not self.is_pon_port(port)
+
+    def get_port_name(self, port):
+        raise NotImplementedError('implement in derived class')
+
     @inlineCallbacks
     def complete_device_specific_activation(self, _device, _reconciling):
-        return None
+        return defer.succeed('NOP')
 
     def deactivate(self, device):
         # Clear off logical device ID
@@ -643,6 +681,9 @@ class AdtranDeviceHandler(object):
 
         # Get the latest device reference
         device = self.adapter_agent.get_device(self.device_id)
+
+        # Deactivate in-band packets
+        self._deactivate_io_port()
 
         # Suspend any active healthchecks / pings
 
@@ -671,20 +712,24 @@ class AdtranDeviceHandler(object):
         # Remove the peer references from this device
         self.adapter_agent.delete_all_peer_references(self.device_id)
 
+        # Disable all flows            TODO: Do we want to delete them?
+        # TODO: Create a bulk disable-all by device-id
+
+        for evc in self.evcs.itervalues():
+            evc.disable()
+
         # Set all ports to disabled
         self.adapter_agent.disable_all_ports(self.device_id)
 
+        dl = []
         for port in self.northbound_ports.itervalues():
-            port.stop()
+            dl.append(port.stop())
 
         for port in self.southbound_ports.itervalues():
-            port.stop()
+            dl.append(port.stop())
 
-        # Disable all flows            TODO: Do we want to delete them?
-        # TODO: Use bulk methods if possible
-
-        for flow in self.flow_entries.itervalues():
-            flow.disable()
+        self.startup = defer.gatherResults(dl)
+        results = yield self.startup
 
         # Shutdown communications with OLT
 
@@ -695,12 +740,13 @@ class AdtranDeviceHandler(object):
                 self.log.exception('NETCONF client shutdown failed', e=e)
 
         def _null_clients():
-            self.netconf_client = None
-            self.rest_client = None
+            self._netconf_client = None
+            self._rest_client = None
 
         reactor.callLater(0, _null_clients)
 
         self.log.info('disabled', device_id=device.id)
+        returnValue(results)
 
     @inlineCallbacks
     def reenable(self):
@@ -726,13 +772,12 @@ class AdtranDeviceHandler(object):
             self.log.exception('RESTCONF adtran-hello reconnect failed', e=e)
             # TODO: What is best way to handle reenable failure?
 
-        if not self.is_virtual_olt:
-            try:
-                yield self.make_netconf_connection()
+        try:
+            yield self.make_netconf_connection()
 
-            except Exception as e:
-                self.log.exception('NETCONF re-connection failed', e=e)
-                # TODO: What is best way to handle reenable failure?
+        except Exception as e:
+            self.log.exception('NETCONF re-connection failed', e=e)
+            # TODO: What is best way to handle reenable failure?
 
         # Recreate the logical device
 
@@ -745,29 +790,37 @@ class AdtranDeviceHandler(object):
         device = self.adapter_agent.get_device(device.id)
         device.parent_id = ld_initialized.id
         device.oper_status = OperStatus.ACTIVE
+        device.reason = ''
         self.adapter_agent.update_device(device)
         self.logical_device_id = ld_initialized.id
 
         # Reenable all child devices
         self.adapter_agent.update_child_devices_state(device.id,
                                                       admin_state=AdminState.ENABLED)
+        dl = []
 
         for port in self.northbound_ports.itervalues():
-            port.start()
+            dl.append(port.start())
 
         for port in self.southbound_ports.itervalues():
-            port.start()
+            dl.append(port.start())
+
+        self.startup = defer.gatherResults(dl)
+        results = yield self.startup
 
         # TODO:
         # 1) Restart health check / pings
-
         # Enable all flows
-        # TODO: Use bulk methods if possible
+        # TODO: Create a bulk enable-all by device-id
 
-        for flow in self.flow_entries:
-            flow.enable()
+        for evc in self.evcs:
+            evc.enable()
+
+        # Activate in-band packets
+        self._activate_io_port()
 
         self.log.info('re-enabled', device_id=device.id)
+        returnValue(results)
 
     @inlineCallbacks
     def reboot(self):
@@ -810,64 +863,66 @@ class AdtranDeviceHandler(object):
             except Exception as e:
                 self.log.exception('NETCONF client shutdown', e=e)
 
-        def _null_clients():
-            self.netconf_client = None
-            self.rest_client = None
+        #  Clear off clients
 
-        yield reactor.callLater(0, _null_clients)
+        self._netconf_client = None
+        self._rest_client = None
 
         # Run remainder of reboot process as a new task. The OLT then may be up in a
         # few moments or may take 3 minutes or more depending on any self tests enabled
 
-        current_time = time.time();
+        current_time = time.time()
         timeout = current_time + self.restart_failure_timeout
 
-        self.log('*** Current time is {}, timeout is {}'.format(current_time, timeout))
+        try:
+            yield reactor.callLater(10, self._finish_reboot, timeout,
+                                    previous_oper_status, previous_conn_status)
+        except Exception as e:
+            self.log.exception('finish reboot scheduling', e=e)
 
-        yield reactor.callLater(10, self._finish_reboot, timeout,
-                                previous_oper_status, previous_conn_status)
+        returnValue('Waiting for reboot')
 
     @inlineCallbacks
     def _finish_reboot(self, timeout, previous_oper_status, previous_conn_status):
         # Now wait until REST & NETCONF are re-established or we timeout
 
-        if self.netconf_client is None and not self.is_virtual_olt:
-            self.log.debug('Attempting to restore NETCONF connection')
+        self.log.info('Resuming OLT activity after reboot requested',
+                      remaining=timeout - time.time(), timeout=timeout, current=time.time())
+
+        if self.rest_client is None:
             try:
-                response = yield self.make_netconf_connection(connect_timeout=3)
-                self.log.debug('Restart NETCONF connection XML was: {}'.format(response.xml))
+                response = yield self.make_restconf_connection(get_timeout=10)
+                self.log.debug('Restart RESTCONF connection JSON was: {}'.format(response))
+
+            except Exception:
+                self.log.debug('No RESTCONF connection yet')
+                self._rest_client = None
+
+        if self.netconf_client is None:
+            try:
+                yield self.make_netconf_connection(connect_timeout=10)
+                self.log.debug('Restart NETCONF connection succeeded')
 
             except Exception as e:
                 self.log.debug('No NETCONF connection yet: {}'.format(e.message))
                 try:
-                    yield self.netconf_client.close()
+                    if self.netconf_client is not None:
+                        yield self.netconf_client.close()
                 except Exception as e:
                     self.log.exception(e.message)
                 finally:
-                    def _null_netconf():
-                        self.log.debug('Nulling out the NETCONF client')
-                        self.netconf_client = None
-                    reactor.callLater(0, _null_netconf)
-
-        elif self.rest_client is None:
-            self.log.debug('Attempting to restore RESTCONF connection')
-            try:
-                response = yield self.make_restconf_connection(get_timeout=3)
-                self.log.debug('Restart RESTCONF connection XML was: {}'.format(response.xml))
-
-            except Exception:
-                self.log.debug('No RESTCONF connection yet')
-                self.rest_client = None
+                    self._netconf_client = None
 
         if (self.netconf_client is None and not self.is_virtual_olt) or self.rest_client is None:
-            current_time = time.time();
-
-            self.log('Current time is {}, timeout is {}'.format(current_time, timeout))
-
+            current_time = time.time()
             if current_time < timeout:
-                self.log.info('Device not responding yet, will try again...')
-                yield reactor.callLater(10, self._finish_reboot, timeout,
-                                        previous_oper_status, previous_conn_status)
+                try:
+                    yield reactor.callLater(5, self._finish_reboot, timeout,
+                                            previous_oper_status, previous_conn_status)
+                except Exception:
+                    self.log.debug('Rebooted check rescheduling')
+
+                returnValue('Waiting some more...')
 
             if self.netconf_client is None and not self.is_virtual_olt:
                 self.log.error('Could not restore NETCONF communications after device RESET')
@@ -877,8 +932,7 @@ class AdtranDeviceHandler(object):
                 self.log.error('Could not restore RESTCONF communications after device RESET')
                 pass        # TODO: What is best course of action if cannot get clients back?
 
-        # Pause additional 5 seconds to let things OLT microservices complete some more initialization
-
+        # Pause additional 5 seconds to let allow OLT microservices to complete some more initialization
         yield asleep(5)
 
         # Get the latest device reference
@@ -892,23 +946,8 @@ class AdtranDeviceHandler(object):
         self.adapter_agent.update_child_devices_state(self.device_id,
                                                       connect_status=ConnectStatus.REACHABLE)
 
-        # Connect back up to OLT so heartbeats/polls start working again
-        try:
-            yield self.make_restconf_connection()
-
-        except Exception as e:
-            self.log.exception('RESTCONF adtran-hello connect after reboot failed', e=e)
-            # TODO: What is best way to handle reenable failure?
-
-        if not self.is_virtual_olt:
-            try:
-                yield self.make_netconf_connection()
-
-            except Exception as e:
-                self.log.exception('NETCONF re-connection after reboot failed', e=e)
-                # TODO: What is best way to handle reenable failure?
-
         self.log.info('rebooted', device_id=self.device_id)
+        returnValue('Rebooted')
 
     @inlineCallbacks
     def delete(self):
@@ -928,10 +967,13 @@ class AdtranDeviceHandler(object):
         if h is not None:
             h.cancel()
 
-        # TODO:
-        # 1) Remove all flows from the device
+        # Remove all flows from the device
+        # TODO: Create a bulk remove-all by device-id
 
-        self.flow_entries.clear()
+        for evc in self.evcs.itervalues():
+            evc.remove()
+
+        self.evcs.clear()
 
         # Remove all child devices
         self.adapter_agent.delete_all_child_devices(self.device_id)
@@ -939,6 +981,7 @@ class AdtranDeviceHandler(object):
         # Remove the logical device
         logical_device = self.adapter_agent.get_logical_device(self.logical_device_id)
         self.adapter_agent.delete_logical_device(logical_device)
+        # TODO: For some reason, the logical device does not seem to get deleted
 
         # Remove the peer references from this device
         self.adapter_agent.delete_all_peer_references(self.device_id)
@@ -962,11 +1005,96 @@ class AdtranDeviceHandler(object):
             except Exception as e:
                 self.log.exception('NETCONF client shutdown', e=e)
 
-            self.netconf_client = None
+            self._netconf_client = None
 
-        self.rest_client = None
+        self._rest_client = None
 
         self.log.info('deleted', device_id=self.device_id)
+
+    def _activate_io_port(self):
+        if self.io_port is None:
+            self.log.info('registering-frameio')
+            self.io_port = registry('frameio').open_port(
+                self.interface, self._rcv_io, _is_inband_frame)
+
+    def _deactivate_io_port(self):
+        io, self.io_port = self.io_port, None
+
+        if io is not None:
+            registry('frameio').close_port(io)
+
+    def _rcv_io(self, port, frame):
+        self.log.info('received', iface_name=port.iface_name, frame_len=len(frame))
+
+        pkt = Ether(frame)
+        if pkt.haslayer(Dot1Q):
+            outer_shim = pkt.getlayer(Dot1Q)
+
+            if isinstance(outer_shim.payload, Dot1Q):
+                inner_shim = outer_shim.payload
+                cvid = inner_shim.vlan
+                logical_port = cvid
+                popped_frame = (Ether(src=pkt.src, dst=pkt.dst, type=inner_shim.type) /
+                                inner_shim.payload)
+                kw = dict(
+                    logical_device_id=self.logical_device_id,
+                    logical_port_no=logical_port,
+                )
+                self.log.info('sending-packet-in', **kw)
+                self.adapter_agent.send_packet_in(
+                    packet=str(popped_frame), **kw)
+
+            elif pkt.haslayer(Raw):
+                raw_data = json.loads(pkt.getlayer(Raw).load)
+                self.alarms.send_alarm(self, raw_data)
+
+    def packet_out(self, egress_port, msg):
+        if self.io_port is not None:
+            self.log.info('sending-packet-out', egress_port=egress_port,
+                          msg=hexify(msg))
+            pkt = Ether(msg)
+            out_pkt = (
+                Ether(src=pkt.src, dst=pkt.dst) /
+                Dot1Q(vlan=4000) /
+                Dot1Q(vlan=egress_port, type=pkt.type) /
+                pkt.payload
+            )
+            self.io_port.send(str(out_pkt))
+
+    def update_pm_config(self, device, pm_config):
+        # TODO: This has not been tested
+        self.log.info('update_pm_config', pm_config=pm_config)
+        self.pm_metrics.update(pm_config)
+
+    def start_kpi_collection(self, device_id):
+        # TODO: This has not been tested
+        def _collect(device_id, prefix):
+            from voltha.protos.events_pb2 import KpiEvent, KpiEventType, MetricValuePairs
+
+            try:
+                # Step 1: gather metrics from device
+                port_metrics = self.pm_metrics.collect_port_metrics(self.get_channel())
+
+                # Step 2: prepare the KpiEvent for submission
+                # we can time-stamp them here (or could use time derived from OLT
+                ts = arrow.utcnow().timestamp
+                kpi_event = KpiEvent(
+                    type=KpiEventType.slice,
+                    ts=ts,
+                    prefixes={
+                        # OLT NNI port
+                        prefix + '.nni': MetricValuePairs(metrics=port_metrics['nni']),
+                        # OLT PON port
+                        prefix + '.pon': MetricValuePairs(metrics=port_metrics['pon'])
+                    }
+                )
+                # Step 3: submit
+                self.adapter_agent.submit_kpis(kpi_event)
+
+            except Exception as e:
+                self.log.exception('failed-to-submit-kpis', e=e)
+
+        # self.pm_metrics.start_collector(_collect)
 
     @inlineCallbacks
     def get_device_info(self, device):
@@ -982,18 +1110,13 @@ class AdtranDeviceHandler(object):
                 the device type specification returned by device_types().
         """
         device = {}
-        # device['model'] = 'TODO: Adtran PizzaBox, YUM'
-        # device['hardware_version'] = 'TODO: H/W Version'
-        # device['firmware_version'] = 'TODO: S/W Version'
-        # device['software_version'] = 'TODO: S/W Version'
-        # device['serial_number'] = 'TODO: Serial Number'
-        # device['vendor'] = 'Adtran, Inc.'
-
         returnValue(device)
 
     def start_heartbeat(self, delay=10):
         assert delay > 1
+        self.log.info('*** Starting Device Heartbeat ***')
         self.heartbeat = reactor.callLater(delay, self.check_pulse)
+        return self.heartbeat
 
     def check_pulse(self):
         if self.logical_device_id is not None:
@@ -1013,7 +1136,7 @@ class AdtranDeviceHandler(object):
             device.reason = self.heartbeat_last_reason
             self.adapter_agent.update_device(device)
 
-            self.heartbeat_alarm(self.device_id, False, self.heartbeat_miss)
+            self.heartbeat_alarm(False, self.heartbeat_miss)
         else:
             assert results
             # Update device states
@@ -1026,7 +1149,7 @@ class AdtranDeviceHandler(object):
                 device.reason = ''
                 self.adapter_agent.update_device(device)
 
-                self.heartbeat_alarm(self.device_id, True)
+                self.heartbeat_alarm(True)
 
             self.heartbeat_miss = 0
             self.heartbeat_last_reason = ''
@@ -1042,27 +1165,19 @@ class AdtranDeviceHandler(object):
                       count=self.heartbeat_count, miss=self.heartbeat_miss)
         self.heartbeat_check_status(None)
 
-    def heartbeat_alarm(self, device_id, status, heartbeat_misses=0):
-        try:
-            ts = arrow.utcnow().timestamp
-            alarm_data = {'heartbeats_missed': str(heartbeat_misses)}
-
-            alarm_event = self.adapter_agent.create_alarm(
-                id='voltha.{}.{}.olt'.format(self.adapter.name, device_id),
-                resource_id='olt',
-                type=AlarmEventType.EQUIPMENT,
-                category=AlarmEventCategory.PON,
-                severity=AlarmEventSeverity.CRITICAL,
-                state=AlarmEventState.RAISED if status else AlarmEventState.CLEARED,
-                description='OLT Alarm - Heartbeat - {}'.format('Raised'
-                                                                if status
-                                                                else 'Cleared'),
-                context=alarm_data,
-                raised_ts=ts)
-            self.adapter_agent.submit_alarm(device_id, alarm_event)
-
-        except Exception as e:
-            self.log.exception('failed-to-submit-alarm', e=e)
+    def heartbeat_alarm(self, status, heartbeat_misses=0):
+        alarm = 'Heartbeat'
+        alarm_data = {
+            'ts': arrow.utcnow().timestamp,
+            'description': self.alarms.format_description('olt', alarm, status),
+            'id': self.alarms.format_id(alarm),
+            'type': AlarmEventType.EQUIPMENT,
+            'category': AlarmEventCategory.PON,
+            'severity': AlarmEventSeverity.CRITICAL,
+            'state': AlarmEventState.RAISED if status else AlarmEventState.CLEARED
+        }
+        context_data = {'heartbeats_missed': heartbeat_misses}
+        self.alarms.send_alarm(context_data, alarm_data)
 
     @staticmethod
     def parse_module_revision(revision):
