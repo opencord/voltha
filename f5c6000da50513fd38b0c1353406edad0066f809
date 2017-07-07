@@ -49,6 +49,54 @@
     },
     {
       "key": {
+        "uuid": "5a202591_c4c34837",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 67,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-07-07T00:16:03Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5a202591_64523415",
+      "range": {
+        "startLine": 67,
+        "startChar": 15,
+        "endLine": 67,
+        "endChar": 22
+      },
+      "revId": "f5c6000da50513fd38b0c1353406edad0066f809",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_e4c64449",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 67,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-07-07T00:16:03Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5a202591_0413805d",
+      "range": {
+        "startLine": 67,
+        "startChar": 15,
+        "endLine": 67,
+        "endChar": 22
+      },
+      "revId": "f5c6000da50513fd38b0c1353406edad0066f809",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_e40f642d",
         "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
         "patchSetId": 1
@@ -60,6 +108,30 @@
       "writtenOn": "2017-07-06T09:13:32Z",
       "side": 1,
       "message": "In broadcom, the initialization sequence is as below.\n1) Initialize access terminal (OLT)\n2) Initialize interface terminal (PON PORT)\n3) Initialize subscriber terminal (ONU)\n\nHere we should not add the port to device till the access terminal is up. The port should be added once we get access terminal success indication.",
+      "range": {
+        "startLine": 105,
+        "startChar": 13,
+        "endLine": 105,
+        "endChar": 26
+      },
+      "revId": "f5c6000da50513fd38b0c1353406edad0066f809",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_44b058dd",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 105,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-07-07T00:16:03Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5a202591_e40f642d",
       "range": {
         "startLine": 105,
         "startChar": 13,
