@@ -52,11 +52,15 @@ VERSION = '0.9.0'
 defs = dict(
     config=os.environ.get('CONFIG', './voltha.yml'),
     consul=os.environ.get('CONSUL', 'localhost:8500'),
-    external_host_address=os.environ.get('EXTERNAL_HOST_ADDRESS', None),
+    inter_core_subnet=os.environ.get('INTER_CORE_SUBNET', None),
+    pon_subnet=os.environ.get('PON_SUBNET', None),
+    external_host_address=os.environ.get('EXTERNAL_HOST_ADDRESS',
+                                         get_my_primary_local_ipv4()),
     fluentd=os.environ.get('FLUENTD', None),
     grpc_port=os.environ.get('GRPC_PORT', 50055),
     instance_id=os.environ.get('INSTANCE_ID', os.environ.get('HOSTNAME', '1')),
-    internal_host_address=os.environ.get('INTERNAL_HOST_ADDRESS', None),
+    internal_host_address=os.environ.get('INTERNAL_HOST_ADDRESS',
+                                         get_my_primary_local_ipv4()),
     interface=os.environ.get('INTERFACE', get_my_primary_interface()),
     rest_port=os.environ.get('REST_PORT', 8880),
     kafka=os.environ.get('KAFKA', 'localhost:9092'),
@@ -82,6 +86,23 @@ def parse_args():
         '-C', '--consul', dest='consul', action='store',
         default=defs['consul'],
         help=_help)
+
+
+    _help = ('<inter_core_subnet> is the subnet connecting all the voltha '
+             'instances in a cluster (default: %s)' % defs['inter_core_subnet'])
+    parser.add_argument('-V', '--inter-core-subnet',
+                        dest='inter_core_subnet',
+                        action='store',
+                        default=defs['inter_core_subnet'],
+                        help=_help)
+
+    _help = ('<pon subnet> is the subnet connecting the voltha instances'
+             'with the PON network (default: %s)' % defs['pon_subnet'])
+    parser.add_argument('-P', '--pon-subnet',
+                        dest='pon_subnet',
+                        action='store',
+                        default=defs['pon_subnet'],
+                        help=_help)
 
     _help = ('<hostname> or <ip> at which Voltha is reachable from outside '
              'the cluster (default: %s)' % defs['external_host_address'])
@@ -204,13 +225,20 @@ def parse_args():
     if args.instance_id_is_container_name:
         args.instance_id = get_my_containers_name()
 
-    m_ip = get_my_primary_local_ipv4(args.interface)
-    if not m_ip:
-        m_ip = get_my_primary_local_ipv4()
-    if not args.external_host_address:
+    """ 
+    The container external, internal IP and PON interface needs to be 
+    set based on the subnet data.  At this time the internal IP is not used. 
+    The external IP is used for inter-core communications.  If the subnets are
+    set then they take precedence over the other relevant arguments (
+    external and internal host as well as interface
+    """
+    if args.inter_core_subnet:
+        m_ip = get_my_primary_local_ipv4(inter_core_subnet=args.inter_core_subnet)
         args.external_host_address = m_ip
-    if not args.internal_host_address:
         args.internal_host_address = m_ip
+
+    if args.pon_subnet:
+        args.interface = get_my_primary_interface(args.pon_subnet)
 
     return args
 
@@ -291,7 +319,9 @@ class Main(object):
         try:
             self.log.info('starting-internal-components',
                           internal_host=self.args.internal_host_address,
-                          external_host=self.args.external_host_address)
+                          external_host=self.args.external_host_address,
+                          interface=self.args.interface,
+                          consul=self.args.consul)
 
             registry.register('main', self)
 
