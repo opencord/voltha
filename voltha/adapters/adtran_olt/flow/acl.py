@@ -13,18 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
-import random
-
-from enum import Enum
 import structlog
-from twisted.internet.defer import inlineCallbacks, returnValue
-
-from voltha.core.logical_device_agent import mac_str_to_tuple
-from voltha.protos.common_pb2 import OperStatus, AdminState
-from voltha.protos.device_pb2 import Port
-from voltha.protos.logical_device_pb2 import LogicalPort
-from voltha.protos.openflow_13_pb2 import OFPPF_100GB_FD, OFPPF_FIBER, OFPPS_LIVE, ofp_port
 
 import voltha.core.flow_decomposer as fd
 
@@ -44,7 +33,7 @@ class ACL(object):
         self._parent = flow_entry           # FlowEntry parent
         self._flow = flow_entry.flow
         self._handler = flow_entry.handler
-        self._name = None
+        self._name = ACL.flow_to_name(flow_entry)
 
         self._valid = self._decode()
 
@@ -53,8 +42,8 @@ class ACL(object):
         pass                    # TODO: Start here Thursday
 
     @staticmethod
-    def flow_to_name(flow, handler):
-        return 'ACL-{}-{}'.format(flow.id, handler.id)
+    def flow_to_name(flow_entry):
+        return 'ACL-{}-{}'.format(flow_entry.handler.device_id, flow_entry.flow.id)
 
     @property
     def valid(self):
@@ -123,24 +112,6 @@ class ACL(object):
 
         return status
 
-    def _is_men_port(self, port):
-        return port in self._handler.northbound_ports(port)
-
-    def _is_uni_port(self, port):
-        return port in self._handler.southbound_ports(port)
-
-    def _is_logical_port(self, port):
-        return not self._is_men_port(port) and not self._is_uni_port(port)
-
-    def _get_port_name(self, port):
-        if self._is_logical_port(port):
-            raise NotImplemented('TODO: Logical ports not yet supported')
-
-        if self._is_men_port(port):
-            return self._handler.northbound_ports[port].name
-
-        return None
-
     def _decode_traffic_selector(self):
         """
         Extract EVC related traffic selection settings
@@ -148,10 +119,26 @@ class ACL(object):
         in_port = fd.get_in_port(self._flow)
         assert in_port is not None
 
+        log.debug('InPort: {}', in_port)
+
+        for field in fd.get_ofb_fields(self._flow):
+            log.debug('Found-OFB-field', field=field)
+
+        for action in fd.get_actions(self._flow):
+            log.debug('Found-Action', action=action)
+
         return True
 
     def _decode_traffic_treatment(self):
         out_port = fd.get_out_port(self._flow)
+
+        log.debug('OutPort: {}', out_port)
+
+        for field in fd.get_ofb_fields(self._flow):
+            log.debug('Found-OFB-field', field=field)
+
+        for action in fd.get_actions(self._flow):
+            log.debug('Found-Action', action=action)
 
         return True
 
