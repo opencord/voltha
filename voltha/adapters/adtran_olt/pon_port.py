@@ -56,6 +56,7 @@ class PonPort(object):
         self._parent = parent
         self._pon_id = pon_index
         self._port_no = port_no
+        self._name = 'xpon {}'.format(pon_index)
         self._label = label or 'PON-{}'.format(pon_index)
         self._port = None
         self._no_onu_discover_tick = 5.0  # TODO: Decrease to 1 or 2 later
@@ -64,8 +65,11 @@ class PonPort(object):
         self._onus = {}  # serial_number -> ONU  (allowed list)
         self._next_onu_id = Onu.MIN_ONU_ID
 
-        self._admin_state = admin_state
-        self._oper_status = OperStatus.UNKNOWN
+        # TODO: Currently cannot update admin/oper status, so create this enabled and active
+        # self._admin_state = admin_state
+        # self._oper_status = OperStatus.UNKNOWN
+        self._admin_state = AdminState.ENABLED
+        self._oper_status = OperStatus.ACTIVE
         self._deferred = None
         self._state = PonPort.State.INITIAL
 
@@ -100,6 +104,10 @@ class PonPort(object):
     @property
     def port_number(self):
         return self._port_no
+
+    @property
+    def name(self):
+        return self._name
 
     @property
     def pon_id(self):
@@ -150,7 +158,7 @@ class PonPort(object):
         self._state = PonPort.State.INITIAL
 
         # Do the rest of the startup in an async method
-        self._deferred = reactor.callLater(0, self._finish_startup)
+        self._deferred = reactor.callLater(0.5, self._finish_startup)
         return self._deferred
 
     @inlineCallbacks
@@ -161,6 +169,8 @@ class PonPort(object):
         if self._state != PonPort.State.INITIAL:
             returnValue('Done')
 
+        self.log.debug('Performing final port startup')
+
         if self._enabled is None or self._downstream_fec_enable is None or self._upstream_fec_enable is None:
             try:
                 self._deferred = self.get_pon_config()
@@ -168,7 +178,7 @@ class PonPort(object):
 
             except Exception as e:
                 self.log.exception('Initial GET of config failed: {}'.format(e.message))
-                self._deferred = reactor.callLater(3, self._finish_startup)
+                self._deferred = reactor.callLater(5, self._finish_startup)
                 returnValue(self._deferred)
 
             # Load cache
@@ -196,7 +206,7 @@ class PonPort(object):
 
             except Exception as e:
                 self.log.exception('downstream FEC enable failed: {}'.format(str(e)))
-                self._deferred = reactor.callLater(3, self._finish_startup)
+                self._deferred = reactor.callLater(5, self._finish_startup)
                 returnValue(self._deferred)
 
         if not self._upstream_fec_enable:
@@ -207,7 +217,7 @@ class PonPort(object):
 
             except Exception as e:
                 self.log.exception('upstream FEC enable failed: {}'.format(str(e)))
-                self._deferred = reactor.callLater(3, self._finish_startup)
+                self._deferred = reactor.callLater(5, self._finish_startup)
                 returnValue(self._deferred)
 
             self.log.debug('ONU Startup complete: results: {}'.format(pprint.PrettyPrinter().pformat(results)))
@@ -219,7 +229,7 @@ class PonPort(object):
 
             # Begin to ONU discovery. Once a second if no ONUs found and once every 20
             #                         seconds after one or more ONUs found on the PON
-            self._deferred = reactor.callLater(3, self.discover_onus)
+            self._deferred = reactor.callLater(1, self.discover_onus)
 
             self._update_adapter_agent()
             returnValue('Enabled')
@@ -298,6 +308,8 @@ class PonPort(object):
                 self.log.exception('Failed to get current ONU config', e=e)
                 raise
 
+        returnValue('Reset complete')
+
     def delete(self):
         """
         Parent device is being deleted. Do not change any config but
@@ -367,18 +379,17 @@ class PonPort(object):
         new = self._process_status_onu_list(status.onus)
 
         for onu_id in new:
-            import base64
             # self.add_new_onu(serial_number, status)
-            self.log.info('Found ONU {}/{} in status list'.format(onu_id, base64.decodestring(onu_id)))
+            self.log.info('Found ONU {} in status list'.format(onu_id))
             raise NotImplementedError('TODO: Adding ONUs from existing ONU (status list) not supported')
 
         # Get new/missing from the discovered ONU leaf
 
         new, missing = self._process_status_onu_discovered_list(status.discovered_onu)
 
-        # TODO: Do something useful
-        if len(missing):
-            self.log.info('Missing ONUs are: {}'.format(missing))
+        # TODO: Do something useful (Does the discovery list clear out activated ONU's?)
+        # if len(missing):
+        #     self.log.info('Missing ONUs are: {}'.format(missing))
 
         for serial_number in new:
             reactor.callLater(0, self.add_onu, serial_number, status)
@@ -431,12 +442,11 @@ class PonPort(object):
             # Newly found and not enabled ONU, enable it now if not at max
 
             if len(self._onus) < self.MAX_ONUS_SUPPORTED:
-                # TODO: For now, always allow any ONU
+                # TODO: For now, always allow any ONU to be activated
 
                 if serial_number not in self._onus:
-                    onu = Onu(serial_number, self)
-
                     try:
+                        onu = Onu(serial_number, self)
                         yield onu.create(True)
 
                         self.on_new_onu_discovered(onu)
@@ -461,26 +471,26 @@ class PonPort(object):
         """
         olt = self.olt
         adapter = self.adapter_agent
+        channel_id = self.olt.get_channel_id(self._pon_id, onu.onu_id)
 
-        proxy = Device.ProxyAddress(device_id=olt.device_id,
-                                    channel_id=self._port_no,
-                                    onu_id=onu.onu_id)
+        proxy = Device.ProxyAddress(device_id=olt.device_id, channel_id=channel_id)
 
         adapter.child_device_detected(parent_device_id=olt.device_id,
                                       parent_port_no=self._port_no,
                                       child_device_type=onu.vendor_device,
                                       proxy_address=proxy,
-                                      admin_state=AdminState.ENABLED)
+                                      admin_state=AdminState.ENABLED,
+                                      vlan=channel_id)
 
     def get_next_onu_id(self):
-        used_ids = [onu.onu_id for onu in self.onus]
+        used_ids = [onu.onu_id for onu in self._onus.itervalues()]
 
         while True:
-            onu_id = self.next_onu_id
-            self.next_onu_id += 1
+            onu_id = self._next_onu_id
+            self._next_onu_id += 1
 
-            if self.next_onu_id > Onu.MAX_ONU_ID:
-                self.next_onu_id = Onu.MIN_ONU_ID
+            if self._next_onu_id > Onu.MAX_ONU_ID:
+                self._next_onu_id = Onu.MIN_ONU_ID
 
             if onu_id not in used_ids:
                 return onu_id
