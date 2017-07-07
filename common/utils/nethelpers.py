@@ -21,8 +21,17 @@ Some network related convenience functions
 from netifaces import AF_INET
 
 import netifaces as ni
+import netaddr
 
-def get_my_primary_interface():
+
+def _get_all_interfaces():
+    m_interfaces = []
+    for iface in ni.interfaces():
+        m_interfaces.append((iface, ni.ifaddresses(iface)))
+    return m_interfaces
+
+
+def _get_my_primary_interface():
     gateways = ni.gateways()
     assert 'default' in gateways, \
         ("No default gateway on host/container, "
@@ -34,7 +43,33 @@ def get_my_primary_interface():
     return interface_name
 
 
-def get_my_primary_local_ipv4(ifname=None):
+def get_my_primary_local_ipv4(inter_core_subnet=None, ifname=None):
+    if not inter_core_subnet:
+        return _get_my_primary_local_ipv4(ifname)
+    # My IP should belong to the specified subnet
+    for iface in ni.interfaces():
+        m_ip = ni.ifaddresses(iface)[AF_INET][0]['addr']
+        _ip = netaddr.IPAddress(m_ip).value
+        m_network = netaddr.IPNetwork(inter_core_subnet)
+        if _ip >= m_network.first and _ip <= m_network.last:
+            return m_ip
+    return None
+
+
+def get_my_primary_interface(pon_subnet=None):
+    if not pon_subnet:
+        return _get_my_primary_interface()
+    # My interface should have an IP that belongs to the specified subnet
+    for iface in ni.interfaces():
+        m_ip = ni.ifaddresses(iface)[AF_INET][0]['addr']
+        m_ip = netaddr.IPAddress(m_ip).value
+        m_network = netaddr.IPNetwork(pon_subnet)
+        if m_ip >= m_network.first and m_ip <= m_network.last:
+            return iface
+    return None
+
+
+def _get_my_primary_local_ipv4(ifname=None):
     try:
         ifname = get_my_primary_interface() if ifname is None else ifname
         addresses = ni.ifaddresses(ifname)
@@ -42,7 +77,6 @@ def get_my_primary_local_ipv4(ifname=None):
         return ipv4
     except Exception as e:
         return None
-
 
 if __name__ == '__main__':
     print get_my_primary_local_ipv4()
