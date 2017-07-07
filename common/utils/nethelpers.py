@@ -22,7 +22,6 @@ from netifaces import AF_INET
 
 import netifaces as ni
 
-
 def get_my_primary_interface():
     gateways = ni.gateways()
     assert 'default' in gateways, \
@@ -36,10 +35,13 @@ def get_my_primary_interface():
 
 
 def get_my_primary_local_ipv4(ifname=None):
-    ifname = get_my_primary_interface() if ifname is None else ifname
-    addresses = ni.ifaddresses(ifname)
-    ipv4 = addresses[AF_INET][0]['addr']
-    return ipv4
+    try:
+        ifname = get_my_primary_interface() if ifname is None else ifname
+        addresses = ni.ifaddresses(ifname)
+        ipv4 = addresses[AF_INET][0]['addr']
+        return ipv4
+    except Exception as e:
+        return None
 
 
 if __name__ == '__main__':

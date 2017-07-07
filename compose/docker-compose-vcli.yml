@@ -20,6 +20,7 @@ services:
       - -C consul:8500
       - -g voltha:50555
       - -s voltha:18880
+      - -G
     networks:
       - voltha-net
     ports:

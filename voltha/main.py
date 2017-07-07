@@ -52,13 +52,11 @@ VERSION = '0.9.0'
 defs = dict(
     config=os.environ.get('CONFIG', './voltha.yml'),
     consul=os.environ.get('CONSUL', 'localhost:8500'),
-    external_host_address=os.environ.get('EXTERNAL_HOST_ADDRESS',
-                                         get_my_primary_local_ipv4()),
+    external_host_address=os.environ.get('EXTERNAL_HOST_ADDRESS', None),
     fluentd=os.environ.get('FLUENTD', None),
     grpc_port=os.environ.get('GRPC_PORT', 50055),
     instance_id=os.environ.get('INSTANCE_ID', os.environ.get('HOSTNAME', '1')),
-    internal_host_address=os.environ.get('INTERNAL_HOST_ADDRESS',
-                                         get_my_primary_local_ipv4()),
+    internal_host_address=os.environ.get('INTERNAL_HOST_ADDRESS', None),
     interface=os.environ.get('INTERFACE', get_my_primary_interface()),
     rest_port=os.environ.get('REST_PORT', 8880),
     kafka=os.environ.get('KAFKA', 'localhost:9092'),
@@ -126,8 +124,7 @@ def parse_args():
                         default=defs['instance_id'],
                         help=_help)
 
-    # TODO placeholder, not used yet
-    _help = 'ETH interface to send (default: %s)' % defs['interface']
+    _help = 'ETH interface to recieve (default: %s)' % defs['interface']
     parser.add_argument('-I', '--interface',
                         dest='interface',
                         action='store',
@@ -207,6 +204,14 @@ def parse_args():
     if args.instance_id_is_container_name:
         args.instance_id = get_my_containers_name()
 
+    m_ip = get_my_primary_local_ipv4(args.interface)
+    if not m_ip:
+        m_ip = get_my_primary_local_ipv4()
+    if not args.external_host_address:
+        args.external_host_address = m_ip
+    if not args.internal_host_address:
+        args.internal_host_address = m_ip
+
     return args
 
 
@@ -284,7 +289,9 @@ class Main(object):
     @inlineCallbacks
     def startup_components(self):
         try:
-            self.log.info('starting-internal-components')
+            self.log.info('starting-internal-components',
+                          internal_host=self.args.internal_host_address,
+                          external_host=self.args.external_host_address)
 
             registry.register('main', self)
 
