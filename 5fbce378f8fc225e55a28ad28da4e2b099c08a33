@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5a202591_0f96f994",
+        "filename": "voltha/adapters/adtran_olt/flow/acl.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 125,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-07-10T13:54:46Z",
+      "side": 1,
+      "message": "Please use the voltha logging format as much as possible, e.g. in this case it should be \u0027Found-OFB-field\u0027",
+      "revId": "5fbce378f8fc225e55a28ad28da4e2b099c08a33",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
