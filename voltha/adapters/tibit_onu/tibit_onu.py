@@ -597,7 +597,9 @@ class TibitOnuAdapter(object):
 
             hw_vers = int(device.hardware_version, 16)
 
-            if hw_vers >= 0x170517:
+            if hw_vers >= 0x170618:
+                mcastLidx = 0x04bc
+            elif hw_vers >= 0x170517:
                 mcastLidx = 0x14bc
             else:
                 mcastLidx = 0x10bc
