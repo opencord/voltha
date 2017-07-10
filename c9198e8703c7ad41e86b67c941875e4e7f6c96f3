@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5a202591_4fcab1a2",
+        "filename": "voltha/adapters/adtran_olt/flow/acl.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 128,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-07-10T15:28:46Z",
+      "side": 1,
+      "message": "Don\u0027t want to be picky but the same logging principle should be applied everywhere.  may be I am too picky :(",
+      "revId": "c9198e8703c7ad41e86b67c941875e4e7f6c96f3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
