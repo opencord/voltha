@@ -22,6 +22,30 @@
       "revId": "e97fcd4fca6a451fcaa1744653200a35bb9582ca",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_c99ec163",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 6
+      },
+      "lineNbr": 23,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-11T00:26:34Z",
+      "side": 1,
+      "message": "thx for pointing out. it is recovered now.",
+      "parentUuid": "5a202591_6931eda1",
+      "range": {
+        "startLine": 23,
+        "startChar": 32,
+        "endLine": 23,
+        "endChar": 34
+      },
+      "revId": "e97fcd4fca6a451fcaa1744653200a35bb9582ca",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
