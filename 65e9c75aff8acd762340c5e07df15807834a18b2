@@ -1,0 +1,106 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5a202591_6aee7b24",
+        "filename": "voltha/adapters/simulated_olt/simulated_olt.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 243,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-07-12T09:22:21Z",
+      "side": 1,
+      "message": "When does the device move from DOWNLOAD_IMAGE state to ENABLED state ?",
+      "revId": "65e9c75aff8acd762340c5e07df15807834a18b2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_4af3bf0a",
+        "filename": "voltha/adapters/simulated_olt/simulated_olt.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 259,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-07-12T09:22:21Z",
+      "side": 1,
+      "message": "Can you please clarify the below point for me..\nIn this sample implementation, are you trying to move the device to ENABLED state only if the random choice results in DOWNLOAD_SUCCCEEDED. But, \"get_image_download_status\" is invoked only on user request. So, unless the user makes this request and the response results in \"DOWNLOAD_SUCCCEEDED\", the device will not move to ENABLED state?",
+      "revId": "65e9c75aff8acd762340c5e07df15807834a18b2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_ca8fcf74",
+        "filename": "voltha/core/device_agent.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 125,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-07-12T09:22:21Z",
+      "side": 1,
+      "message": "get-image-download-status",
+      "revId": "65e9c75aff8acd762340c5e07df15807834a18b2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_0a96e794",
+        "filename": "voltha/core/device_agent.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 132,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-07-12T09:22:21Z",
+      "side": 1,
+      "message": "Shouldn\u0027t cancel_image_download and get_image_download_status also be under inlineCallback",
+      "revId": "65e9c75aff8acd762340c5e07df15807834a18b2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_2a81a34a",
+        "filename": "voltha/core/device_agent.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 177,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-07-12T09:22:21Z",
+      "side": 1,
+      "message": "inlineCallBack seems to be removed from self_test function.",
+      "revId": "65e9c75aff8acd762340c5e07df15807834a18b2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_8ae9d71c",
+        "filename": "voltha/core/local_handler.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 472,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-07-12T09:22:21Z",
+      "side": 1,
+      "message": "You may want to put a check the device is in DOWNLOAD_IMAGE admin state..",
+      "revId": "65e9c75aff8acd762340c5e07df15807834a18b2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
