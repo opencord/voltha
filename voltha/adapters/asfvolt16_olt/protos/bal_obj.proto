@@ -24,7 +24,7 @@ import "bal_errno.proto";
 /*
  * The BAL common message header
  */
-message bal_comm_msg_hdr
+message Bal_comm_msg_hdr
 {
     uint32         version_major = 2;   /**< Header Major version number */
     uint32         version_minor = 3;   /**< Header Minor version number */
@@ -67,7 +67,7 @@ enum BalObj_msg_dir
 /** Information common to all BAL objects */
 message BalObj
 {
-    bal_comm_msg_hdr     comm_hdr = 1;      /**< Communication header */
+    Bal_comm_msg_hdr     comm_hdr = 1;      /**< Communication header */
     uint32    version = 2;       /**< Version of the Object definition/messageure */
     BalObjId        obj_type = 3;      /**< An enumerated ID associated with the object being specified */
     Bal_mgt_group     group = 4;         /**< Management group */
