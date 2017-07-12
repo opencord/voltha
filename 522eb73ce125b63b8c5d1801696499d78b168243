@@ -16,6 +16,24 @@
       "revId": "522eb73ce125b63b8c5d1801696499d78b168243",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_4a585ffa",
+        "filename": "voltha/adapters/asfvolt16_olt/protos/bal_indications.proto",
+        "patchSetId": 3
+      },
+      "lineNbr": 181,
+      "author": {
+        "id": 1000103
+      },
+      "writtenOn": "2017-07-12T15:36:37Z",
+      "side": 1,
+      "message": "For ONU discovery and ONU activation we have the same object type \"SUBSCRIBER TERMINAL\" but they differ by admin state as DOWN for former and UP for the activation.",
+      "parentUuid": "5a202591_8a5e77e8",
+      "revId": "522eb73ce125b63b8c5d1801696499d78b168243",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
