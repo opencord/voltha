@@ -172,8 +172,9 @@ message BalObjInd{
     BalErrno     status  = 2; //status of the indication received from BAL utilities
     string       keyStr  = 3; //key string containing additional data
     oneof u {
-        bytes        pktData = 4; //raw packet in case of object type is PACKET
-	}
+          BalSubscriberTerminalCfg onuDiscoveryInfo = 4; // ONU discovery info
+          bytes        pktData = 5; //raw packet in case of object type is PACKET
+    }
 }
 
 message BalIndications{
