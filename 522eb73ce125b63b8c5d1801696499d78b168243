@@ -52,6 +52,24 @@
       "revId": "522eb73ce125b63b8c5d1801696499d78b168243",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_aac0132b",
+        "filename": "voltha/adapters/asfvolt16_olt/protos/bal_indications.proto",
+        "patchSetId": 3
+      },
+      "lineNbr": 181,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-07-12T21:28:16Z",
+      "side": 1,
+      "message": "I agree with Shad here.  We should strive to keep the BAL protos pure and matching the stock API as defined by Broadcom.  Otherwise upgrading protos to later version of BAL will be a challenge.\n\nWhen we do find a need to extend the protobufs we should use a naming convention that clearly distinguishes the extensions from the vanilla BAL API.",
+      "parentUuid": "5a202591_0a72677c",
+      "revId": "522eb73ce125b63b8c5d1801696499d78b168243",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
