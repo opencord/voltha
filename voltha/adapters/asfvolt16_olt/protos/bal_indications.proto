@@ -167,13 +167,20 @@ message BalOmciRespInfo{
     uint32 crc_ok = 5; //crc status
 }
 
+message BalOnuDiscoveryInfo{
+    BalSerialNumber serial_number = 1; //ONU serial number
+    BalState admin_state = 2; // ONU admin state
+    BalStatus oper_status = 3; // ONU operational state
+}
+
 message BalObjInd{
     BalObjId     objType = 1; //type of object for which the indications have been received
     BalErrno     status  = 2; //status of the indication received from BAL utilities
     string       keyStr  = 3; //key string containing additional data
     oneof u {
-        bytes        pktData = 4; //raw packet in case of object type is PACKET
-	}
+          BalOnuDiscoveryInfo onuDiscoveryInfo = 4; // ONU discovery info
+          bytes        pktData = 5; //raw packet in case of object type is PACKET
+    }
 }
 
 message BalIndications{
