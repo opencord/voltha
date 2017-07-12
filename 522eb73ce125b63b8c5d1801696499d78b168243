@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5a202591_8a5e77e8",
+        "filename": "voltha/adapters/asfvolt16_olt/protos/bal_indications.proto",
+        "patchSetId": 3
+      },
+      "lineNbr": 181,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-07-12T15:33:01Z",
+      "side": 1,
+      "message": "I could not find the objType for this new oneof field. Could you please point me to it.",
+      "revId": "522eb73ce125b63b8c5d1801696499d78b168243",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
