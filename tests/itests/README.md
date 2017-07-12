@@ -157,4 +157,26 @@ Run the test:
 cd /cord/incubator/voltha
 . ./env.sh
 nosetests -s tests/itests/voltha/test_dispatcher.py
-```  
+```
+
+* **Voltha_Xpon**: This tests uses the ponsim OLT to verfiy addition, modification and deletion 
+of channelgroups, channelpartition, channelpair, channeltermination for xpon
+
+First start the Voltha ensemble:
+```
+cd /cord/incubator/voltha
+. ./env.sh
+docker-compose -f compose/docker-compose-system-test.yml up -d
+```    
+Then start PONSIM in a separate window:
+``` 
+sudo -s
+cd /cord/incubator/voltha
+. ./env.sh
+./ponsim/main.py -v
+```
+Now Run the test in the first window:
+``` 
+nosetests -s tests/itests/voltha/test_voltha_xpon.py
+```
+  
