@@ -34,6 +34,24 @@
       "revId": "522eb73ce125b63b8c5d1801696499d78b168243",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_0a72677c",
+        "filename": "voltha/adapters/asfvolt16_olt/protos/bal_indications.proto",
+        "patchSetId": 3
+      },
+      "lineNbr": 181,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-07-12T16:00:00Z",
+      "side": 1,
+      "message": "Is the BalOnuDiscoveryInfo defined by Broadcom BAL api? If not, it would be good to identify voltha extensions to the protobufs that are based on the vanilla BAL api protobuf.",
+      "parentUuid": "5a202591_4a585ffa",
+      "revId": "522eb73ce125b63b8c5d1801696499d78b168243",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
