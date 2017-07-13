@@ -77,6 +77,14 @@
     links: yes
   tags: [cluster_host]
 
+- name: pre-emptive strike to avoid errors during package installation
+  apt:
+    name: "{{ item }}"
+    state: absent
+  with_items:
+    - ubuntu-core-launcher
+    - snapd
+  tags: [cluster_host]
 
 - name: Dependent software is installed (this can take about 10 Min, DONT'T PANIC, go for coffee instead)
   command: dpkg -R -i "{{ target_voltha_home }}/deb_files"

@@ -47,6 +47,7 @@ Vagrant.configure(2) do |config|
     d.vm.provision :shell, inline: "cd /cord/incubator/voltha && source env.sh && make install-protoc && chmod 777 /tmp/fluentd"
     d.vm.provider Provider do |v|
       v.memory = 6144
+      v.cpus = 4
     end
   end
 
