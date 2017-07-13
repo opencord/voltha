@@ -70,6 +70,42 @@
       "revId": "522eb73ce125b63b8c5d1801696499d78b168243",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_8aee778a",
+        "filename": "voltha/adapters/asfvolt16_olt/protos/bal_indications.proto",
+        "patchSetId": 3
+      },
+      "lineNbr": 181,
+      "author": {
+        "id": 1000103
+      },
+      "writtenOn": "2017-07-13T08:31:23Z",
+      "side": 1,
+      "message": "Changed it to the existing BalSubscriberTerminalCfg message",
+      "parentUuid": "5a202591_0a72677c",
+      "revId": "522eb73ce125b63b8c5d1801696499d78b168243",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_6af31b74",
+        "filename": "voltha/adapters/asfvolt16_olt/protos/bal_indications.proto",
+        "patchSetId": 3
+      },
+      "lineNbr": 181,
+      "author": {
+        "id": 1000103
+      },
+      "writtenOn": "2017-07-13T08:31:23Z",
+      "side": 1,
+      "message": "Changed it to the existing BalSubscriberTerminalCfg message",
+      "parentUuid": "5a202591_aac0132b",
+      "revId": "522eb73ce125b63b8c5d1801696499d78b168243",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
