@@ -13,6 +13,7 @@ ipTimeout=10
 
 # Command line argument variables
 testMode="no"
+rebuildVoltha="no"
 
 
 
@@ -37,6 +38,10 @@ parse_args()
 			"test" )
 				testMode="yes"
 				echo -e "${lBlue}Test mode is ${green}enabled${NC}"
+				;;
+			"rebuild" )
+				rebuildVoltha="yes"
+				echo -e "${lBlue}Voltha rebuild is ${green}enabled${NC}"
 				;;
 		esac
 	done
@@ -231,9 +236,12 @@ fi
 
 # Ensure that the voltha VM is running so that images can be secured
 echo -e "${lBlue}Ensure that the ${lCyan}voltha VM${lBlue} is running${NC}"
-vVM=`virsh list | grep voltha_voltha${uId}`
+vVm=`virsh list | grep "voltha_voltha${uId}"`
+#echo "vVm: $vVm"
+#echo "rebuildVoltha: $rebuildVoltha"
 
-if [ -z "$vVM" ]; then
+
+if [ -z "$vVm" -o "$rebuildVoltha" == "yes" ]; then
 	if [ "$testMode" == "yes" ]; then
 		./BuildVoltha.sh $1
 		rtrn=$?

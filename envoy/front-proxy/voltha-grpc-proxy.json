@@ -1,0 +1,184 @@
+{
+  "listeners": [
+    {
+      "address": "tcp://0.0.0.0:3000",
+      "filters": [
+        {
+          "type": "read",
+          "name": "http_connection_manager",
+          "config": {
+            "codec_type": "auto",
+            "stat_prefix": "ingress_http",
+            "route_config": {
+              "virtual_hosts": [
+                {
+                  "name": "backend",
+                  "domains": ["*"],
+                  "routes": [
+                    {
+                      "timeout_ms": 0,
+                      "prefix": "/docker/",
+		      "prefix_rewrite" : "/",
+                      "cluster": "portainer"
+                    },
+                    {
+                      "timeout_ms": 0,
+                      "prefix": "/docker",
+		      "prefix_rewrite" : "/",
+                      "cluster": "portainer"
+                    },
+                    {
+                      "timeout_ms": 0,
+                      "prefix": "/grafana",
+		      "prefix_rewrite" : "/",
+                      "cluster": "grafana"
+                    },
+                    {
+                      "timeout_ms": 0,
+                      "prefix": "/consul/",
+		      "prefix_rewrite" : "/",
+                      "cluster": "consul"
+                    },
+                    {
+                      "timeout_ms": 0,
+                      "prefix": "/consul",
+		      "prefix_rewrite" : "/",
+                      "cluster": "consul"
+                    },
+                    {
+                      "timeout_ms": 0,
+                      "prefix": "/v1",
+                      "cluster": "consul"
+                    },
+                    {
+                      "timeout_ms": 0,
+                      "prefix": "/ui",
+                      "cluster": "consul"
+                    }
+
+                  ]
+                }
+              ]
+            },
+            "filters": [
+              {
+                "type": "decoder",
+                "name": "router",
+                "config": {}
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "address": "tcp://0.0.0.0:50555",
+      "filters": [
+        {
+          "type": "read",
+          "name": "http_connection_manager",
+          "config": {
+            "codec_type": "http2",
+            "stat_prefix": "ingress_http2",
+	    "access_log": [
+		{
+			"path": "/envoy/voltha_access_log.log"
+		}
+	    ],
+            "route_config": {
+              "virtual_hosts": [
+                {
+                  "name": "backend",
+                  "domains": ["*"],
+                  "routes": [
+                    {
+                      "timeout_ms": 0,
+		      "prefix": "/voltha.HealthService/GetHealthStatus",
+                      "cluster": "voltha-grpc"
+                    },
+                    {
+                      "timeout_ms": 0,
+		      "prefix": "/voltha.VolthaLocalService/CreateDevice",
+                      "cluster": "voltha-grpc"
+                    },
+                    {
+                      "timeout_ms": 0,
+		      "prefix": "/voltha.VolthaLocalService",
+                      "cluster": "voltha-grpc"
+                    },
+                    {
+                      "timeout_ms": 0,
+		      "prefix": "/voltha.",
+                      "cluster": "voltha-grpc"
+                    }
+                  ]
+                }
+              ]
+            },
+            "filters": [
+              {
+                "type": "decoder",
+                "name": "router",
+                "config": {}
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "admin": {
+    "access_log_path": "/envoy/access.log",
+    "address": "tcp://0.0.0.0:8001"
+  },
+  "cluster_manager": {
+    "clusters": [
+      {
+        "name": "voltha-grpc",
+        "connect_timeout_ms": 250,
+        "type": "static",
+        "lb_type": "round_robin",
+	"features": "http2",
+        "hosts": [
+          {
+            "url": "tcp://10.0.2.15:32786"
+          }
+        ]
+      },
+      {
+        "name": "portainer",
+        "connect_timeout_ms": 250,
+        "type": "static",
+        "lb_type": "round_robin",
+        "hosts": [
+          {
+            "url": "tcp://10.0.2.15:9000"
+          }
+        ]
+      },
+      {
+        "name": "consul",
+        "connect_timeout_ms": 250,
+        "type": "static",
+        "lb_type": "round_robin",
+        "hosts": [
+          {
+            "url": "tcp://10.0.2.15:8500"
+          }
+        ]
+      },
+      {
+        "name": "grafana",
+        "connect_timeout_ms": 250,
+        "type": "static",
+        "lb_type": "round_robin",
+        "hosts": [
+          {
+            "url": "tcp://10.0.2.15:8882"
+          }
+        ]
+      }
+    ]
+  }
+}
+

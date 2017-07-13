@@ -22,7 +22,7 @@ include setup.mk
 
 VENVDIR := venv-$(shell uname -s | tr '[:upper:]' '[:lower:]')
 
-.PHONY: $(DIRS) $(DIRS_CLEAN) $(DIRS_FLAKE8) flake8 docker-base voltha chameleon ofagent podder netconf shovel onos dashd vcli portainer grafana nginx consul registrator
+.PHONY: $(DIRS) $(DIRS_CLEAN) $(DIRS_FLAKE8) flake8 docker-base voltha chameleon ofagent podder netconf shovel onos dashd vcli portainer grafana nginx consul registrator envoy
 
 # This should to be the first and default target in this Makefile
 help:
@@ -96,9 +96,9 @@ build: protos containers
 production: protos prod-containers
 
 
-prod-containers: docker-base voltha chameleon ofagent netconf shovel dashd vcli grafana consul registrator
+prod-containers: docker-base voltha chameleon ofagent netconf shovel dashd vcli grafana consul registrator envoy registry
 
-containers: docker-base voltha chameleon ofagent podder netconf shovel onos tester config-push dashd vcli portainer grafana nginx consul registrator
+containers: docker-base voltha chameleon ofagent podder netconf shovel onos tester config-push dashd vcli portainer grafana nginx consul registrator tools envoy
 
 docker-base:
 	docker build -t cord/voltha-base -f docker/Dockerfile.base .
@@ -120,6 +120,12 @@ ofagent:
 
 podder:
 	docker build -t cord/podder -f docker/Dockerfile.podder .
+
+tools:
+	docker build -t voltha/tools -f docker/Dockerfile.tools .
+
+envoy:
+	docker build -t voltha/envoy -f docker/Dockerfile.envoy .
 
 netconf:
 	docker build -t cord/netconf -f docker/Dockerfile.netconf .
@@ -186,6 +192,8 @@ fetch:
 	docker pull zookeeper:latest
 	docker pull nginx:latest
 	docker pull portainer/portainer:latest
+	docker pull lyft/envoy:latest
+	docker pull registry:2
 
 purge-venv:
 	rm -fr ${VENVDIR}
