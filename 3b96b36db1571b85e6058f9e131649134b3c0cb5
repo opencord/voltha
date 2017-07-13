@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5a202591_2a72c3e5",
+        "filename": "compose/docker-compose-envoy-swarm.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1000196
+      },
+      "writtenOn": "2017-07-13T13:29:24Z",
+      "side": 1,
+      "message": "Comment block should either be updated or removed.",
+      "range": {
+        "startLine": 1,
+        "startChar": 0,
+        "endLine": 8,
+        "endChar": 1
+      },
+      "revId": "3b96b36db1571b85e6058f9e131649134b3c0cb5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_ca80ef8d",
+        "filename": "install/voltha-swarm-stop.sh",
+        "patchSetId": 1
+      },
+      "lineNbr": 11,
+      "author": {
+        "id": 1000196
+      },
+      "writtenOn": "2017-07-13T13:29:24Z",
+      "side": 1,
+      "message": "\u0027docker stack rm kafka\u0027 will remove the 3 kafka instances, the 3 zookeeper instances, and kafka_net.  Similarly \u0027docker stack rm consul\u0027 will remove all 3 consul instances as well as consul_net.",
+      "range": {
+        "startLine": 8,
+        "startChar": 0,
+        "endLine": 11,
+        "endChar": 27
+      },
+      "revId": "3b96b36db1571b85e6058f9e131649134b3c0cb5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
