@@ -86,6 +86,12 @@
     - snapd
   tags: [cluster_host]
 
+- name: A fluentd directory under tmp for voltha logs exists
+  file:
+    path: "/tmp/fluentd"
+    state: directory
+  tags: [cluster_host]
+
 - name: Dependent software is installed (this can take about 10 Min, DONT'T PANIC, go for coffee instead)
   command: dpkg -R -i "{{ target_voltha_home }}/deb_files"
 #  ignore_errors: true

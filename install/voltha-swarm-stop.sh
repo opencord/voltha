@@ -6,5 +6,6 @@ docker service rm cli_cli
 docker service rm voltha_voltha
 docker stack rm consul
 docker stack rm kafka
+docker stack rm fluentd 
 docker service rm tools
 docker network rm voltha_net
