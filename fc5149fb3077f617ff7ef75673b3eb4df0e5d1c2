@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5a202591_0a7707d6",
+        "filename": "env.sh",
+        "patchSetId": 1
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-07-13T13:16:41Z",
+      "side": 1,
+      "message": "Why do you need this change?",
+      "revId": "fc5149fb3077f617ff7ef75673b3eb4df0e5d1c2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
