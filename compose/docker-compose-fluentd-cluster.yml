@@ -1,0 +1,30 @@
+version: "3"
+services:
+
+#
+# Deploying a Fluentd cluster using this file assumes that overlay network 'voltha_net'
+# has already been created. To deploy the fluentd, issue the command:
+#
+#     docker stack deploy -c docker-compose-fluentd-cluster.yml fluentd
+#
+
+  fluentd:
+    image: fluent/fluentd
+
+    deploy:
+      mode: global
+      restart_policy:
+        condition: on-failure
+    environment:
+        SERVICE_24224_NAME: "fluentd-intake"
+    networks:
+      - voltha-net
+    ports:
+    - "24224:24224"
+    volumes:
+    - "/tmp/fluentd:/fluentd/log"
+
+networks:
+  voltha-net:
+    external:
+      name: voltha_net
