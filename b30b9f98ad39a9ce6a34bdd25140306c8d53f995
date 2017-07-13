@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5a202591_5e26e469",
+        "filename": "voltha/adapters/asfvolt16_olt/protos/bal_indications.proto",
+        "patchSetId": 5
+      },
+      "lineNbr": 175,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-07-13T23:04:59Z",
+      "side": 1,
+      "message": "By naming convention I mean something that is clearly flagged to be an extension to the vanilla BAL API.  For example:\n\nvext_BalSubscriberTerminalCfg\n\nmight be a good way to do it.  The unusual prefix is indicating something unusual is being done here.\n\nWe can specify the convention in a md file in this directory.  Any thoughts?",
+      "revId": "b30b9f98ad39a9ce6a34bdd25140306c8d53f995",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
