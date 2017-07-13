@@ -68,6 +68,29 @@
       "revId": "2bd287f04e984c177178898498c16bac88a9373c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_0a54a752",
+        "filename": "voltha/adapters/asfvolt16_olt/protos/bal.proto",
+        "patchSetId": 11
+      },
+      "lineNbr": 47,
+      "author": {
+        "id": 1000103
+      },
+      "writtenOn": "2017-07-13T06:30:35Z",
+      "side": 1,
+      "message": "i agree with Raghu here. We can follow the BAL convention here as Set/Get/Clear.",
+      "range": {
+        "startLine": 47,
+        "startChar": 0,
+        "endLine": 47,
+        "endChar": 4
+      },
+      "revId": "2bd287f04e984c177178898498c16bac88a9373c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
