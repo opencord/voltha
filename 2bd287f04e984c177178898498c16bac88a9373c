@@ -25,6 +25,29 @@
     },
     {
       "key": {
+        "uuid": "5a202591_4a5a9f84",
+        "filename": "voltha/adapters/asfvolt16_olt/bal.py",
+        "patchSetId": 11
+      },
+      "lineNbr": 47,
+      "author": {
+        "id": 1000103
+      },
+      "writtenOn": "2017-07-13T06:14:25Z",
+      "side": 1,
+      "message": "Instead of hardcoding to 0, this has to be olt_no",
+      "range": {
+        "startLine": 47,
+        "startChar": 37,
+        "endLine": 47,
+        "endChar": 38
+      },
+      "revId": "2bd287f04e984c177178898498c16bac88a9373c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_8fc7a912",
         "filename": "voltha/adapters/asfvolt16_olt/protos/bal.proto",
         "patchSetId": 11
