@@ -25,6 +25,23 @@
     },
     {
       "key": {
+        "uuid": "5a202591_8a4af781",
+        "filename": "install/ansible/roles/voltha/tasks/main.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 165,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-07-13T13:41:35Z",
+      "side": 1,
+      "message": "May want to remove those.",
+      "revId": "3b96b36db1571b85e6058f9e131649134b3c0cb5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_ca80ef8d",
         "filename": "install/voltha-swarm-stop.sh",
         "patchSetId": 1
