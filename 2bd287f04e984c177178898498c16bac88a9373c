@@ -25,6 +25,29 @@
     },
     {
       "key": {
+        "uuid": "5a202591_0a8947ca",
+        "filename": "voltha/adapters/asfvolt16_olt/bal.py",
+        "patchSetId": 11
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1000103
+      },
+      "writtenOn": "2017-07-13T09:29:44Z",
+      "side": 1,
+      "message": "whats the difference between balapi_mgmt_ip_port and core_mgmt_ip_port ? i can see only an IP assigned to one parameter and a port assigned to the other though the description says ip and port.",
+      "range": {
+        "startLine": 36,
+        "startChar": 39,
+        "endLine": 36,
+        "endChar": 40
+      },
+      "revId": "2bd287f04e984c177178898498c16bac88a9373c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_4a5a9f84",
         "filename": "voltha/adapters/asfvolt16_olt/bal.py",
         "patchSetId": 11
