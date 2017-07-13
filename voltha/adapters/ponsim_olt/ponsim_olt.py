@@ -233,15 +233,14 @@ class PonSimOltHandler(object):
 
             # read in certificate
             try:
-               with open('/pki/voltha-CA.pem') as f:
+               with open('/voltha/pki/voltha-CA.pem') as f:
                   trusted_certs = f.read()
 
-               with open('/pki/voltha.crt') as f:
+               with open('/voltha/pki/voltha.crt') as f:
                   client_cert = f.read()
 
-               with open('/pki/voltha.key') as f:
+               with open('/voltha/pki/voltha.key') as f:
                   client_key = f.read()
-      
             except Exception as e:
                log.error('failed-to-read-cert-keys', reason=e)
 
@@ -251,8 +250,7 @@ class PonSimOltHandler(object):
             # create channel using ssl credentials
             my_server_host_override_string = "ABCD" # Server's CN Name, Ugly but no other Choice.
             self.channel = grpc.secure_channel(device.host_and_port, credentials, options=(('grpc.ssl_target_name_override', my_server_host_override_string,),))
-            
-            #self.channel = grpc.insecure_channel(device.host_and_port)
+
         return self.channel
 
     def _get_nni_port(self):
@@ -270,13 +268,9 @@ class PonSimOltHandler(object):
             self.adapter_agent.update_device(device)
             return
 
-        print "***************************SISIR  ********** STUB: "
         stub = ponsim_pb2.PonSimStub(self.get_channel())
-        print stub
-        print "***************************SISIR  ********** STUB(End): "
         info = stub.GetDeviceInfo(Empty())
         log.info('got-info', info=info)
-        print "***************************SISIR  ********** 2.. STUB(End): "
 
         device.root = True
         device.vendor = 'ponsim'
