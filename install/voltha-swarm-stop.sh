@@ -8,4 +8,6 @@ docker service rm vcore_vcore
 docker service rm tools
 docker stack rm consul
 docker stack rm kafka
+docker stack rm fluentd 
+docker service rm tools
 docker network rm voltha_net
