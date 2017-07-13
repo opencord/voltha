@@ -17,7 +17,7 @@ use_latest_for:
   - python-nose
   - python-flake8
   - python-scapy
-  - python-netaddr
+#  - python-netaddr
 #  - python-libpcap
 
 obsolete_services:
