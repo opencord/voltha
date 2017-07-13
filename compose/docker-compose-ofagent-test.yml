@@ -74,7 +74,7 @@ services:
   # onos-1
   #
   onos1:
-    image: onosproject/onos:1.8
+    image: cord/onos 
     container_name: onos1
     ports:
     - 6633:6653
@@ -90,7 +90,7 @@ services:
   # onos-2
   #
   onos2:
-    image: onosproject/onos:1.8
+    image: cord/onos
     container_name: onos2
     ports:
     - 6644:6653
@@ -106,7 +106,7 @@ services:
   # onos-3
   #
   onos3:
-    image: onosproject/onos:1.8
+    image: cord/onos
     container_name: onos3
     ports:
     - 6655:6653

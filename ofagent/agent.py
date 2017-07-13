@@ -98,8 +98,8 @@ class Agent(protocol.ClientFactory):
                ctx = clientCert.options()
                self.connector = reactor.connectSSL(host, port, self, ctx)
 
-            except Exception as error:
-                log.error(event, reason=reason)
+            except Exception as e:
+                log.exception('failed-to-connect', reason=e)
 
 
             self.d_disconnected = Deferred()
