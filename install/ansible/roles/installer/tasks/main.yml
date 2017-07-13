@@ -33,9 +33,12 @@
   with_items:
     - install/installer.sh
     - install/install.cfg
+    - install/voltha-swarm-start.sh
+    - install/voltha-swarm-stop.sh
     - install/ansible
     - compose
     - nginx_config
+    - envoy
   tags: [installer]
 
 - name: Determine if test mode is active
@@ -85,6 +88,7 @@
     - deb_files
     - docker-py
     - netifaces
+    - envoy
   tags: [installer]
 - name: Installer files are owned by vinstall
   file:
@@ -95,5 +99,7 @@
   with_items:
     - installer.sh
     - install.cfg
+    - voltha-swarm-start.sh
+    - voltha-swarm-stop.sh
     - docker-compose-Linux-x86_64
   tags: [installer]

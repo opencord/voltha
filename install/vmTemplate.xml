@@ -2,7 +2,7 @@
   <name>{{ VMName }}</name>
   <memory unit='KiB'>1048576</memory>
   <currentMemory unit='KiB'>1048576</currentMemory>
-  <vcpu placement='static'>2</vcpu>
+  <vcpu placement='static'>4</vcpu>
   <os>
     <type arch='x86_64' machine='pc-i440fx-xenial'>hvm</type>
     <boot dev='hd'/>

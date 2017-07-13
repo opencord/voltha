@@ -31,7 +31,7 @@
   when: target == "cluster"
   tags: [voltha]
 
-- name: Installer files and directories are copied
+- name: Configuration files and directories are copied
   synchronize:
     src: "/home/vinstall/{{ item }}"
     dest: "{{ target_voltha_dir }}"
@@ -43,12 +43,15 @@
   with_items:
     - compose
     - nginx_config
+    - envoy
+    - voltha-swarm-start.sh
+    - voltha-swarm-stop.sh
   when: target == "cluster"
   tags: [voltha]
 
-- name: Installer directories are owned by voltha
+- name: Configuration directories are owned by voltha
   file:
-    path: /home/vinstall/{{ item }}
+    path: "{{ target_voltha_dir }}/{{ item }}"
     owner: voltha
     group: voltha
     recurse: yes
@@ -56,6 +59,20 @@
   with_items:
     - compose
     - nginx_config
+    - envoy
+  when: target == "cluster"
+  tags: [voltha]
+
+- name: Script files are owned by voltha and executable
+  file:
+    path: "{{ target_voltha_dir }}/{{ item }}"
+    owner: voltha
+    group: voltha
+    mode: 0755
+    follow: no
+  with_items:
+    - voltha-swarm-start.sh
+    - voltha-swarm-stop.sh
   when: target == "cluster"
   tags: [voltha]
 
@@ -66,12 +83,14 @@
   when: target == "cluster"
   tags: [voltha]
 
-- name: Configuration files are on the cluster host
-  copy:
-    src: "files/consul_config"
-    dest: "{{ target_voltha_dir }}"
-  when: target == "cluster"
-  tags: [voltha]
+#- name: Configuration files are on the cluster host
+#  copy:
+#    src: "files/consul_config"
+#    dest: "{{ target_voltha_dir }}"
+#    owner: voltha
+#    group: voltha
+#  when: target == "cluster"
+#  tags: [voltha]
 
 - name: Docker containers for Voltha are pulled
   command: docker pull {{ docker_registry }}/{{ item }}
@@ -124,31 +143,22 @@
   with_items: "{{ voltha_containers }}"
   when: target == "installer"
   tags: [voltha]
+
 - name: Docker containers for Voltha are pushed
   command: docker push {{ docker_push_registry }}/{{ item }}
   with_items: "{{ voltha_containers }}"
   when: target == "installer"
   tags: [voltha]
+
 - name: Temporary registry push tags are removed
   command: docker rmi {{ docker_push_registry }}/{{ item }}
   with_items: "{{ voltha_containers }}"
   when: target == "installer"
   tags: [voltha]
 
-- name: voltha overlay network exists
-  command: docker network create --opt encrypted=true --driver overlay --subnet 10.10.12.0/24 voltha_net
+- name: voltha components are started
+  command: "{{ target_voltha_dir }}/voltha-swarm-start.sh"
   become: voltha
   when: target == "startup"
   tags: [voltha]
 
-- name: consul cluster is running
-  command: docker stack deploy -c {{ target_voltha_dir }}/compose/docker-compose-consul-cluster.yml consul
-  become: voltha
-  when: target == "startup"
-  tags: [voltha]
-
-- name: kafka is running
-  command: docker stack deploy -c {{ target_voltha_dir}}/compose/docker-compose-kafka-cluster.yml kafka
-  become: voltha
-  when: target == "startup"
-  tags: [voltha]

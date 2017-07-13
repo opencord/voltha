@@ -1,0 +1,8 @@
+FROM lyft/envoy:latest
+
+RUN apt-get update && apt-get -q install -y \
+    curl
+ADD envoy /etc/
+
+
+CMD /usr/local/bin/envoy -c /etc/envoy/front-proxy/voltha-grpc-proxy.json

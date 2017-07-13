@@ -1,0 +1,32 @@
+#
+# This Docker stackfile deploys an envoy proxy container along with one backup.
+#
+# The stackfile assumes that overlay network 'voltha_net' has already been
+# created. To deploy the stack, issue the command:
+#
+#     docker stack deploy -c docker-compose-envoy-swarm.yml envoy
+#
+
+version: "3"
+services:
+  envoy:
+    image: voltha/envoy:latest
+    deploy:
+      replicas: 1
+    environment:
+      DOCKER_HOST_IP: "${DOCKER_HOST_IP}"
+    entrypoint:
+      - /usr/local/bin/envoy
+      - -c /etc/envoy/front-proxy/voltha-grpc-proxy.json
+    networks:
+      - voltha-net
+    ports:
+      - "50556:50556"
+    volumes:
+      - /cord/incubator/voltha/envoy:/etc/envoy
+      
+networks:
+  voltha-net:
+    external:
+      name: voltha_net
+
