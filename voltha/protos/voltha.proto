@@ -187,6 +187,15 @@ service VolthaGlobalService {
         };
     }
 
+    // List all active adapters (plugins) in the Voltha cluster
+    rpc ListAdapters(google.protobuf.Empty) returns(Adapters) {
+        option (google.api.http) = {
+            get: "/api/v1/adapters"
+        };
+        option (voltha.yang_xml_tag).xml_tag = 'adapters';
+    }
+
+
     // List all logical devices managed by the Voltha cluster
     rpc ListLogicalDevices(google.protobuf.Empty) returns(LogicalDevices) {
         option (google.api.http) = {

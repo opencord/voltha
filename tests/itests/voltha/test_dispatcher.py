@@ -153,6 +153,14 @@ class DispatcherTest(RestBase):
                '\nEnsure port forwarding is set on ponmgnt ...')
 
         # Test 1:
+        # A. Get the list of adapters using a global stub
+        # B. Get the list of adapters using a local stub
+        # C. Verify that the two lists are the same
+        adapters_g = self._get_adapters_grpc(self.ponsim_voltha_stub_global)
+        adapters_l =  self._get_adapters_grpc(self.empty_voltha_stub_local)
+        assert adapters_g == adapters_l
+
+        # Test 2:
         # A. Provision a pomsim olt using the ponsim_voltha_stub
         # B. Enable the posim olt using the simulated_voltha_stub
         # C. Wait for onu discovery using the empty_voltha_stub
@@ -164,7 +172,7 @@ class DispatcherTest(RestBase):
         self._wait_for_onu_discovery_grpc(self.empty_voltha_stub_global,
                                           ponsim_olt.id,
                                           count=4)
-        # Test 2:
+        # Test 3:
         # A. Provision a simulated olt using the simulated_voltha_stub
         # B. Enable the simulated olt using the ponsim_voltha_stub
         # C. Wait for onu discovery using the empty_voltha_stub
@@ -175,7 +183,7 @@ class DispatcherTest(RestBase):
         self._wait_for_onu_discovery_grpc(self.empty_voltha_stub_global,
                                           simulated_olt.id, count=4)
 
-        # Test 3:
+        # Test 4:
         # Verify that we have at least 8 devices created using the global
         # REST and also via direct grpc in the empty stub
         devices_via_rest = self._list_devices_rest(8)['items']
@@ -183,7 +191,7 @@ class DispatcherTest(RestBase):
             self.empty_voltha_stub_global)
         assert len(devices_via_rest) == len(devices_via_global_grpc)
 
-        # Test 4:
+        # Test 5:
         # A. Create 2 Alarms filters using REST
         # B. Ensure it is present across all instances
         # C. Ensure when requesting the alarm filters we do not get
@@ -200,7 +208,7 @@ class DispatcherTest(RestBase):
         filter = self._get_alarm_filters_grpc(self.empty_voltha_stub_global)
         assert global_filters == MessageToDict(filter)
 
-        # Test 5:
+        # Test 6:
         # A. Delete an alarm filter
         # B. Ensure that filter is deleted from all instances
         self._remove_device_filter_rest(alarm_filter1['id'])
@@ -216,7 +224,7 @@ class DispatcherTest(RestBase):
         filter = self._get_alarm_filters_grpc(self.empty_voltha_stub_global)
         assert global_filters == MessageToDict(filter)
 
-        # Test 6:
+        # Test 7:
         # A. Simulate EAPOL install on ponsim instance using grpc
         # B. Validate the flows using global REST
         # C. Retrieve the flows from global grpc using empty voltha instance
@@ -226,7 +234,7 @@ class DispatcherTest(RestBase):
         res = self._get_olt_flows_grpc(self.empty_voltha_stub_global,
                                        ponsim_logical_device_id)
 
-        # TODO:  More tests to be added as new features are added 
+        # TODO:  More tests to be added as new features are added
 
 
     def _get_grpc_address(self, voltha_instance):
@@ -369,6 +377,10 @@ class DispatcherTest(RestBase):
 
     def _get_devices_grpc(self, stub):
         res = stub.ListDevices(Empty())
+        return res.items
+
+    def _get_adapters_grpc(self, stub):
+        res = stub.ListAdapters(Empty())
         return res.items
 
     def _find_onus_grpc(self, stub, olt_id):
