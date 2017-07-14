@@ -34,6 +34,24 @@
       "revId": "b30b9f98ad39a9ce6a34bdd25140306c8d53f995",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_5e99446d",
+        "filename": "voltha/adapters/asfvolt16_olt/protos/bal_indications.proto",
+        "patchSetId": 5
+      },
+      "lineNbr": 175,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-07-14T02:17:11Z",
+      "side": 1,
+      "message": "Ok, that makes sense.  I wanted to confirm this was the case.",
+      "parentUuid": "5a202591_9e8fdc23",
+      "revId": "b30b9f98ad39a9ce6a34bdd25140306c8d53f995",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
