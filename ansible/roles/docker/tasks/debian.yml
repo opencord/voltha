@@ -30,13 +30,6 @@
     state: present
   tags: [docker]
 
-- name: netaddr pip package is present
-  pip:
-    name: netaddr
-    version: 0.7.19
-    state: present
-  tags: [docker]
-
 - name: Debian files are present
   template:
     src: "{{ docker_cfg }}"

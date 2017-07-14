@@ -40,6 +40,9 @@ Vagrant.configure(2) do |config|
   config.vm.define "#{settings['server_name']}" do |d|
     d.ssh.forward_agent = true
     d.vm.box = Box
+    if Box == "ubuntu/xenial64"
+        d.vm.box_version = "20170207.0.0"
+    end
     d.vm.hostname = "#{settings['server_name']}"
     d.vm.network "private_network", ip: "10.100.198.220"
     d.vm.provision :shell, path: "ansible/scripts/bootstrap_ansible.sh"

@@ -7,6 +7,9 @@ node('build') {
             stage 'Bring up voltha dev vm'
             sh 'vagrant up voltha'
 
+            stage 'Remove the pre-created venv-linux'
+            sh 'vagrant ssh -c "rm -rf /cord/incubator/voltha/venv-linux"'
+
             stage 'Build voltha'
             sh 'vagrant ssh -c "cd /cord/incubator/voltha && source env.sh && make fetch && make build" voltha'
 
