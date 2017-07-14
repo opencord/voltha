@@ -26,6 +26,7 @@ RUN mkdir /voltha && touch /voltha/__init__.py
 ENV PYTHONPATH=/voltha
 COPY common /voltha/common
 COPY voltha /voltha/voltha
+COPY pki /voltha/pki
 
 # Exposing process and default entry point
 # EXPOSE 8000

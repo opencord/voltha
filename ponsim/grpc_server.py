@@ -15,6 +15,7 @@
 #
 import grpc
 import structlog
+import os
 from concurrent import futures
 
 from common.utils.grpc_utils import twisted_async
@@ -91,7 +92,23 @@ class GrpcServer(object):
         add_PonSimServicer_to_server(handler, self.server)
         x_pon_handler = XPonHandler(self.thread_pool, self.x_pon_sim)
         add_XPonSimServicer_to_server(x_pon_handler, self.server)
-        self.server.add_insecure_port('[::]:%s' % self.port)
+
+        # read in key and certificate
+        try:
+           voltha_key = os.path.join(os.environ.get('VOLTHA_BASE'),"pki/voltha.key")
+           with open(voltha_key) as f:
+               private_key = f.read()
+
+           voltha_cert = os.path.join(os.environ.get('VOLTHA_BASE'),"pki/voltha.crt")
+           with open(voltha_cert) as f:
+               certificate_chain = f.read()
+        except Exception as e:
+           log.error('failed-to-read-cert-keys', reason=e)
+
+        # create server credentials
+        server_credentials = grpc.ssl_server_credentials(((private_key, certificate_chain,),))
+        self.server.add_secure_port('[::]:%s' % self.port, server_credentials)
+
         self.server.start()
         log.info('started')
 
