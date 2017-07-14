@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5a202591_1e3f4c27",
+        "filename": "docker/Dockerfile.voltha",
+        "patchSetId": 1
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-07-14T11:37:36Z",
+      "side": 1,
+      "message": "Should pki be mounted to /voltha/pki just to be in sync with the way other contents are mounted in this file?",
+      "revId": "4bc61272e0bb4a99ee2377bd9d1f112bc0d4c443",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_de48b4ce",
+        "filename": "voltha/adapters/ponsim_olt/ponsim_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 244,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-07-14T11:37:36Z",
+      "side": 1,
+      "message": "Pls remove this unnecessary space",
+      "revId": "4bc61272e0bb4a99ee2377bd9d1f112bc0d4c443",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_be45f8b4",
+        "filename": "voltha/adapters/ponsim_olt/ponsim_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 254,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-07-14T11:37:36Z",
+      "side": 1,
+      "message": "Same here",
+      "revId": "4bc61272e0bb4a99ee2377bd9d1f112bc0d4c443",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_fe3b7036",
+        "filename": "voltha/adapters/ponsim_olt/ponsim_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 273,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-07-14T11:37:36Z",
+      "side": 1,
+      "message": "Can you please remove this debug prints.",
+      "revId": "4bc61272e0bb4a99ee2377bd9d1f112bc0d4c443",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
