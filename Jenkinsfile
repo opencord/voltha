@@ -11,10 +11,10 @@ node('build') {
             sh 'vagrant ssh -c "rm -rf /cord/incubator/voltha/venv-linux"'
 
             stage 'Build voltha'
-            sh 'vagrant ssh -c "cd /cord/incubator/voltha && source env.sh && make fetch && make build" voltha'
+            sh 'vagrant ssh -c "cd /cord/incubator/voltha && source env.sh && make fetch-jenkins && make jenkins" voltha'
 
             stage 'Bring up voltha containers'
-            sh 'vagrant ssh -c "cd /cord/incubator/voltha && source env.sh && docker-compose -f compose/docker-compose-system-test.yml up -d" voltha'
+            sh 'vagrant ssh -c "cd /cord/incubator/voltha && source env.sh && docker-compose -f compose/docker-compose-docutests.yml up -d" voltha'
 
             stage 'Run Integration Tests'
             sh 'vagrant ssh -c "cd /cord/incubator/voltha && source env.sh && make smoke-test" voltha'

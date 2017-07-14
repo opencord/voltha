@@ -36,7 +36,7 @@ log = logging.getLogger(__name__)
 LOCAL_CONSUL = "localhost:8500"
 LOCAL_CONSUL_URL = "http://%s" % LOCAL_CONSUL
 LOCAL_CONSUL_DNS = "@localhost -p 8600"
-DOCKER_COMPOSE_FILE = "compose/docker-compose-system-test.yml"
+DOCKER_COMPOSE_FILE = "compose/docker-compose-docutests.yml"
 DOCKER_COMPOSE_FILE_SERVICES_COUNT = 7
 
 command_defs = dict(
@@ -90,7 +90,8 @@ command_defs = dict(
     consul_get_srv_voltha_health="curl -s {}/v1/catalog/service/voltha-health "
                                  "| jq -r .".format(LOCAL_CONSUL_URL),
     kafka_client_run="kafkacat -b {} -L",
-    kafka_client_heart_check="kafkacat -b {} -C -t voltha.heartbeat -c 1",
+    kafka_client_heart_check="kafkacat -o end -b {} -C -t voltha.heartbeat "
+                             "-c 5",
     consul_get_voltha_rest_a_record="dig {} voltha-health.service.consul"
         .format(LOCAL_CONSUL_DNS),
     consul_get_voltha_rest_ip="dig {} +short voltha-health.service.consul"
@@ -480,8 +481,11 @@ class BuildMdTests(TestCase):
             print "Verify kafka client is receiving the heartbeat messages from voltha..."
             expected_pattern = ['heartbeat', 'voltha_instance']
             cmd = command_defs['kafka_client_heart_check'].format(kafka_endpoint)
-            kafka_client_output = run_long_running_command_with_timeout(cmd, 20)
+            print time.ctime()
+            kafka_client_output = run_long_running_command_with_timeout(cmd,
+                                                                        40)
 
+            print time.ctime()
             print kafka_client_output
             # TODO check that there are heartbeats
             # Verify the kafka client output

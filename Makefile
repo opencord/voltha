@@ -95,6 +95,9 @@ build: protos containers
 
 production: protos prod-containers
 
+jenkins : protos jenkins-containers
+
+jenkins-containers: docker-base voltha chameleon ofagent netconf consul registrator
 
 prod-containers: docker-base voltha chameleon ofagent netconf shovel dashd vcli grafana consul registrator envoy registry
 
@@ -181,6 +184,16 @@ clean:
 
 distclean: clean
 	rm -rf ${VENVDIR}
+
+
+fetch-jenkins:
+	docker pull consul:latest
+	docker pull fluent/fluentd:latest
+	docker pull gliderlabs/registrator:master
+	docker pull ubuntu:xenial
+	docker pull wurstmeister/kafka:latest
+	docker pull wurstmeister/zookeeper:latest
+	docker pull zookeeper:latest
 
 fetch:
 	docker pull consul:latest
