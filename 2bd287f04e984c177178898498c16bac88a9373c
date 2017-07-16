@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "3a1d315d_b4e400ad",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 11
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-07-16T01:26:59Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5a202591_0addc770",
+      "range": {
+        "startLine": 70,
+        "startChar": 40,
+        "endLine": 70,
+        "endChar": 46
+      },
+      "revId": "2bd287f04e984c177178898498c16bac88a9373c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_0a8947ca",
         "filename": "voltha/adapters/asfvolt16_olt/bal.py",
         "patchSetId": 11
@@ -36,6 +60,30 @@
       "writtenOn": "2017-07-13T09:29:44Z",
       "side": 1,
       "message": "whats the difference between balapi_mgmt_ip_port and core_mgmt_ip_port ? i can see only an IP assigned to one parameter and a port assigned to the other though the description says ip and port.",
+      "range": {
+        "startLine": 36,
+        "startChar": 39,
+        "endLine": 36,
+        "endChar": 40
+      },
+      "revId": "2bd287f04e984c177178898498c16bac88a9373c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3a1d315d_b4052016",
+        "filename": "voltha/adapters/asfvolt16_olt/bal.py",
+        "patchSetId": 11
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-07-16T01:26:59Z",
+      "side": 1,
+      "message": "The bcmbal_api_init has these parameters:\n\nbcmos_errno bcmbal_api_init\t(\tconst char * \tbalapi_mgmt_ip_port,\nconst char * \tcore_mgmt_ip_port \n)\t\n\nI am commenting out this code for now. Once the device side code is ready we should have a better understanding of what information needs to be sent for bal_init.",
+      "parentUuid": "5a202591_0a8947ca",
       "range": {
         "startLine": 36,
         "startChar": 39,
@@ -71,6 +119,30 @@
     },
     {
       "key": {
+        "uuid": "3a1d315d_1725f6aa",
+        "filename": "voltha/adapters/asfvolt16_olt/bal.py",
+        "patchSetId": 11
+      },
+      "lineNbr": 47,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-07-16T01:26:59Z",
+      "side": 1,
+      "message": "Not sure what to use for olt_no. Marking this as a TODO to be fixed later",
+      "parentUuid": "5a202591_4a5a9f84",
+      "range": {
+        "startLine": 47,
+        "startChar": 37,
+        "endLine": 47,
+        "endChar": 38
+      },
+      "revId": "2bd287f04e984c177178898498c16bac88a9373c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_aa4a53aa",
         "filename": "voltha/adapters/asfvolt16_olt/bal.py",
         "patchSetId": 11
@@ -82,6 +154,30 @@
       "writtenOn": "2017-07-13T06:59:13Z",
       "side": 1,
       "message": "Here we need to use BalCfgSet RPC with obj_type set to BAL_OBJ_ID_ACCESS_TERMINAl",
+      "range": {
+        "startLine": 50,
+        "startChar": 24,
+        "endLine": 50,
+        "endChar": 47
+      },
+      "revId": "2bd287f04e984c177178898498c16bac88a9373c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3a1d315d_f7395ad9",
+        "filename": "voltha/adapters/asfvolt16_olt/bal.py",
+        "patchSetId": 11
+      },
+      "lineNbr": 50,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-07-16T01:26:59Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5a202591_aa4a53aa",
       "range": {
         "startLine": 50,
         "startChar": 24,
@@ -117,6 +213,30 @@
     },
     {
       "key": {
+        "uuid": "3a1d315d_14d614c6",
+        "filename": "voltha/adapters/asfvolt16_olt/protos/bal.proto",
+        "patchSetId": 11
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-07-16T01:26:59Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5a202591_8fc7a912",
+      "range": {
+        "startLine": 46,
+        "startChar": 37,
+        "endLine": 46,
+        "endChar": 43
+      },
+      "revId": "2bd287f04e984c177178898498c16bac88a9373c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_0a54a752",
         "filename": "voltha/adapters/asfvolt16_olt/protos/bal.proto",
         "patchSetId": 11
@@ -140,6 +260,30 @@
     },
     {
       "key": {
+        "uuid": "3a1d315d_f4da78e8",
+        "filename": "voltha/adapters/asfvolt16_olt/protos/bal.proto",
+        "patchSetId": 11
+      },
+      "lineNbr": 47,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-07-16T01:26:59Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5a202591_0a54a752",
+      "range": {
+        "startLine": 47,
+        "startChar": 0,
+        "endLine": 47,
+        "endChar": 4
+      },
+      "revId": "2bd287f04e984c177178898498c16bac88a9373c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_ca4d8fc6",
         "filename": "voltha/adapters/asfvolt16_olt/protos/bal.proto",
         "patchSetId": 11
@@ -151,6 +295,30 @@
       "writtenOn": "2017-07-13T06:59:13Z",
       "side": 1,
       "message": "\"BalAccessTerminalCfgSet\" is already a part of \"BalCfgSet\". No need of one more rpc.",
+      "range": {
+        "startLine": 84,
+        "startChar": 32,
+        "endLine": 84,
+        "endChar": 55
+      },
+      "revId": "2bd287f04e984c177178898498c16bac88a9373c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3a1d315d_d4d77cbe",
+        "filename": "voltha/adapters/asfvolt16_olt/protos/bal.proto",
+        "patchSetId": 11
+      },
+      "lineNbr": 84,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-07-16T01:26:59Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5a202591_ca4d8fc6",
       "range": {
         "startLine": 84,
         "startChar": 32,
