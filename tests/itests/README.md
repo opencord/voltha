@@ -157,10 +157,10 @@ Run the test:
 cd /cord/incubator/voltha
 . ./env.sh
 nosetests -s tests/itests/voltha/test_dispatcher.py
-```
+```  
 
-* **Voltha_Xpon**: This tests uses the ponsim OLT to verfiy addition, modification and deletion 
-of channelgroups, channelpartition, channelpair, channeltermination for xpon
+* **Voltha_Xpon**: This test uses the ponsim-OLT to verfiy addition, modification and deletion 
+of channelgroups, channelpartition, channelpair, channeltermination, VOntani, Ontani, VEnet for xpon
 
 First start the Voltha ensemble:
 ```
