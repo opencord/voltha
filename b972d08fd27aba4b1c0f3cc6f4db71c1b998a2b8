@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3a1d315d_57cc8e35",
+        "filename": "voltha/adapters/asfvolt16_olt/protos/bal_indications.proto",
+        "patchSetId": 4
+      },
+      "lineNbr": 153,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-07-17T20:10:16Z",
+      "side": 1,
+      "message": "I presume you are adding the device_id filed to identify the OLT device. An alternative way of handling multiple OLT devices is to have a separate grpc indications channel for each OLT device. Then we do not have to change the BAL api to add device id.",
+      "revId": "b972d08fd27aba4b1c0f3cc6f4db71c1b998a2b8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3a1d315d_f7da7ae8",
+        "filename": "voltha/adapters/asfvolt16_olt/protos/bal_indications.proto",
+        "patchSetId": 4
+      },
+      "lineNbr": 171,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-07-17T20:10:16Z",
+      "side": 1,
+      "message": "Why not just add omciResponse as another type of indication here.",
+      "revId": "b972d08fd27aba4b1c0f3cc6f4db71c1b998a2b8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3a1d315d_d7fe5e38",
+        "filename": "voltha/adapters/asfvolt16_olt/protos/bal_indications.proto",
+        "patchSetId": 4
+      },
+      "lineNbr": 175,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-07-17T20:10:16Z",
+      "side": 1,
+      "message": "Lets try not to diverge from the bal public api as much as possible. Here, the balAlarmInfo and balStatsInfo is removed. Why cant they remain here and omciResponse added as an additional oneof field?",
+      "revId": "b972d08fd27aba4b1c0f3cc6f4db71c1b998a2b8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3a1d315d_d7509e60",
+        "filename": "voltha/adapters/asfvolt16_olt/protos/bal_indications.proto",
+        "patchSetId": 4
+      },
+      "lineNbr": 179,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-07-17T20:10:16Z",
+      "side": 1,
+      "message": "Dont you need a type field to figure out which of the oneof fields are set?",
+      "revId": "b972d08fd27aba4b1c0f3cc6f4db71c1b998a2b8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
