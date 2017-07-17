@@ -6,6 +6,7 @@ rm -fr volthaInstaller-2/
 rm -fr volthaInstaller/
 rm -f ansible/*.retry
 rm -fr .test
+rm -fr .tmp.keys
 rm -f key.pem
 sed -i -e '/voltha_containers:/,$d' ansible/group_vars/all
 git checkout ../ansible/roles/docker/templates/daemon.json
