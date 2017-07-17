@@ -55,60 +55,41 @@ class XponCli(Cmd):
     def cmdloop(self):
         self._cmdloop()
 
+    def get_ref_interfaces(self, all_interfaces, ref_interfaces):
+        interface_list = []
+        if not all_interfaces:
+            return interface_list
+        if isinstance(all_interfaces[0], (ChannelgroupConfig, ChannelpartitionConfig,
+                                          ChannelpairConfig, OntaniConfig)):
+            for interface in all_interfaces:
+                if interface.name in ref_interfaces:
+                    interface_list.append(interface)
+        elif isinstance(all_interfaces[0], VOntaniConfig):
+            for interface in all_interfaces:
+                if interface.data.parent_ref in ref_interfaces:
+                    interface_list.append(interface)
+        elif isinstance(all_interfaces[0], VEnetConfig):
+            for interface in all_interfaces:
+                if interface.data.v_ontani_ref in ref_interfaces:
+                    interface_list.append(interface)
+        return interface_list
+
     def get_interface_based_on_device(self):
         stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
-        temp_list = []
-        cg_list = []
-        cpart_list = []
-        cp_list = []
-        vont_list = []
-        ont_list = []
-        v_enet_list = []
-        ct = stub.GetAllChannelterminationConfig(voltha_pb2.ID(id=self.device_id))
-        cps = stub.GetAllChannelpairConfig(Empty()).channelpair_config
-        cparts = stub.GetAllChannelpartitionConfig(Empty()).channelpartition_config
-        cgs = stub.GetAllChannelgroupConfig(Empty()).channelgroup_config
-        onts = stub.GetAllOntaniConfig(Empty()).ontani_config
-        vonts = stub.GetAllVOntaniConfig(Empty()).v_ontani_config
-        venets = stub.GetAllVEnetConfig(Empty()).v_enet_config
-
-        for cterm in ct.channeltermination_config:
-            temp_list.append(cterm.data.channelpair_ref)
-        for cp in cps:
-            if cp.name in temp_list:
-                cp_list.append(cp)
-        temp_list = []
-
-        for cp in cp_list:
-            temp_list.append(cp.data.channelpartition_ref)
-        for cpart in cparts:
-            if cpart.name in temp_list:
-                cpart_list.append(cpart)
-        temp_list = []
-
-        for cpart in cpart_list:
-            temp_list.append(cpart.data.channelgroup_ref)
-        for cg in cgs:
-            if cg.name in temp_list:
-                cg_list.append(cg)
-        temp_list = []
-
-        for vont in vonts:
-            if vont.data.parent_ref in cpart_list or \
-                vont.data.preferred_chanpair in cp_list:
-                vont_list.append(vont)
-
-        for ont in onts:
-            if ont.name in vont_list:
-                ont_list.append(ont)
-                temp_list.append(ont.name)
-
-        for venet in venets:
-            if venet.data.v_ontani_ref in temp_list:
-                v_enet_list.append(venet)
-        temp_list = []
-
-        return cg_list, cpart_list, cp_list, ct.channeltermination_config, vont_list, ont_list, v_enet_list
+        channel_terminations = stub.GetAllChannelterminationConfig(voltha_pb2.ID(id=self.device_id)).channeltermination_config
+        channel_pairs = self.get_ref_interfaces(stub.GetAllChannelpairConfig(Empty()).channelpair_config,
+                                                dict((dt.data.channelpair_ref, dt) for dt in channel_terminations))
+        channel_partitions = self.get_ref_interfaces(stub.GetAllChannelpartitionConfig(Empty()).channelpartition_config,
+                                                     dict((dt.data.channelpartition_ref, dt) for dt in channel_pairs))
+        channel_groups = self.get_ref_interfaces(stub.GetAllChannelgroupConfig(Empty()).channelgroup_config,
+                                                 dict((dt.data.channelgroup_ref, dt) for dt in channel_partitions))
+        vont_anis = self.get_ref_interfaces(stub.GetAllVOntaniConfig(Empty()).v_ontani_config,
+                                            dict((dt.name, dt) for dt in channel_partitions))
+        ont_anis = self.get_ref_interfaces(stub.GetAllOntaniConfig(Empty()).ontani_config,
+                                           dict((dt.name, dt) for dt in vont_anis))
+        venets = self.get_ref_interfaces(stub.GetAllVEnetConfig(Empty()).v_enet_config,
+                                         dict((dt.name, dt) for dt in vont_anis))
+        return channel_groups, channel_partitions, channel_pairs, channel_terminations, vont_anis, ont_anis, venets
 
     do_exit = Cmd.do_quit
 
@@ -118,23 +99,24 @@ class XponCli(Cmd):
     def do_show(self, line):
         """Show detailed information of each interface based on device ID or all interfaces"""
         stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        device_id = self.device_id
         if line.strip():
-            self.device_id = line.strip()
-        if self.device_id:
+            device_id = line.strip()
+        if device_id:
             cg, cpart, cp, ct, vont, ont, venet = self.get_interface_based_on_device()
-            print_pb_list_as_table("Channel Groups for device ID = {}:".format(self.device_id),
+            print_pb_list_as_table("Channel Groups for device ID = {}:".format(device_id),
                                    cg, {}, self.poutput)
-            print_pb_list_as_table("Channel Partitions for device ID = {}:".format(self.device_id),
+            print_pb_list_as_table("Channel Partitions for device ID = {}:".format(device_id),
                                    cpart, {}, self.poutput)
-            print_pb_list_as_table("Channel Pairs: for device ID = {}:".format(self.device_id),
+            print_pb_list_as_table("Channel Pairs: for device ID = {}:".format(device_id),
                                    cp, {}, self.poutput)
-            print_pb_list_as_table("Channel Terminations for device ID = {}:".format(self.device_id),
+            print_pb_list_as_table("Channel Terminations for device ID = {}:".format(device_id),
                                    ct, {}, self.poutput)
-            print_pb_list_as_table("VOnt Anis for device ID = {}:".format(self.device_id),
+            print_pb_list_as_table("VOnt Anis for device ID = {}:".format(device_id),
                                    vont, {}, self.poutput)
-            print_pb_list_as_table("Ont Anis for device ID = {}:".format(self.device_id),
+            print_pb_list_as_table("Ont Anis for device ID = {}:".format(device_id),
                                    ont, {}, self.poutput)
-            print_pb_list_as_table("VEnets for device ID = {}:".format(self.device_id),
+            print_pb_list_as_table("VEnets for device ID = {}:".format(device_id),
                                    venet, {}, self.poutput)
         else:
             interface = stub.GetAllChannelgroupConfig(Empty())
