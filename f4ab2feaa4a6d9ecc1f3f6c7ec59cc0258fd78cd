@@ -1,0 +1,106 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3a1d315d_5a527514",
+        "filename": "envoy/front-proxy/voltha-grpc-proxy.template.json",
+        "patchSetId": 2
+      },
+      "lineNbr": 30,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-07-17T21:36:27Z",
+      "side": 1,
+      "message": "Do we need both \"voltha.VolthaGlobalService\" and \"voltha.\" since they follow the same policy?",
+      "revId": "f4ab2feaa4a6d9ecc1f3f6c7ec59cc0258fd78cd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3a1d315d_7a4d3172",
+        "filename": "envoy/go/envoyd/build_docker.sh",
+        "patchSetId": 2
+      },
+      "lineNbr": 6,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-07-17T21:36:27Z",
+      "side": 1,
+      "message": "I guess this is temporary :)",
+      "revId": "f4ab2feaa4a6d9ecc1f3f6c7ec59cc0258fd78cd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3a1d315d_3a20d99a",
+        "filename": "envoy/go/envoyd/envoyd.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 191,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-07-17T21:36:27Z",
+      "side": 1,
+      "message": "Would be nice to be defined as a constant to limit the about of changes required if these fields change in the future.",
+      "revId": "f4ab2feaa4a6d9ecc1f3f6c7ec59cc0258fd78cd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3a1d315d_1a251dab",
+        "filename": "envoy/go/envoyd/envoyd.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 193,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-07-17T21:36:27Z",
+      "side": 1,
+      "message": "same comment",
+      "revId": "f4ab2feaa4a6d9ecc1f3f6c7ec59cc0258fd78cd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3a1d315d_9a300dea",
+        "filename": "envoy/go/envoyd/envoyd.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 248,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-07-17T21:36:27Z",
+      "side": 1,
+      "message": "Will this logic takes care of the case of all vcore instances are down temporarily?  During that time the assignment will have stale data until one voltha instance comes up.",
+      "revId": "f4ab2feaa4a6d9ecc1f3f6c7ec59cc0258fd78cd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3a1d315d_fa3941d9",
+        "filename": "envoy/go/envoyd/envoyd.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 262,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-07-17T21:36:27Z",
+      "side": 1,
+      "message": "same constant comment",
+      "revId": "f4ab2feaa4a6d9ecc1f3f6c7ec59cc0258fd78cd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
