@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3a1d315d_ba1ce96b",
+        "filename": "ofagent/agent.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 102,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-07-17T21:14:33Z",
+      "side": 1,
+      "message": "Do you mind change it to log.exception in order to get the traceback?",
+      "revId": "80c6db882c6682b7cba447ddb333c208f4d6acfd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
