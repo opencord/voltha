@@ -17,7 +17,7 @@ node('build') {
             sh 'vagrant ssh -c "cd /cord/incubator/voltha && source env.sh && docker-compose -f compose/docker-compose-docutests.yml up -d" voltha'
 
             stage 'Run Integration Tests'
-            sh 'vagrant ssh -c "cd /cord/incubator/voltha && source env.sh && make smoke-test" voltha'
+            sh 'vagrant ssh -c "cd /cord/incubator/voltha && source env.sh && make jenkins-test" voltha'
 
             currentBuild.result = 'SUCCESS'
             slackSend channel: '#voltha', color: 'good', message: "${env.JOB_NAME} (${env.BUILD_NUMBER}) Build success.\n${env.BUILD_URL}"

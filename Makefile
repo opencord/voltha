@@ -259,6 +259,13 @@ smoke-test: venv run-as-root-tests
 	tests/itests/docutests/build_md_test.py:BuildMdTests.test_07_start_all_containers \
 	--exclude-dir=./tests/itests/run_as_root/
 
+jenkins-test: venv
+	@ echo "Executing jenkins smoke tests"
+	. ${VENVDIR}/bin/activate && \
+	nosetests -s  \
+	tests/itests/docutests/build_md_test.py:BuildMdTests.test_07_start_all_containers \
+	--exclude-dir=./tests/itests/run_as_root/
+
 
 run-as-root-tests:
 	docker run -i --rm -v /cord/incubator/voltha:/voltha --privileged cord/voltha-base env PYTHONPATH=/voltha python /voltha/tests/itests/run_as_root/test_frameio.py
