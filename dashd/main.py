@@ -212,6 +212,7 @@ class Main(object):
                                                  topic=args.topic)
             self.dashd_server = yield \
                     DashDaemon(args.consul, #'10.0.2.15:8500',
+                               args.kafka,
                                args.grafana_url, #'http://admin:admin@localhost:8882/api',
                                topic=args.topic )  #"voltha.kpis")
 
