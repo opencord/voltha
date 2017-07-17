@@ -1,0 +1,93 @@
+{
+  "listeners": [
+    {
+      "address": "tcp://0.0.0.0:50555",
+      "filters": [
+        {
+          "type": "read",
+          "name": "http_connection_manager",
+          "config": {
+            "codec_type": "http2",
+            "stat_prefix": "ingress_http2",
+	    "access_log": [
+		{
+			"path": "/envoy/voltha_access_log.log"
+		}
+	    ],
+            "route_config": {
+              "virtual_hosts": [
+                {
+                  "name": "backend",
+                  "domains": ["*"],
+                  "routes": [
+                    {
+                      "timeout_ms": 0,
+		      "prefix": "/voltha.VolthaGlobalService/CreateDevice",
+                      "cluster": "voltha-grpc-RR"
+                    },
+                    {
+                      "timeout_ms": 0,
+		      "prefix": "/voltha.VolthaGlobalService",
+                      "cluster": "voltha-grpc"
+                    },
+                    {
+                      "timeout_ms": 0,
+		      "prefix": "/voltha.",
+                      "cluster": "voltha-grpc"
+                    }
+                  ]
+                }
+              ]
+            },
+            "filters": [
+              {
+                "type": "decoder",
+                "name": "router",
+                "config": {}
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "admin": {
+    "access_log_path": "/envoy/access.log",
+    "address": "tcp://0.0.0.0:8001"
+  },
+  "cluster_manager": {
+    "clusters": [
+      {
+        "name": "voltha-grpc",
+        "connect_timeout_ms": 250,
+        "type": "static",
+        "lb_type": "round_robin",
+	"features": "http2",
+        "hosts": [
+          {
+            "url": "tcp://{{- .VolthaVip }}"
+          }
+        ]
+      },
+      {
+        "name": "voltha-grpc-RR",
+        "connect_timeout_ms": 250,
+        "type": "static",
+        "lb_type": "round_robin",
+	"features": "http2",
+        "hosts": [
+	    {{block "addrlist" .VolthaRR}}
+	        {{- range .}}
+		    {{- if isFirst}}
+	                {{- printf "{\"url\": \"tcp://%s\"}" . }}
+		    {{- else }}
+	                {{- printf ",{\"url\": \"tcp://%s\"}" . }}
+		    {{- end }}
+	        {{- end}}
+	    {{- end}}
+        ]
+      }
+    ]
+  }
+}
+
