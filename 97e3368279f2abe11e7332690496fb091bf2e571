@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3a1d315d_f725da0a",
+        "filename": "compose/docker-compose-envoy-swarm.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 2,
+      "author": {
+        "id": 1000196
+      },
+      "writtenOn": "2017-07-17T19:14:22Z",
+      "side": 1,
+      "message": "The comment indicates that 2 envoy containers are created; this does not jive with the \u0027replicas: 1\u0027 setting in the deploy section of the file.",
+      "range": {
+        "startLine": 2,
+        "startChar": 57,
+        "endLine": 2,
+        "endChar": 78
+      },
+      "revId": "97e3368279f2abe11e7332690496fb091bf2e571",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
