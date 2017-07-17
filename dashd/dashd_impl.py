@@ -86,7 +86,7 @@ log = get_logger()
 
 
 class DashDaemon(object):
-    def __init__(self, consul_endpoint, grafana_url, topic="voltha.heartbeat"):
+    def __init__(self, consul_endpoint, kafka_endpoint, grafana_url, topic="voltha.heartbeat"):
         #logging.basicConfig(
         # format='%(asctime)s:%(name)s:' +
         #        '%(levelname)s:%(process)d:%(message)s',
@@ -98,22 +98,25 @@ class DashDaemon(object):
         self.topic = topic
         self.dash_template = DashTemplate(grafana_url)
         self.grafana_url = grafana_url
-        self.kafka_endpoint = None
+        self.kafka_endpoint = kafka_endpoint
         self.consul_endpoint = consul_endpoint
-        retrys = 10
-        while True:
-            try:
-                self.kafka_endpoint = get_endpoint_from_consul(self.consul_endpoint,
-                'kafka')
-                break
-            except:
-                log.error("unable-to-communicate-with-consul")
-                self.stop()
-            retrys -= 1
-            if retrys == 0:
-                log.error("unable-to-communicate-with-consul")
-                self.stop()
-            time.sleep(10)
+
+        if kafka_endpoint.startswith('@'):
+            retrys = 10
+            while True:
+                try:
+                    self.kafka_endpoint = get_endpoint_from_consul(
+                        self.consul_endpoint, kafka_endpoint[1:])
+                    break
+                except:
+                    log.error("unable-to-communicate-with-consul")
+                    self.stop()
+                retrys -= 1
+                if retrys == 0:
+                    log.error("unable-to-communicate-with-consul")
+                    self.stop()
+                time.sleep(10)
+
         self.on_start_callback = None
 
         self._client = KafkaClient(self.kafka_endpoint)
@@ -455,7 +458,7 @@ def main():
 
     args = parse_options()
 
-    dashd = DashDaemon(args.consul, args.grafana_url, args.topic)
+    dashd = DashDaemon(args.consul, args.kafka, args.grafana_url, args.topic)
     reactor.callWhenRunning(dashd.start)
     reactor.run()
     log.info("completed!")
