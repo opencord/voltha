@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "3a1d315d_3aa57904",
+        "filename": "envoy/front-proxy/voltha-grpc-proxy.template.json",
+        "patchSetId": 2
+      },
+      "lineNbr": 30,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-07-17T23:11:56Z",
+      "side": 1,
+      "message": "Yes it\u0027s the default action if the call isn\u0027t for VolthaGlobalService (i.e. local service). Matches are in order of occurrency so Create first, GlobalService next, everything else last... A little like the default: statement in a switch.",
+      "parentUuid": "3a1d315d_5a527514",
+      "revId": "f4ab2feaa4a6d9ecc1f3f6c7ec59cc0258fd78cd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "3a1d315d_7a4d3172",
         "filename": "envoy/go/envoyd/build_docker.sh",
         "patchSetId": 2
@@ -30,6 +48,24 @@
       "writtenOn": "2017-07-17T21:36:27Z",
       "side": 1,
       "message": "I guess this is temporary :)",
+      "revId": "f4ab2feaa4a6d9ecc1f3f6c7ec59cc0258fd78cd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3a1d315d_1aaabdd4",
+        "filename": "envoy/go/envoyd/build_docker.sh",
+        "patchSetId": 2
+      },
+      "lineNbr": 6,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-07-17T23:11:56Z",
+      "side": 1,
+      "message": "This file shouln\u0027t even be here... Submitted by mistake... I\u0027ll blow it away.",
+      "parentUuid": "3a1d315d_7a4d3172",
       "revId": "f4ab2feaa4a6d9ecc1f3f6c7ec59cc0258fd78cd",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "3a1d315d_faaee1e6",
+        "filename": "envoy/go/envoyd/envoyd.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 191,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-07-17T23:11:56Z",
+      "side": 1,
+      "message": "Good idea.",
+      "parentUuid": "3a1d315d_3a20d99a",
+      "revId": "f4ab2feaa4a6d9ecc1f3f6c7ec59cc0258fd78cd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "3a1d315d_1a251dab",
         "filename": "envoy/go/envoyd/envoyd.go",
         "patchSetId": 2
@@ -64,6 +118,24 @@
       "writtenOn": "2017-07-17T21:36:27Z",
       "side": 1,
       "message": "same comment",
+      "revId": "f4ab2feaa4a6d9ecc1f3f6c7ec59cc0258fd78cd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3a1d315d_daab25d5",
+        "filename": "envoy/go/envoyd/envoyd.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 193,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-07-17T23:11:56Z",
+      "side": 1,
+      "message": "ditto",
+      "parentUuid": "3a1d315d_1a251dab",
       "revId": "f4ab2feaa4a6d9ecc1f3f6c7ec59cc0258fd78cd",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -87,6 +159,24 @@
     },
     {
       "key": {
+        "uuid": "3a1d315d_bab8692b",
+        "filename": "envoy/go/envoyd/envoyd.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 248,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-07-17T23:11:56Z",
+      "side": 1,
+      "message": "Yes it does... This is the initial read and all the extra logic and loop were added to to take that into account.",
+      "parentUuid": "3a1d315d_9a300dea",
+      "revId": "f4ab2feaa4a6d9ecc1f3f6c7ec59cc0258fd78cd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "3a1d315d_fa3941d9",
         "filename": "envoy/go/envoyd/envoyd.go",
         "patchSetId": 2
@@ -98,6 +188,24 @@
       "writtenOn": "2017-07-17T21:36:27Z",
       "side": 1,
       "message": "same constant comment",
+      "revId": "f4ab2feaa4a6d9ecc1f3f6c7ec59cc0258fd78cd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3a1d315d_9ab5ad33",
+        "filename": "envoy/go/envoyd/envoyd.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 262,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-07-17T23:11:56Z",
+      "side": 1,
+      "message": "ditto",
+      "parentUuid": "3a1d315d_fa3941d9",
       "revId": "f4ab2feaa4a6d9ecc1f3f6c7ec59cc0258fd78cd",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
