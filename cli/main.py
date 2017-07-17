@@ -257,10 +257,16 @@ class VolthaCli(Cmd):
     def do_xpon(self, line):
         """xpon <optional> [device_ID] - Enter xpon level command mode"""
         device_id = line.strip()
-        if not device_id:
-            sub = XponCli(self.get_channel, "")
-        else:
-            sub = XponCli(self.get_channel, device_id)
+        if device_id:
+            stub = self.get_stub()
+            try:
+                res = stub.GetDevice(voltha_pb2.ID(id=device_id))
+            except Exception:
+                self.poutput(self.colorize('Error: ', 'red') + \
+                             'No device id ' + self.colorize(device_id, 'blue') + \
+                             ' is found')
+                return
+        sub = XponCli(self.get_channel, device_id)
         sub.cmdloop()
 
     def do_pdb(self, line):
