@@ -1,6 +1,6 @@
 version: "3"
 services:
-  voltha:
+  vcore:
     image: cord/voltha:latest
     deploy:
       replicas: 3
@@ -11,7 +11,7 @@ services:
       - --fluentd=fluentd:24224
       - --kafka=kafka
       - --rest-port=8880
-      - --grpc-port=50555
+      - --grpc-port=50556
       - --instance-id-is-container-name
       - --interface=eth2
       - --backend=consul
@@ -23,7 +23,7 @@ services:
     ports:
       - "8880:8880"
       - "18880:18880"
-      - "50555:50555"
+      - "50556:50556"
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock
 
