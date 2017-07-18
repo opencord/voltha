@@ -122,7 +122,7 @@ else
         # which serve as documentation.
 	sed -i -e '/^#/!d' install.cfg
 	# Set the insecure registry configuration based on the installer hostname
-	echo -e "${lBlue}Set up the inescure registry config for hostname ${lCyan}vinstall${uId}${NC}"
+	echo -e "${lBlue}Set up the inescure registry config for hostname ${lCyan}vinstall${NC}"
 	sed -i -e '/docker_push_registry/s/.*/docker_push_registry: "vinstall:5000"/' ansible/group_vars/all
 	echo '{' > ansible/roles/voltha/templates/daemon.json
 	echo '"insecure-registries" : ["vinstall:5000"]' >> ansible/roles/voltha/templates/daemon.json
@@ -139,12 +139,12 @@ while [ ! -z "$vStat" ];
 do
 	echo "Waiting for $iVmName to shut down"
 	sleep 2
-	vStat=`virsh list | grep $iVmName`
+	vStat=`virsh list | grep "$iVmName "`
 	ctr=`expr $ctr + 1`
 	if [ $ctr -eq $shutdownTimeout ]; then
 		echo -e "${red}Tired of waiting, forcing the VM off${NC}"
 		virsh destroy $iVmName
-		vStat=`virsh list | grep $iVmName`
+		vStat=`virsh list | grep "$iVmName "`
 	fi
 done
 
@@ -368,12 +368,12 @@ else
 	do
 		echo "Waiting for $iVmName to shut down"
 		sleep 2
-		vStat=`virsh list | grep $iVmName`
+		vStat=`virsh list | grep "$iVmName "`
 		ctr=`expr $ctr + 1`
 		if [ $ctr -eq $shutdownTimeout ]; then
 			echo -e "${red}Tired of waiting, forcing the VM off${NC}"
 			virsh destroy $iVmName
-			vStat=`virsh list | grep $iVmName`
+			vStat=`virsh list | grep "$iVmName "`
 		fi
 	done
         # Copy the install bootstrap script to the installer directory
