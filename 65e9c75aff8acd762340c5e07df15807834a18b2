@@ -87,6 +87,40 @@
     },
     {
       "key": {
+        "uuid": "5a202591_afe1459c",
+        "filename": "voltha/core/device_agent.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 344,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-07-18T13:38:02Z",
+      "side": 1,
+      "message": "When does the state goes back to ENABLED?  What happened if someone disable the device during a download or disable the OLT?",
+      "revId": "65e9c75aff8acd762340c5e07df15807834a18b2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a202591_cfe481ae",
+        "filename": "voltha/core/global_handler.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 983,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-07-18T13:38:02Z",
+      "side": 1,
+      "message": "What\u0027s the default value?",
+      "revId": "65e9c75aff8acd762340c5e07df15807834a18b2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_8ae9d71c",
         "filename": "voltha/core/local_handler.py",
         "patchSetId": 7
