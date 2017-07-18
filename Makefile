@@ -213,6 +213,7 @@ fetch:
 	docker pull portainer/portainer:latest
 	docker pull lyft/envoy:latest
 	docker pull registry:2
+        docker pull kamon/grafana_graphite:latest
 
 purge-venv:
 	rm -fr ${VENVDIR}
