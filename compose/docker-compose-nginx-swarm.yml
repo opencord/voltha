@@ -1,0 +1,35 @@
+#
+# This stackfile deploys nginx to a docker swarm.
+#
+# Nginx depends on:
+# - consul     (service)
+# - grafana    (service)
+# - voltha_net (overlay network)
+#
+# To deploy the stack, issue the command:
+#
+#     docker stack deploy -c docker-compose-nginx-swarm.yml nginx
+#
+
+version: "3"
+services:
+  nginx:
+    image: voltha/nginx
+    deploy:
+      replicas: 1
+    environment:
+      CONSUL_ADDR: "consul:8500"
+    entrypoint:
+      - /nginx_config/start_service.sh
+    networks:
+      - voltha-net
+    ports:
+      - "80:80"
+    volumes:
+      - /cord/incubator/voltha/nginx_config:/nginx_config
+      
+networks:
+  voltha-net:
+    external:
+      name: voltha_net
+

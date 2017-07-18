@@ -1,7 +1,7 @@
 #
-# This stackfile deploys dashd to a docker swarm.
+# This stackfile deploys dashd and shovel services to a docker swarm.
 #
-# Dashd depends on:
+# Each of these services depends on:
 # - consul     (service)
 # - kafka      (service)
 # - grafana    (service)
@@ -27,7 +27,20 @@ services:
       - --docker_host=${DOCKER_HOST_IP}
     networks:
       - voltha-net
-      
+
+  shovel:
+    image: cord/shovel
+    deploy:
+      replicas: 1
+    entrypoint:
+      - /shovel/shovel/main.py
+      - --kafka=kafka
+      - --consul=consul:8500
+      - --topic=voltha.kpis
+      - --host=grafana
+    networks:
+      - voltha-net
+
 networks:
   voltha-net:
     external:
