@@ -19,7 +19,7 @@ Asfvolt16 OLT adapter
 """
 
 from uuid import uuid4
-
+from common.frameio.frameio import BpfProgramFilter
 from voltha.protos.common_pb2 import OperStatus, ConnectStatus
 from voltha.protos.device_pb2 import Port
 from voltha.protos.common_pb2 import AdminState
@@ -31,18 +31,33 @@ from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.adapters.asfvolt16_olt.bal import Bal
 from voltha.adapters.device_handler import OltDeviceHandler
 
+# TODO: VLAN ID needs to come from some sort of configuration.
+PACKET_IN_VLAN = 4091
+is_inband_frame = BpfProgramFilter('(ether[14:2] & 0xfff) = 0x{:03x}'.format(
+    PACKET_IN_VLAN))
+
+#TODO: hardcoded NNI port ID to be removed once port enumeration is supported.
+nni_port_no = 1
+
+# TODO - hardcoded OLT ID to be removed once multiple OLT devices is supported.
+olt_id = 1
+
 class Asfvolt16Handler(OltDeviceHandler):
     def __init__(self, adapter, device_id):
         super(Asfvolt16Handler, self).__init__(adapter, device_id)
+        self.filter = is_inband_frame
         self.bal = Bal(self.log)
+        self.host_and_port = None
+
+    def __del__(self):
+        super(Asfvolt16Handler, self).__del__()
+
+    def __str__(self):
+        return "Asfvolt16Handler: {}".format(self.host_and_port)
 
     def activate(self, device):
-        '''
-        TODO: Revisit how to determine the NNI port number.
-        Hardcoding for now.
-        '''
-        port_no = 1
-        self.log.info('activating-olt', device=device)
+
+        self.log.info('activating-asfvolt16-olt', device=device)
 
         if self.logical_device_id is not None:
             return
@@ -53,30 +68,32 @@ class Asfvolt16Handler(OltDeviceHandler):
             self.adapter_agent.update_device(device)
             return
 
+        self.host_and_port = device.host_and_port
+
         device.root = True
         device.vendor = 'Edgecore'
         device.model = 'ASFvOLT16'
         device.serial_number = device.host_and_port
         self.adapter_agent.update_device(device)
 
-        self.add_port(port_no=port_no, port_type=Port.ETHERNET_NNI)
+        self.add_port(port_no=nni_port_no, port_type=Port.ETHERNET_NNI)
         self.logical_device_id = self.add_logical_device(device_id=device.id)
-        self.add_logical_port(port_no=port_no,
+        self.add_logical_port(port_no=nni_port_no,
                               port_type=Port.ETHERNET_NNI,
                               device_id=device.id,
                               logical_device_id=self.logical_device_id)
 
         self.bal.connect_olt(device.host_and_port)
-        # TODO - Add support for multiple OLT devices.
-        # Only single OLT is supported currently and it id is
-        # hard-coded to 0.
-        self.bal.activate_olt(olt_id=0)
+        self.bal.activate_olt(olt_id)
 
         device = self.adapter_agent.get_device(device.id)
         device.parent_id = self.logical_device_id
         device.connect_status = ConnectStatus.REACHABLE
         device.oper_status = OperStatus.ACTIVATING
         self.adapter_agent.update_device(device)
+
+        # Open the frameio port to receive in-band packet_in messages
+        self.activate_io_port()
 
     def add_port(self, port_no, port_type):
         self.log.info('adding-port', port_no=port_no, port_type=port_type)
