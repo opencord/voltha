@@ -46,8 +46,9 @@ class Asfvolt16Handler(OltDeviceHandler):
     def __init__(self, adapter, device_id):
         super(Asfvolt16Handler, self).__init__(adapter, device_id)
         self.filter = is_inband_frame
-        self.bal = Bal(self.log)
+        self.bal = Bal(self, self.log)
         self.host_and_port = None
+        self.olt_id = 0
 
     def __del__(self):
         super(Asfvolt16Handler, self).__del__()
@@ -59,32 +60,31 @@ class Asfvolt16Handler(OltDeviceHandler):
 
         self.log.info('activating-asfvolt16-olt', device=device)
 
-        if self.logical_device_id is not None:
-            return
+        if self.logical_device_id is None:
 
-        if not device.host_and_port:
-            device.oper_status = OperStatus.FAILED
-            device.reason = 'No host_and_port field provided'
+            if not device.host_and_port:
+                device.oper_status = OperStatus.FAILED
+                device.reason = 'No host_and_port field provided'
+                self.adapter_agent.update_device(device)
+                return
+
+            self.host_and_port = device.host_and_port
+            device.root = True
+            device.vendor = 'Edgecore'
+            device.model = 'ASFvOLT16'
+            device.serial_number = device.host_and_port
             self.adapter_agent.update_device(device)
-            return
+    
+            self.add_port(port_no=1, port_type=Port.ETHERNET_NNI)
+            self.logical_device_id = self.add_logical_device(device_id=device.id)
+            self.add_logical_port(port_no=1,
+                                  port_type=Port.ETHERNET_NNI,
+                                  device_id=device.id,
+                                  logical_device_id=self.logical_device_id)
 
-        self.host_and_port = device.host_and_port
+            self.bal.connect_olt(device.host_and_port, self.device_id)
 
-        device.root = True
-        device.vendor = 'Edgecore'
-        device.model = 'ASFvOLT16'
-        device.serial_number = device.host_and_port
-        self.adapter_agent.update_device(device)
-
-        self.add_port(port_no=nni_port_no, port_type=Port.ETHERNET_NNI)
-        self.logical_device_id = self.add_logical_device(device_id=device.id)
-        self.add_logical_port(port_no=nni_port_no,
-                              port_type=Port.ETHERNET_NNI,
-                              device_id=device.id,
-                              logical_device_id=self.logical_device_id)
-
-        self.bal.connect_olt(device.host_and_port)
-        self.bal.activate_olt(olt_id)
+        self.bal.activate_olt()
 
         device = self.adapter_agent.get_device(device.id)
         device.parent_id = self.logical_device_id
@@ -99,7 +99,13 @@ class Asfvolt16Handler(OltDeviceHandler):
         self.log.info('adding-port', port_no=port_no, port_type=port_type)
         if port_type is Port.ETHERNET_NNI:
             label='NNI facing Ethernet port'
-        else:
+            oper_status=OperStatus.ACTIVE
+        elif port_type is Port.PON_OLT:
+            label='PON port'
+            #To-Do The pon port status should be ACTIVATING.
+            #For now make the status as Active.
+            oper_status=OperStatus.ACTIVE
+        else :
             self.log.erro('invalid-port-type', port_type=port_type)
             return
 
@@ -108,7 +114,7 @@ class Asfvolt16Handler(OltDeviceHandler):
             label=label,
             type=port_type,
             admin_state=AdminState.ENABLED,
-            oper_status=OperStatus.ACTIVE
+            oper_status=oper_status
         )
         self.adapter_agent.add_port(self.device_id, port)
 
@@ -171,6 +177,40 @@ class Asfvolt16Handler(OltDeviceHandler):
         )
 
         self.adapter_agent.add_logical_port(logical_device_id, logical_port)
+
+    def handle_access_term_ind(self, ind_info):
+        #import pdb; pdb.set_trace()
+        device = self.adapter_agent.get_device(self.device_id)
+        if ind_info['actv_status'] == 'success':
+            self.log.info('successful access terminal Indication',
+                                  olt_id=self.olt_id)
+            device.connect_status = ConnectStatus.REACHABLE
+            device.oper_status = OperStatus.ACTIVE
+            device.reason = 'OLT activated successfully'
+            status = self.adapter_agent.update_device(device)
+            self.log.info('OLT activation complete')
+            try:
+               #Here we have to add pon_port to OLT device.
+               #Since the create_interface is not called, below code is
+               #added to achive functionality.
+               #self.send_connect_olt(self.olt_id)
+               port_no = 100
+               self.add_port(port_no, port_type=Port.PON_OLT)
+               #import pdb; pdb.set_trace()
+               self.bal.activate_pon_port(self.olt_id, port_no);
+            except Exception as e:
+               return
+        else:
+            device.oper_status = OperStatus.FAILED
+            device.reason = 'Failed to Intialize OLT'
+            self.adapter_agent.update_device(device)
+            reactor.callLater(5, self.activate, device)
+        return
+
+    def handle_subscriber_term_ind(self, ind_info):
+        #import pdb; pdb.set_trace()
+        self.log.info('To-DO Need to handle ONU Indication')
+       
 
 def disable(self):
         super(Asfvolt16Handler, self).disable()
