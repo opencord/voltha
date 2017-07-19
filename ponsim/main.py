@@ -28,16 +28,21 @@ from twisted.internet.defer import inlineCallbacks
 
 from common.structlog_setup import setup_logging
 from grpc_server import GrpcServer
-from ponsim import PonSim
 from realio import RealIo
-
+from voltha.protos.ponsim_pb2 import add_PonSimServicer_to_server
+from voltha.protos.ponsim_pb2 import add_XPonSimServicer_to_server
+from voltha.adapters.asfvolt16_olt.protos.bal_pb2 import add_BalServicer_to_server
+import ponsim_servicer
+import bal_servicer
+from ponsim import PonSim
 from ponsim import XPonSim
 
 defs = dict(
     config=os.environ.get('CONFIG', './ponsim.yml'),
     grpc_port=int(os.environ.get('GRPC_PORT', 50060)),
     name=os.environ.get('NAME', 'pon1'),
-    onus=int(os.environ.get("ONUS", 1))
+    onus=int(os.environ.get("ONUS", 1)),
+    device_type='ponsim'
 )
 
 
@@ -139,6 +144,14 @@ def parse_args():
                         default=False,
                         help=_help)
 
+    _help = ('device type - ponsim or bal'
+             ' (default: %s)' % defs['device_type'])
+    parser.add_argument('-d', '--device_type',
+                        dest='device_type',
+                        action='store',
+                        default=defs['device_type'],
+                        help=_help)
+
     args = parser.parse_args()
 
     return args
@@ -169,13 +182,19 @@ class Main(object):
         if not args.no_banner:
             print_banner(self.log)
 
-        self.startup_components()
+        if args.device_type == 'ponsim':
+            grpc_services =  [(add_PonSimServicer_to_server, ponsim_servicer.FlowUpdateHandler)]
+        elif args.device_type == 'bal':
+            grpc_services =  [(add_BalServicer_to_server, bal_servicer.BalHandler)]
+        grpc_services.append((add_XPonSimServicer_to_server, ponsim_servicer.XPonHandler))
+
+        self.startup_components(grpc_services)
 
     def start(self):
         self.start_reactor()  # will not return except Keyboard interrupt
 
     @inlineCallbacks
-    def startup_components(self):
+    def startup_components(self, grpc_services):
         try:
             self.log.info('starting-internal-components')
 
@@ -188,7 +207,7 @@ class Main(object):
             self.x_pon_sim = XPonSim()
 
             self.grpc_server = GrpcServer(self.args.grpc_port, self.ponsim, self.x_pon_sim)
-            yield self.grpc_server.start()
+            yield self.grpc_server.start(grpc_services)
 
             self.log.info('started-internal-services')
 

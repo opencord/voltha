@@ -14,17 +14,17 @@ class TestDeviceStateChangeSequence(RestBase):
     The prerequisite for this test are:
      1. voltha ensemble is running
           docker-compose -f compose/docker-compose-system-test.yml up -d
-     2.  asfvolt16_olt simulator is running
+     2. ponsim olt is running with 1 OLT and 4 ONUs using device_type 'bal'
           sudo -s
           . ./env.sh
-          ./voltha/adapters/asfvolt16_olt/sim.py
+          ./ponsim/main.py -v -o 4 -d bal
     """
 
     # Retrieve details of the REST entry point
     rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'chameleon-rest')
 
     # Construct the base_url
-    base_url = 'http://' + rest_endpoint
+    base_url = 'https://' + rest_endpoint
 
     def wait_till(self, msg, predicate, interval=0.1, timeout=5.0):
         deadline = time() + timeout

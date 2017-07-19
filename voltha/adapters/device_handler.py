@@ -14,6 +14,8 @@
 # limitations under the License.
 #
 import structlog
+from scapy.layers.l2 import Ether, Dot1Q
+from voltha.registry import registry
 from voltha.protos.common_pb2 import OperStatus, ConnectStatus, AdminState
 
 class DeviceHandler(object):
@@ -41,6 +43,11 @@ class DeviceHandler(object):
 class OltDeviceHandler(DeviceHandler):
     def __init__(self, adapter, device_id):
         super(OltDeviceHandler, self).__init__(adapter, device_id)
+        self.filter = None
+
+    def __del__(self):
+        if self.io_port is not None:
+            registry('frameio').close_port(self.io_port)
 
     def disable(self):
         super(OltDeviceHandler, self).disable()
@@ -80,6 +87,46 @@ class OltDeviceHandler(DeviceHandler):
         # 2) Remove the device from ponsim
 
         self.log.info('deleted', device_id=self.device_id)
+
+    def activate_io_port(self):
+        if self.io_port is None:
+            self.log.info('registering-frameio')
+            self.io_port = registry('frameio').open_port(
+                self.interface, self.rcv_io, self.filter)
+
+    def deactivate_io_port(self):
+        io, self.io_port = self.io_port, None
+
+        if io is not None:
+            registry('frameio').close_port(io)
+
+    def rcv_io(self, port, frame):
+        self.log.info('received', iface_name=port.iface_name,
+                      frame_len=len(frame))
+        pkt = Ether(frame)
+        if pkt.haslayer(Dot1Q):
+            outer_shim = pkt.getlayer(Dot1Q)
+            if isinstance(outer_shim.payload, Dot1Q):
+                inner_shim = outer_shim.payload
+                cvid = inner_shim.vlan
+                logical_port = cvid
+                popped_frame = (
+                    Ether(src=pkt.src, dst=pkt.dst, type=inner_shim.type) /
+                    inner_shim.payload
+                )
+                kw = dict(
+                    logical_device_id=self.logical_device_id,
+                    logical_port_no=logical_port,
+                )
+                self.log.info('sending-packet-in', **kw)
+                self.adapter_agent.send_packet_in(
+                    packet=str(popped_frame), **kw)
+            '''
+            # TODO: handle non dot1q pkts
+            elif pkt.haslayer(Raw):
+                raw_data = json.loads(pkt.getlayer(Raw).load)
+                self.alarms.send_alarm(self, raw_data)
+            '''
 
 class OnuDeviceHandler(DeviceHandler):
     pass
