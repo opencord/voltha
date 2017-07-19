@@ -172,9 +172,9 @@ message BalObjInd{
     BalErrno     status  = 2; //status of the indication received from BAL utilities
     string       keyStr  = 3; //key string containing additional data
     oneof u {
-          BalSubscriberTerminalCfg onuDiscoveryInfo = 4; // ONU discovery info
-          bytes        pktData = 5; //raw packet in case of object type is PACKET
-    }
+        BalSubscriberTerminalCfg onuDiscoveryInfo = 4; // ONU discovery info
+        bytes        pktData = 5; //raw packet in case of object type is PACKET
+	}
 }
 
 message BalIndications{
@@ -184,6 +184,7 @@ message BalIndications{
           BalIndStatsInfo balStatsInfo = 3; //statistics info from BAL
           BalOmciRespInfo balOmciRespInfo = 4; // OMCI response
     }
+    string device_id = 5; //Deviced Id
 }
 
 service BalInd {

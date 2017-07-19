@@ -62,8 +62,12 @@ class GrpcServer(object):
            log.error('failed-to-read-cert-keys', reason=e)
 
         # create server credentials
-        server_credentials = grpc.ssl_server_credentials(((private_key, certificate_chain,),))
-        self.server.add_secure_port('[::]:%s' % self.port, server_credentials)
+        if self.device_type == 'ponsim':
+            server_credentials = grpc.ssl_server_credentials(((private_key, certificate_chain,),))
+            self.server.add_secure_port('[::]:%s' % self.port, server_credentials)
+        else:
+            self.server.add_insecure_port('[::]:%s' % self.port)
+
         self.server.start()
         log.info('started')
 

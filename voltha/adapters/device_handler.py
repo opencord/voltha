@@ -44,6 +44,7 @@ class OltDeviceHandler(DeviceHandler):
     def __init__(self, adapter, device_id):
         super(OltDeviceHandler, self).__init__(adapter, device_id)
         self.filter = None
+        self.io_port = None
 
     def __del__(self):
         if self.io_port is not None:
