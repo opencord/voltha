@@ -151,9 +151,10 @@ enum BalGroupOwner
 /** Interface type.
  */
 enum BalIntfType {
-    BAL_INTF_TYPE_NNI                        = 0;    /**< NNI Interface. */
-    BAL_INTF_TYPE_PON                        = 1;    /**< POIN Interface. */
-    BAL_INTF_TYPE__NUM_OF                    = 2;    /**< Number of enum entries, not an entry itself. */
+    BAL_INTF_TYPE_INVALID                    = 0;    /**< INVALID.*/
+    BAL_INTF_TYPE_NNI                        = 1;    /**< NNI Interface. */
+    BAL_INTF_TYPE_PON                        = 2;    /**< POIN Interface. */
+    BAL_INTF_TYPE__NUM_OF                    = 3;    /**< Number of enum entries, not an entry itself. */
 }
 
 /** Interworking Function Mode.
