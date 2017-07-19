@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "1a1a2d67_73c7a013",
+        "filename": "cli/xpon.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 79,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-07-19T18:00:40Z",
+      "side": 1,
+      "message": "Accepted.",
+      "parentUuid": "1a1a2d67_7360c035",
+      "revId": "e78e931235a02218f3dac2170310182b8d2e5ec5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1a1a2d67_135f4c74",
         "filename": "voltha/core/xpon_agent.py",
         "patchSetId": 1
@@ -30,6 +48,24 @@
       "writtenOn": "2017-07-19T17:30:43Z",
       "side": 1,
       "message": "Try to keep the line size to 80.  There are some cases it\u0027s better to leave it long for readability (like here).",
+      "revId": "e78e931235a02218f3dac2170310182b8d2e5ec5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a1a2d67_53cca435",
+        "filename": "voltha/core/xpon_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 32,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-07-19T18:00:40Z",
+      "side": 1,
+      "message": "Accepted",
+      "parentUuid": "1a1a2d67_135f4c74",
       "revId": "e78e931235a02218f3dac2170310182b8d2e5ec5",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "1a1a2d67_33d128ce",
+        "filename": "voltha/core/xpon_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 40,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-07-19T18:00:40Z",
+      "side": 1,
+      "message": "Accepted",
+      "parentUuid": "1a1a2d67_f353b06a",
+      "revId": "e78e931235a02218f3dac2170310182b8d2e5ec5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1a1a2d67_b34d38c7",
         "filename": "voltha/core/xpon_agent.py",
         "patchSetId": 1
@@ -64,6 +118,24 @@
       "writtenOn": "2017-07-19T17:30:43Z",
       "side": 1,
       "message": "What if len(interface_node[\u0027child_path\u0027]) \u003d\u003d 0?",
+      "revId": "e78e931235a02218f3dac2170310182b8d2e5ec5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a1a2d67_f3da90e8",
+        "filename": "voltha/core/xpon_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 138,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-07-19T18:00:40Z",
+      "side": 1,
+      "message": "if len(interface_node[\u0027child_path\u0027]) \u003d\u003d 0, this function will never be called from the first place. That\u0027s why I have \u0027olt_device_id\u0027: \u0027from_parent\u0027 or \u0027from_child\u0027 in interface stack. If in interface stack \u0027olt_device_id\u0027: \u0027from_child\u0027, then len(interface_node[\u0027child_path\u0027]) must be \u003e\u003d 1.",
+      "parentUuid": "1a1a2d67_b34d38c7",
       "revId": "e78e931235a02218f3dac2170310182b8d2e5ec5",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
