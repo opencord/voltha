@@ -206,7 +206,9 @@ class Main(object):
 
             self.x_pon_sim = XPonSim()
 
-            self.grpc_server = GrpcServer(self.args.grpc_port, self.ponsim, self.x_pon_sim)
+            self.grpc_server = GrpcServer(self.args.grpc_port,
+                                          self.ponsim,
+                                          self.x_pon_sim, self.args)
             yield self.grpc_server.start(grpc_services)
 
             self.log.info('started-internal-services')

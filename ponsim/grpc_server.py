@@ -26,12 +26,13 @@ log = structlog.get_logger()
 
 class GrpcServer(object):
 
-    def __init__(self, port, ponsim, x_pon_sim):
+    def __init__(self, port, ponsim, x_pon_sim, args):
         self.port = port
         self.thread_pool = futures.ThreadPoolExecutor(max_workers=10)
         self.server = grpc.server(self.thread_pool)
         self.ponsim = ponsim
         self.x_pon_sim = x_pon_sim
+        self.args = args
 
     '''
     service_list: a list of (add_xyzSimServicer_to_server, xyzServicerClass)
@@ -57,8 +58,12 @@ class GrpcServer(object):
            log.error('failed-to-read-cert-keys', reason=e)
 
         # create server credentials
-        server_credentials = grpc.ssl_server_credentials(((private_key, certificate_chain,),))
-        self.server.add_secure_port('[::]:%s' % self.port, server_credentials)
+        if self.args.device_type == 'ponsim':
+            server_credentials = grpc.ssl_server_credentials(((private_key, certificate_chain,),))
+            self.server.add_secure_port('[::]:%s' % self.port, server_credentials)
+        else:
+            self.server.add_insecure_port('[::]:%s' % self.port)
+
         self.server.start()
         log.info('started')
 
