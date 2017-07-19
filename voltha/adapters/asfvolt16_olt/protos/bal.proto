@@ -16,7 +16,7 @@
 
 syntax = "proto3";
 
-import "google/protobuf/empty.proto";
+//import "google/protobuf/empty.proto";
 import "bal_obj.proto";
 import "bal_model_types.proto";
 import "bal_errno.proto";
@@ -40,6 +40,7 @@ message BalCfg {
         BalTmQueueCfg tm_queue_cfg = 8;
         BalTmSchedCfg tm_sched_cfg = 9;
     }
+    string device_id = 10;
 }
 
 message BalInit {
@@ -74,7 +75,7 @@ service Bal {
     /**
      * Un-initialize the BAL Public API internal data structures
      **/
-    rpc BalApiFinish(google.protobuf.Empty) returns(BalErr) {}
+    rpc BalApiFinish(BalCfg) returns(BalErr) {}
     /**
      * BAL Public API Set (or modify) command.
      *

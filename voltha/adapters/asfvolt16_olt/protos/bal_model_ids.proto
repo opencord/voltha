@@ -327,21 +327,22 @@ enum BalTmSchedKeyId
     BAL_TM_SCHED_KEY_ID_ID                           = 1;    /**< id. */
 }
 
-/** Identifiers for all objects in the system. 
+/** Identifiers for all objects in the system.
  */
 enum BalObjId
 {
-    BAL_OBJ_ID_ACCESS_TERMINAL                       = 0;    /**< BAL Access Terminal */
-    BAL_OBJ_ID_FLOW                                  = 1;    /**< BAL Flow */
-    BAL_OBJ_ID_GROUP                                 = 2;    /**< BAL Group */
-    BAL_OBJ_ID_INTERFACE                             = 3;    /**< BAL Interface */
-    BAL_OBJ_ID_PACKET                                = 4;    /**< packet */
-    BAL_OBJ_ID_SUBSCRIBER_TERMINAL                   = 5;    /**< BAL Subscriber Terminal */
-    BAL_OBJ_ID_TM_QUEUE                              = 6;    /**< tm_queue */
-    BAL_OBJ_ID_TM_SCHED                              = 7;    /**< tm_sched */
+    BAL_OBJ_ID_INVALID                               = 0;    /**< INVALID */
+    BAL_OBJ_ID_ACCESS_TERMINAL                       = 1;    /**< BAL Access Terminal */
+    BAL_OBJ_ID_FLOW                                  = 2;    /**< BAL Flow */
+    BAL_OBJ_ID_GROUP                                 = 3;    /**< BAL Group */
+    BAL_OBJ_ID_INTERFACE                             = 4;    /**< BAL Interface */
+    BAL_OBJ_ID_PACKET                                = 5;    /**< packet */
+    BAL_OBJ_ID_SUBSCRIBER_TERMINAL                   = 6;    /**< BAL Subscriber Terminal */
+    BAL_OBJ_ID_TM_QUEUE                              = 7;    /**< tm_queue */
+    BAL_OBJ_ID_TM_SCHED                              = 8;    /**< tm_sched */
 }
 
-/** Identifiers for all possible groups under all objects in the system. 
+/** Identifiers for all possible groups under all objects in the system.
  */
 enum BalObjGroupId
 {
