@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a1a2d67_7360c035",
+        "filename": "cli/xpon.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 79,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-07-19T17:30:43Z",
+      "side": 1,
+      "message": "Can you try to limit the line size to 80 characters?",
+      "revId": "e78e931235a02218f3dac2170310182b8d2e5ec5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a1a2d67_135f4c74",
+        "filename": "voltha/core/xpon_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 32,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-07-19T17:30:43Z",
+      "side": 1,
+      "message": "Try to keep the line size to 80.  There are some cases it\u0027s better to leave it long for readability (like here).",
+      "revId": "e78e931235a02218f3dac2170310182b8d2e5ec5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a1a2d67_f353b06a",
+        "filename": "voltha/core/xpon_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 40,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-07-19T17:30:43Z",
+      "side": 1,
+      "message": "Line size to 80",
+      "revId": "e78e931235a02218f3dac2170310182b8d2e5ec5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a1a2d67_b34d38c7",
+        "filename": "voltha/core/xpon_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 138,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-07-19T17:30:43Z",
+      "side": 1,
+      "message": "What if len(interface_node[\u0027child_path\u0027]) \u003d\u003d 0?",
+      "revId": "e78e931235a02218f3dac2170310182b8d2e5ec5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
