@@ -18,64 +18,11 @@ import structlog
 import os
 from concurrent import futures
 
-from common.utils.grpc_utils import twisted_async
 from voltha.protos import third_party
-from voltha.protos.ponsim_pb2 import PonSimServicer, \
-    add_PonSimServicer_to_server, PonSimDeviceInfo
-from google.protobuf.empty_pb2 import Empty
-
-from voltha.protos.ponsim_pb2 import XPonSimServicer, add_XPonSimServicer_to_server
 
 _ = third_party
 
 log = structlog.get_logger()
-
-
-class FlowUpdateHandler(PonSimServicer):
-
-    def __init__(self, thread_pool, ponsim):
-        self.thread_pool = thread_pool
-        self.ponsim = ponsim
-
-    @twisted_async
-    def GetDeviceInfo(self, request, context):
-        log.info('get-device-info')
-        ports = self.ponsim.get_ports()
-        return PonSimDeviceInfo(
-            nni_port=ports[0],
-            uni_ports=ports[1:]
-        )
-
-    @twisted_async
-    def UpdateFlowTable(self, request, context):
-        log.info('flow-table-update', request=request, port=request.port)
-        if request.port == 0:
-            # by convention this is the olt port
-            self.ponsim.olt_install_flows(request.flows)
-        else:
-            self.ponsim.onu_install_flows(request.port, request.flows)
-        return Empty()
-
-    def GetStats(self, request, context):
-        return self.ponsim.get_stats()
-
-class XPonHandler(XPonSimServicer):
-
-    def __init__(self, thread_pool, x_pon_sim):
-        self.thread_pool = thread_pool
-        self.x_pon_sim = x_pon_sim
-
-    def CreateInterface(self, request, context):
-        self.x_pon_sim.CreateInterface(request)
-        return Empty()
-
-    def UpdateInterface(self, request, context):
-        self.x_pon_sim.UpdateInterface(request)
-        return Empty()
-
-    def RemoveInterface(self, request, context):
-        self.x_pon_sim.RemoveInterface(request)
-        return Empty()
 
 class GrpcServer(object):
 
@@ -86,12 +33,16 @@ class GrpcServer(object):
         self.ponsim = ponsim
         self.x_pon_sim = x_pon_sim
 
-    def start(self):
+    '''
+    service_list: a list of (add_xyzSimServicer_to_server, xyzServicerClass)
+    e.g. [(add_PonSimServicer_to_server, FlowUpdateHandler),
+          (add_XPonSimServicer_to_server, XPonHandler)]
+    '''
+    def start(self, service_list):
         log.debug('starting')
-        handler = FlowUpdateHandler(self.thread_pool, self.ponsim)
-        add_PonSimServicer_to_server(handler, self.server)
-        x_pon_handler = XPonHandler(self.thread_pool, self.x_pon_sim)
-        add_XPonSimServicer_to_server(x_pon_handler, self.server)
+        for add_x_to_server, xServiceClass in service_list:
+            x_handler = xServiceClass(self.thread_pool, self.ponsim)
+            add_x_to_server(x_handler, self.server)
 
         # read in key and certificate
         try:
@@ -108,7 +59,6 @@ class GrpcServer(object):
         # create server credentials
         server_credentials = grpc.ssl_server_credentials(((private_key, certificate_chain,),))
         self.server.add_secure_port('[::]:%s' % self.port, server_credentials)
-
         self.server.start()
         log.info('started')
 
