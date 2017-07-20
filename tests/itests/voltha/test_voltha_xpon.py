@@ -101,8 +101,8 @@ scenario = [
                 'rpc': {
                         "interface": {
                             "enabled": True,
-                            "name": "ATT Silver User",
-                            "description": "ATT Silver User in Freedom Tower"
+                            "name": "ATT Golden User",
+                            "description": "ATT Golden User in Freedom Tower"
                             },
                         "data": {
                             "preferred_chanpair": "PON port",
@@ -110,7 +110,7 @@ scenario = [
                             "parent_ref": "WTC",
                             "onu_id": 1
                             },
-                        "name": "ATT Silver User"
+                        "name": "ATT Golden User"
                         }
                     }
                 },
@@ -119,14 +119,14 @@ scenario = [
                 'rpc': {
                         "interface": {
                             "enabled": True,
-                            "name": "ATT Silver User",
-                            "description": "ATT Silver User in Freedom Tower"
+                            "name": "ATT Golden User",
+                            "description": "ATT Golden User in Freedom Tower"
                             }, 
                         "data": { 
                             "upstream_fec_indicator": True, 
                             "mgnt_gemport_aes_indicator": False  
                             }, 
-                        "name": "ATT Silver User" 
+                        "name": "ATT Golden User" 
                         }
                     }
                 },
@@ -139,7 +139,7 @@ scenario = [
                             "description": "Ethernet port - 1"
                             },
                         "data": {
-                            "v_ontani_ref": "ATT Silver User"
+                            "v_ontani_ref": "ATT Golden User"
                             },
                         "name": "ATT SU Enet UNI-1-1"
                         }
@@ -163,8 +163,8 @@ scenario = [
                     }
                 },
         {'venet-del': { 'rpc': {"name": "ATT SU Enet UNI-1-1"}, 'pb2': fb.VEnetConfig()}},
-        {'ontani-del': { 'rpc': {"name": "ATT Silver User"}, 'pb2': fb.OntaniConfig()}},
-        {'vontani-del': { 'rpc': {"name": "ATT Silver User"}, 'pb2': fb.VOntaniConfig()}},
+        {'ontani-del': { 'rpc': {"name": "ATT Golden User"}, 'pb2': fb.OntaniConfig()}},
+        {'vontani-del': { 'rpc': {"name": "ATT Golden User"}, 'pb2': fb.VOntaniConfig()}},
         {'cterm-del': { 'rpc': {"name": "PON port"}, 'pb2': fb.ChannelterminationConfig()}},
         {'cpair-del': { 'rpc': {"name": "PON port"}, 'pb2': fb.ChannelpairConfig()}},
         {'cpart-del': { 'rpc': {"name": "WTC"}, 'pb2': fb.ChannelpartitionConfig()}},
@@ -264,12 +264,12 @@ class TestXPon(RestBase):
     # Retrieve the desired item upon Post message
     def verify(self, type):
         if(type == 'channel_terminations'):
-            return self.get('/api/v1/local/devices/{}/{}'.format(device['id'], type))
+            return self.get('/api/v1/devices/{}/{}'.format(device['id'], type))
         return self.get('/api/v1/local/{}'.format(type))
 
     def get_path(self, type, name, operation):
         if(type == 'channel_terminations'):
-            return 'api/v1/local/devices/{}/{}/{}{}'.format(device['id'], type, name, operation)
+            return 'api/v1/devices/{}/{}/{}{}'.format(device['id'], type, name, operation)
         return 'api/v1/local/{}/{}{}'.format(type, name, operation)
 
     # Method to check if the result is same as the change requested
