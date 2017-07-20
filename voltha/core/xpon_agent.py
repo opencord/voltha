@@ -480,16 +480,16 @@ class XponAgent(object):
         parent_chnl_pair_id = self.get_port_num(
             device.id, v_ont_ani.data.preferred_chanpair)
         log.info('create-onu-device:', parent_chnl_pair_id=parent_chnl_pair_id)
-        onu_type = v_ont_ani.data.expected_serial_number[:4]
+        vendor_id = v_ont_ani.data.expected_serial_number[:4]
         proxy_address = Device.ProxyAddress(
             device_id=device.id, channel_id=parent_chnl_pair_id,
             onu_id=v_ont_ani.data.onu_id, onu_session_id=v_ont_ani.data.onu_id)
-        adapter_agent.child_device_detected(
+        adapter_agent.add_onu_device(
             parent_device_id=device.id, parent_port_no=parent_chnl_pair_id,
-            child_device_type=onu_type, proxy_address=proxy_address, root=True,
-            serial_number=v_ont_ani.data.expected_serial_number,
-            admin_state=AdminState.ENABLED if v_ont_ani.interface.enabled else
-            AdminState.DISABLED)
+            vendor_id=vendor_id, proxy_address=proxy_address,
+            root=True, serial_number=v_ont_ani.data.expected_serial_number,
+            admin_state=AdminState.ENABLED if v_ont_ani.interface.enabled
+                                           else AdminState.DISABLED)
         return
 
     def delete_onu_device(self, device_id, v_ont_ani):
