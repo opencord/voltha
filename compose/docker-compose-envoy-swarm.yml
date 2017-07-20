@@ -17,8 +17,10 @@ services:
       DOCKER_HOST_IP: "${DOCKER_HOST_IP}"
     entrypoint:
       - /usr/local/bin/envoyd
-      - -t /envoy/voltha-grpc-proxy.template.json
-      - -c /envoy/voltha-grpc-proxy.json
+      - -envoy-cfg-template
+      - "/envoy/voltha-grpc-proxy.template.json"
+      - -envoy-config
+      - "/envoy/voltha-grpc-proxy.json"
     networks:
       - voltha-net
     ports:
