@@ -15,6 +15,10 @@ message DeviceType {
     // Unique name for the device type
     string id = 1;
 
+    // Unique venor id for the device type applicable to ONU
+    // 4 bytes of vendor id from ONU serial number
+    string vendor_id = 5;
+
     // Name of the adapter that handles device type
     string adapter = 2;
 
@@ -153,6 +157,7 @@ message Device {
     // List of software on the device
     Images images = 9 [(access) = READ_ONLY];
     string serial_number = 10 [(access) = READ_ONLY];
+    string vendor_id = 24 [(access) = READ_ONLY];
 
     // Addapter that takes care of device
     string adapter = 11 [(access) = READ_ONLY];

@@ -47,7 +47,8 @@ class PonSimOnuAdapter(OnuAdapter):
                                                name='ponsim_onu',
                                                vendor='Voltha project',
                                                version='0.4',
-                                               device_type='PSMO')
+                                               device_type='ponsim_onu',
+                                               vendor_id='PSMO')
 
 class PonSimOnuHandler(object):
     def __init__(self, adapter, device_id):

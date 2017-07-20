@@ -34,7 +34,7 @@ log = structlog.get_logger()
 
 @implementer(IAdapterInterface)
 class IAdapter(object):
-    def __init__(self, adapter_agent, config, device_handler_class, name, vendor, version, device_type):
+    def __init__(self, adapter_agent, config, device_handler_class, name, vendor, version, device_type, vendor_id):
         log.debug('Initializing adapter: {} {} {}'.format(vendor, name, version))
         self.adapter_agent = adapter_agent
         self.config = config
@@ -42,6 +42,7 @@ class IAdapter(object):
         self.supported_device_types = [
             DeviceType(
                 id=device_type,
+                vendor_id=vendor_id,
                 adapter=name,
                 accepts_bulk_flow_update=True
             )
@@ -170,7 +171,8 @@ class OltAdapter(IAdapter):
                                          name,
                                          vendor,
                                          version,
-                                         device_type)
+                                         device_type,
+                                         None)
         self.logical_device_id_to_root_device_id = dict()
 
     def reconcile_device(self, device):
@@ -211,14 +213,15 @@ class OltAdapter(IAdapter):
 ONU Adapter base class
 """
 class OnuAdapter(IAdapter):
-    def __init__(self, adapter_agent, config, device_handler_class, name, vendor, version, device_type):
+    def __init__(self, adapter_agent, config, device_handler_class, name, vendor, version, device_type, vendor_id):
         super(OnuAdapter, self).__init__(adapter_agent,
                                          config,
                                          device_handler_class,
                                          name,
                                          vendor,
                                          version,
-                                         device_type)
+                                         device_type,
+                                         vendor_id)
 
     def reconcile_device(self, device):
         self.devices_handlers[device.id] = self.device_handler_class(self, device.id)

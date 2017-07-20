@@ -528,6 +528,8 @@ class AdapterAgent(object):
             device_agent.reconcile_existing_device(child)
 
 
+    #Obselete API - discouraged to be decommissioned after
+    #adapters are align to new APIs
     def child_device_detected(self,
                               parent_device_id,
                               parent_port_no,
@@ -548,6 +550,34 @@ class AdapterAgent(object):
         )
         self._make_up_to_date(
             '/devices', device.id, device)
+
+        topic = self._gen_tx_proxy_address_topic(proxy_address)
+        self._tx_event_subscriptions[topic] = self.event_bus.subscribe(
+            topic, lambda t, m: self._send_proxied_message(proxy_address, m))
+
+    def add_onu_device(self,
+                       parent_device_id,
+                       parent_port_no,
+                       vendor_id,
+                       proxy_address,
+                       admin_state,
+                       **kw):
+        device_type = next((dt for dt in self.root_proxy.get('/device_types')
+                            if dt.vendor_id == vendor_id), None)
+        # we create new ONU device objects and insert them into the config
+        device = Device(
+            id=create_cluster_device_id(self.core.core_store_id),
+            # id=uuid4().hex[:12],
+            type=device_type.id,
+            vendor_id=vendor_id,
+            parent_id=parent_device_id,
+            parent_port_no=parent_port_no,
+            proxy_address=proxy_address,
+            admin_state=admin_state,
+            adapter=device_type.adapter,
+            **kw
+        )
+        self._make_up_to_date('/devices', device.id, device)
 
         topic = self._gen_tx_proxy_address_topic(proxy_address)
         self._tx_event_subscriptions[topic] = self.event_bus.subscribe(

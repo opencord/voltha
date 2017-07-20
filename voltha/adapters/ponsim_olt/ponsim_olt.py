@@ -361,7 +361,7 @@ class PonSimOltHandler(object):
             self.adapter_agent.child_device_detected(
                 parent_device_id=device.id,
                 parent_port_no=1,
-                child_device_type='PSMO', #''ponsim_onu', # refers notes from ponsim_onu
+                child_device_type='ponsim_onu',
                 proxy_address=Device.ProxyAddress(
                     device_id=device.id,
                     channel_id=vlan_id
