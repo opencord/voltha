@@ -8,9 +8,9 @@ from voltha.protos.device_pb2 import Device
 from common.utils.consulhelpers import get_endpoint_from_consul
 
 '''
-These tests uses the ponsim OLT to verfiy addition, modification and deletion 
-of channelgroups, channelpartition, channelpair, channeltermination, vOntAni, OntAni
-and VEnets for xpon
+These tests uses the ponsim OLT to verfiy addition, modification and deletion
+of channelgroups, channelpartition, channelpair, channeltermination, vOntAni,
+OntAni and VEnets for xpon
 The prerequisite for this test are:
  1. voltha ensemble is running
       docker-compose -f compose/docker-compose-system-test.yml up -d
@@ -24,154 +24,177 @@ device_type = 'ponsim_olt'
 host_and_port = '172.17.0.1:50060'
 scenario = [
         {'cg-add': {
-                'pb2': fb.ChannelgroupConfig(),
-                'rpc': {
-                        "interface": {
-                            "enabled": True,
-                            "name": "Manhattan",
-                            "description": "Channel Group for Manhattan.."
-                            },
-                        "data": {
-                            "polling_period": 100,
-                            "system_id": "000000",
-                            "raman_mitigation": "RAMAN_NONE"
-                            },
-                        "name": "Manhattan" 
-                        }
-                    }
-                },
+            'pb2': fb.ChannelgroupConfig(),
+            'rpc': {
+                "interface": {
+                    "enabled": True,
+                    "name": "Manhattan",
+                    "description": "Channel Group for Manhattan.."
+                    },
+                "data": {
+                    "polling_period": 100,
+                    "system_id": "000000",
+                    "raman_mitigation": "RAMAN_NONE"
+                    },
+                "name": "Manhattan"
+                }
+            }
+        },
         {'cpart-add': {
-                'pb2': fb.ChannelpartitionConfig(),
-                'rpc': {
-                        "interface": {
-                            "enabled": True,
-                            "name": "WTC",
-                            "description": "Channel Partition for World Trade Center in Manhattan"
-                            },
-                        "data": {
-                            "differential_fiber_distance": 20,
-                            "closest_ont_distance": 0,
-                            "fec_downstream": False,
-                            "multicast_aes_indicator": False,
-                            "authentication_method": "SERIAL_NUMBER",
-                            "channelgroup_ref": "Manhattan"
-                            },
-                        "name": "WTC"
-                        }
-                    }
-                },
+            'pb2': fb.ChannelpartitionConfig(),
+            'rpc': {
+                "interface": {
+                    "enabled": True,
+                    "name": "WTC",
+                    "description": "Channel Partition for World Trade \
+Center in Manhattan"
+                    },
+                "data": {
+                    "differential_fiber_distance": 20,
+                    "closest_ont_distance": 0,
+                    "fec_downstream": False,
+                    "multicast_aes_indicator": False,
+                    "authentication_method": "SERIAL_NUMBER",
+                    "channelgroup_ref": "Manhattan"
+                    },
+                "name": "WTC"
+                }
+            }
+        },
         {'cpair-add': {
-                'pb2': fb.ChannelpairConfig(),
-                'rpc': {
-                        "interface": {
-                            "enabled": True,
-                            "name": "PON port",
-                            "description": "Channel Pair for Freedom Tower in WTC"
-                            },
-                        "data": {
-                            "channelpair_linerate": "down_10_up_10",
-                            "channelpair_type": "channelpair",
-                            "channelgroup_ref": "Manhattan",
-                            "gpon_ponid_interval": 0,
-                            "channelpartition_ref": "WTC",
-                            "gpon_ponid_odn_class": "CLASS_A"
-                            },
-                        "name": "PON port"
-                        }
-                    }
-                },
+            'pb2': fb.ChannelpairConfig(),
+            'rpc': {
+                "interface": {
+                    "enabled": True,
+                    "name": "PON port",
+                    "description": "Channel Pair for Freedom Tower in WTC"
+                    },
+                "data": {
+                    "channelpair_linerate": "down_10_up_10",
+                    "channelpair_type": "channelpair",
+                    "channelgroup_ref": "Manhattan",
+                    "gpon_ponid_interval": 0,
+                    "channelpartition_ref": "WTC",
+                    "gpon_ponid_odn_class": "CLASS_A"
+                    },
+                "name": "PON port"
+                }
+            }
+        },
         {'cterm-add': {
-                'pb2': fb.ChannelterminationConfig(),
-                'rpc': {
-                        "interface": {
-                            "enabled": True,
-                            "name": "PON port",
-                            "description": "Channel Termination for Freedom Tower"
-                            },
-                        "data": {
-                            "channelpair_ref": "PON port",
-                            "location": "AT&T WTC OLT"
-                            },
-                        "name": "PON port"
-                        }
-                    }
-                },
+            'pb2': fb.ChannelterminationConfig(),
+            'rpc': {
+                "interface": {
+                    "enabled": True,
+                    "name": "PON port",
+                    "description": "Channel Termination for Freedom Tower"
+                    },
+                "data": {
+                    "channelpair_ref": "PON port",
+                    "location": "AT&T WTC OLT"
+                    },
+                "name": "PON port"
+                }
+            }
+        },
         {'vontani-add': {
-                'pb2': fb.VOntaniConfig(),
-                'rpc': {
-                        "interface": {
-                            "enabled": True,
-                            "name": "ATT Silver User",
-                            "description": "ATT Silver User in Freedom Tower"
-                            },
-                        "data": {
-                            "preferred_chanpair": "PON port",
-                            "expected_serial_number": "ALCL00000000",
-                            "parent_ref": "WTC",
-                            "onu_id": 1
-                            },
-                        "name": "ATT Silver User"
-                        }
-                    }
-                },
+            'pb2': fb.VOntaniConfig(),
+            'rpc': {
+                "interface": {
+                    "enabled": True,
+                    "name": "ATT Golden User",
+                    "description": "ATT Golden User in Freedom Tower"
+                    },
+                "data": {
+                    "preferred_chanpair": "PON port",
+                    "expected_serial_number": "ALCL00000000",
+                    "parent_ref": "WTC",
+                    "onu_id": 1
+                    },
+                "name": "ATT Golden User"
+                }
+            }
+        },
         {'ontani-add': {
-                'pb2': fb.OntaniConfig(),
-                'rpc': {
-                        "interface": {
-                            "enabled": True,
-                            "name": "ATT Silver User",
-                            "description": "ATT Silver User in Freedom Tower"
-                            }, 
-                        "data": { 
-                            "upstream_fec_indicator": True, 
-                            "mgnt_gemport_aes_indicator": False  
-                            }, 
-                        "name": "ATT Silver User" 
-                        }
-                    }
-                },
+            'pb2': fb.OntaniConfig(),
+            'rpc': {
+                "interface": {
+                    "enabled": True,
+                    "name": "ATT Golden User",
+                    "description": "ATT Golden User in Freedom Tower"
+                    },
+                "data": {
+                    "upstream_fec_indicator": True,
+                    "mgnt_gemport_aes_indicator": False
+                    },
+                "name": "ATT Golden User"
+                }
+            }
+        },
         {'venet-add': {
-                'pb2': fb.VEnetConfig(),
-                'rpc': {
-                        "interface": {
-                            "enabled": True,
-                            "name": "ATT SU Enet UNI-1-1",
-                            "description": "Ethernet port - 1"
-                            },
-                        "data": {
-                            "v_ontani_ref": "ATT Silver User"
-                            },
-                        "name": "ATT SU Enet UNI-1-1"
-                        }
-                    }
-                },
+            'pb2': fb.VEnetConfig(),
+            'rpc': {
+                "interface": {
+                    "enabled": True,
+                    "name": "ATT SU Enet UNI-1-1",
+                    "description": "Ethernet port - 1"
+                    },
+                "data": {
+                    "v_ontani_ref": "ATT Golden User"
+                    },
+                "name": "ATT SU Enet UNI-1-1"
+                }
+            }
+        },
         {'cg-mod': {
-                'pb2': fb.ChannelgroupConfig(),
-                'rpc': {
-                        "interface": {
-                            "enabled": True,
-                            "name": "Manhattan",
-                            "description": "Channel Group for Manhattan"
-                            },
-                        "data": {
-                            "polling_period": 100,
-                            "system_id": "000000",
-                            "raman_mitigation": "RAMAN_NONE"
-                            },
-                        "name": "Manhattan"
-                        }
-                    }
-                },
-        {'venet-del': { 'rpc': {"name": "ATT SU Enet UNI-1-1"}, 'pb2': fb.VEnetConfig()}},
-        {'ontani-del': { 'rpc': {"name": "ATT Silver User"}, 'pb2': fb.OntaniConfig()}},
-        {'vontani-del': { 'rpc': {"name": "ATT Silver User"}, 'pb2': fb.VOntaniConfig()}},
-        {'cterm-del': { 'rpc': {"name": "PON port"}, 'pb2': fb.ChannelterminationConfig()}},
-        {'cpair-del': { 'rpc': {"name": "PON port"}, 'pb2': fb.ChannelpairConfig()}},
-        {'cpart-del': { 'rpc': {"name": "WTC"}, 'pb2': fb.ChannelpartitionConfig()}},
-        {'cg-del': { 'rpc': {"name": "Manhattan"}, 'pb2': fb.ChannelgroupConfig()}}
+            'pb2': fb.ChannelgroupConfig(),
+            'rpc': {
+                "interface": {
+                    "enabled": True,
+                    "name": "Manhattan",
+                    "description": "Channel Group for Manhattan"
+                    },
+                "data": {
+                    "polling_period": 100,
+                    "system_id": "000000",
+                    "raman_mitigation": "RAMAN_NONE"
+                    },
+                "name": "Manhattan"
+                }
+            }
+        },
+        {'venet-del': {
+            'pb2': fb.VEnetConfig(),
+            'rpc': {"name": "ATT SU Enet UNI-1-1"}}
+        },
+        {'ontani-del': {
+            'pb2': fb.OntaniConfig(),
+            'rpc': {"name": "ATT Golden User"}}
+        },
+        {'vontani-del': {
+            'pb2': fb.VOntaniConfig(),
+            'rpc': {"name": "ATT Golden User"}}
+        },
+        {'cterm-del': {
+            'pb2': fb.ChannelterminationConfig(),
+            'rpc': {"name": "PON port"}}
+        },
+        {'cpair-del': {
+            'pb2': fb.ChannelpairConfig(),
+            'rpc': {"name": "PON port"}}
+        },
+        {'cpart-del': {
+            'pb2': fb.ChannelpartitionConfig(),
+            'rpc': {"name": "WTC"}}
+        },
+        {'cg-del': {
+            'pb2': fb.ChannelgroupConfig(),
+            'rpc': {"name": "Manhattan"}}
+        }
     ]
 
-id = 3      #for ordering the test cases
+#for ordering the test cases
+id = 3
 LOCAL_CONSUL = "localhost:8500"
 # Retrieve details of the REST entry point
 rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'chameleon-rest')
@@ -264,12 +287,13 @@ class TestXPon(RestBase):
     # Retrieve the desired item upon Post message
     def verify(self, type):
         if(type == 'channel_terminations'):
-            return self.get('/api/v1/local/devices/{}/{}'.format(device['id'], type))
+            return self.get('/api/v1/devices/{}/{}'.format(device['id'], type))
         return self.get('/api/v1/local/{}'.format(type))
 
     def get_path(self, type, name, operation):
         if(type == 'channel_terminations'):
-            return 'api/v1/local/devices/{}/{}/{}{}'.format(device['id'], type, name, operation)
+            return 'api/v1/devices/{}/{}/{}{}'.format(device['id'],
+                type, name, operation)
         return 'api/v1/local/{}/{}{}'.format(type, name, operation)
 
     # Method to check if the result is same as the change requested
@@ -281,8 +305,10 @@ class TestXPon(RestBase):
                     if(v == dict1['name']):
                         dict2 = item
                         break
-        itfDiff = [k for k in dict1['interface'] if dict1['interface'][k] != dict2['interface'][k]]
-        dataDiff = [k for k in dict1['data'] if dict1['data'][k] != dict2['data'][k]]
+        itfDiff = [k for k in dict1['interface'] if dict1['interface'][k] \
+                   != dict2['interface'][k]]
+        dataDiff = [k for k in dict1['data'] if dict1['data'][k] \
+                    != dict2['data'][k]]
         if(len(itfDiff) == 0 and len(dataDiff) == 0):
             return True
         return False
@@ -290,14 +316,16 @@ class TestXPon(RestBase):
 #~~~~~~~~~~~~~~ Function to create test cases on the fly ~~~~~~~~~~~~~~~~
 def create_dynamic_method(key, value):
     obj_type_config = {
-            'cg': { 'type': 'channel_groups', 'config' : 'channelgroup_config' },
-            'cpart': { 'type': 'channel_partitions', 'config' : 'channelpartition_config' },
-            'cpair': { 'type': 'channel_pairs', 'config' : 'channelpair_config' },
-            'cterm': { 'type': 'channel_terminations', 'config' : 'channeltermination_config' },
-            'vontani': { 'type': 'v_ont_anis', 'config': 'v_ontani_config' },
-            'ontani': { 'type': 'ont_anis', 'config': 'ontani_config' },
-            'venet': { 'type': 'v_enets', 'config': 'v_enet_config' }
-        }
+        'cg':{'type':'channel_groups','config':'channelgroup_config'},
+        'cpart':{'type':'channel_partitions',
+                 'config':'channelpartition_config'},
+        'cpair':{'type':'channel_pairs','config':'channelpair_config'},
+        'cterm':{'type':'channel_terminations',
+                 'config':'channeltermination_config'},
+        'vontani':{'type':'v_ont_anis','config':'v_ontani_config'},
+        'ontani':{'type':'ont_anis','config':'ontani_config'},
+        'venet':{'type':'v_enets','config':'v_enet_config'}
+    }
 
     def _add(self, type, config, req, name):
         result, prev_len = self.add(type, config, req, name)

@@ -647,48 +647,84 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context)
 
     @twisted_async
+    @inlineCallbacks
     def GetAllChannelterminationConfig(self, request, context):
-        log.warning('temp-limited-implementation')
-        # TODO dispatching to local instead of collecting all
-        return self.dispatcher.dispatch(
-            self.instance_id,
-            VolthaLocalServiceStub,
+        log.info('grpc-request', request=request)
+        response = yield self.dispatcher.dispatch(
             'GetAllChannelterminationConfig',
             request,
-            context)
+            context,
+            id=request.id)
+        log.info('grpc-response', response=response)
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('Channeltermination \'{}\' error'.format(
+                request.id))
+            context.set_code(response.error_code)
+            returnValue(Empty())
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
 
     @twisted_async
+    @inlineCallbacks
     def CreateChanneltermination(self, request, context):
-        log.warning('temp-limited-implementation')
-        # TODO dispatching to local instead of collecting all
-        return self.dispatcher.dispatch(
-            self.instance_id,
-            VolthaLocalServiceStub,
+        log.info('grpc-request', request=request)
+        response = yield self.dispatcher.dispatch(
             'CreateChanneltermination',
             request,
-            context)
+            context,
+            id=request.id)
+        log.info('grpc-response', response=response)
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('Channeltermination \'{}\' error'.format(
+                request.id))
+            context.set_code(response.error_code)
+            returnValue(Empty())
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
 
     @twisted_async
+    @inlineCallbacks
     def UpdateChanneltermination(self, request, context):
-        log.warning('temp-limited-implementation')
-        # TODO dispatching to local instead of collecting all
-        return self.dispatcher.dispatch(
-            self.instance_id,
-            VolthaLocalServiceStub,
+        log.info('grpc-request', request=request)
+        response = yield self.dispatcher.dispatch(
             'UpdateChanneltermination',
             request,
-            context)
+            context,
+            id=request.id)
+        log.info('grpc-response', response=response)
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('Channeltermination \'{}\' error'.format(
+                request.id))
+            context.set_code(response.error_code)
+            returnValue(Empty())
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
 
     @twisted_async
+    @inlineCallbacks
     def DeleteChanneltermination(self, request, context):
-        log.warning('temp-limited-implementation')
-        # TODO dispatching to local instead of collecting all
-        return self.dispatcher.dispatch(
-            self.instance_id,
-            VolthaLocalServiceStub,
+        log.info('grpc-request', request=request)
+        response =  yield self.dispatcher.dispatch(
             'DeleteChanneltermination',
             request,
-            context)
+            context,
+            id=request.id)
+        log.info('grpc-response', response=response)
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('Channeltermination \'{}\' error'.format(
+                request.id))
+            context.set_code(response.error_code)
+            returnValue(Empty())
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
 
     @twisted_async
     def GetAllOntaniConfig(self, request, context):

@@ -1,7 +1,7 @@
 from random import randint
 from time import time, sleep
 
-from google.protobuf.json_format import MessageToDict
+from google.protobuf.json_format import MessageToDict, ParseDict
 from unittest import main
 from voltha.protos.device_pb2 import Device
 from tests.itests.voltha.rest_base import RestBase
@@ -18,6 +18,7 @@ from voltha.protos import third_party
 from voltha.protos import voltha_pb2
 from voltha.core.flow_decomposer import *
 from voltha.protos.openflow_13_pb2 import FlowTableUpdate
+from voltha.protos import bbf_fiber_base_pb2 as fb
 
 LOCAL_CONSUL = "localhost:8500"
 DOCKER_COMPOSE_FILE = "compose/docker-compose-system-test.yml"
@@ -40,6 +41,29 @@ command_defs = dict(
     kafka_alarms="kafkacat -o end -b {} -C -t voltha.alarms -c 2",
     kafka_kpis="kafkacat -o end -b {} -C -t voltha.kpis -c 5"
 )
+
+xpon_scenario = [
+    {'cterm-add': {
+        'pb2': fb.ChannelterminationConfig(),
+        'rpc': {
+                "interface": {
+                    "enabled": True,
+                    "name": "PON port",
+                    "description": "Channel Termination for Freedom Tower"
+                    },
+                "data": {
+                    "channelpair_ref": "",
+                    "location": "AT&T WTC OLT"
+                    },
+                "name": "PON port"
+                }
+            }
+        },
+    {'cterm-del': {
+        'pb2': fb.ChannelterminationConfig(),
+        'rpc': {"name": "PON port"}}
+    }
+]
 
 
 class DispatcherTest(RestBase):
@@ -105,6 +129,8 @@ class DispatcherTest(RestBase):
         self._get_device_type_rest(dtypes['items'][0]['id'])
         alarm_filter = self._create_device_filter_rest(olt_id)
         self._remove_device_filter_rest(alarm_filter['id'])
+        channel_termination = self._create_channel_termination_rest(olt_id)
+        self._delete_channel_termination_rest(olt_id)
         # TODO: PM APIs test
 
     def test_02_cross_instances_dispatch(self):
@@ -233,6 +259,48 @@ class DispatcherTest(RestBase):
         self._verify_olt_eapol_flow_rest(ponsim_olt.id)
         res = self._get_olt_flows_grpc(self.empty_voltha_stub_global,
                                        ponsim_logical_device_id)
+
+        # Test 8:
+        # A. Create Channel Termination on particular device instance using REST
+        # B. Ensuring that it is present on that specific instance
+        # C. Retrieve Channel Termination from global grpc using empty
+        #    voltha instance
+        channel_termination = self._create_channel_termination_rest(
+            ponsim_olt.id)
+        global_cterm = self._get_channel_terminations_rest(ponsim_olt.id)
+        cterm = self._get_channel_terminations_grpc(
+            self.ponsim_voltha_stub_global, ponsim_olt.id)
+        assert global_cterm == MessageToDict(cterm,
+            including_default_value_fields = True,
+            preserving_proto_field_name = True)
+        cterm = self._get_channel_terminations_grpc(
+            self.ponsim_voltha_stub_local, ponsim_olt.id)
+        assert global_cterm == MessageToDict(cterm,
+            including_default_value_fields = True,
+            preserving_proto_field_name = True)
+        #Checking with empty instance
+        cterm = self._get_channel_terminations_grpc(
+            self.empty_voltha_stub_global, ponsim_olt.id)
+        assert global_cterm == MessageToDict(cterm,
+            including_default_value_fields = True,
+            preserving_proto_field_name = True)
+        #Simulated OLT
+        channel_termination = self._create_channel_termination_rest(
+            simulated_olt.id)
+        global_cterm = self._get_channel_terminations_rest(simulated_olt.id)
+        cterm = self._get_channel_terminations_grpc(
+            self.simulated_voltha_stub_global, simulated_olt.id)
+        assert global_cterm == MessageToDict(cterm,
+            including_default_value_fields = True,
+            preserving_proto_field_name = True)
+        cterm = self._get_channel_terminations_grpc(
+            self.simulated_voltha_stub_local, simulated_olt.id)
+        assert global_cterm == MessageToDict(cterm,
+            including_default_value_fields = True,
+            preserving_proto_field_name = True)
+        #Deleting Channel Termination
+        self._delete_channel_termination_rest(ponsim_olt.id)
+        self._delete_channel_termination_rest(simulated_olt.id)
 
         # TODO:  More tests to be added as new features are added
 
@@ -701,6 +769,31 @@ class DispatcherTest(RestBase):
         res = stub.ListLogicalDeviceFlows(voltha_pb2.ID(id=logical_device_id))
         return res
 
+    #For xPon objects
+    def _get_channel_terminations_rest(self, device_id):
+        res = self.get('/api/v1/devices/{}/channel_terminations'.format(
+            device_id))
+        return res
+
+    def _get_channel_terminations_grpc(self, stub, device_id):
+        res = stub.GetAllChannelterminationConfig(voltha_pb2.ID(id=device_id))
+        return res
+
+    def _create_channel_termination_rest(self, device_id):
+        value = xpon_scenario[0]['cterm-add']
+        ParseDict(value['rpc'], value['pb2'])
+        request = value['pb2']
+        self.post('/api/v1/devices/{}/channel_terminations/{}'.format(
+            device_id, value['rpc']['name']),
+                  MessageToDict(request, preserving_proto_field_name = True),
+                  expected_code = 200)
+        return request
+
+    def _delete_channel_termination_rest(self, device_id):
+        value = xpon_scenario[1]['cterm-del']
+        self.delete('/api/v1/devices/{}/channel_terminations/{}/delete'.format(
+            device_id, value['rpc']['name']),
+                  expected_code = 200)
 
 if __name__ == '__main__':
     main()
