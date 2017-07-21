@@ -155,6 +155,16 @@ message SelfTestResponse {
     SelfTestResult result = 1;
 }
 
+message Subscriber {
+    // ID of client requesting subscription
+    string subscriber_id = 1;
+}
+
+message Subscription {
+    string subscriber_id = 1;
+    string publisher_id = 2;
+}
+
 /*
  * Cluster-wide Voltha APIs
  *
@@ -1064,4 +1074,6 @@ service VolthaLocalService {
             post: "/api/v1/local/devices/{id}/self_test"
         };
     }
+
+    rpc Subscribe (Subscriber) returns (stream Subscription) {}
 }

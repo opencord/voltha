@@ -81,8 +81,9 @@ class GrpcClient(object):
             try:
                 self.local_stub.StreamPacketsOut(generator)
             except _Rendezvous, e:
-                if e.code() == StatusCode.UNAVAILABLE:
-                    os.system("kill -15 {}".format(os.getpid()))
+                log.error('Unavailable GRPC service in packet-out stream', e.code())
+            except Exception as e:
+                log.exception('Unexpected exception in packet-out stream', e=e)
 
         reactor.callInThread(stream_packets_out)
 
@@ -99,8 +100,9 @@ class GrpcClient(object):
                               packet_in=packet_in,
                               queue_len=len(self.packet_in_queue.pending))
             except _Rendezvous, e:
-                if e.code() == StatusCode.UNAVAILABLE:
-                    os.system("kill -15 {}".format(os.getpid()))
+                log.error('Unavailable GRPC service in packet-in stream', e.code())
+            except Exception as e:
+                log.exception('Unexpected exception in packet-in stream', e=e)
 
         reactor.callInThread(receive_packet_in_stream)
 
@@ -116,8 +118,9 @@ class GrpcClient(object):
                               change_event=event,
                               queue_len=len(self.change_event_queue.pending))
             except _Rendezvous, e:
-                if e.code() == StatusCode.UNAVAILABLE:
-                    os.system("kill -15 {}".format(os.getpid()))
+                log.error('Unavailable GRPC service while receiving change events', e.code())
+            except Exception as e:
+                log.exception('Unexpected exception while receiving change events', e=e)
 
         reactor.callInThread(receive_change_events)
 
@@ -128,18 +131,26 @@ class GrpcClient(object):
                 event = yield self.change_event_queue.get()
                 device_id = event.id
                 self.connection_manager.forward_change_event(device_id, event)
-            except Exception, e:
-                log.exception('failed-in-packet-in-handler', e=e)
+            except _Rendezvous, e:
+                log.error('Unavailable GRPC service change events handler', e.code())
+            except Exception as e:
+                log.exception('Unexpected exception in change events handler', e=e)
             if self.stopped:
                 break
 
     @inlineCallbacks
     def packet_in_forwarder_loop(self):
         while True:
-            packet_in = yield self.packet_in_queue.get()
-            device_id = packet_in.id
-            ofp_packet_in = packet_in.packet_in
-            self.connection_manager.forward_packet_in(device_id, ofp_packet_in)
+            try:
+                packet_in = yield self.packet_in_queue.get()
+                device_id = packet_in.id
+                ofp_packet_in = packet_in.packet_in
+                self.connection_manager.forward_packet_in(device_id, ofp_packet_in)
+            except _Rendezvous, e:
+                log.error('Unavailable GRPC service in packet-in forwarder', e.code())
+            except Exception as e:
+                log.exception('Unexpected exception in packet-in forwarder', e=e)
+
             if self.stopped:
                 break
 
