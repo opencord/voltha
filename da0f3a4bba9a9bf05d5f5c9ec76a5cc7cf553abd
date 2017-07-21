@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "1a1a2d67_f624bec7",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 95,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-07-21T07:18:26Z",
+      "side": 1,
+      "message": "BAL doesn\u0027t support in-band communication. BAL does a trap to host on control message of RG(packet_in and packet_out) and it will be sent to VOLTHA using GRPC.",
+      "parentUuid": "1a1a2d67_363b56ed",
+      "revId": "da0f3a4bba9a9bf05d5f5c9ec76a5cc7cf553abd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1a1a2d67_967d8ab4",
         "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
         "patchSetId": 5
