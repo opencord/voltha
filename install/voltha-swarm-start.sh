@@ -6,6 +6,8 @@ docker network create --driver overlay --subnet=10.0.1.0/24 --opt encrypted=true
 docker stack deploy -c ${voltha_base_dir}/compose/docker-compose-kafka-cluster.yml kafka
 docker stack deploy -c ${voltha_base_dir}/compose/docker-compose-consul-cluster.yml consul
 docker stack deploy -c ${voltha_base_dir}/compose/docker-compose-voltha-swarm.yml vcore
+docker stack deploy -c ${voltha_base_dir}/compose/docker-compose-ofagent-swarm.yml ofagent
+docker stack deploy -c ${voltha_base_dir}/compose/docker-compose-onos-swarm.yml onos
 docker stack deploy -c ${voltha_base_dir}/compose/docker-compose-envoy-swarm.yml voltha
 docker stack deploy -c ${voltha_base_dir}/compose/docker-compose-vcli.yml cli
 docker stack deploy -c ${voltha_base_dir}/compose/docker-compose-chameleon-swarm.yml chameleon
