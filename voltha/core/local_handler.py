@@ -13,15 +13,17 @@
 # limitations under the License.
 #
 from Queue import Empty as QueueEmpty
-from uuid import uuid4
 
-import structlog
+import structlog, time
 from google.protobuf.empty_pb2 import Empty
 from grpc import StatusCode
+from grpc._channel import _Rendezvous
 
 from common.utils.grpc_utils import twisted_async
+from twisted.internet.defer import inlineCallbacks
 from common.utils.id_generation import create_cluster_device_id
 from voltha.core.config.config_root import ConfigRoot
+from voltha.protos.device_pb2 import PmConfigs, Images
 from voltha.protos.openflow_13_pb2 import PacketIn, Flows, FlowGroups, \
     ofp_port_status
 from voltha.protos.voltha_pb2 import \
@@ -29,10 +31,10 @@ from voltha.protos.voltha_pb2 import \
     VolthaInstance, Adapters, LogicalDevices, LogicalDevice, Ports, \
     LogicalPorts, Devices, Device, DeviceType, \
     DeviceTypes, DeviceGroups, DeviceGroup, AdminState, OperStatus, ChangeEvent, \
-    AlarmFilter, AlarmFilters, SelfTestResponse
-from voltha.protos.device_pb2 import PmConfigs, Images
+    AlarmFilter, AlarmFilters, SelfTestResponse, OfAgentSubscriber
 from voltha.registry import registry
 from requests.api import request
+from common.utils.asleep import asleep
 
 log = structlog.get_logger()
 
@@ -46,6 +48,9 @@ class LocalHandler(VolthaLocalServiceServicer):
         self.root = None
         self.started_with_existing_data = False
         self.stopped = False
+        self.subscriber = None
+        self.ofagent_is_alive = True
+        self.restart_delay = 2
 
     def start(self, config_backend=None):
         log.debug('starting')
@@ -694,7 +699,9 @@ class LocalHandler(VolthaLocalServiceServicer):
         return Empty()
 
     def ReceivePacketsIn(self, request, context):
-        while 1:
+        log.debug('started-receive-packets-in', ofagent=self.subscriber)
+
+        while self.ofagent_is_alive:
             try:
                 packet_in = self.core.packet_in_queue.get(timeout=1)
                 yield packet_in
@@ -702,13 +709,18 @@ class LocalHandler(VolthaLocalServiceServicer):
                 if self.stopped:
                     break
 
+        log.debug('stopped-receive-packets-in', ofagent=self.subscriber)
+
+    @twisted_async
     def send_packet_in(self, device_id, ofp_packet_in):
         """Must be called on the twisted thread"""
         packet_in = PacketIn(id=device_id, packet_in=ofp_packet_in)
         self.core.packet_in_queue.put(packet_in)
 
     def ReceiveChangeEvents(self, request, context):
-        while 1:
+        log.debug('started-receive-change-events', ofagent=self.subscriber)
+
+        while self.ofagent_is_alive:
             try:
                 event = self.core.change_event_queue.get(timeout=1)
                 yield event
@@ -716,12 +728,14 @@ class LocalHandler(VolthaLocalServiceServicer):
                 if self.stopped:
                     break
 
+        log.debug('stopped-receive-change-events', ofagent=self.subscriber)
+
+    @twisted_async
     def send_port_change_event(self, device_id, port_status):
         """Must be called on the twisted thread"""
         assert isinstance(port_status, ofp_port_status)
         event = ChangeEvent(id=device_id, port_status=port_status)
         self.core.change_event_queue.put(event)
-
 
     @twisted_async
     def ListAlarmFilters(self, request, context):
@@ -773,7 +787,7 @@ class LocalHandler(VolthaLocalServiceServicer):
             assert isinstance(request, AlarmFilter)
             alarm_filter = request
             assert alarm_filter.id is not None, 'Local Alarm filter to be ' \
-                                              'created must have id'
+                                                'created must have id'
         except AssertionError, e:
             context.set_details(e.message)
             context.set_code(StatusCode.INVALID_ARGUMENT)
@@ -847,3 +861,62 @@ class LocalHandler(VolthaLocalServiceServicer):
                 'Device \'{}\' not found'.format(request.id))
             context.set_code(StatusCode.NOT_FOUND)
             return SelfTestResponse()
+
+    @inlineCallbacks
+    def _ofagent_session_termination(self):
+        log.debug('ofagent-session-terminated')
+
+        # Reset flags and assignments
+        self.ofagent_is_alive = False
+        self.subscriber = None
+
+        # Some local services will stop (packet-in/change-events)
+        # need to re-register them
+        registry('grpc_server').register(
+            add_VolthaLocalServiceServicer_to_server, self)
+
+    @twisted_async
+    def Subscribe(self, request_iterator, context):
+        log.info('grpc-request', request_iterator=request_iterator)
+
+        # Check if an ofagent subscriber is already assigned
+        if self.subscriber is None:
+            # Callback required whenever an ofagent disconnects
+            context.add_callback(self._ofagent_session_termination)
+            self.ofagent_is_alive = True
+
+            log.info('ofagent-subscriber-request')
+
+            # Loop until disconnection of ofagent
+            while context.is_active() and self.ofagent_is_alive:
+                try:
+                    subscriber = next(request_iterator)
+                    # Let's save the details on the subscriber (if needed)
+                    if self.subscriber is None:
+                        # Assign the request as the active subscriber
+                        self.subscriber = subscriber
+                        log.info('ofagent-subscriber-connected', subscriber=subscriber)
+
+                    # Send a subscription keep-alive
+                    yield OfAgentSubscriber(
+                        ofagent_id=self.subscriber.ofagent_id,
+                        voltha_id=self.instance_id
+                    )
+
+                except _Rendezvous, e:
+                    log.error('Failed to communicate with ofagent: {}'.format(repr(e)),
+                              status=e.code())
+                    break
+
+                except Exception as e:
+                    log.exception('Unexpected ofagent communication failure: {}'.format(repr(e)))
+                    break
+
+            log.info('ofagent-subscriber-disconnected')
+
+        else:
+            log.info('subscriber-already-assigned',
+                     current=self.subscriber)
+
+        # Make sure to cleanup the current context
+        context.cancel()
