@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a1a2d67_967d8ab4",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 96,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-07-21T05:47:09Z",
+      "side": 1,
+      "message": "We will be using GRPC in this adapter to communicate with Asfvolt16 devices.We wont be using frameio to receive the messages.",
+      "revId": "da0f3a4bba9a9bf05d5f5c9ec76a5cc7cf553abd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a1a2d67_b680868c",
+        "filename": "voltha/adapters/device_handler.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 94,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-07-21T05:47:09Z",
+      "side": 1,
+      "message": "Each adapter will have their own southbound interface to communicate(Send\\Receive messages) with devices. Do we have to implement this function?",
+      "revId": "da0f3a4bba9a9bf05d5f5c9ec76a5cc7cf553abd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
