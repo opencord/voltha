@@ -19,6 +19,11 @@ import os
 from concurrent import futures
 
 from voltha.protos import third_party
+from voltha.protos.ponsim_pb2 import add_PonSimServicer_to_server
+from voltha.protos.ponsim_pb2 import add_XPonSimServicer_to_server
+from voltha.adapters.asfvolt16_olt.protos.bal_pb2 import add_BalServicer_to_server
+from ponsim_servicer import FlowUpdateHandler, XPonHandler
+from bal_servicer import BalHandler
 
 _ = third_party
 
@@ -26,23 +31,23 @@ log = structlog.get_logger()
 
 class GrpcServer(object):
 
-    def __init__(self, port, ponsim, x_pon_sim):
+    def __init__(self, port, ponsim, x_pon_sim, device_type):
         self.port = port
         self.thread_pool = futures.ThreadPoolExecutor(max_workers=10)
         self.server = grpc.server(self.thread_pool)
         self.ponsim = ponsim
         self.x_pon_sim = x_pon_sim
+        self.device_type = device_type
 
-    '''
-    service_list: a list of (add_xyzSimServicer_to_server, xyzServicerClass)
-    e.g. [(add_PonSimServicer_to_server, FlowUpdateHandler),
-          (add_XPonSimServicer_to_server, XPonHandler)]
-    '''
-    def start(self, service_list):
-        log.debug('starting')
-        for add_x_to_server, xServiceClass in service_list:
-            x_handler = xServiceClass(self.thread_pool, self.ponsim)
-            add_x_to_server(x_handler, self.server)
+    def start(self):
+        if self.device_type == 'ponsim':
+            handler = FlowUpdateHandler(self.thread_pool, self.ponsim)
+            add_PonSimServicer_to_server(handler, self.server)
+            x_pon_handler = XPonHandler(self.thread_pool, self.x_pon_sim)
+            add_XPonSimServicer_to_server(x_pon_handler, self.server)
+        else:
+            handler = BalHandler(self.thread_pool, self.ponsim)
+            add_BalServicer_to_server(handler, self.server)
 
         # read in key and certificate
         try:
