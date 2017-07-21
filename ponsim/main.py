@@ -29,11 +29,6 @@ from twisted.internet.defer import inlineCallbacks
 from common.structlog_setup import setup_logging
 from grpc_server import GrpcServer
 from realio import RealIo
-from voltha.protos.ponsim_pb2 import add_PonSimServicer_to_server
-from voltha.protos.ponsim_pb2 import add_XPonSimServicer_to_server
-from voltha.adapters.asfvolt16_olt.protos.bal_pb2 import add_BalServicer_to_server
-import ponsim_servicer
-import bal_servicer
 from ponsim import PonSim
 from ponsim import XPonSim
 
@@ -174,6 +169,8 @@ class Main(object):
         self.ponsim = None
         self.x_pon_sim = None
         self.grpc_server = None
+        self.grpc_services = None
+        self.device_type = args.device_type
 
         self.alarm_config = dict()
         self.alarm_config['simulation'] = self.args.alarm_simulation
@@ -182,19 +179,13 @@ class Main(object):
         if not args.no_banner:
             print_banner(self.log)
 
-        if args.device_type == 'ponsim':
-            grpc_services =  [(add_PonSimServicer_to_server, ponsim_servicer.FlowUpdateHandler)]
-        elif args.device_type == 'bal':
-            grpc_services =  [(add_BalServicer_to_server, bal_servicer.BalHandler)]
-        grpc_services.append((add_XPonSimServicer_to_server, ponsim_servicer.XPonHandler))
-
-        self.startup_components(grpc_services)
+        self.startup_components()
 
     def start(self):
         self.start_reactor()  # will not return except Keyboard interrupt
 
     @inlineCallbacks
-    def startup_components(self, grpc_services):
+    def startup_components(self):
         try:
             self.log.info('starting-internal-components')
 
@@ -206,8 +197,11 @@ class Main(object):
 
             self.x_pon_sim = XPonSim()
 
-            self.grpc_server = GrpcServer(self.args.grpc_port, self.ponsim, self.x_pon_sim)
-            yield self.grpc_server.start(grpc_services)
+            self.grpc_server = GrpcServer(self.args.grpc_port,
+                                          self.ponsim,
+                                          self.x_pon_sim,
+                                          self.device_type)
+            yield self.grpc_server.start()
 
             self.log.info('started-internal-services')
 
