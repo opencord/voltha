@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "1a1a2d67_363b56ed",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 95,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-07-21T07:00:51Z",
+      "side": 1,
+      "message": "My understanding is that control messages from/to RG are sent in-band with data traffic. Control messages from VOLTHA from/to OLT (terminating at OLT) are over gRPC.",
+      "parentUuid": "1a1a2d67_564ff292",
+      "revId": "da0f3a4bba9a9bf05d5f5c9ec76a5cc7cf553abd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1a1a2d67_967d8ab4",
         "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
         "patchSetId": 5
