@@ -1,0 +1,31 @@
+#
+# This Docker stackfile deploys a ofagent container on all swarm instances.
+#
+# The stackfile assumes that overlay network 'voltha_net' has already been
+# created. To deploy the stack, issue the command:
+#
+#     docker stack deploy -c docker-compose-ofagent-swarm.yml ofagent
+#
+version: "3.2"
+services:
+    ofagent:
+        image: cord/ofagent
+        deploy:
+            replicas: 3
+        entrypoint:
+            - /ofagent/ofagent/main.py
+            - -v
+            - --consul=consul:8500
+            - --fluentd=fluentd:24224
+            - --controller=onos:6653
+            - --grpc-endpoint=vcore:50556
+            - --instance-id-is-container-name
+        volumes:
+            - /var/run/docker.sock:/tmp/docker.sock
+        networks:
+            - voltha-net
+
+networks:
+    voltha-net:
+        external:
+            name: voltha_net

@@ -41,6 +41,23 @@ cd /cord/incubator/voltha
 . ./env.sh
 nosetests -s tests/itests/ofagent/test_ofagent_multicontroller_failover.py
 ```
+* **Ofagent_recovery**: This tests the OFAgent capability
+to recover the connectivity with Voltha after a component failure.
+Also note this test takes a while to run (approximately 6 mins).
+The steps it follows are
+    * Spawns three ONOS controllers and clusters them.
+    * Spawns required Voltha components.
+    * OFagent establishes connection with the three spawned controllers.
+    * Adds simulated OLT and enables it.
+    * Stop/start OFAgent and VOLTHA processes (2 separate tests)
+    * Ensure that the OLT created prior to stopping process is still present
+    * Adds another simulated OLT to ensure connectivity
+
+```
+cd /cord/incubator/voltha
+. ./env.sh
+nosetests -s tests/itests/ofagent/test_ofagent_recovery.py
+```
 * **Frameio**:  This tests the packet send/receive/filter capabilities of the 
 FrameIOManager.   This test needs to run as root.
 ```

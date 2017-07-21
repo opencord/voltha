@@ -155,6 +155,14 @@ message SelfTestResponse {
     SelfTestResult result = 1;
 }
 
+message OfAgentSubscriber {
+    // ID of ofagent instance
+    string ofagent_id = 1;
+
+    // ID of voltha instance to which the ofagent is subscribed
+    string voltha_id = 2;
+}
+
 /*
  * Cluster-wide Voltha APIs
  *
@@ -1064,4 +1072,6 @@ service VolthaLocalService {
             post: "/api/v1/local/devices/{id}/self_test"
         };
     }
+
+    rpc Subscribe(stream OfAgentSubscriber) returns (stream OfAgentSubscriber) {}
 }
