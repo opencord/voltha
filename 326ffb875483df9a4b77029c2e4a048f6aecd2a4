@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a1a2d67_d978d32d",
+        "filename": "ponsim/main.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 211,
+      "author": {
+        "id": 1000113
+      },
+      "writtenOn": "2017-07-24T15:46:39Z",
+      "side": 1,
+      "message": "Questions:\n  Q1: Are you going to use this as to Simulate Edgecore OLT also ? I thought a Simulated OLT+ONT was being developed in \u0027C\u0027. \n \n  Q2. How would the command line options look like ? User has to specify ponsim|edgecore etc when starting ponsim ?",
+      "range": {
+        "startLine": 211,
+        "startChar": 0,
+        "endLine": 211,
+        "endChar": 42
+      },
+      "revId": "326ffb875483df9a4b77029c2e4a048f6aecd2a4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
