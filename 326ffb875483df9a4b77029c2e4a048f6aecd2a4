@@ -22,6 +22,30 @@
       "revId": "326ffb875483df9a4b77029c2e4a048f6aecd2a4",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a1a2d67_5994c336",
+        "filename": "ponsim/main.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 211,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-07-24T17:21:17Z",
+      "side": 1,
+      "message": "We tested all our changes using C based simulator. Since shad asked us to make sure that our changes doesn\u0027t affect ponsim, we tested the same with ponsim too.\n\nBelow is the command to run ponsim device. use \"-d\" option to specify the device type.\neg :./ponsim/main.py -o 4 -d ponsim -\u003e ponsim\n     ./ponsim/main.py -o 4 -d bal -\u003e edgeCore",
+      "parentUuid": "1a1a2d67_d978d32d",
+      "range": {
+        "startLine": 211,
+        "startChar": 0,
+        "endLine": 211,
+        "endChar": 42
+      },
+      "revId": "326ffb875483df9a4b77029c2e4a048f6aecd2a4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
