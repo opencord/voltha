@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a1a2d67_19876b11",
+        "filename": "ponsim/main.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 200,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-07-24T15:41:06Z",
+      "side": 1,
+      "message": "Maximum line length should not exceed 80 characters.",
+      "range": {
+        "startLine": 200,
+        "startChar": 12,
+        "endLine": 200,
+        "endChar": 109
+      },
+      "revId": "d23eabbeccb8c9a1b905cb7f3e2c94b11d421fec",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
