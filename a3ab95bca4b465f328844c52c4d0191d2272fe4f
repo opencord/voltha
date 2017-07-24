@@ -1,0 +1,165 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a1a2d67_99eedbb3",
+        "filename": "tests/itests/voltha/test_dispatcher.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 129,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-07-24T19:54:35Z",
+      "side": 1,
+      "message": "In future please try to give more meaningful names, e.g., channel_termination.",
+      "range": {
+        "startLine": 129,
+        "startChar": 8,
+        "endLine": 129,
+        "endChar": 13
+      },
+      "revId": "a3ab95bca4b465f328844c52c4d0191d2272fe4f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a1a2d67_d9f45389",
+        "filename": "tests/itests/voltha/test_dispatcher.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 267,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-07-24T19:54:35Z",
+      "side": 1,
+      "message": "Maximum line length should not exceed 80 characters.",
+      "range": {
+        "startLine": 267,
+        "startChar": 8,
+        "endLine": 267,
+        "endChar": 126
+      },
+      "revId": "a3ab95bca4b465f328844c52c4d0191d2272fe4f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a1a2d67_b9f19797",
+        "filename": "tests/itests/voltha/test_dispatcher.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 269,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-07-24T19:54:35Z",
+      "side": 1,
+      "message": "Maximum line length should not exceed 80 characters.\nThe same for the entire file.",
+      "range": {
+        "startLine": 269,
+        "startChar": 8,
+        "endLine": 269,
+        "endChar": 126
+      },
+      "revId": "a3ab95bca4b465f328844c52c4d0191d2272fe4f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a1a2d67_792bffeb",
+        "filename": "tests/itests/voltha/test_voltha_xpon.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 124,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-07-24T19:54:35Z",
+      "side": 1,
+      "message": "Remove extra characters.",
+      "range": {
+        "startLine": 124,
+        "startChar": 30,
+        "endLine": 124,
+        "endChar": 31
+      },
+      "revId": "a3ab95bca4b465f328844c52c4d0191d2272fe4f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a1a2d67_59304356",
+        "filename": "tests/itests/voltha/test_voltha_xpon.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 125,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-07-24T19:54:35Z",
+      "side": 1,
+      "message": "Remove extra characters. The same for the rest of the file.",
+      "range": {
+        "startLine": 125,
+        "startChar": 33,
+        "endLine": 125,
+        "endChar": 34
+      },
+      "revId": "a3ab95bca4b465f328844c52c4d0191d2272fe4f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a1a2d67_f93eef28",
+        "filename": "tests/itests/voltha/test_voltha_xpon.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 174,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-07-24T19:54:35Z",
+      "side": 1,
+      "message": "Reduce all this space for the comment or put the comment above.",
+      "range": {
+        "startLine": 174,
+        "startChar": 7,
+        "endLine": 174,
+        "endChar": 12
+      },
+      "revId": "a3ab95bca4b465f328844c52c4d0191d2272fe4f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a1a2d67_193acb36",
+        "filename": "voltha/core/global_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 654,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-07-24T19:54:35Z",
+      "side": 1,
+      "message": "Please fix indentation in the all functionalities. It should be:\nresponse \u003d yield self.dispatcher.dispatch(\n    \u0027GetAllChannelterminationConfig\u0027,\n    ...,\n    ...)",
+      "range": {
+        "startLine": 654,
+        "startChar": 36,
+        "endLine": 654,
+        "endChar": 69
+      },
+      "revId": "a3ab95bca4b465f328844c52c4d0191d2272fe4f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
