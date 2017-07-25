@@ -239,6 +239,8 @@ class TibitOltAdapter(object):
             # Process the Get Request message
             self._process_ping_frame_response(device, frame)
 
+            yield self.change_device_state(device, 1)
+
             # then shortly after we create some ports for the device
             log.info('create-port')
             nni_port = Port(
@@ -462,6 +464,9 @@ class TibitOltAdapter(object):
                     # END linkAddr is not none
             else:
                 log.info('No links were found in the MAC Table')
+				# Poll to get more ONUs
+                reactor.callLater(3, self._detect_onus, device)
+
             # END if mac_table[rc]
         #END if ack
 
@@ -722,18 +727,96 @@ class TibitOltAdapter(object):
         log.info('Disabling OLT: {}'.format(device.mac_address))
         yield self.change_device_state(device, 0)
 
-        # Disable all child devices
+        # Update the operational status to UNKNOWN
+        device.oper_status = OperStatus.UNKNOWN
+        device.connect_status = ConnectStatus.UNREACHABLE
+        self.adapter_agent.update_device(device)
+
+        # Remove the logical device
+        logical_device = self.adapter_agent.get_logical_device(
+                        device.parent_id)
+        self.adapter_agent.delete_logical_device(logical_device)
+
+        # Disable all child devices first
         self.adapter_agent.update_child_devices_state(device.id,
                                                       admin_state=AdminState.DISABLED)
+
+        # Remove the peer references from this device
+        self.adapter_agent.delete_all_peer_references(device.id)
+
+        # Set all ports to disabled
+        self.adapter_agent.disable_all_ports(device.id)
+        log.info('disabled', device_id=device.id)
+
 
     @inlineCallbacks
     def reenable_device(self, device):
         log.info('Re-enabling OLT: {}'.format(device.mac_address))
         yield self.change_device_state(device, 1)
 
+        log.info('re-enabling', device_id=device.id)
+
+        # Get the latest device reference
+        device = self.adapter_agent.get_device(device.id)
+
+        # Update the connect status to REACHABLE
+        device.connect_status = ConnectStatus.REACHABLE
+        self.adapter_agent.update_device(device)
+
+        # Set all ports to enabled
+        self.adapter_agent.enable_all_ports(device.id)
+
+        ld = LogicalDevice(
+            desc=ofp_desc(
+                mfr_desc=device.vendor,
+                hw_desc=device.hardware_version,
+                sw_desc=device.software_version,
+                serial_num=uuid4().hex,
+                dp_desc='n/a'
+            ),
+            switch_features=ofp_switch_features(
+                n_buffers=256,  # TODO fake for now
+                n_tables=2,  # TODO ditto
+                capabilities=(  # TODO and ditto
+                    OFPC_FLOW_STATS
+                    | OFPC_TABLE_STATS
+                    | OFPC_PORT_STATS
+                    | OFPC_GROUP_STATS
+                )
+            ),
+            root_device_id=device.id
+        )
+        ld_initialized = self.adapter_agent.create_logical_device(ld)
+        cap = OFPPF_10GB_FD | OFPPF_FIBER
+        self.adapter_agent.add_logical_port(ld_initialized.id, LogicalPort(
+            id='nni',
+            ofp_port=ofp_port(
+                port_no=0,
+                hw_addr=mac_str_to_tuple(device.mac_address),
+                name='nni',
+                config=0,
+                state=OFPPS_LIVE,
+                curr=cap,
+                advertised=cap,
+                peer=cap,
+                curr_speed=OFPPF_10GB_FD,
+                max_speed=OFPPF_10GB_FD
+            ),
+            device_id=device.id,
+            device_port_no=2,
+            root_port=True
+        ))
+
+        # and finally update to active
+        device.parent_id = ld_initialized.id
+        device.oper_status = OperStatus.ACTIVE
+        self.adapter_agent.update_device(device)
+
         # Reenable all child devices
         self.adapter_agent.update_child_devices_state(device.id,
                                                       admin_state=AdminState.ENABLED)
+
+        log.info('re-enabled', device_id=device.id)
 
 
     @inlineCallbacks
@@ -789,7 +872,14 @@ class TibitOltAdapter(object):
         raise NotImplementedError()
 
     def delete_device(self, device):
-        raise NotImplementedError()
+        log.info('deleting', device_id=device.id)
+
+        # Remove all child devices
+        # TODO
+        # 1) Remove all flows from the device
+        # 2) Remove the device from the adapter
+        self.adapter_agent.delete_all_child_devices(device.id)
+        log.info('deleted', device_id=device.id)
 
     def get_device_details(self, device):
         raise NotImplementedError()
