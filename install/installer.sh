@@ -121,8 +121,9 @@ cp -r .keys ansible/roles/cluster-host/files
 # Install python on all the 3 servers since python is required for
 for i in $hosts
 do
-	echo -e "${lBlue}Installing ${lCyan}Python-minimal${lBlue}${NC}"
+	echo -e "${lBlue}Installing ${lCyan}Python${lBlue}${NC}"
 	scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i .keys/$i -r python-deb voltha@$i:.
+	ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i .keys/$i  voltha@$i "sudo dpkg -i /home/voltha/python-deb/*minimal*"
 	ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i .keys/$i  voltha@$i sudo dpkg -i -R /home/voltha/python-deb
 	ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i .keys/$i  voltha@$i rm -fr python-deb
 
