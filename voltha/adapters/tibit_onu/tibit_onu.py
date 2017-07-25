@@ -234,12 +234,105 @@ class TibitOnuAdapter(object):
         raise NotImplementedError(0
                                   )
     def disable_device(self, device):
-        log.info('disable-device', device_id=device.id)
+        log.info('disabling', device_id=device.id)
+
+        # Disable all ports on that device
+        self.adapter_agent.disable_all_ports(device.id)
+
+        # Update the device operational status to UNKNOWN
+        device.oper_status = OperStatus.UNKNOWN
+        device.connect_status = ConnectStatus.UNREACHABLE
+        self.adapter_agent.update_device(device)
+
+        # Remove the uni logical port from the OLT, if still present
+        parent_device = self.adapter_agent.get_device(device.parent_id)
+        assert parent_device
+        logical_device_id = parent_device.parent_id
+        assert logical_device_id
+        port_no = device.proxy_address.channel_id
+#        port_id = 'uni-{}'.format(port_no)
+        port_id = '{}'.format(port_no)
+        try:
+            port = self.adapter_agent.get_logical_port(logical_device_id,
+                                                       port_id)
+            self.adapter_agent.delete_logical_port(logical_device_id, port)
+        except KeyError:
+            log.info('logical-port-not-found', device_id=device.id,
+                     portid=port_id)
+
+        # Remove pon port from parent
+        #self.adapter_agent.delete_port_reference_from_parent(device.id,
+        #                                                     self.pon_port)
+
+        # Just updating the port status may be an option as well
+        # port.ofp_port.config = OFPPC_NO_RECV
+        # yield self.adapter_agent.update_logical_port(logical_device_id,
+        #                                             port)
+        # Unregister for proxied message
+        self.adapter_agent.unregister_for_proxied_messages(device.proxy_address)
+
+        # TODO:
+        # 1) Remove all flows from the device
+        # 2) Remove the device from ponsim
+
+        log.info('disabled', device_id=device.id)
+
         return device
 
     def reenable_device(self, device):
-        log.info('reenable-device', device_id=device.id)
-        return device
+        log.info('re-enabling', device_id=device.id)
+
+        # First we verify that we got parent reference and proxy info
+        assert device.parent_id
+        assert device.proxy_address.device_id
+        assert device.proxy_address.channel_id
+
+        # Re-register for proxied messages right away
+        #self.proxy_address = device.proxy_address
+        self.adapter_agent.register_for_proxied_messages(device.proxy_address)
+
+        # Re-enable the ports on that device
+        self.adapter_agent.enable_all_ports(device.id)
+
+        # Add the pon port reference to the parent
+        #self.adapter_agent.add_port_reference_to_parent(device.id,
+        #                                                self.pon_port)
+
+        # Update the connect status to REACHABLE
+        device.connect_status = ConnectStatus.REACHABLE
+        self.adapter_agent.update_device(device)
+
+        # re-add uni port to logical device
+        parent_device = self.adapter_agent.get_device(device.parent_id)
+        logical_device_id = parent_device.parent_id
+        assert logical_device_id
+        port_no = device.proxy_address.channel_id
+        cap = OFPPF_10GB_FD | OFPPF_FIBER
+        self.adapter_agent.add_logical_port(logical_device_id, LogicalPort(
+#            id='uni-{}'.format(port_no),
+            id= str(port_no),
+            ofp_port=ofp_port(
+                port_no=port_no,
+                hw_addr=mac_str_to_tuple(device.mac_address),
+                name='uni-{}'.format(port_no),
+                config=0,
+                state=OFPPS_LIVE,
+                curr=cap,
+                advertised=cap,
+                peer=cap,
+                curr_speed=OFPPF_10GB_FD,
+                max_speed=OFPPF_10GB_FD
+            ),
+            device_id=device.id,
+            device_port_no=2
+        ))
+
+        device = self.adapter_agent.get_device(device.id)
+        device.oper_status = OperStatus.ACTIVE
+        self.adapter_agent.update_device(device)
+
+        log.info('re-enabled', device_id=device.id)
+
 
     @inlineCallbacks
     def reboot_device(self, device):
@@ -255,7 +348,7 @@ class TibitOnuAdapter(object):
 
         msg = (
             EOAMPayload() / EOAM_VendSpecificMsg(oui=CableLabs_OUI) /
-            EOAM_DpoeMsg(dpoe_opcode = Dpoe_Opcodes["Set Request"], 
+            EOAM_DpoeMsg(dpoe_opcode = Dpoe_Opcodes["Set Request"],
                          body=DeviceReset())/
             EndOfPDU()
             )
@@ -286,7 +379,15 @@ class TibitOnuAdapter(object):
         raise NotImplementedError()
 
     def delete_device(self, device):
-        raise NotImplementedError()
+        log.info('deleting', device_id=device.id)
+
+        # A delete request may be received when an OLT is disabled
+
+        # TODO:
+        # 1) Remove all flows from the device
+        # 2) Remove the device from ponsim
+
+        log.info('deleted', device_id=device.id)
 
     def get_device_details(self, device):
         raise NotImplementedError()
@@ -298,12 +399,13 @@ class TibitOnuAdapter(object):
                  flows=flows, groups=groups)
         assert len(groups.items) == 0, "Cannot yet deal with groups"
 
-        # Clear the existing entries in the Static MAC Address Table
-        yield self._send_clear_static_mac_table(device)
+        # Only do something if there are flows to program
+        if (len(flows.items) > 0):
+            # Clear the existing entries in the Static MAC Address Table
+            yield self._send_clear_static_mac_table(device)
 
-        # Re-add the IGMP Multicast Address
-        yield self._send_igmp_mcast_addr(device)
-
+            # Re-add the IGMP Multicast Address
+            yield self._send_igmp_mcast_addr(device)
 
         Clause = {v: k for k, v in ClauseSubtypeEnum.iteritems()}
         Operator = {v: k for k, v in RuleOperatorEnum.iteritems()}
@@ -504,7 +606,7 @@ class TibitOnuAdapter(object):
 
                 if Is_MCast is True:
                     action = "Set Static IP MCAST address"
-                else:    
+                else:
                     dn_req /= PortIngressRuleTerminator()
                     dn_req /= AddPortIngressRule()
                     action = "Set ONU DS Rule"
@@ -525,6 +627,10 @@ class TibitOnuAdapter(object):
 
             else:
                 raise Exception('Port should be 1 or 2 by our convention')
+
+        log.info('bulk-flow-update finished', device_id=device.id,
+                 flows=flows, groups=groups)
+        log.info('########################################')
 
     def update_flows_incrementally(self, device, flow_changes, group_changes):
         raise NotImplementedError()
@@ -580,7 +686,7 @@ class TibitOnuAdapter(object):
             frame = yield self.incoming_messages.get()
 
             respType = get_oam_msg_type(log, frame)
-         
+
             if (respType == RxedOamMsgTypeEnum["DPoE Get Response"]):
                 ack = True
             else:
@@ -724,7 +830,7 @@ class TibitOnuAdapter(object):
 
         rc = []
         yield self._handle_set_resp(device, action, rc)
-    
+
 
     @inlineCallbacks
     def _handle_set_resp(self, device, action, retcode):
@@ -740,12 +846,12 @@ class TibitOnuAdapter(object):
             #    break  # don't wait forever
 
             respType = get_oam_msg_type(log, frame)
-            log.info('Received OAM Message 0x %s' % str(respType))
 
             #Check that the message received is a Set Response
             if (respType == RxedOamMsgTypeEnum["DPoE Set Response"]):
                 ack = True
             else:
+                log.info('Received Unexpected OAM Message 0x{:X} while waiting for Set Resp for {}'.format(respType,action))
                 # Handle unexpected events/OMCI messages
                 check_resp(log, frame)
 
@@ -755,7 +861,7 @@ class TibitOnuAdapter(object):
             (rc,branch,leaf,status) = check_set_resp(log, frame)
             if (rc is False):
                 log.info('Set Response had errors - Branch 0x{:X} Leaf 0x{:0>4X} {}'.format(branch, leaf, DPoEVariableResponseCodes[status]))
-        
+
         if (rc is True):
             log.info('ONU-response received for {} for ONU: {}'.format(action, device.mac_address))
         else:
@@ -770,7 +876,7 @@ class TibitOnuAdapter(object):
         hw_version = [0xD7, 0x0013]
         manufacturer =  [0xD7, 0x0006]
         branch_leaf_pairs = [vendor, ponMode, hw_version, manufacturer]
-                    
+
         for pair in branch_leaf_pairs:
             temp_pair = pair
             (rc, value) = (get_value_from_msg(log, frame, pair[0], pair[1]))
@@ -778,7 +884,7 @@ class TibitOnuAdapter(object):
             temp_pair.append(value)
             if rc:
                 overall_rc = True
-            else: 
+            else:
                 log.info('Failed to get valid response for Branch 0x{:X} Leaf 0x{:0>4X} '.format(temp_pair[0], temp_pair[1]))
                 ack = True
 
@@ -788,9 +894,9 @@ class TibitOnuAdapter(object):
                 device.vendor = device.vendor[:-1]
         else:
             device.vendor = "UNKNOWN"
-            
+
         # mode: 3 = EPON OLT, 7 = GPON OLT
-        # mode: 2 = EPON ONU, 6 = GPON ONU    
+        # mode: 2 = EPON ONU, 6 = GPON ONU
         if ponMode[rc]:
             value = ponMode.pop()
             mode = "UNKNOWN"
@@ -813,7 +919,7 @@ class TibitOnuAdapter(object):
             self.mode = "UNKNOWN"
 
         log.info("PON Mode is {}".format(self.mode))
-                
+
         if hw_version[rc]:
             device.hardware_version = hw_version.pop()
             device.hardware_version = device.hardware_version.replace("FA","")
