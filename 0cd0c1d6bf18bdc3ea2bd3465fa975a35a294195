@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a1a2d67_1cf879e4",
+        "filename": "voltha/core/local_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 877,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-07-25T13:06:25Z",
+      "side": 1,
+      "message": "This will kill all existing REST and Netconf and CLI request to this Voltha.  It\u0027s too service impacting.",
+      "revId": "0cd0c1d6bf18bdc3ea2bd3465fa975a35a294195",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a1a2d67_3cf3350c",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 164,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-07-25T13:06:25Z",
+      "side": 1,
+      "message": "Why not just a Subscriber as it is defined above?",
+      "revId": "0cd0c1d6bf18bdc3ea2bd3465fa975a35a294195",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
