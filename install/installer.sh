@@ -118,6 +118,17 @@ sudo mv deb_files/*grub* grub_updates
 echo -e "${lBlue}Propagating ssh keys${NC}"
 cp -r .keys ansible/roles/cluster-host/files
 
+# Install python on all the 3 servers since python is required for
+for i in $hosts
+do
+	echo -e "${lBlue}Installing ${lCyan}Python-minimal${lBlue}${NC}"
+	scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i .keys/$i -r python-deb voltha@$i:.
+	ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i .keys/$i  voltha@$i sudo dpkg -i -R /home/voltha/python-deb
+	ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i .keys/$i  voltha@$i rm -fr python-deb
+
+done
+
+
 # Running ansible
 echo -e "${lBlue}Running ansible${NC}"
 cp ansible/ansible.cfg .ansible.cfg

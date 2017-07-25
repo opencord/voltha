@@ -276,10 +276,18 @@ else
 	cat containers.cfg >> ansible/group_vars/all
 fi
 
+
 # Install python which is required for ansible
-echo -e "${lBlue}Installing python${NC}"
+echo -e "${lBlue}Installing ${lCyan}Python${NC}"
 ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem vinstall@$ipAddr sudo apt-get update 
-ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem vinstall@$ipAddr sudo apt-get -y install python 
+ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem vinstall@$ipAddr sudo apt-get -y install python
+
+# Move all the python deb files to their own directory so they can be installed first
+echo -e "${lBlue}Caching ${lCyan}Python${lBlue} install${NC}"
+ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem vinstall@$ipAddr mkdir python-deb
+ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem vinstall@$ipAddr "sudo mv /var/cache/apt/archives/*.deb /home/vinstall/python-deb"
+ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem vinstall@$ipAddr "sudo chown -R vinstall.vinstall /home/vinstall/python-deb"
+
 
 # Make sure the VM is up-to-date
 echo -e "${lBlue}Ensure that the VM is up-to-date${NC}"

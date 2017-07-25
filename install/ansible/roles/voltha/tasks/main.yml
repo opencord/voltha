@@ -133,10 +133,10 @@
   when: target == "installer"
   tags: [voltha]
 
-- name: TEMPORARY RULE TO INSTALL ZOOKEEPER
-  command: docker pull zookeeper
-  when: target == "installer"
-  tags: [voltha]
+#- name: TEMPORARY RULE TO INSTALL ZOOKEEPER
+#  command: docker pull zookeeper
+#  when: target == "installer"
+#  tags: [voltha]
 
 - name: Docker images are re-tagged to registry for push
   command: docker tag {{ item }} {{ docker_push_registry }}/{{ item }}

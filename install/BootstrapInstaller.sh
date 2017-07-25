@@ -28,6 +28,19 @@ fi
 echo -e "${lBlue}Defining the  ${lCyan}$iVmName${lBlue} virtual machine${NC}"
 cat vmTemplate.xml | sed -e "s/{{ VMName }}/$iVmName/g" | sed -e "s/{{ VMNetwork }}/$iVmNetwork/g" > tmp.xml
 
+# Check that the default storage pool exists and create it if it doesn't
+poolCheck=`virsh pool-list --all | grep default`
+if [ -z "$poolCheck" ]; then
+	virsh pool-define-as --name default --type dir --target /var/lib/libvirt/images/
+	virsh pool-autostart default
+	virsh pool-start default
+else
+	poolCheck=`virsh pool-list | grep default`
+	if [ -z "$poolCheck" ]; then
+		virsh pool-start default
+	fi
+fi
+
 # Copy the vm image to the default storage pool
 echo -e "${lBlue}Creating the storage for the ${lCyan}$iVmName${lBlue} virtual machine${NC}"
 # Copy the vm image to the installer directory
