@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "1a1a2d67_dcd9e184",
+        "filename": "ponsim/grpc_server.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 61,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-07-25T13:09:58Z",
+      "side": 1,
+      "message": "Why not use the similar device types used in voltha (ponsim_olt and ponsim_onu)?",
+      "revId": "326ffb875483df9a4b77029c2e4a048f6aecd2a4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1a1a2d67_d978d32d",
         "filename": "ponsim/main.py",
         "patchSetId": 3
