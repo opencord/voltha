@@ -62,6 +62,8 @@ coordinator:
     workload_key: 'work'
     membership_watch_relatch_delay: 0.1
     tracking_loop_delay: 1
+    session_renewal_loop_delay: 3
+    session_renewal_timeout: 2
 
 worker:
     time_to_let_leader_update: 5
