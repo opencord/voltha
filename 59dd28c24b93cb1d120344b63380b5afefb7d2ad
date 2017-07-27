@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a1a2d67_277202e6",
+        "filename": "ofagent/connection_mgr.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 140,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-07-27T17:50:44Z",
+      "side": 1,
+      "message": "Will this block the reactor thread in ofagent?",
+      "revId": "59dd28c24b93cb1d120344b63380b5afefb7d2ad",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a1a2d67_476dfe03",
+        "filename": "tests/itests/README.md",
+        "patchSetId": 4
+      },
+      "lineNbr": 55,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-07-27T17:50:44Z",
+      "side": 1,
+      "message": "Do you have a test (can be manual) to verify the states (devices, ports, flows) in ONOS before and after the component failures?",
+      "revId": "59dd28c24b93cb1d120344b63380b5afefb7d2ad",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
