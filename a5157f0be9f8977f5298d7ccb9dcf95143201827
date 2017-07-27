@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a1a2d67_87baf6df",
+        "filename": "compose/docker-compose-ofagent-swarm.yml",
+        "patchSetId": 2
+      },
+      "lineNbr": 10,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-07-27T01:31:07Z",
+      "side": 1,
+      "message": "If there are 3 voltha instances running we will need 3 ofagent running",
+      "revId": "a5157f0be9f8977f5298d7ccb9dcf95143201827",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a1a2d67_e7e3ea03",
+        "filename": "voltha/core/local_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 876,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-07-27T01:31:07Z",
+      "side": 1,
+      "message": "Does it mean when ofagent dies there will be a hiccup with the other grpc requests?",
+      "revId": "a5157f0be9f8977f5298d7ccb9dcf95143201827",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a1a2d67_c7f0eecb",
+        "filename": "voltha/core/local_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 909,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-07-27T01:31:07Z",
+      "side": 1,
+      "message": "this will block the entire reactor",
+      "revId": "a5157f0be9f8977f5298d7ccb9dcf95143201827",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
