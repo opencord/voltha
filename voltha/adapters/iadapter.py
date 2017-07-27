@@ -32,6 +32,7 @@ from voltha.protos.health_pb2 import HealthStatus
 
 log = structlog.get_logger()
 
+
 @implementer(IAdapterInterface)
 class IAdapter(object):
     def __init__(self, adapter_agent, config, device_handler_class, name, vendor, version, device_type, vendor_id):
@@ -164,20 +165,35 @@ class IAdapter(object):
         raise NotImplementedError()
 
     def create_interface(self, device, data):
-        raise NotImplementedError()
+        log.info('create-interface', device_id=device.id)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.create_interface(data)
 
     def update_interface(self, device, data):
-        raise NotImplementedError()
+        log.info('update-interface', device_id=device.id)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.update_interface(data)
 
     def remove_interface(self, device, data):
-        raise NotImplementedError()
+        log.info('remove-interface', device_id=device.id)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.remove_interface(data)
 
     def receive_onu_detect_state(self, proxy_address, state):
         raise NotImplementedError()
 
+
 """
 OLT Adapter base class
 """
+
+
 class OltAdapter(IAdapter):
     def __init__(self, adapter_agent, config, device_handler_class, name, vendor, version, device_type):
         super(OltAdapter, self).__init__(adapter_agent,
@@ -224,9 +240,12 @@ class OltAdapter(IAdapter):
         handler = self.devices_handlers[device_id]
         handler.packet_out(egress_port_no, msg)
 
+
 """
 ONU Adapter base class
 """
+
+
 class OnuAdapter(IAdapter):
     def __init__(self, adapter_agent, config, device_handler_class, name, vendor, version, device_type, vendor_id):
         super(OnuAdapter, self).__init__(adapter_agent,

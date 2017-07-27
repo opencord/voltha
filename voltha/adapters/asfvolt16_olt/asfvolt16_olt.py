@@ -25,11 +25,12 @@ from voltha.adapters.asfvolt16_olt.asfvolt16_rx_handler import Asfvolt16RxHandle
 
 log = structlog.get_logger()
 
+
 class Asfvolt16Adapter(OltAdapter):
     def __init__(self, adapter_agent, config):
         super(Asfvolt16Adapter, self).__init__(adapter_agent=adapter_agent,
                                                config=config,
-                                               device_handler_class = Asfvolt16Handler,
+                                               device_handler_class=Asfvolt16Handler,
                                                name='asfvolt16_olt',
                                                vendor='Edgecore',
                                                version='0.1',

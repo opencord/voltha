@@ -15,11 +15,10 @@
 #
 
 from twisted.internet.defer import inlineCallbacks
-
-from voltha.protos.common_pb2 import OperStatus, ConnectStatus
 from voltha.adapters.asfvolt16_olt.protos import bal_pb2, bal_obj_pb2, \
     bal_model_types_pb2, bal_model_ids_pb2
 from voltha.adapters.asfvolt16_olt.grpc_client import GrpcClient
+
 
 class Bal(object):
     def __init__(self, olt, log):
@@ -48,51 +47,75 @@ class Bal(object):
 
     @inlineCallbacks
     def set_access_terminal_admin_state(self, admin_state):
-        #import pdb; pdb.set_trace()
-        self.log.info('setting-admin-state', admin_state=admin_state, device_id=self.device_id)
+        self.log.info('setting-admin-state',
+                      admin_state=admin_state, device_id=self.device_id)
         obj = bal_pb2.BalCfg()
         obj.device_id = self.device_id.encode('ascii', 'ignore')
         obj.hdr.obj_type = bal_model_ids_pb2.BAL_OBJ_ID_ACCESS_TERMINAL
         obj.cfg.key.access_term_id = 0
         obj.cfg.data.admin_state = admin_state
-	yield self.stub.BalCfgSet(obj)
+        yield self.stub.BalCfgSet(obj)
 
     @inlineCallbacks
     def activate_pon_port(self, olt_no, pon_port):
-        self.log.info('activating-pon-port in olt', olt=olt_no, pon_port=pon_port)
+        self.log.info('activating-pon-port in olt',
+                      olt=olt_no, pon_port=pon_port)
         try:
             obj = bal_pb2.BalCfg()
-            #Fill Header details
+            #            Fill Header details
             obj.device_id = self.device_id.encode('ascii', 'ignore')
             obj.hdr.obj_type = bal_model_ids_pb2.BAL_OBJ_ID_INTERFACE
-            #Fill Access Terminal Details
+            #            Fill Access Terminal Details
             obj.interface.key.intf_id = pon_port
             obj.interface.key.intf_type = bal_model_types_pb2.BAL_INTF_TYPE_PON
             obj.interface.data.admin_state = bal_model_types_pb2.BAL_STATE_UP
-	    yield self.stub.BalCfgSet(obj)
+            yield self.stub.BalCfgSet(obj)
         except Exception as e:
             self.log.info('activating-pon-port in olt-exception', exc=str(e))
         return
 
     @inlineCallbacks
     def send_omci_request_message(self, proxy_address, msg):
-        if isinstance(msg, Packet):
-            msg = str(msg)
-
         self.log.info('send_omci_request_message',
                       proxy_address=proxy_address.channel_id,
                       msg=msg)
         try:
             obj = bal_pb2.BalCfg()
-            #Fill Header details
+            #            Fill Header details
             obj.device_id = self.device_id.encode('ascii', 'ignore')
             obj.hdr.obj_type = bal_model_ids_pb2.BAL_OBJ_ID_PACKET
-            #Fill packet Details
-            obj.packet.key.packet_send_dest.type = bal_model_types_pb2.BAL_DEST_TYPE_ITU_OMCI_CHANNEL
-            obj.packet.key.packet_send_dest.itu_omci_channel.sub_term_id = proxy_address.channel_id
+            #            Fill packet Details
+            obj.packet.key.packet_send_dest.type = \
+                bal_model_types_pb2.BAL_DEST_TYPE_ITU_OMCI_CHANNEL
+            obj.packet.key.packet_send_dest.itu_omci_channel.sub_term_id = \
+                proxy_address.channel_id
             obj.packet.key.packet_send_dest.itu_omci_channel.int_id = 0
             obj.packet.data.pkt = msg
-	    yield self.stub.BalCfgSet(obj)
+            yield self.stub.BalCfgSet(obj)
         except Exception as e:
             self.log.info('send-proxied_message-exception', exc=str(e))
+        return
+
+    @inlineCallbacks
+    def activate_onu(self, onu_info):
+        self.log.info('activating-ONU in olt',
+                      olt=self.olt.olt_id, onu_id=onu_info['onu_id'])
+        try:
+            obj = bal_pb2.BalCfg()
+            # Fill Header details
+            obj.device_id = self.device_id.encode('ascii', 'ignore')
+            obj.hdr.obj_type = bal_model_ids_pb2.BAL_OBJ_ID_SUBSCRIBER_TERMINAL
+            # Fill Access Terminal Details
+            obj.terminal.key.intf_id = onu_info['pon_id']
+            obj.terminal.key.sub_term_id = onu_info['onu_id']
+            obj.terminal.data.admin_state = bal_model_types_pb2.BAL_STATE_UP
+            obj.terminal.data.serial_number.vendor_id = onu_info['vendor']
+            obj.terminal.data.serial_number.vendor_specific = \
+                onu_info['vendor_specific']
+            obj.terminal.data.registration_id = \
+                '202020202020202020202020202020202020202020202020202020202020202020202020'
+            yield self.stub.BalCfgSet(obj)
+        except Exception as e:
+            self.log.info('activating-ONU-exception',
+                          onu_info['onu_id'], exc=str(e))
         return

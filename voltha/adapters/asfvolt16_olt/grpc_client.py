@@ -17,6 +17,7 @@
 import grpc
 from grpc._channel import _Rendezvous
 
+
 class GrpcClient(object):
     def __init__(self, log):
         self.channel = None

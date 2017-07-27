@@ -556,7 +556,7 @@ class XponAgent(object):
             vendor_id=vendor_id, proxy_address=proxy_address,
             root=True, serial_number=v_ont_ani.data.expected_serial_number,
             admin_state=AdminState.ENABLED if v_ont_ani.interface.enabled
-                                           else AdminState.DISABLED)
+                                           else AdminState.PREPROVISIONED)
         return
 
     def delete_onu_device(self, olt_device, onu_device):

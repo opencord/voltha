@@ -621,6 +621,7 @@ class AdapterAgent(object):
         self._tx_event_subscriptions[topic] = self.event_bus.subscribe(
             topic, lambda t, m: self._send_proxied_message(proxy_address, m))
 
+
     def get_child_device_with_proxy_address(self, proxy_address):
         # Proxy address is defined as {parent id, channel_id}
         devices = self.root_proxy.get('/devices')
