@@ -32,6 +32,9 @@ from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, \
     OFPPF_1GB_FD
 from voltha.protos.openflow_13_pb2 import ofp_port
 from voltha.protos.ponsim_pb2 import FlowTable
+from voltha.protos.ponsim_pb2 import InterfaceConfig
+from voltha.protos.bbf_fiber_base_pb2 import OntaniConfig, VOntaniConfig, \
+    VEnetConfig
 
 _ = third_party
 log = structlog.get_logger()
@@ -49,6 +52,10 @@ class PonSimOnuAdapter(OnuAdapter):
                                                version='0.4',
                                                device_type='ponsim_onu',
                                                vendor_id='PSMO')
+
+    def create_interface(self, device, data):
+        log.info('create-interface', device_id=device.id)
+        self.devices_handlers[device.id].create_interface(data)
 
 class PonSimOnuHandler(object):
     def __init__(self, adapter, device_id):
@@ -349,3 +356,22 @@ class PonSimOnuHandler(object):
         # 2) Remove the device from ponsim
 
         self.log.info('deleted', device_id=self.device_id)
+
+    def get_interface_config(self, data):
+        interfaceConfig = InterfaceConfig()
+        if isinstance(data, OntaniConfig):
+            interfaceConfig.ont_ani_config.CopyFrom(data)
+        elif isinstance(data, VOntaniConfig):
+            interfaceConfig.vont_ani_config.CopyFrom(data)
+        elif isinstance(data, VEnetConfig):
+            interfaceConfig.venet_config.CopyFrom(data)
+        else:
+            return None
+        return interfaceConfig
+
+    def create_interface(self, data):
+        interfaceConfig = self.get_interface_config(data)
+        if interfaceConfig is not None:
+            self.log.info(
+                'forwarding-create-interface-request-to-onu-interface-type',
+                interface_type=type(data))
