@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "1a1a2d67_e773eae5",
+        "filename": "ofagent/connection_mgr.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 140,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-07-27T18:08:23Z",
+      "side": 1,
+      "message": "Yes, it will block for 5 seconds in this case.  I cannot use a yield asleep in a streaming method.  This was the exact same case with Voltha before. Now that I enabled streaming RPC on both sides (i.e. ofagent and voltha), the blocking is done on the ofagent side only.  As for Voltha, it will simply wait for the next available subscription request and not block anything else.",
+      "parentUuid": "1a1a2d67_277202e6",
+      "revId": "59dd28c24b93cb1d120344b63380b5afefb7d2ad",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1a1a2d67_476dfe03",
         "filename": "tests/itests/README.md",
         "patchSetId": 4
@@ -30,6 +48,24 @@
       "writtenOn": "2017-07-27T17:50:44Z",
       "side": 1,
       "message": "Do you have a test (can be manual) to verify the states (devices, ports, flows) in ONOS before and after the component failures?",
+      "revId": "59dd28c24b93cb1d120344b63380b5afefb7d2ad",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a1a2d67_c780ee8d",
+        "filename": "tests/itests/README.md",
+        "patchSetId": 4
+      },
+      "lineNbr": 55,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-07-27T18:08:23Z",
+      "side": 1,
+      "message": "Not at the moment.  But we can simply run the following command to verify the state of flows and ports\n\n# After stopping ofagent\n\nonos\u003e flows\ndeviceId\u003dof:0001000000000001, flowRuleCount\u003d0\nonos\u003e ports\nid\u003dof:0001000000000001, available\u003dfalse, role\u003dNONE, type\u003dSWITCH, mfr\u003dcord porject, hw\u003dsimualted pon, sw\u003dsimualted pon, serial\u003de21735b2469546e88f21b78a41adcd97, driver\u003ddefault, channelId\u003d10.0.1.16:41100, managementAddress\u003d10.0.1.16, protocol\u003dOF_13\n  port\u003d101, state\u003ddisabled, type\u003dfiber, speed\u003d0 , portName\u003duni-101, portMac\u003d00:00:00:00:00:65\n  port\u003d102, state\u003ddisabled, type\u003dfiber, speed\u003d0 , portName\u003duni-102, portMac\u003d00:00:00:00:00:66\n  port\u003d103, state\u003ddisabled, type\u003dfiber, speed\u003d0 , portName\u003duni-103, portMac\u003d00:00:00:00:00:67\n  port\u003d104, state\u003ddisabled, type\u003dfiber, speed\u003d0 , portName\u003duni-104, portMac\u003d00:00:00:00:00:68\n  port\u003d129, state\u003ddisabled, type\u003dfiber, speed\u003d0 , portName\u003dnni, portMac\u003d00:00:00:00:00:81\n\n\n# After the ofagent has recovered\nonos\u003e flows\ndeviceId\u003dof:0001000000000001, flowRuleCount\u003d5\n    id\u003d100006782a9f3, state\u003dPENDING_ADD, bytes\u003d0, packets\u003d0, duration\u003d0, priority\u003d40000, tableId\u003d0, appId\u003dorg.onosproject.core, payLoad\u003dnull, selector\u003d[], treatment\u003dDefaultTrafficTreatment{immediate\u003d[OUTPUT:CONTROLLER], deferred\u003d[], transition\u003dNone, meter\u003dNone, cleared\u003dfalse, metadata\u003dnull}\n    id\u003d1000085fb8602, state\u003dPENDING_ADD, bytes\u003d0, packets\u003d0, duration\u003d0, priority\u003d40000, tableId\u003d0, appId\u003dorg.onosproject.core, payLoad\u003dnull, selector\u003d[ETH_TYPE:ipv4, IP_PROTO:17, UDP_SRC:68], treatment\u003dDefaultTrafficTreatment{immediate\u003d[OUTPUT:CONTROLLER], deferred\u003d[], transition\u003dNone, meter\u003dNone, cleared\u003dfalse, metadata\u003dnull}\n    id\u003d100008ddcdc88, state\u003dPENDING_ADD, bytes\u003d0, packets\u003d0, duration\u003d0, priority\u003d40000, tableId\u003d0, appId\u003dorg.onosproject.core, payLoad\u003dnull, selector\u003d[ETH_TYPE:ipv4, IP_PROTO:17, UDP_SRC:67], treatment\u003dDefaultTrafficTreatment{immediate\u003d[OUTPUT:CONTROLLER], deferred\u003d[], transition\u003dNone, meter\u003dNone, cleared\u003dfalse, metadata\u003dnull}\n    id\u003d10000cf510e39, state\u003dPENDING_ADD, bytes\u003d0, packets\u003d0, duration\u003d0, priority\u003d40000, tableId\u003d0, appId\u003dorg.onosproject.core, payLoad\u003dnull, selector\u003d[ETH_TYPE:arp], treatment\u003dDefaultTrafficTreatment{immediate\u003d[OUTPUT:CONTROLLER], deferred\u003d[], transition\u003dNone, meter\u003dNone, cleared\u003dfalse, metadata\u003dnull}\n    id\u003d10000e1249b81, state\u003dPENDING_ADD, bytes\u003d0, packets\u003d0, duration\u003d0, priority\u003d40000, tableId\u003d0, appId\u003dorg.onosproject.core, payLoad\u003dnull, selector\u003d[ETH_TYPE:eapol], treatment\u003dDefaultTrafficTreatment{immediate\u003d[OUTPUT:CONTROLLER], deferred\u003d[], transition\u003dNone, meter\u003dNone, cleared\u003dfalse, metadata\u003dnull}\nonos\u003e ports\nid\u003dof:0001000000000001, available\u003dtrue, role\u003dMASTER, type\u003dSWITCH, mfr\u003dcord porject, hw\u003dsimualted pon, sw\u003dsimualted pon, serial\u003de21735b2469546e88f21b78a41adcd97, driver\u003ddefault, channelId\u003d10.0.1.16:41140, managementAddress\u003d10.0.1.16, protocol\u003dOF_13\n  port\u003d101, state\u003denabled, type\u003dfiber, speed\u003d0 , portName\u003duni-101, portMac\u003d00:00:00:00:00:65\n  port\u003d102, state\u003denabled, type\u003dfiber, speed\u003d0 , portName\u003duni-102, portMac\u003d00:00:00:00:00:66\n  port\u003d103, state\u003denabled, type\u003dfiber, speed\u003d0 , portName\u003duni-103, portMac\u003d00:00:00:00:00:67\n  port\u003d104, state\u003denabled, type\u003dfiber, speed\u003d0 , portName\u003duni-104, portMac\u003d00:00:00:00:00:68\n  port\u003d129, state\u003denabled, type\u003dfiber, speed\u003d0 , portName\u003dnni, portMac\u003d00:00:00:00:00:81",
+      "parentUuid": "1a1a2d67_476dfe03",
       "revId": "59dd28c24b93cb1d120344b63380b5afefb7d2ad",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
