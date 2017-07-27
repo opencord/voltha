@@ -31,6 +31,7 @@ from common.utils.message_queue import MessageQueue
 from voltha.registry import IComponent
 from worker import Worker
 from simplejson import dumps, loads
+from common.utils.deferred_utils import DeferredWithTimeout, TimeOutError
 
 log = get_logger()
 
@@ -74,6 +75,10 @@ class Coordinator(object):
             'membership_watch_relatch_delay', 0.1)
         self.tracking_loop_delay = config.get(
             'tracking_loop_delay', 1)
+        self.session_renewal_timeout = config.get(
+            'session_renewal_timeout', 2)
+        self.session_renewal_loop_delay = config.get(
+            'session_renewal_loop_delay', 3)
         self.prefix = self.config.get('voltha_kv_prefix', 'service/voltha')
         self.leader_prefix = '/'.join((self.prefix, self.config.get(
             self.config['leader_key'], 'leader')))
@@ -105,11 +110,11 @@ class Coordinator(object):
 
         self.worker = Worker(self.instance_id, self)
 
-        host = consul.split(':')[0].strip()
-        port = int(consul.split(':')[1].strip())
+        self.host = consul.split(':')[0].strip()
+        self.port = int(consul.split(':')[1].strip())
 
         # TODO need to handle reconnect events properly
-        self.consul = Consul(host=host, port=port)
+        self.consul = Consul(host=self.host, port=self.port)
 
         self.wait_for_leader_deferreds = []
 
@@ -162,13 +167,13 @@ class Coordinator(object):
     # Proxy methods for consul with retry support
 
     def kv_get(self, *args, **kw):
-        return self._retry(self.consul.kv.get, *args, **kw)
+        return self._retry('GET', *args, **kw)
 
     def kv_put(self, *args, **kw):
-        return self._retry(self.consul.kv.put, *args, **kw)
+        return self._retry('PUT', *args, **kw)
 
     def kv_delete(self, *args, **kw):
-        return self._retry(self.consul.kv.delete, *args, **kw)
+        return self._retry('DELETE', *args, **kw)
 
     # Methods exposing key membership information
 
@@ -204,25 +209,13 @@ class Coordinator(object):
     def _create_session(self):
 
         @inlineCallbacks
-        def _renew_session():
-            try:
-                result = yield self.consul.session.renew(
-                    session_id=self.session_id)
-                log.debug('just renewed session', result=result)
-            except Exception, e:
-                log.exception('could-not-renew-session', e=e)
-
-        @inlineCallbacks
         def _create_session():
-
+            consul = yield self.get_consul()
             # create consul session
-            self.session_id = yield self.consul.session.create(
-                behavior='release', ttl=60, lock_delay=1)
+            self.session_id = yield consul.session.create(
+                behavior='release', ttl=10, lock_delay=1)
             log.info('created-consul-session', session_id=self.session_id)
-
-            # start renewing session it 3 times within the ttl
-            self.session_renew_timer = LoopingCall(_renew_session)
-            self.session_renew_timer.start(3)
+            self._start_session_tracking()
 
         yield self._retry(_create_session)
 
@@ -232,7 +225,7 @@ class Coordinator(object):
 
     @inlineCallbacks
     def _create_membership_record(self):
-        yield self._retry(self._do_create_membership_record)
+        yield self._do_create_membership_record_with_retries()
         reactor.callLater(0, self._maintain_membership_record)
 
     def _create_membership_record_data(self):
@@ -242,12 +235,29 @@ class Coordinator(object):
         return member_record
 
     @inlineCallbacks
+    def _do_create_membership_record_with_retries(self):
+        while 1:
+            result = yield self._retry(
+                'PUT',
+                self.membership_record_key,
+                dumps(self._create_membership_record_data()),
+                acquire=self.session_id)
+            if result:
+                log.debug('new-membership-record', session=self.session_id)
+                break
+            else:
+                log.warn('cannot-create-membership-record')
+                yield self._backoff('stale-membership-record')
+
+    @inlineCallbacks
     def _do_create_membership_record(self):
-        result = yield self.consul.kv.put(
+        consul = yield self.get_consul()
+        result = yield consul.kv.put(
             self.membership_record_key,
             dumps(self._create_membership_record_data()),
             acquire=self.session_id)
         if not result:
+            log.warn('cannot-create-membership-record')
             raise StaleMembershipEntryException(self.instance_id)
 
     @inlineCallbacks
@@ -255,19 +265,22 @@ class Coordinator(object):
         index = None
         try:
             while 1:
-                (index, record) = yield self._retry(self.consul.kv.get,
+                (index, record) = yield self._retry('GET',
                                                     self.membership_record_key,
+                                                    wait='5s',
                                                     index=index)
-                log.debug('membership-record-change-detected',
-                          index=index, record=record)
                 if record is None or \
                                 'Session' not in record or \
                                 record['Session'] != self.session_id:
-                    log.debug('remaking-membership-record')
-                    yield self._retry(self._do_create_membership_record)
+                    log.debug('membership-record-change-detected',
+                              old_session=self.session_id,
+                              index=index,
+                              record=record)
+
+                    yield self._do_create_membership_record_with_retries()
 
         except Exception, e:
-            log.exception('unexpected-error-leader-trackin', e=e)
+            log.exception('unexpected-error-leader-tracking', e=e)
 
         finally:
             # except in shutdown, the loop must continue (after a short delay)
@@ -275,33 +288,98 @@ class Coordinator(object):
                 reactor.callLater(self.membership_watch_relatch_delay,
                                   self._maintain_membership_record)
 
+    def _start_session_tracking(self):
+        reactor.callLater(0, self._session_tracking_loop)
+
+    @inlineCallbacks
+    def _session_tracking_loop(self):
+
+        @inlineCallbacks
+        def _redo_session():
+            log.info('_redo_session-before')
+            try:
+                yield self._delete_session()
+            except Exception as e:
+                log.exception('could-not-delete-old-session', e=e)
+
+            # Create a new consul connection/session
+            try:
+                self.consul = Consul(host=self.host, port=self.port)
+                self.session_id = yield self.consul.session.create(
+                    behavior='release',
+                    ttl=10,
+                    lock_delay=1)
+                log.debug('new-consul-session', session=self.session_id)
+
+                # Update my membership
+                yield self._do_create_membership_record_with_retries()
+
+            except Exception as e:
+                log.exception('could-not-create-a-consul-session', e=e)
+
+        @inlineCallbacks
+        def _renew_session(m_callback):
+            try:
+                log.info('_renew_session-before')
+                result = yield self.consul.session.renew(
+                    session_id=self.session_id)
+                log.debug('just-renewed-session', result=result)
+                if not m_callback.called:
+                    # Triggering callback will cancel the timeout timer
+                    log.debug('trigger-callback-to-cancel-timout-timer')
+                    m_callback.callback(result)
+            except Exception, e:
+                # Let the invoking method receive a timeout
+                log.exception('could-not-renew-session', e=e)
+
+        try:
+            log.debug('session-tracking-start')
+            # Set a timeout timer (~ 2 secs) - should be more than
+            # enough to renew a session
+            rcvd = DeferredWithTimeout(timeout=self.session_renewal_timeout)
+            yield _renew_session(rcvd)
+            try:
+                _ = yield rcvd
+            except TimeOutError as e:
+                log.info('session-renew-timeout', e=e)
+                # Redo the session
+                yield _redo_session()
+            except Exception as e:
+                log.exception('session-renew-exception', e=e)
+            else:
+                log.debug('successfully-renewed-session')
+        except Exception as e:
+            print 'got an exception:{}'.format(e)
+        finally:
+            reactor.callLater(self.session_renewal_loop_delay,
+                              self._session_tracking_loop)
+
     def _start_leader_tracking(self):
         reactor.callLater(0, self._leadership_tracking_loop)
 
     @inlineCallbacks
     def _leadership_tracking_loop(self):
-
         try:
-
             # Attempt to acquire leadership lock. True indicates success;
             # False indicates there is already a leader. It's instance id
             # is then the value under the leader key service/voltha/leader.
 
             # attempt acquire leader lock
-            log.debug('leadership-attempt')
-            result = yield self._retry(self.consul.kv.put,
+            log.debug('leadership-attempt-before')
+            result = yield self._retry('PUT',
                                        self.leader_prefix,
                                        self.instance_id,
                                        acquire=self.session_id)
+            log.debug('leadership-attempt-after')
 
             # read it back before being too happy; seeing our session id is a
             # proof and now we have the change id that we can use to reliably
             # track any changes. In an unlikely scenario where the leadership
             # key gets wiped out administratively since the previous line,
             # the returned record can be None. Handle it.
-            (index, record) = yield self._retry(self.consul.kv.get,
+            (index, record) = yield self._retry('GET',
                                                 self.leader_prefix)
-            log.debug('leadership-key',
+            log.debug('leader-prefix',
                       i_am_leader=result, index=index, record=record)
 
             if record is not None:
@@ -320,14 +398,24 @@ class Coordinator(object):
             last = record
             while last is not None:
                 # this shall return only when update is made to leader key
-                (index, updated) = yield self._retry(self.consul.kv.get,
+                # or expires after 5 seconds wait (in case consul took an
+                # unexpected vacation)
+                (index, updated) = yield self._retry('GET',
                                                      self.leader_prefix,
+                                                     wait='5s',
                                                      index=index)
-                log.debug('leader-key-change',
-                          index=index, updated=updated)
                 if updated is None or updated != last:
+                    log.debug('leader-key-change',
+                              index=index, updated=updated, last=last)
                     # leadership has changed or vacated (or forcefully
                     # removed), apply now
+                    # If I was previoulsy the leader then assert a non
+                    # leadership role before going for election
+                    if self.i_am_leader:
+                        log.debug('leaving-leaderdhip',
+                                  leader=self.instance_id)
+                        yield self._assert_nonleadership(self.instance_id)
+
                     break
                 last = updated
 
@@ -376,22 +464,51 @@ class Coordinator(object):
         return self._halt_leader()
 
     def _halt_leader(self):
-        d = self.leader.stop()
-        self.leader = None
+        if self.leader:
+            d = self.leader.stop()
+            self.leader = None
         return d
 
+    def get_consul(self):
+        return self.consul
+
     @inlineCallbacks
-    def _retry(self, func, *args, **kw):
+    def _retry(self, operation, *args, **kw):
         while 1:
             try:
-                result = yield func(*args, **kw)
+                consul = yield self.get_consul()
+                log.debug('consul', consul=consul, operation=operation,
+                         args=args)
+                if operation == 'GET':
+                    result = yield consul.kv.get(*args, **kw)
+                elif operation == 'PUT':
+                    for name, value in kw.items():
+                        if name == 'acquire':
+                            if value != self.session_id:
+                                log.info('updating-session-in-put-operation',
+                                         old_session=value,
+                                         new_session=self.session_id)
+                                kw['acquire'] = self.session_id
+                            break
+                    result = yield consul.kv.put(*args, **kw)
+                elif operation == 'DELETE':
+                    result = yield consul.kv.delete(*args, **kw)
+                else:
+                    # Default case - consider operation as a function call
+                    result = yield operation(*args, **kw)
                 self._clear_backoff()
                 break
             except ConsulException, e:
+                log.exception('consul-not-up', consul=self.consul,
+                              session=self.consul.Session, e=e)
                 yield self._backoff('consul-not-up')
             except ConnectionError, e:
+                log.exception('cannot-connect-to-consul',
+                              consul=self.consul, e=e)
                 yield self._backoff('cannot-connect-to-consul')
             except StaleMembershipEntryException, e:
+                log.exception('stale-membership-record-in-the-way',
+                              consul=self.consul, e=e)
                 yield self._backoff('stale-membership-record-in-the-way')
             except Exception, e:
                 if not self.shutting_down:
