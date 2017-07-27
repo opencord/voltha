@@ -289,12 +289,6 @@ ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem vinst
 ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem vinstall@$ipAddr "sudo chown -R vinstall.vinstall /home/vinstall/python-deb"
 
 
-# Make sure the VM is up-to-date
-echo -e "${lBlue}Ensure that the VM is up-to-date${NC}"
-ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem vinstall@$ipAddr sudo apt-get update 
-ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem vinstall@$ipAddr sudo apt-get -y upgrade 
-
-
 # Create the docker.cfg file in the ansible tree using the VMs IP address
 echo 'DOCKER_OPTS="$DOCKER_OPTS --insecure-registry '$ipAddr':5000 -H tcp://0.0.0.0:2375 -H unix:///var/run/docker.sock --registry-mirror=http://'$ipAddr':5001"' > ansible/roles/docker/templates/docker.cfg
 
