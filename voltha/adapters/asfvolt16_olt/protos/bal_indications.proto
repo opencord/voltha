@@ -22,6 +22,7 @@ import "bal.proto";
 
 message BalIndications{
    BalObjId     objType = 1; //type of object for which the indications have been received
+   uint32       sub_group = 22;
    oneof u {
          BalAccessTerminalInd access_term_ind                        = 2;  // Access Terminal
          BalAccessTerminalOperStatusChange access_term_ind_op_state  = 3;  // Access Terminal Operational State Change

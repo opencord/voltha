@@ -881,7 +881,8 @@ channel_termination create -i f90bb953f988 -n cterm-1 -a up -r cp-1 -m false
 '''
 vont_ani [get | create | update | delete] [-n <name>] [-d <description>]
          [-a <admin state>] [-l <link up down trap enable type>]
-         [-p <parent reference>] [-s <expected serial number>]
+         [-p <parent reference>] [-s <expected serial number>] 
+         [-v <expected vendor id>]
          [-i <expected registration id>] [-r <preferred channel pair>]
          [-t <protection channel pair>] [-u <upstream channel speed>]
          [-o <onu id>]
@@ -908,6 +909,7 @@ delete: deletes vont ani specified with parameter -n.
 -r: <string> preferred channel pair must be type of channel pair.
 -t: <string> protection channel pair must be type of channel pair.
 -u: <int>    upstream channel speed of traffic.
+-v: <string> expected vendor id
 -o <int>     ONU id.
 
 Example:
@@ -936,6 +938,9 @@ vont_ani create -n ontani-1-1-1 -a up -p cpart-1-1 -s ALCL00000001 -r cp-1
         make_option('-s', '--e_ser_num', action='store',
                     dest='expected_serial_number', type='string',
                     help='expected serial number of ONT', default=None),
+        make_option('-v', '--e_vendor_id', action='store',
+                    dest='expected_vendor_id', type='string',
+                    help='expected venodr_id', default=None),
         make_option('-i', '--e_reg_id', action='store',
                     dest='expected_registration_id', type='string',
                     help='expected registration id of ONT', default=None),
@@ -1018,6 +1023,9 @@ vont_ani create -n ontani-1-1-1 -a up -p cpart-1-1 -s ALCL00000001 -r cp-1
         if opts.expected_serial_number:
             interface_instance.data.expected_serial_number = \
                 opts.expected_serial_number
+        if opts.expected_vendor_id:
+            interface_instance.data.expected_vendor_id = \
+                opts.expected_vendor_id
         if opts.expected_registration_id:
             interface_instance.data.expected_registration_id = \
                 opts.expected_registration_id

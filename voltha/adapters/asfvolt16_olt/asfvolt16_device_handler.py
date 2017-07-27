@@ -21,7 +21,8 @@ Asfvolt16 OLT adapter
 from uuid import uuid4
 from common.frameio.frameio import BpfProgramFilter
 from voltha.protos.common_pb2 import OperStatus, ConnectStatus
-from voltha.protos.device_pb2 import Port
+from voltha.protos.device_pb2 import DeviceType, DeviceTypes, Port, Device, \
+PmConfigs, PmConfig, PmGroupConfig
 from voltha.protos.common_pb2 import AdminState
 from voltha.protos.logical_device_pb2 import LogicalPort, LogicalDevice
 from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, \
@@ -30,17 +31,14 @@ from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, \
 from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.adapters.asfvolt16_olt.bal import Bal
 from voltha.adapters.device_handler import OltDeviceHandler
+from voltha.protos.bbf_fiber_base_pb2 import \
+    ChannelgroupConfig, ChannelpartitionConfig, ChannelpairConfig, ChannelterminationConfig, \
+    OntaniConfig, VOntaniConfig, VEnetConfig
 
 # TODO: VLAN ID needs to come from some sort of configuration.
 PACKET_IN_VLAN = 4091
 is_inband_frame = BpfProgramFilter('(ether[14:2] & 0xfff) = 0x{:03x}'.format(
     PACKET_IN_VLAN))
-
-#TODO: hardcoded NNI port ID to be removed once port enumeration is supported.
-nni_port_no = 1
-
-# TODO - hardcoded OLT ID to be removed once multiple OLT devices is supported.
-olt_id = 1
 
 class Asfvolt16Handler(OltDeviceHandler):
     def __init__(self, adapter, device_id):
@@ -75,7 +73,8 @@ class Asfvolt16Handler(OltDeviceHandler):
             device.serial_number = device.host_and_port
             self.adapter_agent.update_device(device)
     
-            self.add_port(port_no=1, port_type=Port.ETHERNET_NNI)
+            self.add_port(port_no=1, port_type=Port.ETHERNET_NNI, 
+                          label='NNI facing Ethernet port')
             self.logical_device_id = self.add_logical_device(device_id=device.id)
             self.add_logical_port(port_no=1,
                                   port_type=Port.ETHERNET_NNI,
@@ -93,15 +92,13 @@ class Asfvolt16Handler(OltDeviceHandler):
         self.adapter_agent.update_device(device)
 
         # Open the frameio port to receive in-band packet_in messages
-        self.activate_io_port()
+        #self.activate_io_port()
 
-    def add_port(self, port_no, port_type):
+    def add_port(self, port_no, port_type, label):
         self.log.info('adding-port', port_no=port_no, port_type=port_type)
         if port_type is Port.ETHERNET_NNI:
-            label='NNI facing Ethernet port'
             oper_status=OperStatus.ACTIVE
         elif port_type is Port.PON_OLT:
-            label='PON port'
             #To-Do The pon port status should be ACTIVATING.
             #For now make the status as Active.
             oper_status=OperStatus.ACTIVE
@@ -188,16 +185,6 @@ class Asfvolt16Handler(OltDeviceHandler):
             device.reason = 'OLT activated successfully'
             status = self.adapter_agent.update_device(device)
             self.log.info('OLT activation complete')
-            try:
-               #Here we have to add pon_port to OLT device.
-               #Since the create_interface is not called, below code is
-               #added to achive functionality.
-               #self.send_connect_olt(self.olt_id)
-               port_no = 100
-               self.add_port(port_no, port_type=Port.PON_OLT)
-               self.bal.activate_pon_port(self.olt_id, port_no);
-            except Exception as e:
-               return
         else:
             device.oper_status = OperStatus.FAILED
             device.reason = 'Failed to Intialize OLT'
@@ -205,14 +192,88 @@ class Asfvolt16Handler(OltDeviceHandler):
             reactor.callLater(5, self.activate, device)
         return
 
-    def handle_subscriber_term_ind(self, ind_info):
-        self.log.info('To-DO Need to handle ONU Indication')
+    def handle_not_started_onu(self, child_device, ind_info):
+        self.log.info('Onu discovered', olt_id=self.olt_id, 
+                         pon_ni=ind_info['_pon_id'], onu_data=ind_info)
+        onu_info = dict()
+        onu_info['pon_id'] = ind_info['_pon_id']
+        onu_info['onu_id'] = child_device.proxy_address.onu_id
+        onu_info['vendor'] = ind_info['_vendor_id']
+        onu_info['vendor_specific'] = ind_info['_vendor_specific']
 
+        status = self.adapter_agent.update_device_state(child_device,
+                                       admin_state=AdminState.ENABLED)
+        self.bal.activate_onu(onu_info)
+
+    def handle_activating_onu(self, child_device, ind_info):
+        pon_id = ind_info['_pon_id']
+        self.log.info('Not handled Yet', olt_id=self.olt_id, 
+                         pon_ni=pon_id, onu_data=ind_info)
+
+    def handle_activated_onu(self, child_device, ind_info):
+        pon_id = ind_info['_pon_id']
+        self.log.info('Not handled Yet', olt_id=self.olt_id, 
+                         pon_ni=pon_id, onu_data=ind_info)
+
+    def handle_discovered_onu(self, child_device, ind_info):
+        pon_id = ind_info['_pon_id']
+        if ind_info['onu_id'] == 65535:
+            self.log.info('Activation is in progress', olt_id=self.olt_id, 
+                         pon_ni=pon_id, onu_data=ind_info)
+            return;
+            
+        self.log.info('ONU activation is successful', olt_id=self.olt_id, 
+                         pon_ni=pon_id, onu_data=ind_info)
+
+        msg = {'proxy_address':child_device.proxy_address, 'event':'activation-completed', 'event_data':ind_info}
+
+        # Send the event message to the ONU adapter
+        self.adapter_agent.publish_inter_adapter_message(child_device.id, msg)
+
+    onu_handlers = {
+        OperStatus.UNKNOWN       : handle_not_started_onu,
+        OperStatus.FAILED        : handle_not_started_onu,
+        OperStatus.ACTIVATING    : handle_activating_onu,
+        OperStatus.ACTIVE        : handle_activated_onu,
+        OperStatus.DISCOVERED    : handle_discovered_onu,
+    }
+
+    def handle_subscriber_term_ind(self, ind_info):
+        child_device = self.adapter_agent.get_child_device(self.device_id, 
+                        serial_number=(ind_info['_vendor_id'] + ind_info['_vendor_specific']))
+        if child_device is None:
+            self.log.info('Onu is not configued', olt_id=self.olt_id, 
+                     pon_ni=ind_info['_pon_id'], onu_data=ind_info)
+            return
+           
+        handler = self.onu_handlers.get(child_device.oper_status)
+        if handler:
+            handler(self, child_device, ind_info)
+ 
     def send_proxied_message(self, proxy_address, msg):
         try:
             self.bal.send_omci_request_message(proxy_address, msg)
         except Exception as e:
             return
+       
+    def create_interface(self, data):
+        try:
+           if isinstance(data, ChannelterminationConfig):
+               self.add_port(port_no=data.data.xgs_ponid, 
+                             port_type=Port.PON_OLT,
+                             label = data.name)
+               self.bal.activate_pon_port(self.olt_id, data.data.xgs_ponid)
+               self.add_pon_interface_to_olt(device_id)
+        except Exception as e:
+           return
+
+    def update_interface(self, data):
+        self.log.info('Not Implemented yet')
+        return;
+
+    def remove_interface(self, data):
+        self.log.info('Not Implemented yet')
+        return;
 
 def disable(self):
         super(Asfvolt16Handler, self).disable()

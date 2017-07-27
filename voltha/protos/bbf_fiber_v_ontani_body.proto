@@ -5,8 +5,9 @@ message VOntaniConfigData {
         string parent_ref = 1 ;
         string expected_serial_number = 2 ;
         string expected_registration_id = 3 ;
-        string preferred_chanpair = 4 ;
-        string protection_chanpair = 5 ;
-        uint32 upstream_channel_speed = 6 ;
-        uint32 onu_id = 7 ;
+        string expected_vendor_id = 4;
+        string preferred_chanpair = 5 ;
+        string protection_chanpair = 6 ;
+        uint32 upstream_channel_speed = 7 ;
+        uint32 onu_id = 8 ;
 }

@@ -73,28 +73,40 @@ class Asfvolt16RxHandler(object):
         self.adapter_agent.receive_proxied_message(proxy_address, bal_indication.balOmciRespInfo.data.pkt.val)
 
     def process_subscriber_term_ind(self, bal_indication, device_id):
-        onu_data = bal_indication.terminal_disc
-        self.log.info('Subscriber termination message received')
-        #     ind_info: {'object_type': <str>
-        #                '_device_id': <str>
-        #                '_pon_id' : <int>
-        #                'onu_id' : <int>
-        #                '_vendor_id' : <str>
-        #                '__vendor_specific' : <str>
-        #                'activation_successful':[True or False]}
+        self.log.info('Subscriber terminal Indication received')
+            #     ind_info: {'object_type': <str>
+            #                '_device_id': <str>
+            #                '_pon_id' : <int>
+            #                'onu_id' : <int>
+            #                '_vendor_id' : <str>
+            #                '__vendor_specific' : <str>
+            #                'activation_successful':[True or False]}
+        if bal_indication.sub_group == \
+           bal_model_ids_pb2.BAL_SUBSCRIBER_TERMINAL_AUTO_ID_SUB_TERM_DISC:
+            onu_data = bal_indication.terminal_disc
+            ind_info = dict()
+            ind_info['object_type'] = 'subscriber_terminal'
+            ind_info['_device_id'] = device_id
+            ind_info['_pon_id'] = onu_data.key.intf_id
+            ind_info['onu_id'] = onu_data.key.sub_term_id
+            ind_info['_vendor_id'] = '4252434D'
+            ind_info['_vendor_specific'] = onu_data.data.serial_number.vendor_specific
 
-        ind_info = dict()
-        ind_info['object_type'] = 'subscriber_terminal'
-        ind_info['_device_id'] = device_id
-        ind_info['_pon_id'] = onu_data.key.intf_id
-        ind_info['onu_id'] = onu_data.key.sub_term_id
-        ind_info['_vendor_id'] = '4252434D'
-        ind_info['_vendor_specific'] = onu_data.data.serial_number.vendor_specific
+        elif bal_indication.sub_group == \
+             bal_model_ids_pb2.BAL_SUBSCRIBER_TERMINAL_AUTO_ID_IND:
+            onu_data = bal_indication.terminal_ind
+            ind_info = dict()
+            ind_info['object_type'] = 'subscriber_terminal'
+            ind_info['_device_id'] = device_id
+            ind_info['_pon_id'] = onu_data.key.intf_id
+            ind_info['onu_id'] = onu_data.key.sub_term_id
+            ind_info['_vendor_id'] = '4252434D'
+            ind_info['_vendor_specific'] = onu_data.data.serial_number.vendor_specific
+            if(bal_model_types_pb2.BAL_STATE_DOWN == onu_data.data.admin_state):
+                ind_info['activation_successful']=False
+            elif(bal_model_types_pb2.BAL_STATE_UP == onu_data.data.admin_state):
+                ind_info['activation_successful']=True
 
-        #if(bal_model_types_pb2.BAL_STATE_DOWN == onu_data.data.admin_state):
-        #    ind_info['activation_successful']=False
-        #elif(bal_model_types_pb2.BAL_STATE_UP == onu_data.data.admin_state):
-        #    ind_info['activation_successful']=True
         reactor.callLater(0,
                           self.adapter.devices_handlers[device_id].handle_subscriber_term_ind, 
                           ind_info)
