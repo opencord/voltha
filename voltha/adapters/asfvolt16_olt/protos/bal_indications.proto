@@ -22,6 +22,8 @@ import "bal.proto";
 
 message BalIndications{
    BalObjId     objType = 1; //type of object for which the indications have been received
+   uint32       sub_group = 22; //Its a new parameter introduced by broadcom to indicate
+                                //type of an indication within the object Type.
    oneof u {
          BalAccessTerminalInd access_term_ind                        = 2;  // Access Terminal
          BalAccessTerminalOperStatusChange access_term_ind_op_state  = 3;  // Access Terminal Operational State Change
@@ -49,5 +51,23 @@ message BalIndications{
 service BalInd {
 
       //Handling of bal indications from the device
-      rpc BalIndInfo(BalIndications) returns(BalErr) {}
+      rpc BalAccTermInd(BalIndications) returns(BalErr) {}
+      rpc BalAccTermOperStsCngInd(BalIndications) returns(BalErr) {}
+      rpc BalFlowOperStsCng(BalIndications) returns(BalErr) {}
+      rpc BalFlowInd(BalIndications) returns(BalErr) {}
+      rpc BalGroupInd(BalIndications) returns(BalErr) {}
+      rpc BalIfaceOperStsCng(BalIndications) returns(BalErr) {}
+      rpc BalIfaceLos(BalIndications) returns(BalErr) {}
+      rpc BalIfaceInd(BalIndications) returns(BalErr) {}
+      rpc BalIfaceStat(BalIndications) returns(BalErr) {}
+      rpc BalSubsTermOperStsCng(BalIndications) returns(BalErr) {}
+      rpc BalSubsTermDiscoveryInd(BalIndications) returns(BalErr) {}
+      rpc BalSubsTermAlarmInd(BalIndications) returns(BalErr) {}
+      rpc BalSubsTermDgiInd(BalIndications) returns(BalErr) {}
+      rpc BalSubsTermInd(BalIndications) returns(BalErr) {}
+      rpc BalTmQueueIndInfo(BalIndications) returns(BalErr) {}
+      rpc BalTmSchedIndInfo(BalIndications) returns(BalErr) {}
+      rpc BalPktBearerChannelRxInd(BalIndications) returns(BalErr) {}
+      rpc BalPktOmciChannelRxInd(BalIndications) returns(BalErr) {}
+      rpc BalPktIeeeOamChannelRxInd(BalIndications) returns(BalErr) {}
 }
