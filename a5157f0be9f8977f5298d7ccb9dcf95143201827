@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "1a1a2d67_8704367f",
+        "filename": "compose/docker-compose-ofagent-swarm.yml",
+        "patchSetId": 2
+      },
+      "lineNbr": 10,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-07-27T18:08:23Z",
+      "side": 1,
+      "message": "By using mode\u003dglobal it will deploy one instance per swarm node.  I will change it to have 3 replicas in any case.",
+      "parentUuid": "1a1a2d67_87baf6df",
+      "revId": "a5157f0be9f8977f5298d7ccb9dcf95143201827",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1a1a2d67_e7e3ea03",
         "filename": "voltha/core/local_handler.py",
         "patchSetId": 2
@@ -30,6 +48,24 @@
       "writtenOn": "2017-07-27T01:31:07Z",
       "side": 1,
       "message": "Does it mean when ofagent dies there will be a hiccup with the other grpc requests?",
+      "revId": "a5157f0be9f8977f5298d7ccb9dcf95143201827",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a1a2d67_47fe1e6d",
+        "filename": "voltha/core/local_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 876,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-07-27T18:08:23Z",
+      "side": 1,
+      "message": "If a request in underway when ofagent dies, then there is a possibility that the request will fail.   Is there a mutex like mechanism to block anything from going through until the request completes?",
+      "parentUuid": "1a1a2d67_e7e3ea03",
       "revId": "a5157f0be9f8977f5298d7ccb9dcf95143201827",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
