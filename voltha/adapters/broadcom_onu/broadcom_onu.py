@@ -52,6 +52,7 @@ class BroadcomOnuAdapter(object):
     supported_device_types = [
         DeviceType(
             id=name,
+            vendor_id='4252434D',
             adapter=name,
             accepts_bulk_flow_update=True
         )
@@ -165,13 +166,16 @@ class BroadcomOnuAdapter(object):
         raise NotImplementedError()
 
     def create_interface(self, device, data):
-        raise NotImplementedError()
+        log.info('create-interface', device_id=device.id)
+        self.devices_handlers[device.proxy_address.channel_id].create_interface(data)
 
     def update_interface(self, device, data):
-        raise NotImplementedError()
+        log.info('update-interface', device_id=device.id)
+        self.devices_handlers[device.proxy_address.channel_id].update_interface(data)
 
     def remove_interface(self, device, data):
-        raise NotImplementedError()
+        log.info('remove-interface', device_id=device.id)
+        self.devices_handlers[device.proxy_address.channel_id].remove_interface(data)
 
     def receive_onu_detect_state(self, device_id, state):
         raise NotImplementedError()
@@ -1240,3 +1244,15 @@ class BroadcomOnuHandler(object):
         # TODO: add more entries here for other UNI ports
         self.send_create_mac_bridge_port_configuration_data(0x205, 0x201, 5, 1, 0x105)
         yield self.wait_for_response()
+
+    def create_interface(self, data):
+        self.log.info('Not Implemented yet')
+        return;
+
+    def update_interface(self, data):
+        self.log.info('Not Implemented yet')
+        return;
+
+    def remove_interface(self, data):
+        self.log.info('Not Implemented yet')
+        return;

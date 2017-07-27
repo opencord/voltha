@@ -23,7 +23,7 @@ from voltha.protos.bbf_fiber_base_pb2 import ChannelgroupConfig, \
     ChannelpartitionConfig, ChannelpairConfig, ChannelterminationConfig, \
     OntaniConfig, VOntaniConfig, VEnetConfig
 from voltha.protos.device_pb2 import Device
-from voltha.protos.common_pb2 import AdminState
+from voltha.protos.common_pb2 import AdminState, OperStatus, ConnectStatus
 
 log = structlog.get_logger()
 
@@ -295,7 +295,8 @@ class XponAgent(object):
 
     def create_interface_in_device(self, device, data):
         adapter_agent = self.get_device_adapter_agent(device)
-        adapter_agent.create_interface(device=device, data=data)
+        if device.oper_status == OperStatus.ACTIVE and device.connect_status == ConnectStatus.REACHABLE:
+            adapter_agent.create_interface(device=device, data=data)
 
     def create_interface(self, data, device_id=None):
         if device_id is None:
@@ -536,16 +537,16 @@ class XponAgent(object):
         parent_chnl_pair_id = self.get_port_num(
             device.id, v_ont_ani.data.preferred_chanpair)
         log.info('create-onu-device:', parent_chnl_pair_id=parent_chnl_pair_id)
-        vendor_id = v_ont_ani.data.expected_serial_number[:4]
         proxy_address = Device.ProxyAddress(
             device_id=device.id, channel_id=parent_chnl_pair_id,
             onu_id=v_ont_ani.data.onu_id, onu_session_id=v_ont_ani.data.onu_id)
         adapter_agent.add_onu_device(
             parent_device_id=device.id, parent_port_no=parent_chnl_pair_id,
-            vendor_id=vendor_id, proxy_address=proxy_address,
-            root=True, serial_number=v_ont_ani.data.expected_serial_number,
+            vendor_id=v_ont_ani.data.expected_vendor_id,
+            proxy_address=proxy_address, root=True,
+            serial_number=v_ont_ani.data.expected_serial_number,
             admin_state=AdminState.ENABLED if v_ont_ani.interface.enabled
-                                           else AdminState.DISABLED)
+                                           else AdminState.PREPROVISIONED)
         return
 
     def delete_onu_device(self, device, v_ont_ani):
