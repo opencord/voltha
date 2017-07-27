@@ -282,6 +282,23 @@ class AdapterAgent(object):
         device_agent = self.core.get_device_agent(device.id)
         device_agent.update_device(device)
 
+    def update_device_state(self, device, admin_state=None,
+                            oper_status=None, connect_status=None):
+        """ Update state of the devices """
+        self.log.debug('update-device-state',
+                       device_id=device.id,
+                       oper_status=oper_status,
+                       connect_status=connect_status,
+                       admin_state=admin_state)
+        if oper_status:
+            device.oper_status = oper_status
+        if connect_status:
+            device.connect_status = connect_status
+        if admin_state:
+            device.admin_state = admin_state
+        self._make_up_to_date(
+            '/devices', device.id, device)
+
     def update_device_pm_config(self, device_pm_config, init=False):
         assert isinstance(device_pm_config, PmConfigs)
 
@@ -582,6 +599,7 @@ class AdapterAgent(object):
         topic = self._gen_tx_proxy_address_topic(proxy_address)
         self._tx_event_subscriptions[topic] = self.event_bus.subscribe(
             topic, lambda t, m: self._send_proxied_message(proxy_address, m))
+
 
     def get_child_device_with_proxy_address(self, proxy_address):
         # Proxy address is defined as {parent id, channel_id}

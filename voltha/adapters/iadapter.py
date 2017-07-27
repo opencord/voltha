@@ -149,13 +149,16 @@ class IAdapter(object):
         raise NotImplementedError()
 
     def create_interface(self, device, data):
-        raise NotImplementedError()
+        log.info('create-interface', device_id=device.id)
+        self.devices_handlers[device.id].create_interface(data)
 
     def update_interface(self, device, data):
-        raise NotImplementedError()
+        log.info('update-interface', device_id=device.id)
+        self.devices_handlers[device.id].update_interface(data)
 
     def remove_interface(self, device, data):
-        raise NotImplementedError()
+        log.info('remove-interface', device_id=device.id)
+        self.devices_handlers[device.id].remove_interface(data)
 
     def receive_onu_detect_state(self, proxy_address, state):
         raise NotImplementedError()

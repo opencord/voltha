@@ -189,6 +189,8 @@ class DeviceAgent(object):
         transition_handler = self.admin_state_fsm.get(
             (old_admin_state, new_admin_state), None)
         if transition_handler is None:
+            self.log.debug('No Operation', old_state=old_admin_state,
+                      new_state=new_admin_state, dry_run=dry_run)
             pass  # no-op
         elif transition_handler is False:
             raise InvalidStateTransition('{} -> {}'.format(
