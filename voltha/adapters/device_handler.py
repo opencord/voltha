@@ -45,6 +45,7 @@ class OltDeviceHandler(DeviceHandler):
         super(OltDeviceHandler, self).__init__(adapter, device_id)
         self.filter = None
         self.io_port = None
+        self.interface = registry('main').get_args().interface
 
     def __del__(self):
         if self.io_port is not None:
