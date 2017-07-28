@@ -51,6 +51,15 @@ enum BalActionCmdId {
     BAL_ACTION_CMD_ID_TRAP_TO_HOST       = 0x1000;   /**< Not a valid action for a group object member */
 }
 
+/** alarm status.
+ */
+enum BalAlarmStatus
+{
+    BAL_ALARM_STATUS_OFF                 = 0;        /**< alarm status is off */
+    BAL_ALARM_STATUS_ON                  = 1;        /**< alarm status is on */
+    BAL_ALARM_STATUS_NO__CHANGE          = 2;        /**< alarm status should not be changed */
+}
+
 /** classifier ID.
  */
 enum BalClassifierId {
@@ -96,7 +105,9 @@ enum BalDestType {
     BAL_DEST_TYPE_INVALID                = 0;
     BAL_DEST_TYPE_NNI                    = 1;        /**< for packets being sent to the NNI */
     BAL_DEST_TYPE_SUB_TERM               = 2;        /**< for packets being sent to a subscriber terminal */
-    BAL_DEST_TYPE_HOST                   = 3;        /**<  for packet indications received from NNI or SUB_TERM and being sent to the host */
+    BAL_DEST_TYPE_SVC_PORT               = 3;        /**< for packet being sent to the pon service port */
+    BAL_DEST_TYPE_ITU_OMCI_CHANNEL       = 4;        /**< for itu omci channel packets */
+    BAL_DEST_TYPE_IEEE_OAM_CHANNEL       = 5;        /**< for ieee oam channel packets */
 }
 
 /** Downstrean action for unknown packets.
@@ -105,7 +116,47 @@ enum BalDsMissMode {
     BAL_DS_MISS_MODE_DISCARD             = 0;        /**< Discard. */
     BAL_DS_MISS_MODE_BROADCAST           = 1;        /**< Broadcast. */
     BAL_DS_MISS_MODE_VID                 = 2;        /**< Vid. */
-    BAL_DS_MISS_MODE__NUM_OF             = 3;        /**< Number of enum entries, not an entry itself. */
+}
+/** extended epon dba ID.
+ */
+enum BalExtendedEponDbaId
+{
+    BAL_EXTENDED_EPON_DBA_ID_NONE                    = 0;
+    BAL_EXTENDED_EPON_DBA_ID_POLLING_INTERVAL_US     = 0x0001;   /**< The amount of time between when this LLID last reported upstream data and when it will next be polled (approximate: rounded down to the nearest 65.536 us). */
+    BAL_EXTENDED_EPON_DBA_ID_GRANT_THRESHOLD_TQ      = 0x0002;   /**< Used to determine the maximum grant size that will be issued to this LLID (in TQ; rounded up to the nearest 128TQ; 1TQ = 16ns = 2Bytes@1G or 20Bytes@10G). */
+    BAL_EXTENDED_EPON_DBA_ID_CIR_PRIORITY            = 0x0004;   /**< The priority of the CIR scheduling element. */
+    BAL_EXTENDED_EPON_DBA_ID_CIR_WEIGHT_TQ           = 0x0008;   /**< The weight of the CIR scheduler (in TQ rounded up to nearest 128). Must be greater than or equal to Grant Threshold. */
+    BAL_EXTENDED_EPON_DBA_ID_PIR_PRIORITY            = 0x0010;   /**< The priority of the PIR scheduling element. */
+    BAL_EXTENDED_EPON_DBA_ID_PIR_WEIGHT_TQ           = 0x0020;   /**< The weight of the PIR scheduler (in TQ rounded up to nearest 128). Must be greater than or equal to Grant Threshold. */
+    BAL_EXTENDED_EPON_DBA_ID_TDM_GRANT_SIZE_TQ       = 0x0040;   /**< Size of TDM grants (in TQ). */
+    BAL_EXTENDED_EPON_DBA_ID_TDM_GRANT_INTERVAL_US   = 0x0080;   /**< Interval between TDM grants (in us). */
+    BAL_EXTENDED_EPON_DBA_ID_ALL                     = 0x00FF;    /**< All fields */
+}
+
+/** Polling Interval.
+ */
+enum BalPollingInterval
+{
+    BAL_POLLING_INTERVAL_POLLING_DISABLED            = 0;        /**< No polling gates will be sent to this LLID. */
+    BAL_POLLING_INTERVAL_US_500                      = 500;      /**< 500 us. */
+    BAL_POLLING_INTERVAL_MS_1                        = 1000;     /**< 1 ms. */
+    BAL_POLLING_INTERVAL_MS_2                        = 2000;     /**< 2 ms. */
+    BAL_POLLING_INTERVAL_MS_4                        = 4000;     /**< 4 ms. */
+    BAL_POLLING_INTERVAL_MS_8                        = 8000;     /**< 8 ms. */
+    BAL_POLLING_INTERVAL_MS_16                       = 16000;     /**< 16 ms. */
+}
+
+/** extended itu dba ID.
+ */
+enum BalExtendedItuDbaId
+{
+    BAL_EXTENDED_ITU_DBA_ID_NONE                     = 0;
+    BAL_EXTENDED_ITU_DBA_ID_EXTRA_BW_ELIG            = 0x0001;   /**< Extra BW eligibility type */
+    BAL_EXTENDED_ITU_DBA_ID_NRT_CBR                  = 0x0002;   /**< NRT CBR */
+    BAL_EXTENDED_ITU_DBA_ID_RT_CBR                   = 0x0004;   /**< RT_CBR */
+    BAL_EXTENDED_ITU_DBA_ID_RT_PROFILE               = 0x0008;   /**< RT Profile */
+    BAL_EXTENDED_ITU_DBA_ID_NRT_PROFILE              = 0x0010;   /**< NRT Profile */
+    BAL_EXTENDED_ITU_DBA_ID_ALL                      = 0x001F;   /**< All fields */
 }
 
 /** Extra BW Eligibility Type
@@ -154,7 +205,8 @@ enum BalIntfType {
     BAL_INTF_TYPE_INVALID                    = 0;    /**< INVALID.*/
     BAL_INTF_TYPE_NNI                        = 1;    /**< NNI Interface. */
     BAL_INTF_TYPE_PON                        = 2;    /**< POIN Interface. */
-    BAL_INTF_TYPE__NUM_OF                    = 3;    /**< Number of enum entries, not an entry itself. */
+    BAL_INTF_TYPE_EPON_1G_PATH               = 3;    /**< EPON 1G Path. */
+    BAL_INTF_TYPE_EPON_10G_PATH              = 4;    /**< EPON 10G Path. */
 }
 
 /** Interworking Function Mode.
@@ -162,7 +214,25 @@ enum BalIntfType {
 enum BalIwfMode {
     BAL_IWF_MODE_DIRECT_MAPPING              = 0;    /**< Direct mapping. */
     BAL_IWF_MODE_PER_FLOW                    = 1;    /**< Per flow . */
-    BAL_IWF_MODE__NUM_OF                     = 2;    /**< Number of enum entries, not an entry itself. */
+}
+
+/** The PON family
+ */
+enum BalPonFamily
+{
+    BAL_PON_FAMILY_GPON                      = 0;    /**< GPON family. */
+    BAL_PON_FAMILY_EPON                      = 1;    /**< EPON family. */
+    BAL_PON_FAMILY_INVALID                   = 2;    /**< INVALID . */
+}
+
+/** The PON sub-family
+ */
+enum BalPonSubFamily
+{
+    BAL_PON_SUB_FAMILY_GPON                  = 0;    /**< GPON. */
+    BAL_PON_SUB_FAMILY_XGPON                 = 1;    /**< XGPON. */
+    BAL_PON_SUB_FAMILY_EPON                  = 2;    /**< EPON. */
+    BAL_PON_SUB_FAMILY_INVALID               = 3;    /**< INVALID. */
 }
 
 /** SLA ID.
@@ -195,6 +265,24 @@ enum BalStatus {
     BAL_STATUS_UNKNOWN                       = 6;        /**< Oper status unknown */
 }
 
+/** sub_term_rate.
+ */
+enum BalSubTermRate
+{
+    BAL_SUB_TERM_RATE_NONE                           = 0;        /**< none. */
+    BAL_SUB_TERM_RATE_RATE_10_G                      = 1;        /**< rate_10_g. */
+    BAL_SUB_TERM_RATE_RATE_2_5_G                     = 2;        /**< rate_2_5_g. */
+}
+
+/** The type of release version
+ */
+enum BalVersionType
+{
+    BAL_VERSION_TYPE_UNKNOWN                         = 0;    /**< illegal */
+    BAL_VERSION_TYPE_RELEASE                         = 1;    /**< released version */
+    BAL_VERSION_TYPE_DEVELOPMENT                     = 2;    /**< debug version */
+}
+
 /** Buffer Admission Control Type
  */
 enum BalTmBacType {
@@ -202,7 +290,6 @@ enum BalTmBacType {
     BAL_TM_BAC_TYPE_WTAILDROP                = 1;        /**< Weighted taildrop */
     BAL_TM_BAC_TYPE_RED                      = 2;        /**< Random Early Discard */
     BAL_TM_BAC_TYPE_WRED                     = 3;        /**< Weighted Random Early Discard */
-    BAL_TM_BAC_TYPE__NUM_OF                  = 4;        /**< Number of enum entries, not an entry itself. */
 }
 
 /** TM Creation Mode
@@ -210,7 +297,6 @@ enum BalTmBacType {
 enum BalTmCreationMode {
     BAL_TM_CREATION_MODE_MANUAL              = 0;            /**< tm object created manually */
     BAL_TM_CREATION_MODE_AUTO                = 1;            /**< tm object created automatically */
-    BAL_TM_CREATION_MODE__NUM_OF             = 2;            /**< Number of enum entries, not an entry itself. */
 }
 
 /** Scheduling Level for the Children TM
@@ -218,7 +304,6 @@ enum BalTmCreationMode {
 enum BalTmSchedChildType {
     BAL_TM_SCHED_CHILD_TYPE_QUEUE            = 0;            /**< Queue-level scheduler */
     BAL_TM_SCHED_CHILD_TYPE_SCHED            = 1;            /**< Scheduler-level scheduler */
-    BAL_TM_SCHED_CHILD_TYPE__NUM_OF          = 2;            /**< Number of enum entries, not an entry itself. */
 }
 
 /** Traffic Direction
@@ -286,19 +371,6 @@ enum BalTmShapingId
     BAL_TM_SHAPING_ID_ALL                        = 0x0007;   /**< All fields */
 }
 
-/** TmTcontSla ID.
- */
-enum BalTmTcontSlaId
-{
-    BAL_TM_TCONT_SLA_ID_NONE                     = 0;
-    BAL_TM_TCONT_SLA_ID_EXTRA_BW_ELIG            = 0x0001;   /**< Extra BW eligibility type */
-    BAL_TM_TCONT_SLA_ID_NRT_CBR                  = 0x0002;   /**< NRT CBR */
-    BAL_TM_TCONT_SLA_ID_RT_CBR                   = 0x0004;   /**< RT_CBR */
-    BAL_TM_TCONT_SLA_ID_RT_PROFILE               = 0x0008;   /**< RT Profile */
-    BAL_TM_TCONT_SLA_ID_NRT_PROFILE              = 0x0010;   /**< NRT Profile */
-    BAL_TM_TCONT_SLA_ID_ALL                      = 0x001F;   /**< All fields */
-}
-
 /** Transceiver types
  */
 enum BalTrxType
@@ -311,7 +383,7 @@ enum BalTrxType
     BAL_TRX_TYPE_XGPON_LTH_7222_PC               = 5;        /**< xgpon_lth_7222_pc. */
     BAL_TRX_TYPE_XGPON_LTH_7226_PC               = 6;        /**< xgpon_lth_7226_pc. */
     BAL_TRX_TYPE_XGPON_LTH_5302_PC               = 7;        /**< xgpon_lth_5302_pc. */
-    BAL_TRX_TYPE__NUM_OF                         = 8;        /**< Number of enum entries, not an entry itself. */
+    BAL_TRX_TYPE_XGPON_LTH_7226_A_PC_PLUS        = 8;        /**< xgpon_lth_7226_a_pc_plus. */
 }
 
 /** action.
@@ -326,13 +398,6 @@ message BalAction
     uint32 i_vid = 6;                     /**< Inner vid. */
     uint32 i_pbits = 7;                    /**< Inner pbits. */
     uint32 i_tpid = 8;                    /**< Inner tpid. */
-}
-
-/** Variable-length list of aggregationPortId.
- */
-message BalAggregationPortIdList
-{
-    repeated uint32 val = 1;    /**< List contents. */
 }
 
 /** classifier.
@@ -369,25 +434,67 @@ message BalDestSubTerm {
     uint32 int_id = 3;            /**< Interface ID. */
 }
 
+message BalDestSvcPort
+{
+    uint32 svc_port_id   = 1; /**< GEM ID or LLID.*/
+    uint32 int_id        = 2; /**< Interface ID. */
+}
+
+message BalItuOmciChannel
+{
+    uint32 sub_term_id   = 1; /**< Subscriber terminal*/
+    uint32 int_id        = 2; /**< Interface ID. */
+}
+
+message BalIeeeOamChannel
+{
+    bytes mac_address    = 1; /**< MAC address for this link. */
+    uint32 int_id        = 2; /**< Interface ID. */
+}
+
 message BalDest
 {
     BalDestType type = 1;              /**< packet destination type. */
     oneof u {
         BalDestNni nni = 2;
         BalDestSubTerm sub_term = 3;
+        BalDestSvcPort svc_port = 4;
+        BalItuOmciChannel itu_omci_channel = 5;
+        BalIeeeOamChannel ieee_oam_channel = 6;
     }
 }
 
-/** Variable-length list of flowId.
+/** extended epon dba.
  */
-message BalFlowIdList
+message BalExtendedEponDba
 {
-    repeated uint32 val = 1;    /**< List contents. */
+    BalExtendedEponDbaId presence_mask     = 1;      /**< Presence Mask. */
+    BalPollingInterval polling_interval_us = 2;    /**< The amount of time between when this LLID last reported upstream data and when it will next be polled (approximate: rounded down to the nearest 65.536 us). */
+    uint32 grant_threshold_tq              = 3;          /**< Used to determine the maximum grant size that will be issued to this LLID (in TQ; rounded up to the nearest 128TQ; 1TQ = 16ns = 2Bytes@1G or 20Bytes@10G). */
+    uint32 cir_priority                    = 4;                   /**< The priority of the CIR scheduling element. */
+    uint32 cir_weight_tq                   = 5;       /**< The weight of the CIR scheduler (in TQ rounded up to nearest 128). Must be greater than or equal to Grant Threshold. */
+    uint32 pir_priority                     = 6;                   /**< The priority of the PIR scheduling element. */
+    uint32 pir_weight_tq                   = 7;       /**< The weight of the PIR scheduler (in TQ rounded up to nearest 128). Must be greater than or equal to Grant Threshold. */
+    uint32 tdm_grant_size_tq               = 8;   /**< Size of TDM grants (in TQ). */
+    uint32 tdm_grant_interval_us           = 9;         /**< Interval between TDM grants (in us). */
 }
+
+/** Extended itu dba parameters
+ */
+message BalExtendedItuDba
+{
+    BalExtendedItuDbaId presence_mask      = 1; /**< Presence Mask. */
+    BalExtraBwEligibilityType extra_bw_elig= 2; /**< Extra BW eligibility type */
+    uint32 nrt_cbr                        = 3; /**< NRT CBR */
+    uint32 rt_cbr                         = 4; /**< RT_CBR */
+    uint32 rt_profile                     = 5; /**< RT Profile */
+    uint32  nrt_profile                    = 6;/**< NRT Profile */
+}
+
 
 /** Queue Reference
  */
-message BalTmQueue_ref
+message BalTmQueueRef
 {
     uint32 sched_id = 1;    /**< Scheduler (Tmsched) ID */
     uint32 queue_id = 2;    /**< Queue ID */
@@ -398,9 +505,9 @@ message BalTmQueue_ref
 message BalGroupMemberInfo
 {
     uint32 intf_id = 1;             /**< Access interface id for this member */
-    uint32 svc_port_id = 2; /**< The multicast "GEM" for this member */
+    uint32 svc_port_id = 2;         /**< GPON/XGPON - The multicast "GEM" for this member. EPON - The multicast link identifier. */ 
     BalAction action = 3;               /**< VLAN actions */
-    BalTmQueue_ref queue = 4;          /**< Egress queue */
+    BalTmQueueRef queue = 4;          /**< Egress queue */
 }
 
 /** Variable-length list of groupMemberInfo.
@@ -420,7 +527,7 @@ message BalSerialNumber
 
 /** Variable-length list of servicePortId.
  */
-message SvcPortIdList
+message BalIdList
 {
     repeated uint32 val = 1;    /**< List contents. */
 }
@@ -434,11 +541,26 @@ message BalSla
     uint32 max_rate = 3;              /**< The maximum rate for this flow, in kilobits per second (optional) */
 }
 
-/** Variable-length list of subId.
+/** Subscriber Terminal Alarms.
  */
-message SubTermIdList
+message BalSubscriberTerminalAlarms
 {
-    repeated uint32 val = 1; /**< List contents. */
+    BalAlarmStatus los           = 1;  /**< LOS. */
+    BalAlarmStatus lob           = 2;  /**< LOB. */
+    BalAlarmStatus lopc_miss     = 3;  /**< LOPC miss. */
+    BalAlarmStatus lopc_mic_error= 4;  /**< LOPC mic error. */
+}
+
+/** Software version information
+ */
+message BalSwVersion
+{
+    BalVersionType      version_type = 1;   /**< Release or debug version */
+    uint32 major_rev                 = 2;   /**< Major rev */
+    uint32 minor_rev                 = 3;   /**< Minor rev */
+    uint32 patch_rev                 = 4;   /**< Patch number */
+    uint32 om_version                = 5;   /**< BAL API Object Model version */
+    uint32 dev_point                 = 6;   /**< Development point - only valid for development versions, 0 otherwise */
 }
 
 /** Random Early Discard Configuration
@@ -475,20 +597,6 @@ message BalTmBac
         BalTMBacRed red = 3;
         BalTMBacWred wred = 4;
     }
-}
-
-/** Variable-length list of TmQueueId.
- */
-message BalTmQueueIdList
-{
-    repeated uint32 val = 1;    /**< List contents. */
-}
-
-/** Variable-length list of TmSchedId.
- */
-message BalTmSchedIdList
-{
-    repeated uint32 val = 1;    /**< List contents. */
 }
 
 /** TM Scheduler Owner
@@ -552,21 +660,21 @@ message BalTmSchedParent
 message BalTmShaping
 {
     BalTmShapingId presence_mask = 1; /**< Presence Mask. */
-    uint32 sbr = 2;                       /**< Sustained Bit Rate (kbps) */
-    uint32 pbr = 3;                       /**< Peak Bit Rate (kbps) */
-    uint32 burst = 4;                     /**< Max Burst Bytes at Peak Bit Rate */
+    uint32 cir                   = 2; /**< Committed Information Rate (kbps) */
+    uint32 pir                   = 3; /**< Peak Information Rate (kbps) */
+    uint32 burst                 = 4; /**< Max Burst Bytes at Peak Bit Rate */
 }
 
-/** ITU-PON Extended SLA Parameters
+/** BAL topology.
  */
-message BalTmTcontSla
+message BalTopology
 {
-    BalTmTcontSlaId presence_mask = 1;           /**< Presence Mask. */
-    BalExtraBwEligibilityType extra_bw_elig = 2; /**< Extra BW eligibility type */
-    uint32 nrt_cbr = 3;        /**< NRT CBR */
-    uint32 rt_cbr = 4;         /**< RT_CBR */
-    uint32 rt_profile = 5;     /**< RT Profile */
-    uint32 nrt_profile = 6;    /**< NRT Profile */
+    uint32 num_of_nni_ports        = 1; /**< The number of nni ports for the access_terminal */
+    uint32 num_of_pon_ports        = 2; /**< The number of pon ports for the access_terminal */
+    uint32 num_of_mac_devs         = 3; /**< The number of mac devices associated with this access_terminal */
+    uint32 num_of_pons_per_mac_dev = 4; /**< The number of pon ports per mac device in this access_terminal */
+    uint32 pon_family              = 5; /**< The PON family for the access_terminal */
+    uint32 pon_sub_family          = 6; /**< The PON sub-family for the access_terminal */
 }
 
 /** Structure definition for the "key" group of the "access_terminal" object.
@@ -600,6 +708,9 @@ message BalAccessTerminalIndData
     BalState admin_state = 1;   /**< Current administrative state */
     BalStatus oper_status = 2;  /**< Current operational status */
     BalIwfMode iwf_mode = 3;   /**< The interworking mode */
+    BalTopology topology = 4;       /**< Topology. */
+    BalSwVersion sw_version = 5;   /**< Software version information */
+
 }
 
 /** Transport message definition for "ind" group of "access_terminal" object.
@@ -609,6 +720,28 @@ message BalAccessTerminalInd
     BalObj hdr = 1;                        /**< Transport header. */
     BalAccessTerminalKey key = 2;         /**< Object key. */
     BalAccessTerminalIndData data = 3;   /**< All properties that must be set by the user. */
+}
+
+/** Structure definition for the "oper_status_change" group of the
+ * "access_terminal" object.
+ *
+ * An indication of a change of operational status
+ */
+message BalAccessTerminalOperStatusChangeData
+{
+    BalStatus new_oper_status = 1;  /**< The current oper status */
+    BalStatus old_oper_status = 2;  /**< The previous oper status before this indication was reported */
+    BalState admin_state = 3;       /**< The current admin status */
+}
+
+/** Transport message definition for "oper_status_change" group of
+ *  access_terminal object.
+ */
+message BalAccessTerminalOperStatusChange
+{
+    BalObj hdr = 1;                /**< Transport header. */
+    BalAccessTerminalKey key = 2; /**< Object key. */
+    BalAccessTerminalOperStatusChangeData data = 3;    /**< All properties that must be set by the user. */
 }
 
 /** Structure definition for the "key" group of the "flow" object.
@@ -630,23 +763,23 @@ message BalFlowCfgData
     uint32 sub_term_id = 5;              /**< The ID of the subsccriber terminal device */
     uint32 sub_term_uni_idx = 6;               /**< The index of the subsccriber terminal uni port the flow is related to */
     uint32 svc_port_id = 7;     /**< The ID of the service port (for GPON/XGPON - GEM ID) */
-    uint32 agg_port_id = 8; /**< The ID of the aggregate port (for GPON/XGPON - ALLOC ID) */
-    bool resolve_mac = 9;                 /**< A flag indicating if the MAC address table should be used in DS GEM resolution */
-    BalClassifier classifier = 10;           /**< The classifier for this flow */
-    BalAction action = 11;                   /**< The action associated with the flow */
-    BalSla sla = 12;             /**< SLA parameters for this flow */
-    uint64 cookie = 13;       /**< Application cookie */
-    uint32 priority = 14;          /**< Priority for this flow in case of multiple match. */
-    uint32 group_id = 15;   /**< RW - The multicast group associated with this flow, valid for type MULTICAST only */
-    BalTmQueue_ref queue = 16;  /**< Egress queue */
+    bool resolve_mac = 8;                 /**< A flag indicating if the MAC address table should be used in DS GEM resolution */
+    BalClassifier classifier = 9;           /**< The classifier for this flow */
+    BalAction action = 10;                   /**< The action associated with the flow */
+    uint64 cookie = 11;       /**< Application cookie */
+    uint32 priority = 12;          /**< Priority for this flow in case of multiple match. */
+    uint32 group_id = 13;   /**< RW - The multicast group associated with this flow, valid for type MULTICAST only */
+    BalTmQueueRef queue = 14;  /**< Egress queue */
+    uint32 dba_tm_sched_id = 15; /**< A reference to an us tm_sched used for us dba for this flow */
 }
 
 /** Transport message definition for "cfg" group of "flow" object.
  */
 message BalFlowCfg
 {
-    BalFlowKey key = 1;        /**< Object key. */
-    BalFlowCfgData data = 2;  /**< All properties that must be set by the user. */
+    BalObj hdr = 1;            /**< Transport header. */
+    BalFlowKey key = 2;        /**< Object key. */
+    BalFlowCfgData data = 3;  /**< All properties that must be set by the user. */
 }
 
 /** Structure definition for the "stat" group of the "flow" object.
@@ -677,15 +810,17 @@ message BalFlowIndData
     uint32 access_int_id = 3;         /**< The ID of the subscriber side interface; i.e. PON */
     uint32 network_int_id = 4;        /**< The ID of the network side interface; i.e. NNI */
     uint32 sub_term_id = 5;           /**< The ID of the subsccriber terminal device */
-    uint32 svc_port_id = 6;           /**< The ID of the service port (for GPON/XGPON - GEM ID) */
-    uint32 agg_port_id = 7;           /**< The ID of the aggregate port (for GPON/XGPON - ALLOC ID) */
+    uint32 sub_term_uni_idx = 6;           /**< The index of the subsccriber terminal uni port the flow is related to */
+    uint32 svc_port_id = 7;           /**< The ID of the service port (for GPON/XGPON - GEM ID) */
     bool resolve_mac = 8;         /**< A flag indicating if the MAC address table should be used in DS GEM resolution */
-    uint32 base_tc_id = 9;            /**< The base index of the TC object(s) to be used for this flow */
-    BalClassifier classifier = 10;   /**< The classifier for this flow */
-    BalAction action = 11;           /**< The action associated with the flow */
-    BalSla sla = 12;                 /**< SLA parameters for this flow */
-    uint32 cookie = 13;                /**< Application cookie */
-    uint32 priority = 14;              /**< Priority for this flow in case of multiple match. */
+    BalClassifier classifier = 9;   /**< The classifier for this flow */
+    BalAction action = 10;           /**< The action associated with the flow */
+    uint32 cookie = 11;                /**< Application cookie */
+    uint32 priority = 12;              /**< Priority for this flow in case of multiple match. */
+    uint32 group_id = 13;           /**< RW - The multicast group associated with this flow, valid for type MULTICAST only */
+    BalTmQueueRef queue = 14;          /**< Egress queue */
+    uint32 dba_tm_sched_id = 15; /**< A reference to an us tm_sched used for us dba for this flow */
+
 }
 
 /** Transport message definition for "ind" group of "flow" object.
@@ -695,6 +830,31 @@ message BalFlowInd
     BalObj hdr = 1;            /**< Transport header. */
     BalFlowKey key = 2;        /**< Object key. */
     BalFlowIndData data = 3;  /**< All properties that must be set by the user. */
+}
+
+/** Structure definition for the "oper_status_change" group of the "flow"
+ * object.
+ *
+ * An indication of a change of operational status
+ */
+message BalFlowOperStatusChangeData
+{
+   BalStatus new_oper_status = 1;      /**< The current oper status */
+   BalStatus old_oper_status = 2;      /**< The previous oper status before this indication was reported */
+   BalState admin_state = 3;           /**< The current admin status */
+   uint32 svc_port_id = 4;               /**< The ID of the service port (for GPON/XGPON - GEM ID) */
+   uint32 dba_tm_sched_id = 5; /**< A reference to an us tm_sched used for us dba for this flow */
+   uint64 cookie = 6;               /**< Opaque application cookie associated with the flow (not interpreted by Maple) */
+}
+
+/** Transport message definition for "oper_status_change" group of "flow"
+ * object.
+ */
+message BalFlowOperStatusChange
+{
+    BalObj hdr = 1;        /**< Transport header. */
+    BalFlowKey key = 2;    /**< Object key. */
+    BalFlowOperStatusChangeData data = 3;   /**< All properties that must be set by the user. */
 }
 
 /** Structure definition for the "key" group of the "group" object.
@@ -711,7 +871,7 @@ message BalGroupCfgData
     BalGroupMemberCmd members_cmd = 1;        /**< Membership operation commands. */
     BalGroupMemberInfoList members = 2;  /**< The list of members associated with this group */
     uint64 cookie = 3;                       /**< Application cookie */
-    BalFlowIdList flows = 4;              /**< List of flows associated with this group */
+    BalIdList flows = 4;              /**< List of flows associated with this group */
     BalGroupOwner owner = 5;                   /**< Owner of the group. */
 }
 
@@ -721,6 +881,26 @@ message BalGroupCfg
 {
     BalGroupKey key = 1;       /**< Object key. */
     BalGroupCfgData data = 2; /**< All properties that must be set by the user. */
+}
+
+/** Structure definition for the "ind" group of the "group" object.
+ */
+message BalGroupIndData
+{
+    BalGroupMemberCmd members_cmd = 1;        /**< Membership operation commands. */
+    BalGroupMemberInfoList members = 2;  /**< The list of members associated with this group */
+    uint64 cookie = 3;                       /**< Application cookie */
+    BalIdList flows = 4;              /**< List of flows associated with this group */
+    BalGroupOwner owner = 5;                   /**< Owner of the group. */
+}
+
+/** Transport message definition for "ind" group of "group" object.
+ */
+message BalGroupInd
+{
+    BalObj hdr = 1;            /**< Transport header. */
+    BalGroupKey key = 2;       /**< Object key. */
+    BalGroupIndData data = 3; /**< All properties that must be set by the user. */
 }
 
 /** Structure definition for the "key" group of the "interface" object.
@@ -739,13 +919,13 @@ message BalInterfaceCfgData
     BalStatus oper_status = 2;  /**< Operational status */
     uint32 min_data_agg_port_id = 3;    /**< The minimum agg_portId that is allowed in the system */
     uint32 min_data_svc_port_id = 4;        /**< The minimum svc_portId that is allowed in the system */
-    BalTrxType transceiver_type = 5;                   /**< The transceiver type used on an interface */
+    BalTrxType transceiver_type = 5;                   /**< The transceiver type used on an interface. N/A for EPON.*/
     BalDsMissMode ds_miss_mode = 6;                   /**< Defines the action to take for unknown downstream packets */
     uint32 mtu = 7;                   /**< The MTU for an interface */
     BalControl flow_control = 8;    /**< Flow control enable or disable */
     uint32 ds_tm = 9;       /**< Downstream scheduler and shaper */
     uint32 us_tm = 10;       /**< Upstream scheduler and shaper */
-    SubTermIdList sub_term_id_list = 11;    /**< A list of subscriber terminal ids configured on this interface */
+    BalIdList sub_term_id_list = 11;    /**< A list of subscriber terminal ids configured on this interface */
 }
 
 /** Transport message definition for "cfg" group of "interface" object.
@@ -760,10 +940,21 @@ message BalInterfaceCfg
  */
 message BalInterfaceStatData
 {
-    uint64 rx_packets = 1;    /**< Recieved packets. */
-    uint64 rx_bytes = 2;      /**< Received bytes. */
-    uint64 tx_packets = 3;    /**< Transmitted packets. */
-    uint64 tx_bytes = 4;      /**< Transmitted bytes. */
+    uint64 rx_bytes = 1;          /**< RFC 2233 */
+    uint64 rx_packets = 2;        /**< RFC 1213 ucast + none-ucast */
+    uint64 rx_ucast_packets = 3;  /**< RFC 2233 */
+    uint64 rx_mcast_packets = 4;  /**< RFC 2233 */
+    uint64 rx_bcast_packets = 5;  /**< RFC 2233 */
+    uint64 rx_error_packets = 6;  /**< RFC 1213 */
+    uint64 rx_unknown_protos = 7; /**< RFC 1213 */
+    uint64 tx_bytes = 8;          /**< RFC 2233 */
+    uint64 tx_packets = 9;        /**< RFC 1213 ucast + none-ucast */
+    uint64 tx_ucast_packets = 10;  /**< RFC 2233 */
+    uint64 tx_mcast_packets = 11;  /**< RFC 2233 */
+    uint64 tx_bcast_packets = 12;  /**< RFC 2233 */
+    uint64 tx_error_packets = 13;  /**< RFC 1213 */
+    uint64 rx_crc_errors = 14;     /**< Received packets with CRC error. */
+    uint64 bip_errors = 15;        /**< Received bip errors (bip8 for gpon, bip32 for xgpon). */
 }
 
 /** Transport message definition for "stat" group of "interface" object.
@@ -789,6 +980,7 @@ message BalInterfaceIndData
     BalControl flow_control = 8;        /**< Flow control enable or disable */
     uint32 ds_tm = 9;           /**< Downstream scheduler and shaper */
     uint32 us_tm = 10;           /**< Upstream scheduler and shaper */
+    BalIdList sub_term_id_list = 11;    /**< A list of subscriber terminal ids configured on this interface */
 }
 
 /** Transport message definition for "ind" group of "interface" object.
@@ -798,6 +990,46 @@ message BalInterfaceInd
     BalObj hdr = 1;                /**< Transport header. */
     BalInterfaceKey key = 2;       /**< Object key. */
     BalInterfaceIndData data = 3; /**< All properties that must be set by the user. */
+}
+
+/** Structure definition for the "los" group of the "interface" object.
+ *
+ * An indication of a change olt los alarm
+ */
+message BalInterfaceLosData
+{
+    BalAlarmStatus status = 1; /**< The current admin status */
+}
+
+/** Transport message definition for "los" group of "interface" object.
+ */
+message BalInterfaceLos
+{
+    BalObj hdr = 1;                /**< Transport header. */
+    BalInterfaceKey key = 2;       /**< Object key. */
+    BalInterfaceLosData data = 3; /**< All properties that must be set by the user. */
+}
+
+/** Structure definition for the "oper_status_change" group of the "interface"
+ * object.
+ *
+ * An indication of a change of operational status
+ */
+message BalInterfaceOperStatusChangeData
+{
+    BalStatus new_oper_status = 1;  /**< The current oper status */
+    BalStatus old_oper_status = 2;  /**< The previous oper status before this indication was reported */
+    BalState admin_state = 3;       /**< The current admin status */
+}
+
+/** Transport message definition for "oper_status_change" group of "interface"
+ * object.
+ */
+message BalInterfaceOperStatusChange
+{
+    BalObj hdr = 1;            /**< Transport header. */
+    BalInterfaceKey key = 2;   /**< Object key. */
+    BalInterfaceOperStatusChangeData data = 3;  /**< All properties that must be set by the user. */
 }
 
 /** Structure definition for the "key" group of the "packet" object.
@@ -831,7 +1063,7 @@ message BalPacketCfg
 
 /** Structure definition for the "ind" group of the "packet" object.
  */
-message BalPacketIndData
+message BalPacketBearerChannelRxData
 {
     uint32 flow_id = 1;             /**< N/A for sending a packet */
     BalFlowType flow_type = 2;         /**< Flow Type. */
@@ -842,13 +1074,53 @@ message BalPacketIndData
     bytes pkt = 7;             /**< Packet Data. */
 }
 
-/** Transport message definition for "ind" group of "packet" object.
+/** Transport message definition for "bearer_channel_rx" group of "packet"
+ * object.
  */
-message BalPacketInd
+message BalPacketBearerChannelRx
+{
+    BalObj hdr = 1;        /**< Transport header. */
+    BalPacketKey key = 2;  /**< Object key. */
+    BalPacketBearerChannelRxData data = 3;  /**< All properties that must be set by the user. */
+}
+
+/** Structure definition for the "ieee_oam_channel_rx" group of the "packet"
+ * object.
+ *
+ * Rx indication on the IEEE OAM channel
+ */
+message BalPacketIeeeOamChannelRxData
+{
+    BalIdList pkt = 1;    /**< Packet Data. */
+}
+
+/** Transport message definition for "ieee_oam_channel_rx" group of "packet"
+ * object.
+ */
+message BalPacketIeeeOamChannelRx
+{
+    BalObj hdr = 1;        /**< Transport header. */
+    BalPacketKey key = 2;  /**< Object key. */
+    BalPacketIeeeOamChannelRxData data = 3;    /**< All properties that must be set by the user. */
+}
+
+/** Structure definition for the "itu_omci_channel_rx" group of the "packet"
+ * object.
+ *
+ * Rx indication on the ITU OMCI channel
+ */
+message BalPacketItuOmciChannelRxData
+{
+    BalIdList pkt = 1;    /**< Packet Data. */
+}
+
+/** Transport message definition for "itu_omci_channel_rx" group of "packet" object.
+ */
+message BalPacketItuOmciChannelRx
 {
     BalObj hdr = 1;                /**< Transport header. */
     BalPacketKey key = 2;          /**< Object key. */
-    BalPacketIndData data = 3;    /**< All properties that must be set by the user. */
+    BalPacketItuOmciChannelRxData data = 3;    /**< All properties that must be set by the user. */
 }
 
 /** Structure definition for the "key" group of the "subscriber_terminal"
@@ -874,8 +1146,9 @@ message BalSubscriberTerminalCfgData
     bytes mac_address = 7;                          /**< The Ethernet MAC address of an EPON subscriber terminal */
     uint32 ds_tm = 8;                               /**< Downstream scheduler and shaper */
     uint32 us_tm = 9;                               /**< Upstream scheduler and shaper */
-    SvcPortIdList svc_port_id_list = 10;        /**< A list of bearer traffic svc_port_ids associated with this subscriber terminal */
-    BalAggregationPortIdList agg_port_id_list = 11;    /**< A list of aggrPort_ids associated with this subscriber terminal */
+    BalIdList svc_port_id_list = 10;        /**< A list of bearer traffic svc_port_ids associated with this subscriber terminal */
+    BalIdList agg_port_id_list = 11;    /**< A list of aggrPort_ids associated with this subscriber terminal */
+    BalSubTermRate sub_term_rate = 12;                     /**< sub_term_rate. */
 }
 
 /** Transport message definition for "cfg" group of "subscriber_terminal"
@@ -908,6 +1181,24 @@ message BalSubscriberTerminalStat
     BalSubscriberTerminalStatData data = 3;  /**< All properties that must be set by the user. */
 }
 
+/** Structure definition for the "dgi" group of the "subscriber_terminal"
+ * object.
+ */
+message BalSubscriberTerminalDgiData
+{
+    BalAlarmStatus dgi_status = 1; /**< dgi_status. */
+}
+
+/** Transport message definition for "dgi" group of "subscriber_terminal"
+ * object.
+ */
+message BalSubscriberTerminalDgi
+{
+    BalObj hdr = 1;                    /**< Transport header. */
+    BalSubscriberTerminalKey key = 2; /**< Object key. */
+    BalSubscriberTerminalDgiData data = 3;   /**< All properties that must be set by the user. */
+}
+
 /** Structure definition for the "ind" group of the "subscriber_terminal"
  * object.
  */
@@ -922,6 +1213,8 @@ message BalSubscriberTerminalIndData
     bytes mac_address = 7;          /**< The Ethernet MAC address of an epon subscriber terminal */
     uint32 ds_tm = 8;               /**< Downstream scheduler and shaper */
     uint32 us_tm = 9;               /**< Upstream scheduler and shaper */
+    BalIdList agg_port_id_list = 10;    /**< A list of aggr_port_ids associated with this subscriber terminal */
+    BalSubTermRate sub_term_rate = 11;                     /**< sub_term_rate. */
 }
 
 /** Transport message definition for "ind" group of "subscriber_terminal"
@@ -932,6 +1225,64 @@ message BalSubscriberTerminalInd
     BalObj hdr = 1;                    /**< Transport header. */
     BalSubscriberTerminalKey key = 2; /**< Object key. */
     BalSubscriberTerminalIndData data = 3;   /**< All properties that must be set by the user. */
+}
+
+/** Structure definition for the "oper_status_change" group of the
+ * "subscriber_terminal" object.
+ *
+ * An indication of a change of operational status
+ */
+message BalSubscriberTerminalOperStatusChangeData
+{
+    BalStatus new_oper_status = 1;  /**< The current oper status */
+    BalStatus old_oper_status = 2;  /**< The previous oper status before this indication was reported */
+    BalState admin_state = 3;       /**< The current admin status */
+}
+
+/** Transport message definition for "oper_status_change" group of
+ * "subscriber_terminal" object.
+ */
+message BalSubscriberTerminalOperStatusChange
+{
+    BalObj hdr = 1;                    /**< Transport header. */
+    BalSubscriberTerminalKey key = 2; /**< Object key. */
+    BalSubscriberTerminalOperStatusChangeData data = 4;    /**< All properties that must be set by the user. */
+}
+
+/** Structure definition for the "sub_term_alarm" group of the
+ * "subscriber_terminal" object.
+ */
+message BalsubscriberTerminalSubTermAlarmData
+{
+    BalSubscriberTerminalAlarms alarm = 1;    /**< The serial number of an  ITU PON (GPON/XG-PON1/XGS-PON/NG-PON2) subscriber terminal */
+}
+
+/** Transport message definition for "sub_term_alarm" group of
+ * "subscriber_terminal" object.
+ */
+message BalSubscriberTerminalSubTermAlarm
+{
+    BalObj hdr = 1;                    /**< Transport header. */
+    BalSubscriberTerminalKey key = 2; /**< Object key. */
+    BalsubscriberTerminalSubTermAlarmData data = 3;    /**< All properties that must be set by the user. */
+}
+
+/** Structure definition for the "sub_term_disc" group of the
+ * "subscriber_terminal" object.
+ */
+message BalSubscriberTerminalSubTermDiscData
+{
+    BalSerialNumber serial_number = 1; /**< The serial number of an  ITU PON (GPON/XG-PON1/XGS-PON/NG-PON2) subscriber terminal */
+}
+
+/** Transport message definition for "sub_term_disc" group of
+ * "subscriber_terminal" object.
+ */
+message BalSubscriberTerminalSubTermDisc
+{
+    BalObj hdr = 1;                    /**< Transport header. */
+    BalSubscriberTerminalKey key = 2; /**< Object key. */
+    BalSubscriberTerminalSubTermDiscData data = 3; /**< All properties that must be set by the user. */
 }
 
 /** Structure definition for the "key" group of the "TmQueue" object.
@@ -988,7 +1339,12 @@ message BalTmQueueStat
  */
 message BalTmQueueIndData
 {
-    uint32 ret = 1;   /**< ret */
+    uint32 priority = 1;    /**< priority. */
+    uint32 weight = 2;        /**< weight. */
+    BalTmShaping rate = 3;         /**< rate. */
+    BalTmBac bac = 4;              /**< bac. */
+    BalTmCreationMode create_mode = 5;    /**< create_mode. */
+    uint32 ref_count = 6;                      /**< ref_count. */
 }
 
 /** Transport message definition for "ind" group of "TmQueue" object.
@@ -1012,16 +1368,17 @@ message BalTmSchedKey
  */
 message BalTmSchedCfgData
 {
-    BalTmSchedOwner owner = 1;        /**< owner. */
+    BalTmSchedOwner owner = 1;        /**< The owner of the tm_sched object instance*/
     BalTmSchedType sched_type = 2;    /**< Scheduler type */
     BalTmSchedParent sched_parent = 3;            /**< Scheduling parameters for parent scheduler */
     BalTmSchedChildType sched_child_type = 4;    /**< Scheduling level for children tm  */
-    BalTmShaping rate = 5;                 /**< Rate shaping parameters */
-    BalTmTcontSla tcont_sla = 6;          /**< Additional SLA parameters for aggPort owner */
-    BalTmCreationMode creation_mode = 7;  /**< Creation mode */
-    BalTmQueueIdList queues = 8;      /**< Subsidiary queues */
-    BalTmSchedIdList sub_scheds = 9;  /**< Subsidiary schedulers */
-    uint32 num_priorities = 10;                 /**< Max number of strict priority scheduling elements */
+    uint32 num_priorities = 5;                 /**< Max number of strict priority scheduling elements */
+    BalTmShaping rate = 6;                 /**< Rate shaping parameters */
+    BalExtendedItuDba ext_itu_dba = 7;    /**< Extended itu dba parameters for an agg_port owned tm_sched */
+    BalExtendedEponDba ext_epon_dba = 8;  /**< epon dba parameters for an agg_port owned tm_sched */
+    BalTmCreationMode creation_mode = 9;  /**< Creation mode */
+    BalIdList queues = 10;      /**< Subsidiary queues */
+    BalIdList sub_scheds = 11;  /**< Subsidiary schedulers */
 }
 
 /** Transport message definition for "cfg" group of "Tmsched" object.
@@ -1038,7 +1395,17 @@ message BalTmSchedCfg
  */
 message BalTmSchedIndData
 {
-    uint32 ret = 1;   /**< ret */
+    BalTmSchedOwner owner = 1;        /**< The owner of the tm_sched object instance */
+    BalTmSchedType sched_type = 2;    /**< Scheduler type */
+    BalTmSchedParent sched_parent = 3;            /**< Scheduling parameters for parent scheduler */
+    BalTmSchedChildType sched_child_type= 4;    /**< Scheduling type of all child tm objects */
+    uint32 num_priorities = 5;                 /**< Max number of strict priority scheduling elements */
+    BalTmShaping rate = 6;                 /**< Rate shaping parameters */
+    BalExtendedItuDba ext_itu_dba = 7;    /**< Extended itu dba parameters for an agg_port owned tm_sched */
+    BalExtendedEponDba ext_epon_dba = 8;  /**< epon dba parameters for an agg_port owned tm_sched */
+    BalTmCreationMode creation_moden= 9;  /**< Creation mode */
+    BalIdList queues = 10;      /**< Subsidiary queues */
+    BalIdList sub_scheds = 11;  /**< Subsidiary schedulers */
 }
 
 /** Transport message definition for "ind" group of "TmSched" object.

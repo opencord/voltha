@@ -73,3 +73,26 @@ class Bal(object):
         except Exception as e:
             self.log.info('activating-pon-port in olt-exception', exc=str(e))
         return
+
+    @inlineCallbacks
+    def send_omci_request_message(self, proxy_address, msg):
+        if isinstance(msg, Packet):
+            msg = str(msg)
+
+        self.log.info('send_omci_request_message',
+                      proxy_address=proxy_address.channel_id,
+                      msg=msg)
+        try:
+            obj = bal_pb2.BalCfg()
+            #Fill Header details
+            obj.device_id = self.device_id.encode('ascii', 'ignore')
+            obj.hdr.obj_type = bal_model_ids_pb2.BAL_OBJ_ID_PACKET
+            #Fill packet Details
+            obj.packet.key.packet_send_dest.type = bal_model_types_pb2.BAL_DEST_TYPE_ITU_OMCI_CHANNEL
+            obj.packet.key.packet_send_dest.itu_omci_channel.sub_term_id = proxy_address.channel_id
+            obj.packet.key.packet_send_dest.itu_omci_channel.int_id = 0
+            obj.packet.data.pkt = msg
+	    yield self.stub.BalCfgSet(obj)
+        except Exception as e:
+            self.log.info('send-proxied_message-exception', exc=str(e))
+        return

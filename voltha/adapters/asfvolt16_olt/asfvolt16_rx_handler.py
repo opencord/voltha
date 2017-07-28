@@ -58,17 +58,23 @@ class Asfvolt16RxHandler(object):
         self.log.info('Group indication is not implemented', device_id=device_id)
 
     def process_interface_ind(self, bal_indication, device_id):
-        self.log.info('Inteface Ind received', intf_id=bal_indication.balObjInfo.keyStr)
+        self.log.info('Inteface Ind received')
         self.log.info('Awaiting ONU discovery')
         return
 
     def process_packet_ind(self, bal_indication, device_id):
-        self.log.info('packet indication is not implemented', device_id=device_id)
+        self.log.info('received omci msg')
+        proxy_address=Device.ProxyAddress(
+                      device_id=device_id,
+                      channel_id=bal_indication.balOmciResp.key.packet_send_dest.itu_omci_channel.sub_term_id,  
+                      onu_id=bal_indication.balOmciResp.key.packet_send_dest.itu_omci_channel.sub_term_id,
+                      onu_session_id=bal_indication.balOmciResp.key.packet_send_dest.itu_omci_channel.sub_term_id
+        )
+        self.adapter_agent.receive_proxied_message(proxy_address, bal_indication.balOmciRespInfo.data.pkt.val)
 
     def process_subscriber_term_ind(self, bal_indication, device_id):
-        onu_data = bal_indication.balObjInfo.onuDiscoveryInfo
-        self.log.info('Subscriber termination message received',
-                              admin_state=onu_data.data.admin_state)
+        onu_data = bal_indication.terminal_disc
+        self.log.info('Subscriber termination message received')
         #     ind_info: {'object_type': <str>
         #                '_device_id': <str>
         #                '_pon_id' : <int>
@@ -85,10 +91,10 @@ class Asfvolt16RxHandler(object):
         ind_info['_vendor_id'] = '4252434D'
         ind_info['_vendor_specific'] = onu_data.data.serial_number.vendor_specific
 
-        if(bal_model_types_pb2.BAL_STATE_DOWN == onu_data.data.admin_state):
-            ind_info['activation_successful']=False
-        elif(bal_model_types_pb2.BAL_STATE_UP == onu_data.data.admin_state):
-            ind_info['activation_successful']=True
+        #if(bal_model_types_pb2.BAL_STATE_DOWN == onu_data.data.admin_state):
+        #    ind_info['activation_successful']=False
+        #elif(bal_model_types_pb2.BAL_STATE_UP == onu_data.data.admin_state):
+        #    ind_info['activation_successful']=True
         reactor.callLater(0,
                           self.adapter.devices_handlers[device_id].handle_subscriber_term_ind, 
                           ind_info)
@@ -106,7 +112,7 @@ class Asfvolt16RxHandler(object):
         #                'actv_status': <str>}
         ind_info = dict()
         ind_info['object_type'] = 'access_terminal'
-        if bal_indication.balObjInfo.status != bal_errno_pb2.BAL_ERR_OK:
+        if bal_indication.access_term_ind.data.admin_state != bal_model_ids_pb2.BAL_ACCESS_TERMINAL_IND_ID_ADMIN_STATE:
             ind_info['actv_status'] = 'failed'
         else:
             ind_info['actv_status'] = 'success'
@@ -129,12 +135,10 @@ class Asfvolt16RxHandler(object):
     @twisted_async
     def BalIndInfo(self, request, context):
         self.log.info('get-device-info')
-        self.log.info('received indication for object type',obj_type=request.balObjInfo.objType)
-        #import pdb; pdb.set_trace()
-        #reactor.callFromThread(self.Baltest, request)
+        self.log.info('received indication for object type',obj_type=request.objType)
         device_id = request.device_id.decode('unicode-escape')
         try:
-            handler = self.ind_handlers.get(request.balObjInfo.objType)
+            handler = self.ind_handlers.get(request.objType)
             if handler:
                 handler(self, request, device_id)
         except Exception as e:
