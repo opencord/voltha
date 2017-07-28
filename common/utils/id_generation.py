@@ -50,6 +50,14 @@ def is_broadcast_core_id(id):
     assert id and len(id) == 16
     return id[:4] == BROADCAST_CORE_ID
 
+def create_empty_broadcast_id():
+    """
+    Returns an empty broadcast id (ffff000000000000). The id is used to
+    dispatch xPON objects across all the Voltha instances.
+    :return: An empty broadcast id
+    """
+    return '{}{}'.format(BROADCAST_CORE_ID, '0'*12)
+
 def create_cluster_id():
     """
     Returns an id that is common across all voltha instances.  The id  

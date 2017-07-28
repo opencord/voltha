@@ -19,6 +19,7 @@ from voltha.protos import voltha_pb2
 from voltha.core.flow_decomposer import *
 from voltha.protos.openflow_13_pb2 import FlowTableUpdate
 from voltha.protos import bbf_fiber_base_pb2 as fb
+from tests.itests.voltha.test_voltha_xpon import scenario as xpon_scenario
 
 LOCAL_CONSUL = "localhost:8500"
 DOCKER_COMPOSE_FILE = "compose/docker-compose-system-test.yml"
@@ -42,28 +43,22 @@ command_defs = dict(
     kafka_kpis="kafkacat -o end -b {} -C -t voltha.kpis -c 5"
 )
 
-xpon_scenario = [
-    {'cterm-add': {
-        'pb2': fb.ChannelterminationConfig(),
-        'rpc': {
-                "interface": {
-                    "enabled": True,
-                    "name": "PON port",
-                    "description": "Channel Termination for Freedom Tower"
-                    },
-                "data": {
-                    "channelpair_ref": "",
-                    "location": "AT&T WTC OLT"
-                    },
-                "name": "PON port"
-                }
-            }
-        },
-    {'cterm-del': {
-        'pb2': fb.ChannelterminationConfig(),
-        'rpc': {"name": "PON port"}}
-    }
-]
+obj_type_config = {
+    'cg':     {'type':'channel_groups',
+               'config':'channelgroup_config'},
+    'cpart':  {'type':'channel_partitions',
+               'config':'channelpartition_config'},
+    'cpair':  {'type':'channel_pairs',
+               'config':'channelpair_config'},
+    'cterm':  {'type':'channel_terminations',
+               'config':'channeltermination_config'},
+    'vontani':{'type':'v_ont_anis',
+               'config':'v_ontani_config'},
+    'ontani': {'type':'ont_anis',
+               'config':'ontani_config'},
+    'venet':  {'type':'v_enets',
+               'config':'v_enet_config'}
+}
 
 
 class DispatcherTest(RestBase):
@@ -129,8 +124,24 @@ class DispatcherTest(RestBase):
         self._get_device_type_rest(dtypes['items'][0]['id'])
         alarm_filter = self._create_device_filter_rest(olt_id)
         self._remove_device_filter_rest(alarm_filter['id'])
-        channel_termination = self._create_channel_termination_rest(olt_id)
-        self._delete_channel_termination_rest(olt_id)
+        #for xPON objects
+        for item in xpon_scenario:
+            for key,value in item.items():
+                _device_id = None
+                _obj_action = [val for val in key.split('-')]
+                _type_config = obj_type_config[_obj_action[0]]
+                if _obj_action[0] == "cterm":
+                    _device_id = olt_id
+                if _obj_action[1] == "mod":
+                    continue
+                elif _obj_action[1] == "add":
+                    _xpon_obj = self._create_xpon_object_rest(_type_config,
+                                                              value,
+                                                              _device_id)
+                elif _obj_action[1] == "del":
+                    self._delete_xpon_object_rest(_type_config,
+                                                  value,
+                                                  _device_id)
         # TODO: PM APIs test
 
     def test_02_cross_instances_dispatch(self):
@@ -261,46 +272,58 @@ class DispatcherTest(RestBase):
                                        ponsim_logical_device_id)
 
         # Test 8:
-        # A. Create Channel Termination on particular device instance using REST
-        # B. Ensuring that it is present on that specific instance
-        # C. Retrieve Channel Termination from global grpc using empty
-        #    voltha instance
-        channel_termination = self._create_channel_termination_rest(
-            ponsim_olt.id)
-        global_cterm = self._get_channel_terminations_rest(ponsim_olt.id)
-        cterm = self._get_channel_terminations_grpc(
-            self.ponsim_voltha_stub_global, ponsim_olt.id)
-        assert global_cterm == MessageToDict(cterm,
-            including_default_value_fields = True,
-            preserving_proto_field_name = True)
-        cterm = self._get_channel_terminations_grpc(
-            self.ponsim_voltha_stub_local, ponsim_olt.id)
-        assert global_cterm == MessageToDict(cterm,
-            including_default_value_fields = True,
-            preserving_proto_field_name = True)
-        #Checking with empty instance
-        cterm = self._get_channel_terminations_grpc(
-            self.empty_voltha_stub_global, ponsim_olt.id)
-        assert global_cterm == MessageToDict(cterm,
-            including_default_value_fields = True,
-            preserving_proto_field_name = True)
-        #Simulated OLT
-        channel_termination = self._create_channel_termination_rest(
-            simulated_olt.id)
-        global_cterm = self._get_channel_terminations_rest(simulated_olt.id)
-        cterm = self._get_channel_terminations_grpc(
-            self.simulated_voltha_stub_global, simulated_olt.id)
-        assert global_cterm == MessageToDict(cterm,
-            including_default_value_fields = True,
-            preserving_proto_field_name = True)
-        cterm = self._get_channel_terminations_grpc(
-            self.simulated_voltha_stub_local, simulated_olt.id)
-        assert global_cterm == MessageToDict(cterm,
-            including_default_value_fields = True,
-            preserving_proto_field_name = True)
-        #Deleting Channel Termination
-        self._delete_channel_termination_rest(ponsim_olt.id)
-        self._delete_channel_termination_rest(simulated_olt.id)
+        # A. Create xPON objects instance using REST
+        # B. Ensuring that Channeltermination is present on specific instances
+        # C. Ensuring that other xPON objects are present in all instances
+        for item in xpon_scenario:
+            for key,value in item.items():
+                _obj_action = [val for val in key.split('-')]
+                _type_config = obj_type_config[_obj_action[0]]
+                if _obj_action[1] == "mod":
+                    continue
+                if _obj_action[0] == "cterm":
+                    if _obj_action[1] == "add":
+                        #Ponsim OLT
+                        self._create_xpon_object_rest(_type_config,
+                                                      value,
+                                                      ponsim_olt.id)
+                        self._verify_xpon_object_on_device(
+                            _type_config,
+                            self.ponsim_voltha_stub_global,
+                            ponsim_olt.id)
+                        self._delete_xpon_object_rest(_type_config,
+                                                      value,
+                                                      ponsim_olt.id)
+                        #Simulated OLT
+                        self._create_xpon_object_rest(_type_config,
+                                                      value,
+                                                      simulated_olt.id)
+                        self._verify_xpon_object_on_device(
+                            _type_config,
+                            self.simulated_voltha_stub_global,
+                            simulated_olt.id)
+                        self._delete_xpon_object_rest(_type_config,
+                                                      value,
+                                                      simulated_olt.id)
+                    elif _obj_action[1] == "del":
+                        continue
+                else:
+                    if _obj_action[1] == "add":
+                        self._create_xpon_object_rest(_type_config, value)
+                        #Checking with Ponsim OLT
+                        self._verify_xpon_object_on_device(
+                            _type_config,
+                            self.ponsim_voltha_stub_global)
+                        #Checking with empty instance
+                        self._verify_xpon_object_on_device(
+                            _type_config,
+                            self.empty_voltha_stub_global)
+                        #Checking with Simulated OLT
+                        self._verify_xpon_object_on_device(
+                            _type_config,
+                            self.simulated_voltha_stub_global)
+                    elif _obj_action[1] == "del":
+                        self._delete_xpon_object_rest(_type_config, value)
 
         # TODO:  More tests to be added as new features are added
 
@@ -769,31 +792,58 @@ class DispatcherTest(RestBase):
         res = stub.ListLogicalDeviceFlows(voltha_pb2.ID(id=logical_device_id))
         return res
 
-    #For xPon objects
-    def _get_channel_terminations_rest(self, device_id):
-        res = self.get('/api/v1/devices/{}/channel_terminations'.format(
-            device_id))
+    #For xPON objects
+    def _get_path(self, type, name, operation, device_id=None):
+        if(type == 'channel_terminations'):
+            return '/api/v1/devices/{}/{}/{}{}'.format(device_id, type, name,
+                                                       operation)
+        return '/api/v1/{}/{}{}'.format(type, name, operation)
+
+    def _get_xpon_object_rest(self, obj_type, device_id=None):
+        if obj_type["type"] == "channel_terminations":
+            res = self.get('/api/v1/devices/{}/{}'.format(device_id,
+                                                          obj_type["type"]))
+        else:
+            res = self.get('/api/v1/{}'.format(obj_type["type"]))
         return res
 
-    def _get_channel_terminations_grpc(self, stub, device_id):
-        res = stub.GetAllChannelterminationConfig(voltha_pb2.ID(id=device_id))
+    def _get_xpon_object_grpc(self, stub, obj_type, device_id=None):
+        if obj_type["type"] == "channel_groups":
+            res = stub.GetAllChannelgroupConfig(Empty())
+        elif obj_type["type"] == "channel_partitions":
+            res = stub.GetAllChannelpartitionConfig(Empty())
+        elif obj_type["type"] == "channel_pairs":
+            res = stub.GetAllChannelpairConfig(Empty())
+        elif obj_type["type"] == "channel_terminations":
+            res = stub.GetAllChannelterminationConfig(
+                voltha_pb2.ID(id=device_id))
+        elif obj_type["type"] == "v_ont_anis":
+            res = stub.GetAllVOntaniConfig(Empty())
+        elif obj_type["type"] == "ont_anis":
+            res = stub.GetAllOntaniConfig(Empty())
+        elif obj_type["type"] == "v_enets":
+            res = stub.GetAllVEnetConfig(Empty())
         return res
 
-    def _create_channel_termination_rest(self, device_id):
-        value = xpon_scenario[0]['cterm-add']
+    def _create_xpon_object_rest(self, obj_type, value, device_id=None):
         ParseDict(value['rpc'], value['pb2'])
         request = value['pb2']
-        self.post('/api/v1/devices/{}/channel_terminations/{}'.format(
-            device_id, value['rpc']['name']),
+        self.post(self._get_path(obj_type["type"], value['rpc']['name'], "",
+                                 device_id),
                   MessageToDict(request, preserving_proto_field_name = True),
                   expected_code = 200)
         return request
 
-    def _delete_channel_termination_rest(self, device_id):
-        value = xpon_scenario[1]['cterm-del']
-        self.delete('/api/v1/devices/{}/channel_terminations/{}/delete'.format(
-            device_id, value['rpc']['name']),
-                  expected_code = 200)
+    def _delete_xpon_object_rest(self, obj_type, value, device_id=None):
+        self.delete(self._get_path(obj_type["type"], value['rpc']['name'],
+                                   "/delete", device_id), expected_code = 200)
+
+    def _verify_xpon_object_on_device(self, type_config, stub, device_id=None):
+        global_xpon_obj = self._get_xpon_object_rest(type_config, device_id)
+        xpon_obj = self._get_xpon_object_grpc(stub, type_config, device_id)
+        assert global_xpon_obj == MessageToDict(xpon_obj,
+            including_default_value_fields = True,
+            preserving_proto_field_name = True)
 
 if __name__ == '__main__':
     main()

@@ -18,7 +18,8 @@ from twisted.internet.defer import inlineCallbacks
 from twisted.internet.defer import returnValue
 
 from common.utils.grpc_utils import twisted_async
-from common.utils.id_generation import create_cluster_id
+from common.utils.id_generation import \
+    create_cluster_id, create_empty_broadcast_id
 from voltha.core.config.config_root import ConfigRoot
 from voltha.protos.device_pb2 import PmConfigs, Images
 from voltha.protos.voltha_pb2 import \
@@ -30,6 +31,7 @@ from voltha.protos.voltha_pb2 import \
 from voltha.registry import registry
 from google.protobuf.empty_pb2 import Empty
 from dispatcher import DispatchError
+from voltha.protos import bbf_fiber_base_pb2 as fb
 
 log = structlog.get_logger()
 
@@ -515,136 +517,295 @@ class GlobalHandler(VolthaGlobalServiceServicer):
 
     # bbf_fiber rpcs start
     @twisted_async
+    @inlineCallbacks
     def GetAllChannelgroupConfig(self, request, context):
-        log.warning('temp-limited-implementation')
-        # TODO dispatching to local instead of collecting all
-        return self.dispatcher.dispatch(
-            self.instance_id,
-            VolthaLocalServiceStub,
+        log.info('grpc-request', request=request)
+        response = yield self.dispatcher.dispatch(
             'GetAllChannelgroupConfig',
-            request,
-            context)
+            Empty(),
+            context,
+            broadcast=True)
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('Channelgroup error')
+            context.set_code(response.error_code)
+            returnValue(Empty())
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
 
     @twisted_async
+    @inlineCallbacks
     def CreateChannelgroup(self, request, context):
-        log.warning('temp-limited-implementation')
-        # TODO dispatching to local instead of collecting all
-        return self.dispatcher.dispatch(
-            self.instance_id,
-            VolthaLocalServiceStub,
+        log.info('grpc-request', request=request)
+        try:
+            assert isinstance(request, fb.ChannelgroupConfig)
+            request.id = create_empty_broadcast_id()
+        except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            returnValue(fb.ChannelgroupConfig())
+        response = yield self.dispatcher.dispatch(
             'CreateChannelgroup',
             request,
-            context)
+            context,
+            id=request.id,
+            broadcast=True)
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('Channelgroup\'{}\' error'.format(request.id))
+            context.set_code(response.error_code)
+            returnValue(fb.ChannelgroupConfig())
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
 
     @twisted_async
+    @inlineCallbacks
     def UpdateChannelgroup(self, request, context):
-        log.warning('temp-limited-implementation')
-        # TODO dispatching to local instead of collecting all
-        return self.dispatcher.dispatch(
-            self.instance_id,
-            VolthaLocalServiceStub,
+        log.info('grpc-request', request=request)
+        try:
+            assert isinstance(request, fb.ChannelgroupConfig)
+            request.id = create_empty_broadcast_id()
+        except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            returnValue(fb.ChannelgroupConfig())
+        response = yield self.dispatcher.dispatch(
             'UpdateChannelgroup',
             request,
-            context)
+            context,
+            id=request.id,
+            broadcast=True)
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('Channelgroup\'{}\' error'.format(request.id))
+            context.set_code(response.error_code)
+            returnValue(fb.ChannelgroupConfig())
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
 
     @twisted_async
+    @inlineCallbacks
     def DeleteChannelgroup(self, request, context):
-        log.warning('temp-limited-implementation')
-        # TODO dispatching to local instead of collecting all
-        return self.dispatcher.dispatch(
-            self.instance_id,
-            VolthaLocalServiceStub,
+        log.info('grpc-request', request=request)
+        try:
+            assert isinstance(request, fb.ChannelgroupConfig)
+            request.id = create_empty_broadcast_id()
+        except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            returnValue(fb.ChannelgroupConfig())
+        response = yield self.dispatcher.dispatch(
             'DeleteChannelgroup',
             request,
-            context)
+            context,
+            id=request.id,
+            broadcast=True)
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('Channelgroup\'{}\' error'.format(request.id))
+            context.set_code(response.error_code)
+            returnValue(fb.ChannelgroupConfig())
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
 
     @twisted_async
+    @inlineCallbacks
     def GetAllChannelpartitionConfig(self, request, context):
-        log.warning('temp-limited-implementation')
-        # TODO dispatching to local instead of collecting all
-        return self.dispatcher.dispatch(
-            self.instance_id,
-            VolthaLocalServiceStub,
+        log.info('grpc-request', request=request)
+        response = yield self.dispatcher.dispatch(
             'GetAllChannelpartitionConfig',
-            request,
-            context)
+            Empty(),
+            context,
+            broadcast=True)
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('Channelpartition error')
+            context.set_code(response.error_code)
+            returnValue(Empty())
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
 
     @twisted_async
+    @inlineCallbacks
     def CreateChannelpartition(self, request, context):
-        log.warning('temp-limited-implementation')
-        # TODO dispatching to local instead of collecting all
-        return self.dispatcher.dispatch(
-            self.instance_id,
-            VolthaLocalServiceStub,
+        log.info('grpc-request', request=request)
+        try:
+            assert isinstance(request, fb.ChannelpartitionConfig)
+            request.id = create_empty_broadcast_id()
+        except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            returnValue(fb.ChannelpartitionConfig())
+        response = yield self.dispatcher.dispatch(
             'CreateChannelpartition',
             request,
-            context)
+            context,
+            id=request.id,
+            broadcast=True)
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('Channelpartition\'{}\' error'.format(
+                request.id))
+            context.set_code(response.error_code)
+            returnValue(fb.ChannelpartitionConfig())
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
 
     @twisted_async
+    @inlineCallbacks
     def UpdateChannelpartition(self, request, context):
-        log.warning('temp-limited-implementation')
-        # TODO dispatching to local instead of collecting all
-        return self.dispatcher.dispatch(
-            self.instance_id,
-            VolthaLocalServiceStub,
+        log.info('grpc-request', request=request)
+        try:
+            assert isinstance(request, fb.ChannelpartitionConfig)
+            request.id = create_empty_broadcast_id()
+        except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            returnValue(fb.ChannelpartitionConfig())
+        response = yield self.dispatcher.dispatch(
             'UpdateChannelpartition',
             request,
-            context)
+            context,
+            id=request.id,
+            broadcast=True)
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('Channelpartition\'{}\' error'.format(
+                request.id))
+            context.set_code(response.error_code)
+            returnValue(fb.ChannelpartitionConfig())
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
 
     @twisted_async
+    @inlineCallbacks
     def DeleteChannelpartition(self, request, context):
-        log.warning('temp-limited-implementation')
-        # TODO dispatching to local instead of collecting all
-        return self.dispatcher.dispatch(
-            self.instance_id,
-            VolthaLocalServiceStub,
+        log.info('grpc-request', request=request)
+        try:
+            assert isinstance(request, fb.ChannelpartitionConfig)
+            request.id = create_empty_broadcast_id()
+        except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            returnValue(fb.ChannelpartitionConfig())
+        response = yield self.dispatcher.dispatch(
             'DeleteChannelpartition',
             request,
-            context)
+            context,
+            id=request.id,
+            broadcast=True)
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('Channelpartition\'{}\' error'.format(
+                request.id))
+            context.set_code(response.error_code)
+            returnValue(fb.ChannelpartitionConfig())
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
 
     @twisted_async
+    @inlineCallbacks
     def GetAllChannelpairConfig(self, request, context):
-        log.warning('temp-limited-implementation')
-        # TODO dispatching to local instead of collecting all
-        return self.dispatcher.dispatch(
-            self.instance_id,
-            VolthaLocalServiceStub,
+        log.info('grpc-request', request=request)
+        response = yield self.dispatcher.dispatch(
             'GetAllChannelpairConfig',
-            request,
-            context)
+            Empty(),
+            context,
+            broadcast=True)
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('Channelpair error')
+            context.set_code(response.error_code)
+            returnValue(Empty())
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
 
     @twisted_async
+    @inlineCallbacks
     def CreateChannelpair(self, request, context):
-        log.warning('temp-limited-implementation')
-        # TODO dispatching to local instead of collecting all
-        return self.dispatcher.dispatch(
-            self.instance_id,
-            VolthaLocalServiceStub,
+        log.info('grpc-request', request=request)
+        try:
+            assert isinstance(request, fb.ChannelpairConfig)
+            request.id = create_empty_broadcast_id()
+        except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            returnValue(fb.ChannelpairConfig())
+        response = yield self.dispatcher.dispatch(
             'CreateChannelpair',
             request,
-            context)
+            context,
+            id=request.id,
+            broadcast=True)
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('Channelpair\'{}\' error'.format(request.id))
+            context.set_code(response.error_code)
+            returnValue(fb.ChannelpairConfig())
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
 
     @twisted_async
+    @inlineCallbacks
     def UpdateChannelpair(self, request, context):
-        log.warning('temp-limited-implementation')
-        # TODO dispatching to local instead of collecting all
-        return self.dispatcher.dispatch(
-            self.instance_id,
-            VolthaLocalServiceStub,
+        log.info('grpc-request', request=request)
+        try:
+            assert isinstance(request, fb.ChannelpairConfig)
+            request.id = create_empty_broadcast_id()
+        except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            returnValue(fb.ChannelpairConfig())
+        response = yield self.dispatcher.dispatch(
             'UpdateChannelpair',
             request,
-            context)
+            context,
+            id=request.id,
+            broadcast=True)
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('Channelpair\'{}\' error'.format(request.id))
+            context.set_code(response.error_code)
+            returnValue(fb.ChannelpairConfig())
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
 
     @twisted_async
+    @inlineCallbacks
     def DeleteChannelpair(self, request, context):
-        log.warning('temp-limited-implementation')
-        # TODO dispatching to local instead of collecting all
-        return self.dispatcher.dispatch(
-            self.instance_id,
-            VolthaLocalServiceStub,
+        log.info('grpc-request', request=request)
+        try:
+            assert isinstance(request, fb.ChannelpairConfig)
+            request.id = create_empty_broadcast_id()
+        except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            returnValue(fb.ChannelpairConfig())
+        response = yield self.dispatcher.dispatch(
             'DeleteChannelpair',
             request,
-            context)
+            context,
+            id=request.id,
+            broadcast=True)
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('Channelpair\'{}\' error'.format(request.id))
+            context.set_code(response.error_code)
+            returnValue(fb.ChannelpairConfig())
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
 
     @twisted_async
     @inlineCallbacks
@@ -661,7 +822,7 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_details('Channeltermination \'{}\' error'.format(
                 request.id))
             context.set_code(response.error_code)
-            returnValue(Empty())
+            returnValue(fb.ChannelterminationConfig())
         else:
             log.info('grpc-success-response', response=response)
             returnValue(response)
@@ -681,7 +842,7 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_details('Channeltermination \'{}\' error'.format(
                 request.id))
             context.set_code(response.error_code)
-            returnValue(Empty())
+            returnValue(fb.ChannelterminationConfig())
         else:
             log.info('grpc-success-response', response=response)
             returnValue(response)
@@ -701,7 +862,7 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_details('Channeltermination \'{}\' error'.format(
                 request.id))
             context.set_code(response.error_code)
-            returnValue(Empty())
+            returnValue(fb.ChannelterminationConfig())
         else:
             log.info('grpc-success-response', response=response)
             returnValue(response)
@@ -721,142 +882,298 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_details('Channeltermination \'{}\' error'.format(
                 request.id))
             context.set_code(response.error_code)
+            returnValue(fb.ChannelterminationConfig())
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
+
+    @twisted_async
+    @inlineCallbacks
+    def GetAllOntaniConfig(self, request, context):
+        log.info('grpc-request', request=request)
+        response = yield self.dispatcher.dispatch(
+            'GetAllOntaniConfig',
+            Empty(),
+            context,
+            broadcast=True)
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('Ontani error')
+            context.set_code(response.error_code)
             returnValue(Empty())
         else:
             log.info('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
-    def GetAllOntaniConfig(self, request, context):
-        log.warning('temp-limited-implementation')
-        # TODO dispatching to local instead of collecting all
-        return self.dispatcher.dispatch(
-            self.instance_id,
-            VolthaLocalServiceStub,
-            'GetAllOntaniConfig',
-            request,
-            context)
-
-    @twisted_async
+    @inlineCallbacks
     def CreateOntani(self, request, context):
-        log.warning('temp-limited-implementation')
-        # TODO dispatching to local instead of collecting all
-        return self.dispatcher.dispatch(
-            self.instance_id,
-            VolthaLocalServiceStub,
+        log.info('grpc-request', request=request)
+        try:
+            assert isinstance(request, fb.OntaniConfig)
+            request.id = create_empty_broadcast_id()
+        except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            returnValue(fb.OntaniConfig())
+        response = yield self.dispatcher.dispatch(
             'CreateOntani',
             request,
-            context)
+            context,
+            id=request.id,
+            broadcast=True)
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('Ontani \'{}\' error'.format(request.id))
+            context.set_code(response.error_code)
+            returnValue(fb.OntaniConfig())
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
 
     @twisted_async
+    @inlineCallbacks
     def UpdateOntani(self, request, context):
-        log.warning('temp-limited-implementation')
-        # TODO dispatching to local instead of collecting all
-        return self.dispatcher.dispatch(
-            self.instance_id,
-            VolthaLocalServiceStub,
+        log.info('grpc-request', request=request)
+        try:
+            assert isinstance(request, fb.OntaniConfig)
+            request.id = create_empty_broadcast_id()
+        except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            returnValue(fb.OntaniConfig())
+        response = yield self.dispatcher.dispatch(
             'UpdateOntani',
             request,
-            context)
+            context,
+            id=request.id,
+            broadcast=True)
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('Ontani \'{}\' error'.format(request.id))
+            context.set_code(response.error_code)
+            returnValue(fb.OntaniConfig())
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
 
     @twisted_async
+    @inlineCallbacks
     def DeleteOntani(self, request, context):
-        log.warning('temp-limited-implementation')
-        # TODO dispatching to local instead of collecting all
-        return self.dispatcher.dispatch(
-            self.instance_id,
-            VolthaLocalServiceStub,
+        log.info('grpc-request', request=request)
+        try:
+            assert isinstance(request, fb.OntaniConfig)
+            request.id = create_empty_broadcast_id()
+        except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            returnValue(fb.OntaniConfig())
+        response = yield self.dispatcher.dispatch(
             'DeleteOntani',
             request,
-            context)
+            context,
+            id=request.id,
+            broadcast=True)
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('Ontani \'{}\' error'.format(request.id))
+            context.set_code(response.error_code)
+            returnValue(fb.OntaniConfig())
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
 
     @twisted_async
+    @inlineCallbacks
     def GetAllVOntaniConfig(self, request, context):
-        log.warning('temp-limited-implementation')
-        # TODO dispatching to local instead of collecting all
-        return self.dispatcher.dispatch(
-            self.instance_id,
-            VolthaLocalServiceStub,
+        log.info('grpc-request', request=request)
+        response = yield self.dispatcher.dispatch(
             'GetAllVOntaniConfig',
-            request,
-            context)
+            Empty(),
+            context,
+            broadcast=True)
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('VOntani error')
+            context.set_code(response.error_code)
+            returnValue(Empty())
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
 
     @twisted_async
+    @inlineCallbacks
     def CreateVOntani(self, request, context):
-        log.warning('temp-limited-implementation')
-        # TODO dispatching to local instead of collecting all
-        return self.dispatcher.dispatch(
-            self.instance_id,
-            VolthaLocalServiceStub,
+        log.info('grpc-request', request=request)
+        try:
+            assert isinstance(request, fb.VOntaniConfig)
+            request.id = create_empty_broadcast_id()
+        except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            returnValue(fb.VOntaniConfig())
+        response = yield self.dispatcher.dispatch(
             'CreateVOntani',
             request,
-            context)
+            context,
+            id=request.id,
+            broadcast=True)
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('VOntani \'{}\' error'.format(request.id))
+            context.set_code(response.error_code)
+            returnValue(fb.VOntaniConfig())
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
 
     @twisted_async
+    @inlineCallbacks
     def UpdateVOntani(self, request, context):
-        log.warning('temp-limited-implementation')
-        # TODO dispatching to local instead of collecting all
-        return self.dispatcher.dispatch(
-            self.instance_id,
-            VolthaLocalServiceStub,
+        log.info('grpc-request', request=request)
+        try:
+            assert isinstance(request, fb.VOntaniConfig)
+            request.id = create_empty_broadcast_id()
+        except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            returnValue(fb.VOntaniConfig())
+        response = yield self.dispatcher.dispatch(
             'UpdateVOntani',
             request,
-            context)
+            context,
+            id=request.id,
+            broadcast=True)
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('VOntani \'{}\' error'.format(request.id))
+            context.set_code(response.error_code)
+            returnValue(fb.VOntaniConfig())
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
 
     @twisted_async
+    @inlineCallbacks
     def DeleteVOntani(self, request, context):
-        log.warning('temp-limited-implementation')
-        # TODO dispatching to local instead of collecting all
-        return self.dispatcher.dispatch(
-            self.instance_id,
-            VolthaLocalServiceStub,
+        log.info('grpc-request', request=request)
+        try:
+            assert isinstance(request, fb.VOntaniConfig)
+            request.id = create_empty_broadcast_id()
+        except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            returnValue(fb.VOntaniConfig())
+        response = yield self.dispatcher.dispatch(
             'DeleteVOntani',
             request,
-            context)
+            context,
+            id=request.id,
+            broadcast=True)
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('VOntani \'{}\' error'.format(request.id))
+            context.set_code(response.error_code)
+            returnValue(fb.VOntaniConfig())
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
 
     @twisted_async
+    @inlineCallbacks
     def GetAllVEnetConfig(self, request, context):
-        log.warning('temp-limited-implementation')
-        # TODO dispatching to local instead of collecting all
-        return self.dispatcher.dispatch(
-            self.instance_id,
-            VolthaLocalServiceStub,
+        log.info('grpc-request', request=request)
+        response = yield self.dispatcher.dispatch(
             'GetAllVEnetConfig',
             request,
-            context)
+            context,
+            broadcast=True)
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('VEnet error')
+            context.set_code(response.error_code)
+            returnValue(Empty())
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
 
     @twisted_async
+    @inlineCallbacks
     def CreateVEnet(self, request, context):
-        log.warning('temp-limited-implementation')
-        # TODO dispatching to local instead of collecting all
-        return self.dispatcher.dispatch(
-            self.instance_id,
-            VolthaLocalServiceStub,
+        log.info('grpc-request', request=request)
+        try:
+            assert isinstance(request, fb.VEnetConfig)
+            request.id = create_empty_broadcast_id()
+        except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            returnValue(fb.VEnetConfig())
+        response = yield self.dispatcher.dispatch(
             'CreateVEnet',
             request,
-            context)
+            context,
+            id=request.id,
+            broadcast=True)
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('VEnet \'{}\' error'.format(request.id))
+            context.set_code(response.error_code)
+            returnValue(fb.VEnetConfig())
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
 
     @twisted_async
+    @inlineCallbacks
     def UpdateVEnet(self, request, context):
-        log.warning('temp-limited-implementation')
-        # TODO dispatching to local instead of collecting all
-        return self.dispatcher.dispatch(
-            self.instance_id,
-            VolthaLocalServiceStub,
+        log.info('grpc-request', request=request)
+        try:
+            assert isinstance(request, fb.VEnetConfig)
+            request.id = create_empty_broadcast_id()
+        except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            returnValue(fb.VEnetConfig())
+        response = yield self.dispatcher.dispatch(
             'UpdateVEnet',
             request,
-            context)
+            context,
+            id=request.id,
+            broadcast=True)
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('VEnet \'{}\' error'.format(request.id))
+            context.set_code(response.error_code)
+            returnValue(fb.VEnetConfig())
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
 
     @twisted_async
+    @inlineCallbacks
     def DeleteVEnet(self, request, context):
-        log.warning('temp-limited-implementation')
-        # TODO dispatching to local instead of collecting all
-        return self.dispatcher.dispatch(
-            self.instance_id,
-            VolthaLocalServiceStub,
+        log.info('grpc-request', request=request)
+        try:
+            assert isinstance(request, fb.VEnetConfig)
+            request.id = create_empty_broadcast_id()
+        except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            returnValue(fb.VEnetConfig())
+        response = yield self.dispatcher.dispatch(
             'DeleteVEnet',
             request,
-            context)
+            context,
+            id=request.id,
+            broadcast=True)
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('VEnet \'{}\' error'.format(request.id))
+            context.set_code(response.error_code)
+            returnValue(fb.VEnetConfig())
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
     # bbf_fiber rpcs end
 
     @twisted_async
