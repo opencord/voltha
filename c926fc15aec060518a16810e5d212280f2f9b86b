@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a1a2d67_02a3749f",
+        "filename": "voltha/adapters/asfvolt16_olt/bal.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 80,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-07-28T13:42:46Z",
+      "side": 1,
+      "message": "Why are we converting stream of bytes to string. Can we send the stream of bytes to device.",
+      "revId": "c926fc15aec060518a16810e5d212280f2f9b86b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
