@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "1a1a2d67_591723a4",
+        "filename": "voltha/adapters/simulated_olt/simulated_olt.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 243,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-28T20:29:19Z",
+      "side": 1,
+      "message": "when download image is requested, we move the device to DOWNLOAD_IMAGE state; when download image is succeeded, we move the device back to ENABLE state",
+      "parentUuid": "5a202591_6aee7b24",
+      "revId": "65e9c75aff8acd762340c5e07df15807834a18b2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_4af3bf0a",
         "filename": "voltha/adapters/simulated_olt/simulated_olt.py",
         "patchSetId": 7
@@ -30,6 +48,24 @@
       "writtenOn": "2017-07-12T09:22:21Z",
       "side": 1,
       "message": "Can you please clarify the below point for me..\nIn this sample implementation, are you trying to move the device to ENABLED state only if the random choice results in DOWNLOAD_SUCCCEEDED. But, \"get_image_download_status\" is invoked only on user request. So, unless the user makes this request and the response results in \"DOWNLOAD_SUCCCEEDED\", the device will not move to ENABLED state?",
+      "revId": "65e9c75aff8acd762340c5e07df15807834a18b2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a1a2d67_390c6794",
+        "filename": "voltha/adapters/simulated_olt/simulated_olt.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 259,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-28T20:29:19Z",
+      "side": 1,
+      "message": "There are two trigger points for device to move from DOWNLOAD_IMAGE state to ENABLE state: one is when user issues the get_image_download_status and receives DOWNLOAD_SUCCEEDED state; the other is when the adapter receives download completion notification from device, the adapter will change the device state to ENABLE. Here is the sample implementation of 1st scenario.",
+      "parentUuid": "5a202591_4af3bf0a",
       "revId": "65e9c75aff8acd762340c5e07df15807834a18b2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "1a1a2d67_f925cf0a",
+        "filename": "voltha/core/device_agent.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 125,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-28T20:29:19Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5a202591_ca8fcf74",
+      "revId": "65e9c75aff8acd762340c5e07df15807834a18b2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_0a96e794",
         "filename": "voltha/core/device_agent.py",
         "patchSetId": 7
@@ -64,6 +118,24 @@
       "writtenOn": "2017-07-12T09:22:21Z",
       "side": 1,
       "message": "Shouldn\u0027t cancel_image_download and get_image_download_status also be under inlineCallback",
+      "revId": "65e9c75aff8acd762340c5e07df15807834a18b2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a1a2d67_1911abac",
+        "filename": "voltha/core/device_agent.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 132,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-28T20:29:19Z",
+      "side": 1,
+      "message": "Those are non-blocking calls. The caller doesn\u0027t expect to wait for async event, so get_image_download_status and cancel_image_download are not needed to be inlineCallbacks",
+      "parentUuid": "5a202591_0a96e794",
       "revId": "65e9c75aff8acd762340c5e07df15807834a18b2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -87,6 +159,24 @@
     },
     {
       "key": {
+        "uuid": "1a1a2d67_d9221301",
+        "filename": "voltha/core/device_agent.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 177,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-28T20:29:19Z",
+      "side": 1,
+      "message": "Good catch. Done",
+      "parentUuid": "5a202591_2a81a34a",
+      "revId": "65e9c75aff8acd762340c5e07df15807834a18b2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_afe1459c",
         "filename": "voltha/core/device_agent.py",
         "patchSetId": 7
@@ -98,6 +188,24 @@
       "writtenOn": "2017-07-18T13:38:02Z",
       "side": 1,
       "message": "When does the state goes back to ENABLED?  What happened if someone disable the device during a download or disable the OLT?",
+      "revId": "65e9c75aff8acd762340c5e07df15807834a18b2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a1a2d67_991c9bc3",
+        "filename": "voltha/core/device_agent.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 344,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-28T20:29:19Z",
+      "side": 1,
+      "message": "There are two trigger points for device to move from DOWNLOAD_IMAGE state back to ENABLE state: \n\none is when user issues the get_image_download_status and receives DOWNLOAD_SUCCEEDED or DOWNLOAD_FAILED; \n\nthe other is when the adapter receives download completion notification from device, the adapter will change the device state to ENABLE.\n\nIn both cases, it is each adapter\u0027s responsibility to do the transition. \n\nI don\u0027t think we allow the user to change device state when it is in DOWNLOAD_IMAGE state. There is assertion check in local_handler that allows the user to disable a device only when it is in enabled state.",
+      "parentUuid": "5a202591_afe1459c",
       "revId": "65e9c75aff8acd762340c5e07df15807834a18b2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -121,6 +229,24 @@
     },
     {
       "key": {
+        "uuid": "1a1a2d67_597e03e6",
+        "filename": "voltha/core/global_handler.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 983,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-28T20:29:19Z",
+      "side": 1,
+      "message": "the default value is OPERATION_SUCCESS. I will set this OperationResp to OPERATION_FAILURE instead.",
+      "parentUuid": "5a202591_cfe481ae",
+      "revId": "65e9c75aff8acd762340c5e07df15807834a18b2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_8ae9d71c",
         "filename": "voltha/core/local_handler.py",
         "patchSetId": 7
@@ -132,6 +258,24 @@
       "writtenOn": "2017-07-12T09:22:21Z",
       "side": 1,
       "message": "You may want to put a check the device is in DOWNLOAD_IMAGE admin state..",
+      "revId": "65e9c75aff8acd762340c5e07df15807834a18b2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a1a2d67_7979bffb",
+        "filename": "voltha/core/local_handler.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 472,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-07-28T20:29:19Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5a202591_8ae9d71c",
       "revId": "65e9c75aff8acd762340c5e07df15807834a18b2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
