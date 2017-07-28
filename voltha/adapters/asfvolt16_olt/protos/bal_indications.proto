@@ -159,14 +159,6 @@ message BalIndStatsInfo{
     BalOnuStatsInfo       onu_stats = 7; //onu statistics
 }
 
-message BalOmciRespInfo{
-    bytes  balOmciResp = 1; //response msg
-    uint32 pon_ni = 2; //pon interface number
-    uint32 onu_id = 3; //onu id
-    uint32 port_id = 4; //port id
-    uint32 crc_ok = 5; //crc status
-}
-
 message BalObjInd{
     BalObjId     objType = 1; //type of object for which the indications have been received
     BalErrno     status  = 2; //status of the indication received from BAL utilities
@@ -182,7 +174,7 @@ message BalIndications{
           BalObjInd balObjInfo = 1; //raw packet in case of object type is PACKET
           BalAlarmInfo balAlarmInfo = 2; //alarm info from BAL
           BalIndStatsInfo balStatsInfo = 3; //statistics info from BAL
-          BalOmciRespInfo balOmciRespInfo = 4; // OMCI response
+          BalPacketItuOmciChannelRx balOmciRespInfo = 4; // OMCI response
     }
     string device_id = 5; //Deviced Id
 }
