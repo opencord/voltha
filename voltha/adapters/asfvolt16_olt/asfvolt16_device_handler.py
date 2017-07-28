@@ -179,7 +179,6 @@ class Asfvolt16Handler(OltDeviceHandler):
         self.adapter_agent.add_logical_port(logical_device_id, logical_port)
 
     def handle_access_term_ind(self, ind_info):
-        #import pdb; pdb.set_trace()
         device = self.adapter_agent.get_device(self.device_id)
         if ind_info['actv_status'] == 'success':
             self.log.info('successful access terminal Indication',
@@ -196,7 +195,6 @@ class Asfvolt16Handler(OltDeviceHandler):
                #self.send_connect_olt(self.olt_id)
                port_no = 100
                self.add_port(port_no, port_type=Port.PON_OLT)
-               #import pdb; pdb.set_trace()
                self.bal.activate_pon_port(self.olt_id, port_no);
             except Exception as e:
                return
@@ -208,9 +206,13 @@ class Asfvolt16Handler(OltDeviceHandler):
         return
 
     def handle_subscriber_term_ind(self, ind_info):
-        #import pdb; pdb.set_trace()
         self.log.info('To-DO Need to handle ONU Indication')
-       
+
+    def send_proxied_message(self, proxy_address, msg):
+        try:
+            self.bal.send_omci_request_message(proxy_address, msg)
+        except Exception as e:
+            return
 
 def disable(self):
         super(Asfvolt16Handler, self).disable()
