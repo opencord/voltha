@@ -28,13 +28,14 @@ message Bal_comm_msg_hdr
 {
     uint32         version_major = 2;   /**< Header Major version number */
     uint32         version_minor = 3;   /**< Header Minor version number */
-    BalMsgType  msg_type = 4;        /**< Request / Response / Ack / Indication */
+    BalMsgType     msg_type = 4;        /**< Request / Response / Ack / Indication */
     uint32         msg_id = 5;          /**< Message ID – the ID of the message (subID under the message type) */
     uint32         ex_id = 6;           /**< Exchange ID for message tracking between endpoints */
-    BalSubsystem    sender = 7;          /**< Sender subsystem - used for additional validation */
+    BalSubsystem   sender = 7;          /**< Sender subsystem - used for additional validation */
     uint32         timestamp = 8;       /**< Timestamp when the message was sent */
-    uint64            scratchpad = 10;      /**< Scratchpad used for inter-thread communication */
-    bytes          payload = 11;       /**< Payload follows the header */
+    uint64         scratchpad = 10;     /**< Scratchpad used for inter-thread communication */
+    uint32         access_term_id = 11; /**< Access Term Id for this BAL message */
+    bytes          payload = 12;        /**< Payload follows the header */
 }
 
 /** Helper type to determine what the data format of a message should look like */
@@ -68,12 +69,12 @@ enum BalObj_msg_dir
 message BalObj
 {
     Bal_comm_msg_hdr     comm_hdr = 1;      /**< Communication header */
-    uint32    version = 2;       /**< Version of the Object definition/messageure */
-    BalObjId        obj_type = 3;      /**< An enumerated ID associated with the object being specified */
-    Bal_mgt_group     group = 4;         /**< Management group */
-    uint32             subgroup = 5;      /**< Subgroup for indications */
-    BalObj_msg_type  type = 6;          /**< Type (e.g. get / set / clear)  */
-    BalObj_msg_dir   dir = 7;           /**< Direction - request / response */
-    BalErrno		     status = 8;        /**< BAL status code (BCM_ERR_OK–success, error code otherwise) */
-    uint64 presence_mask = 9; /**< Indicates which attribute parameters are present */
+    uint32               om_version = 2;    /**< Version of the Object Model definition/messageure */
+    BalObjId             obj_type = 3;      /**< An enumerated ID associated with the object being specified */
+    Bal_mgt_group        group = 4;         /**< Management group */
+    uint32               subgroup = 5;      /**< Subgroup for indications */
+    BalObj_msg_type      type = 6;          /**< Type (e.g. get / set / clear)  */
+    BalObj_msg_dir       dir = 7;           /**< Direction - request / response */
+    BalErrno		 status = 8;        /**< BAL status code (BCM_ERR_OK–success, error code otherwise) */
+    uint64               presence_mask = 9; /**< Indicates which attribute parameters are present */
 }
