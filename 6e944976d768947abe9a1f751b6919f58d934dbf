@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a1a2d67_ade39132",
+        "filename": "cli/main.py",
+        "patchSetId": 10
+      },
+      "lineNbr": 368,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-07-29T01:43:09Z",
+      "side": 1,
+      "message": "Please move all of the device specific code to device.py.",
+      "range": {
+        "startLine": 368,
+        "startChar": 8,
+        "endLine": 368,
+        "endChar": 19
+      },
+      "revId": "6e944976d768947abe9a1f751b6919f58d934dbf",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
