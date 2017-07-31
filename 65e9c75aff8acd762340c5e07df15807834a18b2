@@ -72,6 +72,24 @@
     },
     {
       "key": {
+        "uuid": "1a1a2d67_0d3f2527",
+        "filename": "voltha/adapters/simulated_olt/simulated_olt.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 259,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-07-31T10:59:57Z",
+      "side": 1,
+      "message": "Ok. So, in this case since we are getting a random choice, the device doesn\u0027t move to ENABLED state unless the choice results in DOWNLOAD_SUCCEEDED. May be ok for the simulated adapter.. I will let Khen or others comments. I am Ok.",
+      "parentUuid": "1a1a2d67_390c6794",
+      "revId": "65e9c75aff8acd762340c5e07df15807834a18b2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5a202591_ca8fcf74",
         "filename": "voltha/core/device_agent.py",
         "patchSetId": 7
@@ -136,6 +154,24 @@
       "side": 1,
       "message": "Those are non-blocking calls. The caller doesn\u0027t expect to wait for async event, so get_image_download_status and cancel_image_download are not needed to be inlineCallbacks",
       "parentUuid": "5a202591_0a96e794",
+      "revId": "65e9c75aff8acd762340c5e07df15807834a18b2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a1a2d67_adc4b15f",
+        "filename": "voltha/core/device_agent.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 132,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-07-31T10:59:57Z",
+      "side": 1,
+      "message": "ok",
+      "parentUuid": "1a1a2d67_1911abac",
       "revId": "65e9c75aff8acd762340c5e07df15807834a18b2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
