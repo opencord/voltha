@@ -99,12 +99,9 @@ jenkins : protos jenkins-containers
 
 jenkins-containers: docker-base voltha chameleon ofagent netconf consul registrator
 
-prod-containers: docker-base voltha chameleon ofagent netconf shovel dashd vcli grafana consul registrator golang envoyd envoy
+prod-containers: docker-base voltha chameleon ofagent netconf shovel dashd vcli grafana consul registrator golang envoyd envoy fluentd
 
-containers: docker-base voltha chameleon ofagent podder netconf shovel onos tester config-push dashd vcli portainer grafana nginx consul registrator tools golang envoyd envoy
-prod-containers: docker-base voltha chameleon ofagent netconf shovel dashd vcli grafana consul registrator envoy registry fluentd
-
-containers: docker-base voltha chameleon ofagent podder netconf shovel onos tester config-push dashd vcli portainer grafana nginx consul registrator tools envoy fluentd
+containers: docker-base voltha chameleon ofagent podder netconf shovel onos tester config-push dashd vcli portainer grafana nginx consul registrator tools golang envoyd envoy fluentd
 
 docker-base:
 	docker build -t cord/voltha-base -f docker/Dockerfile.base .
