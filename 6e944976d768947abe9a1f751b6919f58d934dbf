@@ -22,6 +22,23 @@
       "revId": "6e944976d768947abe9a1f751b6919f58d934dbf",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a1a2d67_2d5f8174",
+        "filename": "voltha/protos/common.proto",
+        "patchSetId": 10
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-07-31T15:29:28Z",
+      "side": 1,
+      "message": "A more appropriate name would be DOWNLOADING_IMAGE.\n\nAdding a new state implies changes to the state machine (admin_state_fsm).  Please update accordingly.",
+      "revId": "6e944976d768947abe9a1f751b6919f58d934dbf",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
