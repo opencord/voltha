@@ -297,28 +297,33 @@ class XponAgent(object):
         adapter_agent = self.get_device_adapter_agent(device)
         adapter_agent.create_interface(device=device, data=data)
 
+    def remove_interface_in_device(self, device, data):
+        adapter_agent = self.get_device_adapter_agent(device)
+        adapter_agent.remove_interface(device=device, data=data)
+
     def create_interface(self, data, device_id=None):
         if device_id is None:
-            device = self.get_device(data, 'olt')
+            olt_device = self.get_device(data, 'olt')
         else:
-            device = self.core.get_proxy('/').get('/devices/{}'.
-                                                  format(device_id))
+            olt_device = self.core.get_proxy('/').get('/devices/{}'.
+                                                      format(device_id))
         if not self.is_valid_interface(data):
             log.info('xpon-agent-create-interface-invalid-interface-type',
                      type=type(data).__name__)
             return
+        device_id = None if olt_device is None else olt_device.id
         self.register_interface(device_id=device_id,
                                 path=self.get_interface_path(data))
-        if device is not None:
+        if olt_device is not None:
             if(isinstance(data, ChannelterminationConfig)):
-                self.create_channel_termination(device, data)
+                self.create_channel_termination(olt_device, data)
             elif(isinstance(data, VOntaniConfig)):
-                self.create_onu_interfaces(device, data)
+                self.create_onu_interfaces(olt_device, data)
             else:
                 log.info(
                     'xpon-agent-creating-interface-at-olt-device:',
-                    device_id=device_id, data=data)
-                self.create_interface_in_device(device, data)
+                    olt_device_id=olt_device.id, data=data)
+                self.create_interface_in_device(olt_device, data)
                 interface_node = self.interface_stack[type(data)]
                 if interface_node['onu_device_id'] != 'na':
                     onu_device = self.get_device(data, 'onu')
@@ -370,48 +375,58 @@ class XponAgent(object):
 
     def remove_interface(self, data, device_id=None):
         if device_id is None:
-            device = self.get_device(data, 'olt')
+            olt_device = self.get_device(data, 'olt')
         else:
-            device = self.core.get_proxy('/').get('/devices/{}'.
-                                                  format(device_id))
+            olt_device = self.core.get_proxy('/').get('/devices/{}'.
+                                                      format(device_id))
         if not self.is_valid_interface(data):
             log.info('xpon-agent-remove-interface-invalid-interface-type',
                      type=type(data).__name__)
             return
-        if device is not None:
+        if olt_device is not None:
             log.info('xpon-agent-remove-interface:',
-                     device_id=device.id, data=data)
+                     olt_device_id=olt_device.id, data=data)
             if(isinstance(data, ChannelterminationConfig)):
-                self.remove_channel_termination(data, device_id)
+                self.remove_channel_termination(olt_device, data)
             else:
-                adapter_agent = self.get_device_adapter_agent(device)
-                adapter_agent.remove_interface(device=device, data=data)
+                interface_node = self.interface_stack[type(data)]
+                if interface_node['onu_device_id'] != 'na':
+                    onu_device = self.get_device(data, 'onu')
+                    log.info(
+                        'xpon-agent-removing-interface-at-onu-device:',
+                        onu_device_id=onu_device.id, data=data)
+                    self.remove_interface_in_device(onu_device, data)
                 if isinstance(data, VOntaniConfig):
-                    self.delete_onu_device(device=device, v_ont_ani=data)
+                    self.delete_onu_device(olt_device, onu_device)
+                log.info(
+                    'xpon-agent-removing-interface-at-olt-device:',
+                    olt_device_id=olt_device.id, data=data)
+                self.remove_interface_in_device(olt_device, data)
 
-    def create_channel_termination(self, device, data):
+    def create_channel_termination(self, olt_device, data):
         channel_pair = self.get_parent_data(data)
         channel_part = self.get_parent_data(channel_pair)
         channel_group = self.get_parent_data(channel_part)
         if channel_group is not None:
             log.info('xpon-agent-creating-channel-group',
-                     device_id=device.id, channel_group=channel_group)
-            self.create_interface_in_device(device, channel_group)
+                     olt_device_id=olt_device.id, channel_group=channel_group)
+            self.create_interface_in_device(olt_device, channel_group)
         if channel_part is not None:
             log.info('xpon-agent-creating-channel-partition:',
-                     device_id=device.id, channel_part=channel_part)
-            self.create_interface_in_device(device, channel_part)
+                     olt_device_id=olt_device.id, channel_part=channel_part)
+            self.create_interface_in_device(olt_device, channel_part)
         if channel_pair is not None:
             log.info('xpon-agent-creating-channel-pair:',
-                     device_id=device.id, channel_pair=channel_pair)
-            self.create_interface_in_device(device, channel_pair)
+                     olt_device_id=olt_device.id, channel_pair=channel_pair)
+            self.create_interface_in_device(olt_device, channel_pair)
         log.info('xpon-agent-creating-channel-termination:',
-                 device_id=device.id, data=data)
-        self.create_interface_in_device(device, data)
+                 olt_device_id=olt_device.id, data=data)
+        self.create_interface_in_device(olt_device, data)
+        if channel_pair is None:
+            return
         v_ont_anis = self.core.get_proxy('/').get('/v_ont_anis')
         for v_ont_ani in v_ont_anis:
-            olt_device = self.get_device(v_ont_ani, 'olt')
-            if olt_device.id == device.id:
+            if self.get_link_data(v_ont_ani, 'olt').name == channel_pair.name:
                 self.create_onu_interfaces(olt_device, v_ont_ani)
 
     def create_onu_interfaces(self, olt_device, data):
@@ -453,63 +468,75 @@ class XponAgent(object):
             log.info(
                 'xpon-agent-create-onu-interfaces-no-ont-ani-link-exists')
 
-    def remove_channel_termination(self, data, device_id):
-        device = self.core.get_proxy('/').get('/devices/{}'.format(device_id))
-        adapter_agent = self.get_device_adapter_agent(device)
+    def remove_channel_termination(self, olt_device, data):
         channel_pair = self.get_parent_data(data)
         if channel_pair is None:
             log.info(
                 'xpon-agent-removing-channel-termination:',
-                device_id=device_id, data=data)
-            adapter_agent.remove_interface(device=device, data=data)
+                olt_device_id=olt_device.id, data=data)
+            self.remove_interface_in_device(olt_device, data)
             return
-        v_ont_anis = self.core.get_proxy('/').get('/v_ont_anis')
-        for v_ont_ani in v_ont_anis:
-            if self.get_link_data(v_ont_ani, 'olt').name == channel_pair.name:
-                v_enets = self.core.get_proxy('/').get('/v_enets')
-                for v_enet in v_enets:
-                    if self.get_parent_data(v_enet).name == v_ont_ani.name:
-                        log.info(
-                            'xpon-agent-removing-v-enet:',
-                            device_id=device_id, data=v_enet)
-                        adapter_agent.remove_interface(device=device,
-                                                       data=v_enet)
-                try:
-                    ont_ani = self.core.get_proxy('/').get(
-                        '/ont_anis/{}'.format(v_ont_ani.name))
-                    log.info(
-                        'xpon-agent-removing-ont-ani:',
-                        device_id=device_id, data=ont_ani)
-                    adapter_agent.remove_interface(device=device, data=ont_ani)
-                except KeyError:
-                    log.info(
-                    'xpon-agent-remove-channel-termination-ont-ani-not-found')
-                log.info(
-                    'xpon-agent-removing-vont-ani:',
-                    device_id=device_id, data=v_ont_ani)
-                adapter_agent.remove_interface(device=device, data=v_ont_ani)
-                self.delete_onu_device(device=device, v_ont_ani=v_ont_ani)
+        self.remove_onu_interfaces(olt_device, channel_pair)
         log.info(
             'xpon-agent-removing-channel-termination:',
-            device_id=device_id, data=data)
-        adapter_agent.remove_interface(device=device, data=data)
+            olt_device_id=olt_device.id, data=data)
+        self.remove_interface_in_device(olt_device, data)
         log.info(
             'xpon-agent-removing-channel-pair:',
-            device_id=device_id, data=channel_pair)
-        adapter_agent.remove_interface(device=device, data=channel_pair)
+            olt_device_id=olt_device.id, data=channel_pair)
+        self.remove_interface_in_device(olt_device, channel_pair)
         channel_partition = self.get_parent_data(channel_pair)
         if channel_partition is not None:
             log.info(
                 'xpon-agent-removing-channel-partition:',
-                device_id=device_id, data=channel_partition)
-            adapter_agent.remove_interface(device=device,
-                                           data=channel_partition)
+                olt_device_id=olt_device.id, data=channel_partition)
+            self.remove_interface_in_device(olt_device, channel_partition)
         channel_group = self.get_parent_data(channel_partition)
         if channel_group is not None:
             log.info(
                 'xpon-agent-removing-channel-group:',
-                device_id=device_id, data=channel_group)
-            adapter_agent.remove_interface(device=device, data=channel_group)
+                olt_device_id=olt_device.id, data=channel_group)
+            self.remove_interface_in_device(olt_device, channel_group)
+
+    def remove_onu_interfaces(self, olt_device, data):
+        v_ont_anis = self.core.get_proxy('/').get('/v_ont_anis')
+        for v_ont_ani in v_ont_anis:
+            if self.get_link_data(v_ont_ani, 'olt').name == data.name:
+                onu_device = self.get_device(v_ont_ani, 'onu')
+                v_enets = self.core.get_proxy('/').get('/v_enets')
+                for v_enet in v_enets:
+                    if self.get_parent_data(v_enet).name == v_ont_ani.name:
+                        log.info(
+                            'xpon-agent-removing-v-enet-at-onu-device:',
+                            onu_device_id=onu_device.id, data=v_enet)
+                        self.remove_interface_in_device(onu_device, v_enet)
+                        log.info(
+                            'xpon-agent-removing-v-enet-at-olt-device:',
+                            olt_device_id=olt_device.id, data=v_enet)
+                        self.remove_interface_in_device(olt_device, v_enet)
+                try:
+                    ont_ani = self.core.get_proxy('/').get(
+                        '/ont_anis/{}'.format(v_ont_ani.name))
+                    log.info(
+                        'xpon-agent-removing-ont-ani-at-onu-device:',
+                        onu_device_id=onu_device.id, data=ont_ani)
+                    self.remove_interface_in_device(onu_device, ont_ani)
+                    log.info(
+                        'xpon-agent-removing-ont-ani-at-olt-device:',
+                        olt_device_id=olt_device.id, data=ont_ani)
+                    self.remove_interface_in_device(olt_device, ont_ani)
+                except KeyError:
+                    log.info(
+                    'xpon-agent-remove-channel-termination-ont-ani-not-found')
+                log.info(
+                    'xpon-agent-removing-v-ont-ani-at-onu-device:',
+                    onu_device_id=onu_device.id, data=v_ont_ani)
+                self.remove_interface_in_device(onu_device, v_ont_ani)
+                log.info(
+                    'xpon-agent-removing-v-ont-ani-at-olt-device:',
+                    olt_device_id=olt_device.id, data=v_ont_ani)
+                self.remove_interface_in_device(olt_device, v_ont_ani)
+                self.delete_onu_device(olt_device, onu_device)
 
     def replay_interface(self, device_id):
         self.inReplay = True
@@ -548,12 +575,9 @@ class XponAgent(object):
                                            else AdminState.DISABLED)
         return
 
-    def delete_onu_device(self, device, v_ont_ani):
-        log.info('delete-onu-device', device_id=device.id, v_ont_ani=v_ont_ani)
-        adapter_agent = self.get_device_adapter_agent(device)
-        onu_device = adapter_agent.get_child_device(
-            parent_device_id=device.id,
-            serial_number=v_ont_ani.data.expected_serial_number)
-        if onu_device is not None:
-            adapter_agent.delete_child_device(device.id, onu_device.id)
+    def delete_onu_device(self, olt_device, onu_device):
+        log.info('delete-onu-device', olt_device_id=olt_device.id,
+                 onu_device_id=onu_device.id)
+        adapter_agent = self.get_device_adapter_agent(olt_device)
+        adapter_agent.delete_child_device(olt_device.id, onu_device.id)
         return
