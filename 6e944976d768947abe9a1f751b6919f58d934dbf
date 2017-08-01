@@ -99,6 +99,24 @@
       "revId": "6e944976d768947abe9a1f751b6919f58d934dbf",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a1a2d67_28b52fcd",
+        "filename": "voltha/protos/common.proto",
+        "patchSetId": 10
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-08-01T16:31:40Z",
+      "side": 1,
+      "message": "I have added the following states:\n\n(AdminState.PREPROVISIONED, AdminState.DOWNLOADING_IMAGE): False,\n\n (AdminState.DISABLED, AdminState.DOWNLOADING_IMAGE): False,\n\n(AdminState.DOWNLOADING_IMAGE, AdminState.DISABLED): False --\u003e this is to prevent reboot request sent to device during downloading image, as user would have to set device admin state to disable before reboot. This check is not currently in RebootDevice, I can add that in.\n\nFor (AdminState.ENABLED, AdminState.DOWNLOADING_IMAGE) would be a no-op.",
+      "parentUuid": "1a1a2d67_c8c7db63",
+      "revId": "6e944976d768947abe9a1f751b6919f58d934dbf",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
