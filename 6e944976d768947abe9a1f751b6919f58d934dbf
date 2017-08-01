@@ -117,6 +117,24 @@
       "revId": "6e944976d768947abe9a1f751b6919f58d934dbf",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a1a2d67_48e74be5",
+        "filename": "voltha/protos/common.proto",
+        "patchSetId": 10
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-08-01T17:31:56Z",
+      "side": 1,
+      "message": "Ok, thanks.  Please add the check in rebootdevice.  Also, i have not see the state changes in the latest submit.",
+      "parentUuid": "1a1a2d67_28b52fcd",
+      "revId": "6e944976d768947abe9a1f751b6919f58d934dbf",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
