@@ -49,6 +49,18 @@
   when: target == "cluster"
   tags: [voltha]
 
+- name: Insecure registry is configured and permitted
+  synchronize:
+    src: "/home/vinstall/daemon.json"
+    dest: /etc/docker/
+    archive: no
+    owner: no
+    perms: no
+    recursive: no
+    links: yes
+  when: target == "cluster"
+  tags: [voltha]
+
 - name: Configuration directories are owned by voltha
   file:
     path: "{{ target_voltha_dir }}/{{ item }}"
@@ -99,6 +111,11 @@
   tags: [voltha]
 - name: Docker images are re-tagged to expected names
   command: docker tag {{ docker_registry }}/{{ item }} {{ item }}
+  with_items: "{{ voltha_containers }}"
+  when: target == "cluster"
+  tags: [voltha]
+- name: Docker images are re-tagged to cluster registry names
+  command: docker tag {{ docker_registry }}/{{ item }} {{ inventory_hostname }}:5001/{{ item }}
   with_items: "{{ voltha_containers }}"
   when: target == "cluster"
   tags: [voltha]
@@ -159,6 +176,24 @@
 - name: voltha components are started
   command: "{{ target_voltha_dir }}/voltha-swarm-start.sh"
   become: voltha
+  when: target == "startup"
+  tags: [voltha]
+
+- name: cluster specific insecure registry is started
+  command: "docker stack deploy -c {{ target_voltha_dir }}/compose/docker-compose-registry.yml registry"
+  become: voltha
+  when: target == "startup"
+  tags: [voltha]
+
+- name: wait for the cluster startup to settle
+  command: "sleep 15"
+  become: voltha
+  when: target == "startup"
+  tags: [voltha]
+
+- name: Docker containers in the cluster are pushed to the cluster registry
+  command: docker push {{ inventory_hostname }}:5001/{{ item }}
+  with_items: "{{ voltha_containers }}"
   when: target == "startup"
   tags: [voltha]
 

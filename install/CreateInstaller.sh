@@ -108,25 +108,49 @@ fi
 
 # Check to make sure that the vagrant-libvirt network is both defined and started
 echo -e "${lBlue}Verify tha the ${lCyan}vagrant-libvirt${lBlue} network is defined and started${NC}"
-virsh net-list | grep "vagrant-libvirt" > /dev/null
+virsh net-list --all | grep "vagrant-libvirt" > /dev/null
 rtrn=$?
 if [ $rtrn -eq 1 ]; then
-	# The network isn't running, check if it's defined
-	virsh net-list --all | grep "vagrant-libvirt" > /dev/null
+	# Not defined
+	echo -e "${lBlue}Defining the ${lCyan}vagrant-libvirt${lBlue} network${NC}"
+	virsh net-define vagrant-libvirt.xml
+	echo -e "${lBlue}Starting the ${lCyan}vagrant-libvirt${lBlue} network${NC}"
+	virsh net-start vagrant-libvirt
+else
+	virsh net-list | grep "vagrant-libvirt" > /dev/null
 	rtrn=$?
 	if [ $rtrn -eq 1 ]; then
-		# Not defined either
-		echo -e "${lBlue}Defining the ${lCyan}vagrant-libvirt${lBlue} network${NC}"
-		virsh net-define vagrant-libvirt.xml
-		echo -e "${lBlue}Starting the ${lCyan}vagrant-libvirt${lBlue} network${NC}"
-		virsh net-start vagrant-libvirt
-	else
 		# Defined but not started
 		echo -e "${lBlue}Starting the ${lCyan}vagrant-libvirt${lBlue} network${NC}"
 		virsh net-start vagrant-libvirt
+
+	else
+		# Defined and running
+		echo -e "${lBlue}The ${lCyan}vagrant-libvirt${lBlue} network is ${green} running${NC}"
 	fi
+fi
+
+# Check that the default storage pool exists and create it if it doesn't
+virsh pool-list --all | grep default > /dev/null
+rtrn=$?
+if [ $rtrn -eq 1 ]; then
+	# Not defined
+	echo -e "${lBlue}Defining the ${lCyan}defaul${lBlue} storage pool${NC}"
+	virsh pool-define-as --name default --type dir --target /var/lib/libvirt/images/
+	virsh pool-autostart default
+	echo -e "${lBlue}Starting the ${lCyan}defaul${lBlue} storage pool${NC}"
+	virsh pool-start default
 else
-	echo -e "${lBlue}The ${lCyan}vagrant-libvirt${lBlue} network is ${green} running${NC}"
+	virsh pool-list | grep default > /dev/null
+	rtrn=$?
+	if [ $rtrn -eq 1 ]; then
+		# Defined but not started
+		echo -e "${lBlue}Starting the ${lCyan}defaul${lBlue} storage pool${NC}"
+		virsh pool-start default
+	else
+		# Defined and running
+		echo -e "${lBlue}The ${lCyan}default${lBlue} storage pool ${green} running${NC}"
+	fi
 fi
 
 

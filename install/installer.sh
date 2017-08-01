@@ -129,6 +129,22 @@ do
 
 done
 
+# Create the daemon.json file for the swarm
+echo "{" > daemon.json
+echo -n '  "insecure-registries" : [' >> daemon.json
+first=""
+for i in .keys/*
+do
+	if [ -z "$first" ]; then
+		echo -n '"'`basename $i`':5001"' >> daemon.json
+		first="not"
+	else
+		echo -n ' , "'`basename $i`':5001"' >> daemon.json
+	fi
+done
+echo "]" >> daemon.json
+echo "}" >> daemon.json
+unset first
 
 # Running ansible
 echo -e "${lBlue}Running ansible${NC}"

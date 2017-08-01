@@ -77,15 +77,14 @@
     links: yes
   tags: [cluster_host]
 
-- name: pre-emptive strike to avoid errors during package installation
-  apt:
-    name: "{{ item }}"
-    state: absent
-  with_items:
-    - ubuntu-core-launcher
-    - snapd
-  tags: [cluster_host]
-
+#- name: pre-emptive strike to avoid errors during package installation
+#  apt:
+#    name: "{{ item }}"
+#    state: absent
+#  with_items:
+#    - ubuntu-core-launcher
+#    - snapd
+#  tags: [cluster_host]
 - name: A fluentd directory under tmp for voltha logs exists
   file:
     path: "/tmp/fluentd"
