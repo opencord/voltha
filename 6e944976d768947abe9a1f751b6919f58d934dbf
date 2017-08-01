@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "1a1a2d67_2881af4a",
+        "filename": "cli/main.py",
+        "patchSetId": 10
+      },
+      "lineNbr": 368,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-08-01T06:27:18Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "1a1a2d67_ade39132",
+      "range": {
+        "startLine": 368,
+        "startChar": 8,
+        "endLine": 368,
+        "endChar": 19
+      },
+      "revId": "6e944976d768947abe9a1f751b6919f58d934dbf",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1a1a2d67_2d5f8174",
         "filename": "voltha/protos/common.proto",
         "patchSetId": 10
@@ -36,6 +60,24 @@
       "writtenOn": "2017-07-31T15:29:28Z",
       "side": 1,
       "message": "A more appropriate name would be DOWNLOADING_IMAGE.\n\nAdding a new state implies changes to the state machine (admin_state_fsm).  Please update accordingly.",
+      "revId": "6e944976d768947abe9a1f751b6919f58d934dbf",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a1a2d67_0896f394",
+        "filename": "voltha/protos/common.proto",
+        "patchSetId": 10
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-08-01T06:27:18Z",
+      "side": 1,
+      "message": "Done changing to DOWNLOADING_IMAGE.\n\nSince the admin_state_fsm is called as post update callback of device object, the admin_state_fsm functions are pertaining to device object only. In my situation, I need download_image object as function input parameter so I used post update callback of download_image instead. Therefore admin_state_fsm from ENABLE to DOWNLOADING_IMAGE is no-op.",
+      "parentUuid": "1a1a2d67_2d5f8174",
       "revId": "6e944976d768947abe9a1f751b6919f58d934dbf",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
