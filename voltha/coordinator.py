@@ -337,7 +337,7 @@ class Coordinator(object):
             # Set a timeout timer (~ 2 secs) - should be more than
             # enough to renew a session
             rcvd = DeferredWithTimeout(timeout=self.session_renewal_timeout)
-            yield _renew_session(rcvd)
+            _renew_session(rcvd)
             try:
                 _ = yield rcvd
             except TimeOutError as e:
