@@ -259,6 +259,40 @@
     },
     {
       "key": {
+        "uuid": "fa3479d7_15b056f3",
+        "filename": "voltha/adapters/asfvolt16_olt/protos/bal_indications.proto",
+        "patchSetId": 3
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-08-02T23:24:41Z",
+      "side": 1,
+      "message": "Could you add a comment explaining the purpose of this field.",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa3479d7_558dbe30",
+        "filename": "voltha/core/xpon_agent.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 298,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-08-02T23:24:41Z",
+      "side": 1,
+      "message": "line too long",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fa3479d7_f54a7226",
         "filename": "voltha/protos/bbf_fiber_v_ontani_body.proto",
         "patchSetId": 3
@@ -270,6 +304,30 @@
       "writtenOn": "2017-08-02T22:47:56Z",
       "side": 1,
       "message": "What is the reason for changing the tag numbers?",
+      "range": {
+        "startLine": 8,
+        "startChar": 15,
+        "endLine": 8,
+        "endChar": 33
+      },
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa3479d7_15873611",
+        "filename": "voltha/protos/bbf_fiber_v_ontani_body.proto",
+        "patchSetId": 3
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-08-02T23:24:41Z",
+      "side": 1,
+      "message": "Better to add new fields at the end so that tag numbering is backward compatible.",
+      "parentUuid": "fa3479d7_f54a7226",
       "range": {
         "startLine": 8,
         "startChar": 15,
