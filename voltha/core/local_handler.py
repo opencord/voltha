@@ -570,7 +570,8 @@ class LocalHandler(VolthaLocalServiceServicer):
     # bbf_fiber rpcs start
     @twisted_async
     def GetAllChannelgroupConfig(self, request, context):
-        return self.core.xpon_handler.get_all_channel_group_config(request, context)
+        return self.core.xpon_handler.get_all_channel_group_config(
+            request, context)
 
     @twisted_async
     def CreateChannelgroup(self, request, context):
@@ -586,23 +587,28 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def GetAllChannelpartitionConfig(self, request, context):
-        return self.core.xpon_handler.get_all_channel_partition_config(request, context)
+        return self.core.xpon_handler.get_all_channel_partition_config(
+            request, context)
 
     @twisted_async
     def CreateChannelpartition(self, request, context):
-        return self.core.xpon_handler.create_channel_partition(request, context)
+        return self.core.xpon_handler.create_channel_partition(
+            request, context)
 
     @twisted_async
     def UpdateChannelpartition(self, request, context):
-        return self.core.xpon_handler.update_channel_partition(request, context)
+        return self.core.xpon_handler.update_channel_partition(
+            request, context)
 
     @twisted_async
     def DeleteChannelpartition(self, request, context):
-        return self.core.xpon_handler.delete_channel_partition(request, context)
+        return self.core.xpon_handler.delete_channel_partition(
+            request, context)
 
     @twisted_async
     def GetAllChannelpairConfig(self, request, context):
-        return self.core.xpon_handler.get_all_channel_pair_config(request, context)
+        return self.core.xpon_handler.get_all_channel_pair_config(
+            request, context)
 
     @twisted_async
     def CreateChannelpair(self, request, context):
@@ -618,19 +624,23 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def GetAllChannelterminationConfig(self, request, context):
-        return self.core.xpon_handler.get_all_channel_termination_config(request, context)
+        return self.core.xpon_handler.get_all_channel_termination_config(
+            request, context)
 
     @twisted_async
     def CreateChanneltermination(self, request, context):
-        return self.core.xpon_handler.create_channel_termination(request, context)
+        return self.core.xpon_handler.create_channel_termination(
+            request, context)
 
     @twisted_async
     def UpdateChanneltermination(self, request, context):
-        return self.core.xpon_handler.update_channel_termination(request, context)
+        return self.core.xpon_handler.update_channel_termination(
+            request, context)
 
     @twisted_async
     def DeleteChanneltermination(self, request, context):
-        return self.core.xpon_handler.delete_channel_termination(request, context)
+        return self.core.xpon_handler.delete_channel_termination(
+            request, context)
 
     @twisted_async
     def GetAllOntaniConfig(self, request, context):
@@ -650,7 +660,8 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def GetAllVOntaniConfig(self, request, context):
-        return self.core.xpon_handler.get_all_v_ont_ani_config(request, context)
+        return self.core.xpon_handler.get_all_v_ont_ani_config(
+            request, context)
 
     @twisted_async
     def CreateVOntani(self, request, context):
@@ -679,6 +690,86 @@ class LocalHandler(VolthaLocalServiceServicer):
     @twisted_async
     def DeleteVEnet(self, request, context):
         return self.core.xpon_handler.delete_v_enet(request, context)
+
+    @twisted_async
+    def GetAllTrafficDescriptorProfileData(self, request, context):
+        return AllTrafficDescriptorProfileData()
+
+    @twisted_async
+    def CreateTrafficDescriptorProfileData(self, request, context):
+        return Empty()
+
+    @twisted_async
+    def UpdateTrafficDescriptorProfileData(self, request, context):
+        return Empty()
+
+    @twisted_async
+    def DeleteTrafficDescriptorProfileData(self, request, context):
+        return Empty()
+
+    @twisted_async
+    def GetAllTcontsConfigData(self, request, context):
+        return AllTcontsConfigData()
+
+    @twisted_async
+    def CreateTcontsConfigData(self, request, context):
+        return Empty()
+
+    @twisted_async
+    def UpdateTcontsConfigData(self, request, context):
+        return Empty()
+
+    @twisted_async
+    def DeleteTcontsConfigData(self, request, context):
+        return Empty()
+
+    @twisted_async
+    def GetAllGemportsConfigData(self, request, context):
+        return AllGemportsConfigData()
+
+    @twisted_async
+    def CreateGemportsConfigData(self, request, context):
+        return Empty()
+
+    @twisted_async
+    def UpdateGemportsConfigData(self, request, context):
+        return Empty()
+
+    @twisted_async
+    def DeleteGemportsConfigData(self, request, context):
+        return Empty()
+
+    @twisted_async
+    def GetAllMulticastGemportsConfigData(self, request, context):
+        return AllMulticastGemportsConfigData()
+
+    @twisted_async
+    def CreateMulticastGemportsConfigData(self, request, context):
+        return Empty()
+
+    @twisted_async
+    def UpdateMulticastGemportsConfigData(self, request, context):
+        return Empty()
+
+    @twisted_async
+    def DeleteMulticastGemportsConfigData(self, request, context):
+        return Empty()
+
+    @twisted_async
+    def GetAllMulticastDistributionSetData(self, request, context):
+        return AllMulticastDistributionSetData()
+
+    @twisted_async
+    def CreateMulticastDistributionSetData(self, request, context):
+        return Empty()
+
+    @twisted_async
+    def UpdateMulticastDistributionSetData(self, request, context):
+        return Empty()
+
+    @twisted_async
+    def DeleteMulticastDistributionSetData(self, request, context):
+        return Empty()
     # bbf_fiber rpcs end
 
     def StreamPacketsOut(self, request_iterator, context):
