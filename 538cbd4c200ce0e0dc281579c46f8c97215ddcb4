@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "fa3479d7_d56e4e96",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-08-02T23:08:38Z",
+      "side": 1,
+      "message": "line too long",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fa3479d7_95ba0609",
         "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
         "patchSetId": 3
@@ -53,6 +70,24 @@
     },
     {
       "key": {
+        "uuid": "fa3479d7_350fdae3",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 224,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-08-02T23:08:38Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "fa3479d7_d5476e1c",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fa3479d7_15cf36b2",
         "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
         "patchSetId": 3
@@ -87,6 +122,40 @@
     },
     {
       "key": {
+        "uuid": "fa3479d7_155df6e9",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 272,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-08-02T23:08:38Z",
+      "side": 1,
+      "message": "remove semi-colon",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa3479d7_f5715278",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 276,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-08-02T23:08:38Z",
+      "side": 1,
+      "message": "remove semi-colon",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fa3479d7_d5d9ae84",
         "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
         "patchSetId": 3
@@ -115,6 +184,57 @@
       "writtenOn": "2017-08-02T22:47:04Z",
       "side": 1,
       "message": "Same comment as above.",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa3479d7_b5f06aca",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_rx_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 92,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-08-02T23:08:38Z",
+      "side": 1,
+      "message": "See comment below?",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa3479d7_d5e3ee03",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_rx_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 103,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-08-02T23:08:38Z",
+      "side": 1,
+      "message": "Why are we assuming that the indication is from a Broadcom ONU (_vendor_id \u003d 425243D)? Can we define these vendor ids in a global place (as a dict) so that the code readability is improved.",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa3479d7_55bffed0",
+        "filename": "voltha/adapters/asfvolt16_olt/bal.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 117,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-08-02T23:08:38Z",
+      "side": 1,
+      "message": "Isnt the registration id unique for each ONU? If so, better not to hardcode it this way.",
       "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
