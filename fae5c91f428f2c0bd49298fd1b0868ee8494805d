@@ -34,6 +34,24 @@
       "revId": "fae5c91f428f2c0bd49298fd1b0868ee8494805d",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa3479d7_f23e0829",
+        "filename": "voltha/adapters/ponsim_onu/ponsim_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 58,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-02T16:00:42Z",
+      "side": 1,
+      "message": "Thanks for the reply. \nMy query is generic. Is not required for the all adapter to check its operational state and connection status before processing interface detail.\nIf answer is yes. Can we check in xpon_agent.py(create_interface_in_device) so that it is by default available to all adapter.",
+      "parentUuid": "fa3479d7_d2f42489",
+      "revId": "fae5c91f428f2c0bd49298fd1b0868ee8494805d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
