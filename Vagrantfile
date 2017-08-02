@@ -51,6 +51,10 @@ Vagrant.configure(2) do |config|
     d.vm.provider Provider do |v|
       v.memory = 6144
       v.cpus = 4
+      if settings['vProvider'] == "KVM"
+          v.cpu_mode = 'host-passthrough'
+          v.cpu_fallback = 'allow'
+      end
     end
   end
 
