@@ -15,7 +15,7 @@ services:
 
     # Deploy to all docker manager nodes
     deploy:
-      mode: global
+      replicas: 3
       placement:
         constraints:
           - node.role == manager
