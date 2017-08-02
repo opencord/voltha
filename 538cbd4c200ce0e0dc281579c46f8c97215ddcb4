@@ -36,6 +36,24 @@
     },
     {
       "key": {
+        "uuid": "fa3479d7_f5e6f215",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 220,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-08-02T23:12:38Z",
+      "side": 1,
+      "message": "This check for 65536 needs some comments in the code.  It is not an actual onu_id.  From conversation with Steve Crooks, this code is to deal with discovery and auto-provisioning of ONUs.  When ONU is discovered if the discovered ONU is not already registered in Maple, the ONU discovered indication contains ONU_ID of 65536.  This code avoids trying to re-provision the ONU with a new ONU_ID while an earlier ONU activation was still in progress.\n\nRaghu, please add some comments to this effect.",
+      "parentUuid": "fa3479d7_95ba0609",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fa3479d7_7537a2b1",
         "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
         "patchSetId": 3
