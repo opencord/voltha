@@ -10,6 +10,11 @@ import "bbf_fiber_channeltermination_body.proto";
 import "bbf_fiber_ontani_body.proto";
 import "bbf_fiber_v_ontani_body.proto";
 import "bbf_fiber_v_enet_body.proto";
+import "bbf_fiber_gemport_body.proto";
+import "bbf_fiber_multicast_distribution_set_body.proto";
+import "bbf_fiber_multicast_gemport_body.proto";
+import "bbf_fiber_tcont_body.proto";
+import "bbf_fiber_traffic_descriptor_profile_body.proto";
 
 message ChannelgroupConfig
 {
@@ -113,4 +118,24 @@ message AllVOntaniConfig
 message AllVEnetConfig
 {
 	repeated VEnetConfig v_enet_config = 1 [(voltha.child_node) = {key: "name"}];
+}
+message AllTrafficDescriptorProfileData
+{
+	repeated TrafficDescriptorProfileData traffic_descriptor_profiles = 1 [(voltha.child_node) = {key: "name"}];
+}
+message AllTcontsConfigData
+{
+	repeated TcontsConfigData tconts_config = 1 [(voltha.child_node) = {key: "name"}];
+}
+message AllGemportsConfigData
+{
+	repeated GemportsConfigData gemports_config = 1 [(voltha.child_node) = {key: "name"}];
+}
+message AllMulticastGemportsConfigData
+{
+	repeated MulticastGemportsConfigData multicast_gemports_config = 1 [(voltha.child_node) = {key: "name"}];
+}
+message AllMulticastDistributionSetData
+{
+	repeated MulticastDistributionSetData multicast_distribution_sets = 1 [(voltha.child_node) = {key: "name"}];
 }

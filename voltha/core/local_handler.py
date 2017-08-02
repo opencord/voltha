@@ -679,6 +679,87 @@ class LocalHandler(VolthaLocalServiceServicer):
     @twisted_async
     def DeleteVEnet(self, request, context):
         return self.core.xpon_handler.delete_v_enet(request, context)
+
+    @twisted_async
+    def GetAllTrafficDescriptorProfileData(self, request, context):
+        return AllTrafficDescriptorProfileData()
+
+    @twisted_async
+    def CreateTrafficDescriptorProfileData(self, request, context):
+        return Empty()
+
+    @twisted_async
+    def UpdateTrafficDescriptorProfileData(self, request, context):
+        return Empty()
+
+    @twisted_async
+    def DeleteTrafficDescriptorProfileData(self, request, context):
+        return Empty()
+
+    @twisted_async
+    def GetAllTcontsConfigData(self, request, context):
+        return AllTcontsConfigData()
+
+    @twisted_async
+    def CreateTcontsConfigData(self, request, context):
+        return Empty()
+
+    @twisted_async
+    def UpdateTcontsConfigData(self, request, context):
+        return Empty()
+
+    @twisted_async
+    def DeleteTcontsConfigData(self, request, context):
+        return Empty()
+
+    @twisted_async
+    def GetAllGemportsConfigData(self, request, context):
+        return AllGemportsConfigData()
+
+    @twisted_async
+    def CreateGemportsConfigData(self, request, context):
+        return Empty()
+
+    @twisted_async
+    def UpdateGemportsConfigData(self, request, context):
+        return Empty()
+
+    @twisted_async
+    def DeleteGemportsConfigData(self, request, context):
+        return Empty()
+
+    @twisted_async
+    def GetAllMulticastGemportsConfigData(self, request, context):
+        return AllMulticastGemportsConfigData()
+
+    @twisted_async
+    def CreateMulticastGemportsConfigData(self, request, context):
+        return Empty()
+
+    @twisted_async
+    def UpdateMulticastGemportsConfigData(self, request, context):
+        return Empty()
+
+    @twisted_async
+    def DeleteMulticastGemportsConfigData(self, request, context):
+        return Empty()
+
+    @twisted_async
+    def GetAllMulticastDistributionSetData(self, request, context):
+        return AllMulticastDistributionSetData()
+
+    @twisted_async
+    def CreateMulticastDistributionSetData(self, request, context):
+        return Empty()
+
+    @twisted_async
+    def UpdateMulticastDistributionSetData(self, request, context):
+        return Empty()
+
+    @twisted_async
+    def DeleteMulticastDistributionSetData(self, request, context):
+        return Empty()
+
     # bbf_fiber rpcs end
 
     def StreamPacketsOut(self, request_iterator, context):

@@ -23,6 +23,12 @@ import public "adapter.proto";
 import public "openflow_13.proto";
 import "bbf_fiber.proto";
 import "bbf_fiber_base.proto";
+import "bbf_fiber_gemport_body.proto";
+import "bbf_fiber_multicast_distribution_set_body.proto";
+import "bbf_fiber_multicast_gemport_body.proto";
+import "bbf_fiber_tcont_body.proto";
+import "bbf_fiber_traffic_descriptor_profile_body.proto";
+
 
 option java_package = "org.opencord.voltha";
 option java_outer_classname = "VolthaProtos";
@@ -104,6 +110,16 @@ message VolthaInstance {
     repeated bbf_fiber.VOntaniConfig v_ont_anis = 21 [(child_node) = {key: "name"}];
 
     repeated bbf_fiber.VEnetConfig v_enets = 22 [(child_node) = {key: "name"}];
+    
+    repeated bbf_fiber.TrafficDescriptorProfileData traffic_descriptor_profiles = 23 [(child_node) = {key: "name"}];
+    
+    repeated bbf_fiber.TcontsConfigData tconts = 24 [(child_node) = {key: "name"}];
+
+    repeated bbf_fiber.GemportsConfigData gemports = 25 [(child_node) = {key: "name"}];
+
+    repeated bbf_fiber.MulticastGemportsConfigData multicast_gemports = 26 [(child_node) = {key: "name"}];
+
+    repeated bbf_fiber.MulticastDistributionSetData multicast_distibution_sets = 27 [(child_node) = {key: "name"}];
 }
 
 message VolthaInstances {
@@ -140,6 +156,16 @@ message Voltha {
     repeated bbf_fiber.VOntaniConfig v_ont_anis = 20 [(child_node) = {key: "name"}];
 
     repeated bbf_fiber.VEnetConfig v_enets = 21 [(child_node) = {key: "name"}];
+
+    repeated bbf_fiber.TrafficDescriptorProfileData traffic_descriptor_profiles = 23 [(child_node) = {key: "name"}];
+    
+    repeated bbf_fiber.TcontsConfigData tconts = 24 [(child_node) = {key: "name"}];
+
+    repeated bbf_fiber.GemportsConfigData gemports = 25 [(child_node) = {key: "name"}];
+
+    repeated bbf_fiber.MulticastGemportsConfigData multicast_gemports = 26 [(child_node) = {key: "name"}];
+
+    repeated bbf_fiber.MulticastDistributionSetData multicast_distibution_sets = 27 [(child_node) = {key: "name"}];
 }
 
 // Device Self Test Response
@@ -595,6 +621,141 @@ service VolthaGlobalService {
         };
     }
 
+    // List all Traffic Descriptors Profiles
+    rpc GetAllTrafficDescriptorProfileData(google.protobuf.Empty) returns(bbf_fiber.AllTrafficDescriptorProfileData) {
+        option (google.api.http) = {
+            get: "/api/v1/traffic_descriptor_profiles"
+        };
+    }
+    // Create Traffic Descriptor Profile 
+    rpc CreateTrafficDescriptorProfileData(bbf_fiber.TrafficDescriptorProfileData) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/traffic_descriptor_profiles/{name}"
+            body: "*"
+        };
+    }
+    // Update Traffic Descriptor Profile
+    rpc UpdateTrafficDescriptorProfileData(bbf_fiber.TrafficDescriptorProfileData) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/traffic_descriptor_profiles/{name}/modify"
+            body: "*"
+        };
+    }
+    // Delete Traffic Descriptor Profile
+    rpc DeleteTrafficDescriptorProfileData(bbf_fiber.TrafficDescriptorProfileData) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/api/v1/traffic_descriptor_profiles/{name}/delete"
+        };
+    }
+
+    // List all Tconts
+    rpc GetAllTcontsConfigData(google.protobuf.Empty) returns(bbf_fiber.AllTcontsConfigData) {
+        option (google.api.http) = {
+            get: "/api/v1/tconts"
+        };
+    }
+    // Create Tcont
+    rpc CreateTcontsConfigData(bbf_fiber.TcontsConfigData) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/tconts/{name}"
+            body: "*"
+        };
+    }
+    // Update Tcont
+    rpc UpdateTcontsConfigData(bbf_fiber.TcontsConfigData) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/tconts/{name}/modify"
+            body: "*"
+        };
+    }
+    // Delete Tcont
+    rpc DeleteTcontsConfigData(bbf_fiber.TcontsConfigData) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/api/v1/tconts/{name}/delete"
+        };
+    }
+
+    // List all Gemports
+    rpc GetAllGemportsConfigData(google.protobuf.Empty) returns(bbf_fiber.AllGemportsConfigData) {
+        option (google.api.http) = {
+            get: "/api/v1/gemports"
+        };
+    }
+    // Create Gemport
+    rpc CreateGemportsConfigData(bbf_fiber.GemportsConfigData) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/gemports/{name}"
+            body: "*"
+        };
+    }
+    // Update Gemport
+    rpc UpdateGemportsConfigData(bbf_fiber.GemportsConfigData) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/gemports/{name}/modify"
+            body: "*"
+        };
+    }
+    // Delete Gemport
+    rpc DeleteGemportsConfigData(bbf_fiber.GemportsConfigData) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/api/v1/gemports/{name}/delete"
+        };
+    }
+
+    // List all Multicast Gemports
+    rpc GetAllMulticastGemportsConfigData(google.protobuf.Empty) returns(bbf_fiber.AllMulticastGemportsConfigData) {
+        option (google.api.http) = {
+            get: "/api/v1/multicast_gemports"
+        };
+    }
+    // Create Multicast Gemport
+    rpc CreateMulticastGemportsConfigData(bbf_fiber.MulticastGemportsConfigData) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/multicast_gemports/{name}"
+            body: "*"
+        };
+    }
+    // Update Multicast Gemport
+    rpc UpdateMulticastGemportsConfigData(bbf_fiber.MulticastGemportsConfigData) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/multicast_gemports/{name}/modify"
+            body: "*"
+        };
+    }
+    // Delete Multicast Gemport
+    rpc DeleteMulticastGemportsConfigData(bbf_fiber.MulticastGemportsConfigData) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/api/v1/multicast_gemports/{name}/delete"
+        };
+    }
+
+    // List all Multicast Distribution Sets
+    rpc GetAllMulticastDistributionSetData(google.protobuf.Empty) returns(bbf_fiber.AllMulticastDistributionSetData) {
+        option (google.api.http) = {
+            get: "/api/v1/multicast_distibution_sets"
+        };
+    }
+    // Create Multicast Distribution Set
+    rpc CreateMulticastDistributionSetData(bbf_fiber.MulticastDistributionSetData) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/multicast_distribution_sets/{name}"
+            body: "*"
+        };
+    }
+    // Update Multicast Distribution Set
+    rpc UpdateMulticastDistributionSetData(bbf_fiber.MulticastDistributionSetData) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/multicast_distribution_sets/{name}/modify"
+            body: "*"
+        };
+    }
+    // Delete Multicast Distribution Set
+    rpc DeleteMulticastDistributionSetData(bbf_fiber.MulticastDistributionSetData) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/api/v1/multicast_distribution_sets/{name}/delete"
+        };
+    }
+
     rpc GetImages(ID) returns(Images) {
         option (google.api.http) = {
             get: "/api/v1/devices/{id}/images"
@@ -1002,6 +1163,141 @@ service VolthaLocalService {
     rpc DeleteVEnet(bbf_fiber.VEnetConfig) returns(google.protobuf.Empty) {
         option (google.api.http) = {
             delete: "/api/v1/local/v_enets/{name}/delete"
+        };
+    }
+
+    // List all Traffic Descriptor Profiles
+    rpc GetAllTrafficDescriptorProfileData(google.protobuf.Empty) returns(bbf_fiber.AllTrafficDescriptorProfileData) {
+        option (google.api.http) = {
+            get: "/api/v1/local/traffic_descriptor_profiles"
+        };
+    }
+    // Create Traffic Descriptor Profile 
+    rpc CreateTrafficDescriptorProfileData(bbf_fiber.TrafficDescriptorProfileData) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/traffic_descriptor_profiles/{name}"
+            body: "*"
+        };
+    }
+    // Update Traffic Descriptor Profile
+    rpc UpdateTrafficDescriptorProfileData(bbf_fiber.TrafficDescriptorProfileData) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/traffic_descriptor_profiles/{name}/modify"
+            body: "*"
+        };
+    }
+    // Delete Traffic Descriptor Profile
+    rpc DeleteTrafficDescriptorProfileData(bbf_fiber.TrafficDescriptorProfileData) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/api/v1/local/traffic_descriptor_profiles/{name}/delete"
+        };
+    }
+
+    // List all Tconts
+    rpc GetAllTcontsConfigData(google.protobuf.Empty) returns(bbf_fiber.AllTcontsConfigData) {
+        option (google.api.http) = {
+            get: "/api/v1/local/tconts"
+        };
+    }
+    // Create Tcont
+    rpc CreateTcontsConfigData(bbf_fiber.TcontsConfigData) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/tconts/{name}"
+            body: "*"
+        };
+    }
+    // Update Tcont
+    rpc UpdateTcontsConfigData(bbf_fiber.TcontsConfigData) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/tconts/{name}/modify"
+            body: "*"
+        };
+    }
+    // Delete Tcont
+    rpc DeleteTcontsConfigData(bbf_fiber.TcontsConfigData) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/api/v1/local/tconts/{name}/delete"
+        };
+    }
+
+    // List all Gemports
+    rpc GetAllGemportsConfigData(google.protobuf.Empty) returns(bbf_fiber.AllGemportsConfigData) {
+        option (google.api.http) = {
+            get: "/api/v1/local/gemports"
+        };
+    }
+    // Create Gemport
+    rpc CreateGemportsConfigData(bbf_fiber.GemportsConfigData) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/gemports/{name}"
+            body: "*"
+        };
+    }
+    // Update Gemport
+    rpc UpdateGemportsConfigData(bbf_fiber.GemportsConfigData) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/gemports/{name}/modify"
+            body: "*"
+        };
+    }
+    // Delete Gemport
+    rpc DeleteGemportsConfigData(bbf_fiber.GemportsConfigData) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/api/v1/local/gemports/{name}/delete"
+        };
+    }
+
+    // List all Multicast Gemports
+    rpc GetAllMulticastGemportsConfigData(google.protobuf.Empty) returns(bbf_fiber.AllMulticastGemportsConfigData) {
+        option (google.api.http) = {
+            get: "/api/v1/local/multicast_gemports"
+        };
+    }
+    // Create Multicast Gemport
+    rpc CreateMulticastGemportsConfigData(bbf_fiber.MulticastGemportsConfigData) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/multicast_gemports/{name}"
+            body: "*"
+        };
+    }
+    // Update Multicast Gemport
+    rpc UpdateMulticastGemportsConfigData(bbf_fiber.MulticastGemportsConfigData) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/multicast_gemports/{name}/modify"
+            body: "*"
+        };
+    }
+    // Delete Multicast Gemport
+    rpc DeleteMulticastGemportsConfigData(bbf_fiber.MulticastGemportsConfigData) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/api/v1/local/multicast_gemports/{name}/delete"
+        };
+    }
+
+    // List all Multicast Distribution Sets
+    rpc GetAllMulticastDistributionSetData(google.protobuf.Empty) returns(bbf_fiber.AllMulticastDistributionSetData) {
+        option (google.api.http) = {
+            get: "/api/v1/local/multicast_distibution_sets"
+        };
+    }
+    // Create Multicast Distribution Set
+    rpc CreateMulticastDistributionSetData(bbf_fiber.MulticastDistributionSetData) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/multicast_distribution_sets/{name}"
+            body: "*"
+        };
+    }
+    // Update Multicast Distribution Set
+    rpc UpdateMulticastDistributionSetData(bbf_fiber.MulticastDistributionSetData) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/local/multicast_distribution_sets/{name}/modify"
+            body: "*"
+        };
+    }
+    // Delete Multicast Distribution Set
+    rpc DeleteMulticastDistributionSetData(bbf_fiber.MulticastDistributionSetData) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/api/v1/local/multicast_distribution_sets/{name}/delete"
         };
     }
     // Stream control packets to the dataplane
