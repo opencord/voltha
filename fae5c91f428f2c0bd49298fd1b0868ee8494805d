@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fa3479d7_f24a8826",
+        "filename": "voltha/adapters/ponsim_onu/ponsim_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 58,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-02T05:19:06Z",
+      "side": 1,
+      "message": "I think this check is for the issue \"VOL-353: Add sanity check to verify whether device handler exists for the ONU device\". Along with this is before calling create interface, is not required to check operational state and connection status?",
+      "revId": "fae5c91f428f2c0bd49298fd1b0868ee8494805d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
