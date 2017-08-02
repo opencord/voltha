@@ -2,5 +2,5 @@ syntax = "proto3";
 package bbf_fiber;
 
 message VEnetConfigData {
-	string v_ontani_ref = 1 ;
+    string v_ontani_ref = 1;
 }
