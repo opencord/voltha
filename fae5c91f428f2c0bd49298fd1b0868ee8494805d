@@ -16,6 +16,24 @@
       "revId": "fae5c91f428f2c0bd49298fd1b0868ee8494805d",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa3479d7_d2f42489",
+        "filename": "voltha/adapters/ponsim_onu/ponsim_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 58,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-08-02T15:51:42Z",
+      "side": 1,
+      "message": "Currently, the purpose is not to be able to communicate with ponsim_onu device or forward request to it, but rather to reach here with appropriate interface types and command. This is done by simply printing INFO into log file. When forwarding request happens then it needs to be checked for operational state and connection status. But this is internal to ponsim_onu.",
+      "parentUuid": "fa3479d7_f24a8826",
+      "revId": "fae5c91f428f2c0bd49298fd1b0868ee8494805d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
