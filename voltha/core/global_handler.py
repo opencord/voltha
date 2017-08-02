@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import sys
 import structlog
 from grpc import StatusCode
 from twisted.internet.defer import inlineCallbacks
@@ -32,11 +33,62 @@ from voltha.registry import registry
 from google.protobuf.empty_pb2 import Empty
 from dispatcher import DispatchError
 from voltha.protos import bbf_fiber_base_pb2 as fb
+from voltha.protos.bbf_fiber_base_pb2 import ChannelgroupConfig, \
+    ChannelpartitionConfig, ChannelpairConfig, ChannelterminationConfig, \
+    OntaniConfig, VOntaniConfig, VEnetConfig
+from voltha.protos.bbf_fiber_traffic_descriptor_profile_body_pb2 import \
+    TrafficDescriptorProfileData
+from voltha.protos.bbf_fiber_tcont_body_pb2 import TcontsConfigData
+from voltha.protos.bbf_fiber_gemport_body_pb2 import GemportsConfigData
+from voltha.protos.bbf_fiber_multicast_gemport_body_pb2 import \
+    MulticastGemportsConfigData
+from voltha.protos.bbf_fiber_multicast_distribution_set_body_pb2 import \
+    MulticastDistributionSetData
 
 log = structlog.get_logger()
 
 
 class GlobalHandler(VolthaGlobalServiceServicer):
+
+    xpon_object_type = {
+        'CreateChannelgroup': ChannelgroupConfig,
+        'UpdateChannelgroup': ChannelgroupConfig,
+        'DeleteChannelgroup': ChannelgroupConfig,
+        'CreateChannelpartition': ChannelpartitionConfig,
+        'UpdateChannelpartition': ChannelpartitionConfig,
+        'DeleteChannelpartition': ChannelpartitionConfig,
+        'CreateChannelpair': ChannelpairConfig,
+        'UpdateChannelpair': ChannelpairConfig,
+        'DeleteChannelpair': ChannelpairConfig,
+        'CreateChanneltermination': ChannelterminationConfig,
+        'UpdateChanneltermination': ChannelterminationConfig,
+        'DeleteChanneltermination': ChannelterminationConfig,
+        'CreateVOntani': VOntaniConfig,
+        'UpdateVOntani': VOntaniConfig,
+        'DeleteVOntani': VOntaniConfig,
+        'CreateOntani': OntaniConfig,
+        'UpdateOntani': OntaniConfig,
+        'DeleteOntani': OntaniConfig,
+        'CreateVEnet': VEnetConfig,
+        'UpdateVEnet': VEnetConfig,
+        'DeleteVEnet': VEnetConfig,
+        'CreateTrafficDescriptorProfileData': TrafficDescriptorProfileData,
+        'UpdateTrafficDescriptorProfileData': TrafficDescriptorProfileData,
+        'DeleteTrafficDescriptorProfileData': TrafficDescriptorProfileData,
+        'CreateTcontsConfigData': TcontsConfigData,
+        'UpdateTcontsConfigData': TcontsConfigData,
+        'DeleteTcontsConfigData': TcontsConfigData,
+        'CreateGemportsConfigData': GemportsConfigData,
+        'UpdateGemportsConfigData': GemportsConfigData,
+        'DeleteGemportsConfigData': GemportsConfigData,
+        'CreateMulticastGemportsConfigData': MulticastGemportsConfigData,
+        'UpdateMulticastGemportsConfigData': MulticastGemportsConfigData,
+        'DeleteMulticastGemportsConfigData': MulticastGemportsConfigData,
+        'CreateMulticastDistributionSetData': MulticastDistributionSetData,
+        'UpdateMulticastDistributionSetData': MulticastDistributionSetData,
+        'DeleteMulticastDistributionSetData': MulticastDistributionSetData
+                       }
+
     def __init__(self, dispatcher, instance_id, **init_kw):
         self.dispatcher = dispatcher
         self.instance_id = instance_id
@@ -537,28 +589,8 @@ class GlobalHandler(VolthaGlobalServiceServicer):
     @twisted_async
     @inlineCallbacks
     def CreateChannelgroup(self, request, context):
-        log.info('grpc-request', request=request)
-        try:
-            assert isinstance(request, fb.ChannelgroupConfig)
-            request.id = create_empty_broadcast_id()
-        except AssertionError, e:
-            context.set_details(e.message)
-            context.set_code(StatusCode.INVALID_ARGUMENT)
-            returnValue(fb.ChannelgroupConfig())
-        response = yield self.dispatcher.dispatch(
-            'CreateChannelgroup',
-            request,
-            context,
-            id=request.id,
-            broadcast=True)
-        if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
-            context.set_details('Channelgroup\'{}\' error'.format(request.id))
-            context.set_code(response.error_code)
-            returnValue(fb.ChannelgroupConfig())
-        else:
-            log.info('grpc-success-response', response=response)
-            returnValue(response)
+        _method_name = sys._getframe().f_code.co_name
+        return self.manage_global_xpon_object (request, context, _method_name)
 
     @twisted_async
     @inlineCallbacks
@@ -1171,6 +1203,176 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_details('VEnet \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(fb.VEnetConfig())
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
+
+    @twisted_async
+    @inlineCallbacks
+    def GetAllTrafficDescriptorProfileData(self, request, context):
+        _method_name = sys._getframe().f_code.co_name
+        return self.get_all_global_xpon_object_data (request, context,
+                                                     _method_name)
+
+    @twisted_async
+    @inlineCallbacks
+    def CreateTrafficDescriptorProfileData(self, request, context):
+        _method_name = sys._getframe().f_code.co_name
+        return self.manage_global_xpon_object (request, context,
+                                               _method_name)
+
+    @twisted_async
+    @inlineCallbacks
+    def UpdateTrafficDescriptorProfileData(self, request, context):
+        _method_name = sys._getframe().f_code.co_name
+        return self.manage_global_xpon_object (request, context,
+                                               _method_name)
+
+    @twisted_async
+    @inlineCallbacks
+    def DeleteTrafficDescriptorProfileData(self, request, context):
+        _method_name = sys._getframe().f_code.co_name
+        return self.manage_global_xpon_object (request, context,
+                                               _method_name)
+
+    @twisted_async
+    @inlineCallbacks
+    def GetAllTcontsConfigData(self, request, context):
+        _method_name = sys._getframe().f_code.co_name
+        return self.get_all_global_xpon_object_data (request, context,
+                                                     _method_name)
+
+    @twisted_async
+    @inlineCallbacks
+    def CreateTcontsConfigData(self, request, context):
+        _method_name = sys._getframe().f_code.co_name
+        return self.manage_global_xpon_object (request, context, _method_name)
+
+    @twisted_async
+    @inlineCallbacks
+    def UpdateTcontsConfigData(self, request, context):
+        _method_name = sys._getframe().f_code.co_name
+        return self.manage_global_xpon_object (request, context, _method_name)
+
+    @twisted_async
+    @inlineCallbacks
+    def DeleteTcontsConfigData(self, request, context):
+        _method_name = sys._getframe().f_code.co_name
+        return self.manage_global_xpon_object (request, context, _method_name)
+
+    @twisted_async
+    @inlineCallbacks
+    def GetAllGemportsConfigData(self, request, context):
+        _method_name = sys._getframe().f_code.co_name
+        return self.get_all_global_xpon_object_data (request, context,
+                                                     _method_name)
+
+    @twisted_async
+    @inlineCallbacks
+    def CreateGemportsConfigData(self, request, context):
+        _method_name = sys._getframe().f_code.co_name
+        return self.manage_global_xpon_object (request, context, _method_name)
+
+    @twisted_async
+    @inlineCallbacks
+    def UpdateGemportsConfigData(self, request, context):
+        _method_name = sys._getframe().f_code.co_name
+        return self.manage_global_xpon_object (request, context, _method_name)
+
+    @twisted_async
+    @inlineCallbacks
+    def DeleteGemportsConfigData(self, request, context):
+        _method_name = sys._getframe().f_code.co_name
+        return self.manage_global_xpon_object (request, context, _method_name)
+
+    @twisted_async
+    @inlineCallbacks
+    def GetAllMulticastGemportsConfigData(self, request, context):
+        _method_name = sys._getframe().f_code.co_name
+        return self.get_all_global_xpon_object_data (request, context,
+                                                     _method_name)
+
+    @twisted_async
+    @inlineCallbacks
+    def CreateMulticastGemportsConfigData(self, request, context):
+        _method_name = sys._getframe().f_code.co_name
+        return self.manage_global_xpon_object (request, context, _method_name)
+
+    @twisted_async
+    @inlineCallbacks
+    def UpdateMulticastGemportsConfigData(self, request, context):
+        _method_name = sys._getframe().f_code.co_name
+        return self.manage_global_xpon_object (request, context, _method_name)
+
+    @twisted_async
+    @inlineCallbacks
+    def DeleteMulticastGemportsConfigData(self, request, context):
+        _method_name = sys._getframe().f_code.co_name
+        return self.manage_global_xpon_object (request, context, _method_name)
+
+    @twisted_async
+    @inlineCallbacks
+    def GetAllMulticastDistributionSetData(self, request, context):
+        _method_name = sys._getframe().f_code.co_name
+        return self.get_all_global_xpon_object_data (request, context,
+                                                     _method_name)
+
+    @twisted_async
+    @inlineCallbacks
+    def CreateMulticastDistributionSetData(self, request, context):
+        _method_name = sys._getframe().f_code.co_name
+        return self.manage_global_xpon_object (request, context, _method_name)
+
+    @twisted_async
+    @inlineCallbacks
+    def UpdateMulticastDistributionSetData(self, request, context):
+        _method_name = sys._getframe().f_code.co_name
+        return self.manage_global_xpon_object (request, context, _method_name)
+
+    @twisted_async
+    @inlineCallbacks
+    def DeleteMulticastDistributionSetData(self, request, context):
+        _method_name = sys._getframe().f_code.co_name
+        return self.manage_global_xpon_object (request, context, _method_name)
+
+    def get_all_global_xpon_object_data(self, request, context, method_name):
+        log.info('grpc-request', request=request)
+        response = yield self.dispatcher.dispatch(
+            method_name,
+            Empty(),
+            context,
+            broadcast=True)
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('{}\' error' .format(type(request).__name__))
+            context.set_code(response.error_code)
+            returnValue(Empty())
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
+
+    def manage_global_xpon_object(self, request, context, method_name):
+        log.info('grpc-request', request=request)
+        _xpon_object_type = self.xpon_object_type[method_name]
+        try:
+            assert isinstance(request, _xpon_object_type)
+            request.id = create_empty_broadcast_id()
+        except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            returnValue(_xpon_object_type())
+        response = yield self.dispatcher.dispatch(
+            method_name,
+            request,
+            context,
+            id=request.id,
+            broadcast=True)
+        if isinstance(response, DispatchError):
+            log.info('grpc-error-response', error=response.error_code)
+            context.set_details('{}\'{}\' error'.format(type(request).__name__,
+                                                        request.id))
+            context.set_code(response.error_code)
+            returnValue(_xpon_object_type())
         else:
             log.info('grpc-success-response', response=response)
             returnValue(response)
