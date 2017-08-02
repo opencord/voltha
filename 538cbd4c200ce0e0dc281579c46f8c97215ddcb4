@@ -1,0 +1,123 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fa3479d7_95ba0609",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 220,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-08-02T22:47:04Z",
+      "side": 1,
+      "message": "I presume 65535 is the ONU ID for Broadcom. Better to define this somewhere common as a global dict of vendor:id.",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa3479d7_7537a2b1",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 223,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-08-02T22:47:04Z",
+      "side": 1,
+      "message": "Remove semi-colon",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa3479d7_d5476e1c",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 224,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-08-02T22:47:04Z",
+      "side": 1,
+      "message": "The rest of the code from here on is executed only if the ONU is not Broadcom (onu_id \u003d\u003d 65535). What is the logic? Why the different  handling for broadcom ONU. In theory, we should not have checks here that are ONU vendor specific.",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa3479d7_15cf36b2",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 228,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-08-02T22:47:04Z",
+      "side": 1,
+      "message": "line too long. suggest running flake8 to check compliance with pep8.",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa3479d7_75d0c253",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 243,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-08-02T22:47:04Z",
+      "side": 1,
+      "message": "line too long",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa3479d7_d5d9ae84",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 278,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-08-02T22:47:04Z",
+      "side": 1,
+      "message": "Wrong indentation? Is this method global or does it belong to Asfvolt16Handler class.",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa3479d7_b5e62a43",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 281,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-08-02T22:47:04Z",
+      "side": 1,
+      "message": "Same comment as above.",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
