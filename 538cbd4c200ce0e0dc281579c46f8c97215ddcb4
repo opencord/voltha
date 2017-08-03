@@ -126,6 +126,24 @@
     },
     {
       "key": {
+        "uuid": "fa3479d7_f8126957",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 220,
+      "author": {
+        "id": 1000074
+      },
+      "writtenOn": "2017-08-03T13:35:50Z",
+      "side": 1,
+      "message": "Raghu,\nAgree that you are not doing anything until ONU is provisioned, however, the log text is misleading. If you receive an ONU discovered indication with an ONU ID of 65535 that means the ONU is not provisioned and therefore activation is not in progress. The log should indicate something to the effect \u0027Un-provisioned ONU detected on PON\u0027. If the ONU is properly provisioned the ONU discovered indication should contain the provisioned ONU ID.",
+      "parentUuid": "fa3479d7_f524b2c7",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fa3479d7_7537a2b1",
         "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
         "patchSetId": 3
