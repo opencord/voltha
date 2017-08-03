@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fa3479d7_b81ce16b",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 3
+      },
+      "lineNbr": 121,
+      "author": {
+        "id": 1000067
+      },
+      "writtenOn": "2017-08-03T14:12:59Z",
+      "side": 1,
+      "message": "For readability purpose, Can u put \u003d 23 on the same line as bbf_fiber.TrafficDescriptorProfileData traffic_descriptor_profiles please?",
+      "revId": "e10ca0b431a79b2b14f017ed63ac3858c979b74b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa3479d7_98191d7c",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 3
+      },
+      "lineNbr": 132,
+      "author": {
+        "id": 1000067
+      },
+      "writtenOn": "2017-08-03T14:12:59Z",
+      "side": 1,
+      "message": "Same comment as above. Please add it \u003d 27 on the same line",
+      "revId": "e10ca0b431a79b2b14f017ed63ac3858c979b74b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa3479d7_782679bc",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 3
+      },
+      "lineNbr": 177,
+      "author": {
+        "id": 1000067
+      },
+      "writtenOn": "2017-08-03T14:12:59Z",
+      "side": 1,
+      "message": "Same comment as above",
+      "revId": "e10ca0b431a79b2b14f017ed63ac3858c979b74b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa3479d7_582bb582",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 3
+      },
+      "lineNbr": 189,
+      "author": {
+        "id": 1000067
+      },
+      "writtenOn": "2017-08-03T14:12:59Z",
+      "side": 1,
+      "message": "Same comment as above",
+      "revId": "e10ca0b431a79b2b14f017ed63ac3858c979b74b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
