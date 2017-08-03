@@ -297,6 +297,10 @@ class XponAgent(object):
         adapter_agent = self.get_device_adapter_agent(device)
         adapter_agent.create_interface(device=device, data=data)
 
+    def update_interface_in_device(self, device, data):
+        adapter_agent = self.get_device_adapter_agent(device)
+        adapter_agent.update_interface(device=device, data=data)
+
     def remove_interface_in_device(self, device, data):
         adapter_agent = self.get_device_adapter_agent(device)
         adapter_agent.remove_interface(device=device, data=data)
@@ -338,40 +342,20 @@ class XponAgent(object):
                      type=type(data).__name__)
             return
         if device_id is None:
-            device_id = self.get_device(data, 'olt').id
-        if device_id is not None:
-            device = self.core.get_proxy('/').get('/devices/{}'.
-                                                  format(device_id))
-            adapter_agent = self.get_device_adapter_agent(device)
-            interfaces = []
-            ont_interfaces = []
-            parent_data = self.get_parent_data(data)
-            pre_parent_data = self.get_parent_data(self.preData)
-            if parent_data is not None and pre_parent_data is None:
-                while parent_data is not None:
-                    interfaces.insert(0, parent_data)
-                    parent_data = self.get_parent_data(parent_data)
-
-                for interface in interfaces:
-                    log.info('xpon-agent-creating-interface',
-                             device_id=device_id, data=interface)
-                    self.create_interface_in_device(device, interface)
-                venet_items = self.core.get_proxy('/').get('/v_enets')
-                for venet in venet_items:
-                    if device_id == self.get_device(venet, 'olt').id:
-                        ont_interfaces.insert(0, venet)
-                        parent_data = self.get_parent_data(venet)
-                        while not isinstance(parent_data, ChannelpairConfig):
-                            ont_interfaces.insert(0, parent_data)
-                            parent_data = self.get_parent_data(parent_data)
-                        for ont_interface in ont_interfaces:
-                            log.info('xpon-agent-creating-ont-interface',
-                                     device_id=device_id, data=ont_interface)
-                            self.create_interface_in_device(device,
-                                                            ont_interface)
-            log.info('xpon-agent-updating-interface',
-                     device_id=device_id, data=data)
-            adapter_agent.update_interface(device=device, data=data)
+            olt_device = self.get_device(data, 'olt')
+        else:
+            olt_device = self.core.get_proxy('/').get('/devices/{}'.
+                                                      format(device_id))
+        if olt_device is not None:
+            log.info('xpon-agent-updating-interface-at-olt-device',
+                     olt_device_id=olt_device.id, data=data)
+            self.update_interface_in_device(olt_device, data)
+            interface_node = self.interface_stack[type(data)]
+            if interface_node['onu_device_id'] != 'na':
+                onu_device = self.get_device(data, 'onu')
+                log.info('xpon-agent-updating-interface-at-onu-device:',
+                         onu_device_id=onu_device.id, data=data)
+                self.update_interface_in_device(onu_device, data)
 
     def remove_interface(self, data, device_id=None):
         if device_id is None:
