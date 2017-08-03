@@ -167,6 +167,24 @@
     },
     {
       "key": {
+        "uuid": "fa3479d7_9830fde9",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 220,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-03T15:07:07Z",
+      "side": 1,
+      "message": "Hi Steve,\nHere the discovered ONU means, the ONU which is discovered by OLT and the state of ONU is discovered. Followed the nomenclature as per device state.\nOperStatus.UNKNOWN       : handle_not_started_onu,\nOperStatus.FAILED        : handle_not_started_onu,\nOperStatus.ACTIVATING    : handle_activating_onu,\nOperStatus.ACTIVE        : handle_activated_onu,\nOperStatus.DISCOVERED    : handle_discovered_onu,\n\nFor ONUs which are not provisioned at voltha using cli, we are handling in the function \"handle_subscriber_term_ind\". At first we search the ONU using serial number, wherein if it is provisioned then the appropriate function will be called as per its state. If it is not provisioned then we print a log as \"ONU is not configured\".\n\nBelow are the steps which i followed to test ONU.\n\n\n1) Add ONU using XPON command with admin state down. So in core the ONU device will be created with admin state is pre-provisioned and operation state is UNKNOWN.\n\n2) Activate the OLT,PON port and power on the ONU, the OLT device will send ONU discovery message to adapter(VOLTHA) with ONU ID 65535. In adapter, we are able to obtain the ONU device info using the serial number it will call the function \"handle_not_started_onu\"(since the device operational state is unknown), which in turn triggers the activate ONU function towards the broadcom_onu adapter and sends ONU activate request(BAL) to OLT device. Now the state of the ONU device in VOLTHA is DISCOVERED.\n\n3) When ONU device is in DISCOVERED state, there are chances that the following two messages can arrive:\n\n   a. while processing ONU discovery message by adapter, the OLT would have resend the message and that will be in queue.\n   b. The successful ONU activation response.\n\n4) In case a. (The ONU discovery message in queue), we get the ONU device info using serial number and since the ONU device state is DISCOVERED it will call \"handle_discovered_onu\" and again we check for ONU ID in the message. If it is 65535, it means that its a queued message so ignore it by saying the ONU already discovered and ONU Activation is in progress.\n\n5) In case b. (successful ONU activation), we send inter adapter message to ONU adapter with activation sucessfull \u003d True.",
+      "parentUuid": "fa3479d7_f8126957",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fa3479d7_7537a2b1",
         "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
         "patchSetId": 3
