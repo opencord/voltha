@@ -69,9 +69,15 @@ class Worker(object):
 
     def stop(self):
         log.debug('stopping')
+        self.halted = True
         if isinstance(self.assignment_soak_timer, DelayedCall):
             if not self.assignment_soak_timer.called:
                 self.assignment_soak_timer.cancel()
+
+        if isinstance(self.assignment_core_store_soak_timer, DelayedCall):
+            if not self.assignment_core_store_soak_timer.called:
+                self.assignment_core_store_soak_timer.cancel()
+
         log.info('stopped')
 
     @inlineCallbacks
