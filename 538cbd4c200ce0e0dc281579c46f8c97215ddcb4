@@ -54,6 +54,24 @@
     },
     {
       "key": {
+        "uuid": "fa3479d7_952b2694",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 220,
+      "author": {
+        "id": 1000074
+      },
+      "writtenOn": "2017-08-03T12:48:29Z",
+      "side": 1,
+      "message": "Just want to clarify the above. As Kim indicated when ONU is discovered if the discovered ONU is not already registered in Maple, the ONU discovered indication contains ONU_ID of 65536.\n\nThe code that did auto-discovery and provisioning of ONUs did check for this value, along with the vendor/serial number, to determine if the ONU had already been discovered and an activation in progress.\n\nGiven the move away from auto-provisioning and activation towards provisioning via voltha, an ONU discover message with an ONU ID of 65535 means an ONU was discovered on the PON that has not been provisioned/registered with the Maple (not an ONU with activation already in progress).\n\nHow should we handle ONUs that are discovered on the PON that have not been provisioned? Raise an alarm, throttle the notification, do nothing until provisioned and then activate?",
+      "parentUuid": "fa3479d7_f5e6f215",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fa3479d7_7537a2b1",
         "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
         "patchSetId": 3
