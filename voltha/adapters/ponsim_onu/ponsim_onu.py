@@ -60,6 +60,13 @@ class PonSimOnuAdapter(OnuAdapter):
             if handler is not None:
                 handler.create_interface(data)
 
+    def update_interface(self, device, data):
+        log.info('update-interface', device_id=device.id)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.update_interface(data)
+
     def remove_interface(self, device, data):
         log.info('remove-interface', device_id=device.id)
         if device.id in self.devices_handlers:
@@ -384,6 +391,13 @@ class PonSimOnuHandler(object):
         if interfaceConfig is not None:
             self.log.info(
                 'forwarding-create-interface-request-to-onu-for-intfc-type',
+                interface_type=type(data))
+
+    def update_interface(self, data):
+        interfaceConfig = self.get_interface_config(data)
+        if interfaceConfig is not None:
+            self.log.info(
+                'forwarding-update-interface-request-to-onu-for-intfc-type',
                 interface_type=type(data))
 
     def remove_interface(self, data):

@@ -65,7 +65,8 @@ class XponHandler(object):
             return Empty()
         except ValueError:
             context.set_details(
-                'Duplicated channel group \'{}\' cannot be created'.format(request.name))
+                'Duplicated channel group \'{}\' cannot be created'.format(
+                    request.name))
             context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
 
@@ -108,9 +109,11 @@ class XponHandler(object):
         try:
             assert isinstance(request, ChannelgroupConfig)
             known_channel_group_ref = dict(
-                (dt.data.channelgroup_ref, dt) for dt in self.root.get('/channel_partitions'))
+                (dt.data.channelgroup_ref, dt) for dt in self.root.get(
+                    '/channel_partitions'))
             known_channel_group_ref_1 = dict(
-                (dt.data.channelgroup_ref, dt) for dt in self.root.get('/channel_pairs'))
+                (dt.data.channelgroup_ref, dt) for dt in self.root.get(
+                    '/channel_pairs'))
             reference = "channel partition"
             assert request.name not in known_channel_group_ref
             reference = "channel pair"
@@ -123,7 +126,8 @@ class XponHandler(object):
 
         except AssertionError:
             context.set_details(
-                'The channel group -- \'{}\' is referenced by {}'.format(request.name, reference))
+                'The channel group -- \'{}\' is referenced by {}'.format(
+                    request.name, reference))
             context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
 
@@ -152,7 +156,8 @@ class XponHandler(object):
             return Empty()
         except ValueError:
             context.set_details(
-                'Duplicated channel partition \'{}\' cannot be created'.format(request.name))
+                'Duplicated channel partition \'{}\' cannot be created'.format(
+                    request.name))
             context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
 
@@ -195,9 +200,11 @@ class XponHandler(object):
         try:
             assert isinstance(request, ChannelpartitionConfig)
             known_channel_partition_ref = dict(
-                (dt.data.channelpartition_ref, dt) for dt in self.root.get('/channel_pairs'))
+                (dt.data.channelpartition_ref, dt) for dt in self.root.get(
+                    '/channel_pairs'))
             known_channel_partition_ref_1 = dict(
-                (dt.data.parent_ref, dt) for dt in self.root.get('/v_ont_anis'))
+                (dt.data.parent_ref, dt) for dt in self.root.get(
+                    '/v_ont_anis'))
             reference = "channel pair"
             assert request.name not in known_channel_partition_ref
             reference = "vontani"
@@ -210,7 +217,8 @@ class XponHandler(object):
 
         except AssertionError:
             context.set_details(
-                'The channel partition -- \'{}\' is referenced by {}'.format(request.name, reference))
+                'The channel partition -- \'{}\' is referenced by {}'.format(
+                    request.name, reference))
             context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
 
@@ -239,7 +247,8 @@ class XponHandler(object):
             return Empty()
         except ValueError:
             context.set_details(
-                'Duplicated channel pair \'{}\' cannot be created'.format(request.name))
+                'Duplicated channel pair \'{}\' cannot be created'.format(
+                    request.name))
             context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
 
@@ -285,7 +294,8 @@ class XponHandler(object):
             for device_item in device_items:
                 known_channel_pair_ref = dict(
                     (dt.data.channelpair_ref, dt) for dt in self.root.get(
-                        '/devices/{}/channel_terminations'.format(device_item.id)))
+                        '/devices/{}/channel_terminations'.format(
+                            device_item.id)))
                 assert request.name not in known_channel_pair_ref
             path = '/channel_pairs/{}'.format(request.name)
             log.debug('removing-channel-pair', name=request.name)
@@ -295,7 +305,8 @@ class XponHandler(object):
 
         except AssertionError:
             context.set_details(
-                'The channel pair -- \'{}\' is referenced by channel termination'.format(request.name))
+                'The ch pair -- \'{}\' is referenced by ch termination'.
+                format(request.name))
             context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
 
@@ -349,7 +360,8 @@ class XponHandler(object):
             return Empty()
         except ValueError:
             context.set_details(
-                'Duplicated channel termination \'{}\' cannot be created'.format(request.name))
+                'Duplicated channel termination \'{}\' cannot be created'.
+                format(request.name))
             context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
 
@@ -374,7 +386,8 @@ class XponHandler(object):
             return Empty()
 
         try:
-            path = '/devices/{}/channel_terminations/{}'.format(request.id, request.name)
+            path = '/devices/{}/channel_terminations/{}'.format(
+                request.id, request.name)
             log.debug('updating-channel-termination', name=request.name)
             self.root.update(path, request, strict=True)
             return Empty()
@@ -413,7 +426,8 @@ class XponHandler(object):
             context.set_code(StatusCode.NOT_FOUND)
             return Empty()
         try:
-            path = '/devices/{}/channel_terminations/{}'.format(request.id, request.name)
+            path = '/devices/{}/channel_terminations/{}'.format(
+                request.id, request.name)
         except KeyError:
             context.set_details(
                 'channel termination \'{}\' not found'.format(request.name))
@@ -426,7 +440,8 @@ class XponHandler(object):
 
         except KeyError:
             context.set_details(
-                'Could not delete channel termination \'{}\''.format(request.name))
+                'Could not delete channel termination \'{}\''.format(
+                    request.name))
             context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
 
@@ -453,7 +468,8 @@ class XponHandler(object):
             return Empty()
         except ValueError:
             context.set_details(
-                'Duplicated ontani \'{}\' cannot be created'.format(request.name))
+                'Duplicated ontani \'{}\' cannot be created'.format(
+                    request.name))
             context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
 
@@ -536,7 +552,8 @@ class XponHandler(object):
             return Empty()
         except ValueError:
             context.set_details(
-                'Duplicated vontani \'{}\' cannot be created'.format(request.name))
+                'Duplicated vontani \'{}\' cannot be created'.format(
+                    request.name))
             context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
 
@@ -590,7 +607,8 @@ class XponHandler(object):
 
         except AssertionError:
             context.set_details(
-                'The vont ani -- \'{}\' is referenced by venet'.format(request.name))
+                'The vont ani -- \'{}\' is referenced by venet'.format(
+                    request.name))
             context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
 
@@ -623,7 +641,8 @@ class XponHandler(object):
             return Empty()
         except ValueError:
             context.set_details(
-                'Duplicated venet \'{}\' cannot be created'.format(request.name))
+                'Duplicated venet \'{}\' cannot be created'.format(
+                    request.name))
             context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
 
@@ -690,64 +709,90 @@ class XponHandler(object):
             if(isinstance(request, ChannelgroupConfig)):
                 assert isinstance(request, ChannelgroupConfig)
                 channelgroup = request
-                assert channelgroup.name != '', 'Channel Group name is mandatory'
+                assert channelgroup.name != '', \
+                    'Channel Group name is mandatory'
                 assert 0 <= channelgroup.data.polling_period <= 864000, \
-                    'Channel Group polling period must be in range of [1, 864000]'
+                    'Channel Group polling period must be in range of \
+                    [1, 864000]'
                 return True
             elif(isinstance(request, ChannelpartitionConfig)):
                 assert isinstance(request, ChannelpartitionConfig)
                 channelpartition = request
-                assert channelpartition.name != '', 'Channel Partition name is mandatory'
+                assert channelpartition.name != '', \
+                    'Channel Partition name is mandatory'
 
                 assert channelpartition.data.channelgroup_ref != '', \
                     'Channel Partition must reference a channel group'
-                assert self.get_ref_data(request, context, "channel_groups", request.data.channelgroup_ref), \
-                    'Reference to channel group -- \'{}\' not found'.format(request.data.channelgroup_ref)
+                assert self.get_ref_data(
+                    request, context, "channel_groups",
+                    request.data.channelgroup_ref), \
+                    'Reference to channel group -- \'{}\' not found'.format(
+                        request.data.channelgroup_ref)
 
                 assert 0 <= channelpartition.data.closest_ont_distance <= 40, \
-                    'Channel Partition closest ont distance must be in range of [0, 40]'
+                    'Channel Partition closest ont distance must be in range \
+                    of [0, 40]'
 
-                assert channelpartition.data.differential_fiber_distance == 0 or \
-                    channelpartition.data.differential_fiber_distance == 20 or \
-                    channelpartition.data.differential_fiber_distance == 34 or \
+                assert channelpartition.data.differential_fiber_distance \
+                    == 0 or \
+                    channelpartition.data.differential_fiber_distance == 20 \
+                    or channelpartition.data.differential_fiber_distance \
+                    == 34 or \
                     channelpartition.data.differential_fiber_distance == 40, \
-                    'Channel Partition differential fiber distance must be [20 | 34 | 40]'
+                    'Channel Partition differential fiber distance must be \
+                    [20 | 34 | 40]'
                 return True
             elif(isinstance(request, ChannelpairConfig)):
                 assert isinstance(request, ChannelpairConfig)
                 channelpair = request
                 channelpair_type = ["channelpair", "channelpair_xgs"]
-                channelpair_speed_type = ["unplanned_cp_speed", "down_10_up_10", "down_10_up_2_5", "down_2_5_up_2_5"]
+                channelpair_speed_type = ["unplanned_cp_speed",
+                                          "down_10_up_10", "down_10_up_2_5",
+                                          "down_2_5_up_2_5"]
                 assert channelpair.name != '', 'Channel Pair name is mandatory'
 
                 if channelpair.data.channelgroup_ref:
-                    assert self.get_ref_data(request, context, "channel_groups", request.data.channelgroup_ref), \
+                    assert self.get_ref_data(
+                        request, context, "channel_groups",
+                        request.data.channelgroup_ref), \
                         'Reference to channel group -- \'{}\' not found'\
                         .format(request.data.channelgroup_ref)
                 if channelpair.data.channelpartition_ref:
-                    assert self.get_ref_data(request, context, "channel_partitions", request.data.channelpartition_ref), \
+                    assert self.get_ref_data(
+                        request, context, "channel_partitions",
+                        request.data.channelpartition_ref), \
                         'Reference to channel partition -- \'{}\' not found'\
                         .format(request.data.channelpartition_ref)
 
-                assert channelpair.data.channelpair_type != '', 'Channel Pair type is mandatory'
+                assert channelpair.data.channelpair_type != '', \
+                    'Channel Pair type is mandatory'
                 assert channelpair.data.channelpair_type in channelpair_type, \
-                    'Invalid value for Channel Pair type \'{}\''.format(channelpair.data.channelpair_type)
-                assert channelpair.data.channelpair_linerate in channelpair_speed_type, \
-                    'Invalid value for Channel Pair linerate \'{}\''.format(channelpair.data.channelpair_linerate)
+                    'Invalid value for Channel Pair type \'{}\''\
+                    .format(channelpair.data.channelpair_type)
+                assert channelpair.data.channelpair_linerate in \
+                    channelpair_speed_type, \
+                    'Invalid value for Channel Pair linerate \'{}\''\
+                    .format(channelpair.data.channelpair_linerate)
                 return True
             elif(isinstance(request, ChannelterminationConfig)):
                 assert isinstance(request, ChannelterminationConfig)
                 channeltermin = request
-                assert '/' not in channeltermin.id, 'Malformed device id \'{}\''.format(request.id)
+                assert '/' not in channeltermin.id, \
+                    'Malformed device id \'{}\''.format(request.id)
                 assert channeltermin.id != '', 'Device ID is mandatory'
-                assert channeltermin.name != '', 'Channel Termination name is mandatory'
+                assert channeltermin.name != '', \
+                    'Channel Termination name is mandatory'
 
                 if channeltermin.data.channelpair_ref:
-                    assert self.get_ref_data(request, context, "channel_pairs", request.data.channelpair_ref), \
-                        'Reference to channel pair -- \'{}\' not found'.format(request.data.channelpair_ref)
+                    assert self.get_ref_data(
+                        request, context, "channel_pairs",
+                        request.data.channelpair_ref), \
+                        'Reference to channel pair -- \'{}\' not found'\
+                        .format(request.data.channelpair_ref)
 
                 assert 0 <= channeltermin.data.ber_calc_period <= 864000, \
-                    'Channel Termination ber calc period must be in range of [1, 864000]'
+                    'Channel Termination ber calc period must be in range of \
+                    [1, 864000]'
                 return True
             elif(isinstance(request, OntaniConfig)):
                 assert isinstance(request, OntaniConfig)
@@ -760,27 +805,42 @@ class XponHandler(object):
                 assert vontani.name != '', 'VOntAni name is mandatory'
 
                 if vontani.data.parent_ref:
-                    assert self.get_ref_data(request, context, "channel_partitions", request.data.parent_ref), \
-                        'Reference to channel partition -- \'{}\' not found'.format(request.data.parent_ref)
+                    assert self.get_ref_data(
+                        request, context, "channel_partitions",
+                        request.data.parent_ref), \
+                        'Reference to channel partition -- \'{}\' not found'\
+                        .format(request.data.parent_ref)
                 if vontani.data.preferred_chanpair:
-                    assert self.get_ref_data(request, context, "channel_pairs", request.data.preferred_chanpair), \
-                        'Preferred channel pair -- \'{}\' not found'.format(request.data.preferred_chanpair)
+                    assert self.get_ref_data(
+                        request, context, "channel_pairs",
+                        request.data.preferred_chanpair), \
+                        'Preferred channel pair -- \'{}\' not found'\
+                        .format(request.data.preferred_chanpair)
                 if vontani.data.protection_chanpair:
-                    assert self.get_ref_data(request, context, "channel_pairs", request.data.protection_chanpair), \
-                        'Protection channel pair -- \'{}\' not found'.format(request.data.protection_chanpair)
+                    assert self.get_ref_data(
+                        request, context, "channel_pairs",
+                        request.data.protection_chanpair), \
+                        'Protection channel pair -- \'{}\' not found'\
+                        .format(request.data.protection_chanpair)
 
                 assert 0 <= len(vontani.data.expected_registration_id) <= 36, \
-                    'VOnt Ani expected registration id string length must be in range of [0, 36]'
+                    'VOnt Ani expected registration id string length must be \
+                    in range of [0, 36]'
                 assert 0 <= vontani.data.onu_id <= 1020, \
                     'VOnt Ani ONU id must be in range of [0, 1020]'
 
                 items = self.root.get('/v_ont_anis')
                 for item in items:
                     if item.data.parent_ref == vontani.data.parent_ref or \
-                        item.data.preferred_chanpair == vontani.data.preferred_chanpair or \
-                        item.data.protection_chanpair == vontani.data.protection_chanpair:
-                        assert item.data.onu_id != vontani.data.onu_id, \
-                            'VOnt Ani ONU id -- \'{}\' already exists, but must be unique within channel group'.format(vontani.data.onu_id)
+                        item.data.preferred_chanpair == \
+                        vontani.data.preferred_chanpair or \
+                        item.data.protection_chanpair == \
+                        vontani.data.protection_chanpair:
+                        if item.name != vontani.name:
+                            assert item.data.onu_id != vontani.data.onu_id, \
+                                'VOnt Ani ONU id -- \'{}\' already exists, \
+                                but must be unique within channel group'\
+                                .format(vontani.data.onu_id)
                 return True
             elif(isinstance(request, VEnetConfig)):
                 assert isinstance(request, VEnetConfig)
@@ -788,8 +848,11 @@ class XponHandler(object):
                 assert venet.name != '', 'VEnet name is mandatory'
 
                 if venet.data.v_ontani_ref:
-                    assert self.get_ref_data(request, context, "v_ont_anis", venet.data.v_ontani_ref), \
-                        'Reference to ont ani -- \'{}\' not found'.format(venet.data.v_ontani_ref)
+                    assert self.get_ref_data(
+                        request, context, "v_ont_anis",
+                        venet.data.v_ontani_ref), \
+                        'Reference to ont ani -- \'{}\' not found'\
+                        .format(venet.data.v_ontani_ref)
                 return True
             else:
                 return False
@@ -804,9 +867,11 @@ class XponHandler(object):
         try:
             path = '/{}/'.format(interface)
             self.root.get(path + reference, depth=depth)
-            log.info('reference-for-{}-found-\'{}\''.format(interface, reference))
+            log.info('reference-for-{}-found-\'{}\''\
+                     .format(interface, reference))
             return True
 
         except KeyError:
-            log.info('reference-for-{}-not-found-\'{}\''.format(interface, reference))
+            log.info('reference-for-{}-not-found-\'{}\''\
+                     .format(interface, reference))
             return False
