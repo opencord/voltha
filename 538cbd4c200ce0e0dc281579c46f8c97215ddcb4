@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "fa3479d7_f5af122a",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-03T13:05:40Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "fa3479d7_d56e4e96",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fa3479d7_95ba0609",
         "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
         "patchSetId": 3
@@ -72,6 +90,42 @@
     },
     {
       "key": {
+        "uuid": "fa3479d7_551dbe72",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 220,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-03T13:05:40Z",
+      "side": 1,
+      "message": "Right now we are doing nothing until it\u0027s provisioned.",
+      "parentUuid": "fa3479d7_952b2694",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa3479d7_f524b2c7",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 220,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-03T13:05:40Z",
+      "side": 1,
+      "message": "As soon as OLT detects new ONUS, BAL/Maple assigns 65536 as ONU ID and gives indication to VOLTHA. If VOLTHA receives this indication on ONU which is discovered state, we use ONU ID 65536 to avoid reactivation on ONU again.",
+      "parentUuid": "fa3479d7_f5e6f215",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fa3479d7_7537a2b1",
         "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
         "patchSetId": 3
@@ -83,6 +137,24 @@
       "writtenOn": "2017-08-02T22:47:04Z",
       "side": 1,
       "message": "Remove semi-colon",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa3479d7_d521aeb5",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 223,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-03T13:05:40Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "fa3479d7_7537a2b1",
       "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -141,6 +213,24 @@
     },
     {
       "key": {
+        "uuid": "fa3479d7_b52e2aa4",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 228,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-03T13:05:40Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "fa3479d7_15cf36b2",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fa3479d7_75d0c253",
         "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
         "patchSetId": 3
@@ -175,6 +265,24 @@
     },
     {
       "key": {
+        "uuid": "fa3479d7_15173653",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 272,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-03T13:05:40Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "fa3479d7_155df6e9",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fa3479d7_f5715278",
         "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
         "patchSetId": 3
@@ -192,6 +300,24 @@
     },
     {
       "key": {
+        "uuid": "fa3479d7_f50b9229",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 276,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-03T13:05:40Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "fa3479d7_f5715278",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fa3479d7_d5d9ae84",
         "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
         "patchSetId": 3
@@ -203,6 +329,24 @@
       "writtenOn": "2017-08-02T22:47:04Z",
       "side": 1,
       "message": "Wrong indentation? Is this method global or does it belong to Asfvolt16Handler class.",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa3479d7_35123a63",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 278,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-03T13:05:40Z",
+      "side": 1,
+      "message": "It should be with Asfvolt16Handler class. I am not sure why it was outside from earlier",
+      "parentUuid": "fa3479d7_d5d9ae84",
       "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -243,6 +387,24 @@
     },
     {
       "key": {
+        "uuid": "fa3479d7_d5088e2f",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_rx_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 92,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-03T13:05:40Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "fa3479d7_b5f06aca",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fa3479d7_d5e3ee03",
         "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_rx_handler.py",
         "patchSetId": 3
@@ -254,6 +416,24 @@
       "writtenOn": "2017-08-02T23:08:38Z",
       "side": 1,
       "message": "Why are we assuming that the indication is from a Broadcom ONU (_vendor_id \u003d 425243D)? Can we define these vendor ids in a global place (as a dict) so that the code readability is improved.",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa3479d7_b5050a16",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_rx_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 103,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-03T13:05:40Z",
+      "side": 1,
+      "message": "I will remove the hard coding and use the vendor id which comes from device.",
+      "parentUuid": "fa3479d7_d5e3ee03",
       "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -277,6 +457,24 @@
     },
     {
       "key": {
+        "uuid": "fa3479d7_9502060a",
+        "filename": "voltha/adapters/asfvolt16_olt/bal.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 117,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-03T13:05:40Z",
+      "side": 1,
+      "message": "For all broadcom ONU its the same. It not unique per ONU.",
+      "parentUuid": "fa3479d7_55bffed0",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fa3479d7_15b056f3",
         "filename": "voltha/adapters/asfvolt16_olt/protos/bal_indications.proto",
         "patchSetId": 3
@@ -294,6 +492,24 @@
     },
     {
       "key": {
+        "uuid": "fa3479d7_78ff9902",
+        "filename": "voltha/adapters/asfvolt16_olt/protos/bal_indications.proto",
+        "patchSetId": 3
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-03T13:05:40Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "fa3479d7_15b056f3",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fa3479d7_558dbe30",
         "filename": "voltha/core/xpon_agent.py",
         "patchSetId": 3
@@ -305,6 +521,24 @@
       "writtenOn": "2017-08-02T23:24:41Z",
       "side": 1,
       "message": "line too long",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa3479d7_5804d514",
+        "filename": "voltha/core/xpon_agent.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 298,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-03T13:05:40Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "fa3479d7_558dbe30",
       "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -346,6 +580,30 @@
       "side": 1,
       "message": "Better to add new fields at the end so that tag numbering is backward compatible.",
       "parentUuid": "fa3479d7_f54a7226",
+      "range": {
+        "startLine": 8,
+        "startChar": 15,
+        "endLine": 8,
+        "endChar": 33
+      },
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa3479d7_3809112d",
+        "filename": "voltha/protos/bbf_fiber_v_ontani_body.proto",
+        "patchSetId": 3
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-03T13:05:40Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "fa3479d7_15873611",
       "range": {
         "startLine": 8,
         "startChar": 15,
