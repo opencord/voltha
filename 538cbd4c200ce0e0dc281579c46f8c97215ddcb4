@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "fa3479d7_bb6bbb84",
+        "filename": "cli/xpon.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 885,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-04T03:56:01Z",
+      "side": 1,
+      "message": "Here the serial number is in string format and out of which 4 bytes are considered as vendor Id. In case of broadcom the serial number is \"4252434D12345678\" and out of which 8 bytes are vendor Id. In order to work all vendor, i have introduced the new parameter \"vendor Id\".",
+      "parentUuid": "fa3479d7_f824a9c7",
+      "range": {
+        "startLine": 885,
+        "startChar": 9,
+        "endLine": 885,
+        "endChar": 34
+      },
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fa3479d7_d821e5b5",
         "filename": "cli/xpon.py",
         "patchSetId": 3
@@ -94,6 +118,30 @@
       "writtenOn": "2017-08-03T14:29:20Z",
       "side": 1,
       "message": "You need to import reactor.",
+      "range": {
+        "startLine": 192,
+        "startChar": 12,
+        "endLine": 192,
+        "endChar": 19
+      },
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa3479d7_58529514",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 192,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-04T03:56:01Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "fa3479d7_f83949d9",
       "range": {
         "startLine": 192,
         "startChar": 12,
@@ -656,6 +704,30 @@
     },
     {
       "key": {
+        "uuid": "fa3479d7_db6e7f96",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 717,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-04T03:56:01Z",
+      "side": 1,
+      "message": "This function will be removed.",
+      "parentUuid": "fa3479d7_58361505",
+      "range": {
+        "startLine": 716,
+        "startChar": 4,
+        "endLine": 717,
+        "endChar": 88
+      },
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fa3479d7_558dbe30",
         "filename": "voltha/core/xpon_agent.py",
         "patchSetId": 3
@@ -709,6 +781,24 @@
     },
     {
       "key": {
+        "uuid": "fa3479d7_7b0553c1",
+        "filename": "voltha/core/xpon_agent.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 298,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-04T03:56:01Z",
+      "side": 1,
+      "message": "I had look at broadcom_onu adapter for reference, there i see the device state becomes active and then OMCI message is exchanged. \nSeems like in case of nokia adapter the device comes to active state only after completion of OMCI message exchange.\n\nIf bringing the device to active state varies from vendor to vendor then i can remove this change and handle it in respective adapter.",
+      "parentUuid": "fa3479d7_f85dc949",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fa3479d7_7831d90a",
         "filename": "voltha/core/xpon_agent.py",
         "patchSetId": 3
@@ -720,6 +810,30 @@
       "writtenOn": "2017-08-04T00:23:53Z",
       "side": 1,
       "message": "Instead of creating new field \"expected_vendor_id\" use vendor id from \"expected_serial_number\"; recommend to revert this change",
+      "range": {
+        "startLine": 545,
+        "startChar": 22,
+        "endLine": 545,
+        "endChar": 55
+      },
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa3479d7_fb714378",
+        "filename": "voltha/core/xpon_agent.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 545,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-04T03:56:01Z",
+      "side": 1,
+      "message": "Previously the 4 bytes of vendor id is extracted from serial number. \n\nIn case of broadcom the serial number(string format) is (eg:4252434D12345678) and out of which \"4252434D\" is vendor id and it is 8 bytes in serial number(string format).\n\nIn case of PONSIM example the serial number is \"PSMO00000001\". Out of which 4 bytes i.e \"PSMO\" is vendor id.\n \nIn order to make to generic and to work with all kinds of scenario, i have added one more filed vendor_id and read it from there.",
+      "parentUuid": "fa3479d7_7831d90a",
       "range": {
         "startLine": 545,
         "startChar": 22,
