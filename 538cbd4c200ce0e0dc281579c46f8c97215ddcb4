@@ -587,6 +587,29 @@
     },
     {
       "key": {
+        "uuid": "fa3479d7_58361505",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 717,
+      "author": {
+        "id": 1000090
+      },
+      "writtenOn": "2017-08-04T00:23:53Z",
+      "side": 1,
+      "message": "Why do adapters needs to know channel terminations?",
+      "range": {
+        "startLine": 716,
+        "startChar": 4,
+        "endLine": 717,
+        "endChar": 88
+      },
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fa3479d7_558dbe30",
         "filename": "voltha/core/xpon_agent.py",
         "patchSetId": 3
@@ -616,6 +639,47 @@
       "side": 1,
       "message": "Done",
       "parentUuid": "fa3479d7_558dbe30",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa3479d7_f85dc949",
+        "filename": "voltha/core/xpon_agent.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 298,
+      "author": {
+        "id": 1000090
+      },
+      "writtenOn": "2017-08-04T00:23:53Z",
+      "side": 1,
+      "message": "In case of ONU device - operational status becomes ACTIVE only after completing OMCI message exchange. To initiate OMCI communication ONU device requires interfaces.\n\nWith this change can not forward create interfaces request to ONU device causing deadlock for ONU to transit into operationally ACTIVE state.",
+      "parentUuid": "fa3479d7_5804d514",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa3479d7_7831d90a",
+        "filename": "voltha/core/xpon_agent.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 545,
+      "author": {
+        "id": 1000090
+      },
+      "writtenOn": "2017-08-04T00:23:53Z",
+      "side": 1,
+      "message": "Instead of creating new field \"expected_vendor_id\" use vendor id from \"expected_serial_number\"; recommend to revert this change",
+      "range": {
+        "startLine": 545,
+        "startChar": 22,
+        "endLine": 545,
+        "endChar": 55
+      },
       "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -705,6 +769,30 @@
       "side": 1,
       "message": "Still not done though.\n\nOnce tags are assigned to protobuf fields they should never be changed once they go into use.  Tags 1-7 were originally used in this message.  Revert back to the original tag/field assignment and add \u0027expected_vendor_id\u0027 field as tag 8.",
       "parentUuid": "fa3479d7_3809112d",
+      "range": {
+        "startLine": 8,
+        "startChar": 15,
+        "endLine": 8,
+        "endChar": 33
+      },
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa3479d7_1849ad8b",
+        "filename": "voltha/protos/bbf_fiber_v_ontani_body.proto",
+        "patchSetId": 3
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1000090
+      },
+      "writtenOn": "2017-08-04T00:23:53Z",
+      "side": 1,
+      "message": "What is the reason of introducing \"expected_vendor_id\"? It is not part of WT-385 yang definitions. As per standard definition of expected_serial_number vendor id is part of \"expected_serial_number\".",
+      "parentUuid": "fa3479d7_98eebdb3",
       "range": {
         "startLine": 8,
         "startChar": 15,
