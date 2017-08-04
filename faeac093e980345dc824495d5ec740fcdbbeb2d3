@@ -1,0 +1,119 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "da3975d1_510a74d3",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 286,
+      "author": {
+        "id": 1000090
+      },
+      "writtenOn": "2017-08-04T20:19:38Z",
+      "side": 1,
+      "message": "definition is not clear:\n- caller requires to do get_device before calling update_device_state; then why don\u0027t caller just change device states and call update_davice instead\n- prefer device_id iso device so automatically forcing update_device_state to get latest device info from DB then change state as per state input\n\nCurrent proposed definition is ambiguous and error prone: \n- caller missed to do read device from DB or device data from callers context is not up to date then it can overwrite by wrong data",
+      "range": {
+        "startLine": 285,
+        "startChar": 0,
+        "endLine": 286,
+        "endChar": 67
+      },
+      "revId": "faeac093e980345dc824495d5ec740fcdbbeb2d3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da3975d1_310ff0e3",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 293,
+      "author": {
+        "id": 1000090
+      },
+      "writtenOn": "2017-08-04T20:19:38Z",
+      "side": 1,
+      "message": "isn\u0027t it safe \u0026 preferred to check oper_status against \"is not None\" before processing",
+      "range": {
+        "startLine": 293,
+        "startChar": 11,
+        "endLine": 293,
+        "endChar": 22
+      },
+      "revId": "faeac093e980345dc824495d5ec740fcdbbeb2d3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da3975d1_1114ecf3",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 295,
+      "author": {
+        "id": 1000090
+      },
+      "writtenOn": "2017-08-04T20:19:38Z",
+      "side": 1,
+      "message": "Same as above check against \"is not None\"",
+      "range": {
+        "startLine": 295,
+        "startChar": 11,
+        "endLine": 295,
+        "endChar": 25
+      },
+      "revId": "faeac093e980345dc824495d5ec740fcdbbeb2d3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da3975d1_f1f848c6",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 297,
+      "author": {
+        "id": 1000090
+      },
+      "writtenOn": "2017-08-04T20:19:38Z",
+      "side": 1,
+      "message": "Same as above check against \"is not None\"",
+      "range": {
+        "startLine": 297,
+        "startChar": 11,
+        "endLine": 297,
+        "endChar": 22
+      },
+      "revId": "faeac093e980345dc824495d5ec740fcdbbeb2d3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da3975d1_d1f544cc",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 300,
+      "author": {
+        "id": 1000090
+      },
+      "writtenOn": "2017-08-04T20:19:38Z",
+      "side": 1,
+      "message": "prefer calling \"update_device\" to avoid repeated source code and keep centralize operation",
+      "range": {
+        "startLine": 299,
+        "startChar": 8,
+        "endLine": 300,
+        "endChar": 42
+      },
+      "revId": "faeac093e980345dc824495d5ec740fcdbbeb2d3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
