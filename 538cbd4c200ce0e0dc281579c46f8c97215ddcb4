@@ -419,6 +419,24 @@
     },
     {
       "key": {
+        "uuid": "fa3479d7_db731fe6",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 243,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-04T18:34:49Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "fa3479d7_75d0c253",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fa3479d7_155df6e9",
         "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
         "patchSetId": 3
@@ -799,6 +817,24 @@
     },
     {
       "key": {
+        "uuid": "fa3479d7_fb76e3d7",
+        "filename": "voltha/core/xpon_agent.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 298,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-04T18:34:49Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "fa3479d7_7b0553c1",
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fa3479d7_7831d90a",
         "filename": "voltha/core/xpon_agent.py",
         "patchSetId": 3
@@ -1049,6 +1085,30 @@
       "side": 1,
       "message": "Leave Nikolay\u0027s -1 in place until you are okay with the changes.",
       "parentUuid": "fa3479d7_fb3943d9",
+      "range": {
+        "startLine": 8,
+        "startChar": 15,
+        "endLine": 8,
+        "endChar": 33
+      },
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da3975d1_513cb493",
+        "filename": "voltha/protos/bbf_fiber_v_ontani_body.proto",
+        "patchSetId": 3
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-04T18:34:49Z",
+      "side": 1,
+      "message": "Done. change are made and uploaded again.",
+      "parentUuid": "fa3479d7_1b73e7b2",
       "range": {
         "startLine": 8,
         "startChar": 15,
