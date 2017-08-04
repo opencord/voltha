@@ -872,6 +872,30 @@
       "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa3479d7_fb3943d9",
+        "filename": "voltha/protos/bbf_fiber_v_ontani_body.proto",
+        "patchSetId": 3
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1000090
+      },
+      "writtenOn": "2017-08-04T01:39:26Z",
+      "side": 1,
+      "message": "xpon protos are generated from standard YANG definitions as per WT-385 and BCM is aloso one of authors.\n\nThanks Kim for +1 on reverting change",
+      "parentUuid": "fa3479d7_7818b984",
+      "range": {
+        "startLine": 8,
+        "startChar": 15,
+        "endLine": 8,
+        "endChar": 33
+      },
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
