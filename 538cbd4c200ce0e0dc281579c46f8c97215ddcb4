@@ -848,6 +848,30 @@
       "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa3479d7_7818b984",
+        "filename": "voltha/protos/bbf_fiber_v_ontani_body.proto",
+        "patchSetId": 3
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-08-04T00:42:25Z",
+      "side": 1,
+      "message": "The Broadcom BAL API is taking the vendor_id and vendor specific part of the serial_number object as separate fields.  I believe this has lead to confusion that the vendor_id is carried as a separate field.  I was holding off on accepting this pending some research or input that you have provided.\n\n+1 on reverting this change and extracting the vendor_id part from the existing \u0027expected_serial_number\u0027 and passing the two parts separately to BAL API.",
+      "parentUuid": "fa3479d7_1849ad8b",
+      "range": {
+        "startLine": 8,
+        "startChar": 15,
+        "endLine": 8,
+        "endChar": 33
+      },
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
