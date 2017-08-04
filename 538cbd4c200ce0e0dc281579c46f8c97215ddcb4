@@ -846,6 +846,30 @@
     },
     {
       "key": {
+        "uuid": "fa3479d7_9bffd7aa",
+        "filename": "voltha/core/xpon_agent.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 545,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-08-04T05:32:52Z",
+      "side": 1,
+      "message": "PONSIM example is effectively the same as Broadcom\u0027s.  The \"PSM0\" part encodes to 4-bytes.  The string \"00000001\" encodes to the other 4 bytes as 0x00000001.",
+      "parentUuid": "fa3479d7_fb714378",
+      "range": {
+        "startLine": 545,
+        "startChar": 22,
+        "endLine": 545,
+        "endChar": 55
+      },
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fa3479d7_f54a7226",
         "filename": "voltha/protos/bbf_fiber_v_ontani_body.proto",
         "patchSetId": 3
