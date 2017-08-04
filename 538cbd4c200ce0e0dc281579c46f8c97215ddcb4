@@ -2,6 +2,52 @@
   "comments": [
     {
       "key": {
+        "uuid": "fa3479d7_f824a9c7",
+        "filename": "cli/xpon.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 885,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-08-04T00:32:24Z",
+      "side": 1,
+      "message": "\"expected_vendor_id\" should not be part of config data for vont_ani. By definition \"expected_serial_number\" contains vendor_id and can be extracted from it. For more information look at WT-385 yang definitions.",
+      "range": {
+        "startLine": 885,
+        "startChar": 9,
+        "endLine": 885,
+        "endChar": 34
+      },
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa3479d7_d821e5b5",
+        "filename": "cli/xpon.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 943,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-08-04T00:32:24Z",
+      "side": 1,
+      "message": "The same comment as above - should not be part of config data of vont_ani.",
+      "range": {
+        "startLine": 941,
+        "startChar": 8,
+        "endLine": 943,
+        "endChar": 61
+      },
+      "revId": "538cbd4c200ce0e0dc281579c46f8c97215ddcb4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fa3479d7_d56e4e96",
         "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
         "patchSetId": 3
