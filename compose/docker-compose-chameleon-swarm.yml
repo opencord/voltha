@@ -24,7 +24,7 @@ services:
       - --consul=consul:8500
       - --fluentd=fluentd:24224
       - --rest-port=8881
-      - --grpc-endpoint=voltha:50555
+      - --grpc-endpoint=vcore:50556
       - --instance-id-is-container-name
     networks:
       - voltha-net
