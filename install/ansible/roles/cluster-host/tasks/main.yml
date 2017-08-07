@@ -87,7 +87,7 @@
 #  tags: [cluster_host]
 - name: A fluentd directory under tmp for voltha logs exists
   file:
-    path: "/tmp/fluentd"
+    path: "/home/voltha/fluentd"
     state: directory
   tags: [cluster_host]
 

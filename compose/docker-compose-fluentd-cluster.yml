@@ -23,7 +23,7 @@ services:
     ports:
       - "24224"
     volumes:
-      - "/tmp/fluentd:/fluentd/log"
+      - "/home/voltha/fluentd:/fluentd/log"
 
   fluentdstby:
     image: fluent/fluentd
@@ -36,7 +36,7 @@ services:
     ports:
       - "24224"
     volumes:
-      - "/tmp/fluentd:/fluentd/log"
+      - "/home/voltha/fluentd:/fluentd/log"
 
   fluentd:
     image: cord/fluentd
