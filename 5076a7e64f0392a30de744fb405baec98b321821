@@ -367,6 +367,23 @@
       "revId": "5076a7e64f0392a30de744fb405baec98b321821",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a437d4f_0f14c5f3",
+        "filename": "voltha/core/xpon_agent.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 559,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-08-08T18:01:21Z",
+      "side": 1,
+      "message": "Nikolay are you okay with this change?  Initial ONU adminState is PREPROVISIONED rather than DISABLED?",
+      "revId": "5076a7e64f0392a30de744fb405baec98b321821",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
