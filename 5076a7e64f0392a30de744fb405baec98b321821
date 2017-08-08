@@ -347,6 +347,29 @@
     },
     {
       "key": {
+        "uuid": "9a437d4f_af0259b2",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 301,
+      "author": {
+        "id": 1000090
+      },
+      "writtenOn": "2017-08-08T18:22:25Z",
+      "side": 1,
+      "message": "Prefer using update_device for same reason as mentioned in \"update_device\"",
+      "range": {
+        "startLine": 300,
+        "startChar": 8,
+        "endLine": 301,
+        "endChar": 42
+      },
+      "revId": "5076a7e64f0392a30de744fb405baec98b321821",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a437d4f_2ff3090c",
         "filename": "voltha/core/device_agent.py",
         "patchSetId": 5
@@ -381,6 +404,24 @@
       "writtenOn": "2017-08-08T18:01:21Z",
       "side": 1,
       "message": "Nikolay are you okay with this change?  Initial ONU adminState is PREPROVISIONED rather than DISABLED?",
+      "revId": "5076a7e64f0392a30de744fb405baec98b321821",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a437d4f_cff59dcc",
+        "filename": "voltha/core/xpon_agent.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 559,
+      "author": {
+        "id": 1000090
+      },
+      "writtenOn": "2017-08-08T18:22:25Z",
+      "side": 1,
+      "message": "Accepted change",
+      "parentUuid": "9a437d4f_0f14c5f3",
       "revId": "5076a7e64f0392a30de744fb405baec98b321821",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
