@@ -3,85 +3,10 @@
     {
       "address": "tcp://0.0.0.0:{{- .HttpsPort }}",
       "ssl_context": {
-	"cert_chain_file": "/envoy/voltha.crt",
-	"private_key_file": "/envoy/voltha.key",
-	"ca_cert_file": "/envoy/voltha-CA.pem"
+	"cert_chain_file": "/envoy/pki/voltha.crt",
+	"private_key_file": "/envoy/pki/voltha.key",
+	"ca_cert_file": "/envoy/pik/voltha-CA.pem"
       },
-      "filters": [
-        {
-          "type": "read",
-	  "name": "http_connection_manager",
-	  "config": {
-            "codec_type": "http1",
-            "stat_prefix": "ingress_http1",
-	    "access_log": [
-		{
-			"path": "/envoy/voltha_access1_log.log"
-		}
-	    ],
-            "route_config": {
-              "virtual_hosts": [
-                {
-                  "name": "backend2",
-                  "domains": ["*"],
-                  "routes": [
-                    {
-                      "timeout_ms": 0,
-		      "prefix": "/voltha.VolthaGlobalService/CreateDevice",
-                      "cluster": "voltha-grpc-RR"
-                    },
-                    {
-                      "timeout_ms": 0,
-		      "prefix": "/voltha.VolthaGlobalService",
-                      "cluster": "voltha-grpc"
-                    },
-                    {
-                      "timeout_ms": 0,
-		      "prefix": "/voltha.",
-                      "cluster": "voltha-grpc"
-                    },
-                    {
-                      "timeout_ms": 0,
-		      "prefix": "/schema.SchemaService",
-                      "cluster": "voltha-grpc"
-                    }
-                  ]
-                }
-              ]
-            },
-            "filters": [
-              {
-                "type": "both",
-                "name": "grpc_json_transcoder",
-                "config": {
-		  "proto_descriptor": "/envoy/proto.pb",
-		  "services": ["voltha.VolthaGlobalService"],
-		  "print_options": {
-                    "add_whitespace": false,
-                    "always_print_primitive_fields": false,
-	            "always_print_enums_as_ints": false,
-		    "preserve_proto_field_names": false
-
-		  }
-		}
-              },
-	      {
-	        "type": "both",
-	        "name": "grpc_http1_bridge",
-	        "config": {}
-	      },
-              {
-                "type": "decoder",
-                "name": "router",
-                "config": {}
-              }
-	    ]
-          }
-        }
-      ]
-    },
-    {
-      "address": "tcp://0.0.0.0:{{- .HttpPort }}",
       "filters": [
         {
           "type": "read",

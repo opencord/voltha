@@ -25,6 +25,8 @@ services:
       - voltha-net
     ports:
       - "50555:50555"
+      - "8882:8882"
+      - "8443:8443"
     volumes:
       - /cord/incubator/voltha/envoy:/etc/envoy
       

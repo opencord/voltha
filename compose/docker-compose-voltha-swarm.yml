@@ -15,8 +15,8 @@ services:
       - --instance-id-is-container-name
       - --interface=eth2
       - --backend=consul
-      - --inter-core-subnet=10.0.1.0/24
-      - --pon-subnet=10.0.1.0/24
+      - --inter-core-subnet=172.29.19.0/24
+      - --pon-subnet=172.29.19.0/24
 
     networks:
       - net

@@ -134,6 +134,7 @@ envoy:
 	docker build -t voltha/envoy -f docker/Dockerfile.envoy .
 
 envoyd:
+	make -C envoy
 	make -C envoy/go/envoyd
 
 golang:
