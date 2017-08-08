@@ -364,6 +364,24 @@
     },
     {
       "key": {
+        "uuid": "9a437d4f_af4819cd",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 277,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-08-08T20:59:05Z",
+      "side": 1,
+      "message": "Raghu, can you try this approach?  It is along the lines that Niren was proposing.",
+      "parentUuid": "9a437d4f_8f1675f0",
+      "revId": "5076a7e64f0392a30de744fb405baec98b321821",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a437d4f_8fff95aa",
         "filename": "voltha/core/adapter_agent.py",
         "patchSetId": 5
