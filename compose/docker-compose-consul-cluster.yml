@@ -1,6 +1,3 @@
-version: "3"
-services:
-
 #
 # Deploying a Consul cluster using this file assumes that overlay network 'voltha_net'
 # has already been created. To deploy the cluster, issue the command:
@@ -9,6 +6,8 @@ services:
 #
 # This command will create overlay network 'consul_net'.
 #
+version: "3"
+services:
 
   consul:
     image: consul:latest
@@ -34,12 +33,12 @@ services:
       - -bind={{ GetInterfaceIP "eth0" }}
       - -client=0.0.0.0
       - -ui
-      - -retry-join=10.10.10.2
-      - -retry-join=10.10.10.3
-      - -retry-join=10.10.10.4
-      - -retry-join=10.10.10.5
-      - -retry-join=10.10.10.6
-      - -retry-join=10.10.10.7
+      - -retry-join=172.29.20.2
+      - -retry-join=172.29.20.3
+      - -retry-join=172.29.20.4
+      - -retry-join=172.29.20.5
+      - -retry-join=172.29.20.6
+      - -retry-join=172.29.20.7
     networks:
       - net
       - voltha-net
@@ -57,7 +56,7 @@ networks:
     ipam:
       driver: default
       config:
-        - subnet: 10.10.10.0/29
+        - subnet: 172.29.20.0/29
   voltha-net:
     external:
       name: voltha_net
