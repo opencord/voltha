@@ -347,6 +347,40 @@
     },
     {
       "key": {
+        "uuid": "9a437d4f_8f1675f0",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 277,
+      "author": {
+        "id": 1000074
+      },
+      "writtenOn": "2017-08-08T19:31:01Z",
+      "side": 1,
+      "message": "Rather than add update_device_state() why not simply add a new parameter to update_device that controls whether or not the adapter state change callbacks are called? The new parameter can default to False to maintain existing behavior but can be set True when you want the callbacks invoked. \nA similar parameter would need to be added to update_device in device_agent.py which would controller whether or not self.last_data is set prior to calling proxy.update().",
+      "revId": "5076a7e64f0392a30de744fb405baec98b321821",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a437d4f_8fff95aa",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 285,
+      "author": {
+        "id": 1000074
+      },
+      "writtenOn": "2017-08-08T19:31:01Z",
+      "side": 1,
+      "message": "If this approach is selected, add a \u0027reason\u0027 parameter for use in updating device.reason when changing state.",
+      "revId": "5076a7e64f0392a30de744fb405baec98b321821",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a437d4f_af0259b2",
         "filename": "voltha/core/adapter_agent.py",
         "patchSetId": 5
