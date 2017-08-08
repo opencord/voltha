@@ -1,0 +1,372 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a437d4f_8f68b588",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 216,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-08-08T17:56:54Z",
+      "side": 1,
+      "message": "Please follow style guide for Python code and fix indentation. This applies to the rest of the files. If you break the line within parenthesis, next line should be strictly under parenthesis.\n\nMore info:\nhttps://www.python.org/dev/peps/pep-0008/#indentation",
+      "range": {
+        "startLine": 216,
+        "startChar": 25,
+        "endLine": 216,
+        "endChar": 71
+      },
+      "revId": "5076a7e64f0392a30de744fb405baec98b321821",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a437d4f_ef718178",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 221,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-08-08T17:56:54Z",
+      "side": 1,
+      "message": "Please fix indentation.",
+      "range": {
+        "startLine": 221,
+        "startChar": 22,
+        "endLine": 221,
+        "endChar": 25
+      },
+      "revId": "5076a7e64f0392a30de744fb405baec98b321821",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a437d4f_cf6ebd96",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 233,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-08-08T17:56:54Z",
+      "side": 1,
+      "message": "Please fix indentation.",
+      "range": {
+        "startLine": 232,
+        "startChar": 25,
+        "endLine": 233,
+        "endChar": 66
+      },
+      "revId": "5076a7e64f0392a30de744fb405baec98b321821",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a437d4f_af6b7984",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 237,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-08-08T17:56:54Z",
+      "side": 1,
+      "message": "Please fix indentation.",
+      "range": {
+        "startLine": 237,
+        "startChar": 25,
+        "endLine": 237,
+        "endChar": 58
+      },
+      "revId": "5076a7e64f0392a30de744fb405baec98b321821",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a437d4f_6f0591c1",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 298,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-08-08T17:56:54Z",
+      "side": 1,
+      "message": "Indentation.",
+      "range": {
+        "startLine": 298,
+        "startChar": 32,
+        "endLine": 298,
+        "endChar": 60
+      },
+      "revId": "5076a7e64f0392a30de744fb405baec98b321821",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a437d4f_cf47dd1c",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_rx_handler.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 76,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-08-08T17:56:54Z",
+      "side": 1,
+      "message": "Please fix indentation.",
+      "range": {
+        "startLine": 76,
+        "startChar": 7,
+        "endLine": 76,
+        "endChar": 15
+      },
+      "revId": "5076a7e64f0392a30de744fb405baec98b321821",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a437d4f_af5499ca",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_rx_handler.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 77,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-08-08T17:56:54Z",
+      "side": 1,
+      "message": "The same as above.",
+      "range": {
+        "startLine": 77,
+        "startChar": 9,
+        "endLine": 77,
+        "endChar": 15
+      },
+      "revId": "5076a7e64f0392a30de744fb405baec98b321821",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a437d4f_4f63edb1",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_rx_handler.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 202,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-08-08T17:56:54Z",
+      "side": 1,
+      "message": "4 space characters is preferred.",
+      "range": {
+        "startLine": 202,
+        "startChar": 8,
+        "endLine": 202,
+        "endChar": 23
+      },
+      "revId": "5076a7e64f0392a30de744fb405baec98b321821",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a437d4f_6f5eb1eb",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_rx_handler.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 204,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-08-08T17:56:54Z",
+      "side": 1,
+      "message": "Please fix indentation.",
+      "range": {
+        "startLine": 204,
+        "startChar": 8,
+        "endLine": 204,
+        "endChar": 15
+      },
+      "revId": "5076a7e64f0392a30de744fb405baec98b321821",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a437d4f_0f460524",
+        "filename": "voltha/adapters/asfvolt16_olt/bal.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 92,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-08-08T17:56:54Z",
+      "side": 1,
+      "message": "Please be consistent with number of spaces you bring to the next line. In above line you have 8 spaces indented. Here you have 12 spaces.\nSuggested:\n * 4 spaces to indent.",
+      "range": {
+        "startLine": 92,
+        "startChar": 26,
+        "endLine": 92,
+        "endChar": 50
+      },
+      "revId": "5076a7e64f0392a30de744fb405baec98b321821",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a437d4f_4f3c0d94",
+        "filename": "voltha/adapters/asfvolt16_olt/bal.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 103,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-08-08T17:56:54Z",
+      "side": 1,
+      "message": "Please fix indentation. Needs to be right under \"(\" sign.",
+      "range": {
+        "startLine": 103,
+        "startChar": 26,
+        "endLine": 103,
+        "endChar": 73
+      },
+      "revId": "5076a7e64f0392a30de744fb405baec98b321821",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a437d4f_ef4aa126",
+        "filename": "voltha/adapters/asfvolt16_olt/bal.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 115,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-08-08T17:56:54Z",
+      "side": 1,
+      "message": "Please be consistent with number of spaces. Preferred 4 spaces to indent.",
+      "range": {
+        "startLine": 115,
+        "startChar": 12,
+        "endLine": 115,
+        "endChar": 44
+      },
+      "revId": "5076a7e64f0392a30de744fb405baec98b321821",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a437d4f_efc3c188",
+        "filename": "voltha/adapters/iadapter.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 153,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-08-08T17:56:54Z",
+      "side": 1,
+      "message": "This is error-prone. What if devices_handlers does not have device.id? Or what if device_handlers[device.id] \u003d None?\nSuggested:\n * if device.id in self.devices_handlers:\n       handler \u003d self.devices_handlers[device.id]\n       if handler is not None:\n           handler.create_interface(data)",
+      "range": {
+        "startLine": 153,
+        "startChar": 8,
+        "endLine": 153,
+        "endChar": 63
+      },
+      "revId": "5076a7e64f0392a30de744fb405baec98b321821",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a437d4f_cfc0fd7e",
+        "filename": "voltha/adapters/iadapter.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 157,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-08-08T17:56:54Z",
+      "side": 1,
+      "message": "The same as above.",
+      "range": {
+        "startLine": 157,
+        "startChar": 8,
+        "endLine": 157,
+        "endChar": 63
+      },
+      "revId": "5076a7e64f0392a30de744fb405baec98b321821",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a437d4f_afbdb904",
+        "filename": "voltha/adapters/iadapter.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 161,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-08-08T17:56:54Z",
+      "side": 1,
+      "message": "The same as above.",
+      "range": {
+        "startLine": 161,
+        "startChar": 8,
+        "endLine": 161,
+        "endChar": 63
+      },
+      "revId": "5076a7e64f0392a30de744fb405baec98b321821",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a437d4f_2ff3090c",
+        "filename": "voltha/core/device_agent.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 193,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-08-08T17:56:54Z",
+      "side": 1,
+      "message": "Please follow Style guide for Python. If you break the line within parenthesis, next line should be strictly under parenthesis.\nMore info:\nhttps://www.python.org/dev/peps/pep-0008/#indentation",
+      "range": {
+        "startLine": 193,
+        "startChar": 22,
+        "endLine": 193,
+        "endChar": 64
+      },
+      "revId": "5076a7e64f0392a30de744fb405baec98b321821",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
