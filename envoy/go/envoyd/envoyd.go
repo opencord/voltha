@@ -37,6 +37,10 @@ type client struct {
 type EnvoyConfigVars struct {
 	VolthaVip string
 	VolthaRR []string
+	vcorePort string
+	HttpPort string
+	HttpsPort string
+	GrpcPort string
 }
 
 type VolthaClusterEntry struct {
@@ -52,10 +56,18 @@ type EnvoyControl struct {
 	// Command line parameters
 	assignmentKey string
 	envoyConfigTemplate string
+	envoyConfigTemplateBoth string
+	envoyConfigTemplateNoHttps string
+	envoyConfigTemplateNoHttp string
+	envoyHttpPort string
+	envoyHttpsPort string
+	httpDisabled bool
+	httpsDisabled bool
 	envoyConfig string
 	vcoreSvcName  string
 	consulSvcName  string
 	vcorePort string
+	envoyGrpcPort string
 	consulPort string
 	retries int
 	waitTime int
@@ -75,6 +87,14 @@ func NewEnvoyControl() (ec * EnvoyControl) {
 		// Command line parameters
 		assignmentKey: "service/voltha/data/core/assignment",
 		envoyConfigTemplate: "/envoy/voltha-grpc-proxy.template.json",
+		envoyConfigTemplateBoth: "/envoy/voltha-grpc-proxy.template.json",
+		envoyConfigTemplateNoHttps: "/envoy/voltha-grpc-proxy-no-https.template.json",
+		envoyConfigTemplateNoHttp: "/envoy/voltha-grpc-proxy-no-http.template.json",
+		envoyHttpsPort: "8443",
+		envoyHttpPort: "8882",
+		envoyGrpcPort: "50555",
+		httpDisabled: false,
+		httpsDisabled: false,
 		envoyConfig: "/envoy/voltha-grpc-proxy.json",
 		//envoyLogFile: "/envoy/voltha_access_log.log",
 		vcoreSvcName: "vcore",
@@ -178,20 +198,17 @@ func (ec * EnvoyControl) startEnvoy() {
 
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
-		log.Printf("Couldn't attach to stderr running envoy command")
-		panic(err)
+		log.Fatal("Couldn't attach to stderr running envoy command: %s", err.Error())
 	}
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		log.Printf("Couldn't attach to stdout running envoy command")
-		panic(err)
+		log.Fatal("Couldn't attach to stdout running envoy command: %s", err.Error())
 	}
 	so := bufio.NewReader(stdout)
 	se := bufio.NewReader(stderr)
 
 	if err = cmd.Start(); err != nil {
-		log.Fatal("Error starting envoy")
-		panic(err)
+		log.Fatal("Error starting envoy: %s", err.Error())
 	}
 	log.Printf("Envoy(%d) started", curEpoch)
 	soEof := false
@@ -210,8 +227,7 @@ func (ec * EnvoyControl) startEnvoy() {
 				soEof = true
 			}
 		} else if err != nil {
-			log.Printf("Attempt to read envoy standard out failed")
-			panic(err)
+			log.Fatal("Attempt to read envoy standard out failed: %s", err.Error())
 		} else if count > 0 {
 			log.Printf("ENVOY_LOG(%d)(%d): %s",curEpoch,count,string(data))
 		}
@@ -224,16 +240,14 @@ func (ec * EnvoyControl) startEnvoy() {
 				seEof = true
 			}
 		} else if err != nil {
-			log.Fatal("Attempt to read envoy standard err failed")
-			panic(err)
+			log.Fatal("Attempt to read envoy standard err failed: %s", err.Error())
 		} else if count > 0 {
 			log.Printf("ENVOY_LOG(%d)(%d): %s",curEpoch,count,string(data))
 		}
 	}
 	log.Printf("Waiting on envoy %d to exit", curEpoch)
 	if err = cmd.Wait(); err != nil {
-		log.Printf("Envoy %d exited with an unexpected exit code", curEpoch)
-		panic(err)
+		log.Fatal("Envoy %d exited with an unexpected exit code: %s", curEpoch, err.Error())
 	}
 	log.Printf("Envoy %d exited", curEpoch)
 	// Check if this was the primary envoy, if so
@@ -262,27 +276,23 @@ func (ec * EnvoyControl) updateEnvoyConfig(ecv * EnvoyConfigVars) (err error) {
 	// Slurp up the template file.
 	tplt, err := ioutil.ReadFile(ec.envoyConfigTemplate)
 	if err != nil {
-		log.Fatal("ERROR reading the template file, aborting")
-		panic(err)
+		log.Fatal("ERROR reading the template file, aborting: %s", err.Error())
 	}
 	//fmt.Println(string(tplt))
 	configTemplate, err := template.New("config").Funcs(funcs).Parse(string(tplt));
 	if err != nil {
-		log.Fatal("Unexpected error loading the Envoy template, aborting")
-		panic(err)
+		log.Fatal("Unexpected error loading the Envoy template, aborting: %s", err.Error())
 	}
 	outFile,err := os.Create(ec.envoyConfig)
 	if err != nil {
-		log.Fatal("Unexpected error opening the Envoy config file for write, aborting")
-		panic(err)
+		log.Fatal("Unexpected error opening the Envoy config file for write, aborting: %s", err.Error())
 	}
 	if err = configTemplate.Execute(outFile, ecv); err != nil {
-		log.Fatal("Unexpected error executing the Envoy config template, aborting")
-		panic(err)
+		log.Fatal("Unexpected error executing the Envoy config template, aborting: %s", err.Error())
 	}
 	//cfgFile, err := ioutil.ReadFile(ec.envoyConfig)
 	//if err != nil {
-	//	log.Fatal("ERROR reading the config file, aborting")
+	//	log.Fatal("ERROR reading the config file, aborting: %s", err.Error())
 	//	panic(err)
 	//}
 	//fmt.Println(string(cfgFile))
@@ -298,8 +308,7 @@ func (ec * EnvoyControl) parseAssignment(jsonString []byte) (vCluster []VolthaCl
 	//err = json.Unmarshal(jsonString, &f)
 	err = json.Unmarshal(jsonString, &f)
 	if err != nil {
-			log.Fatal("Unable to parse json record %s", jsonString)
-			panic(err)
+		log.Fatal("Unable to parse json record %s : %s", jsonString, err.Error())
 	} else {
 		m := f.(map[string]interface{})
 		for k, v := range m {
@@ -343,6 +352,9 @@ func (ec * EnvoyControl) parseAssignment(jsonString []byte) (vCluster []VolthaCl
 func (ec * EnvoyControl) prepareEnvoyConfig(kvp * consulapi.KVPair, ecv * EnvoyConfigVars) (err error) {
 	var vCluster []VolthaClusterEntry
 
+	ecv.HttpPort = ec.envoyHttpPort
+	ecv.HttpsPort = ec.envoyHttpsPort
+	ecv.GrpcPort = ec.envoyGrpcPort
 	ecv.VolthaVip = ec.ipAddrs[ec.vcoreSvcName][0] + ":" + ec.vcorePort
 
 	// Extract all values from the KV record
@@ -358,8 +370,7 @@ func (ec * EnvoyControl) prepareEnvoyConfig(kvp * consulapi.KVPair, ecv * EnvoyC
 			ecv.VolthaRR = append(ecv.VolthaRR, vCluster[i].Host + ":" + ec.vcorePort)
 		}
 	} else {
-		log.Fatal("Couldn't parse the KV record %s", string(kvp.Value))
-		panic(err)
+		log.Fatal("Couldn't parse the KV record %s: %s", string(kvp.Value), err.Error())
 	}
 	return
 }
@@ -369,8 +380,7 @@ func (ec * EnvoyControl) runEnvoy(kvp * consulapi.KVPair) {
 	var ecv EnvoyConfigVars
 
 	if err = ec.prepareEnvoyConfig(kvp, &ecv); err != nil {
-		log.Fatal("Error preparing envoy config variables, aborting")
-		panic(err)
+		log.Fatal("Error preparing envoy config variables, aborting: %s", err.Error())
 	}
 
 	// Now that we have the data loaded, update the envoy config and start envoy
@@ -400,8 +410,7 @@ func (ec * EnvoyControl) readConsulKey(key string, qo * consulapi.QueryOptions) 
 			kvp, meta, err = kv.Get(ec.assignmentKey, qo)
 		}
 		if i == ec.retries {
-			log.Printf("Failed to read the assignment key after %d retries, aborting", ec.retries)
-			panic(err)
+			log.Fatal("Failed to read the assignment key after %d retries, aborting: %s", ec.retries, err.Error())
 		}
 	}
 	return
@@ -427,8 +436,7 @@ func (ec * EnvoyControl) runMonitorEnvoy() {
 			}
 			kvp, meta, err = ec.readConsulKey(ec.assignmentKey, &qo)
 			if err != nil {
-				log.Printf("Unable to read assignment consul key")
-				panic(err)
+				log.Fatal("Unable to read assignment consul key: %s\n", err.Error())
 			} else {
 				log.Println(string(kvp.Value))
 				log.Printf("meta.LastIndex = %d", meta.LastIndex)
@@ -449,6 +457,15 @@ func (ec * EnvoyControl) ParseCommandArguments() {
 	flag.StringVar(&( ec.envoyConfigTemplate),"envoy-cfg-template", ec.envoyConfigTemplate,
 					"The path to envoy's configuration template")
 
+	flag.StringVar(&( ec.envoyConfigTemplateBoth),"envoy-cfg-template-both", ec.envoyConfigTemplateBoth,
+					"The path to envoy's configuration template for both http and https")
+
+	flag.StringVar(&( ec.envoyConfigTemplateNoHttps),"envoy-cfg-template-no-https", ec.envoyConfigTemplateNoHttps,
+					"The path to envoy's configuration template with no https")
+
+	flag.StringVar(&( ec.envoyConfigTemplateNoHttp),"envoy-cfg-template-no-http", ec.envoyConfigTemplateNoHttp,
+					"The path to envoy's configuration template with no http")
+
 	flag.StringVar(&(ec.envoyConfig), "envoy-config", ec.envoyConfig,
 				"The path to envoy's configuration file" )
 
@@ -464,11 +481,26 @@ func (ec * EnvoyControl) ParseCommandArguments() {
 	flag.StringVar(&(ec.consulPort), "consul-port", ec.consulPort,
 				"The port where the consul service api can be found")
 
+	flag.StringVar(&(ec.envoyHttpPort), "http-port", ec.envoyHttpPort,
+				"The port where the http front-end is served ")
+
+	flag.StringVar(&(ec.envoyHttpsPort), "https-port", ec.envoyHttpsPort,
+				"The port where the https front-end is served ")
+
+	flag.StringVar(&(ec.envoyGrpcPort), "grpc-port", ec.envoyGrpcPort,
+				"The port where the grpc front-end is served ")
+
 	flag.IntVar(&(ec.retries), "retries", ec.retries,
 			"The number of times to retry name lookups and connect requests before failing")
 
 	flag.IntVar(&(ec.waitTime), "wait-time", ec.waitTime,
 			"The number of seconds to wait between retries")
+
+	flag.BoolVar(&(ec.httpDisabled), "disable-http", ec.httpDisabled,
+			"Disables the http front-end")
+
+	flag.BoolVar(&(ec.httpsDisabled), "disable-https", ec.httpsDisabled,
+			"Disables ths https front-end")
 
 	flag.Parse()
 }
@@ -476,19 +508,26 @@ func (ec * EnvoyControl) ParseCommandArguments() {
 func (ec * EnvoyControl) Initialize() (err error) {
 	// Resolve consul's virtual ip address
 	if err = ec.resolveServiceAddress(ec.consulSvcName); err != nil {
-		log.Fatal("Can't proceed without consul's vIP address")
-		panic(err)
+		log.Fatal("Can't proceed without consul's vIP address: %s", err.Error())
 	}
 
 	// Resolve voltha's virtual ip address
 	if err = ec.resolveServiceAddress(ec.vcoreSvcName); err != nil {
-		log.Fatal("Can't proceed without voltha's vIP address")
-		panic(err)
+		log.Fatal("Can't proceed without voltha's vIP address: %s", err.Error())
 	}
 
 	if err = ec.consulConnect(ec.consulSvcName, ec.consulPort); err != nil {
-		log.Fatal("error creating consul client aborting")
-		panic(err)
+		log.Fatal("error creating consul client aborting: %s", err.Error())
+	}
+
+	if ec.httpDisabled == true && ec.httpsDisabled == true {
+		log.Printf("Cowardly refusing to disable both http and https, leavign them both enabled\n")
+	} else if ec.httpDisabled == true {
+		log.Printf("Diasabling http\n")
+		ec.envoyConfigTemplate = ec.envoyConfigTemplateNoHttp
+	} else if ec.httpsDisabled == true {
+		log.Printf("Diasabling https\n")
+		ec.envoyConfigTemplate = ec.envoyConfigTemplateNoHttps
 	}
 
 	return
@@ -502,8 +541,7 @@ func main() {
 	ec = NewEnvoyControl()
 	ec.ParseCommandArguments()
 	if err = ec.Initialize(); err != nil {
-		log.Fatal("Envoy control initialization failed, aboring")
-		panic(err)
+		log.Fatal("Envoy control initialization failed, aboring: %s", err.Error())
 	}
 
 
