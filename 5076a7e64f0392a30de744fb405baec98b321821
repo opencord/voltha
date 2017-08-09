@@ -399,6 +399,52 @@
     },
     {
       "key": {
+        "uuid": "9a437d4f_32a5ae04",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 285,
+      "author": {
+        "id": 1000090
+      },
+      "writtenOn": "2017-08-09T05:58:21Z",
+      "side": 1,
+      "message": "Hello Raghu\n1. Intention is to update ONU device state then why not name function as \"update_onu_device_state\", so we don\u0027t use for OLT device\n2. Why do you need to change admin state of ONU from adapter? Can you explain scenario? It is management / configuration property should be control by operator only",
+      "range": {
+        "startLine": 285,
+        "startChar": 8,
+        "endLine": 285,
+        "endChar": 27
+      },
+      "revId": "5076a7e64f0392a30de744fb405baec98b321821",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a437d4f_12aaaad4",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 299,
+      "author": {
+        "id": 1000090
+      },
+      "writtenOn": "2017-08-09T05:58:21Z",
+      "side": 1,
+      "message": "Admin state is management / config property to be controlled by operator only. It would be illegal for adaoter changing admin state using \"adapter facing service\". Can you please explain the scenario?",
+      "range": {
+        "startLine": 298,
+        "startChar": 0,
+        "endLine": 299,
+        "endChar": 44
+      },
+      "revId": "5076a7e64f0392a30de744fb405baec98b321821",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a437d4f_af0259b2",
         "filename": "voltha/core/adapter_agent.py",
         "patchSetId": 5
