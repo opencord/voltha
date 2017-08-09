@@ -22,6 +22,7 @@ message ChannelgroupConfig
     ietf_interfaces.Interface interface = 2;
     ChannelgroupConfigData data = 3;
     string name = 4;
+    uint32 cg_index = 5 [(voltha.access) = READ_ONLY];
 }
 
 message ChannelpartitionConfig

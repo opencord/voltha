@@ -32,6 +32,8 @@ from voltha.protos.bbf_fiber_base_pb2 import \
 from voltha.protos.device_pb2 import Device
 from voltha.protos.common_pb2 import AdminState
 
+from common.utils.indexpool import IndexPool
+
 from requests.api import request
 
 log = structlog.get_logger()
@@ -41,6 +43,19 @@ class XponHandler(object):
     def __init__(self, core):
         self.core = core
         self.root = None
+        '''
+        Pool for handling channel group indices
+        @TODO: As per current persistency & HA design, each VOLTHA instance
+            maintains a separate independent database. Since channel-groups are
+            broadcast to all the VOLTHA instances in the cluster, the
+            xpon_handler in each instance will independently try to allocate a
+            unique index. This approach works OK for XGS-PON since CG<->CTerm
+            relationship is 1:1 for XGS-PON(Since a device can only be served
+            by one VOLTHA instance and thereby CTerm). This needs to be further
+            investigated wrt persistency & HA design evolution, for a better
+            approach in future.
+        '''
+        self.cg_pool = IndexPool(2**12, 0)
 
     def start(self, root):
         log.debug('starting xpon_handler')
@@ -51,6 +66,13 @@ class XponHandler(object):
         items = self.root.get('/channel_groups')
         return AllChannelgroupConfig(channelgroup_config=items)
 
+    def get_channel_group_config(self, request, context):
+        log.info('grpc-request', request=request)
+        item = self.root.get('/channel_groups/{}'.format(request.name))
+        if(isinstance(item, ChannelgroupConfig)):
+            return item
+        return Empty()
+
     def create_channel_group(self, request, context):
         log.info('grpc-request', request=request)
 
@@ -58,10 +80,16 @@ class XponHandler(object):
             assert isinstance(request, ChannelgroupConfig)
             assert self.validate_interface(request, context)
             log.debug('creating-channel-group', name=request.name)
+            _id = self.cg_pool.get_next()
+            assert _id != None
+            request.cg_index = _id
             self.root.add('/channel_groups', request)
 
             return Empty()
         except AssertionError, e:
+            context.set_details(
+                'Fail to allocate id to \'{}\''.format(request.name))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
         except ValueError:
             context.set_details(
@@ -82,7 +110,10 @@ class XponHandler(object):
         try:
             assert isinstance(request, ChannelgroupConfig)
             assert self.validate_interface(request, context)
+            channelgroup = self.get_channel_group_config(request, context)
+            assert channelgroup.name == request.name
 
+            request.cg_index = channelgroup.cg_index
             path = '/channel_groups/{}'.format(request.name)
             log.debug('updating-channel-group', name=request.name)
             self.root.update(path, request, strict=True)
@@ -118,9 +149,13 @@ class XponHandler(object):
             assert request.name not in known_channel_group_ref
             reference = "channel pair"
             assert request.name not in known_channel_group_ref_1
+            channelgroup = self.get_channel_group_config(request, context)
+            assert channelgroup.name == request.name
+
             path = '/channel_groups/{}'.format(request.name)
             log.debug('removing-channel-group', name=request.name)
             self.root.remove(path)
+	    self.cg_pool.release(channelgroup.cg_index)
 
             return Empty()
 
