@@ -234,6 +234,30 @@
       "revId": "faeac093e980345dc824495d5ec740fcdbbeb2d3",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a437d4f_729b36ca",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 300,
+      "author": {
+        "id": 1000090
+      },
+      "writtenOn": "2017-08-09T05:38:03Z",
+      "side": 1,
+      "message": "Hello Raghu\n1. Intention is used for ONU device state change then why not name function as \"update_onu_device_state\", so we don\u0027t use for OLT device\n2. Why do you need to change admin state of ONU from adapter? Can you explain scenario? It is management / configuration property should be operator control.",
+      "parentUuid": "da3975d1_b1fbe046",
+      "range": {
+        "startLine": 299,
+        "startChar": 8,
+        "endLine": 300,
+        "endChar": 42
+      },
+      "revId": "faeac093e980345dc824495d5ec740fcdbbeb2d3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
