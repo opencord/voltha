@@ -1,5 +1,6 @@
 argparse==1.2.1
 arrow>=0.10.0
+bitstring
 cmd2==0.7.0
 colorama>=0.2.5
 cython==0.24.1
