@@ -301,6 +301,30 @@
     },
     {
       "key": {
+        "uuid": "9a437d4f_32412e0c",
+        "filename": "voltha/adapters/iadapter.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 153,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-09T13:26:57Z",
+      "side": 1,
+      "message": "Done.",
+      "parentUuid": "9a437d4f_efc3c188",
+      "range": {
+        "startLine": 153,
+        "startChar": 8,
+        "endLine": 153,
+        "endChar": 63
+      },
+      "revId": "5076a7e64f0392a30de744fb405baec98b321821",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a437d4f_cfc0fd7e",
         "filename": "voltha/adapters/iadapter.py",
         "patchSetId": 5
@@ -324,6 +348,30 @@
     },
     {
       "key": {
+        "uuid": "9a437d4f_12462a24",
+        "filename": "voltha/adapters/iadapter.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 157,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-09T13:26:57Z",
+      "side": 1,
+      "message": "Done.",
+      "parentUuid": "9a437d4f_cfc0fd7e",
+      "range": {
+        "startLine": 157,
+        "startChar": 8,
+        "endLine": 157,
+        "endChar": 63
+      },
+      "revId": "5076a7e64f0392a30de744fb405baec98b321821",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a437d4f_afbdb904",
         "filename": "voltha/adapters/iadapter.py",
         "patchSetId": 5
@@ -335,6 +383,30 @@
       "writtenOn": "2017-08-08T17:56:54Z",
       "side": 1,
       "message": "The same as above.",
+      "range": {
+        "startLine": 161,
+        "startChar": 8,
+        "endLine": 161,
+        "endChar": 63
+      },
+      "revId": "5076a7e64f0392a30de744fb405baec98b321821",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a437d4f_f24a8626",
+        "filename": "voltha/adapters/iadapter.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 161,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-09T13:26:57Z",
+      "side": 1,
+      "message": "Done.",
+      "parentUuid": "9a437d4f_afbdb904",
       "range": {
         "startLine": 161,
         "startChar": 8,
@@ -476,6 +548,30 @@
       "side": 1,
       "message": "Hello Raghu\nIt is incorrect behavior:\n1. operator decides to disable onu by bringing admin state to admin down\n2. for any reason onu is re-ranged (onu power down / up, pull out \u0026 plug back fiber at onu)\n3. Now admin state of ONU automatically adjusted to admin up against operator will and ONU goes into service which is illegal",
       "parentUuid": "9a437d4f_b28f5e75",
+      "range": {
+        "startLine": 285,
+        "startChar": 8,
+        "endLine": 285,
+        "endChar": 27
+      },
+      "revId": "5076a7e64f0392a30de744fb405baec98b321821",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a437d4f_d247821c",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 285,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-09T13:26:57Z",
+      "side": 1,
+      "message": "Hi Niren,\n\nOk.. If this is the case i can remove handling of admin state in adapter and we can remove this method too. Thanks for the comments.",
+      "parentUuid": "9a437d4f_d2d9c284",
       "range": {
         "startLine": 285,
         "startChar": 8,
