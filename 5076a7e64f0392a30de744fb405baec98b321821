@@ -382,6 +382,24 @@
     },
     {
       "key": {
+        "uuid": "9a437d4f_925e9a11",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 277,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-09T06:15:57Z",
+      "side": 1,
+      "message": "Let me try with this approach. Thanks steve.",
+      "parentUuid": "9a437d4f_af4819cd",
+      "revId": "5076a7e64f0392a30de744fb405baec98b321821",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a437d4f_8fff95aa",
         "filename": "voltha/core/adapter_agent.py",
         "patchSetId": 5
@@ -422,6 +440,30 @@
     },
     {
       "key": {
+        "uuid": "9a437d4f_b28f5e75",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 285,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-09T06:15:57Z",
+      "side": 1,
+      "message": "Hi Niren,\nI used the update_device_state name because any device can use this function to change the state of the device. However, i am planning to remove this function and modify the update_device function as per Steve suggestion.\n\nTo handle the Auto detection of ONU\u0027s by ASFVOLT16 adapter, we need this functionality. Below is the steps for scenario.\n\n1) Bring up the OLT.\n2) configure channel_group, channel_partition, channel_pair, and channel_termination using XPON commands\n3) Configure the ONU info (vont_ani) with admimn state is down. In our case the ONU is not powered on so we want to keep state of the ONU to DOWN. As per latest change, Now the admin state of the ONU is PREPROVISIONED.\n4) With the above 3 steps, OLT is up, PON port is UP.\n5) Power on the ONU. OLT will detect the ONU, and indicates to ASFVOLT16 adapter with ONU discovery. Since the ONU is configured and state of the ONU is PRE-PROVISIONED, we need to change the admin state to Enable and update the device state. \n6) As per the device state machine, when ONU device state changes from PRE-PROVISIONED to ENABLED then it will call activate function of ONU adapters.",
+      "parentUuid": "9a437d4f_32a5ae04",
+      "range": {
+        "startLine": 285,
+        "startChar": 8,
+        "endLine": 285,
+        "endChar": 27
+      },
+      "revId": "5076a7e64f0392a30de744fb405baec98b321821",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a437d4f_12aaaad4",
         "filename": "voltha/core/adapter_agent.py",
         "patchSetId": 5
@@ -445,6 +487,30 @@
     },
     {
       "key": {
+        "uuid": "9a437d4f_72e9f619",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 299,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-09T06:15:57Z",
+      "side": 1,
+      "message": "The scenario is explained above.",
+      "parentUuid": "9a437d4f_12aaaad4",
+      "range": {
+        "startLine": 298,
+        "startChar": 0,
+        "endLine": 299,
+        "endChar": 44
+      },
+      "revId": "5076a7e64f0392a30de744fb405baec98b321821",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a437d4f_af0259b2",
         "filename": "voltha/core/adapter_agent.py",
         "patchSetId": 5
@@ -456,6 +522,30 @@
       "writtenOn": "2017-08-08T18:22:25Z",
       "side": 1,
       "message": "Prefer using update_device for same reason as mentioned in \"update_device\"",
+      "range": {
+        "startLine": 300,
+        "startChar": 8,
+        "endLine": 301,
+        "endChar": 42
+      },
+      "revId": "5076a7e64f0392a30de744fb405baec98b321821",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a437d4f_928c5a81",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 301,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-09T06:15:57Z",
+      "side": 1,
+      "message": "Will try modify the update_device as per Steve suggestion.",
+      "parentUuid": "9a437d4f_af0259b2",
       "range": {
         "startLine": 300,
         "startChar": 8,
