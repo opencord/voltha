@@ -527,9 +527,18 @@ message BalSerialNumber
 
 /** Variable-length list of servicePortId.
  */
+message BalIdU8List
+{
+    uint32 len = 1;    /* size of the packets*/
+    string val = 2;    /**< List contents. */
+}
+
+/** Variable-length list of servicePortId.
+ */
 message BalIdList
 {
-    repeated uint32 val = 1;    /**< List contents. */
+    uint32 len = 1;    /* size of the packets*/
+    repeated uint32 val = 2;    /**< List contents. */
 }
 
 /** SLA.
@@ -1091,7 +1100,7 @@ message BalPacketBearerChannelRx
  */
 message BalPacketIeeeOamChannelRxData
 {
-    BalIdList pkt = 1;    /**< Packet Data. */
+    BalIdU8List pkt = 1;    /**< Packet Data. */
 }
 
 /** Transport message definition for "ieee_oam_channel_rx" group of "packet"
@@ -1111,7 +1120,7 @@ message BalPacketIeeeOamChannelRx
  */
 message BalPacketItuOmciChannelRxData
 {
-    BalIdList pkt = 1;    /**< Packet Data. */
+    BalIdU8List pkt = 1;    /**< Packet Data. */
 }
 
 /** Transport message definition for "itu_omci_channel_rx" group of "packet" object.

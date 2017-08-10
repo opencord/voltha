@@ -76,7 +76,7 @@ class Asfvolt16Handler(OltDeviceHandler):
             device.serial_number = device.host_and_port
             self.adapter_agent.update_device(device)
 
-            self.add_port(port_no=1, port_type=Port.ETHERNET_NNI,
+            self.add_port(port_no=50, port_type=Port.ETHERNET_NNI,
                           label='NNI facing Ethernet port')
             self.logical_device_id = \
                 self.add_logical_device(device_id=device.id)
@@ -271,6 +271,19 @@ class Asfvolt16Handler(OltDeviceHandler):
             self.bal.send_omci_request_message(proxy_address, msg)
         except Exception as e:
             self.log.exception('', exc=str(e))
+        return
+    
+    def handle_omci_ind(self, ind_info):
+        child_device = self.adapter_agent.get_child_device(self.device_id,
+                                                    onu_id=ind_info['onu_id'])
+        if child_device is None:
+            self.log.info('Onu is not configured',onu_id=ind_info['onu_id'])
+            return
+        try:
+            self.adapter_agent.receive_proxied_message(child_device.proxy_address,
+                                         ind_info['packet'])
+        except Exception as e:
+                self.log.exception('', exc=str(e))
         return
 
     def create_interface(self, data):
