@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a437d4f_d86441e7",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 79,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-08-10T19:28:42Z",
+      "side": 1,
+      "message": "Can you moved the hard-coded constant of 50 to a manifest variable similar to PACKET_IN_VLAN?  Suggest ASFVOLT_NNI_PORT or similar. We can document the hardware assigned port numbers in a README file later.",
+      "revId": "afa0e6b7260e92938c6bb836ebe4e02fa57df82b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a437d4f_1873e9b2",
+        "filename": "voltha/adapters/asfvolt16_olt/bal.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 85,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-08-10T19:28:42Z",
+      "side": 1,
+      "message": "This is reverting the PEP-8 cleanup from the previous commit.  Please look over all changes and ensure this is preserved.  Also new changes should confirm to PEP-8.",
+      "revId": "afa0e6b7260e92938c6bb836ebe4e02fa57df82b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
