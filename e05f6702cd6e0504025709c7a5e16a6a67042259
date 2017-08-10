@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a437d4f_18f889e4",
+        "filename": "install/ansible/roles/cluster-host/tasks/main.yml",
+        "patchSetId": 2
+      },
+      "lineNbr": 88,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-08-10T20:53:44Z",
+      "side": 1,
+      "message": "This message will cause confusion if someone goes looking for the log file under tmp after seeing it. I know it wont affect functionality but it might affect troubleshooting. Please correct it and then I\u0027ll merge. I hadn\u0027t seen it in your first patch.",
+      "range": {
+        "startLine": 88,
+        "startChar": 28,
+        "endLine": 88,
+        "endChar": 48
+      },
+      "revId": "e05f6702cd6e0504025709c7a5e16a6a67042259",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
