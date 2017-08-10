@@ -81,15 +81,15 @@ class Bal(object):
                       msg=msg)
         try:
             obj = bal_pb2.BalCfg()
-            #            Fill Header details
+            #Fill Header details
             obj.device_id = self.device_id.encode('ascii', 'ignore')
             obj.hdr.obj_type = bal_model_ids_pb2.BAL_OBJ_ID_PACKET
-            #            Fill packet Details
+            #Fill packet Details
             obj.packet.key.packet_send_dest.type = \
                 bal_model_types_pb2.BAL_DEST_TYPE_ITU_OMCI_CHANNEL
             obj.packet.key.packet_send_dest.itu_omci_channel.sub_term_id = \
-                proxy_address.channel_id
-            obj.packet.key.packet_send_dest.itu_omci_channel.int_id = 0
+                proxy_address.onu_id
+            obj.packet.key.packet_send_dest.itu_omci_channel.int_id = proxy_address.channel_id
             obj.packet.data.pkt = msg
             yield self.stub.BalCfgSet(obj)
         except Exception as e:
