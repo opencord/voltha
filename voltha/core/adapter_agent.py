@@ -209,15 +209,53 @@ class AdapterAgent(object):
     # def update_pm_collection(self, device, pm_collection_config):
     #    return self.adapter.update_pm_collection(device, pm_collection_config)
 
-    def create_interface (self, device, data):
-        return self.adapter.create_interface (device, data)
+    def create_interface(self, device, data):
+        return self.adapter.create_interface(device, data)
 
-    def update_interface (self, device, data):
-        return self.adapter.update_interface (device, data)
+    def update_interface(self, device, data):
+        return self.adapter.update_interface(device, data)
 
     def remove_interface(self, device, data):
         return self.adapter.remove_interface(device, data)
 
+    def create_tcont(self, device, tcont_data, traffic_descriptor_data):
+        return self.adapter.create_tcont(device, tcont_data,
+                                         traffic_descriptor_data)
+
+    def update_tcont(self, device, tcont_data, traffic_descriptor_data):
+        return self.adapter.update_tcont(device, tcont_data,
+                                         traffic_descriptor_data)
+
+    def remove_tcont(self, device, tcont_data, traffic_descriptor_data):
+        return self.adapter.remove_tcont(device, tcont_data,
+                                         traffic_descriptor_data)
+
+    def create_gemport(self, device, data):
+        return self.adapter.create_gemport(device, data)
+
+    def update_gemport(self, device, data):
+        return self.adapter.update_gemport(device, data)
+
+    def remove_gemport(self, device, data):
+        return self.adapter.remove_gemport(device, data)
+
+    def create_multicast_gemport(self, device, data):
+        return self.adapter.create_multicast_gemport(device, data)
+
+    def update_multicast_gemport(self, device, data):
+        return self.adapter.update_multicast_gemport(device, data)
+
+    def remove_multicast_gemport(self, device, data):
+        return self.adapter.remove_multicast_gemport(device, data)
+
+    def create_multicast_distribution_set(self, device, data):
+        return self.adapter.create_multicast_distribution_set(device, data)
+
+    def update_multicast_distribution_set(self, device, data):
+        return self.adapter.update_multicast_distribution_set(device, data)
+
+    def remove_multicast_distribution_set(self, device, data):
+        return self.adapter.remove_multicast_distribution_set(device, data)
 
     # ~~~~~~~~~~~~~~~~~~~ Adapter-Facing Service ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

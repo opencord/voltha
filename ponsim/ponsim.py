@@ -477,13 +477,91 @@ class XPonSim(object):
         self.log = structlog.get_logger()
 
     def CreateInterface(self, request):
-        self.log.info("create-interface-request", interface_type = request.WhichOneof("interface_type"), data = request)
+        self.log.info("create-interface-request",
+                      interface_type=request.WhichOneof("interface_type"),
+                      data=request)
         return
 
     def UpdateInterface(self, request):
-        self.log.info("update-interface-request", interface_type = request.WhichOneof("interface_type"), data = request)
+        self.log.info("update-interface-request",
+                      interface_type=request.WhichOneof("interface_type"),
+                      data=request)
         return
 
     def RemoveInterface(self, request):
-        self.log.info("remove-interface-request", interface_type = request.WhichOneof("interface_type"), data = request)
+        self.log.info("remove-interface-request",
+                      interface_type=request.WhichOneof("interface_type"),
+                      data=request)
+        return
+
+    def CreateTcont(self, request, request2):
+        self.log.info("create-tcont-request",
+                      tcont_config_data=request,
+                      traffic_descriptor_profile_config_data=request2)
+        return
+
+    def UpdateTcont(self, request, request2):
+        self.log.info("update-tcont-request",
+                      tcont_config_data=request,
+                      traffic_descriptor_profile_config_data=request2)
+        return
+
+    def RemoveTcont(self, request, request2):
+        self.log.info("remove-tcont-request",
+                      tcont_config_data=request,
+                      traffic_descriptor_profile_config_data=request2)
+        return
+
+    def CreateGemport(self, request):
+        self.log.info("create-gemport-request",
+                      interface_type=request.WhichOneof("interface_type"),
+                      data=request)
+        return
+
+    def UpdateGemport(self, request):
+        self.log.info("update-gemport-request",
+                      interface_type=request.WhichOneof("interface_type"),
+                      data=request)
+        return
+
+    def RemoveGemport(self, request):
+        self.log.info("remove-gemport-request",
+                      interface_type=request.WhichOneof("interface_type"),
+                      data=request)
+        return
+
+    def CreateMulticastGemport(self, request):
+        self.log.info("create-multicast-gemport-request",
+                      interface_type=request.WhichOneof("interface_type"),
+                      data=request)
+        return
+
+    def UpdateMulticastGemport(self, request):
+        self.log.info("update-multicast-gemport-request",
+                      interface_type=request.WhichOneof("interface_type"),
+                      data=request)
+        return
+
+    def RemoveMulticastGemport(self, request):
+        self.log.info("remove-multicast-gemport-request",
+                      interface_type=request.WhichOneof("interface_type"),
+                      data=request)
+        return
+
+    def CreateMulticastDistributionSet(self, request):
+        self.log.info("create-multicast-distribution-set-request",
+                      interface_type=request.WhichOneof("interface_type"),
+                      data=request)
+        return
+
+    def UpdateMulticastDistributionSet(self, request):
+        self.log.info("update-multicast-distribution-set-request",
+                      interface_type=request.WhichOneof("interface_type"),
+                      data=request)
+        return
+
+    def RemoveMulticastDistributionSet(self, request):
+        self.log.info("remove-multicast-distribution-set-request",
+                      interface_type=request.WhichOneof("interface_type"),
+                      data=request)
         return

@@ -32,10 +32,16 @@ from voltha.protos.bbf_fiber_base_pb2 import \
     AllChannelpartitionConfig, ChannelpartitionConfig, \
     AllChannelterminationConfig, ChannelterminationConfig, \
     AllOntaniConfig, OntaniConfig, AllVOntaniConfig , \
-    VOntaniConfig, AllVEnetConfig , VEnetConfig
+    VOntaniConfig, AllVEnetConfig , VEnetConfig, \
+    AllTrafficDescriptorProfileData, AllTcontsConfigData, AllGemportsConfigData
+from voltha.protos.bbf_fiber_traffic_descriptor_profile_body_pb2 import \
+    TrafficDescriptorProfileData
+from voltha.protos.bbf_fiber_tcont_body_pb2 import TcontsConfigData
+from voltha.protos.bbf_fiber_gemport_body_pb2 import GemportsConfigData
 
 _ = third_party
-from voltha.protos import voltha_pb2, bbf_fiber_types_pb2, ietf_interfaces_pb2
+from voltha.protos import voltha_pb2, bbf_fiber_types_pb2, \
+    ietf_interfaces_pb2, bbf_fiber_traffic_descriptor_profile_body_pb2
 import sys
 from google.protobuf.json_format import MessageToDict
 
@@ -58,28 +64,54 @@ class XponCli(Cmd):
 
     def get_ref_interfaces(self, all_interfaces, ref_interfaces):
         interface_list = []
+        interface_name_list = []
         if not all_interfaces:
             return interface_list
         if isinstance(all_interfaces[0], (ChannelgroupConfig,
                                           ChannelpartitionConfig,
-                                          ChannelpairConfig, OntaniConfig)):
+                                          ChannelpairConfig, OntaniConfig,
+                                          TrafficDescriptorProfileData)):
             for interface in all_interfaces:
-                if interface.name in ref_interfaces:
+                if interface.name in ref_interfaces and \
+                    interface.name not in interface_name_list:
+                    interface_name_list.append(interface.name)
                     interface_list.append(interface)
         elif isinstance(all_interfaces[0], VOntaniConfig):
             for interface in all_interfaces:
-                if interface.data.parent_ref in ref_interfaces:
+                if interface.data.parent_ref in ref_interfaces and \
+                    interface.name not in interface_name_list:
+                    interface_name_list.append(interface.name)
                     interface_list.append(interface)
         elif isinstance(all_interfaces[0], VEnetConfig):
             for interface in all_interfaces:
-                if interface.data.v_ontani_ref in ref_interfaces:
+                if interface.data.v_ontani_ref in ref_interfaces and \
+                    interface.name not in interface_name_list:
+                    interface_name_list.append(interface.name)
+                    interface_list.append(interface)
+        elif isinstance(all_interfaces[0], TcontsConfigData):
+            for interface in all_interfaces:
+                if interface.interface_reference in ref_interfaces and \
+                    interface.name not in interface_name_list:
+                    interface_name_list.append(interface.name)
+                    interface_list.append(interface)
+        elif isinstance(all_interfaces[0], GemportsConfigData):
+            for interface in all_interfaces:
+                if interface.itf_ref in ref_interfaces and \
+                    interface.name not in interface_name_list:
+                    interface_name_list.append(interface.name)
                     interface_list.append(interface)
         return interface_list
 
     def get_interface_based_on_device(self):
-        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
-        channel_terminations = stub.GetAllChannelterminationConfig(
-            voltha_pb2.ID(id=self.device_id)).channeltermination_config
+        stub = voltha_pb2.VolthaGlobalServiceStub(self.get_channel())
+        try:
+            channel_terminations = stub.GetAllChannelterminationConfig(
+                voltha_pb2.ID(id=self.device_id)).channeltermination_config
+        except Exception:
+                self.poutput(
+                    self.colorize('Error: ', 'red') + 'No device id ' \
+                    + self.colorize(device_id, 'blue') + ' is found')
+                return
         channel_pairs = self.get_ref_interfaces(
             stub.GetAllChannelpairConfig(Empty()).channelpair_config,
             dict((dt.data.channelpair_ref, dt) for dt in channel_terminations))
@@ -98,8 +130,19 @@ class XponCli(Cmd):
         venets = self.get_ref_interfaces(
             stub.GetAllVEnetConfig(Empty()).v_enet_config,
             dict((dt.name, dt) for dt in vont_anis))
+        tconts = self.get_ref_interfaces(
+            stub.GetAllTcontsConfigData(Empty()).tconts_config,
+            dict((dt.name, dt) for dt in vont_anis))
+        traffic_descriptor_profiles = self.get_ref_interfaces(
+            stub.GetAllTrafficDescriptorProfileData(Empty()).
+            traffic_descriptor_profiles,
+            dict((dt.traffic_descriptor_profile_ref, dt) for dt in tconts))
+        gemports = self.get_ref_interfaces(
+            stub.GetAllGemportsConfigData(Empty()).gemports_config,
+            dict((dt.name, dt) for dt in venets))
         return channel_groups, channel_partitions, channel_pairs,\
-            channel_terminations, vont_anis, ont_anis, venets
+            channel_terminations, vont_anis, ont_anis, venets, \
+            traffic_descriptor_profiles, tconts, gemports
 
     do_exit = Cmd.do_quit
 
@@ -109,40 +152,50 @@ class XponCli(Cmd):
     def do_show(self, line):
         """Show detailed information of each interface based on device ID
         or all interfaces"""
-        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        stub = voltha_pb2.VolthaGlobalServiceStub(self.get_channel())
         device_id = self.device_id
         if line.strip():
-            device_id = line.strip()
-        if device_id:
-            cg, cpart, cp, ct, vont, ont, venet = \
+            self.device_id = line.strip()
+        if self.device_id:
+            cg, cpart, cp, ct, vont, ont, venet, tdp, tcont, gemport = \
                 self.get_interface_based_on_device()
-            print_pb_list_as_table("Channel Groups for device ID = {}:"
-                                   .format(device_id), cg, {}, self.poutput)
+            print_pb_list_as_table("Channel Groups for device ID = {}:".format(
+                self.device_id), cg, {}, self.poutput)
             print_pb_list_as_table("Channel Partitions for device ID = {}:"
-                                   .format(device_id),cpart, {}, self.poutput)
-            print_pb_list_as_table("Channel Pairs: for device ID = {}:"
-                                   .format(device_id), cp, {}, self.poutput)
+                                   .format(self.device_id),cpart, {},
+                                   self.poutput)
+            print_pb_list_as_table("Channel Pairs: for device ID = {}:".format(
+                self.device_id), cp, {}, self.poutput)
             print_pb_list_as_table("Channel Terminations for device ID = {}:"
-                                   .format(device_id), ct, {}, self.poutput)
-            print_pb_list_as_table("VOnt Anis for device ID = {}:"
-                                   .format(device_id), vont, {}, self.poutput)
-            print_pb_list_as_table("Ont Anis for device ID = {}:"
-                                   .format(device_id), ont, {}, self.poutput)
-            print_pb_list_as_table("VEnets for device ID = {}:"
-                                   .format(device_id), venet, {}, self.poutput)
+                                   .format(self.device_id), ct, {},
+                                   self.poutput)
+            print_pb_list_as_table("VOnt Anis for device ID = {}:".format(
+                self.device_id), vont, {}, self.poutput)
+            print_pb_list_as_table("Ont Anis for device ID = {}:".format(
+                self.device_id), ont, {}, self.poutput)
+            print_pb_list_as_table("VEnets for device ID = {}:".format(
+                self.device_id), venet, {}, self.poutput)
+            print_pb_list_as_table(
+                "Traffic Descriptor Profiles for device ID = {}:".format(
+                    self.device_id), tdp, {}, self.poutput)
+            print_pb_list_as_table("TConts for device ID = {}:".format(
+                self.device_id), tcont, {}, self.poutput)
+            print_pb_list_as_table("Gem Ports for device ID = {}:".format(
+                self.device_id), gemport, {}, self.poutput)
+            self.device_id = device_id
         else:
             interface = stub.GetAllChannelgroupConfig(Empty())
             print_pb_list_as_table("Channel Groups:",
-                                   interface.channelgroup_config,
-                                   {}, self.poutput)
+                                   interface.channelgroup_config, {},
+                                   self.poutput)
             interface = stub.GetAllChannelpartitionConfig(Empty())
             print_pb_list_as_table("Channel Partitions:",
-                                   interface.channelpartition_config,
-                                   {}, self.poutput)
+                                   interface.channelpartition_config, {},
+                                   self.poutput)
             interface = stub.GetAllChannelpairConfig(Empty())
             print_pb_list_as_table("Channel Pairs:",
-                                   interface.channelpair_config,
-                                   {}, self.poutput)
+                                   interface.channelpair_config, {},
+                                   self.poutput)
             devices = stub.ListDevices(Empty())
             for d in devices.items:
                 interface = stub.GetAllChannelterminationConfig(
@@ -152,17 +205,26 @@ class XponCli(Cmd):
                     .format(d.id), interface.channeltermination_config,
                     {}, self.poutput)
             interface = stub.GetAllVOntaniConfig(Empty())
-            print_pb_list_as_table("VOnt Anis:",
-                                   interface.v_ontani_config,
-                                   {}, self.poutput)
+            print_pb_list_as_table("VOnt Anis:", interface.v_ontani_config, {},
+                                   self.poutput)
             interface = stub.GetAllOntaniConfig(Empty())
-            print_pb_list_as_table("Ont Anis:",
-                                   interface.ontani_config,
-                                   {}, self.poutput)
+            print_pb_list_as_table("Ont Anis:", interface.ontani_config, {},
+                                   self.poutput)
             interface = stub.GetAllVEnetConfig(Empty())
-            print_pb_list_as_table("VEnets:",
-                                   interface.v_enet_config,
-                                   {}, self.poutput)
+            print_pb_list_as_table("VEnets:", interface.v_enet_config, {},
+                                   self.poutput)
+            traffic_descriptor = \
+                stub.GetAllTrafficDescriptorProfileData(Empty())
+            print_pb_list_as_table(
+                "Traffic Descriptor Profiles:",
+                traffic_descriptor.traffic_descriptor_profiles, {},
+                self.poutput)
+            tconts = stub.GetAllTcontsConfigData(Empty())
+            print_pb_list_as_table("TConts:", tconts.tconts_config, {},
+                                   self.poutput)
+            gemports = stub.GetAllGemportsConfigData(Empty())
+            print_pb_list_as_table("Gem Ports:", gemports.gemports_config, {},
+                                   self.poutput)
 
     def help_channel_group(self):
         self.poutput(
@@ -192,7 +254,8 @@ delete: deletes channel group specified with parameter -n.
 
 Example:
 
-channel_group create -n cg-1 -a up -p 100 -s 000000 -r raman_none
+channel_group create -n "Manhattan" -d "Channel Group for Manhattan" -a up
+                     -p 100 -s 000000 -r raman_none
 '''
         )
 
@@ -224,16 +287,16 @@ channel_group create -n cg-1 -a up -p 100 -s 000000 -r raman_none
         update -flags <attributes>, delete -n <name>"""
         # Ensure that a valid sub-command was provided
         if line.strip() not in {"get", "create", "update", "delete"}:
-            self.poutput(self.colorize('Error: ', 'red') + \
-                        self.colorize(self.colorize(line.strip(), 'blue'),
-                                      'bold') + ' is not recognized')
+            self.poutput(self.colorize('Error: ', 'red') +
+                         self.colorize(self.colorize(line.strip(), 'blue'),
+                                       'bold') + ' is not recognized')
             return
 
-        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        stub = voltha_pb2.VolthaGlobalServiceStub(self.get_channel())
 
         if line.strip() == "get":
             if self.device_id:
-                cg, cpart, cp, ct, vont, ont, venet = \
+                cg, cpart, cp, ct, vont, ont, venet, tdp, tcont, gemport = \
                     self.get_interface_based_on_device()
                 print_pb_list_as_table("Channel Groups for device ID = {}:"
                                        .format(self.device_id),
@@ -244,26 +307,25 @@ channel_group create -n cg-1 -a up -p 100 -s 000000 -r raman_none
                                        interface.channelgroup_config,
                                        {}, self.poutput)
             return
-        interface_instance = ChannelgroupConfig(name = opts.name)
-        interface_instance.interface.name = opts.name
-        if opts.description:
-            interface_instance.interface.description = opts.description
-        interface_instance.interface.type = "channelgroup"
-        if opts.enabled:
-            if opts.enabled == "up":
-                interface_instance.interface.enabled = True
-            elif opts.enabled == "down":
-                interface_instance.interface.enabled = False
-            else:
-                self.poutput(
-                    self.colorize('Error: ', 'red') + self.colorize(
-                        self.colorize(
-                            'Invalid admin state parameter for channel group',
-                            'blue'), 'bold'))
-                return
-        if opts.link_up_down_trap_enable:
-            types = ["trap_disabled", "trap_enabled"]
-            try:
+        try:
+            interface_instance = ChannelgroupConfig(name = opts.name)
+            interface_instance.interface.name = opts.name
+            if opts.description:
+                interface_instance.interface.description = opts.description
+            interface_instance.interface.type = "channelgroup"
+            if opts.enabled:
+                if opts.enabled == "up":
+                    interface_instance.interface.enabled = True
+                elif opts.enabled == "down":
+                    interface_instance.interface.enabled = False
+                else:
+                    self.poutput(
+                        self.colorize('Error: ', 'red') + self.colorize(
+                            self.colorize('Invalid admin state parameter for \
+                            channel group', 'blue'), 'bold'))
+                    return
+            if opts.link_up_down_trap_enable:
+                types = ["trap_disabled", "trap_enabled"]
                 assert opts.link_up_down_trap_enable in types, \
                     'Invalid Enum value for Channel Group link up down trap \
                     enable type \'{}\''.format(opts.link_up_down_trap_enable)
@@ -271,38 +333,31 @@ channel_group create -n cg-1 -a up -p 100 -s 000000 -r raman_none
                     ietf_interfaces_pb2._INTERFACE_LINKUPDOWNTRAPENABLETYPE.\
                     values_by_name[opts.link_up_down_trap_enable.upper()]\
                     .number
-            except AssertionError, e:
-                self.poutput(self.colorize('Error: ', 'red') + \
-                            self.colorize(self.colorize(e.message, 'blue'),
-                                          'bold'))
-                return
-
-        if opts.polling_period:
-            interface_instance.data.polling_period = opts.polling_period
-        if opts.raman_mitigation:
-            raman_mitigations = ["raman_none", "raman_miller", "raman_8b10b"]
-            try:
+            if opts.polling_period:
+                interface_instance.data.polling_period = opts.polling_period
+            if opts.raman_mitigation:
+                raman_mitigations = ["raman_none", "raman_miller",
+                                     "raman_8b10b"]
                 assert opts.raman_mitigation in raman_mitigations, \
                         'Invalid Enum value for Channel Group raman mitigation\
                          \'{}\''.format(opts.raman_mitigation)
                 interface_instance.data.raman_mitigation = \
                     bbf_fiber_types_pb2._RAMANMITIGATIONTYPE.\
                     values_by_name[opts.raman_mitigation.upper()].number
-            except AssertionError, e:
-                self.poutput(self.colorize('Error: ', 'red') + \
-                            self.colorize(self.colorize(e.message, 'blue'),
-                                          'bold'))
-                return
-        if opts.system_id:
-            interface_instance.data.system_id = opts.system_id
-
-        if line.strip() == "create":
-            stub.CreateChannelgroup(interface_instance)
-        elif line.strip() == "update":
-            stub.UpdateChannelgroup(interface_instance)
-        elif line.strip() == "delete":
-            stub.DeleteChannelgroup(interface_instance)
-        return
+            if opts.system_id:
+                interface_instance.data.system_id = opts.system_id
+            if line.strip() == "create":
+                stub.CreateChannelgroup(interface_instance)
+            elif line.strip() == "update":
+                stub.UpdateChannelgroup(interface_instance)
+            elif line.strip() == "delete":
+                stub.DeleteChannelgroup(interface_instance)
+            return
+        except Exception, e:
+            self.poutput(
+                self.colorize('Error: ', 'red') +
+                self.colorize(self.colorize(e.message, 'blue'), 'bold'))
+            return
 
     def help_channel_partition(self):
         self.poutput(
@@ -340,8 +395,10 @@ delete: deletes channel group specified with parameter -n.
 
 Example:
 
-channel_partition create -n cpart-1-1 -a up -r 20 -o 0 -f false -m false
-                         -u serial_number -c cg-1
+channel_partition create -n "Freedom Tower"
+                         -d "Channel Partition for Freedom Tower in Manhattan"
+                         -a up -r 20 -o 0 -f false -m false -u serial_number
+                         -c "Manhattan"
 '''
         )
 
@@ -385,16 +442,16 @@ channel_partition create -n cpart-1-1 -a up -r 20 -o 0 -f false -m false
         update -flags <attributes>, delete -n <name>"""
         # Ensure that a valid sub-command was provided
         if line.strip() not in {"get", "create", "update", "delete"}:
-            self.poutput(self.colorize('Error: ', 'red') + \
-                        self.colorize(self.colorize(line.strip(), 'blue'),
-                                      'bold') + ' is not recognized')
+            self.poutput(self.colorize('Error: ', 'red') +
+                         self.colorize(self.colorize(line.strip(), 'blue'),
+                                       'bold') + ' is not recognized')
             return
 
-        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        stub = voltha_pb2.VolthaGlobalServiceStub(self.get_channel())
 
         if line.strip() == "get":
             if self.device_id:
-                cg, cpart, cp, ct, vont, ont, venet = \
+                cg, cpart, cp, ct, vont, ont, venet, tdp, tcont, gemport = \
                     self.get_interface_based_on_device()
                 print_pb_list_as_table("Channel Partitions for device ID = {}:"
                                        .format(self.device_id), cpart, {},
@@ -405,26 +462,25 @@ channel_partition create -n cpart-1-1 -a up -r 20 -o 0 -f false -m false
                                        interface.channelpartition_config,
                                        {}, self.poutput)
             return
-
-        interface_instance = ChannelpartitionConfig(name = opts.name)
-        interface_instance.interface.name = opts.name
-        if opts.description:
-            interface_instance.interface.description = opts.description
-        interface_instance.interface.type = "channelpartition"
-        if opts.enabled:
-            if opts.enabled == "up":
-                interface_instance.interface.enabled = True
-            elif opts.enabled == "down":
-                interface_instance.interface.enabled = False
-            else:
-                self.poutput(
-                    self.colorize('Error: ', 'red') + self.colorize(
-                        self.colorize('Invalid admin state parameter for \
-                        channel partition', 'blue'), 'bold'))
-                return
-        if opts.link_up_down_trap_enable:
-            types = ["trap_disabled", "trap_enabled"]
-            try:
+        try:
+            interface_instance = ChannelpartitionConfig(name = opts.name)
+            interface_instance.interface.name = opts.name
+            if opts.description:
+                interface_instance.interface.description = opts.description
+            interface_instance.interface.type = "channelpartition"
+            if opts.enabled:
+                if opts.enabled == "up":
+                    interface_instance.interface.enabled = True
+                elif opts.enabled == "down":
+                    interface_instance.interface.enabled = False
+                else:
+                    self.poutput(
+                        self.colorize('Error: ', 'red') + self.colorize(
+                            self.colorize('Invalid admin state parameter for \
+                            channel partition', 'blue'), 'bold'))
+                    return
+            if opts.link_up_down_trap_enable:
+                types = ["trap_disabled", "trap_enabled"]
                 assert opts.link_up_down_trap_enable in types, \
                         'Invalid Enum value for Channel Partition link up \
                         down trap enable type \'{}\''\
@@ -433,47 +489,41 @@ channel_partition create -n cpart-1-1 -a up -r 20 -o 0 -f false -m false
                     ietf_interfaces_pb2._INTERFACE_LINKUPDOWNTRAPENABLETYPE.\
                     values_by_name[opts.link_up_down_trap_enable.upper()].\
                     number
-            except AssertionError, e:
-                self.poutput(self.colorize('Error: ', 'red') + \
-                            self.colorize(self.colorize(e.message, 'blue'),
-                                          'bold'))
-                return
-
-        if opts.differential_fiber_distance:
-            interface_instance.data.differential_fiber_distance = \
-                opts.differential_fiber_distance
-        if opts.closest_ont_distance:
-            interface_instance.data.closest_ont_distance = \
-                opts.closest_ont_distance
-        if opts.fec_downstream:
-            if opts.fec_downstream == 'true':
-                interface_instance.data.fec_downstream = True
-            elif opts.fec_downstream == 'false':
-                interface_instance.data.fec_downstream = False
-            else:
-                m = 'Invalid boolean value for Channel Partition \
-                fec_downstream \'{}\''.format(opts.fec_downstream)
-                self.poutput(self.colorize('Error: ', 'red') + \
-                            self.colorize(self.colorize(m, 'blue'),
-                                          'bold'))
-                return
-        if opts.multicast_aes_indicator:
-            if opts.multicast_aes_indicator == 'true':
-                interface_instance.data.multicast_aes_indicator = True
-            elif opts.multicast_aes_indicator == 'false':
-                interface_instance.data.multicast_aes_indicator = False
-            else:
-                m = 'Invalid boolean value for Channel Partition \
-                multicast_aes_indicator \'{}\''.format(
-                    opts.multicast_aes_indicator)
-                self.poutput(self.colorize('Error: ', 'red') + \
-                            self.colorize(self.colorize(m, 'blue'),
-                                          'bold'))
-                return
-        if opts.authentication_method:
-            auth_method_types = \
-                ["serial_number", "loid", "registration_id", "omci", "dot1x"]
-            try:
+            if opts.differential_fiber_distance:
+                interface_instance.data.differential_fiber_distance = \
+                    opts.differential_fiber_distance
+            if opts.closest_ont_distance:
+                interface_instance.data.closest_ont_distance = \
+                    opts.closest_ont_distance
+            if opts.fec_downstream:
+                if opts.fec_downstream == 'true':
+                    interface_instance.data.fec_downstream = True
+                elif opts.fec_downstream == 'false':
+                    interface_instance.data.fec_downstream = False
+                else:
+                    m = 'Invalid boolean value for Channel Partition \
+                    fec_downstream \'{}\''.format(opts.fec_downstream)
+                    self.poutput(
+                        self.colorize('Error: ', 'red') +
+                        self.colorize(self.colorize(m, 'blue'),'bold'))
+                    return
+            if opts.multicast_aes_indicator:
+                if opts.multicast_aes_indicator == 'true':
+                    interface_instance.data.multicast_aes_indicator = True
+                elif opts.multicast_aes_indicator == 'false':
+                    interface_instance.data.multicast_aes_indicator = False
+                else:
+                    m = 'Invalid boolean value for Channel Partition \
+                    multicast_aes_indicator \'{}\''.format(
+                        opts.multicast_aes_indicator)
+                    self.poutput(
+                        self.colorize('Error: ', 'red') +
+                        self.colorize(self.colorize(m, 'blue'), 'bold'))
+                    return
+            if opts.authentication_method:
+                auth_method_types = \
+                    ["serial_number", "loid", "registration_id",
+                     "omci", "dot1x"]
                 assert opts.authentication_method in auth_method_types, \
                         'Invalid Enum value for Channel Partition \
                          authentication method \'{}\''.format(
@@ -481,21 +531,21 @@ channel_partition create -n cpart-1-1 -a up -r 20 -o 0 -f false -m false
                 interface_instance.data.authentication_method = \
                     bbf_fiber_types_pb2._AUTHMETHODTYPE.\
                     values_by_name[opts.authentication_method.upper()].number
-            except AssertionError, e:
-                self.poutput(self.colorize('Error: ', 'red') + \
-                            self.colorize(self.colorize(e.message, 'blue'),
-                                          'bold'))
-                return
-        if opts.channelgroup_ref:
-            interface_instance.data.channelgroup_ref = opts.channelgroup_ref
-
-        if line.strip() == "create":
-            stub.CreateChannelpartition(interface_instance)
-        elif line.strip() == "update":
-            stub.UpdateChannelpartition(interface_instance)
-        elif line.strip() == "delete":
-            stub.DeleteChannelpartition(interface_instance)
-        return
+            if opts.channelgroup_ref:
+                interface_instance.data.channelgroup_ref = \
+                    opts.channelgroup_ref
+            if line.strip() == "create":
+                stub.CreateChannelpartition(interface_instance)
+            elif line.strip() == "update":
+                stub.UpdateChannelpartition(interface_instance)
+            elif line.strip() == "delete":
+                stub.DeleteChannelpartition(interface_instance)
+            return
+        except Exception, e:
+            self.poutput(
+                self.colorize('Error: ', 'red') +
+                self.colorize(self.colorize(e.message, 'blue'), 'bold'))
+            return
 
     def help_channel_pair(self):
         self.poutput(
@@ -531,8 +581,9 @@ delete: deletes channel group specified with parameter -n.
 
 Example:
 
-channel_pair create -n cp-1 -a up -r unplanned_cp_speed -t channelpair -g cg-1
-                    -i 0 -p cpart-1-1 -o class_a
+channel_pair create -n "PON port" -d "Channel Pair for Freedom Tower" -a up
+                    -r down_10_up_10 -t channelpair -g "Manhattan"
+                    -p "Freedom Tower" -i 0 -o class_a
 '''
         )
 
@@ -572,16 +623,16 @@ channel_pair create -n cp-1 -a up -r unplanned_cp_speed -t channelpair -g cg-1
         update -flags <attributes>, delete -n <name>"""
         # Ensure that a valid sub-command was provided
         if line.strip() not in {"get", "create", "update", "delete"}:
-            self.poutput(self.colorize('Error: ', 'red') + \
-                        self.colorize(self.colorize(line.strip(), 'blue'),
-                                      'bold') + ' is not recognized')
+            self.poutput(self.colorize('Error: ', 'red') +
+                         self.colorize(self.colorize(line.strip(), 'blue'),
+                                       'bold') + ' is not recognized')
             return
 
-        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        stub = voltha_pb2.VolthaGlobalServiceStub(self.get_channel())
 
         if line.strip() == "get":
             if self.device_id:
-                cg, cpart, cp, ct, vont, ont, venet = \
+                cg, cpart, cp, ct, vont, ont, venet, tdp, tcont, gemport = \
                     self.get_interface_based_on_device()
                 print_pb_list_as_table("Channel Pairs for device ID = {}:"
                                        .format(self.device_id), cp, {},
@@ -592,26 +643,25 @@ channel_pair create -n cp-1 -a up -r unplanned_cp_speed -t channelpair -g cg-1
                                        interface.channelpair_config,
                                        {}, self.poutput)
             return
-
-        interface_instance = ChannelpairConfig(name = opts.name)
-        interface_instance.interface.name = opts.name
-        if opts.description:
-            interface_instance.interface.description = opts.description
-        interface_instance.interface.type = "channelpair"
-        if opts.enabled:
-            if opts.enabled == "up":
-                interface_instance.interface.enabled = True
-            elif opts.enabled == "down":
-                interface_instance.interface.enabled = False
-            else:
-                self.poutput(
-                    self.colorize('Error: ', 'red') + self.colorize(
-                        self.colorize('Invalid admin state parameter for \
-                        channel pair', 'blue'), 'bold'))
-                return
-        if opts.link_up_down_trap_enable:
-            types = ["trap_disabled", "trap_enabled"]
-            try:
+        try:
+            interface_instance = ChannelpairConfig(name = opts.name)
+            interface_instance.interface.name = opts.name
+            if opts.description:
+                interface_instance.interface.description = opts.description
+            interface_instance.interface.type = "channelpair"
+            if opts.enabled:
+                if opts.enabled == "up":
+                    interface_instance.interface.enabled = True
+                elif opts.enabled == "down":
+                    interface_instance.interface.enabled = False
+                else:
+                    self.poutput(
+                        self.colorize('Error: ', 'red') + self.colorize(
+                            self.colorize('Invalid admin state parameter for \
+                            channel pair', 'blue'), 'bold'))
+                    return
+            if opts.link_up_down_trap_enable:
+                types = ["trap_disabled", "trap_enabled"]
                 assert opts.link_up_down_trap_enable in types, \
                         'Invalid Enum value for Channel Pair link up down \
                         trap enable type \'{}\''.format(
@@ -620,48 +670,42 @@ channel_pair create -n cp-1 -a up -r unplanned_cp_speed -t channelpair -g cg-1
                     ietf_interfaces_pb2._INTERFACE_LINKUPDOWNTRAPENABLETYPE.\
                     values_by_name[opts.link_up_down_trap_enable.upper()].\
                     number
-            except AssertionError, e:
-                self.poutput(self.colorize('Error: ', 'red') + \
-                            self.colorize(self.colorize(e.message, 'blue'),
-                                          'bold'))
-                return
-
-        if opts.channelpair_linerate:
-            interface_instance.data.channelpair_linerate = \
-                opts.channelpair_linerate
-        if opts.channelpair_type:
-            interface_instance.data.channelpair_type = opts.channelpair_type
-        if opts.channelgroup_ref:
-            interface_instance.data.channelgroup_ref = opts.channelgroup_ref
-        if opts.gpon_ponid_interval:
-            interface_instance.data.gpon_ponid_interval = \
-                opts.gpon_ponid_interval
-        if opts.channelpartition_ref:
-            interface_instance.data.channelpartition_ref = \
-                opts.channelpartition_ref
-        if opts.gpon_ponid_odn_class:
-            class_types = ["class_a", "class_b", "class_b_plus", "class_c",
-                           "class_c_plus", "class_auto"]
-            try:
+            if opts.channelpair_linerate:
+                interface_instance.data.channelpair_linerate = \
+                    opts.channelpair_linerate
+            if opts.channelpair_type:
+                interface_instance.data.channelpair_type = \
+                    opts.channelpair_type
+            if opts.channelgroup_ref:
+                interface_instance.data.channelgroup_ref = \
+                    opts.channelgroup_ref
+            if opts.gpon_ponid_interval:
+                interface_instance.data.gpon_ponid_interval = \
+                    opts.gpon_ponid_interval
+            if opts.channelpartition_ref:
+                interface_instance.data.channelpartition_ref = \
+                    opts.channelpartition_ref
+            if opts.gpon_ponid_odn_class:
+                class_types = ["class_a", "class_b", "class_b_plus", "class_c",
+                               "class_c_plus", "class_auto"]
                 assert opts.gpon_ponid_odn_class in class_types, \
                         'Invalid enum value for Channel Pair gpon pon id odn \
                         class \'{}\''.format(opts.gpon_ponid_odn_class)
                 interface_instance.data.gpon_ponid_odn_class = \
                     bbf_fiber_types_pb2._PONIDODNCLASSTYPE.\
                     values_by_name[opts.gpon_ponid_odn_class.upper()].number
-            except AssertionError, e:
-                self.poutput(self.colorize('Error: ', 'red') + \
-                            self.colorize(self.colorize(e.message, 'blue'),
-                                          'bold'))
-                return
-
-        if line.strip() == "create":
-            stub.CreateChannelpair(interface_instance)
-        elif line.strip() == "update":
-            stub.UpdateChannelpair(interface_instance)
-        elif line.strip() == "delete":
-            stub.DeleteChannelpair(interface_instance)
-        return
+            if line.strip() == "create":
+                stub.CreateChannelpair(interface_instance)
+            elif line.strip() == "update":
+                stub.UpdateChannelpair(interface_instance)
+            elif line.strip() == "delete":
+                stub.DeleteChannelpair(interface_instance)
+            return
+        except Exception, e:
+            self.poutput(
+                self.colorize('Error: ', 'red') +
+                self.colorize(self.colorize(e.message, 'blue'), 'bold'))
+            return
 
     def help_channel_termination(self):
         self.poutput(
@@ -708,9 +752,9 @@ delete: deletes channel termination specified with parameter -i and -n.
 
 Example:
 
-channel_termination create -i f90bb953f988 -n cterm-1 -a up -r cp-1 -m false
-                    -w 0 -p 0 -s 0 -x 0 -b 0 -c raleigh -u localhost
-
+channel_termination create -i <DEVICE_ID> -n "PON port"
+                           -d "Channel Termination for Freedom Tower" -a up
+                           -r "PON port" -c "Freedom Tower OLT"
 '''
         )
 
@@ -767,16 +811,16 @@ channel_termination create -i f90bb953f988 -n cterm-1 -a up -r cp-1 -m false
         update -flags <attributes>, delete -i <id> -n <name>"""
         # Ensure that a valid sub-command was provided
         if line.strip() not in {"get", "create", "update", "delete"}:
-            self.poutput(self.colorize('Error: ', 'red') + \
-                        self.colorize(self.colorize(line.strip(), 'blue'),
-                                      'bold') + ' is not recognized')
+            self.poutput(self.colorize('Error: ', 'red') +
+                         self.colorize(self.colorize(line.strip(), 'blue'),
+                                       'bold') + ' is not recognized')
             return
 
-        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        stub = voltha_pb2.VolthaGlobalServiceStub(self.get_channel())
 
         if line.strip() == "get":
             if self.device_id:
-                cg, cpart, cp, ct, vont, ont, venet = \
+                cg, cpart, cp, ct, vont, ont, venet, tdp, tcont, gemport = \
                     self.get_interface_based_on_device()
                 print_pb_list_as_table(
                     "Channel Terminations for device ID = {}:"
@@ -797,27 +841,26 @@ channel_termination create -i f90bb953f988 -n cterm-1 -a up -r cp-1 -m false
                         .format(d.id), interface.channeltermination_config,
                         {}, self.poutput)
             return
-
-        interface_instance = ChannelterminationConfig(
-            id = opts.id, name = opts.name)
-        interface_instance.interface.name = opts.name
-        if opts.description:
-            interface_instance.interface.description = opts.description
-        interface_instance.interface.type = "channel-termination"
-        if opts.enabled:
-            if opts.enabled == "up":
-                interface_instance.interface.enabled = True
-            elif opts.enabled == "down":
-                interface_instance.interface.enabled = False
-            else:
-                self.poutput(
-                    self.colorize('Error: ', 'red') + self.colorize(
-                        self.colorize('Invalid admin state parameter for \
-                        channel termination', 'blue'), 'bold'))
-                return
-        if opts.link_up_down_trap_enable:
-            types = ["trap_disabled", "trap_enabled"]
-            try:
+        try:
+            interface_instance = ChannelterminationConfig(
+                id = opts.id, name = opts.name)
+            interface_instance.interface.name = opts.name
+            if opts.description:
+                interface_instance.interface.description = opts.description
+            interface_instance.interface.type = "channel-termination"
+            if opts.enabled:
+                if opts.enabled == "up":
+                    interface_instance.interface.enabled = True
+                elif opts.enabled == "down":
+                    interface_instance.interface.enabled = False
+                else:
+                    self.poutput(
+                        self.colorize('Error: ', 'red') + self.colorize(
+                            self.colorize('Invalid admin state parameter for \
+                            channel termination', 'blue'), 'bold'))
+                    return
+            if opts.link_up_down_trap_enable:
+                types = ["trap_disabled", "trap_enabled"]
                 assert opts.link_up_down_trap_enable in types, \
                         'Invalid Enum value for Channel Termination link up \
                         down trap enable type \'{}\''.format(
@@ -826,55 +869,55 @@ channel_termination create -i f90bb953f988 -n cterm-1 -a up -r cp-1 -m false
                     ietf_interfaces_pb2._INTERFACE_LINKUPDOWNTRAPENABLETYPE.\
                     values_by_name[opts.link_up_down_trap_enable.upper()].\
                     number
-            except AssertionError, e:
-                self.poutput(self.colorize('Error: ', 'red') + \
-                            self.colorize(self.colorize(e.message, 'blue'),
-                                          'bold'))
-                return
-
-        if opts.channelpair_ref:
-            interface_instance.data.channelpair_ref = opts.channelpair_ref
-        if opts.meant_for_type_b_primary_role:
-            if opts.meant_for_type_b_primary_role == 'true':
-                interface_instance.data.meant_for_type_b_primary_role = True
-            elif opts.meant_for_type_b_primary_role == 'false':
-                interface_instance.data.meant_for_type_b_primary_role = False
-            else:
-                m = 'Invalid boolean value for Channel Termination \
-                meant_for_type_b_primary_role \'{}\''.format(
-                    opts.meant_for_type_b_primary_role)
-                self.poutput(self.colorize('Error: ', 'red') + \
-                            self.colorize(self.colorize(m, 'blue'),
-                                          'bold'))
-                return
-        if opts.ngpon2_twdm_admin_label:
-            interface_instance.data.ngpon2_twdm_admin_label = \
-                opts.ngpon2_twdm_admin_label
-        if opts.ngpon2_ptp_admin_label:
-            interface_instance.data.ngpon2_ptp_admin_label = \
-                opts.ngpon2_ptp_admin_label
-        if opts.xgs_ponid:
-            interface_instance.data.xgs_ponid = opts.xgs_ponid
-        if opts.xgpon_ponid:
-            interface_instance.data.xgpon_ponid = opts.xgpon_ponid
-        if opts.gpon_ponid:
-            interface_instance.data.gpon_ponid = opts.gpon_ponid
-        if opts.pon_tag:
-            interface_instance.data.pon_tag = opts.pon_tag
-        if opts.ber_calc_period:
-            interface_instance.data.ber_calc_period = opts.ber_calc_period
-        if opts.location:
-            interface_instance.data.location = opts.location
-        if opts.url_to_reach:
-            interface_instance.data.url_to_reach = opts.url_to_reach
-
-        if line.strip() == "create":
-            stub.CreateChanneltermination(interface_instance)
-        elif line.strip() == "update":
-            stub.UpdateChanneltermination(interface_instance)
-        elif line.strip() == "delete":
-            stub.DeleteChanneltermination(interface_instance)
-        return
+            if opts.channelpair_ref:
+                interface_instance.data.channelpair_ref = opts.channelpair_ref
+            if opts.meant_for_type_b_primary_role:
+                if opts.meant_for_type_b_primary_role == 'true':
+                    interface_instance.data.meant_for_type_b_primary_role = \
+                        True
+                elif opts.meant_for_type_b_primary_role == 'false':
+                    interface_instance.data.meant_for_type_b_primary_role = \
+                        False
+                else:
+                    m = 'Invalid boolean value for Channel Termination \
+                    meant_for_type_b_primary_role \'{}\''.format(
+                        opts.meant_for_type_b_primary_role)
+                    self.poutput(
+                        self.colorize('Error: ', 'red') +
+                        self.colorize(self.colorize(m, 'blue'), 'bold'))
+                    return
+            if opts.ngpon2_twdm_admin_label:
+                interface_instance.data.ngpon2_twdm_admin_label = \
+                    opts.ngpon2_twdm_admin_label
+            if opts.ngpon2_ptp_admin_label:
+                interface_instance.data.ngpon2_ptp_admin_label = \
+                    opts.ngpon2_ptp_admin_label
+            if opts.xgs_ponid:
+                interface_instance.data.xgs_ponid = opts.xgs_ponid
+            if opts.xgpon_ponid:
+                interface_instance.data.xgpon_ponid = opts.xgpon_ponid
+            if opts.gpon_ponid:
+                interface_instance.data.gpon_ponid = opts.gpon_ponid
+            if opts.pon_tag:
+                interface_instance.data.pon_tag = opts.pon_tag
+            if opts.ber_calc_period:
+                interface_instance.data.ber_calc_period = opts.ber_calc_period
+            if opts.location:
+                interface_instance.data.location = opts.location
+            if opts.url_to_reach:
+                interface_instance.data.url_to_reach = opts.url_to_reach
+            if line.strip() == "create":
+                stub.CreateChanneltermination(interface_instance)
+            elif line.strip() == "update":
+                stub.UpdateChanneltermination(interface_instance)
+            elif line.strip() == "delete":
+                stub.DeleteChanneltermination(interface_instance)
+            return
+        except Exception, e:
+            self.poutput(
+                self.colorize('Error: ', 'red') +
+                self.colorize(self.colorize(e.message, 'blue'), 'bold'))
+            return
 
     def help_vont_ani(self):
         self.poutput(
@@ -908,12 +951,12 @@ delete: deletes vont ani specified with parameter -n.
 -r: <string> preferred channel pair must be type of channel pair.
 -t: <string> protection channel pair must be type of channel pair.
 -u: <int>    upstream channel speed of traffic.
--o <int>     ONU id.
+-o: <int>     ONU id.
 
 Example:
 
-vont_ani create -n ontani-1-1-1 -a up -p cpart-1-1 -s ALCL00000001 -r cp-1
-                -u 0 -o 1
+vont_ani create -n "Golden User" -d "Golden User in Freedom Tower" -a up
+                -p "Freedom Tower" -s "PSMO00000001" -r "PON port" -o 1
 '''
         )
 
@@ -959,16 +1002,16 @@ vont_ani create -n ontani-1-1-1 -a up -p cpart-1-1 -s ALCL00000001 -r cp-1
         update -flags <attributes>, delete -n <name>"""
         # Ensure that a valid sub-command was provided
         if line.strip() not in {"get", "create", "update", "delete"}:
-            self.poutput(self.colorize('Error: ', 'red') + \
-                        self.colorize(self.colorize(line.strip(), 'blue'),
-                                      'bold') + ' is not recognized')
+            self.poutput(self.colorize('Error: ', 'red') +
+                         self.colorize(self.colorize(line.strip(), 'blue'),
+                                       'bold') + ' is not recognized')
             return
 
-        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        stub = voltha_pb2.VolthaGlobalServiceStub(self.get_channel())
 
         if line.strip() == "get":
             if self.device_id:
-                cg, cpart, cp, ct, vont, ont, venet = \
+                cg, cpart, cp, ct, vont, ont, venet, tdp, tcont, gemport = \
                     self.get_interface_based_on_device()
                 print_pb_list_as_table("VOnt Anis for device ID = {}:"
                                        .format(self.device_id), vont, {},
@@ -979,26 +1022,25 @@ vont_ani create -n ontani-1-1-1 -a up -p cpart-1-1 -s ALCL00000001 -r cp-1
                                        interface.v_ontani_config,
                                        {}, self.poutput)
             return
-
-        interface_instance = VOntaniConfig(name = opts.name)
-        interface_instance.interface.name = opts.name
-        if opts.description:
-            interface_instance.interface.description = opts.description
-        interface_instance.interface.type = "v-ontani"
-        if opts.enabled:
-            if opts.enabled == "up":
-                interface_instance.interface.enabled = True
-            elif opts.enabled == "down":
-                interface_instance.interface.enabled = False
-            else:
-                self.poutput(
-                    self.colorize('Error: ', 'red') + self.colorize(
-                        self.colorize('Invalid admin state parameter for \
-                        vont ani', 'blue'), 'bold'))
-                return
-        if opts.link_up_down_trap_enable:
-            types = ["trap_disabled", "trap_enabled"]
-            try:
+        try:
+            interface_instance = VOntaniConfig(name = opts.name)
+            interface_instance.interface.name = opts.name
+            if opts.description:
+                interface_instance.interface.description = opts.description
+            interface_instance.interface.type = "v-ontani"
+            if opts.enabled:
+                if opts.enabled == "up":
+                    interface_instance.interface.enabled = True
+                elif opts.enabled == "down":
+                    interface_instance.interface.enabled = False
+                else:
+                    self.poutput(
+                        self.colorize('Error: ', 'red') + self.colorize(
+                            self.colorize('Invalid admin state parameter for \
+                            vont ani', 'blue'), 'bold'))
+                    return
+            if opts.link_up_down_trap_enable:
+                types = ["trap_disabled", "trap_enabled"]
                 assert opts.link_up_down_trap_enable in types, \
                         'Invalid Enum value for VOnt Ani link up down trap \
                         enable type \'{}\''.format(
@@ -1007,39 +1049,37 @@ vont_ani create -n ontani-1-1-1 -a up -p cpart-1-1 -s ALCL00000001 -r cp-1
                     ietf_interfaces_pb2._INTERFACE_LINKUPDOWNTRAPENABLETYPE.\
                     values_by_name[opts.link_up_down_trap_enable.upper()].\
                     number
-            except AssertionError, e:
-                self.poutput(self.colorize('Error: ', 'red') + \
-                            self.colorize(self.colorize(e.message, 'blue'),
-                                          'bold'))
-                return
-
-        if opts.parent_ref:
-            interface_instance.data.parent_ref = opts.parent_ref
-        if opts.expected_serial_number:
-            interface_instance.data.expected_serial_number = \
-                opts.expected_serial_number
-        if opts.expected_registration_id:
-            interface_instance.data.expected_registration_id = \
-                opts.expected_registration_id
-        if opts.preferred_chanpair:
-            interface_instance.data.preferred_chanpair = \
-                opts.preferred_chanpair
-        if opts.protection_chanpair:
-            interface_instance.data.protection_chanpair = \
-                opts.protection_chanpair
-        if opts.upstream_channel_speed:
-            interface_instance.data.upstream_channel_speed = \
-                opts.upstream_channel_speed
-        if opts.onu_id:
-            interface_instance.data.onu_id = opts.onu_id
-
-        if line.strip() == "create":
-            stub.CreateVOntani(interface_instance)
-        elif line.strip() == "update":
-            stub.UpdateVOntani(interface_instance)
-        elif line.strip() == "delete":
-            stub.DeleteVOntani(interface_instance)
-        return
+            if opts.parent_ref:
+                interface_instance.data.parent_ref = opts.parent_ref
+            if opts.expected_serial_number:
+                interface_instance.data.expected_serial_number = \
+                    opts.expected_serial_number
+            if opts.expected_registration_id:
+                interface_instance.data.expected_registration_id = \
+                    opts.expected_registration_id
+            if opts.preferred_chanpair:
+                interface_instance.data.preferred_chanpair = \
+                    opts.preferred_chanpair
+            if opts.protection_chanpair:
+                interface_instance.data.protection_chanpair = \
+                    opts.protection_chanpair
+            if opts.upstream_channel_speed:
+                interface_instance.data.upstream_channel_speed = \
+                    opts.upstream_channel_speed
+            if opts.onu_id:
+                interface_instance.data.onu_id = opts.onu_id
+            if line.strip() == "create":
+                stub.CreateVOntani(interface_instance)
+            elif line.strip() == "update":
+                stub.UpdateVOntani(interface_instance)
+            elif line.strip() == "delete":
+                stub.DeleteVOntani(interface_instance)
+            return
+        except Exception, e:
+            self.poutput(
+                self.colorize('Error: ', 'red') +
+                self.colorize(self.colorize(e.message, 'blue'), 'bold'))
+            return
 
     def help_ont_ani(self):
         self.poutput(
@@ -1068,7 +1108,8 @@ delete: deletes ont ani specified with parameter -n.
 
 Example:
 
-ont_ani create -n ontani-1-1-1 -a up -u true -m true
+ont_ani create -n "Golden User" -d "Golden User in Freedom Tower" -a up -u true
+               -m false
 '''
         )
 
@@ -1097,16 +1138,16 @@ ont_ani create -n ontani-1-1-1 -a up -u true -m true
         update -flags <attributes>, delete -n <name>"""
         # Ensure that a valid sub-command was provided
         if line.strip() not in {"get", "create", "update", "delete"}:
-            self.poutput(self.colorize('Error: ', 'red') + \
-                        self.colorize(self.colorize(line.strip(), 'blue'),
-                                      'bold') + ' is not recognized')
+            self.poutput(self.colorize('Error: ', 'red') +
+                         self.colorize(self.colorize(line.strip(), 'blue'),
+                                       'bold') + ' is not recognized')
             return
 
-        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        stub = voltha_pb2.VolthaGlobalServiceStub(self.get_channel())
 
         if line.strip() == "get":
             if self.device_id:
-                cg, cpart, cp, ct, vont, ont, venet = \
+                cg, cpart, cp, ct, vont, ont, venet, tdp, tcont, gemport = \
                     self.get_interface_based_on_device()
                 print_pb_list_as_table("Ont Anis for device ID = {}:".format(
                     self.device_id), ont, {}, self.poutput)
@@ -1116,26 +1157,26 @@ ont_ani create -n ontani-1-1-1 -a up -u true -m true
                                        interface.ontani_config,
                                        {}, self.poutput)
             return
-
-        interface_instance = OntaniConfig(name = opts.name)
-        interface_instance.interface.name = opts.name
-        if opts.description:
-            interface_instance.interface.description = opts.description
-        interface_instance.interface.type = "ontani"
-        if opts.enabled:
-            if opts.enabled == "up":
-                interface_instance.interface.enabled = True
-            elif opts.enabled == "down":
-                interface_instance.interface.enabled = False
-            else:
-                self.poutput(
-                    self.colorize('Error: ', 'red') + self.colorize(
-                        self.colorize('Invalid admin state parameter for \
-                        ont ani', 'blue'), 'bold'))
-                return
-        if opts.link_up_down_trap_enable:
-            types = ["trap_disabled", "trap_enabled"]
-            try:
+        try:
+            interface_instance = OntaniConfig(name = opts.name)
+            interface_instance.interface.name = opts.name
+            if opts.description:
+                interface_instance.interface.description = opts.description
+            interface_instance.interface.type = "ontani"
+            if opts.enabled:
+                if opts.enabled == "up":
+                    interface_instance.interface.enabled = True
+                elif opts.enabled == "down":
+                    interface_instance.interface.enabled = False
+                else:
+                    self.poutput(
+                        self.colorize('Error: ', 'red') + self.colorize(
+                            self.colorize(
+                                'Invalid admin state parameter for ont ani',
+                                'blue'), 'bold'))
+                    return
+            if opts.link_up_down_trap_enable:
+                types = ["trap_disabled", "trap_enabled"]
                 assert opts.link_up_down_trap_enable in types, \
                         'Invalid Enum value for Ont Ani link up down trap \
                         enable type \'{}\''.format(
@@ -1144,53 +1185,51 @@ ont_ani create -n ontani-1-1-1 -a up -u true -m true
                     ietf_interfaces_pb2._INTERFACE_LINKUPDOWNTRAPENABLETYPE.\
                     values_by_name[opts.link_up_down_trap_enable.upper()].\
                     number
-            except AssertionError, e:
-                self.poutput(self.colorize('Error: ', 'red') + \
-                            self.colorize(self.colorize(e.message, 'blue'),
-                                          'bold'))
-                return
-
-        if opts.upstream_fec_indicator:
-            if opts.upstream_fec_indicator == 'true':
-                interface_instance.data.upstream_fec_indicator = True
-            elif opts.upstream_fec_indicator == 'false':
-                interface_instance.data.upstream_fec_indicator = False
-            else:
-                m = 'Invalid boolean value for Ont Ani \
-                upstream_fec_indicator \'{}\''.format(
-                    opts.upstream_fec_indicator)
-                self.poutput(
-                    self.colorize('Error: ', 'red') + self.colorize(
-                        self.colorize(m, 'blue'), 'bold'))
-                return
-        if opts.mgnt_gemport_aes_indicator:
-            if opts.mgnt_gemport_aes_indicator == 'true':
-                interface_instance.data.mgnt_gemport_aes_indicator = True
-            elif opts.mgnt_gemport_aes_indicator == 'false':
-                interface_instance.data.mgnt_gemport_aes_indicator = False
-            else:
-                m = 'Invalid boolean value for Ont Ani \
-                mgnt_gemport_aes_indicator \'{}\''.format(
-                    opts.mgnt_gemport_aes_indicator)
-                self.poutput(
-                    self.colorize('Error: ', 'red') + self.colorize(
-                        self.colorize(m, 'blue'), 'bold'))
-                return
-
-        if line.strip() == "create":
-            stub.CreateOntani(interface_instance)
-        elif line.strip() == "update":
-            stub.UpdateOntani(interface_instance)
-        elif line.strip() == "delete":
-            stub.DeleteOntani(interface_instance)
-        return
+            if opts.upstream_fec_indicator:
+                if opts.upstream_fec_indicator == 'true':
+                    interface_instance.data.upstream_fec_indicator = True
+                elif opts.upstream_fec_indicator == 'false':
+                    interface_instance.data.upstream_fec_indicator = False
+                else:
+                    m = 'Invalid boolean value for Ont Ani \
+                        upstream_fec_indicator \'{}\''.format(
+                            opts.upstream_fec_indicator)
+                    self.poutput(
+                        self.colorize('Error: ', 'red') + self.colorize(
+                            self.colorize(m, 'blue'), 'bold'))
+                    return
+            if opts.mgnt_gemport_aes_indicator:
+                if opts.mgnt_gemport_aes_indicator == 'true':
+                    interface_instance.data.mgnt_gemport_aes_indicator = True
+                elif opts.mgnt_gemport_aes_indicator == 'false':
+                    interface_instance.data.mgnt_gemport_aes_indicator = False
+                else:
+                    m = 'Invalid boolean value for Ont Ani \
+                    mgnt_gemport_aes_indicator \'{}\''.format(
+                        opts.mgnt_gemport_aes_indicator)
+                    self.poutput(
+                        self.colorize('Error: ', 'red') + self.colorize(
+                            self.colorize(m, 'blue'), 'bold'))
+                    return
+            if line.strip() == "create":
+                stub.CreateOntani(interface_instance)
+            elif line.strip() == "update":
+                stub.UpdateOntani(interface_instance)
+            elif line.strip() == "delete":
+                stub.DeleteOntani(interface_instance)
+            return
+        except Exception, e:
+            self.poutput(
+                self.colorize('Error: ', 'red') +
+                self.colorize(self.colorize(e.message, 'blue'), 'bold'))
+            return
 
     def help_v_enet(self):
         self.poutput(
 '''
 v_enet [get | create | update | delete] [-n <name>] [-d <description>]
        [-a <admin state>] [-l <link up down trap enable type>]
-       [-r <ont ani reference>]
+       [-r <vont ani reference>]
 
 get:    displays existing venets
         Required flags: None
@@ -1207,11 +1246,11 @@ delete: deletes venet specified with parameter -n.
 -d: <string> description of venet.
 -a: <string> admin state of venet.
 -l: <enum>   link up down trap enable type.
--r: <string> ont ani reference of this venet.
+-r: <string> vont ani reference of this venet.
 
 Example:
 
-v_enet create -n venet-1 -a up -r ontani-1-1-1
+v_enet create -n "Enet UNI 1" -d "Ethernet port - 1" -a up -r "Golden User"
 '''
         )
 
@@ -1225,8 +1264,8 @@ v_enet create -n venet-1 -a up -r ontani-1-1-1
         make_option('-l', '--trap', action="store",
                     dest='link_up_down_trap_enable', type='string',
                     help='link up down trap enable type', default=None),
-        make_option('-r', '--ont_ref', action='store', dest='v_ontani_ref',
-                    type='string', help='ont ani reference', default=None),
+        make_option('-r', '--vont_ref', action='store', dest='v_ontani_ref',
+                    type='string', help='vont ani reference', default=None),
     ])
 
     def do_v_enet(self, line, opts):
@@ -1234,18 +1273,18 @@ v_enet create -n venet-1 -a up -r ontani-1-1-1
         update -flags <attributes>, delete -n <name>"""
         # Ensure that a valid sub-command was provided
         if line.strip() not in {"get", "create", "update", "delete"}:
-            self.poutput(self.colorize('Error: ', 'red') + \
-                        self.colorize(self.colorize(line.strip(), 'blue'),
-                                      'bold') + ' is not recognized')
+            self.poutput(self.colorize('Error: ', 'red') +
+                         self.colorize(self.colorize(line.strip(), 'blue'),
+                                       'bold') + ' is not recognized')
             return
 
-        stub = voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+        stub = voltha_pb2.VolthaGlobalServiceStub(self.get_channel())
 
         if line.strip() == "get":
             if self.device_id:
-                cg, cpart, cp, ct, vont, ont, venet = \
+                cg, cpart, cp, ct, vont, ont, venet, tdp, tcont, gemport = \
                     self.get_interface_based_on_device()
-                print_pb_list_as_table("VEnet for device ID = {}:"
+                print_pb_list_as_table("VEnets for device ID = {}:"
                                        .format(self.device_id), venet, {},
                                        self.poutput)
             else:
@@ -1254,26 +1293,25 @@ v_enet create -n venet-1 -a up -r ontani-1-1-1
                                        interface.v_enet_config,
                                        {}, self.poutput)
             return
-
-        interface_instance = VEnetConfig(name = opts.name)
-        interface_instance.interface.name = opts.name
-        if opts.description:
-            interface_instance.interface.description = opts.description
-        interface_instance.interface.type = "v-enet"
-        if opts.enabled:
-            if opts.enabled == "up":
-                interface_instance.interface.enabled = True
-            elif opts.enabled == "down":
-                interface_instance.interface.enabled = False
-            else:
-                self.poutput(
-                    self.colorize('Error: ', 'red') + self.colorize(
-                        self.colorize('Invalid admin state parameter for \
-                        venet', 'blue'), 'bold'))
-                return
-        if opts.link_up_down_trap_enable:
-            types = ["trap_disabled", "trap_enabled"]
-            try:
+        try:
+            interface_instance = VEnetConfig(name = opts.name)
+            interface_instance.interface.name = opts.name
+            if opts.description:
+                interface_instance.interface.description = opts.description
+            interface_instance.interface.type = "v-enet"
+            if opts.enabled:
+                if opts.enabled == "up":
+                    interface_instance.interface.enabled = True
+                elif opts.enabled == "down":
+                    interface_instance.interface.enabled = False
+                else:
+                    self.poutput(
+                        self.colorize('Error: ', 'red') + self.colorize(
+                            self.colorize('Invalid admin state parameter for \
+                            venet', 'blue'), 'bold'))
+                    return
+            if opts.link_up_down_trap_enable:
+                types = ["trap_disabled", "trap_enabled"]
                 assert opts.link_up_down_trap_enable in types, \
                         'Invalid Enum value for Venet link up down trap \
                         enable type \'{}\''.format(
@@ -1282,19 +1320,351 @@ v_enet create -n venet-1 -a up -r ontani-1-1-1
                     ietf_interfaces_pb2._INTERFACE_LINKUPDOWNTRAPENABLETYPE.\
                     values_by_name[opts.link_up_down_trap_enable.upper()].\
                     number
-            except AssertionError, e:
-                self.poutput(self.colorize('Error: ', 'red') + \
-                            self.colorize(self.colorize(e.message, 'blue'),
-                                          'bold'))
-                return
+            if opts.v_ontani_ref:
+                interface_instance.data.v_ontani_ref = opts.v_ontani_ref
+            if line.strip() == "create":
+                stub.CreateVEnet(interface_instance)
+            elif line.strip() == "update":
+                stub.UpdateVEnet(interface_instance)
+            elif line.strip() == "delete":
+                stub.DeleteVEnet(interface_instance)
+            return
+        except Exception, e:
+            self.poutput(
+                self.colorize('Error: ', 'red') +
+                self.colorize(self.colorize(e.message, 'blue'), 'bold'))
+            return
 
-        if opts.v_ontani_ref:
-            interface_instance.data.v_ontani_ref = opts.v_ontani_ref
+    def help_traffic_descriptor_profile(self):
+        self.poutput(
+'''
+traffic_descriptor_profile [get | create | update | delete]
+                           [-n <name>] [-f <fixed bandwidth>]
+                           [-a <assured bandwidth>] [-m <maximum bandwidth>]
+                           [-p <priority>] [-w <weight>]
+                           [-e <additional bw eligibility indicator>]
 
-        if line.strip() == "create":
-            stub.CreateVEnet(interface_instance)
-        elif line.strip() == "update":
-            stub.UpdateVEnet(interface_instance)
-        elif line.strip() == "delete":
-            stub.DeleteVEnet(interface_instance)
-        return
+get:    displays existing traffic descriptor profiles
+        Required flags: None
+create: creates traffic descriptor profile with the parameters specified with
+        -n, -f, -a, -p, -w, and -e.
+        Required flags: <name>, <fixed bandwidth>, <assured bandwidth>,
+                        <maximum bandwidth>
+update: updates existing traffic descriptor profile specified with parameter -n
+        by changing its parameter values specified with -f, -a, -p, -w, and -e.
+        Required flags: <name>
+delete: deletes traffic descriptor profile specified with parameter -n.
+        Required flags: <name>
+
+-n: <string> name of traffic descriptor profile.
+-f: <int>    fixed bandwidth that represents the reserved portion of the link
+             capacity that is allocated to the given traffic flow, regardless
+             of its traffic demand and the overall traffic load conditions.
+-a: <int>    assured bandwidth that represents a portion of the link capacity
+             that is allocated to the given traffic flow as long as the flow
+             has unsatisfied traffic demand, regardless of the overall traffic
+             conditions.
+-m: <int>    maximum bandwidth that represents the upper limit on the total
+             bandwidth that can be allocated to the traffic flow under any
+             traffic conditions.
+-p: <int>    priority that is used for scheduling traffic on a TCont.
+-w: <int>    weight that is used for scheduling traffic on a TCont.
+-e: <enum>   additional bandwidth eligibility indicator that in case of
+             rate-proportional assignment of additional bandwidth, it can be
+             provisioned to either value (non-assured-sharing,
+             best-effort-sharing, or none).
+
+Example:
+
+traffic_descriptor_profile create -n "TDP 1" -f 100000 -a 500000 -m 1000000
+                                  -p 1 -w 1
+                                  -e additional_bw_eligibility_indicator_none
+'''
+        )
+
+    @options([
+        make_option('-n', '--name', action="store", dest='name', type='string',
+                    help='name of traffic descriptor profile', default=None),
+        make_option('-f', '--fixed_bw', action="store", dest='fixed_bandwidth',
+                    type='int', help='fixed bandwidth of traffic descriptor',
+                    default=None),
+        make_option('-a', '--assured_bw', action="store",
+                    dest='assured_bandwidth', type='int',
+                    help='assured bandwidth of traffic descriptor',
+                    default=None),
+        make_option('-m', '--maximum_bw', action="store",
+                    dest='maximum_bandwidth', type='int',
+                    help='maximum bandwidth of traffic descriptor',
+                    default=None),
+        make_option('-p', '--priority', action='store', dest='priority',
+                    type='int',
+                    help='priority used for scheduling traffic on a TCont',
+                    default=None),
+        make_option('-w', '--weight', action='store', dest='weight',
+                    type='int',
+                    help='weight used for scheduling traffic on a TCont',
+                    default=None),
+        make_option('-e', '--add_bw_eligibility_indicator', action='store',
+                    dest='additional_bw_eligibility_indicator', type='string',
+                    help='additional bandwidth eligibility indicator',
+                    default=None),
+    ])
+
+    def do_traffic_descriptor_profile(self, line, opts):
+        """traffic_descriptor_profile get, create -flags <attributes>,
+        update -flags <attributes>, delete -n <name>"""
+        # Ensure that a valid sub-command was provided
+        if line.strip() not in {"get", "create", "update", "delete"}:
+            self.poutput(self.colorize('Error: ', 'red') +
+                         self.colorize(self.colorize(line.strip(), 'blue'),
+                                       'bold') + ' is not recognized')
+            return
+
+        stub = voltha_pb2.VolthaGlobalServiceStub(self.get_channel())
+
+        if line.strip() == "get":
+            if self.device_id:
+                cg, cpart, cp, ct, vont, ont, venet, tdp, tcont, gemport = \
+                    self.get_interface_based_on_device()
+                print_pb_list_as_table(
+                    "Traffic Descriptor Profiles for device ID = {}:"
+                    .format(self.device_id), tdp, {}, self.poutput)
+            else:
+                tdp = stub.GetAllTrafficDescriptorProfileData(Empty())
+                print_pb_list_as_table("Traffic Descriptor Profiles:",
+                                       tdp.traffic_descriptor_profiles,
+                                       {}, self.poutput)
+            return
+        try:
+            traffic_descriptor = TrafficDescriptorProfileData(name = opts.name)
+            if opts.fixed_bandwidth:
+                traffic_descriptor.fixed_bandwidth = opts.fixed_bandwidth
+            if opts.assured_bandwidth:
+                traffic_descriptor.assured_bandwidth = opts.assured_bandwidth
+            if opts.maximum_bandwidth:
+                traffic_descriptor.maximum_bandwidth = opts.maximum_bandwidth
+            if opts.priority:
+                traffic_descriptor.priority = opts.priority
+            if opts.weight:
+                traffic_descriptor.weight = opts.weight
+            if opts.additional_bw_eligibility_indicator:
+                eligibility_indicator = [
+                    "additional_bw_eligibility_indicator_none",
+                    "additional_bw_eligibility_indicator_best_effort_sharing",
+                    "additional_bw_eligibility_indicator_non_assured_sharing"]
+                assert opts.additional_bw_eligibility_indicator in \
+                    eligibility_indicator, 'Invalid Enum value for Traffic \
+                    Descriptor Profile additional bandwidth eligibility \
+                    indicator \'{}\''\
+                    .format(opts.additional_bw_eligibility_indicator)
+                traffic_descriptor.additional_bw_eligibility_indicator = \
+                    bbf_fiber_traffic_descriptor_profile_body_pb2.\
+                    _ADDITIONALBWELIGIBILITYINDICATORTYPE.\
+                    values_by_name\
+                    [opts.additional_bw_eligibility_indicator.upper()].number
+            if line.strip() == "create":
+                stub.CreateTrafficDescriptorProfileData(traffic_descriptor)
+            elif line.strip() == "update":
+                stub.UpdateTrafficDescriptorProfileData(traffic_descriptor)
+            elif line.strip() == "delete":
+                stub.DeleteTrafficDescriptorProfileData(traffic_descriptor)
+            return
+        except Exception, e:
+            self.poutput(
+                self.colorize('Error: ', 'red') +
+                self.colorize(self.colorize(e.message, 'blue'), 'bold'))
+            return
+
+    def help_tcont(self):
+        self.poutput(
+'''
+tcont [get | create | update | delete] [-n <name>] [-r <interface reference>]
+      [-t <traffic descriptor profile reference>]
+
+get:    displays existing tconts
+        Required flags: None
+create: creates tcont with the parameters specified with -n, -r, and -t.
+        Required flags: <name>, <interface reference>,
+                        <traffic descriptor profile reference>
+update: updates existing tcont specified with parameter -n by changing its
+        parameter values specified with -r, -t.
+        Required flags: <name>
+delete: deletes tcont specified with parameter -n.
+        Required flags: <name>
+
+-n: <string> name of tcont.
+-r: <string> reference to vont ani interface.
+-t: <string> reference to an existing traffic descriptor profile.
+
+Example:
+
+tcont create -n "TCont 1" -r "Golden User" -t "TDP 1"
+'''
+        )
+
+    @options([
+        make_option('-n', '--name', action="store", dest='name', type='string',
+                    help='name of tcont', default=None),
+        make_option('-r', '--ref', action="store", dest='interface_reference',
+                    type='string', help='reference to vont ani interface',
+                    default=None),
+        make_option('-t', '--tdp_ref', action="store",
+                    dest='traffic_descriptor_profile_ref', type='string',
+                    help='reference to an existing traffic descriptor profile',
+                    default=None),
+    ])
+
+    def do_tcont(self, line, opts):
+        """tcont get, create -flags <attributes>,
+        update -flags <attributes>, delete -n <name>"""
+        # Ensure that a valid sub-command was provided
+        if line.strip() not in {"get", "create", "update", "delete"}:
+            self.poutput(self.colorize('Error: ', 'red') +
+                         self.colorize(self.colorize(line.strip(), 'blue'),
+                                       'bold') + ' is not recognized')
+            return
+
+        stub = voltha_pb2.VolthaGlobalServiceStub(self.get_channel())
+
+        if line.strip() == "get":
+            if self.device_id:
+                cg, cpart, cp, ct, vont, ont, venet, tdp, tcont, gemport = \
+                    self.get_interface_based_on_device()
+                print_pb_list_as_table("TConts for device ID = {}:".format(
+                    self.device_id), tcont, {}, self.poutput)
+            else:
+                tconts = stub.AllTcontsConfigData(Empty())
+                print_pb_list_as_table(
+                    "TConts:", tconts.tconts_config, {}, self.poutput)
+            return
+
+        try:
+            tcont = TcontsConfigData(name = opts.name)
+            if opts.interface_reference:
+                tcont.interface_reference = opts.interface_reference
+            if opts.traffic_descriptor_profile_ref:
+                tcont.traffic_descriptor_profile_ref = \
+                    opts.traffic_descriptor_profile_ref
+            if line.strip() == "create":
+                stub.CreateTcontsConfigData(tcont)
+            elif line.strip() == "update":
+                stub.UpdateTcontsConfigData(tcont)
+            elif line.strip() == "delete":
+                stub.DeleteTcontsConfigData(tcont)
+            return
+        except Exception, e:
+            self.poutput(
+                self.colorize('Error: ', 'red') +
+                self.colorize(self.colorize(e.message, 'blue'), 'bold'))
+            return
+
+    def help_gem_port(self):
+        self.poutput(
+'''
+gem_port [get | create | update | delete]
+         [-n <name>] [-r <interface reference>] [-c <traffic class>]
+         [-a <aes indicator>] [-t <tcont reference>]
+
+get:    displays existing gemports
+        Required flags: None
+create: creates gemport with the parameters specified with
+        -n, -r, -c, -a, and -t.
+        Required flags: <name>, <interface reference>, <traffic class>
+update: updates existing gemport specified with parameter -n
+        by changing its parameter values specified with -r, -c, -a, and -t.
+        Required flags: <name>
+delete: deletes gemport specified with parameter -n.
+        Required flags: <name>
+
+-n: <string> name of gemport.
+-r: <string> reference to v_enet interface.
+-c: <int>    traffic class value for gemport.
+-a: <bool>   aes indicator that is used to designate whether AES should be
+             enabled/disabled for all bi-directional GEM ports associated with
+             this ONT.
+-t: <string> tcont reference that is for the purpose of upstream scheduling in
+             the ONU, a gemport needs to refer to the tcont into which it feeds
+             upstream traffic.
+
+Example:
+
+gem_port create -n "GEMPORT 1" -r "Enet UNI 1" -c 0 -a true -t "TCont 1"
+'''
+        )
+
+    @options([
+        make_option('-n', '--name', action="store", dest='name', type='string',
+                    help='name of gemport', default=None),
+        make_option('-r', '--itf_ref', action="store", dest='itf_ref',
+                    type='string', help='reference to v_enet interface',
+                    default=None),
+        make_option('-c', '--traffic_class', action="store",
+                    dest='traffic_class', type='int',
+                    help='traffic class value for gemport', default=None),
+        make_option('-a', '--aes_indicator', action="store",
+                    dest='aes_indicator', type='string',
+                    help='aes indicator to designate if AES enabled/disabled',
+                    default=None),
+        make_option('-t', '--tcont_ref', action='store', dest='tcont_ref',
+                    type='string',
+                    help='tcont reference for purpose of us scheduling in ONU',
+                    default=None),
+    ])
+
+    def do_gem_port(self, line, opts):
+        """gem_port get, create -flags <attributes>,
+        update -flags <attributes>, delete -n <name>"""
+        # Ensure that a valid sub-command was provided
+        if line.strip() not in {"get", "create", "update", "delete"}:
+            self.poutput(self.colorize('Error: ', 'red') +
+                         self.colorize(self.colorize(line.strip(), 'blue'),
+                                       'bold') + ' is not recognized')
+            return
+
+        stub = voltha_pb2.VolthaGlobalServiceStub(self.get_channel())
+
+        if line.strip() == "get":
+            if self.device_id:
+                cg, cpart, cp, ct, vont, ont, venet, tdp, tcont, gemport = \
+                    self.get_interface_based_on_device()
+                print_pb_list_as_table(
+                    "Gem Ports for device ID = {}:"
+                    .format(self.device_id), gemport, {}, self.poutput)
+            else:
+                gemport = stub.GetAllGemportsConfigData(Empty())
+                print_pb_list_as_table("Gem Ports:",
+                                       gemport.gemports_config,
+                                       {}, self.poutput)
+            return
+        try:
+            gemport = GemportsConfigData(name = opts.name)
+            if opts.itf_ref:
+                gemport.itf_ref = opts.itf_ref
+            if opts.traffic_class:
+                gemport.traffic_class = opts.traffic_class
+            if opts.aes_indicator:
+                if opts.aes_indicator == 'true':
+                    gemport.aes_indicator = True
+                elif opts.aes_indicator == 'false':
+                    gemport.aes_indicator = False
+                else:
+                    m = 'Invalid boolean value for Gem Port \
+                    aes_indicator \'{}\''.format(opts.aes_indicator)
+                    self.poutput(
+                        self.colorize('Error: ', 'red') + self.colorize(
+                            self.colorize(m, 'blue'), 'bold'))
+                    return
+            if opts.tcont_ref:
+                gemport.tcont_ref = opts.tcont_ref
+            if line.strip() == "create":
+                stub.CreateGemportsConfigData(gemport)
+            elif line.strip() == "update":
+                stub.UpdateGemportsConfigData(gemport)
+            elif line.strip() == "delete":
+                stub.DeleteGemportsConfigData(gemport)
+            return
+        except Exception, e:
+            self.poutput(
+                self.colorize('Error: ', 'red') +
+                self.colorize(self.colorize(e.message, 'blue'), 'bold'))
+            return

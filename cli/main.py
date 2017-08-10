@@ -262,9 +262,9 @@ class VolthaCli(Cmd):
             try:
                 res = stub.GetDevice(voltha_pb2.ID(id=device_id))
             except Exception:
-                self.poutput(self.colorize('Error: ', 'red') + \
-                             'No device id ' + self.colorize(device_id, 'blue') + \
-                             ' is found')
+                self.poutput(
+                    self.colorize('Error: ', 'red') + 'No device id ' +
+                    self.colorize(device_id, 'blue') + ' is found')
                 return
         sub = XponCli(self.get_channel, device_id)
         sub.cmdloop()

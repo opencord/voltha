@@ -900,51 +900,57 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def GetAllTrafficDescriptorProfileData(self, request, context):
-        return AllTrafficDescriptorProfileData()
+        return self.core.xpon_handler.get_all_traffic_descriptor_profile_data(
+            request, context)
 
     @twisted_async
     def CreateTrafficDescriptorProfileData(self, request, context):
-        return Empty()
+        return self.core.xpon_handler.create_traffic_descriptor_profile(
+            request, context)
 
     @twisted_async
     def UpdateTrafficDescriptorProfileData(self, request, context):
-        return Empty()
+        return self.core.xpon_handler.update_traffic_descriptor_profile(
+            request, context)
 
     @twisted_async
     def DeleteTrafficDescriptorProfileData(self, request, context):
-        return Empty()
+        return self.core.xpon_handler.delete_traffic_descriptor_profile(
+            request, context)
 
     @twisted_async
     def GetAllTcontsConfigData(self, request, context):
-        return AllTcontsConfigData()
+        return self.core.xpon_handler.get_all_tconts_config_data(
+            request, context)
 
     @twisted_async
     def CreateTcontsConfigData(self, request, context):
-        return Empty()
+        return self.core.xpon_handler.create_tcont(request, context)
 
     @twisted_async
     def UpdateTcontsConfigData(self, request, context):
-        return Empty()
+        return self.core.xpon_handler.update_tcont(request, context)
 
     @twisted_async
     def DeleteTcontsConfigData(self, request, context):
-        return Empty()
+        return self.core.xpon_handler.delete_tcont(request, context)
 
     @twisted_async
     def GetAllGemportsConfigData(self, request, context):
-        return AllGemportsConfigData()
+        return self.core.xpon_handler.get_all_gemports_config_data(
+            request, context)
 
     @twisted_async
     def CreateGemportsConfigData(self, request, context):
-        return Empty()
+        return self.core.xpon_handler.create_gem_port(request, context)
 
     @twisted_async
     def UpdateGemportsConfigData(self, request, context):
-        return Empty()
+        return self.core.xpon_handler.update_gem_port(request, context)
 
     @twisted_async
     def DeleteGemportsConfigData(self, request, context):
-        return Empty()
+        return self.core.xpon_handler.delete_gem_port(request, context)
 
     @twisted_async
     def GetAllMulticastGemportsConfigData(self, request, context):
