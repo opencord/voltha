@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "9a437d4f_58ee1124",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 79,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-08-10T20:40:35Z",
+      "side": 1,
+      "message": "I need to confirm with Suhas but 50 is the Qumran logical port number that maps to the physical NNI port in the HW.  In general I agree we should have the adapter normalize the NNI ports from 1..max. For now we have it working.  We can always clean up in a later pass.",
+      "parentUuid": "9a437d4f_985eb911",
+      "revId": "afa0e6b7260e92938c6bb836ebe4e02fa57df82b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a437d4f_1873e9b2",
         "filename": "voltha/adapters/asfvolt16_olt/bal.py",
         "patchSetId": 3
