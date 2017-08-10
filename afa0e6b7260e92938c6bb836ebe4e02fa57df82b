@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "9a437d4f_985eb911",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 79,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-08-10T19:40:42Z",
+      "side": 1,
+      "message": "Other adapters use the range (1 ,max_no_nni_ports) to number NNI ports and a range starting from max_no_nni_ports+1 for the UNI ports. Any specific reason not to go with the same tradition.",
+      "parentUuid": "9a437d4f_d86441e7",
+      "revId": "afa0e6b7260e92938c6bb836ebe4e02fa57df82b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a437d4f_1873e9b2",
         "filename": "voltha/adapters/asfvolt16_olt/bal.py",
         "patchSetId": 3
