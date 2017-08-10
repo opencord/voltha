@@ -215,9 +215,9 @@ fetch:
 	docker pull zookeeper:latest
 	docker pull nginx:latest
 	docker pull portainer/portainer:latest
-	docker pull lyft/envoy:latest
+	docker pull lyft/envoy:092f01381467dfc3324e5e9528c67ee5d65744fd
 	docker pull registry:2
-        docker pull kamon/grafana_graphite:latest
+	docker pull kamon/grafana_graphite:latest
 
 purge-venv:
 	rm -fr ${VENVDIR}

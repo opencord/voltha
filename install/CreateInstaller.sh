@@ -294,6 +294,8 @@ if [ "$testMode" == "yes" ]; then
 	echo "voltha_containers:" >> ansible/group_vars/all
 	cat image-list.cfg >> ansible/group_vars/all
 	rm -f image-list.cfg
+	echo -e "${lBlue}Gussing at the cord home directory for ${yellow}`whoami`${NC}"
+	sed -i -e "/cord_home:/s#.*#cord_home: `pwd | sed -e 's~/incubator/voltha/install~~'`#" ansible/group_vars/all
 else
 	echo -e "${lBlue}Set up the docker image list from ${lCyan}containers.cfg${NC}"
 	sed -i -e '/voltha_containers:/,$d' ansible/group_vars/all

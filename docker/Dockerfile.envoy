@@ -1,4 +1,4 @@
-FROM lyft/envoy:latest
+FROM lyft/envoy:092f01381467dfc3324e5e9528c67ee5d65744fd
 
 RUN apt-get update && apt-get -q install -y \
     curl

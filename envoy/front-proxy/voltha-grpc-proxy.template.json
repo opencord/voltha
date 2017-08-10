@@ -97,7 +97,7 @@
             "route_config": {
               "virtual_hosts": [
                 {
-                  "name": "backend2",
+                  "name": "backend3",
                   "domains": ["*"],
                   "routes": [
                     {
