@@ -1,31 +1,75 @@
-FROM onosproject/onos:1.8
+FROM onosproject/onos:1.8 as build
+MAINTAINER Open Networking Foundation <info@opennetworking.org>
 
-MAINTAINER Zsolt Haraszti <zharaszt@ciena.com>
-MAINTAINER Ali Al-Shabibi <ali.al-shabibi@onlab.us>
-MAINTAINER Nathan Knuth   <nathan.knuth@tibitcom.com>
-
-ENV APPS=/root/onos/apps ONOS=/root/onos KARAF_M2=/root/onos/apache-karaf-3.0.5/system VERSION=1.2-SNAPSHOT
-ENV AUX=$APPS/aux
-
+# Install and configure build tools
 ENV JAVA_OPTS="${JAVA_OPTS:--DenableOFTLS=true -Djavax.net.ssl.keyStore=/home/sdn/wiki/onos.jks -Djavax.net.ssl.keyStorePassword=222222 -Djavax.net.ssl.trustStore=/home/sdn/wiki/onos.jks -Djavax.net.ssl.trustStorePassword=222222}"
 
-RUN apt-get update && apt-get install -y git maven unzip 
-RUN git config --global http.sslverify false && \
-    git clone https://alshabibi@bitbucket.org/alshabibi/onos-apps.git
-    
-RUN cd $ONOS/onos-apps/apps && mvn  -DskipTests=true clean install
+RUN apt-get update && apt-get install -y git maven unzip curl python
+RUN curl -sSL http://commondatastorage.googleapis.com/git-repo-downloads/repo -o /bin/repo && chmod 755 /bin/repo
 
-WORKDIR $ONOS
+# The ENV settings for ONOS, KARAF_VERSION, KARAF_ROOT, KARAF_M2, and APPS_ROOT
+# must be replicated below to the final image as they are shared between stages
+ENV ONOS=/root/onos
+ENV APPS_ROOT=${ONOS}/apps
+ENV KARAF_VERSION=3.0.5
+ENV KARAF_ROOT=${ONOS}/apache-karaf-${KARAF_VERSION}
+ENV KARAF_M2=${KARAF_ROOT}/system
+ENV MANIFEST_BRANCH=master
+ENV BUILD_ROOT=/build
+ENV APP_INSTALL_ROOT=/expand
 
+# Build the applications
+RUN mkdir -p ${BUILD_ROOT}
+WORKDIR ${BUILD_ROOT}
+RUN repo init -u http://gerrit.opencord.org/manifest -b ${MANIFEST_BRANCH} -g onos && repo sync
+WORKDIR ${BUILD_ROOT}/onos-apps/apps
+RUN mvn -DskipTests=true clean install
+
+# Specify application versions to install
+ENV AAA_VERSION=1.2.0-SNAPSHOT \
+	CONFIG_VERSION=1.2.0-SNAPSHOT \
+	IGMP_VERSION=1.2.0-SNAPSHOT \
+	IGMP_PROXY_VERSION=1.0.0-SNAPSHOT \
+	MCAST_VERSION=1.2.0-SNAPSHOT \
+	OLT_VERSION=1.2.0-SNAPSHOT \
+	SADIS_VERSION=1.0.0-SNAPSHOT \
+	VTN_VERSION=1.2.0-SNAPSHOT \
+	L2_DHCP_RELAY_VERSION=1.0.0-SNAPSHOT
+
+ENV APPS="aaa-${AAA_VERSION} \
+	cord-config-${CONFIG_VERSION} \
+	igmp-${IGMP_VERSION} \
+	mcast-${MCAST_VERSION} \
+	olt-app-${OLT_VERSION} \
+	sadis-app-${SADIS_VERSION} \
+	vtn-${VTN_VERSION} \
+        aaa-${AAA_VERSION} \
+        onos-app-igmpproxy-${IGMP_PROXY_VERSION} \
+	dhcpl2relay-${L2_DHCP_RELAY_VERSION}"
+
+# Install the applications
 COPY config/app-install.sh .
+RUN chmod 755 ./app-install.sh && ./app-install.sh
 
-RUN sh $ONOS/app-install.sh
+# Create the final image coping over the installed applications from the build stage
+FROM onosproject/onos:1.8
 
-#RUN touch $ONOS/apps/org.onosproject.dhcp/active
-RUN touch $ONOS/apps/org.onosproject.hostprovider/active
+ENV ONOS=/root/onos
+ENV KARAF_VERSION=3.0.5
+ENV KARAF_ROOT=${ONOS}/apache-karaf-${KARAF_VERSION}
+ENV KARAF_M2=${KARAF_ROOT}/system
+ENV APPS_ROOT=${ONOS}/apps
 
+COPY --from=build ${KARAF_M2}/ ${KARAF_M2}/
+RUN echo "${KARAF_M2} ${APPS_ROOT}"
+COPY --from=build ${APPS_ROOT}/ ${APPS_ROOT}/
 COPY config/netcfg.json $KARAF_ROOT/../config/network-cfg.json
+
+RUN touch $ONOS/apps/org.onosproject.netcfghostprovider/active
+RUN touch $ONOS/apps/org.onosproject.netcfglinksprovider/active
+RUN touch $ONOS/apps/org.onosproject.openflow-base/active
 
 # Create ONOS Key Directory
 RUN mkdir -p /home/sdn/wiki
 COPY onos_cfg/ /home/sdn/wiki
+
