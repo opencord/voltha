@@ -17,6 +17,7 @@
 """
 Fully simulated OLT/ONU adapter.
 """
+import sys
 from uuid import uuid4
 
 import arrow
@@ -49,10 +50,18 @@ from voltha.protos.ponsim_pb2 import FlowTable
 from voltha.registry import registry
 
 from voltha.protos.bbf_fiber_base_pb2 import \
-    ChannelgroupConfig, ChannelpartitionConfig, ChannelpairConfig, ChannelterminationConfig, \
-    OntaniConfig, VOntaniConfig, VEnetConfig
+    ChannelgroupConfig, ChannelpartitionConfig, ChannelpairConfig,\
+    ChannelterminationConfig, OntaniConfig, VOntaniConfig, VEnetConfig
+from voltha.protos.bbf_fiber_traffic_descriptor_profile_body_pb2 import \
+    TrafficDescriptorProfileData
+from voltha.protos.bbf_fiber_tcont_body_pb2 import TcontsConfigData
+from voltha.protos.bbf_fiber_gemport_body_pb2 import GemportsConfigData
+from voltha.protos.bbf_fiber_multicast_gemport_body_pb2 import \
+    MulticastGemportsConfigData
+from voltha.protos.bbf_fiber_multicast_distribution_set_body_pb2 import \
+    MulticastDistributionSetData
 
-from voltha.protos.ponsim_pb2 import InterfaceConfig
+from voltha.protos.ponsim_pb2 import InterfaceConfig, TcontInterfaceConfig
 
 _ = third_party
 log = structlog.get_logger()
@@ -208,7 +217,109 @@ class PonSimOltAdapter(OltAdapter):
         log.info('remove-interface', device_id=device.id)
         self.devices_handlers[device.id].remove_interface(data)
 
+    def create_tcont(self, device, tcont_data, traffic_descriptor_data):
+        log.info('create-tcont', device_id=device.id)
+        self.devices_handlers[device.id].create_tcont(tcont_data,
+                                                      traffic_descriptor_data)
+
+    def update_tcont(self, device, tcont_data, traffic_descriptor_data):
+        log.info('update-tcont', device_id=device.id)
+        self.devices_handlers[device.id].update_tcont(tcont_data,
+                                                      traffic_descriptor_data)
+
+    def remove_tcont(self, device, tcont_data, traffic_descriptor_data):
+        log.info('remove-tcont', device_id=device.id)
+        self.devices_handlers[device.id].remove_tcont(tcont_data,
+                                                      traffic_descriptor_data)
+
+    def create_gemport(self, device, data):
+        log.info('create-gemport', device_id=device.id)
+        self.devices_handlers[device.id].create_gemport(data)
+
+    def update_gemport(self, device, data):
+        log.info('update-gemport', device_id=device.id)
+        self.devices_handlers[device.id].update_gemport(data)
+
+    def remove_gemport(self, device, data):
+        log.info('remove-gemport', device_id=device.id)
+        self.devices_handlers[device.id].remove_gemport(data)
+
+    def create_multicast_gemport(self, device, data):
+        log.info('create-multicast-gemport', device_id=device.id)
+        self.devices_handlers[device.id].create_multicast_gemport(data)
+
+    def update_multicast_gemport(self, device, data):
+        log.info('update-multicast-gemport', device_id=device.id)
+        self.devices_handlers[device.id].update_multicast_gemport(data)
+
+    def remove_multicast_gemport(self, device, data):
+        log.info('remove-multicast-gemport', device_id=device.id)
+        self.devices_handlers[device.id].remove_multicast_gemport(data)
+
+    def create_multicast_distribution_set(self, device, data):
+        log.info('create-multicast-distribution-set', device_id=device.id)
+        self.devices_handlers[device.id].create_multicast_distribution_set(
+            data)
+
+    def update_multicast_distribution_set(self, device, data):
+        log.info('update-multicast-distribution-set', device_id=device.id)
+        self.devices_handlers[device.id].update_multicast_distribution_set(
+            data)
+
+    def remove_multicast_distribution_set(self, device, data):
+        log.info('remove-multicast-distribution-set', device_id=device.id)
+        self.devices_handlers[device.id].remove_multicast_distribution_set(
+            data)
+
 class PonSimOltHandler(object):
+    xpon_ponsim_olt_itfs = {
+        'create_interface': {
+            'method_name': 'CreateInterface',
+            'log': 'create-interface'},
+        'update_interface': {
+            'method_name': 'UpdateInterface',
+            'log': 'update-interface'},
+        'remove_interface': {
+            'method_name': 'RemoveInterface',
+            'log': 'remove-interface'},
+        'create_tcont': {
+            'method_name': 'CreateTcont',
+            'log': 'create-tconts-config-data'},
+        'update_tcont': {
+            'method_name': 'UpdateTcont',
+            'log': 'update-tconts-config-data'},
+        'remove_tcont': {
+            'method_name': 'RemoveTcont',
+            'log': 'remove-tconts-config-data'},
+        'create_gemport': {
+            'method_name': 'CreateGemport',
+            'log': 'create-gemports-config-data'},
+        'update_gemport': {
+            'method_name': 'UpdateGemport',
+            'log': 'update-gemports-config-data'},
+        'remove_gemport': {
+            'method_name': 'RemoveGemport',
+            'log': 'remove-gemports-config-data'},
+        'create_multicast_gemport': {
+            'method_name': 'CreateMulticastGemport',
+            'log': 'create-multicast-gemports-config-data'},
+        'update_multicast_gemport': {
+            'method_name': 'UpdateMulticastGemport',
+            'log': 'update-multicast-gemports-config-data'},
+        'remove_multicast_gemport': {
+            'method_name': 'RemoveMulticastGemport',
+            'log': 'remove-multicast-gemports-config-data'},
+        'create_multicast_distribution_set': {
+            'method_name': 'CreateMulticastDistributionSet',
+            'log': 'create-multicast-distribution-set-data'},
+        'update_multicast_distribution_set': {
+            'method_name': 'UpdateMulticastDistributionSet',
+            'log': 'update-multicast-distribution-set-data'},
+        'remove_multicast_distribution_set': {
+            'method_name': 'RemoveMulticastDistributionSet',
+            'log': 'remove-multicast-distribution-set-data'},
+                            }
+
     def __init__(self, adapter, device_id):
         self.adapter = adapter
         self.adapter_agent = adapter.adapter_agent
@@ -724,30 +835,100 @@ class PonSimOltHandler(object):
             interfaceConfig.vont_ani_config.CopyFrom(data)
         elif isinstance(data, VEnetConfig):
             interfaceConfig.venet_config.CopyFrom(data)
+        elif isinstance(data, TrafficDescriptorProfileData):
+            interfaceConfig.traffic_descriptor_profile_config_data.CopyFrom(
+                data)
+        elif isinstance(data, TcontsConfigData):
+            interfaceConfig.tconts_config_data.CopyFrom(data)
+        elif isinstance(data, GemportsConfigData):
+            interfaceConfig.gemports_config_data.CopyFrom(data)
+        elif isinstance(data, MulticastGemportsConfigData):
+            interfaceConfig.multicast_gemports_config_data.CopyFrom(data)
+        elif isinstance(data, MulticastDistributionSetData):
+            interfaceConfig.multicast_distribution_set_data.CopyFrom(data)
         else:
             return None
         return interfaceConfig
 
-    def create_interface(self, data):
+    def xpon_ponsim_olt_interface(self, method_name, data, data2=None):
         interfaceConfig = self.get_interface_config(data)
         if interfaceConfig is not None:
-            self.log.info('forwarding-create-interface-request-to-olt-for-interface-type', interface_type=type(data))
+            self.log.info(
+                'forwarding-{}-request-to-olt-for-interface-type'
+                .format(self.xpon_ponsim_olt_itfs[method_name]['log']),
+                interface_type=type(data))
             stub = ponsim_pb2.XPonSimStub(self.get_channel())
-            stub.CreateInterface(interfaceConfig)
+            _method = getattr(
+                stub, self.xpon_ponsim_olt_itfs[method_name]['method_name'])
+            if isinstance(data, TcontsConfigData):
+                tcont_config = TcontInterfaceConfig()
+                tcont_config.tconts_config_data.CopyFrom(data)
+                tcont_config.traffic_descriptor_profile_config_data.CopyFrom(
+                    data2)
+                _method(tcont_config)
+            else:
+                _method(interfaceConfig)
             self.log.info('success')
+
+    def create_interface(self, data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_olt_interface(_method_name, data);
 
     def update_interface(self, data):
-        interfaceConfig = self.get_interface_config(data)
-        if interfaceConfig is not None:
-            self.log.info('forwarding-update-interface-request-to-olt-for-interface-type', interface_type=type(data))
-            stub = ponsim_pb2.XPonSimStub(self.get_channel())
-            stub.UpdateInterface(interfaceConfig)
-            self.log.info('success')
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_olt_interface(_method_name, data);
 
     def remove_interface(self, data):
-        interfaceConfig = self.get_interface_config(data)
-        if interfaceConfig is not None:
-            self.log.info('forwarding-remove-interface-request-to-olt-for-interface-type', interface_type=type(data))
-            stub = ponsim_pb2.XPonSimStub(self.get_channel())
-            stub.RemoveInterface(interfaceConfig)
-            self.log.info('success')
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_olt_interface(_method_name, data);
+
+    def create_tcont(self, tcont_data, traffic_descriptor_data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_olt_interface(_method_name, tcont_data,
+                                      traffic_descriptor_data);
+
+    def update_tcont(self, tcont_data, traffic_descriptor_data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_olt_interface(_method_name, tcont_data,
+                                      traffic_descriptor_data);
+
+    def remove_tcont(self, tcont_data, traffic_descriptor_data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_olt_interface(_method_name, tcont_data,
+                                      traffic_descriptor_data);
+
+    def create_gemport(self, data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_olt_interface(_method_name, data);
+
+    def update_gemport(self, data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_olt_interface(_method_name, data);
+
+    def remove_gemport(self, data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_olt_interface(_method_name, data);
+
+    def create_multicast_gemport(self, data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_olt_interface(_method_name, data);
+
+    def update_multicast_gemport(self, data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_olt_interface(_method_name, data);
+
+    def remove_multicast_gemport(self, data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_olt_interface(_method_name, data);
+
+    def create_multicast_distribution_set(self, data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_olt_interface(_method_name, data);
+
+    def update_multicast_distribution_set(self, data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_olt_interface(_method_name, data);
+
+    def remove_multicast_distribution_set(self, data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_olt_interface(_method_name, data);

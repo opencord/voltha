@@ -5,6 +5,9 @@ import unittest
 
 from voltha.protos import bbf_fiber_base_pb2 as fb
 from voltha.protos.device_pb2 import Device
+from voltha.protos import bbf_fiber_gemport_body_pb2 as gemport
+from voltha.protos import bbf_fiber_tcont_body_pb2 as tcont
+from voltha.protos import bbf_fiber_traffic_descriptor_profile_body_pb2 as tdp
 from common.utils.consulhelpers import get_endpoint_from_consul
 
 '''
@@ -146,6 +149,38 @@ scenario = [
             }
         }
     },
+    {'tdp-add': {
+        'pb2': tdp.TrafficDescriptorProfileData(),
+        'rpc': {
+            "name": "TDP 1",
+            "assured_bandwidth": "500000",
+            "additional_bw_eligibility_indicator": \
+"ADDITIONAL_BW_ELIGIBILITY_INDICATOR_NONE",
+            "fixed_bandwidth": "100000",
+            "maximum_bandwidth": "1000000",
+            }
+        }
+    },
+    {'tcont-add': {
+        'pb2': tcont.TcontsConfigData(),
+        'rpc': {
+            "interface_reference": "Golden User",
+            "traffic_descriptor_profile_ref": "TDP 1",
+            "name": "TCont 1"
+            }
+        }
+    },
+    {'gemport-add': {
+        'pb2': gemport.GemportsConfigData(),
+        'rpc': {
+            "aes_indicator": True,
+            "name": "GEMPORT 1",
+            "traffic_class": 0,
+            "itf_ref": "Enet UNI 1",
+            "tcont_ref": "TCont 1",
+            }
+        }
+    },
     {'cg-mod': {
         'pb2': fb.ChannelgroupConfig(),
         'rpc': {
@@ -162,6 +197,18 @@ scenario = [
             "name": "Manhattan"
             }
         }
+    },
+    {'gemport-del': {
+        'pb2': gemport.GemportsConfigData(),
+        'rpc': {"name": "GEMPORT 1"}}
+    },
+    {'tcont-del': {
+        'pb2': tcont.TcontsConfigData(),
+        'rpc': {"name": "TCont 1"}}
+    },
+    {'tdp-del': {
+        'pb2': tdp.TrafficDescriptorProfileData(),
+        'rpc': {"name": "TDP 1"}}
     },
     {'venet-del': {
         'pb2': fb.VEnetConfig(),
@@ -298,20 +345,12 @@ class TestXPon(RestBase):
 
     # Method to check if the result is same as the change requested
     def search(self, req, result):
-        dict1 = MessageToDict(req, preserving_proto_field_name = True)
-        for item in result:
-            if(isinstance(item, dict)):
-                for k,v in item.items():
-                    if(v == dict1['name']):
-                        dict2 = item
-                        break
-        itfDiff = [k for k in dict1['interface'] if dict1['interface'][k] \
-                   != dict2['interface'][k]]
-        dataDiff = [k for k in dict1['data'] if dict1['data'][k] \
-                    != dict2['data'][k]]
-        if(len(itfDiff) == 0 and len(dataDiff) == 0):
-            return True
-        return False
+        dict1 = MessageToDict(req,
+                              including_default_value_fields = True,
+                              preserving_proto_field_name = True)
+        result['id'] = ''
+        return dict1 == result
+
 
 #~~~~~~~~~~~~~~ Function to create test cases on the fly ~~~~~~~~~~~~~~~~
 def create_dynamic_method(key, value):
@@ -329,18 +368,24 @@ def create_dynamic_method(key, value):
         'ontani': {'type':'ont_anis',
                    'config':'ontani_config'},
         'venet':  {'type':'v_enets',
-                   'config':'v_enet_config'}
+                   'config':'v_enet_config'},
+        'gemport':{'type':'gemports',
+                   'config':'gemports_config'},
+        'tcont': {'type':'tconts',
+                   'config':'tconts_config'},
+        'tdp':    {'type':'traffic_descriptor_profiles',
+                   'config':'traffic_descriptor_profiles'}
     }
 
     def _add(self, type, config, req, name):
         result, prev_len = self.add(type, config, req, name)
         self.assertEqual(result[config][prev_len]['name'], name)
         self.assertEqual(len(result[config]), prev_len+1)
-        self.assertEqual(self.search(req, result[config]), True)
+        self.assertEqual(self.search(req, result[config][0]), True)
 
     def _mod(self, type, config, req, name):
         result = self.modify(type, req, name)
-        self.assertEqual(self.search(req, result[config]), True)
+        self.assertEqual(self.search(req, result[config][0]), True)
 
     def _del(self, type, config, req, name):
         result, prev_len = self.remove(type, config, name)

@@ -69,3 +69,57 @@ class XPonHandler(XPonSimServicer):
     def RemoveInterface(self, request, context):
         self.x_pon_sim.RemoveInterface(request)
         return Empty()
+
+    def CreateTcont(self, request, context):
+        self.x_pon_sim.CreateTcont(
+            request.tconts_config_data,
+            request.traffic_descriptor_profile_config_data)
+        return Empty()
+
+    def UpdateTcont(self, request, context):
+        self.x_pon_sim.UpdateTcont(
+            request.tconts_config_data,
+            request.traffic_descriptor_profile_config_data)
+        return Empty()
+
+    def RemoveTcont(self, request, context):
+        self.x_pon_sim.RemoveTcont(
+            request.tconts_config_data,
+            request.traffic_descriptor_profile_config_data)
+        return Empty()
+
+    def CreateGemport(self, request, context):
+        self.x_pon_sim.CreateGemport(request)
+        return Empty()
+
+    def UpdateGemport(self, request, context):
+        self.x_pon_sim.UpdateGemport(request)
+        return Empty()
+
+    def RemoveGemport(self, request, context):
+        self.x_pon_sim.RemoveGemport(request)
+        return Empty()
+
+    def CreateMulticastGemport(self, request, context):
+        self.x_pon_sim.CreateMulticastGemport(request)
+        return Empty()
+
+    def UpdateMulticastGemport(self, request, context):
+        self.x_pon_sim.UpdateMulticastGemport(request)
+        return Empty()
+
+    def RemoveMulticastGemport(self, request, context):
+        self.x_pon_sim.RemoveMulticastGemport(request)
+        return Empty()
+
+    def CreateMulticastDistributionSet(self, request, context):
+        self.x_pon_sim.CreateMulticastDistributionSet(request)
+        return Empty()
+
+    def UpdateMulticastDistributionSet(self, request, context):
+        self.x_pon_sim.UpdateMulticastDistributionSet(request)
+        return Empty()
+
+    def RemoveMulticastDistributionSet(self, request, context):
+        self.x_pon_sim.RemoveMulticastDistributionSet(request)
+        return Empty()

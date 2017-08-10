@@ -423,3 +423,39 @@ class AdtranOltAdapter(object):
         :return: None
         """
         raise NotImplementedError()
+
+    def create_tcont(self, device, tcont_data, traffic_descriptor_data):
+        raise NotImplementedError()
+
+    def update_tcont(self, device, tcont_data, traffic_descriptor_data):
+        raise NotImplementedError()
+
+    def remove_tcont(self, device, tcont_data, traffic_descriptor_data):
+        raise NotImplementedError()
+
+    def create_gemport(self, device, data):
+        raise NotImplementedError()
+
+    def update_gemport(self, device, data):
+        raise NotImplementedError()
+
+    def remove_gemport(self, device, data):
+        raise NotImplementedError()
+
+    def create_multicast_gemport(self, device, data):
+        raise NotImplementedError()
+
+    def update_multicast_gemport(self, device, data):
+        raise NotImplementedError()
+
+    def remove_multicast_gemport(self, device, data):
+        raise NotImplementedError()
+
+    def create_multicast_distribution_set(self, device, data):
+        raise NotImplementedError()
+
+    def update_multicast_distribution_set(self, device, data):
+        raise NotImplementedError()
+
+    def remove_multicast_distribution_set(self, device, data):
+        raise NotImplementedError()

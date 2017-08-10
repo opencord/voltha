@@ -18,6 +18,7 @@
 Fully simulated OLT/ONU adapter.
 """
 
+import sys
 import structlog
 from twisted.internet.defer import DeferredQueue, inlineCallbacks
 from common.utils.asleep import asleep
@@ -35,10 +36,50 @@ from voltha.protos.ponsim_pb2 import FlowTable
 from voltha.protos.ponsim_pb2 import InterfaceConfig
 from voltha.protos.bbf_fiber_base_pb2 import OntaniConfig, VOntaniConfig, \
     VEnetConfig
+from voltha.protos.bbf_fiber_traffic_descriptor_profile_body_pb2 import \
+    TrafficDescriptorProfileData
+from voltha.protos.bbf_fiber_tcont_body_pb2 import TcontsConfigData
+from voltha.protos.bbf_fiber_gemport_body_pb2 import GemportsConfigData
+from voltha.protos.bbf_fiber_multicast_gemport_body_pb2 import \
+    MulticastGemportsConfigData
+from voltha.protos.bbf_fiber_multicast_distribution_set_body_pb2 import \
+    MulticastDistributionSetData
 
 _ = third_party
 log = structlog.get_logger()
 
+xpon_ponsim_onu_itfs = {
+    'create_interface': {
+        'log': 'create-interface'},
+    'update_interface': {
+        'log': 'update-interface'},
+    'remove_interface': {
+        'log': 'remove-interface'},
+    'create_tcont': {
+        'log': 'create-tconts-config-data'},
+    'update_tcont': {
+        'log': 'update-tconts-config-data'},
+    'remove_tcont': {
+        'log': 'remove-tconts-config-data'},
+    'create_gemport': {
+        'log': 'create-gemports-config-data'},
+    'update_gemport': {
+        'log': 'update-gemports-config-data'},
+    'remove_gemport': {
+        'log': 'remove-gemports-config-data'},
+    'create_multicast_gemport': {
+        'log': 'create-multicast-gemports-config-data'},
+    'update_multicast_gemport': {
+        'log': 'update-multicast-gemports-config-data'},
+    'remove_multicast_gemport': {
+        'log': 'remove-multicast-gemports-config-data'},
+    'create_multicast_distribution_set': {
+        'log': 'create-multicast-distribution-set-data'},
+    'update_multicast_distribution_set': {
+        'log': 'update-multicast-distribution-set-data'},
+    'remove_multicast_distribution_set': {
+        'log': 'remove-multicast-distribution-set-data'},
+                        }
 
 class PonSimOnuAdapter(OnuAdapter):
     def __init__(self, adapter_agent, config):
@@ -53,26 +94,81 @@ class PonSimOnuAdapter(OnuAdapter):
                                                device_type='ponsim_onu',
                                                vendor_id='PSMO')
 
-    def create_interface(self, device, data):
-        log.info('create-interface', device_id=device.id)
+    def xpon_ponsim_onu_adapter_interface(self, method_name, device, data,
+                                          data2=None):
+        log.info('{}'.format(xpon_ponsim_onu_itfs[method_name]['log']),
+                 device_id=device.id)
         if device.id in self.devices_handlers:
             handler = self.devices_handlers[device.id]
             if handler is not None:
-                handler.create_interface(data)
+                _method = getattr(handler, method_name)
+                if isinstance(data, TcontsConfigData):
+                    _method(data, data2)
+                else:
+                    _method(data)
+
+    def create_interface(self, device, data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_onu_adapter_interface(_method_name, device, data)
 
     def update_interface(self, device, data):
-        log.info('update-interface', device_id=device.id)
-        if device.id in self.devices_handlers:
-            handler = self.devices_handlers[device.id]
-            if handler is not None:
-                handler.update_interface(data)
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_onu_adapter_interface(_method_name, device, data)
 
     def remove_interface(self, device, data):
-        log.info('remove-interface', device_id=device.id)
-        if device.id in self.devices_handlers:
-            handler = self.devices_handlers[device.id]
-            if handler is not None:
-                handler.remove_interface(data)
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_onu_adapter_interface(_method_name, device, data)
+
+    def create_tcont(self, device, tcont_data, traffic_descriptor_data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_onu_adapter_interface(_method_name, device, tcont_data,
+                                              traffic_descriptor_data)
+
+    def update_tcont(self, device, tcont_data, traffic_descriptor_data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_onu_adapter_interface(_method_name, device, tcont_data,
+                                              traffic_descriptor_data)
+
+    def remove_tcont(self, device, tcont_data, traffic_descriptor_data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_onu_adapter_interface(_method_name, device, tcont_data,
+                                              traffic_descriptor_data)
+
+    def create_gemport(self, device, data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_onu_adapter_interface(_method_name, device, data)
+
+    def update_gemport(self, device, data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_onu_adapter_interface(_method_name, device, data)
+
+    def remove_gemport(self, device, data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_onu_adapter_interface(_method_name, device, data)
+
+    def create_multicast_gemport(self, device, data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_onu_adapter_interface(_method_name, device, data)
+
+    def update_multicast_gemport(self, device, data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_onu_adapter_interface(_method_name, device, data)
+
+    def remove_multicast_gemport(self, device, data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_onu_adapter_interface(_method_name, device, data)
+
+    def create_multicast_distribution_set(self, device, data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_onu_adapter_interface(_method_name, device, data)
+
+    def update_multicast_distribution_set(self, device, data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_onu_adapter_interface(_method_name, device, data)
+
+    def remove_multicast_distribution_set(self, device, data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_onu_adapter_interface(_method_name, device, data)
 
 class PonSimOnuHandler(object):
     def __init__(self, adapter, device_id):
@@ -382,27 +478,89 @@ class PonSimOnuHandler(object):
             interfaceConfig.vont_ani_config.CopyFrom(data)
         elif isinstance(data, VEnetConfig):
             interfaceConfig.venet_config.CopyFrom(data)
+        elif isinstance(data, TrafficDescriptorProfileData):
+            interfaceConfig.traffic_descriptor_profile_config_data.CopyFrom(
+                data)
+        elif isinstance(data, TcontsConfigData):
+            interfaceConfig.tconts_config_data.CopyFrom(data)
+        elif isinstance(data, GemportsConfigData):
+            interfaceConfig.gemports_config_data.CopyFrom(data)
+        elif isinstance(data, MulticastGemportsConfigData):
+            interfaceConfig.multicast_gemports_config_data.CopyFrom(data)
+        elif isinstance(data, MulticastDistributionSetData):
+            interfaceConfig.multicast_distribution_set_data.CopyFrom(data)
         else:
             return None
         return interfaceConfig
 
-    def create_interface(self, data):
+    def xpon_ponsim_onu_interface (self, method_name, data, data2=None):
         interfaceConfig = self.get_interface_config(data)
         if interfaceConfig is not None:
-            self.log.info(
-                'forwarding-create-interface-request-to-onu-for-intfc-type',
-                interface_type=type(data))
+            self.log.info('forwarding-{}-request-to-onu-for-interface-type'
+                          .format(xpon_ponsim_onu_itfs[method_name]['log']),
+                          interface_type=type(data))
+            if data2 is not None:
+                self.log.info(interface_type=type(data2))
+
+    def create_interface(self, data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_onu_interface(_method_name, data)
 
     def update_interface(self, data):
-        interfaceConfig = self.get_interface_config(data)
-        if interfaceConfig is not None:
-            self.log.info(
-                'forwarding-update-interface-request-to-onu-for-intfc-type',
-                interface_type=type(data))
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_onu_interface(_method_name, data)
 
     def remove_interface(self, data):
-        interfaceConfig = self.get_interface_config(data)
-        if interfaceConfig is not None:
-            self.log.info(
-                'forwarding-remove-interface-request-to-onu-for-intfc-type',
-                interface_type=type(data))
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_onu_interface(_method_name, data)
+
+    def create_tcont(self, tcont_data, traffic_descriptor_data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_onu_interface(_method_name, tcont_data,
+                                      traffic_descriptor_data)
+
+    def update_tcont(self, tcont_data, traffic_descriptor_data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_onu_interface(_method_name, tcont_data,
+                                      traffic_descriptor_data)
+
+    def remove_tcont(self, tcont_data, traffic_descriptor_data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_onu_interface(_method_name, tcont_data,
+                                      traffic_descriptor_data)
+
+    def create_gemport(self, data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_onu_interface(_method_name, data)
+
+    def update_gemport(self, data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_onu_interface(_method_name, data)
+
+    def remove_gemport(self, data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_onu_interface(_method_name, data)
+
+    def create_multicast_gemport(self, data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_onu_interface(_method_name, data)
+
+    def update_multicast_gemport(self, data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_onu_interface(_method_name, data)
+
+    def remove_multicast_gemport(self, data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_onu_interface(_method_name, data)
+
+    def create_multicast_distribution_set(self, data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_onu_interface(_method_name, data)
+
+    def update_multicast_distribution_set(self, data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_onu_interface(_method_name, data)
+
+    def remove_multicast_distribution_set(self, data):
+       _method_name = sys._getframe().f_code.co_name
+       self.xpon_ponsim_onu_interface(_method_name, data)

@@ -21,7 +21,13 @@ from voltha.registry import registry
 from voltha.core.config.config_proxy import CallbackType
 from voltha.protos.bbf_fiber_base_pb2 import ChannelgroupConfig, \
     ChannelpartitionConfig, ChannelpairConfig, ChannelterminationConfig, \
-    OntaniConfig, VOntaniConfig, VEnetConfig
+    OntaniConfig, VOntaniConfig, VEnetConfig, \
+    AllTrafficDescriptorProfileData, AllTcontsConfigData, AllGemportsConfigData
+from voltha.protos.bbf_fiber_traffic_descriptor_profile_body_pb2 import \
+    TrafficDescriptorProfileData
+from voltha.protos.bbf_fiber_tcont_body_pb2 import TcontsConfigData
+from voltha.protos.bbf_fiber_gemport_body_pb2 import GemportsConfigData
+
 from voltha.protos.device_pb2 import Device
 from voltha.protos.common_pb2 import AdminState
 
@@ -29,103 +35,102 @@ log = structlog.get_logger()
 
 class XponAgent(object):
 
-    interface_stack = {ChannelgroupConfig: {
-                           'path': '/channel_groups/{}',
-                               'path_keys': ['name'],
-                           'parent': None, 'parent_path': None,
-                               'parent_path_keys': [None],
-                            'child': ChannelpartitionConfig,
-                                'child_path': ['/channel_partitions'],
-                            'olt_link': None, 'olt_link_path': None,
-                                'olt_link_path_keys': [None],
-                                'olt_device_id': 'from_child',
-                            'onu_link': None, 'onu_link_path': None,
-                                'onu_link_path_keys': [None],
-                                'onu_device_id': 'na'},
-                       ChannelpartitionConfig: {
-                           'path': '/channel_partitions/{}',
-                               'path_keys': ['name'],
-                           'parent': ChannelgroupConfig,
-                               'parent_path': '/channel_groups/{}',
-                               'parent_path_keys': ['data.channelgroup_ref'],
-                            'child': ChannelpairConfig,
-                                'child_path': ['/channel_pairs'],
-                            'olt_link': None, 'olt_link_path': None,
-                                'olt_link_path_keys': [None],
-                                'olt_device_id': 'from_child',
-                            'onu_link': None, 'onu_link_path': None,
-                                'onu_link_path_keys': [None],
-                                'onu_device_id': 'na'},
-                       ChannelpairConfig: {
-                           'path': '/channel_pairs/{}', 'path_keys': ['name'],
-                           'parent': ChannelpartitionConfig,
-                               'parent_path': '/channel_partitions/{}',
-                               'parent_path_keys':\
-                                   ['data.channelpartition_ref'],
-                            'child': ChannelterminationConfig,
-                                'child_path':\
-                                    ['/devices', 'channel_terminations'],
-                            'olt_link': None, 'olt_link_path': None,
-                                'olt_link_path_keys': [None],
-                                'olt_device_id': 'from_child',
-                            'onu_link': None,
-                                'onu_link_path': None,
-                                'onu_link_path_keys': [None],
-                                'onu_device_id': 'na'},
-                       ChannelterminationConfig: {
-                           'path': '/devices/{}/channel_terminations/{}',
-                               'path_keys': ['id', 'name'],
-                           'parent': ChannelpairConfig,
-                               'parent_path': '/channel_pairs/{}',
-                               'parent_path_keys':\
-                                   ['data.channelpair_ref'],
-                            'child': None, 'child_path': [None],
-                            'olt_link': None, 'olt_link_path': None,
-                                'olt_link_path_keys': [None],
-                                'olt_device_id': 'self',
-                            'onu_link': None, 'onu_link_path': None,
-                                'onu_link_path_keys': [None],
-                                'onu_device_id': 'na'},
-                       VOntaniConfig: {
-                           'path': '/v_ont_anis/{}', 'path_keys': ['name'],
-                           'parent': ChannelpartitionConfig,
-                               'parent_path': '/channel_partitions/{}',
-                               'parent_path_keys': ['data.parent_ref'],
-                            'child': VEnetConfig, 'child_path': ['/v_enets'],
-                            'olt_link': ChannelpairConfig,
-                                'olt_link_path': '/channel_pairs/{}',
-                                'olt_link_path_keys':\
-                                    ['data.preferred_chanpair'],
-                                'olt_device_id': 'from_link',
-                            'onu_link': None, 'onu_link_path': None,
-                                'onu_link_path_keys': [None],
-                                'onu_device_id': 'self'},
-                       OntaniConfig: {
-                           'path': '/ont_anis/{}', 'path_keys': ['name'],
-                           'parent': None, 'parent_path': None,
-                               'parent_path_keys': [None],
-                            'child': None, 'child_path': [None],
-                            'olt_link': VOntaniConfig,
-                                'olt_link_path': '/v_ont_anis/{}',
-                                'olt_link_path_keys': ['name'],
-                                'olt_device_id' : 'from_link',
-                            'onu_link': VOntaniConfig,
-                                'onu_link_path': '/v_ont_anis/{}',
-                                'onu_link_path_keys': ['name'],
-                                'onu_device_id': 'from_link'},
-                       VEnetConfig: {
-                           'path': '/v_enets/{}', 'path_keys': ['name'],
-                           'parent': VOntaniConfig,
-                               'parent_path': '/v_ont_anis/{}',
-                               'parent_path_keys': ['data.v_ontani_ref'],
-                            'child': None, 'child_path': [None],
-                            'olt_link': None, 'olt_link_path': None,
-                                'olt_link_path_keys': [None],
-                                'olt_device_id': 'from_parent',
-                            'onu_link': None, 'onu_link_path': None,
-                                'onu_link_path_keys': [None],
-                                'onu_device_id': 'from_parent'}
-                      }
+    interface_stack = {
+        ChannelgroupConfig: {
+            'path': '/channel_groups/{}', 'path_keys': ['name'],
+            'parent': None, 'parent_path': None, 'parent_path_keys': [None],
+            'child': {
+                1: {'config': ChannelpartitionConfig,
+                    'child_path': ['/channel_partitions']}},
+            'olt_link': None, 'olt_link_path': None,
+                'olt_link_path_keys': [None], 'olt_device_id': 'from_child',
+            'onu_link': None, 'onu_link_path': None,
+                'onu_link_path_keys': [None], 'onu_device_id': 'na'},
+        ChannelpartitionConfig: {
+            'path': '/channel_partitions/{}', 'path_keys': ['name'],
+            'parent': ChannelgroupConfig, 'parent_path': '/channel_groups/{}',
+                'parent_path_keys': ['data.channelgroup_ref'],
+            'child': {
+                1: {'config': ChannelpairConfig,
+                    'child_path': ['/channel_pairs']}},
+            'olt_link': None, 'olt_link_path': None,
+                'olt_link_path_keys': [None], 'olt_device_id': 'from_child',
+            'onu_link': None, 'onu_link_path': None,
+                'onu_link_path_keys': [None], 'onu_device_id': 'na'},
+        ChannelpairConfig: {
+            'path': '/channel_pairs/{}', 'path_keys': ['name'],
+            'parent': ChannelpartitionConfig,
+                'parent_path': '/channel_partitions/{}',
+                'parent_path_keys': ['data.channelpartition_ref'],
+            'child': {
+                1: {'config': ChannelterminationConfig,
+                    'child_path': ['/devices', 'channel_terminations']}},
+            'olt_link': None, 'olt_link_path': None,
+                'olt_link_path_keys': [None], 'olt_device_id': 'from_child',
+            'onu_link': None, 'onu_link_path': None,
+                'onu_link_path_keys': [None], 'onu_device_id': 'na'},
+        ChannelterminationConfig: {
+            'path': '/devices/{}/channel_terminations/{}',
+                'path_keys': ['id', 'name'],
+            'parent': ChannelpairConfig, 'parent_path': '/channel_pairs/{}',
+                'parent_path_keys': ['data.channelpair_ref'],
+            'child': None, 'child_path': [None],
+            'olt_link': None, 'olt_link_path': None,
+                'olt_link_path_keys': [None], 'olt_device_id': 'self',
+            'onu_link': None, 'onu_link_path': None,
+                'onu_link_path_keys': [None], 'onu_device_id': 'na'},
+        VOntaniConfig: {
+            'path': '/v_ont_anis/{}', 'path_keys': ['name'],
+            'parent': ChannelpartitionConfig,
+                'parent_path': '/channel_partitions/{}',
+                'parent_path_keys': ['data.parent_ref'],
+            'child': {
+                1: {'config': VEnetConfig, 'child_path': ['/v_enets']},
+                2: {'config': TcontsConfigData, 'child_path': ['/tconts']}},
+            'olt_link': ChannelpairConfig,
+                'olt_link_path': '/channel_pairs/{}',
+                'olt_link_path_keys': ['data.preferred_chanpair'],
+                'olt_device_id': 'from_link',
+            'onu_link': None, 'onu_link_path': None,
+                'onu_link_path_keys': [None], 'onu_device_id': 'self'},
+        OntaniConfig: {
+            'path': '/ont_anis/{}', 'path_keys': ['name'],
+            'parent': None, 'parent_path': None, 'parent_path_keys': [None],
+            'child': None, 'child_path': [None],
+            'olt_link': VOntaniConfig, 'olt_link_path': '/v_ont_anis/{}',
+                'olt_link_path_keys': ['name'], 'olt_device_id' : 'from_link',
+            'onu_link': VOntaniConfig, 'onu_link_path': '/v_ont_anis/{}',
+                'onu_link_path_keys': ['name'], 'onu_device_id': 'from_link'},
+        VEnetConfig: {
+            'path': '/v_enets/{}', 'path_keys': ['name'],
+            'parent': VOntaniConfig, 'parent_path': '/v_ont_anis/{}',
+                'parent_path_keys': ['data.v_ontani_ref'],
+            'child': {
+                1: {'config': GemportsConfigData,
+                    'child_path': ['/gemports']}},
+            'olt_link': None, 'olt_link_path': None,
+                'olt_link_path_keys': [None], 'olt_device_id': 'from_parent',
+            'onu_link': None, 'onu_link_path': None,
+                'onu_link_path_keys': [None], 'onu_device_id': 'from_parent'},
+        TcontsConfigData: {
+            'path': '/tconts/{}', 'path_keys': ['name'],
+            'parent': VOntaniConfig, 'parent_path': '/v_ont_anis/{}',
+                'parent_path_keys': ['interface_reference'],
+            'child': None, 'child_path': [None],
+            'olt_link': None, 'olt_link_path': None,
+                'olt_link_path_keys': [None], 'olt_device_id': 'from_parent',
+            'onu_link': None, 'onu_link_path': None,
+                'onu_link_path_keys': [None], 'onu_device_id': 'from_parent'},
+        GemportsConfigData: {
+            'path': '/gemports/{}', 'path_keys': ['name'],
+            'parent': VEnetConfig, 'parent_path': '/v_enets/{}',
+                'parent_path_keys': ['itf_ref'],
+            'child': None, 'child_path': [None],
+            'olt_link': None, 'olt_link_path': None,
+                'olt_link_path_keys': [None], 'olt_device_id': 'from_parent',
+            'onu_link': None, 'onu_link_path': None,
+                'onu_link_path_keys': [None], 'onu_device_id': 'from_parent'}
+                       }
 
     def __init__(self, core):
         self.core = core
@@ -210,18 +215,18 @@ class XponAgent(object):
 
     def get_child_data(self, data):
         interface_node = self.interface_stack[type(data)]
-        if len(interface_node['child_path']) > 1:
+        if len(interface_node['child'][1]['child_path']) > 1:
             top_children = self.core.get_proxy('/').get('{}'.format(
-                interface_node['child_path'][0]))
+                interface_node['child'][1]['child_path'][0]))
             for top_child in top_children:
                 child = self._get_child_data_by_path(data, '{}/{}/{}'.format(
-                    interface_node['child_path'][0], top_child.id,
-                    interface_node['child_path'][1]))
+                    interface_node['child'][1]['child_path'][0], top_child.id,
+                    interface_node['child'][1]['child_path'][1]))
                 if child is not None:
                     return child
         else:
             child = self._get_child_data_by_path(data, '{}'.format(
-                interface_node['child_path'][0]))
+                interface_node['child'][1]['child_path'][0]))
         if child is None:
             log.info('xpon-agent-warning-interface-cannot-get-child',
                      data=data)
@@ -295,26 +300,92 @@ class XponAgent(object):
 
     def create_interface_in_device(self, device, data):
         adapter_agent = self.get_device_adapter_agent(device)
-        adapter_agent.create_interface(device=device, data=data)
+        if (isinstance(data, TcontsConfigData)):
+            # Adapter interfaces for TCONT always need traffic-descriptor
+            traffic_descriptor_data = self.core.get_proxy('/').get(
+                '/traffic_descriptor_profiles/{}'.
+                format(data.traffic_descriptor_profile_ref))
+            adapter_agent.create_tcont(
+                device=device, tcont_data=data,
+                traffic_descriptor_data=traffic_descriptor_data)
+        elif (isinstance(data, TrafficDescriptorProfileData)):
+            # Do nothing for now
+            log.info(
+                'create-interface-in-device-traffic-descriptor-do-nothing',
+                device=device, data=data)
+        elif (isinstance(data, GemportsConfigData)):
+            adapter_agent.create_gemport(device=device, data=data)
+        elif (isinstance(data, (ChannelgroupConfig, ChannelpartitionConfig,
+                                ChannelpairConfig, ChannelterminationConfig,
+                                OntaniConfig, VOntaniConfig, VEnetConfig))):
+            adapter_agent.create_interface(device=device, data=data)
+        else:
+            # Not handled yet
+            log.info('create-interface-in-device: Not handling',
+                     device=device, data=data)
 
     def update_interface_in_device(self, device, data):
         adapter_agent = self.get_device_adapter_agent(device)
-        adapter_agent.update_interface(device=device, data=data)
+        if (isinstance(data, TcontsConfigData)):
+            # Adapter interfaces for TCONT always need traffic-descriptor
+            traffic_descriptor_data = self.core.get_proxy('/').get(
+                '/traffic_descriptor_profiles/{}'.
+                format(data.traffic_descriptor_profile_ref))
+            adapter_agent.update_tcont(
+                device=device, tcont_data=data,
+                traffic_descriptor_data=traffic_descriptor_data)
+        elif (isinstance(data, TrafficDescriptorProfileData)):
+            # Do nothing for now
+            log.info(
+                'update-interface-in-device-traffic-descriptor-do-nothing',
+                device=device, data=data)
+        elif (isinstance(data, GemportsConfigData)):
+            adapter_agent.update_gemport(device=device, data=data)
+        elif (isinstance(data, (ChannelgroupConfig, ChannelpartitionConfig,
+                                ChannelpairConfig, ChannelterminationConfig,
+                                OntaniConfig, VOntaniConfig, VEnetConfig))):
+            adapter_agent.update_interface(device=device, data=data)
+        else:
+            # Not handled yet
+            log.info('create-interface-in-device: Not handling',
+                     device=device, data=data)
 
     def remove_interface_in_device(self, device, data):
         adapter_agent = self.get_device_adapter_agent(device)
-        adapter_agent.remove_interface(device=device, data=data)
+        if (isinstance(data, TcontsConfigData)):
+            # Adapter interfaces for TCONT always need traffic-descriptor
+            traffic_descriptor_data = self.core.get_proxy('/').get(
+                '/traffic_descriptor_profiles/{}'.
+                format(data.traffic_descriptor_profile_ref))
+            adapter_agent.remove_tcont(
+                device=device, tcont_data=data,
+                traffic_descriptor_data=traffic_descriptor_data)
+        elif (isinstance(data, TrafficDescriptorProfileData)):
+            # Do nothing for now
+            log.info(
+                'remove-interface-in-device-traffic-descriptor-do-nothing',
+                device=device, data=data)
+        elif (isinstance(data, GemportsConfigData)):
+            adapter_agent.remove_gemport(device=device, data=data)
+        elif (isinstance(data, (ChannelgroupConfig, ChannelpartitionConfig,
+                                ChannelpairConfig, ChannelterminationConfig,
+                                OntaniConfig, VOntaniConfig, VEnetConfig))):
+            adapter_agent.remove_interface(device=device, data=data)
+        else:
+            # Not handled yet
+            log.info('remove-interface-in-device: Not handling',
+                     device=device, data=data)
 
     def create_interface(self, data, device_id=None):
+        if not self.is_valid_interface(data):
+            log.info('xpon-agent-create-interface-invalid-interface-type',
+                     type=type(data).__name__)
+            return
         if device_id is None:
             olt_device = self.get_device(data, 'olt')
         else:
             olt_device = self.core.get_proxy('/').get('/devices/{}'.
                                                       format(device_id))
-        if not self.is_valid_interface(data):
-            log.info('xpon-agent-create-interface-invalid-interface-type',
-                     type=type(data).__name__)
-            return
         device_id = None if olt_device is None else olt_device.id
         self.register_interface(device_id=device_id,
                                 path=self.get_interface_path(data))
@@ -358,15 +429,15 @@ class XponAgent(object):
                 self.update_interface_in_device(onu_device, data)
 
     def remove_interface(self, data, device_id=None):
+        if not self.is_valid_interface(data):
+            log.info('xpon-agent-remove-interface-invalid-interface-type',
+                     type=type(data).__name__)
+            return
         if device_id is None:
             olt_device = self.get_device(data, 'olt')
         else:
             olt_device = self.core.get_proxy('/').get('/devices/{}'.
                                                       format(device_id))
-        if not self.is_valid_interface(data):
-            log.info('xpon-agent-remove-interface-invalid-interface-type',
-                     type=type(data).__name__)
-            return
         if olt_device is not None:
             log.info('xpon-agent-remove-interface:',
                      olt_device_id=olt_device.id, data=data)
@@ -448,6 +519,11 @@ class XponAgent(object):
                         'xpon-agent-creating-v-enet-at-onu-device:',
                         onu_device_id=onu_device.id, v_enet=v_enet)
                     self.create_interface_in_device(onu_device, v_enet)
+            '''
+            @TODO: Add creation of Traffic Descriptor Profile, TCont, and
+                   Gemport. Creation of all interfaces must be remodeled
+                   utilizing interface stack's parent-child relationship.
+            '''
         except KeyError:
             log.info(
                 'xpon-agent-create-onu-interfaces-no-ont-ani-link-exists')
@@ -487,6 +563,11 @@ class XponAgent(object):
         for v_ont_ani in v_ont_anis:
             if self.get_link_data(v_ont_ani, 'olt').name == data.name:
                 onu_device = self.get_device(v_ont_ani, 'onu')
+                '''
+                @TODO: Add remove of Traffic Descriptor Profile, TCont, and
+                       Gemport. Remove of all interfaces must be remodeled
+                       utilizing interface stack's parent-child relationship.
+                '''
                 v_enets = self.core.get_proxy('/').get('/v_enets')
                 for v_enet in v_enets:
                     if self.get_parent_data(v_enet).name == v_ont_ani.name:

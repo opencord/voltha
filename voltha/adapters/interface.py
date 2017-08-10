@@ -305,18 +305,27 @@ class IAdapterInterface(Interface):
         """
         API to create various interfaces (only some PON interfaces as of now)
         in the devices
+        :param device: device id
+        :data: interface data object
+        :return: None
         """
 
     def update_interface(device, data):
         """
         API to update various interfaces (only some PON interfaces as of now)
         in the devices
+        :param device: device id
+        :data: interface data object
+        :return: None
         """
 
     def remove_interface(device, data):
         """
         API to delete various interfaces (only some PON interfaces as of now)
         in the devices
+        :param device: device id
+        :data: interface data object
+        :return: None
         """
 
     def receive_onu_detect_state(proxy_address, state):
@@ -324,6 +333,109 @@ class IAdapterInterface(Interface):
         Receive onu detect state in ONU adapter
         :param proxy_address: ONU device address
         :param state: ONU detect state (bool)
+        :return: None
+        """
+
+
+    def create_tcont(device, tcont_data, traffic_descriptor_data):
+        """
+        API to create tcont object in the devices
+        :param device: device id
+        :tcont_data: tcont data object
+        :traffic_descriptor_data: traffic descriptor data object
+        :return: None
+        """
+
+    def update_tcont(device, tcont_data, traffic_descriptor_data):
+        """
+        API to update tcont object in the devices
+        :param device: device id
+        :tcont_data: tcont data object
+        :traffic_descriptor_data: traffic descriptor data object
+        :return: None
+        """
+
+    def remove_tcont(device, tcont_data, traffic_descriptor_data):
+        """
+        API to delete tcont object in the devices
+        :param device: device id
+        :tcont_data: tcont data object
+        :traffic_descriptor_data: traffic descriptor data object
+        :return: None
+        """
+
+    def create_gemport(device, data):
+        """
+        API to create gemport object in the devices
+        :param device: device id
+        :data: gemport data object
+        :return: None
+        """
+
+    def update_gemport(device, data):
+        """
+        API to update gemport object in the devices
+        :param device: device id
+        :data: gemport data object
+        :return: None
+        """
+
+    def remove_gemport(device, data):
+        """
+        API to delete gemport object in the devices
+        :param device: device id
+        :data: gemport data object
+        :return: None
+        """
+
+    def create_multicast_gemport(device, data):
+        """
+        API to create multicast gemport object in the devices
+        :param device: device id
+        :data: multicast gemport data object
+        :return: None
+        """
+
+    def update_multicast_gemport(device, data):
+        """
+        API to update  multicast gemport object in the devices
+        :param device: device id
+        :data: multicast gemport data object
+        :return: None
+        """
+
+    def remove_multicast_gemport(device, data):
+        """
+        API to delete multicast gemport object in the devices
+        :param device: device id
+        :data: multicast gemport data object
+        :return: None
+        """
+
+    def create_multicast_distribution_set(device, data):
+        """
+        API to create multicast distribution rule to specify
+        the multicast VLANs that ride on the multicast gemport
+        :param device: device id
+        :data: multicast distribution data object
+        :return: None
+        """
+
+    def update_multicast_distribution_set(device, data):
+        """
+        API to update multicast distribution rule to specify
+        the multicast VLANs that ride on the multicast gemport
+        :param device: device id
+        :data: multicast distribution data object
+        :return: None
+        """
+
+    def remove_multicast_distribution_set(device, data):
+        """
+        API to delete multicast distribution rule to specify
+        the multicast VLANs that ride on the multicast gemport
+        :param device: device id
+        :data: multicast distribution data object
         :return: None
         """
 

@@ -179,9 +179,6 @@ class BroadcomOnuAdapter(object):
             if handler is not None:
                 handler.event_messages.put(msg)
 
-    def suppress_alarm(self, filter):
-        raise NotImplementedError()
-
     def create_interface(self, device, data):
         log.info('create-interface', device_id=device.id)
         if device.proxy_address.channel_id in self.devices_handlers:
@@ -204,6 +201,45 @@ class BroadcomOnuAdapter(object):
                 handler.remove_interface(data)
 
     def receive_onu_detect_state(self, device_id, state):
+        raise NotImplementedError()
+
+    def create_tcont(self, device, tcont_data, traffic_descriptor_data):
+        raise NotImplementedError()
+
+    def update_tcont(self, device, tcont_data, traffic_descriptor_data):
+        raise NotImplementedError()
+
+    def remove_tcont(self, device, tcont_data, traffic_descriptor_data):
+        raise NotImplementedError()
+
+    def create_gemport(self, device, data):
+        raise NotImplementedError()
+
+    def update_gemport(self, device, data):
+        raise NotImplementedError()
+
+    def remove_gemport(self, device, data):
+        raise NotImplementedError()
+
+    def create_multicast_gemport(self, device, data):
+        raise NotImplementedError()
+
+    def update_multicast_gemport(self, device, data):
+        raise NotImplementedError()
+
+    def remove_multicast_gemport(self, device, data):
+        raise NotImplementedError()
+
+    def create_multicast_distribution_set(self, device, data):
+        raise NotImplementedError()
+
+    def update_multicast_distribution_set(self, device, data):
+        raise NotImplementedError()
+
+    def remove_multicast_distribution_set(self, device, data):
+        raise NotImplementedError()
+
+    def suppress_alarm(self, filter):
         raise NotImplementedError()
 
     def unsuppress_alarm(self, filter):
