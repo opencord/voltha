@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a437d4f_b5198824",
+        "filename": "compose/docker-compose-fluentd-cluster.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-08-10T15:03:20Z",
+      "side": 1,
+      "message": "Can you please use a standard system directory for the logs? /home/voltha isn\u0027t the right place for the logs. You should be using /var/log/ as the target log location. I\u0027ll merge the update once you\u0027ve patched it to change the directory.",
+      "range": {
+        "startLine": 26,
+        "startChar": 9,
+        "endLine": 26,
+        "endChar": 29
+      },
+      "revId": "c03fcc8a3fed50787d7cd85200c9d425826ca0da",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
