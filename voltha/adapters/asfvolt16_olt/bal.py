@@ -69,6 +69,8 @@ class Bal(object):
             obj.interface.key.intf_id = pon_port
             obj.interface.key.intf_type = bal_model_types_pb2.BAL_INTF_TYPE_PON
             obj.interface.data.admin_state = bal_model_types_pb2.BAL_STATE_UP
+            obj.interface.data.transceiver_type = \
+                bal_model_types_pb2.BAL_TRX_TYPE_XGPON_LTH_7226_PC
             yield self.stub.BalCfgSet(obj)
         except Exception as e:
             self.log.info('activating-pon-port in olt-exception', exc=str(e))
@@ -88,8 +90,9 @@ class Bal(object):
             obj.packet.key.packet_send_dest.type = \
                 bal_model_types_pb2.BAL_DEST_TYPE_ITU_OMCI_CHANNEL
             obj.packet.key.packet_send_dest.itu_omci_channel.sub_term_id = \
+                proxy_address.onu_id
+            obj.packet.key.packet_send_dest.itu_omci_channel.int_id = \
                 proxy_address.channel_id
-            obj.packet.key.packet_send_dest.itu_omci_channel.int_id = 0
             obj.packet.data.pkt = msg
             yield self.stub.BalCfgSet(obj)
         except Exception as e:
