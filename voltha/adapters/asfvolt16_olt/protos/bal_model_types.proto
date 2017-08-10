@@ -1091,7 +1091,7 @@ message BalPacketBearerChannelRx
  */
 message BalPacketIeeeOamChannelRxData
 {
-    BalIdList pkt = 1;    /**< Packet Data. */
+    bytes pkt = 1;    /**< Packet Data. */
 }
 
 /** Transport message definition for "ieee_oam_channel_rx" group of "packet"
@@ -1111,7 +1111,7 @@ message BalPacketIeeeOamChannelRx
  */
 message BalPacketItuOmciChannelRxData
 {
-    BalIdList pkt = 1;    /**< Packet Data. */
+    bytes pkt = 1;    /**< Packet Data. */
 }
 
 /** Transport message definition for "itu_omci_channel_rx" group of "packet" object.

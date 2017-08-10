@@ -317,15 +317,16 @@ class Asfvolt16RxHandler(object):
         ind_info = dict()
         ind_info['_object_type'] = 'packet_in_indication'
         ind_info['_sub_group_type'] = 'omci_message'
+        ind_info['_device_id'] = device_id
         packet_data = request.balOmciResp.key.packet_send_dest
-        proxy_address = Device.ProxyAddress(
-            device_id=device_id,
-            channel_id=packet_data.itu_omci_channel.sub_term_id,
-            onu_id=packet_data.itu_omci_channel.sub_term_id,
-            onu_session_id=packet_data.itu_omci_channel.sub_term_id
-        )
-        self.adapter_agent.receive_proxied_message(proxy_address,
-                                                   request.balOmciResp.data.pkt.val)
+        ind_info['onu_id'] = packet_data.itu_omci_channel.sub_term_id
+        ind_info['packet'] = request.balOmciResp.data.pkt.val
+        self.log.info('ONU Id is',
+                     onu_id=packet_data.itu_omci_channel.sub_term_id)
+
+        reactor.callLater(0,
+                         self.adapter.devices_handlers[device_id].handle_omci_ind,
+                         ind_info)
         bal_err = bal_pb2.BalErr()
         bal_err.err = bal_errno_pb2.BAL_ERR_OK
         return bal_err
