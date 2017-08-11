@@ -18,6 +18,7 @@ from scapy.layers.l2 import Ether, Dot1Q
 from voltha.registry import registry
 from voltha.protos.common_pb2 import OperStatus, ConnectStatus, AdminState
 
+
 class DeviceHandler(object):
     def __init__(self, adapter, device_id):
         self.adapter = adapter
@@ -39,6 +40,7 @@ class DeviceHandler(object):
         device.oper_status = OperStatus.UNKNOWN
         device.connect_status = ConnectStatus.UNREACHABLE
         self.adapter_agent.update_device(device)
+
 
 class OltDeviceHandler(DeviceHandler):
     def __init__(self, adapter, device_id):
@@ -129,6 +131,10 @@ class OltDeviceHandler(DeviceHandler):
                 raw_data = json.loads(pkt.getlayer(Raw).load)
                 self.alarms.send_alarm(self, raw_data)
             '''
+
+    def packet_out(self, egress_port, msg):
+        raise NotImplementedError()
+
 
 class OnuDeviceHandler(DeviceHandler):
     pass
