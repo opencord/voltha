@@ -288,7 +288,7 @@ if [ "$testMode" == "yes" ]; then
 	echo -e "${lBlue}Extracting the docker image list from the voltha VM${NC}"
 	volIpAddr=`virsh domifaddr $vVmName${uId} | tail -n +3 | awk '{ print $4 }' | sed -e 's~/.*~~'`
 	ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i ../.vagrant/machines/voltha${uId}/libvirt/private_key vagrant@$volIpAddr "docker image ls" > images.tmp
-	cat images.tmp | grep -v 5000 | tail -n +2 | awk '{printf("  - %s:%s\n", $1, $2)}' > image-list.cfg
+	cat images.tmp | grep -v 5000 | tail -n +2 | awk '{printf("  - %s:%s\n", $1, $2)}' | grep -v "<none>" > image-list.cfg
 	rm -f images.tmp
 	sed -i -e '/voltha_containers:/,$d' ansible/group_vars/all
 	echo "voltha_containers:" >> ansible/group_vars/all
