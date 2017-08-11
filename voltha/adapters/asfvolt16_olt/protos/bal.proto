@@ -61,6 +61,11 @@ message BalKey {
     }
 }
 
+message BalPkt {
+    BalDest dest = 1;
+    bytes packet_to_send = 2;
+}
+
 service Bal {
     /**
      * Initialize the BAL Public API internal data structures
@@ -77,6 +82,8 @@ service Bal {
      * of dynamic objects) associated with the specified access-terminal device.
      **/
     rpc BalCfgSet(BalCfg) returns(BalErr) {}
+    rpc BalPktSend(BalPkt) returns (BalErr) {}
+
     rpc BalCfgClear(BalKey) returns(BalErr) {}
     rpc BalCfgGet(BalKey) returns(BalCfg) {}
 }
