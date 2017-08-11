@@ -114,7 +114,7 @@ class ConsulStore(object):
         while 1:
             try:
                 consul = self._get_consul()
-                log.info('consul', consul=consul, operation=operation,
+                log.debug('consul', consul=consul, operation=operation,
                          args=args)
                 if operation == 'GET':
                     index, result = consul.kv.get(*args, **kw)
