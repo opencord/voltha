@@ -18,13 +18,16 @@
 Asfvolt16 OLT adapter
 """
 
+
+from scapy.layers.l2 import Ether, Dot1Q
 from uuid import uuid4
 from common.frameio.frameio import BpfProgramFilter
 from twisted.internet import reactor
+from twisted.internet.defer import inlineCallbacks, DeferredQueue
+from common.frameio.frameio import hexify
 from scapy.packet import Packet
 from voltha.protos.common_pb2 import OperStatus, ConnectStatus
-from voltha.protos.device_pb2 import DeviceType, DeviceTypes, Port, Device, \
-    PmConfigs, PmConfig, PmGroupConfig
+from voltha.protos.device_pb2 import Port
 from voltha.protos.common_pb2 import AdminState
 from voltha.protos.logical_device_pb2 import LogicalPort, LogicalDevice
 from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, \
@@ -33,9 +36,8 @@ from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, \
 from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.adapters.asfvolt16_olt.bal import Bal
 from voltha.adapters.device_handler import OltDeviceHandler
-from voltha.protos.bbf_fiber_base_pb2 import \
-    ChannelgroupConfig, ChannelpartitionConfig, ChannelpairConfig, \
-    ChannelterminationConfig, OntaniConfig, VOntaniConfig, VEnetConfig
+from voltha.protos.bbf_fiber_base_pb2 import ChannelterminationConfig, \
+        VOntaniConfig
 
 ASFVOLT_NNI_PORT = 50
 # ASFVOLT_NNI_PORT needs to be other than pon port value.
@@ -80,7 +82,8 @@ class Asfvolt16Handler(OltDeviceHandler):
             device.serial_number = device.host_and_port
             self.adapter_agent.update_device(device)
 
-            self.add_port(port_no=ASFVOLT_NNI_PORT, port_type=Port.ETHERNET_NNI,
+            self.add_port(port_no=ASFVOLT_NNI_PORT,
+                          port_type=Port.ETHERNET_NNI,
                           label='NNI facing Ethernet port')
             self.logical_device_id = \
                 self.add_logical_device(device_id=device.id)
@@ -98,10 +101,6 @@ class Asfvolt16Handler(OltDeviceHandler):
         device.connect_status = ConnectStatus.REACHABLE
         device.oper_status = OperStatus.ACTIVATING
         self.adapter_agent.update_device(device)
-
-        # Open the frameio port to receive in-band packet_in messages
-
-    #        self.activate_io_port()
 
     def add_port(self, port_no, port_type, label):
         self.log.info('adding-port', port_no=port_no, port_type=port_type)
@@ -140,10 +139,10 @@ class Asfvolt16Handler(OltDeviceHandler):
                 n_buffers=256,  # TODO fake for now
                 n_tables=2,  # TODO ditto
                 capabilities=(  # TODO and ditto
-                    OFPC_FLOW_STATS
-                    | OFPC_TABLE_STATS
-                    | OFPC_PORT_STATS
-                    | OFPC_GROUP_STATS
+                    OFPC_FLOW_STATS |
+                    OFPC_TABLE_STATS |
+                    OFPC_PORT_STATS |
+                    OFPC_GROUP_STATS
                 )
             ),
             root_device_id=device_id
@@ -194,7 +193,7 @@ class Asfvolt16Handler(OltDeviceHandler):
             device.connect_status = ConnectStatus.REACHABLE
             device.oper_status = OperStatus.ACTIVE
             device.reason = 'OLT activated successfully'
-            status = self.adapter_agent.update_device(device)
+            self.adapter_agent.update_device(device)
             self.log.info('OLT activation complete')
         else:
             device.oper_status = OperStatus.FAILED
@@ -207,8 +206,8 @@ class Asfvolt16Handler(OltDeviceHandler):
         if ind_info['_sub_group_type'] == 'onu_discovery':
             self.log.info('Onu discovered', olt_id=self.olt_id,
                           pon_ni=ind_info['_pon_id'], onu_data=ind_info)
-            #To-Do: Need to handle the ONUs, where the admin state is
-            #ENABLED and operation state is in Failed or Unkown
+            # To-Do: Need to handle the ONUs, where the admin state is
+            # ENABLED and operation state is in Failed or Unkown
             self.log.info('Not Yet handled', olt_id=self.olt_id,
                           pon_ni=ind_info['_pon_id'], onu_data=ind_info)
         else:
@@ -278,14 +277,16 @@ class Asfvolt16Handler(OltDeviceHandler):
         return
 
     def handle_omci_ind(self, ind_info):
-        child_device = self.adapter_agent.get_child_device(self.device_id,
-                                                           onu_id=ind_info['onu_id'])
+        child_device = self.adapter_agent.get_child_device(
+            self.device_id,
+            onu_id=ind_info['onu_id'])
         if child_device is None:
-            self.log.info('Onu is not configured',onu_id=ind_info['onu_id'])
+            self.log.info('Onu is not configured', onu_id=ind_info['onu_id'])
             return
         try:
-            self.adapter_agent.receive_proxied_message(child_device.proxy_address,
-                                                       ind_info['packet'])
+            self.adapter_agent.receive_proxied_message(
+                child_device.proxy_address,
+                ind_info['packet'])
         except Exception as e:
                 self.log.exception('', exc=str(e))
         return
@@ -339,3 +340,41 @@ class Asfvolt16Handler(OltDeviceHandler):
 
     def delete(self):
         super(Asfvolt16Handler, self).delete()
+
+    def handle_packet_in(self, ind_info):
+        self.log.info('Received Packet-In', ind_info=ind_info)
+
+        pkt = Ether(ind_info['packet'])
+        if pkt.haslayer(Dot1Q):
+            outer_shim = pkt.getlayer(Dot1Q)
+            if isinstance(outer_shim.payload, Dot1Q):
+                inner_shim = outer_shim.payload
+                cvid = inner_shim.vlan
+                logical_port = cvid
+                popped_frame = (
+                    Ether(src=pkt.src, dst=pkt.dst, type=inner_shim.type) /
+                    inner_shim.payload
+                )
+                kw = dict(
+                    logical_device_id=self.logical_device_id,
+                    logical_port_no=logical_port,
+                )
+                self.log.info('sending-packet-in', **kw)
+                self.adapter_agent.send_packet_in(
+                    packet=str(popped_frame), **kw)
+
+        reactor.callLater(1, self.process_packet_in)
+
+    def packet_out(self, egress_port, msg):
+        self.log.info('sending-packet-out', egress_port=egress_port,
+                      msg=hexify(msg))
+        pkt = Ether(msg)
+        out_pkt = (
+            Ether(src=pkt.src, dst=pkt.dst) /
+            Dot1Q(vlan=PACKET_IN_VLAN) /
+            Dot1Q(vlan=egress_port, type=pkt.type) /
+            pkt.payload
+        )
+
+        # TODO: Need to retrieve the correct destination onu_id
+        self.bal.packet_out(onu_id=1, egress_port, str(out_pkt))

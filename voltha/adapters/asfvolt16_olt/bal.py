@@ -15,7 +15,7 @@
 #
 
 from twisted.internet.defer import inlineCallbacks
-from voltha.adapters.asfvolt16_olt.protos import bal_pb2, bal_obj_pb2, \
+from voltha.adapters.asfvolt16_olt.protos import bal_pb2, \
     bal_model_types_pb2, bal_model_ids_pb2
 from voltha.adapters.asfvolt16_olt.grpc_client import GrpcClient
 
@@ -122,3 +122,23 @@ class Bal(object):
             self.log.info('activating-ONU-exception',
                           onu_info['onu_id'], exc=str(e))
         return
+
+    @inlineCallbacks
+    def packet_out(self, onu_id, egress_port, pkt):
+        self.log.info('packet-out', onu_id=onu_id, egress_port=egress_port)
+
+        obj = bal_pb2.BalCfg()
+
+        # Set the destination ONU info
+        obj.packet.key.dest.packet_send_dest.sub_term.sub_term_id = onu_id
+        # TODO: Need to provide correct values for sub_term_uni and int_id
+        obj.packet.key.dest.packet_send_dest.sub_term.sub_term_uni = egress_port
+        obj.packet.key.dest.packet_send_dest.sub_term.int_id = egress_port
+
+        # Set the Packet-out info
+        obj.packet.data.flow_type = BAL_FLOW_TYPE_DOWNSTREAM
+        # TODO: Need to provide correct value for intf_id
+        obj.packet.data.intf_id = egress_port
+        obj.packet.data.pkt = pkt
+
+        yield self.stub.BalCfgSet(obj)
