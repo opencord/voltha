@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5a2585a7_6dffd502",
+        "filename": "docker/Dockerfile.onos",
+        "patchSetId": 2
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-08-11T21:53:44Z",
+      "side": 1,
+      "message": "Please next time when you do such changes, specify in requirements or at least in commit message that Docker version must be upgraded to a specific version. SW developers have to spend unnecessary time debugging broken build.",
+      "range": {
+        "startLine": 1,
+        "startChar": 25,
+        "endLine": 1,
+        "endChar": 34
+      },
+      "revId": "9f2ec3cb7a20d0f0763c42c39d4e634431ff1d2e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
