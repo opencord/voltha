@@ -126,6 +126,23 @@
     },
     {
       "key": {
+        "uuid": "7a288981_ae6b7784",
+        "filename": "voltha/adapters/asfvolt16_olt/protos/bal_model_types.proto",
+        "patchSetId": 3
+      },
+      "lineNbr": 532,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-08-11T13:37:48Z",
+      "side": 1,
+      "message": "Do not need this field. See comment below.",
+      "revId": "afa0e6b7260e92938c6bb836ebe4e02fa57df82b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7a288981_ee717f78",
         "filename": "voltha/adapters/asfvolt16_olt/protos/bal_model_types.proto",
         "patchSetId": 3
