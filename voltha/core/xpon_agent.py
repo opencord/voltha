@@ -508,6 +508,17 @@ class XponAgent(object):
                     'xpon-agent-creating-ont-ani-at-onu-device:',
                     onu_device_id=onu_device.id, ont_ani=ont_ani)
                 self.create_interface_in_device(onu_device, ont_ani)
+            tconts = self.core.get_proxy('/').get('/tconts')
+            for tcont in tconts:
+                if self.get_parent_data(tcont).name == data.name:
+                    log.info(
+                        'xpon-agent-creating-tcont-at-olt-device:',
+                        olt_device_id=olt_device.id, tcont=tcont)
+                    self.create_interface_in_device(olt_device, tcont)
+                    log.info(
+                        'xpon-agent-creating-tcont-at-onu-device:',
+                        onu_device_id=onu_device.id, tcont=tcont)
+                    self.create_interface_in_device(onu_device, tcont)
             v_enets = self.core.get_proxy('/').get('/v_enets')
             for v_enet in v_enets:
                 if self.get_parent_data(v_enet).name == data.name:
@@ -519,11 +530,19 @@ class XponAgent(object):
                         'xpon-agent-creating-v-enet-at-onu-device:',
                         onu_device_id=onu_device.id, v_enet=v_enet)
                     self.create_interface_in_device(onu_device, v_enet)
-            '''
-            @TODO: Add creation of Traffic Descriptor Profile, TCont, and
-                   Gemport. Creation of all interfaces must be remodeled
-                   utilizing interface stack's parent-child relationship.
-            '''
+                    gemports = self.core.get_proxy('/').get('/gemports')
+                    for gemport in gemports:
+                        if self.get_parent_data(gemport).name == v_enet.name:
+                            log.info(
+                                'xpon-agent-creating-gemport-at-olt-device:',
+                                olt_device_id=olt_device.id, gemport=gemport)
+                            self.create_interface_in_device(olt_device,
+                                                            gemport)
+                            log.info(
+                                'xpon-agent-creating-gemport-at-onu-device:',
+                                onu_device_id=onu_device.id, gemport=gemport)
+                            self.create_interface_in_device(onu_device,
+                                                            gemport)
         except KeyError:
             log.info(
                 'xpon-agent-create-onu-interfaces-no-ont-ani-link-exists')
@@ -543,19 +562,20 @@ class XponAgent(object):
         self.remove_interface_in_device(olt_device, data)
         log.info(
             'xpon-agent-removing-channel-pair:',
-            olt_device_id=olt_device.id, data=channel_pair)
+            olt_device_id=olt_device.id, channel_pair=channel_pair)
         self.remove_interface_in_device(olt_device, channel_pair)
         channel_partition = self.get_parent_data(channel_pair)
         if channel_partition is not None:
             log.info(
                 'xpon-agent-removing-channel-partition:',
-                olt_device_id=olt_device.id, data=channel_partition)
+                olt_device_id=olt_device.id,
+                channel_partition=channel_partition)
             self.remove_interface_in_device(olt_device, channel_partition)
         channel_group = self.get_parent_data(channel_partition)
         if channel_group is not None:
             log.info(
                 'xpon-agent-removing-channel-group:',
-                olt_device_id=olt_device.id, data=channel_group)
+                olt_device_id=olt_device.id, channel_group=channel_group)
             self.remove_interface_in_device(olt_device, channel_group)
 
     def remove_onu_interfaces(self, olt_device, data):
@@ -563,14 +583,25 @@ class XponAgent(object):
         for v_ont_ani in v_ont_anis:
             if self.get_link_data(v_ont_ani, 'olt').name == data.name:
                 onu_device = self.get_device(v_ont_ani, 'onu')
-                '''
-                @TODO: Add remove of Traffic Descriptor Profile, TCont, and
-                       Gemport. Remove of all interfaces must be remodeled
-                       utilizing interface stack's parent-child relationship.
-                '''
                 v_enets = self.core.get_proxy('/').get('/v_enets')
                 for v_enet in v_enets:
                     if self.get_parent_data(v_enet).name == v_ont_ani.name:
+                        gemports = self.core.get_proxy('/').get('/gemports')
+                        for gemport in gemports:
+                            if self.get_parent_data(gemport).name == \
+                                v_enet.name:
+                                log.info(
+                                    'xpon-agent-remove-gemport-at-onu-device:',
+                                    onu_device_id=onu_device.id,
+                                    gemport=gemport)
+                                self.remove_interface_in_device(onu_device,
+                                                                gemport)
+                                log.info(
+                                    'xpon-agent-remove-gemport-at-olt-device:',
+                                    olt_device_id=olt_device.id,
+                                    gemport=gemport)
+                                self.remove_interface_in_device(olt_device,
+                                                                gemport)
                         log.info(
                             'xpon-agent-removing-v-enet-at-onu-device:',
                             onu_device_id=onu_device.id, data=v_enet)
@@ -579,6 +610,17 @@ class XponAgent(object):
                             'xpon-agent-removing-v-enet-at-olt-device:',
                             olt_device_id=olt_device.id, data=v_enet)
                         self.remove_interface_in_device(olt_device, v_enet)
+                tconts = self.core.get_proxy('/').get('/tconts')
+                for tcont in tconts:
+                    if self.get_parent_data(tcont).name == v_ont_ani.name:
+                        log.info(
+                            'xpon-agent-removing-tcont-at-onu-device:',
+                            onu_device_id=onu_device.id, tcont=tcont)
+                        self.remove_interface_in_device(onu_device, tcont)
+                        log.info(
+                            'xpon-agent-removing-tcont-at-olt-device:',
+                            olt_device_id=olt_device.id, tcont=tcont)
+                        self.remove_interface_in_device(olt_device, tcont)
                 try:
                     ont_ani = self.core.get_proxy('/').get(
                         '/ont_anis/{}'.format(v_ont_ani.name))
