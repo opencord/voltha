@@ -17,7 +17,7 @@ logging:
     handlers:
         console:
             class : logging.StreamHandler
-            level: DEBUG
+            level: INFO
             formatter: default
             stream: ext://sys.stdout
         fluent:
@@ -26,14 +26,14 @@ logging:
             port: 24224
             tag: voltha.logging
             formatter: fluent_fmt
-            level: DEBUG
+            level: INFO
         localRotatingFile:
             class: logging.handlers.RotatingFileHandler
             filename: voltha.log
             formatter: default
             maxBytes: 2097152
             backupCount: 10
-            level: DEBUG
+            level: INFO
         null:
             class: logging.NullHandler
 
@@ -61,9 +61,11 @@ coordinator:
     assignment_key: 'assignments'
     workload_key: 'work'
     membership_watch_relatch_delay: 0.1
+    membership_maintenance_loop_delay: 5
     tracking_loop_delay: 1
-    session_renewal_loop_delay: 3
-    session_renewal_timeout: 2
+    session_time_to_live: 300
+    session_renewal_loop_delay: 30
+    session_renewal_timeout: 60
 
 worker:
     time_to_let_leader_update: 5
