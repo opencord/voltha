@@ -43,9 +43,9 @@
   with_items:
     - compose
     - nginx_config
-    - envoy
     - voltha-swarm-start.sh
     - voltha-swarm-stop.sh
+    - get-logs.sh
   when: target == "cluster"
   tags: [voltha]
 
@@ -70,8 +70,6 @@
     follow: no
   with_items:
     - compose
-    - nginx_config
-    - envoy
   when: target == "cluster"
   tags: [voltha]
 
@@ -85,46 +83,27 @@
   with_items:
     - voltha-swarm-start.sh
     - voltha-swarm-stop.sh
+    - get-logs.sh
   when: target == "cluster"
   tags: [voltha]
-
-- name: Nginx statup script is executable
-  file:
-    path: "{{ target_voltha_dir }}/nginx_config/start_service.sh"
-    mode: 0755
-  when: target == "cluster"
-  tags: [voltha]
-
-#- name: Configuration files are on the cluster host
-#  copy:
-#    src: "files/consul_config"
-#    dest: "{{ target_voltha_dir }}"
-#    owner: voltha
-#    group: voltha
-#  when: target == "cluster"
-#  tags: [voltha]
 
 - name: Docker containers for Voltha are pulled
   command: docker pull {{ docker_registry }}/{{ item }}
   with_items: "{{ voltha_containers }}"
   when: target == "cluster"
   tags: [voltha]
+
 - name: Docker images are re-tagged to expected names
   command: docker tag {{ docker_registry }}/{{ item }} {{ item }}
   with_items: "{{ voltha_containers }}"
   when: target == "cluster"
   tags: [voltha]
+
 - name: Docker images are re-tagged to cluster registry names
   command: docker tag {{ docker_registry }}/{{ item }} {{ inventory_hostname }}:5001/{{ item }}
   with_items: "{{ voltha_containers }}"
   when: target == "cluster"
   tags: [voltha]
-#- name: Old docker image tags are removed
-#  command: docker rmi {{ docker_registry }}/{{ item }}
-#  with_items: "{{ voltha_containers }}"
-#  when: target == "cluster"
-#  tags: [voltha]
-
 
 # Update the insecure registry to reflect the current installer.
 # The installer name can change depending on whether test mode
@@ -149,11 +128,6 @@
   when: copy_result|changed or user_result|changed
   when: target == "installer"
   tags: [voltha]
-
-#- name: TEMPORARY RULE TO INSTALL ZOOKEEPER
-#  command: docker pull zookeeper
-#  when: target == "installer"
-#  tags: [voltha]
 
 - name: Docker images are re-tagged to registry for push
   command: docker tag {{ item }} {{ docker_push_registry }}/{{ item }}

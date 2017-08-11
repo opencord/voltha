@@ -215,7 +215,7 @@ fetch:
 	docker pull zookeeper:latest
 	docker pull nginx:latest
 	docker pull portainer/portainer:latest
-	docker pull lyft/envoy:092f01381467dfc3324e5e9528c67ee5d65744fd
+	docker pull lyft/envoy:29361deae91575a1d46c7a21e913f19e75622ebe
 	docker pull registry:2
 	docker pull kamon/grafana_graphite:latest
 

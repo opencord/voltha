@@ -60,11 +60,6 @@
 		  }
 		}
               },
-	      {
-	        "type": "both",
-	        "name": "grpc_http1_bridge",
-	        "config": {}
-	      },
               {
                 "type": "decoder",
                 "name": "router",

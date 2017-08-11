@@ -27,8 +27,9 @@ services:
       - "50555:50555"
       - "8882:8882"
       - "8443:8443"
+      - "8001:8001"
     volumes:
-      - /cord/incubator/voltha/envoy:/etc/envoy
+      - /var/run/docker.sock:/tmp/docker.sock
       
 networks:
   voltha-net:

@@ -1,10 +1,10 @@
-FROM lyft/envoy:092f01381467dfc3324e5e9528c67ee5d65744fd
+FROM lyft/envoy:29361deae91575a1d46c7a21e913f19e75622ebe
 
 RUN apt-get update && apt-get -q install -y \
     curl
-ADD envoy/front-proxy /envoy/
-ADD envoy/proto.pb /envoy/
-ADD pki /envoy/
-ADD envoy/go/envoyd/envoyd /usr/local/bin
+COPY envoy/front-proxy /envoy/
+COPY envoy/proto.pb /envoy/
+COPY pki /envoy/
+COPY envoy/go/envoyd/envoyd /usr/local/bin
 
 CMD /usr/local/bin/envoy -c /envoy/front-proxy/voltha-grpc-proxy.json
