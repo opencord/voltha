@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "7a288981_ae9ed761",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 40,
+      "author": {
+        "id": 1000103
+      },
+      "writtenOn": "2017-08-11T15:31:19Z",
+      "side": 1,
+      "message": "I replaced 1 with 50 so that the allocation does not collide with the pon port number.\nIn Edgecore OLT the valid pon ports are between 0 to 15.\nHence I have given a value other than 1.",
+      "parentUuid": "7a288981_ee94df45",
+      "revId": "061ef8c6818839fe6ec63198ef8c7d8e1a5b4a82",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7a288981_0ecf2bb2",
         "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
         "patchSetId": 4
