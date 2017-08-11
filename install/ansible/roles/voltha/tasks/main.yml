@@ -42,7 +42,6 @@
     links: yes
   with_items:
     - compose
-    - nginx_config
     - voltha-swarm-start.sh
     - voltha-swarm-stop.sh
     - get-logs.sh
