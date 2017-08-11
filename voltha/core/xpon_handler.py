@@ -116,8 +116,6 @@ class XponHandler(object):
             assert isinstance(request, ChannelgroupConfig)
             assert self.validate_interface(request, context)
             channelgroup = self.get_channel_group_config(request, context)
-            assert channelgroup.name == request.name
-
             request.cg_index = channelgroup.cg_index
             path = '/channel_groups/{}'.format(request.name)
             log.debug('updating-channel-group', name=request.name)
@@ -158,9 +156,6 @@ class XponHandler(object):
                 'Channel Group -- \'{}\' is referenced by Channel Pair'\
                 .format(request.name)
             channelgroup = self.get_channel_group_config(request, context)
-            assert channelgroup.name == request.name, \
-                'Unable to find specified Channel Group -- \'{}\''\
-                .format(request.name)
             path = '/channel_groups/{}'.format(request.name)
             log.debug('removing-channel-group', name=request.name)
             self.root.remove(path)
