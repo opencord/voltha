@@ -123,6 +123,23 @@
       "revId": "afa0e6b7260e92938c6bb836ebe4e02fa57df82b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7a288981_ee717f78",
+        "filename": "voltha/adapters/asfvolt16_olt/protos/bal_model_types.proto",
+        "patchSetId": 3
+      },
+      "lineNbr": 540,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-08-11T13:36:50Z",
+      "side": 1,
+      "message": "You dont need this field. The len() built-in function can be used to determine length of the repeated field. See https://developers.google.com/protocol-buffers/docs/reference/python-generated#repeated-fields\n\nmessage Foo {\n  repeated int32 nums \u003d 1;\n}\n\nfoo \u003d Foo()\nfoo.nums.append(15)        # Appends one value\nfoo.nums.extend([32, 47])  # Appends an entire list\n\nassert len(foo.nums) \u003d\u003d 3",
+      "revId": "afa0e6b7260e92938c6bb836ebe4e02fa57df82b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
