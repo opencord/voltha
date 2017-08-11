@@ -1,11 +1,13 @@
 #!/bin/bash 
 
+HERE=$(pwd)
 for app in $APPS; do
+    cd $HERE
     echo "Installing application '$app'"
     oar=$(find $BUILD_ROOT -path "*/target/*" -name "$app*".oar)
     if [ "$oar x" == " x" ]; then
         echo "Required application, $app, not found."
-	continue
+	exit 1
     fi
     rm -rf $APP_INSTALL_ROOT
     mkdir -p $APP_INSTALL_ROOT
