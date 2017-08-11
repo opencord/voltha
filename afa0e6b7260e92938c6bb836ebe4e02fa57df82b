@@ -55,6 +55,60 @@
     },
     {
       "key": {
+        "uuid": "7a288981_4ed53342",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 79,
+      "author": {
+        "id": 1000103
+      },
+      "writtenOn": "2017-08-11T09:22:05Z",
+      "side": 1,
+      "message": "Since in broadcom PON ports starts from 0 to 15, i moved the NNI port to a different Id",
+      "parentUuid": "9a437d4f_58ee1124",
+      "revId": "afa0e6b7260e92938c6bb836ebe4e02fa57df82b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7a288981_2ecae7a1",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 79,
+      "author": {
+        "id": 1000103
+      },
+      "writtenOn": "2017-08-11T09:22:05Z",
+      "side": 1,
+      "message": "Since in broadcom PON ports starts from 0 to 15, i moved the NNI port to a different Id",
+      "parentUuid": "9a437d4f_985eb911",
+      "revId": "afa0e6b7260e92938c6bb836ebe4e02fa57df82b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7a288981_6ed0ef53",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 79,
+      "author": {
+        "id": 1000103
+      },
+      "writtenOn": "2017-08-11T09:22:05Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "9a437d4f_d86441e7",
+      "revId": "afa0e6b7260e92938c6bb836ebe4e02fa57df82b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a437d4f_1873e9b2",
         "filename": "voltha/adapters/asfvolt16_olt/bal.py",
         "patchSetId": 3
