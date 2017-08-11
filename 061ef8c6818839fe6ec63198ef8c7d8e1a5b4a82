@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "7a288981_ee7bbf27",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 40,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-08-11T15:34:34Z",
+      "side": 1,
+      "message": "Got it.  We talked about that.  This is a good comment to place in the source code so others can understand it.  Put a few comment lines to this effect.  Move the review comment to comment lines in source code above here.",
+      "parentUuid": "7a288981_ae9ed761",
+      "revId": "061ef8c6818839fe6ec63198ef8c7d8e1a5b4a82",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7a288981_0ecf2bb2",
         "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
         "patchSetId": 4
