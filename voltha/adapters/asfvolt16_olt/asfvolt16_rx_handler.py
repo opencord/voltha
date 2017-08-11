@@ -20,11 +20,9 @@ Asfvolt16 OLT adapter
 from twisted.internet import reactor
 from common.utils.grpc_utils import twisted_async
 from voltha.adapters.asfvolt16_olt.protos import bal_indications_pb2
-from voltha.adapters.asfvolt16_olt.protos import bal_msg_type_pb2, \
-    bal_osmsg_pb2, bal_model_ids_pb2, bal_obj_pb2, bal_model_types_pb2, \
+from voltha.adapters.asfvolt16_olt.protos import bal_model_types_pb2, \
     bal_errno_pb2, bal_pb2
 from voltha.adapters.asfvolt16_olt.grpc_server import GrpcServer
-from voltha.protos.device_pb2 import Device
 
 
 class Asfvolt16RxHandler(object):
@@ -72,8 +70,9 @@ class Asfvolt16RxHandler(object):
         else:
             ind_info['activation_successful'] = False
 
+        device_handler = self.adapter.devices_handlers[device_id]
         reactor.callLater(0,
-                          self.adapter.devices_handlers[device_id].handle_access_term_ind,
+                          device_handler.handle_access_term_ind,
                           ind_info)
         bal_err = bal_pb2.BalErr()
         bal_err.err = bal_errno_pb2.BAL_ERR_OK
@@ -199,8 +198,9 @@ class Asfvolt16RxHandler(object):
         ind_info['_vendor_id'] = onu_data.data.serial_number.vendor_id
         ind_info['_vendor_specific'] = \
             onu_data.data.serial_number.vendor_specific
+        device_handler = self.adapter.devices_handlers[device_id]
         reactor.callLater(0,
-                          self.adapter.devices_handlers[device_id].handle_sub_term_ind,
+                          device_handler.handle_sub_term_ind,
                           ind_info)
         bal_err = bal_pb2.BalErr()
         bal_err.err = bal_errno_pb2.BAL_ERR_OK
@@ -266,8 +266,9 @@ class Asfvolt16RxHandler(object):
         elif (bal_model_types_pb2.BAL_STATE_UP == onu_data.data.admin_state):
             ind_info['activation_successful'] = True
 
+        device_handler = self.adapter.devices_handlers[device_id]
         reactor.callLater(0,
-                          self.adapter.devices_handlers[device_id].handle_sub_term_ind,
+                          device_handler.handle_sub_term_ind,
                           ind_info)
         bal_err = bal_pb2.BalErr()
         bal_err.err = bal_errno_pb2.BAL_ERR_OK
@@ -305,6 +306,8 @@ class Asfvolt16RxHandler(object):
         ind_info = dict()
         ind_info['_object_type'] = 'packet_in_indication'
         ind_info['_sub_group_type'] = 'bearer_message'
+        packet_in = request.pktData.data.pkt
+        self.adapter.devices_handlers[device_id].packet_in_queue.put(packet_in)
         bal_err = bal_pb2.BalErr()
         bal_err.err = bal_errno_pb2.BAL_ERR_OK
         return bal_err
@@ -322,11 +325,12 @@ class Asfvolt16RxHandler(object):
         ind_info['onu_id'] = packet_data.itu_omci_channel.sub_term_id
         ind_info['packet'] = request.balOmciResp.data.pkt.val
         self.log.info('ONU Id is',
-                     onu_id=packet_data.itu_omci_channel.sub_term_id)
+                      onu_id=packet_data.itu_omci_channel.sub_term_id)
 
+        device_handler = self.adapter.devices_handlers[device_id]
         reactor.callLater(0,
-                         self.adapter.devices_handlers[device_id].handle_omci_ind,
-                         ind_info)
+                          device_handler.handle_omci_ind,
+                          ind_info)
         bal_err = bal_pb2.BalErr()
         bal_err.err = bal_errno_pb2.BAL_ERR_OK
         return bal_err
