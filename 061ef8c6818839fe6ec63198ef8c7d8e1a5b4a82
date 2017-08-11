@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "7a288981_0ecf2bb2",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 279,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-11T09:16:03Z",
+      "side": 1,
+      "message": "Still i see indentation issue here.",
+      "revId": "061ef8c6818839fe6ec63198ef8c7d8e1a5b4a82",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7a288981_eec3bf88",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 285,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-11T09:16:03Z",
+      "side": 1,
+      "message": "Here too.",
+      "revId": "061ef8c6818839fe6ec63198ef8c7d8e1a5b4a82",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
