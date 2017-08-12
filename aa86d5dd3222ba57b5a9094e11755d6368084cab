@@ -1,0 +1,61 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5a2585a7_0d5df1e9",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_rx_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 310,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-12T10:58:08Z",
+      "side": 1,
+      "message": "To keep the indication handling consistence, can we use reactor.callLater function send packet to device handler.\nreactor.callLater(0,                                            \n                  device_handler.process_packet_in,\n                          ind_info)",
+      "revId": "aa86d5dd3222ba57b5a9094e11755d6368084cab",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a2585a7_ed718578",
+        "filename": "voltha/adapters/asfvolt16_olt/protos/bal.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 67,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-12T10:58:08Z",
+      "side": 1,
+      "message": "we should use the BalPacketCfg() structure to send packet to device. it is already defined in BalCfg(). Extra message is not required.",
+      "range": {
+        "startLine": 66,
+        "startChar": 10,
+        "endLine": 67,
+        "endChar": 1
+      },
+      "revId": "aa86d5dd3222ba57b5a9094e11755d6368084cab",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a2585a7_cd6ec996",
+        "filename": "voltha/adapters/asfvolt16_olt/protos/bal.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 85,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-08-12T10:58:08Z",
+      "side": 1,
+      "message": "As said above, use BalCfgSet rpc with BalPacketCfg structure.",
+      "revId": "aa86d5dd3222ba57b5a9094e11755d6368084cab",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
