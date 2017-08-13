@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 #
 # Copyright 2016 the original author or authors.
 #
@@ -17,4 +16,6 @@
 
 #DockerFile to Create Fluentd Forwards inside cord-voltha
 FROM fluent/fluentd
-COPY fluentd_config/fluent.conf /fluentd/etc/
+RUN ["gem", "install", "fluent-plugin-elasticsearch", "--no-rdoc", "--no-ri", "--version", "1.9.2"]
+COPY fluentd_config/fluentla/fluent.conf /fluentd/etc/
+

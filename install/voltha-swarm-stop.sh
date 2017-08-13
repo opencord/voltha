@@ -9,4 +9,5 @@ docker service rm tools
 docker stack rm consul
 docker stack rm kafka
 docker stack rm fluentd 
+docker stack rm es_kibana
 docker network rm voltha_net

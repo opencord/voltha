@@ -1,0 +1,51 @@
+version: "3"
+services:
+
+#
+# Deploying a Elasticsearch and kibana cluster using this file assumes that overlay network 'voltha_net'
+# has already been created. To deploy the fluentd cluster, issue the command:
+#
+#     docker stack deploy -c docker-compose-es-kibana-cluster.yml es-kibana
+#
+# This spins up three elasticsearch,elasticsearch forms clusters themselves 
+# and one kibana.
+# Please use below provided username/password for elasticsearch and to open kibana UI
+
+# username: elastic 
+# password: changeme
+
+# When date/time settings on cluster hosts are wrong or different to that of the browser loading kibana, 
+# try changing the time range to this month in the kibana UI(option available at top right corner). 
+# When kibana comes up, it loads the indecies and dashboards into elasticsearch.
+#
+
+  elasticsearch:
+    image: cord/elasticsearch
+    deploy:
+      replicas: 3
+      restart_policy:
+        condition: on-failure
+    environment:
+      SERVICE_NAME: elasticsearch
+    networks:
+      - voltha-net
+    ports:
+      - "9200:9200"
+
+  kibana:
+    image: cord/kibana
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    networks:
+      - voltha-net
+    ports:
+      - "5601:5601"
+  
+    
+networks:
+  voltha-net:
+    external:
+      name: voltha_net
+

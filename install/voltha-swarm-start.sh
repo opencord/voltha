@@ -40,5 +40,6 @@ docker stack deploy -c ${voltha_base_dir}/compose/docker-compose-vcli.yml cli
 docker stack deploy -c ${voltha_base_dir}/compose/docker-compose-chameleon-swarm.yml chameleon
 docker stack deploy -c ${voltha_base_dir}/compose/docker-compose-netconf-swarm.yml netconf
 docker stack deploy -c ${voltha_base_dir}/compose/docker-compose-fluentd-cluster.yml fluentd
+docker stack deploy -c ${voltha_base_dir}/compose/docker-compose-es-kibana-cluster.yml es_kibana
 docker service create -d --name tools --network voltha_net  --network kafka_net --publish "4022:22" voltha/tools
 
