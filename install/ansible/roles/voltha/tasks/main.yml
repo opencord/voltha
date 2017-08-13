@@ -172,6 +172,12 @@
   when: target == "startup"
   tags: [voltha]
 
+- name: Optional elasticsearch kibana cluster is started based upon user configuration
+  command: "docker stack deploy -c {{ target_voltha_dir }}/compose/docker-compose-es-kibana-cluster.yml es-kibana"
+  become: voltha
+  when: target == "startup"
+  tags: [kibana]
+
 - name: wait for the cluster startup to settle
   command: "sleep 15"
   become: voltha

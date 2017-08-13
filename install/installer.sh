@@ -217,5 +217,8 @@ do
 done
 ansible-playbook ansible/swarm.yml -i ansible/hosts/swarm-master
 ansible-playbook ansible/swarm.yml -i ansible/hosts/swarm-master-backup
-ansible-playbook ansible/voltha.yml -i ansible/hosts/swarm-master
-
+if [ -v kibana ] && [ $kibana == true ] ; then
+    ansible-playbook ansible/voltha.yml -i ansible/hosts/swarm-master
+else
+    ansible-playbook ansible/voltha.yml -i ansible/hosts/swarm-master --skip-tags "kibana"
+fi

@@ -95,10 +95,21 @@
 #    - ubuntu-core-launcher
 #    - snapd
 #  tags: [cluster_host]
+
 - name: A voltha directory under /var/log for voltha logs exists
   file:
     path: "/var/log/voltha"
     state: directory
+  tags: [cluster_host]
+
+- name: Set vm.max_map_count in sysctl for elasticsearch cluster.
+  become: yes
+  sysctl:
+    name: vm.max_map_count
+    value: 262144
+    sysctl_set: yes
+    state: present
+    reload: yes
   tags: [cluster_host]
 
 - name: Dependent software is installed (this can take about 10 Min, DONT'T PANIC, go for coffee instead)

@@ -99,9 +99,9 @@ jenkins : protos jenkins-containers
 
 jenkins-containers: docker-base voltha chameleon ofagent netconf consul registrator
 
-prod-containers: docker-base voltha chameleon ofagent netconf shovel dashd vcli grafana consul tools golang envoyd envoy fluentd
+prod-containers: docker-base voltha chameleon ofagent netconf shovel dashd vcli grafana consul tools golang envoyd envoy fluentd elasticsearch kibana
 
-containers: docker-base voltha chameleon ofagent podder netconf shovel onos tester config-push dashd vcli portainer grafana nginx consul registrator tools golang envoyd envoy fluentd
+containers: docker-base voltha chameleon ofagent podder netconf shovel onos tester config-push dashd vcli portainer grafana nginx consul registrator tools golang envoyd envoy fluentd elasticsearch kibana
 
 docker-base:
 	docker build -t cord/voltha-base -f docker/Dockerfile.base .
@@ -126,6 +126,12 @@ podder:
 
 tools:
 	docker build -t voltha/tools -f docker/Dockerfile.tools .
+
+elasticsearch:
+	docker build -t cord/elasticsearch -f docker/Dockerfile.elasticsearch .
+
+kibana:
+	docker build -t cord/kibana -f docker/Dockerfile.kibana .
 
 fluentd:
 	docker build -t cord/fluentd -f docker/Dockerfile.fluentd .

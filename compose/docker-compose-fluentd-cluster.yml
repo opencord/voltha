@@ -9,9 +9,8 @@ services:
 #
 # This spins up two Fluentd Forwarders and one each Fluentd Aggregator-Active, Fluentd Aggregator-Standby.
 # The forwards listens for voltha components logs on port 23224 and sends them towards Fluentd Aggregator. 
-# Fluentd Aggregator writes them to their host mounted disk
+# Fluentd Aggregator writes them to their host mounted disk and to elasticsearch
 #
-
   fluentd:
     image: cord/fluentd
     deploy:
