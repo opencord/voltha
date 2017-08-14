@@ -1,18 +1,16 @@
-#
-# Copyright 2017-present Adtran, Inc.
+# Copyright 2017-present Open Networking Foundation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#      http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
 
 """
 Adtran 1-U OLT adapter.
@@ -53,13 +51,13 @@ class AdtranOltAdapter(object):
         self.descriptor = Adapter(
             id=self.name,
             vendor='Adtran Inc.',
-            version='0.1',
+            version='0.2',
             config=AdapterConfig(log_level=LogLevel.INFO)
         )
         log.debug('adtran_olt.__init__', adapter_agent=adapter_agent)
         self.devices_handlers = dict()  # device_id -> AdtranOltHandler()
         self.interface = registry('main').get_args().interface
-        # self.logical_device_id_to_root_device_id = dict()
+        self.logical_device_id_to_root_device_id = dict()
 
     def start(self):
         """
@@ -164,12 +162,6 @@ class AdtranOltAdapter(object):
         """
         log.info('abandon-device', device=device)
         raise NotImplementedError()
-        # handler = self.devices_handlers.pop(device.id)
-        #
-        # if handler is not None:
-        #     reactor.callLater(0, handler.deactivate, device)
-        #
-        # return device
 
     def disable_device(self, device):
         """
@@ -364,7 +356,7 @@ class AdtranOltAdapter(object):
 
     def receive_inter_adapter_message(self, msg):
         """
-        Called when the adapter recieves a message that was sent to it directly
+        Called when the adapter receives a message that was sent to it directly
         from another adapter. An adapter may register for these messages by calling
         the register_for_inter_adapter_messages() method in the adapter agent.
         Note that it is the responsibility of the sending and receiving
@@ -399,7 +391,9 @@ class AdtranOltAdapter(object):
         API to create various interfaces (only some PON interfaces as of now)
         in the devices
         """
-        raise NotImplementedError()
+        log.info('create_interface', data=data)
+        handler = self.devices_handlers[device.id]
+        handler.create_interface(device, data)
 
     def update_interface(self, device, data):
         """

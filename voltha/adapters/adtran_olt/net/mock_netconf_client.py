@@ -1,18 +1,16 @@
-#
-# Copyright 2017-present Adtran, Inc.
+# Copyright 2017-present Open Networking Foundation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#      http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
 
 import structlog
 import random
@@ -64,7 +62,6 @@ class MockNetconfClient(AdtranNetconfClient):
     def connect(self, connect_timeout=None):
         """
         Connect to the NETCONF server
-
           o To disable attempting publickey authentication altogether, call with
             allow_agent and look_for_keys as False.`
 
@@ -160,7 +157,7 @@ class MockNetconfClient(AdtranNetconfClient):
         returnValue(RPCReply(_dummy_xml))
 
     @inlineCallbacks
-    def edit_config(self, config, target='running', default_operation=None,
+    def edit_config(self, config, target='running', default_operation='merge',
                     test_option=None, error_option=None, lock_timeout=-1):
         """
         Loads all or part of the specified config to the target configuration datastore with the ability to lock
@@ -185,13 +182,13 @@ class MockNetconfClient(AdtranNetconfClient):
                 yield request
 
             except Exception as e:
-                log.exception('edit_config Lock Exception: {}'.format(e.message))
+                log.exception('edit_config-lock', e=e)
                 raise
         try:
             yield asleep(random.uniform(0.1, 2.0))  # Simulate NETCONF request delay
 
         except Exception as e:
-            log.exception('edit_config Edit Exception: {}'.format(e.message))
+            log.exception('edit_config', e=e)
             raise
 
         finally:
