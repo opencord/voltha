@@ -60,11 +60,47 @@ class XponHandler(object):
             investigated wrt persistency & HA design evolution, for a better
             approach in future.
         '''
-        self.cg_pool = IndexPool(2**12, 0)
+        self.cg_pool = IndexPool(2**12, 1)
+        self.cg_dict = {}
 
     def start(self, root):
         log.debug('starting xpon_handler')
         self.root = root
+        self.reinitialize_cg_ids()
+        self.reinitialize_tcont_and_gemport_ids()
+
+    def reinitialize_cg_ids(self):
+        cg_tup = ()
+        channel_groups = self.root.get('/channel_groups')
+        for cg in channel_groups:
+            cg_tup += (cg.cg_index, )
+            '''
+            Pools for handling alloc-ids and gemport-ids
+            @TODO: As per current persistency & HA design, each VOLTHA instance
+                maintains a separate independent database. Since channel-groups
+                broadcast to all the VOLTHA instances in the cluster, the
+                xpon_handler in each instance will independently try to
+                allocate a unique index. This approach works OK for XGS-PON
+                since CG<->CTerm relationship is 1:1 for XGS-PON(Since a device
+                can only be served by one VOLTHA instance and thereby CTerm).
+                This needs to be further investigated wrt persistency & HA
+                design evolution, for a better approach in future.
+            '''
+            self.cg_dict[cg.name] = {'alloc_id': IndexPool(16383, 1024)}
+            self.cg_dict[cg.name].update({'gemport_id': IndexPool(64500, 1021)})
+        self.cg_pool.pre_allocate(cg_tup)
+
+    def reinitialize_tcont_and_gemport_ids(self):
+        tconts = self.root.get('/tconts')
+        for tc in tconts:
+            cg_name = self.extract_channel_group_from_request(tc,
+                        'v_ont_anis', tc.interface_reference)
+            self.cg_dict[cg_name]['alloc_id'].pre_allocate((tc.alloc_id, ))
+        gemports = self.root.get('/gemports')
+        for gm in gemports:
+            cg_name = self.extract_channel_group_from_request(gm,
+                        'v_enets', gm.itf_ref)
+            self.cg_dict[cg_name]['gemport_id'].pre_allocate((gm.gemport_id, ))
 
     def get_all_channel_group_config(self, request, context):
         log.info('grpc-request', request=request)
@@ -89,6 +125,8 @@ class XponHandler(object):
             assert _id != None
             request.cg_index = _id
             self.root.add('/channel_groups', request)
+            self.cg_dict[request.name] = {'alloc_id': IndexPool(16383, 1024)}
+            self.cg_dict[request.name].update({'gemport_id': IndexPool(64500, 1021)})
 
             return Empty()
         except AssertionError, e:
@@ -97,6 +135,7 @@ class XponHandler(object):
             context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
         except ValueError:
+            self.cg_pool.release(_id)
             context.set_details(
                 'Duplicated channel group \'{}\' cannot be created'.format(
                     request.name))
@@ -846,9 +885,12 @@ class XponHandler(object):
         try:
             assert isinstance(request, TcontsConfigData)
             assert self.validate_interface(request, context)
-            '''
-            @TODO: Allocation of Alloc-ID
-            '''
+
+            cg_name = self.extract_channel_group_from_request(request,
+                        'v_ont_anis', request.interface_reference)
+            _id = self.cg_dict[cg_name]['alloc_id'].get_next()
+            assert _id != None
+            request.alloc_id = _id
             log.debug('creating-tcont', name=request.name)
             self.root.add('/tconts', request)
             return Empty()
@@ -860,6 +902,7 @@ class XponHandler(object):
             context.set_code(StatusCode.NOT_FOUND)
             return Empty()
         except ValueError:
+            self.cg_dict[cg_name]['alloc_id'].release(_id)
             context.set_details(
                 'Duplicated tcont \'{}\' cannot be created'.format(
                     request.name))
@@ -878,6 +921,8 @@ class XponHandler(object):
             assert self.validate_interface(request, context)
 
             path = '/tconts/{}'.format(request.name)
+            tcont = self.root.get(path)
+            request.alloc_id = tcont.alloc_id
             log.debug('updating-tcont', name=request.name)
             self.root.update(path, request, strict=True)
             return Empty()
@@ -906,8 +951,12 @@ class XponHandler(object):
                 'The Tcont -- \'{}\' is referenced by GemPort'.format(
                     request.name)
             path = '/tconts/{}'.format(request.name)
+            tcont = self.root.get(path)
+            cg_name = self.extract_channel_group_from_request(tcont,
+                        'v_ont_anis', tcont.interface_reference)
             log.debug('removing-tcont', name=request.name)
             self.root.remove(path)
+            self.cg_dict[cg_name]['alloc_id'].release(tcont.alloc_id)
             return Empty()
         except AssertionError, e:
             context.set_details(e.message)
@@ -929,9 +978,11 @@ class XponHandler(object):
         try:
             assert isinstance(request, GemportsConfigData)
             assert self.validate_interface(request, context)
-            '''
-            @TODO: Allocation of Gemport-ID
-            '''
+            cg_name = self.extract_channel_group_from_request(request,
+                        'v_enets', request.itf_ref)
+            _id = self.cg_dict[cg_name]['gemport_id'].get_next()
+            assert _id != None
+            request.gemport_id = _id
             log.debug('creating-gemport', name=request.name)
             self.root.add('/gemports', request)
             return Empty()
@@ -943,6 +994,7 @@ class XponHandler(object):
             context.set_code(StatusCode.NOT_FOUND)
             return Empty()
         except ValueError:
+            self.cg_dict[cg_name]['gemport_id'].release(_id)
             context.set_details(
                 'Duplicated gemport \'{}\' cannot be created'.format(
                     request.name))
@@ -961,6 +1013,8 @@ class XponHandler(object):
             assert self.validate_interface(request, context)
 
             path = '/gemports/{}'.format(request.name)
+            gemport = self.root.get(path)
+            request.gemport_id = gemport.gemport_id
             log.debug('updating-gemport', name=request.name)
             self.root.update(path, request, strict=True)
             return Empty()
@@ -982,8 +1036,12 @@ class XponHandler(object):
         try:
             assert isinstance(request, GemportsConfigData)
             path = '/gemports/{}'.format(request.name)
+            gemport = self.root.get(path)
+            cg_name = self.extract_channel_group_from_request(gemport,
+                        'v_enets', gemport.itf_ref)
             log.debug('removing-gemport', name=request.name)
             self.root.remove(path)
+            self.cg_dict[cg_name]['gemport_id'].release(gemport.gemport_id)
             return Empty()
         except AssertionError:
             context.set_details('Instance is not of gemport')
@@ -1220,3 +1278,23 @@ class XponHandler(object):
             log.info('reference-for-{}-not-found-\'{}\''\
                      .format(interface, reference))
             return False
+
+    def extract_channel_group_from_request(self, request, interface,
+                                     reference):
+        try:
+            path = '/{}/{}'.format(interface, reference)
+            item = self.root.get(path)
+            if isinstance(item, ChannelgroupConfig):
+                return item.name
+            elif isinstance(item, VEnetConfig):
+                return self.extract_channel_group_from_request(Empty(),
+                            'v_ont_anis', item.data.v_ontani_ref)
+            elif isinstance(item, VOntaniConfig):
+                return self.extract_channel_group_from_request(Empty(),
+                            'channel_partitions', item.data.parent_ref)
+            elif isinstance(item, ChannelpartitionConfig):
+                return self.extract_channel_group_from_request(Empty(),
+                            'channel_groups', item.data.channelgroup_ref)
+        except KeyError:
+            log.info('reference-for-{}-not found'.format(interface))
+            return Empty()

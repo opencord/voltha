@@ -180,63 +180,6 @@ scenario = [
             "tcont_ref": "TCont 1",
             }
         }
-    },
-    {'cg-mod': {
-        'pb2': fb.ChannelgroupConfig(),
-        'rpc': {
-            "interface": {
-                "enabled": True,
-                "name": "Manhattan",
-                "description": "Channel Group for Manhattan"
-                },
-            "data": {
-                "polling_period": 100,
-                "system_id": "000000",
-                "raman_mitigation": "RAMAN_NONE"
-                },
-            "name": "Manhattan"
-            }
-        }
-    },
-    {'gemport-del': {
-        'pb2': gemport.GemportsConfigData(),
-        'rpc': {"name": "GEMPORT 1"}}
-    },
-    {'tcont-del': {
-        'pb2': tcont.TcontsConfigData(),
-        'rpc': {"name": "TCont 1"}}
-    },
-    {'tdp-del': {
-        'pb2': tdp.TrafficDescriptorProfileData(),
-        'rpc': {"name": "TDP 1"}}
-    },
-    {'venet-del': {
-        'pb2': fb.VEnetConfig(),
-        'rpc': {"name": "Enet UNI 1"}}
-    },
-    {'ontani-del': {
-        'pb2': fb.OntaniConfig(),
-        'rpc': {"name": "Golden User"}}
-    },
-    {'vontani-del': {
-        'pb2': fb.VOntaniConfig(),
-        'rpc': {"name": "Golden User"}}
-    },
-    {'cterm-del': {
-        'pb2': fb.ChannelterminationConfig(),
-        'rpc': {"name": "PON port"}}
-    },
-    {'cpair-del': {
-        'pb2': fb.ChannelpairConfig(),
-        'rpc': {"name": "PON port"}}
-    },
-    {'cpart-del': {
-        'pb2': fb.ChannelpartitionConfig(),
-        'rpc': {"name": "Freedom Tower"}}
-    },
-    {'cg-del': {
-        'pb2': fb.ChannelgroupConfig(),
-        'rpc': {"name": "Manhattan"}}
     }
 ]
 
@@ -264,7 +207,7 @@ class TestXPon(RestBase):
         self.verify_device_preprovisioned_state(device['id'])
         self.activate_device(device['id'])
 
-    def test_999_remove_device(self):
+    def _remove_device(self):
         self.deactivate_device(device['id'])
         self.delete_device(device['id'])
 
@@ -348,7 +291,14 @@ class TestXPon(RestBase):
         dict1 = MessageToDict(req,
                               including_default_value_fields = True,
                               preserving_proto_field_name = True)
+        #skip comparison of READ-ONLY fields
         result['id'] = ''
+        if isinstance(req, fb.ChannelgroupConfig):
+            result['cg_index'] = 0
+        elif isinstance(req, tcont.TcontsConfigData):
+            result['alloc_id'] = 0
+        elif isinstance(req, gemport.GemportsConfigData):
+            result['gemport_id'] = 0
         return dict1 == result
 
 
