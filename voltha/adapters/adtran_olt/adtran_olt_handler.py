@@ -1,20 +1,18 @@
-#
-# Copyright 2017-present Adtran, Inc.
+# Copyright 2017-present Open Networking Foundation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#      http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
+
 import datetime
-import pprint
 import random
 
 from twisted.internet import reactor
@@ -27,6 +25,9 @@ from net.adtran_zmq import AdtranZmqClient
 from voltha.extensions.omci.omci import *
 from voltha.protos.common_pb2 import AdminState, OperStatus
 from voltha.protos.device_pb2 import Device
+from voltha.protos.bbf_fiber_base_pb2 import \
+    ChannelgroupConfig, ChannelpartitionConfig, ChannelpairConfig, ChannelterminationConfig, \
+    OntaniConfig, VOntaniConfig, VEnetConfig
 
 
 class AdtranOltHandler(AdtranDeviceHandler):
@@ -38,29 +39,45 @@ class AdtranOltHandler(AdtranDeviceHandler):
     # Full table output
 
     GPON_OLT_HW_URI = '/restconf/data/gpon-olt-hw'
-    GPON_OLT_HW_STATE_URI = '/restconf/data/gpon-olt-hw:olt-state'
-    GPON_PON_CONFIG_LIST_URI = '/restconf/data/gpon-olt-hw:olt/pon'
+    GPON_OLT_HW_STATE_URI = GPON_OLT_HW_URI + ':olt-state'
+    GPON_PON_CONFIG_LIST_URI = GPON_OLT_HW_URI + ':olt/pon'
 
     # Per-PON info
 
-    GPON_PON_PON_STATE_URI = '/restconf/data/gpon-olt-hw:olt-state/pon={}'  # .format(pon)
-    GPON_PON_CONFIG_URI = '/restconf/data/gpon-olt-hw:olt/pon={}'  # .format(pon)
-    GPON_PON_ONU_CONFIG_URI = '/restconf/data/gpon-olt-hw:olt/pon={}/onus/onu'  # .format(pon)
+    GPON_PON_STATE_URI = GPON_OLT_HW_STATE_URI + '/pon={}'        # .format(pon-id)
+    GPON_PON_CONFIG_URI = GPON_PON_CONFIG_LIST_URI + '={}'        # .format(pon-id)
+
+    GPON_ONU_CONFIG_LIST_URI = GPON_PON_CONFIG_URI + '/onus/onu'  # .format(pon-id)
+    GPON_ONU_CONFIG_URI = GPON_ONU_CONFIG_LIST_URI + '={}'        # .format(pon-id,onu-id)
+
+    GPON_TCONT_CONFIG_LIST_URI = GPON_ONU_CONFIG_URI + '/t-conts/t-cont'  # .format(pon-id,onu-id)
+    GPON_TCONT_CONFIG_URI = GPON_TCONT_CONFIG_LIST_URI + '={}'            # .format(pon-id,onu-id,alloc-id)
+
+    GPON_GEM_CONFIG_LIST_URI = GPON_ONU_CONFIG_URI + '/gem-ports/gem-port'  # .format(pon-id,onu-id)
+    GPON_GEM_CONFIG_URI = GPON_GEM_CONFIG_LIST_URI + '={}'                  # .format(pon-id,onu-id,gem-id)
 
     GPON_PON_DISCOVER_ONU = '/restconf/operations/gpon-olt-hw:discover-onu'
 
-    def __init__(self, adapter, device_id, username="", password="",
-                 timeout=20, initial_port_state=True):
-        super(AdtranOltHandler, self).__init__(adapter, device_id, username=username,
-                                               password=password, timeout=timeout)
+    BASE_ONU_OFFSET = 64
+
+    def __init__(self, adapter, device_id, timeout=20):
+        super(AdtranOltHandler, self).__init__(adapter, device_id, timeout=timeout)
         self.gpon_olt_hw_revision = None
         self.status_poll = None
         self.status_poll_interval = 5.0
         self.status_poll_skew = self.status_poll_interval / 10
-        self.initial_port_state = AdminState.ENABLED if initial_port_state else AdminState.DISABLED
-        self.initial_onu_state = AdminState.DISABLED
 
         self.zmq_client = None
+
+        # xPON config dictionaries
+
+        self._channel_groups = {}         #  Name -> dict
+        self._channel_partitions = {}     #  Name -> dict
+        self._channel_pairs = {}          #  Name -> dict
+        self._channel_terminations = {}   #  Name -> dict
+        self._v_ont_anis = {}             #  Name -> dict
+        self._ont_anis = {}               #  Name -> dict
+        self._v_enets = {}                #  Name -> dict
 
     def __del__(self):
         # OLT Specific things here.
@@ -169,7 +186,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
 
         for port in results:
             port_no = port['port_no']
-            self.log.info('Processing northbound port {}/{}'.format(port_no, port['port_no']))
+            self.log.info('processing-nni', port_no=port_no, name=port['port_no'])
             assert port_no
             assert port_no not in self.northbound_ports
             self.northbound_ports[port_no] = NniPort(self, **port) if not self.is_virtual_olt \
@@ -213,7 +230,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
         for pon in results:
             # Number PON Ports after the NNI ports
             pon_id = pon['pon-id']
-            log.info('Processing pon port {}'.format(pon_id))
+            log.info('Processing-pon-port', pon_id=pon_id)
             assert pon_id not in self.southbound_ports
 
             admin_state = AdminState.ENABLED if pon.get('enabled',
@@ -225,7 +242,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
                                                     admin_state=admin_state)
 
             # TODO: For now, limit number of PON ports to make debugging easier
-            if len(self.southbound_ports) >= self.max_pon_ports:
+            if self.autoactivate and len(self.southbound_ports) >= self.max_pon_ports:
                 break
 
         self.num_southbound_ports = len(self.southbound_ports)
@@ -252,7 +269,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
         #
         # o TODO Update some PON level statistics
 
-        self.zmq_client = AdtranZmqClient(self.ip_address, self.rx_packet)
+        self.zmq_client = AdtranZmqClient(self.ip_address, rx_callback=self.rx_packet, port=self.zmq_port)
         self.status_poll = reactor.callLater(5, self.poll_for_status)
         return succeed('Done')
 
@@ -270,7 +287,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
     def reenable(self):
         super(AdtranOltHandler, self).reenable()
 
-        self.zmq_client = AdtranZmqClient(self.ip_address, self.rx_packet)
+        self.zmq_client = AdtranZmqClient(self.ip_address, rx_callback=self.rx_packet, port=self.zmq_port)
         self.status_poll = reactor.callLater(1, self.poll_for_status)
 
     def reboot(self):
@@ -287,7 +304,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
     def _finish_reboot(self, timeout, previous_oper_status, previous_conn_status):
         super(AdtranOltHandler, self)._finish_reboot(timeout, previous_oper_status, previous_conn_status)
 
-        self.zmq_client = AdtranZmqClient(self.ip_address, self.rx_packet)
+        self.zmq_client = AdtranZmqClient(self.ip_address, rx_callback=self.rx_packet, port=self.zmq_port)
         self.status_poll = reactor.callLater(1, self.poll_for_status)
 
     def delete(self):
@@ -303,7 +320,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
 
     def rx_packet(self, message):
         try:
-            self.log.info('rx_Packet: Message from ONU')
+            self.log.debug('rx_packet')
 
             pon_id, onu_id, msg, is_omci = AdtranZmqClient.decode_packet(message)
 
@@ -319,10 +336,10 @@ class AdtranOltHandler(AdtranDeviceHandler):
                 #                                   logical_port_no=cvid,  # C-VID encodes port no
                 #                                   packet=str(msg))
         except Exception as e:
-            self.log.exception('Exception during RX Packet processing', e=e)
+            self.log.exception('rx_packet', e=e)
 
     def poll_for_status(self):
-        self.log.debug('Initiating status poll')
+        self.log.debug('Initiating-status-poll')
 
         device = self.adapter_agent.get_device(self.device_id)
 
@@ -341,17 +358,19 @@ class AdtranOltHandler(AdtranDeviceHandler):
         Results of the status poll
         :param results:
         """
+        from pon_port import PonPort
+
         if isinstance(results, dict) and 'pon' in results:
             try:
-                self.log.debug('Status poll success')
+                self.log.debug('status-success')
                 for pon_id, pon in OltState(results).pons.iteritems():
-                    if pon_id in self.southbound_ports:
-                        self.southbound_ports[pon_id].process_status_poll(pon)
+                    pon_port = self.southbound_ports.get(pon_id, None)
+
+                    if pon_port is not None and pon_port.state == PonPort.State.RUNNING:
+                        pon_port.process_status_poll(pon)
 
             except Exception as e:
-                self.log.exception('Exception during PON status poll processing', e=e)
-        else:
-            self.log.warning('Had some kind of polling error')
+                self.log.exception('PON-status-poll', e=e)
 
         # Reschedule
 
@@ -385,8 +404,8 @@ class AdtranOltHandler(AdtranDeviceHandler):
         :param device: A voltha.Device object, with possible device-type
                        specific extensions.
         """
-        self.log.info('bulk-flow-update: {} flows'.format(len(flows)),
-                      device_id=device.id, flows=flows)
+        self.log.debug('bulk-flow-update', num_flows=len(flows),
+                       device_id=device.id, flows=flows)
 
         valid_flows = []
 
@@ -411,7 +430,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
 
                 if evc is not None:
                     try:
-                        results = yield evc.install()
+                        evc.schedule_install()
 
                         if evc.name not in self.evcs:
                             self.evcs[evc.name] = evc
@@ -419,34 +438,23 @@ class AdtranOltHandler(AdtranDeviceHandler):
                             # TODO: Do we get duplicates here (ie all flows re-pushed on each individual flow add?)
                             pass
 
-                        # Also make sure all EVC MAPs are installed
-
-                        for evc_map in evc.evc_maps:
-                            try:
-                                results = yield evc_map.install()
-                                pass                                # TODO: What to do on error?
-
-                            except Exception as e:
-                                evc_map.status = 'Exception during EVC-MAP Install: {}'.format(e.message)
-                                self.log.exception(evc_map.status, e=e)
-
                     except Exception as e:
-                        evc.status = 'Exception during EVC Install: {}'.format(e.message)
-                        self.log.exception(evc.status, e=e)
+                        evc.status = 'EVC Install Exception: {}'.format(e.message)
+                        self.log.exception('EVC-install', e=e)
 
             except Exception as e:
-                self.log.exception('Failure during bulk flow update - add', e=e)
+                self.log.exception('bulk-flow-update-add', e=e)
 
         # Now drop all flows from this device that were not in this bulk update
         try:
             FlowEntry.drop_missing_flows(device.id, valid_flows)
 
         except Exception as e:
-            self.log.exception('Failure during bulk flow update - remove', e=e)
+            self.log.exception('bulk-flow-update-remove', e=e)
 
-    @inlineCallbacks
+    # @inlineCallbacks
     def send_proxied_message(self, proxy_address, msg):
-        self.log.info('sending-proxied-message: message type: {}'.format(type(msg)))
+        self.log.debug('sending-proxied-message', msg=msg)
 
         if isinstance(msg, Packet):
             msg = str(msg)
@@ -461,7 +469,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
                 self.zmq_client.send(data)
 
             except Exception as e:
-                self.log.info('zmqClient.send exception', exc=str(e))
+                self.log.exception('zmqClient.send', e=e)
                 raise
 
     @staticmethod
@@ -484,11 +492,11 @@ class AdtranOltHandler(AdtranDeviceHandler):
     def _onu_offset(self, onu_id):
         # Start ONU's just past the southbound PON port numbers. Since ONU ID's start
         # at zero, add one
-        return self.num_northbound_ports + self.num_southbound_ports + onu_id + 1
+        assert AdtranOltHandler.BASE_ONU_OFFSET > (self.num_northbound_ports + self.num_southbound_ports + 1)
+        return AdtranOltHandler.BASE_ONU_OFFSET + onu_id
 
     def _channel_id_to_pon_id(self, channel_id, onu_id):
         from pon_port import PonPort
-
         return (channel_id - self._onu_offset(onu_id)) / PonPort.MAX_ONUS_SUPPORTED
 
     def _pon_id_to_port_number(self, pon_id):
@@ -503,15 +511,193 @@ class AdtranOltHandler(AdtranDeviceHandler):
     def is_uni_port(self, port):
         return port >= self._onu_offset(0)  # TODO: Really need to rework this one...
 
+    def get_southbound_port(self, port):
+        pon_id = self._port_number_to_pon_id(port)
+        return self.southbound_ports.get(pon_id, None)
+
     def get_port_name(self, port):
         if self.is_nni_port(port):
             return self.northbound_ports[port].name
 
         if self.is_pon_port(port):
-            return self.southbound_ports[self._port_number_to_pon_id(port)].name
+            return self.get_southbound_port(port).name
 
         if self.is_uni_port(port):
             return self.northbound_ports[port].name
 
         if self.is_logical_port(port):
             raise NotImplemented('TODO: Logical ports not yet supported')
+
+    def get_xpon_info(self, pon_id, pon_id_type='xgs-ponid'):
+        """
+        Lookup all xPON configuraiton data for a specific pon-id / channel-termination
+        :param pon_id: (int) PON Identifier
+        :return: (dict) reduced xPON information for the specific PON port
+        """
+        terminations = {key: val for key, val in self._channel_terminations.iteritems()
+                        if val[pon_id_type] == pon_id}
+
+        pair_names = set([term['channel-pair'] for term in terminations.itervalues()])
+
+        pairs = {key: val for key, val in self._channel_pairs.iteritems()
+                 if key in pair_names}
+
+        partition_names = set([pair['channel-partition'] for pair in pairs.itervalues()])
+
+        partitions = {key: val for key, val in self._channel_partitions.iteritems()
+                      if key in partition_names}
+
+        v_ont_anis = {key: val for key, val in self._v_ont_anis.iteritems()
+                      if val['preferred-channel-pair'] in pair_names}
+
+        return {
+            'channel-terminations': terminations,
+            'channel-pairs': pairs,
+            'channel-partitions': partitions,
+            'v_ont_anis': v_ont_anis
+        }
+
+    def create_interface(self, device, data):
+        """
+        Create XPON interfaces
+        :param device: (Device)
+        :param data: (ChannelgroupConfig) Channel Group configuration
+        """
+        name = data.name
+        interface = data.interface
+        inst_data = data.data
+
+        if isinstance(data, ChannelgroupConfig):
+            self.log.debug('create_interface-channel-group', interface=interface, data=inst_data)
+            self._channel_groups[name] = {
+                'name': name,
+                'enabled': interface.enabled,
+                'system-id': inst_data.system_id,
+                'polling-period': inst_data.polling_period
+            }
+
+        elif isinstance(data, ChannelpartitionConfig):
+            self.log.debug('create_interface-channel-partition', interface=interface, data=inst_data)
+
+            def _auth_method_enum_to_string(value):
+                from voltha.protos.bbf_fiber_types_pb2 import SERIAL_NUMBER, LOID, \
+                    REGISTRATION_ID, OMCI, DOT1X
+                return {
+                    SERIAL_NUMBER: 'serial-number',
+                    LOID: 'loid',
+                    REGISTRATION_ID: 'registation-id',
+                    OMCI: 'omci',
+                    DOT1X: 'don1x'
+                }.get(value, 'unknown')
+
+            self._channel_partitions[name] = {
+                'name': name,
+                'enabled': interface.enabled,
+                'authentication-method': _auth_method_enum_to_string(inst_data.authentication_method),
+                'channel-group': inst_data.channelgroup_ref,
+                'fec-downstream': inst_data.fec_downstream,
+                'mcast-aes': inst_data.multicast_aes_indicator,
+                'differential-fiber-distance': inst_data.differential_fiber_distance
+            }
+
+        elif isinstance(data, ChannelpairConfig):
+            self.log.debug('create_interface-channel-pair', interface=interface, data=inst_data)
+            self._channel_pairs[name] = {
+                'name': name,
+                'enabled': interface.enabled,
+                'channel-group': inst_data.channelgroup_ref,
+                'channel-partition': inst_data.channelpartition_ref,
+                'line-rate': inst_data.channelpair_linerate
+            }
+
+        elif isinstance(data, ChannelterminationConfig):
+            self.log.debug('create_interface-channel-termination', interface=interface, data=inst_data)
+            self._channel_terminations[name] = {
+                'name': name,
+                'enabled': interface.enabled,
+                'xgs-ponid': inst_data.xgs_ponid,
+                'xgpon-ponid': inst_data.xgpon_ponid,
+                'channel-pair': inst_data.channelpair_ref,
+                'ber-calc-period': inst_data.ber_calc_period
+            }
+            self.on_channel_termination_config(name, 'create')
+
+        elif isinstance(data, OntaniConfig):
+            self.log.debug('create_interface-ont-ani', interface=interface, data=inst_data)
+            self._ont_anis[name] = {
+                'name': name,
+                'enabled': interface.enabled,
+                'upstream-fec': inst_data.upstream_fec_indicator,
+                'mgnt-gemport-aes': inst_data.mgnt_gemport_aes_indicator
+            }
+
+        elif isinstance(data, VOntaniConfig):
+            self.log.debug('create_interface-v-ont-ani', interface=interface, data=inst_data)
+            self._v_ont_anis[name] = {
+                'name': name,
+                'enabled': interface.enabled,
+                'onu-id': inst_data.onu_id,
+                'expected-serial-number': inst_data.expected_serial_number,
+                'preferred-channel-pair': inst_data.preferred_chanpair,
+                'channel-partition': inst_data.parent_ref,
+                'upstream-channel-speed': inst_data.upstream_channel_speed
+            }
+
+        elif isinstance(data, VEnetConfig):
+            self.log.debug('create_interface-v-enet', interface=interface, data=inst_data)
+            self._v_enets[name] = {
+                'name': name,
+                'enabled': interface.enabled,
+                'v-ont-ani': inst_data.v_ontani_ref
+            }
+
+        else:
+            raise NotImplementedError('Unknown data type')
+
+    def on_channel_termination_config(self, name, operation, pon_type='xgs-ponid'):
+        supported_operations = ['create']
+
+        assert operation in supported_operations
+        assert name in self._channel_terminations
+        ct = self._channel_terminations[name]
+
+        pon_id = ct[pon_type]
+        # Look up the southbound PON port
+
+        pon_port = self.southbound_ports.get(pon_id, None)
+        if pon_port is None:
+            raise ValueError('Unknown PON port. PON-ID: {}'.format(pon_id))
+
+        assert ct['channel-pair'] in self._channel_pairs
+        cpair = self._channel_pairs[ct['channel-pair']]
+
+        assert cpair['channel-group'] in self._channel_groups
+        assert cpair['channel-partition'] in self._channel_partitions
+        cg = self._channel_groups[cpair['channel-group']]
+        cpart = self._channel_partitions[cpair['channel-partition']]
+
+        enabled = ct['enabled']
+        
+        polling_period = cg['polling-period']
+        authentication_method = cpart['authentication-method']
+        # line_rate = cpair['line-rate']
+        # downstream_fec = cpart['fec-downstream']
+        # deployment_range = cpart['differential-fiber-distance']
+        # mcast_aes = cpart['mcast-aes']
+
+        # TODO: Support BER calculation period
+        # TODO support FEC, and MCAST AES settings
+        # TODO Support setting of line rate
+
+        if operation == 'create':
+            pon_port.xpon_name = name
+            pon_port.discovery_tick = polling_period
+            pon_port.authentication_method = authentication_method
+            # pon_port.deployment_range = deployment_range
+            # pon_port.fec_enable = downstream_fec
+            # pon_port.mcast_aes = mcast_aes
+
+            if enabled:
+                pon_port.start()
+            else:
+                pon_port.stop()
