@@ -160,7 +160,7 @@ class MockNetconfClient(AdtranNetconfClient):
         returnValue(RPCReply(_dummy_xml))
 
     @inlineCallbacks
-    def edit_config(self, config, target='running', default_operation=None,
+    def edit_config(self, config, target='running', default_operation='merge',
                     test_option=None, error_option=None, lock_timeout=-1):
         """
         Loads all or part of the specified config to the target configuration datastore with the ability to lock
@@ -185,13 +185,13 @@ class MockNetconfClient(AdtranNetconfClient):
                 yield request
 
             except Exception as e:
-                log.exception('edit_config Lock Exception: {}'.format(e.message))
+                log.exception('edit_config-lock', e=e)
                 raise
         try:
             yield asleep(random.uniform(0.1, 2.0))  # Simulate NETCONF request delay
 
         except Exception as e:
-            log.exception('edit_config Edit Exception: {}'.format(e.message))
+            log.exception('edit_config', e=e)
             raise
 
         finally:

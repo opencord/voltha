@@ -21,7 +21,7 @@ class PhysicalEntitiesState(object):
 
     @inlineCallbacks
     def get_state(self):
-        self._rpc_reply =  None
+        self._rpc_reply = None
         request = self._session.get(_phys_entities_rpc)
         self._rpc_reply = yield request
         returnValue(self._rpc_reply)

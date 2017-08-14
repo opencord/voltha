@@ -18,7 +18,7 @@ import json
 import structlog
 import treq
 from twisted.internet.defer import inlineCallbacks, returnValue
-from twisted.internet.error import ConnectionClosed
+from twisted.internet.error import ConnectionClosed, ConnectionDone, ConnectionLost
 
 log = structlog.get_logger()
 
@@ -87,7 +87,7 @@ class AdtranRestClient(object):
         return "AdtranRestClient {}@{}:{}".format(self._username, self._ip, self._port)
 
     @inlineCallbacks
-    def request(self, method, uri, data=None, name='', timeout=None):
+    def request(self, method, uri, data=None, name='', timeout=None, is_retry=False):
         """
         Send a REST request to the Adtran device
 
@@ -95,6 +95,10 @@ class AdtranRestClient(object):
         :param uri: (string) fully URL to perform method on
         :param data: (string) optional data for the request body
         :param name: (string) optional name of the request, useful for logging purposes
+        :param timeout: (int) Number of seconds to wait for a response before timing out
+        :param is_retry: (boolean) True if this method called recursively in order to recover
+                                   from a connection loss. Can happen sometimes in debug sessions
+                                   and in the real world.
         :return: (deferred)
         """
 
@@ -135,6 +139,12 @@ class AdtranRestClient(object):
 
         except NotImplementedError:
             raise
+
+        except (ConnectionDone, ConnectionLost) as e:
+            if is_retry:
+                returnValue(e)
+            returnValue(self.request(method, uri, data=data, name=name,
+                                     timeout=timeout, is_retry=True))
 
         except ConnectionClosed:
             returnValue(ConnectionClosed)

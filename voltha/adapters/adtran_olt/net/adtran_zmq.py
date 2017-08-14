@@ -26,7 +26,7 @@ zmq_factory = ZmqFactory()
 
 # An OMCI message minimally has a 32-bit PON index and 32-bit ONU ID.
 
-_OLT_TASK_ZEROMQ_OMCI_TCP_PORT = 25656
+DEFAULT_ZEROMQ_OMCI_TCP_PORT = 5656
 
 
 class AdtranZmqClient(object):
@@ -35,9 +35,7 @@ class AdtranZmqClient(object):
 
     PON Agent expects and external PAIR socket with
     """
-
-    def __init__(self, ip_address, rx_callback=None,
-                 port=_OLT_TASK_ZEROMQ_OMCI_TCP_PORT):
+    def __init__(self, ip_address, rx_callback=None, port=DEFAULT_ZEROMQ_OMCI_TCP_PORT):
         self.external_conn = 'tcp://{}:{}'.format(ip_address, port)
 
         self.zmq_endpoint = ZmqEndpoint('connect', self.external_conn)
@@ -51,7 +49,7 @@ class AdtranZmqClient(object):
             self.socket.send(data)
 
         except Exception as e:
-            log.exception(e.message)
+            log.exception('send', e=e)
 
     def shutdown(self):
         self.socket.onReceive = AdtranZmqClient.rx_nop
@@ -59,7 +57,7 @@ class AdtranZmqClient(object):
 
     @staticmethod
     def rx_nop(message):
-        log.debug('Discarding ZMQ message, no receiver specified')
+        log.debug('discarding-no-receiver')
 
     @staticmethod
     def encode_omci_message(msg, pon_index, onu_id):
@@ -73,8 +71,6 @@ class AdtranZmqClient(object):
         :return: (bytes) octet string to send
         """
         assert msg
-        # log.debug("Encoding OMCI: PON: {}, ONU: {}, Message: '{}'".
-        #           format(pon_index, onu_id, msg))
         s = struct.Struct('!II')
 
         return s.pack(pon_index, onu_id) + binascii.unhexlify(msg)

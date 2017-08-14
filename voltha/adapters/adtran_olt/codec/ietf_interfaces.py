@@ -90,9 +90,9 @@ class IetfInterfacesConfig(object):
         if interface_type is None:
             return entries
 
-        for entry in entries:
-            import pprint
-            log.info(pprint.PrettyPrinter(indent=2).pformat(entry))
+        # for entry in entries:
+        #     import pprint
+        #     log.info(pprint.PrettyPrinter(indent=2).pformat(entry))
 
         def _matches(entry, value):
             if 'type' in entry and '#text' in entry['type']:
