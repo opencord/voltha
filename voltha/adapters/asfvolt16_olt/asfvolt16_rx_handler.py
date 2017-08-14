@@ -320,7 +320,7 @@ class Asfvolt16RxHandler(object):
         ind_info['_device_id'] = device_id
         packet_data = request.balOmciResp.key.packet_send_dest
         ind_info['onu_id'] = packet_data.itu_omci_channel.sub_term_id
-        ind_info['packet'] = request.balOmciResp.data.pkt.val
+        ind_info['packet'] = request.balOmciResp.data.pkt
         self.log.info('ONU Id is',
                      onu_id=packet_data.itu_omci_channel.sub_term_id)
 

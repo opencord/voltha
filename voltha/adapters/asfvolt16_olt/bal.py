@@ -91,7 +91,7 @@ class Bal(object):
                 bal_model_types_pb2.BAL_DEST_TYPE_ITU_OMCI_CHANNEL
             obj.packet.key.packet_send_dest.itu_omci_channel.sub_term_id = \
                 proxy_address.onu_id
-            obj.packet.key.packet_send_dest.itu_omci_channel.int_id = \
+            obj.packet.key.packet_send_dest.itu_omci_channel.intf_id = \
                 proxy_address.channel_id
             obj.packet.data.pkt = msg
             yield self.stub.BalCfgSet(obj)
