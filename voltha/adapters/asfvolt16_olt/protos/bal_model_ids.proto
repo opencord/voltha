@@ -171,9 +171,13 @@ enum BalInterfaceCfgId
     BAL_INTERFACE_CFG_ID_DS_TM               = 8;            /**< Downstream scheduler and shaper. */
     BAL_INTERFACE_CFG_ID_US_TM               = 9;            /**< Upstream scheduler and shaper. */
     BAL_INTERFACE_CFG_ID_SUB_TERM_ID_LIST    = 10;           /**< Sub-term id list. */
+    BAL_INTERFACE_CFG_ID_PON_DISTANCE        = 11;           /**< pon_distance. */
+    BAL_INTERFACE_CFG_ID_BER_MONITOR         = 12;           /**< ber_monitor. */
+    BAL_INTERFACE_CFG_ID_US_BANDWIDTH_LIMIT  = 13;           /**< us_bandwidth_limit. */
+    BAL_INTERFACE_CFG_ID_DS_FEC              = 14;           /**< ds_fec. */
 }
 
-/** Identifiers for all properties contained in the interface_ind group. 
+/** Identifiers for all properties contained in the interface_ind group.
  */
 enum BalInterfaceIndId
 {
@@ -188,6 +192,10 @@ enum BalInterfaceIndId
     BAL_INTERFACE_IND_ID_DS_TM               = 8;            /**< Downstream scheduler and shaper. */
     BAL_INTERFACE_IND_ID_US_TM               = 9;            /**< Upstream scheduler and shaper. */
     BAL_INTERFACE_IND_ID_SUB_TERM_ID_LIST    = 10;           /**< Sub term id list */
+    BAL_INTERFACE_IND_ID_PON_DISTANCE        = 11;           /**< pon_distance. */
+    BAL_INTERFACE_IND_ID_BER_MONITOR         = 12;           /**< ber_monitor. */
+    BAL_INTERFACE_IND_ID_US_BANDWIDTH_LIMIT  = 13;           /**< us_bandwidth_limit. */
+    BAL_INTERFACE_IND_ID_DS_FEC              = 14;           /**< ds_fec. */
 }
 
 /** Identifiers for all properties contained in the interface_key group.
@@ -302,6 +310,7 @@ enum BalSubscriberTerminalCfgId
     BAL_SUBSCRIBER_TERMINAL_CFG_ID_SVC_PORT_ID_LIST  = 9;    /**< svc_port_id list. */
     BAL_SUBSCRIBER_TERMINAL_CFG_ID_AGG_PORT_ID_LIST  = 10;   /**< agg_port_id list. */
     BAL_SUBSCRIBER_TERMINAL_CFG_ID_SUB_TERM_RATE     = 11;   /**< sub_term_rate. */
+    BAL_SUBSCRIBER_TERMINAL_CFG_ID_US_FEC            = 12;   /**< us_fec. */
 }
 
 /** Identifiers for all properties contained in the subscriber_terminal_dgi
@@ -310,6 +319,16 @@ enum BalSubscriberTerminalCfgId
 enum BalSubscriberTerminalDgiId
 {
     BAL_SUBSCRIBER_TERMINAL_DGI_ID_DGI_STATUS                = 0;    /**< dgi_status. */
+}
+
+/** Identifiers for all properties contained in the subscriber_terminal_dowi
+ * group.
+ */
+enum BalSubscriberTerminalDowiId
+{
+    BAL_SUBSCRIBER_TERMINAL_DOWI_ID_DOWI_STATUS              = 0;    /**< dowi_status. */
+    BAL_SUBSCRIBER_TERMINAL_DOWI_ID_DRIFT_VALUE              = 1;    /**< drift_value. */
+    BAL_SUBSCRIBER_TERMINAL_DOWI_ID_NEW_EQD                  = 2;    /**< new_eqd. */
 }
 
 /** Identifiers for all properties contained in the subscriber_terminal_ind
@@ -329,6 +348,7 @@ enum BalSubscriberTerminalIndId
     BAL_SUBSCRIBER_TERMINAL_IND_ID_SVC_PORT_ID_LIST          = 9;    /**< svc_port_id list. */
     BAL_SUBSCRIBER_TERMINAL_IND_ID_AGG_PORT_ID_LIST          = 10;   /**< agg_port_id list. */
     BAL_SUBSCRIBER_TERMINAL_IND_ID_SUB_TERM_RATE             = 11;   /**< sub_term_rate. */
+    BAL_SUBSCRIBER_TERMINAL_IND_ID_US_EFC                    = 12;   /**< us_fec. */
 }
 
 /** Identifiers for all properties contained in the subscriber_terminal_key
@@ -340,6 +360,14 @@ enum BalSubscriberTerminalKeyId
     BAL_SUBSCRIBER_TERMINAL_KEY_ID_INTF_ID           = 1;    /**< intf_id. */
 }
 
+/** Identifiers for all properties contained in the subscriber_terminal_looci
+ * group.
+ */
+enum BalSubscriberTerminalLoociId
+{
+    BAL_SUBSCRIBER_TERMINAL_LOOCI_ID_LOOCI_STATUS    = 0;    /**< looci_status. */
+}
+
 /** Identifiers for all properties contained in the
  * subscriber_terminal_oper_status_change group.
  */
@@ -348,6 +376,24 @@ enum BalSubscriberTerminalOperStatusChangeId
     BAL_SUBSCRIBER_TERMINAL_OPER_STATUS_CHANGE_ID_NEW_OPER_STATUS= 0;    /**< current oper status. */
     BAL_SUBSCRIBER_TERMINAL_OPER_STATUS_CHANGE_ID_OLD_OPER_STATUS= 1;    /**< old oper status. */
     BAL_SUBSCRIBER_TERMINAL_OPER_STATUS_CHANGE_ID_ADMIN_STATE    = 2;    /**< current admin state. */
+}
+
+/** Identifiers for all properties contained in the subscriber_terminal_sdi
+ * group.
+ */
+enum BalSubscriberTerminalSdiId
+{
+    BAL_SUBSCRIBER_TERMINAL_SDI_ID_SDI_STATUS                    = 0;    /**< sdi_status. */
+    BAL_SUBSCRIBER_TERMINAL_SDI_ID_BER                           = 1;    /**< ber. */
+}
+
+/** Identifiers for all properties contained in the subscriber_terminal_sfi
+ * group.
+ */
+enum BalSubscriberTerminalSfiId
+{
+    BAL_SUBSCRIBER_TERMINAL_SFI_ID_SFI_STATUS                    = 0;    /**< sfi_status. */
+    BAL_SUBSCRIBER_TERMINAL_SFI_ID_BER                           = 1;    /**< ber. */
 }
 
 /** Identifiers for all properties contained in the subscriber_terminal_stat
@@ -375,6 +421,23 @@ enum BalSubscriberTerminalSubTermAlarmId
 enum BalSubscriberTerminalSubTermDiscId
 {
     BCMBAL_SUBSCRIBER_TERMINAL_SUB_TERM_DISC_ID_SERIAL_NUMBER       = 0;    /**< Serial number. */
+}
+
+/** Identifiers for all properties contained in the subscriber_terminal_sufi
+ * group.
+ */
+enum BalSubscriberTerminalSufiId
+{
+    BAL_SUBSCRIBER_TERMINAL_SUFI_ID_SUFI_STATUS                  = 0;    /**< sufi_status. */
+}
+
+/** Identifiers for all properties contained in the subscriber_terminal_tiwi
+ * group.
+ */
+enum BalSubscriberTerminalTiwiId
+{
+    BAL_SUBSCRIBER_TERMINAL_TIWI_ID_TIWI_STATUS                  = 0;    /**< tiwi_status. */
+    BAL_SUBSCRIBER_TERMINAL_TIWI_ID_DRIFT_VALUE                  = 1;    /**< drift_value. */
 }
 
 /** Identifiers for all properties contained in the tm_queue_cfg group.
@@ -507,17 +570,23 @@ enum BalObjGroupId
     BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_CFG                     = 24;   /**< BAL Subscriber Terminal - cfg */
     BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_STAT                    = 25;   /**< BAL Subscriber Terminal - stat */
     BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_DGI                     = 26;   /**< BAL Subscriber Terminal - Receive Dying-Gasp of subscriber terminal */
-    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_IND                     = 27;   /**< BAL Subscriber Terminal - Subscriber Terminal Indication */
-    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_OPER_STATUS_CHANGE      = 28;   /**< BAL Subscriber Terminal - Change of operational status */
-    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_SUB_TERM_ALARM          = 29;   /**< BAL Subscriber Terminal - Subscriber Terminal Alarm Indication */
-    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_SUB_TERM_DISC           = 30;   /**< BAL Subscriber Terminal - Subscriber Terminal Discovery Indication */
-    BAL_OBJ_GROUP_ID_TM_QUEUE_KEY                                = 31;   /**< tm_queue - key */
-    BAL_OBJ_GROUP_ID_TM_QUEUE_CFG                                = 32;   /**< tm_queue - cfg */
-    BAL_OBJ_GROUP_ID_TM_QUEUE_STAT                               = 33;   /**< tm_queue - stat */
-    BAL_OBJ_GROUP_ID_TM_QUEUE_IND                                = 34;   /**< tm_queue - tm queue indication */
-    BAL_OBJ_GROUP_ID_TM_SCHED_KEY                                = 35;   /**< tm_sched - key */
-    BAL_OBJ_GROUP_ID_TM_SCHED_CFG                                = 36;   /**< tm_sched - cfg */
-    BAL_OBJ_GROUP_ID_TM_SCHED_IND                                = 37;   /**< tm_sched - Tm Sched Indication */
+    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_DOWI                    = 27;   /**< BAL Subscriber Terminal - dowi */
+    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_IND                     = 28;   /**< BAL Subscriber Terminal - Subscriber Terminal Indication */
+    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_LOOCI                   = 29;   /**< BAL Subscriber Terminal - looci */
+    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_OPER_STATUS_CHANGE      = 30;   /**< BAL Subscriber Terminal - Change of operational status */
+    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_SDI                     = 31;   /**< BAL Subscriber Terminal - sdi */
+    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_SFI                     = 32;   /**< BAL Subscriber Terminal - sfi */
+    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_SUB_TERM_ALARM          = 33;   /**< BAL Subscriber Terminal - Subscriber Terminal Alarm Indication */
+    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_SUB_TERM_DISC           = 34;   /**< BAL Subscriber Terminal - Subscriber Terminal Discovery Indication */
+    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_SUFI                    = 35;   /**< BAL Subscriber Terminal - sufi */
+    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_TIWI                    = 36;   /**< BAL Subscriber Terminal - tiwi */
+    BAL_OBJ_GROUP_ID_TM_QUEUE_KEY                                = 37;   /**< tm_queue - key */
+    BAL_OBJ_GROUP_ID_TM_QUEUE_CFG                                = 38;   /**< tm_queue - cfg */
+    BAL_OBJ_GROUP_ID_TM_QUEUE_STAT                               = 39;   /**< tm_queue - stat */
+    BAL_OBJ_GROUP_ID_TM_QUEUE_IND                                = 40;   /**< tm_queue - tm queue indication */
+    BAL_OBJ_GROUP_ID_TM_SCHED_KEY                                = 41;   /**< tm_sched - key */
+    BAL_OBJ_GROUP_ID_TM_SCHED_CFG                                = 42;   /**< tm_sched - cfg */
+    BAL_OBJ_GROUP_ID_TM_SCHED_IND                                = 43;   /**< tm_sched - Tm Sched Indication */
 }
 
 /** List of all access_terminal groups of type auto.
@@ -566,10 +635,16 @@ enum BalPacketAutoId
 enum BalSubscriberTerminalAutoId
 {
     BAL_SUBSCRIBER_TERMINAL_AUTO_ID_DGI                 = 0;    /**< Receive Dying-Gasp of subscriber terminal. */
-    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_IND                 = 1;    /**< Subscriber Terminal Indication. */
-    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_OPER_STATUS_CHANGE  = 2;    /**< Change of operational status. */
-    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_SUB_TERM_ALARM      = 3;    /**< Subscriber Terminal Alarm Indication. */
-    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_SUB_TERM_DISC       = 4;    /**< Subscriber Terminal Discovery Indication. */
+    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_DOWI                = 1;    /**< dowi. */
+    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_IND                 = 2;    /**< Subscriber Terminal Indication. */
+    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_LOOCI               = 3;    /**< looci. */
+    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_OPER_STATUS_CHANGE  = 4;    /**< Change of operational status. */
+    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_SDI                 = 5;    /**< sdi. */
+    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_SFI                 = 6;    /**< sfi. */
+    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_SUB_TERM_ALARM      = 7;    /**< Subscriber Terminal Alarm Indication. */
+    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_SUB_TERM_DISC       = 8;    /**< Subscriber Terminal Discovery Indication. */
+    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_SUFI                = 9;    /**< sufi. */
+    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_TIWI                = 10;   /**< tiwi. */
 }
 
 /** List of all tm_queue groups of type auto.

@@ -400,6 +400,14 @@ message BalAction
     uint32 i_tpid = 8;                    /**< Inner tpid. */
 }
 
+/** ber monitor parameters.
+ */
+message BalBerMonitorParams
+{
+    uint32 sf_threshold = 1;   /**< Signal fail alarm is raised when BER raises to 10^-x, where x is this number. */
+    uint32 sd_threshold = 2;   /**< Signal degrade alarm is raised when BER raises to 10^-x, where x is this number. */
+}
+
 /** classifier.
  */
 message BalClassifier
@@ -425,31 +433,31 @@ message BalClassifier
 /** Packet destination.
  */
 message BalDestNni {
-    uint32 int_id = 1;      /**< Interface ID. */
+    uint32 intf_id = 1;      /**< Interface ID. */
 }
 
 message BalDestSubTerm {
     uint32 sub_term_id = 1;  /**< Subscriber terminal ID. */
     uint32 sub_term_uni = 2;      /**< Subscriber terminal UNI. */
-    uint32 int_id = 3;            /**< Interface ID. */
+    uint32 intf_id = 3;            /**< Interface ID. */
 }
 
 message BalDestSvcPort
 {
     uint32 svc_port_id   = 1; /**< GEM ID or LLID.*/
-    uint32 int_id        = 2; /**< Interface ID. */
+    uint32 intf_id       = 2; /**< Interface ID. */
 }
 
 message BalItuOmciChannel
 {
     uint32 sub_term_id   = 1; /**< Subscriber terminal*/
-    uint32 int_id        = 2; /**< Interface ID. */
+    uint32 intf_id       = 2; /**< Interface ID. */
 }
 
 message BalIeeeOamChannel
 {
     bytes mac_address    = 1; /**< MAC address for this link. */
-    uint32 int_id        = 2; /**< Interface ID. */
+    uint32 intf_id       = 2; /**< Interface ID. */
 }
 
 message BalDest
@@ -505,7 +513,7 @@ message BalTmQueueRef
 message BalGroupMemberInfo
 {
     uint32 intf_id = 1;             /**< Access interface id for this member */
-    uint32 svc_port_id = 2;         /**< GPON/XGPON - The multicast "GEM" for this member. EPON - The multicast link identifier. */ 
+    uint32 svc_port_id = 2;         /**< GPON/XGPON - The multicast "GEM" for this member. EPON - The multicast link identifier. */
     BalAction action = 3;               /**< VLAN actions */
     BalTmQueueRef queue = 4;          /**< Egress queue */
 }
@@ -673,8 +681,8 @@ message BalTopology
     uint32 num_of_pon_ports        = 2; /**< The number of pon ports for the access_terminal */
     uint32 num_of_mac_devs         = 3; /**< The number of mac devices associated with this access_terminal */
     uint32 num_of_pons_per_mac_dev = 4; /**< The number of pon ports per mac device in this access_terminal */
-    uint32 pon_family              = 5; /**< The PON family for the access_terminal */
-    uint32 pon_sub_family          = 6; /**< The PON sub-family for the access_terminal */
+    BalPonFamily pon_family        = 5; /**< The PON family for the access_terminal */
+    BalPonSubFamily pon_sub_family = 6; /**< The PON sub-family for the access_terminal */
 }
 
 /** Structure definition for the "key" group of the "access_terminal" object.
@@ -926,6 +934,10 @@ message BalInterfaceCfgData
     uint32 ds_tm = 9;       /**< Downstream scheduler and shaper */
     uint32 us_tm = 10;       /**< Upstream scheduler and shaper */
     BalIdList sub_term_id_list = 11;    /**< A list of subscriber terminal ids configured on this interface */
+    balPonDistance pon_distance = 12;           /**< pon inetrface distance parameters */
+    BalBerMonitorParams ber_monitor = 13;      /**< BER monitor process configuration */
+    uint32 us_bandwidth_limit = 14;                /**< us_bandwidth_limit. */
+    BalControl ds_fec = 15;                      /**< enable/disable  ds fec (gpon only) */
 }
 
 /** Transport message definition for "cfg" group of "interface" object.
@@ -981,6 +993,10 @@ message BalInterfaceIndData
     uint32 ds_tm = 9;           /**< Downstream scheduler and shaper */
     uint32 us_tm = 10;           /**< Upstream scheduler and shaper */
     BalIdList sub_term_id_list = 11;    /**< A list of subscriber terminal ids configured on this interface */
+    balPonDistance pon_distance = 12;           /**< pon inetrface distance parameters */
+    BalBerMonitorParams ber_monitor = 13;      /**< BER monitor process configuration */
+    uint32 us_bandwidth_limit = 14;                /**< us_bandwidth_limit. */
+    BalControl ds_fec = 15;                      /**< enable/disable  ds fec (gpon only) */
 }
 
 /** Transport message definition for "ind" group of "interface" object.
@@ -1132,6 +1148,14 @@ message BalSubscriberTerminalKey
     uint32 intf_id = 2;     /**< intf_id. */
 }
 
+/** pon_distance.
+ */
+message balPonDistance
+{
+    uint32 max_log_distance = 1;  /**< Max logical distance of a subscriber termainal on the interface */
+    uint32 max_diff_reach = 2;    /**< Max distance between the closest and farthest subscriber terminal */
+}
+
 /** Structure definition for the "cfg" group of the "subscriber_terminal"
  * object.
  */
@@ -1149,6 +1173,7 @@ message BalSubscriberTerminalCfgData
     BalIdList svc_port_id_list = 10;        /**< A list of bearer traffic svc_port_ids associated with this subscriber terminal */
     BalIdList agg_port_id_list = 11;    /**< A list of aggrPort_ids associated with this subscriber terminal */
     BalSubTermRate sub_term_rate = 12;                     /**< sub_term_rate. */
+    BalControl ds_fec = 13;                      /**< enable/disable  ds fec (gpon only) */
 }
 
 /** Transport message definition for "cfg" group of "subscriber_terminal"
@@ -1199,6 +1224,26 @@ message BalSubscriberTerminalDgi
     BalSubscriberTerminalDgiData data = 3;   /**< All properties that must be set by the user. */
 }
 
+/** Structure definition for the "dowi" group of the "subscriber_terminal"
+ * object.
+ */
+message BalSubscriberTerminalDowiData
+{
+    BalAlarmStatus dowi_status = 1;    /**< dowi alarm status */
+    uint32 drift_value         = 2;    /**< Calculated amount of drift (positive + negative as a signed value). */
+    uint32 new_eqd             = 3;    /**< New EQD after drift is corrected (only valid if status is 'on').  */
+}
+
+/** Transport message definition for "dowi" group of "subscriber_terminal"
+ * object.
+ */
+message BalSubscriberTerminalDowi
+{
+    BalObj hdr = 1;                    /**< Transport header. */
+    BalSubscriberTerminalKey key = 2; /**< Object key. */
+    BalSubscriberTerminalDowiData data = 3;   /**< All properties that must be set by the user. */
+}
+
 /** Structure definition for the "ind" group of the "subscriber_terminal"
  * object.
  */
@@ -1215,6 +1260,7 @@ message BalSubscriberTerminalIndData
     uint32 us_tm = 9;               /**< Upstream scheduler and shaper */
     BalIdList agg_port_id_list = 10;    /**< A list of aggr_port_ids associated with this subscriber terminal */
     BalSubTermRate sub_term_rate = 11;                     /**< sub_term_rate. */
+    BalControl us_efc = 13;                      /**< enable/disable  ds fec (gpon only) */
 }
 
 /** Transport message definition for "ind" group of "subscriber_terminal"
@@ -1225,6 +1271,24 @@ message BalSubscriberTerminalInd
     BalObj hdr = 1;                    /**< Transport header. */
     BalSubscriberTerminalKey key = 2; /**< Object key. */
     BalSubscriberTerminalIndData data = 3;   /**< All properties that must be set by the user. */
+}
+
+/** Structure definition for the "looci" group of the "subscriber_terminal"
+ * object.
+ */
+message BalSubscriberTerminalLoociData
+{
+    BalAlarmStatus looci_status = 1;    /**< looci alarm status */
+}
+
+/** Transport message definition for "dowi" group of "subscriber_terminal"
+ * object.
+ */
+message BalSubscriberTerminalLooci
+{
+    BalObj hdr = 1;                    /**< Transport header. */
+    BalSubscriberTerminalKey key = 2; /**< Object key. */
+    BalSubscriberTerminalLoociData data = 3;   /**< All properties that must be set by the user. */
 }
 
 /** Structure definition for the "oper_status_change" group of the
@@ -1249,6 +1313,44 @@ message BalSubscriberTerminalOperStatusChange
     BalSubscriberTerminalOperStatusChangeData data = 4;    /**< All properties that must be set by the user. */
 }
 
+/** Structure definition for the "sdi" group of the "subscriber_terminal"
+ * object.
+ */
+message BalSubscriberTerminalSdiData
+{
+    BalAlarmStatus sdi_status = 1;    /**< looci alarm status */
+    uint32 ber                = 2;    /**<  Inverse bit error rate (e.g. if this number is 1000, the BER is 1/1000). */
+}
+
+/** Transport message definition for "sdi" group of "subscriber_terminal"
+ * object.
+ */
+message BalSubscriberTerminalSdi
+{
+    BalObj hdr = 1;                    /**< Transport header. */
+    BalSubscriberTerminalKey key = 2; /**< Object key. */
+    BalSubscriberTerminalSdiData data = 3;   /**< All properties that must be set by the user. */
+}
+
+/** Structure definition for the "sfi" group of the "subscriber_terminal"
+ * object.
+ */
+message BalSubscriberTerminalSfiData
+{
+    BalAlarmStatus sfi_status = 1;    /**<  sfi alarm status */
+    uint32 ber                = 2;    /**<  Inverse bit error rate (e.g. if this number is 1000, the BER is 1/1000). */
+}
+
+/** Transport message definition for "sfi" group of "subscriber_terminal"
+ * object.
+ */
+message BalSubscriberTerminalSfi
+{
+    BalObj hdr = 1;                    /**< Transport header. */
+    BalSubscriberTerminalKey key = 2; /**< Object key. */
+    BalSubscriberTerminalSfiData data = 3;   /**< All properties that must be set by the user. */
+}
+
 /** Structure definition for the "sub_term_alarm" group of the
  * "subscriber_terminal" object.
  */
@@ -1265,6 +1367,43 @@ message BalSubscriberTerminalSubTermAlarm
     BalObj hdr = 1;                    /**< Transport header. */
     BalSubscriberTerminalKey key = 2; /**< Object key. */
     BalsubscriberTerminalSubTermAlarmData data = 3;    /**< All properties that must be set by the user. */
+}
+
+/** Structure definition for the "sufi" group of the "subscriber_terminal"
+ * object.
+ */
+message BalSubscriberTerminalSufiData
+{
+    BalAlarmStatus sufi_status = 1;    /**< sufi alarm status */
+}
+
+/** Transport message definition for "sufi" group of "subscriber_terminal"
+ * object.
+ */
+message BalSubscriberTerminalSufi
+{
+    BalObj hdr = 1;                    /**< Transport header. */
+    BalSubscriberTerminalKey key = 2; /**< Object key. */
+    BalSubscriberTerminalSufiData data = 3;   /**< All properties that must be set by the user. */
+}
+
+/** Structure definition for the "tifi" group of the "subscriber_terminal"
+ * object.
+ */
+message BalSubscriberTerminalTifiData
+{
+    BalAlarmStatus tifi_status = 1;    /**< sufi alarm status */
+    uint32 drift_value = 2;            /**<  Calculated amount of drift (positive + negative as a signed value). */
+}
+
+/** Transport message definition for "tifi" group of "subscriber_terminal"
+ * object.
+ */
+message BalSubscriberTerminalTifi
+{
+    BalObj hdr = 1;                    /**< Transport header. */
+    BalSubscriberTerminalKey key = 2; /**< Object key. */
+    BalSubscriberTerminalTifiData data = 3;   /**< All properties that must be set by the user. */
 }
 
 /** Structure definition for the "sub_term_disc" group of the
