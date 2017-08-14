@@ -55,6 +55,9 @@ RUN ./app-install.sh
 # Create the final image coping over the installed applications from the build stage
 FROM onosproject/onos:1.8
 
+# Install Key Store Options
+ENV JAVA_OPTS="${JAVA_OPTS:--DenableOFTLS=true -Djavax.net.ssl.keyStore=/home/sdn/wiki/onos.jks -Djavax.net.ssl.keyStorePassword=222222 -Djavax.net.ssl.trustStore=/home/sdn/wiki/onos.jks -Djavax.net.ssl.trustStorePassword=222222}"
+
 ENV ONOS=/root/onos
 ENV KARAF_VERSION=3.0.5
 ENV KARAF_ROOT=${ONOS}/apache-karaf-${KARAF_VERSION}
@@ -66,8 +69,7 @@ RUN echo "${KARAF_M2} ${APPS_ROOT}"
 COPY --from=build ${APPS_ROOT}/ ${APPS_ROOT}/
 COPY config/netcfg.json $KARAF_ROOT/../config/network-cfg.json
 
-RUN touch $ONOS/apps/org.onosproject.netcfghostprovider/active
-RUN touch $ONOS/apps/org.onosproject.netcfglinksprovider/active
+RUN touch $ONOS/apps/org.onosproject.hostprovider/active
 RUN touch $ONOS/apps/org.onosproject.openflow-base/active
 
 # Create ONOS Key Directory
