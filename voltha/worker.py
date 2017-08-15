@@ -160,7 +160,7 @@ class Worker(object):
                     if self.peers_map is None or self.peers_map != new_map:
                         self.coord.publish_peers_map_change(new_map)
                         self.peers_map = new_map
-                        log.debug('peer-mapping-changed', mapping=new_map)
+                        log.info('peer-mapping-changed', mapping=new_map)
 
         except Exception, e:
             log.exception('peer-track-error', e=e)
