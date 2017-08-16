@@ -75,7 +75,7 @@ class EVC(object):
         NNI_TO_NNI = 3
         ACL_FILTER = 4
         UNKNOWN = 5
-        UNSUPPORTED = 5    # Or Invalid
+        UNSUPPORTED = 5     # Or Invalid
 
     def __init__(self, flow_entry):
         self._installed = False
