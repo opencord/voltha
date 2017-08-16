@@ -1,18 +1,17 @@
-#
-# Copyright 2017-present Adtran, Inc.
+# Copyright 2017-present Open Networking Foundation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#      http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
+
 from evc import EVC
 from evc_map import EVCMap
 from enum import Enum
@@ -41,7 +40,7 @@ class FlowEntry(object):
     """
     Provide a class that wraps the flow rule and also provides state/status for a FlowEntry.
 
-    When a new flow is sent, it is first decoded to check for any potential errors.  If None are
+    When a new flow is sent, it is first decoded to check for any potential errors. If None are
     found, the entry is created and it is analyzed to see if it can be combined to with any other flows
     to create or modify an existing EVC.
 
@@ -61,9 +60,9 @@ class FlowEntry(object):
         (FlowDirection.NNI, FlowDirection.NNI): FlowDirection.NNI,
     }
 
-    # Well known EtherType
+    # Well known EtherTypes
     class EtherType(Enum):
-        EAPOL = 0x88E8
+        EAPOL = 0x888E
         IPv4 = 0x0800
         ARP = 0x0806
 
@@ -200,7 +199,7 @@ class FlowEntry(object):
             return flow_entry, FlowEntry._create_evc_and_maps(downstream_flow, upstream_flows)
 
         except Exception as e:
-            log.exception('Error during flow_entry processing', e=e)
+            log.exception('flow_entry-processing', e=e)
 
     @staticmethod
     def _create_evc_and_maps(downstream_flow, upstream_flows):
@@ -228,7 +227,7 @@ class FlowEntry(object):
 
         all_valid = all(flow.evc_map.valid for flow in upstream_flows)
 
-        return evc if all(flow.evc_map.valid for flow in upstream_flows) else None
+        return evc if all_valid else None
 
     def _decode(self):
         """
@@ -268,7 +267,10 @@ class FlowEntry(object):
         outer = self.vlan_id or None if push_len == 0 else self.push_vlan_id[0]
 
         # 4 - The inner VID.
-        inner = self.inner_vid or None if push_len <= 1 else self.push_vlan_id[1]
+        if self.inner_vid is not None:
+            inner = self.inner_vid
+        else:
+            inner = self.vlan_id if (push_len > 0 and outer is not None) else None
 
         self.signature = '{}'.format(dev_id)
         for port in ports:
@@ -284,7 +286,7 @@ class FlowEntry(object):
         self.in_port = fd.get_in_port(self._flow)
 
         if self.in_port > OFPP_MAX:
-            log.warn('Logical input ports are not supported at this time')
+            log.warn('Logical-input-ports-not-supported')
             return False
 
         for field in fd.get_ofb_fields(self._flow):
@@ -292,43 +294,43 @@ class FlowEntry(object):
                 pass   # Handled earlier
 
             elif field.type == VLAN_VID:
-                log.info('*** field.type == VLAN_VID', value=field.vlan_vid & 0xfff)
+                # log.info('*** field.type == VLAN_VID', value=field.vlan_vid & 0xfff)
                 self.vlan_id = field.vlan_vid & 0xfff
 
             elif field.type == VLAN_PCP:
-                log.info('*** field.type == VLAN_PCP', value=field.vlan_pcp)
+                # log.info('*** field.type == VLAN_PCP', value=field.vlan_pcp)
                 self.pcp = field.vlan_pcp
 
             elif field.type == ETH_TYPE:
-                log.info('*** field.type == ETH_TYPE', value=field.eth_type)
+                # log.info('*** field.type == ETH_TYPE', value=field.eth_type)
                 self.eth_type = field.eth_type
 
             elif field.type == IP_PROTO:
-                log.info('*** field.type == IP_PROTO', value=field.ip_proto)
+                # log.info('*** field.type == IP_PROTO', value=field.ip_proto)
                 self.ip_protocol = field.ip_proto
 
                 if self.ip_protocol not in _supported_ip_protocols:
-                    log.error('Unsupported IP Protocol')
+                    # log.error('Unsupported IP Protocol')
                     return False
 
             elif field.type == IPV4_DST:
-                log.info('*** field.type == IPV4_DST', value=field.ipv4_dst)
+                # log.info('*** field.type == IPV4_DST', value=field.ipv4_dst)
                 self.ipv4_dst = field.ipv4_dst
 
             elif field.type == UDP_DST:
-                log.info('*** field.type == UDP_DST', value=field.udp_dst)
+                # log.info('*** field.type == UDP_DST', value=field.udp_dst)
                 self.udp_dst = field.udp_dst
 
             elif field.type == UDP_SRC:
-                log.info('*** field.type == UDP_SRC', value=field.udp_src)
+                # log.info('*** field.type == UDP_SRC', value=field.udp_src)
                 self.udp_src = field.udp_src
 
             elif field.type == METADATA:
-                log.info('*** field.type == METADATA', value=field.table_metadata)
+                # log.info('*** field.type == METADATA', value=field.table_metadata)
                 self.inner_vid = field.table_metadata
 
             else:
-                log.warn('Found unsupported selection field', type=field.type)
+                log.warn('unsupported-selection-field', type=field.type)
                 self._status_message = 'Unsupported field.type={}'.format(field.type)
                 return False
 
@@ -338,7 +340,7 @@ class FlowEntry(object):
         self.output = fd.get_out_port(self._flow)
 
         if self.output > OFPP_MAX:
-            log.warn('Logical output ports are not supported at this time')
+            log.warn('Logical-output-ports-not-supported')
             return False
 
         for act in fd.get_actions(self._flow):
@@ -346,17 +348,17 @@ class FlowEntry(object):
                 pass           # Handled earlier
 
             elif act.type == POP_VLAN:
-                log.info('*** action.type == POP_VLAN')
+                # log.info('*** action.type == POP_VLAN')
                 self.pop_vlan += 1
 
             elif act.type == PUSH_VLAN:
-                log.info('*** action.type == PUSH_VLAN', value=act.push)
+                # log.info('*** action.type == PUSH_VLAN', value=act.push)
                 # TODO: Do we want to test the ethertype for support?
                 tpid = act.push.ethertype
                 self.push_vlan_tpid.append(tpid)
 
             elif act.type == SET_FIELD:
-                log.info('*** action.type == SET_FIELD', value=act.set_field.field)
+                # log.info('*** action.type == SET_FIELD', value=act.set_field.field)
                 assert (act.set_field.field.oxm_class == ofp.OFPXMC_OPENFLOW_BASIC)
                 field = act.set_field.field.ofb_field
                 if field.type == VLAN_VID:
@@ -364,7 +366,7 @@ class FlowEntry(object):
 
             else:
                 # TODO: May need to modify ce-preservation
-                log.warn('Found unsupported action', action=act)
+                log.warn('unsupported-action', action=act)
                 self._status_message = 'Unsupported action.type={}'.format(act.type)
                 return False
 
@@ -382,7 +384,7 @@ class FlowEntry(object):
                     yield flow.remove()
 
                 except Exception as e:
-                    log.exception('Exception while removing stale flow', flow=flow, e=e)
+                    log.exception('stale-flow', flow=flow, e=e)
 
     @inlineCallbacks
     def remove(self):

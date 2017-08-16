@@ -1,31 +1,29 @@
-#
-# Copyright 2017-present Adtran, Inc.
+# Copyright 2017-present Open Networking Foundation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#      http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
 
+import xmltodict
+import re
 from enum import Enum
-from twisted.internet.defer import inlineCallbacks, returnValue
+from twisted.internet import reactor
+from twisted.internet.defer import inlineCallbacks, returnValue, succeed
 from voltha.core.flow_decomposer import *
 
 log = structlog.get_logger()
 
-EVC_NAME_FORMAT = 'EVC-VOLTHA-{}-{}'
-EVC_NAME_REGEX = 'EVC-VOLTHA-{}'.format('regex-here')
+EVC_NAME_FORMAT = 'VOLTHA-{}'                       # format(flow.id)
+EVC_NAME_REGEX_ALL = EVC_NAME_FORMAT.format('*')
 DEFAULT_STPID = 0x8100
-
-_xml_header = '<evcs xmlns="http://www.adtran.com/ns/yang/adtran-evcs"><evc>'
-_xml_trailer = '</evc></evcs>'
 
 
 class EVC(object):
@@ -54,17 +52,17 @@ class EVC(object):
             raise ValueError('Invalid SwitchingMethod enumeration')
 
     class Men2UniManipulation(Enum):
-        SYMETRIC = 1
+        SYMMETRIC = 1
         POP_OUT_TAG_ONLY = 2
-        DEFAULT = SYMETRIC
+        DEFAULT = SYMMETRIC
 
         @staticmethod
         def xml(value):
             if value is None:
                 value = EVC.Men2UniManipulation.DEFAULT
             fmt = '<men-to-uni-tag-manipulation>{}</men-to-uni-tag-manipulation>'
-            if value == EVC.Men2UniManipulation.SYMETRIC:
-                return fmt.format('<symetric/>')
+            if value == EVC.Men2UniManipulation.SYMMETRIC:
+                return fmt.format('<symmetric/>')
             elif value == EVC.Men2UniManipulation.POP_OUT_TAG_ONLY:
                 return fmt.format('<pop-outer-tag-only/>')
             raise ValueError('Invalid Men2UniManipulation enumeration')
@@ -73,16 +71,18 @@ class EVC(object):
         NNI_TO_UNI = 1
         UNI_TO_NNI = 2
         NNI_TO_NNI = 3
-        ACL_FILTER = 4
-        UNKNOWN = 5
-        UNSUPPORTED = 5    # Or Invalid
+        UNI_TO_UNI = 4
+        ACL_FILTER = 5
+        UNKNOWN = 6
+        UNSUPPORTED = 7    # Or Invalid
 
     def __init__(self, flow_entry):
         self._installed = False
         self._status_message = None
         self._flow = flow_entry
         self._name = self._create_name()
-        self._evc_maps = {}             # Map Name -> evc-map
+        self._evc_maps = {}               # Map Name -> evc-map
+        self._install_deferred = None
 
         self._flow_type = EVC.ElineFlowType.UNKNOWN
 
@@ -103,11 +103,14 @@ class EVC(object):
             log.exception('Failure during EVC decode', e=e)
             self._valid = False
 
+    def __str__(self):
+        return "EVC-{}: MEN: {}, S-Tag: {}".format(self._name, self._men_ports, self._s_tag)
+
     def _create_name(self):
         #
         # TODO: Take into account selection criteria and output to make the name
         #
-        return EVC_NAME_FORMAT.format(self._flow.device_id, self._flow.flow_id)
+        return EVC_NAME_FORMAT.format(self._flow.flow_id)
 
     @property
     def name(self):
@@ -158,7 +161,7 @@ class EVC(object):
     @ce_vlan_preservation.setter
     def ce_vlan_preservation(self, value):
         assert self._ce_vlan_preservation is None or self._ce_vlan_preservation == value
-        self.ce_vlan_preservation = value
+        self._ce_vlan_preservation = value
 
     @property
     def men_to_uni_tag_manipulation(self):
@@ -189,14 +192,40 @@ class EVC(object):
         if self._evc_maps is not None and evc_map.name in self._evc_maps:
             del self._evc_maps[evc_map.name]
 
+    def schedule_install(self):
+        """
+        Try to install EVC and all MAPs in a single operational sequence
+        """
+        if self._valid and self._install_deferred is None:
+                self._install_deferred = reactor.callLater(0, self._do_install)
+
+        return self._install_deferred
+
+    @staticmethod
+    def _xml_header(operation=None):
+        return '<evcs xmlns="http://www.adtran.com/ns/yang/adtran-evcs"><evc{}>'.\
+            format('' if operation is None else ' operation="{}"'.format(operation))
+
+    @staticmethod
+    def _xml_trailer():
+        return '</evc></evcs>'
+
     @inlineCallbacks
-    def install(self):
+    def _do_install(self):
+        self._install_deferred = None
+
+        # Install the EVC if needed
+
         if self._valid and not self._installed:
-            xml = _xml_header
+            # TODO: Currently install EVC and then MAPs. Can do it all in a single edit-config operation
+
+            xml = EVC._xml_header()
             xml += '<name>{}</name>'.format(self.name)
-            xml += '<enabled>{}</enabled>'.format(self._enabled)
-            xml += '<ce-vlan-preservation>{}</ce-vlan-preservation>'.\
-                format(self._ce_vlan_preservation or True)
+            xml += '<enabled>{}</enabled>'.format('true' if self._enabled else 'false')
+
+            if self._ce_vlan_preservation is not None:
+                xml += '<ce-vlan-preservation>{}</ce-vlan-preservation>'.\
+                    format('true' if self._ce_vlan_preservation else 'false')
 
             if self._s_tag is not None:
                 xml += '<stag>{}</stag>'.format(self._s_tag)
@@ -209,15 +238,16 @@ class EVC(object):
 
             xml += EVC.Men2UniManipulation.xml(self._men_to_uni_tag_manipulation)
             xml += EVC.SwitchingMethod.xml(self._switching_method)
-            xml += _xml_trailer
+            xml += EVC._xml_trailer()
 
             log.debug("Creating EVC {}: '{}'".format(self.name, xml))
 
             try:
-                results = yield self._flow.handler.netconf_client.edit_config(xml,
-                                                                              default_operation='create',
-                                                                              lock_timeout=30)
+                # Set installed to true while request is in progress
+                self._installed = True
+                results = yield self._flow.handler.netconf_client.edit_config(xml, lock_timeout=30)
                 self._installed = results.ok
+
                 if results.ok:
                     self.status = ''
                 else:
@@ -227,19 +257,33 @@ class EVC(object):
                 log.exception('Failed to install EVC', name=self.name, e=e)
                 raise
 
+        # Install any associated EVC Maps
+
+        if self._installed:
+            for evc_map in self.evc_maps:
+                try:
+                    results = yield evc_map.install()
+                    pass  # TODO: What to do on error?
+
+                except Exception as e:
+                    evc_map.status = 'Exception during EVC-MAP Install: {}'.format(e.message)
+                    log.exception(evc_map.status, e=e)
+
         returnValue(self._installed and self._valid)
 
     @inlineCallbacks
     def remove(self):
-        if self._installed:
-            xml = _xml_header + '<name>{}</name>'.format(self.name) + _xml_trailer
+        d, self._install_deferred = self._install_deferred, None
+        if d is not None:
+            d.cancel()
 
-            log.debug("Deleting EVC {}: '{}'".format(self.name, xml))
+        if self._installed:
+            xml = EVC._xml_header('delete') + '<name>{}</name>'.format(self.name) + EVC._xml_trailer()
+
+            log.debug('removing', evc=self.name, xml=xml)
 
             try:
-                results = yield self._flow.handler.netconf_client.edit_config(xml,
-                                                                              default_operation='delete',
-                                                                              lock_timeout=30)
+                results = yield self._flow.handler.netconf_client.edit_config(xml, lock_timeout=30)
                 self._installed = not results.ok
                 if results.ok:
                     self.status = ''
@@ -247,7 +291,7 @@ class EVC(object):
                     self.status = results.error             # TODO: Save off error status
 
             except Exception as e:
-                log.exception('Failed to remove EVC', name=self.name, e=e)
+                log.exception('removing', name=self.name, e=e)
                 raise
 
             # TODO: Do we remove evc-maps as well reference here or maybe have a 'delete' function?
@@ -258,15 +302,13 @@ class EVC(object):
     @inlineCallbacks
     def enable(self):
         if self.installed and not self._enabled:
-            xml = _xml_header + '<name>{}</name>'.format(self.name)
-            xml += '<enabled>true</enabled>' + _xml_trailer
+            xml = EVC._xml_header() + '<name>{}</name>'.format(self.name)
+            xml += '<enabled>true</enabled>' + EVC._xml_trailer()
 
-            log.debug("Enabling EVC {}: '{}'".format(self.name, xml))
+            log.debug('enabling', evc=self.name, xml=xml)
 
             try:
-                results = yield self._flow.handler.netconf_client.edit_config(xml,
-                                                                              default_operation='merge',
-                                                                              lock_timeout=30)
+                results = yield self._flow.handler.netconf_client.edit_config(xml, lock_timeout=30)
                 self._enabled = results.ok
                 if results.ok:
                     self.status = ''
@@ -274,7 +316,7 @@ class EVC(object):
                     self.status = results.error       # TODO: Save off error status
 
             except Exception as e:
-                log.exception('Failed to enable EVC', name=self.name, e=e)
+                log.exception('enabling', name=self.name, e=e)
                 raise
 
         returnValue(self.installed and self._enabled)
@@ -282,15 +324,13 @@ class EVC(object):
     @inlineCallbacks
     def disable(self):
         if self.installed and self._enabled:
-            xml = _xml_header + '<name>{}</name>'.format(self.name)
-            xml += '<enabled>false</enabled>' + _xml_trailer
+            xml = EVC._xml_header() + '<name>{}</name>'.format(self.name)
+            xml += '<enabled>false</enabled>' + EVC._xml_trailer()
 
-            log.debug("Disabling EVC {}: '{}'".format(self.name, xml))
+            log.debug('disabling', evc=self.name, xml=xml)
 
             try:
-                results = yield self._flow.handler.netconf_client.edit_config(xml,
-                                                                              default_operation='merge',
-                                                                              lock_timeout=30)
+                results = yield self._flow.handler.netconf_client.edit_config(xml, lock_timeout=30)
                 self._enabled = not results.ok
                 if results.ok:
                     self.status = ''
@@ -298,7 +338,7 @@ class EVC(object):
                     self.status = results.error      # TODO: Save off error status
 
             except Exception as e:
-                log.exception('Failed to disable EVC', name=self.name, e=e)
+                log.exception('disabling', name=self.name, e=e)
                 raise
 
         returnValue(self.installed and not self._enabled)
@@ -334,8 +374,8 @@ class EVC(object):
 
         self._s_tag = self._flow.vlan_id
 
-        if self._flow.inner_vid is not None:
-            self._switching_method = EVC.SwitchingMethod.DOUBLE_TAGGED
+        # if self._flow.inner_vid is not None:
+        #    self._switching_method = EVC.SwitchingMethod.DOUBLE_TAGGED         TODO: Future support
 
         # Note: The following fields will get set when the first EVC-MAP
         #       is associated with this object. Once set, they cannot be changed to
@@ -349,19 +389,62 @@ class EVC(object):
     # BULK operations
 
     @staticmethod
-    def enable_all(regex_=EVC_NAME_REGEX):
-        raise NotImplemented("TODO: Implement this")
-
-    @staticmethod
-    def disable_all(regex_=EVC_NAME_REGEX):
-        raise NotImplemented("TODO: Implement this")
-
-    @staticmethod
-    def remove_all(regex_=EVC_NAME_REGEX):
+    def remove_all(client, regex_=EVC_NAME_REGEX_ALL):
         """
-        Remove all matching EVCs and associated EVC MAPs from hardware
-
+        Remove all matching EVCs from hardware
+        :param client: (ncclient) NETCONF Client to use
         :param regex_: (String) Regular expression for name matching
+        :return: (deferred)
         """
-        raise NotImplemented("TODO: Implement this")
+        # Do a 'get' on the evc config an you should get the names
+        get_xml = """
+        <filter xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+          <evcs xmlns="http://www.adtran.com/ns/yang/adtran-evcs">
+            <evc><name/></evc>
+          </evcs>
+        </filter>
+        """
+        log.debug('query', xml=get_xml)
 
+        def request_failed(results, operation):
+            log.error('{}-failed'.format(operation), results=results)
+            # No further actions. Periodic poll later on will scrub any old EVCs if needed
+
+        def delete_complete(results):
+            log.debug('delete-complete', results=results)
+
+        def do_delete(rpc_reply, regexpr):
+            log.debug('query-complete', rpc_reply=rpc_reply)
+
+            if rpc_reply.ok:
+                result_dict = xmltodict.parse(rpc_reply.data_xml)
+                entries = result_dict['data']['evcs'] if 'evcs' in result_dict['data'] else {}
+
+                if 'evc' in entries:
+                    p = re.compile(regexpr)
+
+                    if isinstance(entries['evc'], list):
+                        names = {entry['name'] for entry in entries['evc'] if 'name' in entry
+                                 and p.match(entry['name'])}
+                    else:
+                        names = set()
+                        for item in entries['evc-map'].items():
+                            if isinstance(item, tuple) and item[0] == 'name':
+                                names.add(item[1])
+                                break
+
+                    if len(names) > 0:
+                        del_xml = EVC._xml_header('delete')
+                        for name in names:
+                            del_xml += '<name>{}</name>'.format(name)
+                            del_xml += EVC._xml_trailer()
+
+                        log.debug('removing', xml=del_xml)
+                        return client.edit_config(del_xml, lock_timeout=30)
+
+            return succeed('no entries')
+
+        d = client.get(get_xml)
+        d.addCallbacks(do_delete, request_failed, callbackArgs=[regex_], errbackArgs=['get'])
+        d.addCallbacks(delete_complete, request_failed, errbackArgs=['edit-config'])
+        return d

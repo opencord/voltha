@@ -1,18 +1,16 @@
-#
-# Copyright 2017-present Adtran, Inc.
+# Copyright 2017-present Open Networking Foundation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#      http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
 
 import structlog
 from lxml import etree
@@ -45,7 +43,6 @@ class AdtranNetconfClient(object):
     """
     Performs NETCONF requests
     """
-
     def __init__(self, host_ip, port=830, username='', password='', timeout=20):
         self._ip = host_ip
         self._port = port
@@ -100,17 +97,14 @@ class AdtranNetconfClient(object):
                                             hostkey_verify=False,
                                             timeout=timeout)
 
-            log.debug('Dumping Server Capabilities')
-            for cap in self.capabilities:
-                log.debug('  {}'.format(cap))
         except SSHError as e:
             # Log and rethrow exception so any errBack is called
-            log.exception('SSH Error during connect: {}'.format(e.message))
+            log.exception('SSHError-during-connect', e=e)
             raise e
 
         except Exception as e:
             # Log and rethrow exception so any errBack is called
-            log.exception('Connect request failed: {}'.format(e.message))
+            log.exception('Connect-failed: {}', e=e)
             raise e
 
         # If debug logging is enabled, decrease the level, DEBUG is a significant
@@ -172,7 +166,7 @@ class AdtranNetconfClient(object):
         Get the requested data from the server
 
         :param payload: Payload/filter
-        :return: (defeered) for GetReply
+        :return: (deferred) for GetReply
         """
         log.debug('get', filter=payload)
 
@@ -189,11 +183,13 @@ class AdtranNetconfClient(object):
         :return: (GetReply) response
         """
         try:
+            log.debug('get', payload=payload)
             response = self._session.get(payload)
             # To get XML, use response.xml
+            log.debug('response', response=response)
 
         except RPCError as e:
-            log.exception('get Exception: {}'.format(e.message))
+            log.exception('get', e=e)
             raise
 
         return response
@@ -201,7 +197,7 @@ class AdtranNetconfClient(object):
     def lock(self, source, lock_timeout):
         """
         Lock the configuration system
-        :return: (defeered) for RpcReply
+        :return: (deferred) for RpcReply
         """
         log.debug('lock', source=source, timeout=lock_timeout)
 
@@ -219,7 +215,7 @@ class AdtranNetconfClient(object):
             # To get XML, use response.xml
 
         except RPCError as e:
-            log.exception('lock Exception: {}'.format(e.message))
+            log.exception('lock', e=e)
             raise
 
         return response
@@ -229,7 +225,7 @@ class AdtranNetconfClient(object):
         Get the requested data from the server
         :param rpc_string: RPC request
 
-        :return: (defeered) for RpcReply
+        :return: (deferred) for RpcReply
         """
         log.debug('unlock', source=source)
 
@@ -247,13 +243,13 @@ class AdtranNetconfClient(object):
             # To get XML, use response.xml
 
         except RPCError as e:
-            log.exception('unlock Exception: {}'.format(e.message))
+            log.exception('unlock', e=e)
             raise
 
         return response
 
     @inlineCallbacks
-    def edit_config(self, config, target='running', default_operation=None,
+    def edit_config(self, config, target='running', default_operation='none',
                     test_option=None, error_option=None, lock_timeout=-1):
         """
         Loads all or part of the specified config to the target configuration datastore with the ability to lock
@@ -270,20 +266,20 @@ class AdtranNetconfClient(object):
         :param lock_timeout if >0, the maximum number of seconds to hold a lock on the datastore while the edit
                             operation is underway
 
-        :return: (defeered) for RpcReply
+        :return: (deferred) for RpcReply
         """
         if not self._session or not self._session.connected:
             raise NotImplemented('TODO: Support auto-connect if needed')
 
         rpc_reply = None
-        if lock_timeout > 0:
-            try:
-                request = self._session.lock(target, lock_timeout)
-                rpc_reply = yield request
-
-            except Exception as e:
-                log.exception('edit_config Lock Exception: {}'.format(e.message))
-                raise
+        # if lock_timeout > 0:
+        #     try:
+        #         request = self._session.lock(target, lock_timeout)
+        #         rpc_reply = yield request
+        #
+        #     except Exception as e:
+        #         log.exception('edit_config-Lock', e=e)
+        #         raise
         try:
             if config[:7] != '<config':
                 config = '<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">' + \
@@ -293,17 +289,18 @@ class AdtranNetconfClient(object):
                                                     config, default_operation,
                                                     test_option, error_option)
         except Exception as e:
-            log.exception('edit_config Edit Exception: {}'.format(e.message))
+            log.exception('edit_config', e=e)
             raise
 
         finally:
-            if lock_timeout > 0:
-                try:
-                    yield self._session.unlock(target)
-
-                except Exception as e:
-                    log.exception('edit_config unlock Exception: {}'.format(e.message))
-                    # Note that we just fall through and do not re-raise this exception
+            pass
+            # if lock_timeout > 0:
+            #     try:
+            #         yield self._session.unlock(target)
+            #
+            #     except Exception as e:
+            #         log.exception('edit_config-unlock', e=e)
+            #         # Note that we just fall through and do not re-raise this exception
 
         returnValue(rpc_reply)
 
@@ -312,17 +309,21 @@ class AdtranNetconfClient(object):
         Lock the configuration system
         """
         try:
+            log.debug('edit-config', target=target, config=config)
+            
             response = self._session.edit_config(target=target, config=config
                                                  # TODO: Support additional options later
                                                  # ,default_operation=default_operation,
                                                  # test_option=test_option,
                                                  # error_option=error_option
                                                  )
+
+            log.debug('response', response=response)
             # To get XML, use response.xml
             # To check status, use response.ok  (boolean)
 
         except RPCError as e:
-            log.exception('edit_config Exception: {}'.format(e.message))
+            log.exception('do_edit_config', e=e)
             raise
 
         return response
@@ -331,7 +332,7 @@ class AdtranNetconfClient(object):
         """
         Custom RPC request
         :param rpc_string: (string) RPC request
-        :return: (defeered) for GetReply
+        :return: (deferred) for GetReply
         """
         log.debug('rpc', rpc=rpc_string)
 
@@ -346,7 +347,7 @@ class AdtranNetconfClient(object):
             # To get XML, use response.xml
 
         except RPCError as e:
-            log.exception('rpc Exception: {}'.format(e.message))
+            log.exception('rpc', e=e)
             raise
 
         return response

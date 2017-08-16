@@ -1,18 +1,16 @@
-#
-# Copyright 2017-present Adtran, Inc.
+# Copyright 2017-present Open Networking Foundation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#      http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
 """
 Adtran generic VOLTHA device handler
 """
@@ -49,7 +47,17 @@ from scapy.layers.inet import Raw
 _ = third_party
 
 _PACKET_IN_VLAN = 4000
+_MULTICAST_VLAN = 4092
+_MANAGEMENT_VLAN = 4093
 _is_inband_frame = BpfProgramFilter('(ether[14:2] & 0xfff) = 0x{:03x}'.format(_PACKET_IN_VLAN))
+
+_DEFAULT_RESTCONF_USERNAME = ""
+_DEFAULT_RESTCONF_PASSWORD = ""
+_DEFAULT_RESTCONF_PORT = 8081
+
+_DEFAULT_NETCONF_USERNAME = ""
+_DEFAULT_NETCONF_PASSWORD = ""
+_DEFAULT_NETCONF_PORT = 830
 
 
 class AdtranDeviceHandler(object):
@@ -84,7 +92,9 @@ class AdtranDeviceHandler(object):
     # RPC XML shortcuts
     RESTART_RPC = '<system-restart xmlns="urn:ietf:params:xml:ns:yang:ietf-system"/>'
 
-    def __init__(self, adapter, device_id, username='', password='', timeout=20):
+    def __init__(self, adapter, device_id, timeout=20):
+        from net.adtran_zmq import DEFAULT_ZEROMQ_OMCI_TCP_PORT
+
         self.adapter = adapter
         self.adapter_agent = adapter.adapter_agent
         self.device_id = device_id
@@ -111,16 +121,34 @@ class AdtranDeviceHandler(object):
         self.restart_failure_timeout = 5 * 60   # 5 Minute timeout
 
         # REST Client
-        self.rest_port = None
-        self.rest_username = username
-        self.rest_password = password
+        self.rest_port = _DEFAULT_RESTCONF_PORT
+        self.rest_username = _DEFAULT_RESTCONF_USERNAME
+        self.rest_password = _DEFAULT_RESTCONF_PASSWORD
         self._rest_client = None
 
         # NETCONF Client
-        self.netconf_port = None
-        self.netconf_username = username
-        self.netconf_password = password
+        self.netconf_port = _DEFAULT_NETCONF_PORT
+        self.netconf_username = _DEFAULT_NETCONF_USERNAME
+        self.netconf_password = _DEFAULT_NETCONF_PASSWORD
         self._netconf_client = None
+
+        # If Auto-activate is true, all PON ports (up to a limit below) will be auto-enabled
+        # and any ONU's discovered will be auto-activated.
+        #
+        # If it is set to False, then the xPON API/CLI should be used to enable any PON
+        # ports. Before enabling a PON, set it's polling interval. If the polling interval
+        # is 0, then manual ONU discovery is in effect. If >0, then every 'polling' seconds
+        # autodiscover is requested. Any discovered ONUs will need to have their serial-numbers
+        # registered (via xPON API/CLI) before they are activated.
+
+        self._autoactivate = False
+
+        # TODO Remove items below after one PON fully supported and working as expected
+        self.max_nni_ports = 1
+        self.max_pon_ports = 1
+
+        # OMCI ZMQ Channel
+        self.zmq_port = DEFAULT_ZEROMQ_OMCI_TCP_PORT
 
         # Heartbeat support
         self.heartbeat_count = 0
@@ -136,10 +164,6 @@ class AdtranDeviceHandler(object):
 
         # Installed flows
         self.evcs = {}  # Flow ID/name -> FlowEntry
-
-        # TODO Remove items below after one PON fully supported and working as expected
-        self.max_nni_ports = 1
-        self.max_pon_ports = 1
 
     def __del__(self):
         # Kill any startup or heartbeat defers
@@ -177,6 +201,8 @@ class AdtranDeviceHandler(object):
         return self._rest_client
 
     def parse_provisioning_options(self, device):
+        from net.adtran_zmq import DEFAULT_ZEROMQ_OMCI_TCP_PORT
+
         if not device.ipv4_address:
             self.activate_failed(device, 'No ip_address field provided')
 
@@ -192,14 +218,22 @@ class AdtranDeviceHandler(object):
             return ivalue
 
         parser = argparse.ArgumentParser(description='Adtran Device Adapter')
-        parser.add_argument('--nc_username', '-u', action='store', default='hsvroot', help='NETCONF username')
-        parser.add_argument('--nc_password', '-p', action='store', default='BOSCO', help='NETCONF Password')
-        parser.add_argument('--nc_port', '-t', action='store', default=830, type=check_tcp_port,
+        parser.add_argument('--nc_username', '-u', action='store', default=_DEFAULT_NETCONF_USERNAME,
+                            help='NETCONF username')
+        parser.add_argument('--nc_password', '-p', action='store', default=_DEFAULT_NETCONF_PASSWORD,
+                            help='NETCONF Password')
+        parser.add_argument('--nc_port', '-t', action='store', default=_DEFAULT_NETCONF_PORT, type=check_tcp_port,
                             help='NETCONF TCP Port')
-        parser.add_argument('--rc_username', '-U', action='store', default='ADMIN', help='REST username')
-        parser.add_argument('--rc_password', '-P', action='store', default='PASSWORD', help='REST Password')
-        parser.add_argument('--rc_port', '-T', action='store', default=8081, type=check_tcp_port,
-                            help='REST TCP Port')
+        parser.add_argument('--rc_username', '-U', action='store', default=_DEFAULT_RESTCONF_USERNAME,
+                            help='REST username')
+        parser.add_argument('--rc_password', '-P', action='store', default=_DEFAULT_RESTCONF_PASSWORD,
+                            help='REST Password')
+        parser.add_argument('--rc_port', '-T', action='store', default=_DEFAULT_RESTCONF_PORT, type=check_tcp_port,
+                            help='RESTCONF TCP Port')
+        parser.add_argument('--zmq_port', '-z', action='store', default=DEFAULT_ZEROMQ_OMCI_TCP_PORT,
+                            type=check_tcp_port, help='ZeroMQ Port')
+        parser.add_argument('--autoactivate', '-a', action='store_true', default=False,
+                            help='Autoactivate / Demo mode')
 
         try:
             args = parser.parse_args(shlex.split(device.extra_args))
@@ -212,12 +246,27 @@ class AdtranDeviceHandler(object):
             self.rest_password = args.rc_password
             self.rest_port = args.rc_port
 
+            self.zmq_port = args.zmq_port
+
+            self._autoactivate = args.autoactivate
+
         except argparse.ArgumentError as e:
             self.activate_failed(device,
                                  'Invalid arguments: {}'.format(e.message),
                                  reachable=False)
         except Exception as e:
-            self.log.exception('parsing error: {}'.format(e.message))
+            self.log.exception('option_parsing_error: {}'.format(e.message))
+
+    @property
+    def autoactivate(self):
+        """
+        Flag indicating if auto-discover/enable of PON ports is enabled as
+        well as ONU auto activation. useful for demos
+
+        If autoactivate is enabled, the default startup state (first time) for a PON port is disabled
+        If autoactivate is disabled, the efault startup state for a PON port is enabled
+        """
+        return self._autoactivate
 
     @inlineCallbacks
     def activate(self, device, reconciling=False):
@@ -241,18 +290,16 @@ class AdtranDeviceHandler(object):
             try:
                 self.startup = self.make_restconf_connection()
                 results = yield self.startup
-                self.log.debug('HELLO Contents: {}'.format(pprint.PrettyPrinter().pformat(results)))
+                self.log.debug('HELLO_Contents: {}'.format(pprint.PrettyPrinter().pformat(results)))
 
                 # See if this is a virtualized OLT. If so, no NETCONF support available
 
                 self.is_virtual_olt = 'module-info' in results and\
                                       any(mod.get('module-name', None) == 'adtran-ont-mock'
                                           for mod in results['module-info'])
-                if self.is_virtual_olt:
-                    self.log.info('*** VIRTUAL OLT detected ***')
 
             except Exception as e:
-                self.log.exception('Initial RESTCONF adtran-hello failed', e=e)
+                self.log.exception('Initial_RESTCONF_hello_failed', e=e)
                 self.activate_failed(device, e.message, reachable=False)
 
             ############################################################################
@@ -263,7 +310,7 @@ class AdtranDeviceHandler(object):
                 yield self.startup
 
             except Exception as e:
-                self.log.exception('Initial NETCONF connection failed', e=e)
+                self.log.exception('NETCONF_connection_failed', e=e)
                 self.activate_failed(device, e.message, reachable=False)
 
             ############################################################################
@@ -302,7 +349,7 @@ class AdtranDeviceHandler(object):
                     self.adapter_agent.update_device(device)
 
                 except Exception as e:
-                    self.log.exception('Device Information request(s) failed', e=e)
+                    self.log.exception('Device_info_failed', e=e)
                     self.activate_failed(device, e.message, reachable=False)
 
             try:
@@ -319,7 +366,7 @@ class AdtranDeviceHandler(object):
                         self.adapter_agent.add_port(device.id, port.get_port())
 
             except Exception as e:
-                self.log.exception('Northbound port enumeration and creation failed', e=e)
+                self.log.exception('NNI_enumeration', e=e)
                 self.activate_failed(device, e.message)
 
             try:
@@ -336,7 +383,7 @@ class AdtranDeviceHandler(object):
                         self.adapter_agent.add_port(device.id, port.get_port())
 
             except Exception as e:
-                self.log.exception('Southbound port enumeration and creation failed', e=e)
+                self.log.exception('PON_enumeration', e=e)
                 self.activate_failed(device, e.message)
 
             if reconciling:
@@ -378,22 +425,22 @@ class AdtranDeviceHandler(object):
                 yield self.startup
 
             except Exception as e:
-                self.log.exception('Logical port creation failed', e=e)
+                self.log.exception('logical-port', e=e)
                 self.activate_failed(device, e.message)
 
             # Complete device specific steps
             try:
-                self.log.debug('Performing final device specific activation procedures')
+                self.log.debug('device-activation-procedures')
                 self.startup = self.complete_device_specific_activation(device, reconciling)
                 yield self.startup
 
             except Exception as e:
-                self.log.exception('Device specific activation failed', e=e)
+                self.log.exception('device-activation-procedures', e=e)
                 self.activate_failed(device, e.message)
 
             # Schedule the heartbeat for the device
 
-            self.log.debug('Starting heartbeat')
+            self.log.debug('Starting-heartbeat')
             self.start_heartbeat(delay=5)
 
             device = self.adapter_agent.get_device(device.id)
@@ -401,6 +448,7 @@ class AdtranDeviceHandler(object):
             device.oper_status = OperStatus.ACTIVE
             device.reason = ''
             self.adapter_agent.update_device(device)
+            self.logical_device_id = ld_initialized.id
 
             # finally, open the frameio port to receive in-band packet_in messages
             self._activate_io_port()
@@ -546,6 +594,21 @@ class AdtranDeviceHandler(object):
                     self.log.exception('Failed to reset ports to known good initial state', e=e)
                     self.activate_failed(device, e.message)
 
+            # Clean up all EVC and EVC maps (exceptions ok/not-fatal)
+            try:
+                from flow.evc import EVC
+                self.startup = yield EVC.remove_all(self.netconf_client)
+
+            except Exception as e:
+                self.log.exception('Failed attempting to clean up existing EVCs', e=e)
+
+            try:
+                from flow.evc_map import EVCMap
+                self.startup = yield EVCMap.remove_all(self.netconf_client)
+
+            except Exception as e:
+                self.log.exception('Failed attempting to clean up existing EVC-Maps', e=e)
+
         # Start/stop the interfaces as needed
 
         for port in self.northbound_ports.itervalues():
@@ -555,7 +618,7 @@ class AdtranDeviceHandler(object):
         if reconciling:
             start_downlinks = device.admin_state == AdminState.ENABLED
         else:
-            start_downlinks = self.initial_port_state == AdminState.ENABLED
+            start_downlinks = self.autoactivate
 
         for port in self.southbound_ports.itervalues():
             self.startup = port.start() if start_downlinks else port.stop()
@@ -737,13 +800,17 @@ class AdtranDeviceHandler(object):
             try:
                 yield self.netconf_client.close()
             except Exception as e:
-                self.log.exception('NETCONF client shutdown failed', e=e)
+                self.log.exception('NETCONF-shutdown', e=e)
 
         def _null_clients():
             self._netconf_client = None
             self._rest_client = None
 
         reactor.callLater(0, _null_clients)
+
+        #  Update the logice device mapping
+        if ldi in self.adapter.logical_device_id_to_root_device_id:
+            del self.adapter.logical_device_id_to_root_device_id[ldi]
 
         self.log.info('disabled', device_id=device.id)
         returnValue(results)
@@ -769,14 +836,14 @@ class AdtranDeviceHandler(object):
             yield self.make_restconf_connection()
 
         except Exception as e:
-            self.log.exception('RESTCONF adtran-hello reconnect failed', e=e)
+            self.log.exception('adtran-hello-reconnect', e=e)
             # TODO: What is best way to handle reenable failure?
 
         try:
             yield self.make_netconf_connection()
 
         except Exception as e:
-            self.log.exception('NETCONF re-connection failed', e=e)
+            self.log.exception('NETCONF-re-connection', e=e)
             # TODO: What is best way to handle reenable failure?
 
         # Recreate the logical device
@@ -850,7 +917,7 @@ class AdtranDeviceHandler(object):
                 yield self.netconf_client.rpc(AdtranDeviceHandler.RESTART_RPC)
 
             except Exception as e:
-                self.log.exception('NETCONF client shutdown', e=e)
+                self.log.exception('NETCONF-shutdown', e=e)
                 # TODO: On failure, what is the best thing to do?
 
             # Shutdown communications with OLT. Typically it takes about 2 seconds
@@ -861,7 +928,7 @@ class AdtranDeviceHandler(object):
                 self.log.debug('Restart response XML was: {}'.format('ok' if response.ok else 'bad'))
 
             except Exception as e:
-                self.log.exception('NETCONF client shutdown', e=e)
+                self.log.exception('NETCONF-client-shutdown', e=e)
 
         #  Clear off clients
 
@@ -878,7 +945,7 @@ class AdtranDeviceHandler(object):
             yield reactor.callLater(10, self._finish_reboot, timeout,
                                     previous_oper_status, previous_conn_status)
         except Exception as e:
-            self.log.exception('finish reboot scheduling', e=e)
+            self.log.exception('finish-reboot', e=e)
 
         returnValue('Waiting for reboot')
 
@@ -886,13 +953,13 @@ class AdtranDeviceHandler(object):
     def _finish_reboot(self, timeout, previous_oper_status, previous_conn_status):
         # Now wait until REST & NETCONF are re-established or we timeout
 
-        self.log.info('Resuming OLT activity after reboot requested',
+        self.log.info('Resuming-activity',
                       remaining=timeout - time.time(), timeout=timeout, current=time.time())
 
         if self.rest_client is None:
             try:
                 response = yield self.make_restconf_connection(get_timeout=10)
-                self.log.debug('Restart RESTCONF connection JSON was: {}'.format(response))
+                # self.log.debug('Restart RESTCONF connection JSON was: {}'.format(response))
 
             except Exception:
                 self.log.debug('No RESTCONF connection yet')
@@ -901,10 +968,9 @@ class AdtranDeviceHandler(object):
         if self.netconf_client is None:
             try:
                 yield self.make_netconf_connection(connect_timeout=10)
-                self.log.debug('Restart NETCONF connection succeeded')
+                # self.log.debug('Restart NETCONF connection succeeded')
 
             except Exception as e:
-                self.log.debug('No NETCONF connection yet: {}'.format(e.message))
                 try:
                     if self.netconf_client is not None:
                         yield self.netconf_client.close()
@@ -920,16 +986,16 @@ class AdtranDeviceHandler(object):
                     yield reactor.callLater(5, self._finish_reboot, timeout,
                                             previous_oper_status, previous_conn_status)
                 except Exception:
-                    self.log.debug('Rebooted check rescheduling')
+                    self.log.debug('Rebooted-check', e=e)
 
                 returnValue('Waiting some more...')
 
             if self.netconf_client is None and not self.is_virtual_olt:
-                self.log.error('Could not restore NETCONF communications after device RESET')
+                self.log.error('NETCONF-restore-failure')
                 pass        # TODO: What is best course of action if cannot get clients back?
 
             if self.rest_client is None:
-                self.log.error('Could not restore RESTCONF communications after device RESET')
+                self.log.error('RESTCONF-restore-failure')
                 pass        # TODO: What is best course of action if cannot get clients back?
 
         # Pause additional 5 seconds to let allow OLT microservices to complete some more initialization
@@ -1003,7 +1069,7 @@ class AdtranDeviceHandler(object):
             try:
                 yield self.netconf_client.close()
             except Exception as e:
-                self.log.exception('NETCONF client shutdown', e=e)
+                self.log.exception('NETCONF-shutdown', e=e)
 
             self._netconf_client = None
 
@@ -1055,7 +1121,7 @@ class AdtranDeviceHandler(object):
             pkt = Ether(msg)
             out_pkt = (
                 Ether(src=pkt.src, dst=pkt.dst) /
-                Dot1Q(vlan=4000) /
+                Dot1Q(vlan=_PACKET_IN_VLAN) /
                 Dot1Q(vlan=egress_port, type=pkt.type) /
                 pkt.payload
             )
@@ -1114,7 +1180,7 @@ class AdtranDeviceHandler(object):
 
     def start_heartbeat(self, delay=10):
         assert delay > 1
-        self.log.info('*** Starting Device Heartbeat ***')
+        self.log.info('Starting-Device-Heartbeat ***')
         self.heartbeat = reactor.callLater(delay, self.check_pulse)
         return self.heartbeat
 
@@ -1141,7 +1207,7 @@ class AdtranDeviceHandler(object):
             assert results
             # Update device states
 
-            self.log.info('heartbeat success')
+            self.log.info('heartbeat-success')
 
             if device.connect_status != ConnectStatus.REACHABLE:
                 device.connect_status = ConnectStatus.REACHABLE

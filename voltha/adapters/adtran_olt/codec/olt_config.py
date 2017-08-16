@@ -1,18 +1,17 @@
-#
-# Copyright 2017-present Adtran, Inc.
+# Copyright 2017-present Open Networking Foundation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#      http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
+
 import pprint
 
 import os
@@ -26,7 +25,6 @@ class OltConfig(object):
     Class to wrap decode of olt container (config) from the ADTRAN
     gpon-olt-hw.yang YANG model
     """
-
     def __init__(self, packet):
         self._packet = packet
         self._pons = None
@@ -54,7 +52,6 @@ class OltConfig(object):
         """
         Provides decode of PON list from within
         """
-
         def __init__(self, packet):
             assert 'pon-id' in packet
             self._packet = packet
@@ -65,8 +62,6 @@ class OltConfig(object):
 
         @staticmethod
         def decode(pon_list):
-            log.info('Decoding PON List:{}{}'.format(os.linesep,
-                                                     pprint.PrettyPrinter().pformat(pon_list)))
             pons = {}
             for pon_data in pon_list:
                 pon = OltConfig.Pon(pon_data)
@@ -110,18 +105,17 @@ class OltConfig(object):
             """
             Provides decode of onu list for a PON port
             """
-
             def __init__(self, packet):
                 assert 'onu-id' in packet
                 self._packet = packet
+                self._tconts = None
+                self._gem_ports = None
 
             def __str__(self):
                 return "OltConfig.Pon.Onu: onu-id: {}".format(self.onu_id)
 
             @staticmethod
             def decode(onu_list):
-                log.debug('onus:{}{}'.format(os.linesep,
-                                             pprint.PrettyPrinter().pformat(onu_list)))
                 onus = {}
                 for onu_data in onu_list:
                     onu = OltConfig.Pon.Onu(onu_data)
@@ -150,4 +144,148 @@ class OltConfig(object):
                 """If true, places the ONU in service"""
                 return self._packet.get('enable', False)
 
-                # TODO: TCONT and GEM lists
+            @property
+            def tconts(self):
+                if self._tconts is None:
+                    self._tconts = OltConfig.Pon.Onu.TCont.decode(self._packet.get('t-conts', None))
+                return self._tconts
+
+            @property
+            def gem_ports(self):
+                if self._gem_ports is None:
+                    self._gem_ports = OltConfig.Pon.Onu.GemPort.decode(self._packet.get('gem-ports', None))
+                return self._tconts
+
+            class TCont(object):
+                """
+                Provides decode of onu list for the T-CONT container
+                """
+                def __init__(self, packet):
+                    assert 'alloc-id' in packet
+                    self._packet = packet
+                    self._traffic_descriptor = None
+                    self._best_effort = None
+
+                def __str__(self):
+                    return "OltConfig.Pon.Onu.TCont: alloc-id: {}".format(self.alloc_id)
+
+                @staticmethod
+                def decode(tcont_container):
+                    tconts = {}
+                    for tcont_data in tcont_container.get('t-cont', []):
+                        tcont = OltConfig.Pon.Onu.TCont(tcont_data)
+                        assert tcont.alloc_id not in tconts
+                        tconts[tcont.alloc_id] = tcont
+
+                    return tconts
+
+                @property
+                def alloc_id(self):
+                    """The ID used to identify the T-CONT"""
+                    return self._packet['alloc-id']
+
+                @property
+                def traffic_descriptor(self):
+                    """
+                    Each Alloc-ID is provisioned with a traffic descriptor that specifies
+                    the three bandwidth component parameters: fixed bandwidth, assured
+                    bandwidth, and maximum bandwidth, as well as the ternary eligibility
+                    indicator for additional bandwidth assignment
+                    """
+                    if self._traffic_descriptor is None and 'traffic-descriptor' in self._packet:
+                        self._traffic_descriptor = OltConfig.Pon.Onu.TCont.\
+                            TrafficDescriptor(self._packet['traffic-descriptor'])
+                    return self._traffic_descriptor
+
+                class TrafficDescriptor(object):
+                    def __init__(self, packet):
+                        self._packet = packet
+
+                    def __str__(self):
+                        return "OltConfig.Pon.Onu.TCont.TrafficDescriptor: {}/{}/{}".\
+                            format(self.fixed_bandwidth, self.assured_bandwidth,
+                                   self.maximum_bandwidth)
+
+                    @property
+                    def fixed_bandwidth(self):
+                        return self._packet['fixed-bandwidth']
+
+                    @property
+                    def assured_bandwidth(self):
+                        return self._packet['assured-bandwidth']
+
+                    @property
+                    def maximum_bandwidth(self):
+                        return self._packet['maximum-bandwidth']
+
+                    @property
+                    def additional_bandwidth_eligibility(self):
+                        return self._packet.get('additional-bandwidth-eligibility', 'none')
+
+                @property
+                def best_effort(self):
+                    if self._best_effort is None:
+                        self._best_effort = OltConfig.Pon.Onu.TCont.BestEffort.decode(
+                            self._packet.get('best-effort', None))
+                    return self._best_effort
+
+                class BestEffort(object):
+                    def __init__(self, packet):
+                        self._packet = packet
+
+                    def __str__(self):
+                        return "OltConfig.Pon.Onu.TCont.BestEffort: {}".format(self.bandwidth)
+
+                    @property
+                    def bandwidth(self):
+                        return self._packet['bandwidth']
+
+                    @property
+                    def priority(self):
+                        return self._packet['priority']
+
+                    @property
+                    def weight(self):
+                        return self._packet['weight']
+
+            class GemPort(object):
+                """
+                Provides decode of onu list for the gem-ports container
+                """
+                def __init__(self, packet):
+                    assert 'port-id' in packet
+                    self._packet = packet
+
+                def __str__(self):
+                    return "OltConfig.Pon.Onu.GemPort: port-id: {}/{}".\
+                        format(self.port_id, self.alloc_id)
+
+                @staticmethod
+                def decode(gem_port_container):
+                    gem_ports = {}
+                    for gem_port_data in gem_port_container.get('gem-port', []):
+                        gem_port = OltConfig.Pon.Onu.GemPort(gem_port_data)
+                        assert gem_port.port_id not in gem_port
+                        gem_ports[gem_port.port_id] = gem_port
+
+                    return gem_ports
+
+                @property
+                def port_id(self):
+                    """The ID used to identify the GEM Port"""
+                    return self._packet['port-id']
+
+                @property
+                def alloc_id(self):
+                    """The Alloc-ID of the T-CONT to which this GEM port is mapped"""
+                    return self._packet['alloc-id']
+
+                @property
+                def omci_transport(self):
+                    """If true, this GEM port is used to transport the OMCI virtual connection"""
+                    return self._packet.get('omci-transport', False)
+
+                @property
+                def encryption(self):
+                    """If true, enable encryption using the advanced encryption standard(AES)"""
+                    return self._packet.get('encryption', False)
