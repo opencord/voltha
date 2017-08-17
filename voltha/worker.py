@@ -147,13 +147,15 @@ class Worker(object):
     @inlineCallbacks
     def _track_my_peers(self, index):
         try:
+            prev_index = index
             if self.mycore_store_id:
                 # Wait for updates to the store assigment key
                 (index, mappings) = yield self.coord.kv_get(
                     self.coord.core_store_assignment_key,
+                    wait='10s',
                     index=index,
                     recurse=True)
-                if mappings:
+                if mappings and index != prev_index:
                     new_map = loads(mappings[0]['Value'])
                     # Remove my id from my peers list
                     new_map.pop(self.mycore_store_id)
@@ -161,6 +163,9 @@ class Worker(object):
                         self.coord.publish_peers_map_change(new_map)
                         self.peers_map = new_map
                         log.info('peer-mapping-changed', mapping=new_map)
+                else:
+                    log.debug('no-mapping-change', mappings=mappings,
+                              index=index, prev_index=prev_index)
 
         except Exception, e:
             log.exception('peer-track-error', e=e)
@@ -172,7 +177,7 @@ class Worker(object):
         finally:
             if not self.halted:
                 # Wait longer if we have not received a core id yet
-                reactor.callLater(0 if self.mycore_store_id else 5,
+                reactor.callLater(1 if self.mycore_store_id else 5,
                                   self._track_my_peers, index)
 
     def _stash_and_restart_soak_timer(self, candidate_workload):

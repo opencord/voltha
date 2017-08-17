@@ -88,7 +88,7 @@ class Dispatcher(object):
         :param context: grpc context
         :return: the response of that dispatching request
         """
-        log.debug('start',
+        log.info('start',
                   _method_name=method_name,
                   id=id,
                   request=request)
@@ -173,12 +173,16 @@ class Dispatcher(object):
                                       request,
                                       context)
         # Then get peers results
+        log.info('maps', peers=self.peers_map, grpc=self.grpc_conn_map)
         current_responses = [result]
         for core_id in self.peers_map:
             if core_id == self.core_store_id:
                 continue # already processed
 
-            if self.peers_map[core_id] and self.grpc_conn_map[core_id]:
+            # As a safeguard, check whether the core_id is in the grpc map
+            if core_id not in self.grpc_conn_map:
+                log.warn('no-grpc-peer-connection', core=core_id)
+            elif self.peers_map[core_id] and self.grpc_conn_map[core_id]:
                 res = yield self._dispatch_to_peer(core_id,
                                                    method_name,
                                                    request,
@@ -248,7 +252,14 @@ class Dispatcher(object):
         try:
             log.info('grpc-channel-refresh', to_open=to_open,
                      to_close=to_close)
-            # First open the connection
+
+            # Close the unused connection
+            for id in to_close:
+                if self.grpc_conn_map[id]:
+                    # clear connection
+                    self._disconnect_from_peer(id)
+
+            # Open the new connections
             for id, host in to_open.iteritems():
                 if id in self.grpc_conn_map and self.grpc_conn_map[id]:
                     # clear connection
@@ -257,11 +268,6 @@ class Dispatcher(object):
                     self.grpc_conn_map[id] = \
                         yield self._connect_to_peer(host, self.grpc_port)
 
-            # Close the unused connection
-            for id in to_close:
-                if self.grpc_conn_map[id]:
-                    # clear connection
-                    self._disconnect_from_peer(id)
         except Exception, e:
             log.exception('exception', e=e)
 
@@ -312,13 +318,14 @@ class Dispatcher(object):
                           method_name,
                           request,
                           context,
-                          retry=1):
+                          retry=0):
         """
         Invoke a gRPC call to the remote server and return the response.
         :param core_id:  The voltha instance where this request needs to be sent
         :param method_name: The method name inside the service stub
         :param request: The request protobuf message
         :param context: grprc context
+        :param retry: on failure, the number of times to retry.
         :return: The response as a protobuf message
         """
         log.debug('peer-dispatch',
@@ -347,7 +354,7 @@ class Dispatcher(object):
             code = e.code()
             if code == grpc.StatusCode.UNAVAILABLE:
                 # Try to reconnect
-                status = self._reconnect_to_peer(core_id)
+                status = yield self._reconnect_to_peer(core_id)
                 if status and retry > 0:
                     response = yield self._dispatch_to_peer(core_id,
                                                             method_name,

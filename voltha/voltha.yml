@@ -63,9 +63,9 @@ coordinator:
     membership_watch_relatch_delay: 0.1
     membership_maintenance_loop_delay: 5
     tracking_loop_delay: 1
-    session_time_to_live: 300
-    session_renewal_loop_delay: 30
-    session_renewal_timeout: 60
+    session_time_to_live: 60
+    session_renewal_loop_delay: 10
+    session_renewal_timeout: 10
 
 worker:
     time_to_let_leader_update: 5

@@ -652,7 +652,7 @@ class LocalHandler(VolthaLocalServiceServicer):
             pm_configs = self.root.get(
                 '/devices/{}/pm_configs'.format(request.id))
             pm_configs.id = request.id
-            log.info('device-for-pms', pm_configs=pm_configs)
+            log.debug('device-for-pms', pm_configs=pm_configs)
             return pm_configs
         except KeyError:
             context.set_details(
@@ -662,7 +662,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def UpdateDevicePmConfigs(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
 
         if '/' in request.id:
             context.set_details(

@@ -20,7 +20,7 @@ from hash_ring import HashRing
 from structlog import get_logger
 from twisted.internet import reactor
 from twisted.internet.base import DelayedCall
-from twisted.internet.defer import inlineCallbacks, DeferredList
+from twisted.internet.defer import inlineCallbacks, DeferredList, returnValue
 from simplejson import dumps, loads
 
 from common.utils.asleep import asleep
@@ -42,10 +42,10 @@ class Leader(object):
     """
 
     ID_EXTRACTOR = '^(%s)([^/]+)$'
-    ASSIGNMENT_EXTRACTOR = '^%s(?P<member_id>[^/]+)/(?P<work_id>[^/]+)$'
     CORE_STORE_KEY_EXTRACTOR = '^%s(?P<core_store_id>[^/]+)/root$'
     CORE_NUMBER_EXTRACTOR = '^.*\.([0-9]+)\..*$'
     START_TIMESTAMP_EXTRACTOR = '^.*\..*\..*_([0-9]+)$'
+    ASSIGNMENT_ID_EXTRACTOR = '^(%s)([^/]+)/core_store$'
 
     # Public methods:
 
@@ -72,12 +72,11 @@ class Leader(object):
         self.core_data_id_match = re.compile(
             self.CORE_STORE_KEY_EXTRACTOR % self.coord.core_store_prefix).match
 
-        self.assignment_match = re.compile(
-            self.ASSIGNMENT_EXTRACTOR % self.coord.assignment_prefix).match
-
         self.core_match = re.compile(self.CORE_NUMBER_EXTRACTOR).match
         self.timestamp_match = re.compile(self.START_TIMESTAMP_EXTRACTOR ).match
 
+        self.assignment_id_match = re.compile(
+            self.ASSIGNMENT_ID_EXTRACTOR % self.coord.assignment_prefix).match
 
     @inlineCallbacks
     def start(self):
@@ -189,7 +188,7 @@ class Leader(object):
                         unique_members[voltha_number] = {'id': member['id'],
                                                          'timestamp': timestamp,
                                                          'host': member['host']}
-                        update_occurred = True
+                    update_occurred = True
 
             if update_occurred:
                 updated_members = []
@@ -203,14 +202,59 @@ class Leader(object):
             return members
 
     @inlineCallbacks
+    def _is_temporal_state(self, members):
+        try:
+            # First get the current core assignments
+            (_, results) = yield self.coord.kv_get(
+                self.coord.assignment_prefix,
+                recurse=True)
+
+            log.debug('core-assignments', assignment=results)
+            if results:
+                old_assignment = [
+                        {'id': self.assignment_id_match(e['Key']).group(2),
+                        'core': e['Value']}
+                    for e in results]
+
+                # If there are no curr_assignments then we are starting the
+                # system. In this case we should keep processing
+                if len(old_assignment) == 0:
+                    returnValue(False)
+
+                # Tackle the simplest scenario - #members >= #old_assignment
+                if len(members) >= len(old_assignment):
+                    returnValue(False)
+
+                # Everything else is a temporal state
+                log.info('temporal-state-detected', members=members,
+                         old_assignments=old_assignment)
+
+                returnValue(True)
+            else:
+                returnValue(False)
+        except Exception as e:
+            log.exception('temporal-state-error', e=e)
+            returnValue(True)
+
+    @inlineCallbacks
     def _track_members(self, index):
         previous_index = index
         try:
-            # Put a wait of 5 seconds to wait for a change of membership,
-            # if any.  Without it, if all consul nodes go down then we will
-            # never get out of this watch.
             (index, results) = yield self.coord.kv_get(
-                self.coord.membership_prefix, wait='5s', index=index, recurse=True)
+                self.coord.membership_prefix,
+                wait='10s',
+                index=index,
+                recurse=True)
+
+            if not results:
+                log.info('no-data-yet', index=index)
+                return
+
+            # Check whether we are still the leader - a new regime may be in
+            # place by the time we see a membership update
+            if self.halted:
+                log.info('I am no longer the leader')
+                return
 
             # This can happen if consul went down and came back with no data
             if not results:
@@ -238,8 +282,14 @@ class Leader(object):
                 log.info('active-members', active_members=members,
                          sanitized_members=updated_members)
 
-                # Check if the two sets are the same
-                if updated_members != self.members:
+                # Check if we are in a temporal state.  If true wait for the
+                #  next membership changes
+                temporal_state = yield self._is_temporal_state(updated_members)
+                if temporal_state:
+                    log.info('temporal-state-detected')
+                    pass # Wait for next member list change
+                elif updated_members != self.members:
+                    # if the two sets are the same
                     # update the current set of config
                     yield self._update_core_store_references()
                     log.info('membership-changed',
@@ -260,7 +310,7 @@ class Leader(object):
             # to prevent flood
         finally:
             if not self.halted:
-                reactor.callLater(0, self._track_members, index)
+                reactor.callLater(1, self._track_members, index)
 
     def _restart_reassignment_soak_timer(self):
 
