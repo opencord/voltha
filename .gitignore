@@ -35,6 +35,9 @@ tmp
 voltha/**/*.desc
 **/*_pb2.py
 **/*_pb2_grpc.py
+envoy/proto.pb
+envoy/go/envoyd/buildreport
+envoy/go/envoyd/envoyd
 
 # Editors
 *.bak

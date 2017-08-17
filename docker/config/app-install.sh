@@ -13,7 +13,7 @@ for app in $APPS; do
     mkdir -p $APP_INSTALL_ROOT
     cd $APP_INSTALL_ROOT
     cp $oar $APP_INSTALL_ROOT
-    jar -xf $APP_INSTALL_ROOT/$(basename $oar)
+    unzip -oq -d . $APP_INSTALL_ROOT/$(basename $oar)
     name=$(grep "name=" $APP_INSTALL_ROOT/app.xml | sed 's/<app name="//g;s/".*//g')
     mkdir -p $APPS_ROOT/$name
     cp $APP_INSTALL_ROOT/app.xml $APPS_ROOT/$name/app.xml
