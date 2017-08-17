@@ -1,4 +1,4 @@
-FROM onosproject/onos:1.8 as build
+FROM onosproject/onos:1.10.3 as build
 MAINTAINER Open Networking Foundation <info@opennetworking.org>
 
 # Install and configure build tools
@@ -11,7 +11,7 @@ RUN curl -sSL http://commondatastorage.googleapis.com/git-repo-downloads/repo -o
 # must be replicated below to the final image as they are shared between stages
 ENV ONOS=/root/onos
 ENV APPS_ROOT=${ONOS}/apps
-ENV KARAF_VERSION=3.0.5
+ENV KARAF_VERSION=3.0.8
 ENV KARAF_ROOT=${ONOS}/apache-karaf-${KARAF_VERSION}
 ENV KARAF_M2=${KARAF_ROOT}/system
 ENV MANIFEST_BRANCH=master
@@ -26,15 +26,15 @@ WORKDIR ${BUILD_ROOT}/onos-apps/apps
 RUN mvn -DskipTests=true clean install
 
 # Specify application versions to install
-ENV AAA_VERSION=1.2.0-SNAPSHOT \
-	CONFIG_VERSION=1.2.0-SNAPSHOT \
-	IGMP_VERSION=1.2.0-SNAPSHOT \
-	IGMP_PROXY_VERSION=1.0.0-SNAPSHOT \
-	MCAST_VERSION=1.2.0-SNAPSHOT \
-	OLT_VERSION=1.2.0-SNAPSHOT \
-	SADIS_VERSION=1.0.0-SNAPSHOT \
-	VTN_VERSION=1.2.0-SNAPSHOT \
-	L2_DHCP_RELAY_VERSION=1.0.0-SNAPSHOT
+ENV AAA_VERSION=1.3.0-SNAPSHOT \
+	CONFIG_VERSION=1.3.0-SNAPSHOT \
+	IGMP_VERSION=1.3.0-SNAPSHOT \
+	IGMP_PROXY_VERSION=1.1.0-SNAPSHOT \
+	MCAST_VERSION=1.3.0-SNAPSHOT \
+	OLT_VERSION=1.3.0-SNAPSHOT \
+	SADIS_VERSION=1.1.0-SNAPSHOT \
+	VTN_VERSION=1.3.0-SNAPSHOT \
+	L2_DHCP_RELAY_VERSION=1.1.0-SNAPSHOT
 
 ENV APPS="aaa-${AAA_VERSION} \
 	cord-config-${CONFIG_VERSION} \
@@ -53,13 +53,13 @@ RUN chmod 755 ./app-install.sh
 RUN ./app-install.sh
 
 # Create the final image coping over the installed applications from the build stage
-FROM onosproject/onos:1.8
+FROM onosproject/onos:1.10.3
 
 # Install Key Store Options
 ENV JAVA_OPTS="${JAVA_OPTS:--DenableOFTLS=true -Djavax.net.ssl.keyStore=/home/sdn/wiki/onos.jks -Djavax.net.ssl.keyStorePassword=222222 -Djavax.net.ssl.trustStore=/home/sdn/wiki/onos.jks -Djavax.net.ssl.trustStorePassword=222222}"
 
 ENV ONOS=/root/onos
-ENV KARAF_VERSION=3.0.5
+ENV KARAF_VERSION=3.0.8
 ENV KARAF_ROOT=${ONOS}/apache-karaf-${KARAF_VERSION}
 ENV KARAF_M2=${KARAF_ROOT}/system
 ENV APPS_ROOT=${ONOS}/apps
