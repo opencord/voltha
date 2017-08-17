@@ -271,7 +271,10 @@ class Coordinator(object):
         try:
             log.info('membership-record-before')
             (_, record) = yield self._retry('GET',
-                                            self.membership_record_key)
+                                            self.membership_record_key,
+                                            wait='5s',
+                                            index=0
+                                            )
             log.info('membership-record-after', record=record)
             if record is None or \
                             'Session' not in record or \
@@ -376,6 +379,8 @@ class Coordinator(object):
 
     def _start_leader_tracking(self):
         reactor.callLater(0, self._leadership_tracking_loop)
+
+
 
     @inlineCallbacks
     def _leadership_tracking_loop(self):
@@ -518,16 +523,25 @@ class Coordinator(object):
                 self._clear_backoff()
                 break
             except ConsulException, e:
-                log.exception('consul-not-up', consul=self.consul,
-                              session=self.consul.Session, e=e)
+                log.exception('consul-not-up',
+                              operation=operation,
+                              args=args,
+                              session=self.consul.Session,
+                              e=e)
                 yield self._backoff('consul-not-up')
             except ConnectionError, e:
                 log.exception('cannot-connect-to-consul',
-                              consul=self.consul, e=e)
+                              operation=operation,
+                              args=args,
+                              session=self.consul.Session,
+                              e=e)
                 yield self._backoff('cannot-connect-to-consul')
             except StaleMembershipEntryException, e:
                 log.exception('stale-membership-record-in-the-way',
-                              consul=self.consul, e=e)
+                              operation=operation,
+                              args=args,
+                              session=self.consul.Session,
+                              e=e)
                 yield self._backoff('stale-membership-record-in-the-way')
             except Exception, e:
                 if not self.shutting_down:

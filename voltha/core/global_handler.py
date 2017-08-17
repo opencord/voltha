@@ -140,14 +140,14 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                   Empty(),
                                                   context,
                                                   core_id=core_id)
-        log.info('grpc-response', response=response)
+        log.debug('grpc-response', response=response)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Voltha Instance error')
             context.set_code(response.error_code)
             returnValue(VolthaInstance())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -158,7 +158,7 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                   Empty(),
                                                   context,
                                                   broadcast=True)
-        log.info('grpc-response', response=response)
+        log.debug('grpc-response', response=response)
         returnValue(response)
 
     @twisted_async
@@ -170,15 +170,15 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.info('grpc-response', response=response)
+        log.debug('grpc-response', response=response)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details(
                 'Logical device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(LogicalDevice())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -190,15 +190,15 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.info('grpc-response', response=response)
+        log.debug('grpc-response', response=response)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details(
                 'Logical device ports \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(Ports())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -209,15 +209,15 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.info('grpc-response', response=response)
+        log.debug('grpc-response', response=response)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details(
                 'Logical device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(Flows())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -229,15 +229,15 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             request,
             context,
             id=request.id)
-        log.info('grpc-response', response=response)
+        log.debug('grpc-response', response=response)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details(
                 'Logical device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(Empty())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -249,15 +249,15 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             request,
             context,
             id=request.id)
-        log.info('grpc-response', response=response)
+        log.debug('grpc-response', response=response)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details(
                 'Logical device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(FlowGroups())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -269,15 +269,15 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             request,
             context,
             id=request.id)
-        log.info('grpc-response', response=response)
+        log.debug('grpc-response', response=response)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details(
                 'Logical device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(Empty())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -288,7 +288,7 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                   Empty(),
                                                   context,
                                                   broadcast=True)
-        log.info('grpc-response', response=response)
+        log.debug('grpc-response', response=response)
         returnValue(response)
 
     @twisted_async
@@ -299,7 +299,7 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                   Empty(),
                                                   context,
                                                   broadcast=True)
-        log.info('grpc-response', response=response)
+        log.debug('grpc-response', response=response)
         returnValue(response)
 
     @twisted_async
@@ -310,14 +310,14 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.info('grpc-response', response=response)
+        log.debug('grpc-response', response=response)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(Device())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -327,14 +327,14 @@ class GlobalHandler(VolthaGlobalServiceServicer):
         response = yield self.dispatcher.dispatch('CreateDevice',
                                                   request,
                                                   context)
-        log.info('grpc-response', response=response)
+        log.debug('grpc-response', response=response)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Create device error')
             context.set_code(response.error_code)
             returnValue(Device())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -345,14 +345,14 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.info('grpc-response', response=response)
+        log.debug('grpc-response', response=response)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(Device())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -363,14 +363,14 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.info('grpc-response', response=response)
+        log.debug('grpc-response', response=response)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(Device())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -381,14 +381,14 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.info('grpc-response', response=response)
+        log.debug('grpc-response', response=response)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(Device())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -399,14 +399,14 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.info('grpc-response', response=response)
+        log.debug('grpc-response', response=response)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(Empty())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(Empty())
 
     @twisted_async
@@ -417,14 +417,14 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.info('grpc-response', response=response)
+        log.debug('grpc-response', response=response)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(Ports())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -435,14 +435,14 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.info('grpc-response', response=response)
+        log.debug('grpc-response', response=response)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(PmConfigs())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -453,14 +453,14 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.info('grpc-response', response=response)
+        log.debug('grpc-response', response=response)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(Empty())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -471,14 +471,14 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.info('grpc-response', response=response)
+        log.debug('grpc-response', response=response)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(Flows())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -489,14 +489,14 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.info('grpc-response', response=response)
+        log.debug('grpc-response', response=response)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(FlowGroups())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -509,14 +509,14 @@ class GlobalHandler(VolthaGlobalServiceServicer):
         response = yield self.dispatcher.dispatch('ListDeviceTypes',
                                                   request,
                                                   context)
-        log.info('grpc-response', response=response)
+        log.debug('grpc-response', response=response)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device types error')
             context.set_code(response.error_code)
             returnValue(DeviceTypes())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -529,15 +529,15 @@ class GlobalHandler(VolthaGlobalServiceServicer):
         response = yield self.dispatcher.dispatch('GetDeviceType',
                                                   request,
                                                   context)
-        log.info('grpc-response', response=response)
+        log.debug('grpc-response', response=response)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device type \'{}\' error'.format(
                 request.id))
             context.set_code(response.error_code)
             returnValue(DeviceType())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -548,7 +548,7 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                   Empty(),
                                                   context,
                                                   broadcast=True)
-        log.info('grpc-response', response=response)
+        log.debug('grpc-response', response=response)
         returnValue(response)
 
     @twisted_async
@@ -561,12 +561,12 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                   id=request.id)
         log.info('grpc-response', response=response)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device group\'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(DeviceGroup())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     # bbf_fiber rpcs start
@@ -580,12 +580,12 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context,
             broadcast=True)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Channelgroup error')
             context.set_code(response.error_code)
             returnValue(Empty())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -612,12 +612,12 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             id=request.id,
             broadcast=True)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Channelgroup\'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(fb.ChannelgroupConfig())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -638,12 +638,12 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             id=request.id,
             broadcast=True)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Channelgroup\'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(fb.ChannelgroupConfig())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -656,12 +656,12 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context,
             broadcast=True)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Channelpartition error')
             context.set_code(response.error_code)
             returnValue(Empty())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -682,13 +682,13 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             id=request.id,
             broadcast=True)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Channelpartition\'{}\' error'.format(
                 request.id))
             context.set_code(response.error_code)
             returnValue(fb.ChannelpartitionConfig())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -709,13 +709,13 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             id=request.id,
             broadcast=True)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Channelpartition\'{}\' error'.format(
                 request.id))
             context.set_code(response.error_code)
             returnValue(fb.ChannelpartitionConfig())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -736,13 +736,13 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             id=request.id,
             broadcast=True)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Channelpartition\'{}\' error'.format(
                 request.id))
             context.set_code(response.error_code)
             returnValue(fb.ChannelpartitionConfig())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -755,12 +755,12 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context,
             broadcast=True)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Channelpair error')
             context.set_code(response.error_code)
             returnValue(Empty())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -781,12 +781,12 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             id=request.id,
             broadcast=True)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Channelpair\'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(fb.ChannelpairConfig())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -807,12 +807,12 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             id=request.id,
             broadcast=True)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Channelpair\'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(fb.ChannelpairConfig())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -833,12 +833,12 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             id=request.id,
             broadcast=True)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Channelpair\'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(fb.ChannelpairConfig())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -852,13 +852,13 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             id=request.id)
         log.info('grpc-response', response=response)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Channeltermination \'{}\' error'.format(
                 request.id))
             context.set_code(response.error_code)
             returnValue(fb.ChannelterminationConfig())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -872,13 +872,13 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             id=request.id)
         log.info('grpc-response', response=response)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Channeltermination \'{}\' error'.format(
                 request.id))
             context.set_code(response.error_code)
             returnValue(fb.ChannelterminationConfig())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -892,13 +892,13 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             id=request.id)
         log.info('grpc-response', response=response)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Channeltermination \'{}\' error'.format(
                 request.id))
             context.set_code(response.error_code)
             returnValue(fb.ChannelterminationConfig())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -912,13 +912,13 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             id=request.id)
         log.info('grpc-response', response=response)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Channeltermination \'{}\' error'.format(
                 request.id))
             context.set_code(response.error_code)
             returnValue(fb.ChannelterminationConfig())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -931,12 +931,12 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context,
             broadcast=True)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Ontani error')
             context.set_code(response.error_code)
             returnValue(Empty())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -957,12 +957,12 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             id=request.id,
             broadcast=True)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Ontani \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(fb.OntaniConfig())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -983,12 +983,12 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             id=request.id,
             broadcast=True)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Ontani \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(fb.OntaniConfig())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -1009,12 +1009,12 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             id=request.id,
             broadcast=True)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Ontani \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(fb.OntaniConfig())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -1027,12 +1027,12 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context,
             broadcast=True)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('VOntani error')
             context.set_code(response.error_code)
             returnValue(Empty())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -1053,12 +1053,12 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             id=request.id,
             broadcast=True)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('VOntani \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(fb.VOntaniConfig())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -1079,12 +1079,12 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             id=request.id,
             broadcast=True)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('VOntani \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(fb.VOntaniConfig())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -1105,12 +1105,12 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             id=request.id,
             broadcast=True)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('VOntani \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(fb.VOntaniConfig())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -1123,12 +1123,12 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context,
             broadcast=True)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('VEnet error')
             context.set_code(response.error_code)
             returnValue(Empty())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -1149,12 +1149,12 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             id=request.id,
             broadcast=True)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('VEnet \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(fb.VEnetConfig())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -1175,12 +1175,12 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             id=request.id,
             broadcast=True)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('VEnet \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(fb.VEnetConfig())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -1201,12 +1201,12 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             id=request.id,
             broadcast=True)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('VEnet \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(fb.VEnetConfig())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -1345,12 +1345,12 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context,
             broadcast=True)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('{}\' error' .format(type(request).__name__))
             context.set_code(response.error_code)
             returnValue(Empty())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     def manage_global_xpon_object(self, request, context, method_name):
@@ -1370,13 +1370,13 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             id=request.id,
             broadcast=True)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('{}\'{}\' error'.format(type(request).__name__,
                                                         request.id))
             context.set_code(response.error_code)
             returnValue(_xpon_object_type())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
     # bbf_fiber rpcs end
 
@@ -1405,14 +1405,14 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                   context,
                                                   id=request.id,
                                                   broadcast=True)
-        log.info('grpc-response', response=response)
+        log.debug('grpc-response', response=response)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Create alarm error')
             context.set_code(response.error_code)
             returnValue(AlarmFilter())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -1423,14 +1423,14 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.info('grpc-response', response=response)
+        log.debug('grpc-response', response=response)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Alarm filter\'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(AlarmFilter())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -1442,14 +1442,14 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                   context,
                                                   id=request.id,
                                                   broadcast=True)
-        log.info('grpc-response', response=response)
+        log.debug('grpc-response', response=response)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Alarm filter\'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(AlarmFilter())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -1461,14 +1461,14 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                   context,
                                                   id=request.id,
                                                   broadcast=True)
-        log.info('grpc-response', response=response)
+        log.debug('grpc-response', response=response)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Alarm filter\'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(Empty())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(Empty())
 
     @twisted_async
@@ -1479,14 +1479,14 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                   Empty(),
                                                   context,
                                                   broadcast=True)
-        log.info('grpc-response', response=response)
+        log.debug('grpc-response', response=response)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Alarm filters error')
             context.set_code(response.error_code)
             returnValue(AlarmFilter())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -1497,14 +1497,14 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.info('grpc-response', response=response)
+        log.debug('grpc-response', response=response)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(Images())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -1515,14 +1515,14 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.info('grpc-response', response=response)
+        log.debug('grpc-response', response=response)
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(SelfTestResponse())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -1534,17 +1534,17 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                       request,
                                                       context,
                                                       id=request.id)
-            log.info('grpc-response', response=response)
+            log.debug('grpc-response', response=response)
         except Exception as e:
             log.exception('grpc-exception', e=e)
 
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(OperationResp(code=OperationResp.OPERATION_FAILURE))
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -1556,17 +1556,17 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                       request,
                                                       context,
                                                       id=request.id)
-            log.info('grpc-response', response=response)
+            log.debug('grpc-response', response=response)
         except Exception as e:
             log.exception('grpc-exception', e=e)
 
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(ImageDownloads())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -1578,17 +1578,17 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                       request,
                                                       context,
                                                       id=request.id)
-            log.info('grpc-response', response=response)
+            log.debug('grpc-response', response=response)
         except Exception as e:
             log.exception('grpc-exception', e=e)
 
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(ImageDownload())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -1600,17 +1600,17 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                       request,
                                                       context,
                                                       id=request.id)
-            log.info('grpc-response', response=response)
+            log.debug('grpc-response', response=response)
         except Exception as e:
             log.exception('grpc-exception', e=e)
 
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(ImageDownloads())
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
 
@@ -1623,17 +1623,17 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                       request,
                                                       context,
                                                       id=request.id)
-            log.info('grpc-response', response=response)
+            log.debug('grpc-response', response=response)
         except Exception as e:
             log.exception('grpc-exception', e=e)
 
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(OperationResp(code=OperationResp.OPERATION_FAILURE))
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -1645,17 +1645,17 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                       request,
                                                       context,
                                                       id=request.id)
-            log.info('grpc-response', response=response)
+            log.debug('grpc-response', response=response)
         except Exception as e:
             log.exception('grpc-exception', e=e)
 
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(OperationResp(code=OperationResp.OPERATION_FAILURE))
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -1667,15 +1667,15 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                       request,
                                                       context,
                                                       id=request.id)
-            log.info('grpc-response', response=response)
+            log.debug('grpc-response', response=response)
         except Exception as e:
             log.exception('grpc-exception', e=e)
 
         if isinstance(response, DispatchError):
-            log.info('grpc-error-response', error=response.error_code)
+            log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(OperationResp(code=OperationResp.OPERATION_FAILURE))
         else:
-            log.info('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
