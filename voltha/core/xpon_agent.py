@@ -670,7 +670,9 @@ class XponAgent(object):
         vendor_id = v_ont_ani.data.expected_serial_number[:4]
         proxy_address = Device.ProxyAddress(
             device_id=device.id,
+            channel_group_id=self.get_channel_group_for_vont_ani(v_ont_ani),
             channel_id=parent_chnl_pair_id,
+            channel_termination=v_ont_ani.data.preferred_chanpair,
             onu_id=v_ont_ani.data.onu_id, onu_session_id=v_ont_ani.data.onu_id)
         adapter_agent.add_onu_device(
             parent_device_id=device.id, parent_port_no=parent_chnl_pair_id,
