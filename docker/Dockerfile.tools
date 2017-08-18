@@ -28,10 +28,14 @@ MAINTAINER Sergio Slobodrian <sslobodr@ciena.com>
 RUN useradd -b /home -d /home/tools tools -s /bin/bash
 RUN mkdir /home/tools
 COPY docker/config/bashrc /home/tools/.bashrc
+COPY install/install_consul_cli.sh /home/tools
 RUN chown -R tools.tools /home/tools
 RUN echo "tools:tools" | chpasswd
 RUN apt-get update && apt-get -y upgrade && apt-get -y install openssh-server kafkacat iputils-ping vim manpages iproute2 net-tools moreutils
 RUN mkdir /var/run/sshd
+RUN chmod +x /home/tools/install_consul_cli.sh
+RUN /home/tools/install_consul_cli.sh
+RUN rm /home/tools/install_consul_cli.sh
 RUN echo 'root:screencast' | chpasswd
 RUN sed -i 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
