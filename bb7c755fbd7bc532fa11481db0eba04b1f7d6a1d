@@ -49,6 +49,81 @@
     },
     {
       "key": {
+        "uuid": "3a3291f1_2f578504",
+        "filename": "compose/docker-compose-ofagent-swarm.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 21,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-08-18T20:33:04Z",
+      "side": 1,
+      "message": "Satish, there is a subscription model in voltha that would allow only 1 ofagent to connect to 1 voltha.",
+      "parentUuid": "3a3291f1_6cc7db13",
+      "range": {
+        "startLine": 21,
+        "startChar": 30,
+        "endLine": 21,
+        "endChar": 35
+      },
+      "revId": "bb7c755fbd7bc532fa11481db0eba04b1f7d6a1d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3a3291f1_af4a5553",
+        "filename": "install/voltha-swarm-start.sh",
+        "patchSetId": 1
+      },
+      "lineNbr": 39,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-08-18T20:33:04Z",
+      "side": 1,
+      "message": "Don\u0027t think you need ONOS here.   It\u0027s needed for testing but not in a voltha cluster.",
+      "revId": "bb7c755fbd7bc532fa11481db0eba04b1f7d6a1d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3a3291f1_ef95fd88",
+        "filename": "ofagent/connection_mgr.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 140,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-08-18T20:33:04Z",
+      "side": 1,
+      "message": "Please use vcore to denote the grpc server running on the voltha core and use voltha to denote the grpc server running on the envoy proxy (now named voltha).",
+      "revId": "bb7c755fbd7bc532fa11481db0eba04b1f7d6a1d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3a3291f1_4f79b192",
+        "filename": "ofagent/connection_mgr.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 167,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-08-18T20:33:04Z",
+      "side": 1,
+      "message": "Use log.debug instead.",
+      "revId": "bb7c755fbd7bc532fa11481db0eba04b1f7d6a1d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "3a3291f1_4ccc1f36",
         "filename": "ofagent/connection_mgr.py",
         "patchSetId": 1
@@ -66,6 +141,40 @@
         "endLine": 179,
         "endChar": 28
       },
+      "revId": "bb7c755fbd7bc532fa11481db0eba04b1f7d6a1d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3a3291f1_cf6481e7",
+        "filename": "ofagent/connection_mgr.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 189,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-08-18T20:33:04Z",
+      "side": 1,
+      "message": "Should this be executed even in the case of a general exception (non-rendez-vous)?",
+      "revId": "bb7c755fbd7bc532fa11481db0eba04b1f7d6a1d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3a3291f1_2f7c2572",
+        "filename": "voltha/core/local_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1188,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-08-18T20:33:04Z",
+      "side": 1,
+      "message": "Why should the local service be restarted?  This will affect the REST/Netconf requests.",
       "revId": "bb7c755fbd7bc532fa11481db0eba04b1f7d6a1d",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
