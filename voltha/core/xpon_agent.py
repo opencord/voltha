@@ -661,6 +661,15 @@ class XponAgent(object):
                 return port.port_no
         return 0
 
+    def get_channel_group_for_vont_ani(self, v_ont_ani):
+        _cp = self.core.get_proxy('/').get('/channel_partitions/{}'.format(
+            v_ont_ani.data.parent_ref))
+        assert _cp is not None
+        _cg = self.core.get_proxy('/').get('/channel_groups/{}'.format(
+            _cp.data.channelgroup_ref))
+        assert _cg is not None
+        return _cg.cg_index
+
     def create_onu_device(self, device, v_ont_ani):
         log.info('create-onu-device', device_id=device.id, v_ont_ani=v_ont_ani)
         adapter_agent = self.get_device_adapter_agent(device)
@@ -670,7 +679,9 @@ class XponAgent(object):
         vendor_id = v_ont_ani.data.expected_serial_number[:4]
         proxy_address = Device.ProxyAddress(
             device_id=device.id,
+            channel_group_id=self.get_channel_group_for_vont_ani(v_ont_ani),
             channel_id=parent_chnl_pair_id,
+            channel_termination=v_ont_ani.data.preferred_chanpair,
             onu_id=v_ont_ani.data.onu_id, onu_session_id=v_ont_ani.data.onu_id)
         adapter_agent.add_onu_device(
             parent_device_id=device.id, parent_port_no=parent_chnl_pair_id,
