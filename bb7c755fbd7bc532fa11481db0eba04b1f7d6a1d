@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "3a3291f1_af3375f5",
+        "filename": "compose/docker-compose-ofagent-swarm.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 21,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-08-18T20:14:56Z",
+      "side": 1,
+      "message": "Yes.  One vcore per ofagent.  The code was written to prevent a vcore from having more than one ofagent.  Each ofagent will try to subscribe with a vcore instance until one of the vcores accepts the connection.",
+      "parentUuid": "3a3291f1_6cc7db13",
+      "range": {
+        "startLine": 21,
+        "startChar": 30,
+        "endLine": 21,
+        "endChar": 35
+      },
+      "revId": "bb7c755fbd7bc532fa11481db0eba04b1f7d6a1d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "3a3291f1_4ccc1f36",
         "filename": "ofagent/connection_mgr.py",
         "patchSetId": 1
