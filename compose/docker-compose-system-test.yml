@@ -144,6 +144,7 @@ services:
       SERVICE_8880_CHECK_TIMEOUT: "1s"
       SERVICE_50555_NAME: "voltha-grpc"
       SERVICE_18880_NAME: "voltha-sim-rest"
+      SERVICE_HOST_IP: "${DOCKER_HOST_IP}"
     volumes:
     - "/var/run/docker.sock:/tmp/docker.sock"
     networks:
