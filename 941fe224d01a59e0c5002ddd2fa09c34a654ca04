@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3a3291f1_ac194324",
+        "filename": "voltha/core/xpon_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 673,
+      "author": {
+        "id": 1000090
+      },
+      "writtenOn": "2017-08-18T05:39:15Z",
+      "side": 1,
+      "message": "Missing function definition",
+      "range": {
+        "startLine": 673,
+        "startChar": 34,
+        "endLine": 673,
+        "endChar": 64
+      },
+      "revId": "941fe224d01a59e0c5002ddd2fa09c34a654ca04",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
