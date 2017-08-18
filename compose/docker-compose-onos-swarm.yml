@@ -1,0 +1,54 @@
+#
+# This Docker stackfile deploys a single onos container and freeradius.
+#
+# The stackfile assumes that overlay network 'voltha_net' has already been
+# created. To deploy the stack, issue the command:
+#
+#     docker stack deploy -c docker-compose-onos-swarm.yml onos
+#
+version: "3.2"
+services:
+    freeradius:
+        deploy:
+            replicas: 1
+        image: "marcelmaatkamp/freeradius"
+        ports:
+            - "1812:1812/udp"
+            - "1813:1813"
+            - "18120:18120"
+        volumes:
+            - /cord/incubator/voltha/compose/data/clients.conf:/etc/raddb/clients.conf
+            - /cord/incubator/voltha/compose/data/users:/etc/raddb/users
+        networks:
+            - net
+            - voltha-net
+
+    onos:
+        deploy:
+            # Single instance for now since a cluster 
+            # needs to be configured through onos 
+           replicas: 1
+        image: "cord/onos"
+        ports:
+            - 8101:8101 # ssh
+            - 6653:6653 # OF
+            - 8181:8181 # UI
+        environment:
+            ONOS_APPS: 'drivers,openflow-base'
+        networks:
+            - net
+            - voltha-net
+
+networks:
+    net:
+        driver: overlay
+        driver_opts:
+           encrypted: "true"
+        ipam:
+            driver: default
+            config:
+                - subnet: 172.25.0.0/24
+
+    voltha-net:
+        external:
+            name: voltha_net
