@@ -60,7 +60,7 @@ class XponHandler(object):
             investigated wrt persistency & HA design evolution, for a better
             approach in future.
         '''
-        self.cg_pool = IndexPool(2**12, 1)
+        self.cg_pool = IndexPool(2**11-1, 1)
         self.cg_dict = {}
 
     def start(self, root):

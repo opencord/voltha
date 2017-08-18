@@ -299,6 +299,10 @@ class XponAgent(object):
             print "Unexpected error:", sys.exc_info()[0]
 
     def create_interface_in_device(self, device, data):
+        if device is None:
+            return
+        log.info('xpon-agent-create-interface-in-device',
+                 device_id=device.id, type=type(data).__name__, data=data)
         adapter_agent = self.get_device_adapter_agent(device)
         if (isinstance(data, TcontsConfigData)):
             # Adapter interfaces for TCONT always need traffic-descriptor
@@ -325,6 +329,10 @@ class XponAgent(object):
                      device=device, data=data)
 
     def update_interface_in_device(self, device, data):
+        if device is None:
+            return
+        log.info('xpon-agent-update-interface-in-device',
+                 device_id=device.id, type=type(data).__name__, data=data)
         adapter_agent = self.get_device_adapter_agent(device)
         if (isinstance(data, TcontsConfigData)):
             # Adapter interfaces for TCONT always need traffic-descriptor
@@ -351,6 +359,10 @@ class XponAgent(object):
                      device=device, data=data)
 
     def remove_interface_in_device(self, device, data):
+        if device is None:
+            return
+        log.info('xpon-agent-remove-interface-in-device',
+                 device_id=device.id, type=type(data).__name__, data=data)
         adapter_agent = self.get_device_adapter_agent(device)
         if (isinstance(data, TcontsConfigData)):
             # Adapter interfaces for TCONT always need traffic-descriptor
@@ -393,7 +405,7 @@ class XponAgent(object):
             if(isinstance(data, ChannelterminationConfig)):
                 self.create_channel_termination(olt_device, data)
             elif(isinstance(data, VOntaniConfig)):
-                self.create_onu_interfaces(olt_device, data)
+                self.create_onu_interfaces(data=data, olt_device=olt_device)
             else:
                 log.info(
                     'xpon-agent-creating-interface-at-olt-device:',
@@ -482,65 +494,35 @@ class XponAgent(object):
         v_ont_anis = self.core.get_proxy('/').get('/v_ont_anis')
         for v_ont_ani in v_ont_anis:
             if self.get_link_data(v_ont_ani, 'olt').name == channel_pair.name:
-                self.create_onu_interfaces(olt_device, v_ont_ani)
+                self.create_onu_interfaces(data=v_ont_ani, olt_device=olt_device)
 
-    def create_onu_interfaces(self, olt_device, data):
+    def create_onu_interfaces(self, data, olt_device=None, onu_device=None):
         if not self.inReplay:
             self.create_onu_device(device=olt_device, v_ont_ani=data)
-        log.info(
-            'xpon-agent-creating-v-ont-ani-at-olt-device:',
-            olt_device_id=olt_device.id, v_ont_ani=data)
+            onu_device = self.get_device(data, 'onu')
         self.create_interface_in_device(olt_device, data)
-        onu_device = self.get_device(data, 'onu')
-        log.info(
-            'xpon-agent-creating-v-ont-ani-at-onu-device:',
-            onu_device_id=onu_device.id, data=data)
         self.create_interface_in_device(onu_device, data)
         try:
             ont_ani = self.core.get_proxy('/').get('/ont_anis/{}'.
                                                    format(data.name))
             if ont_ani is not None:
-                log.info(
-                    'xpon-agent-creating-ont-ani-at-olt-device:',
-                    olt_device_id=olt_device.id, ont_ani=ont_ani)
                 self.create_interface_in_device(olt_device, ont_ani)
-                log.info(
-                    'xpon-agent-creating-ont-ani-at-onu-device:',
-                    onu_device_id=onu_device.id, ont_ani=ont_ani)
                 self.create_interface_in_device(onu_device, ont_ani)
             tconts = self.core.get_proxy('/').get('/tconts')
             for tcont in tconts:
                 if self.get_parent_data(tcont).name == data.name:
-                    log.info(
-                        'xpon-agent-creating-tcont-at-olt-device:',
-                        olt_device_id=olt_device.id, tcont=tcont)
                     self.create_interface_in_device(olt_device, tcont)
-                    log.info(
-                        'xpon-agent-creating-tcont-at-onu-device:',
-                        onu_device_id=onu_device.id, tcont=tcont)
                     self.create_interface_in_device(onu_device, tcont)
             v_enets = self.core.get_proxy('/').get('/v_enets')
             for v_enet in v_enets:
                 if self.get_parent_data(v_enet).name == data.name:
-                    log.info(
-                        'xpon-agent-creating-v-enet-at-olt-device:',
-                        olt_device_id=olt_device.id, v_enet=v_enet)
                     self.create_interface_in_device(olt_device, v_enet)
-                    log.info(
-                        'xpon-agent-creating-v-enet-at-onu-device:',
-                        onu_device_id=onu_device.id, v_enet=v_enet)
                     self.create_interface_in_device(onu_device, v_enet)
                     gemports = self.core.get_proxy('/').get('/gemports')
                     for gemport in gemports:
                         if self.get_parent_data(gemport).name == v_enet.name:
-                            log.info(
-                                'xpon-agent-creating-gemport-at-olt-device:',
-                                olt_device_id=olt_device.id, gemport=gemport)
                             self.create_interface_in_device(olt_device,
                                                             gemport)
-                            log.info(
-                                'xpon-agent-creating-gemport-at-onu-device:',
-                                onu_device_id=onu_device.id, gemport=gemport)
                             self.create_interface_in_device(onu_device,
                                                             gemport)
         except KeyError:
@@ -647,11 +629,26 @@ class XponAgent(object):
 
     def replay_interface(self, device_id):
         self.inReplay = True
-        ct_items = self.core.get_proxy('/').get(
-            '/devices/{}/channel_terminations'.format(device_id))
-        for ct in ct_items:
-            self.create_interface(data=ct, device_id=device_id)
+        if not self.is_onu_device_id(device_id):
+            ct_items = self.core.get_proxy('/').get(
+                '/devices/{}/channel_terminations'.format(device_id))
+            for ct in ct_items:
+                self.create_interface(data=ct, device_id=device_id)
+        else:
+            onu_device = self.core.get_proxy('/').get('/devices/{}'.
+                                                      format(device_id))
+            v_ont_anis = self.core.get_proxy('/').get('/v_ont_anis')
+            for v_ont_ani in v_ont_anis:
+                if v_ont_ani.data.expected_serial_number == \
+                        onu_device.serial_number:
+                    #self._create_onu_interfaces(onu_device, v_ont_ani)
+                    self.create_onu_interfaces(data=v_ont_ani, onu_device=onu_device)
+                    break
         self.inReplay = False
+
+    def is_onu_device_id(self, device_id):
+        device = self.core.get_proxy('/').get('/devices/{}'.format(device_id))
+        return True if device.type.endswith("_onu") else False
 
     def get_port_num(self, device_id, label):
         log.info('get-port-num:', label=label, device_id=device_id)
@@ -672,7 +669,8 @@ class XponAgent(object):
         log.info('create-onu-device:', parent_chnl_pair_id=parent_chnl_pair_id)
         vendor_id = v_ont_ani.data.expected_serial_number[:4]
         proxy_address = Device.ProxyAddress(
-            device_id=device.id, channel_id=parent_chnl_pair_id,
+            device_id=device.id,
+            channel_id=parent_chnl_pair_id,
             onu_id=v_ont_ani.data.onu_id, onu_session_id=v_ont_ani.data.onu_id)
         adapter_agent.add_onu_device(
             parent_device_id=device.id, parent_port_no=parent_chnl_pair_id,
