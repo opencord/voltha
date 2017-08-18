@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3a3291f1_af75b533",
+        "filename": "docs/manuals/user/backup_restore/backup-restore.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 82,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-08-18T21:42:40Z",
+      "side": 1,
+      "message": "You can also ssh -p4022 tools@\u003chostid\u003e\nPassword: tools.",
+      "range": {
+        "startLine": 82,
+        "startChar": 0,
+        "endLine": 82,
+        "endChar": 34
+      },
+      "revId": "722acec07cb8ec14005f97d155675e7c3e926b0a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
