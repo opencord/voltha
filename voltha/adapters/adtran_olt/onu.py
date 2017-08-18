@@ -66,6 +66,7 @@ class Onu(object):
         self._xpon_name = onu_info['xpon-name']
         self._gem_ports = {}                           # gem-id -> GemPort
         self._tconts = {}                              # alloc-id -> TCont
+        self._onu_vid = onu_info['onu-vid']
 
         # TODO: enable and upstream-channel-speed not yet supported
 
@@ -108,6 +109,10 @@ class Onu(object):
     @property
     def name(self):
         return self._name
+
+    @property
+    def onu_vid(self):
+        return self._onu_vid
 
     @property
     def serial_number(self):

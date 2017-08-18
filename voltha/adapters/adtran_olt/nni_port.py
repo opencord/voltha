@@ -35,11 +35,10 @@ class NniPort(object):
     TODO: Merge this with the Port class or cleanup where possible
           so we do not duplicate fields/properties/methods
     """
-
     class State(Enum):
-        INITIAL = 0  # Created and initialization in progress
-        RUNNING = 1  # PON port contacted, ONU discovery active
-        STOPPED = 2  # Disabled
+        INITIAL = 0   # Created and initialization in progress
+        RUNNING = 1   # PON port contacted, ONU discovery active
+        STOPPED = 2   # Disabled
         DELETING = 3  # Cleanup
 
     def __init__(self, parent, **kwargs):
@@ -167,6 +166,7 @@ class NniPort(object):
             return succeed('Running')
 
         self.log.info('Starting NNI port')
+        self._cancel_deferred()
 
         # TODO: Start up any watchdog/polling tasks here
 
@@ -182,7 +182,7 @@ class NniPort(object):
         if self._state != NniPort.State.INITIAL:
             returnValue('Done')
 
-        returnValue('TODO: Implement startup of each NNI port')
+        # returnValue('TODO: Implement startup of each NNI port')
 
         if self._enabled:
             self._admin_state = AdminState.ENABLED
@@ -207,8 +207,8 @@ class NniPort(object):
             return succeed('Stopped')
 
         self.log.info('Stopping NNI port')
-
         self._cancel_deferred()
+
         # NOTE: Leave all NNI ports active (may have inband management)
         # TODO: Revisit leaving NNI Ports active on disable
 
@@ -221,6 +221,13 @@ class NniPort(object):
 
         self._state = NniPort.State.STOPPED
         return self._deferred
+
+    def restart(self):
+        if self._state == NniPort.State.RUNNING or self._state == NniPort.State.STOPPED:
+            start_it = (self._state == NniPort.State.RUNNING)
+            self._state = NniPort.State.INITIAL
+            return self.start() if start_it else self.stop()
+        return succeed('nop')
 
     def delete(self):
         """

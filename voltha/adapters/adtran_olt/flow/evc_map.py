@@ -124,6 +124,11 @@ class EVCMap(object):
     def installed(self):
         return self._installed
 
+    @installed.setter
+    def installed(self, value):
+        assert not value                # Can only reset
+        self._installed = False
+
     @property
     def name(self):
         return self._name
@@ -143,8 +148,8 @@ class EVCMap(object):
 
     @staticmethod
     def _xml_header(operation=None):
-        return '<evc-maps xmlns="http://www.adtran.com/ns/yang/adtran-evc-maps"><evc-map{}>'.\
-            format('' if operation is None else ' operation="{}"'.format(operation))
+        return '<evc-maps xmlns="http://www.adtran.com/ns/yang/adtran-evc-maps"{}><evc-map>'.\
+            format('' if operation is None else ' xc:operation="{}"'.format(operation))
 
     @staticmethod
     def _xml_trailer():
@@ -152,232 +157,127 @@ class EVCMap(object):
 
     @inlineCallbacks
     def install(self):
-        if self._gem_ids is not None:
-            self.pon_install()
+        if self._valid and not self._installed:
+            def _common_xml():
+                xml = '<enabled>{}</enabled>'.format('true' if self._enabled else 'false')
+                xml += '<uni>{}</uni>'.format(self._uni_port)
 
-        elif self._valid and not self._installed:
-            xml = EVCMap._xml_header()
-            xml += '<name>{}</name>'.format(self.name)
-            xml += '<enabled>{}</enabled>'.format('true' if self._enabled else 'false')
-            xml += '<uni>{}</uni>'.format(self._uni_port)
+                if self._evc_name is not None:
+                    xml += '<evc>{}</evc>'.format(self._evc_name)
+                else:
+                    xml += EVCMap.EvcConnection.xml(self._evc_connection)
 
-            if self._evc_name is not None:
-                xml += '<evc>{}</evc>'.format(self._evc_name)
-            else:
-                xml += EVCMap.EvcConnection.xml(self._evc_connection)
+                # if self._match_untagged:
+                #    xml += '<match-untagged>True</match-untagged>'
+                if self._c_tag is not None:
+                    xml += '<ctag>{}</ctag>'.format(self._c_tag)
 
-            if self._match_untagged:
-                xml += '<match-untagged>True</match-untagged>'
-            elif self._c_tag is not None:
-                xml += '<ctag>{}</ctag>'.format(self._c_tag)
+                # TODO: The following is not yet supported
+                # self._men_priority = EVCMap.PriorityOption.INHERIT_PRIORITY
+                # self._men_pri = 0  # If Explicit Priority
+                #
+                # self._men_ctag_priority = EVCMap.PriorityOption.INHERIT_PRIORITY
+                # self._men_ctag_pri = 0  # If Explicit Priority
+                #
+                # self._match_ce_vlan_id = None
+                # self._match_untagged = True
+                # self._match_destination_mac_address = None
+                # self._eth_type = None
+                # self._ip_protocol = None
+                # self._ipv4_dst = None
+                # self._udp_dst = None
+                # self._udp_src = None
+                return xml
 
-            xml += EVCMap._xml_trailer()
+            def _ingress_xml():
+                from ..onu import Onu
+                xml = '<evc-maps xmlns="http://www.adtran.com/ns/yang/adtran-evc-maps">'
+                for onu_id, gem_ids in self._gem_ids.iteritems():
+                    for gem_id in gem_ids:
+                        xml += '<evc-map>'
+                        xml += '<name>{}.{}.{}</name>'.format(self.name, onu_id, gem_id)
+                        xml += '<ce-vlan-id>{}</ce-vlan-id>'.format(Onu.gem_id_to_gvid(gem_id))
+                        xml += _common_xml()
+                        xml += '</evc-map>'
+                xml += '</evc-maps>'
+                return xml
 
-            log.debug('creating', name=self.name, xml=xml)
+            def _egress_xml():
+                xml = EVCMap._xml_header()
+                xml += '<name>{}</name>'.format(self.name)
+                xml += _common_xml()
+                xml += EVCMap._xml_trailer()
+                return xml
 
-            if self._needs_acl_support:
-                self._installed = True               # TODO: Support ACLs
-            else:
-                try:
-                    results = yield self._flow.handler.netconf_client.edit_config(xml, lock_timeout=30)
-                    self._installed = results.ok
-                    if results.ok:
-                        self.status = ''
-                    else:
-                        self.status = results.error        # TODO: Save off error status
+            try:
+                # TODO: create generator of XML once we have MANY to install at once
+                map_xml = _ingress_xml() if self._is_ingress_map else _egress_xml()
 
-                except Exception as e:
-                    log.exception('install', name=self.name, e=e)
-                    raise
+                log.debug('install', xml=map_xml, name=self.name)
+                results = yield self._flow.handler.netconf_client.edit_config(map_xml,
+                                                                              lock_timeout=30)
+                self._installed = results.ok
+                self.status = '' if results.ok else results.error
 
-        # TODO: The following is not yet supported
-        # self._men_priority = EVCMap.PriorityOption.INHERIT_PRIORITY
-        # self._men_pri = 0  # If Explicit Priority
-        #
-        # self._c_tag = None
-        # self._men_ctag_priority = EVCMap.PriorityOption.INHERIT_PRIORITY
-        # self._men_ctag_pri = 0  # If Explicit Priority
-        #
-        # self._match_ce_vlan_id = None
-        # self._match_untagged = True
-        # self._match_destination_mac_address = None
-        # self._eth_type = None
-        # self._ip_protocol = None
-        # self._ipv4_dst = None
-        # self._udp_dst = None
-        # self._udp_src = None
+            except Exception as e:
+                log.exception('install', name=self.name, e=e)
+                raise
 
         returnValue(self._installed and self._valid)
 
-    @inlineCallbacks
-    def pon_install(self):
-        """
-        Install a flow on all ONU's of a PON port
-        """
-        from ..onu import Onu
+    def remove(self):
+        if not self.installed:
+            return succeed('Not installed')
 
-        if self._valid and not self._installed:
-            # Install in per ONU batches
+        log.info('removing', evc_map=self)
 
-            self._installed = True
+        def _ingress_xml():
+            xml = '<evc-maps xmlns="http://www.adtran.com/ns/yang/adtran-evc-maps"' + \
+                  ' xc:operation = "delete">'
 
             for onu_id, gem_ids in self._gem_ids.iteritems():
-                xml = '<evc-maps xmlns="http://www.adtran.com/ns/yang/adtran-evc-maps">'
-
                 for gem_id in gem_ids:
                     xml += '<evc-map>'
                     xml += '<name>{}.{}.{}</name>'.format(self.name, onu_id, gem_id)
-                    xml += '<enabled>{}</enabled>'.format('true' if self._enabled else 'false')
-                    xml += '<uni>{}</uni>'.format(self._uni_port)
-
-                    if self._evc_name is not None:
-                        xml += '<evc>{}</evc>'.format(self._evc_name)
-                    else:
-                        xml += EVCMap.EvcConnection.xml(self._evc_connection)
-
-                    xml += '<ce-vlan-id>{}</ce-vlan-id>'.format(Onu.gem_id_to_gvid(gem_id))
-
-                    # if self._match_untagged:
-                    #    xml += '<match-untagged>True</match-untagged>'
-                    if self._c_tag is not None:
-                        xml += '<ctag>{}</ctag>'.format(self._c_tag)
-
                     xml += '</evc-map>'
-                xml += '</evc-maps>'
+            xml += '</evc-maps>'
 
-                log.debug('creating', name=self.name, onu_id=onu_id, xml=xml)
+            return xml
 
-                try:
-                    # Set installed to true while request is in progress
-                    results = yield self._flow.handler.netconf_client.edit_config(xml, lock_timeout=30)
-                    self._installed = results.ok   # TODO: Need per-ONU results?
+        def _egress_xml():
+            return EVCMap._xml_header('delete') + \
+                   '<name>{}</name>'.format(self.name) + EVCMap._xml_trailer()
 
-                    if results.ok:
-                        self.status = ''
-                    else:
-                        self.status = results.error        # TODO: Save off error status
+        def _success(rpc_reply):
+            log.debug('remove-success', rpc_reply=rpc_reply)
+            self._installed = False
 
-                except Exception as e:
-                    log.exception('install', name=self.name, onu_id=onu_id, e=e)
-                    self._installed = False
-                    raise
+        def _failure(results):
+            log.error('remove-failed', results=results)
 
-        # TODO: The following is not yet supported
-        # self._men_priority = EVCMap.PriorityOption.INHERIT_PRIORITY
-        # self._men_pri = 0  # If Explicit Priority
-        #
-        # self._c_tag = None
-        # self._men_ctag_priority = EVCMap.PriorityOption.INHERIT_PRIORITY
-        # self._men_ctag_pri = 0  # If Explicit Priority
-        #
-        # self._match_untagged = True
-        # self._match_destination_mac_address = None
-        # self._eth_type = None
-        # self._ip_protocol = None
-        # self._ipv4_dst = None
-        # self._udp_dst = None
-        # self._udp_src = None
-
-        returnValue(self._installed and self._valid)
-
-    @inlineCallbacks
-    def remove(self):
-        if self._installed:
-            xml = EVCMap._xml_header('remove') + '<name>{}</name>'.format(self.name) + EVCMap._xml_trailer()
-
-            log.debug('removing', name=self.name, xml=xml)
-
-            if self._needs_acl_support:
-                self._installed = False              # TODO: Support ACLs
-            else:
-                try:
-                    results = yield self._flow.handler.netconf_client.edit_config(xml,
-                                                                                  default_operation='remove',
-                                                                                  lock_timeout=30)
-                    self._installed = not results.ok
-                    if results.ok:
-                        self.status = ''
-                    else:
-                        self.status = results.error      # TODO: Save off error status
-
-                except Exception as e:
-                    log.exception('removing', name=self.name, e=e)
-                    raise
-
-            # TODO: Do we remove evc reference here or maybe have a 'delete' function?
-
-        returnValue(self._installed)
-
-    @inlineCallbacks
-    def enable(self):
-        if self.installed and not self._enabled:
-            xml = EVCMap._xml_header() + '<name>{}</name>'.format(self.name)
-            xml += '<enabled>true</enabled>' + EVCMap._xml_trailer()
-
-            log.debug('enabling', name=self.name, xml=xml)
-
-            if self._needs_acl_support:
-                self._enabled = True             # TODO: Support ACLs
-            else:
-                try:
-                    results = yield self._flow.handler.netconf_client.edit_config(xml, lock_timeout=30)
-                    self._enabled = results.ok
-                    if results.ok:
-                        self.status = ''
-                    else:
-                        self.status = results.error      # TODO: Save off error status
-
-                except Exception as e:
-                    log.exception('enabling', name=self.name, e=e)
-                    raise
-
-        returnValue(self.installed and self._enabled)
-
-    @inlineCallbacks
-    def disable(self):
-        if self.installed and self._enabled:
-            xml = EVCMap._xml_header() + '<name>{}</name>'.format(self.name)
-            xml += '<enabled>false</enabled>' + EVCMap._xml_trailer()
-
-            log.debug('disabling', name=self.name, xml=xml)
-
-            if self._needs_acl_support:
-                self._enabled = False              # TODO: Support ACLs
-            else:
-                try:
-                    results = yield self._flow.handler.netconf_client.edit_config(xml, lock_timeout=30)
-                    self._enabled = not results.ok
-                    if results.ok:
-                        self.status = ''
-                    else:
-                        self.status = results.error     # TODO: Save off error status
-
-                except Exception as e:
-                    log.exception('disabling', name=self.name, e=e)
-                    raise
-
-        returnValue(self.installed and not self._enabled)
+        # TODO: create generator of XML once we have MANY to install at once
+        map_xml = _ingress_xml() if self._is_ingress_map else _egress_xml()
+        d = self._flow.handler.netconf_client.edit_config(map_xml, lock_timeout=30)
+        d.addCallbacks(_success, _failure)
+        return d
 
     @inlineCallbacks
     def delete(self):
         """
-        Remove from hardware and delete/clean-up
+        Remove from hardware and delete/clean-up EVC-MAP Object
         """
+        if self._evc is not None:
+            self._evc.remove_evc_map(self)
+
         try:
-            self._valid = False
-            succeeded = yield self.remove()
-            # TODO: On timeout or other NETCONF error, should we schedule cleanup later?
+            yield self.remove()
 
-        except Exception:
-            succeeded = False
+        except Exception as e:
+            log.exception('removal', e=e)
 
-        finally:
-            self._flow = None
-            evc, self._evc = self._evc, None
-            if evc is not None:
-                evc.remove_evc_map(self)
-
-        returnValue(succeeded)
+        self._flow = None
+        self._evc = None
+        returnValue('Done')
 
     def _decode(self):
         from evc import EVC
@@ -423,10 +323,10 @@ class EVCMap(object):
             pon_port = flow.handler.get_southbound_port(flow.in_port)
 
             if pon_port is not None:
-                self._gem_ids = pon_port.gem_ids(self._needs_acl_support)
+                self._gem_ids = pon_port.gem_ids(self._flow.onu_vid, self._needs_acl_support)
                 # TODO: Only EAPOL ACL support for the first demo
                 if self._needs_acl_support and self._eth_type != FlowEntry.EtherType.EAPOL.value:
-                    self._gem_ids = set()
+                    self._gem_ids = dict()
 
         # if flow.vlan_id is None and flow.inner_vid is None:
         #     self._match_untagged = True
@@ -450,6 +350,8 @@ class EVCMap(object):
 
         return True
 
+    # Bulk operations
+
     @staticmethod
     def remove_all(client, regex_=EVC_MAP_NAME_REGEX_ALL):
         """
@@ -469,7 +371,7 @@ class EVCMap(object):
           </evc-maps>
         </filter>
         """
-        log.debug('query', xml=get_xml)
+        log.info('query', xml=get_xml, regex=regex_)
 
         def request_failed(results, operation):
             log.error('{}-failed'.format(operation), results=results)
@@ -499,12 +401,15 @@ class EVCMap(object):
                                 break
 
                     if len(names) > 0:
-                        del_xml = EVCMap._xml_header('delete')
+                        del_xml = '<evc-maps xmlns="http://www.adtran.com/ns/yang/adtran-evc-maps"' + \
+                                 ' xc:operation = "delete">'
                         for name in names:
+                            del_xml += '<evc-map>'
                             del_xml += '<name>{}</name>'.format(name)
-                            del_xml += EVCMap._xml_trailer()
-
+                            del_xml += '</evc-map>'
+                        del_xml += '</evc-maps>'
                         log.debug('removing', xml=del_xml)
+
                         return client.edit_config(del_xml, lock_timeout=30)
 
             return succeed('no entries')

@@ -40,9 +40,9 @@ class PonPort(object):
     DEFAULT_ENABLED = False
 
     class State(Enum):
-        INITIAL = 0  # Created and initialization in progress
-        RUNNING = 1  # PON port contacted, ONU discovery active
-        STOPPED = 2  # Disabled
+        INITIAL = 0   # Created and initialization in progress
+        RUNNING = 1   # PON port contacted, ONU discovery active
+        STOPPED = 2   # Disabled
         DELETING = 3  # Cleanup
 
     _SUPPORTED_ACTIVATION_METHODS = ['autodiscovery', 'autoactivate']
@@ -387,6 +387,13 @@ class PonPort(object):
 
         returnValue('Reset complete')
 
+    def restart(self):
+        if self._state == PonPort.State.RUNNING or self._state == PonPort.State.STOPPED:
+            start_it = (self._state == PonPort.State.RUNNING)
+            self._state = PonPort.State.INITIAL
+            return self.start() if start_it else self.stop()
+        return succeed('nop')
+
     def delete(self):
         """
         Parent device is being deleted. Do not change any config but
@@ -397,15 +404,19 @@ class PonPort(object):
         self._cancel_deferred()
 
     # @property
-    def gem_ids(self, exception_gems):
+    def gem_ids(self, onu_vid, exception_gems):
         """
         Get all GEM Port IDs used on a given PON
 
+        :param onu_vid: (int) ONU VLAN ID if customer ONU specific. None if for all ONUs
+                              on PON
+        :param exception_gems: (boolean) Select from special purpose ACL GEM-Portas
         :return: (dict) key -> onu-id, value -> frozenset of GEM Port IDs
         """
         gem_ids = {}
         for onu_id, onu in self._onu_by_id.iteritems():
-            gem_ids[onu_id] = onu.gem_ids(exception_gems)
+            if onu_vid is None or onu_vid == onu.onu_vid:
+                gem_ids[onu_id] = onu.gem_ids(exception_gems)
         return gem_ids
 
     def get_pon_config(self):
@@ -572,6 +583,7 @@ class PonPort(object):
                 'password': Onu.DEFAULT_PASSWORD,
                 't-conts': get_tconts(self.pon_id, serial_number, onu_id),
                 'gem-ports': get_gem_ports(self.pon_id, serial_number, onu_id),
+                'onu-vid': self.olt.get_channel_id(self._pon_id, onu_id)
             }
             return onu_info
 
@@ -620,7 +632,7 @@ class PonPort(object):
         """
         olt = self.olt
         adapter = self.adapter_agent
-        channel_id = self.olt.get_channel_id(self._pon_id, onu.onu_id)
+        channel_id = onu.onu_vid
 
         proxy = Device.ProxyAddress(device_id=olt.device_id, channel_id=channel_id)
 

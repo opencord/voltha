@@ -282,7 +282,8 @@ class AdtranNetconfClient(object):
         #         raise
         try:
             if config[:7] != '<config':
-                config = '<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">' + \
+                config = '<config xmlns:xc="urn:ietf:params:xml:ns:netconf:base:1.0"' + \
+                         ' xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">' + \
                          config + '</config>'
 
             rpc_reply = yield threads.deferToThread(self._do_edit_config, target,

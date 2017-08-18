@@ -171,7 +171,7 @@ class AdtranOltAdapter(object):
         :param device: A Voltha.Device object.
         :return: (Deferred) Shall be fired to acknowledge disabling the device.
         """
-        log.debug('disable_device', device=device)
+        log.info('disable-device', device=device)
         reactor.callLater(0, self.devices_handlers[device.id].disable)
         return device
 
@@ -183,7 +183,7 @@ class AdtranOltAdapter(object):
         :param device: A Voltha.Device object.
         :return: (Deferred) Shall be fired to acknowledge re-enabling the device.
         """
-        log.debug('reenable_device', device=device)
+        log.info('reenable-device', device=device)
         reactor.callLater(0, self.devices_handlers[device.id].reenable)
         return device
 
@@ -241,7 +241,7 @@ class AdtranOltAdapter(object):
         :param device: A Voltha.Device object.
         :return: (Deferred) Shall be fired to acknowledge the deletion.
         """
-        log.info('delete_device', device=device)
+        log.info('delete-device', device=device)
         reactor.callLater(0, self.devices_handlers[device.id].delete)
         return device
 
@@ -268,7 +268,7 @@ class AdtranOltAdapter(object):
         :return: (Deferred or None)
         """
         log.info('bulk-flow-update', device_id=device.id, flows=flows,
-                 groups=groups)
+                 groups=groups, num_flows=len(flows.items))
         assert len(groups.items) == 0, "Cannot yet deal with groups"
 
         handler = self.devices_handlers[device.id]
@@ -310,7 +310,7 @@ class AdtranOltAdapter(object):
         :return: (Deferred(None) or None) The return of this method should
                 indicate that the message was successfully *sent*.
         """
-        log.info('send-proxied-message', proxy_address=proxy_address, msg=msg)
+        log.debug('send-proxied-message', proxy_address=proxy_address, msg=msg)
         handler = self.devices_handlers[proxy_address.device_id]
         handler.send_proxied_message(proxy_address, msg)
 
@@ -339,8 +339,8 @@ class AdtranOltAdapter(object):
         :param msg: actual message
         :return: None
         """
-        log.info('packet-out', logical_device_id=logical_device_id,
-                 egress_port_no=egress_port_no, msg_len=len(msg))
+        log.debug('packet-out', logical_device_id=logical_device_id,
+                  egress_port_no=egress_port_no, msg_len=len(msg))
 
         def ldi_to_di(ldi):
             di = self.logical_device_id_to_root_device_id.get(ldi)
@@ -391,7 +391,7 @@ class AdtranOltAdapter(object):
         API to create various interfaces (only some PON interfaces as of now)
         in the devices
         """
-        log.info('create_interface', data=data)
+        log.info('create-interface', data=data)
         handler = self.devices_handlers[device.id]
         handler.create_interface(device, data)
 
@@ -400,6 +400,7 @@ class AdtranOltAdapter(object):
         API to update various interfaces (only some PON interfaces as of now)
         in the devices
         """
+        log.info('update-interface', data=data)
         raise NotImplementedError()
 
     def remove_interface(self, device, data):
@@ -407,6 +408,7 @@ class AdtranOltAdapter(object):
         API to delete various interfaces (only some PON interfaces as of now)
         in the devices
         """
+        log.info('remove-interface', data=data)
         raise NotImplementedError()
 
     def receive_onu_detect_state(self, device_id, state):
@@ -419,37 +421,52 @@ class AdtranOltAdapter(object):
         raise NotImplementedError()
 
     def create_tcont(self, device, tcont_data, traffic_descriptor_data):
+        log.info('create-tcont', tcont_data=tcont_data,
+                 traffic_descriptor_data=traffic_descriptor_data)
         raise NotImplementedError()
 
     def update_tcont(self, device, tcont_data, traffic_descriptor_data):
+        log.info('update-tcont', tcont_data=tcont_data,
+                 traffic_descriptor_data=traffic_descriptor_data)
         raise NotImplementedError()
 
     def remove_tcont(self, device, tcont_data, traffic_descriptor_data):
+        log.info('remove-tcont', tcont_data=tcont_data,
+                 traffic_descriptor_data=traffic_descriptor_data)
         raise NotImplementedError()
 
     def create_gemport(self, device, data):
+        log.info('create-gemport', data=data)
         raise NotImplementedError()
 
     def update_gemport(self, device, data):
+        log.info('update-gemport', data=data)
         raise NotImplementedError()
 
     def remove_gemport(self, device, data):
+        log.info('remove-gemport', data=data)
         raise NotImplementedError()
 
     def create_multicast_gemport(self, device, data):
+        log.info('create-mcast-gemport', data=data)
         raise NotImplementedError()
 
     def update_multicast_gemport(self, device, data):
+        log.info('update-mcast-gemport', data=data)
         raise NotImplementedError()
 
     def remove_multicast_gemport(self, device, data):
+        log.info('remove-mcast-gemport', data=data)
         raise NotImplementedError()
 
     def create_multicast_distribution_set(self, device, data):
+        log.info('create-mcast-distribution-set', data=data)
         raise NotImplementedError()
 
     def update_multicast_distribution_set(self, device, data):
+        log.info('update-mcast-distribution-set', data=data)
         raise NotImplementedError()
 
     def remove_multicast_distribution_set(self, device, data):
+        log.info('remove-mcast-distribution-set', data=data)
         raise NotImplementedError()

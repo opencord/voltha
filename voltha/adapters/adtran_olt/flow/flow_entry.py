@@ -19,7 +19,7 @@ from enum import Enum
 import voltha.core.flow_decomposer as fd
 from voltha.core.flow_decomposer import *
 from voltha.protos.openflow_13_pb2 import OFPP_CONTROLLER, OFPP_LOCAL, OFPP_ANY, OFPP_MAX
-from twisted.internet.defer import returnValue, inlineCallbacks
+from twisted.internet.defer import returnValue, inlineCallbacks, succeed, gatherResults
 
 log = structlog.get_logger()
 
@@ -77,6 +77,7 @@ class FlowEntry(object):
         self.evc = None              # EVC this flow is part of
         self.evc_map = None          # EVC-MAP this flow is part of
         self._flow_direction = FlowEntry.FlowDirection.OTHER
+        self.onu_vid = None
 
         self._name = self._create_flow_name()
         # A value used to locate possible related flow entries
@@ -238,10 +239,10 @@ class FlowEntry(object):
         if status:
             # Determine direction of the flow
 
-            def port_type(port):
-                if port in self._handler.northbound_ports:
+            def port_type(port_number):
+                if port_number in self._handler.northbound_ports:
                     return FlowEntry.FlowDirection.NNI
-                elif port <= OFPP_MAX:
+                elif port_number <= OFPP_MAX:
                     return FlowEntry.FlowDirection.UNI
                 return FlowEntry.FlowDirection.OTHER
 
@@ -271,6 +272,7 @@ class FlowEntry(object):
             inner = self.inner_vid
         else:
             inner = self.vlan_id if (push_len > 0 and outer is not None) else None
+            self.onu_vid = inner if self._flow_direction == FlowEntry.FlowDirection.UPSTREAM else None
 
         self.signature = '{}'.format(dev_id)
         for port in ports:
@@ -375,16 +377,14 @@ class FlowEntry(object):
     @staticmethod
     def drop_missing_flows(device_id, valid_flow_ids):
         flow_table = _existing_flow_entries.get(device_id, None)
+        if flow_table is None:
+            return succeed('No table')
 
-        if flow_table is not None:
-            flows_to_drop = [flow for flow_id, flow in flow_table.items() if flow_id not in valid_flow_ids]
+        flows_to_drop = [flow for flow_id, flow in flow_table.items() if flow_id not in valid_flow_ids]
+        if len(flows_to_drop) == 0:
+            return succeed('No flows')
 
-            for flow in flows_to_drop:
-                try:
-                    yield flow.remove()
-
-                except Exception as e:
-                    log.exception('stale-flow', flow=flow, e=e)
+        return gatherResults([flow.remove() for flow in flows_to_drop])
 
     @inlineCallbacks
     def remove(self):
@@ -397,39 +397,33 @@ class FlowEntry(object):
         flow_id = self._flow.id
         flow_table = _existing_flow_entries.get(device_id, None)
 
-        if flow_table is not None and flow_id in flow_table:
-            del flow_table[flow_id]
-            if len(flow_table) == 0:
-                del _existing_flow_entries[device_id]
+        if flow_table is None or flow_id not in flow_table:
+            returnValue(succeed('NOP'))
 
-            # Remove flow from the hardware
+        del flow_table[flow_id]
+        if len(flow_table) == 0:
+            del _existing_flow_entries[device_id]
 
-            evc_map, self.evc_map = self.evc_map, None
-            evc, self.evc = self.evc, None
+        # Remove flow from the hardware
+        try:
+            dl = []
+            if self.evc_map is not None:
+                dl.append(self.evc_map.delete())
 
-            if evc_map is not None:
-                yield evc_map.delete()
+            if self.evc is not None:
+                dl.append(self.evc.delete())
 
-            if evc is not None:
-                yield evc.delete()
+            yield gatherResults(dl)
 
-            self._flow = None
-            self._handler = None
+        except Exception as e:
+            log.exception('removal', e=e)
 
-        returnValue('done')
+        self.evc_map = None
+        self.evc = None
+        returnValue(succeed('Done'))
 
     ######################################################
     # Bulk operations
-
-    @staticmethod
-    def enable_all():
-        # TODO: May want to be device specific or regex based
-        raise NotImplemented("TODO: Implement this")
-
-    @staticmethod
-    def disable_all():
-        # TODO: May want to be device specific or regex based
-        raise NotImplemented("TODO: Implement this")
 
     @staticmethod
     def remove_all():

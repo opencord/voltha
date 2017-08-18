@@ -276,11 +276,17 @@ class AdtranOltHandler(AdtranDeviceHandler):
     def disable(self):
         c, self.zmq_client = self.zmq_client, None
         if c is not None:
-            c.shutdown()
+            try:
+                c.shutdown()
+            except:
+                pass
 
         d, self.status_poll = self.status_poll, None
         if d is not None:
-            d.cancel()
+            try:
+                d.cancel()
+            except:
+                pass
 
         super(AdtranOltHandler, self).disable()
 
@@ -348,10 +354,10 @@ class AdtranOltHandler(AdtranDeviceHandler):
                 self.rest_client is not None:
             uri = AdtranOltHandler.GPON_OLT_HW_STATE_URI
             name = 'pon-status-poll'
-            self.startup = self.rest_client.request('GET', uri, name=name)
-            self.startup.addBoth(self.status_poll_complete)
+            self.status_poll = self.rest_client.request('GET', uri, name=name)
+            self.status_poll.addBoth(self.status_poll_complete)
         else:
-            self.startup = reactor.callLater(0, self.status_poll_complete, 'inactive')
+            self.status_poll = reactor.callLater(0, self.status_poll_complete, 'inactive')
 
     def status_poll_complete(self, results):
         """
@@ -410,8 +416,6 @@ class AdtranOltHandler(AdtranDeviceHandler):
         valid_flows = []
 
         for flow in flows:
-            # TODO: Do we get duplicates here (ie all flows re-pushed on each individual flow add?)
-
             try:
                 # Try to create an EVC.
                 #
@@ -431,12 +435,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
                 if evc is not None:
                     try:
                         evc.schedule_install()
-
-                        if evc.name not in self.evcs:
-                            self.evcs[evc.name] = evc
-                        else:
-                            # TODO: Do we get duplicates here (ie all flows re-pushed on each individual flow add?)
-                            pass
+                        self.add_evc(evc)
 
                     except Exception as e:
                         evc.status = 'EVC Install Exception: {}'.format(e.message)

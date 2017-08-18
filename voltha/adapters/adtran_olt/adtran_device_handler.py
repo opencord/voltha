@@ -51,12 +51,12 @@ _MULTICAST_VLAN = 4092
 _MANAGEMENT_VLAN = 4093
 _is_inband_frame = BpfProgramFilter('(ether[14:2] & 0xfff) = 0x{:03x}'.format(_PACKET_IN_VLAN))
 
-_DEFAULT_RESTCONF_USERNAME = ""
-_DEFAULT_RESTCONF_PASSWORD = ""
+_DEFAULT_RESTCONF_USERNAME = "ADMIN"
+_DEFAULT_RESTCONF_PASSWORD = "PASSWORD"
 _DEFAULT_RESTCONF_PORT = 8081
 
-_DEFAULT_NETCONF_USERNAME = ""
-_DEFAULT_NETCONF_PASSWORD = ""
+_DEFAULT_NETCONF_USERNAME = "hsvroot"
+_DEFAULT_NETCONF_PASSWORD = "BOSCO"
 _DEFAULT_NETCONF_PORT = 830
 
 
@@ -163,7 +163,7 @@ class AdtranDeviceHandler(object):
         self.is_virtual_olt = False
 
         # Installed flows
-        self.evcs = {}  # Flow ID/name -> FlowEntry
+        self._evcs = {}  # Flow ID/name -> FlowEntry
 
     def __del__(self):
         # Kill any startup or heartbeat defers
@@ -199,6 +199,18 @@ class AdtranDeviceHandler(object):
     @property
     def rest_client(self):
         return self._rest_client
+
+    @property
+    def evcs(self):
+        return list(self._evcs.values())
+
+    def add_evc(self, evc):
+        if self._evcs is not None:
+            self._evcs[evc.name] = evc
+
+    def remove_evc(self, evc):
+        if self._evcs is not None and evc.name in self._evcs:
+            del self._evcs[evc.name]
 
     def parse_provisioning_options(self, device):
         from net.adtran_zmq import DEFAULT_ZEROMQ_OMCI_TCP_PORT
@@ -735,12 +747,16 @@ class AdtranDeviceHandler(object):
 
         # TODO: What else (delete logical device, ???)
 
-    @inlineCallbacks
     def disable(self):
         """
         This is called when a previously enabled device needs to be disabled based on a NBI call.
         """
         self.log.info('disabling', device_id=self.device_id)
+
+        # Cancel any running enable/disable/... in progress
+        d, self.startup = self.startup, None
+        if d is not None:
+            d.cancel()
 
         # Get the latest device reference
         device = self.adapter_agent.get_device(self.device_id)
@@ -775,12 +791,6 @@ class AdtranDeviceHandler(object):
         # Remove the peer references from this device
         self.adapter_agent.delete_all_peer_references(self.device_id)
 
-        # Disable all flows            TODO: Do we want to delete them?
-        # TODO: Create a bulk disable-all by device-id
-
-        for evc in self.evcs.itervalues():
-            evc.disable()
-
         # Set all ports to disabled
         self.adapter_agent.disable_all_ports(self.device_id)
 
@@ -791,29 +801,30 @@ class AdtranDeviceHandler(object):
         for port in self.southbound_ports.itervalues():
             dl.append(port.stop())
 
+        # NOTE: Flows removed before this method is called
+        # Wait for completion
+
         self.startup = defer.gatherResults(dl)
-        results = yield self.startup
 
-        # Shutdown communications with OLT
-
-        if self.netconf_client is not None:
-            try:
-                yield self.netconf_client.close()
-            except Exception as e:
-                self.log.exception('NETCONF-shutdown', e=e)
+        def _drop_netconf():
+            return self.netconf_client.close() if \
+                self.netconf_client is not None else defer.succeed('NOP')
 
         def _null_clients():
             self._netconf_client = None
             self._rest_client = None
 
-        reactor.callLater(0, _null_clients)
+        # Shutdown communications with OLT
 
-        #  Update the logice device mapping
+        self.startup.addCallbacks(_drop_netconf, _null_clients)
+        self.startup.addCallbacks(_null_clients, _null_clients)
+
+        #  Update the logical device mapping
         if ldi in self.adapter.logical_device_id_to_root_device_id:
             del self.adapter.logical_device_id_to_root_device_id[ldi]
 
         self.log.info('disabled', device_id=device.id)
-        returnValue(results)
+        return self.startup
 
     @inlineCallbacks
     def reenable(self):
@@ -821,6 +832,11 @@ class AdtranDeviceHandler(object):
         This is called when a previously disabled device needs to be enabled based on a NBI call.
         """
         self.log.info('re-enabling', device_id=self.device_id)
+
+        # Cancel any running enable/disable/... in progress
+        d, self.startup = self.startup, None
+        if d is not None:
+            d.cancel()
 
         # Get the latest device reference
         device = self.adapter_agent.get_device(self.device_id)
@@ -872,16 +888,18 @@ class AdtranDeviceHandler(object):
         for port in self.southbound_ports.itervalues():
             dl.append(port.start())
 
+        # Flows should not exist on re-enable. They are re-pushed
+        if len(self._evcs):
+            self.log.error('evcs-found', evcs=self._evcs)
+        self._evcs.clear()
+
+        # Wait for completion
+
         self.startup = defer.gatherResults(dl)
         results = yield self.startup
 
         # TODO:
         # 1) Restart health check / pings
-        # Enable all flows
-        # TODO: Create a bulk enable-all by device-id
-
-        for evc in self.evcs:
-            evc.enable()
 
         # Activate in-band packets
         self._activate_io_port()
@@ -896,6 +914,11 @@ class AdtranDeviceHandler(object):
         will not change after the reboot.
         """
         self.log.debug('reboot')
+
+        # Cancel any running enable/disable/... in progress
+        d, self.startup = self.startup, None
+        if d is not None:
+            d.cancel()
 
         # Update the operational status to ACTIVATING and connect status to
         # UNREACHABLE
@@ -1011,6 +1034,32 @@ class AdtranDeviceHandler(object):
         # Update the child devices connect state to REACHABLE
         self.adapter_agent.update_child_devices_state(self.device_id,
                                                       connect_status=ConnectStatus.REACHABLE)
+        # Restart ports to previous state
+
+        dl = []
+
+        for port in self.northbound_ports.itervalues():
+            dl.append(port.restart())
+
+        for port in self.southbound_ports.itervalues():
+            dl.append(port.restart())
+
+        try:
+            yield defer.gatherResults(dl)
+        except Exception as e:
+            self.log.exception('port-restart', e=e)
+
+        # Request reflow of any EVC/EVC-MAPs
+
+        if len(self._evcs) > 0:
+            dl = []
+            for evc in self.evcs:
+                dl.append(evc.reflow())
+
+            try:
+                yield defer.gatherResults(dl)
+            except Exception as e:
+                self.log.exception('flow-restart', e=e)
 
         self.log.info('rebooted', device_id=self.device_id)
         returnValue('Rebooted')
@@ -1036,10 +1085,11 @@ class AdtranDeviceHandler(object):
         # Remove all flows from the device
         # TODO: Create a bulk remove-all by device-id
 
-        for evc in self.evcs.itervalues():
-            evc.remove()
+        evcs = self._evcs()
+        self._evcs.clear()
 
-        self.evcs.clear()
+        for evc in evcs:
+            evc.delete()   # TODO: implement bulk-flow procedures
 
         # Remove all child devices
         self.adapter_agent.delete_all_child_devices(self.device_id)
