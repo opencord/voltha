@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3a3291f1_cc912f54",
+        "filename": "voltha/core/xpon_agent.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 665,
+      "author": {
+        "id": 1000090
+      },
+      "writtenOn": "2017-08-18T06:30:39Z",
+      "side": 1,
+      "message": "prefer parent channel partition",
+      "range": {
+        "startLine": 665,
+        "startChar": 44,
+        "endLine": 665,
+        "endChar": 58
+      },
+      "revId": "452ece3bb807eedd418234bdb0e4732a828786ca",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
