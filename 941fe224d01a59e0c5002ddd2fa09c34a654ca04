@@ -22,6 +22,30 @@
       "revId": "941fe224d01a59e0c5002ddd2fa09c34a654ca04",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3a3291f1_6ca11ba9",
+        "filename": "voltha/core/xpon_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 673,
+      "author": {
+        "id": 1000067
+      },
+      "writtenOn": "2017-08-18T06:01:26Z",
+      "side": 1,
+      "message": "Fixed it. Sorry missed to copy from test to delivery repo.",
+      "parentUuid": "3a3291f1_ac194324",
+      "range": {
+        "startLine": 673,
+        "startChar": 34,
+        "endLine": 673,
+        "endChar": 64
+      },
+      "revId": "941fe224d01a59e0c5002ddd2fa09c34a654ca04",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
