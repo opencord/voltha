@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3a3291f1_6cc7db13",
+        "filename": "compose/docker-compose-ofagent-swarm.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 21,
+      "author": {
+        "id": 1000180
+      },
+      "writtenOn": "2017-08-18T18:40:55Z",
+      "side": 1,
+      "message": "Are we trying in to have one ofagent connected to one vcore ? If so, with ofagent connecting to voltha using the vcore service address, swarm would randomly forward the connection to any of the of vcore instances and at times we might have all 3 ofagents connecting to same vcore instance. Thoughts?",
+      "range": {
+        "startLine": 21,
+        "startChar": 30,
+        "endLine": 21,
+        "endChar": 35
+      },
+      "revId": "bb7c755fbd7bc532fa11481db0eba04b1f7d6a1d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3a3291f1_4ccc1f36",
+        "filename": "ofagent/connection_mgr.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 179,
+      "author": {
+        "id": 1000180
+      },
+      "writtenOn": "2017-08-18T18:40:55Z",
+      "side": 1,
+      "message": "Uniform logging. Could you please change. Same at other places. log.info(subscription-with-voltha-is-unavailable ..",
+      "range": {
+        "startLine": 179,
+        "startChar": 24,
+        "endLine": 179,
+        "endChar": 28
+      },
+      "revId": "bb7c755fbd7bc532fa11481db0eba04b1f7d6a1d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
