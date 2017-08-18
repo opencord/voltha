@@ -39,6 +39,24 @@
       "revId": "452ece3bb807eedd418234bdb0e4732a828786ca",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3a3291f1_4c8d3f31",
+        "filename": "voltha/core/xpon_agent.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 665,
+      "author": {
+        "id": 1000067
+      },
+      "writtenOn": "2017-08-18T06:32:10Z",
+      "side": 1,
+      "message": "Fixed.",
+      "parentUuid": "3a3291f1_ac9ee361",
+      "revId": "452ece3bb807eedd418234bdb0e4732a828786ca",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
