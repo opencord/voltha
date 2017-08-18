@@ -18,8 +18,10 @@ from uuid import uuid4
 import structlog
 from google.protobuf.empty_pb2 import Empty
 from grpc import StatusCode
+from grpc._channel import _Rendezvous
 
 from common.utils.grpc_utils import twisted_async
+from twisted.internet import task
 from common.utils.id_generation import create_cluster_device_id
 from voltha.core.config.config_root import ConfigRoot
 from voltha.protos.openflow_13_pb2 import PacketIn, Flows, FlowGroups, \
@@ -29,11 +31,13 @@ from voltha.protos.voltha_pb2 import \
     VolthaInstance, Adapters, LogicalDevices, LogicalDevice, Ports, \
     LogicalPorts, Devices, Device, DeviceType, \
     DeviceTypes, DeviceGroups, DeviceGroup, AdminState, OperStatus, ChangeEvent, \
-    AlarmFilter, AlarmFilters, SelfTestResponse
+    AlarmFilter, AlarmFilters, SelfTestResponse, OfAgentSubscriber
 from voltha.protos.device_pb2 import PmConfigs, Images, ImageDownload, ImageDownloads
 from voltha.protos.common_pb2 import OperationResp
+from voltha.protos.bbf_fiber_base_pb2 import AllMulticastDistributionSetData, AllMulticastGemportsConfigData
 from voltha.registry import registry
 from requests.api import request
+from common.utils.asleep import asleep
 
 log = structlog.get_logger()
 
@@ -47,6 +51,14 @@ class LocalHandler(VolthaLocalServiceServicer):
         self.root = None
         self.started_with_existing_data = False
         self.stopped = False
+
+        self.restart_delay = 2
+        self.subscriber = None
+        self.ofagent_heartbeat_count = 0
+        self.ofagent_heartbeat_max_count = 3
+        self.ofagent_heartbeat_delay = 5
+        self.ofagent_heartbeat_lc = None
+        self.ofagent_is_alive = True
 
     def start(self, config_backend=None):
         log.debug('starting')
@@ -72,12 +84,19 @@ class LocalHandler(VolthaLocalServiceServicer):
 
         registry('grpc_server').register(
             add_VolthaLocalServiceServicer_to_server, self)
+
         log.info('started')
         return self
 
     def stop(self):
         log.debug('stopping')
         self.stopped = True
+
+        if self.ofagent_heartbeat_lc is not None:
+            self.ofagent_heartbeat_lc.stop()
+
+        self._ofagent_session_termination()
+
         log.info('stopped')
 
     def get_proxy(self, path, exclusive=False):
@@ -1151,3 +1170,72 @@ class LocalHandler(VolthaLocalServiceServicer):
                 'Device \'{}\' not found'.format(request.id))
             context.set_code(StatusCode.NOT_FOUND)
             return SelfTestResponse()
+
+    def _ofagent_session_termination(self):
+        log.debug('start-ofagent-session-termination')
+
+        # Stop ofagent heartbeat
+        if self.ofagent_heartbeat_lc is not None:
+            self.ofagent_heartbeat_lc.stop()
+
+        # Reset flags and assignments
+        self.ofagent_is_alive = False
+        self.subscriber = None
+        self.ofagent_heartbeat_count = 0
+
+        # Some local services will stop (packet-in/change-events)
+        # need to re-register them
+        registry('grpc_server').register(
+            add_VolthaLocalServiceServicer_to_server, self)
+
+        log.debug('stop-ofagent-session-termination')
+
+    def _ofagent_session_heartbeat(self):
+        log.debug('start-ofagent-heartbeat')
+        if self.ofagent_heartbeat_count > self.ofagent_heartbeat_max_count:
+            self._ofagent_session_termination()
+        else:
+            self.ofagent_heartbeat_count += 1
+
+        log.debug('stop-ofagent-heartbeat')
+
+    @twisted_async
+    def Subscribe(self, request, context):
+        log.info('grpc-request', request=request)
+
+        # Check if an ofagent subscriber is assigned
+        if self.subscriber is None:
+            log.debug('ofagent-subscriber-request')
+
+            try:
+                # Assign the request as the active subscriber
+                self.subscriber = OfAgentSubscriber(
+                    ofagent_id=request.ofagent_id,
+                    voltha_id=self.instance_id
+                )
+
+                # Start the hearbeat
+                self.ofagent_heartbeat_count = 0
+                self.ofagent_heartbeat_lc = task.LoopingCall(self._ofagent_session_heartbeat)
+                self.ofagent_heartbeat_lc.start(self.ofagent_heartbeat_delay)
+
+                log.debug('ofagent-subscriber-connected', subscriber=self.subscriber)
+
+            except _Rendezvous, e:
+                log.error('Failed to communicate with ofagent: {}'.format(repr(e)),
+                          status=e.code())
+
+            except Exception as e:
+                log.exception('Unexpected ofagent communication failure: {}'.format(repr(e)))
+
+        elif self.subscriber.ofagent_id == request.ofagent_id:
+            log.debug('ofagent-subscriber-matches-assigned',
+                     current=self.subscriber)
+            # reset counter
+            self.ofagent_heartbeat_count = 0
+
+        else:
+            log.debug('ofagent-subscriber-not-matching-assigned',
+                     current=self.subscriber)
+
+        return self.subscriber
