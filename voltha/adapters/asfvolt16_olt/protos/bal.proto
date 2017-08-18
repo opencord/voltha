@@ -44,8 +44,7 @@ message BalCfg {
 }
 
 message BalInit {
-    string balapi_mgmt_ip_port = 1;     // IP:port of the BAL API management queue
-    string core_mgmt_ip_port = 2;       // IP:port of the core management queue
+    string voltha_adapter_ip_port = 1;  // IP:port of the VOLTHA Adapter
 }
 
 message BalKey {
