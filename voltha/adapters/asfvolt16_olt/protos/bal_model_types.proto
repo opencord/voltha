@@ -202,11 +202,10 @@ enum BalGroupOwner
 /** Interface type.
  */
 enum BalIntfType {
-    BAL_INTF_TYPE_INVALID                    = 0;    /**< INVALID.*/
-    BAL_INTF_TYPE_NNI                        = 1;    /**< NNI Interface. */
-    BAL_INTF_TYPE_PON                        = 2;    /**< POIN Interface. */
-    BAL_INTF_TYPE_EPON_1G_PATH               = 3;    /**< EPON 1G Path. */
-    BAL_INTF_TYPE_EPON_10G_PATH              = 4;    /**< EPON 10G Path. */
+    BAL_INTF_TYPE_NNI                        = 0;    /**< NNI Interface. */
+    BAL_INTF_TYPE_PON                        = 1;    /**< POIN Interface. */
+    BAL_INTF_TYPE_EPON_1G_PATH               = 2;    /**< EPON 1G Path. */
+    BAL_INTF_TYPE_EPON_10G_PATH              = 3;    /**< EPON 10G Path. */
 }
 
 /** Interworking Function Mode.

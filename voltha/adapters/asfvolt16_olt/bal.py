@@ -18,6 +18,9 @@ from twisted.internet.defer import inlineCallbacks
 from voltha.adapters.asfvolt16_olt.protos import bal_pb2, \
     bal_model_types_pb2, bal_model_ids_pb2
 from voltha.adapters.asfvolt16_olt.grpc_client import GrpcClient
+from common.utils.nethelpers import get_my_primary_interface, \
+    get_my_primary_local_ipv4
+import os
 
 
 class Bal(object):
@@ -35,6 +38,21 @@ class Bal(object):
         self.grpc_client.connect(host_and_port)
         self.stub = bal_pb2.BalStub(self.grpc_client.channel)
         init = bal_pb2.BalInit()
+        try:
+            os.environ["SERVICE_HOST_IP"]
+            adapter_ip = os.environ["SERVICE_HOST_IP"]
+        except Exception as e:
+            self.log.info('voltha is rinning in non docker container environment')
+            adapter_ip = get_my_primary_local_ipv4()
+
+        adapter_port = 60001
+        ip_port = []
+        ip_port.append(str(adapter_ip))
+        ip_port.append(":")
+        ip_port.append(str(adapter_port))
+        init.voltha_adapter_ip_port ="".join(ip_port)
+        self.log.info('Adapter port Ip', init.voltha_adapter_ip_port)
+
         '''
         TODO: Need to determine out what information
         needs to be sent to the OLT at this stage.
