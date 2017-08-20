@@ -111,7 +111,7 @@ class NniPort(object):
 
     def _cancel_deferred(self):
         d, self._deferred = self._deferred, None
-        if d is not None:
+        if d is not None and not d.called:
             d.cancel()
 
     def _update_adapter_agent(self):
@@ -168,45 +168,42 @@ class NniPort(object):
         self.log.info('Starting NNI port')
         self._cancel_deferred()
 
-        # TODO: Start up any watchdog/polling tasks here
-
-        self._admin_state = AdminState.ENABLED
-        self._oper_status = OperStatus.ACTIVE
+        self._oper_status = OperStatus.ACTIVATING
         self._update_adapter_agent()
 
         # Do the rest of the startup in an async method
         self._deferred = reactor.callLater(0, self._finish_startup)
         return self._deferred
 
+    @inlineCallbacks
     def _finish_startup(self):
         if self._state != NniPort.State.INITIAL:
             returnValue('Done')
 
-        # returnValue('TODO: Implement startup of each NNI port')
+        self._enabled = True
+        self._admin_state = AdminState.ENABLED
+        self._oper_status = OperStatus.ACTIVE  # TODO: is this correct, how do we tell GRPC
+        self._update_adapter_agent()
 
-        if self._enabled:
-            self._admin_state = AdminState.ENABLED
-            self._oper_status = OperStatus.ACTIVE  # TODO: is this correct, how do we tell GRPC
-            self._update_adapter_agent()
+        try:
+            results = yield self.set_config('enabled', True)
 
-            # TODO: Start status polling of NNI interfaces
-            self._deferred = None  # = reactor.callLater(3, self.do_stuff)
+        except Exception as e:
+            self.log.exception('nni-start', e=e)
+            self._admin_state = AdminState.UNKNOWN
+            raise
 
-            self._state = NniPort.State.RUNNING
-        else:
-            # Startup failed. Could be due to object creation with an invalid initial admin_status
-            #                 state.  May want to schedule a start to occur again if this happens
-            self._admin_state = AdminState.DISABLED
-            self._oper_status = OperStatus.UNKNOWN
-            self._update_adapter_agent()
+        # TODO: Start status polling of NNI interfaces
+        self._deferred = None  # = reactor.callLater(3, self.do_stuff)
+        self._state = NniPort.State.RUNNING
+        returnValue(self._deferred)
 
-            self._state = NniPort.State.STOPPED
-
+    @inlineCallbacks
     def stop(self):
         if self._state == NniPort.State.STOPPED:
-            return succeed('Stopped')
+            returnValue(succeed('Stopped'))
 
-        self.log.info('Stopping NNI port')
+        self.log.info('stopping-nni')
         self._cancel_deferred()
 
         # NOTE: Leave all NNI ports active (may have inband management)
@@ -219,8 +216,16 @@ class NniPort(object):
         self._oper_status = OperStatus.UNKNOWN
         self._update_adapter_agent()
 
+        try:
+            results = yield self.set_config('enabled', False)
+
+        except Exception as e:
+            self.log.exception('nni-start', e=e)
+            self._admin_state = AdminState.UNKNOWN
+            raise
+
         self._state = NniPort.State.STOPPED
-        return self._deferred
+        returnValue(self._deferred)
 
     def restart(self):
         if self._state == NniPort.State.RUNNING or self._state == NniPort.State.STOPPED:
