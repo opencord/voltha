@@ -51,7 +51,7 @@ class Onu(object):
         #     'onu-id': None,  # Set later (mandatory)
         #     'enabled': True,
         #     'upstream-channel-speed': 0,
-        #     't-cont': get_tconts(self.pon_id, serial_number),
+        #     't-conts': get_tconts(self.pon_id, serial_number),
         #     'gem-ports': get_gem_ports(self.pon_id, serial_number),
         # }
         self._onu_id = onu_info['onu-id']
@@ -67,6 +67,7 @@ class Onu(object):
         self._gem_ports = {}                           # gem-id -> GemPort
         self._tconts = {}                              # alloc-id -> TCont
         self._onu_vid = onu_info['onu-vid']
+        self._enabled = onu_info['enabled']
 
         # TODO: enable and upstream-channel-speed not yet supported
 
@@ -123,7 +124,7 @@ class Onu(object):
         return self._vendor_id
 
     @inlineCallbacks
-    def create(self, onu_info):
+    def create(self, tconts, gem_ports):
         """
         POST -> /restconf/data/gpon-olt-hw:olt/pon=<pon-id>/onus/onu ->
         """
@@ -132,10 +133,10 @@ class Onu(object):
         pon_id = self.pon.pon_id
         data = json.dumps({'onu-id': self._onu_id,
                            'serial-number': self._serial_number_base64,
-                           'enable': onu_info['enabled']})
+                           'enable': self._enabled})
         uri = AdtranOltHandler.GPON_ONU_CONFIG_LIST_URI.format(pon_id)
         name = 'onu-create-{}-{}-{}: {}'.format(pon_id, self._onu_id,
-                                                self._serial_number_base64, onu_info['enabled'])
+                                                self._serial_number_base64, self._enabled)
 
         try:
             results = yield self.olt.rest_client.request('POST', uri, data=data, name=name)
@@ -146,14 +147,14 @@ class Onu(object):
 
         # Now set up all tconts & gem-ports
 
-        for _, tcont in onu_info['t-conts'].items():
+        for _, tcont in tconts.items():
             try:
                 results = yield self.add_tcont(tcont)
 
             except Exception as e:
                 self.log.exception('add-tcont', tcont=tcont, e=e)
 
-        for _, gem_port in onu_info['gem-ports'].items():
+        for _, gem_port in gem_ports.items():
             try:
                 if gem_port.multicast:
                     self.log.warning('multicast-not-yet-supported', gem_port=gem_port)  # TODO Support it
@@ -164,6 +165,11 @@ class Onu(object):
                 self.log.exception('add-gem_port', gem_port=gem_port, e=e)
 
         returnValue(results)
+
+    def restart(self):
+        tconts, self._tconts = self._tconts, {}
+        gem_ports, self._gem_ports = self._gem_ports, {}
+        return self.create(tconts, gem_ports)
 
     def set_config(self, leaf, value):
         self.log.debug('set-config', leaf=leaf, value=value)

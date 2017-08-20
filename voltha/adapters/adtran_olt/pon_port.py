@@ -18,7 +18,7 @@ import random
 
 import structlog
 from enum import Enum
-from twisted.internet import reactor
+from twisted.internet import reactor, defer
 from twisted.internet.defer import inlineCallbacks, returnValue, succeed
 
 from adtran_olt_handler import AdtranOltHandler
@@ -69,7 +69,7 @@ class PonPort(object):
 
         self._admin_state = AdminState.DISABLED
         self._oper_status = OperStatus.DISCOVERED
-        self._deferred = None                   # General purpose
+        self._deferred = None                     # General purpose
         self._discovery_deferred = None           # Specifically for ONU discovery
         self._state = PonPort.State.INITIAL
 
@@ -194,10 +194,17 @@ class PonPort(object):
         d1, self._deferred = self._deferred, None
         d2, self._discovery_deferred = self._discovery_deferred, None
         
-        if d1 is not None:
-            d1.cancel()            
-        if d2 is not None:
-            d2.cancel()
+        if d1 is not None and not d1.called:
+            try:
+                d1.cancel()
+            except Exception as e:
+                pass
+
+        if d2 is not None and not d2.called:
+            try:
+                d2.cancel()
+            except Exception as e:
+                pass
 
     def _update_adapter_agent(self):
         # TODO: Currently the adapter_agent does not allow 'update' of port status
@@ -289,6 +296,14 @@ class PonPort(object):
             self._admin_state = AdminState.ENABLED
             self._oper_status = OperStatus.ACTIVE  # TODO: is this correct, how do we tell GRPC
             self._state = PonPort.State.RUNNING
+
+            # Restart any ONU's in case here due to reboot
+
+            if len(self._onus) > 0:
+                dl = []
+                for onu in self._onus.itervalues():
+                    dl.append(onu.restart())
+                yield defer.gatherResults(dl)
 
             # Begin to ONU discovery
 
@@ -391,6 +406,10 @@ class PonPort(object):
         if self._state == PonPort.State.RUNNING or self._state == PonPort.State.STOPPED:
             start_it = (self._state == PonPort.State.RUNNING)
             self._state = PonPort.State.INITIAL
+            self._enabled = None
+            self._downstream_fec_enable = None
+            self._upstream_fec_enable = None
+
             return self.start() if start_it else self.stop()
         return succeed('nop')
 
@@ -616,7 +635,9 @@ class PonPort(object):
                     self._onu_by_id[onu.onu_id] = onu
 
                     try:
-                        yield onu.create(onu_info)
+                        tconts = onu_info['t-conts']
+                        gem_ports = onu_info['gem-ports']
+                        yield onu.create(tconts, gem_ports)
                         self.activate_onu(onu)
 
                     except Exception as e:

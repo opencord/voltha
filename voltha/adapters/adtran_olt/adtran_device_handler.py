@@ -51,12 +51,12 @@ _MULTICAST_VLAN = 4092
 _MANAGEMENT_VLAN = 4093
 _is_inband_frame = BpfProgramFilter('(ether[14:2] & 0xfff) = 0x{:03x}'.format(_PACKET_IN_VLAN))
 
-_DEFAULT_RESTCONF_USERNAME = "ADMIN"
-_DEFAULT_RESTCONF_PASSWORD = "PASSWORD"
+_DEFAULT_RESTCONF_USERNAME = ""
+_DEFAULT_RESTCONF_PASSWORD = ""
 _DEFAULT_RESTCONF_PORT = 8081
 
-_DEFAULT_NETCONF_USERNAME = "hsvroot"
-_DEFAULT_NETCONF_PASSWORD = "BOSCO"
+_DEFAULT_NETCONF_USERNAME = ""
+_DEFAULT_NETCONF_PASSWORD = ""
 _DEFAULT_NETCONF_PORT = 830
 
 
@@ -172,10 +172,10 @@ class AdtranDeviceHandler(object):
         h, self.heartbeat = self.heartbeat, None
         ldi, self.logical_device_id = self.logical_device_id, None
 
-        if d is not None:
+        if d is not None and not d.called:
             d.cancel()
 
-        if h is not None:
+        if h is not None and not h.called:
             h.cancel()
 
         self._deactivate_io_port()
@@ -742,7 +742,7 @@ class AdtranDeviceHandler(object):
         # Kill any heartbeat poll
         h, self.heartbeat = self.heartbeat, None
 
-        if h is not None:
+        if h is not None and not h.called:
             h.cancel()
 
         # TODO: What else (delete logical device, ???)
@@ -755,7 +755,7 @@ class AdtranDeviceHandler(object):
 
         # Cancel any running enable/disable/... in progress
         d, self.startup = self.startup, None
-        if d is not None:
+        if d is not None and not d.called:
             d.cancel()
 
         # Get the latest device reference
@@ -768,7 +768,7 @@ class AdtranDeviceHandler(object):
 
         h, self.heartbeat = self.heartbeat, None
 
-        if h is not None:
+        if h is not None and not h.called:
             h.cancel()
 
         # Update the operational status to UNKNOWN
@@ -835,7 +835,7 @@ class AdtranDeviceHandler(object):
 
         # Cancel any running enable/disable/... in progress
         d, self.startup = self.startup, None
-        if d is not None:
+        if d is not None and not d.called:
             d.cancel()
 
         # Get the latest device reference
@@ -917,7 +917,7 @@ class AdtranDeviceHandler(object):
 
         # Cancel any running enable/disable/... in progress
         d, self.startup = self.startup, None
-        if d is not None:
+        if d is not None and not d.called:
             d.cancel()
 
         # Update the operational status to ACTIVATING and connect status to
@@ -1075,11 +1075,11 @@ class AdtranDeviceHandler(object):
         # Cancel any outstanding tasks
 
         d, self.startup = self.startup, None
-        if d is not None:
+        if d is not None and not d.called:
             d.cancel()
 
         h, self.heartbeat = self.heartbeat, None
-        if h is not None:
+        if h is not None and not h.called:
             h.cancel()
 
         # Remove all flows from the device

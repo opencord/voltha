@@ -282,7 +282,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
                 pass
 
         d, self.status_poll = self.status_poll, None
-        if d is not None:
+        if d is not None and not d.called:
             try:
                 d.cancel()
             except:
@@ -302,7 +302,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
             c.shutdown()
 
         d, self.status_poll = self.status_poll, None
-        if d is not None:
+        if d is not None and not d.called:
             d.cancel()
 
         super(AdtranOltHandler, self).reboot()
@@ -319,7 +319,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
             c.shutdown()
 
         d, self.status_poll = self.status_poll, None
-        if d is not None:
+        if d is not None and not d.called:
             d.cancel()
 
         super(AdtranOltHandler, self).delete()
@@ -390,7 +390,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
         # OLT Specific things here
 
         d, self.startup = self.startup, None
-        if d is not None:
+        if d is not None and not d.called:
             d.cancel()
 
         # self.pons.clear()
