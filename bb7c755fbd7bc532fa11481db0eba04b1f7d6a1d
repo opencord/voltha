@@ -90,6 +90,24 @@
     },
     {
       "key": {
+        "uuid": "3a3291f1_b21cf86b",
+        "filename": "install/voltha-swarm-start.sh",
+        "patchSetId": 1
+      },
+      "lineNbr": 39,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-08-21T15:10:55Z",
+      "side": 1,
+      "message": "Ok.  Will remove it.",
+      "parentUuid": "3a3291f1_af4a5553",
+      "revId": "bb7c755fbd7bc532fa11481db0eba04b1f7d6a1d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "3a3291f1_ef95fd88",
         "filename": "ofagent/connection_mgr.py",
         "patchSetId": 1
@@ -101,6 +119,24 @@
       "writtenOn": "2017-08-18T20:33:04Z",
       "side": 1,
       "message": "Please use vcore to denote the grpc server running on the voltha core and use voltha to denote the grpc server running on the envoy proxy (now named voltha).",
+      "revId": "bb7c755fbd7bc532fa11481db0eba04b1f7d6a1d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3a3291f1_9219fc7b",
+        "filename": "ofagent/connection_mgr.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 140,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-08-21T15:10:55Z",
+      "side": 1,
+      "message": "Will do.",
+      "parentUuid": "3a3291f1_ef95fd88",
       "revId": "bb7c755fbd7bc532fa11481db0eba04b1f7d6a1d",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -164,6 +200,24 @@
     },
     {
       "key": {
+        "uuid": "3a3291f1_722690bc",
+        "filename": "ofagent/connection_mgr.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 189,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-08-21T15:10:55Z",
+      "side": 1,
+      "message": "If we ever reach this point in the code, we need to reset the connection.  I will add another comment to indicate this.",
+      "parentUuid": "3a3291f1_cf6481e7",
+      "revId": "bb7c755fbd7bc532fa11481db0eba04b1f7d6a1d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "3a3291f1_120e2c35",
         "filename": "voltha/core/local_handler.py",
         "patchSetId": 1
@@ -187,6 +241,30 @@
     },
     {
       "key": {
+        "uuid": "3a3291f1_d20f842d",
+        "filename": "voltha/core/local_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 60,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-08-21T15:10:55Z",
+      "side": 1,
+      "message": "Yes.  Looping call.",
+      "parentUuid": "3a3291f1_120e2c35",
+      "range": {
+        "startLine": 60,
+        "startChar": 13,
+        "endLine": 60,
+        "endChar": 33
+      },
+      "revId": "bb7c755fbd7bc532fa11481db0eba04b1f7d6a1d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "3a3291f1_2f7c2572",
         "filename": "voltha/core/local_handler.py",
         "patchSetId": 1
@@ -198,6 +276,24 @@
       "writtenOn": "2017-08-18T20:33:04Z",
       "side": 1,
       "message": "Why should the local service be restarted?  This will affect the REST/Netconf requests.",
+      "revId": "bb7c755fbd7bc532fa11481db0eba04b1f7d6a1d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3a3291f1_522b9482",
+        "filename": "voltha/core/local_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1188,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-08-21T15:10:55Z",
+      "side": 1,
+      "message": "Because all services have to be reset, e.g. packet-in, packet-out\n\nOtherwise it won\u0027t work.",
+      "parentUuid": "3a3291f1_2f7c2572",
       "revId": "bb7c755fbd7bc532fa11481db0eba04b1f7d6a1d",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
