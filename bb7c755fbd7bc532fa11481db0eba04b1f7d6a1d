@@ -164,6 +164,29 @@
     },
     {
       "key": {
+        "uuid": "3a3291f1_120e2c35",
+        "filename": "voltha/core/local_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 60,
+      "author": {
+        "id": 1000196
+      },
+      "writtenOn": "2017-08-21T14:50:30Z",
+      "side": 1,
+      "message": "What is \"lc\"? ...ah...looping call?",
+      "range": {
+        "startLine": 60,
+        "startChar": 13,
+        "endLine": 60,
+        "endChar": 33
+      },
+      "revId": "bb7c755fbd7bc532fa11481db0eba04b1f7d6a1d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "3a3291f1_2f7c2572",
         "filename": "voltha/core/local_handler.py",
         "patchSetId": 1
