@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3a3291f1_928c5c81",
+        "filename": "voltha/adapters/asfvolt16_olt/bal.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-08-21T17:36:05Z",
+      "side": 1,
+      "message": "typo - running",
+      "revId": "8920b3c89e16ff3872841c12f0e7cf5c43268129",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3a3291f1_72e9f019",
+        "filename": "voltha/adapters/asfvolt16_olt/bal.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 48,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2017-08-21T17:36:05Z",
+      "side": 1,
+      "message": "Suggestion - define the port number at the top with a comment.",
+      "revId": "8920b3c89e16ff3872841c12f0e7cf5c43268129",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
