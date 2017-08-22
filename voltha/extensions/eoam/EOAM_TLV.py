@@ -1,4 +1,4 @@
-#--------------------------------------------------------------------------#
+##--------------------------------------------------------------------------#
 # Copyright (C) 2015 - 2016 by Tibit Communications, Inc.                  #
 # All rights reserved.                                                     #
 #                                                                          #
@@ -14,7 +14,7 @@ from scapy.packet import Packet
 from scapy.fields import ByteEnumField, XShortField, XByteField, MACField, \
     ByteField, BitEnumField, BitField, ShortField
 from scapy.fields import XLongField, StrField, StrFixedLenField, XIntField, \
-    FieldLenField, StrLenField, IntField
+    FieldLenField, StrLenField, IntField, ShortEnumField
 
 # This library strives to be an implementation of the following standard:
 
@@ -38,6 +38,24 @@ TLV_dictionary = {
 
 SlowProtocolsSubtypeEnum = {0x03: "OAM"}
 
+### OAM Branch Enumerations
+OamBranchEnum = {
+    0x00: "End",
+    0x06: "Clause 30 Object",
+    0x07: "Clause 30 Attr",
+    0x09: "Clause 30 Action",
+    0xB7: "Tibit Attr",
+    0xB9: "Tibit Action",
+    0xC7: "DPoG Attr",
+    0xC9: "DPoG Action",
+    0xD6: "DPoE Object",
+    0xD7: "DPoE Attr",
+    0xD9: "DPoE Action",
+    }
+
+OamBranches = {v: k for k, v in OamBranchEnum.iteritems()}
+
+
 ### Multicast Action Flags
 MulticastActionFlagsEnum = {
     0x02: "Deregister",
@@ -56,8 +74,11 @@ DPoEOpcodeEnum = {
     0x09: "File Transfer",
     }
 
+DPoEOpcodes = {v: k for k, v in DPoEOpcodeEnum.iteritems()}
+
+
 ### Table 20 - DPoE Variable Response Codes
-DPoEVariableResponseCodes = {
+DPoEVariableResponseEnum = {
     0x80: "No Error",
     0x81: "Too Long",
     0x86: "Bad Parameters",
@@ -69,6 +90,24 @@ DPoEVariableResponseCodes = {
     0xa3: "Hardware Failure",
     0xa4: "Overflow",
     }
+
+DPoEVariableResponseCodes = {v: k for k, v in DPoEVariableResponseEnum.iteritems()}
+
+
+### Table 14 - DPoE Event Codes
+DPoEEventCodeEnum = {
+    0x11: "Loss of Signal",
+    0x12: "Key Exchange Failure",
+    0x21: "Port Disabled",
+    0x41: "Power Failure",
+    0x81: "Statistics Alarm",
+    0x82: "D-ONU Busy",
+    0x83: "MAC Table Overflow",
+    0x84: "PON Interface Switch",
+    }
+
+DPoEEventCodes = {v: k for k, v in DPoEEventCodeEnum.iteritems()}
+
 
 class SlowProtocolsSubtype(Packet):
     """ Slow Protocols subtype"""
@@ -163,13 +202,33 @@ class MulticastRegisterSet(Packet):
                    ]
 
 ####
-#### PORT OBJECTS
+#### OAM Context OBJECTS
 ####
+
+### Object Context Enumerations
+ObjectContextEnum = {
+    0x0000: "Device",
+    0x0001: "PON Port",
+    0x0002: "Unicast Logical Link",
+    0x0003: "Enet Port",
+    0x0004: "Queue",
+    0x0005: "SOAM MEP",
+    0x0006: "Multicast Link",
+    0x0007: "T-CONT",
+# __TIBIT_OLT_OAM__: Defined by Tibit
+    0x0009: "ONU",
+    0x000A: "OLT Unicast Link",
+    0x000B: "GPIO",
+    }
+
+ObjectContexts = {v: k for k, v in ObjectContextEnum.iteritems()}
+
+
 class DONUObject(Packet):
     """ Object Context: D-ONU Object """
     name = "Object Context: D-ONU Object"
-    fields_desc = [XByteField("branch", 0xD6),
-                   XShortField("leaf", 0x0000),
+    fields_desc = [ByteEnumField("branch", 0xD6, OamBranchEnum),
+                   ShortEnumField("leaf", 0x0000, ObjectContextEnum),
                    XByteField("length", 1),
                    XByteField("number", 0)
                    ]
@@ -178,8 +237,8 @@ class DONUObject(Packet):
 class DOLTObject(Packet):
     """ Object Context: D-OLT Object """
     name = "Object Context: D-OLT Object"
-    fields_desc = [XByteField("branch", 0xD6),
-                   XShortField("leaf", 0x0000),
+    fields_desc = [ByteEnumField("branch", 0xD6, OamBranchEnum),
+                   ShortEnumField("leaf", 0x0000, ObjectContextEnum),
                    XByteField("length", 1),
                    XByteField("number", 0)
                    ]
@@ -187,8 +246,8 @@ class DOLTObject(Packet):
 class NetworkPortObject(Packet):
     """ Object Context: Network Port Object """
     name = "Object Context: Network Port Object"
-    fields_desc = [XByteField("branch", 0xD6),
-                   XShortField("leaf", 0x0001),
+    fields_desc = [ByteEnumField("branch", 0xD6, OamBranchEnum),
+                   ShortEnumField("leaf", 0x0001, ObjectContextEnum),
                    XByteField("length", 1),
                    XByteField("number", 0)
                    ]
@@ -197,8 +256,8 @@ class NetworkPortObject(Packet):
 class PonPortObject(Packet):
     """ Object Context: PON Port Object """
     name = "Object Context: PON Port Object"
-    fields_desc = [XByteField("branch", 0xD6),
-                   XShortField("leaf", 0x0001),
+    fields_desc = [ByteEnumField("branch", 0xD6, OamBranchEnum),
+                   ShortEnumField("leaf", 0x0001, ObjectContextEnum),
                    XByteField("length", 1),
                    XByteField("number", 0)
                    ]
@@ -206,8 +265,8 @@ class PonPortObject(Packet):
 class UnicastLogicalLink(Packet):
     """ Object Context: Unicast Logical Link """
     name = "Object Context: Unicast Logical Link"
-    fields_desc = [XByteField("branch", 0xD6),
-                   XShortField("leaf", 0x0002),
+    fields_desc = [ByteEnumField("branch", 0xD6, OamBranchEnum),
+                   ShortEnumField("leaf", 0x0002, ObjectContextEnum),
                    XByteField("length", 1),
                    XByteField("number", 0)
                    ]
@@ -216,8 +275,8 @@ class UnicastLogicalLink(Packet):
 class OLTUnicastLogicalLink(Packet):
     """ Object Context: OLT Unicast Logical Link """
     name = "Object Context: OLT Unicast Logical Link"
-    fields_desc = [XByteField("branch", 0xD6),
-                   XShortField("leaf", 0x000a),
+    fields_desc = [ByteEnumField("branch", 0xD6, OamBranchEnum),
+                   ShortEnumField("leaf", 0x000A, ObjectContextEnum),
                    XByteField("length", 10),
                    XByteField("pon", 0),
                    StrField("unicastvssn", "TBIT"),
@@ -228,8 +287,8 @@ class OLTUnicastLogicalLink(Packet):
 class OLTEPONUnicastLogicalLink(Packet):
     """ Object Context: OLT Unicast Logical Link """
     name = "Object Context: OLT Unicast Logical Link"
-    fields_desc = [XByteField("branch", 0xD6),
-                   XShortField("leaf", 0x000a),
+    fields_desc = [ByteEnumField("branch", 0xD6, OamBranchEnum),
+                   ShortEnumField("leaf", 0x000A, ObjectContextEnum),
                    XByteField("length", 10),
                    XByteField("pon", 0),
                    XIntField("unicastvssn", 0x00000000),
@@ -242,8 +301,8 @@ class OLTEPONUnicastLogicalLink(Packet):
 class NetworkToNetworkPortObject(Packet):
     """ Object Context: Network-to-Network (NNI) Port Object """
     name = "Object Context: Network-to-Network (NNI) Port Object"
-    fields_desc = [XByteField("branch", 0xD6),
-                   XShortField("leaf", 0x0003),
+    fields_desc = [ByteEnumField("branch", 0xD6, OamBranchEnum),
+                   ShortEnumField("leaf", 0x0003, ObjectContextEnum),
                    XByteField("length", 1),
                    XByteField("number", 0)
                    ]
@@ -251,8 +310,8 @@ class NetworkToNetworkPortObject(Packet):
 class UserPortObject(Packet):
     """ Object Context: User Port Object """
     name = "Object Context: User Port Object"
-    fields_desc = [XByteField("branch", 0xD6),
-                   XShortField("leaf", 0x0003),
+    fields_desc = [ByteEnumField("branch", 0xD6, OamBranchEnum),
+                   ShortEnumField("leaf", 0x0003, ObjectContextEnum),
                    XByteField("length", 1),
                    XByteField("number", 0)
                    ]
@@ -260,8 +319,8 @@ class UserPortObject(Packet):
 class QueueObject(Packet):
     """ Object Context: Queue Object """
     name = "Object Context: Queue Object"
-    fields_desc = [XByteField("branch", 0xD6),
-                   XShortField("leaf", 0x0004),
+    fields_desc = [ByteEnumField("branch", 0xD6, OamBranchEnum),
+                   ShortEnumField("leaf", 0x0004, ObjectContextEnum),
                    XByteField("length", 2),
                    XByteField("instance", 0),
                    XByteField("number", 0)
@@ -270,10 +329,19 @@ class QueueObject(Packet):
 class ONUObject(Packet):
     """ Object Context: ONU Object """
     name = "Object Context: ONU Object"
-    fields_desc = [XByteField("branch", 0xD6),
-                   XShortField("leaf", 0x0009),
+    fields_desc = [ByteEnumField("branch", 0xD6, OamBranchEnum),
+                   ShortEnumField("leaf", 0x0009, ObjectContextEnum),
                    XByteField("length", 6),
                    MACField("mac", "54:42:e2:22:11:00")
+                   ]
+
+class GpioObject(Packet):
+    """ Object Context: GPIO Object """
+    name = "Object Context: GPIO Object"
+    fields_desc = [ByteEnumField("branch", 0xD6, OamBranchEnum),
+                   ShortEnumField("leaf", 0x000B, ObjectContextEnum),
+                   XByteField("length", 1),
+                   XByteField("condition", 1)
                    ]
 
 ####
@@ -281,15 +349,15 @@ class ONUObject(Packet):
 ####
 class PhyAdminControl(Packet):
     """ Variable Descriptor: Phy Admin Control """
-    name = "Variable Descriptor: Phy Admin Control"
-    fields_desc = [XByteField("branch", 0x09),
+    name = "Phy Admin Control"
+    fields_desc = [ByteEnumField("branch", 0x09, OamBranchEnum),
                    XShortField("leaf", 0x0005),
                    ]
 
 class PhyAdminControlEnableSet(Packet):
     """ Variable Descriptor: Phy Admin Control Enable """
-    name = "Variable Descriptor: Phy Admin Control Enable"
-    fields_desc = [XByteField("branch", 0x09),
+    name = "Phy Admin Control Enable"
+    fields_desc = [ByteEnumField("branch", 0x09, OamBranchEnum),
                    XShortField("leaf", 0x0005),
                    XByteField("length", 1),
                    XByteField("value", 2)
@@ -297,8 +365,8 @@ class PhyAdminControlEnableSet(Packet):
 
 class PhyAdminControlDisableSet(Packet):
     """ Variable Descriptor: Phy Admin Control Disable """
-    name = "Variable Descriptor: Phy Admin Control Disable"
-    fields_desc = [XByteField("branch", 0x09),
+    name = "Phy Admin Control Disable"
+    fields_desc = [ByteEnumField("branch", 0x09, OamBranchEnum),
                    XShortField("leaf", 0x0005),
                    XByteField("length", 1),
                    XByteField("value", 1)
@@ -309,69 +377,72 @@ class PhyAdminControlDisableSet(Packet):
 ####
 class DeviceId(Packet):
     """ Variable Descriptor: Device ID """
-    name = "Variable Descriptor: Device ID"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Device ID"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0002)]
 
 class FirmwareInfo(Packet):
     """ Variable Descriptor: Firmware Info """
-    name = "Variable Descriptor: Firmware Info"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Firmware Info"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0003)]
 
 class ChipsetInfo(Packet):
     """ Variable Descriptor: Chipset Info """
-    name = "Variable Descriptor: Chipset Info"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Chipset Info"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0004)]
 
 class DateOfManufacture(Packet):
     """ Variable Descriptor: Date of Manufacture """
-    name = "Variable Descriptor: Date of Manufacture"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Date of Manufacture"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0005)]
 
 class ManufacturerInfo(Packet):
     """ Variable Descriptor: ManufacturerInfo """
-    name = "Variable Descriptor: ManufacturerInfo"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "ManufacturerInfo"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0006)]
 
 class MaxLogicalLinks(Packet):
     """ Variable Descriptor: Max Logical Links """
-    name = "Variable Descriptor: Max Logical Links"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Max Logical Links"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0007)]
 
 class NumberOfNetworkPorts(Packet):
     """ Variable Descriptor: Number of Network Ports """
-    name = "Variable Descriptor: Number of Network Ports"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Number of Network Ports"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0008)]
 
 class NumberOfS1Interfaces(Packet):
     """ Variable Descriptor: Number of S1 Interfaces """
-    name = "Variable Descriptor: Number of S1 Interfaces"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Number of S1 Interfaces"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0009)]
 
 class DONUPacketBuffer(Packet):
     """ Variable Descriptor: D-ONU Packet Buffer """
-    name = "Variable Descriptor: D-ONU Packet Buffer"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "D-ONU Packet Buffer"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x000a)]
 
 class ReportThresholds(Packet):
     """ Variable Descriptor: Report Thresholds """
-    name = "Variable Descriptor: Report Thresholds"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Report Thresholds"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x000b),
                    ]
 
+DFLT_NUM_QUEUE_SETS  = 4
+DFLT_NUM_REPORT_VALS = 1
+
 class ReportThresholdsSet(Packet):
     """ Variable Descriptor: Report Thresholds Set """
-    name = "Variable Descriptor: Report Thresholds Set"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Report Thresholds Set"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x000b),
                    XByteField("length", 0x0a),
                    XByteField("num_queue_sets", 4),
@@ -384,8 +455,8 @@ class ReportThresholdsSet(Packet):
 
 class UnicastLogicalLinkReportThresholdsSet(Packet):
     """ Variable Descriptor: Report Thresholds Unicast Logical Link Set"""
-    name = "Variable Descriptor: Report Thresholds Unicast Logical Link Set"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Report Thresholds Unicast Logical Link Set"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x000b),
                    XByteField("length", 0x0a),
                    XByteField("num_queue_sets", 4),
@@ -398,22 +469,22 @@ class UnicastLogicalLinkReportThresholdsSet(Packet):
 
 class LogicalLinkForwarding(Packet):
     """ Variable Descriptor: Logical Link Forwarding """
-    name = "Variable Descriptor: Logical Link Forwarding"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Logical Link Forwarding"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x000c),
                    ]
 
 class OamFrameRate(Packet):
     """ Variable Descriptor: OAM Frame Rate """
-    name = "Variable Descriptor: OAM Frame Rate"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "OAM Frame Rate"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x000d),
                    ]
 
 class OamFrameRateSet(Packet):
     """ Variable Descriptor: OAM Frame Rate """
-    name = "Variable Descriptor: OAM Frame Rate"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "OAM Frame Rate"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x000d),
                    XByteField("length", 2),
                    XByteField("max", 12),
@@ -422,57 +493,57 @@ class OamFrameRateSet(Packet):
 
 class OnuManufacturerOrganizationName(Packet):
     """ Variable Descriptor: ONU Manufacturer Organization Name """
-    name = "Variable Descriptor: ONU Manufacturer Organization Name"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "ONU Manufacturer Organization Name"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x000e),
                    ]
 
 class FirmwareMfgTimeVaryingControls(Packet):
     """ Variable Descriptor: Firmware Mfg Time Varying Controls """
-    name = "Variable Descriptor: Firmware Mfg Time Varying Controls"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Firmware Mfg Time Varying Controls"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x000f),
                    ]
 
 class VendorName(Packet):
     """ Variable Descriptor: Vendor Name """
-    name = "Variable Descriptor: Vendor Name"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Vendor Name"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0011),
                    ]
 
 class ModelNumber(Packet):
     """ Variable Descriptor: Model Number """
-    name = "Variable Descriptor: Model Number"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Model Number"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0012),
                    ]
 
 class HardwareVersion(Packet):
     """ Variable Descriptor: Hardware Version """
-    name = "Variable Descriptor: Hardware Version"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Hardware Version"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0013),
                    ]
 
 class EponMode(Packet):
     """ Variable Descriptor: EPON Mode """
-    name = "Variable Descriptor: EPON Mode"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "EPON Mode"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0014),
                    ]
 
 class DynamicAddressAgeLimit(Packet):
     """ Variable Descriptor: Dynamic Address Age Limit """
-    name = "Variable Descriptor: Dynamic Address Age Limit"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Dynamic Address Age Limit"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0102),
                    ]
 
 class DynamicAddressAgeLimitSet(Packet):
     """ Variable Descriptor: Dynamic Address Age Limit Set """
-    name = "Variable Descriptor: Dynamic Address Age Limit Set"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Dynamic Address Age Limit Set"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0102),
                    XByteField("length", 2),
                    XShortField("value", 0x0000),
@@ -480,29 +551,29 @@ class DynamicAddressAgeLimitSet(Packet):
 
 class DynamicMacTable(Packet):
     """ Variable Descriptor: Dynamic MAC Table """
-    name = "Variable Descriptor: Dynamic MAC Table"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Dynamic MAC Table"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0103),
                    ]
 
 class StaticMacTable(Packet):
     """ Variable Descriptor: Static MAC Table """
-    name = "Variable Descriptor: Static MAC Table"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Static MAC Table"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0104),
                    ]
 
 class SourceAddressAdmissionControl(Packet):
     """ Variable Descriptor: Source Address Admission Control """
-    name = "Variable Descriptor: Source Address Admission Control"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Source Address Admission Control"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0106),
                    ]
 
 class SourceAddressAdmissionControlSet(Packet):
     """ Variable Descriptor: Source Address Admission Control Set """
-    name = "Variable Descriptor: Source Address Admission Control Set"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Source Address Admission Control Set"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0106),
                    XByteField("length", 1),
                    XByteField("value", 1),
@@ -510,15 +581,15 @@ class SourceAddressAdmissionControlSet(Packet):
 
 class MacLearningMinGuarantee(Packet):
     """ Variable Descriptor: MAC Learning MIN Guarantee """
-    name = "Variable Descriptor: MAC Learning MIN Guarantee"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "MAC Learning MIN Guarantee"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0107),
                    ]
 
 class MacLearningMinGuaranteeSet(Packet):
     """ Variable Descriptor: MAC Learning MIN Guarantee Set """
-    name = "Variable Descriptor: MAC Learning MIN Guarantee Set"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "MAC Learning MIN Guarantee Set"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0107),
                    XByteField("length", 2),
                    XShortField("value", 0),
@@ -526,15 +597,15 @@ class MacLearningMinGuaranteeSet(Packet):
 
 class MacLearningMaxAllowed(Packet):
     """ Variable Descriptor: MAC Learning MAX Allowed """
-    name = "Variable Descriptor: MAC Learning MAX Allowed"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "MAC Learning MAX Allowed"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0108),
                    ]
 
 class MacLearningMaxAllowedSet(Packet):
     """ Variable Descriptor: MAC Learning MAX Allowed Set """
-    name = "Variable Descriptor: MAC Learning MAX Allowed Set"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "MAC Learning MAX Allowed Set"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0108),
                    XByteField("length", 2),
                    XShortField("value", 0x0010),
@@ -542,15 +613,15 @@ class MacLearningMaxAllowedSet(Packet):
 
 class MacLearningAggregateLimit(Packet):
     """ Variable Descriptor: MAC Learning Aggregate Limit """
-    name = "Variable Descriptor: MAC Learning Aggregate Limit"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "MAC Learning Aggregate Limit"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0109),
                    ]
 
 class MacLearningAggregateLimitSet(Packet):
     """ Variable Descriptor: MAC Learning Aggregate Limit Set """
-    name = "Variable Descriptor: MAC Learning Aggregate Limit Set"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "MAC Learning Aggregate Limit Set"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0109),
                    XByteField("length", 2),
                    XShortField("value", 0x0040),
@@ -558,15 +629,15 @@ class MacLearningAggregateLimitSet(Packet):
 
 class FloodUnknown(Packet):
     """ Variable Descriptor: Flood Unknown """
-    name = "Variable Descriptor: Flood Unknown"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Flood Unknown"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x010b),
                    ]
 
 class FloodUnknownSet(Packet):
     """ Variable Descriptor: Flood Unknown Set """
-    name = "Variable Descriptor: Flood Unknown Set"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Flood Unknown Set"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x010b),
                    XByteField("length", 1),
                    XByteField("value", 1),
@@ -574,15 +645,15 @@ class FloodUnknownSet(Packet):
 
 class LocalSwitching(Packet):
     """ Variable Descriptor: Local Switching """
-    name = "Variable Descriptor: Local Switching"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Local Switching"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x010c),
                    ]
 
 class LocalSwitchingSet(Packet):
     """ Variable Descriptor: Local Switching Set """
-    name = "Variable Descriptor: Local Switching Set"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Local Switching Set"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x010c),
                    XByteField("length", 1),
                    XByteField("value", 0),
@@ -590,29 +661,95 @@ class LocalSwitchingSet(Packet):
 
 class LLIDQueueConfiguration(Packet):
     """ Variable Descriptor: LLID Queue Configuration """
-    name = "Variable Descriptor: LLID Queue Configuration"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "LLID Queue Configuration"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x010d),
                    ]
+
+DFLT_NUM_ONU_LLIDS   = 1
+DFLT_NUM_LLID_QUEUES = 1
+DFLT_NUM_UNI_PORTS   = 1
+DFLT_NUM_PORT_QUEUES = 1
+DFLT_LLID_QUEUE_SIZE = 0xA0
 
 class LLIDQueueConfigurationSet(Packet):
     """ Variable Descriptor: LLID Queue Configuration """
-    name = "Variable Descriptor: LLID Queue Configuration"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "LLID Queue Configuration"
+
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x010d),
                    XByteField("length", 6),
-                   XByteField("numLLID", 1),
-                   XByteField("LLID0-numq", 1),
-                   XByteField("l0Q0-size",0xa0),
-                   XByteField("numPort", 1),
-                   XByteField("Port0-numq", 1),
-                   XByteField("p0Q0-size",0xa0),
+                   XByteField("numLLID",    DFLT_NUM_ONU_LLIDS),
+                   XByteField("LLID0-numq", DFLT_NUM_LLID_QUEUES),
+                   XByteField("l0Q0-size",  DFLT_LLID_QUEUE_SIZE),
+                   XByteField("numPort",    DFLT_NUM_UNI_PORTS),
+                   XByteField("Port0-numq", DFLT_NUM_PORT_QUEUES),
+                   XByteField("p0Q0-size",  DFLT_LLID_QUEUE_SIZE),
                    ]
+
+
+
+class LLIDQueueConfiguration16Set(Packet):
+    """ Variable Descriptor: LLID Queue Configuration """
+    name = "LLID Queue Configuration"
+
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
+                   XShortField("leaf", 0x010d),
+                   XByteField("length", 36),
+                   XByteField("numLLID",    16),
+                   XByteField("LLID0-numq", 1),
+                   XByteField("l0Q0-size",  32),
+                   XByteField("LLID1-numq", 1),
+                   XByteField("l1Q0-size",  32),
+                   XByteField("LLID2-numq", 1),
+                   XByteField("l2Q0-size",  32),
+                   XByteField("LLID3-numq", 1),
+                   XByteField("l3Q0-size",  32),
+                   XByteField("LLID4-numq", 1),
+                   XByteField("l4Q0-size",  32),
+                   XByteField("LLID5-numq", 1),
+                   XByteField("l5Q0-size",  32),
+                   XByteField("LLID6-numq", 1),
+                   XByteField("l6Q0-size",  32),
+                   XByteField("LLID7-numq", 1),
+                   XByteField("l7Q0-size",  32),
+                   XByteField("LLID8-numq", 1),
+                   XByteField("l8Q0-size",  32),
+                   XByteField("LLID9-numq", 1),
+                   XByteField("l9Q0-size",  32),
+                   XByteField("LLID10-numq", 1),
+                   XByteField("l10Q0-size",  32),
+                   XByteField("LLID11-numq", 1),
+                   XByteField("l11Q0-size",  32),
+                   XByteField("LLID12-numq", 1),
+                   XByteField("l12Q0-size",  32),
+                   XByteField("LLID13-numq", 1),
+                   XByteField("l13Q0-size",  32),
+                   XByteField("LLID14-numq", 1),
+                   XByteField("l14Q0-size",  32),
+                   XByteField("LLID15-numq", 1),
+                   XByteField("l15Q0-size",  16),
+                   XByteField("numPort",    DFLT_NUM_UNI_PORTS),
+                   XByteField("Port0-numq", DFLT_NUM_PORT_QUEUES),
+                   XByteField("p0Q0-size",  DFLT_LLID_QUEUE_SIZE),
+                   ]
+
+
+
+class LLIDQueueConfigurationSetData(Packet):
+    """ Variable Descriptor: LLID Queue Configuration """
+    name = "LLID Queue Configuration"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
+                   XShortField("leaf", 0x010d),
+                   FieldLenField("length", None, length_of="data", fmt="B"),
+                   StrLenField("data", "", length_from=lambda x:x.length),
+                  ]
+
 
 class FirmwareFilename(Packet):
     """ Variable Descriptor: Firmware Filename """
-    name = "Variable Descriptor: Firmware Filename"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Firmware Filename"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x010e),
                    ]
 
@@ -623,36 +760,36 @@ class FirmwareFilename(Packet):
 
 class ClearDynamicMacTable(Packet):
     """ Variable Descriptor: Clear Dynamic MAC Table """
-    name = "Variable Descriptor: Clear Dynamic MAC Table"
-    fields_desc = [XByteField("branch", 0xD9),
+    name = "Clear Dynamic MAC Table"
+    fields_desc = [ByteEnumField("branch", 0xD9, OamBranchEnum),
                    XShortField("leaf", 0x0101),
                    ]
 
 class AddDynamicMacAddress(Packet):
     """ Variable Descriptor: Add Dynamic MAC Address """
-    name = "Variable Descriptor: Add Dynamic MAC Address"
-    fields_desc = [XByteField("branch", 0xD9),
+    name = "Add Dynamic MAC Address"
+    fields_desc = [ByteEnumField("branch", 0xD9, OamBranchEnum),
                    XShortField("leaf", 0x0102),
                    ]
 
 class DeleteDynamicMacAddress(Packet):
     """ Variable Descriptor: Delete Dynamic MAC Address """
-    name = "Variable Descriptor: Delete Dynamic MAC Address"
-    fields_desc = [XByteField("branch", 0xD9),
+    name = "Delete Dynamic MAC Address"
+    fields_desc = [ByteEnumField("branch", 0xD9, OamBranchEnum),
                    XShortField("leaf", 0x0103),
                    ]
 
 class ClearStaticMacTable(Packet):
     """ Variable Descriptor: Clear Static MAC Table """
-    name = "Variable Descriptor: Clear Static MAC Table"
-    fields_desc = [XByteField("branch", 0xD9),
+    name = "Clear Static MAC Table"
+    fields_desc = [ByteEnumField("branch", 0xD9, OamBranchEnum),
                    XShortField("leaf", 0x0104),
                    ]
 
 class AddStaticMacAddress(Packet):
     """ Variable Descriptor: Add Static MAC Address """
-    name = "Variable Descriptor: Add Static MAC Address"
-    fields_desc = [XByteField("branch", 0xD9),
+    name = "Add Static MAC Address"
+    fields_desc = [ByteEnumField("branch", 0xD9, OamBranchEnum),
                    XShortField("leaf", 0x0105),
                    ByteField("length", 6),
                    MACField("mac", "01:00:5e:00:00:00"),
@@ -660,8 +797,8 @@ class AddStaticMacAddress(Packet):
 
 class DeleteStaticMacAddress(Packet):
     """ Variable Descriptor: Delete Static MAC Address """
-    name = "Variable Descriptor: Delete Static MAC Address"
-    fields_desc = [XByteField("branch", 0xD9),
+    name = "Delete Static MAC Address"
+    fields_desc = [ByteEnumField("branch", 0xD9, OamBranchEnum),
                    XShortField("leaf", 0x0106),
                    ByteField("length", 6),
                    MACField("mac", "01:00:5e:00:00:00"),
@@ -673,148 +810,148 @@ class DeleteStaticMacAddress(Packet):
 
 class RxFramesGreen(Packet):
     """ Variable Descriptor: RxFramesGreen """
-    name = "Variable Descriptor: RxFramesGreen"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "RxFramesGreen"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0201),
                    ]
 
 class TxFramesGreen(Packet):
     """ Variable Descriptor: TxFramesGreen """
-    name = "Variable Descriptor: TxFramesGreen"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "TxFramesGreen"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0202),
                    ]
 
 class RxFrame_64(Packet):
     """ Variable Descriptor: RxFrame_64 """
-    name = "Variable Descriptor: RxFrame_64"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "RxFrame_64"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0204),
                    ]
 
 class RxFrame_65_127(Packet):
     """ Variable Descriptor: RxFrame_65_127 """
-    name = "Variable Descriptor: RxFrame_65_127"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "RxFrame_65_127"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0205),
                    ]
 
 class RxFrame_128_255(Packet):
     """ Variable Descriptor: RxFrame_128_255 """
-    name = "Variable Descriptor: RxFrame_128_255"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "RxFrame_128_255"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0206),
                    ]
 
 class RxFrame_256_511(Packet):
     """ Variable Descriptor: RxFrame_256_511 """
-    name = "Variable Descriptor: RxFrame_256_511"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "RxFrame_256_511"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0207),
                    ]
 
 class RxFrame_512_1023(Packet):
     """ Variable Descriptor: RxFrame_512_1023 """
-    name = "Variable Descriptor: RxFrame_512_1023"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "RxFrame_512_1023"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0208),
                    ]
 
 class RxFrame_1024_1518(Packet):
     """ Variable Descriptor: RxFrame_1024_1518 """
-    name = "Variable Descriptor: RxFrame_1024_1518"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "RxFrame_1024_1518"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0209),
                    ]
 
 class RxFrame_1519Plus(Packet):
     """ Variable Descriptor: RxFrame_1024_1518 """
-    name = "Variable Descriptor: RxFrame_1024_1518"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "RxFrame_1519_Plus"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x020A),
                    ]
 
 class TxFrame_64(Packet):
     """ Variable Descriptor: TxFrame_64 """
-    name = "Variable Descriptor: TxFrame_64"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "TxFrame_64"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x020B),
                    ]
 
 class TxFrame_65_127(Packet):
     """ Variable Descriptor: TxFrame_65_127 """
-    name = "Variable Descriptor: TxFrame_65_127"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "TxFrame_65_127"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x020C),
                    ]
 
 class TxFrame_128_255(Packet):
     """ Variable Descriptor: TxFrame_128_255 """
-    name = "Variable Descriptor: TxFrame_128_255"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "TxFrame_128_255"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x020D),
                    ]
 
 class TxFrame_256_511(Packet):
     """ Variable Descriptor: TxFrame_256_511 """
-    name = "Variable Descriptor: TxFrame_256_511"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "TxFrame_256_511"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x020E),
                    ]
 
 class TxFrame_512_1023(Packet):
     """ Variable Descriptor: TxFrame_512_1023 """
-    name = "Variable Descriptor: TxFrame_512_1023"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "TxFrame_512_1023"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x020F),
                    ]
 
 class TxFrame_1024_1518(Packet):
     """ Variable Descriptor: TxFrame_1024_1518 """
-    name = "Variable Descriptor: TxFrame_1024_1518"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "TxFrame_1024_1518"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0210),
                    ]
 
 class TxFrame_1519Plus(Packet):
     """ Variable Descriptor: TxFrame_1024_1518 """
-    name = "Variable Descriptor: TxFrame_1024_1518"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "TxFrame_1519_Plus"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0211),
                    ]
 
 class FramesDropped(Packet):
     """ Variable Descriptor: Frames Dropped """
-    name = "Variable Descriptor: Frames Dropped"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Frames Dropped"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0214),
                    ]
 
 class BytesDropped(Packet):
     """ Variable Descriptor: Bytes Dropped """
-    name = "Variable Descriptor: Bytes Dropped"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Bytes Dropped"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0215),
                    ]
 
 class TxBytesUnused(Packet):
     """ Variable Descriptor: Tx Bytes Unused """
-    name = "Variable Descriptor: Tx Bytes Unused"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Tx Bytes Unused"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0217),
                    ]
 
 class TxL2Errors(Packet):
     """ Variable Descriptor: TxL2Errors """
-    name = "Variable Descriptor: TxL2Errors"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "TxL2Errors"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0235),
                    ]
 
 class RxL2Errors(Packet):
     """ Variable Descriptor: RxL2Errors """
-    name = "Variable Descriptor: RxL2Errors"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "RxL2Errors"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0236),
                    ]
 
@@ -824,15 +961,15 @@ class RxL2Errors(Packet):
 
 class AlarmReporting(Packet):
     """ Variable Descriptor: Alarm Reporting """
-    name = "Variable Descriptor: Alarm Reporting"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Alarm Reporting"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0303),
                    ]
 
 class AlarmReportingSet(Packet):
     """ Variable Descriptor: Alarm Reporting Set """
-    name = "Variable Descriptor: Alarm Reporting Set"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Alarm Reporting Set"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0303),
                    XByteField("length", 6),
                    XShortField("LOS", 0x1101),
@@ -845,15 +982,15 @@ class AlarmReportingSet(Packet):
 ####
 class EncryptionMode(Packet):
     """ Variable Descriptor: Encryption Mode """
-    name = "Variable Descriptor: Encryption Mode"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Encryption Mode"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0402),
                    ]
 
 class EncryptionModeSet(Packet):
     """ Variable Descriptor: Encryption Mode Set """
-    name = "Variable Descriptor: Encryption Mode Set"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Encryption Mode Set"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0402),
                    XByteField("length", 1),
                    XByteField("value", 0),
@@ -861,8 +998,8 @@ class EncryptionModeSet(Packet):
 
 class IpmcForwardingRuleConfiguration(Packet):
     """ Variable Descriptor: IPMC Forwarding Rule Configuration """
-    name = "Variable Descriptor: IPMC Forwarding Rule Configuration"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "IPMC Forwarding Rule Configuration"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0505),
                    XByteField("length", 2),
                    XShortField("value", 0x0000),
@@ -870,15 +1007,15 @@ class IpmcForwardingRuleConfiguration(Packet):
 
 class QueueCommittedInformationRate(Packet):
     """ Variable Descriptor: Queue Committed Information Rate """
-    name = "Variable Descriptor: Queue Committed Information Rate"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Queue Committed Information Rate"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0604),
                    ]
 
 class QueueCommittedInformationRateSet(Packet):
     """ Variable Descriptor: Queue Committed Information Rate Set """
-    name = "Variable Descriptor: Queue Committed Information Rate Set"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Queue Committed Information Rate Set"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0604),
                    XByteField("length", 6),
                    XShortField("burst", 0x0fff),
@@ -888,15 +1025,15 @@ class QueueCommittedInformationRateSet(Packet):
 
 class FECMode(Packet):
     """ Variable Descriptor: FEC Mode """
-    name = "Variable Descriptor: FEC Mode"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "FEC Mode"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0605),
                    ]
 
 class FECModeSet(Packet):
     """ Variable Descriptor: FEC Mode """
-    name = "Variable Descriptor: FEC Mode"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "FEC Mode"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0605),
                    XByteField("length", 2),
                    XByteField("downstream", 0x01),
@@ -905,8 +1042,8 @@ class FECModeSet(Packet):
 
 class MediaType(Packet):
     """ Variable Descriptor: Media Type """
-    name = "Variable Descriptor: Media Type"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Media Type"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0822),
                    ]
 
@@ -914,6 +1051,12 @@ class MediaType(Packet):
 ####
 #### 0xD7 - Port Ingress Rules
 ####
+RuleSubtypeEnum = {  0x00: "Terminator",
+                     0x01: "Header",
+                     0x02: "Clause",
+                     0x03: "Result",
+                     }
+
 ClauseSubtypeEnum = {0x00: "LLID Index",
                      0x01: "L2 Destination MAC address",
                      0x02: "L2 Source MAC address",
@@ -958,27 +1101,74 @@ RuleOperatorEnum = { 0x00: "F",           #False
                      0x07: "T",           #True
                      }
 
+RuleResultsEnum =  { 0x00: "NOP",
+                     0x01: "Discard",
+                     0x02: "Forward",
+                     0x03: "Queue",
+                     0x04: "Set",
+                     0x05: "Copy",
+                     0x06: "Delete",
+                     0x07: "Insert",
+                     0x08: "Replace",
+                     0x09: "Clear Delete",
+                     0x0a: "Clear Insert",
+                     0x0b: "Increment Counter",
+                     # Tibit-specific values
+                     0x13: "OLT Queue",
+                     0x14: "Learning Group"
+                     }
+
+RuleClauses = {v: k for k, v in ClauseSubtypeEnum.iteritems()}
+RuleOperators = {v: k for k, v in RuleOperatorEnum.iteritems()}
+RuleResults = {v: k for k, v in RuleResultsEnum.iteritems()}
+
 class PortIngressRule(Packet):
     """ Variable Descriptor: Port Ingress Rule """
-    name = "Variable Descriptor: Port Ingress Rule"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Port Ingress Rule"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0501),
                    ]
 
 class PortIngressRuleHeader(Packet):
     """ Variable Descriptor: Port Ingress Rule Header """
-    name = "Variable Descriptor: Port Ingress Rule Header"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Port Ingress Rule Header"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0501),
                    ByteField("length", 2),
-                   XByteField("header", 1),
-                   XByteField("precedence", 00),
+                   XByteField("subtype", 0x01), # Header
+                   ByteField("precedence", 12),
+                   ]
+
+class PortIngressRuleClause(Packet):
+    """ Variable Descriptor: Port Ingress Rule Clause """
+    name = "Port Ingress Rule Clause"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
+                   XShortField("leaf", 0x0501),
+                   FieldLenField("length", None, length_of="match", fmt="B", adjust=lambda pkt,x: x+7),
+                   XByteField("subtype", 0x02), #Clause
+                   XByteField("fieldcode", 0),
+                   XByteField("fieldinstance", 0),
+                   XByteField("msbmask", 0),
+                   XByteField("lsbmask", 0),
+                   XByteField("operator", 0x7), # T
+                   XByteField("matchlength", 0),
+                   StrLenField("match", "", length_from=lambda x:x.matchlength),
+                   ]
+
+class PortIngressRuleResultNoData(Packet):
+    """ Variable Descriptor: Port Ingress Rule Result NOP """
+    name = "Rule Result NOP"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
+                   XShortField("leaf", 0x0501),
+                   ByteField("length", 2),
+                   XByteField("subtype", 0x03), # Result
+                   ByteField("resulttype", 0x00),
                    ]
 
 class PortIngressRuleClauseMatchLength00(Packet):
     """ Variable Descriptor: Port Ingress Rule Clause """
-    name = "Variable Descriptor: Port Ingress Rule Clause"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Port Ingress Rule Clause"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0501),
                    ByteField("length", 7),
                    XByteField("clause", 2),
@@ -990,10 +1180,25 @@ class PortIngressRuleClauseMatchLength00(Packet):
                    XByteField("matchlength", 0),
                    ]
 
+class PortIngressRuleClauseAlwaysMatch(Packet):
+    """ Variable Descriptor: Port Ingress Rule Clause """
+    name = "Port Ingress Rule Clause"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
+                   XShortField("leaf", 0x0501),
+                   ByteField("length", 7),
+                   XByteField("clause", 2),
+                   XByteField("fieldcode", 0),
+                   XByteField("fieldinstance", 0),
+                   XByteField("msbmask", 0),
+                   XByteField("lsbmask", 0),
+                   XByteField("operator", 7),
+                   XByteField("matchlength", 0),
+                   ]
+
 class PortIngressRuleClauseMatchLength01(Packet):
     """ Variable Descriptor: Port Ingress Rule Clause """
-    name = "Variable Descriptor: Port Ingress Rule Clause"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Port Ingress Rule Clause"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0501),
                    ByteField("length", 8),
                    XByteField("clause", 2),
@@ -1008,8 +1213,8 @@ class PortIngressRuleClauseMatchLength01(Packet):
 
 class PortIngressRuleClauseMatchLength02(Packet):
     """ Variable Descriptor: Port Ingress Rule Clause """
-    name = "Variable Descriptor: Port Ingress Rule Clause"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Port Ingress Rule Clause"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0501),
                    ByteField("length", 9),
                    XByteField("clause", 2),
@@ -1019,14 +1224,14 @@ class PortIngressRuleClauseMatchLength02(Packet):
                    XByteField("lsbmask", 0),
                    XByteField("operator", 0),
                    XByteField("matchlength", 2),
-                   XShortField("match", 0),
+                   XShortField("match", 0)
                    ]
 
 
 class PortIngressRuleClauseMatchLength06(Packet):
     """ Variable Descriptor: Port Ingress Rule Clause """
-    name = "Variable Descriptor: Port Ingress Rule Clause"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Port Ingress Rule Clause"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0501),
                    ByteField("length", 13),
                    XByteField("clause", 2),
@@ -1046,8 +1251,8 @@ class PortIngressRuleClauseMatchLength06(Packet):
 
 class PortIngressRuleResultForward(Packet):
     """ Variable Descriptor: Port Ingress Rule Result Forward """
-    name = "Variable Descriptor: Port Ingress Rule Result Forward"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Port Ingress Rule Result Forward"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0501),
                    ByteField("length", 2),
                    XByteField("result", 3),
@@ -1056,8 +1261,8 @@ class PortIngressRuleResultForward(Packet):
 
 class PortIngressRuleResultDiscard(Packet):
     """ Variable Descriptor: Port Ingress Rule Result Discard """
-    name = "Variable Descriptor: Port Ingress Rule Result Discard"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Port Ingress Rule Result Discard"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0501),
                    ByteField("length", 2),
                    XByteField("result", 3),
@@ -1066,8 +1271,8 @@ class PortIngressRuleResultDiscard(Packet):
 
 class PortIngressRuleResultQueue(Packet):
     """ Variable Descriptor: Port Ingress Rule Result Queue """
-    name = "Variable Descriptor: Port Ingress Rule Result Queue"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Port Ingress Rule Result Queue"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0501),
                    ByteField("length", 6),
                    XByteField("result", 3),
@@ -1080,8 +1285,8 @@ class PortIngressRuleResultQueue(Packet):
 # __TIBIT_OLT_OAM__: Defined by Tibit
 class PortIngressRuleResultOLTQueue(Packet):
     """ Variable Descriptor: Port Ingress Rule Result OLT Queue """
-    name = "Variable Descriptor: Port Ingress Rule Result OLT Queue"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Port Ingress Rule Result OLT Queue"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0501),
                    ByteField("length", 15),
                    XByteField("result", 3),
@@ -1096,8 +1301,8 @@ class PortIngressRuleResultOLTQueue(Packet):
 
 class PortIngressRuleResultOLTEPONQueue(Packet):
     """ Variable Descriptor: Port Ingress Rule Result OLT Queue """
-    name = "Variable Descriptor: Port Ingress Rule Result OLT Queue"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Port Ingress Rule Result OLT Queue"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0501),
                    ByteField("length", 15),
                    XByteField("result", 3),
@@ -1115,8 +1320,8 @@ class PortIngressRuleResultOLTEPONQueue(Packet):
 # __TIBIT_OLT_OAM__: Defined by Tibit
 class PortIngressRuleResultOLTBroadcastQueue(Packet):
     """ Variable Descriptor: Port Ingress Rule Result OLT Broadcast Queue """
-    name = "Variable Descriptor: Port Ingress Rule Result OLT Broadcast Queue"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Port Ingress Rule Result OLT Broadcast Queue"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0501),
                    ByteField("length", 15),
                    XByteField("result", 3),
@@ -1128,25 +1333,38 @@ class PortIngressRuleResultOLTBroadcastQueue(Packet):
                    XByteField("pad", 0),
                    ]
 
+class PortIngressRuleResultLearningGroup(Packet):
+    """ Variable Descriptor: Port Ingress Rule Result Learning Group """
+    name = "Port Ingress Rule Result Learning Group "
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
+                   XShortField("leaf", 0x0501),
+                   ByteField("length", 6),
+                   XByteField("result", 3),
+                   XByteField("grouprule", 0x14),
+                   XShortField("objecttype", 0x0000),
+                   XByteField("instance", 0),
+                   XByteField("num", 0),
+                   ]
+
 class PortIngressRuleResultSet(Packet):
     """ Variable Descriptor: Port Ingress Rule Result Set """
-    name = "Variable Descriptor: Port Ingress Rule Result Set"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Port Ingress Rule Result Set"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0501),
-                   ByteField("length", 8),
+                   FieldLenField("length", None, length_of="value", fmt="B", adjust=lambda pkt,x: x+6),
                    XByteField("result", 3),
                    XByteField("set", 4),
                    XByteField("fieldcode", 0),
                    XByteField("fieldinstance", 0),
                    XByteField("msbmask", 0),
                    XByteField("lsbmask", 0),
-                   XShortField("value", 0),
+                   StrLenField("value", "", length_from=lambda x:x.length-6),
                    ]
 
 class PortIngressRuleResultCopy(Packet):
     """ Variable Descriptor: Port Ingress Rule Result Copy """
-    name = "Variable Descriptor: Port Ingress Rule Result Copy"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Port Ingress Rule Result Copy"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0501),
                    ByteField("length", 6),
                    XByteField("result", 3),
@@ -1159,20 +1377,20 @@ class PortIngressRuleResultCopy(Packet):
 
 class PortIngressRuleResultDelete(Packet):
     """ Variable Descriptor: Port Ingress Rule Result Delete """
-    name = "Variable Descriptor: Port Ingress Rule Result Delete"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Port Ingress Rule Result Delete"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0501),
                    ByteField("length", 4),
                    XByteField("result", 3),
                    XByteField("delete", 6),
                    XByteField("fieldcode", 0),
-                   XByteField("instance", 0),
+                   XByteField("fieldinstance", 0),
                    ]
 
 class PortIngressRuleResultInsert(Packet):
     """ Variable Descriptor: Port Ingress Rule Result Insert """
-    name = "Variable Descriptor: Port Ingress Rule Result Insert"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Port Ingress Rule Result Insert"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0501),
                    ByteField("length", 4),
                    XByteField("result", 3),
@@ -1183,8 +1401,8 @@ class PortIngressRuleResultInsert(Packet):
 
 class PortIngressRuleResultReplace(Packet):
     """ Variable Descriptor: Port Ingress Rule Result Replace """
-    name = "Variable Descriptor: Port Ingress Rule Result Replace"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Port Ingress Rule Result Replace"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0501),
                    ByteField("length", 4),
                    XByteField("result", 3),
@@ -1195,8 +1413,8 @@ class PortIngressRuleResultReplace(Packet):
 
 class PortIngressRuleTerminator(Packet):
     """ Variable Descriptor: Port Ingress Rule Terminator """
-    name = "Variable Descriptor: Port Ingress Rule Terminator"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Port Ingress Rule Terminator"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0501),
                    ByteField("length", 1),
                    XByteField("terminator", 0),
@@ -1204,8 +1422,8 @@ class PortIngressRuleTerminator(Packet):
 
 class CustomField(Packet):
     """ Variable Descriptor: Custom Field """
-    name = "Variable Descriptor: Custom Field"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Custom Field"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0502),
                    XByteField("length", 1),
                    XByteField("value", 0),
@@ -1213,8 +1431,8 @@ class CustomField(Packet):
 
 class CustomFieldEtherType(Packet):
     """ Variable Descriptor: Custom Field EtherType """
-    name = "Variable Descriptor: Custom Field EtherType"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Custom Field EtherType"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0502),
                    XByteField("length", 6),
                    XByteField("fieldcode", 0x19),
@@ -1227,8 +1445,8 @@ class CustomFieldEtherType(Packet):
 
 class CustomFieldGenericL3(Packet):
     """ Variable Descriptor: Custom Field Generic L3 """
-    name = "Variable Descriptor: Custom Field Generic L3"
-    fields_desc = [XByteField("branch", 0xD7),
+    name = "Custom Field Generic L3"
+    fields_desc = [ByteEnumField("branch", 0xD7, OamBranchEnum),
                    XShortField("leaf", 0x0502),
                    XByteField("length", 6),
                    XByteField("fieldcode", 0x1a),
@@ -1245,30 +1463,24 @@ class CustomFieldGenericL3(Packet):
 
 class ClearPortIngressRules(Packet):
     """ Variable Descriptor: Clear Port Ingress Rule """
-    name = "Variable Descriptor: Clear Port Ingress Rule"
-    fields_desc = [XByteField("branch", 0xD9),
+    name = "Clear Port Ingress Rule"
+    fields_desc = [ByteEnumField("branch", 0xD9, OamBranchEnum),
                    XShortField("leaf", 0x0501),
-                   XByteField("length", 1),
-                   XByteField("value", 0),
                    ]
 
 class AddPortIngressRule(Packet):
     """ Variable Descriptor: Add Port Ingress Rule """
-    name = "Variable Descriptor: Add Port Ingress Rule"
-    fields_desc = [XByteField("branch", 0xD9),
+    name = "Add Port Ingress Rule"
+    fields_desc = [ByteEnumField("branch", 0xD9, OamBranchEnum),
                    XShortField("leaf", 0x0502),
-                   XByteField("length", 0x80),
-                   XByteField("value", 0),
                    ]
 
 
 class DeletePortIngressRule(Packet):
     """ Variable Descriptor: Delete Port Ingress Rule """
-    name = "Variable Descriptor: Delete Port Ingress Rule"
-    fields_desc = [XByteField("branch", 0xD9),
+    name = "Delete Port Ingress Rule"
+    fields_desc = [ByteEnumField("branch", 0xD9, OamBranchEnum),
                    XShortField("leaf", 0x0503),
-                   XByteField("length", 0x80),
-                   XByteField("value", 0),
                    ]
 
 ####
@@ -1276,15 +1488,15 @@ class DeletePortIngressRule(Packet):
 ####
 class OltMode(Packet):
     """ Variable Descriptor: OLT Mode """
-    name = "Variable Descriptor: "
-    fields_desc = [XByteField("branch", 0xB7),
+    name = "OLT Mode"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
                    XShortField("leaf", 0x0101),
                    ]
 
 class OltModeSet(Packet):
     """ Variable Descriptor: OLT Mode """
-    name = "Variable Descriptor: "
-    fields_desc = [XByteField("branch", 0xB7),
+    name = "OLT Mode"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
                    XShortField("leaf", 0x0101),
                    XByteField("length", 1),
                    XByteField("value", 0),
@@ -1292,15 +1504,15 @@ class OltModeSet(Packet):
 
 class OltPonAdminState(Packet):
     """ Variable Descriptor: OLT PON Admin State """
-    name = "Variable Descriptor: "
-    fields_desc = [XByteField("branch", 0xB7),
+    name = "PON Admin State"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
                    XShortField("leaf", 0x0102),
                    ]
 
 class OltPonAdminStateSet(Packet):
     """ Variable Container: OLT PON Admin State """
-    name = "Variable Container: "
-    fields_desc = [XByteField("branch", 0xB7),
+    name = "PON Admin State"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
                    XShortField("leaf", 0x0102),
                    XByteField("length", 1),
                    XByteField("value", 0),
@@ -1308,22 +1520,22 @@ class OltPonAdminStateSet(Packet):
 
 class TibitLinkMacTable(Packet):
     """ Variable Descriptor: Link MAC Table """
-    name = "Variable Descriptor: "
-    fields_desc = [XByteField("branch", 0xB7),
+    name = "Link MAC Table"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
                    XShortField("leaf", 0x0103),
                    ]
 
 class TibitKeyExchange(Packet):
     """ Variable Descriptor: Key Exchange """
-    name = "Variable Descriptor: "
-    fields_desc = [XByteField("branch", 0xB7),
+    name = "Key Exchange Period"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
                    XShortField("leaf", 0x0104),
                    ]
 
 class TibitKeyExchangeSet(Packet):
     """ Variable Descriptor: Key Exchange Set"""
-    name = "Variable Container: "
-    fields_desc = [XByteField("branch", 0xB7),
+    name = "Key Exchange Period"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
                    XShortField("leaf", 0x0104),
                    XByteField("length", 2),
                    XShortField("value", 0x1234),
@@ -1331,15 +1543,15 @@ class TibitKeyExchangeSet(Packet):
 
 class OnuMode(Packet):
     """ Variable Descriptor: ONU Mode """
-    name = "Variable Descriptor: "
-    fields_desc = [XByteField("branch", 0xB7),
+    name = "ONU Mode"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
                    XShortField("leaf", 0x0105),
                    ]
 
 class OnuModeSet(Packet):
     """ Variable Descriptor: ONU Mode """
-    name = "Variable Descriptor: "
-    fields_desc = [XByteField("branch", 0xB7),
+    name = "ONU Mode"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
                    XShortField("leaf", 0x0105),
                    XByteField("length", 1),
                    XByteField("value", 0),
@@ -1347,31 +1559,31 @@ class OnuModeSet(Packet):
 
 class TibitGrantSpacing(Packet):
     """ Variable Descriptor: Grant Spacing """
-    name = "Variable Descriptor: "
-    fields_desc = [XByteField("branch", 0xB7),
+    name = "Grant Spacing"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
                    XShortField("leaf", 0x0106),
                    ]
 
 class TibitGrantSpacingSet(Packet):
     """ Variable Descriptor: Grant Spacing """
-    name = "Variable Descriptor: "
-    fields_desc = [XByteField("branch", 0xB7),
+    name = "Grant Spacing"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
                    XShortField("leaf", 0x0106),
                    XByteField("length", 1),
                    XByteField("value", 0),
-                   ]                   
+                   ]
 
 class TibitBurstOverheadProfiles(Packet):
     """ Variable Descriptor: Burst Overhead Profiles """
-    name = "Variable Descriptor: "
-    fields_desc = [XByteField("branch", 0xB7),
+    name = "Burst Overhead Profiles"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
                    XShortField("leaf", 0x0107),
                    ]
 
 class TibitBurstOverheadProfilesSet(Packet):
     """ Variable Descriptor: Burst Overhead Profiles """
-    name = "Variable Descriptor: "
-    fields_desc = [XByteField("branch", 0xB7),
+    name = "Burst Overhead Profiles"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
                    XShortField("leaf", 0x0107),
                    # Length is one + 5 for each entry
                    XByteField("length", 6),
@@ -1387,6 +1599,158 @@ class TibitBurstOverheadProfilesEntry(Packet):
                    XByteField("us_fec", 1),
                    ]
 
+class TibitGpioConditionSet(Packet):
+    """ Variable Descriptor: GPIO condition Set """
+    name = "GPIO Condition"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
+                   XShortField("leaf", 0x0108),
+                   XByteField("length", 1),
+                   XByteField("state", 0),
+                   ]
+
+class TibitDiscoveryPeriod(Packet):
+    """ Variable Descriptor: Discovery Period """
+    name = "Discovery Period"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
+                   XShortField("leaf", 0x0109),
+                   ]
+
+class TibitDiscoveryPeriodSet(Packet):
+    """ Variable Descriptor: Discovery Period Set """
+    name = "Discovery Period"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
+                   XShortField("leaf", 0x0109),
+                   XByteField("length", 2),
+                   XShortField("period", 3000),
+                   ]
+class TibitLldpPeriod(Packet):
+    """ Variable Descriptor: LLDP Period """
+    name = "LLDP Period"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
+                   XShortField("leaf", 0x010A),
+                   ]
+
+class TibitLldpPeriodSet(Packet):
+    """ Variable Descriptor: LLDP Period Set """
+    name = "LLDP Period"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
+                   XShortField("leaf", 0x010A),
+                   XByteField("length", 2),
+                   XShortField("period", 60),
+                   ]
+
+class TibitLldpDestAddress(Packet):
+    """ Variable Descriptor: LLDP Destination MAC Address """
+    name = "LLDP Dest Address"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
+                   XShortField("leaf", 0x010B),
+                   ]
+
+class TibitLldpDestAddressSet(Packet):
+    """ Variable Descriptor: LLDP Destination MAC Address Set """
+    name = "LLDP Dest Address"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
+                   XShortField("leaf", 0x010B),
+                   XByteField("length", 6),
+                   MACField("addr", "01:80:c2:00:00:0e"),
+                   ]
+
+class TibitLldpTpid(Packet):
+    """ Variable Descriptor: LLDP TPID """
+    name = "LLDP TPID"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
+                   XShortField("leaf", 0x010C),
+                   ]
+
+class TibitLldpTpidSet(Packet):
+    """ Variable Descriptor: LLDP TPID Set """
+    name = "LLDP TPID"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
+                   XShortField("leaf", 0x010C),
+                   XByteField("length", 2),
+                   XShortField("tpid", 0),
+                   ]
+
+class TibitLldpVid(Packet):
+    """ Variable Descriptor: LLDP TPID """
+    name = "LLDP VID"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
+                   XShortField("leaf", 0x010D),
+                   ]
+
+class TibitLldpVidSet(Packet):
+    """ Variable Descriptor: LLDP TPID Set """
+    name = "LLDP VID"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
+                   XShortField("leaf", 0x010D),
+                   XByteField("length", 2),
+                   XShortField("vid", 0),
+                   ]
+
+class TibitFailsafeTimer(Packet):
+    """ Variable Descriptor: Failsafe Timer """
+    name = "Failsafe Timer"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
+                   XShortField("leaf", 0x010E),
+                   ]
+
+class TibitFailsafeTimerSet(Packet):
+    """ Variable Descriptor: Failsafe Timer Set """
+    name = "Failsafe Timer"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
+                   XShortField("leaf", 0x010E),
+                   XByteField("length", 1),
+                   XByteField("timer", 0),
+                   ]
+
+class TibitMtu(Packet):
+    """ Variable Descriptor: MTU """
+    name = "MTU"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
+                   XShortField("leaf", 0x010F),
+                   ]
+
+class TibitMtuSet(Packet):
+    """ Variable Descriptor: MTU Set """
+    name = "MTU"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
+                   XShortField("leaf", 0x010F),
+                   XByteField("length", 4),
+                   XIntField("mtu", 0),
+                   ]
+
+class TibitCtagCtagMode(Packet):
+    """ Variable Descriptor: CTAG CTAG Mode """
+    name = "CTAG-CTAG Mode"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
+                   XShortField("leaf", 0x0110),
+                   ]
+
+class TibitCtagCtagModeSet(Packet):
+    """ Variable Descriptor: CTAG CTAG Mode Set """
+    name = "CTAG-CTAG Mode"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
+                   XShortField("leaf", 0x0110),
+                   XByteField("length", 1),
+                   XByteField("enable", 0),
+                   ]
+
+class TibitStatsOptions(Packet):
+    """ Variable Descriptor: Tibit Stats Options """
+    name = "Tibit Stats Options"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
+                   XShortField("leaf", 0x0111),
+                   ]
+
+class TibitStatsOptionsSet(Packet):
+    """ Variable Descriptor: Tibit Stats Options Set"""
+    name = "Tibit Stats Options Set"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
+                   XShortField("leaf", 0x0111),
+                   ByteField("length", 5),
+                   ByteField("enable", 0),
+                   IntField("period", 0),
+                   ]
 
 
 UpstreamSlaSubtypeEnum = { 0x00: "Terminator",
@@ -1403,15 +1767,15 @@ UpstreamSlaSubtypeEnum = { 0x00: "Terminator",
 
 class UpstreamSla(Packet):
     """ Variable Descriptor: Upstream SLA """
-    name = "Variable Descriptor: Upstream SLA"
-    fields_desc = [XByteField("branch", 0xB7),
+    name = "Upstream SLA"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
                    XShortField("leaf", 0x0621),
                    ]
 
 class UpstreamSlaHeader(Packet):
     """ Variable Descriptor: Upstream SLA Header """
-    name = "Variable Descriptor: Upstream SLA Header"
-    fields_desc = [XByteField("branch", 0xB7),
+    name = "Upstream SLA Header"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
                    XShortField("leaf", 0x0621),
                    ByteField("length", 1),
                    XByteField("subtype", 1),
@@ -1419,8 +1783,8 @@ class UpstreamSlaHeader(Packet):
 
 class UpstreamSlaTerminator(Packet):
     """ Variable Descriptor: Upstream SLA Terminator """
-    name = "Variable Descriptor: Upstream SLA Terminator"
-    fields_desc = [XByteField("branch", 0xB7),
+    name = "Upstream SLA Terminator"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
                    XShortField("leaf", 0x0621),
                    ByteField("length", 1),
                    XByteField("subtype", 0),
@@ -1428,8 +1792,8 @@ class UpstreamSlaTerminator(Packet):
 
 class UpstreamSlaSettingLength01(Packet):
     """ Variable Descriptor: Upstream SLA Setting """
-    name = "Variable Descriptor: Upstream SLA Setting"
-    fields_desc = [XByteField("branch", 0xB7),
+    name = "Upstream SLA Setting"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
                    XShortField("leaf", 0x0621),
                    ByteField("length", 3),
                    XByteField("subtype", 0),
@@ -1439,8 +1803,8 @@ class UpstreamSlaSettingLength01(Packet):
 
 class UpstreamSlaSettingLength02(Packet):
     """ Variable Descriptor: Upstream SLA Setting """
-    name = "Variable Descriptor: Upstream SLA Setting"
-    fields_desc = [XByteField("branch", 0xB7),
+    name = "Upstream SLA Setting"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
                    XShortField("leaf", 0x0621),
                    ByteField("length", 4),
                    XByteField("subtype", 0),
@@ -1450,8 +1814,8 @@ class UpstreamSlaSettingLength02(Packet):
 
 class UpstreamSlaSettingLength04(Packet):
     """ Variable Descriptor: Upstream SLA Setting """
-    name = "Variable Descriptor: Upstream SLA Setting"
-    fields_desc = [XByteField("branch", 0xB7),
+    name = "Upstream SLA Setting"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
                    XShortField("leaf", 0x0621),
                    ByteField("length", 6),
                    XByteField("subtype", 0),
@@ -1461,20 +1825,52 @@ class UpstreamSlaSettingLength04(Packet):
 
 class SlaPriorityType(Packet):
     """ Variable Descriptor: SLA Priority Type """
-    name = "Variable Descriptor: "
-    fields_desc = [XByteField("branch", 0xB7),
+    name = "SLA Priority Type"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
                    XShortField("leaf", 0x0622),
                    ]
 
 class SlaPriorityTypeSet(Packet):
     """ Variable Container: SLA Priority Type """
-    name = "Variable Container: "
-    fields_desc = [XByteField("branch", 0xB7),
+    name = "SLA Priority Type"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
                    XShortField("leaf", 0x0622),
                    XByteField("length", 1),
                    XByteField("value", 1),
                    ]
 
+class DsGuarRate(Packet):
+    """ Variable Descriptor: Downstream Guaranteed Rate """
+    name = "Downstream Guaranteed Rate"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
+                   XShortField("leaf", 0x0623),
+                   ]
+
+class DsGuarRateSet(Packet):
+    """ Variable Descriptor: Downstream Guaranteed Rate Set"""
+    name = "Downstream Guaranteed Rate Set"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
+                   XShortField("leaf", 0x0623),
+                   ByteField("length", 6),
+                   ShortField("mbs", 0),
+                   IntField("rate", 0),                  ]
+
+
+class DsBestEffortRate(Packet):
+    """ Variable Descriptor: Downstream Best Effort Rate """
+    name = "Downstream Best Effort Rate"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
+                   XShortField("leaf", 0x0624),
+                   ]
+
+class DsBestEffortRateSet(Packet):
+    """ Variable Descriptor: Downstream Best Effort Rate Set"""
+    name = "Downstream Best Effort Rate Set"
+    fields_desc = [ByteEnumField("branch", 0xB7, OamBranchEnum),
+                   XShortField("leaf", 0x0624),
+                   ByteField("length", 6),
+                   ShortField("mbs", 0),
+                   IntField("rate", 0),                  ]
 
 
 ####
@@ -1483,23 +1879,22 @@ class SlaPriorityTypeSet(Packet):
 
 class EnableUserTraffic(Packet):
     """ Variable Descriptor: Enable User Traffic """
-    name = "Variable Descriptor: Enable User Traffic"
-    fields_desc = [XByteField("branch", 0xD9),
+    name = "Enable User Traffic"
+    fields_desc = [ByteEnumField("branch", 0xD9, OamBranchEnum),
                    XShortField("leaf", 0x0601),
-                   XByteField("length", 1),
-                   XByteField("value", 0),
                    ]
 
 class DisableUserTraffic(Packet):
     """ Variable Descriptor: Disable User Traffic """
-    name = "Variable Descriptor: Disable User Traffic"
-    fields_desc = [XByteField("branch", 0xD9),
-                   XShortField("leaf", 0x0602)]
+    name = "Disable User Traffic"
+    fields_desc = [ByteEnumField("branch", 0xD9, OamBranchEnum),
+                   XShortField("leaf", 0x0602),
+                   ]
 
 class LoopbackEnable(Packet):
     """ Variable Descriptor: Loopback Enable """
-    name = "Variable Descriptor: Loopback Enable"
-    fields_desc = [XByteField("branch", 0xD9),
+    name = "Loopback Enable"
+    fields_desc = [ByteEnumField("branch", 0xD9, OamBranchEnum),
                    XShortField("leaf", 0x0603),
                    XByteField("length", 1),
                    XByteField("location", 0),
@@ -1507,8 +1902,8 @@ class LoopbackEnable(Packet):
 
 class LoopbackDisable(Packet):
     """ Variable Descriptor: Loopback Disable """
-    name = "Variable Descriptor: Loopback Disable"
-    fields_desc = [XByteField("branch", 0xD9),
+    name = "Loopback Disable"
+    fields_desc = [ByteEnumField("branch", 0xD9, OamBranchEnum),
                    XShortField("leaf", 0x0604),
                    XByteField("length", 1),
                    XByteField("location", 0),
@@ -1516,34 +1911,92 @@ class LoopbackDisable(Packet):
 
 class CurrentAlarmSummary(Packet):
     """ Variable Descriptor: Current Alarm Summary """
-    name = "Variable Descriptor: Current Alarm Summary"
-    fields_desc = [XByteField("branch", 0xD9),
+    name = "Current Alarm Summary"
+    fields_desc = [ByteEnumField("branch", 0xD9, OamBranchEnum),
                    XShortField("leaf", 0x0301)]
 
 class DeviceReset(Packet):
     """ Variable Descriptor: Device Reset """
-    name = "Variable Descriptor: Device Reset"
-    fields_desc = [XByteField("branch", 0xD9),
+    name = "Device Reset"
+    fields_desc = [ByteEnumField("branch", 0xD9, OamBranchEnum),
                    XShortField("leaf", 0x0001),
-                   XByteField("length", 0x80),
                    ]
 
 class TibitDeviceReset(Packet):
     """ Variable Descriptor: Tibit Device Reset """
-    name = "Variable Descriptor: Tibit Device Reset"
+    name = "Tibit Device Reset"
     fields_desc = [XByteField("branch", 0xB9),
                    XShortField("leaf", 0x0001),
-                   XByteField("length", 0x80),
+                   ]
+
+class TibitPreprovisionLink(Packet):
+    """ Variable Descriptor: Tibit Preprovision Link """
+    name = "Tibit Preprovision Link"
+    fields_desc = [XByteField("branch", 0xB9),
+                   XShortField("leaf", 0x0002),
                    ]
 
 class TibitApplySla(Packet):
     """ Variable Descriptor: Apply SLA """
-    name = "Variable Descriptor: Apply Sla"
+    name = "Apply Sla"
     fields_desc = [XByteField("branch", 0xB9),
                    XShortField("leaf", 0x0601),
-                   XByteField("length", 0x80),
-                   XByteField("value", 0),
                    ]
+
+
+##
+## DPoE File Transfer
+##
+
+### Table 156 - DPoE File Transfer Opcodes
+DPoEFileXferOpcodeEnum = {
+    0x00: "Reserved",
+    0x01: "Write Request",
+    0x02: "File Transfer Data",
+    0x03: "File Transfer Ack",
+    }
+
+Dpoe_FileXferOpcodes = {v: k for k, v in DPoEFileXferOpcodeEnum.iteritems()}
+
+
+### Table 160 - DPoE File Acknowledgement Response Codes
+DPoEFileAckRespCodeEnum = {
+    0x00: "OK",
+    0x01: "Undefined",
+    0x02: "Not Found",
+    0x03: "No Access",
+    0x04: "Full",
+    0x05: "Illegal Operation",
+    0x06: "Unknown ID",
+    0x07: "Bad Block",
+    0x08: "Timeout",
+    0x09: "Busy",
+    0x0A: "Incompatible File",
+    0x0B: "Corrupted File",
+    }
+
+Dpoe_FileAckRspOpcodes = {v: k for k, v in DPoEFileAckRespCodeEnum.iteritems()}
+
+class DpoeFileTransferWrite(Packet):
+    name = "DPoE File Transfer Write "
+    fields_desc = [ByteEnumField("opcode", 0x01, DPoEFileXferOpcodeEnum),
+                   StrField("filename", ""),
+                  ]
+
+class DpoeFileTransferData(Packet):
+    name = "DPoE File Transfer Data "
+    fields_desc = [ByteEnumField("opcode", 0x02, DPoEFileXferOpcodeEnum),
+                   ShortField("block_num", 0),
+                   FieldLenField("block_width", None, length_of="block", fmt="H"),
+                   StrLenField("block", "", length_from=lambda x:x.length),
+                  ]
+
+class DpoeFileTransferAck(Packet):
+    name = "DPoE File Transfer Data "
+    fields_desc = [ByteEnumField("opcode", 0x03, DPoEFileXferOpcodeEnum),
+                   ShortField("block_num", 0),
+                   ByteEnumField("response_code", 0x00, DPoEFileAckRespCodeEnum),
+                  ]
 
 
 ##
@@ -1551,8 +2004,8 @@ class TibitApplySla(Packet):
 ##
 class Broadcom07_7F_F1_Set01(Packet):
     """ Variable Descriptor: Broadcom 0x07/0x7ff1 """
-    name = "Variable Descriptor: Broadcom 0x07/0x7ff1"
-    fields_desc = [XByteField("branch", 0x07),
+    name = "Broadcom 0x07/0x7ff1"
+    fields_desc = [ByteEnumField("branch", 0x07, OamBranchEnum),
                    XShortField("leaf", 0x7ff1),
                    XByteField("length", 2),
                    XShortField("value0", 0x0101),
@@ -1560,8 +2013,8 @@ class Broadcom07_7F_F1_Set01(Packet):
 
 class Broadcom07_7F_F1_Set02(Packet):
     """ Variable Descriptor: Broadcom 0x07/0x7ff1 """
-    name = "Variable Descriptor: Broadcom 0x07/0x7ff1"
-    fields_desc = [XByteField("branch", 0x07),
+    name = "Broadcom 0x07/0x7ff1"
+    fields_desc = [ByteEnumField("branch", 0x07, OamBranchEnum),
                    XShortField("leaf", 0x7ff1),
                    XByteField("length", 7),
                    XShortField("value0", 0x0201),
@@ -1572,8 +2025,8 @@ class Broadcom07_7F_F1_Set02(Packet):
 
 class Broadcom07_7F_F1_Set03(Packet):
     """ Variable Descriptor: Broadcom 0x07/0x7ff1 """
-    name = "Variable Descriptor: Broadcom 0x07/0x7ff1"
-    fields_desc = [XByteField("branch", 0x07),
+    name = "Broadcom 0x07/0x7ff1"
+    fields_desc = [ByteEnumField("branch", 0x07, OamBranchEnum),
                    XShortField("leaf", 0x7ff1),
                    XByteField("length", 7),
                    XShortField("value0", 0x0301),
@@ -1584,8 +2037,8 @@ class Broadcom07_7F_F1_Set03(Packet):
 
 class Broadcom07_7F_F1_Set04(Packet):
     """ Variable Descriptor: Broadcom 0x07/0x7ff1 """
-    name = "Variable Descriptor: Broadcom 0x07/0x7ff1"
-    fields_desc = [XByteField("branch", 0x07),
+    name = "Broadcom 0x07/0x7ff1"
+    fields_desc = [ByteEnumField("branch", 0x07, OamBranchEnum),
                    XShortField("leaf", 0x7ff1),
                    XByteField("length", 1),
                    XByteField("value0", 0x00),
@@ -1593,8 +2046,8 @@ class Broadcom07_7F_F1_Set04(Packet):
 
 class Broadcom07_7F_F6_Set(Packet):
     """ Variable Descriptor: Broadcom 0x07/0x7ff6 """
-    name = "Variable Descriptor: Broadcom 0x07/0x7ff6"
-    fields_desc = [XByteField("branch", 0x07),
+    name = "Broadcom 0x07/0x7ff6"
+    fields_desc = [ByteEnumField("branch", 0x07, OamBranchEnum),
                    XShortField("leaf", 0x7ff6),
                    XByteField("length", 2),
                    XShortField("value0", 0x07d0),
@@ -1605,8 +2058,8 @@ class Broadcom07_7F_F6_Set(Packet):
 ###
 class Clause30AttributesMacEnable(Packet):
     """ Variable Descriptor: Clause 30 Attributes MAC Enable """
-    name = "Variable Descriptor: Clause 30 Attributes MAC Enable"
-    fields_desc = [XByteField("branch", 0x07),
+    name = "Clause 30 Attributes MAC Enable"
+    fields_desc = [ByteEnumField("branch", 0x07, OamBranchEnum),
                    XShortField("leaf", 0x001a),
                    XByteField("length", 1),
                    XByteField("value", 1),
@@ -1614,8 +2067,8 @@ class Clause30AttributesMacEnable(Packet):
 
 class GenericTLV(Packet):
     """ Variable Descriptor: Generic TLV """
-    name = "Variable Descriptor: Generic TLV"
-    fields_desc = [XByteField("branch", 0x00),
+    name = "Generic TLV"
+    fields_desc = [ByteEnumField("branch", 0x00, OamBranchEnum),
                    XShortField("leaf", 0x0000),
                    FieldLenField("length", None, length_of="value", fmt="B"),
                    StrLenField("value", "", length_from=lambda x:x.length),

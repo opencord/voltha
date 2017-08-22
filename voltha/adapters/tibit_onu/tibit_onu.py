@@ -18,7 +18,6 @@
 Tibit ONU device adapter
 """
 
-import json
 import time
 import struct
 import re
@@ -62,9 +61,9 @@ from voltha.extensions.eoam.EOAM_TLV import UserPortObject
 from voltha.extensions.eoam.EOAM_TLV import AddStaticMacAddress, DeleteStaticMacAddress
 from voltha.extensions.eoam.EOAM_TLV import ClearStaticMacTable
 from voltha.extensions.eoam.EOAM_TLV import DeviceId
-from voltha.extensions.eoam.EOAM_TLV import ClauseSubtypeEnum
-from voltha.extensions.eoam.EOAM_TLV import RuleOperatorEnum
-from voltha.extensions.eoam.EOAM_TLV import DPoEOpcodeEnum, DPoEVariableResponseCodes
+from voltha.extensions.eoam.EOAM_TLV import ClauseSubtypeEnum, RuleClauses
+from voltha.extensions.eoam.EOAM_TLV import RuleOperatorEnum, RuleOperators
+from voltha.extensions.eoam.EOAM_TLV import DPoEOpcodeEnum, DPoEVariableResponseEnum
 from voltha.extensions.eoam.EOAM_TLV import DPoEOpcode_MulticastRegister, MulticastRegisterSet
 from voltha.extensions.eoam.EOAM_TLV import VendorName, OnuMode, HardwareVersion, ManufacturerInfo
 from voltha.extensions.eoam.EOAM_TLV import SlowProtocolsSubtypeEnum, DeviceReset
@@ -75,19 +74,18 @@ from voltha.extensions.eoam.EOAM_TLV import DONUObject, \
      PortIngressRuleResultSet, PortIngressRuleResultInsert, \
      PortIngressRuleResultCopy, PortIngressRuleResultReplace, \
      PortIngressRuleResultDelete, PortIngressRuleResultOLTQueue, \
-     PortIngressRuleTerminator, AddPortIngressRule
+     PortIngressRuleTerminator, AddPortIngressRule, DPoEOpcodes
 from voltha.extensions.eoam.EOAM_TLV import PortIngressRuleHeader
-from voltha.extensions.eoam.EOAM_TLV import ClauseSubtypeEnum
-from voltha.extensions.eoam.EOAM_TLV import RuleOperatorEnum
 from voltha.extensions.eoam.EOAM_TLV import EndOfPDU
 
-from voltha.extensions.eoam.EOAM import EOAMPayload, EOAMEvent, EOAM_VendSpecificMsg
-from voltha.extensions.eoam.EOAM import EOAM_OmciMsg, EOAM_TibitMsg, EOAM_DpoeMsg
-from voltha.extensions.eoam.EOAM import EOAMPayload, CableLabs_OUI, Tibit_OUI
+from voltha.extensions.eoam.EOAM_Layers import EOAMPayload, EOAM_EventMsg, EOAM_VendSpecificMsg
+from voltha.extensions.eoam.EOAM_Layers import EOAM_TibitMsg, EOAM_DpoeMsg
+from voltha.extensions.eoam.EOAM_Layers import OAM_ETHERTYPE
+from voltha.extensions.eoam.EOAM_Layers import CABLELABS_OUI, TIBIT_OUI
+from voltha.extensions.eoam.EOAM_Layers import RxedOamMsgTypeEnum, RxedOamMsgTypes
 from voltha.extensions.eoam.EOAM import DPoEOpcode_GetRequest, DPoEOpcode_SetRequest
-from voltha.extensions.eoam.EOAM import mcastIp2McastMac
-from voltha.extensions.eoam.EOAM import RxedOamMsgTypeEnum, Dpoe_Opcodes, get_oam_msg_type, \
-    handle_get_value, get_value_from_msg, check_set_resp, check_resp
+from voltha.extensions.eoam.EOAM import mcastIp2McastMac, get_oam_msg_type, get_value_from_msg, check_set_resp, check_resp
+
 
 TIBIT_MSG_WAIT_TIME = 3
 
@@ -346,21 +344,11 @@ class TibitOnuAdapter(object):
         device.connect_status = ConnectStatus.UNREACHABLE
         self.adapter_agent.update_device(device)
 
-        msg = (
-            EOAMPayload() / EOAM_VendSpecificMsg(oui=CableLabs_OUI) /
-            EOAM_DpoeMsg(dpoe_opcode = Dpoe_Opcodes["Set Request"],
-                         body=DeviceReset())/
-            EndOfPDU()
-            )
-
-        action = "Device Reset"
-
         # send message
-        log.info('ONU-send-proxied-message to {} for ONU: {}'.format(action, device.mac_address))
-        self.adapter_agent.send_proxied_message(device.proxy_address, msg)
-
+        action = "Device Reset"
         rc = []
-        yield self._handle_set_resp(device, action, rc)
+        tlvs = DeviceReset()
+        yield self._set_req_rsp(device, action, tlvs, rc)
 
         # Change the operational status back to its previous state.
         device.oper_status = previous_oper_status
@@ -422,9 +410,6 @@ class TibitOnuAdapter(object):
             # Re-add the IGMP Multicast Address
             yield self._send_igmp_mcast_addr(device)
 
-        Clause = {v: k for k, v in ClauseSubtypeEnum.iteritems()}
-        Operator = {v: k for k, v in RuleOperatorEnum.iteritems()}
-
         for flow in flows.items:
             in_port = get_in_port(flow)
             assert in_port is not None
@@ -433,7 +418,6 @@ class TibitOnuAdapter(object):
 
             if in_port == 2:
                 log.info('#### Upstream Rule ####')
-
 
                 up_req = UserPortObject()
                 up_req /= PortIngressRuleHeader(precedence=precedence)
@@ -455,8 +439,8 @@ class TibitOnuAdapter(object):
                     elif field.type == VLAN_VID:
                         _vlan_vid = field.vlan_vid & 0xfff
                         log.info('#### field.type == VLAN_VID ####', vlan=_vlan_vid)
-                        up_req /= PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
-                                                                     operator=Operator['=='], match=_vlan_vid)
+                        up_req /= PortIngressRuleClauseMatchLength02(fieldcode=RuleClauses['C-VLAN Tag'], fieldinstance=0,
+                                                                     operator=RuleOperators['=='], match=_vlan_vid)
 
                     elif field.type == VLAN_PCP:
                         _vlan_pcp = field.vlan_pcp
@@ -483,14 +467,14 @@ class TibitOnuAdapter(object):
 
                     if action.type == OUTPUT:
                         log.info('#### action.type == OUTPUT ####')
-                        up_req /= PortIngressRuleResultInsert(fieldcode=Clause['C-VLAN Tag'])
+                        up_req /= PortIngressRuleResultInsert(fieldcode=RuleClauses['C-VLAN Tag'])
 
                     elif action.type == POP_VLAN:
                         log.info('#### action.type == POP_VLAN ####')
 
                     elif action.type == PUSH_VLAN:
                         log.info('#### action.type == PUSH_VLAN ####')
-                        up_req /= PortIngressRuleResultInsert(fieldcode=Clause['C-VLAN Tag'])
+                        up_req /= PortIngressRuleResultInsert(fieldcode=RuleClauses['C-VLAN Tag'])
 #                        if action.push.ethertype != 0x8100:
 #                            log.error('unhandled-tpid',
 #                                      ethertype=action.push.ethertype)
@@ -502,32 +486,23 @@ class TibitOnuAdapter(object):
                         field = action.set_field.field.ofb_field
                         if field.type == VLAN_VID:
                             log.info("#### action.field.vlan {} ####".format(field.vlan_vid & 0xfff))
+                            # need to convert value in Set to a variable length value
+                            ctagStr = struct.pack('>H', (field.vlan_vid & 0xfff))
+
                             up_req /= PortIngressRuleResultSet(
-                                    fieldcode=Clause['C-VLAN Tag'], value=field.vlan_vid & 0xfff)
+                                    fieldcode=RuleClauses['C-VLAN Tag'], value=ctagStr)
                         else:
-                            log.error('unsupported-action-set-field-type',
-                                      field_type=field.type)
+                            raise NotImplementedError('unsupported-action-set-field-type={}'.format(field.type))
                     else:
-                        log.error('UNSUPPORTED-ACTION-TYPE',
-                                  action_type=action.type)
+                        raise NotImplementedError('unsupported-action-type={}'.format(action.type))
 
                 up_req /= PortIngressRuleTerminator()
                 up_req /= AddPortIngressRule()
 
-                msg = (
-                    EOAMPayload() / EOAM_VendSpecificMsg(oui=CableLabs_OUI) /
-                    EOAM_DpoeMsg(dpoe_opcode = Dpoe_Opcodes["Set Request"], body=up_req)/
-                    EndOfPDU()
-                )
-
                 # send message
                 action = "Set ONU US Rule"
-                log.info('ONU-send-proxied-message to {} for ONU: {}'.format(action, device.mac_address))
-                self.adapter_agent.send_proxied_message(device.proxy_address, msg)
-
-                # Get and process the Set Response
                 rc = []
-                yield self._handle_set_resp(device, action, rc)
+                yield self._set_req_rsp(device, action, up_req, rc)
 
 
             elif in_port == 1:
@@ -558,6 +533,8 @@ class TibitOnuAdapter(object):
                     elif field.type == VLAN_VID:
                         _vlan_vid = field.vlan_vid & 0xfff
                         log.info('#### field.type == VLAN_VID ####')
+                        dn_req /= PortIngressRuleClauseMatchLength02(fieldcode=RuleClauses['C-VLAN Tag'], fieldinstance=0,
+                                                                     operator=RuleOperators['=='], match=_vlan_vid)
 
                     elif field.type == VLAN_PCP:
                         _vlan_pcp = field.vlan_pcp
@@ -588,17 +565,19 @@ class TibitOnuAdapter(object):
 
                     elif action.type == POP_VLAN:
                         log.info('#### action.type == POP_VLAN ####')
-                        dn_req /= PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
-                                                                     operator=Operator['=='], match=_vlan_vid)
-                        dn_req /= PortIngressRuleResultReplace(fieldcode=Clause['C-VLAN Tag'])
+
+                        # TODO - This is not the correct operation for a POP operation.
+                        #        This should be a Delete result
+                        dn_req /= PortIngressRuleResultReplace(fieldcode=RuleClauses['C-VLAN Tag'])
+                        # need to convert value in Set to a variable length value
+                        ctagStr = struct.pack('>H', (field.vlan_vid & 0xfff))
                         dn_req /= PortIngressRuleResultSet(
-                                fieldcode=Clause['C-VLAN Tag'], value=field.vlan_vid & 0xfff)
+                                fieldcode=RuleClauses['C-VLAN Tag'], value=ctagStr)
 
                     elif action.type == PUSH_VLAN:
                         log.info('#### action.type == PUSH_VLAN ####')
                         if action.push.ethertype != 0x8100:
-                            log.error('unhandled-ether-type',
-                                      ethertype=action.push.ethertype)
+                            raise NotImplementedError('unhandled-ether-type={}'.format(action.push.ethertype))
 
                     elif action.type == SET_FIELD:
                         log.info('#### action.type == SET_FIELD ####')
@@ -606,18 +585,21 @@ class TibitOnuAdapter(object):
                                 ofp.OFPXMC_OPENFLOW_BASIC)
                         field = action.set_field.field.ofb_field
                         if field.type == VLAN_VID:
-                            dn_req /= PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
-                                                                         operator=Operator['=='], match=_vlan_vid)
-                            dn_req /= PortIngressRuleResultReplace(fieldcode=Clause['C-VLAN Tag'])
-                            dn_req /= PortIngressRuleResultSet(
-                                    fieldcode=Clause['C-VLAN Tag'], value=field.vlan_vid & 0xfff)
-                        else:
-                            log.error('unsupported-action-set-field-type',
-                                      field_type=field.type)
+                            log.info("#### action.field.vlan {} ####".format(field.vlan_vid & 0xfff))
 
+                            # TODO - Currently only support setting the VID in the DS to zero (clearing the VID)
+                            if ((field.vlan_vid & 0xfff) == 0):
+                                dn_req /= PortIngressRuleResultReplace(fieldcode=RuleClauses['C-VLAN Tag'])
+                                # need to convert value in Set to a variable length value
+                                ctagStr = struct.pack('>H', (field.vlan_vid & 0xfff))
+                                dn_req /= PortIngressRuleResultSet(
+                                        fieldcode=RuleClauses['C-VLAN Tag'], value=ctagStr)
+                            else:
+                                raise NotImplementedError('unsupported-set-vlan-id={}'.format(field.vlan_vid & 0xfff))
+                        else:
+                            raise NotImplementedError('unsupported-action-set-field-type={}'.format(field.type))
                     else:
-                        log.error('UNSUPPORTED-ACTION-TYPE',
-                                  action_type=action.type)
+                        raise NotImplementedError('unsupported-action-type={}'.format(action.type))
 
                 if Is_MCast is True:
                     action = "Set Static IP MCAST address"
@@ -626,19 +608,9 @@ class TibitOnuAdapter(object):
                     dn_req /= AddPortIngressRule()
                     action = "Set ONU DS Rule"
 
-                msg = (
-                    EOAMPayload() / EOAM_VendSpecificMsg(oui=CableLabs_OUI) /
-                    EOAM_DpoeMsg(dpoe_opcode = Dpoe_Opcodes["Set Request"], body=dn_req)/
-                    EndOfPDU()
-                )
-
                 # send message
-                log.info('ONU-send-proxied-message to {} for ONU: {}'.format(action, device.mac_address))
-                self.adapter_agent.send_proxied_message(device.proxy_address, msg)
-
-                # Get and process the Set Response
                 rc = []
-                yield self._handle_set_resp(device, action, rc)
+                yield self._set_req_rsp(device, action, dn_req, rc)
 
             else:
                 raise Exception('Port should be 1 or 2 by our convention')
@@ -716,37 +688,14 @@ class TibitOnuAdapter(object):
         while self.incoming_messages.pending:
             _ = yield self.incoming_messages.get()
 
-        # send out ping frame to ONU device get device information
-        ping_frame = (
-            EOAMPayload() / EOAM_VendSpecificMsg(oui=CableLabs_OUI) /
-            EOAM_DpoeMsg(dpoe_opcode=Dpoe_Opcodes["Get Request"],
-                         body=VendorName() /
-                              OnuMode() /
-                              HardwareVersion() /
-                              ManufacturerInfo()
-                              ) /
-            EndOfPDU()
-            )
+        resp = []
+        action = "Get Device Info"
+        body = VendorName()/OnuMode()/HardwareVersion()/ManufacturerInfo()
+        yield self._get_req_rsp(device, action, body, resp)
+        if resp is not []: frame = resp[0]
 
-        log.info('ONU-send-proxied-message to Get Version Info for ONU: {}'.format(device.mac_address))
-        self.adapter_agent.send_proxied_message(device.proxy_address, ping_frame)
-
-        # Loop until we have a Get Response
-        ack = False
-        while not ack:
-            frame = yield self.incoming_messages.get()
-
-            respType = get_oam_msg_type(log, frame)
-
-            if (respType == RxedOamMsgTypeEnum["DPoE Get Response"]):
-                ack = True
-            else:
-                # Handle unexpected events/OMCI messages
-                check_resp(log, frame)
-
-        if ack:
+        if frame:
             log.info('ONU-response received for Get Version Info for ONU: {}'.format(device.mac_address))
-
             self._process_ping_frame_response(device, frame)
 
 
@@ -763,12 +712,8 @@ class TibitOnuAdapter(object):
 
             log.info("Using Multicast LIDX {:04X}".format(mcastLidx))
 
-            # construct multicast LLID set
-            msg = (
-                EOAMPayload() / EOAM_VendSpecificMsg(oui=CableLabs_OUI) /
-                EOAM_DpoeMsg(dpoe_opcode=Dpoe_Opcodes["Multicast Register"],body=MulticastRegisterSet(MulticastLink=mcastLidx, UnicastLink=0)
-                ))
-
+            tlvs = MulticastRegisterSet(MulticastLink=mcastLidx, UnicastLink=0)
+            msg = self._build_dpoe_oam_msg(DPoEOpcodes["Multicast Register"], tlvs)
             # send message
             log.info('ONU-send-proxied-message to Multicast Register Set for ONU: {}'.format(device.mac_address))
             self.adapter_agent.send_proxied_message(device.proxy_address, msg)
@@ -850,82 +795,26 @@ class TibitOnuAdapter(object):
     @inlineCallbacks
     def _send_igmp_mcast_addr(self, device):
         # construct install of igmp query address
-        msg = (
-            EOAMPayload() / EOAM_VendSpecificMsg(oui=CableLabs_OUI) /
-            EOAM_DpoeMsg(dpoe_opcode=Dpoe_Opcodes["Set Request"],body=AddStaticMacAddress(mac='01:00:5e:00:00:01')
-            ))
-
         action = "Set Static IGMP MAC address"
-
-        # send message
-        log.info('ONU-send-proxied-message to {} for ONU: {}'.format(action, device.mac_address))
-        self.adapter_agent.send_proxied_message(device.proxy_address, msg)
-
         rc = []
-        yield self._handle_set_resp(device, action, rc)
+        tlvs = AddStaticMacAddress(mac='01:00:5e:00:00:01')
+        yield self._set_req_rsp(device, action, tlvs, rc)
 
 
     @inlineCallbacks
     def _send_clear_static_mac_table(self, device):
-        # construct install of igmp query address
-        msg = (
-            EOAMPayload() / EOAM_VendSpecificMsg(oui=CableLabs_OUI) /
-            EOAM_DpoeMsg(dpoe_opcode=Dpoe_Opcodes["Set Request"],body=ClearStaticMacTable()
-            ))
-
         action = "Clear Static MAC Table"
-
-        # send message
-        log.info('ONU-send-proxied-message to {} for ONU: {}'.format(action, device.mac_address))
-        self.adapter_agent.send_proxied_message(device.proxy_address, msg)
-
         rc = []
-        yield self._handle_set_resp(device, action, rc)
+        tlvs = ClearStaticMacTable()
+        yield self._set_req_rsp(device, action, tlvs, rc)
 
-
-    @inlineCallbacks
-    def _handle_set_resp(self, device, action, retcode):
-        # Get and process the Set Response
-        ack = False
-        start_time = time.time()
-
-        # Loop until we have a set response or timeout
-        while not ack:
-            frame = yield self.incoming_messages.get()
-            #TODO - Need to add propoer timeout functionality
-            #if (time.time() - start_time) > TIBIT_MSG_WAIT_TIME or (frame is None):
-            #    break  # don't wait forever
-
-            respType = get_oam_msg_type(log, frame)
-
-            #Check that the message received is a Set Response
-            if (respType == RxedOamMsgTypeEnum["DPoE Set Response"]):
-                ack = True
-            else:
-                log.info('Received Unexpected OAM Message 0x{:X} while waiting for Set Resp for {}'.format(respType,action))
-                # Handle unexpected events/OMCI messages
-                check_resp(log, frame)
-
-        # Verify Set Response
-        rc = False
-        if ack:
-            (rc,branch,leaf,status) = check_set_resp(log, frame)
-            if (rc is False):
-                log.info('Set Response had errors - Branch 0x{:X} Leaf 0x{:0>4X} {}'.format(branch, leaf, DPoEVariableResponseCodes[status]))
-
-        if (rc is True):
-            log.info('ONU-response received for {} for ONU: {}'.format(action, device.mac_address))
-        else:
-            log.info('BAD ONU-response received for {} for ONU: {}'.format(action, device.mac_address))
-
-        retcode.append(rc)
 
     def _process_ping_frame_response(self, device, frame):
+        vendor       = [VendorName().branch, VendorName().leaf]
+        ponMode      = [OnuMode().branch, OnuMode().leaf]
+        hw_version   = [HardwareVersion().branch, HardwareVersion().leaf]
+        manufacturer = [ManufacturerInfo().branch, ManufacturerInfo().leaf]
 
-        vendor = [0xD7, 0x0011]
-        ponMode = [0xB7, 0x0105]
-        hw_version = [0xD7, 0x0013]
-        manufacturer =  [0xD7, 0x0006]
         branch_leaf_pairs = [vendor, ponMode, hw_version, manufacturer]
 
         for pair in branch_leaf_pairs:
@@ -993,3 +882,84 @@ class TibitOnuAdapter(object):
             device.serial_number = "UNKNOWN"
 
         device.connect_status = ConnectStatus.REACHABLE
+
+
+    # Generic Request handlers
+
+    def _build_dpoe_oam_msg(self, opcode, body):
+        msg = (
+            EOAMPayload() / EOAM_VendSpecificMsg(oui=CABLELABS_OUI) /
+            EOAM_DpoeMsg(dpoe_opcode = opcode, body=body)/
+            EndOfPDU()
+            )
+        return msg
+
+    @inlineCallbacks
+    def _get_req_rsp(self, device, action, body, resp):
+        msg = self._build_dpoe_oam_msg(DPoEOpcodes["Get Request"], body)
+        log.info('Send to {} for {}: {}'.format(action, device.model, device.mac_address))
+
+        self.adapter_agent.send_proxied_message(device.proxy_address, msg)
+
+        # Loop until we have a Get Response or timeout
+        ack = False
+        start_time = time.time()
+        while not ack:
+            frame = yield self.incoming_messages.get()
+            #TODO - Need to add proper timeout functionality
+            #if (time.time() - start_time) > TIBIT_MSG_WAIT_TIME or (frame is None):
+            #    break  # don't wait forever
+
+            respType = get_oam_msg_type(log, frame)
+
+            if (respType == RxedOamMsgTypeEnum["DPoE Get Response"]):
+                ack = True
+                resp.append(frame)
+            else:
+                # Handle unexpected events/OMCI messages
+                check_resp(log, frame)
+
+    @inlineCallbacks
+    def _handle_set_resp(self, device, action, retcode):
+        # Get and process the Set Response
+        ack = False
+        #start_time = time.time()
+
+        # Loop until we have a set response or timeout
+        while not ack:
+            frame = yield self.incoming_messages.get()
+            #TODO - Need to add proper timeout functionality
+            #if (time.time() - start_time) > TIBIT_MSG_WAIT_TIME or (frame is None):
+            #    break  # don't wait forever
+
+            respType = get_oam_msg_type(log, frame)
+
+            #Check that the message received is a Set Response
+            if (respType == RxedOamMsgTypeEnum["DPoE Set Response"]):
+                ack = True
+            else:
+                log.info('Received Unexpected OAM Message 0x{:X} while waiting for Set Resp for {}'.format(respType,action))
+                # Handle unexpected events/OMCI messages
+                check_resp(log, frame)
+
+        # Verify Set Response
+        rc = False
+        if ack:
+            (rc,branch,leaf,status) = check_set_resp(log, frame)
+            if (rc is False):
+                log.info('Set Response for {} for {}: {} had errors - Branch 0x{:X} Leaf 0x{:0>4X} {}'.format(action, device.model, device.mac_address,branch, leaf, DPoEVariableResponseEnum[status]))
+            else:
+                log.info('Set Response received for {} for {}: {} had no errors'.format(action, device.model, device.mac_address))
+        else:
+            log.info('No Set Response received for {} for {}: {}'.format(action, device.model, device.mac_address))
+
+        retcode.append(rc)
+
+    @inlineCallbacks
+    def _set_req_rsp(self, device, action, body, rc):
+        msg = self._build_dpoe_oam_msg(DPoEOpcodes["Set Request"], body)
+        log.info('Send to {} for {}: {}'.format(action, device.model, device.mac_address))
+        self.adapter_agent.send_proxied_message(device.proxy_address, msg)
+
+        # Get and process the Set Response
+        yield self._handle_set_resp(device, action, rc)

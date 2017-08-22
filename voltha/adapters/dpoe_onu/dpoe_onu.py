@@ -58,10 +58,10 @@ from voltha.extensions.eoam.EOAM_TLV import ClearStaticMacTable
 from voltha.extensions.eoam.EOAM_TLV import DeviceId
 from voltha.extensions.eoam.EOAM_TLV import ClauseSubtypeEnum
 from voltha.extensions.eoam.EOAM_TLV import RuleOperatorEnum
-from voltha.extensions.eoam.EOAM_TLV import FirmwareInfo
+from voltha.extensions.eoam.EOAM_TLV import FirmwareInfo, CablelabsOUI
+from voltha.extensions.eoam.EOAM_TLV import DPoEOpcode_GetRequest, DPoEOpcode_SetRequest
+from voltha.extensions.eoam.EOAM_Layers import EOAMPayload
 
-from voltha.extensions.eoam.EOAM import EOAMPayload, CablelabsOUI
-from voltha.extensions.eoam.EOAM import DPoEOpcode_GetRequest, DPoEOpcode_SetRequest
 
 @implementer(IAdapterInterface)
 class DPoEOnuAdapter(object):
