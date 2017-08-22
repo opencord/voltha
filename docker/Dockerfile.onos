@@ -1,10 +1,9 @@
-FROM onosproject/onos:1.10.3 as build
-MAINTAINER Open Networking Foundation <info@opennetworking.org>
+FROM sgrio/java-oracle:jdk_8 as build
 
 # Install and configure build tools
 ENV JAVA_OPTS="${JAVA_OPTS:--DenableOFTLS=true -Djavax.net.ssl.keyStore=/home/sdn/wiki/onos.jks -Djavax.net.ssl.keyStorePassword=222222 -Djavax.net.ssl.trustStore=/home/sdn/wiki/onos.jks -Djavax.net.ssl.trustStorePassword=222222}"
 
-RUN apt-get update && apt-get install -y git maven unzip curl python
+RUN apt-get update && apt-get install -y git unzip maven curl python
 RUN curl -sSL http://commondatastorage.googleapis.com/git-repo-downloads/repo -o /bin/repo && chmod 755 /bin/repo
 
 # The ENV settings for ONOS, KARAF_VERSION, KARAF_ROOT, KARAF_M2, and APPS_ROOT
@@ -24,6 +23,22 @@ WORKDIR ${BUILD_ROOT}
 RUN repo init -u http://gerrit.opencord.org/manifest -b ${MANIFEST_BRANCH} -g onos && repo sync
 WORKDIR ${BUILD_ROOT}/onos-apps/apps
 RUN mvn -DskipTests=true clean install
+
+FROM onosproject/onos:1.10.3 as integration
+MAINTAINER Open Networking Foundation <info@opennetworking.org>
+
+# The ENV settings for ONOS, KARAF_VERSION, KARAF_ROOT, KARAF_M2, and APPS_ROOT
+# must be replicated below to the final image as they are shared between stages
+ENV ONOS=/root/onos
+ENV APPS_ROOT=${ONOS}/apps
+ENV KARAF_VERSION=3.0.8
+ENV KARAF_ROOT=${ONOS}/apache-karaf-${KARAF_VERSION}
+ENV KARAF_M2=${KARAF_ROOT}/system
+ENV MANIFEST_BRANCH=master
+ENV BUILD_ROOT=/build
+ENV APP_INSTALL_ROOT=/expand
+
+copy --from=build /build /build
 
 # Specify application versions to install
 ENV AAA_VERSION=1.3.0-SNAPSHOT \
@@ -64,9 +79,9 @@ ENV KARAF_ROOT=${ONOS}/apache-karaf-${KARAF_VERSION}
 ENV KARAF_M2=${KARAF_ROOT}/system
 ENV APPS_ROOT=${ONOS}/apps
 
-COPY --from=build ${KARAF_M2}/ ${KARAF_M2}/
+COPY --from=integration ${KARAF_M2}/ ${KARAF_M2}/
 RUN echo "${KARAF_M2} ${APPS_ROOT}"
-COPY --from=build ${APPS_ROOT}/ ${APPS_ROOT}/
+COPY --from=integration ${APPS_ROOT}/ ${APPS_ROOT}/
 COPY config/netcfg.json $KARAF_ROOT/../config/network-cfg.json
 
 RUN touch $ONOS/apps/org.onosproject.hostprovider/active
