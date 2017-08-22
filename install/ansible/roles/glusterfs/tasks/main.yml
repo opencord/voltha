@@ -1,0 +1,14 @@
+- name: The glusterfs volume is created
+  gluster_volume:
+    bricks: "{{ replicated_fs_dir }}/brick1"
+    force: true
+    cluster: "{{groups.cluster | join(\",\")}}"
+    replicas: 3
+    name: registry_volume
+    state: present
+  run_once: true
+
+- name: Start the gluster volume
+  gluster_volume:
+    name: registry_volume
+    state: started

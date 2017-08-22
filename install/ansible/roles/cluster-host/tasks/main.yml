@@ -5,7 +5,7 @@
 - name: A .ssh directory for the voltha user exists
   file:
     #path: "{{ ansible_env['HOME'] }}/.ssh"
-    path: "/home/voltha/.ssh"
+    path: "{{ target_voltha_home }}/.ssh"
     state: directory
     owner: voltha
     group: voltha
@@ -13,14 +13,14 @@
 
 - name: known_hosts file is absent for the voltha user
   file:
-    path: "/home/voltha/.ssh/known_hosts"
+    path: "{{ target_voltha_home }}/.ssh/known_hosts"
     state: absent
   tags: [cluster_host]
 
 - name: Known host checking is disabled
   copy:
     src: files/ssh_config
-    dest: "/home/voltha/.ssh/config"
+    dest: "{{ target_voltha_home }}/.ssh/config"
     owner: voltha
     group: voltha
     mode: 0600
@@ -29,7 +29,7 @@
 - name: Cluster host keys are propagated to all hosts in the cluster
   copy:
     src: files/.keys
-    dest: "/home/voltha"
+    dest: "{{ target_voltha_home }}"
     owner: voltha
     group: voltha
     mode: 0600
@@ -121,3 +121,102 @@
   when: target == "cluster"
   tags: [cluster_host]
 
+- name: Replicated filesystem file is created
+  command: "dd if=/dev/zero of={{ replicated_fs_dir }}/.cluster-fs-file bs=100M count=100"
+  when: target == "cluster"
+  tags: [cluster_host]
+
+- name: The loop device is set up for file system creation
+  command: "losetup -f {{ replicated_fs_dir }}/.cluster-fs-file"
+  when: target == "cluster"
+  tags: [cluster_host]
+
+- name: The xfs filesystem is created on the loop device
+  filesystem:
+    fstype: xfs
+    dev: /dev/loop0
+    opts: -i size=512
+  when: target == "cluster"
+  tags: [cluster_host]
+
+- name: The loop device that's no longer needed is removed
+  command: "losetup -D"
+  when: target == "cluster"
+  tags: [cluster_host]
+
+- name: The registry fileystem file is owned by voltha
+  file:
+    path: "{{ replicated_fs_dir }}/.cluster-fs-file"
+    mode: 0755
+    owner: voltha
+    group: voltha
+  when: target == "cluster"
+  tags: [cluster_host]
+
+- name: A brick for a glusterfs mountpoint is created
+  file:
+    path: "{{ replicated_fs_dir }}/brick1"
+    state: directory
+    mode: 0755
+    owner: voltha
+    group: voltha
+  when: target == "cluster"
+  tags: [cluster_host]
+
+- name: The replicated filesystem is mounted on boot
+  mount:
+    path: "{{ replicated_fs_dir }}/brick1"
+    src: "{{ replicated_fs_dir }}/.cluster-fs-file"
+    fstype: xfs
+    opts: loop
+    state: mounted
+  when: target == "cluster"
+  tags: [cluster_host]
+
+- name: A directory for the glusterfs volume is created
+  file:
+    path: "{{ replicated_fs_dir }}/brick1/registry_volume"
+    state: directory
+    mode: 0755
+    owner: voltha
+    group: voltha
+  when: target == "cluster"
+  tags: [cluster_host]
+
+- name: A directory for the insecure registry data is created
+  file:
+    path: "{{ target_voltha_dir }}/registry_data"
+    state: directory
+    mode: 0755
+    owner: voltha
+    group: voltha
+  when: target == "cluster"
+  tags: [cluster_host]
+
+- name: A directory for consul's data is created
+  file:
+    path: "{{ target_voltha_dir }}/consul/data"
+    state: directory
+    mode: 0755
+    owner: voltha
+    group: voltha
+  when: target == "cluster"
+  tags: [cluster_host]
+
+- name: The glusterfs service is started
+  service:
+    name: glusterfs-server
+    enabled: yes
+    state: started
+  when: target == "cluster"
+  tags: [cluster_host]
+
+- name: The replicated filesystem is mounted on boot
+  mount:
+    path: "{{ target_voltha_dir }}/registry_data"
+    src: "{{ inventory_hostname }}:/registry_volume"
+    fstype: glusterfs
+    opts:  "defaults,_netdev,noauto,x-systemd.automount"
+    state: present
+  when: target == "cluster"
+  tags: [cluster_host]
