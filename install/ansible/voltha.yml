@@ -9,6 +9,13 @@
     - docker
     - docker-compose
     - voltha
+- hosts: cluster
+  remote_user: voltha
+  serial: 1
+  vars:
+    target: cluster
+  roles:
+    - glusterfs
 - hosts: swarm-master
   remote_user: voltha
   serial: 1
