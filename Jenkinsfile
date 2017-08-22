@@ -10,6 +10,9 @@ node('build') {
             stage 'Remove the pre-created venv-linux'
             sh 'vagrant ssh -c "rm -rf /cord/incubator/voltha/venv-linux"'
 
+            stage 'Use the jenkins voltha.yml file'
+            sh 'vagrant ssh -c "cp /cord/incubator/voltha/voltha/voltha.jenkins.yml /cord/incubator/voltha/voltha/voltha.yml"'
+
             stage 'Build voltha'
             sh 'vagrant ssh -c "cd /cord/incubator/voltha && source env.sh && make fetch-jenkins && make jenkins" voltha'
 
