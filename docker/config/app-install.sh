@@ -1,14 +1,10 @@
 #!/bin/bash 
 
 HERE=$(pwd)
-for app in $APPS; do
+OARS=$(find $DOWNLOAD_ROOT -name "*.oar")
+for oar in $OARS; do
     cd $HERE
-    echo "Installing application '$app'"
-    oar=$(find $BUILD_ROOT -path "*/target/*" -name "$app*".oar)
-    if [ "$oar x" == " x" ]; then
-        echo "Required application, $app, not found."
-	exit 1
-    fi
+    echo "Installing application '$oar'"
     rm -rf $APP_INSTALL_ROOT
     mkdir -p $APP_INSTALL_ROOT
     cd $APP_INSTALL_ROOT
