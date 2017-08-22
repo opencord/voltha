@@ -17,7 +17,7 @@ logging:
     handlers:
         console:
             class : logging.StreamHandler
-            level: INFO
+            level: DEBUG
             formatter: default
             stream: ext://sys.stdout
         fluent:
@@ -26,14 +26,14 @@ logging:
             port: 24224
             tag: voltha.logging
             formatter: fluent_fmt
-            level: INFO
+            level: DEBUG
         localRotatingFile:
             class: logging.handlers.RotatingFileHandler
             filename: voltha.log
             formatter: default
             maxBytes: 2097152
             backupCount: 10
-            level: INFO
+            level: DEBUG
         null:
             class: logging.NullHandler
 
