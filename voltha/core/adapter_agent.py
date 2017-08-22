@@ -639,7 +639,8 @@ class AdapterAgent(object):
                        admin_state,
                        **kw):
         device_type = next((dt for dt in self.root_proxy.get('/device_types')
-                            if dt.vendor_id == vendor_id), None)
+                            if dt.vendor_id == vendor_id and \
+                            dt.id.endswith("_onu")), None)
         # we create new ONU device objects and insert them into the config
         device = Device(
             id=create_cluster_device_id(self.core.core_store_id),
