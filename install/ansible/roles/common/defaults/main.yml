@@ -17,7 +17,9 @@ use_latest_for:
   - python-nose
   - python-flake8
   - python-scapy
-#  - glusterfs-server
+  - glusterfs-server
+  - glusterfs-client
+  - attr
 #  - python-libpcap
 
 obsolete_services:

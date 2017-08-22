@@ -2,9 +2,10 @@ debian_version: xenial
 docker_cfg: docker.cfg
 docker_cfg_dest: /etc/default/docker
 docker_registry: "localhost:5000"
-docker_push_registry: "vinstall:5000"
+docker_push_registry: "vinstall1001:5000"
 cord_home: /home/volthainstall/cord
 target_voltha_dir: /cord/incubator/voltha
+replicated_fs_dir: /var/cache
 docker_py_version: "1.7.0"
 netifaces_version: "0.10.4"
 target_voltha_home: /home/voltha

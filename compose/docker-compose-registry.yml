@@ -1,33 +1,18 @@
 #
-# This Docker stackfile deploys a Voltha CLI container along with one backup.
+# This Docker stackfile deploys a docker insecure registry
 #
-# The stackfile assumes that overlay network 'voltha_net' has already been
-# created. To deploy the stack, issue the command:
 #
-#     docker stack deploy -c docker-compose-vcli.yml cli
+#     docker stack deploy -c docker-compose-registry.yml registry
 #
 
 version: "3"
 services:
   registry:
     image: registry:2
+    restart: always
     deploy:
       replicas: 1
-#    environment:
-#      DOCKER_HOST_IP: "${DOCKER_HOST_IP}"
-#    entrypoint:
-#      - /cli/cli/setup.sh
-#      - -C consul:8500
-#      - -g voltha:50555
-#      - -s voltha:18880
-#      - -G
-#    networks:
-#      - voltha-net
     ports:
       - "5001:5000"
-      
-#networks:
-#  voltha-net:
-#    external:
-#      name: voltha_net
-
+    volumes:
+      - /cord/incubator/voltha/registry_data/registry_volume:/var/lib/registry
