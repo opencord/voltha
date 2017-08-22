@@ -18,6 +18,8 @@ import argparse
 import logging
 import time
 from hexdump import hexdump
+from datetime import datetime
+
 
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 from scapy.layers.l2 import Ether, Dot1Q
@@ -33,36 +35,16 @@ from scapy.fields import XLongField, StrFixedLenField, XIntField, \
 
 import fcntl, socket, struct # for get hw address
 
+from EOAM_Layers import EOAM_MULTICAST_ADDRESS, IGMP_MULTICAST_ADDRESS, OAM_ETHERTYPE
+from EOAM_Layers import VENDOR_SPECIFIC_OPCODE, CABLELABS_OUI, TIBIT_OUI
+from EOAM_Layers import RxedOamMsgTypeEnum, RxedOamMsgTypes
+from EOAM_Layers import EOAMPayload, EOAM_EventMsg, EOAM_VendSpecificMsg, EOAM_TibitMsg, EOAM_DpoeMsg, EOAM_OmciMsg
+
 # TODO should remove import *
 from EOAM_TLV import *
 
-OAM_ETHERTYPE = 0xA8C8
-CableLabs_OUI = 0x001000
-Tibit_OUI = 0x2AEA15
-IEEE_OUI = 0x0019A7
-
-EOAM_MULTICAST_ADDRESS = '01:80:c2:00:00:02'
-IGMP_MULTICAST_ADDRESS = '01:00:5e:00:00:01'   # for test
-
-
-
-
-### Received OAM Message Types
-RxedOamMsgTypeEnum = {
-    "Unknown": 0x00,
-    # Info PDU - not currently used
-    "Info": 0x01,
-    # Event Notification - Tibit or DPoE Event
-    "Event Notification": 0x02,
-    "DPoE Get Response": 0x03,
-    "DPoE Set Response": 0x04,
-    # Specifically - a File Transfer ACK
-    "DPoE File Transfer": 0x05,
-    # Contains an embedded OMCI message
-    "OMCI Message": 0x06,
-    }
-
-Dpoe_Opcodes = {v: k for k, v in DPoEOpcodeEnum.iteritems()}
+ADTRAN_SHORTENED_VSSN = u'4144'  # 'AD'
+TIBIT_SHORTENED_VSSN  = u'5442'  # 'TB'
 
 def get_oam_msg_type(log, frame):
 
@@ -70,8 +52,8 @@ def get_oam_msg_type(log, frame):
     recv_frame = frame
 
     if recv_frame.haslayer(EOAMPayload):
-        if recv_frame.haslayer(EOAMEvent):
-            recv_frame = RxedOamMsgTypeEnum["Event Notification"]
+        if recv_frame.haslayer(EOAM_EventMsg):
+            respType = RxedOamMsgTypeEnum["Event Notification"]
         elif recv_frame.haslayer(EOAM_OmciMsg):
             respType = RxedOamMsgTypeEnum["OMCI Message"]
         else:
@@ -82,24 +64,25 @@ def get_oam_msg_type(log, frame):
                 dpoeOpcode = recv_frame.getlayer(EOAM_DpoeMsg).dpoe_opcode;
 
             # Get Response
-            if (dpoeOpcode == 0x02):
+            if (dpoeOpcode == DPoEOpcodes["Get Response"]):
                 respType = RxedOamMsgTypeEnum["DPoE Get Response"]
 
             # Set Response
-            elif (dpoeOpcode == 0x04):
+            elif (dpoeOpcode == DPoEOpcodes["Set Response"]):
                 respType = RxedOamMsgTypeEnum["DPoE Set Response"]
 
             # File Transfer ACK
-            elif (dpoeOpcode == 0x09):
+            elif (dpoeOpcode == DPoEOpcodes["File Transfer"]):
                 respType = RxedOamMsgTypeEnum["DPoE File Transfer"]
             else:
-                log.info('Unsupported DPoE Opcode {:0>2X}'.format(dpoeOpcode))
+                log.info("Unsupported DPoE Opcode {:0>2X}".format(dpoeOpcode))
     else:
-        log.info('Invalid OAM Header')
+        log.info("Invalid OAM Header")
 
-    log.info('Received OAM Message 0x %s' % str(respType))
+    log.info('Received OAM Message - %s' % RxedOamMsgTypes[respType])
 
     return respType
+
 
 def handle_get_value(log, loadstr, startOfTlvs, queryBranch, queryLeaf):
     retVal = False;
@@ -127,7 +110,7 @@ def handle_get_value(log, loadstr, startOfTlvs, queryBranch, queryLeaf):
                 value = struct.unpack_from(">Q", loadstr, bytesRead)[0]
             else:
                 if (length >= 0x80):
-                    log.info('Branch 0x{:0>2X} Leaf 0x{:0>4X} {}'.format(branch, leaf, DPoEVariableResponseCodes[length]))
+                    log.info('Branch 0x{:0>2X} Leaf 0x{:0>4X} {}'.format(branch, leaf, DPoEVariableResponseEnum[length]))
                     # Set length to zero so bytesRead doesn't get mistakenly incremented below
                     length = 0
                 else:
@@ -140,7 +123,7 @@ def handle_get_value(log, loadstr, startOfTlvs, queryBranch, queryLeaf):
             if (length > 0):
                 bytesRead += length
 
-            if (branch != 0xD6):
+            if (branch != OamBranches["DPoE Object"]):
                 if ( ((queryBranch == 0) and (queryLeaf == 0)) or
                      ((queryBranch == branch) and (queryLeaf == leaf)) ):
                     # Prevent zero-lengthed values from returning success
@@ -192,7 +175,7 @@ def check_set_resp_attrs(log, loadstr, startOfTlvs):
             bytesRead += 1
 
             if (length >= 0x80):
-                log.info('Branch 0x{:0>2X} Leaf 0x{:0>4X} {}'.format(branch, leaf, DPoEVariableResponseCodes[length]))
+                log.info('Branch 0x{:0>2X} Leaf 0x{:0>4X} {}'.format(branch, leaf, DPoEVariableResponseEnum[length]))
                 if (length > 0x80):
                     retVal = False;
                     break;
@@ -210,6 +193,7 @@ def check_set_resp(log, frame):
     leaf = 0
     status = 0
     recv_frame = frame
+
     if recv_frame.haslayer(EOAMPayload):
         payload = recv_frame.payload
         if hasattr(payload, 'body'):
@@ -223,18 +207,202 @@ def check_set_resp(log, frame):
     return rc,branch,leaf,status
 
 
+def handle_get_event_context(log, loadstr, startOfTlvs, queryType):
+    retVal = False;
+    value = 0
+    objType = 0
+    bytesRead = startOfTlvs
+    loadstrlen    = len(loadstr)
+
+    while (bytesRead <= loadstrlen):
+        objType = struct.unpack_from('>H', loadstr, bytesRead)[0]
+#            print "Branch/Leaf        0x{:0>2X}/0x{:0>4X}".format(branch, leaf)
+
+        if (objType != 0):
+            bytesRead += 2
+            length = struct.unpack_from('>B', loadstr, bytesRead)[0]
+#                print "Length:            0x{:0>2X} ({})".format(length,length)
+            bytesRead += 1
+
+            if (length == 1):
+                value = struct.unpack_from(">B", loadstr, bytesRead)[0]
+            elif (length == 2):
+                value = struct.unpack_from(">H", loadstr, bytesRead)[0]
+            elif (length == 4):
+                value = struct.unpack_from(">I", loadstr, bytesRead)[0]
+            elif (length == 8):
+                value = struct.unpack_from(">Q", loadstr, bytesRead)[0]
+            else:
+                valStr = ">{}s".format(length)
+                value = struct.unpack_from(valStr, loadstr, bytesRead)[0]
+
+#                print "Value:             {}".format(value)
+
+            if (length > 0):
+                bytesRead += length
+
+            if ( (queryType == 0) or (queryType == objType) ):
+                # Prevent zero-lengthed values from returning success
+                if (length > 0):
+                    retVal = True;
+                break
+        else:
+            break
+
+    if (retVal == False):
+        value = 0
+
+    return retVal,bytesRead,value,objType
+
+
+def handle_tibit_oam_event(log, loadstr):
+    bytesRead = 0
+    loadstrlen = len(loadstr)
+    if loadstrlen > 0:
+        rc = True
+        num_iters = 0
+        bytesRead = 0
+        link_mac = ""
+        msg = ""
+        # Theare are two contexts in a Tibit-specific event - Source & Reference Contexts
+        while(rc == True and num_iters < 2):
+            objType = 0
+            (rc,bytesRead,value,objType) = handle_get_event_context(log, loadstr, bytesRead, objType)
+            if (rc == True):
+                if objType == 0x0001:
+#                        print "PON Object 0x{:0>4X}  Value = {}".format(objType, value)
+                    pass
+                elif objType == 0x000A:
+                    # This is a Unicast Logical Link context. Determine if this a GPON or EPON link
+                    if value[1:5] == "TBIT":
+                        #
+                        link_mac = ''.join(s.encode('hex') for s in value[1:3])
+                        link_mac += ''.join(s.encode('hex') for s in value[5:9])
+                    else:
+                        link_mac = ''.join(s.encode('hex') for s in value[1:7])
+
+#                        print "Unicast Logical Link Object 0x{:0>4X}  Value = {}".format(objType, link_mac)
+                else:
+                    log.info("Object Type 0x{:0>4X}  value = {}".format(objType, value))
+            elif (branch != 0):
+                log.error("Object Type 0x{:0>4X}  no value".format(objType))
+            num_iters += 1
+
+        # Pull the Event Code and Event Length out of the event
+        (evtCode, evtLen) = struct.unpack_from('>HB', loadstr, bytesRead)
+        bytesRead += 3
+
+#            print "Event Code  : 0x{:0>4X}".format(evtCode)
+#            print "Event Len   : 0x{:0>4X}".format(evtLen)
+
+        # Tibit Registration Event
+        if (evtCode == 0x0001):
+            # Handle Registration Status attribute
+            regStatus = struct.unpack_from('>B', loadstr, bytesRead)[0]
+            if regStatus == 1:
+                msg = "Link {} Registered".format(link_mac)
+            else:
+                msg = "Link {} Deregistered".format(link_mac)
+
+    return objType,evtCode,msg
+
+
+def handle_dpoe_oam_event(log, loadstr):
+    bytesRead = 0
+    loadstrlen = len(loadstr)
+    if loadstrlen > 0:
+
+        (evtCode, raised, objType) = struct.unpack_from('>BBH', loadstr, bytesRead)
+        bytesRead += 4
+
+#            print "Event Code  : 0x{:0>4X}".format(evtCode)
+#            print "Event Len   : 0x{:0>4X}".format(evtLen)
+
+        if ((loadstrlen - bytesRead) == 2):
+            objInst = struct.unpack_from(">H", loadstr, bytesRead)[0]
+        elif ((loadstrlen - bytesRead) == 4):
+            objInst = struct.unpack_from(">I", loadstr, bytesRead)[0]
+
+        objTypeStr = ObjectContextEnum[objType]
+        evtCodeStr = DPoEEventCodeEnum[evtCode]
+
+        raisedStr = "Raised"
+        if (raised):
+            rasiedStr = "Cleared"
+
+        #print "{} : {} - {} {}".format(objTypeStr, objInst, evtCodeStr, raisedStr)
+        return objType,evtCode,objTypeStr+":"+evtCodeStr
+
+
+def handle_oam_event(log, frame):
+    recv_frame = frame
+    if recv_frame.haslayer(EOAM_EventMsg):
+        now = datetime.now().strftime('%Y-%m-%f %H:%M:%S.%f')
+        event = recv_frame.getlayer(EOAM_EventMsg)
+        if hasattr(event, 'body'):
+            loadstr = event.body.load
+
+            if (event.tlv_type != VENDOR_SPECIFIC_OPCODE):
+                log.error("unexpected tlv_type 0x%x (expected 0xFE)" % event.tlv_type)
+            elif (event.oui == CABLELABS_OUI):
+                log.info("DPoE Event")
+                objType,eventCode,msg = handle_dpoe_oam_event(log, loadstr)
+            elif (event.oui == TIBIT_OUI):
+                log.info("Tibit-specific Event")
+                objType,eventCode,msg = handle_tibit_oam_event(log, loadstr)
+
+            log.info("Description:    %s" % msg)
+            log.info("sequence:       0x%04x" % event.sequence)
+            log.info("tlv_type:       0x%x" % event.tlv_type)
+            log.info("length:         0x%x" % event.length)
+            log.info("oui:            0x%06x" % event.oui)
+            log.info("time_stamp:     %s" % now)
+            log.info("obj_type:       "+hex(objType))
+            log.info("event_code:     "+hex(eventCode))
+
+    # TODO - Store the event for future use or generate alarm
+    #event_data = [msg, event.sequence, objType, eventCode, now]
+
+def handle_omci(log, frame):
+    recv_frame = frame
+    if recv_frame.haslayer(EOAM_OmciMsg):
+        omci = recv_frame.getlayer(EOAM_OmciMsg)
+        if hasattr(omci, 'body'):
+            loadstr = omci.body.load
+
+            #log.info("trans_id:  0x%04x" % omci.trans_id)
+            #log.info("msg_type:  0x%x" % omci.msg_type)
+            #log.info("dev_id:    0x%x" % omci.dev_id)
+            #log.info("me_class:  0x%04x" % omci.me_class)
+            #log.info("me_inst:   0x%04x" % omci.me_inst)
+
+            bytesRead = 0
+
+    # TODO - Handle OMCI message
+
+def handle_fx_ack(log, loadstr):
+    response_code = Dpoe_FileAckRspOpcodes["OK"]
+
+    (fx_opcode, acked_block, response_code) = struct.unpack('>BHB', loadstr[0:4])
+
+    if (fx_opcode == Dpoe_FileXferOpcodes["File Transfer Ack"]):
+        pass
+        #log.info("   Acked_block: {} Code: {}".format(acked_block, DPoEFileAckRespCodeEnum[response_code]))
+    else:
+        log.error("Unexpected File Transfer Opcode {} when expecting ACK".format(DPoEFileXferOpcodeEnum[fx_opcode]))
+
+    return response_code,acked_block
+
 
 def check_resp(log, frame):
     respType = RxedOamMsgTypeEnum["Unknown"]
     recv_frame = frame
     if recv_frame.haslayer(EOAMPayload):
 
-        if recv_frame.haslayer(EOAMEvent):
-#            handle_oam_event(recv_frame)
-            pass
+        if recv_frame.haslayer(EOAM_EventMsg):
+            handle_oam_event(log, recv_frame)
         elif recv_frame.haslayer(EOAM_OmciMsg):
-#            handle_omci(recv_frame)
-            pass
+            handle_omci(log, recv_frame)
         else:
             dpoeOpcode = 0x00
             if recv_frame.haslayer(EOAM_TibitMsg):
@@ -247,7 +415,7 @@ def check_resp(log, frame):
                 loadstr = payload.body.load
 
             # Get Response
-            if (dpoeOpcode == 0x02):
+            if (dpoeOpcode == DPoEOpcodes["Get Response"]):
                 bytesRead = 0
                 rc = True
                 while(rc == True):
@@ -260,547 +428,67 @@ def check_resp(log, frame):
                         log.info('Branch 0x{:0>2X} Leaf 0x{:0>4X}  no value'.format(branch, leaf))
 
             # Set Response
-            elif (dpoeOpcode == 0x04):
+            elif (dpoeOpcode == DPoEOpcodes["Set Response"]):
                 (rc,branch,leaf,status) = check_set_resp_attrs(loadstr, 0)
                 if (rc == True):
                     log.info('Set Response had no errors')
                 else:
-                    log.info('Branch 0x{:X} Leaf 0x{:0>4X} {}'.format(branch, leaf, DPoEVariableResponseCodes[status]))
+                    log.info('Branch 0x{:X} Leaf 0x{:0>4X} {}'.format(branch, leaf, DPoEVariableResponseEnum[status]))
 
             # File Transfer ACK
-            elif (dpoeOpcode == 0x09):
-                rc = handle_fx_ack(log, loadstr, bytesRead, block_number)
+            elif (dpoeOpcode == DPoEOpcodes["File Transfer"]):
+                (rc,block) = handle_fx_ack(log, loadstr)
             else:
                 log.info('Unsupported DPoE Opcode {:0>2X}'.format(dpoeOpcode))
     else:
         log.info('Invalid OAM Header')
 
-    return respType    
+    return respType
 
-
-    
-def handle_fx_ack(log, loadstr, startOfXfer, block_number):
-    retVal = False
-    (fx_opcode, acked_block, response_code) = struct.unpack_from('>BHB', loadstr, startOfXfer)
-
-    #print "fx_opcode:      0x%x" % fx_opcode
-    #print "acked_block:    0x%x" % acked_block
-    #print "response_code:  0x%x" % response_code
-
-    if (fx_opcode != 0x03):
-        log.info('unexpected fx_opcode 0x%x (expected 0x03)' % fx_opcode)
-    elif (acked_block != block_number):
-        log.info('unexpected acked_block 0x%x (expected 0x%x)' % (acked_block, block_number))
-    elif (response_code != 0):
-        log.info('unexpected response_code 0x%x (expected 0x00)' % response_code)
-    else:
-        retVal = True;
-
-
-
-
-class EOAM():
-    """ EOAM frame layer """
-    def __init__(self, ctag=None, dryrun=False, stag=None,
-                 verbose=False, etype='8809',
-                 dst=EOAM_MULTICAST_ADDRESS,
-                 hexdump=False, interface='eth0',
-                 sleep=2.0):
-        self.verbose = verbose
-        self.dst = dst
-        self.dryrun = dryrun
-        self.hexdump = hexdump
-        self.interface = interface
-        self.etype = int(etype, 16)
-        self.stag = stag
-        self.ctag = ctag
-        self.sleep = sleep
-        if (self.verbose == True):
-            print("=== Settings ================")
-            print("ctag      = %s" % self.ctag)
-            print("stag      = %s" % self.stag)
-            print("dst       = %s" % self.dst)
-            print("dryrun    = %s" % self.dryrun)
-            print("hexdump   = %s" % self.hexdump)
-            print("interface = %s" % self.interface)
-            print("etype     = 0x%04x" % self.etype)
-            print("verbose   = %s" % self.verbose)
-            print("sleep     = %d" % self.sleep)
-            print("=== END Settings ============")
-
-    def send_frame(self, frame_body, slow_protocol=True):
-        PACKET = Ether()
-        PACKET.dst = self.dst
-        PACKET.src = self.getHwAddr(self.interface)
-        if self.stag:
-            # WARNING: September/2016: This should be 0x88a8, but the Intel 10G
-            # hardware I am currently using does not support receiving a TPID of
-            # 0x88a8. So, I send double CTAGs, and I usually set this to 0x8100.
-            # (NOTE: The Intel hardware can send a TPID of 0x88a8)
-            PACKET.type = 0x8100
-            if self.ctag:
-                PACKET/=Dot1Q(type=0x8100,vlan=int(self.stag))
-                PACKET/=Dot1Q(type=self.etype,vlan=int(self.ctag))
-            else:
-                PACKET/=Dot1Q(prio=7,type=self.etype,vlan=int(self.stag))
-        else:
-            if self.ctag:
-                PACKET.type = 0x8100
-                PACKET/=Dot1Q(type=self.etype,vlan=int(self.ctag))
-            else:
-                PACKET.type = self.etype
-#            PACKET/=Dot1Q(type=self.etype, vlan=int(self.ctag))
-        if slow_protocol:
-            PACKET /= SlowProtocolsSubtype()/FlagsBytes()/OAMPDU()
-            PACKET /= frame_body
-            PACKET /= EndOfPDU()
-        else:
-            PACKET.lastlayer().type = 0xA8C8
-            PACKET /= frame_body
-
-        if (self.verbose == True):
-            PACKET.show()
-            print '###[ Frame Length %d (before padding) ]###' % len(PACKET)
-        if (self.hexdump == True):
-            print hexdump(str(PACKET))
-        if (self.dryrun != True):
-            sendp(PACKET, iface=self.interface)
-            time.sleep(self.sleep)
-        return PACKET
-
-    def get_request(self, TLV):
-        return self.send_frame(CablelabsOUI()/DPoEOpcode_GetRequest()/TLV)
-
-    def set_request(self, TLV):
-        return self.send_frame(CablelabsOUI()/DPoEOpcode_SetRequest()/TLV)
-
-    def send_multicast_register(self, TLV):
-        '''
-        Note, for mulicast, the standard specifies a register message
-        with ActionFlags of either Register or Deregister
-        '''
-        return self.send_frame(CablelabsOUI()/DPoEOpcode_MulticastRegister()/TLV)
-
-    def set_request_broadcom(self, TLV):
-        return self.send_frame(BroadcomOUI()/DPoEOpcode_SetRequest()/TLV)
-
-    def getHwAddr(self, ifname):
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', ifname[:15]))
-        return ':'.join(['%02x' % ord(char) for char in info[18:24]])
-
-
-#TODO - This is duplicated from eoam_messages.py and renamed to EOAMRespPayload
-class EOAMPayload(Packet):
-    name = 'EOAM Payload'
-    fields_desc = [
-        ByteEnumField("subtype", 0x03, SlowProtocolsSubtypeEnum),
-        XShortField("flags", 0x0050),
-        XByteField("opcode", 0xfe),
-#        PacketField("body", None, Packet),
-    ]
-
-bind_layers(Ether, EOAMPayload, type=OAM_ETHERTYPE)
-
-
-#TODO - This is duplicated from eoam_messages.py
-class EOAMEvent(Packet):
-    name = 'EOAM Event'
-    fields_desc = [
-        XShortField("sequence", 0x0001),
-        XByteField("tlv_type", 0xfe),
-        XByteField("length", 0x01),
-        X3BytesField("oui", 0x001000),
-        PacketField("body", None, Packet),
-    ]
-
-bind_layers(EOAMPayload, EOAMEvent, opcode=0x01)
-
-#TODO - This is duplicated from eoam_messages.py
-class EOAM_VendSpecificMsg(Packet):
-    name = "Vendor-Specific OAM"
-    fields_desc  = [
-        X3BytesField("oui", 0x001000),
-    ]
-
-bind_layers(EOAMPayload, EOAM_VendSpecificMsg, opcode=0xFE)
-
-#TODO - This is duplicated from eoam_messages.py
-class EOAM_OmciMsg(Packet):
-    name = "OAM-encapsulated OMCI Message"
-    fields_desc  = [
-        PacketField("body", None, Packet),
-    ]
-
-bind_layers(EOAM_VendSpecificMsg, EOAM_OmciMsg, oui=0x0019A7)
-
-#TODO - This is duplicated from eoam_messages.py
-class EOAM_TibitMsg(Packet):
-    name = "Tibit OAM Message"
-    fields_desc  = [
-        ByteEnumField("dpoe_opcode", 0x01, DPoEOpcodeEnum),
-        PacketField("body", None, Packet),
-    ]
-
-bind_layers(EOAM_VendSpecificMsg, EOAM_TibitMsg, oui=0x2AEA15)
-
-#TODO - This is duplicated from eoam_messages.py
-class EOAM_DpoeMsg(Packet):
-    name = "DPoE OAM Message"
-    fields_desc  = [
-        ByteEnumField("dpoe_opcode", 0x01, DPoEOpcodeEnum),
-        PacketField("body", None, Packet),
-    ]
-
-bind_layers(EOAM_VendSpecificMsg, EOAM_DpoeMsg, oui=0x001000)
 
 def mcastIp2McastMac(ip):
     """ Convert a dot-notated IPv4 multicast address string into an multicast MAC address"""
     digits = [int(d) for d in ip.split('.')]
     return '01:00:5e:%02x:%02x:%02x' % (digits[1] & 0x7f, digits[2] & 0xff, digits[3] & 0xff)
 
+def get_olt_queue(mac, mode = None):
+    resultOltQueue = ""
+    if mode:
+        # If the MAC is the Multicast LLID, then use EPON encoding regardless of the actual
+        # mode we are in.
+        if (mac == "FFFFFFFFFFFF"):
+            mode = "EPON"
+
+        if mode.upper()[0] == "G":  #GPON
+            if mac[:4].upper() == ADTRAN_SHORTENED_VSSN:
+                vssn = "ADTN"
+            else:
+                vssn = "TBIT"
+            link = int(mac[4:12], 16)
+            resultOltQueue = "PortIngressRuleResultOLTQueue(unicastvssn=\"" + vssn + "\", unicastlink=" + str(link) + ")"
+        else:                       #EPON
+            vssn = int(mac[0:8].rjust(8,"0"), 16)
+            link = int((mac[8:12]).ljust(8,"0"), 16)
+            resultOltQueue = "PortIngressRuleResultOLTEPONQueue(unicastvssn=" + str(vssn) + ", unicastlink=" + str(link) + ")"
+    return resultOltQueue
+
+
+def get_unicast_logical_link(mac, mode = None):
+    unicastLogicalLink = ""
+    if mode:
+        if mode.upper()[0] == "G":  #GPON
+            if mac[:4].upper() == ADTRAN_SHORTENED_VSSN:
+                vssn = "ADTN"
+            else:
+                vssn = "TBIT"
+            link = int(mac[4:12], 16)
+            unicastLogicalLink = "OLTUnicastLogicalLink(unicastvssn=\"" + vssn + "\", unicastlink=" + str(link) + ")"
+        else:                       #EPON
+            vssn = int(mac[0:8].rjust(8,"0"), 16)
+            link = int((mac[8:12]).ljust(8,"0"), 16)
+            unicastLogicalLink = "OLTEPONUnicastLogicalLink(unicastvssn=" + str(vssn) + ", unicastlink=" + str(link) +")"
+    return unicastLogicalLink
+
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-d', '--dst', dest='dst', action='store', default=EOAM_MULTICAST_ADDRESS,
-                        help='MAC destination (default: %s)' % EOAM_MULTICAST_ADDRESS)
-    parser.add_argument('-e', '--etype', dest='etype', action='store', default='8809',
-                        help='EtherType value (default: 0x8809)')
-    parser.add_argument('-i', '--interface', dest='interface', action='store', default='eth0',
-                        help='ETH interface to send (default: eth0)')
-    parser.add_argument('-s', '--stag', dest='stag', action='store', default=None,
-                        help='STAG value (default: None)')
-    parser.add_argument('-c', '--ctag', dest='ctag', action='store', default=None,
-                        help='CTAG value (default: None)')
-    parser.add_argument('-p', '--sleep', dest='sleep', action='store', default='1.0', type=float,
-                        help='SLEEP time after frame (default: 1.0 secs)')
-    parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', default=False,
-                        help='verbose frame print out')
-    parser.add_argument('-x', '--hexdump', dest='hexdump', action='store_true', default=False,
-                        help='Hexdump the frame')
-    parser.add_argument('-y', '--dryrun', dest='dryrun', action='store_true', default=False,
-                        help='Dry run test, dont send - just print')
-
-    parser.add_argument('-t', '--test', dest='test', action='store_true', default=False,
-                        help='Run commands under test')
-    parser.add_argument('-r', '--critical', dest='critical', action='store_true', default=False,
-                        help='Send the critical OAM set of set_request()')
-    parser.add_argument('-ta', '--test_add', dest='test_add', action='store_true', default=False,
-                        help='Run commands under test')
-    parser.add_argument('-tc', '--test_clr', dest='test_clr', action='store_true', default=False,
-                        help='Run commands under test')
-    parser.add_argument('-te', '--test_eapol', dest='test_eapol', action='store_true', default=False,
-                        help='Run commands under test')
-    parser.add_argument('-ti', '--test_igmp', dest='test_igmp', action='store_true', default=False,
-                        help='Run commands under test')
-    parser.add_argument('-th', '--test_dhcp', dest='test_dhcp', action='store_true', default=False,
-                        help='Run commands under test')
-    parser.add_argument('-tu', '--test_upstream', dest='test_upstream', action='store_true', default=False,
-                        help='Run commands under test')
-    parser.add_argument('-td', '--test_downstream', dest='test_downstream', action='store_true', default=False,
-                        help='Run commands under test')
-    parser.add_argument('-tm', '--test_multicast', dest='test_multicast', action='store_true', default=False,
-                        help='Run commands under test')
-    parser.add_argument('-tp', '--test_ping', dest='test_ping', action='store_true', default=False,
-                        help='Issue a test ping to get JSON data on device version')
-
-    args = parser.parse_args()
-
-    if (args.dryrun == True):
-        args.sleep = 0.0
-
-    eoam = EOAM(
-        dryrun=args.dryrun,
-        dst=args.dst,
-        etype=args.etype,
-        hexdump=args.hexdump,
-        interface=args.interface,
-        stag=args.stag,
-        ctag=args.ctag,
-        verbose=args.verbose,
-        sleep=args.sleep
-        )
-
-    if (not args.critical
-        and not args.test
-        and not args.test_add
-        and not args.test_clr
-        and not args.test_eapol
-        and not args.test_igmp
-        and not args.test_dhcp
-        and not args.test_upstream
-        and not args.test_downstream
-        and not args.test_multicast
-        and not args.test_ping):
-        print 'WARNING: *** No frames sent, please specify \'test\' or \'critical\', etc.  See --help'
-
-
-    if (args.test == True):
-        print 'SET - Multicast Register Message 01'
-        eoam.send_multicast_register(MulticastRegisterSet(MulticastLink=0x3fe0, UnicastLink=0x1008))
-
-        print 'SET - Multicast Deregister Message 02'
-        eoam.send_multicast_register(MulticastRegisterSet(ActionFlags="Deregister",MulticastLink=0x3fe0, UnicastLink=0x1008))
-
-    if (args.test_clr == True):
-        print 'Set - Clear Static MAC Table -- User Port Object'
-        eoam.set_request(ClearStaticMacTable())
-
-    if (args.test_add == True):
-        print 'SET Add Static MAC Address -- User Port Object'
-        eoam.set_request(AddStaticMacAddress(mac=mcastIp2McastMac('230.10.10.10')))
-        time.sleep(1)
-        eoam.set_request(AddStaticMacAddress(mac=mcastIp2McastMac('231.11.11.11')))
-
-#        print 'SET Delete Static MAC Address -- User Port Object'
-#        eoam.set_request(DeleteStaticMacAddress(mac=IGMP_MULTICAST_ADDRESS))
-
-    if (args.test_eapol == True):
-        #################################################################################
-        ## EAPOL
-        #################################################################################
-        Clause = {v: k for k, v in ClauseSubtypeEnum.iteritems()}
-        Operator = {v: k for k, v in RuleOperatorEnum.iteritems()}
-
-        print 'SET - Port Ingress Rule -- PON Port Object -- EAPOL'
-        eoam.set_request(PonPortObject()/
-                         PortIngressRuleHeader(precedence=32)/
-                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['L2 Type/Len'],
-                                                            operator=Operator['=='], match=0x888e)/
-                         PortIngressRuleResultForward()/
-                         PortIngressRuleResultSet(fieldcode=Clause['C-VLAN Tag'], value=4090)/
-                         PortIngressRuleResultInsert(fieldcode=Clause['C-VLAN Tag'])/
-                         PortIngressRuleTerminator()/
-                         AddPortIngressRule())
-
-        time.sleep(3)
-
-        print 'Delete - Port Ingress Rule -- PON Port Object -- EAPOL'
-        eoam.set_request(PonPortObject()/
-                         PortIngressRuleHeader(precedence=32)/
-                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['L2 Type/Len'],
-                                                            operator=Operator['=='], match=0x888e)/
-                         PortIngressRuleResultForward()/
-                         PortIngressRuleResultSet(fieldcode=Clause['C-VLAN Tag'], value=4090)/
-                         PortIngressRuleResultInsert(fieldcode=Clause['C-VLAN Tag'])/
-                         PortIngressRuleTerminator()/
-                         DeletePortIngressRule())
-
-    if (args.test_igmp == True):
-        #################################################################################
-        ## IGMP
-        #################################################################################
-        Clause = {v: k for k, v in ClauseSubtypeEnum.iteritems()}
-        Operator = {v: k for k, v in RuleOperatorEnum.iteritems()}
-
-        print 'SET - Port Ingress Rule -- PON Port Object -- IGMP'
-        eoam.set_request(PonPortObject()/
-                         PortIngressRuleHeader(precedence=13)/
-                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['L2 Type/Len'],
-                                                            operator=Operator['=='], match=0x0800)/
-                         PortIngressRuleClauseMatchLength01(fieldcode=Clause['IPv4/IPv6 Protocol Type'],
-                                                            operator=Operator['=='], match=0x02)/
-                         PortIngressRuleResultForward()/
-                         PortIngressRuleResultSet(fieldcode=Clause['C-VLAN Tag'], value=4000)/
-                         PortIngressRuleResultInsert(fieldcode=Clause['C-VLAN Tag'])/
-                         PortIngressRuleTerminator()/
-                         AddPortIngressRule())
-
-        time.sleep(3)
-
-        print 'Delete - Port Ingress Rule -- PON Port Object -- IGMP'
-        eoam.set_request(PonPortObject()/
-                         PortIngressRuleHeader(precedence=13)/
-                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['L2 Type/Len'],
-                                                            operator=Operator['=='], match=0x0800)/
-                         PortIngressRuleClauseMatchLength01(fieldcode=Clause['IPv4/IPv6 Protocol Type'],
-                                                            operator=Operator['=='], match=0x02)/
-                         PortIngressRuleResultForward()/
-                         PortIngressRuleResultSet(fieldcode=Clause['C-VLAN Tag'], value=4000)/
-                         PortIngressRuleResultInsert(fieldcode=Clause['C-VLAN Tag'])/
-                         PortIngressRuleTerminator()/
-                         DeletePortIngressRule())
-
-    if (args.test_dhcp == True):
-        #################################################################################
-        ## DHCP
-        #################################################################################
-        Clause = {v: k for k, v in ClauseSubtypeEnum.iteritems()}
-        Operator = {v: k for k, v in RuleOperatorEnum.iteritems()}
-
-        print 'SET - Port Ingress Rule -- PON Port Object -- DHCP'
-        eoam.set_request(PonPortObject()/
-                         PortIngressRuleHeader(precedence=13)/
-                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['L2 Type/Len'],
-                                                            operator=Operator['=='], match=0x0800)/
-                         PortIngressRuleClauseMatchLength01(fieldcode=Clause['IPv4/IPv6 Protocol Type'],
-                                                            operator=Operator['=='], match=0x11)/
-                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['TCP/UDP source port'],
-                                                            operator=Operator['=='], match=0x0044)/
-                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['TCP/UDP destination port'],
-                                                            operator=Operator['=='], match=0x0043)/
-                         PortIngressRuleResultForward()/
-                         PortIngressRuleResultSet(fieldcode=Clause['C-VLAN Tag'], value=4000)/
-                         PortIngressRuleResultInsert(fieldcode=Clause['C-VLAN Tag'])/
-                         PortIngressRuleTerminator()/
-                         AddPortIngressRule())
-
-        time.sleep(3)
-
-        print 'Delete - Port Ingress Rule -- PON Port Object -- DHCP'
-        eoam.set_request(PonPortObject()/
-                         PortIngressRuleHeader(precedence=13)/
-                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['L2 Type/Len'],
-                                                            operator=Operator['=='], match=0x0800)/
-                         PortIngressRuleClauseMatchLength01(fieldcode=Clause['IPv4/IPv6 Protocol Type'],
-                                                            operator=Operator['=='], match=0x11)/
-                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['TCP/UDP source port'],
-                                                            operator=Operator['=='], match=0x0044)/
-                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['TCP/UDP destination port'],
-                                                            operator=Operator['=='], match=0x0043)/
-                         PortIngressRuleResultForward()/
-                         PortIngressRuleResultSet(fieldcode=Clause['C-VLAN Tag'], value=4000)/
-                         PortIngressRuleResultInsert(fieldcode=Clause['C-VLAN Tag'])/
-                         PortIngressRuleTerminator()/
-                         DeletePortIngressRule())
-
-    if (args.test_upstream == True):
-        #################################################################################
-        ## UPSTREAM
-        #################################################################################
-        Clause = {v: k for k, v in ClauseSubtypeEnum.iteritems()}
-        Operator = {v: k for k, v in RuleOperatorEnum.iteritems()}
-
-        print 'SET - Port Ingress Rule -- OLT Unicast Logical Link -- Upstream Traffic'
-        eoam.set_request(PortIngressRuleHeader(precedence=13)/
-                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
-                                                            operator=Operator['=='], match=0x00f1)/
-                         PortIngressRuleResultForward()/
-                         PortIngressRuleResultCopy(fieldcode=Clause['C-VLAN Tag'])/
-                         PortIngressRuleResultInsert(fieldcode=Clause['C-VLAN Tag'], fieldinstance=1)/
-                         PortIngressRuleResultSet(fieldcode=Clause['C-VLAN Tag'], value=1000)/
-                         PortIngressRuleResultReplace(fieldcode=Clause['C-VLAN Tag'])/
-                         OLTUnicastLogicalLink(unicastvssn="TBIT", unicastlink=0xe2222900)/
-                         PortIngressRuleTerminator()/
-                         AddPortIngressRule())
-
-
-        time.sleep(3)
-
-        print 'DELETE - Port Ingress Rule -- OLT Unicast Logical Link -- Upstream Traffic'
-        eoam.set_request(OLTUnicastLogicalLink(unicastvssn="TBIT", unicastlink=0xe2222900)/
-                         PortIngressRuleHeader(precedence=13)/
-                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
-                                                            operator=Operator['=='], match=0x00f1)/
-                         PortIngressRuleResultForward()/
-                         PortIngressRuleResultCopy(fieldcode=Clause['C-VLAN Tag'])/
-                         PortIngressRuleResultInsert(fieldcode=Clause['C-VLAN Tag'], fieldinstance=1)/
-                         PortIngressRuleResultSet(fieldcode=Clause['C-VLAN Tag'], value=1000)/
-                         PortIngressRuleResultReplace(fieldcode=Clause['C-VLAN Tag'])/
-                         PortIngressRuleTerminator()/
-                         DeletePortIngressRule())
-
-    if (args.test_downstream == True):
-        #################################################################################
-        ## DOWNSTREAM
-        #################################################################################
-        Clause = {v: k for k, v in ClauseSubtypeEnum.iteritems()}
-        Operator = {v: k for k, v in RuleOperatorEnum.iteritems()}
-
-        print 'SET - Port Ingress Rule -- NNI Port Object -- Downstream Traffic -- 4000/241'
-        eoam.set_request(NetworkToNetworkPortObject()/
-                         PortIngressRuleHeader(precedence=13)/
-                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
-                                                            operator=Operator['=='], match=0x0fa0)/
-                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=1,
-                                                            operator=Operator['=='], match=0x00f1)/
-                         PortIngressRuleResultOLTQueue(unicastvssn="TBIT", unicastlink=0xe2222900)/
-                         PortIngressRuleResultForward()/
-                         PortIngressRuleResultDelete(fieldcode=Clause['C-VLAN Tag'])/
-                         PortIngressRuleTerminator()/
-                         AddPortIngressRule())
-
-        time.sleep(1)
-
-        print 'SET - Port Ingress Rule -- NNI Port Object -- Downstream Traffic -- 1000/241'
-        eoam.set_request(NetworkToNetworkPortObject()/
-                         PortIngressRuleHeader(precedence=13)/
-                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
-                                                            operator=Operator['=='], match=0x03e8)/
-                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=1,
-                                                            operator=Operator['=='], match=0x00f1)/
-                         PortIngressRuleResultOLTQueue(unicastvssn="TBIT", unicastlink=0xe2222900)/
-                         PortIngressRuleResultForward()/
-                         PortIngressRuleResultDelete(fieldcode=Clause['C-VLAN Tag'])/
-                         PortIngressRuleTerminator()/
-                         AddPortIngressRule())
-
-
-        time.sleep(1)
-
-        print 'SET - Port Ingress Rule -- NNI Port Object -- Downstream Traffic -- 4000/203'
-        eoam.set_request(NetworkToNetworkPortObject()/
-                         PortIngressRuleHeader(precedence=13)/
-                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
-                                                            operator=Operator['=='], match=0x0fa0)/
-                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=1,
-                                                            operator=Operator['=='], match=0x00CB)/
-                         PortIngressRuleResultOLTQueue(unicastvssn="TBIT", unicastlink=0xe2220300)/
-                         PortIngressRuleResultForward()/
-                         PortIngressRuleResultDelete(fieldcode=Clause['C-VLAN Tag'])/
-                         PortIngressRuleTerminator()/
-                         AddPortIngressRule())
-
-        time.sleep(1)
-
-        print 'SET - Port Ingress Rule -- NNI Port Object -- Downstream Traffic -- 1000/203'
-        eoam.set_request(NetworkToNetworkPortObject()/
-                         PortIngressRuleHeader(precedence=13)/
-                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
-                                                            operator=Operator['=='], match=0x03e8)/
-                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=1,
-                                                            operator=Operator['=='], match=0x00cb)/
-                         PortIngressRuleResultOLTQueue(unicastvssn="TBIT", unicastlink=0xe2220300)/
-                         PortIngressRuleResultForward()/
-                         PortIngressRuleResultDelete(fieldcode=Clause['C-VLAN Tag'])/
-                         PortIngressRuleTerminator()/
-                         AddPortIngressRule())
-
-    if (args.test_multicast == True):
-        #################################################################################
-        ## MULTICAST
-        #################################################################################
-        Clause = {v: k for k, v in ClauseSubtypeEnum.iteritems()}
-        Operator = {v: k for k, v in RuleOperatorEnum.iteritems()}
-
-        print 'SET - Port Ingress Rule -- NNI Port Object -- Downstream Multicast Traffic'
-        eoam.set_request(NetworkToNetworkPortObject()/
-                         PortIngressRuleHeader(precedence=13)/
-                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
-                                                            operator=Operator['=='], match=0x008c)/
-                         PortIngressRuleResultOLTBroadcastQueue()/
-                         PortIngressRuleResultForward()/
-                         PortIngressRuleResultDelete(fieldcode=Clause['C-VLAN Tag'])/
-                         PortIngressRuleTerminator()/
-                         AddPortIngressRule())
-
-
-        time.sleep(3)
-
-        print 'DELETE - Port Ingress Rule -- NNI Port Object -- Downstream Multicast Traffic'
-        eoam.set_request(NetworkToNetworkPortObject()/
-                         PortIngressRuleHeader(precedence=13)/
-                         PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
-                                                            operator=Operator['=='], match=0x008c)/
-                         PortIngressRuleResultOLTBroadcastQueue()/
-                         PortIngressRuleResultForward()/
-                         PortIngressRuleResultDelete(fieldcode=Clause['C-VLAN Tag'])/
-                         PortIngressRuleTerminator()/
-                         DeletePortIngressRule())
-
-
-    if (args.test_ping == True):
-        json_operation_str = '{\"operation\":\"version\"}'
-        for i in range(10000):
-            eoam.send_frame(TBJSON(data='json %s' % json_operation_str), False)
-
+    pass

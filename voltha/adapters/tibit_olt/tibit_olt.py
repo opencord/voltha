@@ -17,7 +17,6 @@
 """
 Tibit OLT device adapter
 """
-import json
 import time
 from uuid import uuid4
 import struct
@@ -34,6 +33,8 @@ from scapy.fields import ByteEnumField, XShortField, XByteField, MACField, \
 from scapy.fields import XLongField, StrFixedLenField, XIntField, \
     FieldLenField, StrLenField, IntField
 
+
+
 from twisted.internet import reactor
 from twisted.internet.defer import DeferredQueue, inlineCallbacks
 from twisted.internet.task import LoopingCall
@@ -42,12 +43,14 @@ from zope.interface import implementer
 from common.frameio.frameio import BpfProgramFilter, hexify
 from voltha.adapters.interface import IAdapterInterface
 
-from voltha.extensions.eoam.EOAM import EOAMPayload, EOAMEvent, EOAM_VendSpecificMsg
-from voltha.extensions.eoam.EOAM import EOAM_OmciMsg, EOAM_TibitMsg, EOAM_DpoeMsg
-from voltha.extensions.eoam.EOAM import OAM_ETHERTYPE
-from voltha.extensions.eoam.EOAM import CableLabs_OUI, Tibit_OUI, IEEE_OUI
-from voltha.extensions.eoam.EOAM import RxedOamMsgTypeEnum, Dpoe_Opcodes, get_oam_msg_type, \
-    handle_get_value, get_value_from_msg, check_set_resp, check_resp
+from voltha.extensions.eoam.EOAM_Layers import EOAMPayload, EOAM_EventMsg, EOAM_VendSpecificMsg
+from voltha.extensions.eoam.EOAM_Layers import EOAM_OmciMsg, EOAM_TibitMsg
+from voltha.extensions.eoam.EOAM_Layers import OAM_ETHERTYPE
+from voltha.extensions.eoam.EOAM_Layers import CABLELABS_OUI, TIBIT_OUI, ITU_OUI
+from voltha.extensions.eoam.EOAM_Layers import RxedOamMsgTypeEnum, RxedOamMsgTypes
+from voltha.extensions.eoam.EOAM import get_oam_msg_type, get_value_from_msg, check_set_resp, check_resp
+from voltha.extensions.eoam.EOAM import get_unicast_logical_link, get_olt_queue
+from voltha.extensions.eoam.EOAM import ADTRAN_SHORTENED_VSSN, TIBIT_SHORTENED_VSSN
 
 from voltha.extensions.eoam.EOAM_TLV import DOLTObject, \
      NetworkToNetworkPortObject, OLTUnicastLogicalLink, OLTEPONUnicastLogicalLink, \
@@ -58,11 +61,11 @@ from voltha.extensions.eoam.EOAM_TLV import DOLTObject, \
      PortIngressRuleResultDelete, PortIngressRuleResultOLTQueue, \
      PortIngressRuleResultOLTBroadcastQueue, PortIngressRuleResultOLTEPONQueue, \
      PortIngressRuleTerminator, AddPortIngressRule, \
-     ItuOUI, PonPortObject
+     ItuOUI, PonPortObject, DPoEOpcodes
 from voltha.extensions.eoam.EOAM_TLV import PortIngressRuleHeader
-from voltha.extensions.eoam.EOAM_TLV import ClauseSubtypeEnum
-from voltha.extensions.eoam.EOAM_TLV import RuleOperatorEnum
-from voltha.extensions.eoam.EOAM_TLV import DPoEVariableResponseCodes, DPoEOpcodeEnum
+from voltha.extensions.eoam.EOAM_TLV import ClauseSubtypeEnum, RuleClauses
+from voltha.extensions.eoam.EOAM_TLV import RuleOperatorEnum, RuleOperators
+from voltha.extensions.eoam.EOAM_TLV import DPoEVariableResponseEnum, DPoEOpcodeEnum
 from voltha.extensions.eoam.EOAM_TLV import VendorName, OltMode, HardwareVersion, ManufacturerInfo
 from voltha.extensions.eoam.EOAM_TLV import TibitLinkMacTable, OltPonAdminStateSet, TibitDeviceReset
 from voltha.extensions.eoam.EOAM_TLV import SlowProtocolsSubtypeEnum
@@ -74,14 +77,6 @@ from voltha.extensions.eoam.EOAM_TLV import RxFramesGreen, \
     RxFrame_1024_1518, RxFrame_1519Plus, TxFrame_64, \
     TxFrame_65_127, TxFrame_128_255, TxFrame_256_511, \
     TxFrame_512_1023, TxFrame_1024_1518, TxFrame_1519Plus
-
-from voltha.extensions.eoam.EOAM_TLV import RxFramesGreen, TxFramesGreen, \
-    RxFrame_64, RxFrame_65_127, RxFrame_128_255, RxFrame_256_511, \
-    RxFrame_512_1023,RxFrame_1024_1518, RxFrame_1519Plus, \
-    TxFrame_64, TxFrame_65_127, TxFrame_128_255, \
-    TxFrame_256_511, TxFrame_512_1023, TxFrame_1024_1518, \
-    TxFrame_1519Plus
-
 
 
 from voltha.core.flow_decomposer import *
@@ -101,35 +96,29 @@ from voltha.protos.openflow_13_pb2 import ofp_desc, ofp_port, OFPPF_10GB_FD, \
 from voltha.registry import registry
 log = structlog.get_logger()
 
-TIBIT_ONU_LINK_INDEX = 2
 
 # Match on the MGMT VLAN, Priority 7
-TIBIT_MGMT_VLAN = 4090
-TIBIT_MGMT_PRIORITY = 7
-frame_match_case1 = 'ether[14:2] = 0x{:01x}{:03x}'.format(
-    TIBIT_MGMT_PRIORITY << 1, TIBIT_MGMT_VLAN)
+TIBIT_MGMT_VLAN       = 4090
+TIBIT_MGMT_PRIORITY   = 7
+frame_match_case1     = 'ether[14:2] = 0x{:01x}{:03x}'.format(TIBIT_MGMT_PRIORITY << 1, TIBIT_MGMT_VLAN)
 
-TIBIT_PACKET_IN_VLAN = 4000
-frame_match_case2 = '(ether[14:2] & 0xfff) = 0x{:03x}'.format(
-    TIBIT_PACKET_IN_VLAN)
+TIBIT_PACKET_IN_VLAN  = 4000
+frame_match_case2     = '(ether[14:2] & 0xfff) = 0x{:03x}'.format(TIBIT_PACKET_IN_VLAN)
 
 TIBIT_PACKET_OUT_VLAN = 4000
 
 TIBIT_MSG_WAIT_TIME = 3
 
-is_tibit_frame = BpfProgramFilter('{} or {}'.format(
-    frame_match_case1, frame_match_case2))
+is_tibit_frame = BpfProgramFilter('{} or {}'.format(frame_match_case1, frame_match_case2))
 
 
 # TODO: This information should be conveyed to the adapter
 # from a higher level.
 MULTICAST_VLAN = 140
 
-TIBIT_COMMUNICATIONS_OUI=u'000CE2'
-SUMITOMO_ELECTRIC_INDUSTRIES_OUI=u'0025DC'
+TIBIT_COMMUNICATIONS_OUI         = u'000CE2'
+SUMITOMO_ELECTRIC_INDUSTRIES_OUI = u'0025DC'
 
-ADTRAN_SHORTENED_VSSN=u'4144'                 # 'AD'
-TIBIT_SHORTENED_VSSN=u'5442'                 # 'TB'
 
 @implementer(IAdapterInterface)
 class TibitOltAdapter(object):
@@ -206,35 +195,20 @@ class TibitOltAdapter(object):
             self.incoming_queues[device.mac_address] = DeferredQueue(size=100)
 
             # add mac_address to device_ids table
-            olt_mac = device.mac_address
-            self.device_ids[olt_mac] = device.id
+            self.device_ids[device.mac_address] = device.id
 
             # send out ping to OLT device
-            ping_frame = self._make_ping_frame(mac_address=olt_mac)
-            self.io_port.send(ping_frame)
-
-            # Loop until we have a Get Response or timeout
-            ack = False
-            start_time = time.time()
-            while not ack:
-                frame = yield self.incoming_queues[olt_mac].get()
-                #TODO - Need to add proper timeout functionality
-                #if (time.time() - start_time) > TIBIT_MSG_WAIT_TIME or (frame is None):
-                #    break  # don't wait forever
-
-                respType = get_oam_msg_type(log, frame)
-             
-                if (respType == RxedOamMsgTypeEnum["DPoE Get Response"]):
-                    ack = True
-                else:
-                    # Handle unexpected events/OMCI messages
-                    check_resp(log, frame)
+            resp = []
+            action = "Get Device Info"
+            body = VendorName()/OltMode()/HardwareVersion()/ManufacturerInfo()
+            yield self._get_req_rsp(device, action, body, resp)
+            if resp is not []: frame = resp[0]
 
         except Exception as e:
             log.exception('launch device failed', e=e)
 
-        if ack:
-            # Process the Get Request message
+        if frame:
+            # Process the Get Response message
             self._process_ping_frame_response(device, frame)
 
             yield self.change_device_state(device, 1)
@@ -317,36 +291,19 @@ class TibitOltAdapter(object):
             # before checking for ONUs
             reactor.callLater(0.1, self._detect_onus, device)
 
-        # END if ack
+        # END if frame
+
 
     @inlineCallbacks
     def _detect_onus(self, device):
         # send out get 'links' to the OLT device
-        olt_mac = device.mac_address
-        links_frame = self._make_links_frame(mac_address=olt_mac)
-        self.io_port.send(links_frame)
+        resp = []
+        action = "Get Registered Links"
+        body = TibitLinkMacTable()
+        yield self._get_req_rsp(device, action, body, resp)
+        if resp is not []: frame = resp[0]
 
-
-        # Loop until we have a Get Response or timeout
-        ack = False
-        start_time = time.time()
-        while not ack:
-
-            frame = yield self.incoming_queues[olt_mac].get()
-
-            #TODO - Need to add proper timeout functionality
-            #if (time.time() - start_time) > TIBIT_MSG_WAIT_TIME or (frame is None):
-            #    break  # don't wait forever
-
-            respType = get_oam_msg_type(log, frame)
- 
-            if (respType == RxedOamMsgTypeEnum["DPoE Get Response"]):
-                ack = True
-            else:
-                # Handle unexpected events/OMCI messages
-                check_resp(log, frame)
-
-        if ack:
+        if frame:
             #Process the Get Response
             mac_table = [0xB7, 0x0103]
             links = []
@@ -360,7 +317,7 @@ class TibitOltAdapter(object):
                 temp_pair.append(value)
                 if rc:
                     overall_rc = True
-                else: 
+                else:
                     log.info('Failed to get valid response for Branch 0x{:X} Leaf 0x{:0>4X} '.format(temp_pair[0], temp_pair[1]))
 
             if overall_rc and mac_table[rc]:
@@ -373,11 +330,11 @@ class TibitOltAdapter(object):
                     if linkAddr is None:
                         log.info('MAC Addr is NONE')
                     elif linkAddr[:6].upper() == SUMITOMO_ELECTRIC_INDUSTRIES_OUI:
-                        onu_mac_string = linkAddr 
+                        onu_mac_string = linkAddr
                         log.info('SUMITOMO mac address %s' % str(linkAddr))
                         child_device_name = 'dpoe_onu'
                     elif linkAddr[:4].upper() == ADTRAN_SHORTENED_VSSN:
-                        onu_mac_string = linkAddr 
+                        onu_mac_string = linkAddr
                         log.info('ADTRAN mac address %s' % str(linkAddr))
                         child_device_name = 'adtran_onu'
                     else:
@@ -393,51 +350,29 @@ class TibitOltAdapter(object):
                         vlan_id = self._olt_side_onu_activation(mac_octet_4)
 
                         macLen += 6
-                
+
                         ## Automatically setup default downstream control frames flow (in this case VLAN 4000)
                         ## on the OLT for the new ONU/ONT device
-                        Clause = {v: k for k, v in ClauseSubtypeEnum.iteritems()}
-                        Operator = {v: k for k, v in RuleOperatorEnum.iteritems()}
 
-                        if self.mode.upper()[0] == "G":  # GPON
-                            if child_device_name is 'tibit_onu':
-                                vssn = "TBIT"
-                            elif child_device_name is 'adtran_onu':
-                                vssn = "ADTN"
-                            link = int(onu_mac_string[4:12], 16)
-                            resultOltQueue = "PortIngressRuleResultOLTQueue(unicastvssn=vssn, unicastlink=link)"
-                        else:                       # EPON
-                            vssn = int(onu_mac_string[0:8].rjust(8,"0"), 16)
-                            link = int((onu_mac_string[8:12]).ljust(8,"0"), 16)
-                            resultOltQueue = "PortIngressRuleResultOLTEPONQueue(unicastvssn=vssn, unicastlink=link)"
-
-                        packet_out_rule = (
-                            Ether(dst=device.mac_address) /
-                            Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) /
-                            EOAMPayload() / EOAM_VendSpecificMsg(oui=Tibit_OUI) /
-                            EOAM_TibitMsg(dpoe_opcode=Dpoe_Opcodes["Set Request"],
-                                body=NetworkToNetworkPortObject()/
-                                PortIngressRuleHeader(precedence=13)/
-                                PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
-                                                                   operator=Operator['=='],
-                                                                   match=TIBIT_PACKET_OUT_VLAN)/
-                                PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=1,
-                                                                   operator=Operator['=='], match=vlan_id)/
-                                eval(resultOltQueue)/
-                                PortIngressRuleResultForward()/
-                                PortIngressRuleResultDelete(fieldcode=Clause['C-VLAN Tag'])/
-                                PortIngressRuleTerminator()/
-                                AddPortIngressRule())/
-                            EndOfPDU()
-                            )
-
+                        resultOltQueue = get_olt_queue(onu_mac_string, self.mode)
                         action = "Set DS Rule for ONU to strip C Tag"
-                        log.info('OLT-send to {} for OLT: {}'.format(action, olt_mac))
-                        self.io_port.send(str(packet_out_rule))
+
+                        body=NetworkToNetworkPortObject()
+                        body/=PortIngressRuleHeader(precedence=13)
+                        body/=PortIngressRuleClauseMatchLength02(fieldcode=RuleClauses['C-VLAN Tag'], fieldinstance=0,
+                                                           operator=RuleOperators['=='],
+                                                           match=TIBIT_PACKET_OUT_VLAN)
+                        body/=PortIngressRuleClauseMatchLength02(fieldcode=RuleClauses['C-VLAN Tag'], fieldinstance=1,
+                                                           operator=RuleOperators['=='], match=vlan_id)
+                        body/=eval(resultOltQueue)
+                        body/=PortIngressRuleResultForward()
+                        body/=PortIngressRuleResultDelete(fieldcode=RuleClauses['C-VLAN Tag'])
+                        body/=PortIngressRuleTerminator()
+                        body/=AddPortIngressRule()
 
                         # Get and process the Set Response
                         rc = []
-                        yield self._handle_set_resp(olt_mac, action, rc)
+                        yield self._set_req_rsp(device, action, body, rc)
 
                         if rc[0] is True:
                             # also record the vlan_id -> (device_id, logical_device_id, linkid) for
@@ -462,7 +397,7 @@ class TibitOltAdapter(object):
                     # END linkAddr is not none
             else:
                 log.info('No links were found in the MAC Table')
-				# Poll to get more ONUs
+		        # Poll to get more ONUs
                 reactor.callLater(3, self._detect_onus, device)
 
             # END if mac_table[rc]
@@ -549,29 +484,15 @@ class TibitOltAdapter(object):
                 log.info('received-dot1q-not-8100')
                 self.incoming_queues[response.src].put(response)
 
-    def _make_ping_frame(self, mac_address):
-        frame = (
-            Ether(dst=mac_address) /
-            Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) /
-            EOAMPayload() / EOAM_VendSpecificMsg(oui=Tibit_OUI) /
-            EOAM_TibitMsg(dpoe_opcode=Dpoe_Opcodes["Get Request"],body=VendorName() /
-                                                OltMode() /
-                                                HardwareVersion() /
-                                                ManufacturerInfo()
-                                                ) /
-            EndOfPDU()
-            )
-
-        return str(frame)
 
     def _process_ping_frame_response(self, device, frame):
 
-        vendor = [0xD7, 0x0011]
-        oltMode = [0xB7, 0x0101]
-        hw_version = [0xD7, 0x0013]
-        manufacturer =  [0xD7, 0x0006]
+        vendor       = [VendorName().branch, VendorName().leaf]
+        oltMode      = [OltMode().branch, OltMode().leaf]
+        hw_version   = [HardwareVersion().branch, HardwareVersion().leaf]
+        manufacturer = [ManufacturerInfo().branch, ManufacturerInfo().leaf]
         branch_leaf_pairs = [vendor, oltMode, hw_version, manufacturer]
-                    
+
         for pair in branch_leaf_pairs:
             temp_pair = pair
             (rc, value) = (get_value_from_msg(log, frame, pair[0], pair[1]))
@@ -579,7 +500,7 @@ class TibitOltAdapter(object):
             temp_pair.append(value)
             if rc:
                 overall_rc = True
-            else: 
+            else:
                 log.info('Failed to get valid response for Branch 0x{:X} Leaf 0x{:0>4X} '.format(temp_pair[0], temp_pair[1]))
                 ack = True
 
@@ -589,9 +510,9 @@ class TibitOltAdapter(object):
                 device.vendor = device.vendor[:-1]
         else:
             device.vendor = "UNKNOWN"
-            
+
         # mode: 3 = EPON OLT, 7 = GPON OLT
-        # mode: 2 = EPON ONU, 6 = GPON ONU    
+        # mode: 2 = EPON ONU, 6 = GPON ONU
         if oltMode[rc]:
             value = oltMode.pop()
             mode = "UNKNOWN"
@@ -614,7 +535,7 @@ class TibitOltAdapter(object):
             self.mode = "UNKNOWN"
 
         log.info("OLT Mode is {}".format(self.mode))
-                
+
         if hw_version[rc]:
             device.hardware_version = hw_version.pop()
             device.hardware_version = device.hardware_version.replace("FA","")
@@ -640,90 +561,12 @@ class TibitOltAdapter(object):
         device.root = True
         device.connect_status = ConnectStatus.REACHABLE
 
-    def _make_links_frame(self, mac_address):
-        frame = (
-            Ether(dst=mac_address) /
-            Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) /
-            EOAMPayload() / EOAM_VendSpecificMsg(oui=Tibit_OUI) /
-            EOAM_TibitMsg(dpoe_opcode=Dpoe_Opcodes["Get Request"],body=TibitLinkMacTable()
-                            )/
-            EndOfPDU()
-            )
-        return str(frame)
-
-    def _make_link_stats_frame(self, olt_mac_address, onu_mac_address):
-
-        if self.mode.upper()[0] == "G":  # GPON
-            vssn = "TBIT"
-            link = int(onu_mac_address[4:12], 16)
-            logical_link = "OLTUnicastLogicalLink(unicastvssn=vssn, unicastlink=link)"
-        else:                       # EPON
-            vssn = int(onu_mac_address[0:8].rjust(8,"0"), 16)
-            link = int((onu_mac_address[8:12]).ljust(8,"0"), 16)
-            logical_link = "OLTEPONUnicastLogicalLink(unicastvssn=vssn, unicastlink=link)"
-
-        frame = (
-            Ether(dst=olt_mac_address) /
-            Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) /
-            EOAMPayload() / EOAM_VendSpecificMsg(oui=Tibit_OUI) /
-            EOAM_TibitMsg(dpoe_opcode=Dpoe_Opcodes["Get Request"],
-                          body=eval(logical_link)/
-                                #RxFramesGreen()/
-                                #TxFramesGreen()/
-                                RxFrame_64()/
-                                RxFrame_65_127()/
-                                RxFrame_128_255()/
-                                RxFrame_256_511()/
-                                RxFrame_512_1023()/
-                                RxFrame_1024_1518()/
-                                RxFrame_1519Plus()/
-                                TxFrame_64()/
-                                TxFrame_65_127()/
-                                TxFrame_128_255()/
-                                TxFrame_256_511()/
-                                TxFrame_512_1023()/
-                                TxFrame_1024_1518()/
-                                TxFrame_1519Plus()
-                            )/
-            EndOfPDU()
-            )
-
-        return str(frame)
-
-    def _make_nni_stats_frame(self, mac_address):
-        frame = (
-            Ether(dst=mac_address) /
-            Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) /
-            EOAMPayload() / EOAM_VendSpecificMsg(oui=Tibit_OUI) /
-            EOAM_TibitMsg(dpoe_opcode=Dpoe_Opcodes["Get Request"], body=NetworkToNetworkPortObject()/
-                                #RxFramesGreen()/
-                                #TxFramesGreen()/
-                                RxFrame_64()/
-                                RxFrame_65_127()/
-                                RxFrame_128_255()/
-                                RxFrame_256_511()/
-                                RxFrame_512_1023()/
-                                RxFrame_1024_1518()/
-                                RxFrame_1519Plus()/
-                                TxFrame_64()/
-                                TxFrame_65_127()/
-                                TxFrame_128_255()/
-                                TxFrame_256_511()/
-                                TxFrame_512_1023()/
-                                TxFrame_1024_1518()/
-                                TxFrame_1519Plus()
-                            )/
-            EndOfPDU()
-            )
-        return str(frame)
 
     def abandon_device(self, device):
-        raise NotImplementedError(0
-                                  )
+        raise NotImplementedError(0)
+
     @inlineCallbacks
     def disable_device(self, device):
-        log.info('Disabling OLT: {}'.format(device.mac_address))
-        yield self.change_device_state(device, 0)
 
         # Update the operational status to UNKNOWN
         device.oper_status = OperStatus.UNKNOWN
@@ -745,6 +588,10 @@ class TibitOltAdapter(object):
         # Set all ports to disabled
         self.adapter_agent.disable_all_ports(device.id)
         log.info('disabled', device_id=device.id)
+
+        # Update the device last
+        log.info('Disabling OLT: {}'.format(device.mac_address))
+        yield self.change_device_state(device, 0)
 
 
     @inlineCallbacks
@@ -833,22 +680,11 @@ class TibitOltAdapter(object):
         self.adapter_agent.update_child_devices_state(device.id,
                                                       connect_status=ConnectStatus.UNREACHABLE)
 
-        msg = (
-            Ether(dst=device.mac_address) /
-            Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) /
-            EOAMPayload() / EOAM_VendSpecificMsg(oui=Tibit_OUI) /
-            EOAM_TibitMsg(dpoe_opcode = Dpoe_Opcodes["Set Request"], 
-                          body=TibitDeviceReset())/
-            EndOfPDU()
-            )
-        olt_mac = device.mac_address
+        # Send the Device Reset
         action = "Device Reset"
-        log.info('OLT-send to {} for OLT: {}'.format(action, olt_mac))
-        self.io_port.send(str(msg))
-
-        # Get and process the Set Response
         rc = []
-        yield self._handle_set_resp(olt_mac, action, rc)
+        tlvs = TibitDeviceReset()
+        yield self._set_req_rsp(device, action, tlvs, rc)
 
         # Change the operational status back to its previous state.
         device.oper_status = previous_oper_status
@@ -910,9 +746,6 @@ class TibitOltAdapter(object):
         _inner_vid = None
         olt_mac = device.mac_address
 
-        Clause = {v: k for k, v in ClauseSubtypeEnum.iteritems()}
-        Operator = {v: k for k, v in RuleOperatorEnum.iteritems()}
-
         for flow in flows.items:
 
             try:
@@ -932,8 +765,8 @@ class TibitOltAdapter(object):
                             _type = field.eth_type
                             log.info('#### field.type == ETH_TYPE ####')
                             dn_req /= PortIngressRuleClauseMatchLength02(
-                                fieldcode=Clause['L2 Type/Len'],
-                                operator=Operator['=='],
+                                fieldcode=RuleClauses['L2 Type/Len'],
+                                operator=RuleOperators['=='],
                                 match=_type)
 
                         elif field.type == IP_PROTO:
@@ -974,6 +807,8 @@ class TibitOltAdapter(object):
                             raise NotImplementedError('field.type={}'.format(
                                 field.type))
 
+                    ruleInnerVidNotSet = False;
+
                     for action in get_actions(flow):
 
                         if action.type == OUTPUT:
@@ -985,39 +820,32 @@ class TibitOltAdapter(object):
                                 serial = _inner_vid - 200
                                 mac_address = self.vlan_to_device_ids[_inner_vid][2].upper()
 
-                                if self.mode.upper()[0] == "G":  # GPON
-                                    vssn = "TBIT"
-                                    link = int(mac_address[4:12], 16)
-                                    resultOltQueue = "PortIngressRuleResultOLTQueue(unicastvssn=vssn, unicastlink=link)"
-                                else:                       # EPON
-                                    vssn = int(mac_address[0:8].rjust(8,"0"), 16)
-                                    link = int((mac_address[8:12]).ljust(8,"0"), 16)
-                                    resultOltQueue = "PortIngressRuleResultOLTEPONQueue(unicastvssn=vssn, unicastlink=link)"
-
+                                resultOltQueue = get_olt_queue(mac_address, self.mode)
                                 dn_req /= eval(resultOltQueue)
 
                             elif _inner_vid is None:
+                                ruleInnerVidNotSet = True
                                 log.info('#### action.type == OUTPUT INNER VID is NONE ####')
 
                         elif action.type == POP_VLAN:
                             log.info('#### action.type == POP_VLAN ####')
                             if _outer_vid == MULTICAST_VLAN:
-                                dn_req /= PortIngressRuleResultDelete(fieldcode=Clause['C-VLAN Tag'])
-                                dn_req /= PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
-                                                                             operator=Operator['=='], match=_outer_vid)
+                                dn_req /= PortIngressRuleResultDelete(fieldcode=RuleClauses['C-VLAN Tag'])
+                                dn_req /= PortIngressRuleClauseMatchLength02(fieldcode=RuleClauses['C-VLAN Tag'], fieldinstance=0,
+                                                                             operator=RuleOperators['=='], match=_outer_vid)
                             else:
-                                dn_req /= PortIngressRuleResultDelete(fieldcode=Clause['C-VLAN Tag'])
-                                dn_req /= PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
-                                                                             operator=Operator['=='], match=_outer_vid)
-                                dn_req /= PortIngressRuleClauseMatchLength02(fieldcode=Clause['C-VLAN Tag'], fieldinstance=1,
-                                                                             operator=Operator['=='], match=_inner_vid)
+                                dn_req /= PortIngressRuleResultDelete(fieldcode=RukeClauses['C-VLAN Tag'])
+                                dn_req /= PortIngressRuleClauseMatchLength02(fieldcode=RuleClauses['C-VLAN Tag'], fieldinstance=0,
+                                                                             operator=RuleOperators['=='], match=_outer_vid)
+                                dn_req /= PortIngressRuleClauseMatchLength02(fieldcode=RuleClauses['C-VLAN Tag'], fieldinstance=1,
+                                                                             operator=RuleOperators['=='], match=_inner_vid)
 
                         elif action.type == PUSH_VLAN:
                             log.info('#### action.type == PUSH_VLAN ####')
                             if action.push.ethertype != 0x8100:
                                 log.error('unhandled-tpid',
                                           ethertype=action.push.ethertype)
-                                dn_req /= PortIngressRuleResultInsert(fieldcode=Clause['C-VLAN Tag'])
+                                dn_req /= PortIngressRuleResultInsert(fieldcode=RuleClauses['C-VLAN Tag'])
 
                         elif action.type == SET_FIELD:
                             log.info('#### action.type == SET_FIELD ####')
@@ -1025,8 +853,11 @@ class TibitOltAdapter(object):
                                     ofp.OFPXMC_OPENFLOW_BASIC)
                             field = action.set_field.field.ofb_field
                             if field.type == VLAN_VID:
+                                # need to convert value in Set to a variable length value
+                                ctagStr = struct.pack('>H', (field.vlan_vid & 0xfff))
+
                                 dn_req /= PortIngressRuleResultSet(
-                                    fieldcode=Clause['C-VLAN Tag'], value=field.vlan_vid & 0xfff)
+                                    fieldcode=RuleClauses['C-VLAN Tag'], value=ctagStr)
                             else:
                                 log.error('unsupported-action-set-field-type',
                                           field_type=field.type)
@@ -1034,25 +865,18 @@ class TibitOltAdapter(object):
                             log.error('UNSUPPORTED-ACTION-TYPE',
                                       action_type=action.type)
 
+                    # Don't send the rule if a Queue was not set in the Port Ingress Rule
+                    if ruleInnerVidNotSet == True:
+                        continue
+
                     dn_req /= PortIngressRuleTerminator()
                     dn_req /= AddPortIngressRule()
 
-                    msg = (
-                        Ether(dst=device.mac_address) /
-                        Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) /
-                        EOAMPayload() / EOAM_VendSpecificMsg(oui=Tibit_OUI) /
-                        EOAM_TibitMsg(dpoe_opcode = Dpoe_Opcodes["Set Request"], body=dn_req)/
-                        EndOfPDU()
-                    )
-
-                    # Send OAM Request
-                    action = "Set DS Rule"
-                    log.info('OLT-send to {} for OLT: {}'.format(action, olt_mac))
-                    self.io_port.send(str(msg))
-
                     # Get and process the Set Response
+                    action = "Set DS Rule"
                     rc = []
-                    yield self._handle_set_resp(olt_mac, action, rc)
+                    yield self._set_req_rsp(device, action, dn_req, rc)
+
 
                 elif in_port == 1:
                     # Upstream rule
@@ -1071,13 +895,13 @@ class TibitOltAdapter(object):
                             log.info('#### field.type == ETH_TYPE ####', in_port=in_port,
                                      match=_type)
                             up_req_pon /= PortIngressRuleClauseMatchLength02(
-                                fieldcode=Clause['L2 Type/Len'],
-                                operator=Operator['=='],
+                                fieldcode=RuleClauses['L2 Type/Len'],
+                                operator=RuleOperators['=='],
                                 match=_type)
 
                             up_req_link /= PortIngressRuleClauseMatchLength02(
-                                fieldcode=Clause['L2 Type/Len'],
-                                operator=Operator['=='],
+                                fieldcode=RuleClauses['L2 Type/Len'],
+                                operator=RuleOperators['=='],
                                 match=_type)
 
                         elif field.type == IP_PROTO:
@@ -1086,12 +910,12 @@ class TibitOltAdapter(object):
                                      ip_proto=_proto)
 
                             up_req_pon /= PortIngressRuleClauseMatchLength01(
-                                fieldcode=Clause['IPv4/IPv6 Protocol Type'],
-                                operator=Operator['=='], match=_proto)
+                                fieldcode=RuleClauses['IPv4/IPv6 Protocol Type'],
+                                operator=RuleOperators['=='], match=_proto)
 
                             up_req_link /= PortIngressRuleClauseMatchLength01(
-                                fieldcode=Clause['IPv4/IPv6 Protocol Type'],
-                                operator=Operator['=='], match=_proto)
+                                fieldcode=RuleClauses['IPv4/IPv6 Protocol Type'],
+                                operator=RuleOperators['=='], match=_proto)
 
                         elif field.type == IN_PORT:
                             _port = field.port
@@ -1101,26 +925,18 @@ class TibitOltAdapter(object):
                             _vlan_vid = field.vlan_vid & 0xfff
                             log.info('#### field.type == VLAN_VID ####')
                             up_req_pon /= PortIngressRuleClauseMatchLength02(
-                                fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
-                                operator=Operator['=='], match=_vlan_vid)
+                                fieldcode=RuleClauses['C-VLAN Tag'], fieldinstance=0,
+                                operator=RuleOperators['=='], match=_vlan_vid)
 
                             serial = _vlan_vid - 200
                             mac_address = self.vlan_to_device_ids[_vlan_vid][2].upper()
 
-                            if self.mode.upper()[0] == "G":  # GPON
-                                vssn = "TBIT"
-                                link = int(mac_address[4:12], 16)
-                                logical_link = "OLTUnicastLogicalLink(unicastvssn=vssn, unicastlink=link)"
-                            else:                       # EPON
-                                vssn = int(mac_address[0:8].rjust(8,"0"), 16)
-                                link = int((mac_address[8:12]).ljust(8,"0"), 16)
-                                logical_link = "OLTEPONUnicastLogicalLink(unicastvssn=vssn, unicastlink=link)"
-
+                            logical_link = get_unicast_logical_link(mac_address, self.mode)
                             up_req_link /= eval(logical_link)
-                            
+
                             up_req_link /= PortIngressRuleClauseMatchLength02(
-                                fieldcode=Clause['C-VLAN Tag'], fieldinstance=0,
-                                operator=Operator['=='], match=_vlan_vid)
+                                fieldcode=RuleClauses['C-VLAN Tag'], fieldinstance=0,
+                                operator=RuleOperators['=='], match=_vlan_vid)
                             field_match_vlan_upstream_with_link = True
 
 
@@ -1131,10 +947,10 @@ class TibitOltAdapter(object):
                         elif field.type == UDP_DST:
                             _udp_dst = field.udp_dst
                             log.info('#### field.type == UDP_DST ####')
-                            up_req_pon /= (PortIngressRuleClauseMatchLength02(fieldcode=Clause['TCP/UDP source port'],
-                                                                              operator=Operator['=='], match=0x0044)/
-                                           PortIngressRuleClauseMatchLength02(fieldcode=Clause['TCP/UDP destination port'],
-                                                                              operator=Operator['=='], match=0x0043))
+                            up_req_pon /= (PortIngressRuleClauseMatchLength02(fieldcode=RuleClauses['TCP/UDP source port'],
+                                                                              operator=RuleOperators['=='], match=0x0044)/
+                                           PortIngressRuleClauseMatchLength02(fieldcode=RuleClauses['TCP/UDP destination port'],
+                                                                              operator=RuleOperators['=='], match=0x0043))
 
                         elif field.type == UDP_SRC:
                             _udp_src = field.udp_src
@@ -1160,10 +976,10 @@ class TibitOltAdapter(object):
                                 log.error('unhandled-ether-type',
                                           ethertype=action.push.ethertype)
                             if field_match_vlan_upstream_with_link == True:
-                                up_req_link /= PortIngressRuleResultInsert(fieldcode=Clause['C-VLAN Tag'],
+                                up_req_link /= PortIngressRuleResultInsert(fieldcode=RuleClauses['C-VLAN Tag'],
                                                                       fieldinstance=1)
                             else:
-                                up_req_pon /= PortIngressRuleResultInsert(fieldcode=Clause['C-VLAN Tag'],
+                                up_req_pon /= PortIngressRuleResultInsert(fieldcode=RuleClauses['C-VLAN Tag'],
                                                                       fieldinstance=0)
 
                         elif action.type == SET_FIELD:
@@ -1173,13 +989,16 @@ class TibitOltAdapter(object):
                             field = action.set_field.field.ofb_field
                             if field.type == VLAN_VID:
                                 if field_match_vlan_upstream_with_link == True:
-                                    up_req_link /=(PortIngressRuleResultCopy(fieldcode=Clause['C-VLAN Tag'])/
-                                                   PortIngressRuleResultReplace(fieldcode=Clause['C-VLAN Tag']))
+                                    up_req_link /=(PortIngressRuleResultCopy(fieldcode=RuleClauses['C-VLAN Tag'])/
+                                                   PortIngressRuleResultReplace(fieldcode=RuleClauses['C-VLAN Tag']))
+
+                                # need to convert value in Set to a variable length value
+                                ctagStr = struct.pack('>H', (field.vlan_vid & 0xfff))
 
                                 up_req_pon /= PortIngressRuleResultSet(
-                                    fieldcode=Clause['C-VLAN Tag'], value=field.vlan_vid & 0xfff)
+                                    fieldcode=RuleClauses['C-VLAN Tag'], value=ctagStr)
                                 up_req_link /= PortIngressRuleResultSet(
-                                    fieldcode=Clause['C-VLAN Tag'], value=field.vlan_vid & 0xfff)
+                                    fieldcode=RuleClauses['C-VLAN Tag'], value=ctagStr)
                             else:
                                 log.error('unsupported-action-set-field-type',
                                           field_type=field.type)
@@ -1196,22 +1015,10 @@ class TibitOltAdapter(object):
                     up_req /= PortIngressRuleTerminator()
                     up_req /= AddPortIngressRule()
 
-                    msg = (
-                        Ether(dst=device.mac_address) /
-                        Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) /
-                        EOAMPayload() / EOAM_VendSpecificMsg(oui=Tibit_OUI) /
-                        EOAM_TibitMsg(dpoe_opcode = Dpoe_Opcodes["Set Request"], body=up_req)/
-                        EndOfPDU()
-                    )
-
-                    # Send OAM Request
-                    action = "Set US Rule"
-                    log.info('OLT-send to {} for OLT: {}'.format(action, olt_mac))
-                    self.io_port.send(str(msg))
-
                     # Get and process the Set Response
+                    action = "Set US Rule"
                     rc = []
-                    yield self._handle_set_resp(olt_mac, action, rc)
+                    yield self._set_req_rsp(device, action, up_req, rc)
 
                 else:
                     raise Exception('Port should be 1 or 2 by our convention')
@@ -1246,7 +1053,7 @@ class TibitOltAdapter(object):
             frame = Ether(dst=device.mac_address) / \
               Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) / \
               Dot1Q(vlan=proxy_address.channel_id, prio=TIBIT_MGMT_PRIORITY) / \
-              EOAMPayload() / EOAM_VendSpecificMsg(oui=IEEE_OUI) / \
+              EOAMPayload() / EOAM_VendSpecificMsg(oui=ITU_OUI) / \
               encapsulated_omci /\
               EndOfPDU()
 
@@ -1273,7 +1080,7 @@ class TibitOltAdapter(object):
         self.io_port.send(str(frame))
 
     def receive_inter_adapter_message(self, msg):
-        raise NotImplementedError()    
+        raise NotImplementedError()
 
     def suppress_alarm(self, filter):
         raise NotImplementedError()
@@ -1295,16 +1102,28 @@ class TibitOltAdapter(object):
             nni_metrics = []
 
             branch_leaf_pairs = [
-                            #[0xD7, 0x0201,], [0xD7, 0x0202], 
-                            [0xD7, 0x0204, "rx_64"], [0xD7, 0x0205, "rx_65_127"], 
-                            [0xD7, 0x0206, "rx_128_255"], [0xD7, 0x0207, "rx_256_511"],
-                            [0xD7, 0x0208, "rx_512_1023"], [0xD7, 0x0209, "rx_1024_1518"],
-                            [0xD7, 0x020A, "rx_1519_9k"], [0xD7, 0x020B, "tx_64"],
-                            [0xD7, 0x020C, "tx_65_127"], [0xD7, 0x020D, "tx_128_255"],
-                            [0xD7, 0x020E, "tx_256_511"], [0xD7, 0x020F, "tx_512_1023"],
-                            [0xD7, 0x0210, "tx_1024_1518"], [0xD7, 0x0211, "tx_1519_9k"]]
+                            [RxFrame_64().branch,        RxFrame_64().leaf,        "rx_64"],
+                            [RxFrame_65_127().branch,    RxFrame_65_127().leaf,    "rx_65_127"],
+                            [RxFrame_128_255().branch,   RxFrame_128_255().leaf,   "rx_128_255"],
+                            [RxFrame_256_511().branch,   RxFrame_256_511().leaf,   "rx_256_511"],
+                            [RxFrame_512_1023().branch,  RxFrame_512_1023().leaf,  "rx_512_1023"],
+                            [RxFrame_1024_1518().branch, RxFrame_1024_1518().leaf, "rx_1024_1518"],
+                            [RxFrame_1519Plus().branch,  RxFrame_1519Plus().leaf,  "rx_1519_9k"],
 
-            olt_mac = next((mac for mac, device in self.device_ids.iteritems() if device == device_id), None)
+                            [TxFrame_64().branch,        TxFrame_64().leaf,        "tx_64"],
+                            [TxFrame_65_127().branch,    TxFrame_65_127().leaf,    "tx_65_127"],
+                            [TxFrame_128_255().branch,   TxFrame_128_255().leaf,   "tx_128_255"],
+                            [TxFrame_256_511().branch,   TxFrame_256_511().leaf,   "tx_256_511"],
+                            [TxFrame_512_1023().branch,  TxFrame_512_1023().leaf,  "tx_512_1023"],
+                            [TxFrame_1024_1518().branch, TxFrame_1024_1518().leaf, "tx_1024_1518"],
+                            [TxFrame_1519Plus().branch,  TxFrame_1519Plus().leaf,  "tx_1519_9k"]
+                            ]
+
+            stats_tlvs =  RxFrame_64()/RxFrame_65_127()/RxFrame_128_255()/RxFrame_256_511()/RxFrame_512_1023()/RxFrame_1024_1518()/RxFrame_1519Plus()
+            stats_tlvs /= TxFrame_64()/TxFrame_65_127()/TxFrame_128_255()/TxFrame_256_511()/TxFrame_512_1023()/TxFrame_1024_1518()/TxFrame_1519Plus()
+
+            # Get the latest device reference
+            device = self.adapter_agent.get_device(device_id)
 
             try:
                 # Step 1: gather metrics from device
@@ -1315,30 +1134,17 @@ class TibitOltAdapter(object):
                     log.info('link stats frame', links=self.vlan_to_device_ids[vlan_id])
 
                     # send out link_stats_frame
-                    mac_address = self.vlan_to_device_ids[vlan_id][2].upper()
+                    onu_mac_address = self.vlan_to_device_ids[vlan_id][2].upper()
 
-                    link_stats_frame = self._make_link_stats_frame(olt_mac_address=olt_mac, onu_mac_address=mac_address)
-        
-                    self.io_port.send(link_stats_frame)
+                    logical_link = get_unicast_logical_link(onu_mac_address, self.mode)
 
-                    # Loop until we have a Get Response or timeout
-                    ack = False
-                    start_time = time.time()
-                    while not ack:
-                        frame = yield self.incoming_queues[olt_mac].get()
-                        #TODO - Need to add proper timeout functionality
-                        #if (time.time() - start_time) > TIBIT_MSG_WAIT_TIME or (frame is None):
-                        #    break  # don't wait forever
+                    resp = []
+                    action = "Get Link Stats"
+                    tlvs = eval(logical_link)/stats_tlvs
+                    yield self._get_req_rsp(device, action, tlvs, resp)
+                    if resp is not []: frame = resp[0]
 
-                        respType = get_oam_msg_type(log, frame)
-                 
-                        if (respType == RxedOamMsgTypeEnum["DPoE Get Response"]):
-                            ack = True
-                        else:
-                            # Handle unexpected events/OMCI messages
-                            check_resp(log, frame)
-
-                    if ack:
+                    if frame:
                         # Process the Get Request message
                         log.info('Received Link Stats Get Response Frame')
 
@@ -1357,30 +1163,16 @@ class TibitOltAdapter(object):
 
                 log.info('nni stats frame')
 
-                link_stats_frame = self._make_nni_stats_frame(mac_address=olt_mac)
-                self.io_port.send(link_stats_frame)
+                resp = []
+                action = "Get NNI Stats"
+                tlvs=NetworkToNetworkPortObject()/stats_tlvs
+                yield self._get_req_rsp(device, action, tlvs, resp)
+                if resp is not []: frame = resp[0]
 
-                # Loop until we have a Get Response or timeout
-                ack = False
-                start_time = time.time()
-                while not ack:
-                    frame = yield self.incoming_queues[olt_mac].get()
-                    #TODO - Need to add proper timeout functionality
-                    #if (time.time() - start_time) > TIBIT_MSG_WAIT_TIME or (frame is None):
-                    #    break  # don't wait forever
-
-                    respType = get_oam_msg_type(log, frame)
-             
-                    if (respType == RxedOamMsgTypeEnum["DPoE Get Response"]):
-                        ack = True
-                    else:
-                        # Handle unexpected events/OMCI messages
-                        check_resp(log, frame)
-
-                if ack:
+                if frame:
                     # Process the Get Response message
                     log.info('Recieved NNI Stats Get Response Frame')
-                                
+
                     for pair in branch_leaf_pairs:
                         (rc, value) = (get_value_from_msg(log, frame, pair[0], pair[1]))
                         if rc:
@@ -1426,26 +1218,79 @@ class TibitOltAdapter(object):
         lc.start(interval=15)  # TODO make this configurable
 
 
-    # Methods for Get / Set  Response Processing from eoam_messages
+    @inlineCallbacks
+    def change_device_state(self, device, state=0):
+        if state is 0:
+            stateStr = "disabled"
+        else:
+            stateStr = "enabled"
+        action = "Set PON Admin State to " + stateStr
+
+        # Get and process the Set Response
+        rc = []
+        tlvs = PonPortObject()/OltPonAdminStateSet(value=state)
+        yield self._set_req_rsp(device, action, tlvs, rc)
+
+
+    # Generic Request handlers
+
+    def _build_tibit_oam_msg(self, mac_addr, opcode, body):
+        msg = (
+            Ether(dst=mac_addr) /
+            Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) /
+            EOAMPayload() / EOAM_VendSpecificMsg(oui=TIBIT_OUI) /
+            EOAM_TibitMsg(dpoe_opcode = opcode, body=body)/
+            EndOfPDU()
+            )
+        return msg
+
 
     @inlineCallbacks
-    def _handle_set_resp(self, olt_mac, action, retcode):
-        # Get and process the Set Response
+    def _get_req_rsp(self, device, action, body, resp):
+        msg = self._build_tibit_oam_msg(device.mac_address, DPoEOpcodes["Get Request"], body)
+        log.info('Send to {} for {}: {}'.format(action, device.model, device.mac_address))
+
+        self.io_port.send(str(msg))
+
+        # Loop until we have a Get Response or timeout
         ack = False
-
-        # Loop until we have a set response
+        start_time = time.time()
         while not ack:
-            frame = yield self.incoming_queues[olt_mac].get()
-
+            frame = yield self.incoming_queues[device.mac_address].get()
             #TODO - Need to add proper timeout functionality
+            #if (time.time() - start_time) > TIBIT_MSG_WAIT_TIME or (frame is None):
+            #    break  # don't wait forever
 
             respType = get_oam_msg_type(log, frame)
-            log.info('Received OAM Message 0x %s' % str(respType))
+
+            if (respType == RxedOamMsgTypeEnum["DPoE Get Response"]):
+                ack = True
+                resp.append(frame)
+            else:
+                # Handle unexpected events/OMCI messages
+                check_resp(log, frame)
+
+
+    @inlineCallbacks
+    def _handle_set_resp(self, device, action, retcode):
+        # Get and process the Set Response
+        ack = False
+        #start_time = time.time()
+
+        # Loop until we have a set response or timeout
+        while not ack:
+            frame = yield self.incoming_queues[device.mac_address].get()
+            #TODO - Need to add proper timeout functionality
+            #if (time.time() - start_time) > TIBIT_MSG_WAIT_TIME or (frame is None):
+            #    break  # don't wait forever
+
+            respType = get_oam_msg_type(log, frame)
 
             #Check that the message received is a Set Response
             if (respType == RxedOamMsgTypeEnum["DPoE Set Response"]):
                 ack = True
             else:
+                log.info('Received Unexpected OAM Message 0x{:X} while waiting for Set Resp for {}'.format(respType,action))
                 # Handle unexpected events/OMCI messages
                 check_resp(log, frame)
 
@@ -1454,38 +1299,23 @@ class TibitOltAdapter(object):
         if ack:
             (rc,branch,leaf,status) = check_set_resp(log, frame)
             if (rc is False):
-                log.info('Set Response had errors - Branch 0x{:X} Leaf 0x{:0>4X} {}'.format(branch, leaf, DPoEVariableResponseCodes[status]))
-        
-        if (rc is True):
-            log.info('OLT-response received for {} for OLT: {}'.format(action, olt_mac))
+                log.info('Set Response for {} for {}: {} had errors - Branch 0x{:X} Leaf 0x{:0>4X} {}'.format(action, device.model, device.mac_address,branch, leaf, DPoEVariableResponseEnum[status]))
+            else:
+                log.info('Set Response received for {} for {}: {} had no errors'.format(action, device.model, device.mac_address))
         else:
-            log.info('BAD OLT-response received for {} for OLT: {}'.format(action, olt_mac))
+            log.info('No Set Response received for {} for {}: {}'.format(action, device.model, device.mac_address))
 
         retcode.append(rc)
 
+
     @inlineCallbacks
-    def change_device_state(self, device, state=0):
-        # construct PON Admin State attribute
-        msg = (
-            Ether(dst=device.mac_address) /
-            Dot1Q(vlan=TIBIT_MGMT_VLAN, prio=TIBIT_MGMT_PRIORITY) /
-            EOAMPayload() / EOAM_VendSpecificMsg(oui=Tibit_OUI) /
-            EOAM_TibitMsg(dpoe_opcode = Dpoe_Opcodes["Set Request"], 
-                          body=PonPortObject()/OltPonAdminStateSet(value=state))/
-            EndOfPDU()
-            )
-        olt_mac = device.mac_address
-        if state is 0:
-            stateStr = "disabled"
-        else:
-            stateStr = "enabled"
-        action = "Set PON Admin State to " + stateStr
-        log.info('OLT-send to {} for OLT: {}'.format(action, olt_mac))
+    def _set_req_rsp(self, device, action, body, rc):
+        msg = self._build_tibit_oam_msg(device.mac_address, DPoEOpcodes["Set Request"], body)
+        log.info('Send to {} for {}: {}'.format(action, device.model, device.mac_address))
         self.io_port.send(str(msg))
 
         # Get and process the Set Response
-        rc = []
-        yield self._handle_set_resp(olt_mac, action, rc)
+        yield self._handle_set_resp(device, action, rc)
 
     def create_interface(self, device, data):
         raise NotImplementedError()

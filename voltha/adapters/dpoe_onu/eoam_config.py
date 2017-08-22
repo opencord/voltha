@@ -37,9 +37,8 @@ import fcntl, socket, struct # for get hw address
 
 # TODO should remove import *
 from EOAM_TLV import *
+from EOAM_Layers import EOAM_MULTICAST_ADDRESS, IGMP_MULTICAST_ADDRESS
 
-EOAM_MULTICAST_ADDRESS = '01:80:c2:00:00:02'
-IGMP_MULTICAST_ADDRESS = '01:00:5e:00:00:01'   # for test
 
 class EOAM():
     """ EOAM frame layer """
