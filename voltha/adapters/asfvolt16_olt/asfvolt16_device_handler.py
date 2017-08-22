@@ -377,4 +377,4 @@ class Asfvolt16Handler(OltDeviceHandler):
         )
 
         # TODO: Need to retrieve the correct destination onu_id
-        self.bal.packet_out(onu_id=1, egress_port, str(out_pkt))
+        self.bal.packet_out(1, egress_port, str(out_pkt))
