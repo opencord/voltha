@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3a3291f1_35b0f2dc",
+        "filename": "compose/docker-compose-es-kibana-cluster.yml",
+        "patchSetId": 2
+      },
+      "lineNbr": 31,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-08-22T20:44:07Z",
+      "side": 1,
+      "message": "Does these components need to reside on the voltha net?  Can there be a fluentd net where fluentd is the one connected to both voltha net and fluentd network?",
+      "revId": "843d0dfda0f48a571c88d5a87d8af4174f24ff0b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
