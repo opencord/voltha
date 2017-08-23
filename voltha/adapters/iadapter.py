@@ -224,6 +224,13 @@ class IAdapter(object):
     def remove_multicast_distribution_set(self, device, data):
         raise NotImplementedError()
 
+    def _get_handler(self, device):
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                return handler
+            return None
+
 """
 OLT Adapter base class
 """

@@ -207,6 +207,8 @@ class XponAgent(object):
         parent_path = interface_node['parent_path'].format(*id_val.values())
         try:
             parent_data = self.core.get_proxy('/').get(parent_path)
+            if not parent_data:
+                return None
             return parent_data
         except KeyError:
             log.info('xpon-agent-warning-interface-cannot-get-parent',
@@ -215,6 +217,7 @@ class XponAgent(object):
 
     def get_child_data(self, data):
         interface_node = self.interface_stack[type(data)]
+        child = None
         if len(interface_node['child'][1]['child_path']) > 1:
             top_children = self.core.get_proxy('/').get('{}'.format(
                 interface_node['child'][1]['child_path'][0]))
