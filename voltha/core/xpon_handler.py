@@ -118,11 +118,13 @@ class XponHandler(object):
         log.info('grpc-request', request=request)
 
         try:
-            assert isinstance(request, ChannelgroupConfig)
+            assert isinstance(request, ChannelgroupConfig), \
+                'Instance is not of Channel Group'
             assert self.validate_interface(request, context)
             log.debug('creating-channel-group', name=request.name)
             _id = self.cg_pool.get_next()
-            assert _id != None
+            assert _id != None, \
+                'Fail to allocate id for Channel Group'
             request.cg_index = _id
             self.root.add('/channel_groups', request)
             self.cg_dict[request.name] = {'alloc_id': IndexPool(16383, 1024)}
@@ -130,8 +132,7 @@ class XponHandler(object):
 
             return Empty()
         except AssertionError, e:
-            context.set_details(
-                'Fail to allocate id to \'{}\''.format(request.name))
+            context.set_details(e.message)
             context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
         except ValueError:
@@ -152,7 +153,8 @@ class XponHandler(object):
             return ChannelgroupConfig()
 
         try:
-            assert isinstance(request, ChannelgroupConfig)
+            assert isinstance(request, ChannelgroupConfig), \
+                'Instance is not of Channel Group'
             assert self.validate_interface(request, context)
             channelgroup = self.get_channel_group_config(request, context)
             request.cg_index = channelgroup.cg_index
@@ -160,10 +162,10 @@ class XponHandler(object):
             log.debug('updating-channel-group', name=request.name)
             self.root.update(path, request, strict=True)
             return Empty()
-
         except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
-
         except KeyError:
             context.set_details(
                     'channel group \'{}\' not found'.format(request.name))
@@ -219,13 +221,16 @@ class XponHandler(object):
         log.info('grpc-request', request=request)
 
         try:
-            assert isinstance(request, ChannelpartitionConfig)
+            assert isinstance(request, ChannelpartitionConfig), \
+                'Instance is not of Channel Partition'
             assert self.validate_interface(request, context)
             log.debug('creating-channel-partition', name=request.name)
             self.root.add('/channel_partitions', request)
 
             return Empty()
         except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
         except ValueError:
             context.set_details(
@@ -244,7 +249,8 @@ class XponHandler(object):
             return ChannelpartitionConfig()
 
         try:
-            assert isinstance(request, ChannelpartitionConfig)
+            assert isinstance(request, ChannelpartitionConfig), \
+                'Instance is not of Channel Partition'
             assert self.validate_interface(request, context)
 
             path = '/channel_partitions/{}'.format(request.name)
@@ -253,8 +259,9 @@ class XponHandler(object):
             return Empty()
 
         except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
-
         except KeyError:
             context.set_details(
                     'channel partition \'{}\' not found'.format(request.name))
@@ -308,13 +315,16 @@ class XponHandler(object):
         log.info('grpc-request', request=request)
 
         try:
-            assert isinstance(request, ChannelpairConfig)
+            assert isinstance(request, ChannelpairConfig), \
+                'Instance is not of Channel Pair'
             assert self.validate_interface(request, context)
             log.debug('creating-channel-pair', name=request.name)
             self.root.add('/channel_pairs', request)
 
             return Empty()
         except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
         except ValueError:
             context.set_details(
@@ -331,19 +341,19 @@ class XponHandler(object):
                 'Malformed name \'{}\''.format(request.name))
             context.set_code(StatusCode.INVALID_ARGUMENT)
             return ChannelpairConfig()
-
         try:
-            assert isinstance(request, ChannelpairConfig)
+            assert isinstance(request, ChannelpairConfig), \
+                'Instance is not of Channel Pair'
             assert self.validate_interface(request, context)
 
             path = '/channel_pairs/{}'.format(request.name)
             log.debug('updating-channel-pair', name=request.name)
             self.root.update(path, request, strict=True)
             return Empty()
-
         except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
-
         except KeyError:
             context.set_details(
                     'channel pair \'{}\' not found'.format(request.name))
@@ -408,10 +418,13 @@ class XponHandler(object):
         log.info('grpc-request', request=request)
 
         try:
-            assert isinstance(request, ChannelterminationConfig)
+            assert isinstance(request, ChannelterminationConfig), \
+                'Instance is not of Channel Termination'
             assert self.validate_interface(request, context)
             #device = self.root.get('/devices/{}'.format(request.id))
         except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
         except KeyError:
             context.set_details(
@@ -445,9 +458,12 @@ class XponHandler(object):
             return ChannelterminationConfig()
 
         try:
-            assert isinstance(request, ChannelterminationConfig)
+            assert isinstance(request, ChannelterminationConfig), \
+                'Instance is not of Channel Termination'
             assert self.validate_interface(request, context)
         except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
         except KeyError:
             context.set_details(
@@ -487,7 +503,7 @@ class XponHandler(object):
             assert isinstance(request, ChannelterminationConfig)
         except AssertionError:
             context.set_details(
-                'Instance is not of channel termination')
+                'Instance is not of Channel Termination')
             context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
         except KeyError:
@@ -524,12 +540,15 @@ class XponHandler(object):
         log.info('grpc-request', request=request)
 
         try:
-            assert isinstance(request, OntaniConfig)
+            assert isinstance(request, OntaniConfig), \
+                'Instance is not of Ont Ani'
             assert self.validate_interface(request, context)
             log.debug('creating-ont-ani', name=request.name)
             self.root.add('/ont_anis', request)
             return Empty()
         except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
         except KeyError:
             context.set_details(
@@ -553,17 +572,18 @@ class XponHandler(object):
             return OntaniConfig()
 
         try:
-            assert isinstance(request, OntaniConfig)
+            assert isinstance(request, OntaniConfig), \
+                'Instance is not of Ont Ani'
             assert self.validate_interface(request, context)
 
             path = '/ont_anis/{}'.format(request.name)
             log.debug('updating-ont-ani', name=request.name)
             self.root.update(path, request, strict=True)
             return Empty()
-
         except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
-
         except KeyError:
             context.set_details(
                 'ontani \'{}\' not found'.format(request.name))
@@ -589,7 +609,7 @@ class XponHandler(object):
 
         except AssertionError:
             context.set_details(
-                'Instance is not of ont ani')
+                'Instance is not of Ont Ani')
             context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
 
@@ -608,12 +628,15 @@ class XponHandler(object):
         log.info('grpc-request', request=request)
 
         try:
-            assert isinstance(request, VOntaniConfig)
+            assert isinstance(request, VOntaniConfig), \
+                'Instance is not of VOnt Ani'
             assert self.validate_interface(request, context)
             log.debug('creating-vont-ani', name=request.name)
             self.root.add('/v_ont_anis', request)
             return Empty()
         except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
         except KeyError:
             context.set_details(
@@ -637,17 +660,17 @@ class XponHandler(object):
             return VOntaniConfig()
 
         try:
-            assert isinstance(request, VOntaniConfig)
+            assert isinstance(request, VOntaniConfig), \
+                'Instance is not of VOnt Ani'
             assert self.validate_interface(request, context)
-
             path = '/v_ont_anis/{}'.format(request.name)
             log.debug('updating-vont-ani', name=request.name)
             self.root.update(path, request, strict=True)
             return Empty()
-
         except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
-
         except KeyError:
             context.set_details(
                 'vontani \'{}\' not found'.format(request.name))
@@ -700,12 +723,15 @@ class XponHandler(object):
         log.info('grpc-request', request=request)
 
         try:
-            assert isinstance(request, VEnetConfig)
+            assert isinstance(request, VEnetConfig), \
+                'Instance is not of VEnet'
             assert self.validate_interface(request, context)
             log.debug('creating-venet', name=request.name)
             self.root.add('/v_enets', request)
             return Empty()
         except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
         except KeyError:
             context.set_details(
@@ -729,17 +755,17 @@ class XponHandler(object):
             return VEnetConfig()
 
         try:
-            assert isinstance(request, VEnetConfig)
+            assert isinstance(request, VEnetConfig), \
+                'Instance is not of VEnet'
             assert self.validate_interface(request, context)
-
             path = '/v_enets/{}'.format(request.name)
             log.debug('updating-venet', name=request.name)
             self.root.update(path, request, strict=True)
             return Empty()
-
         except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
-
         except KeyError:
             context.set_details(
                 'venet \'{}\' not found'.format(request.name))
@@ -771,12 +797,10 @@ class XponHandler(object):
             log.debug('removing-venet', name=request.name)
             self.root.remove(path)
             return Empty()
-
         except AssertionError, e:
             context.set_details(e.message)
             context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
-
         except KeyError:
             context.set_details(
                 'venet \'{}\' not found'.format(request.name))
@@ -792,12 +816,15 @@ class XponHandler(object):
     def create_traffic_descriptor_profile(self, request, context):
         log.info('grpc-request', request=request)
         try:
-            assert isinstance(request, TrafficDescriptorProfileData)
+            assert isinstance(request, TrafficDescriptorProfileData), \
+                'Instance is not of Traffic Descriptor Profile'
             assert self.validate_interface(request, context)
             log.debug('creating-traffic-descriptor-profile', name=request.name)
             self.root.add('/traffic_descriptor_profiles', request)
             return Empty()
         except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
         except KeyError:
             context.set_details(
@@ -822,18 +849,18 @@ class XponHandler(object):
             return TrafficDescriptorProfileData()
 
         try:
-            assert isinstance(request, TrafficDescriptorProfileData)
+            assert isinstance(request, TrafficDescriptorProfileData), \
+                'Instance is not of Traffic Descriptor Profile'
             assert self.validate_interface(request, context)
-
             path = '/traffic_descriptor_profiles/{}'.format(request.name)
             log.debug('updating-traffic-descriptor-profile',
                       name=request.name)
             self.root.update(path, request, strict=True)
             return Empty()
-
         except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
-
         except KeyError:
             context.set_details(
                 'traffic descriptor profile \'{}\' not found'.format(
@@ -852,7 +879,7 @@ class XponHandler(object):
 
         try:
             assert isinstance(request, TrafficDescriptorProfileData), \
-                'Instance is not of Traffic Descriptor Profile Data'
+                'Instance is not of Traffic Descriptor Profile'
             tdp_ref_by_tcont = next(
                 (tcont for tcont in self.root.get('/tconts') if
                  tcont.traffic_descriptor_profile_ref == request.name), None)
@@ -883,9 +910,9 @@ class XponHandler(object):
     def create_tcont(self, request, context):
         log.info('grpc-request', request=request)
         try:
-            assert isinstance(request, TcontsConfigData)
+            assert isinstance(request, TcontsConfigData), \
+                'Instance is not of TCont'
             assert self.validate_interface(request, context)
-
             cg_name = self.extract_channel_group_from_request(request,
                         'v_ont_anis', request.interface_reference)
             _id = self.cg_dict[cg_name]['alloc_id'].get_next()
@@ -895,6 +922,8 @@ class XponHandler(object):
             self.root.add('/tconts', request)
             return Empty()
         except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
         except KeyError:
             context.set_details(
@@ -917,9 +946,9 @@ class XponHandler(object):
             context.set_code(StatusCode.INVALID_ARGUMENT)
             return TcontsConfigData()
         try:
-            assert isinstance(request, TcontsConfigData)
+            assert isinstance(request, TcontsConfigData), \
+                'Instance is not of TCont'
             assert self.validate_interface(request, context)
-
             path = '/tconts/{}'.format(request.name)
             tcont = self.root.get(path)
             request.alloc_id = tcont.alloc_id
@@ -927,6 +956,8 @@ class XponHandler(object):
             self.root.update(path, request, strict=True)
             return Empty()
         except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
         except KeyError:
             context.set_details(
@@ -976,17 +1007,21 @@ class XponHandler(object):
     def create_gem_port(self, request, context):
         log.info('grpc-request', request=request)
         try:
-            assert isinstance(request, GemportsConfigData)
+            assert isinstance(request, GemportsConfigData), \
+                'Instance is not of GemPort'
             assert self.validate_interface(request, context)
             cg_name = self.extract_channel_group_from_request(request,
                         'v_enets', request.itf_ref)
             _id = self.cg_dict[cg_name]['gemport_id'].get_next()
-            assert _id != None
+            assert _id != None, \
+                'Fail to allocate id for CemPort'
             request.gemport_id = _id
             log.debug('creating-gemport', name=request.name)
             self.root.add('/gemports', request)
             return Empty()
         except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
         except KeyError:
             context.set_details(
@@ -1009,9 +1044,9 @@ class XponHandler(object):
             context.set_code(StatusCode.INVALID_ARGUMENT)
             return GemportsConfigData()
         try:
-            assert isinstance(request, GemportsConfigData)
+            assert isinstance(request, GemportsConfigData), \
+                'Instance is not of GemPort'
             assert self.validate_interface(request, context)
-
             path = '/gemports/{}'.format(request.name)
             gemport = self.root.get(path)
             request.gemport_id = gemport.gemport_id
@@ -1019,6 +1054,8 @@ class XponHandler(object):
             self.root.update(path, request, strict=True)
             return Empty()
         except AssertionError, e:
+            context.set_details(e.message)
+            context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
         except KeyError:
             context.set_details(
@@ -1044,7 +1081,7 @@ class XponHandler(object):
             self.cg_dict[cg_name]['gemport_id'].release(gemport.gemport_id)
             return Empty()
         except AssertionError:
-            context.set_details('Instance is not of gemport')
+            context.set_details('Instance is not of GemPort')
             context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
         except KeyError:
@@ -1106,12 +1143,17 @@ class XponHandler(object):
                         request.data.channelgroup_ref), \
                         'Reference to channel group -- \'{}\' not found'\
                         .format(request.data.channelgroup_ref)
-                if channelpair.data.channelpartition_ref:
-                    assert self.get_ref_data(
-                        request, context, "channel_partitions",
-                        request.data.channelpartition_ref), \
-                        'Reference to channel partition -- \'{}\' not found'\
-                        .format(request.data.channelpartition_ref)
+                '''
+                @todo: For VOLTHA 1.0, make this reference mandatory until
+                       VOL-314 & VOL-356 are implemented.
+                '''
+                assert channelpair.data.channelpartition_ref != '', \
+                    'Channel Pair must reference an existing Channel Partition'
+                assert self.get_ref_data(
+                    request, context, "channel_partitions",
+                    request.data.channelpartition_ref), \
+                    'Reference to channel partition -- \'{}\' not found'\
+                    .format(request.data.channelpartition_ref)
 
                 assert channelpair.data.channelpair_type != '', \
                     'Channel Pair type is mandatory'
@@ -1131,13 +1173,17 @@ class XponHandler(object):
                 assert channeltermin.id != '', 'Device ID is mandatory'
                 assert channeltermin.name != '', \
                     'Channel Termination name is mandatory'
-
-                if channeltermin.data.channelpair_ref:
-                    assert self.get_ref_data(
-                        request, context, "channel_pairs",
-                        request.data.channelpair_ref), \
-                        'Reference to channel pair -- \'{}\' not found'\
-                        .format(request.data.channelpair_ref)
+                '''
+                @todo: For VOLTHA 1.0, make this reference mandatory until
+                       VOL-314 & VOL-356 are implemented.
+                '''
+                assert channeltermin.data.channelpair_ref != '', \
+                    'Channel Termination must reference Channel Pair'
+                assert self.get_ref_data(
+                    request, context, "channel_pairs",
+                    request.data.channelpair_ref), \
+                    'Reference to channel pair -- \'{}\' not found'\
+                    .format(request.data.channelpair_ref)
 
                 assert 0 <= channeltermin.data.ber_calc_period <= 864000, \
                     'Channel Termination ber calc period must be in range of \
@@ -1152,19 +1198,25 @@ class XponHandler(object):
                 assert isinstance(request, VOntaniConfig)
                 vontani = request
                 assert vontani.name != '', 'VOntAni name is mandatory'
-
-                if vontani.data.parent_ref:
-                    assert self.get_ref_data(
-                        request, context, "channel_partitions",
-                        request.data.parent_ref), \
-                        'Reference to channel partition -- \'{}\' not found'\
-                        .format(request.data.parent_ref)
-                if vontani.data.preferred_chanpair:
-                    assert self.get_ref_data(
-                        request, context, "channel_pairs",
-                        request.data.preferred_chanpair), \
-                        'Preferred channel pair -- \'{}\' not found'\
-                        .format(request.data.preferred_chanpair)
+                assert vontani.data.parent_ref != '', \
+                    'VOntAni must reference an existing Channel Partition'
+                assert self.get_ref_data(
+                    request, context, "channel_partitions",
+                    request.data.parent_ref), \
+                    'Reference to channel partition -- \'{}\' not found'\
+                    .format(request.data.parent_ref)
+                '''
+                @todo: For VOLTHA 1.0, make this reference mandatory until
+                       VOL-314 & VOL-356 are implemented.
+                '''
+                assert vontani.data.preferred_chanpair != '', \
+                    'VOntAni must reference preferred Channel Pair'
+                #if vontani.data.preferred_chanpair:
+                assert self.get_ref_data(
+                    request, context, "channel_pairs",
+                    request.data.preferred_chanpair), \
+                    'Preferred channel pair -- \'{}\' not found'\
+                    .format(request.data.preferred_chanpair)
                 if vontani.data.protection_chanpair:
                     assert self.get_ref_data(
                         request, context, "channel_pairs",
@@ -1195,13 +1247,12 @@ class XponHandler(object):
                 assert isinstance(request, VEnetConfig)
                 venet = request
                 assert venet.name != '', 'VEnet name is mandatory'
-
-                if venet.data.v_ontani_ref:
-                    assert self.get_ref_data(
-                        request, context, "v_ont_anis",
-                        venet.data.v_ontani_ref), \
-                        'Reference to vont ani -- \'{}\' not found'\
-                        .format(venet.data.v_ontani_ref)
+                assert venet.data.v_ontani_ref != '', \
+                    'VEnet must reference an existing VOntAni'
+                assert self.get_ref_data(
+                    request, context, "v_ont_anis", venet.data.v_ontani_ref), \
+                    'Reference to VOntAni -- \'{}\' not found'\
+                    .format(venet.data.v_ontani_ref)
                 return True
             elif(isinstance(request, TrafficDescriptorProfileData)):
                 assert isinstance(request, TrafficDescriptorProfileData)
@@ -1243,7 +1294,7 @@ class XponHandler(object):
                 gemport = request
                 assert gemport.name != '', 'Gemport name is mandatory'
                 assert gemport.itf_ref != '', \
-                    'Gemport must reference an existing VEnet interface'
+                    'GemPort must reference an existing VEnet interface'
                 assert self.get_ref_data(
                     request, context, "v_enets", gemport.itf_ref), \
                     'Reference to VEnet interface -- \'{}\' not found'\
@@ -1251,11 +1302,16 @@ class XponHandler(object):
                 assert 0 <= gemport.traffic_class <= 7, \
                     'Traffic class value for Gemport \
                     must be in range of [0, 7]'
-                if gemport.tcont_ref:
-                    assert self.get_ref_data(
-                        request, context, "tconts", gemport.tcont_ref), \
-                        'Reference to tcont -- \'{}\' not found'\
-                        .format(gemport.tcont_ref)
+                '''
+                @todo: For VOLTHA 1.0, make this reference mandatory until
+                       VOL-314 & VOL-356 are implemented.
+                '''
+                assert gemport.tcont_ref != '', \
+                    'GemPort must reference an existing TCont'
+                assert self.get_ref_data(
+                    request, context, "tconts", gemport.tcont_ref), \
+                    'Reference to tcont -- \'{}\' not found'\
+                    .format(gemport.tcont_ref)
                 return True
             else:
                 return False

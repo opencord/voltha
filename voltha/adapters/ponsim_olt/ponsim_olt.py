@@ -206,70 +206,85 @@ class PonSimOltAdapter(OltAdapter):
         handler.update_pm_config(device, pm_config)
 
     def create_interface(self, device, data):
-        log.info('create-interface', device_id=device.id)
-        self.devices_handlers[device.id].create_interface(data)
+        if super(PonSimOltAdapter, self)._get_handler(device):
+            log.info('create-interface', device_id=device.id)
+            self.devices_handlers[device.id].create_interface(data)
 
     def update_interface(self, device, data):
-        log.info('update-interface', device_id=device.id)
-        self.devices_handlers[device.id].update_interface(data)
+        if super(PonSimOltAdapter, self)._get_handler(device):
+            log.info('update-interface', device_id=device.id)
+            self.devices_handlers[device.id].update_interface(data)
 
     def remove_interface(self, device, data):
-        log.info('remove-interface', device_id=device.id)
-        self.devices_handlers[device.id].remove_interface(data)
+        if super(PonSimOltAdapter, self)._get_handler(device):
+            log.info('remove-interface', device_id=device.id)
+            self.devices_handlers[device.id].remove_interface(data)
 
     def create_tcont(self, device, tcont_data, traffic_descriptor_data):
-        log.info('create-tcont', device_id=device.id)
-        self.devices_handlers[device.id].create_tcont(tcont_data,
-                                                      traffic_descriptor_data)
+        if super(PonSimOltAdapter, self)._get_handler(device):
+            log.info('create-tcont', device_id=device.id)
+            self.devices_handlers[device.id].create_tcont(
+                tcont_data, traffic_descriptor_data)
 
     def update_tcont(self, device, tcont_data, traffic_descriptor_data):
-        log.info('update-tcont', device_id=device.id)
-        self.devices_handlers[device.id].update_tcont(tcont_data,
-                                                      traffic_descriptor_data)
+        if super(PonSimOltAdapter, self)._get_handler(device):
+            log.info('update-tcont', device_id=device.id)
+            self.devices_handlers[device.id].update_tcont(
+                tcont_data, traffic_descriptor_data)
 
     def remove_tcont(self, device, tcont_data, traffic_descriptor_data):
-        log.info('remove-tcont', device_id=device.id)
-        self.devices_handlers[device.id].remove_tcont(tcont_data,
-                                                      traffic_descriptor_data)
+        if super(PonSimOltAdapter, self)._get_handler(device):
+            log.info('remove-tcont', device_id=device.id)
+            self.devices_handlers[device.id].remove_tcont(
+                tcont_data, traffic_descriptor_data)
 
     def create_gemport(self, device, data):
-        log.info('create-gemport', device_id=device.id)
-        self.devices_handlers[device.id].create_gemport(data)
+        if super(PonSimOltAdapter, self)._get_handler(device):
+            log.info('create-gemport', device_id=device.id)
+            self.devices_handlers[device.id].create_gemport(data)
 
     def update_gemport(self, device, data):
-        log.info('update-gemport', device_id=device.id)
-        self.devices_handlers[device.id].update_gemport(data)
+        if super(PonSimOltAdapter, self)._get_handler(device):
+            log.info('update-gemport', device_id=device.id)
+            self.devices_handlers[device.id].update_gemport(data)
 
     def remove_gemport(self, device, data):
-        log.info('remove-gemport', device_id=device.id)
-        self.devices_handlers[device.id].remove_gemport(data)
+        if super(PonSimOltAdapter, self)._get_handler(device):
+            log.info('remove-gemport', device_id=device.id)
+            self.devices_handlers[device.id].remove_gemport(data)
 
     def create_multicast_gemport(self, device, data):
-        log.info('create-multicast-gemport', device_id=device.id)
-        self.devices_handlers[device.id].create_multicast_gemport(data)
+        if super(PonSimOltAdapter, self)._get_handler(device):
+            log.info('create-multicast-gemport', device_id=device.id)
+            self.devices_handlers[device.id].create_multicast_gemport(data)
 
     def update_multicast_gemport(self, device, data):
-        log.info('update-multicast-gemport', device_id=device.id)
-        self.devices_handlers[device.id].update_multicast_gemport(data)
+        if super(PonSimOltAdapter, self)._get_handler(device):
+            log.info('update-multicast-gemport', device_id=device.id)
+            self.devices_handlers[device.id].update_multicast_gemport(data)
 
     def remove_multicast_gemport(self, device, data):
-        log.info('remove-multicast-gemport', device_id=device.id)
-        self.devices_handlers[device.id].remove_multicast_gemport(data)
+        if super(PonSimOltAdapter, self)._get_handler(device):
+            log.info('remove-multicast-gemport', device_id=device.id)
+            self.devices_handlers[device.id].remove_multicast_gemport(data)
 
     def create_multicast_distribution_set(self, device, data):
-        log.info('create-multicast-distribution-set', device_id=device.id)
-        self.devices_handlers[device.id].create_multicast_distribution_set(
-            data)
+        if super(PonSimOltAdapter, self)._get_handler(device):
+            log.info('create-multicast-distribution-set', device_id=device.id)
+            self.devices_handlers[device.id].create_multicast_distribution_set(
+                data)
 
     def update_multicast_distribution_set(self, device, data):
-        log.info('update-multicast-distribution-set', device_id=device.id)
-        self.devices_handlers[device.id].update_multicast_distribution_set(
-            data)
+        if super(PonSimOltAdapter, self)._get_handler(device):
+            log.info('update-multicast-distribution-set', device_id=device.id)
+            self.devices_handlers[device.id].update_multicast_distribution_set(
+                data)
 
     def remove_multicast_distribution_set(self, device, data):
-        log.info('remove-multicast-distribution-set', device_id=device.id)
-        self.devices_handlers[device.id].remove_multicast_distribution_set(
-            data)
+        if super(PonSimOltAdapter, self)._get_handler(device):
+            log.info('remove-multicast-distribution-set', device_id=device.id)
+            self.devices_handlers[device.id].remove_multicast_distribution_set(
+                data)
 
 class PonSimOltHandler(object):
     xpon_ponsim_olt_itfs = {
