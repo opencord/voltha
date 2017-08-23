@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3a3291f1_a05142da",
+        "filename": "voltha/core/device_graph.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 96,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-08-23T14:57:21Z",
+      "side": 1,
+      "message": "The comment and the code does not match",
+      "revId": "2731d626cd7d819c23d9da514362243279999c26",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
