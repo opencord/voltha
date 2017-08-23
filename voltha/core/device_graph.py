@@ -28,7 +28,7 @@ class DeviceGraph(object):
 
     def compute_routes(self, root_proxy, logical_ports):
         boundary_ports, graph = self._build_graph(root_proxy, logical_ports)
-        routes = self._build_routes(boundary_ports, graph)
+        routes = self._build_routes(root_proxy, boundary_ports, graph)
         return graph, routes
 
     def _build_graph(self, root_proxy, logical_ports):
@@ -81,7 +81,7 @@ class DeviceGraph(object):
 
         return boundary_ports, graph
 
-    def _build_routes(self, boundary_ports, graph):
+    def _build_routes(self, root_proxy, boundary_ports, graph):
 
         routes = {}
 
@@ -89,6 +89,13 @@ class DeviceGraph(object):
             for target, target_port_no in boundary_ports.iteritems():
 
                 if source is target:
+                    continue
+
+                source_device = root_proxy.get('/devices/{}'.format(source[0]))
+                target_device = root_proxy.get('/devices/{}'.format(target[0]))
+                # The below condition is hit, only when the source and target
+                # devices are two different ONUs hanging of the same OLT.
+                if source_device.parent_id  == target_device.parent_id:
                     continue
 
                 path = nx.shortest_path(graph, source, target)
