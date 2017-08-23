@@ -45,6 +45,7 @@
     - voltha-swarm-start.sh
     - voltha-swarm-stop.sh
     - get-logs.sh
+    - get-host-logs.sh
   when: target == "cluster"
   tags: [voltha]
 
@@ -83,6 +84,7 @@
     - voltha-swarm-start.sh
     - voltha-swarm-stop.sh
     - get-logs.sh
+    - get-host-logs.sh
   when: target == "cluster"
   tags: [voltha]
 

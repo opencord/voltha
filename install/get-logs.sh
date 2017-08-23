@@ -2,16 +2,30 @@
 
 # This script will collect all of the pertinent logs from a voltha
 # HA swarm cluster, tar, and bizip them to facilitate sending them
-# to the suspected issue owner.
+# to the suspected issue owner. The replicated storage is used to
+# allow all hosts to place the logs in a single place.
 
 volthaDir="/cord/incubator/voltha"
+declare -A lNames
+declare -A lPids
+declare -A lSizes
+
+# Checks if a value is not in an array.
+notIn() {
+	local e match=$1
+	shift
+	for e; do [[ "$e" == "$match" ]] && return 1; done
+	return 0
+}
 
 # Get the list of the other hosts that make up the cluster
-hosts=`docker node ls | tail -n +2 | awk '{print $2}' | grep -v "*"`
+hosts=`docker node ls | tail -n +2 | grep -v "*" | grep -v "Down" | awk '{print $2}'`
+
+echo "Collecting logs for hosts: `hostname` ${hosts}"
 
 # Create a temporary directory for temporary storage of all the logs
-mkdir ${volthaDir}/log_tmp
-pushd ${volthaDir}/log_tmp
+mkdir ${volthaDir}/registry_data/registry_volume/log_tmp
+pushd ${volthaDir}/registry_data/registry_volume/log_tmp
 
 # Docker health in general.
 
@@ -34,38 +48,84 @@ done
 for i in $svcs
 do
 	echo "Getting docker service logs $i"
+	lNames[$i]=$i
+	lSizes[$i]=0
 	docker service logs ${i} > docker_service_logs_${i} 2>&1 &
+	lPids[$i]=$!
 done
 
-patience=10
-while [ ! -z "`jobs -p`" ]
+patience=5
+while [ "${#lNames[*]}" -ne 0  ]
 do
- echo "*** Waiting on log collection to complete. Outstanding jobs: `jobs -p | wc -l`"
- sleep 10
- patience=`expr $patience - 1`
- if [ $patience -eq 0 ]; then
-  echo "Log collection stuck, killing any active collectors"
-  for i in `jobs -p`
-  do
-   kill -s TERM $i
-  done
-  break
- fi
+	echo "*** Waiting on log collection to complete (patience = ${patience}). Outstanding jobs: ${#lNames[*]} (${lNames[@]})"
+	sleep 10
+	# Check which collectors are done are remove them from the list
+	jobs > /dev/null # Don't delete this useless line or the next one will eroniously report a PID
+	pids=`jobs -p`
+	for i in "${lNames[@]}"
+	do
+		if notIn "${lPids[$i]}" $pids; then
+			unset lPids[$i]
+			unset lNames[$i]
+			unset lSizes[$i]
+		fi
+	done
+	unset pids
+	# Now for all remaining jobs check the file size of the log file for growth
+	# reset the timeout if the file is still growing. If no files are still growing
+	# then don't touch the timeout.
+	for i in "${lNames[@]}"
+	do
+		fsz=`stat --format=%s "docker_service_logs_${i}"`
+		if [ ${lSizes[$i]} -lt $fsz ]; then
+			patience=5
+			lSizes[$i]=$fsz
+		fi
+	done
+	patience=`expr $patience - 1`
+	if [ $patience -eq 0 ]; then
+		echo "Log collection stuck, killing any active collectors"
+		for i in "${lNames[@]}"
+		do
+			echo "${i}:${lNames[$i]}:${lSizes[$i]}:${lPids[$i]}"
+			kill -s TERM ${lPids[$i]}
+		done
+		break
+	fi
 done
 
 # Get the image list from this host
-echo "Getting docker image ls from `hostname`"
-docker image ls > docker_image_ls_`hostname` 2>&1
+#echo "Getting docker image ls from `hostname`"
+#docker image ls > docker_image_ls_`hostname` 2>&1
+# Get the memory info for this host
+#echo "Getting memory info from `hostname`"
+#cat /proc/meminfo > meminfo_`hostname` 2>&1
+# Get the disk info for this host
+#echo "Getting disk info from `hostname`"
+#df -h > df_`hostname` 2>&1
+
+#
+# If too many logs are generated it's not unusual that docker service logs
+# hangs and never produces the totality of logs for a service. In order
+# to get as much information as possible get the individual container logs
+# for each container on each host
+#
+
+# Get the logs for this host
+${volthaDir}/get-host-logs.sh
+
+
+# Get the logs for the other hosts
 for i in $hosts
 do
-	echo "Getting docker image ls from $i"
-	ssh voltha@$i "docker image ls" > docker_image_ls_$i 2>&1
+	ssh voltha@$i ${volthaDir}/get-host-logs.sh
 done
 
-
 popd
-tar cjvf logs.tar.bz2 log_tmp/*
+pushd ${volthaDir}/registry_data/registry_volume
+tar cjvf ${volthaDir}/logs.tar.bz2 log_tmp/*
 rm -fr log_tmp
+popd
 
 
 

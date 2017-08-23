@@ -3,7 +3,7 @@
     repo: 'ppa:ansible/ansible'
   tags: [installer]
 
-- name: Debian ansible is present
+- name: Ansible is present
   apt:
     name: ansible
     state: latest
@@ -25,6 +25,7 @@
     - install/voltha-swarm-start.sh
     - install/voltha-swarm-stop.sh
     - install/get-logs.sh
+    - install/get-host-logs.sh
     - install/ansible
     - compose
   tags: [installer]
@@ -97,5 +98,6 @@
     - voltha-swarm-start.sh
     - voltha-swarm-stop.sh
     - get-logs.sh
+    - get-host-logs.sh
     - docker-compose-Linux-x86_64
   tags: [installer]
