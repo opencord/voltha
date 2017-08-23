@@ -267,11 +267,11 @@ vVm=`virsh list | grep "voltha_voltha${uId}"`
 
 if [ -z "$vVm" -o "$rebuildVoltha" == "yes" ]; then
 	if [ "$testMode" == "yes" ]; then
-		./BuildVoltha.sh $1
+		./BuildVoltha.sh "test"
 		rtrn=$?
 	else
 		# Default to installer mode 
-		./BuildVoltha.sh install
+		./BuildVoltha.sh "install"
 		rtrn=$?
 	fi
 	if [ $rtrn -ne 0 ]; then

@@ -36,6 +36,9 @@ else
 	echo 'testMode: "false"' >> settings.vagrant.yaml
 fi
 
+# Special actions that differentiate a cluster build from a singel instance build
+mv voltha/voltha.production.yml voltha/voltha.yml
+
 # Destroy the VM if it's running
 vagrant destroy voltha${uId}
 
