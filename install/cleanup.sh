@@ -17,3 +17,4 @@ git checkout settings.vagrant.yaml
 git checkout ansible/group_vars/all
 git checkout ansible/roles/docker/templates/docker.cfg
 git checkout install.cfg
+git checkout ../voltha/voltha.yml
