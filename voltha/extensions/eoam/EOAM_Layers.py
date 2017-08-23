@@ -15,8 +15,6 @@ import sys
 import inspect
 
 # SCAPY-specific imports
-from scapy.all import Dot1Q
-from scapy.all import sniff, hexdump
 from scapy.packet import Packet, bind_layers
 from scapy.fields import StrField, PacketField, X3BytesField
 from scapy.layers.l2 import Ether
