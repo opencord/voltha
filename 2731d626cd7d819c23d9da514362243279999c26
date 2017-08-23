@@ -52,6 +52,24 @@
       "revId": "2731d626cd7d819c23d9da514362243279999c26",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3a3291f1_40e73ee5",
+        "filename": "voltha/core/device_graph.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 96,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-08-23T18:39:17Z",
+      "side": 1,
+      "message": "Ok, changed the comment",
+      "parentUuid": "3a3291f1_e09f4a4f",
+      "revId": "2731d626cd7d819c23d9da514362243279999c26",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
