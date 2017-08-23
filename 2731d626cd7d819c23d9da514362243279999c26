@@ -34,6 +34,24 @@
       "revId": "2731d626cd7d819c23d9da514362243279999c26",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3a3291f1_e09f4a4f",
+        "filename": "voltha/core/device_graph.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 96,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-08-23T18:08:11Z",
+      "side": 1,
+      "message": "It\u0027s just the \"we do not not want to calculate the route between the UNIs of two different ONUs\u0027 sentence that can be confusing.  Removing it would make the comment clearer.",
+      "parentUuid": "3a3291f1_800526c4",
+      "revId": "2731d626cd7d819c23d9da514362243279999c26",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
