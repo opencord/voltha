@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3a3291f1_1b176753",
+        "filename": "docker/Dockerfile.onos",
+        "patchSetId": 2
+      },
+      "lineNbr": 13,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-08-24T19:20:45Z",
+      "side": 1,
+      "message": "If you behind proxy, this will cause an issue downloading.\nPrior to this change, to resolve proxy issues, it was required:\n\nCOPY settings.xml /etc/maven/settings.xml\nRUN mkdir -p ~/.m2\nCOPY settings.xml ~/.m2/\n\nWhere settings.xml contained proxy information.\nThe above change does not resolve the current download issue now. Any ideas how to handle this behind proxies?",
+      "range": {
+        "startLine": 13,
+        "startChar": 0,
+        "endLine": 13,
+        "endChar": 119
+      },
+      "revId": "b6f72c162fbb5c8e1bae26242e51dbfbaf498de8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
