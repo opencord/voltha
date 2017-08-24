@@ -25,7 +25,8 @@ RUN apt-get update && apt-get -y install nginx-full && apt-get -y install wget
 # Download the consul-template software
 RUN wget https://releases.hashicorp.com/consul-template/0.18.2/consul-template_0.18.2_linux_amd64.tgz -O - | tar xzf - -C /usr/bin 
 #
-
+RUN mkdir -p /nginx_config
+COPY nginx_config /nginx_config
 # Exposing process and default entry point
 ENTRYPOINT ["/nginx_config/start_service.sh"]
 
