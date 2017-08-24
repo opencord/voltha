@@ -107,6 +107,9 @@ class Protobuf(object):
         for l in ylist.ylist:
             self._print_list(l, out, level + 1)
 
+        for inner in ylist.containers:
+            self._print_container(inner, out, level + 1)
+
         out.append(''.join([spaces, '}\n']))
 
 
