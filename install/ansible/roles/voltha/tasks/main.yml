@@ -49,6 +49,18 @@
   when: target == "cluster"
   tags: [voltha]
 
+- name: Consul config files and directories are copied
+  synchronize:
+    src: "/home/vinstall/basic.json"
+    dest: "{{ target_voltha_dir }}/consul/config"
+    archive: no
+    owner: no
+    perms: no
+    recursive: yes
+    links: yes
+  when: target == "cluster"
+  tags: [voltha]
+
 - name: Insecure registry is configured and permitted
   synchronize:
     src: "/home/vinstall/daemon.json"

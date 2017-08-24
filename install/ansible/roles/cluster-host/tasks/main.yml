@@ -183,23 +183,17 @@
   when: target == "cluster"
   tags: [cluster_host]
 
-- name: A directory for the insecure registry data is created
+- name: Directories for voltha processes are created
   file:
-    path: "{{ target_voltha_dir }}/registry_data"
+    path: "{{ target_voltha_dir }}/{{ item }}"
     state: directory
     mode: 0755
     owner: voltha
     group: voltha
-  when: target == "cluster"
-  tags: [cluster_host]
-
-- name: A directory for consul's data is created
-  file:
-    path: "{{ target_voltha_dir }}/consul/data"
-    state: directory
-    mode: 0755
-    owner: voltha
-    group: voltha
+  with_items:
+    - registry_data
+    - consul/data
+    - consul/config
   when: target == "cluster"
   tags: [cluster_host]
 

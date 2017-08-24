@@ -28,6 +28,7 @@
     - install/get-host-logs.sh
     - install/ansible
     - compose
+    - consul_config/basic.json
   tags: [installer]
 
 - name: Determine if test mode is active
