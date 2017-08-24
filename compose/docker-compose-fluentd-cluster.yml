@@ -12,32 +12,6 @@ services:
 # Fluentd Aggregator writes them to their host mounted disk
 #
 
-  fluentdactv:
-    image: fluent/fluentd
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-    networks:
-      - voltha-net
-    ports:
-      - "24224"
-    volumes:
-      - "/var/log/voltha:/fluentd/log"
-
-  fluentdstby:
-    image: fluent/fluentd
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-    networks:
-      - voltha-net
-    ports:
-      - "24224"
-    volumes:
-      - "/var/log/voltha:/fluentd/log"
-
   fluentd:
     image: cord/fluentd
     deploy:
