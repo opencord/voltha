@@ -24,7 +24,7 @@ logging:
             class: fluent.handler.FluentHandler
             host: localhost
             port: 24224
-            tag: voltha.logging
+            tag: netconf.logging
             formatter: fluent_fmt
             level: DEBUG
         localRotatingFile:

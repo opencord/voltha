@@ -15,25 +15,13 @@ logging:
           where: '%(module)s.%(funcName)s'
 
     handlers:
-        console:
-            class : logging.StreamHandler
-            level: DEBUG
-            formatter: default
-            stream: ext://sys.stdout
         fluent:
             class: fluent.handler.FluentHandler
             host: localhost
             port: 24224
-            tag: ofagent.logging
+            tag: netconf.logging
             formatter: fluent_fmt
-            level: DEBUG
-        localRotatingFile:
-            class: logging.handlers.RotatingFileHandler
-            filename: ofagent.log
-            formatter: default
-            maxBytes: 2097152
-            backupCount: 10
-            level: DEBUG
+            level: INFO
         null:
             class: logging.NullHandler
 
@@ -45,7 +33,7 @@ logging:
             handlers: [null]
             propagate: False
         '': # root logger
-            handlers: [console, fluent, localRotatingFile]
+            handlers: [fluent]
             level: INFO # this can be bumped up/down by -q and -v command line
                         # options
             propagate: False
