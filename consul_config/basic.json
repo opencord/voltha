@@ -1,0 +1,11 @@
+{
+    "autopilot":
+    {
+        "cleanup_dead_servers": true
+    },
+    "performance":
+    {
+        "raft_multiplier": 1
+    }
+}
+

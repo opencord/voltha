@@ -197,7 +197,7 @@ distclean: clean
 
 
 fetch-jenkins:
-	docker pull consul:latest
+	docker pull consul:0.9.2
 	docker pull fluent/fluentd:latest
 	docker pull gliderlabs/registrator:master
 	docker pull ubuntu:xenial
@@ -206,7 +206,7 @@ fetch-jenkins:
 	docker pull zookeeper:latest
 
 fetch:
-	docker pull consul:latest
+	docker pull consul:0.9.2
 	docker pull fluent/fluentd:latest
 	docker pull gliderlabs/registrator:master
 	docker pull ubuntu:xenial
