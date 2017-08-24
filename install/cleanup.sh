@@ -18,3 +18,5 @@ git checkout ansible/group_vars/all
 git checkout ansible/roles/docker/templates/docker.cfg
 git checkout install.cfg
 git checkout ../voltha/voltha.yml
+git checkout ../ofagent/ofagent.yml
+git checkout ../netconf/netconf.yml

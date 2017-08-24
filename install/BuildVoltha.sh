@@ -37,7 +37,9 @@ else
 fi
 
 # Special actions that differentiate a cluster build from a singel instance build
-mv voltha/voltha.production.yml voltha/voltha.yml
+cp voltha/voltha.production.yml voltha/voltha.yml
+cp ofagent/ofagent.production.yml ofagent/ofagent.yml
+cp netconf/netconf.production.yml netconf/netconf.yml
 
 # Destroy the VM if it's running
 vagrant destroy voltha${uId}
