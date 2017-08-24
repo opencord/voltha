@@ -138,7 +138,7 @@ class Protobuf(object):
     def _print_enumeration(self, yang_enum, out, spaces):
         enumspaces = ''.join([spaces, '    '])
         for idx, e in enumerate(yang_enum):
-            out.append(''.join([enumspaces, '{}\n'.format(e)]))
+            out.append(''.join([enumspaces, '{}\n'.format(e.replace('-', '_'))]))
 
     def print_proto(self):
         out = []
