@@ -101,10 +101,14 @@ class GlobalHandler(VolthaGlobalServiceServicer):
     def start(self):
         log.debug('starting')
         self.root = ConfigRoot(Voltha(**self.init_kw))
-        registry('grpc_server').register(
-            add_VolthaGlobalServiceServicer_to_server, self)
         log.info('started')
         return self
+
+    def register_grpc_service(self):
+        log.debug('registering')
+        registry('grpc_server').register(
+            add_VolthaGlobalServiceServicer_to_server, self)
+        log.info('registered')
 
     def stop(self):
         log.debug('stopping')

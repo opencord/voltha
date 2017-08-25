@@ -82,11 +82,15 @@ class LocalHandler(VolthaLocalServiceServicer):
 
         self.core.xpon_handler.start(self.root)
 
-        registry('grpc_server').register(
-            add_VolthaLocalServiceServicer_to_server, self)
-
         log.info('started')
         return self
+
+    def register_grpc_service(self):
+        log.debug('registering')
+        registry('grpc_server').register(
+            add_VolthaLocalServiceServicer_to_server, self)
+        log.info('registered')
+
 
     def stop(self):
         log.debug('stopping')

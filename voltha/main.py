@@ -30,7 +30,7 @@ from zope.interface import implementer
 
 from common.event_bus import EventBusClient
 from common.manhole import Manhole
-from common.structlog_setup import setup_logging
+from common.structlog_setup import setup_logging, update_logging
 from common.utils.dockerhelpers import get_my_containers_name
 from common.utils.nethelpers import get_my_primary_interface, \
     get_my_primary_local_ipv4
@@ -344,6 +344,9 @@ class Main(object):
 
             self.log.info('store-id', core_store_id=self.core_store_id)
 
+            # Update the logger to output the vcore id.
+            self.log = update_logging(instance_id=self.instance_id, vcore_id=self.core_store_id)
+
             yield registry.register(
                 'grpc_server',
                 VolthaGrpcServer(self.args.grpc_port)
@@ -397,6 +400,11 @@ class Main(object):
             # instance from where the previous one left
 
             yield registry('core').reconcile_data()
+
+            # Now that the data is in memory and the reconcile process
+            # within the core has completed (the reconciliation may still be
+            #  in progress with the adapters) we expose the NBI of voltha core
+            yield registry('core').register_grpc_service()
 
             self.log.info('started-internal-services')
 

@@ -97,6 +97,11 @@ class VolthaCore(object):
         log.info('started')
         returnValue(self)
 
+    @inlineCallbacks
+    def register_grpc_service(self):
+        yield self.local_handler.register_grpc_service()
+        yield self.global_handler.register_grpc_service()
+
     def stop(self):
         log.debug('stopping')
         self.stopped = True

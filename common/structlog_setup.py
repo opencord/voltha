@@ -111,3 +111,38 @@ def setup_logging(log_config, instance_id, verbosity_adjust=0, fluentd=None):
     log = structlog.get_logger()
     log.info("first-line")
     return log
+
+
+def update_logging(instance_id, vcore_id):
+    """
+    Add the vcore id to the structured logger
+    :param vcore_id:  The assigned vcore id
+    :return: structure logger
+    """
+    def add_exc_info_flag_for_exception(_, name, event_dict):
+        if name == 'exception':
+            event_dict['exc_info'] = True
+        return event_dict
+
+    def add_instance_id(_, __, event_dict):
+        event_dict['instance_id'] = instance_id
+        return event_dict
+
+    def add_vcore_id(_, __, event_dict):
+        event_dict['vcore_id'] = vcore_id
+        return event_dict
+
+    processors = [
+        add_exc_info_flag_for_exception,
+        structlog.processors.StackInfoRenderer(),
+        structlog.processors.format_exc_info,
+        add_instance_id,
+        add_vcore_id,
+        FluentRenderer(),
+    ]
+    structlog.configure(processors=processors)
+
+    # Mark first line of log
+    log = structlog.get_logger()
+    log.info("updated-logger")
+    return log
