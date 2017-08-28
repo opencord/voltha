@@ -21,10 +21,11 @@ services:
         condition: on-failure
     environment:
         SERVICE_24224_NAME: "fluentd-intake"
+        FLUENTD_CONF: fluent.conf
     networks:
       - voltha-net
     ports:
-    - "24224:24224"
+    - "24224"
 
 
 networks:
