@@ -22,6 +22,30 @@
       "revId": "b3a4d12c5566d543450cc3d061b53b42179bfbd0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a2f8d8d_ce7363e6",
+        "filename": "voltha/core/device_graph.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 99,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-08-28T00:28:04Z",
+      "side": 1,
+      "message": "I am not sure I got the complete context of your comment. Please submit a patch and add me as a reviewer, I will have a look at your proposed changes.",
+      "parentUuid": "1a2f8d8d_8e731b15",
+      "range": {
+        "startLine": 94,
+        "startChar": 0,
+        "endLine": 99,
+        "endChar": 28
+      },
+      "revId": "b3a4d12c5566d543450cc3d061b53b42179bfbd0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
