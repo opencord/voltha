@@ -18,3 +18,4 @@
 #DockerFile to Create Fluentd Forwards inside cord-voltha
 FROM fluent/fluentd
 COPY fluentd_config/fluent.conf /fluentd/etc/
+COPY fluentd_config/fluent-agg.conf /fluentd/etc/

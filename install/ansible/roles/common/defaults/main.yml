@@ -20,6 +20,8 @@ use_latest_for:
   - glusterfs-server
   - glusterfs-client
   - attr
+  - openntpd
+  - ntpdate
 #  - python-libpcap
 
 obsolete_services:
