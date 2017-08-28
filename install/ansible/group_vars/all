@@ -5,9 +5,12 @@ docker_registry: "localhost:5000"
 docker_push_registry: "vinstall1001:5000"
 cord_home: /home/volthainstall/cord
 target_voltha_dir: /cord/incubator/voltha
-replicated_fs_dir: /var/cache
+barrier_fs_dir: /var/cache
 docker_py_version: "1.7.0"
 netifaces_version: "0.10.4"
 target_voltha_home: /home/voltha
 docker_daemon_json: daemon.json
 docker_daemon_json_dest: /etc/docker
+registry_volume_size: 5
+consul_volume_size: 5
+logger_volume_size: 20
