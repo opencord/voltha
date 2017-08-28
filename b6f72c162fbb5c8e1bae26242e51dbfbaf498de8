@@ -46,6 +46,30 @@
       "revId": "b6f72c162fbb5c8e1bae26242e51dbfbaf498de8",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a2f8d8d_d1ab04d5",
+        "filename": "docker/Dockerfile.onos",
+        "patchSetId": 2
+      },
+      "lineNbr": 13,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-08-28T19:40:58Z",
+      "side": 1,
+      "message": "Yes, \"-s settings.xml\" resolved the issue.\nThank you!",
+      "parentUuid": "1a2f8d8d_1173ccb2",
+      "range": {
+        "startLine": 13,
+        "startChar": 0,
+        "endLine": 13,
+        "endChar": 119
+      },
+      "revId": "b6f72c162fbb5c8e1bae26242e51dbfbaf498de8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
