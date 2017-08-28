@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a2f8d8d_8e2b1b94",
+        "filename": "install/ansible/group_vars/all",
+        "patchSetId": 4
+      },
+      "lineNbr": 14,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-08-28T12:59:14Z",
+      "side": 1,
+      "message": "Are the size in GB?",
+      "revId": "fe2ae56e7bd011ea78623792a66e0e8a73eda0c9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
