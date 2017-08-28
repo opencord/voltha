@@ -28,7 +28,7 @@ _VSSN_TO_VENDOR = {
     'PMC?': 'pmcs_onu',       # TODO: Get actual VSSN for this vendor
     'PSMO': 'ponsim_onu',
     'SIM?': 'simulated_onu',  # TODO: Get actual VSSN for this vendor
-    'TBT?': 'tibit_onu',      # TODO: Get actual VSSN for this vendor
+    'TBIT': 'tibit_onu',
 }
 
 
@@ -64,6 +64,7 @@ class Onu(object):
         self._pon = onu_info['pon']
         self._name = '{}@{}'.format(self._pon.name, self._onu_id)
         self._xpon_name = onu_info['xpon-name']
+        # TODO: Change to OrderedDict sorted by ascending gem-id
         self._gem_ports = {}                           # gem-id -> GemPort
         self._tconts = {}                              # alloc-id -> TCont
         self._onu_vid = onu_info['onu-vid']

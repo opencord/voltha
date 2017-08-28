@@ -14,6 +14,8 @@
 
 import structlog
 from enum import Enum
+from voltha.protos.bbf_fiber_tcont_body_pb2 import TcontsConfigData
+from voltha.protos.bbf_fiber_traffic_descriptor_profile_body_pb2 import TrafficDescriptorProfileData
 
 log = structlog.get_logger()
 
@@ -22,14 +24,25 @@ class TCont(object):
     """
     Class to wrap TCont capabilities
     """
-    def __init__(self, alloc_id, traffic_descriptor, best_effort=None, name=None):
+    def __init__(self, alloc_id, traffic_descriptor, best_effort=None,
+                 name=None, ident=None, vont_ani=None):
         self.alloc_id = alloc_id
         self.traffic_descriptor = traffic_descriptor
         self.best_effort = best_effort
         self.name = name
+        self.id = ident
+        self.vont_ani = vont_ani        # (string) reference
 
     def __str__(self):
         return "TCont: {}, alloc-id: {}".format(self.name,self.alloc_id)
+
+    @staticmethod
+    def create(data, td):
+        assert isinstance(data, TcontsConfigData)
+        assert isinstance(td, TrafficDescriptor)
+
+        return TCont(data.alloc_id, td, best_effort=td.best_effort,
+                     name=data.name, ident=data.id, vont_ani=data.interface_reference)
 
 
 class TrafficDescriptor(object):
@@ -37,9 +50,9 @@ class TrafficDescriptor(object):
     Class to wrap the uplink traffic descriptor.
     """
     class AdditionalBwEligibility(Enum):
-        NON_ASSURED_SHARING = 1
-        BEST_EFFORT_SHARING = 2
-        NONE = 3
+        NONE = 0
+        BEST_EFFORT_SHARING = 1
+        NON_ASSURED_SHARING = 2             # Should match xpon.py values
         DEFAULT = NONE
 
         @staticmethod
@@ -50,11 +63,26 @@ class TrafficDescriptor(object):
                 TrafficDescriptor.AdditionalBwEligibility.NONE: "none"
             }.get(value, "unknown")
 
+        @staticmethod
+        def from_value(value):
+            """
+            Matches both Adtran and xPON values
+            :param value:
+            :return:
+            """
+            return {
+                0: TrafficDescriptor.AdditionalBwEligibility.NONE,
+                1: TrafficDescriptor.AdditionalBwEligibility.BEST_EFFORT_SHARING,
+                2: TrafficDescriptor.AdditionalBwEligibility.NON_ASSURED_SHARING,
+            }.get(value, TrafficDescriptor.AdditionalBwEligibility.DEFAULT)
+
     def __init__(self, fixed, assured, maximum,
                  additional=AdditionalBwEligibility.DEFAULT,
                  best_effort=None,
-                 name=None):
+                 name=None,
+                 ident=None):
         self.name = name
+        self.id = ident
         self.fixed_bandwidth = fixed       # bps
         self.assured_bandwidth = assured   # bps
         self.maximum_bandwidth = maximum   # bps
@@ -68,6 +96,27 @@ class TrafficDescriptor(object):
                                                         self.fixed_bandwidth,
                                                         self.assured_bandwidth,
                                                         self.maximum_bandwidth)
+
+    @staticmethod
+    def create(data):
+        assert isinstance(data, TrafficDescriptorProfileData)
+
+        additional = TrafficDescriptor.AdditionalBwEligibility.from_value(
+            data.additional_bw_eligibility_indicator)
+
+        if additional == TrafficDescriptor.AdditionalBwEligibility.BEST_EFFORT_SHARING:
+            best_effort = BestEffort(data.maximum_bandwidth,
+                                     data.priority,
+                                     data.weight)
+        else:
+            best_effort = None
+
+        return TrafficDescriptor(data.fixed_bandwidth, data.assured_bandwidth,
+                                 data.maximum_bandwidth,
+                                 name=data.name,
+                                 ident=data.id,
+                                 best_effort=best_effort,
+                                 additional=additional)
 
     def to_dict(self):
         val = {
@@ -99,8 +148,3 @@ class BestEffort(object):
             'weight': self.weight
         }
         return val
-
-
-
-
-

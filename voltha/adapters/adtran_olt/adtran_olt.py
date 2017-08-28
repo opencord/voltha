@@ -50,8 +50,8 @@ class AdtranOltAdapter(object):
         self.config = config
         self.descriptor = Adapter(
             id=self.name,
-            vendor='Adtran Inc.',
-            version='0.3',
+            vendor='Adtran, Inc.',
+            version='0.4',
             config=AdapterConfig(log_level=LogLevel.INFO)
         )
         log.debug('adtran_olt.__init__', adapter_agent=adapter_agent)
@@ -200,25 +200,73 @@ class AdtranOltAdapter(object):
         return device
 
     def download_image(self, device, request):
+        """
+        This is called to request downloading a specified image into
+        the standby partition of a device based on a NBI call.
+        This call is expected to be non-blocking.
+        :param device: A Voltha.Device object.
+                       A Voltha.ImageDownload object.
+        :return: (Deferred) Shall be fired to acknowledge the download.
+        """
         log.info('image_download', device=device, request=request)
         raise NotImplementedError()
 
     def get_image_download_status(self, device, request):
+        """
+        This is called to inquire about a requested image download
+        status based on a NBI call.
+        The adapter is expected to update the DownloadImage DB object
+        with the query result
+        :param device: A Voltha.Device object.
+                       A Voltha.ImageDownload object.
+        :return: (Deferred) Shall be fired to acknowledge
+        """
         log.info('get_image_download', device=device, request=request)
         raise NotImplementedError()
 
     def cancel_image_download(self, device, request):
+        """
+        This is called to cancel a requested image download
+        based on a NBI call.  The admin state of the device will not
+        change after the download.
+        :param device: A Voltha.Device object.
+                       A Voltha.ImageDownload object.
+        :return: (Deferred) Shall be fired to acknowledge
+        """
         log.info('cancel_image_download', device=device)
         raise NotImplementedError()
 
     def activate_image_update(self, device, request):
-        log.info('activate_image_update', device=device, \
-                request=request)
+        """
+        This is called to activate a downloaded image from
+        a standby partition into active partition.
+        Depending on the device implementation, this call
+        may or may not cause device reboot.
+        If no reboot, then a reboot is required to make the
+        activated image running on device
+        This call is expected to be non-blocking.
+        :param device: A Voltha.Device object.
+                       A Voltha.ImageDownload object.
+        :return: (Deferred) OperationResponse object.
+        """
+        log.info('activate_image_update', device=device, request=request)
         raise NotImplementedError()
 
     def revert_image_update(self, device, request):
-        log.info('revert_image_update', device=device, \
-                request=request)
+        """
+        This is called to deactivate the specified image at
+        active partition, and revert to previous image at
+        standby partition.
+        Depending on the device implementation, this call
+        may or may not cause device reboot.
+        If no reboot, then a reboot is required to make the
+        previous image running on device
+        This call is expected to be non-blocking.
+        :param device: A Voltha.Device object.
+                       A Voltha.ImageDownload object.
+        :return: (Deferred) OperationResponse object.
+        """
+        log.info('revert_image_update', device=device, request=request)
         raise NotImplementedError()
 
     def self_test_device(self, device):
@@ -393,7 +441,7 @@ class AdtranOltAdapter(object):
         """
         log.info('create-interface', data=data)
         handler = self.devices_handlers[device.id]
-        handler.create_interface(device, data)
+        handler.create_interface(data)
 
     def update_interface(self, device, data):
         """
@@ -401,7 +449,8 @@ class AdtranOltAdapter(object):
         in the devices
         """
         log.info('update-interface', data=data)
-        raise NotImplementedError()
+        handler = self.devices_handlers[device.id]
+        handler.update_interface(data)
 
     def remove_interface(self, device, data):
         """
@@ -409,9 +458,10 @@ class AdtranOltAdapter(object):
         in the devices
         """
         log.info('remove-interface', data=data)
-        raise NotImplementedError()
+        handler = self.devices_handlers[device.id]
+        handler.remove_interface(data)
 
-    def receive_onu_detect_state(self, device_id, state):
+    def receive_onu_detect_state(self, proxy_address, state):
         """
         Receive onu detect state in ONU adapter
         :param proxy_address: ONU device address
@@ -421,52 +471,142 @@ class AdtranOltAdapter(object):
         raise NotImplementedError()
 
     def create_tcont(self, device, tcont_data, traffic_descriptor_data):
+        """
+        API to create tcont object in the devices
+        :param device: device id
+        :tcont_data: tcont data object
+        :traffic_descriptor_data: traffic descriptor data object
+        :return: None
+        """
         log.info('create-tcont', tcont_data=tcont_data,
                  traffic_descriptor_data=traffic_descriptor_data)
-        raise NotImplementedError()
+        handler = self.devices_handlers[device.id]
+        handler.create_tcont(tcont_data, traffic_descriptor_data)
 
     def update_tcont(self, device, tcont_data, traffic_descriptor_data):
+        """
+        API to update tcont object in the devices
+        :param device: device id
+        :tcont_data: tcont data object
+        :traffic_descriptor_data: traffic descriptor data object
+        :return: None
+        """
         log.info('update-tcont', tcont_data=tcont_data,
                  traffic_descriptor_data=traffic_descriptor_data)
-        raise NotImplementedError()
+        handler = self.devices_handlers[device.id]
+        handler.update_tcont(tcont_data, traffic_descriptor_data)
 
     def remove_tcont(self, device, tcont_data, traffic_descriptor_data):
+        """
+        API to delete tcont object in the devices
+        :param device: device id
+        :tcont_data: tcont data object
+        :traffic_descriptor_data: traffic descriptor data object
+        :return: None
+        """
         log.info('remove-tcont', tcont_data=tcont_data,
                  traffic_descriptor_data=traffic_descriptor_data)
-        raise NotImplementedError()
+        handler = self.devices_handlers[device.id]
+        handler.remove_tcont(tcont_data, traffic_descriptor_data)
 
     def create_gemport(self, device, data):
+        """
+        API to create gemport object in the devices
+        :param device: device id
+        :data: gemport data object
+        :return: None
+        """
         log.info('create-gemport', data=data)
-        raise NotImplementedError()
+        handler = self.devices_handlers[device.id]
+        handler.create_gemport(data)
 
     def update_gemport(self, device, data):
+        """
+        API to update gemport object in the devices
+        :param device: device id
+        :data: gemport data object
+        :return: None
+        """
         log.info('update-gemport', data=data)
-        raise NotImplementedError()
+        handler = self.devices_handlers[device.id]
+        handler.update_gemport(data)
 
     def remove_gemport(self, device, data):
+        """
+        API to delete gemport object in the devices
+        :param device: device id
+        :data: gemport data object
+        :return: None
+        """
         log.info('remove-gemport', data=data)
-        raise NotImplementedError()
+        handler = self.devices_handlers[device.id]
+        handler.remove_gemport(data)
 
     def create_multicast_gemport(self, device, data):
+        """
+        API to create multicast gemport object in the devices
+        :param device: device id
+        :data: multicast gemport data object
+        :return: None
+        """
         log.info('create-mcast-gemport', data=data)
-        raise NotImplementedError()
+        handler = self.devices_handlers[device.id]
+        handler.create_multicast_gemport(data)
 
     def update_multicast_gemport(self, device, data):
+        """
+        API to update  multicast gemport object in the devices
+        :param device: device id
+        :data: multicast gemport data object
+        :return: None
+        """
         log.info('update-mcast-gemport', data=data)
-        raise NotImplementedError()
+        handler = self.devices_handlers[device.id]
+        handler.update_multicast_gemport(data)
 
     def remove_multicast_gemport(self, device, data):
+        """
+        API to delete multicast gemport object in the devices
+        :param device: device id
+        :data: multicast gemport data object
+        :return: None
+        """
         log.info('remove-mcast-gemport', data=data)
-        raise NotImplementedError()
+        handler = self.devices_handlers[device.id]
+        handler.remove_multicast_gemport(data)
 
     def create_multicast_distribution_set(self, device, data):
+        """
+        API to create multicast distribution rule to specify
+        the multicast VLANs that ride on the multicast gemport
+        :param device: device id
+        :data: multicast distribution data object
+        :return: None
+        """
         log.info('create-mcast-distribution-set', data=data)
-        raise NotImplementedError()
+        handler = self.devices_handlers[device.id]
+        handler.create_multicast_distribution_set(data)
 
     def update_multicast_distribution_set(self, device, data):
+        """
+        API to update multicast distribution rule to specify
+        the multicast VLANs that ride on the multicast gemport
+        :param device: device id
+        :data: multicast distribution data object
+        :return: None
+        """
         log.info('update-mcast-distribution-set', data=data)
-        raise NotImplementedError()
+        handler = self.devices_handlers[device.id]
+        handler.create_multicast_distribution_set(data)
 
     def remove_multicast_distribution_set(self, device, data):
+        """
+        API to delete multicast distribution rule to specify
+        the multicast VLANs that ride on the multicast gemport
+        :param device: device id
+        :data: multicast distribution data object
+        :return: None
+        """
         log.info('remove-mcast-distribution-set', data=data)
-        raise NotImplementedError()
+        handler = self.devices_handlers[device.id]
+        handler.create_multicast_distribution_set(data)
