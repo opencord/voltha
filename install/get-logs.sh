@@ -123,7 +123,7 @@ done
 
 popd
 pushd ${volthaDir}/registry_data/registry_volume
-tar cjvf ${volthaDir}/logs.tar.bz2 log_tmp/*
+tar cjvf ${volthaDir}/logs.tar`date "+%Y%m%d-%H:%M:%S"`.bz2 log_tmp/*
 rm -fr log_tmp
 popd
 

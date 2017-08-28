@@ -13,30 +13,34 @@ services:
 #
 
   fluentdactv:
-    image: fluent/fluentd
+    image: cord/fluentd
     deploy:
       replicas: 1
       restart_policy:
         condition: on-failure
+    environment:
+        FLUENTD_CONF: fluent-agg.conf
     networks:
       - voltha-net
     ports:
       - "24224"
     volumes:
-      - "/var/log/voltha:/fluentd/log"
+      - "/var/log/voltha/logging_volume:/fluentd/log"
 
   fluentdstby:
-    image: fluent/fluentd
+    image: cord/fluentd
     deploy:
       replicas: 1
       restart_policy:
         condition: on-failure
+    environment:
+        FLUENTD_CONF: fluent-agg.conf
     networks:
       - voltha-net
     ports:
       - "24224"
     volumes:
-      - "/var/log/voltha:/fluentd/log"
+      - "/var/log/voltha/logging_volume:/fluentd/log"
 
 networks:
   voltha-net:

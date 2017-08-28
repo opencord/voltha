@@ -26,6 +26,18 @@ if [ -z "$hosts" ]; then
 	exit
 fi
 
+# Configure barrier file sizes but only if a value was provided in the config file
+
+if [ -v logLimit ]; then
+	sed -i -e "/logger_volume_size/s/.*/logger_volume_size: ${logLimit}/" ansible/group_vars/all
+fi
+if [ -v regLimit ]; then
+	sed -i -e "/registry_volume_size/s/.*/registry_volume_size: ${regLimit}/" ansible/group_vars/all
+fi
+if [ -v consulLimit ]; then
+	sed -i -e "/consul_volume_size/s/.*/consul_volume_size: ${consulLimit}/" ansible/group_vars/all
+fi
+
 # Create the key directory
 mkdir .keys
 

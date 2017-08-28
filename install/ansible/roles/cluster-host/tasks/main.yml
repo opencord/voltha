@@ -77,6 +77,16 @@
     links: yes
   tags: [cluster_host]
 
+#- name: upstart barrier filesystem loop mount script is installed
+#  copy:
+#    src: "/home/vinstall/losetup.conf"
+#    dest: /etc/init
+#    owner: root
+#    group: root
+#    mode: 0644
+#  when: target == "cluster"
+#  tags: [cluster_host]
+
 #- name: pre-emptive strike to avoid errors during package installation
 #  apt:
 #    name: "{{ item }}"
@@ -121,41 +131,75 @@
   when: target == "cluster"
   tags: [cluster_host]
 
-- name: Replicated filesystem file is created
-  command: "dd if=/dev/zero of={{ replicated_fs_dir }}/.cluster-fs-file bs=100M count=100"
+- name: Logging barrier file is created
+  command: "dd if=/dev/zero of={{ barrier_fs_dir }}/.logger-barrier-file cbs=100M bs=1G count={{ logger_volume_size }}"
   when: target == "cluster"
   tags: [cluster_host]
 
-- name: The loop device is set up for file system creation
-  command: "losetup -f {{ replicated_fs_dir }}/.cluster-fs-file"
+- name: Registry barrier file is created
+  command: "dd if=/dev/zero of={{ barrier_fs_dir }}/.registry-barrier-file cbs=100M bs=1G count={{ registry_volume_size }}"
   when: target == "cluster"
   tags: [cluster_host]
 
-- name: The xfs filesystem is created on the loop device
+- name: Consul barrier file is created
+  command: "dd if=/dev/zero of={{ barrier_fs_dir }}/.consul-barrier-file cbs=100M bs=1G count={{ consul_volume_size }}"
+  when: target == "cluster"
+  tags: [cluster_host]
+
+- name: The logging barrier file is set up as a loop device
+  command: "losetup /dev/loop0 {{ barrier_fs_dir }}/.logger-barrier-file"
+  when: target == "cluster"
+  tags: [cluster_host]
+
+- name: The registry barrier file is set up as a loop device
+  command: "losetup /dev/loop1 {{ barrier_fs_dir }}/.registry-barrier-file"
+  when: target == "cluster"
+  tags: [cluster_host]
+
+- name: The consul barrier file is set up as a loop device
+  command: "losetup /dev/loop2 {{ barrier_fs_dir }}/.consul-barrier-file"
+  when: target == "cluster"
+  tags: [cluster_host]
+
+- name: The xfs filesystem is created on the replicated barrier file systems
   filesystem:
     fstype: xfs
-    dev: /dev/loop0
+    dev: "{{ item }}"
     opts: -i size=512
+  with_items:
+    - /dev/loop0
+    - /dev/loop1
   when: target == "cluster"
   tags: [cluster_host]
 
-- name: The loop device that's no longer needed is removed
+- name: The ext4 filesystem is created on the consul barrier volume
+  filesystem:
+    fstype: ext4
+    dev: /dev/loop2
+  when: target == "cluster"
+  tags: [cluster_host]
+
+- name: The loop devices that are no longer needed are removed
   command: "losetup -D"
   when: target == "cluster"
   tags: [cluster_host]
 
-- name: The registry fileystem file is owned by voltha
+- name: The barrier fileystem files are owned by voltha
   file:
-    path: "{{ replicated_fs_dir }}/.cluster-fs-file"
+    path: "{{ barrier_fs_dir }}/{{ item }}"
     mode: 0755
     owner: voltha
     group: voltha
+  with_items:
+    - ".registry-barrier-file"
+    - ".logger-barrier-file"
+    - ".consul-barrier-file"
   when: target == "cluster"
   tags: [cluster_host]
 
-- name: A brick for a glusterfs mountpoint is created
+- name: A mountpoint for the glusterfs registry brick is created
   file:
-    path: "{{ replicated_fs_dir }}/brick1"
+    path: "{{ barrier_fs_dir }}/reg_brick1"
     state: directory
     mode: 0755
     owner: voltha
@@ -163,19 +207,49 @@
   when: target == "cluster"
   tags: [cluster_host]
 
-- name: The replicated filesystem is mounted on boot
+- name: A mountpoint for the glusterfs logging brick is created
+  file:
+    path: "{{ barrier_fs_dir }}/log_brick1"
+    state: directory
+    mode: 0755
+    owner: voltha
+    group: voltha
+  when: target == "cluster"
+  tags: [cluster_host]
+
+- name: The replicated registry filesystem is mounted on boot
   mount:
-    path: "{{ replicated_fs_dir }}/brick1"
-    src: "{{ replicated_fs_dir }}/.cluster-fs-file"
+    path: "{{ barrier_fs_dir }}/reg_brick1"
+    src: "{{ barrier_fs_dir }}/.registry-barrier-file"
     fstype: xfs
     opts: loop
     state: mounted
   when: target == "cluster"
   tags: [cluster_host]
 
-- name: A directory for the glusterfs volume is created
+- name: The replicated logger filesystem is mounted on boot
+  mount:
+    path: "{{ barrier_fs_dir }}/log_brick1"
+    src: "{{ barrier_fs_dir }}/.logger-barrier-file"
+    fstype: xfs
+    opts: loop
+    state: mounted
+  when: target == "cluster"
+  tags: [cluster_host]
+
+- name: A directory for the registry glusterfs volume is created
   file:
-    path: "{{ replicated_fs_dir }}/brick1/registry_volume"
+    path: "{{ barrier_fs_dir }}/reg_brick1/registry_volume"
+    state: directory
+    mode: 0755
+    owner: voltha
+    group: voltha
+  when: target == "cluster"
+  tags: [cluster_host]
+
+- name: A directory for the logging glusterfs volume is created
+  file:
+    path: "{{ barrier_fs_dir }}/log_brick1/logging_volume"
     state: directory
     mode: 0755
     owner: voltha
@@ -197,6 +271,16 @@
   when: target == "cluster"
   tags: [cluster_host]
 
+- name: The consul data filesystem is mounted on boot
+  mount:
+    path: "{{ target_voltha_dir }}/consul/data"
+    src: "{{ barrier_fs_dir }}/.consul-barrier-file"
+    fstype: ext4
+    opts: loop
+    state: mounted
+  when: target == "cluster"
+  tags: [cluster_host]
+
 - name: The glusterfs service is started
   service:
     name: glusterfs-server
@@ -205,10 +289,20 @@
   when: target == "cluster"
   tags: [cluster_host]
 
-- name: The replicated filesystem is mounted on boot
+- name: The replicated registry filesystem is mounted on boot
   mount:
     path: "{{ target_voltha_dir }}/registry_data"
     src: "{{ inventory_hostname }}:/registry_volume"
+    fstype: glusterfs
+    opts:  "defaults,_netdev,noauto,x-systemd.automount"
+    state: present
+  when: target == "cluster"
+  tags: [cluster_host]
+
+- name: The replicated logging filesystem is mounted on boot
+  mount:
+    path: "/var/log/voltha"
+    src: "{{ inventory_hostname }}:/logging_volume"
     fstype: glusterfs
     opts:  "defaults,_netdev,noauto,x-systemd.automount"
     state: present
