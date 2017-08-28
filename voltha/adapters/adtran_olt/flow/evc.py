@@ -194,7 +194,7 @@ class EVC(object):
 
     def cancel_defers(self):
         d, self._install_deferred = self._install_deferred, None
-        if d is not None:
+        if d is not None and not d.called:
             try:
                 d.cancel()
             except:

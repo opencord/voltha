@@ -55,10 +55,20 @@ class EVCMap(object):
         EXPLICIT_PRIORITY = 1
         DEFAULT = INHERIT_PRIORITY
 
+        @staticmethod
+        def xml(value):
+            if value is None:
+                value = EVCMap.PriorityOption.DEFAULT
+            if value == EVCMap.PriorityOption.INHERIT_PRIORITY:
+                return '<inherit-pri/>'
+            elif value == EVCMap.PriorityOption.EXPLICIT_PRIORITY:
+                return '<explicit-pri/>'
+            raise ValueError('Invalid PriorityOption enumeration')
+
     def __init__(self, flow, evc, is_ingress_map):
         self._flow = flow
         self._evc = evc
-        self._gem_ids = None
+        self._gem_ids_and_vid = None
         self._is_ingress_map = is_ingress_map
         self._installed = False
         self._status_message = None
@@ -66,18 +76,19 @@ class EVCMap(object):
         self._name = None
         self._enabled = True
         self._uni_port = None
-        self._evc_connection = EVCMap.EvcConnection.NO_EVC_CONNECTION
+        self._evc_connection = EVCMap.EvcConnection.DEFAULT
         self._evc_name = None
+        self._is_pon_port = None
 
-        self._men_priority = EVCMap.PriorityOption.INHERIT_PRIORITY
+        self._men_priority = EVCMap.PriorityOption.DEFAULT
         self._men_pri = 0  # If Explicit Priority
 
         self._c_tag = None
-        self._men_ctag_priority = EVCMap.PriorityOption.INHERIT_PRIORITY
+        self._men_ctag_priority = EVCMap.PriorityOption.DEFAULT
         self._men_ctag_pri = 0  # If Explicit Priority
 
         self._match_ce_vlan_id = None
-        self._match_untagged = True
+        self._match_untagged = False
         self._match_destination_mac_address = None
         self._match_l2cp = False
         self._match_broadcast = False
@@ -167,12 +178,12 @@ class EVCMap(object):
                 else:
                     xml += EVCMap.EvcConnection.xml(self._evc_connection)
 
-                # if self._match_untagged:
-                #    xml += '<match-untagged>True</match-untagged>'
-                if self._c_tag is not None:
-                    xml += '<ctag>{}</ctag>'.format(self._c_tag)
-
-                # TODO: The following is not yet supported
+                xml += '<match-untagged>{}</match-untagged>'.format('true'
+                                                                    if self._match_untagged
+                                                                    else 'false')
+                # if self._c_tag is not None:
+                #     xml += '<ctag>{}</ctag>'.format(self._c_tag)
+                # TODO: The following is not yet supported (and in some cases, not decoded)
                 # self._men_priority = EVCMap.PriorityOption.INHERIT_PRIORITY
                 # self._men_pri = 0  # If Explicit Priority
                 #
@@ -192,11 +203,21 @@ class EVCMap(object):
             def _ingress_xml():
                 from ..onu import Onu
                 xml = '<evc-maps xmlns="http://www.adtran.com/ns/yang/adtran-evc-maps">'
-                for onu_id, gem_ids in self._gem_ids.iteritems():
-                    for gem_id in gem_ids:
+                for onu_id, gem_ids_and_vid in self._gem_ids_and_vid.iteritems():
+                    first_gem_id = True
+                    vid = gem_ids_and_vid[1]
+
+                    for gem_id in gem_ids_and_vid[0]:
                         xml += '<evc-map>'
                         xml += '<name>{}.{}.{}</name>'.format(self.name, onu_id, gem_id)
                         xml += '<ce-vlan-id>{}</ce-vlan-id>'.format(Onu.gem_id_to_gvid(gem_id))
+
+                        if first_gem_id and vid is not None:
+                            first_gem_id = False
+                            xml += '<network-ingress-filter>'
+                            xml += '<men-ctag>{}</men-ctag>'.format(vid)    # Added in august 2017 model
+                            xml += '</network-ingress-filter>'
+
                         xml += _common_xml()
                         xml += '</evc-map>'
                 xml += '</evc-maps>'
@@ -219,6 +240,9 @@ class EVCMap(object):
                 self._installed = results.ok
                 self.status = '' if results.ok else results.error
 
+                if self._pon_port is not None:
+                    self._pon_port.add_pon_evc_map(self)
+
             except Exception as e:
                 log.exception('install', name=self.name, e=e)
                 raise
@@ -235,8 +259,8 @@ class EVCMap(object):
             xml = '<evc-maps xmlns="http://www.adtran.com/ns/yang/adtran-evc-maps"' + \
                   ' xc:operation = "delete">'
 
-            for onu_id, gem_ids in self._gem_ids.iteritems():
-                for gem_id in gem_ids:
+            for onu_id, gem_ids_and_vid in self._gem_ids_and_vid.iteritems():
+                for gem_id in gem_ids_and_vid[0]:
                     xml += '<evc-map>'
                     xml += '<name>{}.{}.{}</name>'.format(self.name, onu_id, gem_id)
                     xml += '</evc-map>'
@@ -254,6 +278,9 @@ class EVCMap(object):
 
         def _failure(results):
             log.error('remove-failed', results=results)
+
+        if self._pon_port is not None:
+            self._pon_port.remove_pon_evc_map(self)
 
         # TODO: create generator of XML once we have MANY to install at once
         map_xml = _ingress_xml() if self._is_ingress_map else _egress_xml()
@@ -279,6 +306,50 @@ class EVCMap(object):
         self._evc = None
         returnValue('Done')
 
+    def add_onu(self, onu):
+        """
+        Add an ONU to a pon-wide EVC Map
+
+        :param onu: (Onu) ONU to add
+        :return: (defeered)
+        """
+        if self._pon_port is not None:
+            gem_ids = onu.gem_ids(True)
+            vid = onu.onu_vid
+            pass    # TODO: Implement this
+
+    def remove_onu(self, onu):
+        """
+        Remove an ONU to a pon-wide EVC Map
+
+        :param onu: (Onu) ONU to add
+        :return: (defeered)
+        """
+        if self._pon_port is not None:
+            gem_ids = onu.gem_ids(True)
+            vid = onu.onu_vid
+            pass    # TODO: Implement this
+
+    def add_gem_id(self, onu, gem_id):
+        """
+        Add a GEM ID to and existing EVC_MAP
+
+        :param onu: (Onu) ONU
+        :param gem_id: (Int) GEM ID
+        :return: (defeered)
+        """
+        pass    # TODO: Implement this
+
+    def remove_gem_id(self, onu, gem_id):
+        """
+        Remove a GEM ID from and existing EVC_MAP
+
+        :param onu: (Onu) ONU
+        :param gem_id: (Int) GEM ID
+        :return: (defeered)
+        """
+        pass    # TODO: Implement this
+
     def _decode(self):
         from evc import EVC
         from flow_entry import FlowEntry
@@ -298,7 +369,7 @@ class EVCMap(object):
         is_uni = flow.handler.is_uni_port(flow.in_port)
 
         if is_pon or is_uni:
-            self._uni_port = self._flow.handler.get_port_name(flow.in_port)
+            self._uni_port = flow.handler.get_port_name(flow.in_port)
             self._evc.ce_vlan_preservation = False
         else:
             self._status_message = 'EVC-MAPS without UNI or PON ports are not supported'
@@ -323,15 +394,16 @@ class EVCMap(object):
             pon_port = flow.handler.get_southbound_port(flow.in_port)
 
             if pon_port is not None:
-                self._gem_ids = pon_port.gem_ids(self._flow.onu_vid, self._needs_acl_support)
+                if flow.onu_vid is None:
+                    self._pon_port = pon_port   # EVC Map is for all ONUs on port
+
+                self._gem_ids_and_vid = pon_port.gem_ids(flow.onu_vid, self._needs_acl_support)
+
                 # TODO: Only EAPOL ACL support for the first demo
                 if self._needs_acl_support and self._eth_type != FlowEntry.EtherType.EAPOL.value:
-                    self._gem_ids = dict()
+                    self._gem_ids_and_vid = dict()
 
-        # if flow.vlan_id is None and flow.inner_vid is None:
-        #     self._match_untagged = True
-        # else:
-        #     self._match_untagged = False
+        # self._match_untagged = flow.vlan_id is None and flow.inner_vid is None
         self._c_tag = flow.inner_vid
 
         # If a push of a single VLAN is present with a POP of the VLAN in the EVC's

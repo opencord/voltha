@@ -66,6 +66,7 @@ class PonPort(object):
         self._onus = {}         # serial_number-base64 -> ONU  (allowed list)
         self._onu_by_id = {}    # onu-id -> ONU
         self._next_onu_id = Onu.MIN_ONU_ID
+        self._pon_evc_map = {}  # evc-map name -> EVC Map
 
         self._admin_state = AdminState.DISABLED
         self._oper_status = OperStatus.DISCOVERED
@@ -136,6 +137,19 @@ class PonPort(object):
         return self._state
 
     @property
+    def admin_state(self):
+        return self._admin_state
+
+    @admin_state.setter
+    def admin_state(self, value):
+        if self._admin_state != value:
+            self._admin_state = value
+            if self._admin_state == AdminState.ENABLED:
+                self.start()
+            else:
+                self.stop()
+
+    @property
     def adapter_agent(self):
         return self.olt.adapter_agent
 
@@ -151,7 +165,7 @@ class PonPort(object):
         if self.discovery_tick != value:
             self._discovery_tick = value / 10
 
-            if self._discovery_deferred is not None:
+            if self._discovery_deferred is not None and not self._discovery_deferred.called:
                 self._discovery_deferred.cancel()
                 self._discovery_deferred = None
 
@@ -430,12 +444,12 @@ class PonPort(object):
         :param onu_vid: (int) ONU VLAN ID if customer ONU specific. None if for all ONUs
                               on PON
         :param exception_gems: (boolean) Select from special purpose ACL GEM-Portas
-        :return: (dict) key -> onu-id, value -> frozenset of GEM Port IDs
+        :return: (dict) key -> onu-id, value -> tuple(frozenset of GEM Port IDs, onu_vid)
         """
         gem_ids = {}
         for onu_id, onu in self._onu_by_id.iteritems():
             if onu_vid is None or onu_vid == onu.onu_vid:
-                gem_ids[onu_id] = onu.gem_ids(exception_gems)
+                gem_ids[onu_id] = (onu.gem_ids(exception_gems), onu.onu_vid)
         return gem_ids
 
     def get_pon_config(self):
@@ -540,7 +554,7 @@ class PonPort(object):
 
     def _process_status_onu_discovered_list(self, discovered_onus):
         """
-        Look for new or missing ONUs
+        Look for new ONUs
         
         :param discovered_onus: (frozenset) Set of ONUs currently discovered
         """
@@ -555,9 +569,9 @@ class PonPort(object):
         my_onus = frozenset(self._onus.keys())
 
         new_onus = discovered_onus - my_onus
-        missing_onus = my_onus - discovered_onus
+        # TODO: Remove later if not needed -> missing_onus = my_onus - discovered_onus
 
-        return new_onus, missing_onus
+        return new_onus, None # , missing_onus
 
     def _get_onu_info(self, serial_number):
         """
@@ -572,21 +586,30 @@ class PonPort(object):
                 onu_id = self.get_next_onu_id()
                 enabled = True
                 channel_speed = 0
+                tconts = get_tconts(serial_number, onu_id)
+                gem_ports = get_gem_ports(serial_number, onu_id)
 
             elif self.activation_method == "autodiscovery":
                 if self.authentication_method == 'serial-number':
                     gpon_info = self.olt.get_xpon_info(self.pon_id)
 
                     try:
-                        vont_info = next(info for _, info in gpon_info['v_ont_anis'].items()
+                        vont_info = next(info for _, info in gpon_info['v-ont-anis'].items()
                                          if info.get('expected-serial-number') == serial_number)
 
                         onu_id = vont_info['onu-id']
                         enabled = vont_info['enabled']
                         channel_speed = vont_info['upstream-channel-speed']
 
+                        tconts = {key: val for key, val in gpon_info['tconts'].iteritems()
+                                  if val.vont_ani == vont_info['name']}
+                        tcont_names = set(tconts.keys())
+
+                        gem_ports = {key: val for key, val in gpon_info['gem-ports'].iteritems()
+                                     if val.tconf_ref in tcont_names}
+
                     except StopIteration:
-                        return None
+                        return None     # Can happen if vont-ani has not yet been configured
                 else:
                     return None
             else:
@@ -600,11 +623,13 @@ class PonPort(object):
                 'enabled': enabled,
                 'upstream-channel-speed': channel_speed,
                 'password': Onu.DEFAULT_PASSWORD,
-                't-conts': get_tconts(self.pon_id, serial_number, onu_id),
-                'gem-ports': get_gem_ports(self.pon_id, serial_number, onu_id),
+                't-conts': tconts,
+                'gem-ports': gem_ports,
                 'onu-vid': self.olt.get_channel_id(self._pon_id, onu_id)
             }
-            return onu_info
+            # Hold off ONU activation until at least one GEM Port is defined.
+
+            return onu_info if len(gem_ports) > 0 else None
 
         except Exception as e:
             self.log.exception('get-onu-info', e=e)
@@ -639,6 +664,14 @@ class PonPort(object):
                         gem_ports = onu_info['gem-ports']
                         yield onu.create(tconts, gem_ports)
                         self.activate_onu(onu)
+
+                        if len(self._pon_evc_map) > 0:
+                            # Add gem-id's to maps
+                            dl = []
+                            for evc_map in self._pon_evc_map.itervalues():
+                                dl = evc_map.add_onu(onu)
+
+                            yield defer.gatherResults(dl)
 
                     except Exception as e:
                         del self._onus[serial_number]
@@ -677,19 +710,52 @@ class PonPort(object):
             if onu_id not in used_ids:
                 return onu_id
 
+    @inlineCallbacks
     def delete_onu(self, onu_id):
         uri = AdtranOltHandler.GPON_ONU_CONFIG_URI.format(self._pon_id, onu_id)
         name = 'pon-delete-onu-{}-{}'.format(self._pon_id, onu_id)
+
+        onu = self._onu_by_id.get(onu_id)
 
         # Remove from any local dictionary
         if onu_id in self._onu_by_id:
             del self._onu_by_id[onu_id]
         for sn in [onu.serial_numbers for onu in self._onus.itervalues() if onu.onu_id == onu_id]:
             del self._onus[sn]
+        try:
+            yield self._parent.rest_client.request('DELETE', uri, name=name)
+
+        except Exception as e:
+            self.log.exception('onu', serial_number=onu.serial_number, e=e)
+
+        if onu is not None and len(self._pon_evc_map) > 0:
+            # Drop gem-id's from any existing maps
+            dl = []
+            for evc_map in self._pon_evc_map.itervalues():
+                dl = evc_map.remove_onu(onu)
+            try:
+                yield defer.gatherResults(dl)
+
+            except Exception as e:
+                self.log.exception('maps', serial_number=onu.serial_number, e=e)
 
         # TODO: Need removal from VOLTHA child_device method
 
-        return self._parent.rest_client.request('DELETE', uri, name=name)
+    def add_pon_evc_map(self, evc_map):
+        """
+        Add an EVC MAP that covers all ONUs on a PON (typically control exception flows)
+        :param evc_map: (EVCMap) EVC Map
+        """
+        assert evc_map.name not in self._pon_evc_map
+        self._pon_evc_map[evc_map.name] = evc_map
+
+    def remove_pon_evc_map(self, evc_map):
+        """
+        Remove an EVC MAP that covers all ONUs on a PON (typically control exception flows)
+        :param evc_map: (EVCMap) EVC Map
+        """
+        if evc_map.name in self._pon_evc_map:
+            del self._pon_evc_map[evc_map.name]
 
     @inlineCallbacks
     def channel_partition(self, name, partition=0, xpon_system=0, operation=None):

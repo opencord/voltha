@@ -420,7 +420,7 @@ class FlowEntry(object):
 
         self.evc_map = None
         self.evc = None
-        returnValue(succeed('Done'))
+        returnValue('Done')
 
     ######################################################
     # Bulk operations

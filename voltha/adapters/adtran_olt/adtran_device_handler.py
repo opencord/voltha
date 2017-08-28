@@ -627,13 +627,8 @@ class AdtranDeviceHandler(object):
             self.startup = port.start()
             results = yield self.startup
 
-        if reconciling:
-            start_downlinks = device.admin_state == AdminState.ENABLED
-        else:
-            start_downlinks = self.autoactivate
-
         for port in self.southbound_ports.itervalues():
-            self.startup = port.start() if start_downlinks else port.stop()
+            self.startup = port.start() if port.admin_state == AdminState.ENABLED else port.stop()
             results = yield self.startup
 
         returnValue(results)
