@@ -1,6 +1,6 @@
-- name: The glusterfs volume is created
+- name: The glusterfs registry volume is created
   gluster_volume:
-    bricks: "{{ replicated_fs_dir }}/brick1"
+    bricks: "{{ barrier_fs_dir }}/reg_brick1"
     force: true
     cluster: "{{groups.cluster | join(\",\")}}"
     replicas: 3
@@ -8,7 +8,21 @@
     state: present
   run_once: true
 
-- name: Start the gluster volume
+- name: The glusterfs logging volume is created
   gluster_volume:
-    name: registry_volume
+    bricks: "{{ barrier_fs_dir }}/log_brick1"
+    force: true
+    cluster: "{{groups.cluster | join(\",\")}}"
+    disperses: 3
+    name: logging_volume
+    state: present
+  run_once: true
+
+- name: Start the gluster volumes
+  gluster_volume:
+    name: "{{ item }}"
     state: started
+  with_items:
+    - registry_volume
+    - logging_volume
+
