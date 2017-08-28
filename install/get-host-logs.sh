@@ -54,7 +54,7 @@ done
 patience=5
 while [ "${#lNames[*]}" -ne 0  ]
 do
-	echo "*** Waiting on log collection to complete. Outstanding jobs: ${#lNames[*]} (${lNames[@]})"
+	echo "*** Waiting on log collection to complete (patience = ${patience}). Outstanding jobs: ${#lNames[*]} (${lNames[@]})"
 	sleep 10
 	# Check which collectors are done are remove them from the list
 	jobs > /dev/null # Don't delete this useless line or the next one will eroniously report a PID
