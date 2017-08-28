@@ -13,6 +13,9 @@ logging:
           level: '%(levelname)s'
           hostname: '%(hostname)s'
           where: '%(module)s.%(funcName)s'
+      fluent_default:
+        format: '%(asctime)s.%(msecs)03d %(levelname)-8s %(threadName)s %(module)s.%(funcName)s %(message)s'
+        datefmt: '%Y%m%dT%H%M%S'
 
     handlers:
         fluent:
@@ -20,7 +23,10 @@ logging:
             host: localhost
             port: 24224
             tag: netconf.logging
-            formatter: fluent_fmt
+            # Since fluent formatter output an exception with grpc data, use
+            # a basic formatter for now.
+            # formatter: fluent_fmt
+            formatter: fluent_default
             level: INFO
         null:
             class: logging.NullHandler
