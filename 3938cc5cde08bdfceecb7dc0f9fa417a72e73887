@@ -16,6 +16,98 @@
       "revId": "3938cc5cde08bdfceecb7dc0f9fa417a72e73887",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa5d592f_ca0fc32d",
+        "filename": "cli/xpon.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1518,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-08-29T17:15:19Z",
+      "side": 1,
+      "message": "Have you tested this code? Just looking at it, I can tell it will not work.\nYou only give option to get alloc-id. Where do you store it and how do you pass it along to global handler?\nDo you do any type of verification of alloc-id, uniqueness and etc?",
+      "range": {
+        "startLine": 1517,
+        "startChar": 8,
+        "endLine": 1518,
+        "endChar": 63
+      },
+      "revId": "3938cc5cde08bdfceecb7dc0f9fa417a72e73887",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa5d592f_8a19cb7b",
+        "filename": "cli/xpon.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1618,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-08-29T17:15:19Z",
+      "side": 1,
+      "message": "The same as for alloc-id stated above.",
+      "range": {
+        "startLine": 1617,
+        "startChar": 8,
+        "endLine": 1618,
+        "endChar": 65
+      },
+      "revId": "3938cc5cde08bdfceecb7dc0f9fa417a72e73887",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa5d592f_4a2bd382",
+        "filename": "voltha/core/xpon_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1023,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-08-29T17:15:19Z",
+      "side": 1,
+      "message": "Please do not use Tabs. Use regular 4 spaces",
+      "range": {
+        "startLine": 1023,
+        "startChar": 0,
+        "endLine": 1023,
+        "endChar": 17
+      },
+      "revId": "3938cc5cde08bdfceecb7dc0f9fa417a72e73887",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa5d592f_2a209f9a",
+        "filename": "voltha/core/xpon_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1028,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-08-29T17:15:19Z",
+      "side": 1,
+      "message": "Please do not use Tabs. Use regular 4 spaces",
+      "range": {
+        "startLine": 1028,
+        "startChar": 16,
+        "endLine": 1028,
+        "endChar": 17
+      },
+      "revId": "3938cc5cde08bdfceecb7dc0f9fa417a72e73887",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
