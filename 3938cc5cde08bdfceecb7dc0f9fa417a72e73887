@@ -65,6 +65,29 @@
     },
     {
       "key": {
+        "uuid": "fa5d592f_ea3967d9",
+        "filename": "common/utils/indexpool.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1000090
+      },
+      "writtenOn": "2017-08-29T17:21:30Z",
+      "side": 1,
+      "message": "Index can be assigned by operator or auto assignment by VOLTHA; given this flexibility would prefer separate error for out of range and in used index",
+      "range": {
+        "startLine": 24,
+        "startChar": 0,
+        "endLine": 25,
+        "endChar": 31
+      },
+      "revId": "3938cc5cde08bdfceecb7dc0f9fa417a72e73887",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fa5d592f_4a2bd382",
         "filename": "voltha/core/xpon_handler.py",
         "patchSetId": 1
