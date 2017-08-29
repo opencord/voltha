@@ -1479,7 +1479,7 @@ traffic_descriptor_profile create -n "TDP 1" -f 100000 -a 500000 -m 1000000
         self.poutput(
 '''
 tcont [get | create | update | delete] [-n <name>] [-r <interface reference>]
-      [-t <traffic descriptor profile reference>]
+      [-t <traffic descriptor profile reference>] [-a alloc-id ]
 
 get:    displays existing tconts
         Required flags: None
@@ -1495,10 +1495,12 @@ delete: deletes tcont specified with parameter -n.
 -n: <string> name of tcont.
 -r: <string> reference to vont ani interface.
 -t: <string> reference to an existing traffic descriptor profile.
+-a: <int>    allocation ID (alloc-id) for the TCONT. If not provided, xPON
+             Manager will provide the alloc-id for the TCONT.
 
 Example:
 
-tcont create -n "TCont 1" -r "Golden User" -t "TDP 1"
+tcont create -n "TCont 1" -r "Golden User" -t "TDP 1" -a 1024
 '''
         )
 
@@ -1512,6 +1514,8 @@ tcont create -n "TCont 1" -r "Golden User" -t "TDP 1"
                     dest='traffic_descriptor_profile_ref', type='string',
                     help='reference to an existing traffic descriptor profile',
                     default=None),
+        make_option('-a', '--alloc_id', action='store', dest='alloc_id',
+                    type='int', help='alloc-id', default=None),
     ])
 
     def do_tcont(self, line, opts):
@@ -1545,6 +1549,8 @@ tcont create -n "TCont 1" -r "Golden User" -t "TDP 1"
             if opts.traffic_descriptor_profile_ref:
                 tcont.traffic_descriptor_profile_ref = \
                     opts.traffic_descriptor_profile_ref
+            if opts.alloc_id:
+                tcont.alloc_id = opts.alloc_id
             if line.strip() == "create":
                 stub.CreateTcontsConfigData(tcont)
             elif line.strip() == "update":
@@ -1585,10 +1591,11 @@ delete: deletes gemport specified with parameter -n.
 -t: <string> tcont reference that is for the purpose of upstream scheduling in
              the ONU, a gemport needs to refer to the tcont into which it feeds
              upstream traffic.
+-g: <int>    gemport ID. If not provided, xPON Manager will provide the gemport ID.
 
 Example:
 
-gem_port create -n "GEMPORT 1" -r "Enet UNI 1" -c 0 -a true -t "TCont 1"
+gem_port create -n "GEMPORT 1" -r "Enet UNI 1" -c 0 -a true -t "TCont 1" -g 2044
 '''
         )
 
@@ -1609,6 +1616,8 @@ gem_port create -n "GEMPORT 1" -r "Enet UNI 1" -c 0 -a true -t "TCont 1"
                     type='string',
                     help='tcont reference for purpose of us scheduling in ONU',
                     default=None),
+        make_option('-g', '--gemport_id', action='store', dest='gemport_id',
+                    type='int', help='GEMPORT ID', default=None),
     ])
 
     def do_gem_port(self, line, opts):
@@ -1656,6 +1665,8 @@ gem_port create -n "GEMPORT 1" -r "Enet UNI 1" -c 0 -a true -t "TCont 1"
                     return
             if opts.tcont_ref:
                 gemport.tcont_ref = opts.tcont_ref
+            if opts.gemport_id:
+                gemport.gemport_id = opts.gemport_id
             if line.strip() == "create":
                 stub.CreateGemportsConfigData(gemport)
             elif line.strip() == "update":

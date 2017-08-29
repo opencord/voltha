@@ -87,7 +87,7 @@ class XponHandler(object):
                 design evolution, for a better approach in future.
             '''
             self.cg_dict[cg.name] = {'alloc_id': IndexPool(16383, 1024)}
-            self.cg_dict[cg.name].update({'gemport_id': IndexPool(64500, 1021)})
+            self.cg_dict[cg.name].update({'gemport_id': IndexPool(64500, 1024)})
         self.cg_pool.pre_allocate(cg_tup)
 
     def reinitialize_tcont_and_gemport_ids(self):
@@ -915,9 +915,16 @@ class XponHandler(object):
             assert self.validate_interface(request, context)
             cg_name = self.extract_channel_group_from_request(request,
                         'v_ont_anis', request.interface_reference)
-            _id = self.cg_dict[cg_name]['alloc_id'].get_next()
-            assert _id != None
-            request.alloc_id = _id
+            if request.alloc_id == 0:
+                _id = self.cg_dict[cg_name]['alloc_id'].get_next()
+                assert _id is not None, \
+                    'Fail to allocate id for TCont'
+                request.alloc_id = _id
+            else:
+                _id = self.cg_dict[cg_name]['alloc_id'].allocate(request.alloc_id)
+                assert _id == request.alloc_id, \
+                    'Fail to allocate id for TCont'
+
             log.debug('creating-tcont', name=request.name)
             self.root.add('/tconts', request)
             return Empty()
@@ -1012,10 +1019,16 @@ class XponHandler(object):
             assert self.validate_interface(request, context)
             cg_name = self.extract_channel_group_from_request(request,
                         'v_enets', request.itf_ref)
-            _id = self.cg_dict[cg_name]['gemport_id'].get_next()
-            assert _id != None, \
-                'Fail to allocate id for CemPort'
-            request.gemport_id = _id
+            if request.gemport_id == 0:
+                _id = self.cg_dict[cg_name]['gemport_id'].get_next()
+                assert _id is not None, \
+                    'Fail to allocate id for GemPort'
+                request.gemport_id = _id
+            else:
+                _id = self.cg_dict[cg_name]['gemport_id'].allocate(request.gemport_id)
+                assert _id == request.gemport_id, \
+                    'Fail to allocate id for GemPort'
+
             log.debug('creating-gemport', name=request.name)
             self.root.add('/gemports', request)
             return Empty()
