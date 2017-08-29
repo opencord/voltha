@@ -243,10 +243,10 @@ class Coordinator(object):
                 valid_membership = yield self._assert_membership_record_valid()
                 if not valid_membership:
                     log.info('recreating-membership-before',
-                              session=self.session_id)
+                             session=self.session_id)
                     yield self._do_create_membership_record_with_retries()
                     log.info('recreating-membership-after',
-                              session=self.session_id)
+                             session=self.session_id)
                 else:
                     log.debug('valid-membership', session=self.session_id)
                 # Async sleep before checking the membership record again
@@ -380,8 +380,6 @@ class Coordinator(object):
     def _start_leader_tracking(self):
         reactor.callLater(0, self._leadership_tracking_loop)
 
-
-
     @inlineCallbacks
     def _leadership_tracking_loop(self):
         try:
@@ -418,17 +416,25 @@ class Coordinator(object):
                     yield self._assert_nonleadership(leader_id)
 
             # if record was none, we shall try leadership again
-
-            # using consul's watch feature, start tracking any changes to key
             last = record
             while last is not None:
                 # this shall return only when update is made to leader key
-                # or expires after 5 seconds wait (in case consul took an
-                # unexpected vacation)
-                (index, updated) = yield self._retry('GET',
-                                                     self.leader_prefix,
-                                                     wait='5s',
-                                                     index=index)
+                # or expires after 5 seconds wait
+                is_timeout, (tmp_index, updated) = yield \
+                    self.consul_get_with_timeout(
+                        key=self.leader_prefix,
+                        index=index,
+                        timeout=5)
+                # Timeout means either there is a lost connectivity to
+                # consul or there are no change to that key.  Do nothing.
+                if is_timeout:
+                    continue
+
+                # After timeout event the index returned from
+                # consul_get_with_timeout is None.  If we are here it's not a
+                # timeout, therefore the index is a valid one.
+                index=tmp_index
+
                 if updated is None or updated != last:
                     log.info('leader-key-change',
                              index=index, updated=updated, last=last)
@@ -550,3 +556,39 @@ class Coordinator(object):
 
         log.info('end', operation=operation, args=args)
         returnValue(result)
+
+    @inlineCallbacks
+    def consul_get_with_timeout(self, key, timeout, **kw):
+        """
+        Query consul with a timeout
+        :param key: Key to query
+        :param timeout: timeout value
+        :param kw: additional key-value params
+        :return: (is_timeout, (index, result)).
+        """
+
+        @inlineCallbacks
+        def _get(key, m_callback):
+            try:
+                (index, result) = yield self._retry('GET', key, **kw)
+                if not m_callback.called:
+                    log.debug('got-result-cancelling-timer')
+                    m_callback.callback((index, result))
+            except Exception as e:
+                log.exception('got-exception', e=e)
+
+        try:
+            rcvd = DeferredWithTimeout(timeout=timeout)
+            _get(key, rcvd)
+            try:
+                result = yield rcvd
+                log.debug('result-received', result=result)
+                returnValue((False, result))
+            except TimeOutError as e:
+                log.debug('timeout-or-no-data-change', key=key)
+            except Exception as e:
+                log.exception('exception', e=e)
+        except Exception as e:
+            log.exception('exception', e=e)
+
+        returnValue((True, (None, None)))

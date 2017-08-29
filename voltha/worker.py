@@ -150,11 +150,21 @@ class Worker(object):
             prev_index = index
             if self.mycore_store_id:
                 # Wait for updates to the store assigment key
-                (index, mappings) = yield self.coord.kv_get(
-                    self.coord.core_store_assignment_key,
-                    wait='10s',
-                    index=index,
-                    recurse=True)
+                is_timeout, (tmp_index, mappings) = yield \
+                                self.coord.consul_get_with_timeout(
+                                    key=self.coord.core_store_assignment_key,
+                                    recurse=True,
+                                    index=index,
+                                    timeout=10)
+
+                if is_timeout:
+                    return
+
+                # After timeout event the index returned from
+                # consul_get_with_timeout is None.  If we are here it's not a
+                # timeout, therefore the index is a valid one.
+                index=tmp_index
+
                 if mappings and index != prev_index:
                     new_map = loads(mappings[0]['Value'])
                     # Remove my id from my peers list
