@@ -170,6 +170,26 @@ scenario = [
             }
         }
     },
+    {'tcont-add-with-alloc-id': {
+        'pb2': tcont.TcontsConfigData(),
+        'rpc': {
+            "interface_reference": "Golden User",
+            "traffic_descriptor_profile_ref": "TDP 1",
+            "name": "TCont 2",
+            "alloc_id": 1234
+            }
+        }
+    },
+    {'tcont-add-with-alloc-id-zero': {
+        'pb2': tcont.TcontsConfigData(),
+        'rpc': {
+            "interface_reference": "Golden User",
+            "traffic_descriptor_profile_ref": "TDP 1",
+            "name": "TCont 3",
+            "alloc_id": 0
+            }
+        }
+    },
     {'gemport-add': {
         'pb2': gemport.GemportsConfigData(),
         'rpc': {
@@ -178,6 +198,30 @@ scenario = [
             "traffic_class": 0,
             "itf_ref": "Enet UNI 1",
             "tcont_ref": "TCont 1",
+            }
+        }
+    },
+    {'gemport-add-with-gemport-id': {
+        'pb2': gemport.GemportsConfigData(),
+        'rpc': {
+            "aes_indicator": True,
+            "name": "GEMPORT 2",
+            "traffic_class": 0,
+            "itf_ref": "Enet UNI 1",
+            "tcont_ref": "TCont 2",
+            "gemport_id": 2345
+            }
+        }
+    },
+    {'gemport-add-with-gemport-id-zero': {
+        'pb2': gemport.GemportsConfigData(),
+        'rpc': {
+            "aes_indicator": True,
+            "name": "GEMPORT 2",
+            "traffic_class": 0,
+            "itf_ref": "Enet UNI 1",
+            "tcont_ref": "TCont 2",
+            "gemport_id": 0
             }
         }
     }
