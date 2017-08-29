@@ -78,6 +78,10 @@ class Leader(object):
         self.assignment_id_match = re.compile(
             self.ASSIGNMENT_ID_EXTRACTOR % self.coord.assignment_prefix).match
 
+        self.members_tracking_sleep_to_prevent_flood = \
+            self.coord.leader_config.get((self.coord.leader_config[
+                'members_track_error_to_prevent_flood']), 1)
+
     @inlineCallbacks
     def start(self):
         log.debug('starting')
@@ -240,20 +244,21 @@ class Leader(object):
     def _track_members(self, index):
         previous_index = index
         try:
-            (index, results) = yield self.coord.kv_get(
-                self.coord.membership_prefix,
-                wait='10s',
-                index=index,
-                recurse=True)
-
-            if not results:
-                log.info('no-data-yet', index=index)
-                return
-
+            log.info('member-tracking-before')
+            is_timeout, (tmp_index, results) = yield \
+                                    self.coord.consul_get_with_timeout(
+                                            key=self.coord.membership_prefix,
+                                            recurse=True,
+                                            index=index,
+                                            timeout=10)
             # Check whether we are still the leader - a new regime may be in
             # place by the time we see a membership update
             if self.halted:
                 log.info('I am no longer the leader')
+                return
+
+            if is_timeout:
+                log.debug('timeout-or-no-membership-changed')
                 return
 
             # This can happen if consul went down and came back with no data
@@ -262,6 +267,13 @@ class Leader(object):
                 # Bail out of leadership and go for an early election
                 self.coord._just_lost_leadership()
                 return
+
+            # After timeout event the index returned from
+            # consul_get_with_timeout is None.  If we are here it's not a
+            # timeout, therefore the index is a valid one.
+            index=tmp_index
+
+            log.info('membership-tracking-data', index=index, results=results)
 
             if previous_index != index:
                 log.info('membership-updated',
@@ -303,11 +315,8 @@ class Leader(object):
 
         except Exception, e:
             log.exception('members-track-error', e=e)
-            yield asleep(
-                self.coord.leader_config.get(
-                    self.coord.leader_config[
-                        'members_track_error_to_prevent_flood']), 1)
             # to prevent flood
+            yield asleep(self.members_tracking_sleep_to_prevent_flood)
         finally:
             if not self.halted:
                 reactor.callLater(1, self._track_members, index)

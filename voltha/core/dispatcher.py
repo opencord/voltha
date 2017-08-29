@@ -340,9 +340,15 @@ class Dispatcher(object):
 
         try:
             # Always request from the local service when making request to peer
+            # Add a long timeout of 15 seconds to balance between:
+            #       (1) a query for large amount of data from a peer
+            #       (2) an error where the peer is not responding and the
+            #           request keeps waiting without getting a grpc
+            #           rendez-vous exception.
             stub = VolthaLocalServiceStub
             method = getattr(stub(self.grpc_conn_map[core_id]), method_name)
             response, rendezvous = yield method.with_call(request,
+                                                          timeout=15,
                                                           metadata=context.invocation_metadata())
             log.debug('peer-response',
                       core_id=core_id,
