@@ -8,7 +8,7 @@ message TcontsConfigData {
     string name = 2;
     string interface_reference = 3;
     string traffic_descriptor_profile_ref = 4;
-    uint32 alloc_id = 5 [(voltha.access) = READ_ONLY];
+    uint32 alloc_id = 5;
 }
 message TcontsOperData {
     string id = 1 [(voltha.access) = READ_ONLY];

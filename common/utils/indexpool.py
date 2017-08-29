@@ -18,6 +18,21 @@ class IndexPool(object):
             log.info("exception-fail-to-allocate-id-all-bits-in-use")
             return None
 
+    def allocate(self, index):
+        try:
+            _pos = index - self.offset
+            if not (0 <= _pos < self.max_entries):
+                log.info("{}-out-of-range".format(index))
+                return None
+            if self.indices[_pos]:
+                log.info("{}-is-already-allocated".format(index))
+                return None
+            self.indices.set(1, _pos)
+            return index
+
+        except IndexError:
+            return None
+
     def release(self, index):
         index -= self.offset
         _pos = (index,)
