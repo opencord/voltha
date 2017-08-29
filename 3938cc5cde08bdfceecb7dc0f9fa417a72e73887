@@ -88,6 +88,23 @@
     },
     {
       "key": {
+        "uuid": "fa5d592f_aa4a4f53",
+        "filename": "voltha/core/xpon_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000090
+      },
+      "writtenOn": "2017-08-29T17:52:23Z",
+      "side": 1,
+      "message": "Please check itest for xpon and add new tests for RW operation of alloc id \u0026 gem port id.",
+      "revId": "3938cc5cde08bdfceecb7dc0f9fa417a72e73887",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fa5d592f_aa336ff5",
         "filename": "voltha/core/xpon_handler.py",
         "patchSetId": 1
