@@ -28,7 +28,7 @@ class DeviceGraph(object):
 
     def compute_routes(self, root_proxy, logical_ports):
         boundary_ports, graph = self._build_graph(root_proxy, logical_ports)
-        routes = self._build_routes(boundary_ports, graph)
+        routes = self._build_routes(boundary_ports, graph, logical_ports)
         return graph, routes
 
     def _build_graph(self, root_proxy, logical_ports):
@@ -81,7 +81,10 @@ class DeviceGraph(object):
 
         return boundary_ports, graph
 
-    def _build_routes(self, boundary_ports, graph):
+    def _build_routes(self, boundary_ports, graph, logical_ports):
+
+        root_ports = dict((lp.ofp_port.port_no, lp.root_port)
+                          for lp in logical_ports if lp.root_port == True)
 
         routes = {}
 
@@ -89,6 +92,16 @@ class DeviceGraph(object):
             for target, target_port_no in boundary_ports.iteritems():
 
                 if source is target:
+                    continue
+
+                # Ignore NNI - NNI routes
+                if source_port_no in root_ports \
+                        and target_port_no in root_ports:
+                    continue
+
+                # Ignore UNI - UNI routes
+                if source_port_no not in root_ports \
+                        and target_port_no not in root_ports:
                     continue
 
                 path = nx.shortest_path(graph, source, target)
