@@ -88,6 +88,52 @@
     },
     {
       "key": {
+        "uuid": "fa5d592f_aa336ff5",
+        "filename": "voltha/core/xpon_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 920,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-08-29T17:29:55Z",
+      "side": 1,
+      "message": "Please add assertion message, if it breaks, the error will be unknown.",
+      "range": {
+        "startLine": 920,
+        "startChar": 16,
+        "endLine": 920,
+        "endChar": 34
+      },
+      "revId": "3938cc5cde08bdfceecb7dc0f9fa417a72e73887",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa5d592f_8a30abe9",
+        "filename": "voltha/core/xpon_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 924,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-08-29T17:29:55Z",
+      "side": 1,
+      "message": "Add assertion method.",
+      "range": {
+        "startLine": 924,
+        "startChar": 16,
+        "endLine": 924,
+        "endChar": 46
+      },
+      "revId": "3938cc5cde08bdfceecb7dc0f9fa417a72e73887",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fa5d592f_4a2bd382",
         "filename": "voltha/core/xpon_handler.py",
         "patchSetId": 1
