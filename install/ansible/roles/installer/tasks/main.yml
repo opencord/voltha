@@ -27,7 +27,6 @@
     - install/get-logs.sh
     - install/get-host-logs.sh
     - install/ansible
-    - install/losetup.conf
     - compose
     - consul_config/basic.json
   tags: [installer]

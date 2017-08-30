@@ -132,19 +132,19 @@
   tags: [cluster_host]
 
 - name: Logging barrier file is created
-  command: "dd if=/dev/zero of={{ barrier_fs_dir }}/.logger-barrier-file cbs=100M bs=1G count={{ logger_volume_size }}"
+  command: "fallocate -l {{ logger_volume_size }}G {{ barrier_fs_dir }}/.logger-barrier-file"
   when: target == "cluster"
   tags: [cluster_host]
 
 - name: Registry barrier file is created
-  command: "dd if=/dev/zero of={{ barrier_fs_dir }}/.registry-barrier-file cbs=100M bs=1G count={{ registry_volume_size }}"
+  command: "fallocate -l {{ registry_volume_size }}G {{ barrier_fs_dir }}/.registry-barrier-file"
   when: target == "cluster"
   tags: [cluster_host]
 
-- name: Consul barrier file is created
-  command: "dd if=/dev/zero of={{ barrier_fs_dir }}/.consul-barrier-file cbs=100M bs=1G count={{ consul_volume_size }}"
-  when: target == "cluster"
-  tags: [cluster_host]
+#- name: Consul barrier file is created
+#  command: "fallocate -l {{ consul_volume_size }}G {{ barrier_fs_dir }}/.consul-barrier-file"
+#  when: target == "cluster"
+#  tags: [cluster_host]
 
 - name: The logging barrier file is set up as a loop device
   command: "losetup /dev/loop0 {{ barrier_fs_dir }}/.logger-barrier-file"
@@ -156,10 +156,10 @@
   when: target == "cluster"
   tags: [cluster_host]
 
-- name: The consul barrier file is set up as a loop device
-  command: "losetup /dev/loop2 {{ barrier_fs_dir }}/.consul-barrier-file"
-  when: target == "cluster"
-  tags: [cluster_host]
+#- name: The consul barrier file is set up as a loop device
+#  command: "losetup /dev/loop2 {{ barrier_fs_dir }}/.consul-barrier-file"
+#  when: target == "cluster"
+#  tags: [cluster_host]
 
 - name: The xfs filesystem is created on the replicated barrier file systems
   filesystem:
@@ -172,12 +172,12 @@
   when: target == "cluster"
   tags: [cluster_host]
 
-- name: The ext4 filesystem is created on the consul barrier volume
-  filesystem:
-    fstype: ext4
-    dev: /dev/loop2
-  when: target == "cluster"
-  tags: [cluster_host]
+#- name: The ext4 filesystem is created on the consul barrier volume
+#  filesystem:
+#    fstype: ext4
+#    dev: /dev/loop2
+#  when: target == "cluster"
+#  tags: [cluster_host]
 
 - name: The loop devices that are no longer needed are removed
   command: "losetup -D"
@@ -193,7 +193,7 @@
   with_items:
     - ".registry-barrier-file"
     - ".logger-barrier-file"
-    - ".consul-barrier-file"
+#    - ".consul-barrier-file"
   when: target == "cluster"
   tags: [cluster_host]
 
@@ -271,15 +271,15 @@
   when: target == "cluster"
   tags: [cluster_host]
 
-- name: The consul data filesystem is mounted on boot
-  mount:
-    path: "{{ target_voltha_dir }}/consul/data"
-    src: "{{ barrier_fs_dir }}/.consul-barrier-file"
-    fstype: ext4
-    opts: loop
-    state: mounted
-  when: target == "cluster"
-  tags: [cluster_host]
+#- name: The consul data filesystem is mounted on boot
+#  mount:
+#    path: "{{ target_voltha_dir }}/consul/data"
+#    src: "{{ barrier_fs_dir }}/.consul-barrier-file"
+#    fstype: ext4
+#    opts: loop
+#    state: mounted
+#  when: target == "cluster"
+#  tags: [cluster_host]
 
 - name: The glusterfs service is started
   service:
