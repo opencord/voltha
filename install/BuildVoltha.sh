@@ -40,6 +40,7 @@ fi
 cp voltha/voltha.production.yml voltha/voltha.yml
 cp ofagent/ofagent.production.yml ofagent/ofagent.yml
 cp netconf/netconf.production.yml netconf/netconf.yml
+cp chameleon/chameleon.production.yml chameleon/chameleon.yml
 
 # Destroy the VM if it's running
 vagrant destroy voltha${uId}

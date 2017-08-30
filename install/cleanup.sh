@@ -20,3 +20,6 @@ git checkout install.cfg
 git checkout ../voltha/voltha.yml
 git checkout ../ofagent/ofagent.yml
 git checkout ../netconf/netconf.yml
+pushd /cord/component/chameleon
+git checkout chameleon.yml
+popd
