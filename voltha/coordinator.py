@@ -270,11 +270,14 @@ class Coordinator(object):
     def _assert_membership_record_valid(self):
         try:
             log.info('membership-record-before')
-            (_, record) = yield self._retry('GET',
-                                            self.membership_record_key,
-                                            wait='5s',
-                                            index=0
-                                            )
+            is_timeout, (_, record) = yield \
+                                        self.consul_get_with_timeout(
+                                                key=self.membership_record_key,
+                                                index=0,
+                                                timeout=5)
+            if is_timeout:
+                returnValue(False)
+
             log.info('membership-record-after', record=record)
             if record is None or \
                             'Session' not in record or \
