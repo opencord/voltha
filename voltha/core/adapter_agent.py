@@ -408,6 +408,12 @@ class AdapterAgent(object):
         ports = self.root_proxy.get('/devices/{}/ports'.format(device_id))
         return [p for p in ports if p.type == port_type]
 
+    def delete_port(self, device_id, port):
+        assert isinstance(port, Port)
+        # for referential integrity, add/augment references
+        self._del_peer_reference(device_id, port)
+        # Delete port
+        self._remove_node('/devices/{}/ports'.format(device_id), port.port_no)
 
     def disable_all_ports(self, device_id):
         """
@@ -438,6 +444,13 @@ class AdapterAgent(object):
         for port in ports:
             port.admin_state = AdminState.ENABLED
             port.oper_status = OperStatus.ACTIVE
+            self._make_up_to_date('/devices/{}/ports'.format(device_id),
+                                  port.port_no, port)
+
+    def update_operstatus_all_ports(self, device_id, oper_status):
+        ports = self.root_proxy.get('/devices/{}/ports'.format(device_id))
+        for port in ports:
+            port.oper_status = oper_status
             self._make_up_to_date('/devices/{}/ports'.format(device_id),
                                   port.port_no, port)
 
@@ -570,12 +583,15 @@ class AdapterAgent(object):
         self._remove_node('/logical_devices/{}/ports'.format(
             logical_device_id), port.id)
 
+    def delete_logical_port_by_id(self, logical_device_id, port_id):
+        self._remove_node('/logical_devices/{}/ports'.format(
+            logical_device_id), port_id)
+
     def update_logical_port(self, logical_device_id, port):
         assert isinstance(port, LogicalPort)
         self.log.debug('update-logical-port',
                        logical_device_id=logical_device_id,
                        port=port)
-
         self._make_up_to_date(
             '/logical_devices/{}/ports'.format(logical_device_id),
             port.id, port)
@@ -704,7 +720,7 @@ class AdapterAgent(object):
 
         for child_id in children_ids:
             device = self.get_device(child_id)
-            if oper_status:
+            if oper_status is not None:
                 device.oper_status = oper_status
             if connect_status:
                 device.connect_status = connect_status
