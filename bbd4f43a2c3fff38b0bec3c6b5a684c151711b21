@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "fa5d592f_ad4829cd",
+        "filename": "voltha/core/device_graph.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 97,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-08-31T12:59:40Z",
+      "side": 1,
+      "message": "Sorry for Typo:\nComments here that *we are avoiding path computation between NNI\u003c-\u003eNNI would improve readability",
+      "parentUuid": "fa5d592f_0d3a9536",
+      "revId": "bbd4f43a2c3fff38b0bec3c6b5a684c151711b21",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fa5d592f_ed3e2129",
         "filename": "voltha/core/device_graph.py",
         "patchSetId": 1
@@ -30,6 +48,24 @@
       "writtenOn": "2017-08-31T12:58:02Z",
       "side": 1,
       "message": "Comments here that are avoiding path computation between UNI\u003c-\u003eUNI would improve readability",
+      "revId": "bbd4f43a2c3fff38b0bec3c6b5a684c151711b21",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa5d592f_8d4565b5",
+        "filename": "voltha/core/device_graph.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 101,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-08-31T12:59:40Z",
+      "side": 1,
+      "message": "Sorry for Typo:\nComments here that *we are avoiding path computation between UNI\u003c-\u003eUNI would improve readability",
+      "parentUuid": "fa5d592f_ed3e2129",
       "revId": "bbd4f43a2c3fff38b0bec3c6b5a684c151711b21",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
