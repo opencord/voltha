@@ -71,6 +71,8 @@ message AlarmEventType {
 message AlarmEventCategory {
     enum AlarmEventCategory {
         PON = 0;
+        OLT = 1;
+        ONT = 2;
     }
 }
 
