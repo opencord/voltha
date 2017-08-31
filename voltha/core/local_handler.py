@@ -313,6 +313,7 @@ class LocalHandler(VolthaLocalServiceServicer):
         if device.admin_state != AdminState.PREPROVISIONED:
             device.admin_state = AdminState.PREPROVISIONED
             device.oper_status = OperStatus.UNKNOWN
+        device.vendor_id = device_type.vendor_id
 
         # add device to tree
         self.root.add('/devices', device)
