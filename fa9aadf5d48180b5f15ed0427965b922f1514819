@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fa5d592f_4d09ad94",
+        "filename": "voltha/core/xpon_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000090
+      },
+      "writtenOn": "2017-08-31T10:17:45Z",
+      "side": 1,
+      "message": "itest are missing for RW alloc_id \u0026 gemport for allocate, also need to check itest for RO incase operator do not provide input",
+      "revId": "fa9aadf5d48180b5f15ed0427965b922f1514819",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
