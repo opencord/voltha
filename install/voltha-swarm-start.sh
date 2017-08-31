@@ -3,7 +3,8 @@
 voltha_base_dir="/cord/incubator/voltha"
 hostName=`hostname`
 
-docker network create --driver overlay --subnet=172.29.19.0/24 --opt encrypted=true voltha_net
+docker network create --driver overlay --subnet=172.29.19.0/24 voltha_net
+#docker network create --driver overlay --subnet=172.29.19.0/24 --opt encrypted=true voltha_net
 docker stack deploy -c ${voltha_base_dir}/compose/docker-compose-kafka-cluster.yml kafka
 docker stack deploy -c ${voltha_base_dir}/compose/docker-compose-consul-cluster.yml consul
 echo "Waiting for consul to start"
