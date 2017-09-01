@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fa5d592f_10b06cf3",
+        "filename": "tests/itests/voltha/test_voltha_xpon.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 204,
+      "author": {
+        "id": 1000235
+      },
+      "writtenOn": "2017-09-01T02:25:00Z",
+      "side": 1,
+      "message": "Could you also delete the newly created Gemports, TConts? Else running the test for the second time will generate a failure case.",
+      "revId": "1e6c5f82084b44d301b65690c609872341fe8106",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
