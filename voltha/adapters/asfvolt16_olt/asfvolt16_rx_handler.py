@@ -26,6 +26,7 @@ from voltha.adapters.asfvolt16_olt.grpc_server import GrpcServer
 
 
 class Asfvolt16RxHandler(object):
+
     def __init__(self, adapter, port, log):
         self.adapter = adapter
         self.adapter_agent = adapter.adapter_agent

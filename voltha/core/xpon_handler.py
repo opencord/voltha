@@ -87,7 +87,7 @@ class XponHandler(object):
                 design evolution, for a better approach in future.
             '''
             self.cg_dict[cg.name] = {'alloc_id': IndexPool(16383, 1024)}
-            self.cg_dict[cg.name].update({'gemport_id': IndexPool(64500, 1021)})
+            self.cg_dict[cg.name].update({'gemport_id': IndexPool(64500, 1024)})
         self.cg_pool.pre_allocate(cg_tup)
 
     def reinitialize_tcont_and_gemport_ids(self):
@@ -128,7 +128,7 @@ class XponHandler(object):
             request.cg_index = _id
             self.root.add('/channel_groups', request)
             self.cg_dict[request.name] = {'alloc_id': IndexPool(16383, 1024)}
-            self.cg_dict[request.name].update({'gemport_id': IndexPool(64500, 1021)})
+            self.cg_dict[request.name].update({'gemport_id': IndexPool(64500, 1024)})
 
             return Empty()
         except AssertionError, e:

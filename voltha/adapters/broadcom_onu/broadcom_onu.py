@@ -37,6 +37,8 @@ from voltha.protos.health_pb2 import HealthStatus
 from voltha.protos.logical_device_pb2 import LogicalPort
 from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, OFPPF_1GB_FD
 from voltha.protos.openflow_13_pb2 import OFPXMC_OPENFLOW_BASIC, ofp_port
+from voltha.protos.bbf_fiber_base_pb2 import VEnetConfig
+
 from common.frameio.frameio import hexify
 from voltha.extensions.omci.omci import *
 
@@ -204,7 +206,8 @@ class BroadcomOnuAdapter(object):
         raise NotImplementedError()
 
     def create_tcont(self, device, tcont_data, traffic_descriptor_data):
-        raise NotImplementedError()
+        log.info('Not implemented Yet', device_id=device.id)
+        #raise NotImplementedError()
 
     def update_tcont(self, device, tcont_data, traffic_descriptor_data):
         raise NotImplementedError()
@@ -213,7 +216,8 @@ class BroadcomOnuAdapter(object):
         raise NotImplementedError()
 
     def create_gemport(self, device, data):
-        raise NotImplementedError()
+        log.info('Not implemented Yet', device_id=device.id)
+        #raise NotImplementedError()
 
     def update_gemport(self, device, data):
         raise NotImplementedError()
@@ -1308,13 +1312,44 @@ class BroadcomOnuHandler(object):
         yield self.wait_for_response()
 
     def create_interface(self, data):
-        self.log.info('Not Implemented yet')
-        return;
+        if isinstance(data, VEnetConfig):
+            parent_port_num = None
+            onu_device = self.adapter_agent.get_device(self.device_id)
+            ports = self.adapter_agent.get_ports(onu_device.parent_id, Port.ETHERNET_UNI)
+            parent_port_num = None
+            for port in ports:
+                if port.label == data.interface.name:
+                    parent_port_num = port.port_no
+                    break
+
+            if not parent_port_num:
+                self.log.error("matching-parent-uni-port-num-not-found")
+                return
+
+            onu_ports = self.adapter_agent.get_ports(self.device_id, Port.PON_ONU)
+            if onu_ports:
+                # To-Do :
+                # Assumed only one PON port and UNI port per ONU.
+                pon_port = onu_ports[0]
+            else:
+                self.log.error("No-Pon-port-configured-yet")
+                return
+
+            self.adapter_agent.delete_port_reference_from_parent(self.device_id,
+                                                                 pon_port)
+
+            pon_port.peers[0].device_id = onu_device.parent_id
+            pon_port.peers[0].port_no = parent_port_num
+            self.adapter_agent.add_port_reference_to_parent(self.device_id,
+                                                            pon_port)
+        else:
+            self.log.info('Not handled Yet')
+        return
 
     def update_interface(self, data):
         self.log.info('Not Implemented yet')
-        return;
+        return
 
     def remove_interface(self, data):
         self.log.info('Not Implemented yet')
-        return;
+        return

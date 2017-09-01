@@ -478,6 +478,10 @@ class AdapterAgent(object):
         self.log.info('delete-port-reference', device_id=device_id, port=port)
         self._del_peer_reference(device_id, port)
 
+        # update child port details
+        self._make_up_to_date('/devices/{}/ports'.format(device_id),
+                              port.port_no, port)
+
     def add_port_reference_to_parent(self, device_id, port):
         """
         Add the port reference to the parent device
@@ -488,6 +492,9 @@ class AdapterAgent(object):
         assert isinstance(port, Port)
         self.log.info('add-port-reference', device_id=device_id, port=port)
         self._add_peer_reference(device_id, port)
+        # update child port details
+        self._make_up_to_date('/devices/{}/ports'.format(device_id),
+                              port.port_no, port)
 
     def _find_first_available_id(self):
         logical_devices = self.root_proxy.get('/logical_devices')
