@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fa5d592f_53bf0ed1",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 171,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-09-01T22:50:00Z",
+      "side": 1,
+      "message": "Reword this comment:\n\nBAL accepts flow_id up to 16384.\n\nMore accurately this is BAL parameter and not to do anything under control of Edge-core or the hardware.",
+      "revId": "6c9255e7cdea77db33905bfc33e25dc0d7dbaa93",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
