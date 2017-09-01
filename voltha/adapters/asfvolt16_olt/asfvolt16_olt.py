@@ -43,3 +43,45 @@ class Asfvolt16Adapter(OltAdapter):
 
     def stop(self):
         self.rx_handler.stop()
+
+    def create_tcont(self, device, tcont_data, traffic_descriptor_data):
+        log.info('create-tcont', device_id=device.id)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.create_tcont(tcont_data, traffic_descriptor_data)
+
+    def update_tcont(self, device, tcont_data, traffic_descriptor_data):
+        log.info('update-tcont', device_id=device.id)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.update_tcont(tcont_data, traffic_descriptor_data)
+
+    def remove_tcont(self, device, tcont_data, traffic_descriptor_data):
+        log.info('remove-tcont', device_id=device.id)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.remove_tcont(tcont_data, traffic_descriptor_data)
+
+    def create_gemport(self, device, data):
+        log.info('create-gemport', device_id=device.id)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.create_gemport(data)
+
+    def update_gemport(self, device, data):
+        log.info('update-gemport', device_id=device.id)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.update_gemport(data)
+
+    def remove_gemport(self, device, data):
+        log.info('remove-gemport', device_id=device.id)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.remove_gemport(data)
