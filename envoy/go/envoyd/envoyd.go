@@ -267,12 +267,18 @@ func (ec * EnvoyControl) startEnvoy() {
 // the targetfile substituting 
 func (ec * EnvoyControl) updateEnvoyConfig(ecv * EnvoyConfigVars) (err error) {
 	var firstRun bool = true
+	var firstRun2 bool = true
 	f := func() (bool) {
 		var rtrn bool = firstRun
 		firstRun = false
 		return rtrn
 	}
-	var funcs = template.FuncMap{"isFirst": f}
+	g := func() (bool) {
+		var rtrn bool = firstRun2
+		firstRun2 = false
+		return rtrn
+	}
+	var funcs = template.FuncMap{"isFirst": f, "isFirst2": g}
 	// Slurp up the template file.
 	tplt, err := ioutil.ReadFile(ec.envoyConfigTemplate)
 	if err != nil {
@@ -430,6 +436,7 @@ func (ec * EnvoyControl) runMonitorEnvoy() {
 	for {
 		qo.WaitIndex = meta.LastIndex
 		qo.RequireConsistent = true
+		//qo.AllowStale = true
 		for {
 			if qo.WaitIndex != meta.LastIndex {
 				break

@@ -149,9 +149,15 @@
         "lb_type": "round_robin",
 	"features": "http2",
         "hosts": [
-          {
-            "url": "tcp://{{- .VolthaVip }}"
-          }
+	    {{block "viplist" .VolthaRR}}
+	        {{- range .}}
+		    {{- if isFirst2}}
+	                {{- printf "{\"url\": \"tcp://%s\"}" . }}
+		    {{- else }}
+	                {{- printf ",{\"url\": \"tcp://%s\"}" . }}
+		    {{- end }}
+	        {{- end}}
+	    {{- end}}
         ]
       },
       {
