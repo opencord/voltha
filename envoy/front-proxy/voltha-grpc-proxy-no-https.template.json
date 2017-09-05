@@ -32,6 +32,11 @@
                     },
                     {
                       "timeout_ms": 0,
+		      "prefix": "/voltha.HealthService",
+                      "cluster": "voltha-grpc"
+                    },
+                    {
+                      "timeout_ms": 0,
 		      "prefix": "/voltha.",
                       "cluster": "voltha-grpc"
                     },
@@ -50,12 +55,12 @@
                 "name": "grpc_json_transcoder",
                 "config": {
 		  "proto_descriptor": "/envoy/proto.pb",
-		  "services": ["voltha.VolthaGlobalService"],
+		  "services": ["voltha.VolthaGlobalService","voltha.HealthService","schema.SchemaService"],
 		  "print_options": {
                     "add_whitespace": false,
-                    "always_print_primitive_fields": false,
+                    "always_print_primitive_fields": true,
 	            "always_print_enums_as_ints": false,
-		    "preserve_proto_field_names": false
+		    "preserve_proto_field_names": true
 
 		  }
 		}
@@ -98,6 +103,11 @@
                     {
                       "timeout_ms": 0,
 		      "prefix": "/voltha.VolthaGlobalService",
+                      "cluster": "voltha-grpc"
+                    },
+                    {
+                      "timeout_ms": 0,
+		      "prefix": "/voltha.HealthService",
                       "cluster": "voltha-grpc"
                     },
                     {
