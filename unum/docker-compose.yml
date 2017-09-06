@@ -1,0 +1,41 @@
+version: '3'
+services:
+  cluster_manager:
+    image: unum:latest
+    networks:
+      - control_net
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+    environment:
+      PERIOD: "10s"
+      LOG_LEVEL: "debug"
+      LOG_FORMAT: "text"
+      ORCHESTRATION: "swarm://"
+      LABELS: "org.onosproject.cluster:true"
+      NETWORK: "org.onosproject.cluster:true"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  controller:
+    image: cord/onos:latest
+    depends_on:
+      - cluster_manager
+    networks:
+      - control_net
+    ports:
+      - 8101:8101
+    deploy:
+      replicas: 3
+      labels:
+        org.onosproject.cluster: "true"
+    environment:
+      EXTRA_JAVA_OPTS: "-Donos.cluster.metadata.uri=http://cluster_manager:5411/config/"
+
+networks:
+  control_net:
+    driver: overlay
+    labels:
+      org.onosproject.cluster: "true"
