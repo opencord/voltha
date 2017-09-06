@@ -19,6 +19,23 @@
     },
     {
       "key": {
+        "uuid": "fa5d592f_79e9d319",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1338,
+      "author": {
+        "id": 1000074
+      },
+      "writtenOn": "2017-09-06T13:31:30Z",
+      "side": 1,
+      "message": "Why are you deleting and re-adding the pon_port from the parent?",
+      "revId": "6c9255e7cdea77db33905bfc33e25dc0d7dbaa93",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fa5d592f_f9402337",
         "filename": "voltha/core/xpon_handler.py",
         "patchSetId": 1
