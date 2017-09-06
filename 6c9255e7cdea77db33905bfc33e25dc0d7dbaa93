@@ -113,6 +113,30 @@
     },
     {
       "key": {
+        "uuid": "fa5d592f_99ba4709",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 482,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-09-06T14:32:46Z",
+      "side": 1,
+      "message": "Here port is not deleted. Any changes to port details are updated.",
+      "parentUuid": "fa5d592f_f9c38388",
+      "range": {
+        "startLine": 481,
+        "startChar": 0,
+        "endLine": 482,
+        "endChar": 49
+      },
+      "revId": "6c9255e7cdea77db33905bfc33e25dc0d7dbaa93",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fa5d592f_d9c0bf7e",
         "filename": "voltha/core/adapter_agent.py",
         "patchSetId": 1
@@ -124,6 +148,30 @@
       "writtenOn": "2017-09-06T14:24:39Z",
       "side": 1,
       "message": "Why do we need this change? is it to merge add port \u0026 peer port reference API in single API?",
+      "range": {
+        "startLine": 494,
+        "startChar": 0,
+        "endLine": 496,
+        "endChar": 49
+      },
+      "revId": "6c9255e7cdea77db33905bfc33e25dc0d7dbaa93",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa5d592f_793793b1",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 496,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-09-06T14:32:46Z",
+      "side": 1,
+      "message": "After adding a peer port, updating the its details in data base.",
+      "parentUuid": "fa5d592f_d9c0bf7e",
       "range": {
         "startLine": 494,
         "startChar": 0,
