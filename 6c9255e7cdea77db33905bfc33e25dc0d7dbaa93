@@ -255,6 +255,30 @@
     },
     {
       "key": {
+        "uuid": "fa5d592f_f91f0308",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 496,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-09-06T16:06:32Z",
+      "side": 1,
+      "message": "_add_peer_reference updates the db of parent port to add child port as peer.\nThe same way the peer port info in the child port is also updated in db with this change.",
+      "parentUuid": "fa5d592f_19465724",
+      "range": {
+        "startLine": 494,
+        "startChar": 0,
+        "endLine": 496,
+        "endChar": 49
+      },
+      "revId": "6c9255e7cdea77db33905bfc33e25dc0d7dbaa93",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fa5d592f_59d5ef41",
         "filename": "voltha/core/xpon_handler.py",
         "patchSetId": 1
