@@ -63,6 +63,31 @@
     - deb_files
   tags: [cluster-host]
 
+- name: Required configuration scripts are copied
+  synchronize:
+    src: "/home/vinstall/{{ item }}"
+    dest: "{{ target_voltha_home }}"
+    archive: no
+    owner: no
+    perms: no
+    recursive: no
+    links: yes
+  with_items:
+    - sort_packages.sh
+    - sort_packages.py
+    - install_packages.sh
+  tags: [cluster-host]
+
+- name: The installer scripts are made executable
+  file:
+    path: "{{target_voltha_home }}/{{ item }}"
+    mode: 0744
+  with_items:
+    - sort_packages.sh
+    - sort_packages.py
+    - install_packages.sh
+  tags: [installer]
+
 - name: apt lists are up-to-date
   synchronize:
     src: "/var/lib/apt/lists"
@@ -102,8 +127,8 @@
   tags: [cluster_host]
 
 - name: Dependent software is installed (this can take about 10 Min, DONT'T PANIC, go for coffee instead)
-  command: dpkg -R -i "{{ target_voltha_home }}/deb_files"
-#  ignore_errors: true
+  command: "{{ target_voltha_home }}/install_packages.sh"
+#  command: dpkg -R -i "{{ target_voltha_home }}/deb_files"
   when: target == "cluster"
   tags: [cluster_host]
 
@@ -120,14 +145,20 @@
   when: target == "cluster"
   tags: [cluster_host]
 
-- name: Configuration directories are deleted
+# To debug package installation, comment this out so review temporary interim
+# files.
+- name: Configuration directories and files are deleted
   file:
     path: "{{ target_voltha_home }}/{{ item }}"
     state: absent
   with_items:
     - docker-py
     - netifaces
-    - deb_files
+    - sort_packages.sh
+    - sort_packages.py
+    - install_packages.sh
+    - deb_files1
+    - deb_files2
   when: target == "cluster"
   tags: [cluster_host]
 

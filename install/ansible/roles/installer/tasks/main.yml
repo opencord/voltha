@@ -26,6 +26,9 @@
     - install/voltha-swarm-stop.sh
     - install/get-logs.sh
     - install/get-host-logs.sh
+    - install/sort_packages.sh
+    - install/sort_packages.py
+    - install/install_packages.sh
     - install/ansible
     - compose
     - consul_config/basic.json
@@ -43,10 +46,15 @@
     dest: /home/vinstall
   when: file.stat.exists
 
-- name: The installer is made executable
+- name: The installer scripts are made executable
   file:
-    path: /home/vinstall/installer.sh
+    path: "/home/vinstall/{{ item }}"
     mode: 0744
+  with_items:
+    - installer.sh
+    - sort_packages.sh
+    - sort_packages.py
+    - install_packages.sh
   tags: [installer]
 
 - name: Python docker-py {{ docker_py_version }} package source is available
