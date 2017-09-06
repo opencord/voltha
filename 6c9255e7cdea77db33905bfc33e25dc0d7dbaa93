@@ -16,6 +16,23 @@
       "revId": "6c9255e7cdea77db33905bfc33e25dc0d7dbaa93",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa5d592f_f9402337",
+        "filename": "voltha/core/xpon_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 90,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-09-06T03:23:32Z",
+      "side": 1,
+      "message": "https://gerrit.opencord.org/#/c/5387/ has already +1 this change.  Niren please +1 here if you agree.",
+      "revId": "6c9255e7cdea77db33905bfc33e25dc0d7dbaa93",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
