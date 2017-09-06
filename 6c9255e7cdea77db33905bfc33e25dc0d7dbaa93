@@ -54,6 +54,24 @@
     },
     {
       "key": {
+        "uuid": "fa5d592f_99e36733",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1338,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-09-06T14:11:39Z",
+      "side": 1,
+      "message": "We are doing this change, only if the VENET ports are available at OLT. if not we are not doing any thing. In that way making sure that it works with maple_olt.py too.",
+      "parentUuid": "fa5d592f_d9d9df84",
+      "revId": "6c9255e7cdea77db33905bfc33e25dc0d7dbaa93",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fa5d592f_f9402337",
         "filename": "voltha/core/xpon_handler.py",
         "patchSetId": 1
