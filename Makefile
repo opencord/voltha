@@ -22,7 +22,7 @@ include setup.mk
 
 VENVDIR := venv-$(shell uname -s | tr '[:upper:]' '[:lower:]')
 
-.PHONY: $(DIRS) $(DIRS_CLEAN) $(DIRS_FLAKE8) flake8 docker-base voltha chameleon ofagent podder netconf shovel onos dashd vcli portainer grafana nginx consul registrator envoy golang envoyd tools opennms logstash
+.PHONY: $(DIRS) $(DIRS_CLEAN) $(DIRS_FLAKE8) flake8 docker-base voltha chameleon ofagent podder netconf shovel onos dashd vcli portainer grafana nginx consul registrator envoy golang envoyd tools opennms logstash unum
 
 # This should to be the first and default target in this Makefile
 help:
@@ -57,6 +57,7 @@ help:
 	@echo "grafana      : Build the grafana docker container"
 	@echo "nginx        : Build the nginx docker container"
 	@echo "consul       : Build the consul docker container"
+	@echo "unum         : Build the unum docker container"
 	@echo
 
 ## New directories can be added here
@@ -97,11 +98,11 @@ production: protos prod-containers
 
 jenkins : protos jenkins-containers
 
-jenkins-containers: docker-base voltha chameleon ofagent netconf consul registrator
+jenkins-containers: docker-base voltha chameleon ofagent netconf consul registrator unum
 
-prod-containers: docker-base voltha chameleon ofagent netconf shovel dashd vcli grafana consul tools golang envoyd envoy fluentd
+prod-containers: docker-base voltha chameleon ofagent netconf shovel dashd vcli grafana consul tools golang envoyd envoy fluentd unum
 
-containers: docker-base voltha chameleon ofagent podder netconf shovel onos tester config-push dashd vcli portainer grafana nginx consul registrator tools golang envoyd envoy fluentd
+containers: docker-base voltha chameleon ofagent podder netconf shovel onos tester config-push dashd vcli portainer grafana nginx consul registrator tools golang envoyd envoy fluentd unum
 
 docker-base:
 	docker build -t cord/voltha-base -f docker/Dockerfile.base .
@@ -172,6 +173,9 @@ grafana:
 
 onos:
 	docker build -t cord/onos -f docker/Dockerfile.onos docker
+
+unum:
+	docker build -t voltha/unum -f unum/Dockerfile ./unum
 
 tester:
 	docker build -t cord/tester -f docker/Dockerfile.tester docker
