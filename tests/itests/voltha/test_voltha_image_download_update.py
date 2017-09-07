@@ -13,7 +13,7 @@ LOCAL_CONSUL = "localhost:8500"
 
 class VolthaImageDownloadUpdate(RestBase):
     # Retrieve details on the REST entry point
-    rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'chameleon-rest')
+    rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'envoy-8443')
 
     # Construct the base_url
     base_url = 'https://' + rest_endpoint
@@ -106,7 +106,7 @@ class VolthaImageDownloadUpdate(RestBase):
         res = self.get_download_image(name)
         self.assertEqual(res['state'], 'DOWNLOAD_REQUESTED')
         self.assertEqual(res['image_state'], 'IMAGE_UNKNOWN')
-        path = '/api/v1/local/devices/{}'.format(self.device_id)
+        path = '/api/v1/devices/{}'.format(self.device_id)
         device = self.get(path)
         self.assertEqual(device['admin_state'], 'DOWNLOADING_IMAGE')
 
@@ -126,7 +126,7 @@ class VolthaImageDownloadUpdate(RestBase):
         res = self.get_download_image(name)
         self.assertEqual(res['state'], 'DOWNLOAD_SUCCEEDED')
         self.assertEqual(res['image_state'], 'IMAGE_UNKNOWN')
-        path = '/api/v1/local/devices/{}'.format(self.device_id)
+        path = '/api/v1/devices/{}'.format(self.device_id)
         device = self.get(path)
         self.assertEqual(device['admin_state'], 'ENABLED')
 
@@ -169,27 +169,27 @@ class VolthaImageDownloadUpdate(RestBase):
         device = Device(
             type='simulated_olt',
         )
-        device = self.post('/api/v1/local/devices', MessageToDict(device),
+        device = self.post('/api/v1/devices', MessageToDict(device),
                            expected_code=200)
         return device
 
     # Active the simulated device.
     def activate_device(self, device_id):
-        path = '/api/v1/local/devices/{}'.format(device_id)
+        path = '/api/v1/devices/{}'.format(device_id)
         self.post(path + '/enable', expected_code=200)
         device = self.get(path)
         self.assertEqual(device['admin_state'], 'ENABLED')
 
     # Disable the simulated device.
     def disable_device(self, device_id):
-        path = '/api/v1/local/devices/{}'.format(device_id)
+        path = '/api/v1/devices/{}'.format(device_id)
         self.post(path + '/disable', expected_code=200)
         device = self.get(path)
         self.assertEqual(device['admin_state'], 'DISABLED')
 
     # Delete the simulated device
     def delete_device(self, device_id):
-        path = '/api/v1/local/devices/{}'.format(device_id)
+        path = '/api/v1/devices/{}'.format(device_id)
         self.delete(path + '/delete', expected_code=200)
 
 if __name__ == '__main__':

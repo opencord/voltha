@@ -187,20 +187,24 @@ scenario = [
 id = 3
 LOCAL_CONSUL = "localhost:8500"
 # Retrieve details of the REST entry point
-rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'chameleon-rest')
+rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'envoy-8443')
 # Construct the base_url
-base_url = 'https://' + rest_endpoint
+BASE_URL = 'https://' + rest_endpoint
 
 class GlobalPreChecks(RestBase):
-    def test_000_get_root(self):
-        res = self.get('/#!/', expected_content_type='text/html')
-        self.assertGreaterEqual(res.find('swagger'), 0)
+    base_url = BASE_URL
+
+    # def test_000_get_root(self):
+    #     res = self.get('/#!/', expected_content_type='text/html')
+    #     self.assertGreaterEqual(res.find('swagger'), 0)
 
     def test_001_get_health(self):
         res = self.get('/health')
         self.assertEqual(res['state'], 'HEALTHY')
 
 class TestXPon(RestBase):
+    base_url = BASE_URL
+
     def test_002_setup_device(self):
         global device
         device = self.add_device()

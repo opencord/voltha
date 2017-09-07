@@ -22,14 +22,14 @@ class GlobalRestCalls(RestBase):
         self.fail('Timed out while waiting for condition: {}'.format(msg))
 
     # Retrieve details of the REST entry point
-    rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'chameleon-rest')
+    rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'envoy-8443')
 
     # Construct the base_url
     base_url = 'https://' + rest_endpoint
     
     def test_01_global_rest_apis(self):
         # ~~~~~~~~~~~~~~~~~~~ GLOBAL TOP-LEVEL SERVICES~ ~~~~~~~~~~~~~~~~~~~~~~
-        self._get_root()
+        # self._get_root()
         self._get_schema()
         self._get_health()
         # ~~~~~~~~~~~~~~~~~~~ TOP LEVEL VOLTHA OPERATIONS ~~~~~~~~~~~~~~~~~~~~~
@@ -277,10 +277,11 @@ class GlobalRestCalls(RestBase):
         # # TODO test the result
 
 
+@skip("Use of local rest calls is deprecated.")
 class TestLocalRestCalls(RestBase):
 
     # Retrieve details of the REST entry point
-    rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'chameleon-rest')
+    rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'envoy-8443')
 
     # Construct the base_url
     base_url = 'https://' + rest_endpoint
@@ -369,7 +370,7 @@ class TestLocalRestCalls(RestBase):
 
         # add some flows
         req = ofp.FlowGroupTableUpdate(
-            id='simulated1',
+            id=id,
             group_mod=ofp.ofp_group_mod(
                 command=ofp.OFPGC_ADD,
                 type=ofp.OFPGT_ALL,
@@ -440,11 +441,10 @@ class TestLocalRestCalls(RestBase):
         # res = self.get('/api/v1/local/device_groups/1')
         # # TODO test the result
 
-
 class TestGlobalNegativeCases(RestBase):
 
     # Retrieve details of the REST entry point
-    rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'chameleon-rest')
+    rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'envoy-8443')
 
     # Construct the base_url
     base_url = 'https://' + rest_endpoint
@@ -461,13 +461,13 @@ class TestGlobalNegativeCases(RestBase):
         self.get('/some_invalid_url', expected_code=404)
 
     def _instance_not_found(self):
-        self.get('/api/v1/instances/nay', expected_code=404)
+        self.get('/api/v1/instances/nay', expected_code=200, grpc_status=5)
 
     def _logical_device_not_found(self):
-        self.get('/api/v1/logical_devices/nay', expected_code=404)
+        self.get('/api/v1/logical_devices/nay', expected_code=200, grpc_status=5)
 
     def _device_not_found(self):
-        self.get('/api/v1/devices/nay', expected_code=404)
+        self.get('/api/v1/devices/nay', expected_code=200, grpc_status=5)
 
     # TODO add more negative cases
 

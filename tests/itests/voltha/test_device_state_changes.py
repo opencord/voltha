@@ -24,7 +24,7 @@ class TestDeviceStateChangeSequence(RestBase):
     """
 
     # Retrieve details of the REST entry point
-    rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'chameleon-rest')
+    rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'envoy-8443')
 
     # Construct the base_url
     base_url = 'https://' + rest_endpoint
@@ -257,7 +257,7 @@ class TestDeviceStateChangeSequence(RestBase):
             # if eth_type == 0x888e => send to controller
             _in_port = lport_map[onu_id]['ofp_port']['port_no']
             req = ofp.FlowTableUpdate(
-                id='ponsim1',
+                id=ldev_id,
                 flow_mod=mk_simple_flow_mod(
                     match_fields=[
                         in_port(_in_port),
@@ -319,8 +319,8 @@ class TestDeviceStateChangeSequence(RestBase):
 
     def delete_device(self, id):
         path = '/api/v1/devices/{}'.format(id)
-        self.delete(path + '/delete', expected_code=200)
-        device = self.get(path, expected_code=404)
+        self.delete(path + '/delete', expected_code=200, grpc_status=0)
+        device = self.get(path, expected_code=200, grpc_status=5)
         self.assertIsNone(device)
 
     def assert_no_device_present(self):
@@ -335,16 +335,16 @@ class TestDeviceStateChangeSequence(RestBase):
 
     def delete_device_incorrect_state(self, id):
         path = '/api/v1/devices/{}'.format(id)
-        self.delete(path + '/delete', expected_code=400)
+        self.delete(path + '/delete', expected_code=200, grpc_status=3)
 
     def enable_unknown_device(self, id):
         path = '/api/v1/devices/{}'.format(id)
-        self.post(path + '/enable', expected_code=404)
+        self.post(path + '/enable', expected_code=200, grpc_status=5)
 
     def disable_unknown_device(self, id):
         path = '/api/v1/devices/{}'.format(id)
-        self.post(path + '/disable', expected_code=404)
+        self.post(path + '/disable', expected_code=200, grpc_status=5)
 
     def delete_unknown_device(self, id):
         path = '/api/v1/devices/{}'.format(id)
-        self.delete(path + '/delete', expected_code=404)
+        self.delete(path + '/delete', expected_code=200, grpc_status=5)
