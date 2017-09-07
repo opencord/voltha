@@ -12,7 +12,7 @@ WORKDIR ${DOWNLOAD_ROOT}
 ADD config/dependencies.xml .
 RUN mvn dependency:copy -Dmdep.useBaseVersion=true -DoutputDirectory=${DOWNLOAD_ROOT} -Dsilent=true -f dependencies.xml
 
-FROM onosproject/onos:1.10.3 as install
+FROM onosproject/onos:1.10.6 as install
 MAINTAINER Open Networking Foundation <info@opennetworking.org>
 
 # The ENV settings must be replicated below as they are not shared between stages
@@ -33,7 +33,7 @@ RUN chmod 755 ./app-install.sh
 RUN ./app-install.sh
 
 # Create the final image coping over the installed applications from the build stage
-FROM onosproject/onos:1.10.3
+FROM onosproject/onos:1.10.6
 MAINTAINER Open Networking Foundation <info@opennetworking.org>
 
 # Install Key Store Options
