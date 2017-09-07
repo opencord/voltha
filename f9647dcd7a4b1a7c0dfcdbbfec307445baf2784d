@@ -45,6 +45,30 @@
       "revId": "f9647dcd7a4b1a7c0dfcdbbfec307445baf2784d",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa5d592f_b1e3df32",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 776,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-09-07T23:59:55Z",
+      "side": 1,
+      "message": "This may be necessary if the adapter is not using the xpon agent.  Lydia can you confirm which voltha commit your adapter integration is using?",
+      "parentUuid": "fa5d592f_b1199f7b",
+      "range": {
+        "startLine": 775,
+        "startChar": 4,
+        "endLine": 776,
+        "endChar": 47
+      },
+      "revId": "f9647dcd7a4b1a7c0dfcdbbfec307445baf2784d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
