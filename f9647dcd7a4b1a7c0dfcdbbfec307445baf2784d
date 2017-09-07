@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fa5d592f_6436c605",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 758,
+      "author": {
+        "id": 1000090
+      },
+      "writtenOn": "2017-09-07T23:13:38Z",
+      "side": 1,
+      "message": "Adapters should not be allow to change device admin state, it is operator controlled NB config",
+      "range": {
+        "startLine": 758,
+        "startChar": 28,
+        "endLine": 758,
+        "endChar": 46
+      },
+      "revId": "f9647dcd7a4b1a7c0dfcdbbfec307445baf2784d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa5d592f_b1199f7b",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 776,
+      "author": {
+        "id": 1000090
+      },
+      "writtenOn": "2017-09-07T23:13:38Z",
+      "side": 1,
+      "message": "Adapters should not remove any device regarding ONU device it xpon agent takes care of creating \u0026 deleting onu devices. Local_handler together with device agent takes care creating \u0026 deleting OLT device.\n\nCan you explain scenario that requires such action from adapters?",
+      "range": {
+        "startLine": 775,
+        "startChar": 4,
+        "endLine": 776,
+        "endChar": 47
+      },
+      "revId": "f9647dcd7a4b1a7c0dfcdbbfec307445baf2784d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
