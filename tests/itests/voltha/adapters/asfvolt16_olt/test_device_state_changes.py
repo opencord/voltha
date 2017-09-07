@@ -21,7 +21,7 @@ class TestDeviceStateChangeSequence(RestBase):
     """
 
     # Retrieve details of the REST entry point
-    rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'chameleon-rest')
+    rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'envoy-8443')
 
     # Construct the base_url
     base_url = 'https://' + rest_endpoint
@@ -76,7 +76,7 @@ class TestDeviceStateChangeSequence(RestBase):
             host_and_port='172.17.0.1:50060'
         )
         device = self.post('/api/v1/devices', MessageToDict(device),
-                           expected_code=200)
+                           expected_http_code=200)
         return device['id']
 
     def verify_device_preprovisioned_state(self, olt_id):
@@ -90,7 +90,7 @@ class TestDeviceStateChangeSequence(RestBase):
 
     def enable_device(self, olt_id):
         path = '/api/v1/devices/{}'.format(olt_id)
-        self.post(path + '/enable', expected_code=200)
+        self.post(path + '/enable', expected_http_code=200)
         device = self.get(path)
         self.assertEqual(device['admin_state'], 'ENABLED')
 
@@ -139,7 +139,7 @@ class TestDeviceStateChangeSequence(RestBase):
         self.assertEqual(logical_port['ofp_port']['name'], 'nni')
         self.assertEqual(logical_port['ofp_port']['port_no'], 0)
         self.assertEqual(logical_port['device_id'], device['id'])
-        self.assertEqual(logical_port['device_port_no'], 1)
+        self.assertEqual(logical_port['device_port_no'], 50)
         return logical_device['id']
 
     def verify_logical_ports(self, ldev_id, num_ports):
@@ -157,7 +157,7 @@ class TestDeviceStateChangeSequence(RestBase):
 
     def disable_device(self, id):
         path = '/api/v1/devices/{}'.format(id)
-        self.post(path + '/disable', expected_code=200)
+        self.post(path + '/disable', expected_http_code=200)
         device = self.get(path)
         self.assertEqual(device['admin_state'], 'DISABLED')
 
@@ -182,8 +182,8 @@ class TestDeviceStateChangeSequence(RestBase):
 
     def delete_device(self, id):
         path = '/api/v1/devices/{}'.format(id)
-        self.delete(path + '/delete', expected_code=200)
-        device = self.get(path, expected_code=404)
+        self.delete(path + '/delete', expected_http_code=200)
+        device = self.get(path, expected_http_code=200, grpc_status=5)
         self.assertIsNone(device)
 
     def assert_no_device_present(self):

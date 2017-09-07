@@ -76,7 +76,7 @@ class SelfSignedSSLCertAuthFail(RestBase):
                        timeout=10)
         self.wait_till('chameleon services HEALTHY',
                        lambda: verify_all_services_healthy(
-                           LOCAL_CONSUL,service_name='chameleon-rest') == True,
+                           LOCAL_CONSUL,service_name='envoy-8443') == True,
                        timeout=10)
 
         # Chameleon takes some time to compile the protos and make them
@@ -85,7 +85,7 @@ class SelfSignedSSLCertAuthFail(RestBase):
 
     def set_rest_endpoint(self):
         self.rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL,
-                                                      'chameleon-rest')
+                                                      'envoy-8443')
         self.base_url = 'https://' + self.rest_endpoint
 
     @raises(Exception)

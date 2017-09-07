@@ -1,6 +1,9 @@
 version: '2'
 services:
 
+  #
+  # Single-node consul agent
+  #
   consul:
     image: consul:latest
     command: agent -server -bootstrap -client 0.0.0.0 -ui
@@ -30,6 +33,19 @@ services:
     - consul
     volumes:
     - "/var/run/docker.sock:/tmp/docker.sock"
+
+  #
+  # Fluentd log server
+  #
+  fluentd:
+    image: fluent/fluentd
+    ports:
+    - "24224:24224"
+    volumes:
+    - "/tmp/fluentd:/fluentd/log"
+    environment:
+      SERVICE_24224_NAME: "fluentd-intake"
+
   #
   # Voltha server instance(s)
   #
@@ -39,22 +55,77 @@ services:
       "/voltha/voltha/main.py",
       "-v",
       "--consul=${DOCKER_HOST_IP}:8500",
+      "--fluentd=fluentd:24224",
       "--rest-port=8880",
-      "--grpc-port=50555",
+      "--grpc-port=50556",
+      "--kafka=@kafka",
+      "--instance-id-is-container-name",
+      "--interface=eth1",
       "--backend=consul",
       "-v"
     ]
-
     ports:
-    - 8880:8880
-    - 50055:50555
+    - 8880
+    - 50556
     - 18880
+    - "60001:60001"
     depends_on:
     - consul
     links:
     - consul
+    - fluentd
+    environment:
+      SERVICE_8880_NAME: "voltha-health"
+      SERVICE_8880_CHECK_HTTP: "/health"
+      SERVICE_8880_CHECK_INTERVAL: "5s"
+      SERVICE_8880_CHECK_TIMEOUT: "1s"
+      SERVICE_18880_NAME: "voltha-sim-rest"
+      SERVICE_HOST_IP: "${DOCKER_HOST_IP}"
     volumes:
     - "/var/run/docker.sock:/tmp/docker.sock"
+    networks:
+    - default
+    - ponmgmt
+
+  envoy:
+    image: voltha/envoy
+    entrypoint:
+      - /usr/local/bin/envoyd
+      - -envoy-cfg-template
+      - "/envoy/voltha-grpc-proxy.template.json"
+      - -envoy-config
+      - "/envoy/voltha-grpc-proxy.json"
+    ports:
+      - "50555:50555"
+      - "8882:8882"
+      - "8443:8443"
+      - "8001:8001"
+    environment:
+      SERVICE_50555_NAME: "voltha-grpc"
+    volumes:
+    - "/var/run/docker.sock:/tmp/docker.sock"
+    networks:
+    - default
+    - ponmgmt
+    links:
+    - voltha:vcore
+  #
+  # Voltha cli container
+  #
+  vcli:
+    image: cord/vcli
+    command: [
+      "/cli/cli/setup.sh",
+      "-L",
+      "-G"
+    ]
+    environment:
+      DOCKER_HOST_IP: "${DOCKER_HOST_IP}"
+    ports:
+    - "5022:22"
+    depends_on:
+    - voltha
+
   #
   # Chameleon server instance(s)
   #
@@ -62,14 +133,27 @@ services:
     image: cord/chameleon
     command: [
       "/chameleon/chameleon/main.py",
+      "-v",
+      "--consul=consul:8500",
+      "--fluentd=fluentd:24224",
       "--rest-port=8881",
-      "--grpc-endpoint=${DOCKER_HOST_IP}:50055",
+      "--grpc-endpoint=@voltha-grpc",
       "--instance-id-is-container-name"
     ]
     ports:
-    - 8881:8881
+    - 8881
+    depends_on:
+    - consul
+    - voltha
+    links:
+    - consul
+    - fluentd
+    environment:
+      SERVICE_8881_NAME: "chameleon-rest"
+      ENABLE_TLS: "False"
     volumes:
     - "/var/run/docker.sock:/tmp/docker.sock"
+
   #
   # onos-1
   #
@@ -122,9 +206,21 @@ services:
   #
   ofagent:
     image: cord/ofagent
-    command: /ofagent/ofagent/main.py --grpc-endpoint=${DOCKER_HOST_IP}:50055 --controller ${DOCKER_HOST_IP}:6633 ${DOCKER_HOST_IP}:6644 ${DOCKER_HOST_IP}:6655
+    command: /ofagent/ofagent/main.py -v --consul=${DOCKER_HOST_IP}:8500 --fluentd=fluentd:24224 --controller ${DOCKER_HOST_IP}:6633 ${DOCKER_HOST_IP}:6644 ${DOCKER_HOST_IP}:6655 --grpc-endpoint=@voltha-grpc --instance-id-is-container-name
     depends_on:
+    - consul
     - voltha
+    links:
+    - consul
+    - fluentd
     volumes:
     - "/var/run/docker.sock:/tmp/docker.sock"
     restart: unless-stopped
+
+networks:
+  default:
+    driver: bridge
+  ponmgmt:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: "ponmgmt"

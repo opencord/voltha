@@ -10,6 +10,7 @@ import select
 from tests.itests.docutests.test_utils import \
     run_command_to_completion_with_raw_stdout, \
     run_command_to_completion_with_stdout_in_list
+from unittest import skip
 
 from common.utils.consulhelpers import verify_all_services_healthy
 
@@ -68,6 +69,7 @@ class TestConsulPersistence(RestBase):
                                   msg)
         TestConsulPersistence.t0[0] = t1
 
+    @skip('Test case hangs during execution. Investigation required. Refer to VOL-425 and VOL-427')
     def test_all_scenarios(self):
         self.basic_scenario()
         self.data_integrity()
@@ -249,7 +251,7 @@ class TestConsulPersistence(RestBase):
 
     def set_rest_endpoint(self):
         self.rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL,
-                                                      'chameleon-rest')
+                                                      'envoy-8443')
         self.base_url = 'https://' + self.rest_endpoint
 
     def set_kafka_endpoint(self):
@@ -359,13 +361,13 @@ class TestConsulPersistence(RestBase):
         return ldevices
 
     def get_adapters(self):
-        adapters = self.get('/api/v1/local/adapters')['items']
+        adapters = self.get('/api/v1/adapters')['items']
         return adapters
 
     def verify_instance_has_no_data(self):
         data = self.get_voltha_instance_data()
-        self.assertEqual(data['logical_devices'], [])
-        self.assertEqual(data['devices'], [])
+        self.assertEqual(data['logical_devices']['items'], None or [])
+        self.assertEqual(data['devices']['items'], None or [])
 
     def add_data_to_voltha_instance(self):
         # Preprovision a bunch of ponsim devices
@@ -376,7 +378,10 @@ class TestConsulPersistence(RestBase):
             self.olt_devices[d['id']] = d
 
     def get_voltha_instance_data(self):
-        return self.get('/api/v1/local', headers={'get-depth': '-1'})
+        data = {}
+        data['devices'] = self.get('/api/v1/devices')
+        data['logical_devices'] = self.get('/api/v1/logical_devices')
+        return data
 
     def add_olt_device(self):
         device = Device(
@@ -384,7 +389,7 @@ class TestConsulPersistence(RestBase):
             host_and_port='172.17.0.1:50060'
         )
         device = self.post('/api/v1/devices', MessageToDict(device),
-                           expected_code=200)
+                           expected_http_code=200)
         return device
 
     def get_olt_onu_devices(self):
@@ -411,7 +416,7 @@ class TestConsulPersistence(RestBase):
 
     def enable_device(self, olt_id):
         path = '/api/v1/devices/{}'.format(olt_id)
-        self.post(path + '/enable', expected_code=200)
+        self.post(path + '/enable', expected_http_code=200)
         device = self.get(path)
         self.assertEqual(device['admin_state'], 'ENABLED')
 
@@ -524,7 +529,7 @@ class TestConsulPersistence(RestBase):
             # if eth_type == 0x888e => send to controller
             _in_port = lport_map[onu_id]['ofp_port']['port_no']
             req = ofp.FlowTableUpdate(
-                id='ponsim1',
+                id=ldev_id,
                 flow_mod=mk_simple_flow_mod(
                     match_fields=[
                         in_port(_in_port),
@@ -539,7 +544,7 @@ class TestConsulPersistence(RestBase):
             res = self.post('/api/v1/logical_devices/{}/flows'.format(ldev_id),
                             MessageToDict(req,
                                           preserving_proto_field_name=True),
-                            expected_code=200)
+                            expected_http_code=200)
 
         # for sanity, verify that flows are in flow table of logical device
         flows = self.get(
@@ -562,7 +567,7 @@ class TestConsulPersistence(RestBase):
 
     def disable_device(self, id):
         path = '/api/v1/devices/{}'.format(id)
-        self.post(path + '/disable', expected_code=200)
+        self.post(path + '/disable', expected_http_code=200)
         device = self.get(path)
         self.assertEqual(device['admin_state'], 'DISABLED')
 
@@ -586,8 +591,8 @@ class TestConsulPersistence(RestBase):
 
     def delete_device(self, id):
         path = '/api/v1/devices/{}'.format(id)
-        self.delete(path + '/delete', expected_code=200)
-        device = self.get(path, expected_code=404)
+        self.delete(path + '/delete', expected_http_code=200)
+        device = self.get(path, expected_http_code=200, grpc_status=5)
         self.assertIsNone(device)
 
     def assert_no_device_present(self):
@@ -602,19 +607,19 @@ class TestConsulPersistence(RestBase):
 
     def delete_device_incorrect_state(self, id):
         path = '/api/v1/devices/{}'.format(id)
-        self.delete(path + '/delete', expected_code=400)
+        self.delete(path + '/delete', expected_http_code=200, grpc_status=3)
 
     def enable_unknown_device(self, id):
         path = '/api/v1/devices/{}'.format(id)
-        self.post(path + '/enable', expected_code=404)
+        self.post(path + '/enable', expected_http_code=200, grpc_status=5)
 
     def disable_unknown_device(self, id):
         path = '/api/v1/devices/{}'.format(id)
-        self.post(path + '/disable', expected_code=404)
+        self.post(path + '/disable', expected_http_code=200, grpc_status=5)
 
     def delete_unknown_device(self, id):
         path = '/api/v1/devices/{}'.format(id)
-        self.delete(path + '/delete', expected_code=404)
+        self.delete(path + '/delete', expected_http_code=200, grpc_status=5)
 
     def assert_alarm_generation(self, device_id, event_present=True):
         # The olt device should start generating alarms periodically
@@ -693,14 +698,14 @@ class TestConsulPersistence(RestBase):
         alarm_filter = AlarmFilter(rules=rules)
         alarm_filter = self.post('/api/v1/alarm_filters',
                                  MessageToDict(alarm_filter),
-                                 expected_code=200)
+                                 expected_http_code=200)
         self.assertIsNotNone(alarm_filter)
         return alarm_filter
 
     def remove_device_filter(self, alarm_filter_id):
         path = '/api/v1/alarm_filters/{}'.format(alarm_filter_id)
-        self.delete(path, expected_code=200)
-        alarm_filter = self.get(path, expected_code=404)
+        self.delete(path, expected_http_code=200)
+        alarm_filter = self.get(path, expected_http_code=200, grpc_status=5)
         self.assertIsNone(alarm_filter)
 
     def run_command_and_wait_until(self, cmd, predicate, timeout, msg,

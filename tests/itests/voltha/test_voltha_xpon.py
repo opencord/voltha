@@ -231,20 +231,24 @@ scenario = [
 id = 3
 LOCAL_CONSUL = "localhost:8500"
 # Retrieve details of the REST entry point
-rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'chameleon-rest')
+rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'envoy-8443')
 # Construct the base_url
-base_url = 'https://' + rest_endpoint
+BASE_URL = 'https://' + rest_endpoint
 
 class GlobalPreChecks(RestBase):
-    def test_000_get_root(self):
-        res = self.get('/#!/', expected_content_type='text/html')
-        self.assertGreaterEqual(res.find('swagger'), 0)
+    base_url = BASE_URL
+
+    # def test_000_get_root(self):
+    #     res = self.get('/#!/', expected_content_type='text/html')
+    #     self.assertGreaterEqual(res.find('swagger'), 0)
 
     def test_001_get_health(self):
         res = self.get('/health')
         self.assertEqual(res['state'], 'HEALTHY')
 
 class TestXPon(RestBase):
+    base_url = BASE_URL
+
     def test_002_setup_device(self):
         global device
         device = self.add_device()
@@ -263,7 +267,7 @@ class TestXPon(RestBase):
                                 type=device_type,
                                 host_and_port=host_and_port
                             )),
-                           expected_code=200)
+                         expected_http_code=200)
 
     def verify_device_preprovisioned_state(self, olt_id):
         # we also check that so far what we read back is same as what we get
@@ -278,20 +282,20 @@ class TestXPon(RestBase):
     # This will trigger the simulation of random alarms
     def activate_device(self, device_id):
         path = '/api/v1/devices/{}'.format(device_id)
-        self.post(path + '/enable', expected_code=200)
+        self.post(path + '/enable', expected_http_code=200)
         device = self.get(path)
         self.assertEqual(device['admin_state'], 'ENABLED')
 
     def deactivate_device(self, device_id):
         path = '/api/v1/devices/{}'.format(device_id)
-        self.post(path + '/disable', expected_code=200)
+        self.post(path + '/disable', expected_http_code=200)
         device = self.get(path)
         self.assertEqual(device['admin_state'], 'DISABLED')
 
     def delete_device(self, device_id):
         path = '/api/v1/devices/{}'.format(device_id)
-        self.delete(path + '/delete', expected_code=200)
-        device = self.get(path, expected_code=404)
+        self.delete(path + '/delete', expected_http_code=200)
+        device = self.get(path, expected_http_code=404)
         self.assertIsNone(device)
 
     # Add cg, cpair, cpart
@@ -300,14 +304,14 @@ class TestXPon(RestBase):
         prev_len = len(res[config])
         self.post(self.get_path(type, name, ''),
                   MessageToDict(req, preserving_proto_field_name = True),
-                  expected_code = 200)
+                  expected_http_code = 200)
         return self.verify(type), prev_len
 
     # Modify the existing cg, cpair, cpart
     def modify(self, type, req, name):
         self.post(self.get_path(type, name, '/modify'),
                   MessageToDict(req, preserving_proto_field_name = True),
-                  expected_code = 200)
+                  expected_http_code = 200)
         return self.verify(type)
 
     # Delete cg, cpair, cpart
@@ -315,7 +319,7 @@ class TestXPon(RestBase):
         res = self.verify(type)
         prev_len = len(res[config])
         self.delete(self.get_path(type, name, '/delete'),
-                  expected_code = 200)
+                    expected_http_code = 200)
         return self.verify(type), prev_len
 
     # Retrieve the desired item upon Post message

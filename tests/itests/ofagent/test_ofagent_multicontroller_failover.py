@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import time
+from time import time, sleep
 import logging
 import os
 import json
@@ -23,10 +23,15 @@ from unittest import TestCase,main
 this_dir = os.path.abspath(os.path.dirname(__file__))
 
 from tests.itests.docutests.test_utils import run_command_to_completion_with_raw_stdout
+from voltha.protos.device_pb2 import Device
+from google.protobuf.json_format import MessageToDict
+from tests.itests.voltha.rest_base import RestBase
+from common.utils.consulhelpers import get_endpoint_from_consul
 
 log = logging.getLogger(__name__)
 
 DOCKER_COMPOSE_FILE = "compose/docker-compose-ofagent-test.yml"
+LOCAL_CONSUL = "localhost:8500"
 
 command_defs = dict(
     docker_images="docker images",
@@ -49,14 +54,11 @@ command_defs = dict(
     onos1_ip="docker inspect --format '{{ .NetworkSettings.Networks.compose_default.IPAddress }}' onos1",
     onos2_ip ="docker inspect --format '{{ .NetworkSettings.Networks.compose_default.IPAddress }}' onos2",
     onos3_ip="docker inspect --format '{{ .NetworkSettings.Networks.compose_default.IPAddress }}' onos3",
-    add_olt='''curl -k -s -X POST -d '{"type": "simulated_olt", "mac_address": "01:0c:e2:31:40:00"}' \
-               https://localhost:8881/api/v1/local/devices''',
-    enable_olt="curl -k -s -X POST https://localhost:8881/api/v1/local/devices/",
     onos1_devices="curl -u karaf:karaf  http://localhost:8181/onos/v1/devices",
     onos2_devices="curl -u karaf:karaf  http://localhost:8182/onos/v1/devices",
     onos3_devices="curl -u karaf:karaf  http://localhost:8183/onos/v1/devices")
 
-class TestOFAGENT_MultiController(TestCase):
+class TestOFAGENT_MultiController(RestBase):
     # Test OFAgent Support for Multiple controller
     def setUp(self):
         # Run Voltha,OFAgent,3 ONOS and form ONOS cluster.
@@ -65,7 +67,7 @@ class TestOFAGENT_MultiController(TestCase):
         out, err, rc = run_command_to_completion_with_raw_stdout(cmd)
         self.assertEqual(rc, 0)
         print "Waiting for all containers to be ready ..."
-        time.sleep(80)
+        sleep(80)
         cmd = command_defs['onos1_ip']
         out, err, rc = run_command_to_completion_with_raw_stdout(cmd)
         self.assertEqual(rc, 0)
@@ -86,6 +88,8 @@ class TestOFAGENT_MultiController(TestCase):
         self.assertEqual(rc, 0)
         print "Cluster Output :{} ".format(out)
 
+        self.get_rest_endpoint()
+
     def tearDown(self):
         # Stopping and Removing Voltha,OFAgent,3 ONOS.
         print "Stopping and removing all containers ..."
@@ -93,24 +97,81 @@ class TestOFAGENT_MultiController(TestCase):
         out, err, rc = run_command_to_completion_with_raw_stdout(cmd)
         self.assertEqual(rc, 0)
         print "Waiting for all containers to be stopped ..."
-        time.sleep(1)
+        sleep(1)
         cmd = command_defs['docker_compose_rm_f']
         out, err, rc = run_command_to_completion_with_raw_stdout(cmd)
         self.assertEqual(rc, 0)
 
+    def wait_till(self, msg, predicate, interval=0.1, timeout=5.0):
+        deadline = time() + timeout
+        while time() < deadline:
+            if predicate():
+                return
+            sleep(interval)
+        self.fail('Timed out while waiting for condition: {}'.format(msg))
+
+    def get_rest_endpoint(self):
+        # Retrieve details on the REST entry point
+        rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'envoy-8443')
+
+        # Construct the base_url
+        self.base_url = 'https://' + rest_endpoint
+
+    def add_device(self):
+        print "Adding device"
+
+        device = Device(
+            type='simulated_olt',
+            mac_address='01:0c:e2:31:40:00'
+        )
+        device = self.post('/api/v1/devices', MessageToDict(device),
+                           expected_http_code=200)
+
+        print "Added device - id:{}, type:{}".format(device['id'], device['type'])
+        sleep(5)
+
+        return device
+
+    def enable_device(self, device_id):
+        print "Enabling device - id:{}".format(device_id)
+
+        path = '/api/v1/devices/{}'.format(device_id)
+        self.post(path + '/enable', expected_http_code=200)
+        device = self.get(path)
+        self.assertEqual(device['admin_state'], 'ENABLED')
+
+        self.wait_till(
+            'admin state moves to ACTIVATING or ACTIVE',
+            lambda: self.get(path)['oper_status'] in ('ACTIVATING', 'ACTIVE'),
+            timeout=0.5)
+
+        # eventually, it shall move to active state and by then we shall have
+        # device details filled, connect_state set, and device ports created
+        self.wait_till(
+            'admin state ACTIVE',
+            lambda: self.get(path)['oper_status'] == 'ACTIVE',
+            timeout=0.5)
+        device = self.get(path)
+        images = device['images']
+        image = images['image']
+        image_1 = image[0]
+        version = image_1['version']
+        self.assertNotEqual(version, '')
+        self.assertEqual(device['connect_status'], 'REACHABLE')
+
+        ports = self.get(path + '/ports')['items']
+        self.assertEqual(len(ports), 2)
+
+        sleep(30)
+        print "Enabled device - id:{}".format(device_id)
+
     def test_ofagent_controller_failover(self):
-        cmd = command_defs['add_olt']
-        out, err, rc = run_command_to_completion_with_raw_stdout(cmd)
-        self.assertEqual(rc, 0)
-        olt_device = json.loads(out)
+        olt_device = self.add_device()
         print "Output of ADD OLT is {} {} {}".format(olt_device, type(olt_device), olt_device['id'])
-        time.sleep(5)
-        cmd = command_defs['enable_olt'] + '{}'.format(olt_device['id']) + '/enable'
-        out, err, rc = run_command_to_completion_with_raw_stdout(cmd)
-        self.assertEqual(rc, 0)
-        print "output is {}".format(out)
+        sleep(5)
+        self.enable_device(olt_device['id'])
         print "Waiting for OLT device to be activated ..."
-        time.sleep(80)
+        sleep(80)
         cmd = command_defs['onos1_devices']
         out, err, rc = run_command_to_completion_with_raw_stdout(cmd)
         self.assertEqual(rc, 0)
@@ -134,7 +195,7 @@ class TestOFAGENT_MultiController(TestCase):
            out, err, rc = run_command_to_completion_with_raw_stdout(cmd)
            self.assertEqual(rc, 0)
            print "Waiting for ONOS to Elect New Master"
-           time.sleep(20)
+           sleep(20)
            cmd = command_defs['onos2_devices']
            out, err, rc = run_command_to_completion_with_raw_stdout(cmd)
            self.assertEqual(rc, 0)
@@ -153,7 +214,7 @@ class TestOFAGENT_MultiController(TestCase):
            out, err, rc = run_command_to_completion_with_raw_stdout(cmd)
            self.assertEqual(rc, 0)
            print "Waiting for ONOS to Elect New Master"
-           time.sleep(20)
+           sleep(20)
            cmd = command_defs['onos1_devices']
            out, err, rc = run_command_to_completion_with_raw_stdout(cmd)
            self.assertEqual(rc, 0)
@@ -172,7 +233,7 @@ class TestOFAGENT_MultiController(TestCase):
            out, err, rc = run_command_to_completion_with_raw_stdout(cmd)
            self.assertEqual(rc, 0)
            print "Waiting for ONOS to Elect New Master"
-           time.sleep(20)
+           sleep(20)
            cmd = command_defs['onos1_devices']
            out, err, rc = run_command_to_completion_with_raw_stdout(cmd)
            self.assertEqual(rc, 0)

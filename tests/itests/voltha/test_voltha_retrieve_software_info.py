@@ -49,15 +49,15 @@ LOCAL_CONSUL = "localhost:8500"
 
 ######################################################
 # Requirements for the test:                         #
-# Ensure voltha and chameleon are running fine and   #
-# chameleon is available on port 8881 to listen for  #
+# Ensure voltha and envoy are running fine and       #
+# envoy is available on port 8443 to listen for      #
 # any REST requests                                  #
 ######################################################
 
 
 class VolthaDeviceManagementRetrieveSoftwareInfo(RestBase):
     # Retrieve details on the REST entry point
-    rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'chameleon-rest')
+    rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'envoy-8443')
 
     # Construct the base_url
     base_url = 'https://' + rest_endpoint
@@ -106,20 +106,20 @@ class VolthaDeviceManagementRetrieveSoftwareInfo(RestBase):
         device = Device(
             type='simulated_olt',
         )
-        device = self.post('/api/v1/local/devices', MessageToDict(device),
-                           expected_code=200)
+        device = self.post('/api/v1/devices', MessageToDict(device),
+                           expected_http_code=200)
         return device
 
     # Active the simulated device.
     def activate_device(self, device_id):
-        path = '/api/v1/local/devices/{}'.format(device_id)
-        self.post(path + '/enable', expected_code=200)
+        path = '/api/v1/devices/{}'.format(device_id)
+        self.post(path + '/enable', expected_http_code=200)
         device = self.get(path)
         self.assertEqual(device['admin_state'], 'ENABLED')
 
     # Retrieve software info on the device
     def get_images(self, device_id):
-        path = '/api/v1/local/devices/{}/images'.format(device_id)
+        path = '/api/v1/devices/{}/images'.format(device_id)
         images = self.get(path)
         return images
 
