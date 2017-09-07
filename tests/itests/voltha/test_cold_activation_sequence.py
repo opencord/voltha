@@ -14,7 +14,7 @@ LOCAL_CONSUL = "localhost:8500"
 class TestColdActivationSequence(RestBase):
 
     # Retrieve details of the REST entry point
-    rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'chameleon-rest')
+    rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'envoy-8443')
 
     # Construct the base_url
     base_url = 'https://' + rest_endpoint
@@ -177,7 +177,7 @@ class TestColdActivationSequence(RestBase):
             # if eth_type == 0x888e => send to controller
             _in_port = lport_map[onu_id]['ofp_port']['port_no']
             req = ofp.FlowTableUpdate(
-                id='simulated1',
+                id=ldev_id,
                 flow_mod=mk_simple_flow_mod(
                     match_fields=[
                         in_port(_in_port),
