@@ -16,10 +16,14 @@
 #
 import logging
 import os
-import time
+from time import time, sleep
 import json
 
+from google.protobuf.json_format import MessageToDict
 from tests.itests.voltha.rest_base import RestBase
+from common.utils.consulhelpers import get_endpoint_from_consul
+from voltha.protos.device_pb2 import Device
+from unittest import skip
 
 this_dir = os.path.abspath(os.path.dirname(__file__))
 
@@ -28,6 +32,7 @@ from tests.itests.docutests.test_utils import run_command_to_completion_with_raw
 log = logging.getLogger(__name__)
 
 DOCKER_COMPOSE_FILE = "compose/docker-compose-ofagent-test.yml"
+LOCAL_CONSUL = "localhost:8500"
 
 command_defs = dict(
     docker_stop="docker stop {}",
@@ -42,12 +47,9 @@ command_defs = dict(
     onos1_ip="docker inspect --format '{{ .NetworkSettings.Networks.compose_default.IPAddress }}' onos1",
     onos2_ip="docker inspect --format '{{ .NetworkSettings.Networks.compose_default.IPAddress }}' onos2",
     onos3_ip="docker inspect --format '{{ .NetworkSettings.Networks.compose_default.IPAddress }}' onos3",
-    add_olt='''curl -k -s -X POST -d '{"type": "simulated_olt"}' \
-               https://localhost:8881/api/v1/local/devices''',
-    enable_olt="curl -k -s -X POST https://localhost:8881/api/v1/local/devices/{}/enable",
     get_onos_devices="curl -u karaf:karaf  http://localhost:8181/onos/v1/devices")
 
-
+@skip('Test case hangs at REST calls during execution. Refer to VOL-425 and VOL-427')
 class OfagentRecoveryTest(RestBase):
     def setUp(self):
         # Run Voltha,OFAgent,3 ONOS and form ONOS cluster.
@@ -56,7 +58,7 @@ class OfagentRecoveryTest(RestBase):
         out, err, rc = run_command_to_completion_with_raw_stdout(cmd)
         self.assertEqual(rc, 0)
         print "Waiting for all containers to be ready ..."
-        time.sleep(60)
+        sleep(60)
         cmd = command_defs['onos1_ip']
         out, err, rc = run_command_to_completion_with_raw_stdout(cmd)
         self.assertEqual(rc, 0)
@@ -79,6 +81,8 @@ class OfagentRecoveryTest(RestBase):
         self.assertEqual(rc, 0)
         print "Cluster Output :{} ".format(out)
 
+        self.get_rest_endpoint()
+
     def tearDown(self):
         # Stopping and Removing Voltha,OFAgent,3 ONOS.
         print "Stopping and removing all containers ..."
@@ -86,39 +90,78 @@ class OfagentRecoveryTest(RestBase):
         out, err, rc = run_command_to_completion_with_raw_stdout(cmd)
         self.assertEqual(rc, 0)
         print "Waiting for all containers to be stopped ..."
-        time.sleep(1)
+        sleep(1)
         cmd = command_defs['docker_compose_rm_f']
         out, err, rc = run_command_to_completion_with_raw_stdout(cmd)
         self.assertEqual(rc, 0)
 
+    def wait_till(self, msg, predicate, interval=0.1, timeout=5.0):
+        deadline = time() + timeout
+        while time() < deadline:
+            if predicate():
+                return
+            sleep(interval)
+        self.fail('Timed out while waiting for condition: {}'.format(msg))
+
+    def get_rest_endpoint(self):
+        # Retrieve details on the REST entry point
+        rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'envoy-8443')
+
+        # Construct the base_url
+        self.base_url = 'https://' + rest_endpoint
+
     def add_device(self):
         print "Adding device"
 
-        cmd = command_defs['add_olt']
-        out, err, rc = run_command_to_completion_with_raw_stdout(cmd)
-        self.assertEqual(rc, 0)
-        device = json.loads(out)
+        device = Device(
+            type='simulated_olt'
+        )
+        device = self.post('/api/v1/devices', MessageToDict(device),
+                           expected_http_code=200)
 
         print "Added device - id:{}, type:{}".format(device['id'], device['type'])
-        time.sleep(5)
+        sleep(5)
 
         return device
 
     def enable_device(self, device_id):
         print "Enabling device - id:{}".format(device_id)
 
-        cmd = command_defs['enable_olt'].format(device_id)
-        out, err, rc = run_command_to_completion_with_raw_stdout(cmd)
-        self.assertEqual(rc, 0)
+        path = '/api/v1/devices/{}'.format(device_id)
+        self.post(path + '/enable', expected_http_code=200)
+        device = self.get(path)
+        self.assertEqual(device['admin_state'], 'ENABLED')
 
-        time.sleep(30)
+        self.wait_till(
+            'admin state moves to ACTIVATING or ACTIVE',
+            lambda: self.get(path)['oper_status'] in ('ACTIVATING', 'ACTIVE'),
+            timeout=0.5)
+
+        # eventually, it shall move to active state and by then we shall have
+        # device details filled, connect_state set, and device ports created
+        self.wait_till(
+            'admin state ACTIVE',
+            lambda: self.get(path)['oper_status'] == 'ACTIVE',
+            timeout=0.5)
+        device = self.get(path)
+        images = device['images']
+        image = images['image']
+        image_1 = image[0]
+        version = image_1['version']
+        self.assertNotEqual(version, '')
+        self.assertEqual(device['connect_status'], 'REACHABLE')
+
+        ports = self.get(path + '/ports')['items']
+        self.assertEqual(len(ports), 2)
+
+        sleep(30)
         print "Enabled device - id:{}".format(device_id)
 
     def get_device(self, device_id, expected_code=200):
         print "Getting device - id:{}".format(device_id)
 
-        device = self.get('/api/v1/local/devices/{}'.format(device_id),
-                           expected_code=expected_code)
+        device = self.get('/api/v1/devices/{}'.format(device_id),
+                          expected_http_code=expected_code)
 
         if device is not None:
             print "Got device - id:{}, type:{}".format(device['id'], device['type'])
@@ -149,7 +192,7 @@ class OfagentRecoveryTest(RestBase):
         out, err, rc = run_command_to_completion_with_raw_stdout(cmd)
         self.assertEqual(rc, 0)
 
-        time.sleep(10)
+        sleep(10)
         print "Stopped {}".format(container)
 
     def start_container(self, container):
@@ -159,7 +202,7 @@ class OfagentRecoveryTest(RestBase):
         out, err, rc = run_command_to_completion_with_raw_stdout(cmd)
         self.assertEqual(rc, 0)
 
-        time.sleep(10)
+        sleep(10)
         print "Started {}".format(container)
 
     def test_01_recovery_after_voltha_restart(self):

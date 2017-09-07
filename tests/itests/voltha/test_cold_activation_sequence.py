@@ -14,7 +14,7 @@ LOCAL_CONSUL = "localhost:8500"
 class TestColdActivationSequence(RestBase):
 
     # Retrieve details of the REST entry point
-    rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'chameleon-rest')
+    rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'envoy-8443')
 
     # Construct the base_url
     base_url = 'https://' + rest_endpoint
@@ -60,7 +60,7 @@ class TestColdActivationSequence(RestBase):
             mac_address='00:00:00:00:00:01'
         )
         device = self.post('/api/v1/devices', MessageToDict(device),
-                           expected_code=200)
+                           expected_http_code=200)
         return device['id']
 
     def verify_device_preprovisioned_state(self, olt_id):
@@ -74,7 +74,7 @@ class TestColdActivationSequence(RestBase):
 
     def activate_device(self, olt_id):
         path = '/api/v1/devices/{}'.format(olt_id)
-        self.post(path + '/enable', expected_code=200)
+        self.post(path + '/enable', expected_http_code=200)
         device = self.get(path)
         self.assertEqual(device['admin_state'], 'ENABLED')
 
@@ -177,7 +177,7 @@ class TestColdActivationSequence(RestBase):
             # if eth_type == 0x888e => send to controller
             _in_port = lport_map[onu_id]['ofp_port']['port_no']
             req = ofp.FlowTableUpdate(
-                id='simulated1',
+                id=ldev_id,
                 flow_mod=mk_simple_flow_mod(
                     match_fields=[
                         in_port(_in_port),
@@ -192,7 +192,7 @@ class TestColdActivationSequence(RestBase):
             res = self.post('/api/v1/logical_devices/{}/flows'.format(ldev_id),
                             MessageToDict(req,
                                           preserving_proto_field_name=True),
-                            expected_code=200)
+                            expected_http_code=200)
 
         # for sanity, verify that flows are in flow table of logical device
         flows = self.get(

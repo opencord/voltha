@@ -44,7 +44,7 @@ ALARM_SCHEMA = {
 
 class VolthaAlarmEventTests(RestBase):
     # Retrieve details on the REST entry point
-    rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'chameleon-rest')
+    rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'envoy-8443')
 
     # Construct the base_url
     base_url = 'https://' + rest_endpoint
@@ -106,15 +106,15 @@ class VolthaAlarmEventTests(RestBase):
         device = Device(
             type='simulated_olt',
         )
-        device = self.post('/api/v1/local/devices', MessageToDict(device),
-                           expected_code=200)
+        device = self.post('/api/v1/devices', MessageToDict(device),
+                           expected_http_code=200)
         return device
 
     # Active the simulated device.
     # This will trigger the simulation of random alarms
     def activate_device(self, device_id):
-        path = '/api/v1/local/devices/{}'.format(device_id)
-        self.post(path + '/enable', expected_code=200)
+        path = '/api/v1/devices/{}'.format(device_id)
+        self.post(path + '/enable', expected_http_code=200)
         device = self.get(path)
         self.assertEqual(device['admin_state'], 'ENABLED')
 
