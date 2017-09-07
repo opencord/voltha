@@ -743,6 +743,13 @@ class AdapterAgent(object):
                 self.log.debug('deleting-child-device', parent_device_id=parent_device_id, child_device_id=child_device_id)
                 self._remove_node('/devices', child_device_id)
 
+    def get_child_device_id(self, parent_device_id, child_device_channel_id):
+        devices = self.root_proxy.get('/devices')
+        for device in devices:
+            if device.parent_id == parent_device_id and \
+               device.proxy_address.channel_id == child_device_channel_id:
+                return device.id
+
     def _gen_rx_proxy_address_topic(self, proxy_address):
         """Generate unique topic name specific to this proxy address for rx"""
         topic = 'rx:' + MessageToJson(proxy_address)
