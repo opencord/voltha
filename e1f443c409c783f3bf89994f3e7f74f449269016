@@ -66,6 +66,24 @@
     },
     {
       "key": {
+        "uuid": "da6255ed_8968b988",
+        "filename": "tests/itests/ofagent/test_ofagent_recovery.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 52,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-09-08T14:42:59Z",
+      "side": 1,
+      "message": "will do",
+      "parentUuid": "da6255ed_a9bdbd04",
+      "revId": "e1f443c409c783f3bf89994f3e7f74f449269016",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "da6255ed_493c0194",
         "filename": "tests/itests/voltha/rest_base.py",
         "patchSetId": 1
@@ -77,6 +95,24 @@
       "writtenOn": "2017-09-08T14:34:52Z",
       "side": 1,
       "message": "Would it be clearer if we use http_expected_code instead as a parameter name?",
+      "revId": "e1f443c409c783f3bf89994f3e7f74f449269016",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da6255ed_c96eb196",
+        "filename": "tests/itests/voltha/rest_base.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-09-08T14:42:59Z",
+      "side": 1,
+      "message": "will change",
+      "parentUuid": "da6255ed_493c0194",
       "revId": "e1f443c409c783f3bf89994f3e7f74f449269016",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -100,6 +136,24 @@
     },
     {
       "key": {
+        "uuid": "da6255ed_e9717578",
+        "filename": "tests/itests/voltha/rest_base.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 41,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-09-08T14:42:59Z",
+      "side": 1,
+      "message": "Yes.  we still need to check it.  If grpc-status will be present whether it is good or not.",
+      "parentUuid": "da6255ed_6937c5b1",
+      "revId": "e1f443c409c783f3bf89994f3e7f74f449269016",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "da6255ed_a9549dca",
         "filename": "tests/itests/voltha/test_persistence.py",
         "patchSetId": 1
@@ -111,6 +165,24 @@
       "writtenOn": "2017-09-08T14:34:52Z",
       "side": 1,
       "message": "Is this skipping all the tests?",
+      "revId": "e1f443c409c783f3bf89994f3e7f74f449269016",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da6255ed_a96b7d84",
+        "filename": "tests/itests/voltha/test_persistence.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 73,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-09-08T14:42:59Z",
+      "side": 1,
+      "message": "Yes.  I will put a comment with a reference to JIRA(s)",
+      "parentUuid": "da6255ed_a9549dca",
       "revId": "e1f443c409c783f3bf89994f3e7f74f449269016",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
