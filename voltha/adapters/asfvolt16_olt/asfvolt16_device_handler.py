@@ -18,7 +18,14 @@
 Asfvolt16 OLT adapter
 """
 
-
+import arrow
+from twisted.internet.defer import inlineCallbacks
+from voltha.protos.events_pb2 import KpiEvent, MetricValuePairs
+from voltha.protos.events_pb2 import KpiEventType
+from voltha.protos.device_pb2 import PmConfigs, PmConfig,PmGroupConfig
+from voltha.adapters.asfvolt16_olt.protos import bal_errno_pb2
+from voltha.protos.events_pb2 import AlarmEvent, AlarmEventType, \
+    AlarmEventSeverity, AlarmEventState, AlarmEventCategory
 from scapy.layers.l2 import Ether, Dot1Q
 from uuid import uuid4
 from common.frameio.frameio import BpfProgramFilter
@@ -93,6 +100,53 @@ class VOntAniHandler(object):
         self.v_ont_ani = VOntaniConfig()
         self.tconts = dict()
 
+class Asfvolt16OltPmMetrics:
+    class Metrics:
+        def __init__(self, config, value=0):
+            self.config = config
+            self.value = value
+            # group PM config is not supported currently
+
+    def __init__(self,device):
+        self.pm_names = {
+             "rx_bytes", "rx_packets", "rx_ucast_packets", "rx_mcast_packets",
+             "rx_bcast_packets", "rx_error_packets", "rx_unknown_protos",
+             "tx_bytes", "tx_packets", "tx_ucast_packets", "tx_mcast_packets",
+             "tx_bcast_packets", "tx_error_packets", "rx_crc_errors", "bip_errors"
+        }
+        self.device = device
+        self.id = device.id
+        self.default_freq = 150
+        self.pon_metrics = dict()
+        self.nni_metrics = dict()
+        for m in self.pm_names:
+            self.pon_metrics[m] = \
+                    self.Metrics(config = PmConfig(name=m,
+                                                   type=PmConfig.COUNTER,
+                                                   enabled=True), value = 0)
+            self.nni_metrics[m] = \
+                    self.Metrics(config = PmConfig(name=m,
+                                                   type=PmConfig.COUNTER,
+                                                   enabled=True), value = 0)
+
+    def update(self, device, pm_config):
+        if self.default_freq != pm_config.default_freq:
+            self.default_freq = pm_config.default_freq
+
+        if pm_config.grouped is True:
+            log.error('pm-groups-are-not-supported')
+        else:
+            for m in pm_config.metrics:
+                self.pon_metrics[m.name].config.enabled = m.enabled
+                self.nni_metrics[m.name].config.enabled = m.enabled
+
+    def make_proto(self):
+        pm_config = PmConfigs(
+            id=self.id,
+            default_freq=self.default_freq,
+            grouped = False,
+            freq_override = False)
+        return pm_config
 
 class Asfvolt16Handler(OltDeviceHandler):
 
@@ -111,6 +165,11 @@ class Asfvolt16Handler(OltDeviceHandler):
         self.v_enets = dict()
         self.traffic_descriptors = dict()
         self.uni_port_num = 20
+        self.pm_metrics = None
+        self.heartbeat_count = 0
+        self.heartbeat_miss = 0
+        self.heartbeat_interval = 120
+        self.heartbeat_failed_limit = 3
 
     def __del__(self):
         super(Asfvolt16Handler, self).__del__()
@@ -211,6 +270,253 @@ class Asfvolt16Handler(OltDeviceHandler):
         device.oper_status = OperStatus.ACTIVATING
         self.adapter_agent.update_device(device)
 
+    @inlineCallbacks
+    def heartbeat(self, device_id, state='run'):
+        self.log.debug('olt-heartbeat', device=device_id, state=state,
+                       count=self.heartbeat_count)
+
+        def heartbeat_alarm(device_id, status, heartbeat_misses=0):
+            try:
+                ts = arrow.utcnow().timestamp
+
+                alarm_data = {'heartbeats_missed':str(heartbeat_misses)}
+
+                alarm_event = self.adapter_agent.create_alarm(
+                    id='voltha.{}.{}.olt'.format(self.adapter.name, device_id),
+                    resource_id='olt',
+                    type=AlarmEventType.EQUIPMENT,
+                    category=AlarmEventCategory.OLT,
+                    severity=AlarmEventSeverity.CRITICAL,
+                    state=AlarmEventState.RAISED if status else
+                        AlarmEventState.CLEARED,
+                    description='OLT Alarm - Heartbeat - {}'.format('Raised'
+                                                                    if status
+                                                                    else 'Cleared'),
+                    context=alarm_data,
+                    raised_ts = ts)
+
+                self.adapter_agent.submit_alarm(device_id, alarm_event)
+
+            except Exception as e:
+                self.log.exception('failed-to-submit-alarm', e=e)
+
+        if state == 'stop':
+            return
+
+        if state == 'start':
+            self.heartbeat_count = 0
+            self.heartbeat_miss = 0
+
+        hrtbeat_status = 0
+
+        try:
+            d = yield self.bal.get_bal_heartbeat(self.device_id.__str__())
+            if d.err != bal_errno_pb2.BAL_ERR_OK:
+                hrtbeat_status = -1
+        except Exception, e:
+             hrtbeat_status = -1
+
+        _device = device_id
+
+        if hrtbeat_status == -1:
+            # something is not right
+            self.heartbeat_miss += 1
+            self.log.info('olt-heartbeat-miss',d=d,
+                          count=self.heartbeat_count, miss=self.heartbeat_miss)
+        else:
+            if self.heartbeat_miss > 0:
+                self.heartbeat_miss = 0
+                _device.connect_status = ConnectStatus.REACHABLE
+                _device.oper_status = OperStatus.ACTIVE
+                _device.reason = ''
+                self.adapter_agent.update_device(_device)
+                heartbeat_alarm(device_id, 0)
+
+        if (self.heartbeat_miss >= self.heartbeat_failed_limit) and \
+           (_device.connect_status == ConnectStatus.REACHABLE):
+            self.log.info('olt-heartbeat-failed',  hrtbeat_status=hrtbeat_status,
+                          count=self.heartbeat_miss)
+            _device.connect_status = ConnectStatus.UNREACHABLE
+            _device.oper_status = OperStatus.FAILED
+            _device.reason = 'Lost connectivity to OLT'
+            self.adapter_agent.update_device(_device)
+            heartbeat_alarm(device_id, 1, self.heartbeat_miss)
+
+        self.heartbeat_count += 1
+        reactor.callLater(self.heartbeat_interval, self.heartbeat, device_id)
+
+    @inlineCallbacks
+    def reboot(self):
+        err_status  = yield self.bal.set_bal_reboot(self.device_id.__str__())
+        self.log.info('Reboot Status', err_status = err_status)
+
+    @inlineCallbacks
+    def _handle_pm_counter_req_towards_device(self, device):
+        yield self._req_pm_counter_from_device_in_loop(device)
+
+    @inlineCallbacks
+    def _req_pm_counter_from_device_in_loop(self, device):
+        # NNI port is hardcoded to 0
+        kpi_status = 0
+        try:
+           pm_counters = yield self.bal.get_bal_stats(0)
+           kpi_status = 0
+        except Exception, e:
+           kpi_status = -1
+
+        self.log.info('pm_counters',pm_counters=pm_counters)
+
+        if kpi_status == 0 and pm_counters!=None:
+           pm_data = { }
+           pm_data["rx_bytes"]= pm_counters.rx_bytes
+           pm_data["rx_packets"]= pm_counters.rx_packets
+           pm_data["rx_ucast_packets"]= pm_counters.rx_ucast_packets
+           pm_data["rx_mcast_packets"]= pm_counters.rx_mcast_packets
+           pm_data["rx_bcast_packets"]= pm_counters.rx_bcast_packets
+           pm_data["rx_error_packets"]= pm_counters.rx_error_packets
+           pm_data["rx_unknown_protos"]= pm_counters.rx_unknown_protos
+           pm_data["tx_bytes"]= pm_counters.tx_bytes
+           pm_data["tx_packets"]= pm_counters.tx_packets
+           pm_data["tx_ucast_packets"]= pm_counters.tx_ucast_packets
+           pm_data["tx_mcast_packets"]= pm_counters.tx_mcast_packets
+           pm_data["tx_bcast_packets"]= pm_counters.tx_bcast_packets
+           pm_data["tx_error_packets"]= pm_counters.tx_error_packets
+           pm_data["rx_crc_errors"]= pm_counters.rx_crc_errors
+           pm_data["bip_errors"]= pm_counters.bip_errors
+
+           self.log.info('KPI stats', pm_data = pm_data)
+           name = 'asfvolt16_olt'
+           prefix = 'voltha.{}.{}'.format(name, self.device_id)
+           ts = arrow.utcnow().timestamp
+           prefixes = {
+                   prefix + '.nni': MetricValuePairs(metrics = pm_data)
+           }
+
+           kpi_event = KpiEvent(
+                 type=KpiEventType.slice,
+                 ts=ts,
+                 prefixes=prefixes)
+           self.adapter_agent.submit_kpis(kpi_event)
+        else:
+           self.log.info('Lost Connectivity to OLT')
+
+        reactor.callLater(self.pm_metrics.default_freq/10,
+                          self._req_pm_counter_from_device_in_loop,
+                          device)
+
+    def update_pm_config(self, device, pm_config):
+        self.log.info("update-pm-config", device=device, pm_config=pm_config)
+        self.pm_metrics.update(device, pm_config)
+
+    def handle_report_alarm(self, _device_id, _object, key, alarm,
+                            status, priority,
+                            alarm_data=None):
+        self.log.info('received-alarm-msg',
+                 object=_object,
+                 key=key,
+                 alarm=alarm,
+                 status=status,
+                 priority=priority,
+                 alarm_data=alarm_data)
+
+        id = 'voltha.{}.{}.{}'.format(self.adapter_name,
+                                     _device_id, _object)
+        description = '{} Alarm - {} - {}'.format(_object.upper(),
+                                      alarm.upper(),
+                                      'Raised' if status else 'Cleared')
+
+        if priority == 'low':
+            severity = AlarmEventSeverity.MINOR
+        elif priority == 'medium':
+            severity = AlarmEventSeverity.MAJOR
+        elif priority == 'high':
+            severity = AlarmEventSeverity.CRITICAL
+        else:
+            severity = AlarmEventSeverity.INDETERMINATE
+
+        try:
+            ts = arrow.utcnow().timestamp
+
+            alarm_event = self.adapter_agent.create_alarm(
+                id=id,
+                resource_id=str(key),
+                type=AlarmEventType.EQUIPMENT,
+                category=AlarmEventCategory.PON,
+                severity=severity,
+                state=AlarmEventState.RAISED if status else AlarmEventState.CLEARED,
+                description=description,
+                context=alarm_data,
+                raised_ts=ts)
+
+            self.adapter_agent.submit_alarm(_device_id, alarm_event)
+
+        except Exception as e:
+            self.log.exception('failed-to-submit-alarm', e=e)
+
+        # take action based on alarm type, only pon_ni and onu objects report alarms
+        if object == 'pon_ni':
+            # key: {'device_id': <int>, 'pon_ni': <int>}
+            # alarm: 'los'
+            # status: <False|True>
+            pass
+        elif object == 'onu':
+            # key: {'device_id': <int>, 'pon_ni': <int>, 'onu_id': <int>}
+            # alarm: <'los'|'lob'|'lopc_miss'|'los_mic_err'|'dow'|'sf'|'sd'|'suf'|'df'|'tiw'|'looc'|'dg'>
+            # status: <False|True>
+            pass
+
+    def BalIfaceLosAlarm(self, device_id, Iface_ID,\
+                         los_status, IfaceLos_data):
+        self.log.info('Interface Loss Of Signal Alarm')
+        self.handle_report_alarm(device_id,"pon_ni",\
+                                 Iface_ID,\
+                                 "loss_of_signal",los_status,"high",\
+                                 IfaceLos_data)
+
+    def BalSubsTermDgiAlarm(self, device_id, Iface_ID,\
+                            dgi_status, balSubTermDgi_data):
+        self.log.info('Subscriber terminal dying gasp')
+        self.handle_report_alarm(device_id,"onu",\
+                                 Iface_ID,\
+                                 "dgi_indication",dgi_status,"high",\
+                                 balSubTermDgi_data)
+
+    def BalSubsTermLosAlarm(self, device_id, Iface_ID,
+                         los_status, SubTermAlarm_Data):
+        self.log.info('ONU Alarms for Subscriber Terminal LOS')
+        self.handle_report_alarm(device_id,"onu",\
+                                 Iface_ID,\
+                                 "ONU : Loss Of Signal",\
+                                 los_status, "High",\
+                                 SubTermAlarm_Data)
+
+    def BalSubsTermLobAlarm(self, device_id, Iface_ID,
+                         lob_status, SubTermAlarm_Data):
+        self.log.info('ONU Alarms for Subscriber Terminal LOB')
+        self.handle_report_alarm(device_id,"onu",\
+                                 Iface_ID,\
+                                 "ONU : Loss Of Burst",\
+                                 lob_status, "High",\
+                                 SubTermAlarm_Data)
+
+    def BalSubsTermLopcMissAlarm(self, device_id, Iface_ID,
+                         lopc_miss_status, SubTermAlarm_Data):
+        self.log.info('ONU Alarms for Subscriber Terminal LOPC Miss')
+        self.handle_report_alarm(device_id,"onu",\
+                                 Iface_ID,\
+                                 "ONU : Loss Of PLOAM miss channel",\
+                                 lopc_miss_status, "High",\
+                                 SubTermAlarm_Data)
+
+    def BalSubsTermLopcMicErrorAlarm(self, device_id, Iface_ID,
+                         lopc_mic_error_status, SubTermAlarm_Data):
+        self.log.info('ONU Alarms for Subscriber Terminal LOPC Mic Error')
+        self.handle_report_alarm(device_id,"onu",\
+                                 Iface_ID,\
+                                 "ONU : Loss Of PLOAM MIC Error",\
+                                 lopc_mic_error_status, "High",\
+                                 SubTermAlarm_Data)
+
     def add_port(self, port_no, port_type, label):
         self.log.info('adding-port', port_no=port_no, port_type=port_type)
         if port_type is Port.ETHERNET_NNI:
@@ -304,6 +610,20 @@ class Asfvolt16Handler(OltDeviceHandler):
             device.reason = 'OLT activated successfully'
             self.adapter_agent.update_device(device)
             self.log.info('OLT activation complete')
+
+            #heart beat - To health checkup of OLT
+            self.heartbeat(device)
+
+            self.pm_metrics=Asfvolt16OltPmMetrics(device)
+            pm_config = self.pm_metrics.make_proto()
+            self.log.info("initial-pm-config", pm_config=pm_config)
+            self.adapter_agent.update_device_pm_config(pm_config,init=True)
+
+            # Apply the PM configuration
+            self.update_pm_config(device, pm_config)
+
+            # Request PM counters from OLT device.
+            self._handle_pm_counter_req_towards_device(device)
         else:
             device.oper_status = OperStatus.FAILED
             device.reason = 'Failed to Intialize OLT'
