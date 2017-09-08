@@ -69,6 +69,30 @@
       "revId": "f9647dcd7a4b1a7c0dfcdbbfec307445baf2784d",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa5d592f_91057bc4",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 776,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-09-08T00:43:02Z",
+      "side": 1,
+      "message": "Agree with Kim here. Some adapters don\u0027t support xPON framework and so this support is needed.",
+      "parentUuid": "fa5d592f_b1e3df32",
+      "range": {
+        "startLine": 775,
+        "startChar": 4,
+        "endLine": 776,
+        "endChar": 47
+      },
+      "revId": "f9647dcd7a4b1a7c0dfcdbbfec307445baf2784d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
