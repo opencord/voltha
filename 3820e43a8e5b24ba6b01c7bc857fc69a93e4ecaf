@@ -1,0 +1,123 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "da6255ed_e9ae15e7",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1000097
+      },
+      "writtenOn": "2017-09-08T08:52:26Z",
+      "side": 1,
+      "message": "Could you remove the commented code?",
+      "revId": "3820e43a8e5b24ba6b01c7bc857fc69a93e4ecaf",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da6255ed_89b55933",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 289,
+      "author": {
+        "id": 1000097
+      },
+      "writtenOn": "2017-09-08T08:52:26Z",
+      "side": 1,
+      "message": "Should the category be OLT?",
+      "revId": "3820e43a8e5b24ba6b01c7bc857fc69a93e4ecaf",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da6255ed_c9ab51d5",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 366,
+      "author": {
+        "id": 1000097
+      },
+      "writtenOn": "2017-09-08T08:52:26Z",
+      "side": 1,
+      "message": "Tabs?",
+      "revId": "3820e43a8e5b24ba6b01c7bc857fc69a93e4ecaf",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da6255ed_a9b81d2b",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 486,
+      "author": {
+        "id": 1000097
+      },
+      "writtenOn": "2017-09-08T08:52:26Z",
+      "side": 1,
+      "message": "This and next 2 lines... tabs?",
+      "revId": "3820e43a8e5b24ba6b01c7bc857fc69a93e4ecaf",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da6255ed_29a54d04",
+        "filename": "voltha/adapters/asfvolt16_olt/bal.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 343,
+      "author": {
+        "id": 1000097
+      },
+      "writtenOn": "2017-09-08T08:52:26Z",
+      "side": 1,
+      "message": "Should we call this variable nni_port?",
+      "revId": "3820e43a8e5b24ba6b01c7bc857fc69a93e4ecaf",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da6255ed_09aa89d4",
+        "filename": "voltha/adapters/asfvolt16_olt/bal.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 344,
+      "author": {
+        "id": 1000097
+      },
+      "writtenOn": "2017-09-08T08:52:26Z",
+      "side": 1,
+      "message": "Should this function be called get_bal_nni_stats to make the name more meaningful?",
+      "revId": "3820e43a8e5b24ba6b01c7bc857fc69a93e4ecaf",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da6255ed_49a081f4",
+        "filename": "voltha/adapters/asfvolt16_olt/bal.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 374,
+      "author": {
+        "id": 1000097
+      },
+      "writtenOn": "2017-09-08T08:52:26Z",
+      "side": 1,
+      "message": "Should this log be (\u0027OLT Heartbeat received from\u0027, device\u003ddevice_id, heartbeat_err \u003d err)",
+      "revId": "3820e43a8e5b24ba6b01c7bc857fc69a93e4ecaf",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
