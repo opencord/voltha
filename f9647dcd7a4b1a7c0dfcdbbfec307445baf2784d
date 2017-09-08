@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "da6255ed_c90fd12d",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 758,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-09-08T01:14:04Z",
+      "side": 1,
+      "message": "This function is necessary in a scenario where the olt adapter receives ont-departure event notification from onu. The olt would then use this api to set that particular onu admin_state to AdminState.DISABLE. This will let the voltha device agaent state machine to trigger disable_device api for that onu adapter.",
+      "parentUuid": "fa5d592f_6436c605",
+      "range": {
+        "startLine": 758,
+        "startChar": 28,
+        "endLine": 758,
+        "endChar": 46
+      },
+      "revId": "f9647dcd7a4b1a7c0dfcdbbfec307445baf2784d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fa5d592f_b1199f7b",
         "filename": "voltha/core/adapter_agent.py",
         "patchSetId": 1
@@ -84,6 +108,30 @@
       "side": 1,
       "message": "Agree with Kim here. Some adapters don\u0027t support xPON framework and so this support is needed.",
       "parentUuid": "fa5d592f_b1e3df32",
+      "range": {
+        "startLine": 775,
+        "startChar": 4,
+        "endLine": 776,
+        "endChar": 47
+      },
+      "revId": "f9647dcd7a4b1a7c0dfcdbbfec307445baf2784d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da6255ed_a91c9d6b",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 776,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-09-08T01:14:04Z",
+      "side": 1,
+      "message": "This function is necessary to implement the delete_device API for olt adapter and onu adapter. The the delete_device API can be invoked by voltha cli by \"delete \u003cdevice\u003e\" command.",
+      "parentUuid": "fa5d592f_b1199f7b",
       "range": {
         "startLine": 775,
         "startChar": 4,
