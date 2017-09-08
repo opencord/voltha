@@ -46,6 +46,74 @@
       "revId": "e1f443c409c783f3bf89994f3e7f74f449269016",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da6255ed_a9bdbd04",
+        "filename": "tests/itests/ofagent/test_ofagent_recovery.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 52,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-09-08T14:34:52Z",
+      "side": 1,
+      "message": "For tests that are skipped do you mind put in a short description why they are skipped and the reference to a JIRA, if raised?",
+      "revId": "e1f443c409c783f3bf89994f3e7f74f449269016",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da6255ed_493c0194",
+        "filename": "tests/itests/voltha/rest_base.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-09-08T14:34:52Z",
+      "side": 1,
+      "message": "Would it be clearer if we use http_expected_code instead as a parameter name?",
+      "revId": "e1f443c409c783f3bf89994f3e7f74f449269016",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da6255ed_6937c5b1",
+        "filename": "tests/itests/voltha/rest_base.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 41,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-09-08T14:34:52Z",
+      "side": 1,
+      "message": "If the grpc status is present do we need to check the expected_code as well?",
+      "revId": "e1f443c409c783f3bf89994f3e7f74f449269016",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da6255ed_a9549dca",
+        "filename": "tests/itests/voltha/test_persistence.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 73,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-09-08T14:34:52Z",
+      "side": 1,
+      "message": "Is this skipping all the tests?",
+      "revId": "e1f443c409c783f3bf89994f3e7f74f449269016",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
