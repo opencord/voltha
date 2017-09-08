@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, returnValue
 from voltha.adapters.asfvolt16_olt.protos import bal_pb2, \
     bal_model_types_pb2, bal_model_ids_pb2
 from voltha.adapters.asfvolt16_olt.grpc_client import GrpcClient
@@ -338,3 +338,40 @@ class Bal(object):
                           owner=owner_info,
                           exc=str(e))
         return
+
+    @inlineCallbacks
+    def get_bal_nni_stats(self, nni_port):
+        self.log.info('Fetching Statistics')
+        try:
+            obj = bal_model_types_pb2.BalInterfaceKey()
+            obj.intf_id = nni_port
+            obj.intf_type = bal_model_types_pb2.BAL_INTF_TYPE_NNI
+            stats = yield self.stub.BalCfgStatGet(obj)
+            self.log.info('Fetching statistics success', stats_data = stats.data)
+            returnValue(stats.data)
+        except Exception as e:
+            self.log.info('Fetching statistics failed', exc=str(e))
+
+    @inlineCallbacks
+    def set_bal_reboot(self, device_id):
+        self.log.info('Set Reboot')
+        try:
+            obj =  bal_pb2.BalReboot()
+            obj.device_id = device_id
+            err = yield self.stub.BalApiReboot(obj)
+            self.log.info('OLT Reboot Success', reboot_err= err)
+            returnValue(err)
+        except Exception as e:
+            self.log.info('OLT Reboot failed', exc=str(e))
+
+    @inlineCallbacks
+    def get_bal_heartbeat(self, device_id):
+        self.log.info('Get HeartBeat')
+        try:
+            obj =  bal_pb2.BalHeartbeat()
+            obj.device_id = device_id
+            err = yield self.stub.BalApiHeartbeat(obj)
+            self.log.info('OLT HeartBeat Response Received from', device=device_id, hearbeat_err=err)
+            returnValue(err)
+        except Exception as e:
+            self.log.info('OLT HeartBeat failed', exc=str(e))
