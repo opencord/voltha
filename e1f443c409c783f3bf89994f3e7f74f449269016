@@ -154,6 +154,24 @@
     },
     {
       "key": {
+        "uuid": "da6255ed_290f8de3",
+        "filename": "tests/itests/voltha/rest_base.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 41,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-09-08T14:45:54Z",
+      "side": 1,
+      "message": "Misread your comment.  Since the status codes are independent, i think we should still check both as a precaution",
+      "parentUuid": "da6255ed_e9717578",
+      "revId": "e1f443c409c783f3bf89994f3e7f74f449269016",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "da6255ed_a9549dca",
         "filename": "tests/itests/voltha/test_persistence.py",
         "patchSetId": 1
