@@ -132,8 +132,27 @@ class Asfvolt16RxHandler(object):
     @twisted_async
     def BalIfaceLos(self, request, context):
         device_id = request.device_id.decode('unicode-escape')
-        self.log.info('Not implemented yet',
+        self.log.info('Interface Loss Of Signal Alarm',\
                       device_id=device_id, obj_type=request.objType)
+        los_status = request.interface_los.data.status
+
+        if los_status == bal_model_types_pb2.BAL_ALARM_STATUS_ON or \
+           los_status == bal_model_types_pb2.BAL_ALARM_STATUS_OFF:
+           if los_status == \
+                 bal_model_types_pb2.BAL_ALARM_STATUS_ON:
+              status = True
+           else:
+              status = False
+
+           balIfaceLos_dict = { }
+           balIfaceLos_dict["los_status"]=los_status.__str__()
+
+           device_handler = self.adapter.devices_handlers[device_id]
+           reactor.callLater(0,\
+                             device_handler.BalIfaceLosAlarm,\
+                             device_id,request.interface_los.key.intf_id,\
+                             status,balIfaceLos_dict)
+
         ind_info = dict()
         ind_info['_object_type'] = 'interface_indication'
         ind_info['_sub_group_type'] = 'loss_of_signal'
@@ -210,8 +229,55 @@ class Asfvolt16RxHandler(object):
     @twisted_async
     def BalSubsTermAlarmInd(self, request, context):
         device_id = request.device_id.decode('unicode-escape')
-        self.log.info('Not implemented yet',
+        self.log.info('ONU Alarms for Subscriber Terminal',\
                       device_id=device_id, obj_type=request.objType)
+        #Loss of signal
+        los = request.terminal_alarm.data.alarm.los
+        #Loss of busrt
+        lob = request.terminal_alarm.data.alarm.lob
+        #Loss of PLOAM miss channel
+        lopc_miss = request.terminal_alarm.data.alarm.lopc_miss
+        #Loss of PLOAM channel
+        lopc_mic_error = request.terminal_alarm.data.alarm.lopc_mic_error
+
+        balSubTermAlarm_Dict = { }
+        balSubTermAlarm_Dict["LOS Status"]=los.__str__()
+        balSubTermAlarm_Dict["LOB Status"]=lob.__str__()
+        balSubTermAlarm_Dict["LOPC MISS Status"]=lopc_miss.__str__()
+        balSubTermAlarm_Dict["LOPC MIC ERROR Status"]=lopc_mic_error.__str__()
+
+        if los == bal_model_types_pb2.BAL_ALARM_STATUS_ON or \
+           los == bal_model_types_pb2.BAL_ALARM_STATUS_OFF or \
+           lob == bal_model_types_pb2.BAL_ALARM_STATUS_ON or \
+           lob == bal_model_types_pb2.BAL_ALARM_STATUS_OFF or \
+           lopc_miss == bal_model_types_pb2.BAL_ALARM_STATUS_ON or \
+           lopc_miss == bal_model_types_pb2.BAL_ALARM_STATUS_OFF or \
+           lopc_mic_error == bal_model_types_pb2.BAL_ALARM_STATUS_ON or \
+           lopc_mic_error == bal_model_types_pb2.BAL_ALARM_STATUS_OFF :
+           if los == bal_model_types_pb2.BAL_ALARM_STATUS_ON :
+              los_status = True
+           if los == bal_model_types_pb2.BAL_ALARM_STATUS_OFF :
+              los_status = False
+           if lob == bal_model_types_pb2.BAL_ALARM_STATUS_ON :
+              lob_status = True
+           if lob == bal_model_types_pb2.BAL_ALARM_STATUS_OFF :
+              lob_status = False
+           if lopc_miss == bal_model_types_pb2.BAL_ALARM_STATUS_ON :
+              lopc_miss_status = True
+           if lopc_miss == bal_model_types_pb2.BAL_ALARM_STATUS_OFF :
+              lopc_miss_status = False
+           if lopc_mic_error == bal_model_types_pb2.BAL_ALARM_STATUS_ON :
+              lopc_mic_error_status = True
+           if lopc_mic_error == bal_model_types_pb2.BAL_ALARM_STATUS_OFF :
+              lopc_mic_error_status = False
+
+           device_handler = self.adapter.devices_handlers[device_id]
+           reactor.callLater(0,\
+                             device_handler.BalSubsTermAlarm,\
+                             device_id,request.terminal_alarm.key.intf_id,\
+                             los_status,lob_status,\
+                             lopc_miss_status,lopc_mic_error,\
+                             balSubTermAlarm_Dict)
         ind_info = dict()
         ind_info['_object_type'] = 'sub_term_indication'
         ind_info['_sub_group_type'] = 'alarm_indication'
@@ -230,8 +296,27 @@ class Asfvolt16RxHandler(object):
         #                '__vendor_specific' : <str>
         #                'activation_successful':[True or False]}
         device_id = request.device_id.decode('unicode-escape')
-        self.log.info('Not implemented yet',
+        self.log.info('Subscriber terminal dying gasp',\
                       device_id=device_id, obj_type=request.objType)
+
+        dgi_status = request.terminal_dgi.data.dgi_status
+
+        if dgi_status == bal_model_types_pb2.BAL_ALARM_STATUS_ON or \
+           dgi_status == bal_model_types_pb2.BAL_ALARM_STATUS_OFF:
+           if dgi_status == \
+              bal_model_types_pb2.BAL_ALARM_STATUS_ON:
+              status = True
+           else:
+              status = False
+
+           balSubTermDgi_Dict = { }
+           balSubTermDgi_Dict["dgi_status"]=dgi_status.__str__()
+
+           device_handler = self.adapter.devices_handlers[device_id]
+           reactor.callLater(0,
+                             device_handler.BalSubsTermDgiAlarm,
+                             device_id,request.terminal_dgi.key.intf_id,\
+                             status,balSubTermDgi_Dict)
         ind_info = dict()
         ind_info['_object_type'] = 'sub_term_indication'
         ind_info['_sub_group_type'] = 'dgi_indication'
