@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "da6255ed_49d52142",
+        "filename": "compose/docker-compose-ofagent-test.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 142,
+      "author": {
+        "id": 1000196
+      },
+      "writtenOn": "2017-09-08T14:00:16Z",
+      "side": 1,
+      "message": "Why does the -v option have to be repeated?",
+      "range": {
+        "startLine": 142,
+        "startChar": 6,
+        "endLine": 142,
+        "endChar": 9
+      },
+      "revId": "e1f443c409c783f3bf89994f3e7f74f449269016",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
