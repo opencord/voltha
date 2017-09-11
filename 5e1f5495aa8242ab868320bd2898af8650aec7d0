@@ -1,0 +1,44 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "da6255ed_ac2eeba3",
+        "filename": "unum/swarm.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 49,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-09-11T15:37:02Z",
+      "side": 1,
+      "message": "small typo... this one and subsequent error logs\n\nquerying instead of quering",
+      "revId": "5e1f5495aa8242ab868320bd2898af8650aec7d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da6255ed_8c2b2794",
+        "filename": "unum/swarm.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 102,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-09-11T15:37:02Z",
+      "side": 1,
+      "message": "you should capture the err in case the IP is invalid and raises an exception in the next statement",
+      "range": {
+        "startLine": 102,
+        "startChar": 13,
+        "endLine": 102,
+        "endChar": 14
+      },
+      "revId": "5e1f5495aa8242ab868320bd2898af8650aec7d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
