@@ -2,6 +2,29 @@
   "comments": [
     {
       "key": {
+        "uuid": "da6255ed_4c1d2f73",
+        "filename": "compose/docker-compose-onos-swarm.yml",
+        "patchSetId": 3
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-09-11T15:45:41Z",
+      "side": 1,
+      "message": "Does this result in huge volumes of logs? Swarm doesn\u0027t deal well with large numbers of logs to stdout or stderr which usually results in the related container having issues and running docker service logs hangs.\nIf there are many logs, it would be best to send them to Fluentd exclusively then they can be as noisy as required/desired.",
+      "range": {
+        "startLine": 35,
+        "startChar": 12,
+        "endLine": 35,
+        "endChar": 30
+      },
+      "revId": "5e1f5495aa8242ab868320bd2898af8650aec7d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "da6255ed_ac2eeba3",
         "filename": "unum/swarm.go",
         "patchSetId": 3
