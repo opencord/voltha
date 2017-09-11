@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "da6255ed_ef129557",
+        "filename": "compose/docker-compose-onos-swarm.yml",
+        "patchSetId": 3
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2017-09-11T16:49:45Z",
+      "side": 1,
+      "message": "You should be able to configure docker log file rolling via config in the compose file, but that being said, I can default this to warn. Additionally, we don\u0027t want to merge this yet as we may have to change how we form the cluster for the pre-POC thanks to the pain that is onos and the AAA app.",
+      "parentUuid": "da6255ed_4c1d2f73",
+      "range": {
+        "startLine": 35,
+        "startChar": 12,
+        "endLine": 35,
+        "endChar": 30
+      },
+      "revId": "5e1f5495aa8242ab868320bd2898af8650aec7d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "da6255ed_ac2eeba3",
         "filename": "unum/swarm.go",
         "patchSetId": 3
@@ -53,6 +77,30 @@
       "writtenOn": "2017-09-11T15:37:02Z",
       "side": 1,
       "message": "you should capture the err in case the IP is invalid and raises an exception in the next statement",
+      "range": {
+        "startLine": 102,
+        "startChar": 13,
+        "endLine": 102,
+        "endChar": 14
+      },
+      "revId": "5e1f5495aa8242ab868320bd2898af8650aec7d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da6255ed_cf0fd12d",
+        "filename": "unum/swarm.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 102,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2017-09-11T16:49:45Z",
+      "side": 1,
+      "message": "I can capture and deal with it.",
+      "parentUuid": "da6255ed_8c2b2794",
       "range": {
         "startLine": 102,
         "startChar": 13,
