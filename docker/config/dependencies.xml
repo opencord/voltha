@@ -24,15 +24,15 @@
     <version>fake</version>
 
     <properties>
-        <aaa.version>1.3.0-SNAPSHOT</aaa.version>
-        <config.version>1.3.0-SNAPSHOT</config.version>
-        <dhcpl2relay.version>1.1.0-SNAPSHOT</dhcpl2relay.version>
-        <igmp.version>1.3.0-SNAPSHOT</igmp.version>
-        <igmpproxy.version>1.1.0-SNAPSHOT</igmpproxy.version>
-        <mcast.version>1.3.0-SNAPSHOT</mcast.version>
-        <olt.version>1.3.0-SNAPSHOT</olt.version>
-        <sadis.version>1.1.0-SNAPSHOT</sadis.version>
-        <vtn.version>1.3.0-SNAPSHOT</vtn.version>
+        <aaa.version>1.3.0</aaa.version>
+        <config.version>1.3.0</config.version>
+        <dhcpl2relay.version>1.1.0</dhcpl2relay.version>
+        <igmp.version>1.3.0</igmp.version>
+        <igmpproxy.version>1.1.0</igmpproxy.version>
+        <mcast.version>1.3.0</mcast.version>
+        <olt.version>1.3.0</olt.version>
+        <sadis.version>1.1.0</sadis.version>
+        <vtn.version>1.3.0</vtn.version>
 
         <!-- TODO onos-build-conf.version can be dropped when onos.version > 1.10.3 -->
         <onos-build-conf.version>1.10.3-onf</onos-build-conf.version>
