@@ -164,6 +164,7 @@ class Asfvolt16Handler(OltDeviceHandler):
         self.ont_anis = dict()
         self.v_enets = dict()
         self.traffic_descriptors = dict()
+        self.adapter_name = adapter.name
         self.uni_port_num = 20
         self.pm_metrics = None
         self.heartbeat_count = 0
@@ -357,9 +358,9 @@ class Asfvolt16Handler(OltDeviceHandler):
     @inlineCallbacks
     def _req_pm_counter_from_device_in_loop(self, device):
         # NNI port is hardcoded to 0
-        kpi_status = 0
+        kpi_status = -1
         try:
-           pm_counters = yield self.bal.get_bal_stats(0)
+           pm_counters = yield self.bal.get_bal_nni_stats(0)
            kpi_status = 0
         except Exception, e:
            kpi_status = -1
