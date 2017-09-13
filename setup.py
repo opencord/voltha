@@ -11,9 +11,9 @@ twisted_deps = ['twisted']
 scapy_deps = ['scapy>=2.2.0']
 setup(
     name = 'voltha',
-    version = '0.0.1',
-    author = 'Zsolt Haraszti, Nathan Knuth, Ali Al-Shabibi',
-    author_email = 'zharaszt@ciena.com',
+    version = '1.1.0',
+    author = 'Zsolt Haraszti, Nathan Knuth, Ali Al-Shabibi, VOLTHA Community',
+    author_email = 'voltha-discuss@opencord.org',
     description = ('Virtual Optical Line Terminal (OLT) Hardware Abstraction'),
     license = 'LICENSE.txt',
     keywords = 'volt gpon cord',

@@ -196,7 +196,7 @@ class PonSimOltAdapter(OltAdapter):
                                                device_handler_class=PonSimOltHandler,
                                                name='ponsim_olt',
                                                vendor='Voltha project',
-                                               version='0.4',
+                                               version='1.1.0',
                                                device_type='ponsim_olt')
 
     def update_pm_config(self, device, pm_config):

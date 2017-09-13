@@ -64,7 +64,7 @@ class SimulatedOnuAdapter(object):
         self.descriptor = Adapter(
             id=self.name,
             vendor='Voltha project',
-            version='0.1',
+            version='1.1.0',
             config=AdapterConfig(log_level=LogLevel.INFO)
         )
         self.incoming_messages = DeferredQueue()

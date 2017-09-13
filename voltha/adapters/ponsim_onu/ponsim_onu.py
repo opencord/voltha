@@ -90,7 +90,7 @@ class PonSimOnuAdapter(OnuAdapter):
                                                device_handler_class = PonSimOnuHandler,
                                                name='ponsim_onu',
                                                vendor='Voltha project',
-                                               version='0.4',
+                                               version='1.1.0',
                                                device_type='ponsim_onu',
                                                vendor_id='PSMO')
 
