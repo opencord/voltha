@@ -26,6 +26,12 @@ if [ -z "$hosts" ]; then
 	exit
 fi
 
+if [  "$iUser" == "voltha" ]; then
+	echo -e "${yellow}voltha ${red}can't be used as be install user!!!${NC}"
+	echo -e "${red}Please delete the ${yellow}voltha ${red}user on the targets and create a different installation user${NC}"
+	exit
+fi
+
 # Configure barrier file sizes but only if a value was provided in the config file
 
 if [ -v logLimit ]; then
@@ -61,26 +67,14 @@ do
 
 	# Generate the pre-configuration script
 	echo -e "${lBlue}Creating the pre-configuration script${NC}"
-	cat <<HERE > bash_login.sh
-#!/bin/bash
-	echo "voltha ALL=(ALL) NOPASSWD:ALL" > tmp
-	sudo chown root.root tmp
-	sudo mv tmp /etc/sudoers.d/voltha
-	sudo mkdir /home/voltha
-	mkdir voltha_ssh
-	ssh-keygen -f ~/voltha_ssh/id_rsa -t rsa -N ''
-	sudo mv voltha_ssh /home/voltha/.ssh
-HERE
-	echo "sudo cat <<HERE > /home/voltha/.ssh/authorized_keys" >> bash_login.sh
+	head -n +1 BashLoginTarget.sh > bash_login.sh
+	echo "" >> bash_login.sh
+	echo -n 'key="' >> bash_login.sh
+	sed -i -e 's/$/"/' $i.pub
 	cat $i.pub >> bash_login.sh
-	echo "HERE" >> bash_login.sh
-	echo "chmod 400 /home/voltha/.ssh/authorized_keys" >> bash_login.sh
-	echo "sudo useradd -b /home -d /home/voltha voltha -s /bin/bash" >> bash_login.sh
-	echo "sudo chown -R voltha.voltha /home/voltha" >> bash_login.sh
-	echo "echo 'voltha:voltha' | sudo chpasswd" >> bash_login.sh
-	echo "rm .bash_login" >> bash_login.sh
-	echo "logout" >> bash_login.sh
+	tail -n +2 BashLoginTarget.sh | grep -v "{{ key }}" >> bash_login.sh
 	rm $i.pub
+
 	# Copy the pre-config file to the VM
 	echo -e "${lBlue}Transfering pre-configuration script to ${yellow}$i${NC}"
 	if [ -d ".test" ]; then
