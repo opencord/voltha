@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a5c5d37_ca1c6316",
+        "filename": "setup.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-09-13T19:03:08Z",
+      "side": 1,
+      "message": "Seems appropriate to change author/email now.",
+      "revId": "cc089b2c7df552a6e7951235380ee295f761f786",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}

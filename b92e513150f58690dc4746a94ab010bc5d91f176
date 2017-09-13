@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a5c5d37_aa192f24",
+        "filename": "setup.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-09-13T19:03:08Z",
+      "side": 0,
+      "message": "Not sure if this needs to change.  Where are these defined.",
+      "revId": "b92e513150f58690dc4746a94ab010bc5d91f176",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
