@@ -614,41 +614,14 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
                 self.root_proxy, logical_ports)
             self._default_rules = self._generate_default_rules(graph)
             root_ports = [p for p in logical_ports if p.root_port]
-            assert len(root_ports) == 1
+            assert len(root_ports) == 1, 'Only one root port supported at this time'
             self._nni_logical_port_no = root_ports[0].ofp_port.port_no
 
 
     def _generate_default_rules(self, graph):
 
         def root_device_default_rules(device):
-            ports = self.root_proxy.get('/devices/{}/ports'.format(device.id))
-            upstream_ports = [
-                port for port in ports if port.type == Port.ETHERNET_NNI
-            ]
-            assert len(upstream_ports) == 1
-            downstream_ports = [
-                port for port in ports if port.type == Port.PON_OLT \
-                                            or port.type == Port.VENET_OLT
-            ]
-            _is_any_venet_port = any(_port.type == Port.VENET_OLT for _port in
-                                  downstream_ports)
-            if _is_any_venet_port != True:
-                assert len(downstream_ports) == 1, \
-                    'Initially, we only handle one PON port'
-            flows = OrderedDict((f.id, f) for f in [
-                mk_flow_stat(
-                    priority=2000,
-                    match_fields=[
-                        in_port(upstream_ports[0].port_no),
-                        vlan_vid(ofp.OFPVID_PRESENT | 4000),
-                        vlan_pcp(0)
-                    ],
-                    actions=[
-                        pop_vlan(),
-                        output(downstream_ports[0].port_no)
-                    ]
-                )
-            ])
+            flows = OrderedDict()
             groups = OrderedDict()
             return flows, groups
 
@@ -755,3 +728,8 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
     def get_all_default_rules(self):
         self._assure_cached_tables_up_to_date()
         return self._default_rules
+
+    def get_wildcard_input_ports(self, exclude_port=None):
+        logical_ports = self.self_proxy.get('/ports')
+        return [port.ofp_port.port_no for port in logical_ports
+                if port.ofp_port.port_no != exclude_port]

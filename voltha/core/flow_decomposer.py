@@ -315,6 +315,11 @@ def get_goto_table_id(flow):
             return instruction.goto_table.table_id
     return None
 
+def get_metadata(flow):
+    for field in get_ofb_fields(flow):
+        if field.type == METADATA:
+            return field.table_metadata
+    return None
 
 # test and extract next table and group information
 
@@ -533,21 +538,43 @@ class FlowDecomposer(object):
             # TODO make the 4000 configurable
             fl_lst, _ = device_rules.setdefault(
                 egress_hop.device.id, ([], []))
-            fl_lst.append(mk_flow_stat(
-                priority=flow.priority,
-                cookie=flow.cookie,
-                match_fields=[
-                    in_port(egress_hop.ingress_port.port_no)
-                ] + [
-                    field for field in get_ofb_fields(flow)
-                    if field.type not in (IN_PORT, VLAN_VID)
-                ],
-                actions=[
-                    push_vlan(0x8100),
-                    set_field(vlan_vid(ofp.OFPVID_PRESENT | 4000)),
-                    output(egress_hop.egress_port.port_no)]
-            ))
 
+            # in_port_no is None for wildcard input case, do not include
+            # upstream port for 4000 flow in input
+            if in_port_no is None:
+                in_ports = self.get_wildcard_input_ports(exclude_port=
+                                                         egress_hop.egress_port.port_no)
+            else:
+                in_ports = [in_port_no]
+
+            for input_port in in_ports:
+                fl_lst.append(mk_flow_stat(        # Upstream flow
+                    priority=flow.priority,
+                    cookie=flow.cookie,
+                    match_fields=[
+                        in_port(egress_hop.ingress_port.port_no),
+                        vlan_vid(ofp.OFPVID_PRESENT | input_port)
+                    ] + [
+                        field for field in get_ofb_fields(flow)
+                        if field.type not in (IN_PORT, VLAN_VID)
+                    ],
+                    actions=[
+                        push_vlan(0x8100),
+                        set_field(vlan_vid(ofp.OFPVID_PRESENT | 4000)),
+                        output(egress_hop.egress_port.port_no)]
+                ))
+                fl_lst.append(mk_flow_stat(            # Downstream flow
+                    priority=flow.priority,
+                    match_fields=[
+                        in_port(egress_hop.egress_port.port_no),
+                        vlan_vid(ofp.OFPVID_PRESENT | 4000),
+                        vlan_pcp(0),
+                        metadata(input_port)
+                    ],
+                    actions=[
+                        pop_vlan(),
+                        output(egress_hop.ingress_port.port_no)]
+                ))
         else:
             # NOT A CONTROLLER-BOUND FLOW
             if is_upstream():
@@ -601,6 +628,20 @@ class FlowDecomposer(object):
             else:  # downstream
                 if has_next_table(flow):
                     assert out_port_no is None
+
+                    # For downstream flows with dual-tags, recalculate route with
+                    # inner-tag as logical output port. Otherwise PON-0 is always
+                    # selected.
+                    inner_tag = get_metadata(flow)
+                    if inner_tag is not None:
+                        route = self.get_route(in_port_no, inner_tag)
+                        if route is None:
+                            log.error('no-route-double-tag', in_port_no=in_port_no,
+                                      out_port_no=inner_tag, comment='ignoring flow')
+                            return device_rules
+                        assert len(route) == 2
+                        ingress_hop, egress_hop = route
+
                     fl_lst, _ = device_rules.setdefault(
                         ingress_hop.device.id, ([], []))
                     fl_lst.append(mk_flow_stat(
@@ -688,7 +729,7 @@ class FlowDecomposer(object):
 
                         assert len(route2) == 2
                         ingress_hop2, egress_hop = route2
-                        assert ingress_hop == ingress_hop2
+                        assert ingress_hop.ingress_port == ingress_hop2.ingress_port
 
                         fl_lst, _ = device_rules.setdefault(
                             egress_hop.device.id, ([], []))
@@ -719,4 +760,5 @@ class FlowDecomposer(object):
     def get_route(self, ingress_port_no, egress_port_no):
         raise NotImplementedError('derived class must provide')
 
-
+    def get_wildcard_input_ports(self, exclude_port=None):
+        raise NotImplementedError('derived class must provide')
