@@ -16,6 +16,24 @@
       "revId": "c44ef0dff9cd228f4ba55055b5579811f6cf8829",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_16874211",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 1200,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-09-18T23:26:38Z",
+      "side": 1,
+      "message": "Onus doesn\u0027t about the data CTAGS until EAPOL is exchanged. So initially EAPOL is exchanged with Default VLAN, later when it receives data ctags, it will be replaced.",
+      "parentUuid": "9a5c5d37_76a1dea8",
+      "revId": "c44ef0dff9cd228f4ba55055b5579811f6cf8829",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
