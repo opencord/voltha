@@ -50,6 +50,7 @@ class Bal(object):
 
         ip_port = []
         ip_port.append(str(adapter_ip))
+        #ip_port.append("192.168.140.34")
         ip_port.append(":")
         ip_port.append(str(ADAPTER_PORT))
         init.voltha_adapter_ip_port ="".join(ip_port)
@@ -148,21 +149,33 @@ class Bal(object):
         return
 
     @inlineCallbacks
-    def packet_out(self, onu_id, egress_port, pkt):
-
+    def packet_out(self, pkt, pkt_info):
         obj = bal_pb2.BalCfg()
-        # Set the destination ONU info
-        obj.packet.key.dest.packet_send_dest.sub_term.sub_term_id = onu_id
-        # TODO: Need to provide correct values for sub_term_uni and int_id
-        obj.packet.key.dest.packet_send_dest.sub_term.sub_term_uni = egress_port
-        obj.packet.key.dest.packet_send_dest.sub_term.int_id = egress_port
+        obj.device_id = self.device_id.encode('ascii', 'ignore')
+        obj.hdr.obj_type = bal_model_ids_pb2.BAL_OBJ_ID_PACKET
+        if pkt_info['dest_type'] == 'onu':
+            # Set the destination ONU info
+            obj.packet.key.packet_send_dest.type = bal_model_types_pb2.BAL_DEST_TYPE_SUB_TERM
+            obj.packet.key.packet_send_dest.sub_term.sub_term_id = pkt_info['onu_id']
+            # TODO: Need to provide correct values for sub_term_uni and int_id
+            #obj.packet.key.packet_send_dest.sub_term.sub_term_uni = egress_port
+            obj.packet.key.packet_send_dest.sub_term.intf_id = pkt_info['intf_id']
+            obj.packet.data.intf_type = bal_model_types_pb2.BAL_INTF_TYPE_PON
+        elif pkt_info['dest_type'] == 'gem_port':
+            obj.packet.key.packet_send_dest.type = bal_model_types_pb2.BAL_DEST_TYPE_SVC_PORT
+            obj.packet.key.packet_send_dest.svc_port.svc_port_id = pkt_info['gem_port']
+            obj.packet.key.packet_send_dest.svc_port.intf_id = pkt_info['intf_id']
+            obj.packet.data.intf_type = bal_model_types_pb2.BAL_INTF_TYPE_PON
+        elif pkt_info['dest_type'] == 'nni':
+            obj.packet.key.packet_send_dest.type = bal_model_types_pb2.BAL_DEST_TYPE_NNI
+            obj.packet.key.packet_send_dest.nni.intf_id = pkt_info['intf_id']
+        else:
+            self.log.error('unsupported-dest-type', dest_type=pkt_info['dest_type'])
 
         # Set the Packet-out info
-        obj.packet.data.flow_type = bal_model_types_pb2.BAL_FLOW_TYPE_DOWNSTREAM
         # TODO: Need to provide correct value for intf_id
-        obj.packet.data.intf_id = egress_port
         obj.packet.data.pkt = pkt
-        self.log.info('packet-out',
+        self.log.info('sending-packet-out',
                       packet_out_details=obj)
         yield self.stub.BalCfgSet(obj)
 
@@ -287,6 +300,36 @@ class Bal(object):
             self.log.info('add_flow-exception',
                           flow_id, onu_id, exc=str(e))
         return
+
+    @inlineCallbacks
+    def delete_flow(self, onu_id, intf_id, flow_id, is_downstream):
+        try:
+            obj = bal_pb2.BalCfg()
+            # Fill Header details
+            obj.device_id = self.device_id.encode('ascii', 'ignore')
+            obj.hdr.obj_type = bal_model_ids_pb2.BAL_OBJ_ID_FLOW
+            # Fill Access Terminal Details
+            # To-DO flow ID need to be retrieved from flow details
+            obj.flow.key.flow_id = flow_id
+            if is_downstream is False:
+                obj.flow.key.flow_type = \
+                    bal_model_types_pb2.BAL_FLOW_TYPE_UPSTREAM
+            else:
+                obj.flow.key.flow_type = \
+                    bal_model_types_pb2.BAL_FLOW_TYPE_DOWNSTREAM
+
+            obj.flow.data.admin_state = bal_model_types_pb2.BAL_STATE_DOWN
+            obj.flow.data.access_int_id = intf_id
+            #obj.flow.data.network_int_id = intf_id
+            obj.flow.data.sub_term_id = onu_id
+            self.log.info('deleting-flows-from-OLT-Device',
+                          flow_details=obj)
+            yield self.stub.BalCfgSet(obj)
+        except Exception as e:
+            self.log.info('delete_flow-exception',
+                          flow_id, onu_id, exc=str(e))
+        return
+
 
     @inlineCallbacks
     def create_scheduler(self, id, direction, owner_info, num_priority):

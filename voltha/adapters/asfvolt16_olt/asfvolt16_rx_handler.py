@@ -372,7 +372,7 @@ class Asfvolt16RxHandler(object):
         ind_info['intf_type'] = request.pktData.data.intf_type
         ind_info['svc_port'] = request.pktData.data.svc_port
         ind_info['flow_cookie'] = request.pktData.data.flow_cookie
-        ind_info['pkt'] = request.pktData.data.pkt
+        ind_info['packet'] = request.pktData.data.pkt
         device_handler = self.adapter.devices_handlers[device_id]
         reactor.callLater(0,
                           device_handler.handle_packet_in,
