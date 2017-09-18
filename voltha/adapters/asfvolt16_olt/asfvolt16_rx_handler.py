@@ -261,8 +261,10 @@ class Asfvolt16RxHandler(object):
                              device_id,request.terminal_alarm.key.intf_id,\
                              lopc_mic_error, balSubTermAlarm_Dict)
 
+        '''
         ind_info['_object_type'] = 'sub_term_indication'
         ind_info['_sub_group_type'] = 'alarm_indication'
+        '''
         bal_err = bal_pb2.BalErr()
         bal_err.err = bal_errno_pb2.BAL_ERR_OK
         return bal_err
@@ -293,9 +295,11 @@ class Asfvolt16RxHandler(object):
                              device_handler.BalSubsTermDgiAlarm,
                              device_id,request.terminal_dgi.key.intf_id,\
                              dgi_status,balSubTermDgi_Dict)
+        '''
         ind_info = dict()
         ind_info['_object_type'] = 'sub_term_indication'
         ind_info['_sub_group_type'] = 'dgi_indication'
+        '''
         bal_err = bal_pb2.BalErr()
         bal_err.err = bal_errno_pb2.BAL_ERR_OK
         return bal_err
@@ -372,7 +376,7 @@ class Asfvolt16RxHandler(object):
         ind_info['intf_type'] = request.pktData.data.intf_type
         ind_info['svc_port'] = request.pktData.data.svc_port
         ind_info['flow_cookie'] = request.pktData.data.flow_cookie
-        ind_info['pkt'] = request.pktData.data.pkt
+        ind_info['packet'] = request.pktData.data.pkt
         device_handler = self.adapter.devices_handlers[device_id]
         reactor.callLater(0,
                           device_handler.handle_packet_in,

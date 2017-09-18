@@ -1072,8 +1072,9 @@ message BalPacketCfgData
  */
 message BalPacketCfg
 {
-    BalPacketKey key = 1;          /**< Object key. */
-    BalPacketCfgData data = 2;    /**< All properties that must be set by the user. */
+    BalObj hdr = 1;                /**< Transport header. */
+    BalPacketKey key = 2;          /**< Object key. */
+    BalPacketCfgData data = 3;    /**< All properties that must be set by the user. */
 }
 
 /** Structure definition for the "ind" group of the "packet" object.

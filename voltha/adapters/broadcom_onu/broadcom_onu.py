@@ -35,9 +35,13 @@ from voltha.protos.common_pb2 import LogLevel, OperStatus, ConnectStatus, \
 from voltha.protos.device_pb2 import DeviceType, DeviceTypes, Port, Image
 from voltha.protos.health_pb2 import HealthStatus
 from voltha.protos.logical_device_pb2 import LogicalPort
-from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, OFPPF_1GB_FD
+from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, OFPPF_1GB_FD, OFPPS_LINK_DOWN
 from voltha.protos.openflow_13_pb2 import OFPXMC_OPENFLOW_BASIC, ofp_port
 from voltha.protos.bbf_fiber_base_pb2 import VEnetConfig
+from voltha.protos.bbf_fiber_traffic_descriptor_profile_body_pb2 import \
+    TrafficDescriptorProfileData
+from voltha.protos.bbf_fiber_tcont_body_pb2 import TcontsConfigData
+from voltha.protos.bbf_fiber_gemport_body_pb2 import GemportsConfigData
 
 from common.frameio.frameio import hexify
 from voltha.extensions.omci.omci import *
@@ -45,6 +49,8 @@ from voltha.extensions.omci.omci import *
 _ = third_party
 log = structlog.get_logger()
 
+
+BRDCM_DEFAULT_VLAN = 4091
 
 @implementer(IAdapterInterface)
 class BroadcomOnuAdapter(object):
@@ -96,8 +102,8 @@ class BroadcomOnuAdapter(object):
 
     def adopt_device(self, device):
         log.info('adopt_device', device_id=device.id)
-        self.devices_handlers[device.proxy_address.channel_id] = BroadcomOnuHandler(self, device.id)
-        reactor.callLater(0, self.devices_handlers[device.proxy_address.channel_id].activate, device)
+        self.devices_handlers[device.id] = BroadcomOnuHandler(self, device.id)
+        reactor.callLater(0, self.devices_handlers[device.id].activate, device)
         return device
 
     def reconcile_device(self, device):
@@ -149,10 +155,12 @@ class BroadcomOnuAdapter(object):
         raise NotImplementedError()
 
     def update_flows_bulk(self, device, flows, groups):
+        '''
         log.info('bulk-flow-update', device_id=device.id,
                   flows=flows, groups=groups)
+        '''
         assert len(groups.items) == 0
-        handler = self.devices_handlers[device.proxy_address.channel_id]
+        handler = self.devices_handlers[device.id]
         return handler.update_flow_table(device, flows.items)
 
     def update_flows_incrementally(self, device, flow_changes, group_changes):
@@ -164,8 +172,13 @@ class BroadcomOnuAdapter(object):
     def receive_proxied_message(self, proxy_address, msg):
         log.info('receive-proxied-message', proxy_address=proxy_address,
                  device_id=proxy_address.device_id, msg=hexify(msg))
-        handler = self.devices_handlers[proxy_address.channel_id]
-        handler.receive_message(msg)
+        # Device_id from the proxy_address is the olt device id. We need to
+        # get the onu device id using the port number in the proxy_address
+        device = self.adapter_agent. \
+            get_child_device_with_proxy_address(proxy_address)
+        if device:
+            handler = self.devices_handlers[device.id]
+            handler.receive_message(msg)
 
     def receive_packet_out(self, logical_device_id, egress_port_no, msg):
         log.info('packet-out', logical_device_id=logical_device_id,
@@ -175,30 +188,32 @@ class BroadcomOnuAdapter(object):
         log.info('receive_inter_adapter_message', msg=msg)
         proxy_address = msg['proxy_address']
         assert proxy_address is not None
-
-        if proxy_address.channel_id in self.devices_handlers:
-            handler = self.devices_handlers[proxy_address.channel_id]
-            if handler is not None:
-                handler.event_messages.put(msg)
+        # Device_id from the proxy_address is the olt device id. We need to
+        # get the onu device id using the port number in the proxy_address
+        device = self.adapter_agent. \
+            get_child_device_with_proxy_address(proxy_address)
+        if device:
+            handler = self.devices_handlers[device.id]
+            handler.event_messages.put(msg)
 
     def create_interface(self, device, data):
         log.info('create-interface', device_id=device.id)
-        if device.proxy_address.channel_id in self.devices_handlers:
-            handler = self.devices_handlers[device.proxy_address.channel_id]
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
             if handler is not None:
                 handler.create_interface(data)
 
     def update_interface(self, device, data):
         log.info('update-interface', device_id=device.id)
-        if device.proxy_address.channel_id in self.devices_handlers:
-            handler = self.devices_handlers[device.proxy_address.channel_id]
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
             if handler is not None:
                 handler.update_interface(data)
 
     def remove_interface(self, device, data):
         log.info('remove-interface', device_id=device.id)
-        if device.proxy_address.channel_id in self.devices_handlers:
-            handler = self.devices_handlers[device.proxy_address.channel_id]
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
             if handler is not None:
                 handler.remove_interface(data)
 
@@ -206,8 +221,11 @@ class BroadcomOnuAdapter(object):
         raise NotImplementedError()
 
     def create_tcont(self, device, tcont_data, traffic_descriptor_data):
-        log.info('Not implemented Yet', device_id=device.id)
-        #raise NotImplementedError()
+        log.info('create-tcont', device_id=device.id)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.create_tcont(tcont_data, traffic_descriptor_data)
 
     def update_tcont(self, device, tcont_data, traffic_descriptor_data):
         raise NotImplementedError()
@@ -216,8 +234,11 @@ class BroadcomOnuAdapter(object):
         raise NotImplementedError()
 
     def create_gemport(self, device, data):
-        log.info('Not implemented Yet', device_id=device.id)
-        #raise NotImplementedError()
+        log.info('create-gemport', device_id=device.id)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.create_gemport(data)
 
     def update_gemport(self, device, data):
         raise NotImplementedError()
@@ -226,7 +247,11 @@ class BroadcomOnuAdapter(object):
         raise NotImplementedError()
 
     def create_multicast_gemport(self, device, data):
-        raise NotImplementedError()
+        log.info('create-multicast-gemport', device_id=device.id)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.create_multicast_gemport(data)
 
     def update_multicast_gemport(self, device, data):
         raise NotImplementedError()
@@ -358,42 +383,6 @@ class BroadcomOnuHandler(object):
         parent_device = self.adapter_agent.get_device(device.parent_id)
         logical_device_id = parent_device.parent_id
         assert logical_device_id
-
-        for uni in self.uni_ports:
-            # register physical ports
-            uni_port = Port(
-                port_no=uni,
-                label='UNI facing Ethernet port '+str(uni),
-                type=Port.ETHERNET_UNI,
-                admin_state=AdminState.ENABLED,
-                oper_status=OperStatus.ACTIVE
-            )
-            self.adapter_agent.add_port(device.id, uni_port)
-
-            # add uni port to logical device
-            port_no = device.proxy_address.channel_id + uni
-            cap = OFPPF_1GB_FD | OFPPF_FIBER
-            self.adapter_agent.add_logical_port(logical_device_id, LogicalPort(
-                id='uni-{}'.format(port_no),
-                ofp_port=ofp_port(
-                    port_no=port_no,
-                    hw_addr=mac_str_to_tuple('00:00:00:%02x:%02x:%02x' %
-                                             (device.proxy_address.onu_id & 0xff,
-                                              (port_no >> 8) & 0xff,
-                                              port_no & 0xff)),
-                    name='uni-{}'.format(port_no),
-                    config=0,
-                    state=OFPPS_LIVE,
-                    curr=cap,
-                    advertised=cap,
-                    peer=cap,
-                    curr_speed=OFPPF_1GB_FD,
-                    max_speed=OFPPF_1GB_FD
-                ),
-                device_id=device.id,
-                device_port_no=uni_port.port_no
-            ))
-
         device = self.adapter_agent.get_device(device.id)
         device.oper_status = OperStatus.DISCOVERED
         self.adapter_agent.update_device(device)
@@ -404,7 +393,7 @@ class BroadcomOnuHandler(object):
         # We need to proxy through the OLT to get to the ONU
         # Configuration from here should be using OMCI
         #
-        self.log.info('bulk-flow-update', device_id=device.id, flows=flows)
+        #self.log.info('bulk-flow-update', device_id=device.id, flows=flows)
 
         def is_downstream(port):
             return port == 100  # Need a better way
@@ -425,6 +414,7 @@ class BroadcomOnuHandler(object):
             _push_tpid = None
             _field = None
             _set_vlan_vid = None
+            self.log.info('bulk-flow-update', device_id=device.id, flow=flow)
             try:
                 _in_port = fd.get_in_port(flow)
                 assert _in_port is not None
@@ -532,19 +522,32 @@ class BroadcomOnuHandler(object):
                 #
                 # All flows created from ONU adapter should be OMCI based
                 #
-                if _vlan_vid == 0:
+                if _vlan_vid == 0 and _set_vlan_vid != None and _set_vlan_vid != 0:
                     # allow priority tagged packets
                     # Set AR - ExtendedVlanTaggingOperationConfigData
                     #          514 - RxVlanTaggingOperationTable - add VLAN <cvid> to priority tagged pkts - c-vid
+
+                    self.send_delete_vlan_tagging_filter_data(0x2102)
+                    yield self.wait_for_response()
+
+                    #self.send_set_vlan_tagging_filter_data(0x2102, _set_vlan_vid)
+                    self.send_create_vlan_tagging_filter_data(0x2102, _set_vlan_vid)
+                    yield self.wait_for_response()
+
+                    self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_untagged(0x202, 0x1000, _set_vlan_vid)
+                    yield self.wait_for_response()
+
                     self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_single_tag(0x202, 8, 0, 0,
-                                                                                                     1, 8, _in_port)
+                                                                                                     1, 8, _set_vlan_vid)
                     yield self.wait_for_response()
 
                     # Set AR - ExtendedVlanTaggingOperationConfigData
                     #          514 - RxVlanTaggingOperationTable - add VLAN <cvid> to priority tagged pkts - c-vid
+                    '''
                     self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_single_tag(0x205, 8, 0, 0,
-                                                                                                     1, 8, _in_port)
+                                                                                                     1, 8, _set_vlan_vid)
                     yield self.wait_for_response()
+                    '''
 
             except Exception as e:
                 log.exception('failed-to-install-flow', e=e, flow=flow)
@@ -793,6 +796,40 @@ class BroadcomOnuHandler(object):
                     forward_operation=0x10,
                     number_of_entries=1
                 )
+            )
+        )
+        self.send_omci_message(frame)
+
+    def send_set_vlan_tagging_filter_data(self,
+                                          entity_id,
+                                          vlan_id):
+        data = dict(
+            vlan_filter_0=vlan_id,
+            forward_operation=0x10,
+            number_of_entries=1
+        )
+
+        frame = OmciFrame(
+            transaction_id=self.get_tx_id(),
+            message_type=OmciSet.message_id,
+            omci_message=OmciSet(
+                entity_class=VlanTaggingFilterData.class_id,
+                entity_id=entity_id,
+                attributes_mask=VlanTaggingFilterData.mask_for(
+                    *data.keys()),
+                data=data
+            )
+        )
+        self.send_omci_message(frame)
+
+    def send_delete_vlan_tagging_filter_data(self,
+                                          entity_id):
+        frame = OmciFrame(
+            transaction_id=self.get_tx_id(),
+            message_type=OmciDelete.message_id,
+            omci_message=OmciDelete(
+                entity_class=VlanTaggingFilterData.class_id,
+                entity_id=entity_id
             )
         )
         self.send_omci_message(frame)
@@ -1167,7 +1204,7 @@ class BroadcomOnuHandler(object):
         while self.incoming_messages.pending:
             _ = yield self.incoming_messages.get()
 
-        tcont = gem
+        cvid = BRDCM_DEFAULT_VLAN
 
         # construct message
         # MIB Reset - OntData - 0
@@ -1178,14 +1215,15 @@ class BroadcomOnuHandler(object):
         self.send_create_gal_ethernet_profile(1, 48)
         yield self.wait_for_response()
 
-        # TCONT config
-        # Set AR - TCont - 32769 - (1025 or 1026)
-        self.send_set_tcont(0x8001, tcont)
+        # Port 2
+        # Extended VLAN Tagging Operation config
+        # Create AR - ExtendedVlanTaggingOperationConfigData - 514 - 2 - 0x102(Uni-Port-Num)
+        # TODO: add entry here for additional UNI interfaces
+        self.send_create_extended_vlan_tagging_operation_configuration_data(0x202, 2, 0x102)
         yield self.wait_for_response()
 
-        # Mapper Service config
-        # Create AR - 802.1pMapperServiceProfile - 32769
-        self.send_create_8021p_mapper_service_profile(0x8001)
+        # Set AR - ExtendedVlanTaggingOperationConfigData - 514 - 8100 - 8100
+        self.send_set_extended_vlan_tagging_operation_tpid_configuration_data(0x202, 0x8100, 0x8100)
         yield self.wait_for_response()
 
         # MAC Bridge Service config
@@ -1193,28 +1231,17 @@ class BroadcomOnuHandler(object):
         self.send_create_mac_bridge_service_profile(0x201)
         yield self.wait_for_response()
 
-        # GEM Port Network CTP config
-        # Create AR - GemPortNetworkCtp - 257 - <gem> - 32769
-        self.send_create_gem_port_network_ctp(0x101, gem, 0x8001, "bi-directional", 0x100)
+        # Create AR - MacBridgePortConfigData - Entity_id -
+        #                                       bridge ID -
+        #                                       port num -
+        #                                       tp_type -
+        #                                       IEEE MApper poniter
+        self.send_create_mac_bridge_port_configuration_data(0x201, 0x201, 2, 1, 0x102)
         yield self.wait_for_response()
 
-        # Create AR - GemPortNetworkCtp - 260 - 4000 - 0
-        self.send_create_gem_port_network_ctp(0x104, 0x0FA0, 0, "downstream", 0)
-        yield self.wait_for_response()
-
-        # Multicast GEM Interworking config
-        # Create AR - MulticastGemInterworkingTp - 6 - 260
-        self.send_create_multicast_gem_interworking_tp(0x6, 0x104)
-        yield self.wait_for_response()
-
-        # GEM Interworking config
-        # Create AR - GemInterworkingTp - 32770 - 257 -32769 - 1
-        self.send_create_gem_inteworking_tp(0x8002, 0x101, 0x8001)
-        yield self.wait_for_response()
-
-        # Mapper Service Profile config
-        # Set AR - 802.1pMapperServiceProfile - 32769 - 32770
-        self.send_set_8021p_mapper_service_profile(0x8001, 0x8002)
+        # Mapper Service config
+        # Create AR - 802.1pMapperServiceProfile - 32769
+        self.send_create_8021p_mapper_service_profile(0x8001)
         yield self.wait_for_response()
 
         # MAC Bridge Port config
@@ -1222,13 +1249,25 @@ class BroadcomOnuHandler(object):
         self.send_create_mac_bridge_port_configuration_data(0x2102, 0x201, 3, 3, 0x8001)
         yield self.wait_for_response()
 
-        # Create AR - MacBridgePortConfigData - 9000 - 513 - 6 - 6 - 6
-        self.send_create_mac_bridge_port_configuration_data(0x2328, 0x201, 6, 6, 6)
-        yield self.wait_for_response()
-
         # VLAN Tagging Filter config
         # Create AR - VlanTaggingFilterData - 8450 - c-vid
         self.send_create_vlan_tagging_filter_data(0x2102, cvid)
+        yield self.wait_for_response()
+
+       # Set AR - ExtendedVlanTaggingOperationConfigData
+        #          514 - RxVlanTaggingOperationTable - add VLAN <cvid> to priority tagged pkts - c-vid
+        #self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_single_tag(0x202, 8, 0, 0, 1, 8, cvid)
+        #yield self.wait_for_response()
+
+        # Set AR - ExtendedVlanTaggingOperationConfigData
+        #          514 - RxVlanTaggingOperationTable - add VLAN <cvid> to untagged pkts - c-vid
+        self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_untagged(0x202, 0x1000, cvid)
+        yield self.wait_for_response()
+
+        # Multicast related MEs
+        # Set AR - MulticastOperationsProfile - Dynamic Access Control List table
+        # Create AR - MacBridgePortConfigData - 9000 - 513 - 6 - 6 - 6
+        self.send_create_mac_bridge_port_configuration_data(0x2328, 0x201, 6, 6, 6)
         yield self.wait_for_response()
 
         # Multicast Operation Profile config
@@ -1236,7 +1275,20 @@ class BroadcomOnuHandler(object):
         self.send_create_multicast_operations_profile(0x201, 3)
         yield self.wait_for_response()
 
-        # Set AR - MulticastOperationsProfile - Dynamic Access Control List table
+        # Multicast Subscriber config
+        # Create AR - MulticastSubscriberConfigInfo
+        self.send_create_multicast_subscriber_config_info(0x201, 0, 0x201)
+        yield self.wait_for_response()
+
+        # Create AR - GemPortNetworkCtp - 260 - 4000 - 0 Multicast
+        self.send_create_gem_port_network_ctp(0x104, 0x0FA0, 0, "downstream", 0)
+        yield self.wait_for_response()
+
+        # Multicast GEM Interworking config Multicast
+        # Create AR - MulticastGemInterworkingTp - 6 - 260
+        self.send_create_multicast_gem_interworking_tp(0x6, 0x104)
+        yield self.wait_for_response()
+
         self.send_set_multicast_operations_profile_acl_row0(0x201,
                                                             'dynamic',
                                                             0,
@@ -1247,43 +1299,12 @@ class BroadcomOnuHandler(object):
                                                             '239.255.255.255')
         yield self.wait_for_response()
 
-        # Multicast Subscriber config
-        # Create AR - MulticastSubscriberConfigInfo
-        self.send_create_multicast_subscriber_config_info(0x201, 0, 0x201)
-        yield self.wait_for_response()
-
         # Multicast Operation Profile config
         # Set AR - MulticastOperationsProfile - Downstream IGMP Multicast TCI
         self.send_set_multicast_operations_profile_ds_igmp_mcast_tci(0x201, 4, cvid)
         yield self.wait_for_response()
 
-        # Port 2
-        # Extended VLAN Tagging Operation config
-        # Create AR - ExtendedVlanTaggingOperationConfigData - 514 - 2 - 0x102
-        # TODO: add entry here for additional UNI interfaces
-        self.send_create_extended_vlan_tagging_operation_configuration_data(0x202, 2, 0x102)
-        yield self.wait_for_response()
-
-        # Set AR - ExtendedVlanTaggingOperationConfigData - 514 - 8100 - 8100
-        self.send_set_extended_vlan_tagging_operation_tpid_configuration_data(0x202, 0x8100, 0x8100)
-        yield self.wait_for_response()
-
-        # Set AR - ExtendedVlanTaggingOperationConfigData
-        #          514 - RxVlanTaggingOperationTable - add VLAN <cvid> to priority tagged pkts - c-vid
-        #self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_single_tag(0x202, 8, 0, 0, 1, 8, cvid)
-        #yield self.wait_for_response()
-
-        # Set AR - ExtendedVlanTaggingOperationConfigData
-        #          514 - RxVlanTaggingOperationTable - add VLAN <cvid> to untagged pkts - c-vid
-        self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_untagged(0x202, 0x1000, cvid)
-        yield self.wait_for_response()
-
-        # MAC Bridge Port config
-        # Create AR - MacBridgePortConfigData - 513 - 513 - 1 - 1 - 0x102
-        # TODO: add more entries here for other UNI ports
-        self.send_create_mac_bridge_port_configuration_data(0x201, 0x201, 2, 1, 0x102)
-        yield self.wait_for_response()
-
+        '''
         # Port 5
         # Extended VLAN Tagging Operation config
         # Create AR - ExtendedVlanTaggingOperationConfigData - 514 - 2 - 0x102
@@ -1310,6 +1331,52 @@ class BroadcomOnuHandler(object):
         # TODO: add more entries here for other UNI ports
         self.send_create_mac_bridge_port_configuration_data(0x205, 0x201, 5, 1, 0x105)
         yield self.wait_for_response()
+        '''
+
+    def add_uni_port(self, device, parent_logical_device_id,
+                     name, parent_port_num=None):
+        self.log.info('adding-logical-port', device_id=device.id,
+                      logical_device_id=parent_logical_device_id,
+                      name=name)
+        if parent_port_num is not None:
+            uni = parent_port_num
+            port_no = parent_port_num
+        else:
+            uni = self.uni_ports[0]
+            port_no = device.proxy_address.channel_id + uni    
+            # register physical ports
+        uni_port = Port(
+            port_no=uni,
+            label='UNI facing Ethernet port '+str(uni),
+            type=Port.ETHERNET_UNI,
+            admin_state=AdminState.ENABLED,
+            oper_status=OperStatus.ACTIVE
+        )
+        self.adapter_agent.add_port(device.id, uni_port)
+        # add uni port to logical device
+        cap = OFPPF_1GB_FD | OFPPF_FIBER
+        self.adapter_agent.add_logical_port(parent_logical_device_id,
+            LogicalPort(
+                id='uni-{}'.format(port_no),
+                ofp_port=ofp_port(
+                    port_no=port_no,
+                    hw_addr=mac_str_to_tuple('00:00:00:%02x:%02x:%02x' %
+                                             (device.proxy_address.onu_id & 0xff,
+                                              (port_no >> 8) & 0xff,
+                                              port_no & 0xff)),
+                    #name='uni-{}'.format(port_no),
+                    name=name,
+                    config=0,
+                    state=OFPPS_LIVE,
+                    curr=cap,
+                    advertised=cap,
+                    peer=cap,
+                    curr_speed=OFPPF_1GB_FD,
+                    max_speed=OFPPF_1GB_FD
+                ),
+                device_id=device.id,
+                device_port_no=uni_port.port_no
+            ))
 
     def create_interface(self, data):
         if isinstance(data, VEnetConfig):
@@ -1322,7 +1389,13 @@ class BroadcomOnuHandler(object):
                     parent_port_num = port.port_no
                     break
 
-            if not parent_port_num:
+            parent_device = self.adapter_agent.get_device(onu_device.parent_id)
+            logical_device_id = parent_device.parent_id
+            assert logical_device_id
+            self.add_uni_port(onu_device, logical_device_id, 
+                              data.name, parent_port_num)
+
+            if parent_port_num is None:
                 self.log.error("matching-parent-uni-port-num-not-found")
                 return
 
@@ -1353,3 +1426,48 @@ class BroadcomOnuHandler(object):
     def remove_interface(self, data):
         self.log.info('Not Implemented yet')
         return
+
+    @inlineCallbacks
+    def create_gemport(self, data):
+        log.info('create-gemport')
+	gem_port= GemportsConfigData()
+	gem_port.CopyFrom(data)
+        if gem_port.tcont_ref is None:
+            self.log.info('Recevied NULL Gem Port Data')
+        else:
+            #To-Do Need to see how the valuse 0x8001 is derived
+            self.send_create_gem_port_network_ctp(gem_port.gemport_id,
+                                                  gem_port.gemport_id, 0x8001,
+                                                  "bi-directional", 0x100)
+            yield self.wait_for_response()
+
+            # GEM Interworking config
+            # Create AR - GemInterworkingTp - Gem_port,TP_pointer -
+            #                                 Gem port CTP pointer -
+            #                                 Mapper service profile id
+            self.send_create_gem_inteworking_tp(gem_port.gemport_id,
+                                                gem_port.gemport_id, 0x8001)
+            yield self.wait_for_response()
+
+            # Mapper Service Profile config
+            # Set AR - 802.1pMapperServiceProfile - Mapper_ profile_id -
+            #                                       gem_port_tp pointer
+            self.send_set_8021p_mapper_service_profile(0x8001,
+                                                       gem_port.gemport_id)
+            yield self.wait_for_response()
+
+
+    @inlineCallbacks
+    def create_tcont(self, tcont_data, traffic_descriptor_data):
+        log.info('create-tcont')
+	tcont = TcontsConfigData()
+        tcont.CopyFrom(tcont_data)
+        if (tcont.interface_reference is not None):
+                self.log.info('tcont created is', tcont= tcont.alloc_id)
+                self.send_set_tcont(0x8001, tcont.alloc_id)
+                yield self.wait_for_response()
+	else:
+            self.log.info('Recevied NULL tcont Data', tcont= tcont.alloc_id)
+
+    def create_multicast_gemport(self, data):
+        self.log.info('Send relevant OMCI message')
