@@ -37,7 +37,7 @@ from voltha.protos.common_pb2 import OperStatus, ConnectStatus
 from voltha.protos.device_pb2 import Port
 from voltha.protos.common_pb2 import AdminState
 from voltha.protos.logical_device_pb2 import LogicalPort, LogicalDevice
-from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, \
+from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, OFPPS_LINK_DOWN, \
     OFPPF_1GB_FD, OFPC_GROUP_STATS, OFPC_PORT_STATS, OFPC_TABLE_STATS, \
     OFPC_FLOW_STATS, ofp_switch_features, ofp_desc, ofp_port, \
     OFPXMC_OPENFLOW_BASIC
@@ -56,43 +56,56 @@ from voltha.protos.bbf_fiber_multicast_gemport_body_pb2 import \
 from voltha.protos.bbf_fiber_multicast_distribution_set_body_pb2 import \
     MulticastDistributionSetData
 import time
+import binascii
 
-ASFVOLT_NNI_PORT = 50
+ASFVOLT_NNI_PORT = 129
 # ASFVOLT_NNI_PORT needs to be other than pon port value.
 # Edgecore OLT assigns PONport between 0 to 15, hence
-# having a value 50 for NNI port to avoid collision.
+# having a value 129 for NNI port to avoid collision.
 # TODO: VLAN ID needs to come from some sort of configuration.
+ASFVOLT16_DEFAULT_VLAN = 4091
 PACKET_IN_VLAN = 4091
 is_inband_frame = BpfProgramFilter('(ether[14:2] & 0xfff) = 0x{:03x}'.format(
     PACKET_IN_VLAN))
 
 ASFVOLT_EAPOL_ID = 1
-ASFVOLT_DHCP_UNTAGGED_ID = 2
-ASFVOLT_DHCP_TAGGED_ID = 3
-ASFVOLT_IGMP_UNTAGGED_ID = 4
-ASFVOLT_IGMP_TAGGED_ID = 5
-ASFVOLT_FIRMWARE_ID = 6
-ASFVOLT_ARP_ID = 7
-ASFVOLT_HSIA_ID = 8
-ASFVOLT_DNS_ID = 9
+ASFVOLT_DOWNLINK_EAPOL_ID = 2
 
-ASFVOLT_DOWNLINK_EAPOL_ID = 10
-ASFVOLT_DOWNLINK_DHCP_UNTAGGED_ID = 11
-ASFVOLT_DOWNLINK_DHCP_TAGGED_ID = 12
-ASFVOLT_DOWNLINK_IGMP_UNTAGGED_ID = 13
-ASFVOLT_DOWNLINK_IGMP_TAGGED_ID = 14
-ASFVOLT_DOWNLINK_FIRMWARE_ID = 15
-ASFVOLT_DOWNLINK_ARP_ID = 16
-ASFVOLT_DOWNLINK_HSIA_ID = 17
-ASFVOLT_DOWNLINK_DNS_ID = 18
+ASFVOLT_EAPOL_ID_DATA_VLAN = 3
+ASFVOLT_DOWNLINK_EAPOL_ID_DATA_VLAN = 4
 
+ASFVOLT_DHCP_TAGGED_ID = 5
+ASFVOLT_DOWNLINK_DHCP_TAGGED_ID = 6
+
+ASFVOLT_IGMP_TAGGED_ID = 7
+ASFVOLT_DOWNLINK_IGMP_TAGGED_ID = 8
+
+ASFVOLT_FIRMWARE_ID = 9
+ASFVOLT_DOWNLINK_FIRMWARE_ID = 10
+
+ASFVOLT_ARP_ID = 11
+ASFVOLT_DOWNLINK_ARP_ID = 12
+
+ASFVOLT_HSIA_ID = 13
+ASFVOLT_DOWNLINK_HSIA_ID = 14
+
+ASFVOLT_DNS_ID = 15
+ASFVOLT_DOWNLINK_DNS_ID = 16
+
+
+class FlowInfo(object):
+
+    def __init__(self):
+        self.classifier = dict()
+        self.action = dict()
+        self.traffic_class = None
 
 class VEnetHandler(object):
 
     def __init__(self):
         self.v_enet = VEnetConfig()
         self.gem_ports = dict()
-
+        self.pending_flows = []
 
 class VOntAniHandler(object):
 
@@ -169,7 +182,7 @@ class Asfvolt16Handler(OltDeviceHandler):
         self.pm_metrics = None
         self.heartbeat_count = 0
         self.heartbeat_miss = 0
-        self.heartbeat_interval = 120
+        self.heartbeat_interval = 12000000
         self.heartbeat_failed_limit = 3
 
     def __del__(self):
@@ -182,10 +195,17 @@ class Asfvolt16Handler(OltDeviceHandler):
         self.uni_port_num += 1
         return self.uni_port_num
 
-    def get_venet(self, name):
+    def get_venet(self, **kwargs):
+        name = kwargs.pop('name', None)
+        gem_port_id = kwargs.pop('gem_port_id', None)
         for key, v_enet in self.v_enets.items():
-            if key == name:
-                return v_enet
+            if name is not None:
+                if key == name:
+                    return v_enet
+            if gem_port_id is not None:
+                for gem_key, gem_port in v_enet.gem_ports.items():
+                    if gem_port_id == gem_port.gemport_id:
+                        return v_enet
         return None
 
     def get_v_ont_ani(self, name):
@@ -230,7 +250,57 @@ class Asfvolt16Handler(OltDeviceHandler):
         # OnuID, IntfId, id
         # BAL accepts flow_id till 16384. So we are
         # using only onu_id and id to generate flow ID.
-        return ((onu_id << 13) | id)
+        return ((onu_id << 5) | id)
+
+    def get_uni_port(self, device_id):
+        ports = self.adapter_agent.get_ports(device_id, Port.ETHERNET_UNI)
+        if ports:
+            # For now, we use on one uni port
+            return ports[0]
+        return None
+
+    def store_flows(self, uplink_classifier, uplink_action, 
+                    v_enet, traffic_class):
+        flow = FlowInfo()
+        flow.classifier = dict(uplink_classifier)
+        flow.action = dict(uplink_action)
+        flow.traffic_class = traffic_class
+        v_enet.pending_flows.append(flow)
+        return None
+
+    def add_pending_flows(self, v_enet, traffic_class):
+        for flow in v_enet.pending_flows[:]:
+            if flow.traffic_class == traffic_class:
+                self.divide_and_add_flow(v_enet,
+                                         flow.classifier,
+                                         flow.action)
+                v_enet.pending_flows.remove(flow)
+        return
+
+    def get_logical_port_using_gem_port(self, gem_port_id):
+        logical_port = None
+        v_enet = self.get_venet(gem_port_id=gem_port_id)
+        if v_enet is None:
+            self.log.error('Failed-to-get-v-enet', gem_port_id=gem_port_id)
+            return
+
+        v_ont_ani = self.get_v_ont_ani(v_enet.v_enet.data.v_ontani_ref)
+        if v_ont_ani is None:
+            self.log.info('Failed-to-get-v_ont_ani',
+                          v_ont_ani=v_enet.v_enet.data.v_ontani_ref)
+            return
+
+        onu_device = self.adapter_agent.get_child_device(
+            self.device_id, onu_id=v_ont_ani.v_ont_ani.data.onu_id)
+        if onu_device is None:
+            self.log.info('Failed-to-get-onu-device',
+                          onu_id=v_ont_ani.v_ont_ani.data.onu_id)
+            return
+
+        uni = self.get_uni_port(onu_device.id)
+        if uni is not None:
+           logical_port = (onu_device.proxy_address.channel_id + uni.port_no)
+        return logical_port
 
     def activate(self, device):
 
@@ -267,12 +337,13 @@ class Asfvolt16Handler(OltDeviceHandler):
 
         device = self.adapter_agent.get_device(device.id)
         device.parent_id = self.logical_device_id
-        device.connect_status = ConnectStatus.REACHABLE
+        #device.connect_status = ConnectStatus.REACHABLE
+        device.connect_status = ConnectStatus.UNREACHABLE
         device.oper_status = OperStatus.ACTIVATING
         self.adapter_agent.update_device(device)
 
     @inlineCallbacks
-    def heartbeat(self, device_id, state='run'):
+    def heartbeat(self, device_id, state = 'run'):
         self.log.debug('olt-heartbeat', device=device_id, state=state,
                        count=self.heartbeat_count)
 
@@ -401,9 +472,12 @@ class Asfvolt16Handler(OltDeviceHandler):
         else:
            self.log.info('Lost Connectivity to OLT')
 
+
+        '''
         reactor.callLater(self.pm_metrics.default_freq/10,
                           self._req_pm_counter_from_device_in_loop,
                           device)
+        '''
 
     def update_pm_config(self, device, pm_config):
         self.log.info("update-pm-config", device=device, pm_config=pm_config)
@@ -420,7 +494,7 @@ class Asfvolt16Handler(OltDeviceHandler):
                  priority=priority,
                  alarm_data=alarm_data)
 
-        id = 'voltha.{}.{}.{}'.format(self.adapter_name,
+        id = 'voltha.{}.{}.{}'.format(self.adapter.name,
                                      _device_id, _object)
         description = '{} Alarm - {} - {}'.format(_object.upper(),
                                       alarm.upper(),
@@ -548,7 +622,8 @@ class Asfvolt16Handler(OltDeviceHandler):
                 mfr_desc='cord project',
                 hw_desc='n/a',
                 sw_desc='logical device for Edgecore ASFvOLT16 OLT',
-                serial_num=uuid4().hex,
+                #serial_num=uuid4().hex,
+                serial_num=self.host_and_port,
                 dp_desc='n/a'
             ),
             switch_features=ofp_switch_features(
@@ -580,11 +655,12 @@ class Asfvolt16Handler(OltDeviceHandler):
             return
 
         ofp = ofp_port(
-            port_no=0,  # is 0 OK?
+            port_no=port_no,  # is 0 OK?
             hw_addr=mac_str_to_tuple('00:00:00:00:00:%02x' % 129),
             name=label,
             config=0,
-            state=OFPPS_LIVE,
+            #state=OFPPS_LIVE,
+            state=OFPPS_LINK_DOWN,
             curr=cap,
             advertised=cap,
             peer=cap,
@@ -601,6 +677,21 @@ class Asfvolt16Handler(OltDeviceHandler):
 
         self.adapter_agent.add_logical_port(logical_device_id, logical_port)
 
+    def update_logical_port(self, port_no, port_type, state):
+        self.log.info('updating-logical-port', port_no=port_no,
+                      port_type=port_type, device_id=self.device_id,
+                      logical_device_id=self.logical_device_id)
+        if port_type is Port.ETHERNET_NNI:
+            label = 'nni'
+        else:
+            self.log.error('invalid-port-type', port_type=port_type)
+            return
+        logical_port = self.adapter_agent.get_logical_port(self.logical_device_id,
+                                                           label)
+        logical_port.ofp_port.state = state
+        self.adapter_agent.update_logical_port(self.logical_device_id,
+                                               logical_port)
+
     def handle_access_term_ind(self, ind_info):
         device = self.adapter_agent.get_device(self.device_id)
         if ind_info['activation_successful'] is True:
@@ -610,6 +701,8 @@ class Asfvolt16Handler(OltDeviceHandler):
             device.oper_status = OperStatus.ACTIVE
             device.reason = 'OLT activated successfully'
             self.adapter_agent.update_device(device)
+            self.update_logical_port(ASFVOLT_NNI_PORT, Port.ETHERNET_NNI,
+                                     OFPPS_LIVE)
             self.log.info('OLT activation complete')
 
             #heart beat - To health checkup of OLT
@@ -895,12 +988,13 @@ class Asfvolt16Handler(OltDeviceHandler):
             if data.name in v_enet.gem_ports:
                 self.log.info('Gem-port-info-is-already-present',
                               VEnet=v_enet, gem_info=data)
-            if data.gemport_id > 9212:
+            if data.gemport_id > 9215:
                 raise Exception('supported range for '
-                                'gem-port is from 1024 to 4099')
+                                'gem-port is from 1024 to 9215')
             gem_port = GemportsConfigData()
             gem_port.CopyFrom(data)
             v_enet.gem_ports[data.name] = gem_port
+            self.add_pending_flows(v_enet, gem_port.traffic_class)
         else:
             self.log.info('VEnet-is-not-configured-yet.',
                           gem_port_info=data)
@@ -919,41 +1013,68 @@ class Asfvolt16Handler(OltDeviceHandler):
 
     def handle_packet_in(self, ind_info):
         self.log.info('Received Packet-In', ind_info=ind_info)
-
+        logical_port = self.get_logical_port_using_gem_port(ind_info['svc_port'])
         pkt = Ether(ind_info['packet'])
+        kw = dict(
+                  logical_device_id=self.logical_device_id,
+                  logical_port_no=logical_port,
+                  )
+        self.log.info('sending-packet-in', **kw)
+        self.adapter_agent.send_packet_in(packet=str(pkt), **kw)
+
+    def packet_out(self, egress_port, msg):
+        pkt_info = dict()
+        pkt = Ether(msg)
+        self.log.info('received-packet-out-from-of-agent',
+                      egress_port=egress_port,
+                      packet=str(pkt).encode("HEX"))
+
         if pkt.haslayer(Dot1Q):
             outer_shim = pkt.getlayer(Dot1Q)
             if isinstance(outer_shim.payload, Dot1Q):
                 inner_shim = outer_shim.payload
-                cvid = inner_shim.vlan
-                logical_port = cvid
-                popped_frame = (
-                    Ether(src=pkt.src, dst=pkt.dst, type=inner_shim.type) /
-                    inner_shim.payload
+                payload = (
+                    Ether(src=pkt.src, dst=pkt.dst, type=outer_shim.type) /
+                    outer_shim.payload
                 )
-                kw = dict(
-                    logical_device_id=self.logical_device_id,
-                    logical_port_no=logical_port,
-                )
-                self.log.info('sending-packet-in', **kw)
-                self.adapter_agent.send_packet_in(
-                    packet=str(popped_frame), **kw)
+            else:
+                payload = pkt
+        else:
+            payload = pkt
 
-        reactor.callLater(1, self.process_packet_in)
+        self.log.info('sending-packet-to-device',
+                      egress_port=egress_port,
+                      packet=str(payload).encode("HEX"))
+        send_pkt = binascii.unhexlify(str(payload).encode("HEX"))
 
-    def packet_out(self, egress_port, msg):
-        self.log.info('sending-packet-out', egress_port=egress_port,
-                      msg=hexify(msg))
-        pkt = Ether(msg)
-        out_pkt = (
-            Ether(src=pkt.src, dst=pkt.dst) /
-            Dot1Q(vlan=PACKET_IN_VLAN) /
-            Dot1Q(vlan=egress_port, type=pkt.type) /
-            pkt.payload
-        )
-        onu_id = 1
-        # TODO: Need to retrieve the correct destination onu_id
-        self.bal.packet_out(onu_id, egress_port, str(out_pkt))
+        if egress_port == ASFVOLT_NNI_PORT:
+            port_id = 'nni'
+            pkt_info['dest_type'] = 'nni'
+            pkt_info['intf_id'] = 0
+        else:
+            port_id = 'uni-{}'.format(egress_port)
+            logical_port = None
+            logical_port = \
+                self.adapter_agent.get_logical_port(self.logical_device_id,
+                                                    port_id)
+            if logical_port is None:
+                self.log.info('Unable-to-find-logical-port-info',
+                              logical_port_number=egress_port)
+                return
+            onu_device = None
+            onu_device = self.adapter_agent.get_device(logical_port.device_id)
+            if onu_device is None:
+                self.log.info('Unable-to-find-onu_device-info',
+                              onu_device_id=logical_port.device_id)
+                return
+            pkt_info['intf_id'] = onu_device.proxy_address.channel_id
+            pkt_info['onu_id'] = onu_device.proxy_address.onu_id
+
+            pkt_info['dest_type'] = 'onu'
+            #pkt_info['dest_type'] = 'gem_port'
+            if pkt_info['dest_type'] == 'gem_port':
+                pkt_info['gem_port'] = 1024
+        self.bal.packet_out(send_pkt, pkt_info)
 
     def update_flow_table(self, flows):
         device = self.adapter_agent.get_device(self.device_id)
@@ -1082,7 +1203,20 @@ class Asfvolt16Handler(OltDeviceHandler):
                                        action_type=action.type, in_port=_in_port)
 
                 if is_down_stream is False:
-                    self.divide_and_add_flow(classifier_info, action_info)
+                    found = False
+                    ports = self.adapter_agent.get_ports(self.device_id,
+                                                         Port.ETHERNET_UNI)
+                    for port in ports:
+                        if port.port_no == classifier_info['in_port']:
+                            found = True
+                            break
+                    if found is True:
+                        v_enet = self.get_venet(name=port.label)
+                    else:
+                        self.log.error('Failed to get v_enet info',
+                                       in_port=classifier_info['in_port'])
+                        return
+                    self.divide_and_add_flow(v_enet, classifier_info, action_info)
             except Exception as e:
                 self.log.exception('failed-to-install-flow', e=e, flow=flow)
 
@@ -1090,19 +1224,7 @@ class Asfvolt16Handler(OltDeviceHandler):
     # upstreand and downstream flow, as broadcom devices
     # expects down stream flows to be added to handle
     # packet_out messge from controller.
-    def divide_and_add_flow(self, classifier, action):
-        found = False
-        ports = self.adapter_agent.get_ports(self.device_id, Port.ETHERNET_UNI)
-        for port in ports:
-            if port.port_no == classifier['in_port']:
-                found = True
-                break
-        if found is True:
-            v_enet = self.get_venet(port.label)
-        else:
-            self.log.error('Failed to get v_enet info',
-                           in_port=classifier['in_port'])
-            return
+    def divide_and_add_flow(self, v_enet, classifier, action):
         if 'ip_proto' in classifier:
             if classifier['ip_proto'] == 17:
                 self.log.error('Addtion of DHCP flows are defferd')
@@ -1128,19 +1250,41 @@ class Asfvolt16Handler(OltDeviceHandler):
                 # self.log.error('Addtion of EAPOL flows are defferd')
                 self.add_eapol_flow(classifier, action,
                                     v_enet, ASFVOLT_EAPOL_ID,
-                                    ASFVOLT_DOWNLINK_EAPOL_ID)
+                                    ASFVOLT_DOWNLINK_EAPOL_ID,
+                                    ASFVOLT16_DEFAULT_VLAN)
         elif 'push_vlan' in action:
+
             self.prepare_and_add_dhcp_flow(classifier, action, v_enet,
                                            ASFVOLT_DHCP_TAGGED_ID,
                                            ASFVOLT_DOWNLINK_DHCP_TAGGED_ID)
+
+            #self.del_flow(v_enet, ASFVOLT_EAPOL_ID, ASFVOLT_DOWNLINK_EAPOL_ID)
+            self.prepare_and_add_eapol_flow(classifier, action, v_enet,
+                                           ASFVOLT_EAPOL_ID_DATA_VLAN,
+                                           ASFVOLT_DOWNLINK_EAPOL_ID_DATA_VLAN)
             self.add_data_flow(classifier, action, v_enet)
         else:
             self.log.info('Invalid-flow-type-to-handle',
                           classifier=classifier,
                           action=action)
 
+
+    def prepare_and_add_eapol_flow(self, data_classifier, data_action,
+                                  v_enet, eapol_id, downlink_eapol_id):
+        eapol_classifier = dict()
+        eapol_action = dict()
+        eapol_classifier['eth_type'] = 0x888e
+        eapol_classifier['pkt_tag_type'] = 'single_tag'
+        #eapol_classifier['vlan_vid'] = data_classifier['vlan_vid']
+
+        eapol_action['vlan_push'] = True
+        eapol_action['vlan_vid'] = data_action['vlan_vid']
+        self.add_eapol_flow(eapol_classifier, eapol_action, v_enet,
+                           eapol_id, downlink_eapol_id, data_classifier['vlan_vid'])
+
+
     def add_eapol_flow(self, uplink_classifier, uplink_action,
-                       v_enet, uplink_eapol_id, downlink_eapol_id):
+                       v_enet, uplink_eapol_id, downlink_eapol_id, vlan_id):
         downlink_classifier = dict(uplink_classifier)
         downlink_action = dict(uplink_action)
         # To-Do For a time being hard code the traffic class value.
@@ -1148,6 +1292,12 @@ class Asfvolt16Handler(OltDeviceHandler):
         gem_port = self.get_gem_port_info(v_enet, traffic_class=2)
         if gem_port is None:
             self.log.info('Failed-to-get-gemport',)
+            # To-Do: If Gemport not found, then flow failure indication
+            # should be sent to controller. For now, not sure how to
+            # send that to controller. so store the flows in v_enet
+            # and add it when gem port is created
+            self.store_flows(uplink_classifier, uplink_action,
+                             v_enet, traffic_class=2)
             return
         v_ont_ani = self.get_v_ont_ani(v_enet.v_enet.data.v_ontani_ref)
         if v_ont_ani is None:
@@ -1170,7 +1320,9 @@ class Asfvolt16Handler(OltDeviceHandler):
                                    onu_device.proxy_address.channel_id,
                                    uplink_eapol_id)
         # Add Upstream EAPOL Flow.
-        uplink_classifier['pkt_tag_type'] = 'untagged'
+        #uplink_classifier['pkt_tag_type'] = 'untagged'
+        uplink_classifier['pkt_tag_type'] = 'single_tag'
+        uplink_classifier['vlan_vid'] = vlan_id
         uplink_action.clear()
         uplink_action['trap_to_host'] = True
         try:
@@ -1189,7 +1341,7 @@ class Asfvolt16Handler(OltDeviceHandler):
             # To-Do. While addition of one flow is in progress,
             # we cannot add an another flow. Right now use sleep
             # of 5 sec, assuming that addtion of flow is successful.
-            time.sleep(10)
+            time.sleep(0.1)
         except Exception as e:
             self.log.exception('failed-to-install-Upstream-EAPOL-flow', e=e,
                                classifier=uplink_classifier,
@@ -1202,7 +1354,9 @@ class Asfvolt16Handler(OltDeviceHandler):
                                             onu_device.proxy_address.channel_id,
                                             downlink_eapol_id)
         is_down_stream = True
-        downlink_classifier['pkt_tag_type'] = 'untagged'
+        #downlink_classifier['pkt_tag_type'] = 'untagged'
+        downlink_classifier['pkt_tag_type'] = 'single_tag'
+        downlink_classifier['vlan_vid'] = vlan_id
         try:
             self.log.info('Adding-Downstream-EAPOL-flow',
                           classifier=downlink_classifier,
@@ -1217,7 +1371,7 @@ class Asfvolt16Handler(OltDeviceHandler):
             # To-Do. While addition of one flow is in progress,
             # we cannot add an another flow. Right now use sleep
             # of 5 sec, assuming that addtion of flow is successful.
-            time.sleep(10)
+            time.sleep(0.1)
         except Exception as e:
             self.log.exception('failed-to-install-downstream-EAPOL-flow', e=e,
                                classifier=downlink_classifier,
@@ -1231,7 +1385,7 @@ class Asfvolt16Handler(OltDeviceHandler):
         dhcp_action = dict()
         dhcp_classifier['ip_proto'] = 17
         dhcp_classifier['udp_src'] = 68
-        dhcp_classifier['udp_dsct'] = 67
+        dhcp_classifier['udp_dst'] = 67
         dhcp_classifier['pkt_tag_type'] = 'single_tag'
         dhcp_classifier['vlan_vid'] = data_classifier['vlan_vid']
         dhcp_action['vlan_push'] = True
@@ -1248,7 +1402,9 @@ class Asfvolt16Handler(OltDeviceHandler):
         # Need to know how to get the traffic class info from flows.
         gem_port = self.get_gem_port_info(v_enet, traffic_class=2)
         if gem_port is None:
-            self.log.error('Failed-to-get-gemport')
+            self.log.info('Failed-to-get-gemport')
+            self.store_flows(uplink_classifier, uplink_action, 
+                             v_enet, traffic_class=2)
             return
         v_ont_ani = self.get_v_ont_ani(v_enet.v_enet.data.v_ontani_ref)
         if v_ont_ani is None:
@@ -1289,7 +1445,7 @@ class Asfvolt16Handler(OltDeviceHandler):
             # To-Do. While addition of one flow is in progress,
             # we cannot add an another flow. Right now use sleep
             # of 5 sec, assuming that addtion of flow is successful.
-            time.sleep(10)
+            time.sleep(0.1)
 
         except Exception as e:
             self.log.exception('failed-to-install-dhcp-upstream-flow', e=e,
@@ -1304,10 +1460,17 @@ class Asfvolt16Handler(OltDeviceHandler):
 
         if dhcp_id == ASFVOLT_DHCP_TAGGED_ID:
             downlink_classifier['pkt_tag_type'] = 'double_tag'
+            # Copy O_OVID
             downlink_classifier['vlan_vid'] = downlink_action['vlan_vid']
+            # Copy I_OVID
+            #downlink_classifier['metadata'] = uplink_classifier['vlan_vid']
             if 'push_vlan' in downlink_classifier:
                 downlink_action.pop('push_vlan')
             downlink_action['pop_vlan'] = True
+        else:
+            downlink_classifier['pkt_tag_type'] =  'untagged'
+            downlink_classifier.pop('vlan_vid')
+
 
         downlink_flow_id = self.get_flow_id(onu_device.proxy_address.onu_id,
                                             onu_device.proxy_address.channel_id,
@@ -1327,7 +1490,7 @@ class Asfvolt16Handler(OltDeviceHandler):
             # To-Do. While addition of one flow is in progress,
             # we cannot add an another flow. Right now use sleep
             # of 5 sec, assuming that addtion of flow is successful.
-            time.sleep(10)
+            time.sleep(0.1)
         except Exception as e:
             self.log.exception('failed-to-install-dhcp-downstream-flow', e=e,
                                classifier=downlink_classifier,
@@ -1348,280 +1511,28 @@ class Asfvolt16Handler(OltDeviceHandler):
 
         downlink_classifier['pkt_tag_type'] = 'double_tag'
         downlink_classifier['vlan_vid'] = uplink_action['vlan_vid']
-        downlink_classifier['vlan_pcp'] = 0
+        downlink_classifier['metadata'] = uplink_classifier['vlan_vid']
         del downlink_action['push_vlan']
         downlink_action['pop_vlan'] = True
 
-        self.add_firmware_flow(uplink_classifier, uplink_action,
-                               downlink_classifier, downlink_action,
-                               v_enet, ASFVOLT_FIRMWARE_ID,
-                               ASFVOLT_DOWNLINK_FIRMWARE_ID)
-        self.add_arp_flow(uplink_classifier, uplink_action,
-                          downlink_classifier, downlink_action,
-                          v_enet, ASFVOLT_ARP_ID, ASFVOLT_DOWNLINK_ARP_ID)
-        self.add_dns_flow(uplink_classifier, uplink_action,
-                          downlink_classifier, downlink_action,
-                          v_enet, ASFVOLT_DNS_ID, ASFVOLT_DOWNLINK_DNS_ID)
+        # To-Do right now only one GEM port is supported, so below method
+        # will take care of handling all the p bits.
+        # We need to revisit when mulitple gem port per bits is needed.
         self.add_hsia_flow(uplink_classifier, uplink_action,
-                           downlink_classifier, downlink_action,
-                           v_enet, ASFVOLT_HSIA_ID, ASFVOLT_DOWNLINK_HSIA_ID)
-
-    def add_firmware_flow(self, uplink_classifier, uplink_action,
                           downlink_classifier, downlink_action,
-                          v_enet, firmware_id, downlink_firmware_id):
-        # Add Upstream Firmware Flow.
-        # To-Do For a time being hard code the traffic class value.
-        # Need to know how to get the traffic class info from flows.
-        gem_port = self.get_gem_port_info(v_enet, traffic_class=2)
-        if gem_port is None:
-            self.log.info('Failed-to-get-gemport')
-            return
-        v_ont_ani = self.get_v_ont_ani(v_enet.v_enet.data.v_ontani_ref)
-        if v_ont_ani is None:
-            self.log.info('Failed-to-get-v_ont_ani',
-                          v_ont_ani=v_enet.v_enet.data.v_ontani_ref)
-            return
-        tcont = self.get_tcont_info(v_ont_ani, name=gem_port.tcont_ref)
-        if tcont is None:
-            self.log.info('Failed-to-get-tcont-info',
-                          tcont=gem_port.tcont_ref)
-            return
-        onu_device = self.adapter_agent.get_child_device(
-            self.device_id, onu_id=v_ont_ani.v_ont_ani.data.onu_id)
-        if onu_device is None:
-            self.log.info('Failed-to-get-onu-device',
-                          onu_id=v_ont_ani.v_ont_ani.data.onu_id)
-            return
-
-        flow_id = self.get_flow_id(onu_device.proxy_address.onu_id,
-                                   onu_device.proxy_address.channel_id,
-                                   firmware_id)
-        self.log.info('Adding-FirmWare-data-upstream-flow')
-        try:
-            is_down_stream = False
-            self.log.info('Adding-Firmware-data-upstream-flow',
-                          classifier=uplink_classifier,
-                          action=uplink_action,
-                          gem_port=gem_port,
-                          flow_id=flow_id,
-                          sched_info=tcont.alloc_id)
-            self.bal.add_flow(onu_device.proxy_address.onu_id,
-                              onu_device.proxy_address.channel_id,
-                              flow_id, gem_port.gemport_id,
-                              uplink_classifier, is_down_stream,
-                              action_info=uplink_action,
-                              sched_id=tcont.alloc_id)
-            # To-Do. While addition of one flow is in progress,
-            # we cannot add an another flow. Right now use sleep
-            # of 5 sec, assuming that addtion of flow is successful.
-            time.sleep(10)
-        except Exception as e:
-            self.log.exception('failed-to-install-firmware-upstream-flow', e=e,
-                               classifier=uplink_classifier,
-                               action=uplink_action,
-                               onu_id=onu_device.proxy_address.onu_id,
-                               intf_id=onu_device.proxy_address.channel_id)
-        is_down_stream = True
-        # To-Do: For Now hard code the p-bit values.
-        downlink_classifier['vlan_pcp'] = 1
-        downlink_flow_id = self.get_flow_id(onu_device.proxy_address.onu_id,
-                                            onu_device.proxy_address.channel_id,
-                                            downlink_firmware_id)
-        try:
-            self.log.info('Adding-Firmware-data-downstream-flow',
-                          classifier=downlink_classifier,
-                          action=downlink_action,
-                          gem_port=gem_port,
-                          flow_id=downlink_flow_id)
-            self.bal.add_flow(onu_device.proxy_address.onu_id,
-                              onu_device.proxy_address.channel_id,
-                              downlink_flow_id, gem_port.gemport_id,
-                              downlink_classifier, is_down_stream,
-                              action_info=downlink_action)
-            # To-Do. While addition of one flow is in progress,
-            # we cannot add an another flow. Right now use sleep
-            # of 5 sec, assuming that addtion of flow is successful.
-            time.sleep(10)
-        except Exception as e:
-            self.log.exception('failed-to-install-firmware-downstream-flow', e=e,
-                               classifier=downlink_classifier,
-                               action=downlink_action,
-                               onu_id=onu_device.proxy_address.onu_id,
-                               intf_id=onu_device.proxy_address.channel_id)
-
-    def add_dns_flow(self, uplink_classifier, uplink_action,
-                     downlink_classifier, downlink_action,
-                     v_enet, dns_id, downlink_dns_id):
-        # Add Upstream Firmware Flow.
-        # To-Do For a time being hard code the traffic class value.
-        # Need to know how to get the traffic class info from flows.
-        gem_port = self.get_gem_port_info(v_enet, traffic_class=2)
-        if gem_port is None:
-            self.log.info('Failed-to-get-gemport')
-            return
-        v_ont_ani = self.get_v_ont_ani(v_enet.v_enet.data.v_ontani_ref)
-        if v_ont_ani is None:
-            self.log.info('Failed-to-get-v_ont_ani',
-                          v_ont_ani=v_enet.v_enet.data.v_ontani_ref)
-            return
-        tcont = self.get_tcont_info(v_ont_ani, name=gem_port.tcont_ref)
-        if tcont is None:
-            self.log.info('Failed-to-get-tcont-info',
-                          tcont=gem_port.tcont_ref)
-            return
-        onu_device = self.adapter_agent.get_child_device(
-            self.device_id, onu_id=v_ont_ani.v_ont_ani.data.onu_id)
-        if onu_device is None:
-            self.log.info('Failed-to-get-onu-device',
-                          onu_id=v_ont_ani.v_ont_ani.data.onu_id)
-            return
-
-        flow_id = self.get_flow_id(onu_device.proxy_address.onu_id,
-                                   onu_device.proxy_address.channel_id,
-                                   dns_id)
-        try:
-            is_down_stream = False
-            self.log.info('Adding-DNS-upstream-flow',
-                          classifier=uplink_classifier,
-                          action=uplink_action,
-                          gem_port=gem_port,
-                          flow_id=flow_id,
-                          sched_info=tcont.alloc_id)
-            self.bal.add_flow(onu_device.proxy_address.onu_id,
-                              onu_device.proxy_address.channel_id,
-                              flow_id, gem_port.gemport_id,
-                              uplink_classifier, is_down_stream,
-                              action_info=uplink_action,
-                              sched_id=tcont.alloc_id)
-            # To-Do. While addition of one flow is in progress,
-            # we cannot add an another flow. Right now use sleep
-            # of 5 sec, assuming that addtion of flow is successful.
-            time.sleep(10)
-        except Exception as e:
-            self.log.exception('failed-to-install-DNS-upstream-flow', e=e,
-                               classifier=uplink_classifier,
-                               action=uplink_action,
-                               onu_id=onu_device.proxy_address.onu_id,
-                               intf_id=onu_device.proxy_address.channel_id)
-        is_down_stream = True
-        # To-Do: For Now hard code the p-bit values.
-        downlink_classifier['vlan_pcp'] = 3
-        downlink_flow_id = self.get_flow_id(onu_device.proxy_address.onu_id,
-                                            onu_device.proxy_address.channel_id,
-                                            downlink_dns_id)
-        try:
-            self.log.info('Adding-DNS-downstream-flow',
-                          classifier=downlink_classifier,
-                          action=downlink_action,
-                          gem_port=gem_port,
-                          flow_id=downlink_flow_id)
-            self.bal.add_flow(onu_device.proxy_address.onu_id,
-                              onu_device.proxy_address.channel_id,
-                              downlink_flow_id, gem_port.gemport_id,
-                              downlink_classifier, is_down_stream,
-                              action_info=downlink_action)
-            # To-Do. While addition of one flow is in progress,
-            # we cannot add an another flow. Right now use sleep
-            # of 5 sec, assuming that addtion of flow is successful.
-            time.sleep(10)
-        except Exception as e:
-            self.log.exception('failed-to-install-DNS-downstream-flow', e=e,
-                               classifier=downlink_classifier,
-                               action=downlink_action,
-                               onu_id=onu_device.proxy_address.onu_id,
-                               intf_id=onu_device.proxy_address.channel_id)
-
-    def add_arp_flow(self, uplink_classifier, uplink_action,
-                     downlink_classifier, downlink_action,
-                     v_enet, arp_id, downlink_arp_id):
-        # Add Upstream Firmware Flow.
-        # To-Do For a time being hard code the traffic class value.
-        # Need to know how to get the traffic class info from flows.
-        gem_port = self.get_gem_port_info(v_enet, traffic_class=2)
-        if gem_port is None:
-            self.log.info('Failed-to-get-gemport')
-            return
-        v_ont_ani = self.get_v_ont_ani(v_enet.v_enet.data.v_ontani_ref)
-        if v_ont_ani is None:
-            self.log.info('Failed-to-get-v_ont_ani',
-                          v_ont_ani=v_enet.v_enet.data.v_ontani_ref)
-            return
-        tcont = self.get_tcont_info(v_ont_ani, name=gem_port.tcont_ref)
-        if tcont is None:
-            self.log.info('Failed-to-get-tcont-info',
-                          tcont=gem_port.tcont_ref)
-            return
-        onu_device = self.adapter_agent.get_child_device(
-            self.device_id, onu_id=v_ont_ani.v_ont_ani.data.onu_id)
-        if onu_device is None:
-            self.log.info('Failed-to-get-onu-device',
-                          onu_id=v_ont_ani.v_ont_ani.data.onu_id)
-            return
-
-        flow_id = self.get_flow_id(onu_device.proxy_address.onu_id,
-                                   onu_device.proxy_address.channel_id,
-                                   arp_id)
-        try:
-            is_down_stream = False
-            self.log.info('Adding-ARP-upstream-flow',
-                          classifier=uplink_classifier,
-                          action=uplink_action,
-                          gem_port=gem_port,
-                          flow_id=flow_id,
-                          sched_info=tcont.alloc_id)
-            self.bal.add_flow(onu_device.proxy_address.onu_id,
-                              onu_device.proxy_address.channel_id,
-                              flow_id, gem_port.gemport_id,
-                              uplink_classifier, is_down_stream,
-                              action_info=uplink_action,
-                              sched_id=tcont.alloc_id)
-            # To-Do. While addition of one flow is in progress,
-            # we cannot add an another flow. Right now use sleep
-            # of 5 sec, assuming that addtion of flow is successful.
-            time.sleep(10)
-        except Exception as e:
-            self.log.exception('failed-to-install-ARP-upstream-flow', e=e,
-                               classifier=uplink_classifier,
-                               action=uplink_action,
-                               onu_id=onu_device.proxy_address.onu_id,
-                               intf_id=onu_device.proxy_address.channel_id)
-        is_down_stream = True
-        # To-Do: For Now hard code the p-bit values.
-        downlink_classifier['vlan_pcp'] = 7
-        downlink_flow_id = self.get_flow_id(onu_device.proxy_address.onu_id,
-                                            onu_device.proxy_address.channel_id,
-                                            downlink_arp_id)
-        try:
-            self.log.info('Adding-ARP-downstream-flow',
-                          classifier=downlink_classifier,
-                          action=downlink_action,
-                          gem_port=gem_port,
-                          flow_id=downlink_flow_id)
-            self.bal.add_flow(onu_device.proxy_address.onu_id,
-                              onu_device.proxy_address.channel_id,
-                              downlink_flow_id, gem_port.gemport_id,
-                              downlink_classifier, is_down_stream,
-                              action_info=downlink_action)
-            # To-Do. While addition of one flow is in progress,
-            # we cannot add an another flow. Right now use sleep
-            # of 5 sec, assuming that addtion of flow is successful.
-            time.sleep(10)
-        except Exception as e:
-            self.log.exception('failed-to-install-ARP-downstream-flow', e=e,
-                               classifier=downlink_classifier,
-                               action=downlink_action,
-                               onu_id=onu_device.proxy_address.onu_id,
-                               intf_id=onu_device.proxy_address.channel_id)
+                          v_enet, ASFVOLT_HSIA_ID, ASFVOLT_DOWNLINK_HSIA_ID)
 
     def add_hsia_flow(self, uplink_classifier, uplink_action,
-                      downlink_classifier, downlink_action,
-                      v_enet, hsia_id, downlink_hsia_id):
+                     downlink_classifier, downlink_action,
+                     v_enet, hsia_id, downlink_hsia_id):
         # Add Upstream Firmware Flow.
         # To-Do For a time being hard code the traffic class value.
         # Need to know how to get the traffic class info from flows.
         gem_port = self.get_gem_port_info(v_enet, traffic_class=2)
         if gem_port is None:
             self.log.info('Failed-to-get-gemport')
+            self.store_flows(uplink_classifier, uplink_action, 
+                             v_enet, traffic_class=2)
             return
         v_ont_ani = self.get_v_ont_ani(v_enet.v_enet.data.v_ontani_ref)
         if v_ont_ani is None:
@@ -1645,7 +1556,7 @@ class Asfvolt16Handler(OltDeviceHandler):
                                    hsia_id)
         try:
             is_down_stream = False
-            self.log.info('Adding-HSIA-upstream-flow',
+            self.log.info('Adding-ARP-upstream-flow',
                           classifier=uplink_classifier,
                           action=uplink_action,
                           gem_port=gem_port,
@@ -1660,21 +1571,22 @@ class Asfvolt16Handler(OltDeviceHandler):
             # To-Do. While addition of one flow is in progress,
             # we cannot add an another flow. Right now use sleep
             # of 5 sec, assuming that addtion of flow is successful.
-            time.sleep(10)
+            time.sleep(0.1)
         except Exception as e:
-            self.log.exception('failed-to-install-HSIA-upstream-flow', e=e,
+            self.log.exception('failed-to-install-ARP-upstream-flow', e=e,
                                classifier=uplink_classifier,
                                action=uplink_action,
                                onu_id=onu_device.proxy_address.onu_id,
                                intf_id=onu_device.proxy_address.channel_id)
         is_down_stream = True
         # To-Do: For Now hard code the p-bit values.
-        downlink_classifier['vlan_pcp'] = 0
+        #downlink_classifier['vlan_pcp'] = 7
         downlink_flow_id = self.get_flow_id(onu_device.proxy_address.onu_id,
                                             onu_device.proxy_address.channel_id,
-                                            downlink_hsia_id)
+                                            hsia_id)
+                                            #downlink_hsia_id)
         try:
-            self.log.info('Adding-HSIA-downstream-flow',
+            self.log.info('Adding-ARP-downstream-flow',
                           classifier=downlink_classifier,
                           action=downlink_action,
                           gem_port=gem_port,
@@ -1687,10 +1599,67 @@ class Asfvolt16Handler(OltDeviceHandler):
             # To-Do. While addition of one flow is in progress,
             # we cannot add an another flow. Right now use sleep
             # of 5 sec, assuming that addtion of flow is successful.
-            time.sleep(10)
+            time.sleep(0.1)
         except Exception as e:
-            self.log.exception('failed-to-install-HSIA-downstream-flow', e=e,
+            self.log.exception('failed-to-install-ARP-downstream-flow', e=e,
                                classifier=downlink_classifier,
                                action=downlink_action,
+                               onu_id=onu_device.proxy_address.onu_id,
+                               intf_id=onu_device.proxy_address.channel_id)
+
+
+    def del_flow(self, v_enet, uplink_id, downlink_id):
+        # To-Do For a time being hard code the traffic class value.
+        # Need to know how to get the traffic class info from flows.
+        v_ont_ani = self.get_v_ont_ani(v_enet.v_enet.data.v_ontani_ref)
+        if v_ont_ani is None:
+            self.log.info('Failed-to-get-v_ont_ani',
+                          v_ont_ani=v_enet.v_enet.data.v_ontani_ref)
+            return
+        onu_device = self.adapter_agent.get_child_device(
+            self.device_id, onu_id=v_ont_ani.v_ont_ani.data.onu_id)
+        if onu_device is None:
+            self.log.info('Failed-to-get-onu-device',
+                          onu_id=v_ont_ani.v_ont_ani.data.onu_id)
+            return
+
+        flow_id = self.get_flow_id(onu_device.proxy_address.onu_id,
+                                   onu_device.proxy_address.channel_id,
+                                   uplink_id)
+        try:
+            is_down_stream = False
+            self.log.info('deleting-Upstream-EAPOL-flow',
+                          flow_id=flow_id)
+            self.bal.delete_flow(onu_device.proxy_address.onu_id,
+                              onu_device.proxy_address.channel_id,
+                              flow_id, is_down_stream)
+            # To-Do. While deletion of one flow is in progress,
+            # we cannot delete an another flow. Right now use sleep
+            # of 5 sec, assuming that deletion of flow is successful.
+            time.sleep(0.1)
+        except Exception as e:
+            self.log.exception('failed-to-delete-Upstream-EAPOL-flow', e=e,
+                               flow_id=flow_id,
+                               onu_id=onu_device.proxy_address.onu_id,
+                               intf_id=onu_device.proxy_address.channel_id)
+
+        downlink_flow_id = self.get_flow_id(onu_device.proxy_address.onu_id,
+                                            onu_device.proxy_address.channel_id,
+                                            downlink_id)
+        is_down_stream = True
+        try:
+            self.log.info('Deleting-Downstream-EAPOL-flow',
+                          flow_id=downlink_flow_id)
+
+            self.bal.delete_flow(onu_device.proxy_address.onu_id,
+                              onu_device.proxy_address.channel_id,
+                              downlink_flow_id, is_down_stream)
+            # To-Do. While deletion of one flow is in progress,
+            # we cannot delete an another flow. Right now use sleep
+            # of 5 sec, assuming that deletion of flow is successful.
+            time.sleep(0.1)
+        except Exception as e:
+            self.log.exception('failed-to-install-downstream-EAPOL-flow', e=e,
+                               flow_id=flow_id,
                                onu_id=onu_device.proxy_address.onu_id,
                                intf_id=onu_device.proxy_address.channel_id)
