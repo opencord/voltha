@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a5c5d37_56f37a73",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 541,
+      "author": {
+        "id": 1000074
+      },
+      "writtenOn": "2017-09-19T15:47:30Z",
+      "side": 1,
+      "message": "Can the control VLAN be moved to something other than 4000, say 4091? The ongoing PoC uses VLAN 4000 for downstream multicast.",
+      "revId": "16eb0787698e1f0a589eccc2ae17ee644a026997",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_36e8067c",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 568,
+      "author": {
+        "id": 1000074
+      },
+      "writtenOn": "2017-09-19T15:47:30Z",
+      "side": 1,
+      "message": "See comment above regarding VLAN 4000.",
+      "revId": "16eb0787698e1f0a589eccc2ae17ee644a026997",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
