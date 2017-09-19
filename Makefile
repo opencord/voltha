@@ -22,7 +22,7 @@ include setup.mk
 
 VENVDIR := venv-$(shell uname -s | tr '[:upper:]' '[:lower:]')
 
-.PHONY: $(DIRS) $(DIRS_CLEAN) $(DIRS_FLAKE8) flake8 docker-base voltha chameleon ofagent podder netconf shovel onos dashd vcli portainer grafana nginx consul registrator envoy golang envoyd tools
+.PHONY: $(DIRS) $(DIRS_CLEAN) $(DIRS_FLAKE8) flake8 docker-base voltha chameleon ofagent podder netconf shovel onos dashd vcli portainer grafana nginx consul registrator envoy golang envoyd tools opennms logstash
 
 # This should to be the first and default target in this Makefile
 help:
@@ -179,6 +179,11 @@ tester:
 config-push:
 	docker build -t cord/config-push -f docker/Dockerfile.configpush docker	
 
+opennms:
+	docker build -t cord/opennms -f docker/Dockerfile.opennms .
+
+logstash:
+	docker build -t cord/logstash -f docker/Dockerfile.logstash .
 
 protos:
 	make -C voltha/protos

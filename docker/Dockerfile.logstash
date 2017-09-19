@@ -1,5 +1,5 @@
 # Build from latest stable load
-FROM docker.elastic.co/logstash/logstash:5.2.2
+FROM docker.elastic.co/logstash/logstash:5.6.0
 
 # Add logstash plugins 
 RUN logstash-plugin install logstash-output-opennms

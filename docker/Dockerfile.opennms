@@ -5,10 +5,13 @@ FROM opennms/horizon-core-web:19.0.1-1
 RUN yum install -y python-setuptools
 RUN easy_install supervisor
 RUN mkdir -p /var/log/supervisor
-COPY env/supervisord.conf /etc/supervisor/supervisord.conf
+RUN mkdir -p /var/log/opennms
+RUN mkdir -p /var/opennms/rrd
+RUN mkdir -p /var/opennms/reports
+COPY compose/opennms/env/supervisord.conf /etc/supervisor/supervisord.conf
 
 # Copy a new startup script to override the default entrypoint script
-COPY env/opennms_start.sh /
+COPY compose/opennms/env/opennms_start.sh /
 RUN chmod 755 /opennms_start.sh
 
 ENTRYPOINT ["/usr/bin/supervisord"]

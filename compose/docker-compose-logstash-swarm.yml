@@ -1,0 +1,20 @@
+version: '3'
+
+services:
+  logstash:
+    image: cord/logstash
+    environment:
+      - log.level=info
+      - xpack.monitoring.enabled=false
+    command: logstash -f /etc/logstash/conf.d/
+    volumes:
+      - ./compose/elasticsearch/logstash/config:/etc/logstash/conf.d
+    ports:
+      - "5000:5000"
+    networks:
+      - kafka-net
+
+networks:
+  kafka-net:
+        external:
+            name: kafka_net

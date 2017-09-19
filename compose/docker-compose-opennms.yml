@@ -24,7 +24,7 @@ services:
       - /var/opennms/reports
 
   opennms:
-    build: ./opennms
+    image: cord/opennms
     env_file:
       - ./opennms/env/opennms.env
       - ./opennms/env/postgres.env

@@ -1,0 +1,12 @@
+version: '2'
+
+services:
+  logstash:
+    image: cord/logstash
+    environment:
+      - log.level=info
+    command: logstash -f /etc/logstash/conf.d/
+    volumes:
+      - ./elasticsearch/logstash/config:/etc/logstash/conf.d
+    ports:
+      - "5000:5000"
