@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "9a5c5d37_16a4e255",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 53,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-09-19T16:07:20Z",
+      "side": 1,
+      "message": "I vote for ONOS to send ctags information in EAPOL, DHCP and IGMP flows rules.",
+      "parentUuid": "9a5c5d37_96e1f29c",
+      "revId": "c44ef0dff9cd228f4ba55055b5579811f6cf8829",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a5c5d37_76a1dea8",
         "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
         "patchSetId": 2
