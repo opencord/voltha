@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "9a5c5d37_f60b8e29",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 53,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-09-19T18:34:16Z",
+      "side": 1,
+      "message": "This is a good idea and we agree on the approach.  Would it work for you to take handle the CVID as-is in this patch and we open a Jira story to implement this general solution?",
+      "parentUuid": "9a5c5d37_96e1f29c",
+      "revId": "c44ef0dff9cd228f4ba55055b5579811f6cf8829",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a5c5d37_76a1dea8",
         "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
         "patchSetId": 2
