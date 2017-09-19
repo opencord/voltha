@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "9a5c5d37_96e1f29c",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 53,
+      "author": {
+        "id": 1000074
+      },
+      "writtenOn": "2017-09-19T15:16:11Z",
+      "side": 1,
+      "message": "Rather than using this default VLAN why don\u0027t we try to fix the default ONU rules so that the configured final CVID can be used.\nI believe the default flow rules are now broken since the CVID is not known when the ONU device is created.\nOne possible solution may be have ONOS pass the configured CVID with the EAPOL, and possibly DHCP/IGMP, flow rule(s).\nJust some thoughts since every ONU adapter will need to solve this problem. Would be great if we could come up with a more general solution that can be used by all adapters.",
+      "revId": "c44ef0dff9cd228f4ba55055b5579811f6cf8829",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a5c5d37_76a1dea8",
         "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
         "patchSetId": 2
