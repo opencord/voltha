@@ -19,6 +19,23 @@
     },
     {
       "key": {
+        "uuid": "9a5c5d37_f6014e3a",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 554,
+      "author": {
+        "id": 1000074
+      },
+      "writtenOn": "2017-09-19T15:58:53Z",
+      "side": 1,
+      "message": "This assumes the logical port was originally created with a value equal to the CVID. With the xPON related changes this is no longer possible.\nWhen configuring via xPON, the device.vlan field is no longer set and the UNI logical port number is not related to the CVID.\nI realize there is nothing right now that can be done to address this in the CI, just making the point that the input_port cannot be assumed to be equal to CVID.",
+      "revId": "16eb0787698e1f0a589eccc2ae17ee644a026997",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a5c5d37_36e8067c",
         "filename": "voltha/core/flow_decomposer.py",
         "patchSetId": 1
