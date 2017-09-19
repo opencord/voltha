@@ -50,6 +50,23 @@
       "revId": "16eb0787698e1f0a589eccc2ae17ee644a026997",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_36b6c68b",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 632,
+      "author": {
+        "id": 1000074
+      },
+      "writtenOn": "2017-09-19T16:55:52Z",
+      "side": 1,
+      "message": "Similar to above, how will this work if logical output port is not equal to the CVID?\n\nCan you please provide sample output showing multiple PON ports in use and the resulting logical device, OLT and ONU flow rules.",
+      "revId": "16eb0787698e1f0a589eccc2ae17ee644a026997",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
