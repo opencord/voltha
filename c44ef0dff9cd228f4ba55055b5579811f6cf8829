@@ -55,6 +55,24 @@
     },
     {
       "key": {
+        "uuid": "9a5c5d37_81ff6e01",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 53,
+      "author": {
+        "id": 1000074
+      },
+      "writtenOn": "2017-09-19T18:55:07Z",
+      "side": 1,
+      "message": "Yes, once we verify and confirm we can make use of the default VLAN as-is.\nI added David Bainbridge to this inspection to comment on the ability of ONOS providing the CVID in the controller bound flow rules. Having said that, I think this would also necessitate changes to the flow decomposer.\nOpening a new Jira story to track this is the correct approach.",
+      "parentUuid": "9a5c5d37_f60b8e29",
+      "revId": "c44ef0dff9cd228f4ba55055b5579811f6cf8829",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a5c5d37_76a1dea8",
         "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
         "patchSetId": 2
