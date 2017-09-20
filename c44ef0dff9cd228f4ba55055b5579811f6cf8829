@@ -105,6 +105,24 @@
       "revId": "c44ef0dff9cd228f4ba55055b5579811f6cf8829",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_618d9a31",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 1200,
+      "author": {
+        "id": 1000074
+      },
+      "writtenOn": "2017-09-20T14:41:16Z",
+      "side": 1,
+      "message": "At what point (what flow rule) is the data ctag received? Were any other changes required in any other portions of voltha to make this work?",
+      "parentUuid": "9a5c5d37_16874211",
+      "revId": "c44ef0dff9cd228f4ba55055b5579811f6cf8829",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
