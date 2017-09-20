@@ -128,7 +128,8 @@ class LocalHandler(VolthaLocalServiceServicer):
     def ListAdapters(self, request, context):
         log.info('grpc-request', request=request)
         items = self.root.get('/adapters')
-        return Adapters(items=items)
+        sorted_items = sorted(items, key=lambda i: i.id)
+        return Adapters(items=sorted_items)
 
     @twisted_async
     def ListLogicalDevices(self, request, context):
@@ -748,7 +749,8 @@ class LocalHandler(VolthaLocalServiceServicer):
     def ListDeviceTypes(self, request, context):
         log.info('grpc-request', request=request)
         items = self.root.get('/device_types')
-        return DeviceTypes(items=items)
+        sorted_items = sorted(items, key=lambda i: i.id)
+        return DeviceTypes(items=sorted_items)
 
     @twisted_async
     def GetDeviceType(self, request, context):
