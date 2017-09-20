@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a5c5d37_01db7eee",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 105,
+      "author": {
+        "id": 1000074
+      },
+      "writtenOn": "2017-09-20T21:12:07Z",
+      "side": 1,
+      "message": "Why are you changing this from device.proxy_address.channel_id to device.id?",
+      "revId": "38fb79f999b358fe422d9175537953355cbd8702",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
