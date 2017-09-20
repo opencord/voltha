@@ -123,6 +123,24 @@
       "revId": "c44ef0dff9cd228f4ba55055b5579811f6cf8829",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_a14a72aa",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 1200,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-09-20T19:12:13Z",
+      "side": 1,
+      "message": "Hi Steve,\n\nThe data Ctags will be received in update_flow_table() method. We didn\u0027t change any hting in voltha to work this. Below is the uplink flow details which comes to onu adapter during data flow addition.\n\ncookie: 35465848984017485\nmatch {\n  type: OFPMT_OXM\n  oxm_fields {\n    oxm_class: OFPXMC_OPENFLOW_BASIC\n    ofb_field {\n      port: 21\n    }\n  }\n  oxm_fields {\n    oxm_class: OFPXMC_OPENFLOW_BASIC\n    ofb_field {\n      type: OFPXMT_OFB_VLAN_VID\n      vlan_vid: 4096\n    }\n  }\n}\ninstructions {\n  type: 4\n  actions {\n    actions {\n      type: OFPAT_SET_FIELD\n      set_field {\n        field {\n          oxm_class: OFPXMC_OPENFLOW_BASIC\n          ofb_field {\n            type: OFPXMT_OFB_VLAN_VID\n            vlan_vid: 4218\n          }\n        }\n      }\n    }\n    actions {\n      output {\n        port: 100\n        max_len: 65509\n      }\n    }\n  }\n}\nid: 2689512648926098029\n, event: bulk-flow-update, instance_id: 1_1505931350, vcore_id: 0001}\n20170920T112244.588 INFO     MainThread broadcom_onu.update_flow_table {device_id: 000112b1282cafe2, event: upstream-flow, instance_id: 1_1505931350, vcore_id: 0001}\n20170920T112244.588 INFO     MainThread broadcom_onu.update_flow_table {device_id: 000112b1282cafe2, out_port: 100, event: out-port, instance_id: 1_1505931350, vcore_id: 0001}\n20170920T112244.589 INFO     MainThread broadcom_onu.update_flow_table {device_id: 000112b1282cafe2, in_port: 21, event: field-type-in-port, instance_id: 1_1505931350, vcore_id: 0001}\n20170920T112244.589 INFO     MainThread broadcom_onu.update_flow_table {device_id: 000112b1282cafe2, vlan: 0, event: field-type-vlan-vid, instance_id: 1_1505931350, vcore_id: 0001}\n20170920T112244.589 INFO     MainThread broadcom_onu.update_flow_table {device_id: 000112b1282cafe2, field: type: OFPXMT_OFB_VLAN_VID\nvlan_vid: 4218\n, in_port: 21, event: action-type-set-field, instance_id: 1_1505931350, vcore_id: 0001}\n20170920T112244.590 INFO     MainThread broadcom_onu.update_flow_table {device_id: 000112b1282cafe2, positional_args: (122,), event: set-field-type-valn-vid, instance_id: 1_1505931350, vcore_id: 0001}\n20170920T112244.590 INFO     MainThread broadcom_onu.update_flow_table {device_id: 000112b1282cafe2, output: 100, in_port: 21, event: action-type-output, instance_id: 1_1505931350, vcore_id: 0001}\n20170920T112244.592 INFO     MainThread broadcom_onu.send_omci_message {device_id: 000112b1282cafe2, event: send-omci-message-0016460a00542102000000000000000000000000000000000000000000000000000000000000000000000028, instance_id: 1_1505931350, vcore_id: 0001}\n20170920T112244.594 INFO     MainThread iadapter.send_proxied_message {msg: 0016460a00542102000000000000000000000000000000000000000000000000000000000000000000000028, proxy_address: device_id: \"0001730096b60157\"\n\n\nWe are referring to set-field-type-vlan-vid to retrive ctag data.",
+      "parentUuid": "9a5c5d37_618d9a31",
+      "revId": "c44ef0dff9cd228f4ba55055b5579811f6cf8829",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
