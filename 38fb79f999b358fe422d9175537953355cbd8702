@@ -16,6 +16,24 @@
       "revId": "38fb79f999b358fe422d9175537953355cbd8702",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_41129663",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 105,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-09-20T21:54:40Z",
+      "side": 1,
+      "message": "When we add ONU using XPON commands, the proxy_address.channel_id is same for all the ONUS referring this channel. So to get onu instance, I am using device id rather than proxy_address.channel_id.",
+      "parentUuid": "9a5c5d37_01db7eee",
+      "revId": "38fb79f999b358fe422d9175537953355cbd8702",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
