@@ -1,0 +1,172 @@
+{
+  "apps": {
+    "org.opencord.aaa": {
+      "AAA": {
+        "radiusIp": "172.25.0.100",
+        "nasIp": "5.6.7.8",
+        "radiusServerPort": "1812",
+        "radiusSecret": "SECRET",
+        "readiusConnectType": "socket",
+        "packetCustomizer": "sample"
+      }
+    },
+    "org.opencord.dhcpl2relay": {
+      "dhcpl2relay": {
+        "dhcpServerConnectPoints": [
+          "of:0000000000000001/1"
+        ]
+      }
+    },
+    "org.opencord.igmpproxy": {
+      "igmpproxy": {
+        "globalConnectPointMode": "true",
+        "globalConnectPoint": "of:0000000000000001/1",
+        "UnsolicitedTimeOut": "2",
+        "MaxResp": "10",
+        "KeepAliveInterval": "10",
+        "KeepAliveCount": "1",
+        "LastQueryInterval": "2",
+        "LastQueryCount": "2",
+        "FastLeave": "true",
+        "PeriodicQuery": "true",
+        "IgmpCos": "5",
+        "withRAUpLink": "true",
+        "withRADownLink": "true"
+      }
+    },
+    "org.opencord.mcast": {
+      "multicast": {
+        "ingressVlan": "2",
+        "egressVlan": "4000"
+      }
+    },
+    "org.opencord.sadis": {
+      "sadis": {
+        "integration": {
+          "cache": {
+            "enabled": false,
+            "maxsize": 50,
+            "ttl": "PT1m"
+          }
+        },
+        "entries": [
+          {
+            "id": "DEFAULT_SERIAL_NUMBER",
+            "hardwareIdentifier": "aa:aa:aa:aa:aa:aa",
+            "ipAddress": "1.1.1.1",
+            "nasId": "DEFAULT_NAS_ID"
+          },
+          {
+            "id": "uni-002",
+            "cTag": 2,
+            "sTag": 2,
+            "nasPortId": "DEFAULT_NAS_PORT",
+            "circuitId": "DEFAULT_CIRCUIT_ID"
+          }
+        ]
+      }
+    }
+  },
+  "devices": {
+    "of:0001000000000001": {
+      "basic": {
+        "driver": "pmc-olt"
+      },
+      "accessDevice": {
+        "uplink": "0",
+        "vlan": "2"
+      }
+    },
+    "of:0001000000000002": {
+      "basic": {
+        "driver": "pmc-olt"
+      },
+      "accessDevice": {
+        "uplink": "0",
+        "vlan": "1001"
+      }
+    },
+    "of:0001000000000003": {
+      "basic": {
+        "driver": "pmc-olt"
+      },
+      "accessDevice": {
+        "uplink": "0",
+        "vlan": "1002"
+      }
+    },
+    "of:0001000000000004": {
+      "basic": {
+        "driver": "pmc-olt"
+      },
+      "accessDevice": {
+        "uplink": "0",
+        "vlan": "1003"
+      }
+    },
+    "of:0001000000000005": {
+      "basic": {
+        "driver": "pmc-olt"
+      },
+      "accessDevice": {
+        "uplink": "0",
+        "vlan": "1004"
+      }
+    },
+    "of:0001000000000006": {
+      "basic": {
+        "driver": "pmc-olt"
+      },
+      "accessDevice": {
+        "uplink": "0",
+        "vlan": "1005"
+      }
+    }
+  },
+  "ports": {
+    "of:0000000000000001/2": {
+      "interfaces": [
+        {
+          "name": "yoyoma1",
+          "ips": [
+            "10.0.2.1/24"
+          ],
+          "mac": "00:00:00:01:01:00"
+        }
+      ]
+    },
+    "of:00000cafecafecafe/3": {
+      "interfaces": [
+        {
+          "name": "yoyoma",
+          "ips": [
+            "10.0.2.2/24"
+          ],
+          "mac": "00:00:00:01:02:00"
+        }
+      ]
+    },
+    "of:00000cafecafecafe/2": {
+      "interfaces": [
+        {
+          "name": "yoyoma2",
+          "ips": [
+            "10.0.2.3/24"
+          ],
+          "mac": "00:00:00:01:03:00"
+        }
+      ]
+    },
+    "of:00000cafecafecafe/4": {
+      "interfaces": [
+        {
+          "name": "yoyoma4",
+          "ips": [
+            "10.0.2.4/24"
+          ],
+          "mac": "00:00:00:01:04:00"
+        }
+      ]
+    }
+  }
+}

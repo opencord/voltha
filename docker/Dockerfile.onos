@@ -49,7 +49,7 @@ ENV APPS_ROOT=${ONOS}/apps
 COPY --from=install ${KARAF_M2}/ ${KARAF_M2}/
 RUN echo "${KARAF_M2} ${APPS_ROOT}"
 COPY --from=install ${APPS_ROOT}/ ${APPS_ROOT}/
-COPY config/netcfg.json $KARAF_ROOT/../config/network-cfg.json
+COPY config/component-cfg.json $KARAF_ROOT/../config/component-cfg.json
 
 RUN touch $ONOS/apps/org.onosproject.hostprovider/active
 RUN touch $ONOS/apps/org.onosproject.openflow-base/active
