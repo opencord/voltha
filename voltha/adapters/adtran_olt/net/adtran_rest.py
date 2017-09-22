@@ -1,4 +1,4 @@
-# Copyright 2017-present Open Networking Foundation
+# Copyright 2017-present Adtran, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -66,7 +66,7 @@ class AdtranRestClient(object):
     for _method in _valid_methods:
         assert _method in _valid_results  # Make sure we have a results entry for each supported method
 
-    def __init__(self, host_ip, port, username='', password='', timeout=20):
+    def __init__(self, host_ip, port, username='', password='', timeout=10):
         """
         REST Client initialization
 
@@ -98,7 +98,7 @@ class AdtranRestClient(object):
         :param is_retry: (boolean) True if this method called recursively in order to recover
                                    from a connection loss. Can happen sometimes in debug sessions
                                    and in the real world.
-        :return: (deferred)
+        :return: (dict) On success with the proper results
         """
         if method.upper() not in self._valid_methods:
             raise NotImplementedError("REST method '{}' is not supported".format(method))
@@ -140,7 +140,7 @@ class AdtranRestClient(object):
 
         except (ConnectionDone, ConnectionLost) as e:
             if is_retry:
-                returnValue(e)
+                raise
             returnValue(self.request(method, uri, data=data, name=name,
                                      timeout=timeout, is_retry=True))
 

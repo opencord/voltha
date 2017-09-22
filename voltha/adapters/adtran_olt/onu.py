@@ -1,4 +1,4 @@
-# Copyright 2017-present Open Networking Foundation
+# Copyright 2017-present Adtran, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,11 +16,12 @@ import base64
 import binascii
 import json
 import structlog
+from twisted.internet import reactor, defer
 from twisted.internet.defer import inlineCallbacks, returnValue, succeed
 
 from adtran_olt_handler import AdtranOltHandler
 
-# Following is only used in autoactivate/demo mode. Otherwise xPON
+# Following is only used in autoactivate/demo mode. Otherwise xPON commands should be used
 _VSSN_TO_VENDOR = {
     'ADTN': 'adtran_onu',
     'BCM?': 'broadcom_onu',   # TODO: Get actual VSSN for this vendor
@@ -39,8 +40,6 @@ class Onu(object):
     MIN_ONU_ID = 0
     MAX_ONU_ID = 253            # G.984. 0..253, 254=reserved, 255=broadcast
     BROADCAST_ONU_ID = 255
-    # MAX_ONU_ID = 1022           # G.987. 0..1022, 1023=broadcast
-    # BROADCAST_ONU_ID = 1023
     DEFAULT_PASSWORD = ''
 
     def __init__(self, onu_info):
@@ -58,21 +57,37 @@ class Onu(object):
         if self._onu_id is None:
             raise ValueError('No ONU ID available')
 
+        pon = onu_info['pon']
         self._serial_number_base64 = Onu.string_to_serial_number(onu_info['serial-number'])
         self._serial_number_string = onu_info['serial-number']
+        self._device_id = onu_info['device-id']
         self._password = onu_info['password']
-        self._pon = onu_info['pon']
-        self._name = '{}@{}'.format(self._pon.name, self._onu_id)
+        self._olt = pon.olt
+        self._pon_id = pon.pon_id
+        self._name = '{}@{}'.format(pon.name, self._onu_id)
         self._xpon_name = onu_info['xpon-name']
-        # TODO: Change to OrderedDict sorted by ascending gem-id
         self._gem_ports = {}                           # gem-id -> GemPort
         self._tconts = {}                              # alloc-id -> TCont
         self._onu_vid = onu_info['onu-vid']
+        self._uni_ports = [onu_info['onu-vid']]
+        assert len(self._uni_ports) == 1, 'Only one UNI port supported at this time'
+        self._channel_id = onu_info['channel-id']
         self._enabled = onu_info['enabled']
+        self._rssi = -9999
+        self._equalization_delay = 0
+        self._fiber_length = 0
+        self._valid = True          # Set false during delete/cleanup
+
+        self._include_multicast = True        # TODO: May need to add multicast on a per-ONU basis
+
+        self._sync_tick = 60.0
+        self._expedite_sync = False
+        self._expedite_count = 0
+        self._sync_deferred = None     # For sync of ONT config to hardware
 
         # TODO: enable and upstream-channel-speed not yet supported
 
-        self.log = structlog.get_logger(pon_id=self._pon.pon_id, onu_id=self._onu_id)
+        self.log = structlog.get_logger(pon_id=self._pon_id, onu_id=self._onu_id)
         self._vendor_id = _VSSN_TO_VENDOR.get(self._serial_number_string.upper()[:4],
                                               'Unsupported_{}'.format(self._serial_number_string))
 
@@ -81,7 +96,7 @@ class Onu(object):
         pass
 
     def __str__(self):
-        return "Onu-{}-{}, PON: {}".format(self._onu_id, self._serial_number_string, self._pon)
+        return "Onu-{}-{}, PON ID: {}".format(self._onu_id, self._serial_number_string, self._pon_id)
     
     @staticmethod
     def serial_number_to_string(value):
@@ -97,12 +112,12 @@ class Onu(object):
         return base64.b64encode(bvalue)
 
     @property
-    def pon(self):
-        return self._pon
+    def olt(self):
+        return self._olt
 
     @property
-    def olt(self):
-        return self.pon.olt
+    def pon(self):
+        return self.olt.southbound_ports[self._pon_id]
 
     @property
     def onu_id(self):
@@ -117,6 +132,15 @@ class Onu(object):
         return self._onu_vid
 
     @property
+    def logical_port(self):
+        """Return the logical PORT number of this ONU's UNI"""
+        return self._uni_ports[0]
+
+    @property
+    def channel_id(self):
+        return self._channel_id
+
+    @property
     def serial_number(self):
         return self._serial_number_base64
 
@@ -124,19 +148,60 @@ class Onu(object):
     def vendor_id(self):
         return self._vendor_id
 
+    @property
+    def rssi(self):
+        """The received signal strength indication of the ONU"""
+        return self._rssi
+
+    @rssi.setter
+    def rssi(self, value):
+        if self._rssi != value:
+            self._rssi = value
+            # TODO: Notify anyone?
+
+    @property
+    def equalization_delay(self):
+        """Equalization delay (bits)"""
+        return self._equalization_delay
+
+    @equalization_delay.setter
+    def equalization_delay(self, value):
+        if self._equalization_delay != value:
+            self._equalization_delay = value
+            # TODO: Notify anyone?
+
+    @property
+    def fiber_length(self):
+        """Distance to ONU"""
+        return self._fiber_length
+
+    @fiber_length.setter
+    def fiber_length(self, value):
+        if self._fiber_length != value:
+            self._fiber_length = value
+            # TODO: Notify anyone?
+
+    def _cancel_deferred(self):
+        d, self._sync_deferred = self._sync_deferred, None
+        if d is not None and not d.called:
+            try:
+                d.cancel()
+            except Exception:
+                pass
+
     @inlineCallbacks
     def create(self, tconts, gem_ports):
         """
         POST -> /restconf/data/gpon-olt-hw:olt/pon=<pon-id>/onus/onu ->
         """
         self.log.debug('create')
+        self._cancel_deferred()
 
-        pon_id = self.pon.pon_id
         data = json.dumps({'onu-id': self._onu_id,
                            'serial-number': self._serial_number_base64,
                            'enable': self._enabled})
-        uri = AdtranOltHandler.GPON_ONU_CONFIG_LIST_URI.format(pon_id)
-        name = 'onu-create-{}-{}-{}: {}'.format(pon_id, self._onu_id,
+        uri = AdtranOltHandler.GPON_ONU_CONFIG_LIST_URI.format(self._pon_id)
+        name = 'onu-create-{}-{}-{}: {}'.format(self._pon_id, self._onu_id,
                                                 self._serial_number_base64, self._enabled)
 
         try:
@@ -157,29 +222,241 @@ class Onu(object):
 
         for _, gem_port in gem_ports.items():
             try:
-                if gem_port.multicast:
-                    self.log.warning('multicast-not-yet-supported', gem_port=gem_port)  # TODO Support it
-                    continue
                 results = yield self.add_gem_port(gem_port)
 
             except Exception as e:
                 self.log.exception('add-gem_port', gem_port=gem_port, e=e)
 
+        self._sync_deferred = reactor.callLater(self._sync_tick, self._sync_hardware)
+
         returnValue(results)
 
+    @inlineCallbacks
+    def delete(self):
+        """
+        Clean up ONU (gems/tconts). ONU removal from OLT h/w done by PonPort
+        :return: (deferred)
+        """
+        self._valid = False
+        self._cancel_deferred()
+
+        # Remove from H/W
+
+        gem_ids = self._gem_ports.keys()
+        alloc_ids = self._tconts.keys()
+
+        dl = []
+        for gem_id in gem_ids:
+            dl.append(self.remove_gem_id(gem_id))
+
+        try:
+            yield defer.gatherResults(dl, consumeErrors=True)
+        except Exception:
+            pass
+
+        dl = []
+        for alloc_id in alloc_ids:
+            dl.append(self.remove_tcont(alloc_id))
+
+        try:
+            yield defer.gatherResults(dl, consumeErrors=True)
+        except Exception:
+            pass
+
+        self._gem_ports.clear()
+        self._tconts.clear()
+        self._olt = None
+        self._channel_id = None
+
+        returnValue(succeed('deleted'))
+
     def restart(self):
+        if not self._valid:
+            return succeed('Deleting')
         tconts, self._tconts = self._tconts, {}
         gem_ports, self._gem_ports = self._gem_ports, {}
         return self.create(tconts, gem_ports)
 
+    def _sync_hardware(self):
+        from codec.olt_config import OltConfig
+
+        def read_config(results):
+            self.log.debug('read-config', results=results)
+
+            config = OltConfig.Pon.Onu.decode([results])
+            assert self.onu_id in config, 'sync-onu-not-found-{}'.format(self.onu_id)
+            config = config[self.onu_id]
+            dl = []
+
+            if self._enabled != config.enable:
+                dl.append(self._set_config('enable', self._enabled))
+
+            if self.serial_number != config.serial_number:
+                dl.append(self._set_config('serial-number', self.serial_number))
+
+            # Sync TCONTs if everything else in sync
+
+            if len(dl) == 0:
+                dl.extend(sync_tconts(config.tconts))
+
+            # Sync GEM Ports if everything else in sync
+
+            if len(dl) == 0:
+                dl.extend(sync_gem_ports(config.gem_ports))
+
+            # Run h/w sync again a bit faster if we had to sync anything
+            self._expedite_sync = len(dl) > 0
+
+            # TODO: do checks
+            return defer.gatherResults(dl, consumeErrors=True)
+
+        def sync_tconts(hw_tconts):
+            hw_alloc_ids = frozenset(hw_tconts.iterkeys())
+            my_alloc_ids = frozenset(self._tconts.iterkeys())
+            dl = []
+
+            extra_alloc_ids = hw_alloc_ids - my_alloc_ids
+            dl.extend(sync_delete_extra_tconts(extra_alloc_ids))
+
+            missing_alloc_ids = my_alloc_ids - hw_alloc_ids
+            dl.extend(sync_add_missing_tconts(missing_alloc_ids))
+
+            matching_alloc_ids = my_alloc_ids & hw_alloc_ids
+            matching_hw_tconts = {alloc_id: tcont
+                                  for alloc_id, tcont in hw_tconts.iteritems()
+                                  if alloc_id in matching_alloc_ids}
+            dl.extend(sync_matching_tconts(matching_hw_tconts))
+
+            return dl
+
+        def sync_delete_extra_tconts(alloc_ids):
+            return [self.remove_tcont(alloc_id) for alloc_id in alloc_ids]
+
+        def sync_add_missing_tconts(alloc_ids):
+            return [self.add_tcont(self._tconts[alloc_id], add_always=True) for alloc_id in alloc_ids]
+
+        def sync_matching_tconts(hw_tconts):
+            from tcont import TrafficDescriptor
+
+            dl = []
+            # TODO: sync TD & Best Effort. Only other TCONT leaf is the key
+            for alloc_id, hw_tcont in hw_tconts.iteritems():
+                my_tcont = self._tconts[alloc_id]
+                my_td = my_tcont.traffic_descriptor
+                hw_td = hw_tcont.traffic_descriptor
+                if my_td is None:
+                    continue
+
+                my_additional = TrafficDescriptor.AdditionalBwEligibility.\
+                    to_string(my_td.additional_bandwidth_eligibility)
+
+                reflow = hw_td is None or \
+                    my_td.fixed_bandwidth != hw_td.fixed_bandwidth or \
+                    my_td.assured_bandwidth != hw_td.assured_bandwidth or \
+                    my_td.maximum_bandwidth != hw_td.maximum_bandwidth or \
+                    my_additional != hw_td.additional_bandwidth_eligibility
+
+                if not reflow and \
+                        my_td.additional_bandwidth_eligibility == \
+                        TrafficDescriptor.AdditionalBwEligibility.BEST_EFFORT_SHARING and \
+                        my_td.best_effort is not None:
+
+                    hw_be = hw_td.best_effort
+                    my_be = my_td.best_effort
+
+                    reflow = hw_be is None or \
+                        my_be.bandwidth != hw_be.bandwidth or \
+                        my_be.priority != hw_be.priority or \
+                        my_be.weight != hw_be.weight
+
+                if reflow:
+                    dl.append(my_tcont.add_to_hardware(self.olt.rest_client,
+                                                       self._pon_id,
+                                                       self._onu_id,
+                                                       operation="PATCH"))
+            return dl
+
+        def sync_gem_ports(hw_gem_ports):
+            hw_gems_ids = frozenset(hw_gem_ports.iterkeys())
+            my_gems_ids = frozenset(self._gem_ports.iterkeys())
+            dl = []
+
+            extra_gems_ids = hw_gems_ids - my_gems_ids
+            dl.extend(sync_delete_extra_gem_ports(extra_gems_ids))
+
+            missing_gem_ids = my_gems_ids - hw_gems_ids
+            dl.extend(sync_add_missing_gem_ports(missing_gem_ids))
+
+            matching_gem_ids = my_gems_ids & hw_gems_ids
+            matching_hw_gem_ports = {gem_id: gem_port
+                                     for gem_id, gem_port in hw_gem_ports.iteritems()
+                                     if gem_id in matching_gem_ids}
+            dl.extend(sync_matching_gem_ports(matching_hw_gem_ports))
+
+            return dl
+
+        def sync_delete_extra_gem_ports(gem_ids):
+            return [self.remove_gem_id(gem_id) for gem_id in gem_ids]
+
+        def sync_add_missing_gem_ports(gem_ids):
+            return [self.add_gem_port(self._gem_ports[gem_id], add_always=True) for gem_id in gem_ids]
+
+        def sync_matching_gem_ports(hw_gem_ports):
+            dl = []
+            for gem_id, hw_gem_port in hw_gem_ports.iteritems():
+                gem_port = self._gem_ports[gem_id]
+
+                if gem_port.alloc_id != hw_gem_port.alloc_id or\
+                        gem_port.encryption != hw_gem_port.encryption or\
+                        gem_port.omci_transport != hw_gem_port.omci_transport:
+                    dl.append(gem_port.add_to_hardware(self.olt.rest_client,
+                                                       self.pon.pon_id,
+                                                       self.onu_id,
+                                                       operation='PATCH'))
+            return dl
+
+        def failure(reason):
+            # self.log.error('hardware-sync-get-config-failed', reason=reason)
+            pass
+
+        def reschedule(_):
+            import random
+            delay = self._sync_tick
+
+            # Speed up sequential resync a limited number of times if out of sync
+            # With 60 second initial an typical worst case resync of 4 times, this
+            # should resync an ONU and all it's gem-ports and tconts within <90 seconds
+
+            if self._expedite_sync:
+                self._expedite_count += 1
+                if self._expedite_count < 5:
+                    delay = 5
+            else:
+                self._expedite_count = 0
+
+            delay += random.uniform(-delay / 10, delay / 10)
+            self._sync_deferred = reactor.callLater(delay, self._sync_hardware)
+            self._expedite_sync = False
+
+        pon_enabled = self.pon.enabled
+        if not pon_enabled:
+            return reschedule('not-enabled')
+
+        self._sync_deferred = self._get_config()
+        self._sync_deferred.addCallbacks(read_config, failure)
+        self._sync_deferred.addBoth(reschedule)
+
+    def _get_config(self):
+        uri = AdtranOltHandler.GPON_ONU_CONFIG_URI.format(self._pon_id, self.onu_id)
+        name = 'pon-get-onu_config-{}-{}'.format(self._pon_id, self.onu_id)
+        return self.olt.rest_client.request('GET', uri, name=name)
+
     def set_config(self, leaf, value):
         self.log.debug('set-config', leaf=leaf, value=value)
 
-        pon_id = self.pon.pon_id
-        data = json.dumps({'onu-id': self._onu_id,
-                           leaf: value})
-        uri = AdtranOltHandler.GPON_ONU_CONFIG_LIST_URI.format(pon_id)
-        name = 'onu-set-config-{}-{}-{}: {}'.format(pon_id, self._onu_id, leaf, value)
+        data = json.dumps({'onu-id': self._onu_id, leaf: value})
+        uri = AdtranOltHandler.GPON_ONU_CONFIG_LIST_URI.format(self._pon_id)
+        name = 'onu-set-config-{}-{}-{}: {}'.format(self._pon_id, self._onu_id, leaf, value)
         return self.olt.rest_client.request('PATCH', uri, data=data, name=name)
 
     @property
@@ -190,91 +467,87 @@ class Onu(object):
         return frozenset(self._tconts.keys())
 
     @inlineCallbacks
-    def add_tcont(self, tcont):
+    def add_tcont(self, tcont, add_always=False):
         """
         Creates/ a T-CONT with the given alloc-id
 
         :param tcont: (TCont) Object that maintains the TCONT properties
+        :param add_always: (boolean) If true, force add (used during h/w resync)
+        :return: (deferred)
         """
-        from tcont import TrafficDescriptor
+        if not self._valid:
+            returnValue(succeed('Deleting'))
 
-        if tcont.alloc_id in self._tconts:
+        if not add_always and tcont.alloc_id in self._tconts:
             returnValue(succeed('already created'))
 
-        pon_id = self.pon.pon_id
-        uri = AdtranOltHandler.GPON_TCONT_CONFIG_LIST_URI.format(pon_id, self.onu_id)
-        data = json.dumps({'alloc-id': tcont.alloc_id})
-        name = 'tcont-create-{}-{}: {}'.format(pon_id, self._onu_id, tcont.alloc_id)
-
         try:
-            results = yield self.olt.rest_client.request('POST', uri, data=data, name=name)
+            results = yield tcont.add_to_hardware(self.olt.rest_client,
+                                                  self._pon_id, self._onu_id)
             self._tconts[tcont.alloc_id] = tcont
 
         except Exception as e:
             self.log.exception('tcont', tcont=tcont, e=e)
             raise
 
-        # TODO May want to pull this out and have it accessible elsewhere once xpon work supports TDs
-
-        if tcont.traffic_descriptor is not None:
-            uri = AdtranOltHandler.GPON_TCONT_CONFIG_URI.format(pon_id, self.onu_id, tcont.alloc_id)
-            data = json.dumps({'traffic-descriptor': tcont.traffic_descriptor.to_dict()})
-            name = 'tcont-td-{}-{}: {}'.format(pon_id, self._onu_id, tcont.alloc_id)
-            try:
-                results = yield self.olt.rest_client.request('PATCH', uri, data=data, name=name)
-
-            except Exception as e:
-                self.log.exception('traffic-descriptor', td=tcont.traffic_descriptor, e=e)
-
-            if tcont.traffic_descriptor.additional_bandwidth_eligibility == \
-               TrafficDescriptor.AdditionalBwEligibility.BEST_EFFORT_SHARING:
-                if tcont.best_effort is None:
-                    raise ValueError('TCONT {} is best-effort but does not define best effort sharing'.
-                                     format(tcont.name))
-
-                data = json.dumps({'best-effort': tcont.best_effort.to_dict()})
-                name = 'tcont-best-effort-{}-{}: {}'.format(pon_id, self._onu_id, tcont.alloc_id)
-                try:
-                    results = yield self.olt.rest_client.request('PATCH', uri, data=data, name=name)
-
-                except Exception as e:
-                    self.log.exception('best-effort', best_effort=tcont.best_effort, e=e)
-                    raise
-
         returnValue(results)
 
+    @inlineCallbacks
     def remove_tcont(self, alloc_id):
-        if alloc_id in self._tconts:
-            del self._tconts[alloc_id]
+        # TODO: If alloc-id in use by a gemport, should we deny request?
+        tcont = self._tconts.get(alloc_id)
 
-        # Always remove from OLT hardware
-        pon_id = self.pon.pon_id
-        uri = AdtranOltHandler.GPON_TCONT_CONFIG_URI.format(pon_id, self.onu_id, alloc_id)
-        name = 'tcont-delete-{}-{}: {}'.format(pon_id, self._onu_id, alloc_id)
-        return self.olt.rest_client.request('DELETE', uri, name=name)
+        if tcont is None:
+            returnValue(succeed('nop'))
 
-    #@property
+        del self._tconts[alloc_id]
+
+        try:
+            results = yield tcont.remove_from_hardware()
+
+        except Exception as e:
+            self.log.exception('delete', e=e)
+            raise
+
+        returnValue(succeed(results))
+
     def gem_ids(self, exception_gems):
         """Get all GEM Port IDs used by this ONU"""
-        return frozenset([gem_id for gem_id, gem in self._gem_ports.items()
-                         if gem.exception == exception_gems])
-        # return frozenset(self._gem_ports.keys())
+        if exception_gems:
+            gem_ids = sorted([gem_id for gem_id, gem in self._gem_ports.items()
+                             if gem.exception and not gem.multicast])  # FIXED_ONU
+            return gem_ids
+        else:
+            return sorted([gem_id for gem_id, gem in self._gem_ports.items()
+                          if not gem.multicast and not gem.exception])  # FIXED_ONU
 
     @inlineCallbacks
-    def add_gem_port(self, gem_port):
-        if gem_port.gem_id in self._gem_ports:
+    def add_gem_port(self, gem_port, add_always=False):
+        """
+        Add a GEM Port to this ONU
+
+        :param gem_port: (GemPort) GEM Port to add
+        :param add_always: (boolean) If true, force add (used during h/w resync)
+        :return: (deferred)
+        """
+        if not self._valid:
+            returnValue(succeed('Deleting'))
+
+        if not add_always and gem_port.gem_id in self._gem_ports:
             returnValue(succeed('already created'))
 
-        pon_id = self.pon.pon_id
-        uri = AdtranOltHandler.GPON_GEM_CONFIG_LIST_URI.format(pon_id, self.onu_id)
-        data = json.dumps(gem_port.to_dict())
-        name = 'gem-port-create-{}-{}: {}/{}'.format(pon_id, self._onu_id,
-                                                     gem_port.gem_id,
-                                                     gem_port.alloc_id)
         try:
-            results = yield self.olt.rest_client.request('POST', uri, data=data, name=name)
+            results = yield gem_port.add_to_hardware(self.olt.rest_client,
+                                                     self._pon_id,
+                                                     self.onu_id)
             self._gem_ports[gem_port.gem_id] = gem_port
-            # TODO: May need to update flow tables/evc-maps
+
+            # May need to update flow tables/evc-maps
+            if gem_port.alloc_id in self._tconts:
+                # GEM-IDs are a sorted list (ascending). First gemport handles downstream traffic
+                from flow.flow_entry import FlowEntry
+                evc_maps = FlowEntry.find_evc_map_flows(self._device_id, self._pon_id, self._onu_id)
+                pass
 
         except Exception as e:
             self.log.exception('gem-port', e=e)
@@ -282,16 +555,29 @@ class Onu(object):
 
         returnValue(results)
 
+    @inlineCallbacks
     def remove_gem_id(self, gem_id):
-        if gem_id in self._gem_ports:
-            del self._gem_ports[gem_id]
-            # TODO: May need to update flow tables/evc-maps
+        gem_port = self._gem_ports.get(gem_id)
 
-        # Always remove from OLT hardware
-        pon_id = self.pon.pon_id
-        uri = AdtranOltHandler.GPON_GEM_CONFIG_URI.format(pon_id, self.onu_id, gem_id)
-        name = 'gem-port-delete-{}-{}: {}'.format(pon_id, self._onu_id, gem_id)
-        return self.olt.rest_client.request('DELETE', uri, name=name)
+        if gem_port is None:
+            returnValue(succeed('nop'))
+
+        del self._gem_ports[gem_id]
+
+        try:
+            if gem_port.alloc_id in self._tconts:
+                # May need to update flow tables/evc-maps
+                # GEM-IDs are a sorted list (ascending). First gemport handles downstream traffic
+                pass
+
+            results = yield gem_port.remove_from_hardware(self.olt.rest_client,
+                                                          self._pon_id,
+                                                          self.onu_id)
+        except Exception as e:
+            self.log.exception('delete', e=e)
+            raise
+
+        returnValue(succeed(results))
 
     @staticmethod
     def gem_id_to_gvid(gem_id):

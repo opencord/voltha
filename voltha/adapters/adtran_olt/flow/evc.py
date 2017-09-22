@@ -1,4 +1,4 @@
-# Copyright 2017-present Open Networking Foundation
+# Copyright 2017-present Adtran, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -82,7 +82,6 @@ class EVC(object):
         self._flow = flow_entry
         self._name = self._create_name()
         self._evc_maps = {}               # Map Name -> evc-map
-        self._install_deferred = None
 
         self._flow_type = EVC.ElineFlowType.UNKNOWN
 
@@ -142,7 +141,7 @@ class EVC(object):
 
     @stpid.setter
     def stpid(self, value):
-        assert self._stpid is None or self._stpid == value
+        assert self._stpid is None or self._stpid == value, 'STPID can only be set once'
         self._stpid = value
 
     @property
@@ -151,7 +150,8 @@ class EVC(object):
 
     @switching_method.setter
     def switching_method(self, value):
-        assert self._switching_method is None or self._switching_method == value
+        assert self._switching_method is None or self._switching_method == value,\
+            'Switching Method can only be set once'
         self._switching_method = value
 
     @property
@@ -160,7 +160,8 @@ class EVC(object):
 
     @ce_vlan_preservation.setter
     def ce_vlan_preservation(self, value):
-        assert self._ce_vlan_preservation is None or self._ce_vlan_preservation == value
+        assert self._ce_vlan_preservation is None or self._ce_vlan_preservation == value,\
+            'CE VLAN Preservation can only be set once'
         self._ce_vlan_preservation = value
 
     @property
@@ -169,12 +170,21 @@ class EVC(object):
 
     @men_to_uni_tag_manipulation.setter
     def men_to_uni_tag_manipulation(self, value):
-        assert self._men_to_uni_tag_manipulation is None or self._men_to_uni_tag_manipulation == value
+        assert self._men_to_uni_tag_manipulation is None or self._men_to_uni_tag_manipulation == value, \
+            'MEN-to-UNI tag manipulation can only be set once'
         self._men_to_uni_tag_manipulation = value
 
     @property
     def flow_entry(self):
+        # Note that the first flow used to create the EVC is saved and it may
+        # eventually get deleted while others still use the EVC.  This should
+        # be okay as the downstream flow/signature table is used to maintain
+        # the lifetime on this EVC object.
         return self._flow
+
+    @flow_entry.setter
+    def flow_entry(self, value):
+        self._flow = value
 
     @property
     def evc_maps(self):
@@ -184,6 +194,14 @@ class EVC(object):
         """
         return list(self._evc_maps.values())
 
+    @property
+    def evc_map_names(self):
+        """
+        Get all EVC Map names that reference this EVC
+        :return: list of EVCMap names
+        """
+        return list(self._evc_maps.keys())
+
     def add_evc_map(self, evc_map):
         if self._evc_maps is not None:
             self._evc_maps[evc_map.name] = evc_map
@@ -192,24 +210,11 @@ class EVC(object):
         if self._evc_maps is not None and evc_map.name in self._evc_maps:
             del self._evc_maps[evc_map.name]
 
-    def cancel_defers(self):
-        d, self._install_deferred = self._install_deferred, None
-        if d is not None and not d.called:
-            try:
-                d.cancel()
-            except:
-                pass
-
     def schedule_install(self):
         """
         Try to install EVC and all MAPs in a single operational sequence
         """
-        self.cancel_defers()
-
-        if self._valid and self._install_deferred is None:
-                self._install_deferred = reactor.callLater(0, self._do_install)
-
-        return self._install_deferred
+        return reactor.callLater(0, self._do_install) if self._valid else succeed('Not VALID')
 
     @staticmethod
     def _xml_header(operation=None):
@@ -222,8 +227,6 @@ class EVC(object):
 
     @inlineCallbacks
     def _do_install(self):
-        self._install_deferred = None
-
         # Install the EVC if needed
 
         if self._valid and not self._installed:
@@ -239,15 +242,15 @@ class EVC(object):
 
             if self._s_tag is not None:
                 xml += '<stag>{}</stag>'.format(self._s_tag)
-                xml += '<stag-tpid>{:#x}</stag-tpid>'.format(self._stpid or DEFAULT_STPID)
+                xml += '<stag-tpid>{}</stag-tpid>'.format(self._stpid or DEFAULT_STPID)
             else:
                 xml += 'no-stag/'
 
             for port in self._men_ports:
                 xml += '<men-ports>{}</men-ports>'.format(port)
 
-            xml += EVC.Men2UniManipulation.xml(self._men_to_uni_tag_manipulation)
-            xml += EVC.SwitchingMethod.xml(self._switching_method)
+            # xml += EVC.Men2UniManipulation.xml(self._men_to_uni_tag_manipulation)
+            # xml += EVC.SwitchingMethod.xml(self._switching_method)
             xml += EVC._xml_trailer()
 
             log.debug("Creating EVC {}: '{}'".format(self.name, xml))
@@ -268,7 +271,7 @@ class EVC(object):
         if self._installed:
             for evc_map in self.evc_maps:
                 try:
-                    results = yield evc_map.install()
+                    yield evc_map.install()
                     pass  # TODO: What to do on error?
 
                 except Exception as e:
@@ -283,8 +286,6 @@ class EVC(object):
         :param remove_maps: (boolean)
         :return: (deferred)
         """
-        self.cancel_defers()
-
         if not self.installed:
             return succeed('Not installed')
 
@@ -297,6 +298,7 @@ class EVC(object):
 
         def _failure(results):
             log.error('remove-failed', results=results)
+            self._installed = False
 
         xml = EVC._xml_header('delete') + '<name>{}</name>'.format(self.name) + EVC._xml_trailer()
         d = self._flow.handler.netconf_client.edit_config(xml, lock_timeout=30)
@@ -318,6 +320,8 @@ class EVC(object):
 
         try:
             dl = [self.remove()]
+            self._valid = False
+
             if delete_maps:
                 for evc_map in self.evc_maps:
                     dl.append(evc_map.delete())   # TODO: implement bulk-flow procedures
@@ -340,8 +344,8 @@ class EVC(object):
         :param reflow_maps: (boolean) Flag indication if EVC-MAPs should be reflowed as well
         :return: (deferred)
         """
-        self.cancel_defers()
         self._installed = False
+
         if reflow_maps:
             for evc_map in self.evc_maps:
                 evc_map.installed = False
@@ -360,8 +364,8 @@ class EVC(object):
 
         self._s_tag = self._flow.vlan_id
 
-        # if self._flow.inner_vid is not None:
-        #    self._switching_method = EVC.SwitchingMethod.DOUBLE_TAGGED         TODO: Future support
+        if self._flow.inner_vid is not None:
+           self._switching_method = EVC.SwitchingMethod.DOUBLE_TAGGED
 
         # Note: The following fields will get set when the first EVC-MAP
         #       is associated with this object. Once set, they cannot be changed to

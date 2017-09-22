@@ -17,10 +17,11 @@
 import random
 
 import structlog
+import xmltodict
 from enum import Enum
-from twisted.internet import reactor
+from twisted.internet import reactor, defer
 from twisted.internet.defer import inlineCallbacks, returnValue, succeed, fail
-
+from twisted.python.failure import Failure
 from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.protos.common_pb2 import OperStatus, AdminState
 from voltha.protos.device_pb2 import Port
@@ -43,11 +44,11 @@ class NniPort(object):
 
     def __init__(self, parent, **kwargs):
         # TODO: Weed out those properties supported by common 'Port' object
-        assert parent
-        assert 'port_no' in kwargs
+        assert parent, 'parent is None'
+        assert 'port_no' in kwargs, 'Port number not found'
 
         self.log = structlog.get_logger(port_no=kwargs.get('port_no'))
-        self.log.info('Creating NNI Port')
+        self.log.info('creating')
 
         self._port_no = kwargs.get('port_no')
         self._name = kwargs.get('name', 'nni-{}'.format(self._port_no))
@@ -55,12 +56,16 @@ class NniPort(object):
         self._logical_port = None
         self._parent = parent
 
+        self._sync_tick = 20.0      # TODO: Implement
+        self._sync_deferred = None
+
         self._deferred = None
         self._state = NniPort.State.INITIAL
 
         # Local cache of NNI configuration
 
         self._enabled = None
+        self._ianatype = '<type xmlns:ianaift="urn:ietf:params:xml:ns:yang:iana-if-type">ianaift:ethernetCsmacd</type>'
 
         # And optional parameters
         # TODO: Currently cannot update admin/oper status, so create this enabled and active
@@ -109,10 +114,31 @@ class NniPort(object):
     def adapter_agent(self):
         return self.olt.adapter_agent
 
+    @property
+    def iana_type(self):
+        return self._ianatype
+
+    @property
+    def enabled(self):
+        return self._enabled
+
+    @enabled.setter
+    def enabled(self, value):
+        assert isinstance(value, bool), 'enabled is a boolean'
+        if self._enabled != value:
+            if value:
+                self.start()
+            self.stop()
+
     def _cancel_deferred(self):
-        d, self._deferred = self._deferred, None
-        if d is not None and not d.called:
-            d.cancel()
+        d1, self._deferred = self._deferred, None
+        d2, self._sync_deferred = self._sync_deferred, None
+        for d in [d1, d2]:
+            try:
+                if d is not None and d.called:
+                    d.cancel()
+            except:
+                pass
 
     def _update_adapter_agent(self):
         # TODO: Currently the adapter_agent does not allow 'update' of port status
@@ -165,7 +191,7 @@ class NniPort(object):
         if self._state == NniPort.State.RUNNING:
             return succeed('Running')
 
-        self.log.info('Starting NNI port')
+        self.log.info('starting')
         self._cancel_deferred()
 
         self._oper_status = OperStatus.ACTIVATING
@@ -173,7 +199,7 @@ class NniPort(object):
 
         # Do the rest of the startup in an async method
         self._deferred = reactor.callLater(0, self._finish_startup)
-        return self._deferred
+        return succeed('Scheduled')
 
     @inlineCallbacks
     def _finish_startup(self):
@@ -196,6 +222,9 @@ class NniPort(object):
         # TODO: Start status polling of NNI interfaces
         self._deferred = None  # = reactor.callLater(3, self.do_stuff)
         self._state = NniPort.State.RUNNING
+        # Begin hardware sync
+        self._sync_deferred = reactor.callLater(self._sync_tick, self._sync_hardware)
+
         returnValue(self._deferred)
 
     @inlineCallbacks
@@ -203,7 +232,7 @@ class NniPort(object):
         if self._state == NniPort.State.STOPPED:
             returnValue(succeed('Stopped'))
 
-        self.log.info('stopping-nni')
+        self.log.info('stopping')
         self._cancel_deferred()
 
         # NOTE: Leave all NNI ports active (may have inband management)
@@ -220,7 +249,7 @@ class NniPort(object):
             results = yield self.set_config('enabled', False)
 
         except Exception as e:
-            self.log.exception('nni-start', e=e)
+            self.log.exception('nni-stop', e=e)
             self._admin_state = AdminState.UNKNOWN
             raise
 
@@ -239,7 +268,7 @@ class NniPort(object):
         Parent device is being deleted. Do not change any config but
         stop all polling
         """
-        self.log.info('Deleteing {}'.format(self._label))
+        self.log.info('deleting', label=self._label)
         self._state = NniPort.State.DELETING
         self._cancel_deferred()
 
@@ -250,10 +279,10 @@ class NniPort(object):
         NNI 'Start' is done elsewhere
         """
         if self._state != NniPort.State.INITIAL:
-            self.log.error('Reset ignored, only valid during initial startup', state=self._state)
+            self.log.error('reset-ignored', state=self._state)
             returnValue('Ignored')
 
-        self.log.info('Reset {}'.format(self._label))
+        self.log.info('resetting', label=self._label)
 
         # Always enable our NNI ports
 
@@ -264,17 +293,20 @@ class NniPort(object):
             returnValue(results)
 
         except Exception as e:
-            self.log.exception('Reset of NNI to initial state failed', e=e)
+            self.log.exception('reset', e=e)
             self._admin_state = AdminState.UNKNOWN
             raise
 
     @inlineCallbacks
     def set_config(self, leaf, value):
-        data = {'leaf': leaf, 'value': value}
+        if isinstance(value, bool):
+            value = 'true' if value else 'false'
+
         config = '<interfaces xmlns="urn:ietf:params:xml:ns:yang:ietf-interfaces">' + \
                  ' <interface>' + \
                  '  <name>{}</name>'.format(self._name) + \
-                 '  <{d[leaf]}>{d[value]}</{d[leaf]}>'.format(d=data) + \
+                 '  {}'.format(self._ianatype) + \
+                 '  <{}>{}</{}>'.format(leaf, value, leaf) + \
                  ' </interface>' + \
                  '</interfaces>'
         try:
@@ -282,8 +314,49 @@ class NniPort(object):
             returnValue(results)
 
         except Exception as e:
-            self.log.exception('Set Config', leaf=leaf, value=value, e=e)
+            self.log.exception('set', leaf=leaf, value=value, e=e)
             raise
+
+    def get_nni_config(self):
+        config = '<filter xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">' + \
+                 ' <interfaces xmlns="urn:ietf:params:xml:ns:yang:ietf-interfaces">' + \
+                 '  <interface>' + \
+                 '   <name>{}</name>'.format(self._name) + \
+                 '   <enabled/>' + \
+                 '  </interface>' + \
+                 ' </interfaces>' + \
+                 '</filter>'
+        return self._parent.netconf_client.get(config)
+
+    def _sync_hardware(self):
+        if self._state == NniPort.State.RUNNING or self._state == NniPort.State.STOPPED:
+            def read_config(results):
+                self.log.debug('read-config', results=results)
+                try:
+                    result_dict = xmltodict.parse(results.data_xml)
+                    entries = result_dict['data']['interfaces']['interface']
+
+                    enabled = entries.get('enabled',
+                                          str(not self.enabled).lower()) == 'true'
+
+                    return succeed('in-sync') if self.enabled == enabled else \
+                        self.set_config('enabled', self.enabled)
+
+                except Exception as e:
+                    self.log.exception('read-config', e=e)
+                    return fail(Failure())
+
+            def failure(reason):
+                self.log.error('hardware-sync-failed', reason=reason)
+
+            def reschedule(_):
+                delay = self._sync_tick
+                delay += random.uniform(-delay / 10, delay / 10)
+                self._sync_deferred = reactor.callLater(delay, self._sync_hardware)
+
+            self._sync_deferred = self.get_nni_config()
+            self._sync_deferred.addCallbacks(read_config, failure)
+            self._sync_deferred.addBoth(reschedule)
 
 
 class MockNniPort(NniPort):
@@ -326,10 +399,10 @@ class MockNniPort(NniPort):
         NNI 'Start' is done elsewhere
         """
         if self._state != NniPort.State.INITIAL:
-            self.log.error('Reset ignored, only valid during initial startup', state=self._state)
+            self.log.error('reset-ignored', state=self._state)
             return fail()
 
-        self.log.info('Reset {}'.format(self._label))
+        self.log.info('resetting', label=self._label)
 
         # Always enable our NNI ports
 

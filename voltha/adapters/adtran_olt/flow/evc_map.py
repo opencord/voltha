@@ -1,4 +1,4 @@
-# Copyright 2017-present Open Networking Foundation
+# Copyright 2017-present Adtran, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -68,8 +68,9 @@ class EVCMap(object):
     def __init__(self, flow, evc, is_ingress_map):
         self._flow = flow
         self._evc = evc
-        self._gem_ids_and_vid = None
+        self._gem_ids_and_vid = None   # { key -> onu-id, value -> tuple(sorted GEM Port IDs, onu_vid) }
         self._is_ingress_map = is_ingress_map
+        self._pon_id = None
         self._installed = False
         self._status_message = None
 
@@ -78,8 +79,6 @@ class EVCMap(object):
         self._uni_port = None
         self._evc_connection = EVCMap.EvcConnection.DEFAULT
         self._evc_name = None
-        self._is_pon_port = None
-
         self._men_priority = EVCMap.PriorityOption.DEFAULT
         self._men_pri = 0  # If Explicit Priority
 
@@ -137,7 +136,7 @@ class EVCMap(object):
 
     @installed.setter
     def installed(self, value):
-        assert not value                # Can only reset
+        assert not value, 'installed can only be reset'                # Can only reset
         self._installed = False
 
     @property
@@ -157,6 +156,18 @@ class EVCMap(object):
         return self._eth_type is not None or self._ip_protocol is not None or\
                 self._ipv4_dst is not None or self._udp_dst is not None or self._udp_src is not None
 
+    @property
+    def pon_id(self):
+        return self._pon_id     # May be None
+
+    @property
+    def onu_ids(self):
+        return self._gem_ids_and_vid.keys()
+
+    @property
+    def gem_ids_and_vid(self):
+        return self._gem_ids_and_vid.copy()
+
     @staticmethod
     def _xml_header(operation=None):
         return '<evc-maps xmlns="http://www.adtran.com/ns/yang/adtran-evc-maps"{}><evc-map>'.\
@@ -166,73 +177,79 @@ class EVCMap(object):
     def _xml_trailer():
         return '</evc-map></evc-maps>'
 
+    def _common_install_xml(self):
+        xml = '<enabled>{}</enabled>'.format('true' if self._enabled else 'false')
+        xml += '<uni>{}</uni>'.format(self._uni_port)
+
+        if self._evc_name is not None:
+            xml += '<evc>{}</evc>'.format(self._evc_name)
+        else:
+            xml += EVCMap.EvcConnection.xml(self._evc_connection)
+
+        xml += '<match-untagged>{}</match-untagged>'.format('true'
+                                                            if self._match_untagged
+                                                            else 'false')
+        # if self._c_tag is not None:
+        #     xml += '<ctag>{}</ctag>'.format(self._c_tag)
+        # TODO: The following is not yet supported (and in some cases, not decoded)
+        # self._men_priority = EVCMap.PriorityOption.INHERIT_PRIORITY
+        # self._men_pri = 0  # If Explicit Priority
+        #
+        # self._men_ctag_priority = EVCMap.PriorityOption.INHERIT_PRIORITY
+        # self._men_ctag_pri = 0  # If Explicit Priority
+        #
+        # self._match_ce_vlan_id = None
+        # self._match_untagged = True
+        # self._match_destination_mac_address = None
+        # self._eth_type = None
+        # self._ip_protocol = None
+        # self._ipv4_dst = None
+        # self._udp_dst = None
+        # self._udp_src = None
+        return xml
+
+    def _ingress_install_xml(self, onu_s_gem_ids_and_vid):
+        from ..onu import Onu
+
+        xml = '<evc-maps xmlns="http://www.adtran.com/ns/yang/adtran-evc-maps">'
+
+        for onu_or_vlan_id, gem_ids_and_vid in onu_s_gem_ids_and_vid.iteritems():
+            first_gem_id = True
+            vid = gem_ids_and_vid[1]
+            ident = '{}.{}'.format(self._pon_id, onu_or_vlan_id) if vid is None \
+                else onu_or_vlan_id
+
+            for gem_id in gem_ids_and_vid[0]:
+                xml += '<evc-map>'
+                xml += '<name>{}.{}.{}</name>'.format(self.name, ident, gem_id)
+                xml += '<ce-vlan-id>{}</ce-vlan-id>'.format(Onu.gem_id_to_gvid(gem_id))
+
+                # GEM-IDs are a sorted list (ascending). First gemport handles downstream traffic
+                if first_gem_id and vid is not None:
+                    first_gem_id = False
+                    xml += '<network-ingress-filter>'
+                    xml += '<men-ctag>{}</men-ctag>'.format(vid)  # Added in August 2017 model
+                    xml += '</network-ingress-filter>'
+
+                xml += self._common_install_xml()
+                xml += '</evc-map>'
+        xml += '</evc-maps>'
+        return xml
+
+    def _egress_install_xml(self):
+        xml = EVCMap._xml_header()
+        xml += '<name>{}</name>'.format(self.name)
+        xml += self._common_install_xml()
+        xml += EVCMap._xml_trailer()
+        return xml
+
     @inlineCallbacks
     def install(self):
-        if self._valid and not self._installed:
-            def _common_xml():
-                xml = '<enabled>{}</enabled>'.format('true' if self._enabled else 'false')
-                xml += '<uni>{}</uni>'.format(self._uni_port)
-
-                if self._evc_name is not None:
-                    xml += '<evc>{}</evc>'.format(self._evc_name)
-                else:
-                    xml += EVCMap.EvcConnection.xml(self._evc_connection)
-
-                xml += '<match-untagged>{}</match-untagged>'.format('true'
-                                                                    if self._match_untagged
-                                                                    else 'false')
-                # if self._c_tag is not None:
-                #     xml += '<ctag>{}</ctag>'.format(self._c_tag)
-                # TODO: The following is not yet supported (and in some cases, not decoded)
-                # self._men_priority = EVCMap.PriorityOption.INHERIT_PRIORITY
-                # self._men_pri = 0  # If Explicit Priority
-                #
-                # self._men_ctag_priority = EVCMap.PriorityOption.INHERIT_PRIORITY
-                # self._men_ctag_pri = 0  # If Explicit Priority
-                #
-                # self._match_ce_vlan_id = None
-                # self._match_untagged = True
-                # self._match_destination_mac_address = None
-                # self._eth_type = None
-                # self._ip_protocol = None
-                # self._ipv4_dst = None
-                # self._udp_dst = None
-                # self._udp_src = None
-                return xml
-
-            def _ingress_xml():
-                from ..onu import Onu
-                xml = '<evc-maps xmlns="http://www.adtran.com/ns/yang/adtran-evc-maps">'
-                for onu_id, gem_ids_and_vid in self._gem_ids_and_vid.iteritems():
-                    first_gem_id = True
-                    vid = gem_ids_and_vid[1]
-
-                    for gem_id in gem_ids_and_vid[0]:
-                        xml += '<evc-map>'
-                        xml += '<name>{}.{}.{}</name>'.format(self.name, onu_id, gem_id)
-                        xml += '<ce-vlan-id>{}</ce-vlan-id>'.format(Onu.gem_id_to_gvid(gem_id))
-
-                        if first_gem_id and vid is not None:
-                            first_gem_id = False
-                            xml += '<network-ingress-filter>'
-                            xml += '<men-ctag>{}</men-ctag>'.format(vid)    # Added in august 2017 model
-                            xml += '</network-ingress-filter>'
-
-                        xml += _common_xml()
-                        xml += '</evc-map>'
-                xml += '</evc-maps>'
-                return xml
-
-            def _egress_xml():
-                xml = EVCMap._xml_header()
-                xml += '<name>{}</name>'.format(self.name)
-                xml += _common_xml()
-                xml += EVCMap._xml_trailer()
-                return xml
-
+        if self._valid and not self._installed and len(self._gem_ids_and_vid) > 0:
             try:
                 # TODO: create generator of XML once we have MANY to install at once
-                map_xml = _ingress_xml() if self._is_ingress_map else _egress_xml()
+                map_xml = self._ingress_install_xml(self._gem_ids_and_vid) \
+                    if self._is_ingress_map else self._egress_install_xml()
 
                 log.debug('install', xml=map_xml, name=self.name)
                 results = yield self._flow.handler.netconf_client.edit_config(map_xml,
@@ -240,50 +257,47 @@ class EVCMap(object):
                 self._installed = results.ok
                 self.status = '' if results.ok else results.error
 
-                if self._pon_port is not None:
-                    self._pon_port.add_pon_evc_map(self)
-
             except Exception as e:
                 log.exception('install', name=self.name, e=e)
                 raise
 
         returnValue(self._installed and self._valid)
 
+    def _ingress_remove_xml(self, onus_gem_ids_and_vid):
+        xml = '<evc-maps xmlns="http://www.adtran.com/ns/yang/adtran-evc-maps"' + \
+              ' xc:operation="delete">'
+
+        for onu_id, gem_ids_and_vid in onus_gem_ids_and_vid.iteritems():
+            for gem_id in gem_ids_and_vid[0]:
+                xml += '<evc-map>'
+                xml += '<name>{}.{}.{}</name>'.format(self.name, onu_id, gem_id)
+                xml += '</evc-map>'
+        xml += '</evc-maps>'
+        return xml
+
+    def _egress_remove_xml(self):
+        return EVCMap._xml_header('delete') + \
+               '<name>{}</name>'.format(self.name) + EVCMap._xml_trailer()
+
+    @inlineCallbacks
     def remove(self):
         if not self.installed:
-            return succeed('Not installed')
+            returnValue(succeed('Not installed'))
 
         log.info('removing', evc_map=self)
-
-        def _ingress_xml():
-            xml = '<evc-maps xmlns="http://www.adtran.com/ns/yang/adtran-evc-maps"' + \
-                  ' xc:operation = "delete">'
-
-            for onu_id, gem_ids_and_vid in self._gem_ids_and_vid.iteritems():
-                for gem_id in gem_ids_and_vid[0]:
-                    xml += '<evc-map>'
-                    xml += '<name>{}.{}.{}</name>'.format(self.name, onu_id, gem_id)
-                    xml += '</evc-map>'
-            xml += '</evc-maps>'
-
-            return xml
-
-        def _egress_xml():
-            return EVCMap._xml_header('delete') + \
-                   '<name>{}</name>'.format(self.name) + EVCMap._xml_trailer()
 
         def _success(rpc_reply):
             log.debug('remove-success', rpc_reply=rpc_reply)
             self._installed = False
 
-        def _failure(results):
-            log.error('remove-failed', results=results)
-
-        if self._pon_port is not None:
-            self._pon_port.remove_pon_evc_map(self)
+        def _failure(failure):
+            log.error('remove-failed', failure=failure)
+            self._installed = False
 
         # TODO: create generator of XML once we have MANY to install at once
-        map_xml = _ingress_xml() if self._is_ingress_map else _egress_xml()
+        map_xml = self._ingress_remove_xml(self._gem_ids_and_vid) if self._is_ingress_map \
+            else self._egress_remove_xml()
+
         d = self._flow.handler.netconf_client.edit_config(map_xml, lock_timeout=30)
         d.addCallbacks(_success, _failure)
         return d
@@ -295,6 +309,10 @@ class EVCMap(object):
         """
         if self._evc is not None:
             self._evc.remove_evc_map(self)
+            self._evc = None
+
+        self._flow = None
+        self._valid = False
 
         try:
             yield self.remove()
@@ -302,61 +320,19 @@ class EVCMap(object):
         except Exception as e:
             log.exception('removal', e=e)
 
-        self._flow = None
-        self._evc = None
         returnValue('Done')
 
-    def add_onu(self, onu):
-        """
-        Add an ONU to a pon-wide EVC Map
-
-        :param onu: (Onu) ONU to add
-        :return: (defeered)
-        """
-        if self._pon_port is not None:
-            gem_ids = onu.gem_ids(True)
-            vid = onu.onu_vid
-            pass    # TODO: Implement this
-
-    def remove_onu(self, onu):
-        """
-        Remove an ONU to a pon-wide EVC Map
-
-        :param onu: (Onu) ONU to add
-        :return: (defeered)
-        """
-        if self._pon_port is not None:
-            gem_ids = onu.gem_ids(True)
-            vid = onu.onu_vid
-            pass    # TODO: Implement this
-
-    def add_gem_id(self, onu, gem_id):
-        """
-        Add a GEM ID to and existing EVC_MAP
-
-        :param onu: (Onu) ONU
-        :param gem_id: (Int) GEM ID
-        :return: (defeered)
-        """
-        pass    # TODO: Implement this
-
-    def remove_gem_id(self, onu, gem_id):
-        """
-        Remove a GEM ID from and existing EVC_MAP
-
-        :param onu: (Onu) ONU
-        :param gem_id: (Int) GEM ID
-        :return: (defeered)
-        """
-        pass    # TODO: Implement this
+    @staticmethod
+    def create_evc_map_name(flow):
+        return EVC_MAP_NAME_FORMAT.format(flow.in_port, flow.flow_id)
 
     def _decode(self):
         from evc import EVC
         from flow_entry import FlowEntry
 
-        flow = self._flow
+        flow = self._flow  # TODO: Drop saving of flow once debug complete
 
-        self._name = EVC_MAP_NAME_FORMAT.format(flow.in_port, flow.flow_id)
+        self._name = EVCMap.create_evc_map_name(flow)
 
         if self._evc:
             self._evc_connection = EVCMap.EvcConnection.EVC
@@ -394,12 +370,12 @@ class EVCMap(object):
             pon_port = flow.handler.get_southbound_port(flow.in_port)
 
             if pon_port is not None:
-                if flow.onu_vid is None:
-                    self._pon_port = pon_port   # EVC Map is for all ONUs on port
+                self._pon_id = pon_port.pon_id
+                self._gem_ids_and_vid = pon_port.gem_ids(flow.logical_port,
+                                                         self._needs_acl_support,
+                                                         flow.is_multicast_flow)
 
-                self._gem_ids_and_vid = pon_port.gem_ids(flow.onu_vid, self._needs_acl_support)
-
-                # TODO: Only EAPOL ACL support for the first demo
+                # TODO: Only EAPOL ACL support for the first demo - FIXED_ONU
                 if self._needs_acl_support and self._eth_type != FlowEntry.EtherType.EAPOL.value:
                     self._gem_ids_and_vid = dict()
 
@@ -409,16 +385,19 @@ class EVCMap(object):
         # If a push of a single VLAN is present with a POP of the VLAN in the EVC's
         # flow, then this is a traditional EVC flow
 
-        if len(flow.push_vlan_id) == 1 and self._evc.flow_entry.pop_vlan == 1:
-            self._evc.men_to_uni_tag_manipulation = EVC.Men2UniManipulation.SYMMETRIC
-            self._evc.switching_method = EVC.SwitchingMethod.SINGLE_TAGGED
-            self._evc.stpid = flow.push_vlan_tpid[0]
+        self._evc.men_to_uni_tag_manipulation = EVC.Men2UniManipulation.POP_OUT_TAG_ONLY
+        self._evc.switching_method = EVC.SwitchingMethod.DOUBLE_TAGGED
 
-        elif len(flow.push_vlan_id) == 2 and self._evc.flow_entry.pop_vlan == 1:
-            self._evc.men_to_uni_tag_manipulation = EVC.Men2UniManipulation.POP_OUT_TAG_ONLY
-            self._evc.switching_method = EVC.SwitchingMethod.DOUBLE_TAGGED
-            # self._match_ce_vlan_id = 'TODO: something maybe'
-            raise NotImplementedError('TODO: Not supported/needed yet')
+        # if len(flow.push_vlan_id) == 1 and self._evc.flow_entry.pop_vlan == 1:
+        #     self._evc.men_to_uni_tag_manipulation = EVC.Men2UniManipulation.SYMMETRIC
+        #     self._evc.switching_method = EVC.SwitchingMethod.SINGLE_TAGGED
+        #     self._evc.stpid = flow.push_vlan_tpid[0]
+        #
+        # elif len(flow.push_vlan_id) == 2 and self._evc.flow_entry.pop_vlan == 1:
+        #     self._evc.men_to_uni_tag_manipulation = EVC.Men2UniManipulation.POP_OUT_TAG_ONLY
+        #     self._evc.switching_method = EVC.SwitchingMethod.DOUBLE_TAGGED
+        #     # self._match_ce_vlan_id = 'something maybe'
+        #     raise NotImplementedError('TODO: Not supported/needed yet')
 
         return True
 

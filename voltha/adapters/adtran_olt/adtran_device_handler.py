@@ -1,4 +1,4 @@
-# Copyright 2017-present Open Networking Foundation
+# Copyright 2017-present Adtran, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import structlog
 import json
 from twisted.internet import reactor, defer
 from twisted.internet.defer import inlineCallbacks, returnValue
+from twisted.python.failure import Failure
 
 from voltha.adapters.adtran_olt.net.adtran_netconf import AdtranNetconfClient
 from voltha.adapters.adtran_olt.net.adtran_rest import AdtranRestClient
@@ -46,10 +47,9 @@ from scapy.layers.inet import Raw
 
 _ = third_party
 
-_PACKET_IN_VLAN = 4000
-_MULTICAST_VLAN = 4092
+DEFAULT_PACKET_IN_VLAN = 4000
+DEFAULT_MULTICAST_VLAN = 4050
 _MANAGEMENT_VLAN = 4093
-_is_inband_frame = BpfProgramFilter('(ether[14:2] & 0xfff) = 0x{:03x}'.format(_PACKET_IN_VLAN))
 
 _DEFAULT_RESTCONF_USERNAME = ""
 _DEFAULT_RESTCONF_PASSWORD = ""
@@ -99,13 +99,15 @@ class AdtranDeviceHandler(object):
         self.adapter_agent = adapter.adapter_agent
         self.device_id = device_id
         self.log = structlog.get_logger(device_id=device_id)
-        self.startup = None
+        self.startup = None  # Startup/reboot defeered
         self.channel = None  # Proxy messaging channel with 'send' method
         self.io_port = None
         self.logical_device_id = None
         self.interface = registry('main').get_args().interface
         self.pm_metrics = None
         self.alarms = None
+        self.packet_in_vlan = DEFAULT_PACKET_IN_VLAN
+        self.multicast_vlans = [DEFAULT_MULTICAST_VLAN]
 
         # Northbound and Southbound ports
         self.northbound_ports = {}  # port number -> Port
@@ -142,18 +144,15 @@ class AdtranDeviceHandler(object):
         # registered (via xPON API/CLI) before they are activated.
 
         self._autoactivate = False
-
-        # TODO Remove items below after one PON fully supported and working as expected
-        self.max_nni_ports = 1
-        self.max_pon_ports = 1
-
+        self.max_nni_ports = 1  # TODO: This is a VOLTHA imposed limit in 'low_decomposer.py
+                                # and logical_device_agent.py
         # OMCI ZMQ Channel
         self.zmq_port = DEFAULT_ZEROMQ_OMCI_TCP_PORT
 
         # Heartbeat support
         self.heartbeat_count = 0
         self.heartbeat_miss = 0
-        self.heartbeat_interval = 10  # TODO: Decrease before release or any scale testing
+        self.heartbeat_interval = 5  # TODO: Decrease before release or any scale testing
         self.heartbeat_failed_limit = 3
         self.heartbeat_timeout = 5
         self.heartbeat = None
@@ -205,7 +204,7 @@ class AdtranDeviceHandler(object):
         return list(self._evcs.values())
 
     def add_evc(self, evc):
-        if self._evcs is not None:
+        if self._evcs is not None and evc.name not in self._evcs:
             self._evcs[evc.name] = evc
 
     def remove_evc(self, evc):
@@ -229,6 +228,12 @@ class AdtranDeviceHandler(object):
                 raise argparse.ArgumentTypeError("%s is a not a valid port number" % value)
             return ivalue
 
+        def check_vid(value):
+            ivalue = int(value)
+            if ivalue <= 1 or ivalue > 4094:
+                raise argparse.ArgumentTypeError("Valid VLANs are 2..4094")
+            return ivalue
+
         parser = argparse.ArgumentParser(description='Adtran Device Adapter')
         parser.add_argument('--nc_username', '-u', action='store', default=_DEFAULT_NETCONF_USERNAME,
                             help='NETCONF username')
@@ -246,9 +251,20 @@ class AdtranDeviceHandler(object):
                             type=check_tcp_port, help='ZeroMQ Port')
         parser.add_argument('--autoactivate', '-a', action='store_true', default=False,
                             help='Autoactivate / Demo mode')
+        parser.add_argument('--multicast_vlan', '-M', action='store',
+                            default='{}'.format(DEFAULT_MULTICAST_VLAN),
+                            help='Multicast VLAN')
+        parser.add_argument('--packet_in_vlan', '-V', action='store', default=DEFAULT_PACKET_IN_VLAN,
+                            type=check_vid, help='OpenFlow Packet-In/Out VLAN')
 
         try:
             args = parser.parse_args(shlex.split(device.extra_args))
+
+            self.packet_in_vlan = args.packet_in_vlan
+            self._is_inband_frame = BpfProgramFilter('(ether[14:2] & 0xfff) = 0x{:03x}'.
+                                                     format(self.packet_in_vlan))
+            # May have multiple multicast VLANs
+            self.multicast_vlans = [int(vid.strip()) for vid in args.multicast_vlan.split(',')]
 
             self.netconf_username = args.nc_username
             self.netconf_password = args.nc_password
@@ -276,7 +292,7 @@ class AdtranDeviceHandler(object):
         well as ONU auto activation. useful for demos
 
         If autoactivate is enabled, the default startup state (first time) for a PON port is disabled
-        If autoactivate is disabled, the efault startup state for a PON port is enabled
+        If autoactivate is disabled, the default startup state for a PON port is enabled
         """
         return self._autoactivate
 
@@ -346,11 +362,16 @@ class AdtranDeviceHandler(object):
                         image_names = list(set([results.get(img, 'unknown') for img in leafs]))
 
                         images = []
+                        image_count = 1
                         for name in image_names:
                             # TODO: Look into how to find out hash, is_valid, and install date/time
-                            image = Image(name=name, version=name,
+                            image = Image(name='Candidate_{}'.format(image_count),
+                                          version=name,
                                           is_active=(name == results.get('running-revision', 'xxx')),
-                                          is_committed=(name == results.get('startup-revision', 'xxx')))
+                                          is_committed=True,
+                                          is_valid=True,
+                                          install_datetime='Not Available')
+                            image_count += 1
                             images.append(image)
                         return images
 
@@ -367,11 +388,16 @@ class AdtranDeviceHandler(object):
             try:
                 # Enumerate and create Northbound NNI interfaces
 
+                device.reason = 'Enumerating NNI Interfaces'
+                self.adapter_agent.update_device(device)
                 self.startup = self.enumerate_northbound_ports(device)
                 results = yield self.startup
 
                 self.startup = self.process_northbound_ports(device, results)
                 yield self.startup
+
+                device.reason = 'Adding NNI Interfaces to Adapter'
+                self.adapter_agent.update_device(device)
 
                 if not reconciling:
                     for port in self.northbound_ports.itervalues():
@@ -384,11 +410,16 @@ class AdtranDeviceHandler(object):
             try:
                 # Enumerate and create southbound interfaces
 
+                device.reason = 'Enumerating PON Interfaces'
+                self.adapter_agent.update_device(device)
                 self.startup = self.enumerate_southbound_ports(device)
                 results = yield self.startup
 
                 self.startup = self.process_southbound_ports(device, results)
                 yield self.startup
+
+                device.reason = 'Adding PON Interfaces to Adapter'
+                self.adapter_agent.update_device(device)
 
                 if not reconciling:
                     for port in self.southbound_ports.itervalues():
@@ -409,7 +440,8 @@ class AdtranDeviceHandler(object):
                 # Reconcile child devices
                 self.adapter_agent.reconcile_child_devices(device.id)
                 ld_initialized = self.adapter_agent.get_logical_device()
-                assert device.parent_id == ld_initialized.id
+                assert device.parent_id == ld_initialized.id, \
+                    'parent ID not Logical device ID'
 
             else:
                 # Complete activation by setting up logical device for this OLT and saving
@@ -419,26 +451,42 @@ class AdtranDeviceHandler(object):
 
             ############################################################################
             # Setup PM configuration for this device
+            try:
+                device.reason = 'Setting up PM configuration'
+                self.adapter_agent.update_device(device)
 
-            # self.pm_metrics = AdapterPmMetrics(device)
-            # pm_config = self.pm_metrics.make_proto()
-            # self.log.info("initial-pm-config", pm_config=pm_config)
-            # self.adapter_agent.update_device_pm_config(pm_config, init=True)
+                self.pm_metrics = AdapterPmMetrics(self.adapter, device)
+                pm_config = self.pm_metrics.make_proto()
+                self.log.info("initial-pm-config", pm_config=pm_config)
+                self.adapter_agent.update_device_pm_config(pm_config, init=True)
+
+            except Exception as e:
+                self.log.exception('pm-setup', e=e)
+                self.activate_failed(device, e.message)
 
             ############################################################################
             # Setup Alarm handler
+
+            device.reason = 'Setting up Adapter Alarms'
+            self.adapter_agent.update_device(device)
 
             self.alarms = AdapterAlarms(self.adapter, device)
 
             ############################################################################
             # Create logical ports for all southbound and northbound interfaces
             try:
+                device.reason = 'Creating logical ports'
+                self.adapter_agent.update_device(device)
                 self.startup = self.create_logical_ports(device, ld_initialized, reconciling)
                 yield self.startup
 
             except Exception as e:
                 self.log.exception('logical-port', e=e)
                 self.activate_failed(device, e.message)
+
+            ############################################################################
+            # Register for ONU detection
+            # self.adapter_agent.register_for_onu_detect_state(device.id)
 
             # Complete device specific steps
             try:
@@ -452,8 +500,8 @@ class AdtranDeviceHandler(object):
 
             # Schedule the heartbeat for the device
 
-            self.log.debug('Starting-heartbeat')
-            self.start_heartbeat(delay=5)
+            self.log.debug('starting-heartbeat')
+            self.start_heartbeat(delay=10)
 
             device = self.adapter_agent.get_device(device.id)
             device.parent_id = ld_initialized.id
@@ -466,9 +514,9 @@ class AdtranDeviceHandler(object):
             self._activate_io_port()
 
             # Start collecting stats from the device after a brief pause
-            reactor.callLater(5, self.start_kpi_collection, device.id)
+            reactor.callLater(10, self.start_kpi_collection, device.id)
 
-            self.log.info('Activated')
+            self.log.info('activated')
 
     def activate_failed(self, device, reason, reachable=True):
         """
@@ -564,8 +612,8 @@ class AdtranDeviceHandler(object):
                           sw_desc=version,
                           serial_num=device.serial_number,
                           dp_desc='n/a'),
-            switch_features=ofp_switch_features(n_buffers=256,  # TODO fake for now
-                                                n_tables=2,  # TODO ditto
+            switch_features=ofp_switch_features(n_buffers=256,
+                                                n_tables=2,
                                                 capabilities=(
                                                     OFPC_FLOW_STATS |
                                                     OFPC_TABLE_STATS |
@@ -579,9 +627,9 @@ class AdtranDeviceHandler(object):
 
     @inlineCallbacks
     def create_logical_ports(self, device, ld_initialized, reconciling):
-        results = defer.fail()
-
         if not reconciling:
+            # Add the ports to the logical device
+
             for port in self.northbound_ports.itervalues():
                 lp = port.get_logical_port()
                 if lp is not None:
@@ -596,40 +644,44 @@ class AdtranDeviceHandler(object):
             try:
                 for port in self.northbound_ports.itervalues():
                     self.startup = yield port.reset()
-                    results = yield self.startup
 
                 for port in self.southbound_ports.itervalues():
                     self.startup = yield port.reset()
-                    results = yield self.startup
 
             except Exception as e:
-                    self.log.exception('Failed to reset ports to known good initial state', e=e)
-                    self.activate_failed(device, e.message)
+                self.log.exception('port-reset', e=e)
+                self.activate_failed(device, e.message)
 
-            # Clean up all EVC and EVC maps (exceptions ok/not-fatal)
+            # Clean up all EVC and EVC maps (exceptions are ok)
             try:
                 from flow.evc import EVC
                 self.startup = yield EVC.remove_all(self.netconf_client)
 
             except Exception as e:
-                self.log.exception('Failed attempting to clean up existing EVCs', e=e)
+                self.log.exception('evc-cleanup', e=e)
 
             try:
                 from flow.evc_map import EVCMap
                 self.startup = yield EVCMap.remove_all(self.netconf_client)
 
             except Exception as e:
-                self.log.exception('Failed attempting to clean up existing EVC-Maps', e=e)
+                self.log.exception('evc-map-cleanup', e=e)
 
-        # Start/stop the interfaces as needed
+        # Start/stop the interfaces as needed. These are deferred calls
 
-        for port in self.northbound_ports.itervalues():
-            self.startup = port.start()
-            results = yield self.startup
+        try:
+            dl = []
+            for port in self.northbound_ports.itervalues():
+                dl.append(port.start())
 
-        for port in self.southbound_ports.itervalues():
-            self.startup = port.start() if port.admin_state == AdminState.ENABLED else port.stop()
-            results = yield self.startup
+            for port in self.southbound_ports.itervalues():
+                dl.append(port.start() if port.admin_state == AdminState.ENABLED else port.stop())
+
+            results = yield defer.gatherResults(dl)
+
+        except Exception as e:
+            self.log.exception('port-startup', e=e)
+            results = defer.fail(Failure())
 
         returnValue(results)
 
@@ -737,8 +789,11 @@ class AdtranDeviceHandler(object):
         # Kill any heartbeat poll
         h, self.heartbeat = self.heartbeat, None
 
-        if h is not None and not h.called:
-            h.cancel()
+        try:
+            if h is not None and not h.called:
+                h.cancel()
+        except:
+            pass
 
         # TODO: What else (delete logical device, ???)
 
@@ -750,22 +805,28 @@ class AdtranDeviceHandler(object):
 
         # Cancel any running enable/disable/... in progress
         d, self.startup = self.startup, None
-        if d is not None and not d.called:
-            d.cancel()
-
+        try:
+            if d is not None and not d.called:
+                d.cancel()
+        except:
+            pass
         # Get the latest device reference
         device = self.adapter_agent.get_device(self.device_id)
 
         # Deactivate in-band packets
         self._deactivate_io_port()
 
+        # Drop registration for ONU detection
+        # self.adapter_agent.unregister_for_onu_detect_state(self.device.id)
+
         # Suspend any active healthchecks / pings
 
         h, self.heartbeat = self.heartbeat, None
-
-        if h is not None and not h.called:
-            h.cancel()
-
+        try:
+            if h is not None and not h.called:
+                h.cancel()
+        except:
+            pass
         # Update the operational status to UNKNOWN
 
         device.oper_status = OperStatus.UNKNOWN
@@ -830,9 +891,11 @@ class AdtranDeviceHandler(object):
 
         # Cancel any running enable/disable/... in progress
         d, self.startup = self.startup, None
-        if d is not None and not d.called:
-            d.cancel()
-
+        try:
+            if d is not None and not d.called:
+                d.cancel()
+        except:
+            pass
         # Get the latest device reference
         device = self.adapter_agent.get_device(self.device_id)
 
@@ -848,14 +911,12 @@ class AdtranDeviceHandler(object):
 
         except Exception as e:
             self.log.exception('adtran-hello-reconnect', e=e)
-            # TODO: What is best way to handle reenable failure?
 
         try:
             yield self.make_netconf_connection()
 
         except Exception as e:
             self.log.exception('NETCONF-re-connection', e=e)
-            # TODO: What is best way to handle reenable failure?
 
         # Recreate the logical device
 
@@ -863,7 +924,12 @@ class AdtranDeviceHandler(object):
 
         # Create logical ports for all southbound and northbound interfaces
 
-        self.create_logical_ports(device, ld_initialized, False)
+        try:
+            self.startup = self.create_logical_ports(device, ld_initialized, False)
+            yield self.startup
+
+        except Exception as e:
+            self.log.exception('logical-port-creation', e=e)
 
         device = self.adapter_agent.get_device(device.id)
         device.parent_id = ld_initialized.id
@@ -893,6 +959,9 @@ class AdtranDeviceHandler(object):
         self.startup = defer.gatherResults(dl)
         results = yield self.startup
 
+        # Re-subscribe for ONU detection
+        # self.adapter_agent.register_for_onu_detect_state(self.device.id)
+
         # TODO:
         # 1) Restart health check / pings
 
@@ -912,8 +981,22 @@ class AdtranDeviceHandler(object):
 
         # Cancel any running enable/disable/... in progress
         d, self.startup = self.startup, None
-        if d is not None and not d.called:
-            d.cancel()
+        try:
+            if d is not None and not d.called:
+                d.cancel()
+        except:
+            pass
+        # Issue reboot command
+
+        if not self.is_virtual_olt:
+            try:
+                yield self.netconf_client.rpc(AdtranDeviceHandler.RESTART_RPC)
+
+            except Exception as e:
+                self.log.exception('NETCONF-shutdown', e=e)
+                returnValue(defer.fail(Failure()))
+
+        # self.adapter_agent.unregister_for_onu_detect_state(self.device.id)
 
         # Update the operational status to ACTIVATING and connect status to
         # UNREACHABLE
@@ -928,27 +1011,18 @@ class AdtranDeviceHandler(object):
         # Update the child devices connect state to UNREACHABLE
         self.adapter_agent.update_child_devices_state(self.device_id,
                                                       connect_status=ConnectStatus.UNREACHABLE)
-        # Issue reboot command
 
-        if not self.is_virtual_olt:
-            try:
-                yield self.netconf_client.rpc(AdtranDeviceHandler.RESTART_RPC)
+        # Shutdown communications with OLT. Typically it takes about 2 seconds
+        # or so after the reply before the restart actually occurs
 
-            except Exception as e:
-                self.log.exception('NETCONF-shutdown', e=e)
-                # TODO: On failure, what is the best thing to do?
+        try:
+            response = yield self.netconf_client.close()
+            self.log.debug('Restart response XML was: {}'.format('ok' if response.ok else 'bad'))
 
-            # Shutdown communications with OLT. Typically it takes about 2 seconds
-            # or so after the reply before the restart actually occurs
+        except Exception as e:
+            self.log.exception('NETCONF-client-shutdown', e=e)
 
-            try:
-                response = yield self.netconf_client.close()
-                self.log.debug('Restart response XML was: {}'.format('ok' if response.ok else 'bad'))
-
-            except Exception as e:
-                self.log.exception('NETCONF-client-shutdown', e=e)
-
-        #  Clear off clients
+        # Clear off clients
 
         self._netconf_client = None
         self._rest_client = None
@@ -959,13 +1033,10 @@ class AdtranDeviceHandler(object):
         current_time = time.time()
         timeout = current_time + self.restart_failure_timeout
 
-        try:
-            yield reactor.callLater(10, self._finish_reboot, timeout,
-                                    previous_oper_status, previous_conn_status)
-        except Exception as e:
-            self.log.exception('finish-reboot', e=e)
-
-        returnValue('Waiting for reboot')
+        self.startup = reactor.callLater(10, self._finish_reboot, timeout,
+                                         previous_oper_status,
+                                         previous_conn_status)
+        returnValue(self.startup)
 
     @inlineCallbacks
     def _finish_reboot(self, timeout, previous_oper_status, previous_conn_status):
@@ -976,8 +1047,7 @@ class AdtranDeviceHandler(object):
 
         if self.rest_client is None:
             try:
-                response = yield self.make_restconf_connection(get_timeout=10)
-                # self.log.debug('Restart RESTCONF connection JSON was: {}'.format(response))
+                yield self.make_restconf_connection(get_timeout=10)
 
             except Exception:
                 self.log.debug('No RESTCONF connection yet')
@@ -986,7 +1056,6 @@ class AdtranDeviceHandler(object):
         if self.netconf_client is None:
             try:
                 yield self.make_netconf_connection(connect_timeout=10)
-                # self.log.debug('Restart NETCONF connection succeeded')
 
             except Exception as e:
                 try:
@@ -1000,13 +1069,10 @@ class AdtranDeviceHandler(object):
         if (self.netconf_client is None and not self.is_virtual_olt) or self.rest_client is None:
             current_time = time.time()
             if current_time < timeout:
-                try:
-                    yield reactor.callLater(5, self._finish_reboot, timeout,
-                                            previous_oper_status, previous_conn_status)
-                except Exception:
-                    self.log.debug('Rebooted-check', e=e)
-
-                returnValue('Waiting some more...')
+                self.startup = reactor.callLater(5, self._finish_reboot, timeout,
+                                                previous_oper_status,
+                                                 previous_conn_status)
+                returnValue(self.startup)
 
             if self.netconf_client is None and not self.is_virtual_olt:
                 self.log.error('NETCONF-restore-failure')
@@ -1044,6 +1110,9 @@ class AdtranDeviceHandler(object):
         except Exception as e:
             self.log.exception('port-restart', e=e)
 
+        # Re-subscribe for ONU detection
+        # self.adapter_agent.register_for_onu_detect_state(self.device.id)
+
         # Request reflow of any EVC/EVC-MAPs
 
         if len(self._evcs) > 0:
@@ -1070,12 +1139,18 @@ class AdtranDeviceHandler(object):
         # Cancel any outstanding tasks
 
         d, self.startup = self.startup, None
-        if d is not None and not d.called:
-            d.cancel()
-
+        try:
+            if d is not None and not d.called:
+                d.cancel()
+        except:
+            pass
         h, self.heartbeat = self.heartbeat, None
-        if h is not None and not h.called:
-            h.cancel()
+        try:
+            if h is not None and not h.called:
+                h.cancel()
+        except:
+            pass
+        # self.adapter_agent.unregister_for_onu_detect_state(self.device.id)
 
         # Remove all flows from the device
         # TODO: Create a bulk remove-all by device-id
@@ -1126,7 +1201,7 @@ class AdtranDeviceHandler(object):
         if self.io_port is None:
             self.log.info('registering-frameio')
             self.io_port = registry('frameio').open_port(
-                self.interface, self._rcv_io, _is_inband_frame)
+                self.interface, self._rcv_io, self._is_inband_frame)
 
     def _deactivate_io_port(self):
         io, self.io_port = self.io_port, None
@@ -1164,9 +1239,22 @@ class AdtranDeviceHandler(object):
             self.log.info('sending-packet-out', egress_port=egress_port,
                           msg=hexify(msg))
             pkt = Ether(msg)
+
+            #ADTRAN To remove any extra tags 
+            while ( pkt.type == 0x8100 ):
+                msg_hex=hexify(msg)
+                msg_hex=msg_hex[:24]+msg_hex[32:]
+                bytes = []
+                msg_hex = ''.join( msg_hex.split(" ") )
+                for i in range(0, len(msg_hex), 2):
+                    bytes.append( chr( int (msg_hex[i:i+2], 16 ) ) )
+                msg = ''.join( bytes )
+                pkt = Ether(msg)
+            #END
+
             out_pkt = (
                 Ether(src=pkt.src, dst=pkt.dst) /
-                Dot1Q(vlan=_PACKET_IN_VLAN) /
+                Dot1Q(vlan=self.packet_in_vlan) /
                 Dot1Q(vlan=egress_port, type=pkt.type) /
                 pkt.payload
             )
@@ -1181,10 +1269,11 @@ class AdtranDeviceHandler(object):
         # TODO: This has not been tested
         def _collect(device_id, prefix):
             from voltha.protos.events_pb2 import KpiEvent, KpiEventType, MetricValuePairs
+            import random
 
             try:
                 # Step 1: gather metrics from device
-                port_metrics = self.pm_metrics.collect_port_metrics(self.get_channel())
+                port_metrics = self.pm_metrics.collect_port_metrics()
 
                 # Step 2: prepare the KpiEvent for submission
                 # we can time-stamp them here (or could use time derived from OLT
@@ -1205,7 +1294,7 @@ class AdtranDeviceHandler(object):
             except Exception as e:
                 self.log.exception('failed-to-submit-kpis', e=e)
 
-        # self.pm_metrics.start_collector(_collect)
+        self.pm_metrics.start_collector(_collect)
 
     @inlineCallbacks
     def get_device_info(self, device):
@@ -1224,7 +1313,7 @@ class AdtranDeviceHandler(object):
         returnValue(device)
 
     def start_heartbeat(self, delay=10):
-        assert delay > 1
+        assert delay > 1, 'Minimum heartbeat is 1 second'
         self.log.info('Starting-Device-Heartbeat ***')
         self.heartbeat = reactor.callLater(delay, self.check_pulse)
         return self.heartbeat
@@ -1249,7 +1338,6 @@ class AdtranDeviceHandler(object):
 
             self.heartbeat_alarm(False, self.heartbeat_miss)
         else:
-            assert results
             # Update device states
 
             self.log.info('heartbeat-success')

@@ -1,4 +1,4 @@
-# Copyright 2017-present Open Networking Foundation
+# Copyright 2017-present Adtran, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
 import datetime
 import random
 
-from twisted.internet import reactor
+from twisted.internet import reactor, defer
 from twisted.internet.defer import returnValue, inlineCallbacks, succeed
 
 from adtran_device_handler import AdtranDeviceHandler
@@ -30,6 +30,8 @@ from voltha.protos.device_pb2 import Device
 from voltha.protos.bbf_fiber_base_pb2 import \
     ChannelgroupConfig, ChannelpartitionConfig, ChannelpairConfig, ChannelterminationConfig, \
     OntaniConfig, VOntaniConfig, VEnetConfig
+
+FIXED_ONU = True  # Enhanced ONU support
 
 
 class AdtranOltHandler(AdtranDeviceHandler):
@@ -121,32 +123,52 @@ class AdtranOltHandler(AdtranDeviceHandler):
         """
         from codec.physical_entities_state import PhysicalEntitiesState
 
-        device = {}
-
+        device = {
+            'model': 'n/a',
+            'hardware_version': 'n/a',
+            'serial_number': 'n/a',
+            'vendor': 'Adtran, Inc.',
+            'firmware_version': 'n/a',
+            'running-revision': 'n/a',
+            'candidate-revision': 'n/a',
+            'startup-revision': 'n/a',
+        }
         if self.is_virtual_olt:
             returnValue(device)
 
-        pe_state = PhysicalEntitiesState(self.netconf_client)
-        self.startup = pe_state.get_state()
-        results = yield self.startup
+        try:
+            pe_state = PhysicalEntitiesState(self.netconf_client)
+            self.startup = pe_state.get_state()
+            results = yield self.startup
 
-        if results.ok:
-            modules = pe_state.get_physical_entities('adtn-phys-mod:module')
-            if isinstance(modules, list):
-                module = modules[0]
-                name = str(module['model-name']).translate(None, '?')
-                model = str(module['model-number']).translate(None, '?')
+            if results.ok:
+                modules = pe_state.get_physical_entities('adtn-phys-mod:module')
 
-                device['model'] = '{} - {}'.format(name, model) if len(name) > 0 else \
-                    module['parent-entity']
-                device['hardware_version'] = str(module['hardware-revision']).translate(None, '?')
-                device['serial_number'] = str(module['serial-number']).translate(None, '?')
-                device['vendor'] = 'Adtran, Inc.'
-                device['firmware_version'] = str(device.get('firmware-revision', 'unknown')).translate(None, '?')
-                software = module['software']['software']
-                device['running-revision'] = str(software['running-revision']).translate(None, '?')
-                device['candidate-revision'] = str(software['candidate-revision']).translate(None, '?')
-                device['startup-revision'] = str(software['startup-revision']).translate(None, '?')
+                if isinstance(modules, list):
+                    module = modules[0]
+
+                    name = str(module.get('model-name', 'n/a')).translate(None, '?')
+                    model = str(module.get('model-number', 'n/a')).translate(None, '?')
+
+                    device['model'] = '{} - {}'.format(name, model) if len(name) > 0 else \
+                        module.get('parent-entity', 'n/a')
+                    device['hardware_version'] = str(module.get('hardware-revision',
+                                                                'n/a')).translate(None, '?')
+                    device['serial_number'] = str(module.get('serial-number',
+                                                             'n/a')).translate(None, '?')
+                    device['firmware_version'] = str(device.get('firmware-revision',
+                                                                'unknown')).translate(None, '?')
+                    if 'software' in module:
+                        if 'software' in module['software']:
+                            software = module['software']['software']
+                            device['running-revision'] = str(software.get('running-revision',
+                                                                          'n/a')).translate(None, '?')
+                            device['candidate-revision'] = str(software.get('candidate-revision',
+                                                                            'n/a')).translate(None, '?')
+                            device['startup-revision'] = str(software.get('startup-revision',
+                                                                          'n/a')).translate(None, '?')
+        except Exception as e:
+            self.log.exception('get-pe-state', e=e)
 
         returnValue(device)
 
@@ -193,8 +215,8 @@ class AdtranOltHandler(AdtranDeviceHandler):
         for port in results:
             port_no = port['port_no']
             self.log.info('processing-nni', port_no=port_no, name=port['port_no'])
-            assert port_no
-            assert port_no not in self.northbound_ports
+            assert port_no, 'Port number not found'
+            assert port_no not in self.northbound_ports, 'Port number is not a northbound port'
             self.northbound_ports[port_no] = NniPort(self, **port) if not self.is_virtual_olt \
                 else MockNniPort(self, **port)
 
@@ -236,20 +258,16 @@ class AdtranOltHandler(AdtranDeviceHandler):
         for pon in results:
             # Number PON Ports after the NNI ports
             pon_id = pon['pon-id']
-            log.info('Processing-pon-port', pon_id=pon_id)
-            assert pon_id not in self.southbound_ports
-
-            admin_state = AdminState.ENABLED if pon.get('enabled',
-                                                        PonPort.DEFAULT_ENABLED) else AdminState.DISABLED
+            log.info('processing-pon-port', pon_id=pon_id)
+            assert pon_id not in self.southbound_ports,\
+                'Pon ID not found in southbound ports'
 
             self.southbound_ports[pon_id] = PonPort(pon_id,
                                                     self._pon_id_to_port_number(pon_id),
-                                                    self,
-                                                    admin_state=admin_state)
-
-            # TODO: For now, limit number of PON ports to make debugging easier
-            if len(self.southbound_ports) >= self.max_pon_ports:
-                break
+                                                    self)
+            if self.autoactivate:
+                self.southbound_ports[pon_id].downstream_fec_enable = True
+                self.southbound_ports[pon_id].upstream_fec_enable = True
 
         self.num_southbound_ports = len(self.southbound_ports)
 
@@ -271,7 +289,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
         #
         # o Discover any new or missing ONT/ONUs
         #
-        # o TODO Discover any LOS for any ONT/ONUs
+        # o Discover any LOS for any ONT/ONUs
         #
         # o TODO Update some PON level statistics
 
@@ -308,9 +326,11 @@ class AdtranOltHandler(AdtranDeviceHandler):
             c.shutdown()
 
         d, self.status_poll = self.status_poll, None
-        if d is not None and not d.called:
-            d.cancel()
-
+        try:
+            if d is not None and not d.called:
+                d.cancel()
+        except:
+            pass
         super(AdtranOltHandler, self).reboot()
 
     def _finish_reboot(self, timeout, previous_oper_status, previous_conn_status):
@@ -325,9 +345,11 @@ class AdtranOltHandler(AdtranDeviceHandler):
             c.shutdown()
 
         d, self.status_poll = self.status_poll, None
-        if d is not None and not d.called:
-            d.cancel()
-
+        try:
+            if d is not None and not d.called:
+                d.cancel()
+        except:
+            pass
         super(AdtranOltHandler, self).delete()
 
     def rx_packet(self, message):
@@ -396,9 +418,11 @@ class AdtranOltHandler(AdtranDeviceHandler):
         # OLT Specific things here
 
         d, self.startup = self.startup, None
-        if d is not None and not d.called:
-            d.cancel()
-
+        try:
+            if d is not None and not d.called:
+                d.cancel()
+        except:
+            pass
         # self.pons.clear()
 
         # TODO: Any other? OLT specific deactivate steps
@@ -492,6 +516,8 @@ class AdtranOltHandler(AdtranDeviceHandler):
 
     def get_channel_id(self, pon_id, onu_id):
         from pon_port import PonPort
+        if FIXED_ONU:
+            return self._onu_offset(onu_id)
         return self._onu_offset(onu_id) + (pon_id * PonPort.MAX_ONUS_SUPPORTED)
 
     def _onu_offset(self, onu_id):
@@ -502,6 +528,8 @@ class AdtranOltHandler(AdtranDeviceHandler):
 
     def _channel_id_to_pon_id(self, channel_id, onu_id):
         from pon_port import PonPort
+        if FIXED_ONU:
+            return channel_id - self._onu_offset(onu_id)
         return (channel_id - self._onu_offset(onu_id)) / PonPort.MAX_ONUS_SUPPORTED
 
     def _pon_id_to_port_number(self, pon_id):
@@ -762,16 +790,16 @@ class AdtranOltHandler(AdtranDeviceHandler):
 
         if item in items:
             del items[name]
-            self._cached_xpon_pon_info = {}     # Clear cached data
-
             pass    # TODO Do something....
             raise NotImplementedError('TODO: not yet supported')
 
     def on_channel_termination_config(self, name, operation, pon_type='xgs-ponid'):
         supported_operations = ['create']
 
-        assert operation in supported_operations
-        assert name in self._channel_terminations
+        assert operation in supported_operations, \
+            'Unsupported channel-term operation: {}'.format(operation)
+        assert name in self._channel_terminations, \
+            '{} is not a channel-termination'.format(name)
         ct = self._channel_terminations[name]
 
         pon_id = ct[pon_type]
@@ -781,11 +809,14 @@ class AdtranOltHandler(AdtranDeviceHandler):
         if pon_port is None:
             raise ValueError('Unknown PON port. PON-ID: {}'.format(pon_id))
 
-        assert ct['channel-pair'] in self._channel_pairs
+        assert ct['channel-pair'] in self._channel_pairs, \
+            '{} is not a channel-pair'.format(ct['channel-pair'])
         cpair = self._channel_pairs[ct['channel-pair']]
 
-        assert cpair['channel-group'] in self._channel_groups
-        assert cpair['channel-partition'] in self._channel_partitions
+        assert cpair['channel-group'] in self._channel_groups, \
+            '{} is not a -group'.format(cpair['channel-group'])
+        assert cpair['channel-partition'] in self._channel_partitions, \
+            '{} is not a channel-partition'.format(cpair('channel-partition'))
         cg = self._channel_groups[cpair['channel-group']]
         cpart = self._channel_partitions[cpair['channel-partition']]
 
@@ -794,8 +825,8 @@ class AdtranOltHandler(AdtranDeviceHandler):
         polling_period = cg['polling-period']
         authentication_method = cpart['authentication-method']
         # line_rate = cpair['line-rate']
-        # downstream_fec = cpart['fec-downstream']
-        # deployment_range = cpart['differential-fiber-distance']
+        downstream_fec = cpart['fec-downstream']
+        deployment_range = cpart['differential-fiber-distance']
         # mcast_aes = cpart['mcast-aes']
 
         # TODO: Support BER calculation period
@@ -806,8 +837,8 @@ class AdtranOltHandler(AdtranDeviceHandler):
             pon_port.xpon_name = name
             pon_port.discovery_tick = polling_period
             pon_port.authentication_method = authentication_method
-            # TODO: pon_port.deployment_range = deployment_range
-            # TODO: pon_port.fec_enable = downstream_fec
+            pon_port.deployment_range = deployment_range * 1000     # pon-agent uses meters
+            pon_port.downstream_fec_enable = downstream_fec
             # TODO: pon_port.mcast_aes = mcast_aes
 
             pon_port.admin_state = AdminState.ENABLED if enabled else AdminState.DISABLED
@@ -906,7 +937,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
         pass
         raise NotImplementedError('TODO: Not yet supported')
 
-    def delete_gemport(self, data):
+    def remove_gemport(self, data):
         """
         Delete GEM Port
         :param data:

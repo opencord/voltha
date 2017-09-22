@@ -1,4 +1,3 @@
-#
 # Copyright 2017-present Adtran, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -167,7 +166,7 @@ class OltState(object):
                 key/value: serial-number (string)
             """
             return frozenset([sn['serial-number'] for sn in self._packet.get('discovered-onu', [])
-                              if 'serial-number' in sn])
+                              if 'serial-number' in sn and sn['serial-number'] != 'AAAAAAAAAAA='])
 
         @property
         def gems(self):
@@ -189,7 +188,7 @@ class OltState(object):
             """
 
             def __init__(self, packet):
-                assert 'onu-id' in packet
+                assert 'onu-id' in packet, 'onu-id not found in packet'
                 self._packet = packet
 
             def __str__(self):
@@ -226,3 +225,14 @@ class OltState(object):
             def rssi(self):
                 """The received signal strength indication of the ONU"""
                 return self._packet.get('rssi', -9999)
+
+            @property
+            def equalization_delay(self):
+                """Equalization delay (bits)"""
+                return self._packet.get('equalization-delay', 0)
+
+            @property
+            def fiber_length(self):
+                """Distance to ONU"""
+                return self._packet.get('fiber-length', 0)
+

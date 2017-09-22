@@ -1,5 +1,4 @@
-#
-# Copyright 2017 the original author or authors.
+# Copyright 2017-present Adtran, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,13 +21,14 @@ from google.protobuf.empty_pb2 import Empty
 
 class AdapterPmMetrics:
     def __init__(self, adapter, device):
-        self.pm_names = {'tx_64_pkts', 'tx_65_127_pkts', 'tx_128_255_pkts',
-                         'tx_256_511_pkts', 'tx_512_1023_pkts',
-                         'tx_1024_1518_pkts', 'tx_1519_9k_pkts',
-                         'rx_64_pkts', 'rx_65_127_pkts',
-                         'rx_128_255_pkts', 'rx_256_511_pkts',
-                         'rx_512_1023_pkts', 'rx_1024_1518_pkts',
-                         'rx_1519_9k_pkts'}
+        # self.pm_names = {'tx_64_pkts', 'tx_65_127_pkts', 'tx_128_255_pkts',
+        #                  'tx_256_511_pkts', 'tx_512_1023_pkts',
+        #                  'tx_1024_1518_pkts', 'tx_1519_9k_pkts',
+        #                  'rx_64_pkts', 'rx_65_127_pkts',
+        #                  'rx_128_255_pkts', 'rx_256_511_pkts',
+        #                  'rx_512_1023_pkts', 'rx_1024_1518_pkts',
+        #                  'rx_1519_9k_pkts'}
+        self.pm_names = {'rx_frames', 'tx_frames'}
         self.log = structlog.get_logger(device_id=device.id)
         self.device = device
         self.id = device.id
@@ -67,33 +67,40 @@ class AdapterPmMetrics:
                                                enabled=pm.enabled)])
         return pm_config
 
-    def collect_port_metrics(self, channel):
-        rtrn_port_metrics = dict()
+    def collect_port_metrics(self):
+        port_metrics = dict()
         # TODO: Implement
-        # stub = ponsim_pb2.PonSimStub(channel)
-        # stats = stub.GetStats(Empty())
-        # rtrn_port_metrics['pon'] = self.extract_pon_metrics(stats)
-        # rtrn_port_metrics['nni'] = self.extract_nni_metrics(stats)
-        return rtrn_port_metrics
+        stats = {}
+        port_metrics['pon'] = self.extract_pon_metrics(stats, 100)
+        port_metrics['nni'] = self.extract_nni_metrics(stats, 200)
+        return port_metrics
 
-    def extract_pon_metrics(self, stats):
-        rtrn_pon_metrics = dict()
+    def extract_pon_metrics(self, stats, fake_value):
+        return {
+            'rx_frames': fake_value,
+            'tx_frames': fake_value
+        }
+        # rtrn_pon_metrics = dict()
+        #
+        # for m in stats.metrics:
+        #     if m.port_name == "pon":
+        #         for p in m.packets:
+        #             if self.pon_metrics_config[p.name].enabled:
+        #                 rtrn_pon_metrics[p.name] = p.value
+        #         return rtrn_pon_metrics
 
-        for m in stats.metrics:
-            if m.port_name == "pon":
-                for p in m.packets:
-                    if self.pon_metrics_config[p.name].enabled:
-                        rtrn_pon_metrics[p.name] = p.value
-                return rtrn_pon_metrics
-
-    def extract_nni_metrics(self, stats):
-        rtrn_pon_metrics = dict()
-        for m in stats.metrics:
-            if m.port_name == "nni":
-                for p in m.packets:
-                    if self.pon_metrics_config[p.name].enabled:
-                        rtrn_pon_metrics[p.name] = p.value
-                return rtrn_pon_metrics
+    def extract_nni_metrics(self, stats, fake_value):
+        return {
+            'rx_frames': fake_value,
+            'tx_frames': fake_value
+        }
+        # rtrn_pon_metrics = dict()
+        # for m in stats.metrics:
+        #     if m.port_name == "nni":
+        #         for p in m.packets:
+        #             if self.pon_metrics_config[p.name].enabled:
+        #                 rtrn_pon_metrics[p.name] = p.value
+        #         return rtrn_pon_metrics
 
     def start_collector(self, callback):
         self.log.info("starting-pm-collection", device_name=self.name,

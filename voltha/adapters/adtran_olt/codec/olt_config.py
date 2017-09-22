@@ -1,4 +1,4 @@
-# Copyright 2017-present Open Networking Foundation
+# Copyright 2017-present Adtran, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -98,7 +98,7 @@ class OltConfig(object):
         @property
         def onus(self):
             if self._onus is None:
-                self._onus = OltConfig.Pon.decode(self._packet.get('pon', None))
+                self._onus = OltConfig.Pon.Onu.decode(self._packet.get('onus', None))
             return self._onus
 
         class Onu(object):
@@ -109,7 +109,9 @@ class OltConfig(object):
                 assert 'onu-id' in packet
                 self._packet = packet
                 self._tconts = None
+                self._tconts_dict = None
                 self._gem_ports = None
+                self._gem_ports_dict = None
 
             def __str__(self):
                 return "OltConfig.Pon.Onu: onu-id: {}".format(self.onu_id)
@@ -151,10 +153,22 @@ class OltConfig(object):
                 return self._tconts
 
             @property
+            def tconts_dict(self):               # TODO: Remove if not used
+                if self._tconts_dict is None:
+                    self._tconts_dict = {tcont.alloc_id: tcont for tcont in self.tconts}
+                return self._tconts_dict
+
+            @property
             def gem_ports(self):
                 if self._gem_ports is None:
                     self._gem_ports = OltConfig.Pon.Onu.GemPort.decode(self._packet.get('gem-ports', None))
-                return self._tconts
+                return self._gem_ports
+
+            @property
+            def gem_ports_dict(self):               # TODO: Remove if not used
+                if self._gem_ports_dict is None:
+                    self._gem_ports_dict = {gem.gem_id: gem for gem in self.gem_ports}
+                return self._gem_ports_dict
 
             class TCont(object):
                 """
@@ -208,15 +222,24 @@ class OltConfig(object):
 
                     @property
                     def fixed_bandwidth(self):
-                        return self._packet['fixed-bandwidth']
+                        try:
+                            return int(self._packet.get('fixed-bandwidth', 0))
+                        except:
+                            return 0
 
                     @property
                     def assured_bandwidth(self):
-                        return self._packet['assured-bandwidth']
+                        try:
+                            return int(self._packet.get('assured-bandwidth', 0))
+                        except:
+                            return 0
 
                     @property
                     def maximum_bandwidth(self):
-                        return self._packet['maximum-bandwidth']
+                        try:
+                            return int(self._packet.get('maximum-bandwidth', 0))
+                        except:
+                            return 0
 
                     @property
                     def additional_bandwidth_eligibility(self):
@@ -265,7 +288,7 @@ class OltConfig(object):
                     gem_ports = {}
                     for gem_port_data in gem_port_container.get('gem-port', []):
                         gem_port = OltConfig.Pon.Onu.GemPort(gem_port_data)
-                        assert gem_port.port_id not in gem_port
+                        assert gem_port.port_id not in gem_ports
                         gem_ports[gem_port.port_id] = gem_port
 
                     return gem_ports
@@ -274,6 +297,11 @@ class OltConfig(object):
                 def port_id(self):
                     """The ID used to identify the GEM Port"""
                     return self._packet['port-id']
+
+                @property
+                def gem_id(self):
+                    """The ID used to identify the GEM Port"""
+                    return self.port_id
 
                 @property
                 def alloc_id(self):

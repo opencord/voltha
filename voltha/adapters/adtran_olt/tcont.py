@@ -1,4 +1,4 @@
-# Copyright 2017-present Open Networking Foundation
+# Copyright 2017-present Adtran, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,9 +13,11 @@
 # limitations under the License.
 
 import structlog
+import json
 from enum import Enum
 from voltha.protos.bbf_fiber_tcont_body_pb2 import TcontsConfigData
 from voltha.protos.bbf_fiber_traffic_descriptor_profile_body_pb2 import TrafficDescriptorProfileData
+from twisted.internet.defer import succeed, inlineCallbacks, returnValue
 
 log = structlog.get_logger()
 
@@ -34,7 +36,7 @@ class TCont(object):
         self.vont_ani = vont_ani        # (string) reference
 
     def __str__(self):
-        return "TCont: {}, alloc-id: {}".format(self.name,self.alloc_id)
+        return "TCont: {}, alloc-id: {}".format(self.name, self.alloc_id)
 
     @staticmethod
     def create(data, td):
@@ -43,6 +45,41 @@ class TCont(object):
 
         return TCont(data.alloc_id, td, best_effort=td.best_effort,
                      name=data.name, ident=data.id, vont_ani=data.interface_reference)
+
+    @inlineCallbacks
+    def add_to_hardware(self, session, pon_id, onu_id, operation='POST'):
+        from adtran_olt_handler import AdtranOltHandler
+
+        uri = AdtranOltHandler.GPON_TCONT_CONFIG_LIST_URI.format(pon_id, onu_id)
+        data = json.dumps({'alloc-id': self.alloc_id})
+        name = 'tcont-create-{}-{}: {}'.format(pon_id, onu_id, self.alloc_id)
+        what = 'tcont'
+
+        try:
+            # For TCONT, only leaf is the key. So only post needed
+            if operation == 'POST':
+                results = yield session.request('POST', uri, data=data, name=name)
+            else:
+                results = succeed('nop')
+
+            if self.traffic_descriptor is not None:
+                what = 'traffic-descriptor'
+                results = yield self.traffic_descriptor.add_to_hardware(session,
+                                                                        pon_id, onu_id,
+                                                                        self.alloc_id,
+                                                                        self.best_effort)
+        except Exception as e:
+            log.exception(what, tcont=self, td=self.traffic_descriptor, e=e)
+            raise
+
+        returnValue(results)
+
+    def remove_from_hardware(self, session, pon_id, onu_id):
+        from adtran_olt_handler import AdtranOltHandler
+
+        uri = AdtranOltHandler.GPON_TCONT_CONFIG_URI.format(pon_id, onu_id, self.alloc_id)
+        name = 'tcont-delete-{}-{}: {}'.format(pon_id, onu_id, self.alloc_id)
+        return succeed(session.request('DELETE', uri, name=name))
 
 
 class TrafficDescriptor(object):
@@ -129,6 +166,34 @@ class TrafficDescriptor(object):
         }
         return val
 
+    @inlineCallbacks
+    def add_to_hardware(self, session, pon_id, onu_id, alloc_id, best_effort):
+        from adtran_olt_handler import AdtranOltHandler
+
+        uri = AdtranOltHandler.GPON_TCONT_CONFIG_URI.format(pon_id, onu_id, alloc_id)
+        data = json.dumps({'traffic-descriptor': self.to_dict()})
+        name = 'tcont-td-{}-{}: {}'.format(pon_id, onu_id, alloc_id)
+        try:
+            results = yield session.request('PATCH', uri, data=data, name=name)
+
+        except Exception as e:
+            log.exception('traffic-descriptor', td=self, e=e)
+            raise
+
+        if self.additional_bandwidth_eligibility == \
+           TrafficDescriptor.AdditionalBwEligibility.BEST_EFFORT_SHARING:
+            if best_effort is None:
+                raise ValueError('TCONT is best-effort but does not define best effort sharing')
+
+            try:
+                results = yield best_effort.add_to_hardware(session, pon_id, onu_id, alloc_id)
+
+            except Exception as e:
+                log.exception('best-effort', best_effort=best_effort, e=e)
+                raise
+
+        returnValue(results)
+
 
 class BestEffort(object):
     def __init__(self, bandwidth, priority, weight):
@@ -148,3 +213,12 @@ class BestEffort(object):
             'weight': self.weight
         }
         return val
+
+    def add_to_hardware(self, session, pon_id, onu_id, alloc_id, best_effort):
+        from adtran_olt_handler import AdtranOltHandler
+
+        uri = AdtranOltHandler.GPON_TCONT_CONFIG_URI.format(pon_id, onu_id, alloc_id)
+        data = json.dumps({'best-effort': best_effort.to_dict()})
+        name = 'tcont-best-effort-{}-{}: {}'.format(pon_id, onu_id, alloc_id)
+
+        return session.request('PATCH', uri, data=data, name=name)

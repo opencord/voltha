@@ -1,4 +1,4 @@
-# Copyright 2017-present Open Networking Foundation
+# Copyright 2017-present Adtran, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import structlog
+import json
 from voltha.protos.bbf_fiber_gemport_body_pb2 import GemportsConfigData
 
 log = structlog.get_logger()
@@ -30,7 +31,7 @@ class GemPort(object):
                  ident=None,
                  traffic_class=None,
                  intf_ref=None,
-                 exception=False,        # TODO: Debug only, remove in production
+                 exception=False,        # FIXED_ONU
                  name=None):
         self.name = name
         self.gem_id = gem_id
@@ -39,10 +40,10 @@ class GemPort(object):
         self.intf_ref = intf_ref
         self.traffic_class = traffic_class
         self.id = ident
-        self.encryption = encryption
-        self.omci_transport = omci_transport
+        self._encryption = encryption
+        self._omci_transport = omci_transport
         self.multicast = multicast
-        self.exception = exception
+        self.exception = exception        # FIXED_ONU
 
     def __str__(self):
         return "GemPort: {}, alloc-id: {}, gem-id: {}".format(self.name,
@@ -70,6 +71,14 @@ class GemPort(object):
             pass
         return self._alloc_id
 
+    @property
+    def encryption(self):
+        return self._encryption
+
+    @property
+    def omci_transport(self):
+        return self._omci_transport
+
     def to_dict(self):
         return {
             'port-id': self.gem_id,
@@ -77,3 +86,21 @@ class GemPort(object):
             'encryption': self.encryption,
             'omci-transport': self.omci_transport
         }
+
+    def add_to_hardware(self, session, pon_id, onu_id, operation='POST'):
+        from adtran_olt_handler import AdtranOltHandler
+
+        uri = AdtranOltHandler.GPON_GEM_CONFIG_LIST_URI.format(pon_id, onu_id)
+        data = json.dumps(self.to_dict())
+        name = 'gem-port-create-{}-{}: {}/{}'.format(pon_id, onu_id,
+                                                     self.gem_id,
+                                                     self.alloc_id)
+
+        return session.request(operation, uri, data=data, name=name)
+
+    def remove_from_hardware(self, session, pon_id, onu_id):
+        from adtran_olt_handler import AdtranOltHandler
+
+        uri = AdtranOltHandler.GPON_GEM_CONFIG_URI.format(pon_id, onu_id, self.gem_id)
+        name = 'gem-port-delete-{}-{}: {}'.format(pon_id, onu_id, self.gem_id)
+        return session.request('DELETE', uri, name=name)

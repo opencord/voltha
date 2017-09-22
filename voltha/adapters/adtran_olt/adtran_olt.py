@@ -1,4 +1,4 @@
-# Copyright 2017-present Open Networking Foundation
+# Copyright 2017-present Adtran, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -51,7 +51,7 @@ class AdtranOltAdapter(object):
         self.descriptor = Adapter(
             id=self.name,
             vendor='Adtran, Inc.',
-            version='0.4',
+            version='0.5',
             config=AdapterConfig(log_level=LogLevel.INFO)
         )
         log.debug('adtran_olt.__init__', adapter_agent=adapter_agent)
@@ -440,8 +440,10 @@ class AdtranOltAdapter(object):
         in the devices
         """
         log.info('create-interface', data=data)
-        handler = self.devices_handlers[device.id]
-        handler.create_interface(data)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.create_interface(data)
 
     def update_interface(self, device, data):
         """
@@ -449,8 +451,10 @@ class AdtranOltAdapter(object):
         in the devices
         """
         log.info('update-interface', data=data)
-        handler = self.devices_handlers[device.id]
-        handler.update_interface(data)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.update_interface(data)
 
     def remove_interface(self, device, data):
         """
@@ -458,8 +462,10 @@ class AdtranOltAdapter(object):
         in the devices
         """
         log.info('remove-interface', data=data)
-        handler = self.devices_handlers[device.id]
-        handler.remove_interface(data)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.remove_interface(data)
 
     def receive_onu_detect_state(self, proxy_address, state):
         """
@@ -480,8 +486,10 @@ class AdtranOltAdapter(object):
         """
         log.info('create-tcont', tcont_data=tcont_data,
                  traffic_descriptor_data=traffic_descriptor_data)
-        handler = self.devices_handlers[device.id]
-        handler.create_tcont(tcont_data, traffic_descriptor_data)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.create_tcont(tcont_data, traffic_descriptor_data)
 
     def update_tcont(self, device, tcont_data, traffic_descriptor_data):
         """
@@ -493,8 +501,10 @@ class AdtranOltAdapter(object):
         """
         log.info('update-tcont', tcont_data=tcont_data,
                  traffic_descriptor_data=traffic_descriptor_data)
-        handler = self.devices_handlers[device.id]
-        handler.update_tcont(tcont_data, traffic_descriptor_data)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.update_tcont(tcont_data, traffic_descriptor_data)
 
     def remove_tcont(self, device, tcont_data, traffic_descriptor_data):
         """
@@ -506,8 +516,10 @@ class AdtranOltAdapter(object):
         """
         log.info('remove-tcont', tcont_data=tcont_data,
                  traffic_descriptor_data=traffic_descriptor_data)
-        handler = self.devices_handlers[device.id]
-        handler.remove_tcont(tcont_data, traffic_descriptor_data)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.remove_tcont(tcont_data, traffic_descriptor_data)
 
     def create_gemport(self, device, data):
         """
@@ -517,8 +529,10 @@ class AdtranOltAdapter(object):
         :return: None
         """
         log.info('create-gemport', data=data)
-        handler = self.devices_handlers[device.id]
-        handler.create_gemport(data)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.create_gemport(data)
 
     def update_gemport(self, device, data):
         """
@@ -528,8 +542,10 @@ class AdtranOltAdapter(object):
         :return: None
         """
         log.info('update-gemport', data=data)
-        handler = self.devices_handlers[device.id]
-        handler.update_gemport(data)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.update_gemport(data)
 
     def remove_gemport(self, device, data):
         """
@@ -539,8 +555,10 @@ class AdtranOltAdapter(object):
         :return: None
         """
         log.info('remove-gemport', data=data)
-        handler = self.devices_handlers[device.id]
-        handler.remove_gemport(data)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.remove_gemport(data)
 
     def create_multicast_gemport(self, device, data):
         """
@@ -550,8 +568,10 @@ class AdtranOltAdapter(object):
         :return: None
         """
         log.info('create-mcast-gemport', data=data)
-        handler = self.devices_handlers[device.id]
-        handler.create_multicast_gemport(data)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.create_multicast_gemport(data)
 
     def update_multicast_gemport(self, device, data):
         """
@@ -561,8 +581,10 @@ class AdtranOltAdapter(object):
         :return: None
         """
         log.info('update-mcast-gemport', data=data)
-        handler = self.devices_handlers[device.id]
-        handler.update_multicast_gemport(data)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.update_multicast_gemport(data)
 
     def remove_multicast_gemport(self, device, data):
         """
@@ -572,8 +594,10 @@ class AdtranOltAdapter(object):
         :return: None
         """
         log.info('remove-mcast-gemport', data=data)
-        handler = self.devices_handlers[device.id]
-        handler.remove_multicast_gemport(data)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.remove_multicast_gemport(data)
 
     def create_multicast_distribution_set(self, device, data):
         """
@@ -584,8 +608,10 @@ class AdtranOltAdapter(object):
         :return: None
         """
         log.info('create-mcast-distribution-set', data=data)
-        handler = self.devices_handlers[device.id]
-        handler.create_multicast_distribution_set(data)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.create_multicast_distribution_set(data)
 
     def update_multicast_distribution_set(self, device, data):
         """
@@ -596,8 +622,10 @@ class AdtranOltAdapter(object):
         :return: None
         """
         log.info('update-mcast-distribution-set', data=data)
-        handler = self.devices_handlers[device.id]
-        handler.create_multicast_distribution_set(data)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.create_multicast_distribution_set(data)
 
     def remove_multicast_distribution_set(self, device, data):
         """
@@ -608,5 +636,7 @@ class AdtranOltAdapter(object):
         :return: None
         """
         log.info('remove-mcast-distribution-set', data=data)
-        handler = self.devices_handlers[device.id]
-        handler.create_multicast_distribution_set(data)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.create_multicast_distribution_set(data)
