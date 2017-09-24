@@ -289,6 +289,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
         known_device_types = dict(
             (dt.id, dt) for dt in self.root.get('/device_types'))
+        known_devices = self.root.get('/devices')
 
         try:
             assert isinstance(request, Device)
@@ -300,7 +301,24 @@ class LocalHandler(VolthaLocalServiceServicer):
                                           AdminState.PREPROVISIONED), \
                 'Newly created device cannot be ' \
                 'in admin state \'{}\''.format(device.admin_state)
-
+            assert device.WhichOneof("address") is not None, \
+                'Device must have one contact address e.g. MAC, IPv4, IPv6, H&P'
+            error_message = 'Device with {} address \'{}\' already exists'
+            for _device in known_devices:
+                if _device.HasField(device.WhichOneof("address")):
+                    if device.HasField("mac_address"):
+                        assert device.mac_address != _device.mac_address, \
+                            error_message.format('MAC', device.mac_address)
+                    elif device.HasField("ipv4_address"):
+                        assert device.ipv4_address != _device.ipv4_address, \
+                            error_message.format('IPv4', device.ipv4_address)
+                    elif device.HasField("ipv6_address"):
+                        assert device.ipv6_address != _device.ipv6_address, \
+                            error_message.format('IPv6', device.ipv6_address)
+                    elif device.HasField("host_and_port"):
+                        assert device.host_and_port != _device.host_and_port, \
+                            error_message.format('Host and Port',
+                                                 device.host_and_port)
         except AssertionError, e:
             context.set_details(e.message)
             context.set_code(StatusCode.INVALID_ARGUMENT)
