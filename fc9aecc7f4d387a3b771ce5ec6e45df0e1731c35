@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a5c5d37_53b4a7f1",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 749,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-09-25T21:05:25Z",
+      "side": 1,
+      "message": "This seems to be redundant. First, you get all the child IDs given all devices, then you use that IDs to get device again. Seems like unnecessary memory use and complexity of O(n^2). May be consider the following:\n\nfor device in devices:\n    if device.parent_id \u003d\u003d parent_device_id:\n        if device.proxy_address.channel_id \u003d\u003d \n           child_device_channel_id:\n               return device.proxy_address.channel_id\n\nNow running complexity is O(n) and looks cleaner.",
+      "range": {
+        "startLine": 748,
+        "startChar": 8,
+        "endLine": 749,
+        "endChar": 37
+      },
+      "revId": "fc9aecc7f4d387a3b771ce5ec6e45df0e1731c35",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_33b933ea",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 752,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-09-25T21:05:25Z",
+      "side": 1,
+      "message": "What if there are multiple child devices?",
+      "range": {
+        "startLine": 752,
+        "startChar": 16,
+        "endLine": 752,
+        "endChar": 31
+      },
+      "revId": "fc9aecc7f4d387a3b771ce5ec6e45df0e1731c35",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
