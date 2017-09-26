@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a5c5d37_46e747e5",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 746,
+      "author": {
+        "id": 1000090
+      },
+      "writtenOn": "2017-09-26T20:01:52Z",
+      "side": 1,
+      "message": "It is not clear what is the intention of this API to return all onu devices using same channel id or single onu id. \n\nIf intention is to return all child onu devices then make API as \"get_child_device_ids\".\n\nIncase intention is to search for specific device then criteria of search should includes onu_id or serial number",
+      "range": {
+        "startLine": 746,
+        "startChar": 4,
+        "endLine": 746,
+        "endChar": 77
+      },
+      "revId": "86c6ca28c46943d794ac5fb51b7119f876ddc469",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_c6c33737",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 751,
+      "author": {
+        "id": 1000090
+      },
+      "writtenOn": "2017-09-26T20:01:52Z",
+      "side": 1,
+      "message": "In previous patch set 2, Nikolay had provided comment about number onnus. This returns first onu from the list of matching devices having same channel id (port number associated to channel pair)",
+      "range": {
+        "startLine": 750,
+        "startChar": 16,
+        "endLine": 751,
+        "endChar": 32
+      },
+      "revId": "86c6ca28c46943d794ac5fb51b7119f876ddc469",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
