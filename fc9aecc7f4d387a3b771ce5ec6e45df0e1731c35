@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "9a5c5d37_4699876d",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 749,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-09-26T19:48:32Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "9a5c5d37_53b4a7f1",
+      "range": {
+        "startLine": 748,
+        "startChar": 8,
+        "endLine": 749,
+        "endChar": 37
+      },
+      "revId": "fc9aecc7f4d387a3b771ce5ec6e45df0e1731c35",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a5c5d37_33b933ea",
         "filename": "voltha/core/adapter_agent.py",
         "patchSetId": 2
@@ -36,6 +60,30 @@
       "writtenOn": "2017-09-25T21:05:25Z",
       "side": 1,
       "message": "What if there are multiple child devices?",
+      "range": {
+        "startLine": 752,
+        "startChar": 16,
+        "endLine": 752,
+        "endChar": 31
+      },
+      "revId": "fc9aecc7f4d387a3b771ce5ec6e45df0e1731c35",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_269e9357",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 752,
+      "author": {
+        "id": 1000237
+      },
+      "writtenOn": "2017-09-26T19:48:32Z",
+      "side": 1,
+      "message": "I assume only channel_id is unique per child device. Is this understanding correct?",
+      "parentUuid": "9a5c5d37_33b933ea",
       "range": {
         "startLine": 752,
         "startChar": 16,
