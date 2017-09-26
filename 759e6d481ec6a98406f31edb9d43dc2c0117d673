@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a5c5d37_c69e9763",
+        "filename": "docker/config/network-cfg.json",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000005
+      },
+      "writtenOn": "2017-09-26T18:37:04Z",
+      "side": 1,
+      "message": "You want all this config to be included by default? How would people customize this?",
+      "revId": "759e6d481ec6a98406f31edb9d43dc2c0117d673",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
