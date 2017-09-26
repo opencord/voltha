@@ -627,10 +627,14 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             ]
             assert len(upstream_ports) == 1
             downstream_ports = [
-                port for port in ports if port.type == Port.PON_OLT
+                port for port in ports if port.type == Port.PON_OLT \
+                                            or port.type == Port.VENET_OLT
             ]
-            assert len(downstream_ports) == 1, \
-                'Initially, we only handle one PON port'
+            _is_any_venet_port = any(_port.type == Port.VENET_OLT for _port in
+                                  downstream_ports)
+            if _is_any_venet_port != True:
+                assert len(downstream_ports) == 1, \
+                    'Initially, we only handle one PON port'
             flows = OrderedDict((f.id, f) for f in [
                 mk_flow_stat(
                     priority=2000,
@@ -651,13 +655,14 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         def leaf_device_default_rules(device):
             ports = self.root_proxy.get('/devices/{}/ports'.format(device.id))
             upstream_ports = [
-                port for port in ports if port.type == Port.PON_ONU
+                port for port in ports if port.type == Port.PON_ONU \
+                                            or port.type == Port.VENET_ONU
             ]
             assert len(upstream_ports) == 1
             downstream_ports = [
                 port for port in ports if port.type == Port.ETHERNET_UNI
             ]
-            assert len(downstream_ports) == 1
+            # assert len(downstream_ports) == 1
             flows = OrderedDict((f.id, f) for f in [
                 mk_flow_stat(
                     priority=500,
