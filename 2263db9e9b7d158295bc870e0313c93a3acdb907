@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a5c5d37_4909982b",
+        "filename": "voltha/core/logical_device_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 631,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2017-09-27T03:20:39Z",
+      "side": 1,
+      "message": "Please add to the unit tests for the logical_device_agent to cover the VENET_OLT test case",
+      "revId": "2263db9e9b7d158295bc870e0313c93a3acdb907",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_69045c15",
+        "filename": "voltha/core/logical_device_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 633,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2017-09-27T03:20:39Z",
+      "side": 1,
+      "message": "I would suggest not commenting out this insertion. The flow_decomposer processing (without the VOL-419 changes) will not output correct rules.\n\nAlso a number of unit tests will probably fail. I addressed those as part of VOL-419 which is still out for review.",
+      "revId": "2263db9e9b7d158295bc870e0313c93a3acdb907",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_290e6435",
+        "filename": "voltha/core/logical_device_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 656,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2017-09-27T03:20:39Z",
+      "side": 1,
+      "message": "Unit test cases (test_logical_device_agent.py) needed to cover the additional port type",
+      "revId": "2263db9e9b7d158295bc870e0313c93a3acdb907",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
