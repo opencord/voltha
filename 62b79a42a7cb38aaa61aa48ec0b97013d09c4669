@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a5c5d37_a9d7f4ec",
+        "filename": "setup.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 15,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2017-09-27T19:22:14Z",
+      "side": 1,
+      "message": "Not sure of the policy and politics of this. But I would just leave \"Open Networking Foundation, et al\" and remove individual names.",
+      "range": {
+        "startLine": 15,
+        "startChar": 14,
+        "endLine": 15,
+        "endChar": 58
+      },
+      "revId": "62b79a42a7cb38aaa61aa48ec0b97013d09c4669",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
