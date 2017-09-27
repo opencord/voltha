@@ -68,6 +68,9 @@ class PonPort(object):
         self._discovered_onus = []  # List of serial numbers
         self._sync_tick = 20.0
         self._in_sync = False
+        self._expedite_sync = False
+        self._expedite_count = 0
+
         self._onus = {}         # serial_number-base64 -> ONU  (allowed list)
         self._onu_by_id = {}    # onu-id -> ONU
         self._next_onu_id = Onu.MIN_ONU_ID + 128
@@ -581,27 +584,31 @@ class PonPort(object):
                 config = config[self.pon_id]
                 self._in_sync = True
 
-                dl = [defer.succeed(config)]  # Forward get_config on to ont SYNC
+                dl = []
 
                 if self.enabled != config.enabled:
                     self._in_sync = False
+                    self._expedite_sync = True
                     dl.append(self._set_pon_config("enabled", self.enabled))
 
-                if self._state == PonPort.State.RUNNING:
+                elif self._state == PonPort.State.RUNNING:
+                    if self.deployment_range != config.deployment_range:
+                        self._in_sync = False
+                        self._expedite_sync = True
+                        dl.append(self._set_pon_config("deployment-range",
+                                                       self.deployment_range))
+
                     if self.downstream_fec_enable != config.downstream_fec_enable:
                         self._in_sync = False
+                        self._expedite_sync = True
                         dl.append(self._set_pon_config("downstream-fec-enable",
                                                        self.downstream_fec_enable))
 
                     if self.upstream_fec_enable != config.upstream_fec_enable:
                         self._in_sync = False
+                        self._expedite_sync = True
                         dl.append(self._set_pon_config("upstream-fec-enable",
                                                        self.upstream_fec_enable))
-
-                    if self.deployment_range != config.deployment_range:
-                        self._in_sync = False
-                        dl.append(self._set_pon_config("deployment-range",
-                                                       self.deployment_range))
                 return defer.gatherResults(dl)
 
             def sync_onus(results):
@@ -620,18 +627,25 @@ class PonPort(object):
                     extra_onus = hw_onu_ids - my_onu_ids
                     dl = [self.delete_onu(onu_id) for onu_id in extra_onus]
 
-                    missing_onus = my_onu_ids - hw_onu_ids
-                    # TODO: Need to remove from this PONs dicts so discovery and 'Add' work
-                    #       properly.  May be able to just call add_onu?
-
                     return defer.gatherResults(dl, consumeErrors=True)
 
             def failure(reason, what):
                 self.log.error('hardware-sync-{}-failed'.format(what), reason=reason)
                 self._in_sync = False
+                self._expedite_sync = False
 
             def reschedule(_):
+                # Speed up sequential resync a limited number of times if out of sync.
+
                 delay = self._sync_tick
+
+                if self._expedite_sync:
+                    self._expedite_count += 1
+                    if self._expedite_count < 5:
+                        delay = 1
+                else:
+                    self._expedite_count = 0
+
                 delay += random.uniform(-delay / 10, delay / 10)
                 self._sync_deferred = reactor.callLater(delay, self._sync_hardware)
 
@@ -651,27 +665,14 @@ class PonPort(object):
         if self._admin_state != AdminState.ENABLED:
             return
 
-        # Process the ONU list in for this PON, may have previously provisioned ones there
-        # were discovered on an earlier boot
+        # Get new/missing from the discovered ONU leaf.  Stale ONUs from previous
+        # configs are now cleaned up during h/w re-sync/reflow.
 
-        new = self._process_status_onu_list(status.onus)
+        new, rediscovered_onus = self._process_status_onu_discovered_list(status.discovered_onu)
 
-        for onu_id in new:
-            # self.add_new_onu(serial_number, status)
-            self.log.info('found-ONU', onu_id=onu_id)
-            raise NotImplementedError('TODO: Adding ONUs from existing ONU (status list) not supported')
+        # Process newly discovered ONU list and rediscovered ONUs
 
-        # Get new/missing from the discovered ONU leaf
-
-        new, missing = self._process_status_onu_discovered_list(status.discovered_onu)
-
-        # TODO: Do something useful (Does the discovery list clear out activated ONU's?)
-        # if len(missing):
-        #     self.log.info('missing-ONUs', missing=missing)
-
-        # Process discovered ONU list
-
-        for serial_number in new:
+        for serial_number in new | rediscovered_onus:
             reactor.callLater(0, self.add_onu, serial_number, status)
 
         # Process LOS list
@@ -727,25 +728,6 @@ class PonPort(object):
             self._active_los_alarms.add(onu_id)
             los_alarm(True, onu_id)
 
-    def _process_status_onu_list(self, onus):
-        """
-        Look for new or missing ONUs
-
-        :param onus: (dict) Set of known ONUs
-        """
-        self.log.debug('ONU-list', onus=onus)
-
-        my_onu_ids = frozenset([o.onu_id for o in self._onus.itervalues()])
-        discovered_onus = frozenset(onus.keys())
-
-        new_onus_ids = discovered_onus - my_onu_ids
-        missing_onus_ids = my_onu_ids - discovered_onus
-
-        new = {o: v for o, v in onus.iteritems() if o in new_onus_ids}
-        missing_onus = {o: v for o, v in onus.iteritems() if o in missing_onus_ids}
-
-        return new  # , missing_onus        # TODO: Support ONU removal
-
     def _process_status_onu_discovered_list(self, discovered_onus):
         """
         Look for new ONUs
@@ -763,9 +745,9 @@ class PonPort(object):
         my_onus = frozenset(self._onus.keys())
 
         new_onus = discovered_onus - my_onus
-        # TODO: Remove later if not needed -> missing_onus = my_onus - discovered_onus
+        rediscovered_onus = my_onus & discovered_onus
 
-        return new_onus, None  # , missing_onus
+        return new_onus, rediscovered_onus
 
     def _get_onu_info(self, serial_number):
         """
@@ -841,42 +823,55 @@ class PonPort(object):
         if serial_number not in status.onus:
             # Newly found and not enabled ONU, enable it now if not at max
 
-            if len(self._onus) >= self.MAX_ONUS_SUPPORTED:
-                self.log.warning('max-onus-provisioned')
+            onu_info = self._get_onu_info(Onu.serial_number_to_string(serial_number))
+
+            if onu_info is None:
+                self.log.info('lookup-failure', serial_number=serial_number)
+
+            elif serial_number in self._onus or onu_info['onu-id'] in self._onu_by_id:
+                # May be here due to unmanaged power-cycle on OLT
+                self.log.info('onu-already-added', serial_number=serial_number)
+                assert serial_number in self._onus and\
+                       onu_info['onu-id'] in self._onu_by_id, \
+                    'ONU not in both lists'
+
+                # Recover ONU information and attempt to reflow TCONT/GEM-PORT
+                # information as well
+
+                onu = self._onus[serial_number]
+                reflow = True
+
+            elif len(self._onus) >= self.MAX_ONUS_SUPPORTED:
+                    self.log.warning('max-onus-provisioned', count=len(self._onus))
             else:
-                onu_info = self._get_onu_info(Onu.serial_number_to_string(serial_number))
+                # TODO: Make use of upstream_channel_speed variable
+                onu = Onu(onu_info)
+                reflow = False
+                self._onus[serial_number] = onu
+                self._onu_by_id[onu.onu_id] = onu
 
-                if onu_info is None:
-                    self.log.info('lookup-failure', serial_number=serial_number)
+            try:
+                tconts = onu_info['t-conts']
+                gem_ports = onu_info['gem-ports']
 
-                elif serial_number in self._onus or onu_info['onu-id'] in self._onu_by_id:
-                    self.log.warning('onu-already-added', serial_number=serial_number)
+                # Add Multicast to PON on a per-ONU basis until xPON multicast support is ready
+                # In xPON/BBF, mcast gems tie back to the channel-pair
+                # MCAST VLAN IDs stored as a negative value
 
-                else:
-                    # TODO: Make use of upstream_channel_speed variable
-                    onu = Onu(onu_info)
-                    self._onus[serial_number] = onu
-                    self._onu_by_id[onu.onu_id] = onu
+                for id_or_vid, gem_port in gem_ports.iteritems():  # TODO: Deprecate this when BBF ready
+                    if gem_port.multicast:
+                        self.add_mcast_gem_port(gem_port, -id_or_vid)
 
-                    try:
-                        tconts = onu_info['t-conts']
-                        gem_ports = onu_info['gem-ports']
+                yield onu.create(tconts, gem_ports, reflow=reflow)
+                if not reflow:
+                    self.activate_onu(onu)
 
-                        # Add Multicast to PON on a per-ONU basis until xPON multicast support is ready
-                        # In xPON/BBF, mcast gems tie back to the channel-pair
-                        # MCAST VLAN IDs stored as a negative value
+            except Exception as e:
+                self.log.exception('add-onu', serial_number=serial_number, reflow=reflow, e=e)
 
-                        for id_or_vid, gem_port in gem_ports.iteritems():  # TODO: Deprecate this when BBF ready
-                            if gem_port.multicast:
-                                self.add_mcast_gem_port(gem_port, -id_or_vid)
-
-                        yield onu.create(tconts, gem_ports)
-                        self.activate_onu(onu)
-
-                    except Exception as e:
-                        del self._onus[serial_number]
-                        del self._onu_by_id[onu.onu_id]
-                        self.log.exception('add-onu', serial_number=serial_number, e=e)
+                if not reflow:
+                    del self._onus[serial_number]
+                    del self._onu_by_id[onu.onu_id]
 
     def activate_onu(self, onu):
         """

@@ -78,7 +78,7 @@ class OltConfig(object):
         @property
         def enabled(self):
             """The desired state of the interface"""
-            return self._packet.get('enabled', True)
+            return self._packet.get('enabled', False)
 
         @property
         def downstream_fec_enable(self):

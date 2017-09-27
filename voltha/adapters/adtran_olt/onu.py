@@ -190,9 +190,13 @@ class Onu(object):
                 pass
 
     @inlineCallbacks
-    def create(self, tconts, gem_ports):
+    def create(self, tconts, gem_ports, reflow=False):
         """
-        POST -> /restconf/data/gpon-olt-hw:olt/pon=<pon-id>/onus/onu ->
+        Create (or reflow) this ONU to hardware
+        :param tconts: (TCont) Current TCONT information
+        :param gem_ports: (GemPort) Current GEM Port configuration information
+        :param reflow: (boolean) Flag, if True, indicating if this is a reflow ONU
+                                 information after an unmanaged OLT hardware reboot
         """
         self.log.debug('create')
         self._cancel_deferred()
@@ -207,7 +211,7 @@ class Onu(object):
         try:
             results = yield self.olt.rest_client.request('POST', uri, data=data, name=name)
 
-        except Exception as e:
+        except Exception as e:  # TODO: Add breakpoint here during unexpected reboot test
             self.log.exception('onu-create', e=e)
             raise
 
@@ -215,17 +219,17 @@ class Onu(object):
 
         for _, tcont in tconts.items():
             try:
-                results = yield self.add_tcont(tcont)
+                results = yield self.add_tcont(tcont, reflow=reflow)
 
             except Exception as e:
                 self.log.exception('add-tcont', tcont=tcont, e=e)
 
         for _, gem_port in gem_ports.items():
             try:
-                results = yield self.add_gem_port(gem_port)
+                results = yield self.add_gem_port(gem_port, reflow=reflow)
 
             except Exception as e:
-                self.log.exception('add-gem_port', gem_port=gem_port, e=e)
+                self.log.exception('add-gem-port', gem_port=gem_port, reflow=reflow, e=e)
 
         self._sync_deferred = reactor.callLater(self._sync_tick, self._sync_hardware)
 
@@ -333,7 +337,7 @@ class Onu(object):
             return [self.remove_tcont(alloc_id) for alloc_id in alloc_ids]
 
         def sync_add_missing_tconts(alloc_ids):
-            return [self.add_tcont(self._tconts[alloc_id], add_always=True) for alloc_id in alloc_ids]
+            return [self.add_tcont(self._tconts[alloc_id], reflow=True) for alloc_id in alloc_ids]
 
         def sync_matching_tconts(hw_tconts):
             from tcont import TrafficDescriptor
@@ -399,7 +403,8 @@ class Onu(object):
             return [self.remove_gem_id(gem_id) for gem_id in gem_ids]
 
         def sync_add_missing_gem_ports(gem_ids):
-            return [self.add_gem_port(self._gem_ports[gem_id], add_always=True) for gem_id in gem_ids]
+            return [self.add_gem_port(self._gem_ports[gem_id], reflow=True)
+                    for gem_id in gem_ids]
 
         def sync_matching_gem_ports(hw_gem_ports):
             dl = []
@@ -467,18 +472,18 @@ class Onu(object):
         return frozenset(self._tconts.keys())
 
     @inlineCallbacks
-    def add_tcont(self, tcont, add_always=False):
+    def add_tcont(self, tcont, reflow=False):
         """
         Creates/ a T-CONT with the given alloc-id
 
         :param tcont: (TCont) Object that maintains the TCONT properties
-        :param add_always: (boolean) If true, force add (used during h/w resync)
+        :param reflow: (boolean) If true, force add (used during h/w resync)
         :return: (deferred)
         """
         if not self._valid:
             returnValue(succeed('Deleting'))
 
-        if not add_always and tcont.alloc_id in self._tconts:
+        if not reflow and tcont.alloc_id in self._tconts:
             returnValue(succeed('already created'))
 
         try:
@@ -487,7 +492,7 @@ class Onu(object):
             self._tconts[tcont.alloc_id] = tcont
 
         except Exception as e:
-            self.log.exception('tcont', tcont=tcont, e=e)
+            self.log.exception('tcont', tcont=tcont, reflow=reflow, e=e)
             raise
 
         returnValue(results)
@@ -522,18 +527,18 @@ class Onu(object):
                           if not gem.multicast and not gem.exception])  # FIXED_ONU
 
     @inlineCallbacks
-    def add_gem_port(self, gem_port, add_always=False):
+    def add_gem_port(self, gem_port, reflow=False):
         """
         Add a GEM Port to this ONU
 
         :param gem_port: (GemPort) GEM Port to add
-        :param add_always: (boolean) If true, force add (used during h/w resync)
+        :param reflow: (boolean) If true, force add (used during h/w resync)
         :return: (deferred)
         """
         if not self._valid:
             returnValue(succeed('Deleting'))
 
-        if not add_always and gem_port.gem_id in self._gem_ports:
+        if not reflow and gem_port.gem_id in self._gem_ports:
             returnValue(succeed('already created'))
 
         try:
@@ -547,10 +552,10 @@ class Onu(object):
                 # GEM-IDs are a sorted list (ascending). First gemport handles downstream traffic
                 from flow.flow_entry import FlowEntry
                 evc_maps = FlowEntry.find_evc_map_flows(self._device_id, self._pon_id, self._onu_id)
-                pass
+                pass   # TODO: Start here Tuesday
 
         except Exception as e:
-            self.log.exception('gem-port', e=e)
+            self.log.exception('gem-port', gem_port=gem_port, reflow=reflow, e=e)
             raise
 
         returnValue(results)
