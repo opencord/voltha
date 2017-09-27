@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a5c5d37_6909fc94",
+        "filename": "setup.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 15,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2017-09-27T19:23:26Z",
+      "side": 1,
+      "message": "\"Open Networking Foundation, et al\" ? and no individual names.",
+      "range": {
+        "startLine": 15,
+        "startChar": 14,
+        "endLine": 15,
+        "endChar": 58
+      },
+      "revId": "c00aea9463f5f33812324fe8fa0e656eb8b12c5c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
