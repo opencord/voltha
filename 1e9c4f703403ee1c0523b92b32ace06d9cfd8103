@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a5c5d37_64b483f2",
+        "filename": "voltha/core/logical_device_agent.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000090
+      },
+      "writtenOn": "2017-09-28T22:05:00Z",
+      "side": 1,
+      "message": "As per TST separate VOL-474 raised to track utest for VENET port changes",
+      "revId": "1e9c4f703403ee1c0523b92b32ace06d9cfd8103",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
