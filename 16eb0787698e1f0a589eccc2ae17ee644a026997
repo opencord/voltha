@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "9a5c5d37_496d1804",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000090
+      },
+      "writtenOn": "2017-09-28T02:37:28Z",
+      "side": 1,
+      "message": "When decomposing the flows in the logical device to the individual devices (OLT and ONT) a common identifier is needed to find the linkage between the devices. In the existing code, this is PON, but it has the limitation that only one ONT per PON is supported. We propose to use the virtual ethernet port to provide this linkage (VOL-470). The venet interface has the advantage that it is one-to-one with the UNI and is present in the WT-385 xPON model. Further, other entities can be matched with the venet, such as the ontani (parent of venet), gemport (child of venet), and tcont (child of parent ani). [Ref figures 1 and 2 in section 4 of  WT-385]\n \nWe understand this change to augment the existing PON linkage with a VLAN number tied to the ONT, but it is not clear how the CVLAN maps to a particular UNI. In our view, the VLANs should come from ONOS rather than the ONT device configuration.\n \nNot all OLT devices will need to make use of the controller VLAN (4000) or ONT CVLANs. It would be nice if such implementation details could be encapsulated in the device adapters rather than in the core. As an interim step, we propose to at least implement the PON or venet linkages in the core in such a way that either would work (with the devices having control over what is advertised to the core).",
+      "revId": "16eb0787698e1f0a589eccc2ae17ee644a026997",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a5c5d37_56f37a73",
         "filename": "voltha/core/flow_decomposer.py",
         "patchSetId": 1
