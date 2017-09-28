@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "9a5c5d37_c4ed6ff1",
+        "filename": "voltha/core/logical_device_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 631,
+      "author": {
+        "id": 1000090
+      },
+      "writtenOn": "2017-09-28T22:05:00Z",
+      "side": 1,
+      "message": "As per TST VOL-474 raised to track utest",
+      "parentUuid": "9a5c5d37_4909982b",
+      "revId": "2263db9e9b7d158295bc870e0313c93a3acdb907",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a5c5d37_69045c15",
         "filename": "voltha/core/logical_device_agent.py",
         "patchSetId": 1
@@ -36,6 +54,24 @@
     },
     {
       "key": {
+        "uuid": "9a5c5d37_a4ba7bdf",
+        "filename": "voltha/core/logical_device_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 633,
+      "author": {
+        "id": 1000090
+      },
+      "writtenOn": "2017-09-28T22:05:00Z",
+      "side": 1,
+      "message": "Accepted to keep restriction for PON Ports",
+      "parentUuid": "9a5c5d37_69045c15",
+      "revId": "2263db9e9b7d158295bc870e0313c93a3acdb907",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a5c5d37_290e6435",
         "filename": "voltha/core/logical_device_agent.py",
         "patchSetId": 1
@@ -47,6 +83,24 @@
       "writtenOn": "2017-09-27T03:20:39Z",
       "side": 1,
       "message": "Unit test cases (test_logical_device_agent.py) needed to cover the additional port type",
+      "revId": "2263db9e9b7d158295bc870e0313c93a3acdb907",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_84bf77d0",
+        "filename": "voltha/core/logical_device_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 656,
+      "author": {
+        "id": 1000090
+      },
+      "writtenOn": "2017-09-28T22:05:00Z",
+      "side": 1,
+      "message": "As per TST VOL-474 raised ti track utest",
+      "parentUuid": "9a5c5d37_290e6435",
       "revId": "2263db9e9b7d158295bc870e0313c93a3acdb907",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
