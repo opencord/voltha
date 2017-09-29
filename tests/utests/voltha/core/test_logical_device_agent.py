@@ -509,7 +509,8 @@ class test_logical_device_agent(FlowHelpers):
 
         self.assertFlowsEqual(self.device_flows['olt'].items[1], mk_flow_stat(
             priority=1000,
-            match_fields=[in_port(0), vlan_vid(4096 + 140)],
+            match_fields=[in_port(0), eth_type(0x800), vlan_vid(4096 + 140),
+                ipv4_dst(0xe60a0a0a)],
             actions=[
                 pop_vlan(),
                 output(1)
@@ -557,7 +558,8 @@ class test_logical_device_agent(FlowHelpers):
 
         self.assertFlowsEqual(self.device_flows['olt'].items[1], mk_flow_stat(
             priority=1000,
-            match_fields=[in_port(0), vlan_vid(4096 + 140)],
+            match_fields=[in_port(0), eth_type(0x800), vlan_vid(4096 + 140),
+                ipv4_dst(0xe60a0a0a)],
             actions=[
                 pop_vlan(),
                 output(1)
@@ -603,7 +605,8 @@ class test_logical_device_agent(FlowHelpers):
 
         self.assertFlowsEqual(self.device_flows['olt'].items[1], mk_flow_stat(
             priority=1000,
-            match_fields=[in_port(0), vlan_vid(4096 + 140)],
+            match_fields=[in_port(0), eth_type(0x800), vlan_vid(4096 + 140),
+                ipv4_dst(0xe60a0a0a)],
             actions=[
                 pop_vlan(),
                 output(1)
@@ -721,7 +724,7 @@ class test_logical_device_agent(FlowHelpers):
         self.lda._flow_table_updated(self.flows)
 
         # now check device level flows
-        self.assertEqual(len(self.device_flows['olt'].items), 9)
+        self.assertEqual(len(self.device_flows['olt'].items), 12)
         self.assertEqual(len(self.device_flows['onu1'].items), 5)
         self.assertEqual(len(self.device_flows['onu2'].items), 5)
         self.assertEqual(len(self.device_groups['olt'].items), 0)
@@ -755,26 +758,41 @@ class test_logical_device_agent(FlowHelpers):
         ))
         self.assertFlowsEqual(self.device_flows['olt'].items[4], mk_flow_stat(
             priority=1000,
-            match_fields=[in_port(0), vlan_vid(4096 + 140)],
+            match_fields=[in_port(0), eth_type(0x800), vlan_vid(4096 + 140), ipv4_dst(0xe4010101)],
             actions=[pop_vlan(), output(1)]
         ))
         self.assertFlowsEqual(self.device_flows['olt'].items[5], mk_flow_stat(
+            priority=1000,
+            match_fields=[in_port(0), eth_type(0x800), vlan_vid(4096 + 140), ipv4_dst(0xe4010102)],
+            actions=[pop_vlan(), output(1)]
+        ))
+        self.assertFlowsEqual(self.device_flows['olt'].items[6], mk_flow_stat(
+            priority=1000,
+            match_fields=[in_port(0), eth_type(0x800), vlan_vid(4096 + 140), ipv4_dst(0xe4010103)],
+            actions=[pop_vlan(), output(1)]
+        ))
+        self.assertFlowsEqual(self.device_flows['olt'].items[7], mk_flow_stat(
+            priority=1000,
+            match_fields=[in_port(0), eth_type(0x800), vlan_vid(4096 + 140), ipv4_dst(0xe4010104)],
+            actions=[pop_vlan(), output(1)]
+        ))
+        self.assertFlowsEqual(self.device_flows['olt'].items[8], mk_flow_stat(
             priority=500,
             match_fields=[in_port(0), vlan_vid(4096 + 1000), metadata(101)],
             actions=[pop_vlan(), output(1)]
         ))
-        self.assertFlowsEqual(self.device_flows['olt'].items[6], mk_flow_stat(
+        self.assertFlowsEqual(self.device_flows['olt'].items[9], mk_flow_stat(
             priority=500,
             match_fields=[in_port(1), vlan_vid(4096 + 101)],
             actions=[
                 push_vlan(0x8100), set_field(vlan_vid(4096 + 1000)), output(0)]
         ))
-        self.assertFlowsEqual(self.device_flows['olt'].items[7], mk_flow_stat(
+        self.assertFlowsEqual(self.device_flows['olt'].items[10], mk_flow_stat(
             priority=500,
             match_fields=[in_port(0), vlan_vid(4096 + 1000), metadata(102)],
             actions=[pop_vlan(), output(1)]
         ))
-        self.assertFlowsEqual(self.device_flows['olt'].items[8], mk_flow_stat(
+        self.assertFlowsEqual(self.device_flows['olt'].items[11], mk_flow_stat(
             priority=500,
             match_fields=[in_port(1), vlan_vid(4096 + 102)],
             actions=[
