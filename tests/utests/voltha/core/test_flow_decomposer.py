@@ -613,7 +613,9 @@ class TestFlowDecomposer(FlowHelpers, FlowDecomposer):
             match_fields=[
                 in_port(2),
                 vlan_vid(ofp.OFPVID_PRESENT | 170),
-                vlan_pcp(0)
+                vlan_pcp(0),
+                eth_type(0x800),
+                ipv4_dst(0xe00a0a0a)
             ],
             actions=[
                 pop_vlan(),

@@ -650,7 +650,7 @@ class FlowDecomposer(object):
                             in_port(ingress_hop.ingress_port.port_no)
                         ] + [
                             field for field in get_ofb_fields(flow)
-                            if field.type not in (IN_PORT, ETH_TYPE, IPV4_DST)
+                            if field.type not in (IN_PORT,)
                         ],
                         actions=[
                             action for action in get_actions(flow)
