@@ -11,7 +11,7 @@ twisted_deps = ['twisted']
 scapy_deps = ['scapy>=2.2.0']
 setup(
     name = 'voltha',
-    version = '1.1.0',
+    version = '1.2.0',
     author = 'Zsolt Haraszti, Nathan Knuth, Ali Al-Shabibi',
     author_email = 'voltha-discuss@opencord.org',
     description = ('Virtual Optical Line Terminal (OLT) Hardware Abstraction'),
