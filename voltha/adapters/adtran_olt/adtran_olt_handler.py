@@ -32,7 +32,7 @@ from voltha.protos.bbf_fiber_base_pb2 import \
     OntaniConfig, VOntaniConfig, VEnetConfig
 
 FIXED_ONU = True  # Enhanced ONU support
-
+ATT_NETWORK = True  # Use AT&T cVlan scheme
 
 class AdtranOltHandler(AdtranDeviceHandler):
     """
@@ -516,6 +516,11 @@ class AdtranOltHandler(AdtranDeviceHandler):
 
     def get_channel_id(self, pon_id, onu_id):
         from pon_port import PonPort
+        if ATT_NETWORK:
+            if FIXED_ONU:
+                return onu_id + 2
+            return 1 + onu_id + (pon_id * 120)
+
         if FIXED_ONU:
             return self._onu_offset(onu_id)
         return self._onu_offset(onu_id) + (pon_id * PonPort.MAX_ONUS_SUPPORTED)
@@ -528,6 +533,11 @@ class AdtranOltHandler(AdtranDeviceHandler):
 
     def _channel_id_to_pon_id(self, channel_id, onu_id):
         from pon_port import PonPort
+        if ATT_NETWORK:
+            if FIXED_ONU:
+                return channel_id - onu_id - 2
+            return (channel_id - onu_id - 1) / 120
+
         if FIXED_ONU:
             return channel_id - self._onu_offset(onu_id)
         return (channel_id - self._onu_offset(onu_id)) / PonPort.MAX_ONUS_SUPPORTED
@@ -627,27 +637,13 @@ class AdtranOltHandler(AdtranDeviceHandler):
             return self._v_enets
         return None
 
-    def create_interface(self, data):
-        """
-        Create XPON interfaces
-        :param data: (xpon config info)
-        """
+    def _data_to_dict(self, data):
         name = data.name
         interface = data.interface
         inst_data = data.data
 
-        items = self._get_xpon_collection(data)
-
-        if items is not None and name not in items:
-            self._cached_xpon_pon_info = {}     # Clear cached data
-
         if isinstance(data, ChannelgroupConfig):
-            self.log.debug('create_interface-channel-group', interface=interface, data=inst_data)
-
-            if name in items:
-                raise KeyError("Channel group '{}' already exists".format(name))
-
-            items[name] = {
+            return 'channel-group', {
                 'name': name,
                 'enabled': interface.enabled,
                 'system-id': inst_data.system_id,
@@ -655,23 +651,18 @@ class AdtranOltHandler(AdtranDeviceHandler):
             }
 
         elif isinstance(data, ChannelpartitionConfig):
-            self.log.debug('create_interface-channel-partition', interface=interface, data=inst_data)
-
-            if name in items:
-                raise KeyError("Channel partition '{}' already exists".format(name))
-
             def _auth_method_enum_to_string(value):
                 from voltha.protos.bbf_fiber_types_pb2 import SERIAL_NUMBER, LOID, \
                     REGISTRATION_ID, OMCI, DOT1X
                 return {
                     SERIAL_NUMBER: 'serial-number',
                     LOID: 'loid',
-                    REGISTRATION_ID: 'registation-id',
+                    REGISTRATION_ID: 'registration-id',
                     OMCI: 'omci',
-                    DOT1X: 'don1x'
+                    DOT1X: 'dot1x'
                 }.get(value, 'unknown')
 
-            items[name] = {
+            return 'channel-partition', {
                 'name': name,
                 'enabled': interface.enabled,
                 'authentication-method': _auth_method_enum_to_string(inst_data.authentication_method),
@@ -682,12 +673,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
             }
 
         elif isinstance(data, ChannelpairConfig):
-            self.log.debug('create_interface-channel-pair', interface=interface, data=inst_data)
-
-            if name in items:
-                raise KeyError("Channel pair '{}' already exists".format(name))
-
-            items[name] = {
+            return 'channel-pair', {
                 'name': name,
                 'enabled': interface.enabled,
                 'channel-group': inst_data.channelgroup_ref,
@@ -696,12 +682,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
             }
 
         elif isinstance(data, ChannelterminationConfig):
-            self.log.debug('create_interface-channel-termination', interface=interface, data=inst_data)
-
-            if name in items:
-                raise KeyError("Channel termination '{}' already exists".format(name))
-
-            items[name] = {
+            return 'channel-termination', {
                 'name': name,
                 'enabled': interface.enabled,
                 'xgs-ponid': inst_data.xgs_ponid,
@@ -709,15 +690,9 @@ class AdtranOltHandler(AdtranDeviceHandler):
                 'channel-pair': inst_data.channelpair_ref,
                 'ber-calc-period': inst_data.ber_calc_period
             }
-            self.on_channel_termination_config(name, 'create')
 
         elif isinstance(data, OntaniConfig):
-            self.log.debug('create_interface-ont-ani', interface=interface, data=inst_data)
-
-            if name in items:
-                raise KeyError("ONT ANI '{}' already exists".format(name))
-
-            items[name] = {
+            return 'ont-ani', {
                 'name': name,
                 'enabled': interface.enabled,
                 'upstream-fec': inst_data.upstream_fec_indicator,
@@ -725,12 +700,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
             }
 
         elif isinstance(data, VOntaniConfig):
-            self.log.debug('create_interface-v-ont-ani', interface=interface, data=inst_data)
-
-            if name in items:
-                raise KeyError("vONT ANI '{}' already exists".format(name))
-
-            items[name] = {
+            return 'vOnt-ani', {
                 'name': name,
                 'enabled': interface.enabled,
                 'onu-id': inst_data.onu_id,
@@ -741,12 +711,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
             }
 
         elif isinstance(data, VEnetConfig):
-            self.log.debug('create_interface-v-enet', interface=interface, data=inst_data)
-
-            if name in items:
-                raise KeyError("vENET '{}' already exists".format(name))
-
-            items[name] = {
+            return 'vEnet', {
                 'name': name,
                 'enabled': interface.enabled,
                 'v-ont-ani': inst_data.v_ontani_ref
@@ -754,6 +719,33 @@ class AdtranOltHandler(AdtranDeviceHandler):
 
         else:
             raise NotImplementedError('Unknown data type')
+
+    def create_interface(self, data):
+        """
+        Create XPON interfaces
+        :param data: (xpon config info)
+        """
+        self.log.debug('create-interface', interface=data.interface, inst_data=data.data)
+
+        name = data.name
+        interface = data.interface
+        inst_data = data.data
+
+        items = self._get_xpon_collection(data)
+
+        if items is not None and name not in items:
+            self._cached_xpon_pon_info = {}     # Clear cached data
+
+        item_type, new_item = self._data_to_dict(data)
+        self.log.debug('new-item', item_type=item_type, item=new_item)
+
+        if name in items:
+            raise KeyError("{} '{}' already exists".format(item_type, name))
+
+        items[name] = new_item
+
+        if isinstance(data, ChannelterminationConfig):
+            self._on_channel_termination_create(name)
 
     def update_interface(self, data):
         """
@@ -769,10 +761,46 @@ class AdtranOltHandler(AdtranDeviceHandler):
         if items is None:
             raise ValueError('Unknown data type: {}'.format(type(data)))
 
-        if name not in items:
+        existing_item = items.get(name)
+        if existing_item is None:
             raise KeyError("'{}' not found. Type: {}".format(name, type(data)))
 
+        item_type, update_item = self._data_to_dict(data)
+        self.log.debug('update-item', item_type=item_type, item=update_item)
+
+        # TODO: Calculate the difference
+        diffs = {}
+
+        if len(diffs) == 0:
+            self.log.debug('update-item-no-diffs')
+
         self._cached_xpon_pon_info = {}     # Clear cached data
+
+        # Act on changed items
+        if isinstance(data, ChannelgroupConfig):
+            pass
+
+        elif isinstance(data, ChannelpartitionConfig):
+            pass
+
+        elif isinstance(data, ChannelpairConfig):
+            pass
+
+        elif isinstance(data, ChannelterminationConfig):
+            pass
+
+        elif isinstance(data, OntaniConfig):
+            pass
+
+        elif isinstance(data, VOntaniConfig):
+            pass
+
+        elif isinstance(data, VEnetConfig):
+            pass
+
+        else:
+            raise NotImplementedError('Unknown data type')
+
         raise NotImplementedError('TODO: not yet supported')
 
     def delete_interface(self, data):
@@ -781,23 +809,42 @@ class AdtranOltHandler(AdtranDeviceHandler):
         :param data: (xpon config info)
         """
         name = data.name
-        interface = data.interface
-        inst_data = data.data
-        self._cached_xpon_pon_info = {}     # Clear cached data
 
         items = self._get_xpon_collection(data)
         item = items.get(name)
+        self.log.debug('delete-interface', name=name, data=data)
 
-        if item in items:
+        if item is not None:
+            self._cached_xpon_pon_info = {}     # Clear cached data
             del items[name]
-            pass    # TODO Do something....
+
+            if isinstance(data, ChannelgroupConfig):
+                pass
+
+            elif isinstance(data, ChannelpartitionConfig):
+                pass
+
+            elif isinstance(data, ChannelpairConfig):
+                pass
+
+            elif isinstance(data, ChannelterminationConfig):
+                self._on_channel_termination_delete(name)
+
+            elif isinstance(data, OntaniConfig):
+                pass
+
+            elif isinstance(data, VOntaniConfig):
+                pass
+
+            elif isinstance(data, VEnetConfig):
+                pass
+
+            else:
+                raise NotImplementedError('Unknown data type')
+
             raise NotImplementedError('TODO: not yet supported')
 
-    def on_channel_termination_config(self, name, operation, pon_type='xgs-ponid'):
-        supported_operations = ['create']
-
-        assert operation in supported_operations, \
-            'Unsupported channel-term operation: {}'.format(operation)
+    def _on_channel_termination_create(self, name, pon_type='xgs-ponid'):
         assert name in self._channel_terminations, \
             '{} is not a channel-termination'.format(name)
         ct = self._channel_terminations[name]
@@ -833,15 +880,27 @@ class AdtranOltHandler(AdtranDeviceHandler):
         # TODO support FEC, and MCAST AES settings
         # TODO Support setting of line rate
 
-        if operation == 'create':
-            pon_port.xpon_name = name
-            pon_port.discovery_tick = polling_period
-            pon_port.authentication_method = authentication_method
-            pon_port.deployment_range = deployment_range * 1000     # pon-agent uses meters
-            pon_port.downstream_fec_enable = downstream_fec
-            # TODO: pon_port.mcast_aes = mcast_aes
+        pon_port.xpon_name = name
+        pon_port.discovery_tick = polling_period
+        pon_port.authentication_method = authentication_method
+        pon_port.deployment_range = deployment_range * 1000     # pon-agent uses meters
+        pon_port.downstream_fec_enable = downstream_fec
+        # TODO: pon_port.mcast_aes = mcast_aes
 
-            pon_port.admin_state = AdminState.ENABLED if enabled else AdminState.DISABLED
+        pon_port.admin_state = AdminState.ENABLED if enabled else AdminState.DISABLED
+
+    def _on_channel_termination_delete(self, name, pon_type='xgs-ponid'):
+        assert name in self._channel_terminations, \
+            '{} is not a channel-termination'.format(name)
+        ct = self._channel_terminations[name]
+
+        # Look up the southbound PON port
+        pon_id = ct[pon_type]
+        pon_port = self.southbound_ports.get(pon_id, None)
+        if pon_port is None:
+            raise ValueError('Unknown PON port. PON-ID: {}'.format(pon_id))
+
+        pon_port.enabled = False
 
     def create_tcont(self, tcont_data, traffic_descriptor_data):
         """

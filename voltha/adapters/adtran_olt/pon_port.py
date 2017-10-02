@@ -53,7 +53,7 @@ class PonPort(object):
     _SUPPORTED_ACTIVATION_METHODS = ['autodiscovery', 'autoactivate']
     _SUPPORTED_AUTHENTICATION_METHODS = ['serial-number']
 
-    def __init__(self, pon_index, port_no, parent, label=None):
+    def __init__(self, pon_index, port_no, parent):
         # TODO: Weed out those properties supported by common 'Port' object (future)
         self.log = structlog.get_logger(device_id=parent.device_id, pon_id=pon_index)
 
@@ -61,9 +61,9 @@ class PonPort(object):
         self._pon_id = pon_index
         self._port_no = port_no
         self._name = 'xpon 0/{}'.format(pon_index+1)
-        self._label = label or 'PON-{}'.format(pon_index)
+        self._label = 'pon-{}'.format(pon_index)
         self._port = None
-        self._no_onu_discover_tick = 5.0  # TODO: Decrease to 1 or 2 later
+        self._no_onu_discover_tick = 5.0
         self._discovery_tick = 20.0
         self._discovered_onus = []  # List of serial numbers
         self._sync_tick = 20.0
@@ -140,6 +140,7 @@ class PonPort(object):
 
     @xpon_name.setter
     def xpon_name(self, value):
+        assert '/' not in value, "xPON names cannot have embedded forward slashes '/'"
         self._xpon_name = value
 
     @property
@@ -728,6 +729,9 @@ class PonPort(object):
             self._active_los_alarms.add(onu_id)
             los_alarm(True, onu_id)
 
+        # TODO: A method to update the AdapterAgent's child device state (operStatus)
+        #       would be useful here
+
     def _process_status_onu_discovered_list(self, discovered_onus):
         """
         Look for new ONUs
@@ -879,18 +883,24 @@ class PonPort(object):
         :param onu: 
         :return: 
         """
-        olt = self.olt
-        adapter = self.adapter_agent
-        channel_id = onu.onu_vid
+        # Only call older 'child_device_detected' if not using xPON to configure the system
 
-        proxy = Device.ProxyAddress(device_id=olt.device_id, channel_id=channel_id)
+        if self.activation_method == "autoactivate":
+            olt = self.olt
+            adapter = self.adapter_agent
+            channel_id = onu.onu_vid
 
-        adapter.child_device_detected(parent_device_id=olt.device_id,
-                                      parent_port_no=self._port_no,
-                                      child_device_type=onu.vendor_id,
-                                      proxy_address=proxy,
-                                      admin_state=AdminState.ENABLED,
-                                      vlan=channel_id)
+            proxy = Device.ProxyAddress(device_id=olt.device_id,
+                                        channel_id=channel_id,
+                                        onu_id=onu.onu_id,
+                                        onu_session_id=onu.onu_id)
+
+            adapter.child_device_detected(parent_device_id=olt.device_id,
+                                          parent_port_no=self._port_no,
+                                          child_device_type=onu.vendor_id,
+                                          proxy_address=proxy,
+                                          admin_state=AdminState.ENABLED,
+                                          vlan=channel_id)
 
     def get_next_onu_id(self):
         used_ids = [onu.onu_id for onu in self._onus.itervalues()]

@@ -144,7 +144,7 @@ class AdtranDeviceHandler(object):
         # registered (via xPON API/CLI) before they are activated.
 
         self._autoactivate = False
-        self.max_nni_ports = 1  # TODO: This is a VOLTHA imposed limit in 'low_decomposer.py
+        self.max_nni_ports = 1  # TODO: This is a VOLTHA imposed limit in 'flow_decomposer.py
                                 # and logical_device_agent.py
         # OMCI ZMQ Channel
         self.zmq_port = DEFAULT_ZEROMQ_OMCI_TCP_PORT
@@ -152,7 +152,7 @@ class AdtranDeviceHandler(object):
         # Heartbeat support
         self.heartbeat_count = 0
         self.heartbeat_miss = 0
-        self.heartbeat_interval = 5  # TODO: Decrease before release or any scale testing
+        self.heartbeat_interval = 2  # TODO: Decrease before release or any scale testing
         self.heartbeat_failed_limit = 3
         self.heartbeat_timeout = 5
         self.heartbeat = None
