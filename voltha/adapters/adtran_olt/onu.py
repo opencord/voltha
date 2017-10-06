@@ -73,10 +73,12 @@ class Onu(object):
         assert len(self._uni_ports) == 1, 'Only one UNI port supported at this time'
         self._channel_id = onu_info['channel-id']
         self._enabled = onu_info['enabled']
+        self._vont_ani = onu_info.get('vont-ani')
         self._rssi = -9999
         self._equalization_delay = 0
         self._fiber_length = 0
         self._valid = True          # Set false during delete/cleanup
+        self._proxy_address = None
 
         self._include_multicast = True        # TODO: May need to add multicast on a per-ONU basis
 
@@ -128,6 +130,21 @@ class Onu(object):
         return self._name
 
     @property
+    def enabled(self):
+        return self._enabled
+
+    @enabled.setter
+    def enabled(self, value):
+        if self._enabled != value:
+            self._enabled = value
+            self.set_config('enable', self._enabled)
+
+            if self._enabled:
+                self.start()
+            else:
+                self.stop()
+
+    @property
     def onu_vid(self):
         return self._onu_vid
 
@@ -135,6 +152,54 @@ class Onu(object):
     def logical_port(self):
         """Return the logical PORT number of this ONU's UNI"""
         return self._uni_ports[0]
+
+    @property
+    def proxy_address(self):
+        if self._proxy_address is None:
+            from voltha.protos.device_pb2 import Device
+
+            device_id = self.olt.device_id
+
+            if self.olt.autoactivate:
+                self._proxy_address = Device.ProxyAddress(device_id=device_id,
+                                                          channel_id=self.onu_vid,
+                                                          channel_group_id=self.pon.pon_id,
+                                                          onu_id=self.onu_id)
+            else:
+                try:
+                    v_ont_ani = self._vont_ani
+                    voltha_core = self.olt.adapter_agent.core
+                    xpon_agent = voltha_core.xpon_agent
+                    channel_group_id = xpon_agent.get_channel_group_for_vont_ani(v_ont_ani)
+                    parent_chnl_pair_id = xpon_agent.get_port_num(device_id,
+                                                                  v_ont_ani.data.preferred_chanpair)
+                    self._proxy_address = Device.ProxyAddress(
+                        device_id=device_id,
+                        channel_group_id=channel_group_id,
+                        channel_id=parent_chnl_pair_id,
+                        channel_termination=v_ont_ani.data.preferred_chanpair,
+                        onu_id=self.onu_id,
+                        onu_session_id=self.onu_id)
+                except Exception:
+                    pass
+
+        return self._proxy_address
+
+    def _get_v_ont_ani(self, olt):
+        onu = None
+        try:
+            vont_ani = olt.v_ont_anis.get(self.vont_ani)
+            ch_pair = olt.channel_pairs.get(vont_ani['preferred-channel-pair'])
+            ch_term = next((term for term in olt.channel_terminations.itervalues()
+                            if term['channel-pair'] == ch_pair['name']), None)
+
+            pon = olt.pon(ch_term['xgs-ponid'])
+            onu = pon.onu(vont_ani['onu-id'])
+
+        except Exception:
+            pass
+
+        return onu
 
     @property
     def channel_id(self):
@@ -198,7 +263,7 @@ class Onu(object):
         :param reflow: (boolean) Flag, if True, indicating if this is a reflow ONU
                                  information after an unmanaged OLT hardware reboot
         """
-        self.log.debug('create')
+        self.log.debug('create', tconts=tconts, gem_ports=gem_ports, reflow=reflow)
         self._cancel_deferred()
 
         data = json.dumps({'onu-id': self._onu_id,
@@ -209,31 +274,34 @@ class Onu(object):
                                                 self._serial_number_base64, self._enabled)
 
         try:
-            results = yield self.olt.rest_client.request('POST', uri, data=data, name=name)
+            yield self.olt.rest_client.request('POST', uri, data=data, name=name)
 
         except Exception as e:  # TODO: Add breakpoint here during unexpected reboot test
             self.log.exception('onu-create', e=e)
             raise
 
         # Now set up all tconts & gem-ports
+        first_sync = self._sync_tick
 
         for _, tcont in tconts.items():
             try:
-                results = yield self.add_tcont(tcont, reflow=reflow)
+                yield self.add_tcont(tcont, reflow=reflow)
 
             except Exception as e:
                 self.log.exception('add-tcont', tcont=tcont, e=e)
+                first_sync = 2    # Expedite first hw-sync
 
         for _, gem_port in gem_ports.items():
             try:
-                results = yield self.add_gem_port(gem_port, reflow=reflow)
+                yield self.add_gem_port(gem_port, reflow=reflow)
 
             except Exception as e:
                 self.log.exception('add-gem-port', gem_port=gem_port, reflow=reflow, e=e)
+                first_sync = 2    # Expedite first hw-sync
 
-        self._sync_deferred = reactor.callLater(self._sync_tick, self._sync_hardware)
+        self._sync_deferred = reactor.callLater(first_sync, self._sync_hardware)
 
-        returnValue(results)
+        returnValue('created')
 
     @inlineCallbacks
     def delete(self):
@@ -274,6 +342,14 @@ class Onu(object):
 
         returnValue(succeed('deleted'))
 
+    def start(self):
+        self._cancel_deferred()
+        self._sync_deferred = reactor.callLater(0, self._sync_hardware)
+
+    def stop(self):
+        self._cancel_deferred()
+        self._sync_deferred = reactor.callLater(0, self._sync_hardware)
+
     def restart(self):
         if not self._valid:
             return succeed('Deleting')
@@ -283,7 +359,7 @@ class Onu(object):
 
     def _sync_hardware(self):
         from codec.olt_config import OltConfig
-
+        self.log.debug('sync-hardware')
         def read_config(results):
             self.log.debug('read-config', results=results)
 
@@ -293,10 +369,10 @@ class Onu(object):
             dl = []
 
             if self._enabled != config.enable:
-                dl.append(self._set_config('enable', self._enabled))
+                dl.append(self.set_config('enable', self._enabled))
 
             if self.serial_number != config.serial_number:
-                dl.append(self._set_config('serial-number', self.serial_number))
+                dl.append(self.set_config('serial-number', self.serial_number))
 
             # Sync TCONTs if everything else in sync
 
@@ -426,7 +502,7 @@ class Onu(object):
 
         def reschedule(_):
             import random
-            delay = self._sync_tick
+            delay = self._sync_tick if self._enabled else 5 * self._sync_tick
 
             # Speed up sequential resync a limited number of times if out of sync
             # With 60 second initial an typical worst case resync of 4 times, this
@@ -443,8 +519,10 @@ class Onu(object):
             self._sync_deferred = reactor.callLater(delay, self._sync_hardware)
             self._expedite_sync = False
 
-        pon_enabled = self.pon.enabled
-        if not pon_enabled:
+        # If PON is not enabled, skip hw-sync. If ONU not enabled, do it but less
+        # frequently
+
+        if not self.pon.enabled:
             return reschedule('not-enabled')
 
         self._sync_deferred = self._get_config()
@@ -486,16 +564,37 @@ class Onu(object):
         if not reflow and tcont.alloc_id in self._tconts:
             returnValue(succeed('already created'))
 
+        self._tconts[tcont.alloc_id] = tcont
+
         try:
             results = yield tcont.add_to_hardware(self.olt.rest_client,
                                                   self._pon_id, self._onu_id)
-            self._tconts[tcont.alloc_id] = tcont
 
         except Exception as e:
             self.log.exception('tcont', tcont=tcont, reflow=reflow, e=e)
-            raise
+            # May occur with xPON provisioning, use hw-resync to recover
+            results = 'resync needed'
 
         returnValue(results)
+
+    @inlineCallbacks
+    def update_tcont(self, alloc_id, new_values):
+        # TODO: If alloc-id in use by a gemport, should we deny request?
+        tcont = self._tconts.get(alloc_id)
+
+        if tcont is None:
+            returnValue(succeed('not-found'))
+
+        # del self._tconts[alloc_id]
+        #
+        # try:
+        #     results = yield tcont.remove_from_hardware()
+        #
+        # except Exception as e:
+        #     self.log.exception('delete', e=e)
+        #     raise
+
+        returnValue(succeed('TODO: Not implemented yet'))
 
     @inlineCallbacks
     def remove_tcont(self, alloc_id):
@@ -539,24 +638,27 @@ class Onu(object):
             returnValue(succeed('Deleting'))
 
         if not reflow and gem_port.gem_id in self._gem_ports:
-            returnValue(succeed('already created'))
+            returnValue(succeed)
+
+        self._gem_ports[gem_port.gem_id] = gem_port
 
         try:
             results = yield gem_port.add_to_hardware(self.olt.rest_client,
                                                      self._pon_id,
                                                      self.onu_id)
-            self._gem_ports[gem_port.gem_id] = gem_port
 
             # May need to update flow tables/evc-maps
             if gem_port.alloc_id in self._tconts:
                 # GEM-IDs are a sorted list (ascending). First gemport handles downstream traffic
-                from flow.flow_entry import FlowEntry
-                evc_maps = FlowEntry.find_evc_map_flows(self._device_id, self._pon_id, self._onu_id)
+                # from flow.flow_entry import FlowEntry
+                # evc_maps = FlowEntry.find_evc_map_flows(self._device_id, self._pon_id, self._onu_id)
                 pass   # TODO: Start here Tuesday
 
         except Exception as e:
             self.log.exception('gem-port', gem_port=gem_port, reflow=reflow, e=e)
-            raise
+            # This can happen with xPON if the ONU has been provisioned, but the PON Discovery
+            # has not occurred for the ONU. Rely on hw sync to recover
+            results = 'resync needed'
 
         returnValue(results)
 

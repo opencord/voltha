@@ -21,189 +21,40 @@ Adtran ONU adapter.
 from uuid import uuid4
 from twisted.internet import reactor
 from twisted.internet.defer import DeferredQueue, inlineCallbacks, returnValue
-from zope.interface import implementer
 
-from voltha.adapters.interface import IAdapterInterface
+from voltha.adapters.iadapter import OnuAdapter
 from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.protos import third_party
-from voltha.protos.adapter_pb2 import Adapter
-from voltha.protos.adapter_pb2 import AdapterConfig
-from voltha.protos.common_pb2 import LogLevel, OperStatus, ConnectStatus, \
+from voltha.protos.common_pb2 import OperStatus, ConnectStatus, \
     AdminState
-from voltha.protos.device_pb2 import DeviceType, DeviceTypes, Port, Image
+from voltha.protos.device_pb2 import DeviceTypes, Port, Image
 from voltha.protos.health_pb2 import HealthStatus
 from voltha.protos.logical_device_pb2 import LogicalPort
 from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, OFPPF_10GB_FD
-from voltha.protos.openflow_13_pb2 import OFPXMC_OPENFLOW_BASIC, ofp_port
+from voltha.protos.openflow_13_pb2 import ofp_port
 from common.frameio.frameio import hexify
 from voltha.extensions.omci.omci import *
-from voltha.protos.bbf_fiber_base_pb2 import \
-    ChannelgroupConfig, ChannelpartitionConfig, ChannelpairConfig, ChannelterminationConfig, \
-    OntaniConfig, VOntaniConfig, VEnetConfig
+from voltha.protos.bbf_fiber_base_pb2 import OntaniConfig, VOntaniConfig, VEnetConfig
+from voltha.adapters.adtran_olt.tcont import TCont, TrafficDescriptor, BestEffort
+from voltha.adapters.adtran_olt.gem_port import GemPort
 
 _ = third_party
-log = structlog.get_logger()
+
+_MAX_INCOMING_OMCI_MESSAGES = 10
+_OMCI_TIMEOUT = 10
+_STARTUP_RETRY_WAIT = 5
 
 
-@implementer(IAdapterInterface)
-class AdtranOnuAdapter(object):
-    name = 'adtran_onu'
-    version = '0.1'
-
-    supported_device_types = [
-        DeviceType(
-            id=name,
-            vendor_id='ADTN',
-            adapter=name,
-            accepts_bulk_flow_update=True
-        )
-    ]
-
+class AdtranOnuAdapter(OnuAdapter):
     def __init__(self, adapter_agent, config):
-        self.adapter_agent = adapter_agent
-        self.config = config
-        self.descriptor = Adapter(
-            id=self.name,
-            vendor='Adtran, Inc.',
-            version=self.version,
-            config=AdapterConfig(log_level=LogLevel.INFO)
-        )
-        self.devices_handlers = dict()  # device_id -> AdtranOnuHandler()
-
-    def start(self):
-        log.debug('starting')
-        log.info('started')
-
-    def stop(self):
-        log.debug('stopping')
-        log.info('stopped')
-
-    def adapter_descriptor(self):
-        return self.descriptor
-
-    def device_types(self):
-        return DeviceTypes(items=self.supported_device_types)
-
-    def health(self):
-        return HealthStatus(state=HealthStatus.HealthState.HEALTHY)
-
-    def change_master_state(self, master):
-        raise NotImplementedError()
-
-    def adopt_device(self, device):
-        log.info('adopt_device', device_id=device.id)
-        self.devices_handlers[device.proxy_address.channel_id] = AdtranOnuHandler(self, device.id)
-        reactor.callLater(0, self.devices_handlers[device.proxy_address.channel_id].activate, device)
-        return device
-
-    def reconcile_device(self, device):
-        raise NotImplementedError()
-
-    def abandon_device(self, device):
-        raise NotImplementedError()
-
-    def disable_device(self, device):
-        raise NotImplementedError()
-
-    def reenable_device(self, device):
-        raise NotImplementedError()
-
-    def reboot_device(self, device):
-        raise NotImplementedError()
-
-    def download_image(self, device, request):
-        raise NotImplementedError()
-
-    def get_image_download_status(self, device, request):
-        raise NotImplementedError()
-
-    def cancel_image_download(self, device, request):
-        raise NotImplementedError()
-
-    def activate_image_update(self, device, request):
-        raise NotImplementedError()
-
-    def revert_image_update(self, device, request):
-        raise NotImplementedError()
-
-    def self_test_device(self, device):
-        raise NotImplementedError()
-
-    def delete_device(self, device):
-        raise NotImplementedError()
-
-    def get_device_details(self, device):
-        raise NotImplementedError()
-
-    def update_pm_config(self, device, pm_configs):
-        raise NotImplementedError()
-
-    def update_flows_bulk(self, device, flows, groups):
-        log.info('bulk-flow-update', device_id=device.id,
-                 flows=flows, groups=groups)
-        assert len(groups.items) == 0
-        handler = self.devices_handlers[device.proxy_address.channel_id]
-        return handler.update_flow_table(device, flows.items)
-
-    def update_flows_incrementally(self, device, flow_changes, group_changes):
-        raise NotImplementedError()
-
-    def send_proxied_message(self, proxy_address, msg):
-        log.info('send-proxied-message', proxy_address=proxy_address, msg=msg)
-
-    def receive_proxied_message(self, proxy_address, msg):
-        log.info('receive-proxied-message', proxy_address=proxy_address,
-                 device_id=proxy_address.device_id, msg=hexify(msg))
-        handler = self.devices_handlers[proxy_address.channel_id]
-        handler.receive_message(msg)
-
-    def receive_packet_out(self, logical_device_id, egress_port_no, msg):
-        log.info('packet-out', logical_device_id=logical_device_id,
-                 egress_port_no=egress_port_no, msg_len=len(msg))
-        raise NotImplementedError()
-
-    def receive_inter_adapter_message(self, msg):
-        log.info('rx_inter_adapter_msg')
-        raise NotImplementedError()
-
-    def suppress_alarm(self, filter):
-        log.info('suppress_alarm', filter=filter)
-        raise NotImplementedError()
-
-    def unsuppress_alarm(self, filter):
-        log.info('unsuppress_alarm', filter=filter)
-        raise NotImplementedError()
-
-    def receive_onu_detect_state(self, device_id, state):
-        """
-        Receive onu detect state in ONU adapter
-        :param proxy_address: ONU device address
-        :param state: ONU detect state (bool)
-        :return: None
-        """
-        raise NotImplementedError()
-
-    # PON Mgnt APIs #
-    def create_interface(self, device, data):
-        """
-        API to create various interfaces (only some PON interfaces as of now)
-        in the devices
-        """
-        raise NotImplementedError()
-
-    def update_interface(self, device, data):
-        """
-        API to update various interfaces (only some PON interfaces as of now)
-        in the devices
-        """
-        raise NotImplementedError()
-
-    def remove_interface(self, device, data):
-        """
-        API to delete various interfaces (only some PON interfaces as of now)
-        in the devices
-        """
-        raise NotImplementedError()
+        super(AdtranOnuAdapter, self).__init__(adapter_agent=adapter_agent,
+                                               config=config,
+                                               device_handler_class=AdtranOnuHandler,
+                                               name='adtran_onu',
+                                               vendor='Adtran, Inc.',
+                                               version='0.2',
+                                               device_type='adtran_onu',
+                                               vendor_id='ADTN')
 
     def create_tcont(self, device, tcont_data, traffic_descriptor_data):
         """
@@ -213,9 +64,12 @@ class AdtranOnuAdapter(object):
         :traffic_descriptor_data: traffic descriptor data object
         :return: None
         """
-        log.info('create-tcont', tcont_data=tcont_data,
-                 traffic_descriptor_data=traffic_descriptor_data)
-        raise NotImplementedError()
+        self.log.info('create-tcont', tcont_data=tcont_data,
+                      traffic_descriptor_data=traffic_descriptor_data)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.create_tcont(tcont_data, traffic_descriptor_data)
 
     def update_tcont(self, device, tcont_data, traffic_descriptor_data):
         """
@@ -225,9 +79,12 @@ class AdtranOnuAdapter(object):
         :traffic_descriptor_data: traffic descriptor data object
         :return: None
         """
-        log.info('update-tcont', tcont_data=tcont_data,
-                 traffic_descriptor_data=traffic_descriptor_data)
-        raise NotImplementedError()
+        self.log.info('update-tcont', tcont_data=tcont_data,
+                      traffic_descriptor_data=traffic_descriptor_data)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.update_tcont(tcont_data, traffic_descriptor_data)
 
     def remove_tcont(self, device, tcont_data, traffic_descriptor_data):
         """
@@ -237,9 +94,12 @@ class AdtranOnuAdapter(object):
         :traffic_descriptor_data: traffic descriptor data object
         :return: None
         """
-        log.info('remove-tcont', tcont_data=tcont_data,
-                 traffic_descriptor_data=traffic_descriptor_data)
-        raise NotImplementedError()
+        self.log.info('remove-tcont', tcont_data=tcont_data,
+                      traffic_descriptor_data=traffic_descriptor_data)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.remove_tcont(tcont_data, traffic_descriptor_data)
 
     def create_gemport(self, device, data):
         """
@@ -248,8 +108,11 @@ class AdtranOnuAdapter(object):
         :data: gemport data object
         :return: None
         """
-        log.info('create-gemport', data=data)
-        raise NotImplementedError()
+        self.log.info('create-gemport', data=data)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.create_gemport(data)
 
     def update_gemport(self, device, data):
         """
@@ -258,8 +121,11 @@ class AdtranOnuAdapter(object):
         :data: gemport data object
         :return: None
         """
-        log.info('update-gemport', data=data)
-        raise NotImplementedError()
+        self.log.info('update-gemport', data=data)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.update_gemport(data)
 
     def remove_gemport(self, device, data):
         """
@@ -268,26 +134,92 @@ class AdtranOnuAdapter(object):
         :data: gemport data object
         :return: None
         """
-        log.info('remove-gemport', data=data)
-        raise NotImplementedError()
+        self.log.info('remove-gemport', data=data)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.remove_gemport(data)
 
     def create_multicast_gemport(self, device, data):
-        raise NotImplementedError()
+        """
+        API to create multicast gemport object in the devices
+        :param device: device id
+        :data: multicast gemport data object
+        :return: None
+        """
+        self.log.info('create-mcast-gemport', data=data)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.create_multicast_gemport(data)
 
     def update_multicast_gemport(self, device, data):
-        raise NotImplementedError()
+        """
+        API to update  multicast gemport object in the devices
+        :param device: device id
+        :data: multicast gemport data object
+        :return: None
+        """
+        self.log.info('update-mcast-gemport', data=data)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.update_multicast_gemport(data)
 
     def remove_multicast_gemport(self, device, data):
-        raise NotImplementedError()
+        """
+        API to delete multicast gemport object in the devices
+        :param device: device id
+        :data: multicast gemport data object
+        :return: None
+        """
+        self.log.info('remove-mcast-gemport', data=data)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.remove_multicast_gemport(data)
 
     def create_multicast_distribution_set(self, device, data):
-        raise NotImplementedError()
+        """
+        API to create multicast distribution rule to specify
+        the multicast VLANs that ride on the multicast gemport
+        :param device: device id
+        :data: multicast distribution data object
+        :return: None
+        """
+        self.log.info('create-mcast-distribution-set', data=data)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.create_multicast_distribution_set(data)
 
     def update_multicast_distribution_set(self, device, data):
-        raise NotImplementedError()
+        """
+        API to update multicast distribution rule to specify
+        the multicast VLANs that ride on the multicast gemport
+        :param device: device id
+        :data: multicast distribution data object
+        :return: None
+        """
+        self.log.info('update-mcast-distribution-set', data=data)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.create_multicast_distribution_set(data)
 
     def remove_multicast_distribution_set(self, device, data):
-        raise NotImplementedError()
+        """
+        API to delete multicast distribution rule to specify
+        the multicast VLANs that ride on the multicast gemport
+        :param device: device id
+        :data: multicast distribution data object
+        :return: None
+        """
+        self.log.info('remove-mcast-distribution-set', data=data)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.create_multicast_distribution_set(data)
 
 
 class AdtranOnuHandler(object):
@@ -295,21 +227,40 @@ class AdtranOnuHandler(object):
         self.adapter = adapter
         self.adapter_agent = adapter.adapter_agent
         self.device_id = device_id
+        self.logical_device_id = None
         self.log = structlog.get_logger(device_id=device_id)
-        self.incoming_messages = DeferredQueue()
+        self.incoming_messages = DeferredQueue(size=_MAX_INCOMING_OMCI_MESSAGES)
         self.proxy_address = None
         self.tx_id = 0
         self.last_response = None
+        self.ofp_port_no = None
+        self.control_vlan = None
+        # reference of uni_port is required when re-enabling the device if
+        # it was disabled previously
+        self.uni_port = None
+        self.pon_port = None
+        self._v_ont_anis = {}             # Name -> dict
+        self._ont_anis = {}               # Name -> dict
+        self._v_enets = {}                # Name -> dict
+        self._tconts = {}                 # Name -> dict
+        self._traffic_descriptors = {}    # Name -> dict
+        self._gem_ports = {}              # Name -> dict
+        self._deferred = None
 
     def receive_message(self, msg):
-        self.incoming_messages.put(msg)
+        try:
+            self.incoming_messages.put(msg)
+
+        except Exception as e:
+            self.log.exception('rx-msg', e=e)
 
     def activate(self, device):
         self.log.info('activating')
 
         # first we verify that we got parent reference and proxy info
-        assert device.parent_id
-        assert device.proxy_address.device_id
+        assert device.parent_id, 'Invalid Parent ID'
+        assert device.proxy_address.device_id, 'Invalid Device ID'
+        assert device.proxy_address.channel_id, 'invalid Channel ID'
 
         # register for proxied messages right away
         self.proxy_address = device.proxy_address
@@ -319,73 +270,125 @@ class AdtranOnuHandler(object):
         device.root = True
         device.vendor = 'Adtran Inc.'
         device.model = '10G GPON ONU'           # TODO: get actual number
+        device.model = '10G GPON ONU'           # TODO: get actual number
         device.hardware_version = 'NOT AVAILABLE'
         device.firmware_version = 'NOT AVAILABLE'
+
         # TODO: Support more versions as needed
         images = Image(version='NOT AVAILABLE')
         device.images.image.extend([images])
 
-        device.serial_number = uuid4().hex
-        device.connect_status = ConnectStatus.REACHABLE
+        device.connect_status = ConnectStatus.UNKNOWN
         self.adapter_agent.update_device(device)
 
         # register physical ports
-        nni_port = Port(port_no=1,
-                        label='PON port',
-                        type=Port.PON_ONU,
-                        admin_state=AdminState.ENABLED,
-                        oper_status=OperStatus.ACTIVE,
-                        peers=[Port.PeerPort(device_id=device.parent_id,
-                                             port_no=device.parent_port_no)])
+        self.pon_port = Port(port_no=1,
+                             label='PON port',
+                             type=Port.PON_ONU,
+                             admin_state=AdminState.ENABLED,
+                             oper_status=OperStatus.ACTIVE,
+                             peers=[Port.PeerPort(device_id=device.parent_id,
+                                                  port_no=device.parent_port_no)])
 
-        self.adapter_agent.add_port(device.id, nni_port)
+        self.uni_port = Port(port_no=2,
+                             label='Ethernet port',
+                             type=Port.ETHERNET_UNI,
+                             admin_state=AdminState.ENABLED,
+                             oper_status=OperStatus.ACTIVE)
 
-        uni_port = Port(port_no=2,
-                        label='Ethernet port',
-                        type=Port.ETHERNET_UNI,
-                        admin_state=AdminState.ENABLED,
-                        oper_status=OperStatus.ACTIVE)
-
-        self.adapter_agent.add_port(device.id, uni_port)
+        self.adapter_agent.add_port(device.id, self.uni_port)
+        self.adapter_agent.add_port(device.id, self.pon_port)
 
         # add uni port to logical device
         parent_device = self.adapter_agent.get_device(device.parent_id)
-        logical_device_id = parent_device.parent_id
-        assert logical_device_id
+        self.logical_device_id = parent_device.parent_id
+        assert self.logical_device_id, 'Invalid logical device ID'
 
-        port_no = device.proxy_address.channel_id
+        if device.vlan:
+            # vlan non-zero if created via legacy method (not xPON). Also
+            # Set a random serial number since not xPON based
 
-        log.info('ONU OPENFLOW PORT WILL BE {}'.format(port_no))
-
-        cap = OFPPF_10GB_FD | OFPPF_FIBER
-        self.adapter_agent.add_logical_port(logical_device_id, LogicalPort(
-            id='uni-{}'.format(port_no),
-            ofp_port=ofp_port(
-                port_no=port_no,
-                hw_addr=mac_str_to_tuple('08:00:%02x:%02x:%02x:%02x' %
-                                         ((device.parent_port_no >> 8 & 0xff),
-                                          device.parent_port_no & 0xff,
-                                          (port_no >> 8) & 0xff,
-                                          port_no & 0xff)),
-                name='uni-{}'.format(port_no),
-                config=0,
-                state=OFPPS_LIVE,
-                curr=cap,
-                advertised=cap,
-                peer=cap,
-                curr_speed=OFPPF_10GB_FD,
-                max_speed=OFPPF_10GB_FD
-            ),
-            device_id=device.id,
-            device_port_no=uni_port.port_no
-        ))
+            device.serial_number = uuid4().hex
+            self._add_logical_port(device.vlan, control_vlan=device.vlan)
 
         # Begin ONU Activation sequence
-        reactor.callLater(0, self.message_exchange)
+        self._deferred = reactor.callLater(0, self.message_exchange)
 
+        self.adapter_agent.update_device(device)
+
+    def _add_logical_port(self, openflow_port_no, control_vlan=None,
+                          capabilities=OFPPF_10GB_FD | OFPPF_FIBER,
+                          speed=OFPPF_10GB_FD):
+
+        if self.ofp_port_no is None:
+            self.ofp_port_no = openflow_port_no
+            self.control_vlan = control_vlan
+
+            device = self.adapter_agent.get_device(self.device_id)
+
+            openflow_port = ofp_port(
+                    port_no=openflow_port_no,
+                    hw_addr=mac_str_to_tuple('08:00:%02x:%02x:%02x:%02x' %
+                                             ((device.parent_port_no >> 8 & 0xff),
+                                              device.parent_port_no & 0xff,
+                                              (openflow_port_no >> 8) & 0xff,
+                                              openflow_port_no & 0xff)),
+                    name='uni-{}'.format(openflow_port_no),
+                    config=0,
+                    state=OFPPS_LIVE,
+                    curr=capabilities,
+                    advertised=capabilities,
+                    peer=capabilities,
+                    curr_speed=speed,
+                    max_speed=speed
+                )
+            self.adapter_agent.add_logical_port(self.logical_device_id,
+                                                LogicalPort(
+                                                    id='uni-{}'.format(openflow_port),
+                                                    ofp_port=openflow_port,
+                                                    device_id=device.id,
+                                                    device_port_no=self.uni_port.port_no))
+            if control_vlan is not None and device.vlan != control_vlan:
+                device.vlan = control_vlan
+                self.adapter_agent.update_device(device)
+
+    def _get_uni_port(self):
+        ports = self.adapter_agent.get_ports(self.device_id, Port.ETHERNET_UNI)
+        if ports:
+            # For now, we use on one uni port
+            return ports[0]
+
+    def _get_pon_port(self):
+        ports = self.adapter_agent.get_ports(self.device_id, Port.PON_ONU)
+        if ports:
+            # For now, we use on one uni port
+            return ports[0]
+
+    def reconcile(self, device):
+        self.log.info('reconciling-ONU-device-starts')
+
+        # first we verify that we got parent reference and proxy info
+        assert device.parent_id
+        assert device.proxy_address.device_id
+        assert device.proxy_address.channel_id
+
+        # register for proxied messages right away
+        self.proxy_address = device.proxy_address
+        self.adapter_agent.register_for_proxied_messages(device.proxy_address)
+
+        # Set the connection status to REACHABLE
+        device.connect_status = ConnectStatus.REACHABLE
+        self.adapter_agent.update_device(device)
+
+        # TODO: Verify that the uni, pon and logical ports exists
+
+        # Mark the device as REACHABLE and ACTIVE
         device = self.adapter_agent.get_device(device.id)
+        device.connect_status = ConnectStatus.REACHABLE
         device.oper_status = OperStatus.ACTIVE
         self.adapter_agent.update_device(device)
+
+        self.log.info('reconciling-ONU-device-ends')
 
     @inlineCallbacks
     def update_flow_table(self, device, flows):
@@ -396,7 +399,7 @@ class AdtranOnuHandler(object):
         # We need to proxy through the OLT to get to the ONU
         # Configuration from here should be using OMCI
         #
-        log.info('update_flow_table', device_id=device.id, flows=flows)
+        self.log.info('update_flow_table', device_id=device.id, flows=flows)
 
         for flow in flows:
             # TODO: Do we get duplicates here (ie all flows re-pushed on each individual flow add?)
@@ -409,7 +412,7 @@ class AdtranOnuHandler(object):
                 self.log.debug('Found OFB field', field=field)
 
             for action in fd.get_actions(flow):
-                log.debug('Found Action', action=action)
+                self.log.debug('Found Action', action=action)
 
         raise NotImplementedError()
 
@@ -428,24 +431,41 @@ class AdtranOnuHandler(object):
 
     @inlineCallbacks
     def wait_for_response(self):
-        log.info('wait-for-response')
+        self.log.info('wait-for-response')       # TODO: Add timeout
+
+        def add_watchdog(deferred, timeout=_OMCI_TIMEOUT):
+            from twisted.internet import defer
+
+            def callback(value):
+                if not watchdog.called:
+                    watchdog.cancel()
+                return value
+
+            deferred.addBoth(callback)
+
+            from twisted.internet import reactor
+            watchdog = reactor.callLater(timeout, defer.timeout, deferred)
+            return deferred
+
         try:
-            response = yield self.incoming_messages.get()
-            log.info('got-response')
+            response = yield add_watchdog(self.incoming_messages.get())
+
+            self.log.info('got-response')
             resp = OmciFrame(response)
             resp.show()
             #returnValue(resp)
             self.last_response = resp
 
         except Exception as e:
+            self.last_response = None
             self.log.info('wait-for-response-exception', exc=str(e))
             raise e
-            #returnValue(None)
-            self.last_response = None
 
     @inlineCallbacks
     def message_exchange(self):
-        log.info('message_exchange')
+        self.log.info('message-exchange')
+        self._deferred = None
+
         # reset incoming message queue
         while self.incoming_messages.pending:
             _ = yield self.incoming_messages.get()
@@ -454,9 +474,14 @@ class AdtranOnuHandler(object):
         # Start by getting some useful device information
 
         device = self.adapter_agent.get_device(self.device_id)
+        device.oper_status = OperStatus.ACTIVATING
+        self.adapter_agent.update_device(device)
 
+        device.connect_status = ConnectStatus.UNREACHABLE
         try:
-            #pass
+            # TODO: Handle tx/wait-for-response timeouts and retry logic.
+            # May timeout to ONU not fully discovered (can happen in xPON case)
+            # or other errors.
 
             # Decode fields in response and update device info
             self.send_get_OntG('vendor_id')
@@ -466,30 +491,31 @@ class AdtranOnuHandler(object):
             data = omci_response.getfieldval("data")
             device.vendor = data["vendor_id"]
 
+            # Mark as reachable if at least first message gets through
+            device.connect_status = ConnectStatus.REACHABLE
 
-            self.send_get_cardHolder('actual_plugin_unit_type',257)
+            self.send_get_cardHolder('actual_plugin_unit_type', 257)
             yield self.wait_for_response()
             response = self.last_response
             omci_response = response.getfieldval("omci_message")
             data = omci_response.getfieldval("data")
             device.type = str(data["actual_plugin_unit_type"])
 
-            self.send_get_circuit_pack('number_of_ports',257)
+            self.send_get_circuit_pack('number_of_ports', 257)
             yield self.wait_for_response()
             response = self.last_response
             omci_response = response.getfieldval("omci_message")
             data = omci_response.getfieldval("data")
             device.type = str(data["number_of_ports"])
 
-
-            self.send_get_IpHostConfigData('mac_address',515)
+            self.send_get_IpHostConfigData('mac_address', 515)
             yield self.wait_for_response()
             response = self.last_response
             omci_response = response.getfieldval("omci_message")
             data = omci_response.getfieldval("data")
             device.mac_address = str(data["mac_address"])
 
-            self.send_get_Ont2G('equipment_id',0)
+            self.send_get_Ont2G('equipment_id', 0)
             yield self.wait_for_response()
             response = self.last_response
             omci_response = response.getfieldval("omci_message")
@@ -498,7 +524,7 @@ class AdtranOnuHandler(object):
             eqptId = eqptId_bootVersion[0:10]
             bootVersion = eqptId_bootVersion[12:20]
 
-            self.send_get_Ont2G('omcc_version',0)
+            self.send_get_Ont2G('omcc_version', 0)
             yield self.wait_for_response()
             response = self.last_response
             omci_response = response.getfieldval("omci_message")
@@ -506,8 +532,7 @@ class AdtranOnuHandler(object):
             #decimal version
             omciVersion = str(data["omcc_version"])
 
-
-            self.send_get_Ont2G('vendor_product_code',0)
+            self.send_get_Ont2G('vendor_product_code', 0)
             yield self.wait_for_response()
             response = self.last_response
             omci_response = response.getfieldval("omci_message")
@@ -515,7 +540,7 @@ class AdtranOnuHandler(object):
             #decimal value
             vedorProductCode = str(data["vendor_product_code"])
 
-            self.send_get_OntG('version',0)
+            self.send_get_OntG('version', 0)
             yield self.wait_for_response()
             response = self.last_response
             omci_response = response.getfieldval("omci_message")
@@ -534,7 +559,6 @@ class AdtranOnuHandler(object):
             yield self.wait_for_response()
             response = self.last_response
 
-
             # device.model = '10G GPON ONU'           # TODO: get actual number
             # device.hardware_version = 'TODO: to be filled'
             # device.firmware_version = 'TODO: to be filled'
@@ -544,21 +568,26 @@ class AdtranOnuHandler(object):
             # device.images.image.extend([images])
 
             # self.adapter_agent.update_device(device)
-        except Exception as e:
+            device.oper_status = OperStatus.ACTIVE
+            device.connect_status = ConnectStatus.REACHABLE
 
-            log.exception('Failed', e=e)
+        except Exception as e:
+            self.log.exception('Failed', e=e)
+
+            # Try again later. May not have been discovered
+            self._deferred = reactor.callLater(_STARTUP_RETRY_WAIT,
+                                               self.message_exchange)
 
         ####################################################
 
-        log.info('***************   ONU IS ACTIVATED   ****************')
+        self.log.info('onu-activated')
 
         # self.send_get_circuit_pack()
         # yield self.wait_for_response()
-
-        pass
+        self.adapter_agent.update_device(device)
 
     def send_mib_reset(self, entity_id=0):
-        log.info('send_mib_reset')
+        self.log.info('send_mib_reset')
         frame = OmciFrame(
             transaction_id=self.get_tx_id(),
             message_type=OmciMibReset.message_id,
@@ -730,7 +759,7 @@ class AdtranOnuHandler(object):
         self.send_omci_message(frame)
 
     def send_get_circuit_pack(self, attribute, entity_id=0):
-        log.info('send_get_circuit_pack: entry')
+        self.log.info('send_get_circuit_pack: entry')
         frame = OmciFrame(
             transaction_id=self.get_tx_id(),
             message_type=OmciGet.message_id,
@@ -741,7 +770,6 @@ class AdtranOnuHandler(object):
             )
         )
         self.send_omci_message(frame)
-
 
     def send_get_device_info(self, attribute, entity_id=0):
         frame = OmciFrame(
@@ -756,7 +784,7 @@ class AdtranOnuHandler(object):
         self.send_omci_message(frame)
 
     def send_get_OntG(self, attribute, entity_id=0):
-        log.info('send_get_OntG: entry')
+        self.log.info('send_get_OntG: entry')
         frame = OmciFrame(
             transaction_id=self.get_tx_id(),
             message_type=OmciGet.message_id,
@@ -769,7 +797,7 @@ class AdtranOnuHandler(object):
         self.send_omci_message(frame)
 
     # def send_get_OntG(self, entity_id=0):
-    #     log.info('send_get_OntG: entry')
+    #     self.log.info('send_get_OntG: entry')
     #     frame = OmciFrame(
     #         transaction_id=self.get_tx_id(),
     #         message_type=OmciGet.message_id,
@@ -779,13 +807,12 @@ class AdtranOnuHandler(object):
     #             attributes_mask=OntG.mask_for('vendor_id')
     #         )
     #     )
-    #     log.info('send_get_OntG: sending')
+    #     self.log.info('send_get_OntG: sending')
     #     self.send_omci_message(frame)
-    #     log.info('send_get_OntG: sent')
-
+    #     self.log.info('send_get_OntG: sent')
 
     def send_get_Ont2G(self, attribute, entity_id=0):
-        log.info('send_get_Ont2G: entry')
+        self.log.info('send_get_Ont2G: entry')
         frame = OmciFrame(
             transaction_id=self.get_tx_id(),
             message_type=OmciGet.message_id,
@@ -799,7 +826,7 @@ class AdtranOnuHandler(object):
         self.send_omci_message(frame)
 
     def send_get_cardHolder(self, attribute, entity_id=0):
-        log.info('send_get_cardHolder: entry')
+        self.log.info('send_get_cardHolder: entry')
         frame = OmciFrame(
             transaction_id=self.get_tx_id(),
             message_type=OmciGet.message_id,
@@ -812,7 +839,7 @@ class AdtranOnuHandler(object):
         self.send_omci_message(frame)
 
     def send_set_adminState(self,entity_id):
-        log.info('send_set_AdminState: entry')
+        self.log.info('send_set_AdminState: entry')
         data = dict(
             administrative_state=0
         )
@@ -829,7 +856,7 @@ class AdtranOnuHandler(object):
         self.send_omci_message(frame)
 
     def send_get_IpHostConfigData(self, attribute, entity_id=0):
-        log.info('send_get_IpHostConfigData: entry')
+        self.log.info('send_get_IpHostConfigData: entry')
         frame = OmciFrame(
             transaction_id=self.get_tx_id(),
             message_type=OmciGet.message_id,
@@ -842,7 +869,7 @@ class AdtranOnuHandler(object):
         self.send_omci_message(frame)
 
     def send_get_SoftwareImage(self, attribute, entity_id=0):
-        log.info('send_get_SoftwareImage: entry')
+        self.log.info('send_get_SoftwareImage: entry')
         frame = OmciFrame(
             transaction_id=self.get_tx_id(),
             message_type=OmciGet.message_id,
@@ -854,7 +881,160 @@ class AdtranOnuHandler(object):
         )
         self.send_omci_message(frame)
 
+    @inlineCallbacks
+    def reboot(self):
+        from common.utils.asleep import asleep
+        self.log.info('rebooting', device_id=self.device_id)
+
+        # Update the operational status to ACTIVATING and connect status to
+        # UNREACHABLE
+        device = self.adapter_agent.get_device(self.device_id)
+        previous_oper_status = device.oper_status
+        previous_conn_status = device.connect_status
+        device.oper_status = OperStatus.ACTIVATING
+        device.connect_status = ConnectStatus.UNREACHABLE
+        self.adapter_agent.update_device(device)
+
+        # Sleep 10 secs, simulating a reboot
+        # TODO: send alert and clear alert after the reboot
+        yield asleep(10)    # TODO: Need to reboot for real
+
+        # Change the operational status back to its previous state.  With a
+        # real OLT the operational state should be the state the device is
+        # after a reboot.
+        # Get the latest device reference
+        device = self.adapter_agent.get_device(self.device_id)
+        device.oper_status = previous_oper_status
+        device.connect_status = previous_conn_status
+        self.adapter_agent.update_device(device)
+        self.log.info('rebooted', device_id=self.device_id)
+
+    def self_test_device(self, device):
+        """
+        This is called to Self a device based on a NBI call.
+        :param device: A Voltha.Device object.
+        :return: Will return result of self test
+        """
+        self.log.info('self-test-device', device=device.id)
+        raise NotImplementedError()
+
+    def disable(self):
+        self.log.info('disabling', device_id=self.device_id)
+
+        # Get the latest device reference
+        device = self.adapter_agent.get_device(self.device_id)
+
+        # Disable all ports on that device
+        self.adapter_agent.disable_all_ports(self.device_id)
+
+        # Update the device operational status to UNKNOWN
+        device.oper_status = OperStatus.UNKNOWN
+        device.connect_status = ConnectStatus.UNREACHABLE
+        self.adapter_agent.update_device(device)
+
+        # Remove the uni logical port from the OLT, if still present
+        parent_device = self.adapter_agent.get_device(device.parent_id)
+        assert parent_device
+        logical_device_id = parent_device.parent_id
+        assert logical_device_id
+        port_no, self.ofp_port_no = self.ofp_port_no, None
+        port_id = 'uni-{}'.format(port_no)
+
+        try:
+            port = self.adapter_agent.get_logical_port(logical_device_id,
+                                                       port_id)
+            self.adapter_agent.delete_logical_port(logical_device_id, port)
+        except KeyError:
+            self.log.info('logical-port-not-found', device_id=self.device_id,
+                          portid=port_id)
+
+        # Remove pon port from parent
+        self.pon_port = self._get_pon_port()
+        self.adapter_agent.delete_port_reference_from_parent(self.device_id,
+                                                             self.pon_port)
+
+        # Just updating the port status may be an option as well
+        # port.ofp_port.config = OFPPC_NO_RECV
+        # yield self.adapter_agent.update_logical_port(logical_device_id,
+        #                                             port)
+        # Unregister for proxied message
+        self.adapter_agent.unregister_for_proxied_messages(
+            device.proxy_address)
+
+        # TODO:
+        # 1) Remove all flows from the device
+        # 2) Remove the device from ponsim
+
+        self.log.info('disabled', device_id=device.id)
+
+    def reenable(self):
+        self.log.info('re-enabling', device_id=self.device_id)
+        try:
+            # Get the latest device reference
+            device = self.adapter_agent.get_device(self.device_id)
+
+            # First we verify that we got parent reference and proxy info
+            assert device.parent_id
+            assert device.proxy_address.device_id
+            assert device.proxy_address.channel_id
+
+            # Re-register for proxied messages right away
+            self.proxy_address = device.proxy_address
+            self.adapter_agent.register_for_proxied_messages(
+                device.proxy_address)
+
+            # Re-enable the ports on that device
+            self.adapter_agent.enable_all_ports(self.device_id)
+
+            # Refresh the port reference
+            self.uni_port = self._get_uni_port()
+            self.pon_port = self._get_pon_port()
+
+            # Add the pon port reference to the parent
+            self.adapter_agent.add_port_reference_to_parent(device.id,
+                                                            self.pon_port)
+
+            # Update the connect status to REACHABLE
+            device.connect_status = ConnectStatus.REACHABLE
+            self.adapter_agent.update_device(device)
+
+            # re-add uni port to logical device
+            parent_device = self.adapter_agent.get_device(device.parent_id)
+            self.logical_device_id = parent_device.parent_id
+            assert self.logical_device_id, 'Invalid logical device ID'
+
+            if device.vlan:
+                # vlan non-zero if created via legacy method (not xPON)
+                self._add_logical_port(device.vlan, device.vlan,
+                                       control_vlan=device.vlan)
+
+            device = self.adapter_agent.get_device(device.id)
+            device.oper_status = OperStatus.ACTIVE
+            self.adapter_agent.update_device(device)
+
+            self.log.info('re-enabled', device_id=device.id)
+        except Exception, e:
+            self.log.exception('error-reenabling', e=e)
+
+    def delete(self):
+        self.log.info('deleting', device_id=self.device_id)
+        # A delete request may be received when an OLT is disabled
+        # TODO:  Need to implement this
+        # 1) Remove all flows from the device
+        self.log.info('deleted', device_id=self.device_id)
+
     # PON Mgnt APIs #
+
+
+    def _get_xpon_collection(self, data):
+        if isinstance(data, OntaniConfig):
+            return self._ont_anis
+        elif isinstance(data, VOntaniConfig):
+            return self._v_ont_anis
+        elif isinstance(data, VEnetConfig):
+            return self._v_enets
+        return None
+
     def create_interface(self, data):
         """
         Create XPON interfaces
@@ -864,50 +1044,98 @@ class AdtranOnuHandler(object):
         interface = data.interface
         inst_data = data.data
 
-        if isinstance(data, ChannelgroupConfig):
-            self.log.debug('create_interface-channel-group', interface=interface, data=inst_data)
-            pass
+        items = self._get_xpon_collection(data)
+        if items is None:
+            raise NotImplemented('xPON {} is not implemented'.
+                                 format(type(data)))
 
-        elif isinstance(data, ChannelpartitionConfig):
-            self.log.debug('create_interface-channel-partition', interface=interface, data=inst_data)
-            pass
-
-        elif isinstance(data, ChannelpairConfig):
-            self.log.debug('create_interface-channel-pair', interface=interface, data=inst_data)
-            pass
-
-        elif isinstance(data, ChannelterminationConfig):
-            self.log.debug('create_interface-channel-termination', interface=interface, data=inst_data)
-            pass
-
-        elif isinstance(data, OntaniConfig):
+        if isinstance(data, OntaniConfig):
             self.log.debug('create_interface-ont-ani', interface=interface, data=inst_data)
-            pass
+
+            if name not in items:
+                items[name] = {
+                    'name': name,
+                    'enabled': interface.enabled,
+                    'upstream-fec': inst_data.upstream_fec_indicator,
+                    'mgnt-gemport-aes': inst_data.mgnt_gemport_aes_indicator
+                }
 
         elif isinstance(data, VOntaniConfig):
             self.log.debug('create_interface-v-ont-ani', interface=interface, data=inst_data)
-            pass
+
+            if name not in items:
+                items[name] = {
+                    'name': name,
+                    'enabled': interface.enabled,
+                    'onu-id': inst_data.onu_id,
+                    'expected-serial-number': inst_data.expected_serial_number,
+                    'preferred-channel-pair': inst_data.preferred_chanpair,
+                    'channel-partition': inst_data.parent_ref,
+                    'upstream-channel-speed': inst_data.upstream_channel_speed
+                }
 
         elif isinstance(data, VEnetConfig):
             self.log.debug('create_interface-v-enet', interface=interface, data=inst_data)
-            pass
+
+            if name not in items:
+                items[name] = {
+                    'name': name,
+                    'enabled': interface.enabled,
+                    'v-ont-ani': inst_data.v_ontani_ref
+                }
+                ofp_port_no, cntl_vlan = self._decode_openflow_port_and_control_vlan(items[name])
+                self._add_logical_port(ofp_port_no, control_vlan=cntl_vlan)
 
         else:
             raise NotImplementedError('Unknown data type')
+
+    def _decode_openflow_port_and_control_vlan(self, venet_info):
+        try:
+            ofp_port_no = int(venet_info['name'].split('-')[1])
+            cntl_vlan = ofp_port_no
+
+            return ofp_port_no, cntl_vlan
+
+        except ValueError:
+            self.log.error('invalid-uni-port-name', name=venet_info['name'])
+        except KeyError:
+            self.log.error('invalid-venet-data', data=venet_info)
 
     def update_interface(self, data):
         """
         Update XPON interfaces
         :param data: (xpon config info)
         """
-        pass
+        name = data.name
+        interface = data.interface
+        inst_data = data.data
+
+        items = self._get_xpon_collection(data)
+
+        if items is None:
+            raise ValueError('Unknown data type: {}'.format(type(data)))
+
+        if name not in items:
+            raise KeyError("'{}' not found. Type: {}".format(name, type(data)))
+
+        raise NotImplementedError('TODO: not yet supported')
 
     def delete_interface(self, data):
         """
         Deleete XPON interfaces
         :param data: (xpon config info)
         """
-        pass
+        name = data.name
+        interface = data.interface
+        inst_data = data.data
+
+        items = self._get_xpon_collection(data)
+        item = items.get(name)
+
+        if item in items:
+            del items[name]
+            pass    # TODO Do something....
+            raise NotImplementedError('TODO: not yet supported')
 
     def create_tcont(self, tcont_data, traffic_descriptor_data):
         """
@@ -915,7 +1143,17 @@ class AdtranOnuHandler(object):
         :param tcont_data:
         :param traffic_descriptor_data:
         """
-        pass
+        traffic_descriptor = TrafficDescriptor.create(traffic_descriptor_data)
+        tcont = TCont.create(tcont_data, traffic_descriptor)
+
+        if tcont.name in self._tconts:
+            raise KeyError("TCONT '{}' already exists".format(tcont.name))
+
+        if traffic_descriptor.name in self._traffic_descriptors:
+            raise KeyError("Traffic Descriptor '{}' already exists".format(traffic_descriptor.name))
+
+        self._tconts[tcont.name] = tcont
+        self._traffic_descriptors[traffic_descriptor.name] = traffic_descriptor
 
     def update_tcont(self, tcont_data, traffic_descriptor_data):
         """
@@ -923,7 +1161,18 @@ class AdtranOnuHandler(object):
         :param tcont_data:
         :param traffic_descriptor_data:
         """
+        if tcont_data.name not in self._tconts:
+            raise KeyError("TCONT '{}' does not exists".format(tcont_data.name))
+
+        if traffic_descriptor_data.name not in self._traffic_descriptors:
+            raise KeyError("Traffic Descriptor '{}' does not exists".
+                           format(traffic_descriptor_data.name))
+
+        traffic_descriptor = TrafficDescriptor.create(traffic_descriptor_data)
+        tcont = TCont.create(tcont_data, traffic_descriptor)
+        #
         pass
+        raise NotImplementedError('TODO: Not yet supported')
 
     def remove_tcont(self, tcont_data, traffic_descriptor_data):
         """
@@ -931,25 +1180,108 @@ class AdtranOnuHandler(object):
         :param tcont_data:
         :param traffic_descriptor_data:
         """
-        pass
+        tcont = self._tconts.get(tcont_data.name)
+        traffic_descriptor = self._traffic_descriptors.get(traffic_descriptor_data.name)
+
+        if traffic_descriptor is not None:
+            del self._traffic_descriptors[traffic_descriptor_data.name]
+            pass         # Perform any needed operations
+            # raise NotImplementedError('TODO: Not yet supported')
+
+        if tcont is not None:
+            del self._tconts[tcont_data.name]
+            pass         # Perform any needed operations
+            raise NotImplementedError('TODO: Not yet supported')
 
     def create_gemport(self, data):
         """
         Create GEM Port
         :param data:
         """
-        pass
+        gem_port = GemPort.create(data)
+
+        if gem_port.name in self._gem_ports:
+            raise KeyError("GEM Port '{}' already exists".format(gem_port.name))
+
+        self._gem_ports[gem_port.name] = gem_port
+
+        # TODO: On GEM Port changes, may need to add ONU Flow(s)
 
     def update_gemport(self, data):
         """
         Update GEM Port
         :param data:
         """
-        pass
+        if data.name not in self._gem_ports:
+            raise KeyError("GEM Port '{}' does not exists".format(data.name))
 
-    def delete_gemport(self, data):
+        gem_port = GemPort.create(data)
+        #
+        # TODO: On GEM Port changes, may need to add/delete/modify ONU Flow(s)
+        pass
+        raise NotImplementedError('TODO: Not yet supported')
+
+    def remove_gemport(self, data):
         """
         Delete GEM Port
         :param data:
         """
-        pass
+        gem_port = self._gem_ports.get(data.name)
+
+        if gem_port is not None:
+            del self._gem_ports[data.name]
+            #
+            # TODO: On GEM Port changes, may need to delete ONU Flow(s)
+            pass         # Perform any needed operations
+            raise NotImplementedError('TODO: Not yet supported')
+
+    def create_multicast_gemport(self, data):
+        """
+        API to create multicast gemport object in the devices
+        :data: multicast gemport data object
+        :return: None
+        """
+        pass    # TODO: Implement
+
+    def update_multicast_gemport(self, data):
+        """
+        API to update  multicast gemport object in the devices
+        :data: multicast gemport data object
+        :return: None
+        """
+        pass    # TODO: Implement
+
+    def remove_multicast_gemport(self, data):
+        """
+        API to delete multicast gemport object in the devices
+        :data: multicast gemport data object
+        :return: None
+        """
+        pass    # TODO: Implement
+
+    def create_multicast_distribution_set(self, data):
+        """
+        API to create multicast distribution rule to specify
+        the multicast VLANs that ride on the multicast gemport
+        :data: multicast distribution data object
+        :return: None
+        """
+        pass    # TODO: Implement
+
+    def update_multicast_distribution_set(self, data):
+        """
+        API to update multicast distribution rule to specify
+        the multicast VLANs that ride on the multicast gemport
+        :data: multicast distribution data object
+        :return: None
+        """
+        pass    # TODO: Implement
+
+    def remove_multicast_distribution_set(self, data):
+        """
+        API to delete multicast distribution rule to specify
+        the multicast VLANs that ride on the multicast gemport
+        :data: multicast distribution data object
+        :return: None
+        """
+        pass    # TODO: Implement

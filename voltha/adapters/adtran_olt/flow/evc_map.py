@@ -153,8 +153,11 @@ class EVCMap(object):
 
     @property
     def _needs_acl_support(self):
+        if self._ipv4_dst is not None:  # In case MCAST downstream has ACL on it
+            return False
+
         return self._eth_type is not None or self._ip_protocol is not None or\
-                self._ipv4_dst is not None or self._udp_dst is not None or self._udp_src is not None
+            self._udp_dst is not None or self._udp_src is not None
 
     @property
     def pon_id(self):

@@ -51,12 +51,12 @@ DEFAULT_PACKET_IN_VLAN = 4000
 DEFAULT_MULTICAST_VLAN = 4050
 _MANAGEMENT_VLAN = 4093
 
-_DEFAULT_RESTCONF_USERNAME = ""
-_DEFAULT_RESTCONF_PASSWORD = ""
+_DEFAULT_RESTCONF_USERNAME = "ADMIN"
+_DEFAULT_RESTCONF_PASSWORD = "PASSWORD"
 _DEFAULT_RESTCONF_PORT = 8081
 
-_DEFAULT_NETCONF_USERNAME = ""
-_DEFAULT_NETCONF_PASSWORD = ""
+_DEFAULT_NETCONF_USERNAME = "hsvroot"
+_DEFAULT_NETCONF_PASSWORD = "BOSCO"
 _DEFAULT_NETCONF_PORT = 830
 
 
@@ -669,19 +669,21 @@ class AdtranDeviceHandler(object):
 
         # Start/stop the interfaces as needed. These are deferred calls
 
-        try:
-            dl = []
-            for port in self.northbound_ports.itervalues():
+        dl = []
+        for port in self.northbound_ports.itervalues():
+            try:
                 dl.append(port.start())
+            except Exception as e:
+                self.log.exception('northbound-port-startup', e=e)
 
-            for port in self.southbound_ports.itervalues():
+        for port in self.southbound_ports.itervalues():
+            try:
                 dl.append(port.start() if port.admin_state == AdminState.ENABLED else port.stop())
 
-            results = yield defer.gatherResults(dl)
+            except Exception as e:
+                self.log.exception('southbound-port-startup', e=e)
 
-        except Exception as e:
-            self.log.exception('port-startup', e=e)
-            results = defer.fail(Failure())
+        results = yield defer.gatherResults(dl)
 
         returnValue(results)
 
@@ -1320,48 +1322,58 @@ class AdtranDeviceHandler(object):
 
     def check_pulse(self):
         if self.logical_device_id is not None:
-            self.heartbeat = self.rest_client.request('GET', self.HELLO_URI, name='hello')
-            self.heartbeat.addCallbacks(self.heartbeat_check_status, self.heartbeat_fail)
+            try:
+                self.heartbeat = self.rest_client.request('GET', self.HELLO_URI,
+                                                          name='hello', timeout=5)
+                self.heartbeat.addCallbacks(self._heartbeat_success, self._heartbeat_fail)
 
-    def heartbeat_check_status(self, results):
+            except Exception as e:
+                self.heartbeat = reactor.callLater(5, self._heartbeat_fail, e)
+
+    def heartbeat_check_status(self, _):
         """
         Check the number of heartbeat failures against the limit and emit an alarm if needed
         """
         device = self.adapter_agent.get_device(self.device_id)
 
-        if self.heartbeat_miss >= self.heartbeat_failed_limit and device.connect_status == ConnectStatus.REACHABLE:
-            self.log.warning('olt-heartbeat-failed', count=self.heartbeat_miss)
-            device.connect_status = ConnectStatus.UNREACHABLE
-            device.oper_status = OperStatus.FAILED
-            device.reason = self.heartbeat_last_reason
-            self.adapter_agent.update_device(device)
+        try:
+            if self.heartbeat_miss >= self.heartbeat_failed_limit:
+                if device.connect_status == ConnectStatus.REACHABLE:
+                    self.log.warning('heartbeat-failed', count=self.heartbeat_miss)
+                    device.connect_status = ConnectStatus.UNREACHABLE
+                    device.oper_status = OperStatus.FAILED
+                    device.reason = self.heartbeat_last_reason
+                    self.adapter_agent.update_device(device)
+                    self.heartbeat_alarm(False, self.heartbeat_miss)
+            else:
+                # Update device states
+                if device.connect_status != ConnectStatus.REACHABLE:
+                    device.connect_status = ConnectStatus.REACHABLE
+                    device.oper_status = OperStatus.ACTIVE
+                    device.reason = ''
+                    self.adapter_agent.update_device(device)
+                    self.heartbeat_alarm(True)
 
-            self.heartbeat_alarm(False, self.heartbeat_miss)
-        else:
-            # Update device states
-
-            self.log.info('heartbeat-success')
-
-            if device.connect_status != ConnectStatus.REACHABLE:
-                device.connect_status = ConnectStatus.REACHABLE
-                device.oper_status = OperStatus.ACTIVE
-                device.reason = ''
-                self.adapter_agent.update_device(device)
-
-                self.heartbeat_alarm(True)
-
-            self.heartbeat_miss = 0
-            self.heartbeat_last_reason = ''
-            self.heartbeat_count += 1
+        except Exception as e:
+            self.log.exception('heartbeat-check', e=e)
 
         # Reschedule next heartbeat
         if self.logical_device_id is not None:
+            self.heartbeat_count += 1
             self.heartbeat = reactor.callLater(self.heartbeat_interval, self.check_pulse)
 
-    def heartbeat_fail(self, failure):
+    def _heartbeat_success(self, results):
+        self.log.debug('heartbeat-success')
+        self.heartbeat_miss = 0
+        self.heartbeat_last_reason = ''
+        self.heartbeat_check_status(results)
+
+    def _heartbeat_fail(self, failure):
         self.heartbeat_miss += 1
         self.log.info('heartbeat-miss', failure=failure,
-                      count=self.heartbeat_count, miss=self.heartbeat_miss)
+                      count=self.heartbeat_count,
+                      miss=self.heartbeat_miss)
+        self.heartbeat_last_reason = 'RESTCONF connectivity error'
         self.heartbeat_check_status(None)
 
     def heartbeat_alarm(self, status, heartbeat_misses=0):
@@ -1384,3 +1396,17 @@ class AdtranDeviceHandler(object):
             return datetime.datetime.strptime(revision, '%Y-%m-%d')
         except Exception:
             return None
+
+    @staticmethod
+    def _dict_diff(lhs, rhs):
+        """
+        Compare the values of two dictionaries and return the items in 'rhs'
+        that are different than 'lhs. The RHS dictionary keys can be a subset of the
+        LHS dictionary, or the RHS dictionary keys can contain new values.
+
+        :param lhs: (dict) Original dictionary values
+        :param rhs: (dict) New dictionary values to compare to the original (lhs) dict
+        :return: (dict) Dictionary with differences from the RHS dictionary
+        """
+        assert len(lhs.keys()) == len(set(lhs.iterkeys()) & (rhs.iterkeys())), 'Dictionary Keys do not match'
+        return {k: v for k, v in rhs.items() if k not in lhs or lhs[k] != rhs[k]}

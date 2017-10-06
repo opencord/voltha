@@ -271,6 +271,9 @@ class AdtranOltHandler(AdtranDeviceHandler):
 
         self.num_southbound_ports = len(self.southbound_ports)
 
+    def pon(self, pon_id):
+        return self.southbound_ports.get(pon_id)
+
     def complete_device_specific_activation(self, device, reconciling):
         """
         Perform an initial network operation to discover the device hardware
@@ -359,9 +362,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
             pon_id, onu_id, msg, is_omci = AdtranZmqClient.decode_packet(message)
 
             if is_omci:
-                proxy_address = Device.ProxyAddress(device_id=self.device_id,
-                                                    channel_id=self.get_channel_id(pon_id, onu_id),
-                                                    onu_id=onu_id)
+                proxy_address = self._pon_onu_id_to_proxy_address(pon_id, onu_id)
 
                 self.adapter_agent.receive_proxied_message(proxy_address, msg)
             else:
@@ -489,17 +490,25 @@ class AdtranOltHandler(AdtranDeviceHandler):
             msg = str(msg)
 
         if self.zmq_client is not None:
-            pon_id = self._channel_id_to_pon_id(proxy_address.channel_id, proxy_address.onu_id)
-            onu_id = proxy_address.onu_id
+            pon_id, onu_id = self._proxy_address_to_pon_onu_id(proxy_address)
 
-            data = AdtranZmqClient.encode_omci_message(msg, pon_id, onu_id)
+            pon = self.southbound_ports.get(pon_id)
 
-            try:
-                self.zmq_client.send(data)
+            if pon is not None and pon.enabled:
+                onu = pon.onu(onu_id)
 
-            except Exception as e:
-                self.log.exception('zmqClient.send', e=e)
-                raise
+                if onu is not None and onu.enabled:
+                    data = AdtranZmqClient.encode_omci_message(msg, pon_id, onu_id)
+
+                    try:
+                        self.zmq_client.send(data)
+
+                    except Exception as e:
+                        self.log.exception('zmqClient-send', pon_id=pon_id, onu_id=onu_id, e=e)
+                else:
+                    self.log.debug('onu-invalid-or-disabled', pon_id=pon_id, onu_id=onu_id)
+            else:
+                self.log.debug('pon-invalid-or-disabled', pon_id=pon_id)
 
     @staticmethod
     def is_gpon_olt_hw(content):
@@ -518,7 +527,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
         from pon_port import PonPort
         if ATT_NETWORK:
             if FIXED_ONU:
-                return onu_id + 2
+                return (onu_id * 120) + 2
             return 1 + onu_id + (pon_id * 120)
 
         if FIXED_ONU:
@@ -531,16 +540,33 @@ class AdtranOltHandler(AdtranDeviceHandler):
         assert AdtranOltHandler.BASE_ONU_OFFSET > (self.num_northbound_ports + self.num_southbound_ports + 1)
         return AdtranOltHandler.BASE_ONU_OFFSET + onu_id
 
-    def _channel_id_to_pon_id(self, channel_id, onu_id):
-        from pon_port import PonPort
-        if ATT_NETWORK:
-            if FIXED_ONU:
-                return channel_id - onu_id - 2
-            return (channel_id - onu_id - 1) / 120
+    def _pon_onu_id_to_proxy_address(self, pon_id, onu_id):
+        if pon_id in self.southbound_ports:
+            pon = self.southbound_ports[pon_id]
+            onu = pon.onu(onu_id)
+            proxy_address = onu.proxy_address if onu is not None else None
 
-        if FIXED_ONU:
-            return channel_id - self._onu_offset(onu_id)
-        return (channel_id - self._onu_offset(onu_id)) / PonPort.MAX_ONUS_SUPPORTED
+        else:
+            proxy_address = None
+
+        return proxy_address
+
+    def _proxy_address_to_pon_onu_id(self, proxy_address):
+        """
+        Convert the proxy address to the PON-ID and ONU-ID
+        :param proxy_address: (ProxyAddress)
+        :return: (tuple) pon-id, onu-id
+        """
+        onu_id = proxy_address.onu_id
+
+        if self.autoactivate:
+            # Legacy method
+            pon_id = proxy_address.channel_group_id
+        else:
+            # xPON method
+            pon_id = self._port_number_to_pon_id(proxy_address.channel_id)
+
+        return pon_id, onu_id
 
     def _pon_id_to_port_number(self, pon_id):
         return pon_id + 1 + self.num_northbound_ports
@@ -637,6 +663,30 @@ class AdtranOltHandler(AdtranDeviceHandler):
             return self._v_enets
         return None
 
+    @property
+    def channel_terminations(self):
+        return self._channel_terminations
+
+    @property
+    def channel_pairs(self):
+        return self._channel_pairs
+
+    @property
+    def channel_partitions(self):
+        return self._channel_partitions
+
+    @property
+    def v_ont_anis(self):
+        return self._v_ont_anis
+
+    @property
+    def v_enets(self):
+        return self._v_enets
+
+    @property
+    def tconts(self):
+        return self._tconts
+
     def _data_to_dict(self, data):
         name = data.name
         interface = data.interface
@@ -707,7 +757,8 @@ class AdtranOltHandler(AdtranDeviceHandler):
                 'expected-serial-number': inst_data.expected_serial_number,
                 'preferred-channel-pair': inst_data.preferred_chanpair,
                 'channel-partition': inst_data.parent_ref,
-                'upstream-channel-speed': inst_data.upstream_channel_speed
+                'upstream-channel-speed': inst_data.upstream_channel_speed,
+                'data': data
             }
 
         elif isinstance(data, VEnetConfig):
@@ -728,24 +779,21 @@ class AdtranOltHandler(AdtranDeviceHandler):
         self.log.debug('create-interface', interface=data.interface, inst_data=data.data)
 
         name = data.name
-        interface = data.interface
-        inst_data = data.data
-
         items = self._get_xpon_collection(data)
 
         if items is not None and name not in items:
             self._cached_xpon_pon_info = {}     # Clear cached data
 
         item_type, new_item = self._data_to_dict(data)
-        self.log.debug('new-item', item_type=item_type, item=new_item)
+        #self.log.debug('new-item', item_type=item_type, item=new_item)
 
-        if name in items:
-            raise KeyError("{} '{}' already exists".format(item_type, name))
+        if name not in items:
+            self.log.debug('new-item', item_type=item_type, item=new_item)
 
-        items[name] = new_item
+            items[name] = new_item
 
-        if isinstance(data, ChannelterminationConfig):
-            self._on_channel_termination_create(name)
+            if isinstance(data, ChannelterminationConfig):
+                self._on_channel_termination_create(name)
 
     def update_interface(self, data):
         """
@@ -753,9 +801,6 @@ class AdtranOltHandler(AdtranDeviceHandler):
         :param data: (xpon config info)
         """
         name = data.name
-        interface = data.interface
-        inst_data = data.data
-
         items = self._get_xpon_collection(data)
 
         if items is None:
@@ -768,8 +813,8 @@ class AdtranOltHandler(AdtranDeviceHandler):
         item_type, update_item = self._data_to_dict(data)
         self.log.debug('update-item', item_type=item_type, item=update_item)
 
-        # TODO: Calculate the difference
-        diffs = {}
+        # Calculate the difference
+        diffs = AdtranDeviceHandler._dict_diff(existing_item, update_item)
 
         if len(diffs) == 0:
             self.log.debug('update-item-no-diffs')
@@ -778,25 +823,25 @@ class AdtranOltHandler(AdtranDeviceHandler):
 
         # Act on changed items
         if isinstance(data, ChannelgroupConfig):
-            pass
+            self._on_channel_group_modify(name, items, diffs)
 
         elif isinstance(data, ChannelpartitionConfig):
-            pass
+            self._on_channel_partition_modify(name, items, diffs)
 
         elif isinstance(data, ChannelpairConfig):
-            pass
+            self._on_channel_pair_modify(name, items, diffs)
 
         elif isinstance(data, ChannelterminationConfig):
-            pass
+            self._on_channel_termination_modify(name, items, diffs)
 
         elif isinstance(data, OntaniConfig):
-            pass
+            raise NotImplementedError('TODO: not yet supported')
 
         elif isinstance(data, VOntaniConfig):
-            pass
+            raise NotImplementedError('TODO: not yet supported')
 
         elif isinstance(data, VEnetConfig):
-            pass
+            raise NotImplementedError('TODO: not yet supported')
 
         else:
             raise NotImplementedError('Unknown data type')
@@ -819,13 +864,13 @@ class AdtranOltHandler(AdtranDeviceHandler):
             del items[name]
 
             if isinstance(data, ChannelgroupConfig):
-                pass
+                pass  # Rely upon xPON logic to not allow delete of a referenced group
 
             elif isinstance(data, ChannelpartitionConfig):
-                pass
+                pass  # Rely upon xPON logic to not allow delete of a referenced partition
 
             elif isinstance(data, ChannelpairConfig):
-                pass
+                pass  # Rely upon xPON logic to not allow delete of a referenced pair
 
             elif isinstance(data, ChannelterminationConfig):
                 self._on_channel_termination_delete(name)
@@ -843,6 +888,63 @@ class AdtranOltHandler(AdtranDeviceHandler):
                 raise NotImplementedError('Unknown data type')
 
             raise NotImplementedError('TODO: not yet supported')
+
+    def _valid_to_modify(self, item_type, valid, diffs):
+        bad_keys = [mod_key not in valid for mod_key in diffs]
+        if len(bad_keys) != 0:
+            self.log.warn("{} modification of '{}' not supported").format(item_type, bad_keys[0])
+            return False
+        return True
+
+    def _get_related_pons(self, item_type):
+
+        if isinstance(item_type, ChannelgroupConfig):
+            return []   # TODO: Implement
+
+        elif isinstance(item_type, ChannelpartitionConfig):
+            return []   # TODO: Implement
+
+        elif isinstance(item_type, ChannelpairConfig):
+            return []   # TODO: Implement
+
+        elif isinstance(item_type, ChannelterminationConfig):
+            return []   # TODO: Implement
+
+        else:
+            return []
+
+    def _on_channel_group_modify(self, name, items, diffs):
+        if len(diffs) == 0:
+            return
+
+        valid_keys = ['polling-period']     # Modify of these keys supported
+
+        if self._valid_to_modify('channel-group', valid_keys, diffs.keys()):
+            self.log.info('TODO: Not-Implemented-yet')
+            # for k, v in diffs.items:
+            #     items[name][k] = v
+
+    def _on_channel_partition_modify(self, name, items, diffs):
+        if len(diffs) == 0:
+            return
+
+        valid_keys = ['fec-downstream', 'mcast-aes', 'differential-fiber-distance']
+
+        if self._valid_to_modify('channel-partition', valid_keys, diffs.keys()):
+            self.log.info('TODO: Not-Implemented-yet')
+            # for k, v in diffs.items:
+            #     items[name][k] = v
+
+    def _on_channel_pair_modify(self, name, items, diffs):
+        if len(diffs) == 0:
+            return
+
+        valid_keys = ['line-rate']     # Modify of these keys supported
+
+        if self._valid_to_modify('channel-pair', valid_keys, diffs.keys()):
+            self.log.info('TODO: Not-Implemented-yet')
+            # for k, v in diffs.items:
+            #     items[name][k] = v
 
     def _on_channel_termination_create(self, name, pon_type='xgs-ponid'):
         assert name in self._channel_terminations, \
@@ -877,7 +979,6 @@ class AdtranOltHandler(AdtranDeviceHandler):
         # mcast_aes = cpart['mcast-aes']
 
         # TODO: Support BER calculation period
-        # TODO support FEC, and MCAST AES settings
         # TODO Support setting of line rate
 
         pon_port.xpon_name = name
@@ -885,9 +986,23 @@ class AdtranOltHandler(AdtranDeviceHandler):
         pon_port.authentication_method = authentication_method
         pon_port.deployment_range = deployment_range * 1000     # pon-agent uses meters
         pon_port.downstream_fec_enable = downstream_fec
+        # TODO: For now, upstream FEC = downstream
+        pon_port.upstream_fec_enable = downstream_fec
+
         # TODO: pon_port.mcast_aes = mcast_aes
 
         pon_port.admin_state = AdminState.ENABLED if enabled else AdminState.DISABLED
+
+    def _on_channel_termination_modify(self, name, items, diffs):
+        if len(diffs) == 0:
+            return
+
+        valid_keys = ['enabled']     # Modify of these keys supported
+
+        if self._valid_to_modify('channel-termination', valid_keys, diffs.keys()):
+            self.log.info('TODO: Not-Implemented-yet')
+            # for k, v in diffs.items:
+            #     items[name][k] = v
 
     def _on_channel_termination_delete(self, name, pon_type='xgs-ponid'):
         assert name in self._channel_terminations, \
@@ -900,7 +1015,23 @@ class AdtranOltHandler(AdtranDeviceHandler):
         if pon_port is None:
             raise ValueError('Unknown PON port. PON-ID: {}'.format(pon_id))
 
-        pon_port.enabled = False
+        pon_port.admin_state = AdminState.DISABLED
+
+    def _on_ont_ani_create(self, name):
+        self.log.info('TODO: Not-Implemented-yet')
+        # elif isinstance(data, OntaniConfig):
+        #     return 'ont-ani', {
+        #         'name': name,
+        #         'enabled': interface.enabled,
+        #         'upstream-fec': inst_data.upstream_fec_indicator,
+        #         'mgnt-gemport-aes': inst_data.mgnt_gemport_aes_indicator
+        #     }
+
+    def _on_ont_ani_delete(self, name):
+        self.log.info('TODO: Not-Implemented-yet')
+
+    def _on_ont_ani_modify(self, name, items, existing, update, diffs):
+        pass
 
     def create_tcont(self, tcont_data, traffic_descriptor_data):
         """
@@ -908,19 +1039,23 @@ class AdtranOltHandler(AdtranDeviceHandler):
         :param tcont_data:
         :param traffic_descriptor_data:
         """
+        self.log.debug('create-tcont', tcont=tcont_data, td=traffic_descriptor_data)
+
         traffic_descriptor = TrafficDescriptor.create(traffic_descriptor_data)
         tcont = TCont.create(tcont_data, traffic_descriptor)
 
-        if tcont.name in self._tconts:
-            raise KeyError("TCONT '{}' already exists".format(tcont.name))
+        if tcont.name not in self._tconts:
+            self._cached_xpon_pon_info = {}     # Clear cached data
+            self._tconts[tcont.name] = tcont
 
-        if traffic_descriptor.name in self._traffic_descriptors:
-            raise KeyError("Traffic Descriptor '{}' already exists".format(traffic_descriptor.name))
+            # Update any ONUs referenced
+            tcont.xpon_create(self)
 
-        self._cached_xpon_pon_info = {}     # Clear cached data
+            if traffic_descriptor.name not in self._traffic_descriptors:
+                self._traffic_descriptors[traffic_descriptor.name] = traffic_descriptor
 
-        self._tconts[tcont.name] = tcont
-        self._traffic_descriptors[traffic_descriptor.name] = traffic_descriptor
+                # Update any ONUs referenced
+                traffic_descriptor.xpon_create(self, tcont)
 
     def update_tcont(self, tcont_data, traffic_descriptor_data):
         """
@@ -928,6 +1063,8 @@ class AdtranOltHandler(AdtranDeviceHandler):
         :param tcont_data:
         :param traffic_descriptor_data:
         """
+        self.log.debug('update-tcont', tcont=tcont_data, td=traffic_descriptor_data)
+
         if tcont_data.name not in self._tconts:
             raise KeyError("TCONT '{}' does not exists".format(tcont_data.name))
 
@@ -940,6 +1077,9 @@ class AdtranOltHandler(AdtranDeviceHandler):
         traffic_descriptor = TrafficDescriptor.create(traffic_descriptor_data)
         tcont = TCont.create(tcont_data, traffic_descriptor)
         #
+        # Update any ONUs referenced
+        # tcont.xpon_update(self)
+        # traffic_descriptor.xpon_update(self, tcont)
         pass
         raise NotImplementedError('TODO: Not yet supported')
 
@@ -949,6 +1089,8 @@ class AdtranOltHandler(AdtranDeviceHandler):
         :param tcont_data:
         :param traffic_descriptor_data:
         """
+        self.log.debug('remove-tcont', tcont=tcont_data, td=traffic_descriptor_data)
+
         tcont = self._tconts.get(tcont_data.name)
         traffic_descriptor = self._traffic_descriptors.get(traffic_descriptor_data.name)
 
@@ -963,6 +1105,10 @@ class AdtranOltHandler(AdtranDeviceHandler):
             del self._tconts[tcont_data.name]
 
             self._cached_xpon_pon_info = {}     # Clear cached data
+
+            # Update any ONUs referenced
+            # tcont.xpon_delete(self)
+
             pass         # Perform any needed operations
             raise NotImplementedError('TODO: Not yet supported')
 
@@ -971,7 +1117,9 @@ class AdtranOltHandler(AdtranDeviceHandler):
         Create GEM Port
         :param data:
         """
-        gem_port = GemPort.create(data)
+        self.log.debug('create-gemport', gem_port=data)
+
+        gem_port = GemPort.create(data, self)
 
         if gem_port.name in self._gem_ports:
             raise KeyError("GEM Port '{}' already exists".format(gem_port.name))
@@ -979,20 +1127,25 @@ class AdtranOltHandler(AdtranDeviceHandler):
         self._cached_xpon_pon_info = {}  # Clear cached data
         self._gem_ports[gem_port.name] = gem_port
 
-        # TODO: On GEM Port changes, may need to add ONU Flow(s)
+        # Update any ONUs referenced
+        gem_port.xpon_create(self)
 
     def update_gemport(self, data):
         """
         Update GEM Port
         :param data:
         """
+        self.log.debug('update-gemport', gem_port=data)
+
         if data.name not in self._gem_ports:
             raise KeyError("GEM Port '{}' does not exists".format(data.name))
 
         self._cached_xpon_pon_info = {}  # Clear cached data
-        gem_port = GemPort.create(data)
+        #gem_port = GemPort.create(data)
         #
         # TODO: On GEM Port changes, may need to add/delete/modify ONU Flow(s)
+        # Update any ONUs referenced
+        # gem_port.xpon_update(self)
         pass
         raise NotImplementedError('TODO: Not yet supported')
 
@@ -1001,6 +1154,8 @@ class AdtranOltHandler(AdtranDeviceHandler):
         Delete GEM Port
         :param data:
         """
+        self.log.debug('remove-gemport', gem_port=data.name)
+
         gem_port = self._gem_ports.get(data.name)
 
         if gem_port is not None:
@@ -1009,6 +1164,8 @@ class AdtranOltHandler(AdtranDeviceHandler):
             self._cached_xpon_pon_info = {}     # Clear cached data
             #
             # TODO: On GEM Port changes, may need to delete ONU Flow(s)
+            # Update any ONUs referenced
+            # gem_port.xpon_delete(self)
             pass         # Perform any needed operations
             raise NotImplementedError('TODO: Not yet supported')
 
@@ -1018,6 +1175,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
         :data: multicast gemport data object
         :return: None
         """
+        self.log.debug('create-mcast-gemport', gem_port=data)
         #
         #
         #
@@ -1029,6 +1187,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
         :data: multicast gemport data object
         :return: None
         """
+        self.log.debug('update-mcast-gemport', gem_port=data)
         #
         #
         #
@@ -1040,6 +1199,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
         :data: multicast gemport data object
         :return: None
         """
+        self.log.debug('delete-mcast-gemport', gem_port=data.name)
         #
         #
         #

@@ -32,7 +32,8 @@ class GemPort(object):
                  traffic_class=None,
                  intf_ref=None,
                  exception=False,        # FIXED_ONU
-                 name=None):
+                 name=None,
+                 olt=None):
         self.name = name
         self.gem_id = gem_id
         self._alloc_id = alloc_id
@@ -44,6 +45,7 @@ class GemPort(object):
         self._omci_transport = omci_transport
         self.multicast = multicast
         self.exception = exception        # FIXED_ONU
+        self._olt = olt
 
     def __str__(self):
         return "GemPort: {}, alloc-id: {}, gem-id: {}".format(self.name,
@@ -51,7 +53,7 @@ class GemPort(object):
                                                               self.gem_id)
 
     @staticmethod
-    def create(data):
+    def create(data, olt):
         assert isinstance(data, GemportsConfigData)
 
         return GemPort(data.gemport_id, None,
@@ -60,15 +62,17 @@ class GemPort(object):
                        ident=data.id,
                        name=data.name,
                        traffic_class=data.traffic_class,
-                       intf_ref=data.itf_ref)            # v_enet
+                       intf_ref=data.itf_ref,            # v_enet
+                       olt=olt)
 
     @property
     def alloc_id(self):
-        if self._alloc_id is None:
-            #
-            # TODO: Resolve this (needs to be OLT handler)
-            #
-            pass
+        if self._alloc_id is None and self._olt is not None:
+            try:
+                self._alloc_id = self._olt.tconts.get(self.tconf_ref).alloc_id
+            except Exception:
+                pass
+
         return self._alloc_id
 
     @property
@@ -104,3 +108,35 @@ class GemPort(object):
         uri = AdtranOltHandler.GPON_GEM_CONFIG_URI.format(pon_id, onu_id, self.gem_id)
         name = 'gem-port-delete-{}-{}: {}'.format(pon_id, onu_id, self.gem_id)
         return session.request('DELETE', uri, name=name)
+
+    def _get_onu(self, olt):
+        onu = None
+        try:
+            v_enet = olt.v_enets.get(self.intf_ref)
+            vont_ani = olt.v_ont_anis.get(v_enet['v-ont-ani'])
+            ch_pair = olt.channel_pairs.get(vont_ani['preferred-channel-pair'])
+            ch_term = next((term for term in olt.channel_terminations.itervalues()
+                            if term['channel-pair'] == ch_pair['name']), None)
+
+            pon = olt.pon(ch_term['xgs-ponid'])
+            onu = pon.onu(vont_ani['onu-id'])
+
+        except Exception:
+            pass
+
+        return onu
+
+    def xpon_create(self, olt):
+        # Look up any associated ONU. May be None if pre-provisioning
+        onu = self._get_onu(olt)
+
+        if onu is not None:
+            onu.add_gem_port(self)
+
+    def xpon_update(self, olt):
+        # Look up any associated ONU. May be None if pre-provisioning
+        pass            # TODO: Not yet supported
+
+    def xpon_delete(self, olt):
+        # Look up any associated ONU. May be None if pre-provisioning
+        pass            # TODO: Not yet supported

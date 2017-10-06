@@ -297,6 +297,9 @@ class FlowEntry(object):
         """
         TODO: This is only while there is only a single downstream exception flow
         """
+        if self.ipv4_dst is not None:  # In case MCAST downstream has ACL on it
+            return False
+
         return self.eth_type is not None or self.ip_protocol is not None or\
             self.ipv4_dst is not None or self.udp_dst is not None or self.udp_src is not None
 

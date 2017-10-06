@@ -151,6 +151,9 @@ class PonPort(object):
     def olt(self):
         return self._parent
 
+    def onu(self, onu_id):
+        return self._onu_by_id.get(onu_id)
+
     @property
     def state(self):
         return self._state
@@ -301,7 +304,6 @@ class PonPort(object):
     def start(self):
         """
         Start/enable this PON and start ONU discover
-        :return: (deferred)
         """
         if self._state == PonPort.State.RUNNING:
             return succeed('Running')
@@ -421,16 +423,17 @@ class PonPort(object):
 
         self._cancel_deferred()
         self._enabled = False
-        results = yield self._set_pon_config("enabled", False)
-        self._sync_deferred = reactor.callLater(self._sync_tick, self._sync_hardware)
-
         self._admin_state = AdminState.DISABLED
         self._oper_status = OperStatus.UNKNOWN
         self._update_adapter_agent()
 
         self._state = PonPort.State.STOPPED
+
+        results = yield self._set_pon_config("enabled", False)
+        self._sync_deferred = reactor.callLater(self._sync_tick, self._sync_hardware)
+
         self.log.debug('stopped')
-        returnValue(results)
+        returnValue(succeed(results))
 
     @inlineCallbacks
     def reset(self):
@@ -729,9 +732,6 @@ class PonPort(object):
             self._active_los_alarms.add(onu_id)
             los_alarm(True, onu_id)
 
-        # TODO: A method to update the AdapterAgent's child device state (operStatus)
-        #       would be useful here
-
     def _process_status_onu_discovered_list(self, discovered_onus):
         """
         Look for new ONUs
@@ -770,6 +770,7 @@ class PonPort(object):
                 channel_speed = 0
                 tconts = get_tconts(serial_number, onu_id)
                 gem_ports = get_gem_ports(serial_number, onu_id)
+                vont_ani = None
 
             elif self.activation_method == "autodiscovery":
                 if self.authentication_method == 'serial-number':
@@ -779,6 +780,7 @@ class PonPort(object):
                         # TODO: Change iteration to itervalues below
                         vont_info = next(info for _, info in gpon_info['v-ont-anis'].items()
                                          if info.get('expected-serial-number') == serial_number)
+                        vont_ani = vont_info['data']
 
                         onu_id = vont_info['onu-id']
                         enabled = vont_info['enabled']
@@ -792,7 +794,7 @@ class PonPort(object):
                                      if val.tconf_ref in tcont_names}
 
                     except StopIteration:
-                        return None     # Can happen if vont-ani has not yet been configured
+                        return None     # Can happen if vont-ani/serial-number has not yet been configured
                 else:
                     return None
             else:
@@ -810,7 +812,8 @@ class PonPort(object):
                 't-conts': tconts,
                 'gem-ports': gem_ports,
                 'onu-vid': self.olt.get_channel_id(self._pon_id, onu_id),
-                'channel-id': self.olt.get_channel_id(self._pon_id, onu_id)
+                'channel-id': self.olt.get_channel_id(self._pon_id, onu_id),
+                'vont-ani': vont_ani
             }
             # Hold off ONU activation until at least one GEM Port is defined.
 
@@ -867,7 +870,9 @@ class PonPort(object):
                         self.add_mcast_gem_port(gem_port, -id_or_vid)
 
                 yield onu.create(tconts, gem_ports, reflow=reflow)
-                if not reflow:
+
+                # If autoactivate (demo) mode and not reflow, activate the ONU
+                if self.olt.autoactivate and not reflow:
                     self.activate_onu(onu)
 
             except Exception as e:
@@ -880,21 +885,18 @@ class PonPort(object):
     def activate_onu(self, onu):
         """
         Called when a new ONU is discovered and VOLTHA device adapter needs to be informed
-        :param onu: 
-        :return: 
+        :param onu:
         """
-        # Only call older 'child_device_detected' if not using xPON to configure the system
+        if self.olt.autoactivate:
+            self.log.info('activate-onu', onu=onu)
 
-        if self.activation_method == "autoactivate":
             olt = self.olt
             adapter = self.adapter_agent
             channel_id = onu.onu_vid
 
-            proxy = Device.ProxyAddress(device_id=olt.device_id,
-                                        channel_id=channel_id,
-                                        onu_id=onu.onu_id,
-                                        onu_session_id=onu.onu_id)
+            proxy = onu.proxy_address
 
+            # NOTE: The following method will be deprecated. Use xPON
             adapter.child_device_detected(parent_device_id=olt.device_id,
                                           parent_port_no=self._port_no,
                                           child_device_type=onu.vendor_id,
@@ -936,24 +938,16 @@ class PonPort(object):
         if onu is not None:
             # Clean up adapter agent of this ONU
 
-            proxy = Device.ProxyAddress(device_id=self.olt.device_id,
-                                        channel_id=onu.channel_id)
-            onu_device = self.olt.adapter_agent.get_child_device_with_proxy_address(proxy)
+            proxy = onu.proxy_address
 
-            if onu_device is not None:
-                self.olt.adapter_agent.delete_child_device(self.olt.device_id,
-                                                           onu_device.device_id)
+            if proxy is not None:
+                onu_device = self.olt.adapter_agent.get_child_device_with_proxy_address(proxy)
+                if onu_device is not None:
+                    self.olt.adapter_agent.delete_child_device(self.olt.device_id,
+                                                               onu_device.device_id)
 
         self.olt.adapter_agent.update_child_devices_state(self.olt.device_id,
                                                           admin_state=AdminState.DISABLED)
-
-        def delete_child_device(self, parent_device_id, child_device_id):
-            onu_device = self.root_proxy.get('/devices/{}'.format(child_device_id))
-            if onu_device is not None:
-                if onu_device.parent_id == parent_device_id:
-                    self.log.debug('deleting-child-device', parent_device_id=parent_device_id,
-                                   child_device_id=child_device_id)
-                    self._remove_node('/devices', child_device_id)
 
     def add_mcast_gem_port(self, mcast_gem, vlan):
         """
