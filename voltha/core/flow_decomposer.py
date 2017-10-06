@@ -450,6 +450,8 @@ class RouteHop(object):
             self._device == other._device and
             self._ingress_port == other._ingress_port and
             self._egress_port == other._egress_port)
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
 
 class FlowDecomposer(object):
@@ -678,6 +680,11 @@ class FlowDecomposer(object):
                         # re-run route request to determine egress device and
                         # ports
                         route2 = self.get_route(in_port_no, out_port_no)
+                        if route2 is None:
+                            log.error('mc-no-route', in_port_no=in_port_no,
+                                out_port_no=out_port_no, route2=route2,
+                                comment='ignoring flow')
+                            continue
 
                         assert len(route2) == 2
                         ingress_hop2, egress_hop = route2
