@@ -648,6 +648,9 @@ class LocalHandler(VolthaLocalServiceServicer):
             assert device.admin_state == AdminState.DISABLED, \
                 'Device to delete cannot be ' \
                 'in admin state \'{}\''.format(device.admin_state)
+            assert not device.type.endswith("_onu"), \
+                'ONU device cannot be deleted. ' \
+                'Please consider deleting VOntAni to delete ONU device.'
 
             self.root.remove(path)
 
