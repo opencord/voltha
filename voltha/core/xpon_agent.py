@@ -442,6 +442,8 @@ class XponAgent(object):
                 log.info('xpon-agent-updating-interface-at-onu-device:',
                          onu_device_id=onu_device.id, data=data)
                 self.update_interface_in_device(onu_device, data)
+                if isinstance(data, VOntaniConfig):
+                    self.update_onu_device(olt_device, onu_device, data)
 
     def remove_interface(self, data, device_id=None):
         if not self.is_valid_interface(data):
@@ -693,6 +695,20 @@ class XponAgent(object):
             admin_state=AdminState.ENABLED if v_ont_ani.interface.enabled
                                            else AdminState.PREPROVISIONED)
         return
+
+    def update_onu_device(self, olt_device, onu_device, v_ont_ani):
+        log.info('update-onu-device', olt_device_id=olt_device.id,
+                 onu_device_id=onu_device.id, v_ont_ani=v_ont_ani)
+        adapter_agent = self.get_device_adapter_agent(olt_device)
+        new_admin_state = AdminState.ENABLED if v_ont_ani.interface.enabled \
+            else AdminState.DISABLED
+        if onu_device.admin_state != new_admin_state:
+            log.info('update-onu-device-admin-state',
+                     onu_device_id=onu_device.id,
+                     new_admin_state=new_admin_state)
+            onu_device.admin_state = new_admin_state
+            self.core.get_proxy('/').update('/devices/{}'.format(onu_device.id),
+                                            onu_device)
 
     def delete_onu_device(self, olt_device, onu_device):
         log.info('delete-onu-device', olt_device_id=olt_device.id,
