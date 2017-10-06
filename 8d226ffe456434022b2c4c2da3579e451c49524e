@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a5c5d37_8d79d395",
+        "filename": "voltha/core/local_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 651,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-10-06T05:55:31Z",
+      "side": 1,
+      "message": "What is the effect if these asserts are false?  A message to the log and keep going?  Voltha exit with an exception?",
+      "revId": "8d226ffe456434022b2c4c2da3579e451c49524e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
