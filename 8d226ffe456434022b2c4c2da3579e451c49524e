@@ -16,6 +16,24 @@
       "revId": "8d226ffe456434022b2c4c2da3579e451c49524e",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_cdffcba9",
+        "filename": "voltha/core/local_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 651,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-10-06T17:35:30Z",
+      "side": 1,
+      "message": "If assert fails, the effect is ONU device remains in Voltha DB and function returns to the caller. Voltha does NOT exit, but it prints Exception messages into the logs, along with the prompt (in case of CLI), informing user that such operation is not allowed. So, yes voltha keep going.",
+      "parentUuid": "9a5c5d37_8d79d395",
+      "revId": "8d226ffe456434022b2c4c2da3579e451c49524e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
