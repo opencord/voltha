@@ -207,6 +207,15 @@ nosetests -s tests/itests/voltha/test_voltha_alarm_filters.py
 * **Dispatcher**:  This test exercises the requests forwarding via the Global 
 handler.
 
+Before running the test, start a voltha ensemble.  The first command is to 
+ensure we will be running cleanly:
+```
+cd /cord/incubator/voltha
+. ./env.sh
+docker-compose -f compose/docker-compose-system-test-dispatcher.yml down
+docker-compose -f compose/docker-compose-system-test-dispatcher.yml up -d
+```  
+
 During this test, the user will be prompted to start ponsim.  Use 
 these commands to run ponsim with 1 OLT and 4 ONUs.
 
