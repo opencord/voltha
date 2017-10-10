@@ -149,6 +149,30 @@ class Bal(object):
         return
 
     @inlineCallbacks
+    def deactivate_onu(self, onu_info):
+        try:
+            obj = bal_pb2.BalCfg()
+            # Fill Header details
+            obj.device_id = self.device_id.encode('ascii', 'ignore')
+            obj.hdr.obj_type = bal_model_ids_pb2.BAL_OBJ_ID_SUBSCRIBER_TERMINAL
+            # Fill Access Terminal Details
+            obj.terminal.key.intf_id = onu_info['pon_id']
+            obj.terminal.key.sub_term_id = onu_info['onu_id']
+            obj.terminal.data.admin_state = bal_model_types_pb2.BAL_STATE_DOWN
+            obj.terminal.data.serial_number.vendor_id = onu_info['vendor']
+            obj.terminal.data.serial_number.vendor_specific = \
+                onu_info['vendor_specific']
+            obj.terminal.data.registration_id = \
+                '202020202020202020202020202020202020202020202020202020202020202020202020'
+            self.log.info('deactivating-ONU-in-olt',
+                          onu_details=obj)
+            yield self.stub.BalCfgSet(obj)
+        except Exception as e:
+            self.log.info('deactivating-ONU-exception',
+                          onu_info['onu_id'], exc=str(e))
+        return
+
+    @inlineCallbacks
     def packet_out(self, pkt, pkt_info):
         obj = bal_pb2.BalCfg()
         obj.device_id = self.device_id.encode('ascii', 'ignore')
