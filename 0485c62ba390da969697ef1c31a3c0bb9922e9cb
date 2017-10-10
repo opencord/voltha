@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a5c5d37_f3c70e63",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 527,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2017-10-10T21:02:39Z",
+      "side": 1,
+      "message": "why is this preferable? and how do we guarantee uniqueness? if we let adapters provide there own, there is no \"standard\" across VOLTHA.",
+      "range": {
+        "startLine": 527,
+        "startChar": 0,
+        "endLine": 527,
+        "endChar": 42
+      },
+      "revId": "0485c62ba390da969697ef1c31a3c0bb9922e9cb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
