@@ -40,6 +40,12 @@ from voltha.protos.voltha_pb2 import DeviceGroup, LogicalDevice, \
     LogicalPort, AdminState, OperStatus, AlarmFilterRuleKey
 from voltha.registry import registry
 from common.utils.id_generation import create_cluster_device_id
+import re
+
+
+class MacAddressError(BaseException):
+    def __init__(self, error):
+        self.error = error
 
 @implementer(IAdapterAgent)
 class AdapterAgent(object):
@@ -496,17 +502,36 @@ class AdapterAgent(object):
         self._make_up_to_date('/devices/{}/ports'.format(device_id),
                               port.port_no, port)
 
-    def _find_first_available_id(self):
+    def _find_first_available_id(self, dpid=None):
+
+        def _is_valid_mac_address(dpid):
+            return re.match("[0-9a-f]{2}([-:])[0-9a-f]{2}(\\1[0-9a-f]{2}){4}$",
+                     dpid)
+
+        # If a dpid is provided then validate whether it is a MAC address
+        switch_id = 1
+        if dpid:
+            dpid = dpid.lower()
+            if not _is_valid_mac_address(dpid):
+                raise MacAddressError('Invalid-mac-address-format')
+            switch_id = int(dpid.replace(':', ''), 16)
+
         logical_devices = self.root_proxy.get('/logical_devices')
         existing_ids = set(ld.id for ld in logical_devices)
         existing_datapath_ids = set(ld.datapath_id for ld in logical_devices)
         core_id = registry('core').core_store_id
-        i = 1
+
         while True:
-            ld_id, dp_id = create_cluster_logical_device_ids(core_id, i)
-            if dp_id not in existing_datapath_ids and ld_id not in existing_ids:
+            ld_id, dp_id = create_cluster_logical_device_ids(core_id, switch_id)
+            existing_ids = dp_id in existing_datapath_ids or ld_id in \
+                                                            existing_ids
+            if not existing_ids:
                 return ld_id, dp_id
-            i += 1
+            else:
+                if dpid:
+                    raise MacAddressError('Already-registered-mac-address')
+                else:
+                    switch_id += 1
 
     def get_logical_device(self, logical_device_id):
         return self.root_proxy.get('/logical_devices/{}'.format(
@@ -516,11 +541,18 @@ class AdapterAgent(object):
         return self.root_proxy.get('/logical_devices/{}/ports/{}'.format(
             logical_device_id, port_id))
 
-    def create_logical_device(self, logical_device):
+    def create_logical_device(self, logical_device, dpid=None):
+        """
+        Allow the adapters to provide their own datapath id.  This must
+        be the OLT MAC address.
+        :param logical_device:
+        :param dpid: OLT MAC address
+        :return: updated logical device
+        """
         assert isinstance(logical_device, LogicalDevice)
 
         if not logical_device.id:
-            ld_id, dp_id = self._find_first_available_id()
+            ld_id, dp_id = self._find_first_available_id(dpid)
             logical_device.id = ld_id
             logical_device.datapath_id = dp_id
 
