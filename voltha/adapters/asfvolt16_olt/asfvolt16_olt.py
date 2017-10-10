@@ -85,3 +85,12 @@ class Asfvolt16Adapter(OltAdapter):
             handler = self.devices_handlers[device.id]
             if handler is not None:
                 handler.remove_gemport(data)
+
+    def receive_inter_adapter_message(self, msg):
+        log.info('receive_inter_adapter_message', msg=msg)
+        proxy_address = msg['proxy_address']
+        assert proxy_address is not None
+        if proxy_address.device_id:
+            handler = self.devices_handlers[proxy_address.device_id]
+            if handler is not None:
+                handler.update_onu(msg)
