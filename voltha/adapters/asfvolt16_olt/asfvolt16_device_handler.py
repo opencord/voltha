@@ -761,6 +761,22 @@ class Asfvolt16Handler(OltDeviceHandler):
             # ENABLED and operation state is in Failed or Unkown
             self.log.info('Not-Yet-handled', olt_id=self.olt_id,
                           pon_ni=ind_info['_pon_id'], onu_data=ind_info)
+        elif ind_info['activation_successful'] is False:
+            self.log.info('ONU-is in deactivated state')
+            msg = {'proxy_address': child_device.proxy_address,
+                   'event': 'deactivate-onu', 'event_data': ind_info}
+
+            # Send the event message to the ONU adapter
+            self.adapter_agent.publish_inter_adapter_message(child_device.id,
+                                                             msg)
+        elif ind_info['activation_successful'] is True:
+            self.log.info('ONU-re-activated')
+            msg = {'proxy_address': child_device.proxy_address,
+                   'event': 'activation-completed', 'event_data': ind_info}
+
+            # Send the event message to the ONU adapter
+            self.adapter_agent.publish_inter_adapter_message(child_device.id,
+                                                             msg)
         else:
             self.log.info('Invalid-ONU-event', olt_id=self.olt_id,
                           pon_ni=ind_info['_pon_id'], onu_data=ind_info)
@@ -771,8 +787,26 @@ class Asfvolt16Handler(OltDeviceHandler):
                       pon_ni=pon_id, onu_data=ind_info)
 
     def handle_activated_onu(self, child_device, ind_info):
-        pon_id = ind_info['_pon_id']
-        self.log.info('Not-handled-Yet', olt_id=self.olt_id,
+        if ind_info['activation_successful'] is False:
+            self.log.info('ONU-is in deactivated state')
+            msg = {'proxy_address': child_device.proxy_address,
+                   'event': 'deactivate-onu', 'event_data': ind_info}
+
+            # Send the event message to the ONU adapter
+            self.adapter_agent.publish_inter_adapter_message(child_device.id,
+                                                             msg)
+        elif ind_info['activation_successful'] is True:
+            self.log.info('ONU-activation-is-completed', olt_id=self.olt_id,
+                        pon_ni=pon_id, onu_data=ind_info)
+            msg = {'proxy_address': child_device.proxy_address,
+                   'event': 'activation-completed', 'event_data': ind_info}
+
+            # Send the event message to the ONU adapter
+            self.adapter_agent.publish_inter_adapter_message(child_device.id,
+                                                             msg)
+        else:
+            pon_id = ind_info['_pon_id']
+            self.log.info('handle_activated_onu:Not-handled-Yet', olt_id=self.olt_id,
                       pon_ni=pon_id, onu_data=ind_info)
 
     def handle_discovered_onu(self, child_device, ind_info):
@@ -781,18 +815,24 @@ class Asfvolt16Handler(OltDeviceHandler):
             self.log.info('Activation-is-in-progress', olt_id=self.olt_id,
                           pon_ni=pon_id, onu_data=ind_info,
                           onu_id=child_device.proxy_address.onu_id)
+            onu_info = dict()
+            onu_info['pon_id'] = child_device.parent_port_no
+            onu_info['onu_id'] = child_device.proxy_address.onu_id
+            onu_info['vendor'] = ind_info['_vendor_id']
+            onu_info['vendor_specific'] = ind_info['_vendor_specific']
+            self.bal.activate_onu(onu_info)
 
         elif ind_info['_sub_group_type'] == 'sub_term_indication':
-            self.log.info('ONU-activation-is-completed', olt_id=self.olt_id,
+            if ind_info['activation_successful'] is True:
+                self.log.info('ONU-activation-is-completed', olt_id=self.olt_id,
                           pon_ni=pon_id, onu_data=ind_info)
 
-            msg = {'proxy_address': child_device.proxy_address,
+                msg = {'proxy_address': child_device.proxy_address,
                    'event': 'activation-completed', 'event_data': ind_info}
 
-            # Send the event message to the ONU adapter
-            self.adapter_agent.publish_inter_adapter_message(child_device.id,
+                # Send the event message to the ONU adapter
+                self.adapter_agent.publish_inter_adapter_message(child_device.id,
                                                              msg)
-            if ind_info['activation_successful'] is True:
                 for key, v_ont_ani in self.v_ont_anis.items():
                     if v_ont_ani.v_ont_ani.data.onu_id == \
                             child_device.proxy_address.onu_id:
@@ -809,6 +849,14 @@ class Asfvolt16Handler(OltDeviceHandler):
                             owner_info['alloc_id'] = tcont.alloc_id
                             self.bal.create_scheduler(id, 'upstream',
                                                       owner_info, 8)
+            else:
+                self.log.info('ONU-is in deactivated state')
+                msg = {'proxy_address': child_device.proxy_address,
+                   'event': 'deactivate-onu', 'event_data': ind_info}
+
+                # Send the event message to the ONU adapter
+                self.adapter_agent.publish_inter_adapter_message(child_device.id,
+                                                             msg)
         else:
             self.log.info('Invalid-ONU-event', olt_id=self.olt_id,
                           pon_ni=ind_info['_pon_id'], onu_data=ind_info)
@@ -872,16 +920,30 @@ class Asfvolt16Handler(OltDeviceHandler):
                           serial_number=serial_number,
                           onu_id=child_device.proxy_address.onu_id,
                           pon_id=child_device.parent_port_no)
-            onu_info = dict()
-            onu_info['pon_id'] = child_device.parent_port_no
-            onu_info['onu_id'] = child_device.proxy_address.onu_id
-            onu_info['vendor'] = child_device.vendor_id
-            onu_info['vendor_specific'] = serial_number[4:]
-            self.bal.activate_onu(onu_info)
         else:
             self.log.info('Invalid-ONU-state-to-activate',
                           onu_id=child_device.proxy_address.onu_id,
                           serial_number=serial_number)
+
+    def update_onu(self, msg):
+        proxy_address = msg['proxy_address']
+        assert proxy_address is not None
+        # Device_id from the proxy_address is the olt device id. We need to
+        # get the onu device id using the port number in the proxy_address
+        child_device = self.adapter_agent. \
+            get_child_device_with_proxy_address(proxy_address)
+        if child_device:
+            onu_info = dict()
+            onu_info['pon_id'] = child_device.parent_port_no
+            onu_info['onu_id'] = child_device.proxy_address.onu_id
+            onu_info['vendor'] = child_device.vendor_id
+            onu_info['vendor_specific'] = child_device.serial_number[4:]
+        if msg['event'] == 'onu-deactivation':
+            self.bal.deactivate_onu(onu_info)
+        elif msg['event'] == 'onu-activation':
+            self.bal.activate_onu(onu_info)
+        else:
+            self.log.info('Invalid ONU event')
 
     def create_interface(self, data):
         try:
@@ -926,11 +988,11 @@ class Asfvolt16Handler(OltDeviceHandler):
                     self.channel_terminations[data.name] = \
                         channel_termination_config
             if isinstance(data, VOntaniConfig):
+                self.handle_v_ont_ani_config(data)
                 if data.name in self.v_ont_anis:
                     self.log.info('v_ont_ani-already-present',
                                   v_ont_ani=data)
                 else:
-                    self.handle_v_ont_ani_config(data)
                     v_ont_ani_config = VOntAniHandler()
                     v_ont_ani_config.v_ont_ani.CopyFrom(data)
                     self.v_ont_anis[data.name] = v_ont_ani_config
