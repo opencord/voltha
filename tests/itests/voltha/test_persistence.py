@@ -20,7 +20,7 @@ from common.utils.consulhelpers import get_endpoint_from_consul
 from voltha.protos.voltha_pb2 import AlarmFilter
 
 LOCAL_CONSUL = "localhost:8500"
-DOCKER_COMPOSE_FILE = "compose/docker-compose-system-test.yml"
+DOCKER_COMPOSE_FILE = "compose/docker-compose-system-test-persistence.yml"
 
 command_defs = dict(
     docker_ps="docker ps",
@@ -69,7 +69,7 @@ class TestConsulPersistence(RestBase):
                                   msg)
         TestConsulPersistence.t0[0] = t1
 
-    @skip('Test case hangs during execution. Investigation required. Refer to VOL-425 and VOL-427')
+    # @skip('Test case hangs during execution. Investigation required. Refer to VOL-425 and VOL-427')
     def test_all_scenarios(self):
         self.basic_scenario()
         self.data_integrity()
@@ -151,7 +151,8 @@ class TestConsulPersistence(RestBase):
 
         # 2. Configure some data on the volthainstance
         self.assert_no_device_present()
-        olt = self.add_olt_device()
+        host = '172.17.0.1'
+        olt = self.add_olt_device(host)
         olt_id = olt['id']
         self.pt(olt_id)
         self.verify_device_preprovisioned_state(olt_id)
@@ -315,7 +316,7 @@ class TestConsulPersistence(RestBase):
         self.pt("Waiting for voltha and chameleon containers to be ready ...")
         self.wait_till('voltha services HEALTHY',
                        lambda: verify_all_services_healthy(LOCAL_CONSUL,
-                                                           service_name='voltha-grpc') == True,
+                                                           service_name='vcore-grpc') == True,
                        timeout=10)
         self.wait_till('chameleon services HEALTHY',
                        lambda: verify_all_services_healthy(LOCAL_CONSUL,
@@ -336,7 +337,7 @@ class TestConsulPersistence(RestBase):
         self.pt("Waiting for voltha to be ready ...")
         self.wait_till('voltha service HEALTHY',
                        lambda: verify_all_services_healthy(LOCAL_CONSUL,
-                                                           service_name='voltha-grpc') == True,
+                                                           service_name='vcore-grpc') == True,
                        timeout=30)
         self.pt("Voltha is ready ...")
 
@@ -374,7 +375,8 @@ class TestConsulPersistence(RestBase):
         self.n_olts = 100
         self.olt_devices = {}
         for i in xrange(self.n_olts):
-            d = self.add_olt_device()
+            host = '172.17.1.{}'.format(i)
+            d = self.add_olt_device(host)
             self.olt_devices[d['id']] = d
 
     def get_voltha_instance_data(self):
@@ -383,10 +385,10 @@ class TestConsulPersistence(RestBase):
         data['logical_devices'] = self.get('/api/v1/logical_devices')
         return data
 
-    def add_olt_device(self):
+    def add_olt_device(self, host):
         device = Device(
             type='ponsim_olt',
-            host_and_port='172.17.0.1:50060'
+            host_and_port='{}:50060'.format(host)
         )
         device = self.post('/api/v1/devices', MessageToDict(device),
                            expected_http_code=200)
