@@ -23,7 +23,7 @@ from twisted.internet.defer import inlineCallbacks
 from voltha.protos.events_pb2 import KpiEvent, MetricValuePairs
 from voltha.protos.events_pb2 import KpiEventType
 from voltha.protos.device_pb2 import PmConfigs, PmConfig,PmGroupConfig
-from voltha.adapters.asfvolt16_olt.protos import bal_errno_pb2
+from voltha.adapters.asfvolt16_olt.protos import bal_errno_pb2, bal_pb2
 from voltha.protos.events_pb2 import AlarmEvent, AlarmEventType, \
     AlarmEventSeverity, AlarmEventState, AlarmEventCategory
 from scapy.layers.l2 import Ether, Dot1Q
@@ -129,7 +129,8 @@ class Asfvolt16OltPmMetrics:
         }
         self.device = device
         self.id = device.id
-        self.default_freq = 150
+        # To collect pm metrices for each 'pm_default_freq/10' secs
+        self.pm_default_freq = 20
         self.pon_metrics = dict()
         self.nni_metrics = dict()
         for m in self.pm_names:
@@ -143,8 +144,8 @@ class Asfvolt16OltPmMetrics:
                                                    enabled=True), value = 0)
 
     def update(self, device, pm_config):
-        if self.default_freq != pm_config.default_freq:
-            self.default_freq = pm_config.default_freq
+        if self.pm_default_freq != pm_config.default_freq:
+            self.pm_default_freq = pm_config.default_freq
 
         if pm_config.grouped is True:
             log.error('pm-groups-are-not-supported')
@@ -156,7 +157,7 @@ class Asfvolt16OltPmMetrics:
     def make_proto(self):
         pm_config = PmConfigs(
             id=self.id,
-            default_freq=self.default_freq,
+            default_freq=self.pm_default_freq,
             grouped = False,
             freq_override = False)
         return pm_config
@@ -182,8 +183,11 @@ class Asfvolt16Handler(OltDeviceHandler):
         self.pm_metrics = None
         self.heartbeat_count = 0
         self.heartbeat_miss = 0
-        self.heartbeat_interval = 12000000
-        self.heartbeat_failed_limit = 3
+        # For each 'heartbeat_interval' seconds,
+        # Adapter will send heartbeat request to device
+        self.heartbeat_interval = 5
+        self.heartbeat_failed_limit = 1
+        self.is_heartbeat_started = 0
 
     def __del__(self):
         super(Asfvolt16Handler, self).__del__()
@@ -306,13 +310,15 @@ class Asfvolt16Handler(OltDeviceHandler):
 
         self.log.info('activating-asfvolt16-olt', device=device)
 
-        if self.logical_device_id is None:
+        if not device.host_and_port:
+            device.oper_status = OperStatus.FAILED
+            device.reason = 'No host_and_port field provided'
+            self.adapter_agent.update_device(device)
+            return
 
-            if not device.host_and_port:
-                device.oper_status = OperStatus.FAILED
-                device.reason = 'No host_and_port field provided'
-                self.adapter_agent.update_device(device)
-                return
+        self.bal.connect_olt(device.host_and_port, self.device_id)
+
+        if self.logical_device_id is None:
 
             self.host_and_port = device.host_and_port
             device.root = True
@@ -331,91 +337,99 @@ class Asfvolt16Handler(OltDeviceHandler):
                                   device_id=device.id,
                                   logical_device_id=self.logical_device_id)
 
-            self.bal.connect_olt(device.host_and_port, self.device_id)
-
         self.bal.activate_olt()
 
         device = self.adapter_agent.get_device(device.id)
         device.parent_id = self.logical_device_id
-        #device.connect_status = ConnectStatus.REACHABLE
-        device.connect_status = ConnectStatus.UNREACHABLE
+        device.connect_status = ConnectStatus.REACHABLE
         device.oper_status = OperStatus.ACTIVATING
         self.adapter_agent.update_device(device)
 
     @inlineCallbacks
-    def heartbeat(self, device_id, state = 'run'):
-        self.log.debug('olt-heartbeat', device=device_id, state=state,
+    def heartbeat(self, device, state = 'run'):
+        self.log.debug('olt-heartbeat', device=device, state=state,
                        count=self.heartbeat_count)
+        self.is_heartbeat_started = 1
 
-        def heartbeat_alarm(device_id, status, heartbeat_misses=0):
+        def heartbeat_alarm(device, status, heartbeat_misses=0):
             try:
                 ts = arrow.utcnow().timestamp
 
                 alarm_data = {'heartbeats_missed':str(heartbeat_misses)}
 
                 alarm_event = self.adapter_agent.create_alarm(
-                    id='voltha.{}.{}.olt'.format(self.adapter.name, device_id),
+                    id='voltha.{}.{}.olt'.format(self.adapter.name, device),
                     resource_id='olt',
                     type=AlarmEventType.EQUIPMENT,
                     category=AlarmEventCategory.OLT,
                     severity=AlarmEventSeverity.CRITICAL,
                     state=AlarmEventState.RAISED if status else
                         AlarmEventState.CLEARED,
-                    description='OLT Alarm - Heartbeat - {}'.format('Raised'
+                    description='OLT Alarm - Connection to OLT - {}'.format('Lost'
                                                                     if status
-                                                                    else 'Cleared'),
+                                                                    else 'Regained'),
                     context=alarm_data,
                     raised_ts = ts)
 
-                self.adapter_agent.submit_alarm(device_id, alarm_event)
+                self.adapter_agent.submit_alarm(device, alarm_event)
+                self.log.debug('olt-heartbeat alarm sent')
 
             except Exception as e:
                 self.log.exception('failed-to-submit-alarm', e=e)
 
-        if state == 'stop':
-            return
-
-        if state == 'start':
-            self.heartbeat_count = 0
-            self.heartbeat_miss = 0
-
-        hrtbeat_status = 0
-
         try:
             d = yield self.bal.get_bal_heartbeat(self.device_id.__str__())
-            if d.err != bal_errno_pb2.BAL_ERR_OK:
-                hrtbeat_status = -1
-        except Exception, e:
-             hrtbeat_status = -1
+        except Exception as e:
+             d = None
 
-        _device = device_id
+        _device = device
 
-        if hrtbeat_status == -1:
-            # something is not right
+        if d == None:
+            # something is not right - OLT is not Reachable
             self.heartbeat_miss += 1
             self.log.info('olt-heartbeat-miss',d=d,
                           count=self.heartbeat_count, miss=self.heartbeat_miss)
         else:
             if self.heartbeat_miss > 0:
                 self.heartbeat_miss = 0
-                _device.connect_status = ConnectStatus.REACHABLE
-                _device.oper_status = OperStatus.ACTIVE
-                _device.reason = ''
-                self.adapter_agent.update_device(_device)
-                heartbeat_alarm(device_id, 0)
+                if d.is_reboot == bal_pb2.BAL_OLT_UP_AFTER_REBOOT:
+                    self.log.info('Activating OLT again after reboot')
+
+                    # Since OLT is reachable after reboot, OLT should configurable with
+                    # all the old existing flows. NNI port should be mark it as down for
+                    # ONOS to push the old flows
+                    self.update_logical_port(ASFVOLT_NNI_PORT, Port.ETHERNET_NNI,
+                                             OFPPS_LINK_DOWN)
+                    for key, v_ont_ani in self.v_ont_anis.items():
+                        child_device = self.adapter_agent.get_child_device(
+                           self.device_id, onu_id=v_ont_ani.v_ont_ani.data.onu_id)
+                        if child_device:
+                            msg = {'proxy_address': child_device.proxy_address,
+                                   'event': 'deactivate-onu', 'event_data': "olt-reboot"}
+                            # Send the event message to the ONU adapter
+                            self.adapter_agent.publish_inter_adapter_message(child_device.id,
+                                                                             msg)
+                    #Activate Device
+                    self.activate(device);
+                else:
+                    _device.connect_status = ConnectStatus.REACHABLE
+                    _device.oper_status = OperStatus.ACTIVE
+                    _device.reason = ''
+                    self.adapter_agent.update_device(_device)
+                self.log.info('Clearing the Hearbeat Alarm')
+                heartbeat_alarm(_device, 0)
 
         if (self.heartbeat_miss >= self.heartbeat_failed_limit) and \
            (_device.connect_status == ConnectStatus.REACHABLE):
-            self.log.info('olt-heartbeat-failed',  hrtbeat_status=hrtbeat_status,
-                          count=self.heartbeat_miss)
+            self.log.info('olt-heartbeat-failed', count=self.heartbeat_miss)
             _device.connect_status = ConnectStatus.UNREACHABLE
             _device.oper_status = OperStatus.FAILED
             _device.reason = 'Lost connectivity to OLT'
             self.adapter_agent.update_device(_device)
-            heartbeat_alarm(device_id, 1, self.heartbeat_miss)
+            heartbeat_alarm(device, 1, self.heartbeat_miss)
 
         self.heartbeat_count += 1
-        reactor.callLater(self.heartbeat_interval, self.heartbeat, device_id)
+        reactor.callLater(self.heartbeat_interval, self.heartbeat, device)
 
     @inlineCallbacks
     def reboot(self):
@@ -706,18 +720,20 @@ class Asfvolt16Handler(OltDeviceHandler):
             self.log.info('OLT activation complete')
 
             #heart beat - To health checkup of OLT
-            self.heartbeat(device)
+            if self.is_heartbeat_started == 0:
+                self.log.info('Heart beat is not yet started..starting now')
+                self.heartbeat(device)
 
-            self.pm_metrics=Asfvolt16OltPmMetrics(device)
-            pm_config = self.pm_metrics.make_proto()
-            self.log.info("initial-pm-config", pm_config=pm_config)
-            self.adapter_agent.update_device_pm_config(pm_config,init=True)
+                self.pm_metrics=Asfvolt16OltPmMetrics(device)
+                pm_config = self.pm_metrics.make_proto()
+                self.log.info("initial-pm-config", pm_config=pm_config)
+                self.adapter_agent.update_device_pm_config(pm_config,init=True)
 
-            # Apply the PM configuration
-            self.update_pm_config(device, pm_config)
+                # Apply the PM configuration
+                self.update_pm_config(device, pm_config)
 
-            # Request PM counters from OLT device.
-            self._handle_pm_counter_req_towards_device(device)
+                # Request PM counters from OLT device.
+                self._handle_pm_counter_req_towards_device(device)
         else:
             device.oper_status = OperStatus.FAILED
             device.reason = 'Failed to Intialize OLT'
