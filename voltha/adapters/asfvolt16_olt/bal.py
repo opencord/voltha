@@ -413,8 +413,8 @@ class Bal(object):
         try:
             obj =  bal_pb2.BalHeartbeat()
             obj.device_id = device_id
-            err = yield self.stub.BalApiHeartbeat(obj)
-            self.log.info('OLT HeartBeat Response Received from', device=device_id, hearbeat_err=err)
-            returnValue(err)
+            rebootStatus = yield self.stub.BalApiHeartbeat(obj)
+            self.log.info('OLT HeartBeat Response Received from', device=device_id, rebootStatus=rebootStatus)
+            returnValue(rebootStatus)
         except Exception as e:
             self.log.info('OLT HeartBeat failed', exc=str(e))
