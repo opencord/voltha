@@ -31,7 +31,7 @@
     }
   },
   "devices": {
-    "of:0001000000000001": {
+    "of:0001aabbccddeeff": {
       "basic": {
         "driver": "pmc-olt"
       },

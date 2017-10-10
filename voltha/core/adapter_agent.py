@@ -496,17 +496,22 @@ class AdapterAgent(object):
         self._make_up_to_date('/devices/{}/ports'.format(device_id),
                               port.port_no, port)
 
-    def _find_first_available_id(self):
+    def _find_first_available_id(self, dpid=None):
         logical_devices = self.root_proxy.get('/logical_devices')
         existing_ids = set(ld.id for ld in logical_devices)
         existing_datapath_ids = set(ld.datapath_id for ld in logical_devices)
         core_id = registry('core').core_store_id
-        i = 1
+        switch_id = 1
+        if dpid:
+            try:
+                switch_id = int(dpid, 16)
+            except Exception as e:
+                self.log.warm('invalid-datapath-id', datapath_id=dpid)
         while True:
-            ld_id, dp_id = create_cluster_logical_device_ids(core_id, i)
+            ld_id, dp_id = create_cluster_logical_device_ids(core_id, switch_id)
             if dp_id not in existing_datapath_ids and ld_id not in existing_ids:
                 return ld_id, dp_id
-            i += 1
+            switch_id += 1
 
     def get_logical_device(self, logical_device_id):
         return self.root_proxy.get('/logical_devices/{}'.format(
@@ -516,11 +521,18 @@ class AdapterAgent(object):
         return self.root_proxy.get('/logical_devices/{}/ports/{}'.format(
             logical_device_id, port_id))
 
-    def create_logical_device(self, logical_device):
+    def create_logical_device(self, logical_device, dpid=None):
+        """
+        Allow the adapters to provide their own datapath id.  This should
+        preferably be the OLT MAC address.
+        :param logical_device:
+        :param dpid: OLT MAC address
+        :return: updated logical device
+        """
         assert isinstance(logical_device, LogicalDevice)
 
         if not logical_device.id:
-            ld_id, dp_id = self._find_first_available_id()
+            ld_id, dp_id = self._find_first_available_id(dpid)
             logical_device.id = ld_id
             logical_device.datapath_id = dp_id
 
