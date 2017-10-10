@@ -324,7 +324,8 @@ class Asfvolt16RxHandler(object):
         ind_info['_vendor_id'] = onu_data.data.serial_number.vendor_id
         ind_info['_vendor_specific'] = \
             onu_data.data.serial_number.vendor_specific
-        if (bal_model_types_pb2.BAL_STATE_DOWN == onu_data.data.admin_state):
+        if ((bal_model_types_pb2.BAL_STATE_DOWN == onu_data.data.admin_state)
+            or (bal_model_types_pb2.BAL_STATUS_UP != onu_data.data.oper_status)):
             ind_info['activation_successful'] = False
         elif (bal_model_types_pb2.BAL_STATE_UP == onu_data.data.admin_state):
             ind_info['activation_successful'] = True
