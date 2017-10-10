@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a5c5d37_e82efda4",
+        "filename": "docker/config/dependencies.xml",
+        "patchSetId": 3
+      },
+      "lineNbr": 60,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-10-10T17:21:35Z",
+      "side": 1,
+      "message": "Needs to be removed",
+      "range": {
+        "startLine": 54,
+        "startChar": 0,
+        "endLine": 60,
+        "endChar": 39
+      },
+      "revId": "7d76366714034844c90584f51f109a93b8f81f07",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_082271b9",
+        "filename": "docker/config/dependencies.xml",
+        "patchSetId": 3
+      },
+      "lineNbr": 88,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-10-10T17:21:35Z",
+      "side": 1,
+      "message": "Needs to be removed.",
+      "range": {
+        "startLine": 82,
+        "startChar": 0,
+        "endLine": 88,
+        "endChar": 39
+      },
+      "revId": "7d76366714034844c90584f51f109a93b8f81f07",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
