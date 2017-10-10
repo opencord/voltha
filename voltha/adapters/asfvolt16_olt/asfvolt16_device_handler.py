@@ -444,13 +444,15 @@ class Asfvolt16Handler(OltDeviceHandler):
     def _req_pm_counter_from_device_in_loop(self, device):
         # NNI port is hardcoded to 0
         kpi_status = -1
-        try:
-           pm_counters = yield self.bal.get_bal_nni_stats(0)
-           kpi_status = 0
-        except Exception, e:
-           kpi_status = -1
-
-        self.log.info('pm_counters',pm_counters=pm_counters)
+        if device.connect_status == ConnectStatus.UNREACHABLE:
+           self.log.info('Device is not Reachable')
+        else:
+           try:
+              pm_counters = yield self.bal.get_bal_nni_stats(0)
+              kpi_status = 0
+              self.log.info('pm_counters',pm_counters=pm_counters)
+           except Exception as e:
+              kpi_status = -1
 
         if kpi_status == 0 and pm_counters!=None:
            pm_data = { }
@@ -486,20 +488,17 @@ class Asfvolt16Handler(OltDeviceHandler):
         else:
            self.log.info('Lost Connectivity to OLT')
 
-
-        '''
-        reactor.callLater(self.pm_metrics.default_freq/10,
+        reactor.callLater(self.pm_metrics.pm_default_freq/10,
                           self._req_pm_counter_from_device_in_loop,
                           device)
-        '''
 
     def update_pm_config(self, device, pm_config):
         self.log.info("update-pm-config", device=device, pm_config=pm_config)
         self.pm_metrics.update(device, pm_config)
 
-    def handle_report_alarm(self, _device_id, _object, key, alarm,
-                            status, priority,
-                            alarm_data=None):
+    def handle_alarms(self, _device_id, _object, key, alarm,
+                      status, priority,
+                      alarm_data=None):
         self.log.info('received-alarm-msg',
                  object=_object,
                  key=key,
@@ -557,54 +556,67 @@ class Asfvolt16Handler(OltDeviceHandler):
     def BalIfaceLosAlarm(self, device_id, Iface_ID,\
                          los_status, IfaceLos_data):
         self.log.info('Interface Loss Of Signal Alarm')
-        self.handle_report_alarm(device_id,"pon_ni",\
-                                 Iface_ID,\
-                                 "loss_of_signal",los_status,"high",\
-                                 IfaceLos_data)
+        self.handle_alarms(device_id,"pon_ni",\
+                           Iface_ID,\
+                           "loss_of_signal",los_status,"high",\
+                           IfaceLos_data)
 
-    def BalSubsTermDgiAlarm(self, device_id, Iface_ID,\
-                            dgi_status, balSubTermDgi_data):
+    def BalSubsTermDgiAlarm(self, device_id, intf_id,\
+                            onu_id, dgi_status, balSubTermDgi_data,\
+                            ind_info):
         self.log.info('Subscriber terminal dying gasp')
-        self.handle_report_alarm(device_id,"onu",\
-                                 Iface_ID,\
-                                 "dgi_indication",dgi_status,"high",\
-                                 balSubTermDgi_data)
+        self.handle_alarms(device_id,"onu",\
+                           intf_id,\
+                           "dgi_indication",dgi_status,"medium",\
+                           balSubTermDgi_data)
+        if dgi_status == 1:
+            child_device = self.adapter_agent.get_child_device(
+                           device_id, onu_id=onu_id)
+            if child_device is None:
+               self.log.info('Onu-is-not-configured', onu_id=onu_id)
+               return
+            msg = {'proxy_address': child_device.proxy_address,
+                   'event': 'deactivate-onu', 'event_data': ind_info}
+
+            # Send the event message to the ONU adapter
+            self.adapter_agent.publish_inter_adapter_message(child_device.id,
+                                                                 msg)
 
     def BalSubsTermLosAlarm(self, device_id, Iface_ID,
                          los_status, SubTermAlarm_Data):
         self.log.info('ONU Alarms for Subscriber Terminal LOS')
-        self.handle_report_alarm(device_id,"onu",\
-                                 Iface_ID,\
-                                 "ONU : Loss Of Signal",\
-                                 los_status, "High",\
-                                 SubTermAlarm_Data)
+        self.handle_alarms(device_id,"onu",\
+                           Iface_ID,\
+                           "ONU : Loss Of Signal",\
+                           los_status, "medium",\
+                           SubTermAlarm_Data)
 
     def BalSubsTermLobAlarm(self, device_id, Iface_ID,
                          lob_status, SubTermAlarm_Data):
         self.log.info('ONU Alarms for Subscriber Terminal LOB')
-        self.handle_report_alarm(device_id,"onu",\
-                                 Iface_ID,\
-                                 "ONU : Loss Of Burst",\
-                                 lob_status, "High",\
-                                 SubTermAlarm_Data)
+        self.handle_alarms(device_id,"onu",\
+                           Iface_ID,\
+                           "ONU : Loss Of Burst",\
+                           lob_status, "medium",\
+                           SubTermAlarm_Data)
 
     def BalSubsTermLopcMissAlarm(self, device_id, Iface_ID,
                          lopc_miss_status, SubTermAlarm_Data):
         self.log.info('ONU Alarms for Subscriber Terminal LOPC Miss')
-        self.handle_report_alarm(device_id,"onu",\
-                                 Iface_ID,\
-                                 "ONU : Loss Of PLOAM miss channel",\
-                                 lopc_miss_status, "High",\
-                                 SubTermAlarm_Data)
+        self.handle_alarms(device_id,"onu",\
+                           Iface_ID,\
+                           "ONU : Loss Of PLOAM miss channel",\
+                           lopc_miss_status, "medium",\
+                           SubTermAlarm_Data)
 
     def BalSubsTermLopcMicErrorAlarm(self, device_id, Iface_ID,
                          lopc_mic_error_status, SubTermAlarm_Data):
         self.log.info('ONU Alarms for Subscriber Terminal LOPC Mic Error')
-        self.handle_report_alarm(device_id,"onu",\
-                                 Iface_ID,\
-                                 "ONU : Loss Of PLOAM MIC Error",\
-                                 lopc_mic_error_status, "High",\
-                                 SubTermAlarm_Data)
+        self.handle_alarms(device_id,"onu",\
+                           Iface_ID,\
+                           "ONU : Loss Of PLOAM MIC Error",\
+                           lopc_mic_error_status, "medium",\
+                           SubTermAlarm_Data)
 
     def add_port(self, port_no, port_type, label):
         self.log.info('adding-port', port_no=port_no, port_type=port_type)
