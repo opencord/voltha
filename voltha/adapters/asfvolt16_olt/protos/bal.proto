@@ -25,6 +25,17 @@ message BalErr {
     BalErrno err = 1;
 }
 
+enum BalRebootStatus
+{
+    BAL_OLT_UP_AFTER_REBOOT               =  0;
+    BAL_OLT_UP_AFTER_ACTIVATION           =  1;
+    BAL_OLT_STATUS_UNKNOWN                =  2;
+}
+
+message BalRebootState {
+    BalRebootStatus is_reboot = 1;
+}
+
 /**
  * BAL configuration object
  */
@@ -87,6 +98,6 @@ service Bal {
     rpc BalCfgClear(BalKey) returns(BalErr) {}
     rpc BalCfgGet(BalKey) returns(BalCfg) {}
     rpc BalApiReboot(BalReboot) returns(BalErr) {}
-    rpc BalApiHeartbeat(BalHeartbeat) returns(BalErr) {}
+    rpc BalApiHeartbeat(BalHeartbeat) returns(BalRebootState) {}
     rpc BalCfgStatGet(BalInterfaceKey) returns(BalInterfaceStat) {}
 }
