@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "9a5c5d37_4849898a",
+        "filename": "docker/config/dependencies.xml",
+        "patchSetId": 3
+      },
+      "lineNbr": 60,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-10-10T17:17:44Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "9a5c5d37_e8803d8d",
+      "range": {
+        "startLine": 54,
+        "startChar": 24,
+        "endLine": 60,
+        "endChar": 39
+      },
+      "revId": "1ef14e5ab13df6bfb385b43544a881ad7a98f26b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a5c5d37_c87d79b3",
         "filename": "docker/config/dependencies.xml",
         "patchSetId": 3
@@ -36,6 +60,30 @@
       "writtenOn": "2017-10-10T17:03:48Z",
       "side": 1,
       "message": "needs to be removed",
+      "range": {
+        "startLine": 82,
+        "startChar": 24,
+        "endLine": 88,
+        "endChar": 39
+      },
+      "revId": "1ef14e5ab13df6bfb385b43544a881ad7a98f26b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_285e5546",
+        "filename": "docker/config/dependencies.xml",
+        "patchSetId": 3
+      },
+      "lineNbr": 88,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-10-10T17:17:44Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "9a5c5d37_c87d79b3",
       "range": {
         "startLine": 82,
         "startChar": 24,
