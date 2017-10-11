@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a5c5d37_1322a2b9",
+        "filename": "voltha/worker.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 121,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-10-11T01:05:10Z",
+      "side": 1,
+      "message": "Have you seen a scenario where the key is valid but the value is None?   If you did, can you provide more details on the scenario that led to that?  In principle this should not happen.   if it does then we need to get to the bottom of it.\n\nThanks\nKhen",
+      "revId": "6384696844cc09cf5e6066cb6a3a1e298c3e8b54",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
