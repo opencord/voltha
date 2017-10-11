@@ -70,6 +70,30 @@
       "revId": "0485c62ba390da969697ef1c31a3c0bb9922e9cb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_8ed8a954",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 527,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-10-11T15:29:06Z",
+      "side": 1,
+      "message": "Good points.\n\nWhile the adapters will specify the lower 48 bits of the DPID, voltha will prefix the higher 16 bits with the coreid, hence making it unique within voltha.   Of course, we will have to reject existing DPIDs, at least those know to voltha.  \n\nFor DPID that exists in non-voltha switch and not in voltha we will have to rely on ONOS (+apps) to reject a hello msg from voltha (via ofagent) if the DPID (lower 48 bits) is already registered.   Another option would be to expose a Voltha API where an operator can provide a list of blacklisted MAC addresses that voltha must not accept.   \n\nFor now, i will leave the DPID optional in the API and assert it to be a MAC address.\n\nThoughts?",
+      "parentUuid": "9a5c5d37_ee0285b3",
+      "range": {
+        "startLine": 527,
+        "startChar": 0,
+        "endLine": 527,
+        "endChar": 42
+      },
+      "revId": "0485c62ba390da969697ef1c31a3c0bb9922e9cb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
