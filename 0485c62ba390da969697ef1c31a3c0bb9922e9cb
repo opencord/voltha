@@ -46,6 +46,30 @@
       "revId": "0485c62ba390da969697ef1c31a3c0bb9922e9cb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_ee0285b3",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 527,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2017-10-11T15:09:08Z",
+      "side": 1,
+      "message": "There is a thread now in voltha-discuss about the DPID. I think we would have to wait for a major version upgrade to modify the API.\n\nI suspect if it is optional we could default to the MAC address.\n\nStill concerned how we deal with uniqueness if the ID is being specified externally? Do we reject the API call if that DPID already exists in voltha? What happens if the DPID doesn\u0027t exist in VOLTHA but exists for a non-VOLTHA switch?",
+      "parentUuid": "9a5c5d37_0ec15980",
+      "range": {
+        "startLine": 527,
+        "startChar": 0,
+        "endLine": 527,
+        "endChar": 42
+      },
+      "revId": "0485c62ba390da969697ef1c31a3c0bb9922e9cb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
