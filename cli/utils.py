@@ -32,9 +32,9 @@ def pb2dict(pb_msg):
 
 
 def p_cookie(cookie):
-    cookie = str(cookie)
+    cookie =  '%x' % int(cookie)
     if len(cookie) > 8:
-        return cookie[:6] + '...'
+        return '~' + cookie[len(cookie)-8:]
     else:
         return cookie
 
@@ -152,9 +152,27 @@ def print_flows(what, id, type, flows, groups, printfn=_printfn):
 
     table.print_table(header, printfn)
 
-    # see CORD-817 (https://jira.opencord.org/browse/CORD-817)
-    # assert len(groups) == 0
 
+def print_groups(what, id, type, groups, printfn=_printfn):
+    header = ''.join([
+        '{} '.format(what),
+        colored(id, color='green', attrs=['bold']),
+        ' (type: ',
+        colored(type, color='blue'),
+        ')'
+    ]) + '\nGroups ({}):'.format(len(groups))
+
+    table = TablePrinter()
+    for i, group in enumerate(groups):
+        output_ports = []
+        for bucket in group['desc']['buckets']:
+            for action in bucket['actions']:
+                if action['type'] == 'OFPAT_OUTPUT':
+                   output_ports.append(action['output']['port'])
+        table.add_cell(i, 0, 'group_id', value=str(group['desc']['group_id']))
+        table.add_cell(i, 1, 'buckets', value=str(dict(output=output_ports)))
+
+    table.print_table(header, printfn)
 
 def dict2line(d):
     assert isinstance(d, dict)
