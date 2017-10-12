@@ -34,6 +34,24 @@
       "revId": "705f2107e4315f302c76ffc032ea5eed9fd69f0f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_a2ddc144",
+        "filename": "voltha/adapters/ponsim_olt/ponsim_olt.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 456,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-10-12T13:28:37Z",
+      "side": 1,
+      "message": "What if MAC address is passed for the device when it is pre-provisioned and this is used for dpid generation. Right now \"mac_address\" is under \"address\" in message \n \"device\" in device.proto. Since \"address\" is a \u0027oneof\u0027 proto field, if we configure any other \"address\" than \"mac_address\", we cannot derive the dpid. \nIf we move the \"mac_address\" out of \"address\" and make it mandatory to configure it device provisioning, it will facilitate a neat way to derive the dpid. Each access device will have a mac_address, so why not make it mandatory to pass it during device pre-provisioning.\nThoughts?",
+      "parentUuid": "9a5c5d37_c231d5a3",
+      "revId": "705f2107e4315f302c76ffc032ea5eed9fd69f0f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
