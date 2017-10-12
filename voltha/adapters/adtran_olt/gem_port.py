@@ -55,6 +55,12 @@ class GemPort(object):
     @staticmethod
     def create(data, olt):
         assert isinstance(data, GemportsConfigData)
+        exception = data.gemport_id in [2180, 2186, 2192,
+                                        2198, 2204, 2210,
+                                        2216, 2222, 2228,
+                                        2234, 2240, 2246,
+                                        2252, 2258]
+        mcast = data.gemport_id in [4095]
 
         return GemPort(data.gemport_id, None,
                        encryption=data.aes_indicator,
@@ -63,7 +69,9 @@ class GemPort(object):
                        name=data.name,
                        traffic_class=data.traffic_class,
                        intf_ref=data.itf_ref,            # v_enet
-                       olt=olt)
+                       olt=olt,
+                       multicast=mcast,
+                       exception=exception)
 
     @property
     def alloc_id(self):

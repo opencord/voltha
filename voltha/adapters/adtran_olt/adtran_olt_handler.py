@@ -848,7 +848,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
 
         raise NotImplementedError('TODO: not yet supported')
 
-    def delete_interface(self, data):
+    def remove_interface(self, data):
         """
         Deleete XPON interfaces
         :param data: (xpon config info)

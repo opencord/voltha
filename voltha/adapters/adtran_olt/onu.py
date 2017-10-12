@@ -32,6 +32,10 @@ _VSSN_TO_VENDOR = {
     'TBIT': 'tibit_onu',
 }
 
+_MAX_EXPEDITE_COUNT = 5
+_EXPEDITE_SECS = 2
+_HW_SYNC_SECS = 30
+
 
 class Onu(object):
     """
@@ -43,16 +47,6 @@ class Onu(object):
     DEFAULT_PASSWORD = ''
 
     def __init__(self, onu_info):
-        # onu_info = {
-        #     'serial-number': serial_number,
-        #     'xpon-name': None,
-        #     'pon-id': self.pon_id,
-        #     'onu-id': None,  # Set later (mandatory)
-        #     'enabled': True,
-        #     'upstream-channel-speed': 0,
-        #     't-conts': get_tconts(self.pon_id, serial_number),
-        #     'gem-ports': get_gem_ports(self.pon_id, serial_number),
-        # }
         self._onu_id = onu_info['onu-id']
         if self._onu_id is None:
             raise ValueError('No ONU ID available')
@@ -82,9 +76,10 @@ class Onu(object):
 
         self._include_multicast = True        # TODO: May need to add multicast on a per-ONU basis
 
-        self._sync_tick = 60.0
+        self._sync_tick = _HW_SYNC_SECS
         self._expedite_sync = False
         self._expedite_count = 0
+        self._resync_flows = False
         self._sync_deferred = None     # For sync of ONT config to hardware
 
         # TODO: enable and upstream-channel-speed not yet supported
@@ -126,6 +121,10 @@ class Onu(object):
         return self._onu_id
 
     @property
+    def device_id(self):
+        return self._device_id
+
+    @property
     def name(self):
         return self._name
 
@@ -137,6 +136,8 @@ class Onu(object):
     def enabled(self, value):
         if self._enabled != value:
             self._enabled = value
+            self._resync_flows = True
+
             self.set_config('enable', self._enabled)
 
             if self._enabled:
@@ -147,6 +148,10 @@ class Onu(object):
     @property
     def onu_vid(self):
         return self._onu_vid
+
+    @property
+    def uni_ports(self):
+        return self._uni_ports
 
     @property
     def logical_port(self):
@@ -248,6 +253,7 @@ class Onu(object):
 
     def _cancel_deferred(self):
         d, self._sync_deferred = self._sync_deferred, None
+
         if d is not None and not d.called:
             try:
                 d.cancel()
@@ -278,7 +284,6 @@ class Onu(object):
 
         except Exception as e:  # TODO: Add breakpoint here during unexpected reboot test
             self.log.exception('onu-create', e=e)
-            raise
 
         # Now set up all tconts & gem-ports
         first_sync = self._sync_tick
@@ -353,36 +358,50 @@ class Onu(object):
     def restart(self):
         if not self._valid:
             return succeed('Deleting')
+
+        self._cancel_deferred()
+        self._sync_deferred = reactor.callLater(0, self._sync_hardware)
+
         tconts, self._tconts = self._tconts, {}
         gem_ports, self._gem_ports = self._gem_ports, {}
+
         return self.create(tconts, gem_ports)
 
     def _sync_hardware(self):
         from codec.olt_config import OltConfig
         self.log.debug('sync-hardware')
+
         def read_config(results):
             self.log.debug('read-config', results=results)
 
-            config = OltConfig.Pon.Onu.decode([results])
-            assert self.onu_id in config, 'sync-onu-not-found-{}'.format(self.onu_id)
-            config = config[self.onu_id]
             dl = []
 
-            if self._enabled != config.enable:
-                dl.append(self.set_config('enable', self._enabled))
+            try:
+                config = OltConfig.Pon.Onu.decode([results])
+                assert self.onu_id in config, 'sync-onu-not-found-{}'.format(self.onu_id)
+                config = config[self.onu_id]
 
-            if self.serial_number != config.serial_number:
-                dl.append(self.set_config('serial-number', self.serial_number))
+                if self._enabled != config.enable:
+                    dl.append(self.set_config('enable', self._enabled))
 
-            # Sync TCONTs if everything else in sync
+                if self.serial_number != config.serial_number:
+                    dl.append(self.set_config('serial-number', self.serial_number))
 
-            if len(dl) == 0:
-                dl.extend(sync_tconts(config.tconts))
+                # Sync TCONTs if everything else in sync
 
-            # Sync GEM Ports if everything else in sync
+                if len(dl) == 0:
+                    dl.extend(sync_tconts(config.tconts))
 
-            if len(dl) == 0:
-                dl.extend(sync_gem_ports(config.gem_ports))
+                # Sync GEM Ports if everything else in sync
+
+                if len(dl) == 0:
+                    dl.extend(sync_gem_ports(config.gem_ports))
+
+                if len(dl) == 0:
+                    sync_flows()
+
+            except Exception as e:
+                self.log.exception('hw-sync-read-config', e=e)
 
             # Run h/w sync again a bit faster if we had to sync anything
             self._expedite_sync = len(dl) > 0
@@ -395,17 +414,21 @@ class Onu(object):
             my_alloc_ids = frozenset(self._tconts.iterkeys())
             dl = []
 
-            extra_alloc_ids = hw_alloc_ids - my_alloc_ids
-            dl.extend(sync_delete_extra_tconts(extra_alloc_ids))
+            try:
+                extra_alloc_ids = hw_alloc_ids - my_alloc_ids
+                dl.extend(sync_delete_extra_tconts(extra_alloc_ids))
 
-            missing_alloc_ids = my_alloc_ids - hw_alloc_ids
-            dl.extend(sync_add_missing_tconts(missing_alloc_ids))
+                missing_alloc_ids = my_alloc_ids - hw_alloc_ids
+                dl.extend(sync_add_missing_tconts(missing_alloc_ids))
 
-            matching_alloc_ids = my_alloc_ids & hw_alloc_ids
-            matching_hw_tconts = {alloc_id: tcont
-                                  for alloc_id, tcont in hw_tconts.iteritems()
-                                  if alloc_id in matching_alloc_ids}
-            dl.extend(sync_matching_tconts(matching_hw_tconts))
+                matching_alloc_ids = my_alloc_ids & hw_alloc_ids
+                matching_hw_tconts = {alloc_id: tcont
+                                      for alloc_id, tcont in hw_tconts.iteritems()
+                                      if alloc_id in matching_alloc_ids}
+                dl.extend(sync_matching_tconts(matching_hw_tconts))
+
+            except Exception as e:
+                self.log.exception('hw-sync-tconts', e=e)
 
             return dl
 
@@ -461,17 +484,23 @@ class Onu(object):
             my_gems_ids = frozenset(self._gem_ports.iterkeys())
             dl = []
 
-            extra_gems_ids = hw_gems_ids - my_gems_ids
-            dl.extend(sync_delete_extra_gem_ports(extra_gems_ids))
+            try:
+                extra_gems_ids = hw_gems_ids - my_gems_ids
+                dl.extend(sync_delete_extra_gem_ports(extra_gems_ids))
 
-            missing_gem_ids = my_gems_ids - hw_gems_ids
-            dl.extend(sync_add_missing_gem_ports(missing_gem_ids))
+                missing_gem_ids = my_gems_ids - hw_gems_ids
+                dl.extend(sync_add_missing_gem_ports(missing_gem_ids))
 
-            matching_gem_ids = my_gems_ids & hw_gems_ids
-            matching_hw_gem_ports = {gem_id: gem_port
-                                     for gem_id, gem_port in hw_gem_ports.iteritems()
-                                     if gem_id in matching_gem_ids}
-            dl.extend(sync_matching_gem_ports(matching_hw_gem_ports))
+                matching_gem_ids = my_gems_ids & hw_gems_ids
+                matching_hw_gem_ports = {gem_id: gem_port
+                                         for gem_id, gem_port in hw_gem_ports.iteritems()
+                                         if gem_id in matching_gem_ids}
+
+                dl.extend(sync_matching_gem_ports(matching_hw_gem_ports))
+                self._resync_flows |= len(dl) > 0
+
+            except Exception as e:
+                self.log.exception('hw-sync-gem-ports', e=e)
 
             return dl
 
@@ -496,6 +525,12 @@ class Onu(object):
                                                        operation='PATCH'))
             return dl
 
+        def sync_flows():
+            from flow.flow_entry import FlowEntry
+
+            reflow, self._resync_flows = self._resync_flows, False
+            return FlowEntry.sync_flows_by_onu(self, reflow=reflow)
+
         def failure(reason):
             # self.log.error('hardware-sync-get-config-failed', reason=reason)
             pass
@@ -510,8 +545,8 @@ class Onu(object):
 
             if self._expedite_sync:
                 self._expedite_count += 1
-                if self._expedite_count < 5:
-                    delay = 5
+                if self._expedite_count < _MAX_EXPEDITE_COUNT:
+                    delay = _EXPEDITE_SECS
             else:
                 self._expedite_count = 0
 
@@ -525,9 +560,14 @@ class Onu(object):
         if not self.pon.enabled:
             return reschedule('not-enabled')
 
-        self._sync_deferred = self._get_config()
-        self._sync_deferred.addCallbacks(read_config, failure)
-        self._sync_deferred.addBoth(reschedule)
+        try:
+            self._sync_deferred = self._get_config()
+            self._sync_deferred.addCallbacks(read_config, failure)
+            self._sync_deferred.addBoth(reschedule)
+
+        except Exception as e:
+            self.log.exception('hw-sync-main', e=e)
+            return reschedule('sync-exception')
 
     def _get_config(self):
         uri = AdtranOltHandler.GPON_ONU_CONFIG_URI.format(self._pon_id, self.onu_id)
@@ -646,13 +686,17 @@ class Onu(object):
             results = yield gem_port.add_to_hardware(self.olt.rest_client,
                                                      self._pon_id,
                                                      self.onu_id)
+            # self._resync_flows = True
 
             # May need to update flow tables/evc-maps
             if gem_port.alloc_id in self._tconts:
+                from flow.flow_entry import FlowEntry
                 # GEM-IDs are a sorted list (ascending). First gemport handles downstream traffic
                 # from flow.flow_entry import FlowEntry
-                # evc_maps = FlowEntry.find_evc_map_flows(self._device_id, self._pon_id, self._onu_id)
-                pass   # TODO: Start here Tuesday
+                evc_maps = FlowEntry.find_evc_map_flows(self)
+
+                for evc_map in evc_maps:
+                    evc_map.add_gem_port(gem_port, reflow=reflow)
 
         except Exception as e:
             self.log.exception('gem-port', gem_port=gem_port, reflow=reflow, e=e)
@@ -670,8 +714,11 @@ class Onu(object):
             returnValue(succeed('nop'))
 
         del self._gem_ports[gem_id]
+        # self._resync_flows = True
 
         try:
+            from flow.flow_entry import FlowEntry
+
             if gem_port.alloc_id in self._tconts:
                 # May need to update flow tables/evc-maps
                 # GEM-IDs are a sorted list (ascending). First gemport handles downstream traffic
@@ -680,6 +727,11 @@ class Onu(object):
             results = yield gem_port.remove_from_hardware(self.olt.rest_client,
                                                           self._pon_id,
                                                           self.onu_id)
+            evc_maps = FlowEntry.find_evc_map_flows(self)
+
+            for evc_map in evc_maps:
+                evc_map.remove_gem_port(gem_port)
+
         except Exception as e:
             self.log.exception('delete', e=e)
             raise

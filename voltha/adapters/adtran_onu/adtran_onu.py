@@ -20,7 +20,7 @@ Adtran ONU adapter.
 
 from uuid import uuid4
 from twisted.internet import reactor
-from twisted.internet.defer import DeferredQueue, inlineCallbacks, returnValue
+from twisted.internet.defer import DeferredQueue, inlineCallbacks, returnValue, succeed
 
 from voltha.adapters.iadapter import OnuAdapter
 from voltha.core.logical_device_agent import mac_str_to_tuple
@@ -47,6 +47,7 @@ _STARTUP_RETRY_WAIT = 5
 
 class AdtranOnuAdapter(OnuAdapter):
     def __init__(self, adapter_agent, config):
+        self.log = structlog.get_logger()
         super(AdtranOnuAdapter, self).__init__(adapter_agent=adapter_agent,
                                                config=config,
                                                device_handler_class=AdtranOnuHandler,
@@ -228,6 +229,7 @@ class AdtranOnuHandler(object):
         self.adapter_agent = adapter.adapter_agent
         self.device_id = device_id
         self.logical_device_id = None
+        self.enabled = True
         self.log = structlog.get_logger(device_id=device_id)
         self.incoming_messages = DeferredQueue(size=_MAX_INCOMING_OMCI_MESSAGES)
         self.proxy_address = None
@@ -247,6 +249,14 @@ class AdtranOnuHandler(object):
         self._gem_ports = {}              # Name -> dict
         self._deferred = None
 
+    def _cancel_deferred(self):
+        d, self._deferred = self._deferred, None
+        try:
+            if d is not None and not d.called:
+                d.cancel()
+        except:
+            pass
+
     def receive_message(self, msg):
         try:
             self.incoming_messages.put(msg)
@@ -260,7 +270,9 @@ class AdtranOnuHandler(object):
         # first we verify that we got parent reference and proxy info
         assert device.parent_id, 'Invalid Parent ID'
         assert device.proxy_address.device_id, 'Invalid Device ID'
-        assert device.proxy_address.channel_id, 'invalid Channel ID'
+        # assert device.proxy_address.channel_id, 'invalid Channel ID'
+
+        self._cancel_deferred()
 
         # register for proxied messages right away
         self.proxy_address = device.proxy_address
@@ -326,6 +338,10 @@ class AdtranOnuHandler(object):
 
             device = self.adapter_agent.get_device(self.device_id)
 
+            if control_vlan is not None and device.vlan != control_vlan:
+                device.vlan = control_vlan
+                self.adapter_agent.update_device(device)
+
             openflow_port = ofp_port(
                     port_no=openflow_port_no,
                     hw_addr=mac_str_to_tuple('08:00:%02x:%02x:%02x:%02x' %
@@ -348,9 +364,6 @@ class AdtranOnuHandler(object):
                                                     ofp_port=openflow_port,
                                                     device_id=device.id,
                                                     device_port_no=self.uni_port.port_no))
-            if control_vlan is not None and device.vlan != control_vlan:
-                device.vlan = control_vlan
-                self.adapter_agent.update_device(device)
 
     def _get_uni_port(self):
         ports = self.adapter_agent.get_ports(self.device_id, Port.ETHERNET_UNI)
@@ -370,7 +383,8 @@ class AdtranOnuHandler(object):
         # first we verify that we got parent reference and proxy info
         assert device.parent_id
         assert device.proxy_address.device_id
-        assert device.proxy_address.channel_id
+        # assert device.proxy_address.channel_id
+        self._cancel_deferred()
 
         # register for proxied messages right away
         self.proxy_address = device.proxy_address
@@ -379,6 +393,7 @@ class AdtranOnuHandler(object):
         # Set the connection status to REACHABLE
         device.connect_status = ConnectStatus.REACHABLE
         self.adapter_agent.update_device(device)
+        self.enabled = True
 
         # TODO: Verify that the uni, pon and logical ports exists
 
@@ -458,13 +473,15 @@ class AdtranOnuHandler(object):
 
         except Exception as e:
             self.last_response = None
-            self.log.info('wait-for-response-exception', exc=str(e))
             raise e
 
     @inlineCallbacks
     def message_exchange(self):
         self.log.info('message-exchange')
         self._deferred = None
+
+        if self.device_id is None or self.incoming_messages is None:
+            returnValue(succeed('deleted'))
 
         # reset incoming message queue
         while self.incoming_messages.pending:
@@ -474,10 +491,18 @@ class AdtranOnuHandler(object):
         # Start by getting some useful device information
 
         device = self.adapter_agent.get_device(self.device_id)
-        device.oper_status = OperStatus.ACTIVATING
+        # TODO    device.oper_status = OperStatus.ACTIVATING
+
+        device.oper_status = OperStatus.ACTIVE
+        device.connect_status = ConnectStatus.REACHABLE
         self.adapter_agent.update_device(device)
 
-        device.connect_status = ConnectStatus.UNREACHABLE
+        if not self.enabled:
+            # Try again later
+            self._deferred = reactor.callLater(_STARTUP_RETRY_WAIT,
+                                               self.message_exchange)
+        # TODO    device.connect_status = ConnectStatus.UNREACHABLE
+
         try:
             # TODO: Handle tx/wait-for-response timeouts and retry logic.
             # May timeout to ONU not fully discovered (can happen in xPON case)
@@ -572,8 +597,7 @@ class AdtranOnuHandler(object):
             device.connect_status = ConnectStatus.REACHABLE
 
         except Exception as e:
-            self.log.exception('Failed', e=e)
-
+            self.log.debug('Failed', e=e)
             # Try again later. May not have been discovered
             self._deferred = reactor.callLater(_STARTUP_RETRY_WAIT,
                                                self.message_exchange)
@@ -885,6 +909,7 @@ class AdtranOnuHandler(object):
     def reboot(self):
         from common.utils.asleep import asleep
         self.log.info('rebooting', device_id=self.device_id)
+        self._cancel_deferred()
 
         # Update the operational status to ACTIVATING and connect status to
         # UNREACHABLE
@@ -893,6 +918,7 @@ class AdtranOnuHandler(object):
         previous_conn_status = device.connect_status
         device.oper_status = OperStatus.ACTIVATING
         device.connect_status = ConnectStatus.UNREACHABLE
+
         self.adapter_agent.update_device(device)
 
         # Sleep 10 secs, simulating a reboot
@@ -915,11 +941,15 @@ class AdtranOnuHandler(object):
         :param device: A Voltha.Device object.
         :return: Will return result of self test
         """
+        from voltha.protos.voltha_pb2 import SelfTestResponse
         self.log.info('self-test-device', device=device.id)
-        raise NotImplementedError()
+        # TODO: Support self test?
+        return SelfTestResponse(result=SelfTestResponse.NOT_SUPPORTED)
 
     def disable(self):
         self.log.info('disabling', device_id=self.device_id)
+        self.enabled = False
+        self._cancel_deferred()
 
         # Get the latest device reference
         device = self.adapter_agent.get_device(self.device_id)
@@ -972,11 +1002,12 @@ class AdtranOnuHandler(object):
         try:
             # Get the latest device reference
             device = self.adapter_agent.get_device(self.device_id)
+            self._cancel_deferred()
 
             # First we verify that we got parent reference and proxy info
             assert device.parent_id
             assert device.proxy_address.device_id
-            assert device.proxy_address.channel_id
+            # assert device.proxy_address.channel_id
 
             # Re-register for proxied messages right away
             self.proxy_address = device.proxy_address
@@ -1010,6 +1041,8 @@ class AdtranOnuHandler(object):
 
             device = self.adapter_agent.get_device(device.id)
             device.oper_status = OperStatus.ACTIVE
+            self.enabled = True
+
             self.adapter_agent.update_device(device)
 
             self.log.info('re-enabled', device_id=device.id)
@@ -1019,12 +1052,22 @@ class AdtranOnuHandler(object):
     def delete(self):
         self.log.info('deleting', device_id=self.device_id)
         # A delete request may be received when an OLT is disabled
+
+        self.enabled = False
+        self._cancel_deferred()
+
         # TODO:  Need to implement this
         # 1) Remove all flows from the device
+
+        # Drop references
+        self.incoming_messages = None
+
         self.log.info('deleted', device_id=self.device_id)
 
-    # PON Mgnt APIs #
+        # Drop device ID
+        self.device_id = None
 
+    # PON Mgnt APIs #
 
     def _get_xpon_collection(self, data):
         if isinstance(data, OntaniConfig):
@@ -1091,7 +1134,10 @@ class AdtranOnuHandler(object):
 
     def _decode_openflow_port_and_control_vlan(self, venet_info):
         try:
-            ofp_port_no = int(venet_info['name'].split('-')[1])
+            # Allow spaces or dashes as separator, select last as
+            # the port number
+
+            ofp_port_no = int(venet_info['name'].replace(' ', '-').split('-')[-1:][0])
             cntl_vlan = ofp_port_no
 
             return ofp_port_no, cntl_vlan
@@ -1120,11 +1166,13 @@ class AdtranOnuHandler(object):
 
         raise NotImplementedError('TODO: not yet supported')
 
-    def delete_interface(self, data):
+    def remove_interface(self, data):
         """
         Deleete XPON interfaces
         :param data: (xpon config info)
         """
+        self.log.info('remove-interface', data=data)
+
         name = data.name
         interface = data.interface
         inst_data = data.data
@@ -1135,7 +1183,7 @@ class AdtranOnuHandler(object):
         if item in items:
             del items[name]
             pass    # TODO Do something....
-            raise NotImplementedError('TODO: not yet supported')
+            # raise NotImplementedError('TODO: not yet supported')
 
     def create_tcont(self, tcont_data, traffic_descriptor_data):
         """
@@ -1191,7 +1239,7 @@ class AdtranOnuHandler(object):
         if tcont is not None:
             del self._tconts[tcont_data.name]
             pass         # Perform any needed operations
-            raise NotImplementedError('TODO: Not yet supported')
+            # raise NotImplementedError('TODO: Not yet supported')
 
     def create_gemport(self, data):
         """
@@ -1233,7 +1281,7 @@ class AdtranOnuHandler(object):
             #
             # TODO: On GEM Port changes, may need to delete ONU Flow(s)
             pass         # Perform any needed operations
-            raise NotImplementedError('TODO: Not yet supported')
+            # raise NotImplementedError('TODO: Not yet supported')
 
     def create_multicast_gemport(self, data):
         """

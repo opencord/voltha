@@ -56,7 +56,7 @@ class NniPort(object):
         self._logical_port = None
         self._parent = parent
 
-        self._sync_tick = 20.0      # TODO: Implement
+        self._sync_tick = 10.0
         self._sync_deferred = None
 
         self._deferred = None
