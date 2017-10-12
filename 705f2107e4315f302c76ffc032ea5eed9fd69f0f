@@ -88,6 +88,24 @@
       "revId": "705f2107e4315f302c76ffc032ea5eed9fd69f0f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_e2ba99e0",
+        "filename": "voltha/adapters/ponsim_olt/ponsim_olt.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 456,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-10-12T14:04:17Z",
+      "side": 1,
+      "message": "There are no Jira yet for the mac address (check the https://groups.google.com/a/opencord.org/forum/#!topic/voltha-discuss/KPO0mFLWfK4 that started that discussion).    I guess a Jira (or jiras) will be created after that discussion.",
+      "parentUuid": "9a5c5d37_22f1d1cd",
+      "revId": "705f2107e4315f302c76ffc032ea5eed9fd69f0f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
