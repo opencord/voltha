@@ -16,6 +16,24 @@
       "revId": "705f2107e4315f302c76ffc032ea5eed9fd69f0f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_c231d5a3",
+        "filename": "voltha/adapters/ponsim_olt/ponsim_olt.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 456,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-10-12T12:41:46Z",
+      "side": 1,
+      "message": "At this time, ponsim supports only 1 OLT.  I am setting the MAC address such that anywhere we see this id (e.g. listing devices in cli, rest or in onos) we know this is a ponsim OLT.",
+      "parentUuid": "9a5c5d37_225551c6",
+      "revId": "705f2107e4315f302c76ffc032ea5eed9fd69f0f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
