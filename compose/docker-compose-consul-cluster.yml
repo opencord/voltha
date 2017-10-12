@@ -16,6 +16,11 @@ services:
 
   consul:
     image: consul:0.9.2
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: 3
 
     # Deploy to all docker manager nodes
     deploy:

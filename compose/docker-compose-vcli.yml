@@ -11,6 +11,11 @@ version: "3"
 services:
   cli:
     image: cord/vcli:latest
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: 3
     deploy:
       replicas: 2
     environment:
