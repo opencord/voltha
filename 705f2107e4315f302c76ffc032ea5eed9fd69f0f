@@ -70,6 +70,24 @@
       "revId": "705f2107e4315f302c76ffc032ea5eed9fd69f0f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_22f1d1cd",
+        "filename": "voltha/adapters/ponsim_olt/ponsim_olt.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 456,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-10-12T14:01:03Z",
+      "side": 1,
+      "message": "Ok. I presume the issue on deriving mac_address in the adapter will addressed later in the community. Is there jira ticket for this, or one needs to be created.\n+1 for the current change.",
+      "parentUuid": "9a5c5d37_62e7c913",
+      "revId": "705f2107e4315f302c76ffc032ea5eed9fd69f0f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
