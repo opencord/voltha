@@ -14,6 +14,11 @@ version: "3"
 services:
   netconf:
     image: cord/netconf:latest
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: 3
     deploy:
       mode: global
     environment:

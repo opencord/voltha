@@ -11,6 +11,11 @@ version: "3"
 services:
   voltha:
     image: voltha/envoy:latest
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: 3
     deploy:
       replicas: 1
     environment:

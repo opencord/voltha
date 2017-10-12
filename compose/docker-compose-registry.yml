@@ -9,6 +9,11 @@ version: "3"
 services:
   registry:
     image: registry:2
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: 3
     restart: always
     deploy:
       replicas: 1

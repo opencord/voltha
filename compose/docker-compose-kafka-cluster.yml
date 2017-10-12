@@ -17,6 +17,11 @@ version: '3'
 services:
     zk1:
         image: zookeeper
+        logging:
+            driver: "json-file"
+            options:
+               max-size: "10m"
+               max-file: 3
         networks:
             - net
         environment:
@@ -25,6 +30,11 @@ services:
 
     zk2:
         image: zookeeper
+        logging:
+            driver: "json-file"
+            options:
+                max-size: "10m"
+                max-file: 3
         networks:
             - net
         environment:
@@ -33,6 +43,11 @@ services:
 
     zk3:
         image: zookeeper
+        logging:
+            driver: "json-file"
+            options:
+                max-size: "10m"
+                max-file: 3
         networks:
             - net
         environment:
@@ -43,6 +58,11 @@ services:
         deploy:
             mode: global
         image: wurstmeister/kafka
+        logging:
+            driver: "json-file"
+            options:
+                max-size: "10m"
+                max-file: 3
         environment:
             KAFKA_ADVERTISED_PORT: 9092
             KAFKA_ZOOKEEPER_CONNECT: zk1:2181,zk2:2181,zk3:2181

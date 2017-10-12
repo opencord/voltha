@@ -14,6 +14,11 @@ services:
 
   fluentdactv:
     image: cord/fluentd
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: 3
     deploy:
       replicas: 1
       restart_policy:
@@ -29,6 +34,11 @@ services:
 
   fluentdstby:
     image: cord/fluentd
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: 3
     deploy:
       replicas: 1
       restart_policy:

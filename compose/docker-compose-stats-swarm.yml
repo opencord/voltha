@@ -16,6 +16,11 @@ version: "3"
 services:
   dashd:
     image: cord/dashd
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: 3
     deploy:
       replicas: 1
     entrypoint:
@@ -30,6 +35,11 @@ services:
 
   shovel:
     image: cord/shovel
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: 3
     deploy:
       replicas: 1
     entrypoint:

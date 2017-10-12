@@ -12,6 +12,11 @@ services:
         deploy:
             replicas: 1
         image: "marcelmaatkamp/freeradius"
+        logging:
+            driver: "json-file"
+            options:
+                max-size: "10m"
+                max-file: 3
         ports:
             - "1812:1812/udp"
             - "1813:1813"
@@ -29,6 +34,11 @@ services:
             # needs to be configured through onos 
            replicas: 1
         image: "cord/onos"
+        logging:
+            driver: "json-file"
+            options:
+                max-size: "10m"
+                max-file: 3
         ports:
             - 8101:8101 # ssh
             - 6653:6653 # OF
