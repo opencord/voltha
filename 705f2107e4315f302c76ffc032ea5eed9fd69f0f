@@ -52,6 +52,24 @@
       "revId": "705f2107e4315f302c76ffc032ea5eed9fd69f0f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_62e7c913",
+        "filename": "voltha/adapters/ponsim_olt/ponsim_olt.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 456,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-10-12T13:53:35Z",
+      "side": 1,
+      "message": "Some good points.  The mechanism on how to obtain the mac address (from a request or retrieved from the device itself) is open to debate.   Making it mandatory would definitely require a change in the device.proto to include the mac address (note any field in proto is optional, we can verify their presence/absence in code or create new proto annotations).   This update does not address how the adapter obtains the mac address.  It only provides an API for the adapter to optionally specify the mac address when creating the logical device.   The existing adapters will work as is if they chose not to set the dpid with the mac address.",
+      "parentUuid": "9a5c5d37_a2ddc144",
+      "revId": "705f2107e4315f302c76ffc032ea5eed9fd69f0f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
