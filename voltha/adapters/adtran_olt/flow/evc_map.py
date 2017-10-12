@@ -152,6 +152,10 @@ class EVCMap(object):
         self._status_message = value
 
     @property
+    def evc(self):
+        return self._evc
+
+    @property
     def _needs_acl_support(self):
         if self._ipv4_dst is not None:  # In case MCAST downstream has ACL on it
             return False
@@ -248,7 +252,13 @@ class EVCMap(object):
 
     @inlineCallbacks
     def install(self):
-        if self._valid and not self._installed and len(self._gem_ids_and_vid) > 0:
+        def gem_ports():
+            ports = []
+            for gems_and_vids in self._gem_ids_and_vid.itervalues():
+                ports.extend(gems_and_vids[0])
+            return ports
+
+        if self._valid and not self._installed and len(gem_ports()) > 0:
             try:
                 # TODO: create generator of XML once we have MANY to install at once
                 map_xml = self._ingress_install_xml(self._gem_ids_and_vid) \
@@ -256,7 +266,7 @@ class EVCMap(object):
 
                 log.debug('install', xml=map_xml, name=self.name)
                 results = yield self._flow.handler.netconf_client.edit_config(map_xml,
-                                                                              lock_timeout=30)
+                                                                              lock_timeout=10)
                 self._installed = results.ok
                 self.status = '' if results.ok else results.error
 
@@ -325,9 +335,75 @@ class EVCMap(object):
 
         returnValue('Done')
 
+    def reflow_needed(self):
+        log.debug('reflow-needed')
+        reflow = not self.installed
+        # TODO: implement
+        return reflow
+
     @staticmethod
     def create_evc_map_name(flow):
         return EVC_MAP_NAME_FORMAT.format(flow.in_port, flow.flow_id)
+
+    def add_gem_port(self, gem_port, reflow=False):
+        # TODO: Refactor
+        if self._is_ingress_map:
+            def gem_ports():
+                ports = []
+                for gems_and_vids in self._gem_ids_and_vid.itervalues():
+                    ports.extend(gems_and_vids[0])
+                return ports
+
+            before = gem_ports()
+            self._setup_gem_ids()
+            after = gem_ports()
+
+            if reflow or len(before) < len(after):
+                self._installed = False
+                return self.install()
+
+        return succeed('nop')
+
+    def remove_gem_port(self, gem_port):
+        # TODO: Refactor
+        if self._is_ingress_map:
+            def gem_ports():
+                ports = []
+                for gems_and_vids in self._gem_ids_and_vid.itervalues():
+                    ports.extend(gems_and_vids[0])
+                return ports
+
+            before = gem_ports()
+            self._setup_gem_ids()
+            after = gem_ports()
+
+            if len(before) > len(after):
+                self._installed = False
+                return self.install()
+
+        return succeed('nop')
+
+
+#    self._gem_ids_and_vid = None  # { key -> onu-id, value -> tuple(sorted GEM Port IDs, onu_vid) }
+
+    def _setup_gem_ids(self):
+        from flow_entry import FlowEntry
+
+        flow = self._flow  # TODO: Drop saving of flow once debug complete
+        is_pon = flow.handler.is_pon_port(flow.in_port)
+
+        if self._is_ingress_map and is_pon:
+            pon_port = flow.handler.get_southbound_port(flow.in_port)
+
+            if pon_port is not None:
+                self._pon_id = pon_port.pon_id
+                self._gem_ids_and_vid = pon_port.gem_ids(flow.logical_port,
+                                                         self._needs_acl_support,
+                                                         flow.is_multicast_flow)
+
+                # TODO: Only EAPOL ACL support for the first demo - FIXED_ONU
+                if self._needs_acl_support and self._eth_type != FlowEntry.EtherType.EAPOL.value:
+                    self._gem_ids_and_vid = dict()
 
     def _decode(self):
         from evc import EVC
@@ -369,18 +445,7 @@ class EVCMap(object):
         # If no match of VLAN this may be for untagged traffic or upstream and needs to
         # match the gem-port vid
 
-        if self._is_ingress_map and is_pon:
-            pon_port = flow.handler.get_southbound_port(flow.in_port)
-
-            if pon_port is not None:
-                self._pon_id = pon_port.pon_id
-                self._gem_ids_and_vid = pon_port.gem_ids(flow.logical_port,
-                                                         self._needs_acl_support,
-                                                         flow.is_multicast_flow)
-
-                # TODO: Only EAPOL ACL support for the first demo - FIXED_ONU
-                if self._needs_acl_support and self._eth_type != FlowEntry.EtherType.EAPOL.value:
-                    self._gem_ids_and_vid = dict()
+        self._setup_gem_ids()
 
         # self._match_untagged = flow.vlan_id is None and flow.inner_vid is None
         self._c_tag = flow.inner_vid

@@ -51,12 +51,12 @@ DEFAULT_PACKET_IN_VLAN = 4000
 DEFAULT_MULTICAST_VLAN = 4050
 _MANAGEMENT_VLAN = 4093
 
-_DEFAULT_RESTCONF_USERNAME = "ADMIN"
-_DEFAULT_RESTCONF_PASSWORD = "PASSWORD"
+_DEFAULT_RESTCONF_USERNAME = ""
+_DEFAULT_RESTCONF_PASSWORD = ""
 _DEFAULT_RESTCONF_PORT = 8081
 
-_DEFAULT_NETCONF_USERNAME = "hsvroot"
-_DEFAULT_NETCONF_PASSWORD = "BOSCO"
+_DEFAULT_NETCONF_USERNAME = ""
+_DEFAULT_NETCONF_PASSWORD = ""
 _DEFAULT_NETCONF_PORT = 830
 
 
@@ -538,9 +538,15 @@ class AdtranDeviceHandler(object):
         raise RuntimeError('Failed to activate OLT: {}'.format(device.reason))
 
     @inlineCallbacks
-    def make_netconf_connection(self, connect_timeout=None):
-        ############################################################################
-        # Start initial discovery of NETCONF support
+    def make_netconf_connection(self, connect_timeout=None,
+                                close_existing_client=False):
+
+        if close_existing_client and self._netconf_client is not None:
+            try:
+                yield self._netconf_client.close()
+            except:
+                pass
+            self._netconf_client = None
 
         client = self._netconf_client
 
@@ -683,7 +689,7 @@ class AdtranDeviceHandler(object):
             except Exception as e:
                 self.log.exception('southbound-port-startup', e=e)
 
-        results = yield defer.gatherResults(dl)
+        results = yield defer.gatherResults(dl, consumeErrors=True)
 
         returnValue(results)
 
@@ -1212,7 +1218,7 @@ class AdtranDeviceHandler(object):
             registry('frameio').close_port(io)
 
     def _rcv_io(self, port, frame):
-        self.log.info('received', iface_name=port.iface_name, frame_len=len(frame))
+        self.log.debug('received', iface_name=port.iface_name, frame_len=len(frame))
 
         pkt = Ether(frame)
         if pkt.haslayer(Dot1Q):
@@ -1238,8 +1244,8 @@ class AdtranDeviceHandler(object):
 
     def packet_out(self, egress_port, msg):
         if self.io_port is not None:
-            self.log.info('sending-packet-out', egress_port=egress_port,
-                          msg=hexify(msg))
+            self.log.debug('sending-packet-out', egress_port=egress_port,
+                           msg=hexify(msg))
             pkt = Ether(msg)
 
             #ADTRAN To remove any extra tags 
@@ -1344,7 +1350,7 @@ class AdtranDeviceHandler(object):
                     device.oper_status = OperStatus.FAILED
                     device.reason = self.heartbeat_last_reason
                     self.adapter_agent.update_device(device)
-                    self.heartbeat_alarm(False, self.heartbeat_miss)
+                    self.heartbeat_alarm(True, self.heartbeat_miss)
             else:
                 # Update device states
                 if device.connect_status != ConnectStatus.REACHABLE:
@@ -1352,7 +1358,10 @@ class AdtranDeviceHandler(object):
                     device.oper_status = OperStatus.ACTIVE
                     device.reason = ''
                     self.adapter_agent.update_device(device)
-                    self.heartbeat_alarm(True)
+                    self.heartbeat_alarm(False)
+
+                if self.netconf_client is None or not self.netconf_client.connected:
+                    self.make_netconf_connection(close_existing_client=True)
 
         except Exception as e:
             self.log.exception('heartbeat-check', e=e)
@@ -1376,16 +1385,17 @@ class AdtranDeviceHandler(object):
         self.heartbeat_last_reason = 'RESTCONF connectivity error'
         self.heartbeat_check_status(None)
 
-    def heartbeat_alarm(self, status, heartbeat_misses=0):
+    def heartbeat_alarm(self, raise_alarm, heartbeat_misses=0):
         alarm = 'Heartbeat'
         alarm_data = {
             'ts': arrow.utcnow().timestamp,
-            'description': self.alarms.format_description('olt', alarm, status),
+            'description': self.alarms.format_description('olt', alarm,
+                                                          raise_alarm),
             'id': self.alarms.format_id(alarm),
             'type': AlarmEventType.EQUIPMENT,
             'category': AlarmEventCategory.PON,
             'severity': AlarmEventSeverity.CRITICAL,
-            'state': AlarmEventState.RAISED if status else AlarmEventState.CLEARED
+            'state': AlarmEventState.RAISED if raise_alarm else AlarmEventState.CLEARED
         }
         context_data = {'heartbeats_missed': heartbeat_misses}
         self.alarms.send_alarm(context_data, alarm_data)
