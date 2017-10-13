@@ -28,7 +28,7 @@ class TestConection_mgr(TestCase):
         consul_endpoint,voltha_endpoint,controller_endpoints  = self.gen_endpoints()
         test_connection_init = ConnectionManager(consul_endpoint, voltha_endpoint, controller_endpoints)
         self.assertEqual(test_connection_init.consul_endpoint,consul_endpoint)
-        self.assertEqual(test_connection_init.voltha_endpoint, voltha_endpoint)
+        self.assertEqual(test_connection_init.vcore_endpoint, voltha_endpoint)
         self.assertEqual(test_connection_init.controller_endpoints, controller_endpoints)
 
     def test_resolve_endpoint(self):
@@ -58,7 +58,7 @@ class TestConection_mgr(TestCase):
         with self.assertRaises(Exception) as context:
             test_connection_init.delete_agent(device.datapath_id)
         print context.exception
-        self.assertTrue('\'NoneType\' object has no attribute \'disconnect\'' in context.exception)
+        self.assertTrue('\'NoneType\' object has no attribute \'disconnect\'' in str(context.exception))
 
     def test_forward_packet_in(self):
         consul_endpoint, voltha_endpoint, controller_endpoints = self.gen_endpoints()
