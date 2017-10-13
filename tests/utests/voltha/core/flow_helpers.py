@@ -24,3 +24,10 @@ class FlowHelpers(TestCase):
         diff = make_patch(msg1_dict, msg2_dict)
         return dumps(diff.patch, indent=2)
 
+    def assertFlowInFlows(self, flow, flows):
+        if flow not in flows.items:
+            self.fail('flow id %d not in flows' % flow.id)
+
+    def assertFlowNotInFlows(self, flow, flows):
+        if flow in flows.items:
+            self.fail('flow id %d is in flows' % flow.id)
