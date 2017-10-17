@@ -36,6 +36,23 @@
     },
     {
       "key": {
+        "uuid": "9a5c5d37_3bac58ed",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 370,
+      "author": {
+        "id": 1000129
+      },
+      "writtenOn": "2017-10-17T15:59:59Z",
+      "side": 1,
+      "message": "Why are we re-registering for proxied messages? Based on the disable code we never stopped listening for proxied messages, correct?",
+      "revId": "3488e7e16f951a50f0213f8f8decdbaffbb69c36",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a5c5d37_fb3000ea",
         "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
         "patchSetId": 2
