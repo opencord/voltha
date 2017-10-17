@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a5c5d37_1b1d1467",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 314,
+      "author": {
+        "id": 1000129
+      },
+      "writtenOn": "2017-10-17T15:45:24Z",
+      "side": 1,
+      "message": "Why are we getting the device here if it\u0027s not being used?",
+      "revId": "3488e7e16f951a50f0213f8f8decdbaffbb69c36",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_fb19207a",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 357,
+      "author": {
+        "id": 1000129
+      },
+      "writtenOn": "2017-10-17T15:45:24Z",
+      "side": 1,
+      "message": "Don\u0027t need to set the admin state manually, voltha core takes care of that i believe.\nAlso, missing here is setting the oepr state and connect status:\n\n        device.oper_status \u003d OperStatus.UNKNOWN\n        device.connect_status \u003d ConnectStatus.UNREACHABLE",
+      "revId": "3488e7e16f951a50f0213f8f8decdbaffbb69c36",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_fb3000ea",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 371,
+      "author": {
+        "id": 1000129
+      },
+      "writtenOn": "2017-10-17T15:45:24Z",
+      "side": 1,
+      "message": "Same comment as before, no need to set the admin state manually.",
+      "revId": "3488e7e16f951a50f0213f8f8decdbaffbb69c36",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_bb528811",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 1375,
+      "author": {
+        "id": 1000129
+      },
+      "writtenOn": "2017-10-17T15:45:24Z",
+      "side": 1,
+      "message": "Again, admin state need not be set manually.",
+      "revId": "3488e7e16f951a50f0213f8f8decdbaffbb69c36",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}

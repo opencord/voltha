@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a5c5d37_9b57c402",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 314,
+      "author": {
+        "id": 1000129
+      },
+      "writtenOn": "2017-10-17T15:45:24Z",
+      "side": 0,
+      "message": "Why was this removed from here and added to the end of message_exchange?",
+      "revId": "da36670ac82e2ea429399fa674abb370aa1be68a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
