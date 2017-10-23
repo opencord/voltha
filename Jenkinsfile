@@ -4,6 +4,9 @@ node('build') {
 
     dir ('incubator/voltha') {
         try {
+            stage 'Clean-up voltha workspace directory'
+            sh 'rm -rf *'
+
             stage 'Bring up voltha dev vm'
             sh 'vagrant up voltha'
 
