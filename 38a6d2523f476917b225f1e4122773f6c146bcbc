@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a5c5d37_698685bb",
+        "filename": "Vagrantfile",
+        "patchSetId": 2
+      },
+      "lineNbr": 30,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-10-24T22:55:49Z",
+      "side": 1,
+      "message": "Is this a certain fixed version or is it subject to upstream revs?",
+      "revId": "38a6d2523f476917b225f1e4122773f6c146bcbc",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
