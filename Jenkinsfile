@@ -1,4 +1,7 @@
 node('build') {
+    stage 'Cleanup workspace'
+    sh 'rm -rf ./build ./component ./incubator ./onos-apps ./orchestration ./test ./.repo'
+
     stage 'Checkout cord repo'
     checkout([$class: 'RepoScm', currentBranch: true, manifestRepositoryUrl: 'https://gerrit.opencord.org/manifest', quiet: true])
 
