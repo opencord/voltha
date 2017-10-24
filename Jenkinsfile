@@ -1,4 +1,7 @@
 node('build') {
+    stage 'Cleanup workspace'
+    sh 'rm -f *'
+
     stage 'Checkout cord repo'
     checkout([$class: 'RepoScm', currentBranch: true, manifestRepositoryUrl: 'https://gerrit.opencord.org/manifest', quiet: true])
 

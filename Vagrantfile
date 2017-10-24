@@ -3,7 +3,13 @@
 
 require 'yaml'
 
-settings = YAML.load_file 'settings.vagrant.yaml'
+if ENV['VAGRANT_SETTINGS'] and ENV['VAGRANT_SETTINGS'] != ''
+  settings_file = ENV['VAGRANT_SETTINGS']
+else
+  settings_file = 'settings.vagrant.yaml'
+end
+puts("Loading vagrant settings from " + settings_file)
+settings = YAML.load_file settings_file
 
 Vagrant.configure(2) do |config|
 
@@ -21,13 +27,14 @@ Vagrant.configure(2) do |config|
       Provider = "virtualbox"
     else
       puts("Using the QEMU/KVM configuration");
-      Box = "ubuntu1604"
+      Box = "elastic/ubuntu-16.04-x86_64"
       Provider = "libvirt"
       if settings['testMode'] == "true" or settings['installMode'] == "true"
           config.vm.synced_folder ".", "/vagrant", disabled: true
           config.vm.synced_folder "../..", "/cord", type: "rsync", rsync__exclude: [".git", "venv-linux", "install/volthaInstaller", "install/volthaInstaller-2"], rsync__args: ["--verbose", "--archive", "--delete", "-z", "--links"]
       else
-          config.vm.synced_folder "../..", "/cord", type: "nfs"
+          config.vm.synced_folder ".", "/vagrant", rsync__exclude: [".git", "venv-linux", "install/volthaInstaller", "install/volthaInstaller-2"], rsync__args: ["--verbose", "--archive", "--delete", "-z", "--links"]
+          config.vm.synced_folder "../..", "/cord", type: "nfs", rsync__exclude: [".git", "venv-linux", "install/volthaInstaller", "install/volthaInstaller-2"], rsync__args: ["--verbose", "--archive", "--delete", "-z", "--links"]
       end
     end
   else
