@@ -1,0 +1,9 @@
+---
+# The name to use for the server
+server_name: "voltha"
+# Use KVM for nightly build
+vProvider: "KVM"
+# This determines if test mode is active
+testMode: "false"
+# This determines if installer mode is active
+installMode: "false"
