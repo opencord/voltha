@@ -16,9 +16,13 @@
 
 from twisted.internet.defer import inlineCallbacks, returnValue
 from voltha.adapters.asfvolt16_olt.protos import bal_pb2, \
-    bal_model_types_pb2, bal_model_ids_pb2
+    bal_model_types_pb2, bal_model_ids_pb2, bal_indications_pb2
 from voltha.adapters.asfvolt16_olt.grpc_client import GrpcClient
+from voltha.adapters.asfvolt16_olt.asfvolt16_ind_handler \
+                                       import Asfvolt16IndHandler
 from common.utils.nethelpers import get_my_primary_local_ipv4
+from common.utils.asleep import asleep
+import time
 import os
 
 """
@@ -32,14 +36,23 @@ class Bal(object):
         self.log = log
         self.grpc_client = GrpcClient(self.log)
         self.stub = None
+        self.ind_stub = None
         self.device_id = None
         self.olt = olt
+        self.interval = 0.1
+        self.ind_obj = Asfvolt16IndHandler(log)
 
     @inlineCallbacks
     def connect_olt(self, host_and_port, device_id):
         self.device_id = device_id
         self.grpc_client.connect(host_and_port)
         self.stub = bal_pb2.BalStub(self.grpc_client.channel)
+        self.ind_stub = bal_indications_pb2.BalGetIndStub(self.grpc_client.channel)
+        self.olt.running = True
+
+        # Right now Bi-Directional GRPC support is not there in grpc-c.
+        # This code may be needed when bidirectional supported added
+        # in GRPC-C
         init = bal_pb2.BalInit()
         try:
             os.environ["SERVICE_HOST_IP"]
@@ -50,16 +63,10 @@ class Bal(object):
 
         ip_port = []
         ip_port.append(str(adapter_ip))
-        #ip_port.append("192.168.140.34")
         ip_port.append(":")
         ip_port.append(str(ADAPTER_PORT))
         init.voltha_adapter_ip_port ="".join(ip_port)
         self.log.info('Adapter port Ip', init.voltha_adapter_ip_port)
-
-        '''
-        TODO: Need to determine out what information
-        needs to be sent to the OLT at this stage.
-        '''
         self.log.info('connecting-olt', host_and_port=host_and_port,
                       init_details=init)
         yield self.stub.BalApiInit(init)
@@ -155,22 +162,30 @@ class Bal(object):
         obj.hdr.obj_type = bal_model_ids_pb2.BAL_OBJ_ID_PACKET
         if pkt_info['dest_type'] == 'onu':
             # Set the destination ONU info
-            obj.packet.key.packet_send_dest.type = bal_model_types_pb2.BAL_DEST_TYPE_SUB_TERM
-            obj.packet.key.packet_send_dest.sub_term.sub_term_id = pkt_info['onu_id']
+            obj.packet.key.packet_send_dest.type = \
+                bal_model_types_pb2.BAL_DEST_TYPE_SUB_TERM
+            obj.packet.key.packet_send_dest.sub_term.sub_term_id = \
+                pkt_info['onu_id']
             # TODO: Need to provide correct values for sub_term_uni and int_id
-            #obj.packet.key.packet_send_dest.sub_term.sub_term_uni = egress_port
+            # obj.packet.key.packet_send_dest.sub_term.sub_term_uni = egress_port
             obj.packet.key.packet_send_dest.sub_term.intf_id = pkt_info['intf_id']
             obj.packet.data.intf_type = bal_model_types_pb2.BAL_INTF_TYPE_PON
         elif pkt_info['dest_type'] == 'gem_port':
-            obj.packet.key.packet_send_dest.type = bal_model_types_pb2.BAL_DEST_TYPE_SVC_PORT
-            obj.packet.key.packet_send_dest.svc_port.svc_port_id = pkt_info['gem_port']
-            obj.packet.key.packet_send_dest.svc_port.intf_id = pkt_info['intf_id']
+            obj.packet.key.packet_send_dest.type = \
+                bal_model_types_pb2.BAL_DEST_TYPE_SVC_PORT
+            obj.packet.key.packet_send_dest.svc_port.svc_port_id = \
+                pkt_info['gem_port']
+            obj.packet.key.packet_send_dest.svc_port.intf_id = \
+                pkt_info['intf_id']
             obj.packet.data.intf_type = bal_model_types_pb2.BAL_INTF_TYPE_PON
         elif pkt_info['dest_type'] == 'nni':
-            obj.packet.key.packet_send_dest.type = bal_model_types_pb2.BAL_DEST_TYPE_NNI
-            obj.packet.key.packet_send_dest.nni.intf_id = pkt_info['intf_id']
+            obj.packet.key.packet_send_dest.type = \
+                bal_model_types_pb2.BAL_DEST_TYPE_NNI
+            obj.packet.key.packet_send_dest.nni.intf_id = \
+                pkt_info['intf_id']
         else:
-            self.log.error('unsupported-dest-type', dest_type=pkt_info['dest_type'])
+            self.log.error('unsupported-dest-type',
+                           dest_type=pkt_info['dest_type'])
 
         # Set the Packet-out info
         # TODO: Need to provide correct value for intf_id
@@ -201,7 +216,7 @@ class Bal(object):
 
             obj.flow.data.admin_state = bal_model_types_pb2.BAL_STATE_UP
             obj.flow.data.access_int_id = intf_id
-            #obj.flow.data.network_int_id = intf_id
+            # obj.flow.data.network_int_id = intf_id
             obj.flow.data.sub_term_id = onu_id
             obj.flow.data.svc_port_id = gem_port
             obj.flow.data.classifier.presence_mask = 0
@@ -320,7 +335,7 @@ class Bal(object):
 
             obj.flow.data.admin_state = bal_model_types_pb2.BAL_STATE_DOWN
             obj.flow.data.access_int_id = intf_id
-            #obj.flow.data.network_int_id = intf_id
+            # obj.flow.data.network_int_id = intf_id
             obj.flow.data.sub_term_id = onu_id
             self.log.info('deleting-flows-from-OLT-Device',
                           flow_details=obj)
@@ -329,7 +344,6 @@ class Bal(object):
             self.log.info('delete_flow-exception',
                           flow_id, onu_id, exc=str(e))
         return
-
 
     @inlineCallbacks
     def create_scheduler(self, id, direction, owner_info, num_priority):
@@ -340,7 +354,7 @@ class Bal(object):
             obj.hdr.obj_type = bal_model_ids_pb2.BAL_OBJ_ID_TM_SCHED
             # Fill Access Terminal Details
             if direction == 'downstream':
-                obj.tm_sched_cfg.key.dir =\
+                obj.tm_sched_cfg.key.dir = \
                     bal_model_types_pb2.BAL_TM_SCHED_DIR_DS
             else:
                 obj.tm_sched_cfg.key.dir = \
@@ -351,7 +365,7 @@ class Bal(object):
                 obj.tm_sched_cfg.data.owner.type = \
                     bal_model_types_pb2.BAL_TM_SCHED_OWNER_TYPE_AGG_PORT
                 obj.tm_sched_cfg.data.owner.agg_port.presence_mask = 0
-                obj.tm_sched_cfg.data.owner.agg_port.intf_id =\
+                obj.tm_sched_cfg.data.owner.agg_port.intf_id = \
                     owner_info['intf_id']
                 obj.tm_sched_cfg.data.owner.agg_port.presence_mask |= \
                     bal_model_types_pb2.BAL_TM_SCHED_OWNER_AGG_PORT_ID_INTF_ID
@@ -390,7 +404,8 @@ class Bal(object):
             obj.intf_id = intf_id
             obj.intf_type = interface_type
             stats = yield self.stub.BalCfgStatGet(obj)
-            self.log.info('Fetching statistics success', stats_data = stats.data)
+            self.log.info('Fetching statistics success',
+                          stats_data=stats.data)
             returnValue(stats)
         except Exception as e:
             self.log.info('Fetching statistics failed', exc=str(e))
@@ -399,10 +414,10 @@ class Bal(object):
     def set_bal_reboot(self, device_id):
         self.log.info('Set Reboot')
         try:
-            obj =  bal_pb2.BalReboot()
+            obj = bal_pb2.BalReboot()
             obj.device_id = device_id
             err = yield self.stub.BalApiReboot(obj)
-            self.log.info('OLT Reboot Success', reboot_err= err)
+            self.log.info('OLT Reboot Success', reboot_err=err)
             returnValue(err)
         except Exception as e:
             self.log.info('OLT Reboot failed', exc=str(e))
@@ -411,10 +426,26 @@ class Bal(object):
     def get_bal_heartbeat(self, device_id):
         self.log.info('Get HeartBeat')
         try:
-            obj =  bal_pb2.BalHeartbeat()
+            obj = bal_pb2.BalHeartbeat()
             obj.device_id = device_id
             rebootStatus = yield self.stub.BalApiHeartbeat(obj)
-            self.log.info('OLT HeartBeat Response Received from', device=device_id, rebootStatus=rebootStatus)
+            self.log.info('OLT HeartBeat Response Received from',
+                          device=device_id, rebootStatus=rebootStatus)
             returnValue(rebootStatus)
         except Exception as e:
             self.log.info('OLT HeartBeat failed', exc=str(e))
+
+    def get_indication_info(self, device_id):
+        while self.olt.running:
+            try:
+                obj = bal_pb2.BalDefault()
+                obj.device_id = str(device_id)
+                bal_ind = self.ind_stub.BalGetIndFromDevice(obj)
+                if bal_ind.ind_present == True:
+                    self.log.info('Indication-received',
+                                  device=device_id, bal_ind=bal_ind)
+                    self.ind_obj.handle_indication_from_bal(bal_ind, self.olt)
+                time.sleep(self.interval)
+            except Exception as e:
+                self.log.info('Failed-to-get-indication-info', exc=str(e))
+        self.log.debug('stop-indication-receive-thread')
