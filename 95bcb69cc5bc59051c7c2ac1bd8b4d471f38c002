@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a5c5d37_cc7c5f75",
+        "filename": "tests/utests/ofagent/test_of_protocol_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-10-25T03:21:14Z",
+      "side": 1,
+      "message": "Why is str() neeeded around context.exception?\nWhat optional attribute is used by handle_flow_mod_request()?",
+      "revId": "95bcb69cc5bc59051c7c2ac1bd8b4d471f38c002",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_0c839757",
+        "filename": "tests/utests/ofagent/test_of_protocol_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 56,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-10-25T03:21:14Z",
+      "side": 1,
+      "message": "This seems way too liberal and defeats the purpose of the test.  It will assert True for *any* attribute not defined, not just the optional one.  Apparently a previous version of handle_role_request() took an optional attribute named \u0027send\u0027.  Now it takes optional attribute  \u0027generation_is_defined\u0027 which should be checked for here.",
+      "revId": "95bcb69cc5bc59051c7c2ac1bd8b4d471f38c002",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_ec872360",
+        "filename": "tests/utests/ofagent/test_of_protocol_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 74,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-10-25T03:21:14Z",
+      "side": 1,
+      "message": "What optional attribute is expected for forward_packet_in()?",
+      "revId": "95bcb69cc5bc59051c7c2ac1bd8b4d471f38c002",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
