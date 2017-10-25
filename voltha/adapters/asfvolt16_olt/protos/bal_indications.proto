@@ -46,6 +46,7 @@ message BalIndications{
          BalPacketIeeeOamChannelRx balOamResp                        = 20; // PLOAM response
       }
       string device_id                                               = 21; //Deviced Id
+      uint32 ind_present                                             = 23;
 }
 
 service BalInd {
@@ -70,4 +71,9 @@ service BalInd {
       rpc BalPktBearerChannelRxInd(BalIndications) returns(BalErr) {}
       rpc BalPktOmciChannelRxInd(BalIndications) returns(BalErr) {}
       rpc BalPktIeeeOamChannelRxInd(BalIndications) returns(BalErr) {}
+}
+
+service BalGetInd {
+      //Get bal indications from the device
+      rpc BalGetIndFromDevice(BalDefault) returns(BalIndications) {}
 }

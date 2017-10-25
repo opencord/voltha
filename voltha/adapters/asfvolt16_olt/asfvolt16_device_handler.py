@@ -336,6 +336,7 @@ class Asfvolt16Handler(OltDeviceHandler):
                                   port_type=Port.ETHERNET_NNI,
                                   device_id=device.id,
                                   logical_device_id=self.logical_device_id)
+            reactor.callInThread(self.bal.get_indication_info, self.device_id)
 
         self.bal.activate_olt()
 
@@ -578,7 +579,6 @@ class Asfvolt16Handler(OltDeviceHandler):
 
     def BalIfaceIndication(self, device_id, Iface_ID):
         self.log.info('Interface Indication')
-        import pdb;pdb.set_trace()
         device = self.adapter_agent.get_device(self.device_id)
         self._handle_pon_pm_counter_req_towards_device(device,Iface_ID)
 

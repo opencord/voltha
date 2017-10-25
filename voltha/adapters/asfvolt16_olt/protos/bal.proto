@@ -25,6 +25,10 @@ message BalErr {
     BalErrno err = 1;
 }
 
+message BalDefault {
+    string device_id = 1;                     /**< device id */
+}
+
 enum BalRebootStatus
 {
     BAL_OLT_UP_AFTER_REBOOT               =  0;
