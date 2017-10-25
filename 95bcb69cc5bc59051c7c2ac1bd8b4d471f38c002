@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "9a5c5d37_6cda137a",
+        "filename": "tests/utests/ofagent/test_of_protocol_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1000180
+      },
+      "writtenOn": "2017-10-25T05:13:46Z",
+      "side": 1,
+      "message": "content.expection is of type object in higher versions of python, So its important to have it converted to string to assert. \nI Agree. The assert must check for specific attribute error. I will submit a patch for it",
+      "parentUuid": "9a5c5d37_cc7c5f75",
+      "revId": "95bcb69cc5bc59051c7c2ac1bd8b4d471f38c002",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a5c5d37_0c839757",
         "filename": "tests/utests/ofagent/test_of_protocol_handler.py",
         "patchSetId": 1
@@ -36,6 +54,24 @@
     },
     {
       "key": {
+        "uuid": "9a5c5d37_4ce74f41",
+        "filename": "tests/utests/ofagent/test_of_protocol_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 56,
+      "author": {
+        "id": 1000180
+      },
+      "writtenOn": "2017-10-25T05:13:46Z",
+      "side": 1,
+      "message": "I Agree. The assert must check for specific attribute error. I will submit a patch for it",
+      "parentUuid": "9a5c5d37_0c839757",
+      "revId": "95bcb69cc5bc59051c7c2ac1bd8b4d471f38c002",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a5c5d37_ec872360",
         "filename": "tests/utests/ofagent/test_of_protocol_handler.py",
         "patchSetId": 1
@@ -47,6 +83,24 @@
       "writtenOn": "2017-10-25T03:21:14Z",
       "side": 1,
       "message": "What optional attribute is expected for forward_packet_in()?",
+      "revId": "95bcb69cc5bc59051c7c2ac1bd8b4d471f38c002",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_2ce41b3a",
+        "filename": "tests/utests/ofagent/test_of_protocol_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 74,
+      "author": {
+        "id": 1000180
+      },
+      "writtenOn": "2017-10-25T05:13:46Z",
+      "side": 1,
+      "message": "I Agree. The assert must check for specific attribute error. I will submit a patch for it",
+      "parentUuid": "9a5c5d37_ec872360",
       "revId": "95bcb69cc5bc59051c7c2ac1bd8b4d471f38c002",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
