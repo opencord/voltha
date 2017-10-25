@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a5c5d37_371a246f",
+        "filename": "voltha/adapters/asfvolt16_olt/protos/Makefile",
+        "patchSetId": 1
+      },
+      "lineNbr": 34,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-10-25T23:12:19Z",
+      "side": 1,
+      "message": "Have you verified ASFvOLT16 still works with this change?  I will check it on my side to be sure.",
+      "revId": "a68e1c9b8cff739b6ab67793d84fd1042dc16f6f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
