@@ -336,6 +336,7 @@ class Asfvolt16Handler(OltDeviceHandler):
                                   port_type=Port.ETHERNET_NNI,
                                   device_id=device.id,
                                   logical_device_id=self.logical_device_id)
+            reactor.callInThread(self.bal.get_indication_info, self.device_id)
 
         self.bal.activate_olt()
 
