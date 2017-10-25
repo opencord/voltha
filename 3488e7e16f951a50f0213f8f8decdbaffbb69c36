@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "9a5c5d37_b665ff46",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 314,
+      "author": {
+        "id": 1000103
+      },
+      "writtenOn": "2017-10-25T10:41:31Z",
+      "side": 1,
+      "message": "Yes...i can remove this",
+      "parentUuid": "9a5c5d37_1b1d1467",
+      "revId": "3488e7e16f951a50f0213f8f8decdbaffbb69c36",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a5c5d37_fb19207a",
         "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
         "patchSetId": 2
@@ -30,6 +48,24 @@
       "writtenOn": "2017-10-17T15:45:24Z",
       "side": 1,
       "message": "Don\u0027t need to set the admin state manually, voltha core takes care of that i believe.\nAlso, missing here is setting the oepr state and connect status:\n\n        device.oper_status \u003d OperStatus.UNKNOWN\n        device.connect_status \u003d ConnectStatus.UNREACHABLE",
+      "revId": "3488e7e16f951a50f0213f8f8decdbaffbb69c36",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_8c4b072b",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 357,
+      "author": {
+        "id": 1000103
+      },
+      "writtenOn": "2017-10-25T10:41:31Z",
+      "side": 1,
+      "message": "removed it",
+      "parentUuid": "9a5c5d37_fb19207a",
       "revId": "3488e7e16f951a50f0213f8f8decdbaffbb69c36",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "9a5c5d37_6c48d32d",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 370,
+      "author": {
+        "id": 1000103
+      },
+      "writtenOn": "2017-10-25T10:41:31Z",
+      "side": 1,
+      "message": "removed it",
+      "parentUuid": "9a5c5d37_3bac58ed",
+      "revId": "3488e7e16f951a50f0213f8f8decdbaffbb69c36",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a5c5d37_fb3000ea",
         "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
         "patchSetId": 2
@@ -70,6 +124,24 @@
     },
     {
       "key": {
+        "uuid": "9a5c5d37_4c550fc5",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 371,
+      "author": {
+        "id": 1000103
+      },
+      "writtenOn": "2017-10-25T10:41:31Z",
+      "side": 1,
+      "message": "removed it",
+      "parentUuid": "9a5c5d37_fb3000ea",
+      "revId": "3488e7e16f951a50f0213f8f8decdbaffbb69c36",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a5c5d37_bb528811",
         "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
         "patchSetId": 2
@@ -81,6 +153,24 @@
       "writtenOn": "2017-10-17T15:45:24Z",
       "side": 1,
       "message": "Again, admin state need not be set manually.",
+      "revId": "3488e7e16f951a50f0213f8f8decdbaffbb69c36",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_ec63a3af",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 1375,
+      "author": {
+        "id": 1000103
+      },
+      "writtenOn": "2017-10-25T10:41:31Z",
+      "side": 1,
+      "message": "removed it",
+      "parentUuid": "9a5c5d37_bb528811",
       "revId": "3488e7e16f951a50f0213f8f8decdbaffbb69c36",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false

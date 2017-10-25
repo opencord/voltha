@@ -16,6 +16,24 @@
       "revId": "da36670ac82e2ea429399fa674abb370aa1be68a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_ac5dabeb",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 314,
+      "author": {
+        "id": 1000103
+      },
+      "writtenOn": "2017-10-25T10:41:31Z",
+      "side": 0,
+      "message": "After we activate the ONU, if we reboot it again the xpon handler does a replay of the xpon configuration during \"update_device\".\nSince, after reboot we do not have any omci configuration yet on onu, the update_device will send Gem and tcont details without having the mac-bridge config in place.\nHence i moved to the end so that this works in reboot and as well as in non-reboot case.",
+      "parentUuid": "9a5c5d37_9b57c402",
+      "revId": "da36670ac82e2ea429399fa674abb370aa1be68a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
