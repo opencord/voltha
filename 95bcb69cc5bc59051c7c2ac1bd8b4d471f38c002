@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "9a5c5d37_ecccc337",
+        "filename": "tests/utests/ofagent/test_of_protocol_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-10-25T21:26:54Z",
+      "side": 1,
+      "message": "+1 On the str() explanation.",
+      "parentUuid": "9a5c5d37_6cda137a",
+      "revId": "95bcb69cc5bc59051c7c2ac1bd8b4d471f38c002",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a5c5d37_0c839757",
         "filename": "tests/utests/ofagent/test_of_protocol_handler.py",
         "patchSetId": 1
