@@ -20,26 +20,15 @@ ifeq ($(VOLTHA_BASE)_set,_set)
   $(error To get started, please source the env.sh file from Voltha top level directory)
 endif
 
-PROTO_FILES := $(wildcard *.proto) $(wildcard third_party/google/api/*proto)
-PROTO_PB2_FILES := $(foreach f,$(PROTO_FILES),$(subst .proto,_pb2.py,$(f)))
-PROTO_DESC_FILES := $(foreach f,$(PROTO_FILES),$(subst .proto,.desc,$(f)))
-
 PROTOC_PREFIX := /usr/local
 PROTOC_LIBDIR := $(PROTOC_PREFIX)/lib
 
-build: copyprotos $(PROTO_PB2_FILES) copypb2files
-
-%_pb2.py: %.proto Makefile
-	@echo "Building protocol buffer artifacts from $<"
-	env LD_LIBRARY_PATH=$(PROTOC_LIBDIR) python -m grpc.tools.protoc \
-	    -I. \
-	    -I./third_party \
-	    --python_out=. \
-	    --grpc_python_out=. \
-	    $<
+build: copyprotos copypb2files
 
 TARGET_PROTO_DIR := $(VOLTHA_BASE)/netconf/protos
 SOURCE_PROTO_DIR := $(VOLTHA_BASE)/voltha/protos
+TARGET_GOOGLE_API_DIR := $(TARGET_PROTO_DIR)/third_party/google/api
+SOURCE_GOOGLE_API_DIR := $(SOURCE_PROTO_DIR)/third_party/google/api
 
 TARGET_YANG_OPTION_DIR := $(VOLTHA_BASE)/netconf/protoc_plugins
 YANG_OPTION_FILE := yang_options_pb2.py
@@ -52,13 +41,18 @@ copyprotos:
 
 copypb2files:
 	rsync -av --include '*/' --exclude='third_party/__init__.py' --include '*.py' --exclude='*' $(SOURCE_PROTO_DIR)/ $(TARGET_PROTO_DIR)
+	rsync -av --include '*/' --exclude='third_party/__init__.py' --include '*.py' --include '*.desc' --include '*.proto' --exclude='*' $(SOURCE_GOOGLE_API_DIR)/ $(TARGET_GOOGLE_API_DIR)
 	cp $(SOURCE_PROTO_DIR)/$(YANG_OPTION_FILE) $(TARGET_YANG_OPTION_DIR)
 
 clean:
-	rm -f $(PROTO_PB2_FILES) $(PROTO_DESC_FILES)
 	rm -f $(TARGET_YANG_OPTION_DIR)/$(YANG_OPTION_FILE)
-	rm -f $(TARGET_PROTO_DIR)/*.py
-	rm -f $(TARGET_PROTO_DIR)/*.pyc
+	rm -f $(TARGET_PROTO_DIR)/*_pb2*.py
+	rm -f $(TARGET_PROTO_DIR)/*_pb2*.pyc
 	rm -f $(TARGET_PROTO_DIR)/*.proto
+	rm -f $(TARGET_GOOGLE_API_DIR)/*_pb2*.py
+	rm -f $(TARGET_GOOGLE_API_DIR)/*_pb2*.pyc
+	rm -f $(TARGET_GOOGLE_API_DIR)/*.desc
+	rm -f $(TARGET_GOOGLE_API_DIR)/*.proto
+
 
 

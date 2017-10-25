@@ -97,24 +97,42 @@ def print_pb_list_as_table(header, items, fields_to_omit=None,
     for row, obj in enumerate(items):
         assert isinstance(obj, Message)
 
+        def set_row(_row, field, field_name, value, t, prefix,
+                      fields_to_omit, number):
+            fname = prefix + field.name
+            if fname in fields_to_omit:
+                return
+            if isinstance(value, Message):
+                add(_row, value, fname + '.',
+                    100 * (number + field.number))
+            else:
+                t.add_cell(_row, number + field.number, fname,
+                           field_name)
+
         def add(_row, pb, prefix='', number=0):
             d = pb2dict(pb)
             if show_nulls:
                 fields = pb.DESCRIPTOR.fields
+                for field in fields:
+                    set_row(_row,
+                            field,
+                            d.get(field.name),
+                            getattr(pb, field.name),
+                            t,
+                            prefix,
+                            fields_to_omit,
+                            number)
             else:
-                fields = pb._fields
-            for field in fields:
-                fname = prefix + field.name
-                if fname in fields_to_omit:
-                    continue
-                value = getattr(pb, field.name)
-                if isinstance(value, Message):
-                    add(_row, value, fname + '.',
-                        100 * (number + field.number))
-                else:
-                    t.add_cell(_row, number + field.number, fname,
-                               d.get(field.name))
-
+                fields = pb.ListFields()
+                for (field, value) in fields:
+                    set_row(_row,
+                            field,
+                            d.get(field.name),
+                            value,
+                            t,
+                            prefix,
+                            fields_to_omit,
+                            number)
         add(row, obj)
 
     t.print_table(header, printfn, dividers)
@@ -124,37 +142,52 @@ def print_pb_as_table(header, pb, fields_to_omit={}, printfn=_printfn,
                       show_nulls=False):
     from cli.utils import pb2dict
 
+    def set_cell(pb, field, value, t, prefix, fields_to_omit):
+        fname = prefix + field.name
+        if fname in fields_to_omit:
+            return
+        if isinstance(value, Message):
+            pr(value, fname + '.')
+        elif isinstance(value, RepeatedCompositeFieldContainer):
+            row = t.number_of_rows()
+            t.add_cell(row, 0, 'field', fname)
+            t.add_cell(row, 1, 'value', '{} item(s)'.format((field.name)))
+        else:
+            row = t.number_of_rows()
+            t.add_cell(row, 0, 'field', fname)
+            t.add_cell(row, 1, 'value', field.name)
+
     t = TablePrinter()
 
     def pr(_pb, prefix=''):
         d = pb2dict(_pb)
         if show_nulls:
             fields = _pb.DESCRIPTOR.fields
+            for field in sorted(fields, key=lambda f: f.number):
+                set_cell(_pb,
+                        field,
+                        getattr(_pb, field.name),
+                        t,
+                        prefix,
+                        fields_to_omit)
         else:
-            fields = _pb._fields
-        for field in sorted(fields, key=lambda f: f.number):
-            fname = prefix + field.name
-            if fname in fields_to_omit:
-                continue
-            value = getattr(_pb, field.name)
-            if isinstance(value, Message):
-                pr(value, fname + '.')
-            elif isinstance(value, RepeatedCompositeFieldContainer):
-                row = t.number_of_rows()
-                t.add_cell(row, 0, 'field', fname)
-                t.add_cell(row, 1, 'value', '{} item(s)'.format(
-                    len(d.get(field.name))))
-            else:
-                row = t.number_of_rows()
-                t.add_cell(row, 0, 'field', fname)
-                t.add_cell(row, 1, 'value', d.get(field.name))
+            fields = _pb.ListFields()
+            for (field, value) in sorted(fields, key=lambda (f, v): f.number):
+                set_cell(_pb,
+                        field,
+                        value,
+                        t,
+                        prefix,
+                        fields_to_omit)
 
     pr(pb)
 
     t.print_table(header, printfn)
 
+
 if __name__ == '__main__':
     import random
+
     t = TablePrinter()
     for row in range(10):
         t.add_cell(row, 0, 'id', row + 100)
