@@ -37,6 +37,23 @@
     },
     {
       "key": {
+        "uuid": "9a5c5d37_cc0fbfe0",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 338,
+      "author": {
+        "id": 1000129
+      },
+      "writtenOn": "2017-10-25T14:11:04Z",
+      "side": 1,
+      "message": "Why are we deleting the logical port on a disable? Shouldn\u0027t this only be done on a delete of the ONU?",
+      "revId": "3488e7e16f951a50f0213f8f8decdbaffbb69c36",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a5c5d37_fb19207a",
         "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
         "patchSetId": 2
@@ -66,6 +83,24 @@
       "side": 1,
       "message": "removed it",
       "parentUuid": "9a5c5d37_fb19207a",
+      "revId": "3488e7e16f951a50f0213f8f8decdbaffbb69c36",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_0c06f7ce",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 357,
+      "author": {
+        "id": 1000129
+      },
+      "writtenOn": "2017-10-25T14:11:04Z",
+      "side": 1,
+      "message": "Thx",
+      "parentUuid": "9a5c5d37_8c4b072b",
       "revId": "3488e7e16f951a50f0213f8f8decdbaffbb69c36",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -136,6 +171,23 @@
       "side": 1,
       "message": "removed it",
       "parentUuid": "9a5c5d37_fb3000ea",
+      "revId": "3488e7e16f951a50f0213f8f8decdbaffbb69c36",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_ec0a83d1",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 373,
+      "author": {
+        "id": 1000129
+      },
+      "writtenOn": "2017-10-25T14:11:04Z",
+      "side": 1,
+      "message": "Sorry, missed this the last time....but we should not be updating the Oper state to Active here. This should happen when the \"activation-completed\" message is received. Suggest changing the Oper state here to Unknown.",
       "revId": "3488e7e16f951a50f0213f8f8decdbaffbb69c36",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false

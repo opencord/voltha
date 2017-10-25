@@ -34,6 +34,24 @@
       "revId": "da36670ac82e2ea429399fa674abb370aa1be68a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_2c69bb8b",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 314,
+      "author": {
+        "id": 1000129
+      },
+      "writtenOn": "2017-10-25T14:11:04Z",
+      "side": 0,
+      "message": "What triggers a replay of xpon configuration in the ONU adapter? Are you saying that when we update the Oper/Connect state of the ONU (using adapter_agent.update_device()) that the XPON config is automatically replayed?\n\nAlso, as I understand, the intention of this change is to ensure that the update of the ONU oper state happens only after message_exchange is fully sent. If that is the case, I would recommend re-adding the update state logic here and then making use of \"yield\" when sending the message_exchange:\n\n                    yield self.message_exchange(self.proxy_address.onu_id,\n                                                self.proxy_address.onu_session_id,\n                                                port_no)\n\nUsing yield will guarantee that the full message exchange is sent before updating the Oper state. And it also keeps the message_exchange logic generic and independent of state changes.",
+      "parentUuid": "9a5c5d37_ac5dabeb",
+      "revId": "da36670ac82e2ea429399fa674abb370aa1be68a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
