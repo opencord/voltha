@@ -31,7 +31,7 @@ PROTOC_LIBDIR := $(PROTOC_PREFIX)/lib
 
 PROTOC := $(PROTOC_PREFIX)/bin/protoc
 
-PROTOC_VERSION := "3.0.2"
+PROTOC_VERSION := "3.3.0"
 PROTOC_DOWNLOAD_PREFIX := "https://github.com/google/protobuf/releases/download"
 PROTOC_DIR := protobuf-$(PROTOC_VERSION)
 PROTOC_TARBALL := protobuf-python-$(PROTOC_VERSION).tar.gz
