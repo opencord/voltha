@@ -23,7 +23,7 @@ from twisted.internet.defer import inlineCallbacks
 from voltha.protos.events_pb2 import KpiEvent, MetricValuePairs
 from voltha.protos.events_pb2 import KpiEventType
 from voltha.protos.device_pb2 import PmConfigs, PmConfig,PmGroupConfig
-from voltha.adapters.asfvolt16_olt.protos import bal_errno_pb2, bal_pb2
+from voltha.adapters.asfvolt16_olt.protos import bal_errno_pb2, bal_pb2, bal_model_types_pb2
 from voltha.protos.events_pb2 import AlarmEvent, AlarmEventType, \
     AlarmEventSeverity, AlarmEventState, AlarmEventCategory
 from scapy.layers.l2 import Ether, Dot1Q
@@ -437,48 +437,67 @@ class Asfvolt16Handler(OltDeviceHandler):
         self.log.info('Reboot Status', err_status = err_status)
 
     @inlineCallbacks
-    def _handle_pm_counter_req_towards_device(self, device):
-        yield self._req_pm_counter_from_device_in_loop(device)
+    def _handle_nni_pm_counter_req_towards_device(self, device, intf_id):
+        interface_type = bal_model_types_pb2.BAL_INTF_TYPE_NNI 
+        yield self._req_pm_counter_from_device_in_loop(device, interface_type, intf_id)
+
+        reactor.callLater(self.pm_metrics.default_freq/10,
+                          self._handle_pm_counter_req_towards_device,
+                          device,intf_id)
 
     @inlineCallbacks
-    def _req_pm_counter_from_device_in_loop(self, device):
+    def _handle_pon_pm_counter_req_towards_device(self, device, intf_id):
+        interface_type = bal_model_types_pb2.BAL_INTF_TYPE_PON 
+        yield self._req_pm_counter_from_device_in_loop(device, interface_type, intf_id)
+
+        reactor.callLater(self.pm_metrics.default_freq/10,
+                          self._handle_pm_counter_req_towards_device,
+                          device,intf_id)
+
+    @inlineCallbacks
+    def _req_pm_counter_from_device_in_loop(self, device, interface_type, intf_id):
         # NNI port is hardcoded to 0
         kpi_status = -1
         if device.connect_status == ConnectStatus.UNREACHABLE:
            self.log.info('Device is not Reachable')
         else:
            try:
-              pm_counters = yield self.bal.get_bal_nni_stats(0)
+              stats_info = yield self.bal.get_bal_interface_stats(intf_id, interface_type)
               kpi_status = 0
-              self.log.info('pm_counters',pm_counters=pm_counters)
+              self.log.info('stats_info',stats_info=stats_info)
            except Exception as e:
               kpi_status = -1
 
-        if kpi_status == 0 and pm_counters!=None:
+        if kpi_status == 0 and stats_info!=None:
            pm_data = { }
-           pm_data["rx_bytes"]= pm_counters.rx_bytes
-           pm_data["rx_packets"]= pm_counters.rx_packets
-           pm_data["rx_ucast_packets"]= pm_counters.rx_ucast_packets
-           pm_data["rx_mcast_packets"]= pm_counters.rx_mcast_packets
-           pm_data["rx_bcast_packets"]= pm_counters.rx_bcast_packets
-           pm_data["rx_error_packets"]= pm_counters.rx_error_packets
-           pm_data["rx_unknown_protos"]= pm_counters.rx_unknown_protos
-           pm_data["tx_bytes"]= pm_counters.tx_bytes
-           pm_data["tx_packets"]= pm_counters.tx_packets
-           pm_data["tx_ucast_packets"]= pm_counters.tx_ucast_packets
-           pm_data["tx_mcast_packets"]= pm_counters.tx_mcast_packets
-           pm_data["tx_bcast_packets"]= pm_counters.tx_bcast_packets
-           pm_data["tx_error_packets"]= pm_counters.tx_error_packets
-           pm_data["rx_crc_errors"]= pm_counters.rx_crc_errors
-           pm_data["bip_errors"]= pm_counters.bip_errors
+           pm_data["rx_bytes"]= stats_info.data.rx_bytes
+           pm_data["rx_packets"]= stats_info.data.rx_packets
+           pm_data["rx_ucast_packets"]= stats_info.data.rx_ucast_packets
+           pm_data["rx_mcast_packets"]= stats_info.data.rx_mcast_packets
+           pm_data["rx_bcast_packets"]= stats_info.data.rx_bcast_packets
+           pm_data["rx_error_packets"]= stats_info.data.rx_error_packets
+           pm_data["rx_unknown_protos"]= stats_info.data.rx_unknown_protos
+           pm_data["tx_bytes"]= stats_info.data.tx_bytes
+           pm_data["tx_packets"]= stats_info.data.tx_packets
+           pm_data["tx_ucast_packets"]= stats_info.data.tx_ucast_packets
+           pm_data["tx_mcast_packets"]= stats_info.data.tx_mcast_packets
+           pm_data["tx_bcast_packets"]= stats_info.data.tx_bcast_packets
+           pm_data["tx_error_packets"]= stats_info.data.tx_error_packets
+           pm_data["rx_crc_errors"]= stats_info.data.rx_crc_errors
+           pm_data["bip_errors"]= stats_info.data.bip_errors
 
            self.log.info('KPI stats', pm_data = pm_data)
            name = 'asfvolt16_olt'
            prefix = 'voltha.{}.{}'.format(name, self.device_id)
            ts = arrow.utcnow().timestamp
-           prefixes = {
-                   prefix + '.nni': MetricValuePairs(metrics = pm_data)
-           }
+           if stats_info.key.intf_type == bal_model_types_pb2.BAL_INTF_TYPE_NNI:
+              prefixes = {
+                      prefix + '.nni': MetricValuePairs(metrics = pm_data)
+              }
+           elif stats_info.key.intf_type == bal_model_types_pb2.BAL_INTF_TYPE_PON:
+              prefixes = {
+                      prefix + '.pon': MetricValuePairs(metrics = pm_data)
+              }
 
            kpi_event = KpiEvent(
                  type=KpiEventType.slice,
@@ -487,10 +506,6 @@ class Asfvolt16Handler(OltDeviceHandler):
            self.adapter_agent.submit_kpis(kpi_event)
         else:
            self.log.info('Lost Connectivity to OLT')
-
-        reactor.callLater(self.pm_metrics.pm_default_freq/10,
-                          self._req_pm_counter_from_device_in_loop,
-                          device)
 
     def update_pm_config(self, device, pm_config):
         self.log.info("update-pm-config", device=device, pm_config=pm_config)
@@ -560,6 +575,12 @@ class Asfvolt16Handler(OltDeviceHandler):
                            Iface_ID,\
                            "loss_of_signal",los_status,"high",\
                            IfaceLos_data)
+
+    def BalIfaceIndication(self, device_id, Iface_ID):
+        self.log.info('Interface Indication')
+        import pdb;pdb.set_trace()
+        device = self.adapter_agent.get_device(self.device_id)
+        self._handle_pon_pm_counter_req_towards_device(device,Iface_ID)
 
     def BalSubsTermDgiAlarm(self, device_id, intf_id,\
                             onu_id, dgi_status, balSubTermDgi_data,\
@@ -718,7 +739,7 @@ class Asfvolt16Handler(OltDeviceHandler):
         self.adapter_agent.update_logical_port(self.logical_device_id,
                                                logical_port)
 
-    def handle_access_term_ind(self, ind_info):
+    def handle_access_term_ind(self, ind_info, intf_id):
         device = self.adapter_agent.get_device(self.device_id)
         if ind_info['activation_successful'] is True:
             self.log.info('successful-access-terminal-Indication',
@@ -744,8 +765,9 @@ class Asfvolt16Handler(OltDeviceHandler):
                 # Apply the PM configuration
                 self.update_pm_config(device, pm_config)
 
-                # Request PM counters from OLT device.
-                self._handle_pm_counter_req_towards_device(device)
+                # Request PM counters(for NNI) from OLT device.
+                # intf_id:nni_port
+                self._handle_nni_pm_counter_req_towards_device(device,intf_id)
         else:
             device.oper_status = OperStatus.FAILED
             device.reason = 'Failed to Intialize OLT'
