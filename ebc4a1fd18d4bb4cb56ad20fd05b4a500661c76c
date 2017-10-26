@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a5c5d37_52900695",
+        "filename": "voltha/adapters/asfvolt16_olt/protos/Makefile",
+        "patchSetId": 3
+      },
+      "lineNbr": 34,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-10-26T20:56:20Z",
+      "side": 1,
+      "message": "I will test this to ensure that the olt side driver is still able to work with this change.",
+      "revId": "ebc4a1fd18d4bb4cb56ad20fd05b4a500661c76c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
