@@ -34,6 +34,24 @@
       "revId": "57704c8a2520a9e5bf28a6b1f4f9ba1d8e41de7c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_17896026",
+        "filename": "Vagrantfile",
+        "patchSetId": 3
+      },
+      "lineNbr": 27,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-10-26T14:24:42Z",
+      "side": 1,
+      "message": "Sure, will do, once this change gets merged.",
+      "parentUuid": "9a5c5d37_f7a6ccc0",
+      "revId": "57704c8a2520a9e5bf28a6b1f4f9ba1d8e41de7c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
