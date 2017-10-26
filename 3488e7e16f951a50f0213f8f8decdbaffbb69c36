@@ -126,6 +126,24 @@
     },
     {
       "key": {
+        "uuid": "9a5c5d37_f71dac74",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 338,
+      "author": {
+        "id": 1000129
+      },
+      "writtenOn": "2017-10-26T19:07:39Z",
+      "side": 1,
+      "message": "Actually as I was typing this comment we had started a conversation with David Bainbridge regarding how ONOS should handle the enable/disable case. He had advised against deleting the port and is suggesting to change the logical port state instead (OFPPS_BLOCKED/OFPPS_LIVE) and have that trigger the flow rule re-addition. If you could raise the bug and perhaps allow David till tomorrow to look at this it may be a simple change in ONOS...in which case we can implement this the correct way with no workarounds...thanks.",
+      "parentUuid": "9a5c5d37_975e7044",
+      "revId": "3488e7e16f951a50f0213f8f8decdbaffbb69c36",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a5c5d37_fb19207a",
         "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
         "patchSetId": 2
