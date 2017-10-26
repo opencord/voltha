@@ -72,6 +72,24 @@
     },
     {
       "key": {
+        "uuid": "9a5c5d37_d799886f",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 338,
+      "author": {
+        "id": 1000129
+      },
+      "writtenOn": "2017-10-26T15:20:38Z",
+      "side": 1,
+      "message": "Deleting and re-creating the port is a bit too destructive for a simple disable/enable, and also we generate a new port number in ONOS every time we do this. \nMy suggestion would be to store whatever data from the flow rules that the adapter needs (which is just the CVID I believe) and then re-send the relevant OMCI when the ONU becomes active again.\nAlso, if there is an issue in ONOS and we believe that flow rules should get pushed down on a port enable/disable, then we should raise a bug for that instead of trying to work around the issue in the adapter.",
+      "parentUuid": "9a5c5d37_170600cf",
+      "revId": "3488e7e16f951a50f0213f8f8decdbaffbb69c36",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a5c5d37_fb19207a",
         "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
         "patchSetId": 2
