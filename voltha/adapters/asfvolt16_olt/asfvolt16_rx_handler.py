@@ -74,7 +74,7 @@ class Asfvolt16RxHandler(object):
         device_handler = self.adapter.devices_handlers[device_id]
         reactor.callLater(0,
                           device_handler.handle_access_term_ind,
-                          ind_info)
+                          ind_info,request.access_term_ind.key.access_term_id)
         bal_err = bal_pb2.BalErr()
         bal_err.err = bal_errno_pb2.BAL_ERR_OK
         return bal_err
@@ -159,6 +159,9 @@ class Asfvolt16RxHandler(object):
         self.log.info('Interface indication Received',
                       device_id=device_id, obj_type=request.objType)
         self.log.info('Awaiting ONU discovery')
+        reactor.callLater(0,\
+                          device_handler.BalIfaceIndication,\
+                          device_id,request.interface_ind.key.intf_id)
         bal_err = bal_pb2.BalErr()
         bal_err.err = bal_errno_pb2.BAL_ERR_OK
         return bal_err
