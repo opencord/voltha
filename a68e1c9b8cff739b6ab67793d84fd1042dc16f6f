@@ -16,6 +16,24 @@
       "revId": "a68e1c9b8cff739b6ab67793d84fd1042dc16f6f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_f787ec5f",
+        "filename": "voltha/adapters/asfvolt16_olt/protos/Makefile",
+        "patchSetId": 1
+      },
+      "lineNbr": 34,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-10-26T00:56:58Z",
+      "side": 1,
+      "message": "No, I did not verify edgecore (or any adapters, other than ponsim) for lack of hardware access.  If you could test edgecore that would be great.  This is the only adapter (other than ponsim) that communicates with an OLT using grpc.  So it will be an important test.   If the test does not work then we can revert to the previous version for Edgecore only.  It\u0027s better to have the same version across board.",
+      "parentUuid": "9a5c5d37_371a246f",
+      "revId": "a68e1c9b8cff739b6ab67793d84fd1042dc16f6f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
