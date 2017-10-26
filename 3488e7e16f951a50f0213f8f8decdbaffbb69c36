@@ -108,6 +108,24 @@
     },
     {
       "key": {
+        "uuid": "9a5c5d37_975e7044",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 338,
+      "author": {
+        "id": 1000129
+      },
+      "writtenOn": "2017-10-26T18:48:50Z",
+      "side": 1,
+      "message": "Hi Raghu,\nI am ok with this implementation as a work-around but I think we are in agreement that this is not architecturally correct. If you could please raise a bug to track this and reference it here I will approve these changes.",
+      "parentUuid": "9a5c5d37_97db10ed",
+      "revId": "3488e7e16f951a50f0213f8f8decdbaffbb69c36",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a5c5d37_fb19207a",
         "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
         "patchSetId": 2
