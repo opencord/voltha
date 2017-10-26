@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a5c5d37_d241960c",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 567,
+      "author": {
+        "id": 1000090
+      },
+      "writtenOn": "2017-10-26T21:01:29Z",
+      "side": 1,
+      "message": "Prefer non hard coded priority",
+      "range": {
+        "startLine": 567,
+        "startChar": 29,
+        "endLine": 567,
+        "endChar": 33
+      },
+      "revId": "2f61590fa5d7572017c71ec31f6794d8264aecfe",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
