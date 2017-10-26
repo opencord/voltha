@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a5c5d37_97dd5073",
+        "filename": "Vagrantfile",
+        "patchSetId": 3
+      },
+      "lineNbr": 27,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-10-26T01:44:26Z",
+      "side": 1,
+      "message": "Would it also be the right time to increase the Vagrant box size (for development)?   Running all images in my environment takes \u003e 25 GB.  I set mine to 50GB (config.disksize.size \u003d \u002750GB\u0027)",
+      "revId": "57704c8a2520a9e5bf28a6b1f4f9ba1d8e41de7c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
