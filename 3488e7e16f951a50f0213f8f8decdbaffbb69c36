@@ -90,6 +90,24 @@
     },
     {
       "key": {
+        "uuid": "9a5c5d37_97db10ed",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 338,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-10-26T18:05:09Z",
+      "side": 1,
+      "message": "Hi Peter,\nWhen you say generation of port number from ONOS, are you talking about logical port number?\nAgree that if ONOS is not sending flow while disable/enable, we need to rise a bug and track it. For now my suggestion is to take this changes as workaround and not to store any information in adapter because it may affect HA cases.",
+      "parentUuid": "9a5c5d37_d799886f",
+      "revId": "3488e7e16f951a50f0213f8f8decdbaffbb69c36",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a5c5d37_fb19207a",
         "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
         "patchSetId": 2
