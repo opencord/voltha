@@ -54,6 +54,24 @@
     },
     {
       "key": {
+        "uuid": "9a5c5d37_170600cf",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 338,
+      "author": {
+        "id": 1000103
+      },
+      "writtenOn": "2017-10-26T06:21:45Z",
+      "side": 1,
+      "message": "If we disable and enable the ports, the ONOS is not pushing the flows but when we delete and then add the ports the ONOS sends the flows again.",
+      "parentUuid": "9a5c5d37_cc0fbfe0",
+      "revId": "3488e7e16f951a50f0213f8f8decdbaffbb69c36",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a5c5d37_fb19207a",
         "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
         "patchSetId": 2
@@ -188,6 +206,24 @@
       "writtenOn": "2017-10-25T14:11:04Z",
       "side": 1,
       "message": "Sorry, missed this the last time....but we should not be updating the Oper state to Active here. This should happen when the \"activation-completed\" message is received. Suggest changing the Oper state here to Unknown.",
+      "revId": "3488e7e16f951a50f0213f8f8decdbaffbb69c36",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_576c789c",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 373,
+      "author": {
+        "id": 1000103
+      },
+      "writtenOn": "2017-10-26T06:21:45Z",
+      "side": 1,
+      "message": "Changed it",
+      "parentUuid": "9a5c5d37_ec0a83d1",
       "revId": "3488e7e16f951a50f0213f8f8decdbaffbb69c36",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
