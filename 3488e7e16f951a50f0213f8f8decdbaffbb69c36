@@ -234,6 +234,24 @@
     },
     {
       "key": {
+        "uuid": "9a5c5d37_1d83bf57",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 338,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2017-10-27T17:54:53Z",
+      "side": 1,
+      "message": "looking into this a bit more and running some experiments with mininet. if the switch is reporting that it has all the flows that onos thinks it should have, onos will not push down flows. \n\nso relating this to voltha, if the ofagent is reporting to onos that all flows have been added, onos won\u0027t push down flows, nor should it. as such a port disable / enable really shouldn\u0027t cause a new flow to be pushed (again if the ofagent is indicating all flows are present). \n\nto maintain the abstraction, voltha needs to maintain the flow information and it is up to voltha to push down new config to an onu on port disable / enable if that is needed. in short, i don\u0027t think this is a bug in onos, nor a behavior that needs to change in onos. this seems to be a capability voltha must implement.\n\ni am willing to be convinced otherwise, but we can\u0027t special case this in onos for voltha.",
+      "parentUuid": "9a5c5d37_52580656",
+      "revId": "3488e7e16f951a50f0213f8f8decdbaffbb69c36",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a5c5d37_fb19207a",
         "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
         "patchSetId": 2
