@@ -16,6 +16,24 @@
       "revId": "f8303d50793bb72513a68a9e710d3dc0bda7d24a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_3d73234f",
+        "filename": "docker/config/dependencies.xml",
+        "patchSetId": 5
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2017-10-27T21:46:05Z",
+      "side": 1,
+      "message": "I think we can drop it yes. We needed it originally to work around style checking issues.",
+      "parentUuid": "9a5c5d37_fda6abc0",
+      "revId": "f8303d50793bb72513a68a9e710d3dc0bda7d24a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
