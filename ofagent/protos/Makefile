@@ -23,15 +23,21 @@ endif
 # This makefile is used only to copy relevant *_pb2.py files from Voltha
 # to allow ofagent to function properly.
 
-PB2_FILES := \
-    voltha_pb2.py \
-    openflow_13_pb2.py
 
 TARGET_PROTO_DIR := $(VOLTHA_BASE)/ofagent/protos
 SOURCE_PROTO_DIR := $(VOLTHA_BASE)/voltha/protos
+TARGET_GOOGLE_API_DIR := $(TARGET_PROTO_DIR)/third_party/google/api
+SOURCE_GOOGLE_API_DIR := $(SOURCE_PROTO_DIR)/third_party/google/api
 
 build: copyfiles
 
 copyfiles:
 	rsync -av --include '*/' --exclude='third_party/__init__.py' --include '*.py' --exclude='*' $(SOURCE_PROTO_DIR)/ $(TARGET_PROTO_DIR)
+	rsync -av --include '*/' --exclude='third_party/__init__.py' --include '*.py' --include '*.desc' --include '*.proto' --exclude='*' $(SOURCE_GOOGLE_API_DIR)/ $(TARGET_GOOGLE_API_DIR)
 
+clean:
+	rm -f $(TARGET_PROTO_DIR)/*_pb2*.py
+	rm -f $(TARGET_GOOGLE_API_DIR)/*_pb2*.py
+	rm -f $(TARGET_GOOGLE_API_DIR)/*_pb2*.pyc
+	rm -f $(TARGET_GOOGLE_API_DIR)/*.proto
+	rm -f $(TARGET_GOOGLE_API_DIR)/*.desc

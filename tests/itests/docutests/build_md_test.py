@@ -414,7 +414,7 @@ class BuildMdTests(TestCase):
             # the list obtained from docker composed
             print "Verify all services are registered in consul ..."
             expected_services = ['consul-rest', 'fluentd-intake',
-                                 'chameleon-rest', 'voltha-grpc',
+                                 'voltha-grpc',
                                  'voltha-health',
                                  'consul-8600', 'zookeeper', 'consul',
                                  'kafka']
@@ -484,7 +484,7 @@ class BuildMdTests(TestCase):
                   "..."
             expected_output = ['voltha_1', 'fluentd_1', 'consul_1',
                                'registrator_1', 'kafka_1', 'zookeeper_1',
-                               'chameleon_1', 'ofagent_1', 'netconf_1']
+                               'ofagent_1', 'netconf_1']
             cmd = command_defs['docker_compose_logs']
             docker_compose_logs = run_long_running_command_with_timeout(cmd, 5,
                                                                         0)
