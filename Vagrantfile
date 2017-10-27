@@ -25,6 +25,7 @@ Vagrant.configure(2) do |config|
       config.vm.synced_folder "../..", "/cord"
       Box = "ubuntu/xenial64"
       Provider = "virtualbox"
+      config.disksize.size = '50GB'
     else
       puts("Using the QEMU/KVM configuration");
       Box = "elastic/ubuntu-16.04-x86_64"
@@ -42,6 +43,7 @@ Vagrant.configure(2) do |config|
     config.vm.synced_folder "../..", "/cord"
     Box = "ubuntu/xenial64"
     Provider = "virtualbox"
+    config.disksize.size = '50GB'
   end
 
   config.vm.define "#{settings['server_name']}" do |d|
