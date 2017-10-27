@@ -194,34 +194,6 @@ services:
 #############################################
 
   #
-  # Chameleon server instance(s)
-  #
-  chameleon:
-    image: cord/chameleon
-    command: [
-      "/chameleon/chameleon/main.py",
-      "-v",
-      "--consul=consul:8500",
-      "--fluentd=fluentd:24224",
-      "--rest-port=8881",
-      "--grpc-endpoint=@voltha-grpc",
-      "--instance-id-is-container-name",
-      "-v"
-    ]
-    ports:
-    - 8881
-    depends_on:
-    - consul
-    - voltha
-    links:
-    - consul
-    - fluentd
-    environment:
-      SERVICE_8881_NAME: "chameleon-rest"
-      ENABLE_TLS: "False"
-    volumes:
-    - "/var/run/docker.sock:/tmp/docker.sock"
-  #
   # ofagent server instance
   #
   ofagent:
