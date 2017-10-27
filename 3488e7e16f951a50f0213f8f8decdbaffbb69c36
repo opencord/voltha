@@ -216,6 +216,24 @@
     },
     {
       "key": {
+        "uuid": "9a5c5d37_52580656",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 338,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2017-10-27T15:44:53Z",
+      "side": 1,
+      "message": "The adapter will be running in an HA environment and any instance of an adapter may be restarted at anytime, so i would agree that the \"adapter\" shouldn\u0027t being the store, but it might be OK if the adapter used consul for some state. I think this is a better \"work around\" then a delete and readd or a port.\n\nThe abstraction is a switch, and on a switch, when a port is disabled the switch doesn\u0027t necessarily delete the port configuration (again, need to check the OF standard to verify if there is a prescribed behavior). I think when we look at the behavior of the adapter (OLT + ONU) we need to follow the behavioral characteristics of a physical switch.",
+      "parentUuid": "9a5c5d37_925e7e44",
+      "revId": "3488e7e16f951a50f0213f8f8decdbaffbb69c36",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a5c5d37_fb19207a",
         "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
         "patchSetId": 2
