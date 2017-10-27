@@ -144,6 +144,24 @@
     },
     {
       "key": {
+        "uuid": "9a5c5d37_524ec6c2",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 338,
+      "author": {
+        "id": 1000103
+      },
+      "writtenOn": "2017-10-27T05:03:01Z",
+      "side": 1,
+      "message": "Hi Peter,\ni just cross checked implementation of disable/enable in other onu adapters(as in adtran_onu.py) wherein i see delete logical port during disable(self.adapter_agent.delete_logical_port(logical_device_id, port)).\n\nLet me know if you want me to break away from this as i had tried using OFPPS_DOWN/OFPPS_LIVE which could not solve this issue. I would not term this as a workaround as its been implemented in other onu adapters also.\nIf we still have a agreement that we must move towards a different approach we can create a JIRA user story and work on it and allow this change to be merged as part of the current user story.",
+      "parentUuid": "9a5c5d37_f71dac74",
+      "revId": "3488e7e16f951a50f0213f8f8decdbaffbb69c36",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a5c5d37_fb19207a",
         "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
         "patchSetId": 2
