@@ -162,6 +162,42 @@
     },
     {
       "key": {
+        "uuid": "9a5c5d37_72ad4a31",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 338,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2017-10-27T15:02:24Z",
+      "side": 1,
+      "message": "I am not ok with this as a work around. Completely agree that we need to file a bug with ONOS if we expect flows to be re-pushed on enable, but deleting and re-adding is not a proper work around. If we need a work around I would follow what Peter suggested about saving the required information on disable and then using that information on enable. \n\nI will check into the ONOS issue. Need to check the standard to understand if controllers are meant to re-push on enable. It may be that the save the state is the best solution depending on the standard. Saving the state may be what an OF switch is meant to do.",
+      "parentUuid": "9a5c5d37_97db10ed",
+      "revId": "3488e7e16f951a50f0213f8f8decdbaffbb69c36",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_52aa461a",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 338,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2017-10-27T15:02:24Z",
+      "side": 1,
+      "message": "If other adapters are deleting logical ports on disable I suggest we open tickets against them as adapters should not, imo, be deleting logical ports on disable; particularly if on re-enable that causes a new port ID to be generated.",
+      "parentUuid": "9a5c5d37_524ec6c2",
+      "revId": "3488e7e16f951a50f0213f8f8decdbaffbb69c36",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a5c5d37_fb19207a",
         "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
         "patchSetId": 2
