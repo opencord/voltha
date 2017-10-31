@@ -16,19 +16,31 @@ Vagrant.configure(2) do |config|
   if /cygwin|mswin|mingw|bccwin|wince|emx/ =~ RUBY_PLATFORM
     puts("Configuring for windows")
     config.vm.synced_folder "../..", "/cord", mount_options: ["dmode=700,fmode=600"]
-    Box = "ubuntu/xenial64"
+    if settings['vagrant_box']
+      Box = settings['vagrant_box']
+    else
+      Box = "ubuntu/xenial64"
+    end
     Provider = "virtualbox"
   elsif RUBY_PLATFORM =~ /linux/
     puts("Configuring for linux")
     if settings['vProvider'] == "virtualbox"
       puts("Using the virtualbox configuration");
       config.vm.synced_folder "../..", "/cord"
-      Box = "ubuntu/xenial64"
+      if settings['vagrant_box']
+        Box = settings['vagrant_box']
+      else
+        Box = "ubuntu/xenial64"
+      end
       Provider = "virtualbox"
       config.disksize.size = '50GB'
     else
       puts("Using the QEMU/KVM configuration");
-      Box = "elastic/ubuntu-16.04-x86_64"
+      if settings['vagrant_box']
+        Box = settings['vagrant_box']
+      else
+        Box = "ubuntu1604"
+      end
       Provider = "libvirt"
       if settings['testMode'] == "true" or settings['installMode'] == "true"
           config.vm.synced_folder ".", "/vagrant", disabled: true
@@ -41,7 +53,11 @@ Vagrant.configure(2) do |config|
   else
     puts("Configuring for other")
     config.vm.synced_folder "../..", "/cord"
-    Box = "ubuntu/xenial64"
+    if settings['vagrant_box']
+      Box = settings['vagrant_box']
+    else
+      Box = "ubuntu/xenial64"
+    end
     Provider = "virtualbox"
     config.disksize.size = '50GB'
   end
@@ -49,8 +65,10 @@ Vagrant.configure(2) do |config|
   config.vm.define "#{settings['server_name']}" do |d|
     d.ssh.forward_agent = true
     d.vm.box = Box
-    if Box == "ubuntu/xenial64"
-        d.vm.box_version = "20170207.0.0"
+    if settings['vagrant_box_version']
+      d.vm.box_version = settings['vagrant_box_version']
+    elsif Box == "ubuntu/xenial64"
+      d.vm.box_version = "20170207.0.0"
     end
     d.vm.hostname = "#{settings['server_name']}"
     d.vm.network "private_network", ip: "10.100.198.220"
