@@ -37,6 +37,42 @@
     },
     {
       "key": {
+        "uuid": "9a5c5d37_c9058815",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2017-11-01T15:03:37Z",
+      "side": 1,
+      "message": "The CVLAN maps to a particular UNI mainly due to legacy code and I agree that it should be made a bit more deterministic and there are better ways to implement this.  While we have some adapters that require the control VLAN (4000), the CVLAN tag is absolutely required on that selection for multi-PON support and in some cases, multiple ONUs on a PON.  Using the OpenFlow port as the VLAN is simply a convention that many OLT DA\u0027s have made use of.  This was part the adapter agent\u0027s \u0027child_device_detected\u0027 method used during ONU activation and as soon as everyone supports xPON. Hopefully that will be this month.\n\nAs a working compromise, would first moving the \u00274000\u0027 VLAN into a variable at the top of the flow_decomposer.py file be helpful.  That would allow any device adapter that needs to ignore this controller packet in/out workaround to easily detect the flow request. Many others, including myself, would like to make this configurable, but I would prefer to do that in a separate JIRA.  In addition, any OLT DA that does not need to make use of the C-TAG on a controller flow can just ignore it as well.\n\nWith respect to the CTAG, this would probably be best provisioned through a YANG model such as the IETF VLAN model or one of the BBF subinterfaces models. Both augment the ietf-interfaces model. \n\nI would be interested in hearing more on how the venet linkages would work, but I am also very interested in getting multiple ONUs working on multiple PONs working as soon as possible.",
+      "parentUuid": "9a5c5d37_496d1804",
+      "revId": "16eb0787698e1f0a589eccc2ae17ee644a026997",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_84041716",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2017-11-01T15:03:37Z",
+      "side": 1,
+      "message": "It is actually a bit messier than this. The logical port number for the ONU is assigned by the ONU when it adds its port to the logical device and this becomes the openflow port number of interest to ONOS. For all but one ONU, the value used is the channel_id from the proxy address. The ONU that uses a different value for the logical port number is the broadcom onu an it uses channel_id + uni_port_num.\n\nIn the legacy method (non xPON) it was just a convention or plain-old cut \u0026 paste that set the channel-id \u003d\u003d vlan-id \u003d\u003d logical-port-number.\n\nNow xPON is creating the channel-id upon ONU device creation and is doing so by getting the name of the preferred-channel-pair and then walking through the device ports looking for a port with the \u0027label\u0027 field matching the channel-pair name. Boy was that hidden and hard to find.  Anyway, it returns this port number as the channel-id. I think this may be an issue since this port number is the PON port number of the parent and I would need the proxy address to be unique to an ONU.  I\u0027ve not looked that up yet, so it may not be correct. What is true is that now every ONU (except broadcom) will use that channel-id as the logical-port/openflow-port number. So you cannot have more than one ONU on a PON now.  For BroadCom ONU, it may be a bit better, but I can see a possible clash in openport numbers between ONUs on different PONs.  Depends on how the channel-id + parent-port-number math works out.  Perhaps we need to space out the PON port numbers so that the math will work out, but need all OLTs and all ONUs to try and use the same formulas to be consistent.  I think we are all learning hidden things in the code as we start to integrate things",
+      "parentUuid": "9a5c5d37_a9025409",
+      "revId": "16eb0787698e1f0a589eccc2ae17ee644a026997",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a5c5d37_56f37a73",
         "filename": "voltha/core/flow_decomposer.py",
         "patchSetId": 1
@@ -48,6 +84,24 @@
       "writtenOn": "2017-09-19T15:47:30Z",
       "side": 1,
       "message": "Can the control VLAN be moved to something other than 4000, say 4091? The ongoing PoC uses VLAN 4000 for downstream multicast.",
+      "revId": "16eb0787698e1f0a589eccc2ae17ee644a026997",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_96f8d24a",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 541,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2017-11-01T15:03:37Z",
+      "side": 1,
+      "message": "This was brought up in scrum last Tuesday. I believe the intermediate plan (but not a due date) was to make it configurable and in the long run deprecate the functionality. I sent a slack message to Lydia Fang (Calix) to add herself to the review. Need to also get with Tibit and Nokia to see how/what/when they would like this fixed.\n\nAn intermediate compromise might be to make it a command-line option/environment-var/voltha.yml option that defaults to a different number but can be over-ridden on a per-vendor basis.\n\nI can start up a thread on VOLTHA Discuss on this issue and would be happen to implement the changes since it will require lots of unit-tests changes which I am not familiar with.\n\nIdeas?",
+      "parentUuid": "9a5c5d37_56f37a73",
       "revId": "16eb0787698e1f0a589eccc2ae17ee644a026997",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -71,6 +125,24 @@
     },
     {
       "key": {
+        "uuid": "9a5c5d37_369fe605",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 554,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2017-11-01T15:03:37Z",
+      "side": 1,
+      "message": "Understood.",
+      "parentUuid": "9a5c5d37_f6014e3a",
+      "revId": "16eb0787698e1f0a589eccc2ae17ee644a026997",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a5c5d37_36e8067c",
         "filename": "voltha/core/flow_decomposer.py",
         "patchSetId": 1
@@ -82,6 +154,24 @@
       "writtenOn": "2017-09-19T15:47:30Z",
       "side": 1,
       "message": "See comment above regarding VLAN 4000.",
+      "revId": "16eb0787698e1f0a589eccc2ae17ee644a026997",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_569a5a15",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 568,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2017-11-01T15:03:37Z",
+      "side": 1,
+      "message": "Related to the comment above and my reply, I could at least move all the 4000 values to a variable at the top-of-file.  I always prefer to code that way anyway.  Did not do in original commit to make changes minimal.",
+      "parentUuid": "9a5c5d37_36e8067c",
       "revId": "16eb0787698e1f0a589eccc2ae17ee644a026997",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
