@@ -22,6 +22,30 @@
       "revId": "2f61590fa5d7572017c71ec31f6794d8264aecfe",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_f24ffa90",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 567,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2017-11-01T15:03:37Z",
+      "side": 1,
+      "message": "That should be an easy change to \u0027flow.priority\u0027.  I will wait on any comments/requests from Steve and will plan to resubmit a patch set on early Monday.",
+      "parentUuid": "9a5c5d37_d241960c",
+      "range": {
+        "startLine": 567,
+        "startChar": 29,
+        "endLine": 567,
+        "endChar": 33
+      },
+      "revId": "2f61590fa5d7572017c71ec31f6794d8264aecfe",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
