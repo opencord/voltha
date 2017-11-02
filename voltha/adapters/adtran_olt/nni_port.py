@@ -56,7 +56,7 @@ class NniPort(object):
         self._logical_port = None
         self._parent = parent
 
-        self._sync_tick = 20.0      # TODO: Implement
+        self._sync_tick = 10.0
         self._sync_deferred = None
 
         self._deferred = None
@@ -211,6 +211,12 @@ class NniPort(object):
         self._oper_status = OperStatus.ACTIVE  # TODO: is this correct, how do we tell GRPC
         self._update_adapter_agent()
 
+        # TODO: Start status polling of NNI interfaces
+        self._deferred = None  # = reactor.callLater(3, self.do_stuff)
+        self._state = NniPort.State.RUNNING
+        # Begin hardware sync
+        self._sync_deferred = reactor.callLater(self._sync_tick, self._sync_hardware)
+
         try:
             results = yield self.set_config('enabled', True)
 
@@ -218,12 +224,6 @@ class NniPort(object):
             self.log.exception('nni-start', e=e)
             self._admin_state = AdminState.UNKNOWN
             raise
-
-        # TODO: Start status polling of NNI interfaces
-        self._deferred = None  # = reactor.callLater(3, self.do_stuff)
-        self._state = NniPort.State.RUNNING
-        # Begin hardware sync
-        self._sync_deferred = reactor.callLater(self._sync_tick, self._sync_hardware)
 
         returnValue(self._deferred)
 
@@ -238,22 +238,21 @@ class NniPort(object):
         # NOTE: Leave all NNI ports active (may have inband management)
         # TODO: Revisit leaving NNI Ports active on disable
 
-        # Flush config cache
         self._enabled = None
+        self._state = NniPort.State.STOPPED
 
         self._admin_state = AdminState.DISABLED
         self._oper_status = OperStatus.UNKNOWN
         self._update_adapter_agent()
 
         try:
-            results = yield self.set_config('enabled', False)
+            yield self.set_config('enabled', False)
 
         except Exception as e:
             self.log.exception('nni-stop', e=e)
             self._admin_state = AdminState.UNKNOWN
             raise
 
-        self._state = NniPort.State.STOPPED
         returnValue(self._deferred)
 
     def restart(self):

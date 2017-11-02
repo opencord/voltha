@@ -69,18 +69,12 @@ class SelfSignedSSLCertAuthFail(RestBase):
         out, err, rc = run_command_to_completion_with_raw_stdout(cmd)
         self.assertEqual(rc, 0)
 
-        self.pt("Waiting for voltha and chameleon containers to be ready ...")
+        self.pt("Waiting for voltha container to be ready ...")
         self.wait_till('voltha services HEALTHY',
                        lambda: verify_all_services_healthy(
                            LOCAL_CONSUL, service_name='voltha-grpc') == True,
                        timeout=10)
-        self.wait_till('chameleon services HEALTHY',
-                       lambda: verify_all_services_healthy(
-                           LOCAL_CONSUL,service_name='envoy-8443') == True,
-                       timeout=10)
 
-        # Chameleon takes some time to compile the protos and make them
-        # available.  So let's wait 10 seconds
         sleep(10)
 
     def set_rest_endpoint(self):

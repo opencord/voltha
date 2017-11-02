@@ -3,11 +3,6 @@ upstream api-grafana {
     server {{.Address}}:{{.Port}};
     {{end}}
 }
-upstream api-swagger {
-    {{range service "chameleon-rest" "any"}}
-    server {{.Address}}:{{.Port}};
-    {{end}}
-}
 upstream api-consul {
     {{range service "consul-rest" "any"}}
     server {{.Address}}:{{.Port}};

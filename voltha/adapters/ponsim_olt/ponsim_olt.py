@@ -432,7 +432,8 @@ class PonSimOltHandler(object):
         ))
 
         ld = LogicalDevice(
-            # not setting id and datapth_id will let the adapter agent pick id
+            # not setting id and datapath_id.  Adapter agent will pick the id
+            # and will pick the datapath_id is it is not provided
             desc=ofp_desc(
                 mfr_desc='cord porject',
                 hw_desc='simualted pon',
@@ -452,7 +453,9 @@ class PonSimOltHandler(object):
             ),
             root_device_id=device.id
         )
-        ld_initialized = self.adapter_agent.create_logical_device(ld)
+        mac_address = "AA:BB:CC:DD:EE:FF"
+        ld_initialized = self.adapter_agent.create_logical_device(ld,
+                                                                  dpid=mac_address)
         cap = OFPPF_1GB_FD | OFPPF_FIBER
         self.ofp_port_no = info.nni_port
         self.adapter_agent.add_logical_port(ld_initialized.id, LogicalPort(
@@ -751,7 +754,9 @@ class PonSimOltHandler(object):
             ),
             root_device_id=device.id
         )
-        ld_initialized = self.adapter_agent.create_logical_device(ld)
+        mac_address = "AA:BB:CC:DD:EE:FF"
+        ld_initialized = self.adapter_agent.create_logical_device(ld,
+                                                                  dpid=mac_address)
         cap = OFPPF_1GB_FD | OFPPF_FIBER
         self.adapter_agent.add_logical_port(ld_initialized.id, LogicalPort(
             id='nni',

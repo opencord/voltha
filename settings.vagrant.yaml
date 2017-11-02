@@ -3,6 +3,7 @@
 server_name: "voltha"
 # Use virtualbox for development
 vProvider: "virtualbox"
+#vagrant_box: "ubuntu/xenial64"
 # This determines if test mode is active
 testMode: "false"
 # This determines if installer mode is active

@@ -81,6 +81,7 @@ class EVC(object):
         self._status_message = None
         self._flow = flow_entry
         self._name = self._create_name()
+        self._deferred = None
         self._evc_maps = {}               # Map Name -> evc-map
 
         self._flow_type = EVC.ElineFlowType.UNKNOWN
@@ -111,6 +112,16 @@ class EVC(object):
         #
         return EVC_NAME_FORMAT.format(self._flow.flow_id)
 
+    def _cancel_deferred(self):
+        d, self._deferred = self._deferred, None
+
+        try:
+            if d is not None and not d.called:
+                d.cancel()
+
+        except Exception as e:
+            pass
+
     @property
     def name(self):
         return self._name
@@ -122,6 +133,11 @@ class EVC(object):
     @property
     def installed(self):
         return self._installed
+
+    @installed.setter
+    def installed(self, value):
+        assert not value, 'EVC Install can only be reset'
+        self._installed = False
 
     @property
     def status(self):
@@ -210,11 +226,21 @@ class EVC(object):
         if self._evc_maps is not None and evc_map.name in self._evc_maps:
             del self._evc_maps[evc_map.name]
 
-    def schedule_install(self):
+    def schedule_install(self, delay=0):
         """
-        Try to install EVC and all MAPs in a single operational sequence
+        Try to install EVC and all MAPs in a single operational sequence.
+        The delay parameter is used during recovery to allow multiple associated
+        EVC maps to be updated/modified independently before the parent EVC
+        is installed.
+
+        :param delay: (int) Seconds to delay before install
         """
-        return reactor.callLater(0, self._do_install) if self._valid else succeed('Not VALID')
+        self._cancel_deferred()
+
+        self._deferred = reactor.callLater(delay, self._do_install) \
+            if self._valid else succeed('Not VALID')
+
+        return self._deferred
 
     @staticmethod
     def _xml_header(operation=None):

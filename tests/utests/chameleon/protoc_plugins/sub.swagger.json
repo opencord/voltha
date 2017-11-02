@@ -1,1 +1,0 @@
-{"info": {"version": "version not set", "title": "examples/sub/message.proto"}, "paths": {}, "produces": ["application/json"], "definitions": {"grpc.gateway.examples.sub.StringMessage": {"description": "", "properties": {"value": {"format": "string", "type": "string"}}, "type": "object"}}, "swagger": "2.0", "consumes": ["application/json"], "schemes": ["http", "https"]}

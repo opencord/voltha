@@ -63,10 +63,12 @@ class OltConfig(object):
         @staticmethod
         def decode(pon_list):
             pons = {}
-            for pon_data in pon_list:
-                pon = OltConfig.Pon(pon_data)
-                assert pon.pon_id not in pons
-                pons[pon.pon_id] = pon
+
+            if pon_list is not None:
+                for pon_data in pon_list:
+                    pon = OltConfig.Pon(pon_data)
+                    assert pon.pon_id not in pons
+                    pons[pon.pon_id] = pon
 
             return pons
 
@@ -119,10 +121,12 @@ class OltConfig(object):
             @staticmethod
             def decode(onu_list):
                 onus = {}
-                for onu_data in onu_list:
-                    onu = OltConfig.Pon.Onu(onu_data)
-                    assert onu.onu_id not in onus
-                    onus[onu.onu_id] = onu
+
+                if onu_list is not None:
+                    for onu_data in onu_list:
+                        onu = OltConfig.Pon.Onu(onu_data)
+                        assert onu.onu_id not in onus
+                        onus[onu.onu_id] = onu
 
                 return onus
 
@@ -186,10 +190,12 @@ class OltConfig(object):
                 @staticmethod
                 def decode(tcont_container):
                     tconts = {}
-                    for tcont_data in tcont_container.get('t-cont', []):
-                        tcont = OltConfig.Pon.Onu.TCont(tcont_data)
-                        assert tcont.alloc_id not in tconts
-                        tconts[tcont.alloc_id] = tcont
+
+                    if tcont_container is not None:
+                        for tcont_data in tcont_container.get('t-cont', []):
+                            tcont = OltConfig.Pon.Onu.TCont(tcont_data)
+                            assert tcont.alloc_id not in tconts
+                            tconts[tcont.alloc_id] = tcont
 
                     return tconts
 
@@ -286,10 +292,12 @@ class OltConfig(object):
                 @staticmethod
                 def decode(gem_port_container):
                     gem_ports = {}
-                    for gem_port_data in gem_port_container.get('gem-port', []):
-                        gem_port = OltConfig.Pon.Onu.GemPort(gem_port_data)
-                        assert gem_port.port_id not in gem_ports
-                        gem_ports[gem_port.port_id] = gem_port
+
+                    if gem_port_container is not None:
+                        for gem_port_data in gem_port_container.get('gem-port', []):
+                            gem_port = OltConfig.Pon.Onu.GemPort(gem_port_data)
+                            assert gem_port.port_id not in gem_ports
+                            gem_ports[gem_port.port_id] = gem_port
 
                     return gem_ports
 

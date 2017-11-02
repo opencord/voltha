@@ -18,7 +18,8 @@ from enum import Enum
 
 import voltha.core.flow_decomposer as fd
 from voltha.core.flow_decomposer import *
-from voltha.protos.openflow_13_pb2 import OFPP_CONTROLLER, OFPP_LOCAL, OFPP_ANY, OFPP_MAX
+from voltha.protos.openflow_13_pb2 import OFPP_MAX
+from twisted.internet import defer
 from twisted.internet.defer import returnValue, inlineCallbacks, succeed, gatherResults
 
 log = structlog.get_logger()
@@ -297,6 +298,9 @@ class FlowEntry(object):
         """
         TODO: This is only while there is only a single downstream exception flow
         """
+        if self.ipv4_dst is not None:  # In case MCAST downstream has ACL on it
+            return False
+
         return self.eth_type is not None or self.ip_protocol is not None or\
             self.ipv4_dst is not None or self.udp_dst is not None or self.udp_src is not None
 
@@ -482,31 +486,6 @@ class FlowEntry(object):
 
         return gatherResults(dl, consumeErrors=True)
 
-    @staticmethod
-    def find_evc_map_flows(device_id, pon_id, onu_id=None):
-        """
-        For a given OLT, find all the EVC Maps for a specific PON ID and optionally a
-        specific ONU
-        :param device_id: Device ID
-        :param pon_id: (int) PON ID
-        :param onu_id: (int) Optional ONU ID
-        :return: (list) of matching flows
-        """
-        # EVCs are only in the downstream table, EVC Map are in upstream
-        flow_table = _existing_upstream_flow_entries.get(device_id, None)
-
-        if flow_table is None:
-            return []
-
-        flows = []
-        for flow in flow_table.itervalues():
-            evc_map = flow.evc_map
-            if evc_map is not None and evc_map.pon_id is not None and evc_map.pon_id == pon_id:
-                # PON ID Matches
-                if onu_id is None or onu_id in evc_map.gem_ids_and_vid:
-                    flows.append(evc_map)
-        return flows
-
     @inlineCallbacks
     def remove(self):
         """
@@ -544,7 +523,7 @@ class FlowEntry(object):
             flow_evc = flow_table['evc']
 
             # If this flow owns the EVC, assign it to a remaining flow
-            if flow_id == flow_evc.flow_entry.flow_id:
+            if flow_evc is not None and flow_id == flow_evc.flow_entry.flow_id:
                 flow_table['evc'].flow_entry = next((_flow for _flow in flow_table.itervalues()
                                                      if isinstance(_flow, FlowEntry)
                                                      and _flow.flow_id != flow_id), None)
@@ -574,6 +553,53 @@ class FlowEntry(object):
 
         self.evc = None
         returnValue(succeed('Done'))
+
+    @staticmethod
+    def find_evc_map_flows(onu):
+        """
+        For a given OLT, find all the EVC Maps for a specific ONU
+        :param onu: (Onu) onu
+        :return: (list) of matching flows
+        """
+        # EVCs are only in the downstream table, EVC Map are in upstream
+
+        device_id = onu.device_id
+        onu_ports = onu.uni_ports
+
+        all_flow_entries = _existing_upstream_flow_entries.get(device_id) or {}
+        evc_maps = [flow_entry.evc_map for flow_entry in all_flow_entries.itervalues()
+                    if flow_entry.in_port in onu_ports
+                    and flow_entry.evc_map is not None
+                    and flow_entry.evc_map.valid]
+
+        return evc_maps
+
+    @staticmethod
+    def sync_flows_by_onu(onu, reflow=False):
+        """
+        Check status of all flows on a per-ONU basis. Called when values
+        within the ONU are modified that may affect traffic.
+
+        :param onu: (Onu) ONU to examine
+        :param reflow: (boolean) Flag, if True, requests that the flow be sent to
+                                 hardware even if the values in hardware are
+                                 consistent with the current flow settings
+        """
+        evc_maps = FlowEntry.find_evc_map_flows(onu)
+        evcs = {}
+
+        for evc_map in evc_maps:
+            if reflow or evc_map.reflow_needed():
+                evc_map.installed = False
+
+            if not evc_map.installed:
+                evc = evc_map.evc
+                if evc is not None:
+                    evcs[evc.name] = evc
+
+        for evc in evcs.itervalues():
+            evc.installed = False
+            evc.schedule_install(delay=2)
 
     ######################################################
     # Bulk operations
