@@ -11,7 +11,7 @@ services:
     ofagent:
         image: cord/ofagent
         logging:
-           driver: "json-file"
+            driver: "json-file"
             options:
                 max-size: "10m"
                 max-file: 3
