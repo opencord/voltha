@@ -70,6 +70,8 @@ docs/pon-requirements/*.svg
 ofagent/protos/third_party/google
 ponsim/protos/third_party/google
 netconf/protos/*.proto
+netconf/protos/*.desc
+netconf/protos/third_party/google
 
 # Voltha CLI history files
 .voltha_cli_history

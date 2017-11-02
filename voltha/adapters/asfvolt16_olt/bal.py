@@ -383,15 +383,15 @@ class Bal(object):
         return
 
     @inlineCallbacks
-    def get_bal_nni_stats(self, nni_port):
+    def get_bal_interface_stats(self, intf_id, interface_type):
         self.log.info('Fetching Statistics')
         try:
             obj = bal_model_types_pb2.BalInterfaceKey()
-            obj.intf_id = nni_port
-            obj.intf_type = bal_model_types_pb2.BAL_INTF_TYPE_NNI
+            obj.intf_id = intf_id
+            obj.intf_type = interface_type
             stats = yield self.stub.BalCfgStatGet(obj)
             self.log.info('Fetching statistics success', stats_data = stats.data)
-            returnValue(stats.data)
+            returnValue(stats)
         except Exception as e:
             self.log.info('Fetching statistics failed', exc=str(e))
 
@@ -413,8 +413,8 @@ class Bal(object):
         try:
             obj =  bal_pb2.BalHeartbeat()
             obj.device_id = device_id
-            err = yield self.stub.BalApiHeartbeat(obj)
-            self.log.info('OLT HeartBeat Response Received from', device=device_id, hearbeat_err=err)
-            returnValue(err)
+            rebootStatus = yield self.stub.BalApiHeartbeat(obj)
+            self.log.info('OLT HeartBeat Response Received from', device=device_id, rebootStatus=rebootStatus)
+            returnValue(rebootStatus)
         except Exception as e:
             self.log.info('OLT HeartBeat failed', exc=str(e))

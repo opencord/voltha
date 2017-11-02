@@ -137,6 +137,18 @@ class AdtranNetconfClient(object):
     def _do_close(self, old_session):
         return old_session.close_session()
 
+    @inlineCallbacks
+    def _reconnect(self):
+        try:
+            yield self.close()
+        except:
+            pass
+
+        try:
+            yield self.connect()
+        except:
+            pass
+
     def get_config(self, source='running'):
         """
         Get the configuration from the specified source
@@ -145,9 +157,11 @@ class AdtranNetconfClient(object):
 
         :return: (deferred) Deferred request that wraps the GetReply class
         """
+        if not self._session:
+            raise NotImplemented('No SSH Session')
 
-        if not self._session or not self._session.connected:
-            raise NotImplemented('TODO: Support auto-connect if needed')
+        if not self._session.connected:
+            self._reconnect()
 
         return threads.deferToThread(self._do_get_config, source)
 
@@ -170,8 +184,11 @@ class AdtranNetconfClient(object):
         """
         log.debug('get', filter=payload)
 
-        if not self._session or not self._session.connected:
-            raise NotImplemented('TODO: Support auto-connect if needed')
+        if not self._session:
+            raise NotImplemented('No SSH Session')
+
+        if not self._session.connected:
+            self._reconnect()
 
         return threads.deferToThread(self._do_get, payload)
 
@@ -268,8 +285,15 @@ class AdtranNetconfClient(object):
 
         :return: (deferred) for RpcReply
         """
-        if not self._session or not self._session.connected:
-            raise NotImplemented('TODO: Support auto-connect if needed')
+        if not self._session:
+            raise NotImplemented('No SSH Session')
+
+        if not self._session.connected:
+            try:
+                yield self._reconnect()
+
+            except Exception as e:
+                log.exception('edit-config-connect', e=e)
 
         rpc_reply = None
         # if lock_timeout > 0:
@@ -337,8 +361,11 @@ class AdtranNetconfClient(object):
         """
         log.debug('rpc', rpc=rpc_string)
 
-        if not self._session or not self._session.connected:
-            raise NotImplemented('TODO: Support auto-connect if needed')
+        if not self._session:
+            raise NotImplemented('No SSH Session')
+
+        if not self._session.connected:
+            self._reconnect()
 
         return threads.deferToThread(self._do_rpc, rpc_string)
 

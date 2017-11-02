@@ -75,7 +75,7 @@ class TestDeviceStateChangeSequence(RestBase):
         self.simulate_eapol_flow_install(ldev_id, olt_id, onu_ids)
         self.verify_olt_eapol_flow(olt_id)
         self.disable_device(onu_ids[0])
-        self.delete_device(onu_ids[0])
+        # self.delete_device(onu_ids[0])
         self.verify_logical_ports(ldev_id, 4)
         self.disable_device(olt_ids[0])
         self.delete_device(olt_ids[0])

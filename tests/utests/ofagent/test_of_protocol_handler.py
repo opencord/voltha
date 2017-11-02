@@ -35,7 +35,7 @@ class TestOF_Protocol_handler(TestCase):
         with self.assertRaises(Exception) as context:
             of_proto_handler.handle_flow_mod_request(generic_obj)
         print context.exception
-        self.assertTrue('\'function\' object has no attribute \'send\'' in context.exception)
+        self.assertTrue('\'function\' object has no attribute \'send\'' in str(context.exception))
 
     def test_handle_flow_mod_request_role_master(self):
         generic_obj = self.gen_generic_obj()
@@ -53,7 +53,7 @@ class TestOF_Protocol_handler(TestCase):
             of_proto_handler.handle_role_request(req)
             self.assertEqual(of_proto_handler.role,req.role)
         print context.exception
-        self.assertTrue('\'function\' object has no attribute \'send\'' in context.exception)
+        self.assertTrue('\'function\' object has no attribute \'generation_is_defined\'' in str(context.exception))
 
     def test_forward_packet_in_role_none(self):
         packet_in = self.gen_packet_in()
@@ -71,7 +71,7 @@ class TestOF_Protocol_handler(TestCase):
         with self.assertRaises(Exception) as context:
             of_proto_handler.forward_packet_in(packet_in)
         print context.exception
-        self.assertTrue('\'function\' object has no attribute \'send\'' in context.exception)
+        self.assertTrue('\'function\' object has no attribute \'send\'' in str(context.exception))
 
 if __name__ == '__main__':
     main()

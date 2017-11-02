@@ -38,11 +38,11 @@ done
 docker stack deploy -c ${voltha_base_dir}/compose/docker-compose-fluentd-agg-cluster.yml fluentd
 sleep 2
 docker stack deploy -c ${voltha_base_dir}/compose/docker-compose-fluentd-cluster.yml fluentd
+docker stack deploy -c ${voltha_base_dir}/compose/docker-compose-onos-swarm.yml onos
 docker stack deploy -c ${voltha_base_dir}/compose/docker-compose-voltha-swarm.yml vcore
 docker stack deploy -c ${voltha_base_dir}/compose/docker-compose-ofagent-swarm.yml ofagent
 docker stack deploy -c ${voltha_base_dir}/compose/docker-compose-envoy-swarm.yml voltha
 docker stack deploy -c ${voltha_base_dir}/compose/docker-compose-vcli.yml cli
-docker stack deploy -c ${voltha_base_dir}/compose/docker-compose-chameleon-swarm.yml chameleon
 docker stack deploy -c ${voltha_base_dir}/compose/docker-compose-netconf-swarm.yml netconf
 docker service create -d --name tools --network voltha_net  --network kafka_net --publish "4022:22" voltha/tools
 
