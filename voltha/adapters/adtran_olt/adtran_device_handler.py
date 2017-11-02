@@ -144,7 +144,7 @@ class AdtranDeviceHandler(object):
         # registered (via xPON API/CLI) before they are activated.
 
         self._autoactivate = False
-        self.max_nni_ports = 1  # TODO: This is a VOLTHA imposed limit in 'low_decomposer.py
+        self.max_nni_ports = 1  # TODO: This is a VOLTHA imposed limit in 'flow_decomposer.py
                                 # and logical_device_agent.py
         # OMCI ZMQ Channel
         self.zmq_port = DEFAULT_ZEROMQ_OMCI_TCP_PORT
@@ -152,7 +152,7 @@ class AdtranDeviceHandler(object):
         # Heartbeat support
         self.heartbeat_count = 0
         self.heartbeat_miss = 0
-        self.heartbeat_interval = 5  # TODO: Decrease before release or any scale testing
+        self.heartbeat_interval = 2  # TODO: Decrease before release or any scale testing
         self.heartbeat_failed_limit = 3
         self.heartbeat_timeout = 5
         self.heartbeat = None
@@ -538,9 +538,15 @@ class AdtranDeviceHandler(object):
         raise RuntimeError('Failed to activate OLT: {}'.format(device.reason))
 
     @inlineCallbacks
-    def make_netconf_connection(self, connect_timeout=None):
-        ############################################################################
-        # Start initial discovery of NETCONF support
+    def make_netconf_connection(self, connect_timeout=None,
+                                close_existing_client=False):
+
+        if close_existing_client and self._netconf_client is not None:
+            try:
+                yield self._netconf_client.close()
+            except:
+                pass
+            self._netconf_client = None
 
         client = self._netconf_client
 
@@ -669,19 +675,21 @@ class AdtranDeviceHandler(object):
 
         # Start/stop the interfaces as needed. These are deferred calls
 
-        try:
-            dl = []
-            for port in self.northbound_ports.itervalues():
+        dl = []
+        for port in self.northbound_ports.itervalues():
+            try:
                 dl.append(port.start())
+            except Exception as e:
+                self.log.exception('northbound-port-startup', e=e)
 
-            for port in self.southbound_ports.itervalues():
+        for port in self.southbound_ports.itervalues():
+            try:
                 dl.append(port.start() if port.admin_state == AdminState.ENABLED else port.stop())
 
-            results = yield defer.gatherResults(dl)
+            except Exception as e:
+                self.log.exception('southbound-port-startup', e=e)
 
-        except Exception as e:
-            self.log.exception('port-startup', e=e)
-            results = defer.fail(Failure())
+        results = yield defer.gatherResults(dl, consumeErrors=True)
 
         returnValue(results)
 
@@ -1210,7 +1218,7 @@ class AdtranDeviceHandler(object):
             registry('frameio').close_port(io)
 
     def _rcv_io(self, port, frame):
-        self.log.info('received', iface_name=port.iface_name, frame_len=len(frame))
+        self.log.debug('received', iface_name=port.iface_name, frame_len=len(frame))
 
         pkt = Ether(frame)
         if pkt.haslayer(Dot1Q):
@@ -1236,8 +1244,8 @@ class AdtranDeviceHandler(object):
 
     def packet_out(self, egress_port, msg):
         if self.io_port is not None:
-            self.log.info('sending-packet-out', egress_port=egress_port,
-                          msg=hexify(msg))
+            self.log.debug('sending-packet-out', egress_port=egress_port,
+                           msg=hexify(msg))
             pkt = Ether(msg)
 
             #ADTRAN To remove any extra tags 
@@ -1320,60 +1328,74 @@ class AdtranDeviceHandler(object):
 
     def check_pulse(self):
         if self.logical_device_id is not None:
-            self.heartbeat = self.rest_client.request('GET', self.HELLO_URI, name='hello')
-            self.heartbeat.addCallbacks(self.heartbeat_check_status, self.heartbeat_fail)
+            try:
+                self.heartbeat = self.rest_client.request('GET', self.HELLO_URI,
+                                                          name='hello', timeout=5)
+                self.heartbeat.addCallbacks(self._heartbeat_success, self._heartbeat_fail)
 
-    def heartbeat_check_status(self, results):
+            except Exception as e:
+                self.heartbeat = reactor.callLater(5, self._heartbeat_fail, e)
+
+    def heartbeat_check_status(self, _):
         """
         Check the number of heartbeat failures against the limit and emit an alarm if needed
         """
         device = self.adapter_agent.get_device(self.device_id)
 
-        if self.heartbeat_miss >= self.heartbeat_failed_limit and device.connect_status == ConnectStatus.REACHABLE:
-            self.log.warning('olt-heartbeat-failed', count=self.heartbeat_miss)
-            device.connect_status = ConnectStatus.UNREACHABLE
-            device.oper_status = OperStatus.FAILED
-            device.reason = self.heartbeat_last_reason
-            self.adapter_agent.update_device(device)
+        try:
+            if self.heartbeat_miss >= self.heartbeat_failed_limit:
+                if device.connect_status == ConnectStatus.REACHABLE:
+                    self.log.warning('heartbeat-failed', count=self.heartbeat_miss)
+                    device.connect_status = ConnectStatus.UNREACHABLE
+                    device.oper_status = OperStatus.FAILED
+                    device.reason = self.heartbeat_last_reason
+                    self.adapter_agent.update_device(device)
+                    self.heartbeat_alarm(True, self.heartbeat_miss)
+            else:
+                # Update device states
+                if device.connect_status != ConnectStatus.REACHABLE:
+                    device.connect_status = ConnectStatus.REACHABLE
+                    device.oper_status = OperStatus.ACTIVE
+                    device.reason = ''
+                    self.adapter_agent.update_device(device)
+                    self.heartbeat_alarm(False)
 
-            self.heartbeat_alarm(False, self.heartbeat_miss)
-        else:
-            # Update device states
+                if self.netconf_client is None or not self.netconf_client.connected:
+                    self.make_netconf_connection(close_existing_client=True)
 
-            self.log.info('heartbeat-success')
-
-            if device.connect_status != ConnectStatus.REACHABLE:
-                device.connect_status = ConnectStatus.REACHABLE
-                device.oper_status = OperStatus.ACTIVE
-                device.reason = ''
-                self.adapter_agent.update_device(device)
-
-                self.heartbeat_alarm(True)
-
-            self.heartbeat_miss = 0
-            self.heartbeat_last_reason = ''
-            self.heartbeat_count += 1
+        except Exception as e:
+            self.log.exception('heartbeat-check', e=e)
 
         # Reschedule next heartbeat
         if self.logical_device_id is not None:
+            self.heartbeat_count += 1
             self.heartbeat = reactor.callLater(self.heartbeat_interval, self.check_pulse)
 
-    def heartbeat_fail(self, failure):
+    def _heartbeat_success(self, results):
+        self.log.debug('heartbeat-success')
+        self.heartbeat_miss = 0
+        self.heartbeat_last_reason = ''
+        self.heartbeat_check_status(results)
+
+    def _heartbeat_fail(self, failure):
         self.heartbeat_miss += 1
         self.log.info('heartbeat-miss', failure=failure,
-                      count=self.heartbeat_count, miss=self.heartbeat_miss)
+                      count=self.heartbeat_count,
+                      miss=self.heartbeat_miss)
+        self.heartbeat_last_reason = 'RESTCONF connectivity error'
         self.heartbeat_check_status(None)
 
-    def heartbeat_alarm(self, status, heartbeat_misses=0):
+    def heartbeat_alarm(self, raise_alarm, heartbeat_misses=0):
         alarm = 'Heartbeat'
         alarm_data = {
             'ts': arrow.utcnow().timestamp,
-            'description': self.alarms.format_description('olt', alarm, status),
+            'description': self.alarms.format_description('olt', alarm,
+                                                          raise_alarm),
             'id': self.alarms.format_id(alarm),
             'type': AlarmEventType.EQUIPMENT,
             'category': AlarmEventCategory.PON,
             'severity': AlarmEventSeverity.CRITICAL,
-            'state': AlarmEventState.RAISED if status else AlarmEventState.CLEARED
+            'state': AlarmEventState.RAISED if raise_alarm else AlarmEventState.CLEARED
         }
         context_data = {'heartbeats_missed': heartbeat_misses}
         self.alarms.send_alarm(context_data, alarm_data)
@@ -1384,3 +1406,17 @@ class AdtranDeviceHandler(object):
             return datetime.datetime.strptime(revision, '%Y-%m-%d')
         except Exception:
             return None
+
+    @staticmethod
+    def _dict_diff(lhs, rhs):
+        """
+        Compare the values of two dictionaries and return the items in 'rhs'
+        that are different than 'lhs. The RHS dictionary keys can be a subset of the
+        LHS dictionary, or the RHS dictionary keys can contain new values.
+
+        :param lhs: (dict) Original dictionary values
+        :param rhs: (dict) New dictionary values to compare to the original (lhs) dict
+        :return: (dict) Dictionary with differences from the RHS dictionary
+        """
+        assert len(lhs.keys()) == len(set(lhs.iterkeys()) & (rhs.iterkeys())), 'Dictionary Keys do not match'
+        return {k: v for k, v in rhs.items() if k not in lhs or lhs[k] != rhs[k]}

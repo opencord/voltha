@@ -43,6 +43,7 @@ import structlog
 
 class AdapterAlarms:
     def __init__(self, adapter, device):
+        self.log = structlog.get_logger(device_id=device.id)
         self.adapter = adapter
         self.device_id = device.id
         self.lc = None
@@ -50,7 +51,7 @@ class AdapterAlarms:
     def format_id(self, alarm):
         return 'voltha.{}.{}.{}'.format(self.adapter.name,
                                         self.device_id,
-                                        alarm),
+                                        alarm)
 
     def format_description(self, _object, alarm, status):
         return '{} Alarm - {} - {}'.format(_object.upper(),
@@ -61,8 +62,9 @@ class AdapterAlarms:
         try:
             current_context = {}
 
-            for key, value in context_data.__dict__.items():
-                current_context[key] = str(value)
+            if isinstance(context_data, dict):
+                for key, value in context_data.iteritems():
+                    current_context[key] = str(value)
 
             alarm_event = self.adapter.adapter_agent.create_alarm(
                 id=alarm_data.get('id', 'voltha.{}.{}.olt'.format(self.adapter.name,
@@ -81,8 +83,3 @@ class AdapterAlarms:
 
         except Exception as e:
             self.log.exception('failed-to-send-alarm', e=e)
-
-
-
-
-

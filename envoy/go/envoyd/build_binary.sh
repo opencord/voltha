@@ -6,5 +6,5 @@ docker run -v $(pwd):/src go-builder
 #/build.sh
 uid=`id -u`
 gid=`id -g`
-sudo chown -R ${uid}.${gid} buildreport
-sudo chown ${uid}.${gid} envoyd
+sudo chown -R ${uid}:${gid} buildreport
+sudo chown ${uid}:${gid} envoyd

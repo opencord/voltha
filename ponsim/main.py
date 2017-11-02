@@ -69,8 +69,8 @@ def parse_args():
 
     parser = argparse.ArgumentParser()
 
-    _help = ('Path to chameleon.yml config file (default: %s). '
-             'If relative, it is relative to main.py of chameleon.'
+    _help = ('Path to ponsim.yml config file (default: %s). '
+             'If relative, it is relative to main.py of ponsim.'
              % defs['config'])
     parser.add_argument('-c', '--config',
                         dest='config',

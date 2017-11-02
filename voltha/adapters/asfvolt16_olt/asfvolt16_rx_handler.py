@@ -74,7 +74,7 @@ class Asfvolt16RxHandler(object):
         device_handler = self.adapter.devices_handlers[device_id]
         reactor.callLater(0,
                           device_handler.handle_access_term_ind,
-                          ind_info)
+                          ind_info,request.access_term_ind.key.access_term_id)
         bal_err = bal_pb2.BalErr()
         bal_err.err = bal_errno_pb2.BAL_ERR_OK
         return bal_err
@@ -159,6 +159,9 @@ class Asfvolt16RxHandler(object):
         self.log.info('Interface indication Received',
                       device_id=device_id, obj_type=request.objType)
         self.log.info('Awaiting ONU discovery')
+        reactor.callLater(0,\
+                          device_handler.BalIfaceIndication,\
+                          device_id,request.interface_ind.key.intf_id)
         bal_err = bal_pb2.BalErr()
         bal_err.err = bal_errno_pb2.BAL_ERR_OK
         return bal_err
@@ -261,10 +264,6 @@ class Asfvolt16RxHandler(object):
                              device_id,request.terminal_alarm.key.intf_id,\
                              lopc_mic_error, balSubTermAlarm_Dict)
 
-        '''
-        ind_info['_object_type'] = 'sub_term_indication'
-        ind_info['_sub_group_type'] = 'alarm_indication'
-        '''
         bal_err = bal_pb2.BalErr()
         bal_err.err = bal_errno_pb2.BAL_ERR_OK
         return bal_err
@@ -287,6 +286,10 @@ class Asfvolt16RxHandler(object):
 
         if dgi_status != bal_model_types_pb2.BAL_ALARM_STATUS_NO__CHANGE:
 
+           ind_info = dict()
+           ind_info['_object_type'] = 'sub_term_indication'
+           ind_info['_sub_group_type'] = 'dgi_indication'
+
            balSubTermDgi_Dict = { }
            balSubTermDgi_Dict["dgi_status"]=dgi_status.__str__()
 
@@ -294,12 +297,9 @@ class Asfvolt16RxHandler(object):
            reactor.callLater(0,
                              device_handler.BalSubsTermDgiAlarm,
                              device_id,request.terminal_dgi.key.intf_id,\
-                             dgi_status,balSubTermDgi_Dict)
-        '''
-        ind_info = dict()
-        ind_info['_object_type'] = 'sub_term_indication'
-        ind_info['_sub_group_type'] = 'dgi_indication'
-        '''
+                             request.terminal_dgi.key.sub_term_id, \
+                             dgi_status,balSubTermDgi_Dict, ind_info)
+
         bal_err = bal_pb2.BalErr()
         bal_err.err = bal_errno_pb2.BAL_ERR_OK
         return bal_err

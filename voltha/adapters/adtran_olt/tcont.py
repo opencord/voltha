@@ -81,6 +81,43 @@ class TCont(object):
         name = 'tcont-delete-{}-{}: {}'.format(pon_id, onu_id, self.alloc_id)
         return succeed(session.request('DELETE', uri, name=name))
 
+    def _get_onu(self, olt):
+        onu = None
+        try:
+            vont_ani = olt.v_ont_anis.get(self.vont_ani)
+            ch_pair = olt.channel_pairs.get(vont_ani['preferred-channel-pair'])
+            ch_term = next((term for term in olt.channel_terminations.itervalues()
+                            if term['channel-pair'] == ch_pair['name']), None)
+
+            pon = olt.pon(ch_term['xgs-ponid'])
+            onu = pon.onu(vont_ani['onu-id'])
+
+        except Exception:
+            pass
+
+        return onu
+
+    def xpon_create(self, olt):
+        # Look up any associated ONU. May be None if pre-provisioning
+        onu = self._get_onu(olt)
+
+        if onu is not None:
+            onu.add_tcont(self)
+
+    def xpon_update(self, olt):
+        # Look up any associated ONU. May be None if pre-provisioning
+        onu = self._get_onu(olt)
+
+        if onu is not None:
+            pass            # TODO: Not yet supported
+
+    def xpon_delete(self, olt):
+        # Look up any associated ONU. May be None if pre-provisioning
+        onu = self._get_onu(olt)
+
+        if onu is not None:
+            onu.remove_tcont(self.alloc_id)
+
 
 class TrafficDescriptor(object):
     """
@@ -193,6 +230,14 @@ class TrafficDescriptor(object):
                 raise
 
         returnValue(results)
+
+    def xpon_create(self, olt, tcont):
+        # Look up any associated ONU. May be None if pre-provisioning
+        pass                    # TODO
+
+    def xpon_update(self, olt, tcont):
+        # Look up any associated ONU. May be None if pre-provisioning
+        pass            # TODO: Not yet supported
 
 
 class BestEffort(object):

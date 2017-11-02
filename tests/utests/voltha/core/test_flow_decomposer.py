@@ -66,6 +66,11 @@ class TestFlowDecomposer(FlowHelpers, FlowDecomposer):
         4: LogicalPort(id='4', device_id='onu4', device_port_no=2),
     }
 
+    def get_wildcard_input_ports(self, exclude_port=None):
+        logical_ports =  self._logical_ports.iterkeys()
+        return [port_no for port_no in logical_ports
+                if port_no != exclude_port]
+
     _routes = {
 
         # DOWNSTREAM ROUTES
@@ -193,22 +198,6 @@ class TestFlowDecomposer(FlowHelpers, FlowDecomposer):
     }
 
     _default_rules = {
-        'olt': (
-            OrderedDict((f.id, f) for f in [
-                mk_flow_stat(
-                    match_fields=[
-                        in_port(2),
-                        vlan_vid(ofp.OFPVID_PRESENT | 4000),
-                        vlan_pcp(0)
-                    ],
-                    actions=[
-                        pop_vlan(),
-                        output(1)
-                    ]
-                )
-            ]),
-            OrderedDict()
-        ),
         'onu1': (
             OrderedDict((f.id, f) for f in [
                 mk_flow_stat(
@@ -315,16 +304,30 @@ class TestFlowDecomposer(FlowHelpers, FlowDecomposer):
                 output(1)
             ]
         ))
-        self.assertFlowsEqual(olt_flows.values()[1], mk_flow_stat(
+        self.assertFlowsEqual(olt_flows.values()[0], mk_flow_stat(
             priority=1000,
             match_fields=[
                 in_port(1),
+                vlan_vid(ofp.OFPVID_PRESENT | 1),
                 eth_type(0x888e)
             ],
             actions=[
                 push_vlan(0x8100),
                 set_field(vlan_vid(ofp.OFPVID_PRESENT | 4000)),
                 output(2)
+            ]
+        ))
+        self.assertFlowsEqual(olt_flows.values()[1], mk_flow_stat(
+            priority=1000,
+            match_fields=[
+                in_port(2),
+                vlan_vid(ofp.OFPVID_PRESENT | 4000),
+                vlan_pcp(0),
+                metadata(1)
+            ],
+            actions=[
+                pop_vlan(),
+                output(1)
             ]
         ))
 
@@ -359,10 +362,11 @@ class TestFlowDecomposer(FlowHelpers, FlowDecomposer):
                 output(1)
             ]
         ))
-        self.assertFlowsEqual(olt_flows.values()[1], mk_flow_stat(
+        self.assertFlowsEqual(olt_flows.values()[0], mk_flow_stat(
             priority=1000,
             match_fields=[
                 in_port(1),
+                vlan_vid(ofp.OFPVID_PRESENT | 1),
                 eth_type(0x0800),
                 ipv4_dst(0xffffffff),
                 ip_proto(17),
@@ -373,6 +377,19 @@ class TestFlowDecomposer(FlowHelpers, FlowDecomposer):
                 push_vlan(0x8100),
                 set_field(vlan_vid(ofp.OFPVID_PRESENT | 4000)),
                 output(2)
+            ]
+        ))
+        self.assertFlowsEqual(olt_flows.values()[1], mk_flow_stat(
+            priority=1000,
+            match_fields=[
+                in_port(2),
+                vlan_vid(ofp.OFPVID_PRESENT | 4000),
+                vlan_pcp(0),
+                metadata(1)
+            ],
+            actions=[
+                pop_vlan(),
+                output(1)
             ]
         ))
 
@@ -404,10 +421,11 @@ class TestFlowDecomposer(FlowHelpers, FlowDecomposer):
                 output(1)
             ]
         ))
-        self.assertFlowsEqual(olt_flows.values()[1], mk_flow_stat(
+        self.assertFlowsEqual(olt_flows.values()[0], mk_flow_stat(
             priority=1000,
             match_fields=[
                 in_port(1),
+                vlan_vid(ofp.OFPVID_PRESENT | 1),
                 eth_type(0x0800),
                 ip_proto(2)
             ],
@@ -415,6 +433,19 @@ class TestFlowDecomposer(FlowHelpers, FlowDecomposer):
                 push_vlan(0x8100),
                 set_field(vlan_vid(ofp.OFPVID_PRESENT | 4000)),
                 output(2)
+            ]
+        ))
+        self.assertFlowsEqual(olt_flows.values()[1], mk_flow_stat(
+            priority=1000,
+            match_fields=[
+                in_port(2),
+                vlan_vid(ofp.OFPVID_PRESENT | 4000),
+                vlan_pcp(0),
+                metadata(1)
+            ],
+            actions=[
+                pop_vlan(),
+                output(1)
             ]
         ))
 
@@ -433,30 +464,107 @@ class TestFlowDecomposer(FlowHelpers, FlowDecomposer):
         olt_flows, olt_groups = device_rules['olt']
         self.assertEqual(len(onu1_flows), 1)
         self.assertEqual(len(onu1_groups), 0)
-        self.assertEqual(len(olt_flows), 2)
+        self.assertEqual(len(olt_flows), 8)
         self.assertEqual(len(olt_groups), 0)
         self.assertFlowsEqual(onu1_flows.values()[0], mk_flow_stat(
             match_fields=[
-                in_port(2),
-                vlan_vid(ofp.OFPVID_PRESENT | 0),
+                in_port(2), vlan_vid(ofp.OFPVID_PRESENT | 0)
             ],
             actions=[
                 set_field(vlan_vid(ofp.OFPVID_PRESENT | 101)),
                 output(1)
             ]
         ))
-        self.assertFlowsEqual(olt_flows.values()[1], mk_flow_stat(
+        self.assertFlowsEqual(olt_flows.values()[0], mk_flow_stat(
             priority=2000,
             cookie=140,
             match_fields=[
-                in_port(1),
-                eth_type(0x0800),
-                ip_proto(2)
+                in_port(1), vlan_vid(ofp.OFPVID_PRESENT | 0),
+                eth_type(0x0800), ip_proto(2)
             ],
             actions=[
                 push_vlan(0x8100),
                 set_field(vlan_vid(ofp.OFPVID_PRESENT | 4000)),
                 output(2)
+            ]
+        ))
+        self.assertFlowsEqual(olt_flows.values()[1], mk_flow_stat(
+            priority=2000,
+            match_fields=[
+                in_port(2), vlan_vid(ofp.OFPVID_PRESENT | 4000),
+                vlan_pcp(0), metadata(0)
+            ],
+            actions=[
+                pop_vlan(), output(1)
+            ]
+        ))
+        self.assertFlowsEqual(olt_flows.values()[2], mk_flow_stat(
+            priority=2000,
+            cookie=140,
+            match_fields=[
+                in_port(1), vlan_vid(ofp.OFPVID_PRESENT | 1),
+                eth_type(0x0800), ip_proto(2)
+            ],
+            actions=[
+                push_vlan(0x8100),
+                set_field(vlan_vid(ofp.OFPVID_PRESENT | 4000)),
+                output(2)
+            ]
+        ))
+        self.assertFlowsEqual(olt_flows.values()[3], mk_flow_stat(
+            priority=2000,
+            match_fields=[
+                in_port(2), vlan_vid(ofp.OFPVID_PRESENT | 4000),
+                vlan_pcp(0), metadata(1)
+            ],
+            actions=[
+                pop_vlan(), output(1)
+            ]
+        ))
+        self.assertFlowsEqual(olt_flows.values()[4], mk_flow_stat(
+            priority=2000,
+            cookie=140,
+            match_fields=[
+                in_port(1), vlan_vid(ofp.OFPVID_PRESENT | 3),
+                eth_type(0x0800), ip_proto(2)
+            ],
+            actions=[
+                push_vlan(0x8100),
+                set_field(vlan_vid(ofp.OFPVID_PRESENT | 4000)),
+                output(2)
+            ]
+        ))
+        self.assertFlowsEqual(olt_flows.values()[5], mk_flow_stat(
+            priority=2000,
+            match_fields=[
+                in_port(2), vlan_vid(ofp.OFPVID_PRESENT | 4000),
+                vlan_pcp(0), metadata(3)
+            ],
+            actions=[
+                pop_vlan(), output(1)
+            ]
+        ))
+        self.assertFlowsEqual(olt_flows.values()[6], mk_flow_stat(
+            priority=2000,
+            cookie=140,
+            match_fields=[
+                in_port(1), vlan_vid(ofp.OFPVID_PRESENT | 4),
+                eth_type(0x0800), ip_proto(2)
+            ],
+            actions=[
+                push_vlan(0x8100),
+                set_field(vlan_vid(ofp.OFPVID_PRESENT | 4000)),
+                output(2)
+            ]
+        ))
+        self.assertFlowsEqual(olt_flows.values()[7], mk_flow_stat(
+            priority=2000,
+            match_fields=[
+                in_port(2), vlan_vid(ofp.OFPVID_PRESENT | 4000),
+                vlan_pcp(0), metadata(4)
+            ],
+            actions=[
+                pop_vlan(), output(1)
             ]
         ))
 
@@ -492,7 +600,7 @@ class TestFlowDecomposer(FlowHelpers, FlowDecomposer):
         olt_flows, olt_groups = device_rules['olt']
         self.assertEqual(len(onu1_flows), 2)
         self.assertEqual(len(onu1_groups), 0)
-        self.assertEqual(len(olt_flows), 2)
+        self.assertEqual(len(olt_flows), 1)
         self.assertEqual(len(olt_groups), 0)
         self.assertFlowsEqual(onu1_flows.values()[1], mk_flow_stat(
             priority=500,
@@ -506,7 +614,7 @@ class TestFlowDecomposer(FlowHelpers, FlowDecomposer):
                 output(1)
             ]
         ))
-        self.assertFlowsEqual(olt_flows.values()[1], mk_flow_stat(
+        self.assertFlowsEqual(olt_flows.values()[0], mk_flow_stat(
             priority=500,
             match_fields=[
                 in_port(1),
@@ -551,9 +659,9 @@ class TestFlowDecomposer(FlowHelpers, FlowDecomposer):
         olt_flows, olt_groups = device_rules['olt']
         self.assertEqual(len(onu1_flows), 2)
         self.assertEqual(len(onu1_groups), 0)
-        self.assertEqual(len(olt_flows), 2)
+        self.assertEqual(len(olt_flows), 1)
         self.assertEqual(len(olt_groups), 0)
-        self.assertFlowsEqual(olt_flows.values()[1], mk_flow_stat(
+        self.assertFlowsEqual(olt_flows.values()[0], mk_flow_stat(
             priority=500,
             match_fields=[
                 in_port(2),
@@ -606,14 +714,16 @@ class TestFlowDecomposer(FlowHelpers, FlowDecomposer):
         olt_flows, olt_groups = device_rules['olt']
         self.assertEqual(len(onu1_flows), 2)
         self.assertEqual(len(onu1_groups), 0)
-        self.assertEqual(len(olt_flows), 2)
+        self.assertEqual(len(olt_flows), 1)
         self.assertEqual(len(olt_groups), 0)
-        self.assertFlowsEqual(olt_flows.values()[1], mk_flow_stat(
+        self.assertFlowsEqual(olt_flows.values()[0], mk_flow_stat(
             priority=500,
             match_fields=[
                 in_port(2),
                 vlan_vid(ofp.OFPVID_PRESENT | 170),
-                vlan_pcp(0)
+                vlan_pcp(0),
+                eth_type(0x800),
+                ipv4_dst(0xe00a0a0a)
             ],
             actions=[
                 pop_vlan(),

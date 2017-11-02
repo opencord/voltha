@@ -82,7 +82,7 @@ nosetests -s tests/itests/voltha/test_cold_activation_sequence.py
 * **Device_state_changes**: This tests uses the ponsim OLT and ONUs to exercise 
 the device state changes (preprovisioning, enabled, disabled, reboot). 
 It exercises the following areas:
-    * Chameleon REST interface 
+    * Envoy REST interface 
     * Voltha GRPC interface
     * Voltha data model and business logic
     * Ponsim_olt and Ponsim_onu adapters
@@ -133,7 +133,7 @@ cd /cord/incubator/voltha
 nosetests -s tests/itests/voltha/test_persistence.py
 ```  
 
-* **Voltha_rest_apis**: This test exercises the Chameleon REST interface and 
+* **Voltha_rest_apis**: This test exercises the Envoy REST interface and 
 indirectly
  the Voltha GPRC interface as well.  It tests both the Local and the Global 
  interfaces.
@@ -206,6 +206,15 @@ nosetests -s tests/itests/voltha/test_voltha_alarm_filters.py
 
 * **Dispatcher**:  This test exercises the requests forwarding via the Global 
 handler.
+
+Before running the test, start a voltha ensemble.  The first command is to 
+ensure we will be running cleanly:
+```
+cd /cord/incubator/voltha
+. ./env.sh
+docker-compose -f compose/docker-compose-system-test-dispatcher.yml down
+docker-compose -f compose/docker-compose-system-test-dispatcher.yml up -d
+```  
 
 During this test, the user will be prompted to start ponsim.  Use 
 these commands to run ponsim with 1 OLT and 4 ONUs.

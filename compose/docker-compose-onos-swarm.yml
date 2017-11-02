@@ -28,11 +28,30 @@ services:
             - net
             - voltha-net
 
+    onos_cluster_manager:
+        image: "voltha/unum"
+        deploy:
+            replicas: 1
+            placement:
+                constraints:
+                    - node.role == manager
+        environment:
+            PERIOD: "10s"
+            LOG_LEVEL: "debug"
+            ORCHESTRATION: "swarm://"
+            LABELS: "org.voltha.onos.cluster:true"
+            NETWORK: "org.voltha.onos.cluster:true"
+        networks:
+            - net
+            - voltha-net
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+
     onos:
         deploy:
-            # Single instance for now since a cluster 
-            # needs to be configured through onos 
-           replicas: 1
+           replicas: 3
+           labels:
+               org.voltha.onos.cluster: "true"
         image: "cord/onos"
         logging:
             driver: "json-file"
@@ -44,11 +63,10 @@ services:
             - 6653:6653 # OF
             - 8181:8181 # UI
         environment:
-            ONOS_APPS: 'drivers,openflow-base'
+            EXTRA_JAVA_OPTS: "-Donos.cluster.metadata.uri=http://onos_cluster_manager:5411/config/"
         networks:
             - net
             - voltha-net
-
 networks:
     net:
         driver: overlay
@@ -58,6 +76,8 @@ networks:
             driver: default
             config:
                 - subnet: 172.25.0.0/24
+        labels:
+            org.voltha.onos.cluster: "true"
 
     voltha-net:
         external:

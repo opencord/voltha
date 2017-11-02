@@ -226,7 +226,7 @@ class Leader(object):
                     returnValue(False)
 
                 # Tackle the simplest scenario - #members >= #old_assignment
-                if len(members) >= len(old_assignment):
+                if members is not None and len(members) >= len(old_assignment):
                     returnValue(False)
 
                 # Everything else is a temporal state
