@@ -1,0 +1,7 @@
+Code-Review+2: Kim Kempf <kim.kempf@radisys.com>
+Verified+1: David Bainbridge <dbainbri@ciena.com>
+Submitted-by: David Bainbridge <dbainbri@ciena.com>
+Submitted-at: Thu, 02 Nov 2017 11:32:20 -0700
+Reviewed-on: https://gerrit.opencord.org/6891
+Project: voltha
+Branch: refs/heads/test-merge
