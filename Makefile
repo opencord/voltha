@@ -22,7 +22,7 @@ include setup.mk
 
 VENVDIR := venv-$(shell uname -s | tr '[:upper:]' '[:lower:]')
 
-.PHONY: $(DIRS) $(DIRS_CLEAN) $(DIRS_FLAKE8) flake8 docker-base voltha chameleon ofagent podder netconf shovel onos dashd vcli portainer grafana nginx consul registrator envoy golang envoyd tools opennms logstash
+.PHONY: $(DIRS) $(DIRS_CLEAN) $(DIRS_FLAKE8) flake8 docker-base voltha ofagent podder netconf shovel onos dashd vcli portainer grafana nginx consul registrator envoy golang envoyd tools opennms logstash unum
 
 # This should to be the first and default target in this Makefile
 help:
@@ -45,7 +45,6 @@ help:
 	@echo "containers   : Build all the docker containers"
 	@echo "docker-base  : Build the base docker container used by all other dockers"
 	@echo "voltha       : Build the voltha docker container"
-	@echo "chameleon    : Build the chameleon docker container"
 	@echo "ofagent      : Build the ofagent docker container"
 	@echo "podder       : Build the podder docker container"
 	@echo "netconf      : Build the netconf docker container"
@@ -57,6 +56,7 @@ help:
 	@echo "grafana      : Build the grafana docker container"
 	@echo "nginx        : Build the nginx docker container"
 	@echo "consul       : Build the consul docker container"
+	@echo "unum         : Build the unum docker container"
 	@echo
 
 ## New directories can be added here
@@ -97,11 +97,11 @@ production: protos prod-containers
 
 jenkins : protos jenkins-containers
 
-jenkins-containers: docker-base voltha chameleon ofagent netconf consul registrator
+jenkins-containers: docker-base voltha ofagent netconf consul registrator unum
 
-prod-containers: docker-base voltha chameleon ofagent netconf shovel dashd vcli grafana consul tools golang envoyd envoy fluentd
+prod-containers: docker-base voltha ofagent netconf shovel dashd vcli grafana consul tools golang envoyd envoy fluentd unum
 
-containers: docker-base voltha chameleon ofagent podder netconf shovel onos tester config-push dashd vcli portainer grafana nginx consul registrator tools golang envoyd envoy fluentd
+containers: docker-base voltha ofagent podder netconf shovel onos tester config-push dashd vcli portainer grafana nginx consul registrator tools golang envoyd envoy fluentd unum
 
 docker-base:
 	docker build -t cord/voltha-base -f docker/Dockerfile.base .
@@ -111,12 +111,6 @@ voltha: voltha-adapters
 
 voltha-adapters:
 	make -C voltha/adapters/asfvolt16_olt
-
-chameleon:
-	mkdir tmp.chameleon
-	cp -R chameleon/* tmp.chameleon
-	docker build -t cord/chameleon -f docker/Dockerfile.chameleon .
-	rm -rf tmp.chameleon
 
 ofagent:
 	docker build -t cord/ofagent -f docker/Dockerfile.ofagent .
@@ -173,6 +167,9 @@ grafana:
 onos:
 	docker build -t cord/onos -f docker/Dockerfile.onos docker
 
+unum:
+	docker build -t voltha/unum -f unum/Dockerfile ./unum
+
 tester:
 	docker build -t cord/tester -f docker/Dockerfile.tester docker
 
@@ -187,7 +184,6 @@ logstash:
 
 protos:
 	make -C voltha/protos
-	make -C chameleon/protos
 	make -C ofagent/protos
 	make -C netconf/protos
 
@@ -252,13 +248,13 @@ test: venv protos run-as-root-tests
 utest: venv protos
 	@ echo "Executing all unit tests"
 	. ${VENVDIR}/bin/activate && \
-	    for d in $$(find ./tests/utests -depth -type d); do echo $$d:; nosetests $$d; done
+	    for d in $$(find ./tests/utests -type d|sort -nr); do echo $$d:; nosetests $$d; done
 
 utest-with-coverage: venv protos
 	@ echo "Executing all unit tests and producing coverage results"
 	. ${VENVDIR}/bin/activate && \
-        for d in $$(find ./tests/utests -depth -type d); do echo $$d:; \
-	nosetests --with-xcoverage --with-xunit --cover-package=voltha,common,ofagent,chameleon $$d; done
+        for d in $$(find ./tests/utests -type d|sort -nr); do echo $$d:; \
+	nosetests --with-xcoverage --with-xunit --cover-package=voltha,common,ofagent $$d; done
 
 itest: venv run-as-root-tests
 	@ echo "Executing all integration tests"

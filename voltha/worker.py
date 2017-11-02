@@ -118,7 +118,7 @@ class Worker(object):
                 core_stores = [c['Value'] for c in results if
                                c['Key'] == self.coord.assignment_prefix +
                                self.instance_id + '/' +
-                               self.coord.core_storage_suffix]
+                               self.coord.core_storage_suffix and c['Value']]
                 if core_stores:
                     self.mycore_store_id = core_stores[0]
                     log.debug('store-assigned',

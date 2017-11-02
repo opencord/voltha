@@ -29,6 +29,7 @@
     - install/sort_packages.sh
     - install/sort_packages.py
     - install/install_packages.sh
+    - install/BashLoginTarget.sh
     - install/ansible
     - compose
     - consul_config/basic.json
