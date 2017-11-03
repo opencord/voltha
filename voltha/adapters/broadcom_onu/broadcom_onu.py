@@ -107,7 +107,9 @@ class BroadcomOnuAdapter(object):
         return device
 
     def reconcile_device(self, device):
-        raise NotImplementedError()
+        log.info('reconcile-device', device_id=device.id)
+        self.devices_handlers[device.id] = BroadcomOnuHandler(self, device.id)
+        reactor.callLater(0, self.devices_handlers[device.id].reconcile, device)
 
     def abandon_device(self, device):
         raise NotImplementedError()
@@ -386,6 +388,24 @@ class BroadcomOnuHandler(object):
         device = self.adapter_agent.get_device(device.id)
         device.oper_status = OperStatus.DISCOVERED
         self.adapter_agent.update_device(device)
+
+    def reconcile(self, device):
+
+        log.info('reconciling-broadcom-onu-device-starts')
+
+        # first we verify that we got parent reference and proxy info
+        assert device.parent_id
+        assert device.proxy_address.device_id
+
+        # register for proxied messages right away
+        self.proxy_address = device.proxy_address
+        self.adapter_agent.register_for_proxied_messages(device.proxy_address)
+
+        # TODO: Query ONU current status after reconcile and update.
+        #       To be addressed in future commits.
+
+        log.info('reconciling-broadcom-onu-device-ends')
+
 
     @inlineCallbacks
     def update_flow_table(self, device, flows):
