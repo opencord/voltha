@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a5c5d37_c0589bfc",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 109,
+      "author": {
+        "id": 1000074
+      },
+      "writtenOn": "2017-11-03T14:26:53Z",
+      "side": 1,
+      "message": "Please follow the existing format of scheduling (via callLater) a handler within the BroadcomOnuHandler class. You can either create a new reconcile() method in BroadcomOnuHandler or add a \u0027reconciling\u0027 flag to the existing activate() method since the reconcile functionality is a subset of the activate functionality.",
+      "revId": "decdda8bf16476a41c28fe0bc44172a3f55d27f6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_c00f7be0",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 121,
+      "author": {
+        "id": 1000074
+      },
+      "writtenOn": "2017-11-03T14:26:53Z",
+      "side": 1,
+      "message": "Why blindly modify OperStatus and ConnectStatus on reconcile? If an ONU was unreachable/unknown prior to reconcile, that state should be maintained after reconcile (unless the node has actually recovered). \nReconcile is called to do just that - reconcile the current state(s) with the existing state(s) in voltha core. In absence of any actual verification of operational and/or reachability state, the states should remain as they were prior to reconcile.\n\nIdeally we would verify operational and connect status via some form of OMCI messaging during reconcile but I realize that requires more investigation outside of this update.",
+      "revId": "decdda8bf16476a41c28fe0bc44172a3f55d27f6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
