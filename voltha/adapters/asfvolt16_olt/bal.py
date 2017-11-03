@@ -39,7 +39,7 @@ class Bal(object):
         self.ind_stub = None
         self.device_id = None
         self.olt = olt
-        self.interval = 0.1
+        self.interval = 0.05
         self.ind_obj = Asfvolt16IndHandler(log)
 
     @inlineCallbacks
