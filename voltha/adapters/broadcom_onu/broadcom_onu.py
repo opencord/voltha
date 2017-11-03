@@ -107,7 +107,23 @@ class BroadcomOnuAdapter(object):
         return device
 
     def reconcile_device(self, device):
-        raise NotImplementedError()
+
+        log.info('reconciling-broadcom-ONU-device-starts')
+
+        # first we verify that we got parent reference and proxy info
+        assert device.parent_id
+        assert device.proxy_address.device_id
+
+        # register for proxied messages right away
+        self.proxy_address = device.proxy_address
+        self.adapter_agent.register_for_proxied_messages(device.proxy_address)
+
+        # Mark the device as REACHABLE and ACTIVE
+        device = self.adapter_agent.get_device(device.id)
+        device.connect_status = ConnectStatus.REACHABLE
+        device.oper_status = OperStatus.ACTIVE
+        self.adapter_agent.update_device(device)
+        log.info('reconciling-broadcom-ONU-device-ends')
 
     def abandon_device(self, device):
         raise NotImplementedError()
