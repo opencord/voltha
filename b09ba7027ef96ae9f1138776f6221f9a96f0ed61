@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a5c5d37_002c7301",
+        "filename": "Makefile",
+        "patchSetId": 1
+      },
+      "lineNbr": 185,
+      "author": {
+        "id": 1000015
+      },
+      "writtenOn": "2017-11-04T00:59:45Z",
+      "side": 0,
+      "message": "I agree its nice to automate the docker build. So that way protoc doesn\u0027t need local installation. But do you think it might make sense to retain local runs of voltha/main.py outside container? In which case, maybe these targets can be renamed. Its optional. So I don\u0027t mind it going away if you don\u0027t think its feasible to retain local voltha/main.py runs on the host outside container.",
+      "revId": "b09ba7027ef96ae9f1138776f6221f9a96f0ed61",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_20ef77b2",
+        "filename": "Makefile",
+        "patchSetId": 1
+      },
+      "lineNbr": 209,
+      "author": {
+        "id": 1000015
+      },
+      "writtenOn": "2017-11-04T00:59:45Z",
+      "side": 0,
+      "message": "I think we would need fetch target to refresh the docker images being built for the opencord/voltha-{fluentd,consul},etc variants. Since those are based off these base images?",
+      "revId": "b09ba7027ef96ae9f1138776f6221f9a96f0ed61",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}

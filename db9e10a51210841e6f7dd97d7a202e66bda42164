@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a5c5d37_e0303f58",
+        "filename": "Makefile",
+        "patchSetId": 1
+      },
+      "lineNbr": 155,
+      "author": {
+        "id": 1000015
+      },
+      "writtenOn": "2017-11-04T00:59:45Z",
+      "side": 1,
+      "message": "I don\u0027t see a makefile target for building asfvolt16 that builds off protoc image. Intentional?",
+      "revId": "db9e10a51210841e6f7dd97d7a202e66bda42164",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
