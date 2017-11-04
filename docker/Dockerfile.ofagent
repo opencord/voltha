@@ -14,8 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+FROM opencord/voltha-protos as protos
 
-FROM cord/voltha-base
+# Remove the third_party __init__.py, as we want to use the local version
+RUN rm /protos/third_party/__init__.py
+
+FROM opencord/voltha-base
 
 MAINTAINER Zsolt Haraszti <zharaszt@ciena.com>
 MAINTAINER Ali Al-Shabibi <ali.al-shabibi@onlab.us>
@@ -40,6 +44,8 @@ ENV PYTHONPATH=/ofagent
 COPY common /ofagent/common
 COPY ofagent /ofagent/ofagent
 COPY pki /ofagent/pki
+
+COPY --from=protos /protos/ /ofagent/ofagent/protos/
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 

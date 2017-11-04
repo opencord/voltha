@@ -1,0 +1,8 @@
+FROM opencord/voltha-protos as protos
+
+COPY voltha/adapters/asfvolt16_olt /asfvolt16_olt
+COPY docker/config/build_all_protos.sh  /asfvolt16_olt/protos
+COPY --from=protos /protos/third_party /protos/third_party
+WORKDIR /asfvolt16_olt/protos
+RUN ./build_all_protos.sh -I/protos/third_party
+RUN rm -f /asfvolt16_olt/protos/build_all_protos.sh
