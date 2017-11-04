@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-#
 # Copyright 2016 the original author or authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,9 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
 
-FROM cord/voltha-base
+ARG TAG=latest
+FROM opencord/voltha-protos:${TAG} as protos
+FROM opencord/voltha-asfvolt16_olt:${TAG} as asfvolt16_olt
+FROM opencord/voltha-base:${TAG}
 
 MAINTAINER Zsolt Haraszti <zharaszt@ciena.com>
 MAINTAINER Ali Al-Shabibi <ali.al-shabibi@onlab.us>
@@ -26,6 +26,8 @@ RUN mkdir /voltha && touch /voltha/__init__.py
 ENV PYTHONPATH=/voltha
 COPY common /voltha/common
 COPY voltha /voltha/voltha
+COPY --from=protos /protos/ /voltha/voltha/protos/
+COPY --from=asfvolt16_olt /asfvolt16_olt/ /voltha/voltha/adapters/asfvolt16_olt/
 COPY pki /voltha/pki
 
 # Exposing process and default entry point

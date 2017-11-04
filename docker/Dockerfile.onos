@@ -1,3 +1,18 @@
+# Copyright 2016 the original author or authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+ARG ONOS_TAG=1.10.9
+
 FROM maven:3-jdk-8-alpine as download
 MAINTAINER Open Networking Foundation <info@opennetworking.org>
 
@@ -12,7 +27,7 @@ WORKDIR ${DOWNLOAD_ROOT}
 ADD config/dependencies.xml .
 RUN mvn dependency:copy -Dmdep.useBaseVersion=true -DoutputDirectory=${DOWNLOAD_ROOT} -Dsilent=true -f dependencies.xml
 
-FROM onosproject/onos:1.10.9 as install
+FROM onosproject/onos:${ONOS_TAG} as install
 MAINTAINER Open Networking Foundation <info@opennetworking.org>
 
 # The ENV settings must be replicated below as they are not shared between stages
@@ -33,7 +48,7 @@ RUN chmod 755 ./app-install.sh
 RUN ./app-install.sh
 
 # Create the final image coping over the installed applications from the build stage
-FROM onosproject/onos:1.10.9
+FROM onosproject/onos:${ONOS_TAG}
 MAINTAINER Open Networking Foundation <info@opennetworking.org>
 
 # Install Key Store Options
