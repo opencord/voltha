@@ -20,11 +20,6 @@ exportToHTML
 # Ansible
 ansible/*.retry
 
-# Virtualenv
-venv
-venv-darwin
-venv-linux
-
 # Temp data dir for testing
 tmp
 
