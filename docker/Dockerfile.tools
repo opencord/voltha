@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-FROM cord/voltha-base
+FROM opencord/voltha-base:${TAG:-latest}
 
 MAINTAINER Sergio Slobodrian <sslobodr@ciena.com>
 
