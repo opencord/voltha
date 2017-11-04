@@ -73,7 +73,7 @@ services:
   # Podder service instance
   #
   podder:
-    image: cord/podder
+    image: "${REGISTRY}opencord/voltha-podder:${TAG:-latest}"
     volumes:
     - "/var/run/docker.sock:/tmp/docker.sock"
     restart: unless-stopped
@@ -101,7 +101,7 @@ services:
   # Shovel (Kafka-graphite-gateway)
   #
   shovel:
-    image: cord/shovel
+    image: "${REGISTRY}opencord/voltha-shovel:${TAG:-latest}"
     command: [
       "/shovel/shovel/main.py",
       "--kafka=@kafka",
@@ -118,7 +118,7 @@ services:
   # Voltha server instance(s)
   #
   voltha:
-    image: cord/voltha
+    image: "${REGISTRY}opencord/voltha:${TAG:-latest}"
     command: [
       "/voltha/voltha/main.py",
       "-v",
