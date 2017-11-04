@@ -78,8 +78,7 @@ class SelfSignedSSLCertAuthFail(RestBase):
         sleep(10)
 
     def set_rest_endpoint(self):
-        self.rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL,
-                                                      'envoy-8443')
+        self.rest_endpoint = 'voltha:8443'
         self.base_url = 'https://' + self.rest_endpoint
 
     @raises(Exception)

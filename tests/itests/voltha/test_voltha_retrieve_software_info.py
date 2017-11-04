@@ -43,8 +43,6 @@ IMAGES_SCHEMA = {
     "type": "object"
 }
 
-LOCAL_CONSUL = "localhost:8500"
-
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ######################################################
@@ -57,7 +55,7 @@ LOCAL_CONSUL = "localhost:8500"
 
 class VolthaDeviceManagementRetrieveSoftwareInfo(RestBase):
     # Retrieve details on the REST entry point
-    rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'envoy-8443')
+    rest_endpoint = 'voltha:8443'
 
     # Construct the base_url
     base_url = 'https://' + rest_endpoint

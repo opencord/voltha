@@ -15,7 +15,7 @@
 #
 
 ifeq ($(VOLTHA_BASE)_set,_set)
-$(error To get started, please source the env.sh file)
+#$(error To get started, please source the env.sh file)
 endif
 
 default: build

@@ -1,0 +1,11 @@
+#!/bin/ash
+
+# enable reading template from stdin
+if [ $1 == "-" ]; then
+    TEMPLATE=$(mktemp -u)
+    cat > $TEMPLATE
+    shift
+    exec j2 $TEMPLATE $*
+else
+    exec j2 $*
+fi

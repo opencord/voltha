@@ -251,12 +251,11 @@ class TestConsulPersistence(RestBase):
         self.assert_no_device_present()
 
     def set_rest_endpoint(self):
-        self.rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL,
-                                                      'envoy-8443')
+        self.rest_endpoint = 'voltha:8443'
         self.base_url = 'https://' + self.rest_endpoint
 
     def set_kafka_endpoint(self):
-        self.kafka_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'kafka')
+        self.kafka_endpoint = 'kafka'
 
     def assert_restart_voltha_successful(self):
         self.maxDiff = None

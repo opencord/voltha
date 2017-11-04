@@ -12,8 +12,6 @@ from voltha.protos.voltha_pb2 import AlarmFilter
 
 # ~~~~~~~ Common variables ~~~~~~~
 
-LOCAL_CONSUL = "localhost:8500"
-
 COMMANDS = dict(
     kafka_client_run="kafkacat -b {} -L",
     kafka_client_send_msg='echo hello | kafkacat -b {} -P -t voltha.alarms -c 1',
@@ -26,13 +24,13 @@ COMMANDS = dict(
 
 class VolthaAlarmFilterTests(RestBase):
     # Retrieve details on the REST entry point
-    rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'envoy-8443')
+    rest_endpoint = 'voltha:8443'
 
     # Construct the base_url
     base_url = 'https://' + rest_endpoint
 
     # Start by querying consul to get the endpoint details
-    kafka_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'kafka')
+    kafka_endpoint = 'kafka'
 
     # ~~~~~~~~~~~~ Tests ~~~~~~~~~~~~
 

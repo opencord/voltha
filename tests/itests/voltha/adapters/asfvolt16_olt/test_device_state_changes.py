@@ -6,9 +6,6 @@ from voltha.protos.device_pb2 import Device
 from tests.itests.voltha.rest_base import RestBase
 from common.utils.consulhelpers import get_endpoint_from_consul
 
-LOCAL_CONSUL = "localhost:8500"
-
-
 class TestDeviceStateChangeSequence(RestBase):
     """
     The prerequisite for this test are:
@@ -21,7 +18,7 @@ class TestDeviceStateChangeSequence(RestBase):
     """
 
     # Retrieve details of the REST entry point
-    rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'envoy-8443')
+    rest_endpoint = "voltha:8443"
 
     # Construct the base_url
     base_url = 'https://' + rest_endpoint
@@ -137,9 +134,9 @@ class TestDeviceStateChangeSequence(RestBase):
         logical_port = logical_ports[0]
         self.assertEqual(logical_port['id'], 'nni')
         self.assertEqual(logical_port['ofp_port']['name'], 'nni')
-        self.assertEqual(logical_port['ofp_port']['port_no'], 0)
+        self.assertEqual(logical_port['ofp_port']['port_no'], 129)
         self.assertEqual(logical_port['device_id'], device['id'])
-        self.assertEqual(logical_port['device_port_no'], 50)
+        self.assertEqual(logical_port['device_port_no'], 129)
         return logical_device['id']
 
     def verify_logical_ports(self, ldev_id, num_ports):
@@ -153,7 +150,7 @@ class TestDeviceStateChangeSequence(RestBase):
 
         # verify that all logical ports are LIVE (state=4)
         for lport in logical_ports:
-            self.assertEqual(lport['ofp_port']['state'], 4)
+            self.assertEqual(lport['ofp_port']['state'], 1)
 
     def disable_device(self, id):
         path = '/api/v1/devices/{}'.format(id)

@@ -31,7 +31,6 @@ from common.utils.consulhelpers import get_endpoint_from_consul
 log = logging.getLogger(__name__)
 
 DOCKER_COMPOSE_FILE = "compose/docker-compose-ofagent-test.yml"
-LOCAL_CONSUL = "localhost:8500"
 
 command_defs = dict(
     docker_images="docker images",
@@ -112,7 +111,7 @@ class TestOFAGENT_MultiController(RestBase):
 
     def get_rest_endpoint(self):
         # Retrieve details on the REST entry point
-        rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'envoy-8443')
+        rest_endpoint = "voltha:8443"
 
         # Construct the base_url
         self.base_url = 'https://' + rest_endpoint

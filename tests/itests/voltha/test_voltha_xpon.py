@@ -229,9 +229,8 @@ scenario = [
 
 #for ordering the test cases
 id = 3
-LOCAL_CONSUL = "localhost:8500"
 # Retrieve details of the REST entry point
-rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'envoy-8443')
+rest_endpoint = 'voltha:8443'
 # Construct the base_url
 BASE_URL = 'https://' + rest_endpoint
 

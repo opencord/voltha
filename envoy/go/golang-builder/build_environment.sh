@@ -2,23 +2,27 @@
 
 tagName=$1
 
-if ( find /src -maxdepth 0 -empty | read v );
+SRC_PATH=${SRC_PATH:-"/src"}
+echo "SRC_PATH is $SRC_PATH"
+
+if ( find $SRC_PATH -maxdepth 0 -empty | read v );
 then
   echo "Error: Must mount Go source code into /src directory"
   exit 990
 fi
 
+cd $SRC_PATH
 # Grab Go package name
 pkgName="$(go list -e -f '{{.ImportComment}}' 2>/dev/null || true)"
 
 if [ -z "$pkgName" ];
 then
-    if [ -f "/src/glide.yaml" ]
+    if [ -f "$SRC_PATH/glide.yaml" ]
     then
         pkgName="$(glide name)"
-    elif [ -f "/src/Godeps/Godeps.json" ]
+    elif [ -f "$SRC_PATH/Godeps/Godeps.json" ]
     then
-        pkgName="$(cat /src/Godeps/Godeps.json | jq --raw-output '.ImportPath')"
+        pkgName="$(cat $SRC_PATH/Godeps/Godeps.json | jq --raw-output '.ImportPath')"
     else
         url=$(git config --get remote.origin.url)
         if [[ "$url" == http* ]]
@@ -47,7 +51,7 @@ pkgPath="$goPath/src/$pkgName"
 mkdir -p "$(dirname "$pkgPath")"
 
 # Link source dir into GOPATH
-ln -sf /src "$pkgPath"
+ln -sf $SRC_PATH "$pkgPath"
 
 # change work dir to
 cd $pkgPath
@@ -71,3 +75,5 @@ else
   # Get all package dependencies
   go get -t -d -v ./...
 fi
+
+echo "DONE"

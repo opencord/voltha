@@ -235,13 +235,15 @@ class Main(object):
         for portnum in [0] + range(128, 128 + n_unis):
             external_name = '%s_%d' % (prefix, portnum)
             internal_name = external_name + 'sim'
-            os.system('sudo ip link add dev {} type veth peer name {}'.format(
+            print 'ip link add dev {} type veth peer name {}'.format(
+                external_name, internal_name)
+            os.system('ip link add dev {} type veth peer name {}'.format(
                 external_name, internal_name
             ))
-            os.system('sudo ip link set {} up'.format(external_name))
-            os.system('sudo ip link set {} up'.format(internal_name))
+            os.system('ip link set {} up'.format(external_name))
+            os.system('ip link set {} up'.format(internal_name))
             if portnum == 0:
-                os.system('sudo brctl addif ponmgmt {}'.format(external_name))
+                os.system('brctl addif ponmgmt {}'.format(external_name))
             port_map[portnum] = internal_name
         return port_map
 
@@ -249,7 +251,7 @@ class Main(object):
         # undo all the networking stuff
         for portnum in [0] + range(128, 128 + n_unis):
             external_name = '%s_%d' % (prefix, portnum)
-            os.system('sudo ip link del {}'.format(external_name))
+            os.system('ip link del {}'.format(external_name))
 
 
 if __name__ == '__main__':

@@ -9,8 +9,6 @@ from voltha.core.flow_decomposer import mk_simple_flow_mod, in_port, output
 from voltha.protos import openflow_13_pb2 as ofp
 from common.utils.consulhelpers import get_endpoint_from_consul
 
-LOCAL_CONSUL = "localhost:8500"
-
 class GlobalRestCalls(RestBase):
 
     def wait_till(self, msg, predicate, interval=0.1, timeout=5.0):
@@ -22,7 +20,7 @@ class GlobalRestCalls(RestBase):
         self.fail('Timed out while waiting for condition: {}'.format(msg))
 
     # Retrieve details of the REST entry point
-    rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'envoy-8443')
+    rest_endpoint = 'voltha:8443'
 
     # Construct the base_url
     base_url = 'https://' + rest_endpoint
@@ -281,7 +279,7 @@ class GlobalRestCalls(RestBase):
 class TestLocalRestCalls(RestBase):
 
     # Retrieve details of the REST entry point
-    rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'envoy-8443')
+    rest_endpoint = 'voltha:8443'
 
     # Construct the base_url
     base_url = 'https://' + rest_endpoint
@@ -444,7 +442,7 @@ class TestLocalRestCalls(RestBase):
 class TestGlobalNegativeCases(RestBase):
 
     # Retrieve details of the REST entry point
-    rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'envoy-8443')
+    rest_endpoint = 'voltha:8443'
 
     # Construct the base_url
     base_url = 'https://' + rest_endpoint

@@ -9,12 +9,10 @@ from voltha.protos import openflow_13_pb2 as ofp
 from tests.itests.voltha.rest_base import RestBase
 from common.utils.consulhelpers import get_endpoint_from_consul
 
-LOCAL_CONSUL = "localhost:8500"
-
 class TestColdActivationSequence(RestBase):
 
     # Retrieve details of the REST entry point
-    rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'envoy-8443')
+    rest_endpoint = "voltha:8443"
 
     # Construct the base_url
     base_url = 'https://' + rest_endpoint

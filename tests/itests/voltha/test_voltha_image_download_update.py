@@ -9,11 +9,9 @@ from voltha.protos.device_pb2 import Device, ImageDownload
 from voltha.protos.common_pb2 import AdminState
 from google.protobuf.empty_pb2 import Empty
 
-LOCAL_CONSUL = "localhost:8500"
-
 class VolthaImageDownloadUpdate(RestBase):
     # Retrieve details on the REST entry point
-    rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'envoy-8443')
+    rest_endpoint = 'voltha:8443'
 
     # Construct the base_url
     base_url = 'https://' + rest_endpoint

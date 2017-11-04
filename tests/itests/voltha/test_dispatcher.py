@@ -20,24 +20,11 @@ from voltha.core.flow_decomposer import *
 from voltha.protos.openflow_13_pb2 import FlowTableUpdate
 from voltha.protos import bbf_fiber_base_pb2 as fb
 from tests.itests.voltha.test_voltha_xpon import scenario as xpon_scenario
+from tests.voltha_utils import VolthaUtils
 
 LOCAL_CONSUL = "localhost:8500"
-DOCKER_COMPOSE_FILE = "compose/docker-compose-system-test-dispatcher.yml"
 
 command_defs = dict(
-    docker_ps="docker ps",
-    docker_compose_start_all="docker-compose -f {} up -d "
-        .format(DOCKER_COMPOSE_FILE),
-    docker_stop_and_remove_all_containers="docker-compose -f {} down"
-        .format(DOCKER_COMPOSE_FILE),
-    docker_compose_start_voltha="docker-compose -f {} up -d voltha "
-        .format(DOCKER_COMPOSE_FILE),
-    docker_compose_stop_voltha="docker-compose -f {} stop voltha"
-        .format(DOCKER_COMPOSE_FILE),
-    docker_compose_remove_voltha="docker-compose -f {} rm -f voltha"
-        .format(DOCKER_COMPOSE_FILE),
-    docker_compose_scale_voltha="docker-compose -f {} scale "
-                                "voltha=".format(DOCKER_COMPOSE_FILE),
     kafka_topics="kafkacat -b {} -L",
     kafka_alarms="kafkacat -o end -b {} -C -t voltha.alarms -c 2",
     kafka_kpis="kafkacat -o end -b {} -C -t voltha.kpis -c 5"
@@ -88,64 +75,69 @@ class DispatcherTest(RestBase):
         return self.grpc_channels[voltha_grpc]
 
     def test_01_global_rest_apis(self):
-        # Start the voltha ensemble with a single voltha instance
-        self._stop_and_remove_all_containers()
-        sleep(5)  # A small wait for the system to settle down
-        self.start_all_containers()
-        self.set_rest_endpoint()
-        self.set_kafka_endpoint()
-
-        # self._get_root_rest()
-        self._get_schema_rest()
-        self._get_health_rest()
-        self._get_voltha_rest()
-        self._list_voltha_instances_rest()
-        self._get_voltha_instance_rest()
-        olt_id = self._add_olt_device_rest()
-        self._verify_device_preprovisioned_state_rest(olt_id)
-        self._activate_device_rest(olt_id)
-        ldev_id = self._wait_for_logical_device_rest(olt_id)
-        ldevices = self._list_logical_devices_rest()
-        logical_device_id = ldevices['items'][0]['id']
-        self._get_logical_device_rest(logical_device_id)
-        self._list_logical_device_ports_rest(logical_device_id)
-        self._list_and_update_logical_device_flows_rest(logical_device_id)
-        self._list_and_update_logical_device_flow_groups_rest(
-            logical_device_id)
-        devices = self._list_devices_rest()
-        device_id = devices['items'][0]['id']
-        self._get_device_rest(device_id)
-        self._list_device_ports_rest(device_id)
-        self._list_device_flows_rest(device_id)
-        self._list_device_flow_groups_rest(device_id)
-        self._get_images_rest(device_id)
-        self._self_test_rest(device_id)
-        dtypes = self._list_device_types_rest()
-        self._get_device_type_rest(dtypes['items'][0]['id'])
-        alarm_filter = self._create_device_filter_rest(olt_id)
-        self._remove_device_filter_rest(alarm_filter['id'])
-        #for xPON objects
-        for item in xpon_scenario:
-            for key,value in item.items():
-                try:
-                    _device_id = None
-                    _obj_action = [val for val in key.split('-')]
-                    _type_config = obj_type_config[_obj_action[0]]
-                    if _obj_action[0] == "cterm":
-                        _device_id = olt_id
-                    if _obj_action[1] == "mod":
+        try:
+            # Start the voltha ensemble with a single voltha instance
+            VolthaUtils.stop_all_containers(self)
+            VolthaUtils.wait_for_containers_stop(self)
+            VolthaUtils.start_all_containers("global_rest", self)
+            VolthaUtils.wait_for_voltha_start("global_rest", self)
+            self.set_rest_endpoint()
+            self.set_kafka_endpoint()
+    
+            # self._get_root_rest()
+            self._get_schema_rest()
+            self._get_health_rest()
+            self._get_voltha_rest()
+            self._list_voltha_instances_rest()
+            self._get_voltha_instance_rest()
+            olt_id = self._add_olt_device_rest()
+            self._verify_device_preprovisioned_state_rest(olt_id)
+            self._activate_device_rest(olt_id)
+            ldev_id = self._wait_for_logical_device_rest(olt_id)
+            ldevices = self._list_logical_devices_rest()
+            logical_device_id = ldevices['items'][0]['id']
+            self._get_logical_device_rest(logical_device_id)
+            self._list_logical_device_ports_rest(logical_device_id)
+            self._list_and_update_logical_device_flows_rest(logical_device_id)
+            self._list_and_update_logical_device_flow_groups_rest(
+                logical_device_id)
+            devices = self._list_devices_rest()
+            device_id = devices['items'][0]['id']
+            self._get_device_rest(device_id)
+            self._list_device_ports_rest(device_id)
+            self._list_device_flows_rest(device_id)
+            self._list_device_flow_groups_rest(device_id)
+            self._get_images_rest(device_id)
+            self._self_test_rest(device_id)
+            dtypes = self._list_device_types_rest()
+            self._get_device_type_rest(dtypes['items'][0]['id'])
+            alarm_filter = self._create_device_filter_rest(olt_id)
+            self._remove_device_filter_rest(alarm_filter['id'])
+            #for xPON objects
+            for item in xpon_scenario:
+                for key,value in item.items():
+                    try:
+                        _device_id = None
+                        _obj_action = [val for val in key.split('-')]
+                        _type_config = obj_type_config[_obj_action[0]]
+                        if _obj_action[0] == "cterm":
+                            _device_id = olt_id
+                        if _obj_action[1] == "mod":
+                            continue
+                        elif _obj_action[1] == "add":
+                            _xpon_obj = self._create_xpon_object_rest(_type_config,
+                                                                      value,
+                                                                      _device_id)
+                        elif _obj_action[1] == "del":
+                            self._delete_xpon_object_rest(_type_config,
+                                                          value,
+                                                          _device_id)
+                    except Exception, e:
+                        print 'An error occurred', e
                         continue
-                    elif _obj_action[1] == "add":
-                        _xpon_obj = self._create_xpon_object_rest(_type_config,
-                                                                  value,
-                                                                  _device_id)
-                    elif _obj_action[1] == "del":
-                        self._delete_xpon_object_rest(_type_config,
-                                                      value,
-                                                      _device_id)
-                except Exception, e:
-                    print 'An error occurred', e
-                    continue
+        finally:
+            VolthaUtils.stop_all_containers()
+            VolthaUtils.wait_for_containers_stop()
 
         # TODO: PM APIs test
 
@@ -160,122 +152,127 @@ class DispatcherTest(RestBase):
             return raw_input(text)
 
         # Start the voltha ensemble with a single voltha instance
-        self._stop_and_remove_all_containers()
-        sleep(5)  # A small wait for the system to settle down
-        self.start_all_containers()
-        self.set_rest_endpoint()
-        self.set_kafka_endpoint()
+        try:
+            VolthaUtils.stop_all_containers(self)
+            VolthaUtils.wait_for_containers_stop(self)
+            VolthaUtils.start_all_containers("cross_instances", self)
+            VolthaUtils.wait_for_voltha_start("cross_instances", self)
+            self.set_rest_endpoint()
+            self.set_kafka_endpoint()
+    
+            # Scale voltha to 3 instances and setup the voltha grpc assigments
+            VolthaUtils.scale_service("cross_instances", "vcore", 3)
+            VolthaUtils.wait_for_instances("cross_instances", "vcore", 3, test=self)
+            voltha_instances, err, rc = VolthaUtils.get_all_instances_of_service("cross_instances", "vcore", self)
+            self.assertEqual(len(voltha_instances), 3)
 
-        # Scale voltha to 3 instances and setup the voltha grpc assigments
-        self._scale_voltha(3)
-        sleep(10)  # A small wait for the system to settle down
-        voltha_instances = get_all_instances_of_service(LOCAL_CONSUL,
-                                                        'vcore-grpc')
-        self.assertEqual(len(voltha_instances), 3)
-        self.ponsim_voltha_stub_local = voltha_pb2.VolthaLocalServiceStub(
-            self.get_channel(self._get_grpc_address(voltha_instances[2])))
-        self.ponsim_voltha_stub_global = voltha_pb2.VolthaGlobalServiceStub(
-            self.get_channel(self._get_grpc_address(voltha_instances[2])))
-
-        self.simulated_voltha_stub_local = voltha_pb2.VolthaLocalServiceStub(
-            self.get_channel(self._get_grpc_address(voltha_instances[1])))
-        self.simulated_voltha_stub_global = voltha_pb2.VolthaGlobalServiceStub(
-            self.get_channel(self._get_grpc_address(voltha_instances[1])))
-
-        self.empty_voltha_stub_local = voltha_pb2.VolthaLocalServiceStub(
-            self.get_channel(self._get_grpc_address(voltha_instances[0])))
-        self.empty_voltha_stub_global = voltha_pb2.VolthaGlobalServiceStub(
-            self.get_channel(self._get_grpc_address(voltha_instances[0])))
-
-        # Prompt the user to start ponsim
-        # Get the user to start PONSIM as root
-        prompt(prompt_for_return,
-               '\nStart PONSIM as root in another window ...')
-
-        prompt(prompt_for_return,
-               '\nEnsure port forwarding is set on ponmgnt ...')
-
-        # Test 1:
-        # A. Get the list of adapters using a global stub
-        # B. Get the list of adapters using a local stub
-        # C. Verify that the two lists are the same
-        adapters_g = self._get_adapters_grpc(self.ponsim_voltha_stub_global)
-        adapters_l =  self._get_adapters_grpc(self.empty_voltha_stub_local)
-        assert adapters_g == adapters_l
-
-        # Test 2:
-        # A. Provision a pomsim olt using the ponsim_voltha_stub
-        # B. Enable the posim olt using the simulated_voltha_stub
-        # C. Wait for onu discovery using the empty_voltha_stub
-        ponsim_olt = self._provision_ponsim_olt_grpc(
-            self.ponsim_voltha_stub_local)
-        ponsim_logical_device_id = self._enable_device_grpc(
-            self.simulated_voltha_stub_global,
-            ponsim_olt.id)
-        self._wait_for_onu_discovery_grpc(self.empty_voltha_stub_global,
-                                          ponsim_olt.id,
-                                          count=4)
-        # Test 3:
-        # A. Provision a simulated olt using the simulated_voltha_stub
-        # B. Enable the simulated olt using the ponsim_voltha_stub
-        # C. Wait for onu discovery using the empty_voltha_stub
-        simulated_olt = self._provision_simulated_olt_grpc(
-            self.simulated_voltha_stub_local)
-        simulated_logical_device_id = self._enable_device_grpc(
-            self.ponsim_voltha_stub_global, simulated_olt.id)
-        self._wait_for_onu_discovery_grpc(self.empty_voltha_stub_global,
-                                          simulated_olt.id, count=4)
-
-        # Test 4:
-        # Verify that we have at least 8 devices created using the global
-        # REST and also via direct grpc in the empty stub
-        devices_via_rest = self._list_devices_rest(8)['items']
-        devices_via_global_grpc = self._get_devices_grpc(
-            self.empty_voltha_stub_global)
-        assert len(devices_via_rest) == len(devices_via_global_grpc)
-
-        # Test 5:
-        # A. Create 2 Alarms filters using REST
-        # B. Ensure it is present across all instances
-        # C. Ensure when requesting the alarm filters we do not get
-        # duplicate results
-        alarm_filter1 = self._create_device_filter_rest(ponsim_olt.id)
-        alarm_filter2 = self._create_device_filter_rest(simulated_olt.id)
-        global_filters = self._get_alarm_filters_rest()
-        filter = self._get_alarm_filters_grpc(self.simulated_voltha_stub_local)
-        assert global_filters == MessageToDict(filter)
-        filter = self._get_alarm_filters_grpc(self.ponsim_voltha_stub_local)
-        assert global_filters == MessageToDict(filter)
-        filter = self._get_alarm_filters_grpc(self.empty_voltha_stub_local)
-        assert global_filters == MessageToDict(filter)
-        filter = self._get_alarm_filters_grpc(self.empty_voltha_stub_global)
-        assert global_filters == MessageToDict(filter)
-
-        # Test 6:
-        # A. Delete an alarm filter
-        # B. Ensure that filter is deleted from all instances
-        self._remove_device_filter_rest(alarm_filter1['id'])
-        previous_filters = global_filters
-        global_filters = self._get_alarm_filters_rest()
-        assert global_filters != previous_filters
-        filter = self._get_alarm_filters_grpc(self.simulated_voltha_stub_local)
-        assert global_filters == MessageToDict(filter)
-        filter = self._get_alarm_filters_grpc(self.ponsim_voltha_stub_local)
-        assert global_filters == MessageToDict(filter)
-        filter = self._get_alarm_filters_grpc(self.empty_voltha_stub_local)
-        assert global_filters == MessageToDict(filter)
-        filter = self._get_alarm_filters_grpc(self.empty_voltha_stub_global)
-        assert global_filters == MessageToDict(filter)
-
-        # Test 7:
-        # A. Simulate EAPOL install on ponsim instance using grpc
-        # B. Validate the flows using global REST
-        # C. Retrieve the flows from global grpc using empty voltha instance
-        self._install_eapol_flow_grpc(self.ponsim_voltha_stub_local,
-                                      ponsim_logical_device_id)
-        self._verify_olt_eapol_flow_rest(ponsim_olt.id)
-        res = self._get_olt_flows_grpc(self.empty_voltha_stub_global,
-                                       ponsim_logical_device_id)
+            self.ponsim_voltha_stub_local = voltha_pb2.VolthaLocalServiceStub(
+                self.get_channel(self._get_grpc_address(voltha_instances[2])))
+            self.ponsim_voltha_stub_global = voltha_pb2.VolthaGlobalServiceStub(
+                self.get_channel(self._get_grpc_address(voltha_instances[2])))
+    
+            self.simulated_voltha_stub_local = voltha_pb2.VolthaLocalServiceStub(
+                self.get_channel(self._get_grpc_address(voltha_instances[1])))
+            self.simulated_voltha_stub_global = voltha_pb2.VolthaGlobalServiceStub(
+                self.get_channel(self._get_grpc_address(voltha_instances[1])))
+    
+            self.empty_voltha_stub_local = voltha_pb2.VolthaLocalServiceStub(
+                self.get_channel(self._get_grpc_address(voltha_instances[0])))
+            self.empty_voltha_stub_global = voltha_pb2.VolthaGlobalServiceStub(
+                self.get_channel(self._get_grpc_address(voltha_instances[0])))
+    
+            # Prompt the user to start ponsim
+            # Get the user to start PONSIM as root
+            prompt(prompt_for_return,
+                   '\nStart PONSIM as root in another window ...')
+    
+            prompt(prompt_for_return,
+                   '\nEnsure port forwarding is set on ponmgnt ...')
+    
+            # Test 1:
+            # A. Get the list of adapters using a global stub
+            # B. Get the list of adapters using a local stub
+            # C. Verify that the two lists are the same
+            adapters_g = self._get_adapters_grpc(self.ponsim_voltha_stub_global)
+            adapters_l =  self._get_adapters_grpc(self.empty_voltha_stub_local)
+            assert adapters_g == adapters_l
+    
+            # Test 2:
+            # A. Provision a pomsim olt using the ponsim_voltha_stub
+            # B. Enable the posim olt using the simulated_voltha_stub
+            # C. Wait for onu discovery using the empty_voltha_stub
+            ponsim_olt = self._provision_ponsim_olt_grpc(
+                self.ponsim_voltha_stub_local)
+            ponsim_logical_device_id = self._enable_device_grpc(
+                self.simulated_voltha_stub_global,
+                ponsim_olt.id)
+            self._wait_for_onu_discovery_grpc(self.empty_voltha_stub_global,
+                                              ponsim_olt.id,
+                                              count=4)
+            # Test 3:
+            # A. Provision a simulated olt using the simulated_voltha_stub
+            # B. Enable the simulated olt using the ponsim_voltha_stub
+            # C. Wait for onu discovery using the empty_voltha_stub
+            simulated_olt = self._provision_simulated_olt_grpc(
+                self.simulated_voltha_stub_local)
+            simulated_logical_device_id = self._enable_device_grpc(
+                self.ponsim_voltha_stub_global, simulated_olt.id)
+            self._wait_for_onu_discovery_grpc(self.empty_voltha_stub_global,
+                                              simulated_olt.id, count=4)
+    
+            # Test 4:
+            # Verify that we have at least 8 devices created using the global
+            # REST and also via direct grpc in the empty stub
+            devices_via_rest = self._list_devices_rest(8)['items']
+            devices_via_global_grpc = self._get_devices_grpc(
+                self.empty_voltha_stub_global)
+            assert len(devices_via_rest) == len(devices_via_global_grpc)
+    
+            # Test 5:
+            # A. Create 2 Alarms filters using REST
+            # B. Ensure it is present across all instances
+            # C. Ensure when requesting the alarm filters we do not get
+            # duplicate results
+            alarm_filter1 = self._create_device_filter_rest(ponsim_olt.id)
+            alarm_filter2 = self._create_device_filter_rest(simulated_olt.id)
+            global_filters = self._get_alarm_filters_rest()
+            filter = self._get_alarm_filters_grpc(self.simulated_voltha_stub_local)
+            assert global_filters == MessageToDict(filter)
+            filter = self._get_alarm_filters_grpc(self.ponsim_voltha_stub_local)
+            assert global_filters == MessageToDict(filter)
+            filter = self._get_alarm_filters_grpc(self.empty_voltha_stub_local)
+            assert global_filters == MessageToDict(filter)
+            filter = self._get_alarm_filters_grpc(self.empty_voltha_stub_global)
+            assert global_filters == MessageToDict(filter)
+    
+            # Test 6:
+            # A. Delete an alarm filter
+            # B. Ensure that filter is deleted from all instances
+            self._remove_device_filter_rest(alarm_filter1['id'])
+            previous_filters = global_filters
+            global_filters = self._get_alarm_filters_rest()
+            assert global_filters != previous_filters
+            filter = self._get_alarm_filters_grpc(self.simulated_voltha_stub_local)
+            assert global_filters == MessageToDict(filter)
+            filter = self._get_alarm_filters_grpc(self.ponsim_voltha_stub_local)
+            assert global_filters == MessageToDict(filter)
+            filter = self._get_alarm_filters_grpc(self.empty_voltha_stub_local)
+            assert global_filters == MessageToDict(filter)
+            filter = self._get_alarm_filters_grpc(self.empty_voltha_stub_global)
+            assert global_filters == MessageToDict(filter)
+    
+            # Test 7:
+            # A. Simulate EAPOL install on ponsim instance using grpc
+            # B. Validate the flows using global REST
+            # C. Retrieve the flows from global grpc using empty voltha instance
+            self._install_eapol_flow_grpc(self.ponsim_voltha_stub_local,
+                                          ponsim_logical_device_id)
+            self._verify_olt_eapol_flow_rest(ponsim_olt.id)
+            res = self._get_olt_flows_grpc(self.empty_voltha_stub_global,
+                                           ponsim_logical_device_id)
+        finally:
+            VolthaUtils.stop_all_containers()
+            VolthaUtils.wait_for_containers_stop()
 
         # Test 8:
         # A. Create xPON objects instance using REST
@@ -337,50 +334,19 @@ class DispatcherTest(RestBase):
 
 
     def _get_grpc_address(self, voltha_instance):
-        address = '{}:{}'.format(voltha_instance['ServiceAddress'],
-                                 voltha_instance['ServicePort'])
+        address = '{}:50556'.format(voltha_instance['address'])
         return address
 
-    def _stop_and_remove_all_containers(self):
-        # check if there are any running containers first
-        cmd = command_defs['docker_ps']
-        out, err, rc = run_command_to_completion_with_stdout_in_list(cmd)
-        self.assertEqual(rc, 0)
-        if len(out) > 1:  # not counting docker ps header
-            cmd = command_defs['docker_stop_and_remove_all_containers']
-            out, err, rc = run_command_to_completion_with_raw_stdout(cmd)
-            self.assertEqual(rc, 0)
-
-    def start_all_containers(self):
-        t0 = time()
-
-        # start all the containers
-        self.pt("Starting all containers ...")
-        cmd = command_defs['docker_compose_start_all']
-        out, err, rc = run_command_to_completion_with_raw_stdout(cmd)
-        self.assertEqual(rc, 0)
-
-        self.pt("Waiting for voltha container to be ready ...")
-        self.wait_till('voltha services HEALTHY',
-                       lambda: verify_all_services_healthy(
-                           LOCAL_CONSUL, service_name='voltha-grpc') == True,
-                       timeout=10)
-
-        sleep(10)
-
     def set_rest_endpoint(self):
-        self.rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL,
-                                                      'envoy-8443')
+        self.rest_endpoint = "voltha:8443"
         self.base_url = 'https://' + self.rest_endpoint
 
     def set_kafka_endpoint(self):
-        self.kafka_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'kafka')
+        self.kafka_endpoint = "kafka"
 
-    def _scale_voltha(self, scale=2):
+    def _scale_voltha(self, stack, scale=2):
         self.pt("Scaling voltha ...")
-        cmd = command_defs['docker_compose_scale_voltha'] + str(scale)
-        out, err, rc = run_command_to_completion_with_raw_stdout(cmd)
-        self.assertEqual(rc, 0)
+        VolthaUtils.scale_service(stack, vcore, scale, self)
 
     def _get_root_rest(self):
         res = self.get('/', expected_content_type='text/html')
