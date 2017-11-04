@@ -43,7 +43,7 @@ class Bal(object):
         self.ind_obj = Asfvolt16IndHandler(log)
 
     @inlineCallbacks
-    def connect_olt(self, host_and_port, device_id):
+    def connect_olt(self, host_and_port, device_id, is_init=True):
         self.device_id = device_id
         self.grpc_client.connect(host_and_port)
         self.stub = bal_pb2.BalStub(self.grpc_client.channel)
@@ -53,23 +53,24 @@ class Bal(object):
         # Right now Bi-Directional GRPC support is not there in grpc-c.
         # This code may be needed when bidirectional supported added
         # in GRPC-C
-        init = bal_pb2.BalInit()
-        try:
-            os.environ["SERVICE_HOST_IP"]
-            adapter_ip = os.environ["SERVICE_HOST_IP"]
-        except Exception as e:
-            self.log.info('voltha is running in non docker container environment')
-            adapter_ip = get_my_primary_local_ipv4()
+        if is_init == True:
+            init = bal_pb2.BalInit()
+            try:
+                os.environ["SERVICE_HOST_IP"]
+                adapter_ip = os.environ["SERVICE_HOST_IP"]
+            except Exception as e:
+                self.log.info('voltha is running in non docker container environment')
+                adapter_ip = get_my_primary_local_ipv4()
 
-        ip_port = []
-        ip_port.append(str(adapter_ip))
-        ip_port.append(":")
-        ip_port.append(str(ADAPTER_PORT))
-        init.voltha_adapter_ip_port ="".join(ip_port)
-        self.log.info('Adapter port Ip', init.voltha_adapter_ip_port)
-        self.log.info('connecting-olt', host_and_port=host_and_port,
-                      init_details=init)
-        yield self.stub.BalApiInit(init)
+            ip_port = []
+            ip_port.append(str(adapter_ip))
+            ip_port.append(":")
+            ip_port.append(str(ADAPTER_PORT))
+            init.voltha_adapter_ip_port ="".join(ip_port)
+            self.log.info('Adapter port Ip', init.voltha_adapter_ip_port)
+            self.log.info('connecting-olt', host_and_port=host_and_port,
+                          init_details=init)
+            yield self.stub.BalApiInit(init)
 
     def activate_olt(self):
         self.log.info('activating-olt')
