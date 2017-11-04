@@ -1,0 +1,6 @@
+FROM opencord/voltha-protos:${TAG:-latest} as protos
+FROM opencord/voltha-base:${TAG:-latest}
+
+COPY --from=protos /protos/ /voltha/voltha/protos/
+COPY --from=protos /protos/ /voltha/ofagent/protos/
+COPY . /voltha

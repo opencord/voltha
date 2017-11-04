@@ -1,3 +1,16 @@
+# Copyright 2017 the original author or authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 version: '2'
 services:
   #
@@ -76,7 +89,7 @@ services:
   # (demo place-holder for external KPI system)
   #
   grafana:
-    image: voltha/grafana
+    image: "${REGISTRY}opencord/voltha-grafana:${TAG:-latest}"
     ports:
     - "8883:80"
     - "2003:2003"
@@ -95,7 +108,7 @@ services:
   # Shovel (Kafka-graphite-gateway)
   #
   shovel:
-    image: cord/shovel
+    image: "${REGISTRY}opencord/voltha-shovel:${TAG:-latest}"
     command: [
       "/shovel/shovel/main.py",
       "--kafka=@kafka",
@@ -113,7 +126,7 @@ services:
   # Voltha server instance(s)
   #
   voltha:
-    image: cord/voltha
+    image: "${REGISTRY}opencord/voltha:${TAG:-latest}"
     command: [
       "/voltha/voltha/main.py",
       "-v",
@@ -151,7 +164,7 @@ services:
     - ponmgmt
 
   envoy:
-    image: voltha/envoy
+    image: "${REGISTRY}opencord/voltha-envoy:${TAG:-latest}"
     entrypoint:
       - /usr/local/bin/envoyd
       - -envoy-cfg-template
@@ -176,7 +189,7 @@ services:
   # Voltha cli container
   #
   vcli:
-    image: cord/vcli
+    image: "${REGISTRY}opencord/voltha-cli:${TAG:-latest}"
     command: [
       "/cli/cli/setup.sh",
       "-L",
@@ -197,7 +210,7 @@ services:
   # ofagent server instance
   #
   ofagent:
-    image: cord/ofagent
+    image: "${REGISTRY}opencord/voltha-ofagent:${TAG:-latest}"
     command: [
       "/ofagent/ofagent/main.py",
       "-v",
@@ -225,7 +238,7 @@ services:
   # Netconf server instance(s)
   #
   netconf:
-    image: cord/netconf
+    image: "${REGISTRY}opencord/voltha-netconf:${TAG:-latest}"
     privileged: true
     command: [
       "/netconf/netconf/main.py",
@@ -253,7 +266,7 @@ services:
   # Dashboard daemon
   #
   dashd:
-    image: cord/dashd
+    image: "${REGISTRY}opencord/voltha-dashd:${TAG:-latest}"
     command: [
       "/dashd/dashd/main.py",
       "--kafka=@kafka",
@@ -272,7 +285,7 @@ services:
   # Nginx service consolidation
   #
   nginx:
-    image: voltha/nginx
+    image: "${REGISTRY}opencord/voltha-nginx:${TAG:-latest}"
     ports:
     - "80:80"
     environment:
@@ -290,7 +303,7 @@ services:
   # Docker ui
   #
   portainer:
-    image: voltha/portainer
+    image: "${REGISTRY}opencord/voltha-portainer:${TAG:-latest}"
     ports:
     - "9000:9000"
     environment:
