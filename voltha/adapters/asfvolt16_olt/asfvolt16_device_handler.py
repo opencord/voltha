@@ -346,6 +346,64 @@ class Asfvolt16Handler(OltDeviceHandler):
         device.oper_status = OperStatus.ACTIVATING
         self.adapter_agent.update_device(device)
 
+    def reconcile(self, device):
+
+        self.log.info('reconciling-asfvolt16-starts',device=device)
+
+        if not device.host_and_port:
+            device.oper_status = OperStatus.FAILED
+            device.reason = 'No host_and_port field provided'
+            self.adapter_agent.update_device(device)
+            return
+
+        try:
+            # Establishing connection towards OLT
+            self.bal.connect_olt(device.host_and_port, self.device_id,is_init=False)
+            device.connect_status = ConnectStatus.REACHABLE
+            device.oper_status = OperStatus.ACTIVE
+            self.adapter_agent.update_device(device)
+            reactor.callInThread(self.bal.get_indication_info, self.device_id)
+
+        except Exception as e:
+            self.log.exception('device-unreachable', error=e)
+            device.connect_status = ConnectStatus.UNREACHABLE
+            device.oper_status = OperStatus.UNKNOWN
+            self.adapter_agent.update_device(device)
+            return
+
+        if self.is_heartbeat_started == 0:
+            self.log.info('heart-beat-is-not-yet-started-starting-now')
+            self.heartbeat(device)
+
+            # Now set the initial PM configuration for this device
+            self.pm_metrics=Asfvolt16OltPmMetrics(device)
+            pm_config = self.pm_metrics.make_proto()
+            self.log.info("initial-pm-config", pm_config=pm_config)
+            self.adapter_agent.update_device_pm_config(pm_config,init=True)
+
+
+            # Apply the PM configuration
+            self.update_pm_config(device, pm_config)
+
+
+            # Request PM counters from OLT device.
+            self._handle_pm_counter_req_towards_device(device)
+
+        # Set the logical device id
+        device = self.adapter_agent.get_device(device.id)
+        if device.parent_id:
+            self.logical_device_id = device.parent_id
+            self.log.info("reconcile-logical-device")
+            self.adapter_agent.reconcile_logical_device(device.parent_id)
+        else:
+            self.log.info('no-logical-device-set')
+
+        # Reconcile child devices
+        self.log.info("reconcile-all-child-devices")
+        self.adapter_agent.reconcile_child_devices(device.id)
+        self.log.info('reconciling-asfvolt16-device-ends',device=device)
+
+
     @inlineCallbacks
     def heartbeat(self, device, state = 'run'):
         self.log.debug('olt-heartbeat', device=device, state=state,
