@@ -17,7 +17,7 @@
 # Makefile to build all protobuf and gRPC related artifacts
 
 ifeq ($(VOLTHA_BASE)_set,_set)
-  $(error To get started, please source the env.sh file from Voltha top level directory)
+#  $(error To get started, please source the env.sh file from Voltha top level directory)
 endif
 
 default: build
