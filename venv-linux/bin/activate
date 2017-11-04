@@ -1,0 +1,2 @@
+#!/bin/bash
+echo -e "\033[0;31mNothing to see here\033[0m"
