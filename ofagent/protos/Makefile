@@ -16,10 +16,6 @@
 
 # Makefile to build all protobuf and gRPC related artifacts
 
-ifeq ($(VOLTHA_BASE)_set,_set)
-  $(error To get started, please source the env.sh file from Voltha top level directory)
-endif
-
 # This makefile is used only to copy relevant *_pb2.py files from Voltha
 # to allow ofagent to function properly.
 
