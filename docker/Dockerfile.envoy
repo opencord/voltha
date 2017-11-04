@@ -1,10 +1,19 @@
+FROM opencord/voltha-protoc as protoc
+COPY voltha/protos/ /protos/
+RUN /usr/local/bin/protoc -I/protos/third_party/ -I/protos --include_imports --include_source_info --descriptor_set_out=/proto.pb /protos/*.proto /protos/third_party/google/api/*.proto
+
+FROM opencord/voltha-envoy-gobuilder as builder
+ENV SRC_PATH /source
+COPY envoy/go/envoyd/ /source/
+RUN /build.sh
+
 FROM lyft/envoy:29361deae91575a1d46c7a21e913f19e75622ebe
 
-RUN apt-get update && apt-get -q install -y \
-    curl
+RUN apt-get update && apt-get -q install -y curl
+
 COPY envoy/front-proxy /envoy/
-COPY envoy/proto.pb /envoy/
+COPY --from=protoc /proto.pb /envoy/
 COPY pki /envoy/
-COPY envoy/go/envoyd/envoyd /usr/local/bin
+COPY --from=builder /source/envoyd /usr/local/bin
 
 CMD /usr/local/bin/envoy -c /envoy/front-proxy/voltha-grpc-proxy.json
