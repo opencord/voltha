@@ -1,0 +1,3 @@
+#!/bin/bash
+echo "there is no environment here"
+# This space intentionally left black, to fool jenkins
