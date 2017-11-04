@@ -1,4 +1,4 @@
-FROM cord/voltha-base
+FROM opencord/voltha-base
 
 MAINTAINER Zsolt Haraszti <zharaszt@ciena.com>
 MAINTAINER Ali Al-Shabibi <ali.al-shabibi@onlab.us>
