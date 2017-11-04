@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-#
 # Copyright 2016 the original author or authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,11 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
 
-FROM cord/voltha-base
-
-MAINTAINER Sergio Slobodrian <sslobodr@ciena.com>
+ARG TAG=latest
+FROM opencord/voltha-base:${TAG}
+MAINTAINER Voltha Community <info@opennetworking.org>
 
 # Bundle app source
 RUN mkdir /dashd && touch /dashd/__init__.py

@@ -74,7 +74,7 @@ Vagrant.configure(2) do |config|
     d.vm.network "private_network", ip: "10.100.198.220"
     d.vm.provision :shell, path: "ansible/scripts/bootstrap_ansible.sh"
     d.vm.provision :shell, inline: "PYTHONUNBUFFERED=1 ansible-playbook /cord/incubator/voltha/ansible/voltha.yml -c local"
-    d.vm.provision :shell, inline: "cd /cord/incubator/voltha && source env.sh && make install-protoc && chmod 777 /tmp/fluentd"
+    d.vm.provision :shell, inline: "rm -rf /tmp/fluentd; mkdir -p /tmp/fluentd; chmod 777 /tmp/fluentd"
     d.vm.provider Provider do |v|
       v.memory = 6144
       v.cpus = 4
