@@ -48,6 +48,8 @@ def get_my_primary_local_ipv4(inter_core_subnet=None, ifname=None):
         return _get_my_primary_local_ipv4(ifname)
     # My IP should belong to the specified subnet
     for iface in ni.interfaces():
+        if AF_INET not in ni.ifaddresses(iface).keys():
+            continue
         m_ip = ni.ifaddresses(iface)[AF_INET][0]['addr']
         _ip = netaddr.IPAddress(m_ip).value
         m_network = netaddr.IPNetwork(inter_core_subnet)
@@ -61,6 +63,8 @@ def get_my_primary_interface(pon_subnet=None):
         return _get_my_primary_interface()
     # My interface should have an IP that belongs to the specified subnet
     for iface in ni.interfaces():
+        if AF_INET not in ni.ifaddresses(iface).keys():
+            continue
         m_ip = ni.ifaddresses(iface)[AF_INET][0]['addr']
         m_ip = netaddr.IPAddress(m_ip).value
         m_network = netaddr.IPNetwork(pon_subnet)
