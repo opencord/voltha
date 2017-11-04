@@ -14,8 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
-FROM cord/voltha-base
+FROM opencord/voltha-protos:${TAG:-latest}
+FROM opencord/voltha-base:${TAG:-latest}
 
 MAINTAINER Sergio Slobodrian <sslobodr@ciena.com>
 
@@ -25,6 +25,7 @@ ENV PYTHONPATH=/cli
 COPY common /cli/common
 COPY cli /cli/cli
 COPY voltha /cli/voltha
+COPY --from=protos /protos/ /cli/voltha/protos
 RUN useradd -b /home -d /home/voltha voltha -s /bin/bash
 RUN mkdir /home/voltha
 RUN chown voltha.voltha /home/voltha
