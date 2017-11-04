@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-#
 # Copyright 2016 the original author or authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,11 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
 
 FROM kamon/grafana_graphite:3.0
-
-MAINTAINER Sergio Slobodrian <sslobodr@ciena.com>
+MAINTAINER Voltha Community <info@opennetworking.org>
 
 # Update the configuration so grafana runs at a different root
 # everything else remains as defined in the kamon version
