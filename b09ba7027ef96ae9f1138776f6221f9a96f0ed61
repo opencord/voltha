@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "9a5c5d37_e0c15fe5",
+        "filename": "Makefile",
+        "patchSetId": 1
+      },
+      "lineNbr": 185,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2017-11-04T18:05:10Z",
+      "side": 0,
+      "message": "Sergio brought this up as well. The protoc container can work on a mount so that we could have a make target the generates via the mount. For the auto build you still need them in a container. As you said, optional so it can be done both ways.",
+      "parentUuid": "9a5c5d37_002c7301",
+      "revId": "b09ba7027ef96ae9f1138776f6221f9a96f0ed61",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a5c5d37_20ef77b2",
         "filename": "Makefile",
         "patchSetId": 1
@@ -30,6 +48,24 @@
       "writtenOn": "2017-11-04T00:59:45Z",
       "side": 0,
       "message": "I think we would need fetch target to refresh the docker images being built for the opencord/voltha-{fluentd,consul},etc variants. Since those are based off these base images?",
+      "revId": "b09ba7027ef96ae9f1138776f6221f9a96f0ed61",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_00bd9368",
+        "filename": "Makefile",
+        "patchSetId": 1
+      },
+      "lineNbr": 209,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2017-11-04T18:05:10Z",
+      "side": 0,
+      "message": "A fetch target is fine. Also with Docker compose files you can do a fetch on the images in a compose file, so we might be able to do that through them as opposed to the makefile. The advantage of doing it via the compose file is that it is the compose file that ultimately defines what containers you need. So maybe a make target that uses the compose files to pull?",
+      "parentUuid": "9a5c5d37_20ef77b2",
       "revId": "b09ba7027ef96ae9f1138776f6221f9a96f0ed61",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false

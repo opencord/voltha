@@ -16,6 +16,24 @@
       "revId": "db9e10a51210841e6f7dd97d7a202e66bda42164",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_c0b65b8a",
+        "filename": "Makefile",
+        "patchSetId": 1
+      },
+      "lineNbr": 155,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2017-11-04T18:05:10Z",
+      "side": 1,
+      "message": "it is under voltha-adapters. The original makefile did it as that rule so i just left it. I suspect it might be good to have a target specifically for asfvolt16 and then have the voltha-adapters target just depend on it.\n\none issue with a build based on Docker containers is that make dependency rules don\u0027t really work, i.e. the makefile can\u0027t determine when an image really needs to be rebuilt or not. the theory is that if the image is already built then it doesn\u0027t take much time, but it would be nice to have a tool that could really tell if the image needs rebuilt or not.\n\nZack Williams did some work on this, not sure about the current state, but it might be something worth while to look at. The other issue we have is that sometimes Docker misses changes. For example if the Dockerfile executes a shell script docker determines if it needs to be re-run based the SHA plus the command. The command hasn\u0027t changed so Docker skips, but if the contents of the shell script changed Docker may miss it.",
+      "parentUuid": "9a5c5d37_e0303f58",
+      "revId": "db9e10a51210841e6f7dd97d7a202e66bda42164",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
