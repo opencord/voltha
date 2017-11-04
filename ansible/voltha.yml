@@ -2,7 +2,7 @@
   remote_user: vagrant
   serial: 1
   roles:
-    - common
+    #- common
     - docker
-    - docker-compose
-    - java
+    #- docker-compose
+    #- java

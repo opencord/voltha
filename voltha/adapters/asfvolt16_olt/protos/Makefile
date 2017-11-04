@@ -16,14 +16,11 @@
 
 # Makefile to build all protobuf and gRPC related artifacts
 
-ifeq ($(VOLTHA_BASE)_set,_set)
-  $(error To get started, please source the env.sh file from Voltha top level directory)
-endif
-
 default: build
 
 PROTO_FILES := $(wildcard *.proto) $(wildcard $(VOLTHA_BASE)/voltha/protos/third_party/google/api/*proto)
 PROTO_PB2_FILES := $(foreach f,$(PROTO_FILES),$(subst .proto,_pb2.py,$(f)))
+PROTO_PB2_GPRC_FILES := $(foreach f,$(PROTO_FILES),$(subst .proto,_pb2_grpc.py,$(f)))
 PROTO_DESC_FILES := $(foreach f,$(PROTO_FILES),$(subst .proto,.desc,$(f)))
 
 PROTOC_PREFIX := /usr/local
@@ -38,48 +35,9 @@ PROTOC_TARBALL := protobuf-python-$(PROTOC_VERSION).tar.gz
 PROTOC_DOWNLOAD_URI := $(PROTOC_DOWNLOAD_PREFIX)/v$(PROTOC_VERSION)/$(PROTOC_TARBALL)
 PROTOC_BUILD_TMP_DIR := "/tmp/protobuf-build-$(shell uname -s | tr '[:upper:]' '[:lower:]')"
 
-build: $(PROTOC) protos
-
-protos: $(PROTO_PB2_FILES)
-
-%_pb2.py: %.proto Makefile
-	@echo "Building protocol buffer artifacts from $<"
-	env LD_LIBRARY_PATH=$(PROTOC_LIBDIR) python -m grpc.tools.protoc \
-	    -I. \
-	    -I$(VOLTHA_BASE)/voltha/protos/third_party \
-	    --python_out=. \
-	    --grpc_python_out=. \
-	    --descriptor_set_out=$(basename $<).desc \
-	    --include_imports \
-	    --include_source_info \
-	    $<
+build: $(PROTOC)
+	docker run -ti -v $(shell pwd):/bal-protos -w /bal-protos opencord/voltha-protos make -f Makefile.docker
 
 clean:
-	rm -f $(PROTO_PB2_FILES) $(PROTO_DESC_FILES)
-
-$(PROTOC):
-	@echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-	@echo "It looks like you don't have protocol buffer tools installed."
-	@echo "To install the protocol buffer toolchain, you can run:"
-	@echo "    make install-protoc"
-	@echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-
-install-protoc: $(PROTOC)
-	@echo "Downloading and installing protocol buffer support."
-	@echo "Installation will require sodo priviledges"
-	@echo "This will take a few minutes."
-	mkdir -p $(PROTOC_BUILD_TMP_DIR)
-	@echo "We ask for sudo credentials now so we can install at the end"; \
-	sudo echo "Thanks"; \
-	    cd $(PROTOC_BUILD_TMP_DIR); \
-	    wget $(PROTOC_DOWNLOAD_URI); \
-	    tar xzvf $(PROTOC_TARBALL); \
-	    cd $(PROTOC_DIR); \
-	    ./configure --prefix=$(PROTOC_PREFIX); \
-	    make; \
-	    sudo make install
-
-uninstall-protoc:
-	cd $(PROTOC_BUILD_TMP_DIR)/$(PROTOC_DIR); \
-	    sudo make uninstall
+	rm -f $(PROTO_PB2_FILES) $(PROTO_DESC_FILES) $(PROTO_PB2_GPRC_FILES)
 

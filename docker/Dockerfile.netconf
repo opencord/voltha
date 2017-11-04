@@ -14,8 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+FROM opencord/voltha-protos:${TAG:-latest} as protos
 
-FROM cord/voltha-base
+# Remove the third_party __init__.py, as we want to use the local version
+RUN rm /protos/third_party/__init__.py
+
+FROM opencord/voltha-base:${TAG:-latest}
 
 MAINTAINER Zsolt Haraszti <zharaszt@ciena.com>
 MAINTAINER Ali Al-Shabibi <ali.al-shabibi@onlab.us>
@@ -39,6 +43,7 @@ RUN mkdir /netconf && touch /netconf/__init__.py
 ENV PYTHONPATH=/netconf
 COPY common /netconf/common
 COPY netconf /netconf/netconf
+COPY --from=protos /protos/ /netconf/netconf/protos/
 
 # Exposing process and default entry point
 CMD ["python", "netconf/netconf/main.py"]
