@@ -14,8 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
-FROM cord/voltha-base
+FROM opencord/voltha-protos:latest as protos
+FROM opencord/voltha-asfvolt16_olt as asfvolt16_olt
+FROM opencord/voltha-base
 
 MAINTAINER Zsolt Haraszti <zharaszt@ciena.com>
 MAINTAINER Ali Al-Shabibi <ali.al-shabibi@onlab.us>
@@ -26,6 +27,8 @@ RUN mkdir /voltha && touch /voltha/__init__.py
 ENV PYTHONPATH=/voltha
 COPY common /voltha/common
 COPY voltha /voltha/voltha
+COPY --from=protos /protos/ /voltha/voltha/protos/
+COPY --from=asfvolt16_olt /asfvolt16_olt/ /voltha/voltha/adapters/asfvolt16_olt/
 COPY pki /voltha/pki
 
 # Exposing process and default entry point
