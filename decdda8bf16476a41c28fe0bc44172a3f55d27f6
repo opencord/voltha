@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "9a5c5d37_3b6206d9",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 109,
+      "author": {
+        "id": 1000180
+      },
+      "writtenOn": "2017-11-06T15:10:58Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "9a5c5d37_c0589bfc",
+      "revId": "decdda8bf16476a41c28fe0bc44172a3f55d27f6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a5c5d37_c00f7be0",
         "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
         "patchSetId": 3
@@ -30,6 +48,24 @@
       "writtenOn": "2017-11-03T14:26:53Z",
       "side": 1,
       "message": "Why blindly modify OperStatus and ConnectStatus on reconcile? If an ONU was unreachable/unknown prior to reconcile, that state should be maintained after reconcile (unless the node has actually recovered). \nReconcile is called to do just that - reconcile the current state(s) with the existing state(s) in voltha core. In absence of any actual verification of operational and/or reachability state, the states should remain as they were prior to reconcile.\n\nIdeally we would verify operational and connect status via some form of OMCI messaging during reconcile but I realize that requires more investigation outside of this update.",
+      "revId": "decdda8bf16476a41c28fe0bc44172a3f55d27f6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_fb9b4ec7",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 121,
+      "author": {
+        "id": 1000180
+      },
+      "writtenOn": "2017-11-06T15:10:58Z",
+      "side": 1,
+      "message": "Agreed. To have the basic functionality in, i have submitted a patch where the operational/reachability status are not modified. I will raise a Jira for the verify operational/connect status using omci during reconcile.",
+      "parentUuid": "9a5c5d37_c00f7be0",
       "revId": "decdda8bf16476a41c28fe0bc44172a3f55d27f6",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
