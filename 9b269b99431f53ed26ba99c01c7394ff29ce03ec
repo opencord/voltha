@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a5c5d37_1b3182ec",
+        "filename": "docker/Dockerfile.asfvolt16_olt",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-11-06T01:33:58Z",
+      "side": 1,
+      "message": "Once this firms up we need to test against the real ASFvOLT16 olt to ensure GRPC to voltha_bal_driver in the OLT is working.",
+      "revId": "9b269b99431f53ed26ba99c01c7394ff29ce03ec",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
