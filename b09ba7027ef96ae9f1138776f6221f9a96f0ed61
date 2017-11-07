@@ -69,6 +69,23 @@
       "revId": "b09ba7027ef96ae9f1138776f6221f9a96f0ed61",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_bb8396cb",
+        "filename": "Makefile",
+        "patchSetId": 4
+      },
+      "lineNbr": 229,
+      "author": {
+        "id": 1000015
+      },
+      "writtenOn": "2017-11-07T16:48:25Z",
+      "side": 0,
+      "message": "Removal of venv target is resulting in jenkins build failure for voltha.\nI think we can retain the old ones but just deprecate them for now.\nvenv and protoc targets.",
+      "revId": "b09ba7027ef96ae9f1138776f6221f9a96f0ed61",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
