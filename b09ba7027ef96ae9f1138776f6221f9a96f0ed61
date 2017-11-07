@@ -86,6 +86,24 @@
       "revId": "b09ba7027ef96ae9f1138776f6221f9a96f0ed61",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_db652a46",
+        "filename": "Makefile",
+        "patchSetId": 4
+      },
+      "lineNbr": 229,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2017-11-07T17:21:23Z",
+      "side": 0,
+      "message": "I will take a look at the deprecating this targets and see if we can get the jenkins build to work.",
+      "parentUuid": "9a5c5d37_bb8396cb",
+      "revId": "b09ba7027ef96ae9f1138776f6221f9a96f0ed61",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
