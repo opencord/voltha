@@ -523,9 +523,9 @@ class AdapterAgent(object):
 
         while True:
             ld_id, dp_id = create_cluster_logical_device_ids(core_id, switch_id)
-            existing_ids = dp_id in existing_datapath_ids or ld_id in \
+            id_exists = dp_id in existing_datapath_ids or ld_id in \
                                                             existing_ids
-            if not existing_ids:
+            if not id_exists:
                 return ld_id, dp_id
             else:
                 if dpid:
