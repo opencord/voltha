@@ -343,7 +343,7 @@ class Asfvolt16IndHandler(object):
          bal_model_ids_pb2.BAL_INTERFACE_AUTO_ID_LOS):
             bal_iface_los,
         (bal_model_ids_pb2.BAL_OBJ_ID_INTERFACE,
-         bal_model_ids_pb2.BAL_INTERFACE_AUTO_ID_IND):
+         bal_model_ids_pb2.BAL_INTERFACE_AUTO_ID_OPER_STATUS_CHANGE):
             bal_iface_oper_sts_cng,
 
         (bal_model_ids_pb2.BAL_OBJ_ID_SUBSCRIBER_TERMINAL,
