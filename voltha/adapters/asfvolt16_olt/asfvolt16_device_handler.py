@@ -1159,6 +1159,8 @@ class Asfvolt16Handler(OltDeviceHandler):
             port_id = 'nni'
             pkt_info['dest_type'] = 'nni'
             pkt_info['intf_id'] = 0
+            self.log.info('packet-out-is-for-olt-nni')
+            send_pkt = binascii.unhexlify(str(pkt).encode("HEX"))
         else:
             port_id = 'uni-{}'.format(egress_port)
             logical_port = None
