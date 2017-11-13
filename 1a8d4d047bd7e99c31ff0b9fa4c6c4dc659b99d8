@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a5c5d37_d69aa113",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1340,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-11-13T18:38:47Z",
+      "side": 1,
+      "message": "Fix minor typo here: Addtion to Addition.  Also at line 1349",
+      "revId": "1a8d4d047bd7e99c31ff0b9fa4c6c4dc659b99d8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
