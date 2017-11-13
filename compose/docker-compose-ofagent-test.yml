@@ -178,7 +178,7 @@ services:
   #
   ofagent:
     image: cord/ofagent
-    command: /ofagent/ofagent/main.py -v --consul=${DOCKER_HOST_IP}:8500 --fluentd=fluentd:24224 --controller ${DOCKER_HOST_IP}:6633 ${DOCKER_HOST_IP}:6644 ${DOCKER_HOST_IP}:6655 --grpc-endpoint=@voltha-grpc --instance-id-is-container-name
+    command: /ofagent/ofagent/main.py -v --consul=${DOCKER_HOST_IP}:8500 --fluentd=fluentd:24224 --controller ${DOCKER_HOST_IP}:6633 ${DOCKER_HOST_IP}:6644 ${DOCKER_HOST_IP}:6655 --grpc-endpoint=@voltha-grpc --instance-id-is-container-name --enable-tls --key-file=/ofagent/pki/voltha.key --cert-file=/ofagent/pki/voltha.crt
     depends_on:
     - consul
     - voltha

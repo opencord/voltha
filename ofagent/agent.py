@@ -17,6 +17,7 @@
 import sys
 
 import structlog
+import os.path
 from twisted.internet import protocol
 from twisted.internet import reactor
 from twisted.internet import reactor, ssl
@@ -42,12 +43,18 @@ class Agent(protocol.ClientFactory):
                  datapath_id,
                  device_id,
                  rpc_stub,
+                 enable_tls=False,
+                 key_file=None,
+                 cert_file=None,
                  conn_retry_interval=1):
 
         self.controller_endpoint = controller_endpoint
         self.datapath_id = datapath_id
         self.device_id = device_id
         self.rpc_stub = rpc_stub
+        self.enable_tls = enable_tls
+        self.key_file = key_file
+        self.cert_file = cert_file
         self.retry_interval = conn_retry_interval
 
         self.running = False
@@ -89,18 +96,31 @@ class Agent(protocol.ClientFactory):
         while not self.exiting:
             host, port = self.resolve_endpoint(self.controller_endpoint)
             log.info('connecting', host=host, port=port)
-            try:
-               with open("/ofagent/pki/voltha.key") as keyFile:
-                    with open("/ofagent/pki/voltha.crt") as certFile:
-                         clientCert = ssl.PrivateCertificate.loadPEM(
-                              keyFile.read() + certFile.read())
+            if self.enable_tls:
+                try:
+                    # Check that key_file and cert_file is provided and
+                    # the files exist
+                    if self.key_file is None or             \
+                       self.cert_file is None or            \
+                       not os.path.isfile(self.key_file) or \
+                       not os.path.isfile(self.cert_file):
+                        raise Exception('key_file "{}" or cert_file "{}"'
+                                        ' is not found'.
+                                         format(self.key_file, self.cert_file))
+                    with open(self.key_file) as keyFile:
+                        with open(self.cert_file) as certFile:
+                            clientCert = ssl.PrivateCertificate.loadPEM(
+                                keyFile.read() + certFile.read())
 
-               ctx = clientCert.options()
-               self.connector = reactor.connectSSL(host, port, self, ctx)
+                    ctx = clientCert.options()
+                    self.connector = reactor.connectSSL(host, port, self, ctx)
+                    log.info('tls-enabled')
 
-            except Exception as e:
-                log.exception('failed-to-connect', reason=e)
-
+                except Exception as e:
+                    log.exception('failed-to-connect', reason=e)
+            else:
+                self.connector = reactor.connectTCP(host, port, self)
+                log.info('tls-disabled')
 
             self.d_disconnected = Deferred()
             yield self.d_disconnected
