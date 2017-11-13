@@ -147,6 +147,13 @@ def parse_args():
                         default=False,
                         help=_help)
 
+    _help = ('Specify this option to enable TLS security between ofagent \
+              and onos.')
+    parser.add_argument('-t', '--enable-tls',
+                        dest='enable_tls',
+                        action='store_true',
+                        help=_help)
+
     args = parser.parse_args()
 
     # post-processing
@@ -213,7 +220,8 @@ class Main(object):
         self.log.info('starting-internal-components')
         args = self.args
         self.connection_manager = yield ConnectionManager(
-            args.consul, args.grpc_endpoint, args.controller).start()
+            args.consul, args.grpc_endpoint, args.controller,\
+            args.enable_tls).start()
         self.log.info('started-internal-services')
 
     @inlineCallbacks

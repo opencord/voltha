@@ -42,12 +42,14 @@ class Agent(protocol.ClientFactory):
                  datapath_id,
                  device_id,
                  rpc_stub,
+                 enable_tls=False,
                  conn_retry_interval=1):
 
         self.controller_endpoint = controller_endpoint
         self.datapath_id = datapath_id
         self.device_id = device_id
         self.rpc_stub = rpc_stub
+        self.enable_tls = enable_tls
         self.retry_interval = conn_retry_interval
 
         self.running = False
@@ -89,18 +91,22 @@ class Agent(protocol.ClientFactory):
         while not self.exiting:
             host, port = self.resolve_endpoint(self.controller_endpoint)
             log.info('connecting', host=host, port=port)
-            try:
-               with open("/ofagent/pki/voltha.key") as keyFile:
-                    with open("/ofagent/pki/voltha.crt") as certFile:
-                         clientCert = ssl.PrivateCertificate.loadPEM(
-                              keyFile.read() + certFile.read())
+            if self.enable_tls:
+                try:
+                   with open("/ofagent/pki/voltha.key") as keyFile:
+                        with open("/ofagent/pki/voltha.crt") as certFile:
+                             clientCert = ssl.PrivateCertificate.loadPEM(
+                                  keyFile.read() + certFile.read())
 
-               ctx = clientCert.options()
-               self.connector = reactor.connectSSL(host, port, self, ctx)
+                   ctx = clientCert.options()
+                   self.connector = reactor.connectSSL(host, port, self, ctx)
+                   log.info('tls-enabled')
 
-            except Exception as e:
-                log.exception('failed-to-connect', reason=e)
-
+                except Exception as e:
+                    log.exception('failed-to-connect', reason=e)
+            else:
+                self.connector = reactor.connectTCP(host, port, self)
+                log.info('tls-disabled')
 
             self.d_disconnected = Deferred()
             yield self.d_disconnected
