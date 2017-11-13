@@ -25,6 +25,9 @@ services:
             - --controller=onos:6653
             - --grpc-endpoint=vcore:50556
             - --instance-id-is-container-name
+            - --enable-tls
+            - --key-file=/ofagent/pki/voltha.key
+            - --cert-file=/ofagent/pki/voltha.crt
         volumes:
             - /var/run/docker.sock:/tmp/docker.sock
         networks:

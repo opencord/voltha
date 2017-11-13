@@ -41,6 +41,7 @@ log = get_logger()
 
 class ConnectionManager(object):
     def __init__(self, consul_endpoint, vcore_endpoint, controller_endpoints,
+                 enable_tls=False, key_file=None, cert_file=None,
                  vcore_retry_interval=0.5, devices_refresh_interval=5,
                  subscription_refresh_interval=5):
 
@@ -49,6 +50,9 @@ class ConnectionManager(object):
         self.controller_endpoints = controller_endpoints
         self.consul_endpoint = consul_endpoint
         self.vcore_endpoint = vcore_endpoint
+        self.enable_tls = enable_tls
+        self.key_file = key_file
+        self.cert_file = cert_file
 
         self.channel = None
         self.grpc_client = None  # single, shared gRPC client to vcore
@@ -256,7 +260,8 @@ class ConnectionManager(object):
         device_id = device.id
         for controller_endpoint in self.controller_endpoints:
             agent = Agent(controller_endpoint, datapath_id,
-                          device_id, self.grpc_client)
+                          device_id, self.grpc_client, self.enable_tls,
+                          self.key_file, self.cert_file)
             agent.start()
             self.agent_map[(datapath_id,controller_endpoint)] = agent
             self.device_id_to_datapath_id_map[device_id] = datapath_id

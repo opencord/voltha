@@ -37,7 +37,9 @@ defs = dict(
     instance_id=os.environ.get('INSTANCE_ID', os.environ.get('HOSTNAME', '1')),
     internal_host_address=os.environ.get('INTERNAL_HOST_ADDRESS',
                                          get_my_primary_local_ipv4()),
-    work_dir=os.environ.get('WORK_DIR', '/tmp/ofagent')
+    work_dir=os.environ.get('WORK_DIR', '/tmp/ofagent'),
+    key_file=os.environ.get('KEY_FILE', '/ofagent/pki/voltha.key'),
+    cert_file=os.environ.get('CERT_FILE', '/ofagent/pki/voltha.crt')
 )
 
 
@@ -147,6 +149,29 @@ def parse_args():
                         default=False,
                         help=_help)
 
+    _help = ('Specify this option to enable TLS security between ofagent \
+              and onos.')
+    parser.add_argument('-t', '--enable-tls',
+                        dest='enable_tls',
+                        action='store_true',
+                        help=_help)
+
+    _help = ('key file to be used for tls security (default=%s)'
+             % defs['key_file'])
+    parser.add_argument('-k', '--key-file',
+                        dest='key_file',
+                        action='store',
+                        default=defs['key_file'],
+                        help=_help)
+
+    _help = ('certificate file to be used for tls security (default=%s)'
+             % defs['cert_file'])
+    parser.add_argument('-r', '--cert-file',
+                        dest='cert_file',
+                        action='store',
+                        default=defs['cert_file'],
+                        help=_help)
+
     args = parser.parse_args()
 
     # post-processing
@@ -213,7 +238,8 @@ class Main(object):
         self.log.info('starting-internal-components')
         args = self.args
         self.connection_manager = yield ConnectionManager(
-            args.consul, args.grpc_endpoint, args.controller).start()
+            args.consul, args.grpc_endpoint, args.controller,\
+            args.enable_tls, args.key_file, args.cert_file).start()
         self.log.info('started-internal-services')
 
     @inlineCallbacks
