@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a5c5d37_56ad9130",
+        "filename": "ofagent/main.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 150,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-11-13T19:13:16Z",
+      "side": 1,
+      "message": "Would be good to have the voltha key and certificate specified in the config instead of hardcoded in the code.",
+      "revId": "7d1a22e24e3ca68216ffb110bce25f2e2679b2e4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
