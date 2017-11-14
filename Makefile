@@ -99,7 +99,7 @@ jenkins : protos jenkins-containers
 
 jenkins-containers: docker-base voltha ofagent netconf consul registrator unum
 
-prod-containers: docker-base voltha ofagent netconf shovel dashd vcli grafana consul tools golang envoyd envoy fluentd unum
+prod-containers: docker-base voltha ofagent netconf shovel dashd vcli grafana consul tools golang envoyd envoy fluentd unum elasticsearch
 
 containers: docker-base voltha ofagent podder netconf shovel onos tester config-push dashd vcli portainer grafana nginx consul registrator tools golang envoyd envoy fluentd unum
 
@@ -123,6 +123,9 @@ tools:
 
 fluentd:
 	docker build -t cord/fluentd -f docker/Dockerfile.fluentd .
+
+elasticsearch:
+	docker build -t cord/elasticsearch -f docker/Dockerfile.elasticsearch .
 
 envoy:
 	docker build -t voltha/envoy -f docker/Dockerfile.envoy .
