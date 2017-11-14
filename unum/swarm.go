@@ -46,16 +46,19 @@ func (c *SwarmClient) GetInfo(labels map[string]string, networkLabels map[string
 	services, err := c.client.ServiceList(context.Background(), types.ServiceListOptions{})
 	if err != nil {
 		log.Errorf("Error while quering services : %s", err.Error())
+		return nil, err
 	}
 
 	tasks, err := c.client.TaskList(context.Background(), types.TaskListOptions{})
 	if err != nil {
 		log.Error("Error while quering tasks")
+		return nil, err
 	}
 
 	nodes, err := c.client.NodeList(context.Background(), types.NodeListOptions{})
 	if err != nil {
 		log.Error("Error while quering nodes")
+		return nil, err
 	}
 
 	for _, node := range nodes {

@@ -20,7 +20,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
 
   controller:
-    image: cord/onos:latest
+    image: onosproject/onos:1.10.9
     depends_on:
       - cluster_manager
     networks:
