@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a5c5d37_f19b6fc7",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 266,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-11-14T04:12:48Z",
+      "side": 1,
+      "message": "Remove the redundant space",
+      "revId": "d058ecfdf4a0f61079f5c7fd18afae845f71c03d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_d1a06bf6",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 500,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-11-14T04:12:48Z",
+      "side": 1,
+      "message": "Remove the redundant space",
+      "revId": "d058ecfdf4a0f61079f5c7fd18afae845f71c03d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
