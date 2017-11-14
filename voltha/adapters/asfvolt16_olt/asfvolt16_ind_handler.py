@@ -105,7 +105,7 @@ class Asfvolt16IndHandler(object):
         return bal_err
 
     def bal_iface_ind(self, indication, device_handler):
-        self.log.info('Awaiting ONU discovery')
+        self.log.info('Awaiting-ONU-discovery')
         reactor.callLater(0,\
                           device_handler.BalIfaceIndication,\
                           indication.device_id.decode('unicode-escape'),\
@@ -289,7 +289,7 @@ class Asfvolt16IndHandler(object):
         packet_data = indication.balOmciResp.key.packet_send_dest
         ind_info['onu_id'] = packet_data.itu_omci_channel.sub_term_id
         ind_info['packet'] = indication.balOmciResp.data.pkt
-        self.log.info('ONU Id is',
+        self.log.info('ONU-Id-is',
                       onu_id=packet_data.itu_omci_channel.sub_term_id)
         reactor.callLater(0,
                           device_handler.handle_omci_ind,

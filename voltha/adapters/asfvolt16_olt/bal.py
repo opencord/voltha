@@ -59,7 +59,7 @@ class Bal(object):
                 os.environ["SERVICE_HOST_IP"]
                 adapter_ip = os.environ["SERVICE_HOST_IP"]
             except Exception as e:
-                self.log.info('voltha is running in non docker container environment')
+                self.log.info('voltha-is-running-in-non-docker-container-environment')
                 adapter_ip = get_my_primary_local_ipv4()
 
             ip_port = []
@@ -67,7 +67,7 @@ class Bal(object):
             ip_port.append(":")
             ip_port.append(str(ADAPTER_PORT))
             init.voltha_adapter_ip_port ="".join(ip_port)
-            self.log.info('Adapter port Ip', init.voltha_adapter_ip_port)
+            self.log.info('Adapter-port-IP', init.voltha_adapter_ip_port)
             self.log.info('connecting-olt', host_and_port=host_and_port,
                           init_details=init)
             yield self.stub.BalApiInit(init)
@@ -106,7 +106,7 @@ class Bal(object):
                           pon_port_details=obj)
             yield self.stub.BalCfgSet(obj)
         except Exception as e:
-            self.log.info('activating-pon-port in olt-exception', exc=str(e))
+            self.log.info('activating-pon-port-in-olt-exception', exc=str(e))
         return
 
     @inlineCallbacks
@@ -379,13 +379,13 @@ class Bal(object):
                 obj.tm_sched_cfg.data.owner.agg_port.presence_mask |= \
                     bal_model_types_pb2.BAL_TM_SCHED_OWNER_AGG_PORT_ID_AGG_PORT_ID
             else:
-                self.log.error('Not supported scheduling type',
+                self.log.error('Not-supported-scheduling-type',
                                sched_type=owner_info['type'])
                 return
             obj.tm_sched_cfg.data.sched_type = \
                 bal_model_types_pb2.BAL_TM_SCHED_TYPE_SP_WFQ
             obj.tm_sched_cfg.data.num_priorities = num_priority
-            self.log.info('Creating Scheduler',
+            self.log.info('Creating-Scheduler',
                           scheduler_details=obj)
             yield self.stub.BalCfgSet(obj)
         except Exception as e:
@@ -399,42 +399,42 @@ class Bal(object):
 
     @inlineCallbacks
     def get_bal_interface_stats(self, intf_id, interface_type):
-        self.log.info('Fetching Statistics')
+        self.log.info('Fetching-Statistics')
         try:
             obj = bal_model_types_pb2.BalInterfaceKey()
             obj.intf_id = intf_id
             obj.intf_type = interface_type
             stats = yield self.stub.BalCfgStatGet(obj)
-            self.log.info('Fetching statistics success',
+            self.log.info('Fetching-statistics-success',
                           stats_data=stats.data)
             returnValue(stats)
         except Exception as e:
-            self.log.info('Fetching statistics failed', exc=str(e))
+            self.log.info('Fetching-statistics-failed', exc=str(e))
 
     @inlineCallbacks
     def set_bal_reboot(self, device_id):
-        self.log.info('Set Reboot')
+        self.log.info('Set-Reboot')
         try:
             obj = bal_pb2.BalReboot()
             obj.device_id = device_id
             err = yield self.stub.BalApiReboot(obj)
-            self.log.info('OLT Reboot Success', reboot_err=err)
+            self.log.info('OLT-Reboot-Success', reboot_err=err)
             returnValue(err)
         except Exception as e:
-            self.log.info('OLT Reboot failed', exc=str(e))
+            self.log.info('OLT-Reboot-failed', exc=str(e))
 
     @inlineCallbacks
     def get_bal_heartbeat(self, device_id):
-        self.log.info('Get HeartBeat')
+        self.log.info('Get-HeartBeat')
         try:
             obj = bal_pb2.BalHeartbeat()
             obj.device_id = device_id
             rebootStatus = yield self.stub.BalApiHeartbeat(obj)
-            self.log.info('OLT HeartBeat Response Received from',
+            self.log.info('OLT-HeartBeat-Response-Received-from',
                           device=device_id, rebootStatus=rebootStatus)
             returnValue(rebootStatus)
         except Exception as e:
-            self.log.info('OLT HeartBeat failed', exc=str(e))
+            self.log.info('OLT-HeartBeat-failed', exc=str(e))
 
     def get_indication_info(self, device_id):
         while self.olt.running:

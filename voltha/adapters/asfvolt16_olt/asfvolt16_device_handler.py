@@ -263,7 +263,7 @@ class Asfvolt16Handler(OltDeviceHandler):
             return ports[0]
         return None
 
-    def store_flows(self, uplink_classifier, uplink_action, 
+    def store_flows(self, uplink_classifier, uplink_action,
                     v_enet, traffic_class):
         flow = FlowInfo()
         flow.classifier = dict(uplink_classifier)
@@ -452,7 +452,7 @@ class Asfvolt16Handler(OltDeviceHandler):
             if self.heartbeat_miss > 0:
                 self.heartbeat_miss = 0
                 if d.is_reboot == bal_pb2.BAL_OLT_UP_AFTER_REBOOT:
-                    self.log.info('Activating OLT again after reboot')
+                    self.log.info('Activating-OLT-again-after-reboot')
 
                     # Since OLT is reachable after reboot, OLT should configurable with
                     # all the old existing flows. NNI port should be mark it as down for
@@ -475,7 +475,7 @@ class Asfvolt16Handler(OltDeviceHandler):
                     _device.oper_status = OperStatus.ACTIVE
                     _device.reason = ''
                     self.adapter_agent.update_device(_device)
-                self.log.info('Clearing the Hearbeat Alarm')
+                self.log.info('Clearing-the-Hearbeat-Alarm')
                 heartbeat_alarm(_device, 0)
 
         if (self.heartbeat_miss >= self.heartbeat_failed_limit) and \
@@ -493,11 +493,11 @@ class Asfvolt16Handler(OltDeviceHandler):
     @inlineCallbacks
     def reboot(self):
         err_status  = yield self.bal.set_bal_reboot(self.device_id.__str__())
-        self.log.info('Reboot Status', err_status = err_status)
+        self.log.info('Reboot-Status', err_status = err_status)
 
     @inlineCallbacks
     def _handle_nni_pm_counter_req_towards_device(self, device, intf_id):
-        interface_type = bal_model_types_pb2.BAL_INTF_TYPE_NNI 
+        interface_type = bal_model_types_pb2.BAL_INTF_TYPE_NNI
         yield self._req_pm_counter_from_device_in_loop(device, interface_type, intf_id)
 
         reactor.callLater(self.pm_metrics.default_freq/10,
@@ -506,7 +506,7 @@ class Asfvolt16Handler(OltDeviceHandler):
 
     @inlineCallbacks
     def _handle_pon_pm_counter_req_towards_device(self, device, intf_id):
-        interface_type = bal_model_types_pb2.BAL_INTF_TYPE_PON 
+        interface_type = bal_model_types_pb2.BAL_INTF_TYPE_PON
         yield self._req_pm_counter_from_device_in_loop(device, interface_type, intf_id)
 
         reactor.callLater(self.pm_metrics.default_freq/10,
@@ -518,7 +518,7 @@ class Asfvolt16Handler(OltDeviceHandler):
         # NNI port is hardcoded to 0
         kpi_status = -1
         if device.connect_status == ConnectStatus.UNREACHABLE:
-           self.log.info('Device is not Reachable')
+           self.log.info('Device-is-not-Reachable')
         else:
            try:
               stats_info = yield self.bal.get_bal_interface_stats(intf_id, interface_type)
@@ -564,7 +564,7 @@ class Asfvolt16Handler(OltDeviceHandler):
                  prefixes=prefixes)
            self.adapter_agent.submit_kpis(kpi_event)
         else:
-           self.log.info('Lost Connectivity to OLT')
+           self.log.info('Lost-Connectivity-to-OLT')
 
     def update_pm_config(self, device, pm_config):
         self.log.info("update-pm-config", device=device, pm_config=pm_config)
@@ -629,21 +629,21 @@ class Asfvolt16Handler(OltDeviceHandler):
 
     def BalIfaceLosAlarm(self, device_id, Iface_ID,\
                          los_status, IfaceLos_data):
-        self.log.info('Interface Loss Of Signal Alarm')
+        self.log.info('Interface-Loss-Of-Signal-Alarm')
         self.handle_alarms(device_id,"pon_ni",\
                            Iface_ID,\
                            "loss_of_signal",los_status,"high",\
                            IfaceLos_data)
 
     def BalIfaceIndication(self, device_id, Iface_ID):
-        self.log.info('Interface Indication')
+        self.log.info('Interface-Indication')
         device = self.adapter_agent.get_device(self.device_id)
         self._handle_pon_pm_counter_req_towards_device(device,Iface_ID)
 
     def BalSubsTermDgiAlarm(self, device_id, intf_id,\
                             onu_id, dgi_status, balSubTermDgi_data,\
                             ind_info):
-        self.log.info('Subscriber terminal dying gasp')
+        self.log.info('Subscriber-terminal-dying-gasp')
         self.handle_alarms(device_id,"onu",\
                            intf_id,\
                            "dgi_indication",dgi_status,"medium",\
@@ -663,7 +663,7 @@ class Asfvolt16Handler(OltDeviceHandler):
 
     def BalSubsTermLosAlarm(self, device_id, Iface_ID,
                          los_status, SubTermAlarm_Data):
-        self.log.info('ONU Alarms for Subscriber Terminal LOS')
+        self.log.info('ONU-Alarms-for-Subscriber-Terminal-LOS')
         self.handle_alarms(device_id,"onu",\
                            Iface_ID,\
                            "ONU : Loss Of Signal",\
@@ -672,7 +672,7 @@ class Asfvolt16Handler(OltDeviceHandler):
 
     def BalSubsTermLobAlarm(self, device_id, Iface_ID,
                          lob_status, SubTermAlarm_Data):
-        self.log.info('ONU Alarms for Subscriber Terminal LOB')
+        self.log.info('ONU-Alarms-for-Subscriber-Terminal-LOB')
         self.handle_alarms(device_id,"onu",\
                            Iface_ID,\
                            "ONU : Loss Of Burst",\
@@ -681,7 +681,7 @@ class Asfvolt16Handler(OltDeviceHandler):
 
     def BalSubsTermLopcMissAlarm(self, device_id, Iface_ID,
                          lopc_miss_status, SubTermAlarm_Data):
-        self.log.info('ONU Alarms for Subscriber Terminal LOPC Miss')
+        self.log.info('ONU-Alarms-for-Subscriber-Terminal-LOPC-Miss')
         self.handle_alarms(device_id,"onu",\
                            Iface_ID,\
                            "ONU : Loss Of PLOAM miss channel",\
@@ -690,7 +690,7 @@ class Asfvolt16Handler(OltDeviceHandler):
 
     def BalSubsTermLopcMicErrorAlarm(self, device_id, Iface_ID,
                          lopc_mic_error_status, SubTermAlarm_Data):
-        self.log.info('ONU Alarms for Subscriber Terminal LOPC Mic Error')
+        self.log.info('ONU-Alarms-for-Subscriber-Terminal-LOPC-Mic-Error')
         self.handle_alarms(device_id,"onu",\
                            Iface_ID,\
                            "ONU : Loss Of PLOAM MIC Error",\
@@ -808,11 +808,11 @@ class Asfvolt16Handler(OltDeviceHandler):
             self.adapter_agent.update_device(device)
             self.update_logical_port(ASFVOLT_NNI_PORT, Port.ETHERNET_NNI,
                                      OFPPS_LIVE)
-            self.log.info('OLT activation complete')
+            self.log.info('OLT-activation-complete')
 
             #heart beat - To health checkup of OLT
             if self.is_heartbeat_started == 0:
-                self.log.info('Heart beat is not yet started..starting now')
+                self.log.info('Heart-beat-is-not-yet-started-starting-now')
                 self.heartbeat(device)
 
                 self.pm_metrics=Asfvolt16OltPmMetrics(device)
@@ -929,7 +929,7 @@ class Asfvolt16Handler(OltDeviceHandler):
             self.device_id,
             onu_id=ind_info['onu_id'])
         if child_device is None:
-            self.log.info('Onu is not configured', onu_id=ind_info['onu_id'])
+            self.log.info('Onu-is-not-configured', onu_id=ind_info['onu_id'])
             return
         try:
             self.adapter_agent.receive_proxied_message(
@@ -948,7 +948,7 @@ class Asfvolt16Handler(OltDeviceHandler):
             self.log.info('Failed-to-find-ONU-Info',
                           serial_number=serial_number)
         elif child_device.admin_state == AdminState.ENABLED:
-            self.log.info('Activating ONU',
+            self.log.info('Activating-ONU',
                           serial_number=serial_number,
                           onu_id=child_device.proxy_address.onu_id,
                           pon_id=child_device.parent_port_no)
@@ -1120,7 +1120,7 @@ class Asfvolt16Handler(OltDeviceHandler):
         super(Asfvolt16Handler, self).delete()
 
     def handle_packet_in(self, ind_info):
-        self.log.info('Received Packet-In', ind_info=ind_info)
+        self.log.info('Received-Packet-In', ind_info=ind_info)
         logical_port = self.get_logical_port_using_gem_port(ind_info['svc_port'])
         pkt = Ether(ind_info['packet'])
         kw = dict(
@@ -1323,7 +1323,7 @@ class Asfvolt16Handler(OltDeviceHandler):
                     if found is True:
                         v_enet = self.get_venet(name=port.label)
                     else:
-                        self.log.error('Failed to get v_enet info',
+                        self.log.error('Failed-to-get-v_enet-info',
                                        in_port=classifier_info['in_port'])
                         return
                     self.divide_and_add_flow(v_enet, classifier_info, action_info)
@@ -1337,7 +1337,7 @@ class Asfvolt16Handler(OltDeviceHandler):
     def divide_and_add_flow(self, v_enet, classifier, action):
         if 'ip_proto' in classifier:
             if classifier['ip_proto'] == 17:
-                self.log.error('Addtion of DHCP flows are defferd')
+                self.log.error('Addition-of-DHCP-flows-are-defferd')
                 '''
                 # DHCP flow from the ONOS doesn't have Ctag and Stags
                 # information. For now DHCP flow will be added as a
@@ -1346,7 +1346,7 @@ class Asfvolt16Handler(OltDeviceHandler):
                 #                   ASFVOLT_DHCP_UNTAGGED_ID)
                 '''
             elif classifier['ip_proto'] == 2:
-                self.log.info('Addtion of IGMP flow are not handled yet')
+                self.log.info('Addition-of-IGMP-flow-are-not-handled-yet')
                 '''
                 #self.add_igmp_flow(classifier, action, v_enet,
                 #                   ASFVOLT_IGMP_UNTAGGED_ID)

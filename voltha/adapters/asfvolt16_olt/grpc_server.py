@@ -38,15 +38,15 @@ class GrpcServer(object):
         self.log = log
 
     def start(self, activation_func, service):
-        self.log.debug('Edge core GRPC server starting')
+        self.log.debug('Asfvolt16-GRPC-server-starting')
         self.services.append(service)
         activation_func(service, self.server)
         self.server.add_insecure_port('[::]:%s' % self.port)
         self.server.start()
-        self.log.info('Edge core GRPC server started')
+        self.log.info('Asfvolt16-GRPC-server-started')
 
     def stop(self, grace=0):
-        self.log.info('Asfvolt16-stopping GRPC Server')
+        self.log.info('Asfvolt16-stopping-GRPC-Server')
         self.server.stop(grace)
         self.thread_pool.shutdown(False)
-        self.log.debug('Asfvolt16-stopped GRPC Server')
+        self.log.debug('Asfvolt16-stopped-GRPC-Server')
