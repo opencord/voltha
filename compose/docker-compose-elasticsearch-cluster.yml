@@ -1,0 +1,39 @@
+version: "3"
+services:
+
+#
+# Deploying a Elasticsearch  cluster using this file assumes that overlay network 'voltha_net'
+# has already been created. To deploy the fluentd cluster, issue the command:
+#
+#     docker stack deploy -c docker-compose-es-kibana-cluster.yml es-kibana
+#
+# This spins up three elasticsearch,elasticsearch forms clusters themselves 
+#
+# Please use below provided username/password for elasticsearch 
+
+# username: elastic 
+# password: changeme
+
+
+  elasticsearch:
+    image: cord/elasticsearch
+    deploy:
+      replicas: 3
+      restart_policy:
+        condition: on-failure
+    environment:
+      SERVICE_NAME: elasticsearch
+    networks:
+      - net
+    ports:
+      - "9200:9200"
+
+networks:
+  net:
+    driver: overlay
+    driver_opts:
+      encrypted: "true"
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.21.20.0/29
