@@ -48,7 +48,7 @@ class Asfvolt16RxHandler(object):
     @twisted_async
     def BalAccTermOperStsCngInd(self, request, context):
         device_id = request.device_id.decode('unicode-escape')
-        self.log.info('Not implemented yet',
+        self.log.info('Not-implemented-yet',
                       device_id=device_id, obj_type=request.objType)
         device_handler = self.adapter.devices_handlers[device_id]
         self.ind_handler.bal_acc_term_oper_sts_cng_ind(request, device_handler)
@@ -59,7 +59,7 @@ class Asfvolt16RxHandler(object):
     @twisted_async
     def BalAccTermInd(self, request, context):
         device_id = request.device_id.decode('unicode-escape')
-        self.log.info('Received access terminal Indication',
+        self.log.info('Received-access-terminal-Indication',
                       device_id=device_id, obj_type=request.objType)
         device_handler = self.adapter.devices_handlers[device_id]
         self.ind_handler.bal_acc_term_ind(request, device_handler)
@@ -70,7 +70,7 @@ class Asfvolt16RxHandler(object):
     @twisted_async
     def BalFlowOperStsCng(self, request, context):
         device_id = request.device_id.decode('unicode-escape')
-        self.log.info('Not implemented yet',
+        self.log.info('Not-implemented-yet',
                       device_id=device_id, obj_type=request.objType)
         device_handler = self.adapter.devices_handlers[device_id]
         self.ind_handler.bal_flow_oper_sts_cng(request, device_handler)
@@ -81,7 +81,7 @@ class Asfvolt16RxHandler(object):
     @twisted_async
     def BalFlowInd(self, request, context):
         device_id = request.device_id.decode('unicode-escape')
-        self.log.info('Not implemented yet',
+        self.log.info('Not-implemented-yet',
                       device_id=device_id, obj_type=request.objType)
         device_handler = self.adapter.devices_handlers[device_id]
         self.ind_handler.bal_flow_ind(request, device_handler)
@@ -92,7 +92,7 @@ class Asfvolt16RxHandler(object):
     @twisted_async
     def BalGroupInd(self, request, context):
         device_id = request.device_id.decode('unicode-escape')
-        self.log.info('Not implemented yet',
+        self.log.info('Not-implemented-yet',
                       device_id=device_id, obj_type=request.objType)
         device_handler = self.adapter.devices_handlers[device_id]
         self.ind_handler.bal_group_ind(request, device_handler)
@@ -103,7 +103,7 @@ class Asfvolt16RxHandler(object):
     @twisted_async
     def BalIfaceOperStsCng(self, request, context):
         device_id = request.device_id.decode('unicode-escape')
-        self.log.info('Not implemented yet',
+        self.log.info('Not-implemented-yet',
                       device_id=device_id, obj_type=request.objType)
         device_handler = self.adapter.devices_handlers[device_id]
         self.ind_handler.bal_iface_oper_sts_cng(request, device_handler)
@@ -114,7 +114,7 @@ class Asfvolt16RxHandler(object):
     @twisted_async
     def BalIfaceLos(self, request, context):
         device_id = request.device_id.decode('unicode-escape')
-        self.log.info('Interface Loss Of Signal Alarm',\
+        self.log.info('Interface-Loss-Of-Signal-Alarm',\
                       device_id=device_id, obj_type=request.objType)
         device_handler = self.adapter.devices_handlers[device_id]
         self.ind_handler.bal_iface_los(request, device_handler)
@@ -125,7 +125,7 @@ class Asfvolt16RxHandler(object):
     @twisted_async
     def BalIfaceInd(self, request, context):
         device_id = request.device_id.decode('unicode-escape')
-        self.log.info('Interface indication Received',
+        self.log.info('Interface-indication-Received',
                       device_id=device_id, obj_type=request.objType)
         device_handler = self.adapter.devices_handlers[device_id]
         self.ind_handler.bal_iface_ind(request, device_handler)
@@ -136,7 +136,7 @@ class Asfvolt16RxHandler(object):
     @twisted_async
     def BalIfaceStat(self, request, context):
         device_id = request.device_id.decode('unicode-escape')
-        self.log.info('Not implemented yet',
+        self.log.info('Not-implemented-yet',
                       device_id=device_id, obj_type=request.objType)
         device_handler = self.adapter.devices_handlers[device_id]
         self.ind_handler.bal_iface_stat(request, device_handler)
@@ -147,7 +147,7 @@ class Asfvolt16RxHandler(object):
     @twisted_async
     def BalSubsTermOperStsCng(self, request, context):
         device_id = request.device_id.decode('unicode-escape')
-        self.log.info('Not implemented yet',
+        self.log.info('Not-implemented-yet',
                       device_id=device_id, obj_type=request.objType)
         device_handler = self.adapter.devices_handlers[device_id]
         self.ind_handler.bal_subs_term_oper_sts_cng(request, device_handler)
@@ -158,7 +158,7 @@ class Asfvolt16RxHandler(object):
     @twisted_async
     def BalSubsTermDiscoveryInd(self, request, context):
         device_id = request.device_id.decode('unicode-escape')
-        self.log.info('Subscriber terminal discovery Indication',
+        self.log.info('Subscriber-terminal-discovery-Indication',
                       device_id=device_id, obj_type=request.objType)
         device_handler = self.adapter.devices_handlers[device_id]
         self.ind_handler.bal_subs_term_discovery_ind(request, device_handler)
@@ -169,7 +169,7 @@ class Asfvolt16RxHandler(object):
     @twisted_async
     def BalSubsTermAlarmInd(self, request, context):
         device_id = request.device_id.decode('unicode-escape')
-        self.log.info('ONU Alarms for Subscriber Terminal',\
+        self.log.info('ONU-Alarms-for-Subscriber-Terminal',\
                       device_id=device_id, obj_type=request.objType)
         device_handler = self.adapter.devices_handlers[device_id]
         self.ind_handler.bal_subs_term_alarm_ind(request, device_handler)
@@ -180,7 +180,7 @@ class Asfvolt16RxHandler(object):
     @twisted_async
     def BalSubsTermDgiInd(self, request, context):
         device_id = request.device_id.decode('unicode-escape')
-        self.log.info('Subscriber terminal dying gasp', \
+        self.log.info('Subscriber-terminal-dying-gasp', \
                       device_id=device_id, obj_type=request.objType)
         device_handler = self.adapter.devices_handlers[device_id]
         self.ind_handler.bal_subs_term_dgi_ind(request, device_handler)
@@ -191,7 +191,7 @@ class Asfvolt16RxHandler(object):
     @twisted_async
     def BalSubsTermInd(self, request, context):
         device_id = request.device_id.decode('unicode-escape')
-        self.log.info('Subscriber terminal indication received',
+        self.log.info('Subscriber-terminal-indication-received',
                       device_id=device_id, obj_type=request.objType)
         device_handler = self.adapter.devices_handlers[device_id]
         self.ind_handler.bal_subs_term_ind(request, device_handler)
@@ -202,7 +202,7 @@ class Asfvolt16RxHandler(object):
     @twisted_async
     def BalTmQueueIndInfo(self, request, context):
         device_id = request.device_id.decode('unicode-escape')
-        self.log.info('Not implemented yet',
+        self.log.info('Not-implemented-yet',
                       device_id=device_id, obj_type=request.objType)
         device_handler = self.adapter.devices_handlers[device_id]
         self.ind_handler.bal_tm_queue_ind_info(request, device_handler)
@@ -213,7 +213,7 @@ class Asfvolt16RxHandler(object):
     @twisted_async
     def BalTmSchedIndInfo(self, request, context):
         device_id = request.device_id.decode('unicode-escape')
-        self.log.info('Not implemented yet',
+        self.log.info('Not-implemented-yet',
                       device_id=device_id, obj_type=request.objType)
         device_handler = self.adapter.devices_handlers[device_id]
         self.ind_handler.bal_tm_sched_ind_info(request, device_handler)
@@ -224,7 +224,7 @@ class Asfvolt16RxHandler(object):
     @twisted_async
     def BalPktBearerChannelRxInd(self, request, context):
         device_id = request.device_id.decode('unicode-escape')
-        self.log.info('Received Packet-In',
+        self.log.info('Received-Packet-In',
                       device_id=device_id, obj_type=request.objType)
         device_handler = self.adapter.devices_handlers[device_id]
         self.ind_handler.bal_pkt_bearer_channel_rx_ind(request,
@@ -236,7 +236,7 @@ class Asfvolt16RxHandler(object):
     @twisted_async
     def BalPktOmciChannelRxInd(self, request, context):
         device_id = request.device_id.decode('unicode-escape')
-        self.log.info('Received OMCI Messages',
+        self.log.info('Received-OMCI-Messages',
                       device_id=device_id, obj_type=request.objType)
         device_handler = self.adapter.devices_handlers[device_id]
         self.ind_handler.bal_pkt_omci_channel_rx_ind(request,
@@ -248,7 +248,7 @@ class Asfvolt16RxHandler(object):
     @twisted_async
     def BalPktIeeeOamChannelRxInd(self, request, context):
         device_id = request.device_id.decode('unicode-escape')
-        self.log.info('Not implemented yet',
+        self.log.info('Not-implemented-yet',
                       device_id=device_id, obj_type=request.objType)
         device_handler = self.adapter.devices_handlers[device_id]
         self.ind_handler.bal_pkt_ieee_oam_channel_rx_ind(request,
