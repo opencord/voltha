@@ -15,7 +15,6 @@
 #
 import sys
 
-from google.protobuf.internal.containers import RepeatedCompositeFieldContainer
 from google.protobuf.message import Message
 from termcolor import colored
 
@@ -97,7 +96,7 @@ def print_pb_list_as_table(header, items, fields_to_omit=None,
     for row, obj in enumerate(items):
         assert isinstance(obj, Message)
 
-        def set_row(_row, field, field_name, value, t, prefix,
+        def set_row(pd_dict, _row, field, value, t, prefix,
                       fields_to_omit, number):
             fname = prefix + field.name
             if fname in fields_to_omit:
@@ -107,16 +106,16 @@ def print_pb_list_as_table(header, items, fields_to_omit=None,
                     100 * (number + field.number))
             else:
                 t.add_cell(_row, number + field.number, fname,
-                           field_name)
+                           pd_dict.get(field.name))
 
         def add(_row, pb, prefix='', number=0):
             d = pb2dict(pb)
             if show_nulls:
                 fields = pb.DESCRIPTOR.fields
                 for field in fields:
-                    set_row(_row,
+                    set_row(d,
+                            _row,
                             field,
-                            d.get(field.name),
                             getattr(pb, field.name),
                             t,
                             prefix,
@@ -125,9 +124,9 @@ def print_pb_list_as_table(header, items, fields_to_omit=None,
             else:
                 fields = pb.ListFields()
                 for (field, value) in fields:
-                    set_row(_row,
+                    set_row(d,
+                            _row,
                             field,
-                            d.get(field.name),
                             value,
                             t,
                             prefix,
@@ -140,27 +139,34 @@ def print_pb_list_as_table(header, items, fields_to_omit=None,
 
 def print_pb_as_table(header, pb, fields_to_omit={}, printfn=_printfn,
                       show_nulls=False):
+
     from cli.utils import pb2dict
 
+    def is_repeated_item(msg):
+        return hasattr(msg, "extend")
+
     def set_cell(pb, field, value, t, prefix, fields_to_omit):
+        d = pb2dict(pb)
         fname = prefix + field.name
+
         if fname in fields_to_omit:
             return
         if isinstance(value, Message):
             pr(value, fname + '.')
-        elif isinstance(value, RepeatedCompositeFieldContainer):
+        elif is_repeated_item(value): # handles any list
             row = t.number_of_rows()
             t.add_cell(row, 0, 'field', fname)
-            t.add_cell(row, 1, 'value', '{} item(s)'.format((field.name)))
+            t.add_cell(row, 1, 'value',
+                       '{} item(s)'.format(len(d.get(field.name))))
         else:
             row = t.number_of_rows()
             t.add_cell(row, 0, 'field', fname)
-            t.add_cell(row, 1, 'value', field.name)
+            t.add_cell(row, 1, 'value', value)
+
 
     t = TablePrinter()
 
     def pr(_pb, prefix=''):
-        d = pb2dict(_pb)
         if show_nulls:
             fields = _pb.DESCRIPTOR.fields
             for field in sorted(fields, key=lambda f: f.number):
