@@ -73,6 +73,24 @@
     },
     {
       "key": {
+        "uuid": "bf00614e_dd101b1e",
+        "filename": "ofagent/agent.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-11-15T21:23:35Z",
+      "side": 1,
+      "message": "In that case, I suggest to use only secure communications and set the defaults to None.  Since the defaults are already set in the main file then  here it will be just a check for None.",
+      "parentUuid": "9a5c5d37_15426e10",
+      "revId": "c9b39b05aa317f5096823bb41d05ad1158fe5e9c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a5c5d37_15f4aef0",
         "filename": "ofagent/connection_mgr.py",
         "patchSetId": 2
