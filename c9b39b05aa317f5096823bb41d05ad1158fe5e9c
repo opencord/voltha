@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a5c5d37_f5f8fae6",
+        "filename": "ofagent/agent.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-11-15T15:48:14Z",
+      "side": 1,
+      "message": "Please use the key from the args.",
+      "revId": "c9b39b05aa317f5096823bb41d05ad1158fe5e9c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_15f4aef0",
+        "filename": "ofagent/connection_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 44,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-11-15T15:48:14Z",
+      "side": 1,
+      "message": "Please use the key from the args.",
+      "revId": "c9b39b05aa317f5096823bb41d05ad1158fe5e9c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
