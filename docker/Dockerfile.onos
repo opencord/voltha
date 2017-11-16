@@ -9,8 +9,10 @@ ENV DOWNLOAD_ROOT=/download
 # Build the applications
 RUN mkdir -p ${DOWNLOAD_ROOT}
 WORKDIR ${DOWNLOAD_ROOT}
+COPY config/mvn_settings.* ${DOWNLOAD_ROOT}/
+RUN ./mvn_settings.sh
 ADD config/dependencies.xml .
-RUN mvn dependency:copy -Dmdep.useBaseVersion=true -DoutputDirectory=${DOWNLOAD_ROOT} -Dsilent=true -f dependencies.xml
+RUN mvn dependency:copy -Dmdep.useBaseVersion=true -DoutputDirectory=${DOWNLOAD_ROOT} -Dsilent=true -f dependencies.xml -s mvn_settings.xml
 
 FROM onosproject/onos:1.10.9 as install
 MAINTAINER Open Networking Foundation <info@opennetworking.org>
