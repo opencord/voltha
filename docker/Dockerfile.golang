@@ -1,12 +1,12 @@
 FROM golang:1.9.2
 MAINTAINER Alex Peters <info@alexanderpeters.de>
 
-RUN apt-get update && apt-get install -y apt-transport-https ca-certificates jq
+RUN apt-get update && apt-get install -y apt-transport-https ca-certificates jq curl gnupg2 software-properties-common
 
-RUN echo "deb https://apt.dockerproject.org/repo debian-jessie main" > /etc/apt/sources.list.d/docker.list
-RUN apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
+RUN curl -fsSL https://download.docker.com/linux/$(. /etc/os-release; echo "$ID")/gpg | apt-key add -
+RUN add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/$(. /etc/os-release; echo "$ID") $(lsb_release -cs) stable"
 
-RUN apt-get update && apt-cache policy docker-engine && apt-get install -y upx-ucl docker-engine && apt-get clean
+RUN apt-get update && apt-cache policy docker-ce && apt-get install -y upx-ucl docker-ce && apt-get clean
 
 RUN go get github.com/pwaller/goupx \
 	&& go get golang.org/x/tools/cmd/cover \
