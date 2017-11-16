@@ -20,6 +20,20 @@ endif
 
 include setup.mk
 
+ifneq ($(http_proxy)$(https_proxy),)
+# Include proxies from the environment
+DOCKER_PROXY_ARGS = \
+       --build-arg http_proxy=$(http_proxy) \
+       --build-arg https_proxy=$(https_proxy) \
+       --build-arg ftp_proxy=$(ftp_proxy) \
+       --build-arg no_proxy=$(no_proxy) \
+       --build-arg HTTP_PROXY=$(HTTP_PROXY) \
+       --build-arg HTTPS_PROXY=$(HTTPS_PROXY) \
+       --build-arg FTP_PROXY=$(FTP_PROXY) \
+       --build-arg NO_PROXY=$(NO_PROXY)
+endif
+DOCKER_BUILD_ARGS = $(DOCKER_PROXY_ARGS) $(DOCKER_BUILD_EXTRA_ARGS)
+
 VENVDIR := venv-$(shell uname -s | tr '[:upper:]' '[:lower:]')
 
 .PHONY: $(DIRS) $(DIRS_CLEAN) $(DIRS_FLAKE8) flake8 docker-base voltha ofagent podder netconf shovel onos dashd vcli portainer grafana nginx consul registrator envoy golang envoyd tools opennms logstash unum
@@ -61,7 +75,6 @@ help:
 
 ## New directories can be added here
 DIRS:=\
-voltha \
 voltha/northbound/openflow \
 voltha/northbound/openflow/agent \
 voltha/northbound/openflow/oftest
@@ -104,83 +117,83 @@ prod-containers: docker-base voltha ofagent netconf shovel dashd vcli grafana co
 containers: docker-base voltha ofagent podder netconf shovel onos tester config-push dashd vcli portainer grafana nginx consul registrator tools golang envoyd envoy fluentd unum
 
 docker-base:
-	docker build -t cord/voltha-base -f docker/Dockerfile.base .
+	docker build $(DOCKER_BUILD_ARGS) -t cord/voltha-base -f docker/Dockerfile.base .
 
 voltha: voltha-adapters
-	docker build -t cord/voltha -f docker/Dockerfile.voltha .
+	docker build $(DOCKER_BUILD_ARGS) -t cord/voltha -f docker/Dockerfile.voltha .
 
 voltha-adapters:
 	make -C voltha/adapters/asfvolt16_olt
 
 ofagent:
-	docker build -t cord/ofagent -f docker/Dockerfile.ofagent .
+	docker build $(DOCKER_BUILD_ARGS) -t cord/ofagent -f docker/Dockerfile.ofagent .
 
 podder:
-	docker build -t cord/podder -f docker/Dockerfile.podder .
+	docker build $(DOCKER_BUILD_ARGS) -t cord/podder -f docker/Dockerfile.podder .
 
 tools:
-	docker build -t voltha/tools -f docker/Dockerfile.tools .
+	docker build $(DOCKER_BUILD_ARGS) -t voltha/tools -f docker/Dockerfile.tools .
 
 fluentd:
-	docker build -t cord/fluentd -f docker/Dockerfile.fluentd .
+	docker build $(DOCKER_BUILD_ARGS) -t cord/fluentd -f docker/Dockerfile.fluentd .
 
 envoy:
-	docker build -t voltha/envoy -f docker/Dockerfile.envoy .
+	docker build $(DOCKER_BUILD_ARGS) -t voltha/envoy -f docker/Dockerfile.envoy .
 
 envoyd:
 	make -C envoy
 	make -C envoy/go/envoyd
 
 golang:
-	docker build -t go-builder -f envoy/go/golang-builder/Dockerfile ./envoy/go/golang-builder
+	docker build $(DOCKER_BUILD_ARGS) -t go-builder -f envoy/go/golang-builder/Dockerfile ./envoy/go/golang-builder
 
 netconf:
-	docker build -t cord/netconf -f docker/Dockerfile.netconf .
+	docker build $(DOCKER_BUILD_ARGS) -t cord/netconf -f docker/Dockerfile.netconf .
 
 netopeer:
-	docker build -t cord/netopeer -f docker/Dockerfile.netopeer .
+	docker build $(DOCKER_BUILD_ARGS) -t cord/netopeer -f docker/Dockerfile.netopeer .
 
 shovel:
-	docker build -t cord/shovel -f docker/Dockerfile.shovel .
+	docker build $(DOCKER_BUILD_ARGS) -t cord/shovel -f docker/Dockerfile.shovel .
 
 dashd:
-	docker build -t cord/dashd -f docker/Dockerfile.dashd .
+	docker build $(DOCKER_BUILD_ARGS) -t cord/dashd -f docker/Dockerfile.dashd .
 
 vcli:
-	docker build -t cord/vcli -f docker/Dockerfile.cli .
+	docker build $(DOCKER_BUILD_ARGS) -t cord/vcli -f docker/Dockerfile.cli .
 
 portainer:
 	portainer/buildPortainer.sh
 
 nginx:
-	docker build -t voltha/nginx -f docker/Dockerfile.nginx .
+	docker build $(DOCKER_BUILD_ARGS) -t voltha/nginx -f docker/Dockerfile.nginx .
 
 consul:
-	docker build -t voltha/consul -f docker/Dockerfile.consul .
+	docker build $(DOCKER_BUILD_ARGS) -t voltha/consul -f docker/Dockerfile.consul .
 
 registrator:
-	docker build -t voltha/registrator -f docker/Dockerfile.registrator .
+	docker build $(DOCKER_BUILD_ARGS) -t voltha/registrator -f docker/Dockerfile.registrator .
 
 grafana:
-	docker build -t voltha/grafana -f docker/Dockerfile.grafana .
+	docker build $(DOCKER_BUILD_ARGS) -t voltha/grafana -f docker/Dockerfile.grafana .
 
 onos:
-	docker build -t cord/onos -f docker/Dockerfile.onos docker
+	docker build $(DOCKER_BUILD_ARGS) -t cord/onos -f docker/Dockerfile.onos docker
 
 unum:
-	docker build -t voltha/unum -f unum/Dockerfile ./unum
+	docker build $(DOCKER_BUILD_ARGS) -t voltha/unum -f unum/Dockerfile ./unum
 
 tester:
-	docker build -t cord/tester -f docker/Dockerfile.tester docker
+	docker build $(DOCKER_BUILD_ARGS) -t cord/tester -f docker/Dockerfile.tester docker
 
 config-push:
-	docker build -t cord/config-push -f docker/Dockerfile.configpush docker	
+	docker build $(DOCKER_BUILD_ARGS) -t cord/config-push -f docker/Dockerfile.configpush docker
 
 opennms:
-	docker build -t cord/opennms -f docker/Dockerfile.opennms .
+	docker build $(DOCKER_BUILD_ARGS) -t cord/opennms -f docker/Dockerfile.opennms .
 
 logstash:
-	docker build -t cord/logstash -f docker/Dockerfile.logstash .
+	docker build $(DOCKER_BUILD_ARGS) -t cord/logstash -f docker/Dockerfile.logstash .
 
 protos:
 	make -C voltha/protos
