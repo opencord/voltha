@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-FROM kamon/grafana_graphite
+FROM kamon/grafana_graphite:3.0
 
 MAINTAINER Sergio Slobodrian <sslobodr@ciena.com>
 

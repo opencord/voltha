@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-FROM gliderlabs/registrator:master
+FROM gliderlabs/registrator:v7
 
 #FROM registrator:dev
 #ENTRYPOINT ["/bin/registrator"]

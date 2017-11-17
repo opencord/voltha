@@ -1,6 +1,6 @@
 #!/bin/bash
 
-docker run -d --name pbuild -p 9999:9000 portainer/portainer
+docker run -d --name pbuild -p 9999:9000 portainer/portainer:1.15.2
 rm -fr tmp_portainer
 mkdir tmp_portainer
 docker cp pbuild:/ tmp_portainer

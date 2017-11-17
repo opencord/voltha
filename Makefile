@@ -199,26 +199,28 @@ distclean: clean
 
 fetch-jenkins:
 	docker pull consul:0.9.2
-	docker pull fluent/fluentd:latest
-	docker pull gliderlabs/registrator:master
+	docker pull fluent/fluentd:v0.14.23.rc1
 	docker pull ubuntu:xenial
-	docker pull wurstmeister/kafka:latest
-	docker pull wurstmeister/zookeeper:latest
-	docker pull zookeeper:latest
-
+	docker pull wurstmeister/kafka:1.0.0
+	docker pull zookeeper:3.4.11
+	# These images are depricated and should be removed in subsequent commits.
+	docker pull gliderlabs/registrator:v7
+	docker pull wurstmeister/zookeeper:3.4.6
 fetch:
 	docker pull consul:0.9.2
-	docker pull fluent/fluentd:latest
-	docker pull gliderlabs/registrator:master
+	docker pull fluent/fluentd:v0.14.23.rc1
 	docker pull ubuntu:xenial
-	docker pull wurstmeister/kafka:latest
-	docker pull wurstmeister/zookeeper:latest
-	docker pull zookeeper:latest
-	docker pull nginx:latest
-	docker pull portainer/portainer:latest
+	docker pull wurstmeister/kafka:1.0.0
+	docker pull zookeeper:3.4.11
+	docker pull portainer/portainer:1.15.2
 	docker pull lyft/envoy:29361deae91575a1d46c7a21e913f19e75622ebe
 	docker pull registry:2
-	docker pull kamon/grafana_graphite:latest
+	docker pull kamon/grafana_graphite:3.0
+	# These images are depricated and should be removed in subsequent commits.
+	docker pull gliderlabs/registrator:v7
+	docker pull wurstmeister/zookeeper:3.4.6
+	docker pull nginx:1.13.6
+
 
 purge-venv:
 	rm -fr ${VENVDIR}
