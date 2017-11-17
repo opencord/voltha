@@ -173,21 +173,25 @@ class Asfvolt16IndHandler(object):
 
         if los != bal_model_types_pb2.BAL_ALARM_STATUS_NO__CHANGE:
             reactor.callLater(0, device_handler.BalSubsTermLosAlarm, \
+                              indication.device_id, \
                               indication.terminal_alarm.key.intf_id, \
                               los, balSubTermAlarm_Dict)
 
         if lob != bal_model_types_pb2.BAL_ALARM_STATUS_NO__CHANGE:
             reactor.callLater(0, device_handler.BalSubsTermLobAlarm, \
+                              indication.device_id, \
                               indication.terminal_alarm.key.intf_id, \
                               lob, balSubTermAlarm_Dict)
 
         if lopc_miss != bal_model_types_pb2.BAL_ALARM_STATUS_NO__CHANGE:
             reactor.callLater(0, device_handler.BalSubsTermLopcMissAlarm, \
+                              indication.device_id, \
                               indication.terminal_alarm.key.intf_id, \
                               lopc_miss, balSubTermAlarm_Dict)
 
         if lopc_mic_error != bal_model_types_pb2.BAL_ALARM_STATUS_NO__CHANGE:
             reactor.callLater(0, device_handler.BalSubsTermLopcMicErrorAlarm, \
+                              indication.device_id, \
                               indication.terminal_alarm.key.intf_id, \
                               lopc_mic_error, balSubTermAlarm_Dict)
         bal_err = bal_pb2.BalErr()
