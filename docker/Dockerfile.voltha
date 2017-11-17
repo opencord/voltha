@@ -14,9 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-FROM opencord/voltha-protos:latest as protos
-FROM opencord/voltha-asfvolt16_olt as asfvolt16_olt
-FROM opencord/voltha-base
+FROM opencord/voltha-protos:${TAG:-latest} as protos
+FROM opencord/voltha-asfvolt16_olt:${TAG:-latest} as asfvolt16_olt
+FROM opencord/voltha-base:${TAG:-latest}
 
 MAINTAINER Zsolt Haraszti <zharaszt@ciena.com>
 MAINTAINER Ali Al-Shabibi <ali.al-shabibi@onlab.us>

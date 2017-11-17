@@ -1,8 +1,8 @@
-FROM opencord/voltha-protoc as protoc
+FROM opencord/voltha-protoc:${TAG:-latest} as protoc
 COPY voltha/protos/ /protos/
 RUN /usr/local/bin/protoc -I/protos/third_party/ -I/protos --include_imports --include_source_info --descriptor_set_out=/proto.pb /protos/*.proto /protos/third_party/google/api/*.proto
 
-FROM opencord/voltha-envoy-gobuilder as builder
+FROM opencord/voltha-envoy-gobuilder:${TAG:-latest} as builder
 ENV SRC_PATH /source
 COPY envoy/go/envoyd/ /source/
 RUN /build.sh

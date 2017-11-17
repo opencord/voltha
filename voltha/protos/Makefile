@@ -16,7 +16,7 @@
 
 # Makefile to build all protobuf and gRPC related artifacts
 
-default: third_party build
+default: build
 
 PROTO_FILES := $(wildcard *.proto)
 PROTO_GOOGLE_API := $(wildcard third_party/google/api/*.proto)
@@ -27,37 +27,8 @@ PROTO_All_PB2_C_FILES := $(foreach f,$(PROTO_ALL_FILES),$(subst .proto,_pb2.pyc,
 PROTO_ALL_PB2_GPRC_FILES := $(foreach f,$(PROTO_ALL_FILES),$(subst .proto,_pb2_grpc.py,$(f)))
 PROTO_ALL_DESC_FILES := $(foreach f,$(PROTO_ALL_FILES),$(subst .proto,.desc,$(f)))
 
-# Google API needs to be built from within the third party directory
-#
-third_party: google_api
-google_api: protoc
-	@echo "Building protocol buffer artifacts from third_party google api"
-	docker run --rm -ti -v $(shell pwd)/third_party:/protos opencord/voltha-protoc \
-                /usr/bin/python -m grpc.tools.protoc \
-                        -I/protos \
-			--python_out=/protos \
-                        --grpc_python_out=/protos \
-                        --descriptor_set_out=/protos/google/api/annotations.desc \
-                        --include_imports \
-                        --include_source_info \
-			/protos/google/api/annotations.proto /protos/google/api/http.proto
-
-build: protoc $(PROTO_PB2_FILES)
-
-%_pb2.py: %.proto Makefile
-	@echo "Building protocol buffer artifacts from $<"
-	docker run --rm -ti \
-                -v $(shell pwd):/protos \
-		opencord/voltha-protoc \
-		/usr/bin/python -m grpc.tools.protoc \
-			-I/protos \
-			-I/protos/third_party \
-			--python_out=/protos \
-			--grpc_python_out=/protos \
-			--descriptor_set_out=/protos/$(basename $<).desc \
-			--include_imports \
-			--include_source_info \
-			/protos/$<
+build: protoc
+	docker run -w /protos -ti -v $(shell pwd):/protos opencord/voltha-protoc make -f Makefile.docker
 
 clean:
 	rm -f $(PROTO_PB2_FILES) \

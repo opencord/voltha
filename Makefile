@@ -23,10 +23,15 @@ include setup.mk
 VENVDIR := venv-$(shell uname -s | tr '[:upper:]' '[:lower:]')
 GREEN := \033[32;1m
 RED := \033[0;31m
+YELLOW := \033[0;33m
 WHITE := \033[1;37m
 NC := \033[0m
 
-.PHONY: $(DIRS) $(DIRS_CLEAN) $(DIRS_FLAKE8) flake8 docker-base voltha ofagent podder netconf shovel onos dashd vcli portainer grafana nginx consul registrator envoy envoyd tools opennms logstash unum
+ifeq ($(TAG),)
+TAG := latest
+endif
+
+.PHONY: $(DIRS) $(DIRS_CLEAN) $(DIRS_FLAKE8) flake8 docker-base voltha ofagent podder netconf shovel onos dashd vcli portainer grafana nginx consul registrator envoy envoyd tools opennms logstash unum netopeer
 
 # This should to be the first and default target in this Makefile
 help:
@@ -77,123 +82,185 @@ prod-containers: docker-base voltha ofagent netconf shovel dashd vcli grafana co
 containers: docker-base voltha ofagent podder netconf shovel onos tester config-push dashd vcli portainer grafana nginx consul registrator tools envoyd envoy fluentd unum
 
 docker-base:
-	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-base -f docker/Dockerfile.base .
+	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-base:${TAG} -f docker/Dockerfile.base .
 
 voltha: voltha-adapters
-	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha -f docker/Dockerfile.voltha .
+	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha:${TAG} -f docker/Dockerfile.voltha .
 
 voltha-adapters: asfvolt16_olt
 
 asfvolt16_olt:
-	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-asfvolt16_olt -f docker/Dockerfile.asfvolt16_olt .
+	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-asfvolt16_olt:${TAG} -f docker/Dockerfile.asfvolt16_olt .
 
 ofagent:
-	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-ofagent -f docker/Dockerfile.ofagent .
+	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-ofagent:${TAG} -f docker/Dockerfile.ofagent .
 
 podder:
-	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-podder -f docker/Dockerfile.podder .
+	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-podder:${TAG} -f docker/Dockerfile.podder .
 
 tools:
-	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-tools -f docker/Dockerfile.tools .
+	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-tools:${TAG} -f docker/Dockerfile.tools .
 
 fluentd:
-	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-fluentd -f docker/Dockerfile.fluentd .
+	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-fluentd:${TAG} -f docker/Dockerfile.fluentd .
 
 envoy:
-	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-envoy -f docker/Dockerfile.envoy .
+	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-envoy:${TAG} -f docker/Dockerfile.envoy .
 
 envoy-gobuilder:
-	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-envoy-gobuilder -f envoy/go/golang-builder/Dockerfile envoy/go/golang-builder
+	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-envoy-gobuilder:${TAG} -f envoy/go/golang-builder/Dockerfile envoy/go/golang-builder
 
 envoyd: envoy-gobuilder
-	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-envoyd -f docker/Dockerfile.envoy .
+	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-envoyd:${TAG} -f docker/Dockerfile.envoy .
 
 netconf:
-	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-netconf -f docker/Dockerfile.netconf .
+	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-netconf:${TAG} -f docker/Dockerfile.netconf .
 
 netopeer:
-	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-netopeer -f docker/Dockerfile.netopeer .
+	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-netopeer:${TAG} -f docker/Dockerfile.netopeer .
 
 shovel:
-	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-shovel -f docker/Dockerfile.shovel .
+	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-shovel:${TAG} -f docker/Dockerfile.shovel .
 
 dashd:
-	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-dashd -f docker/Dockerfile.dashd .
+	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-dashd:${TAG} -f docker/Dockerfile.dashd .
 
 vcli:
-	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-cli -f docker/Dockerfile.cli .
+	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-cli:${TAG} -f docker/Dockerfile.cli .
 
 portainer:
-	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-portainer -f docker/Dockerfile.portainer .
+	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-portainer:${TAG} -f docker/Dockerfile.portainer .
 
 nginx:
-	docker build ${DOCKER_CACHE} --rm --force-rm -t voltha/nginx -f docker/Dockerfile.nginx .
+	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-nginx:${TAG} -f docker/Dockerfile.nginx .
 
 consul:
-	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-consul -f docker/Dockerfile.consul .
+	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-consul:${TAG} -f docker/Dockerfile.consul .
 
 registrator:
-	docker build ${DOCKER_CACHE} --rm --force-rm -t voltha/registrator -f docker/Dockerfile.registrator .
+	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-registrator:${TAG} -f docker/Dockerfile.registrator .
 
 grafana:
-	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-grafana -f docker/Dockerfile.grafana .
+	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-grafana:${TAG} -f docker/Dockerfile.grafana .
 
 onos:
-	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-onos -f docker/Dockerfile.onos docker
+	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-onos:${TAG} -f docker/Dockerfile.onos docker
 
 unum:
-	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-unum -f unum/Dockerfile ./unum
+	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-unum:${TAG} -f unum/Dockerfile ./unum
 
 tester:
-	docker build ${DOCKER_CACHE} --rm --force-rm -t cord/tester -f docker/Dockerfile.tester docker
+	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-tester:${TAG} -f docker/Dockerfile.tester docker
 
 config-push:
-	docker build ${DOCKER_CACHE} --rm --force-rm -t cord/config-push -f docker/Dockerfile.configpush docker	
+	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-config-push:${TAG} -f docker/Dockerfile.configpush docker
 
 opennms:
-	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-opennms -f docker/Dockerfile.opennms .
+	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-opennms:${TAG} -f docker/Dockerfile.opennms .
 
 logstash:
-	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-logstash -f docker/Dockerfile.logstash .
+	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-logstash:${TAG} -f docker/Dockerfile.logstash .
 
 protoc:
-	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-protoc -f docker/Dockerfile.protoc .
+	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-protoc:${TAG} -f docker/Dockerfile.protoc .
 
 protos:
-	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-protos -f docker/Dockerfile.protos .
+	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-protos:${TAG} -f docker/Dockerfile.protos .
 
 protos_local:
 	make -C voltha/protos
+	VOLTHA_BASE=$(shell pwd) make -C ofagent/protos
+	VOLTHA_BASE=$(shell pwd) make -C netconf/protos
+
+testrunner:
+	docker build ${DOCKER_CACHE} --rm --force-rm -t opencord/voltha-testrunner:${TAG} -f docker/Dockerfile.testrunner .
 
 publish:
 	@ for i in $(shell grep "docker build" Makefile | awk '{print $$7}' | grep "opencord/voltha"); do docker push $$i; done
 
+publishas:
+	@ for i in $(shell grep "docker build" Makefile | awk '{print $$7}' | grep "opencord/voltha"); do docker tag $$i:latest $$i:$${TAG:-"latest"}; docker push $$i:$${TAG:-"latest"}; done
+
 venv:
 	@ echo "${WHITE}We don't need no stinking virtual environment${NC}"
 
-test: venv protos run-as-root-tests
+requires-swarm:
+	@ echo "${RED}Docker Swarm Mode required for tests${NC}"
+	@ echo "${WHITE}A Docker Swarm is required to run the integration tests${NC}"
+	@ echo "${WHITE}A single node swarm can be created by executing the following${NC}"
+	@ echo "${WHITE}Command:${NC}"
+	@ echo ""
+	@ echo "${WHITE}     docker swarm init${NC}"
+	@ echo ""
+	@ exit 1
+
+test: #protos_local
 	@ echo "Executing all tests"
-	@ echo "${RED}TEMPORARILY DISABLED${NC}"
-#	. ${VENVDIR}/bin/activate && \
-#	nosetests -s tests \
-#	--exclude-dir=./tests/itests/run_as_root/
+	@ test \! -z "$(shell docker info -f '{{.Swarm.NodeID}}')" || make requires-swarm
+	@ echo "Starting VOLTHA ..."
+	@ ./install/voltha-swarm-start.sh
+	@ bash -c ' \
+		RETRIES=10; \
+		COLOR="${WHITE}"; \
+		while [ $$RETRIES -gt 0 ]; do \
+			SVC=$$(docker service ls --format "{{.Name}}/{{.Replicas}}" | grep "^voltha\|^consul\|^kafka\|^fluentd" | awk -F/ "{if ( \$$2 != \$$3 ) { print \$$1; exit 1 }}"); \
+			if [ $$? -eq 0 ]; then \
+				echo -e "${GREEN}VOLTHA Started${NC}"; \
+				exit 0; \
+			fi; \
+			RETRIES=$$(expr $$RETRIES - 1); \
+			if [ $$RETRIES -lt 3 ]; then \
+				COLOR="${RED}"; \
+			elif [ $$RETRIES -lt 7 ]; then \
+				COLOR="${YELLOW}"; \
+			fi; \
+			echo -e "$${COLOR}Waiting for VOLTHA to start ...${NC}"; \
+			sleep 5; \
+		done; \
+		echo -e "${RED}Unable to start VOLTHA${NC}"; \
+		echo -e "Service \"${WHITE}$$SVC${NC}\" not started"; \
+		./install/voltha-swarm-stop.sh -z; \
+		exit 1; \
+		'
+	@ echo "Stopping VOLTHA ..."
+	@ ./install/voltha-swarm-stop.sh -z
+	@ echo "${GREEN}COMPLETE${NC}"
+#	@ echo "${RED}THESE DO NOT WORK IN STANDARD BUILD${NC}"
+#	nosetests -s tests --exclude-dir=./tests/itests/run_as_root/
+#	docker run -ti --rm -w /voltha \
+#		-e PYTHONPATH=/voltha/voltha:/voltha/voltha/protos/third_party \
+#		opencord/voltha-testrunner \
+#		nosetests -s tests --exclude-dir=./tests/itests/run_as_root/
 
-utest: venv protos
+utest: protoc protos testrunner
 	@ echo "Executing all unit tests"
-	@ echo "${RED}TEMPORARILY DISABLED${NC}"
-#	. ${VENVDIR}/bin/activate && \
-#	    for d in $$(find ./tests/utests -type d|sort -nr); do echo $$d:; nosetests $$d; done
+	for d in $$(find ./tests/utests -type d|sort -nr); do \
+		echo $$d:; \
+		docker run -ti --rm -w /voltha \
+		-e PYTHONPATH=/voltha/voltha:/voltha/ofagent \
+		opencord/voltha-testrunner:${TAG} \
+		nosetests $$d; \
+		done
 
-utest-with-coverage: venv protos
+utest-with-coverage: protoc protos testrunner
 	@ echo "Executing all unit tests and producing coverage results"
-	@ echo "${RED}TEMPORARILY DISABLED${NC}"
-#	. ${VENVDIR}/bin/activate && \
-#        for d in $$(find ./tests/utests -type d|sort -nr); do echo $$d:; \
-#	nosetests --with-xcoverage --with-xunit --cover-package=voltha,common,ofagent $$d; done
+	for d in $$(find ./tests/utests -type d|sort -nr); do \
+                echo $$d:; \
+                docker run -ti --rm -w /voltha \
+                -e PYTHONPATH=/voltha/voltha:/voltha/ofagent \
+		opencord/voltha-testrunner:${TAG} \
+		nosetests --with-xcoverage --with-xunit --cover-package=voltha,common,ofagent $$d; \
+                done
 
-itest: venv run-as-root-tests
+itest: protoc protos testrunner run-as-root-tests
 	@ echo "Executing all integration tests"
-	@ echo "${RED}TEMPORARILY DISABLED${NC}"
+	@ echo "${RED}THESE DO NOT WORK IN STANDARD BUILD${NC}"
+	docker run -ti --rm -w /voltha \
+                -e PYTHONPATH=/voltha/voltha:/voltha/ofagent \
+                opencord/voltha-testrunner \
+                nosetests -s tests/itests/docutests/build_md_test.py \
+		--exclude-dir=./tests/utests/ \
+		--exclude-dir=./tests/itests/run_as_root/
 #	. ${VENVDIR}/bin/activate && \
 #	nosetests -s  \
 #	tests/itests/docutests/build_md_test.py \
@@ -218,8 +285,14 @@ jenkins-test: venv
 
 
 run-as-root-tests:
-	docker run -i --rm -v /cord/incubator/voltha:/voltha --privileged cord/voltha-base env PYTHONPATH=/voltha python /voltha/tests/itests/run_as_root/test_frameio.py
+	docker run -ti --rm -v $(shell pwd):/voltha --privileged opencord/voltha-base env PYTHONPATH=/voltha python /voltha/tests/itests/run_as_root/test_frameio.py
 
 flake8: $(DIRS_FLAKE8)
+
+clean:
+	VOLTHA_BASE=$(shell pwd) make -C voltha/protos clean
+	VOLTHA_BASE=$(shell pwd) make -C ofagent/protos clean
+	VOLTHA_BASE=$(shell pwd) make -C netconf/protos clean
+
 
 # end file
