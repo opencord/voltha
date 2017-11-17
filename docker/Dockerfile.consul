@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-FROM consul
+FROM consul:0.9.2
 
 # Create Consul Config Directory
 RUN mkdir -p /consul/config 
