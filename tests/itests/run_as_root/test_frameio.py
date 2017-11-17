@@ -36,7 +36,7 @@ from twisted.internet.error import AlreadyCalled
 from twisted.trial.unittest import TestCase
 
 from common.frameio.frameio import FrameIOManager, BpfProgramFilter, \
-    FrameIOPortProxy
+    FrameIOPortProxy, FrameIOPort
 from common.utils.asleep import asleep
 from common.utils.deferred_utils import DeferredWithTimeout, TimeOutError
 
@@ -45,7 +45,6 @@ none = lambda *args, **kw: None
 
 
 class TestFrameIO(TestCase):
-
     @inlineCallbacks
     def make_veth_pairs_if_needed(self):
 
@@ -78,16 +77,18 @@ class TestFrameIO(TestCase):
         rcvd = DeferredWithTimeout()
         p0 = self.mgr.open_port('veth0', none).up()
         p1 = self.mgr.open_port('veth1',
-                                    lambda p, f: rcvd.callback((p, f))).up()
+                                lambda p, f: rcvd.callback((p, f))).up()
 
         # sending to veth0 should result in receiving on veth1 and vice versa
         bogus_frame = 'bogus packet'
-        p0.send(bogus_frame)
+        bogus_frame_padded = bogus_frame + '\x00' * (
+                                FrameIOPort.MIN_PKT_SIZE - len(bogus_frame))
+        p0.send(bogus_frame_padded)
 
         # check that we receved packet
         port, frame = yield rcvd
         self.assertEqual(port, p1)
-        self.assertEqual(frame, bogus_frame)
+        self.assertEqual(frame, bogus_frame_padded)
 
     @inlineCallbacks
     def test_packet_send_receive_with_filter(self):
@@ -100,7 +101,7 @@ class TestFrameIO(TestCase):
                                 filter=filter).up()
 
         # sending bogus packet would not be received
-        ip_packet = str(Ether()/IP(dst='123.123.123.123'))
+        ip_packet = str(Ether() / IP(dst='123.123.123.123'))
         p0.send(ip_packet)
 
         # check that we receved packet
@@ -141,6 +142,7 @@ class TestFrameIO(TestCase):
                 queue.append(frame)
                 if len(queue1) == n and len(queue2) == n:
                     done.callback(None)
+
             return _append
 
         p1in = self.mgr.open_port('veth0', none).up()
@@ -175,6 +177,7 @@ class TestFrameIO(TestCase):
                 queue.append(frame)
                 if len(queue1) == n / 2 and len(queue2) == n / 2:
                     done.callback(None)
+
             return _append
 
         filter = BpfProgramFilter('vlan 100')
@@ -187,7 +190,7 @@ class TestFrameIO(TestCase):
         def send_packets(port, n):
             for i in xrange(n):
                 # packets have alternating VLAN ids 100 and 101
-                pkt = Ether()/Dot1Q(vlan=100 + i % 2)
+                pkt = Ether() / Dot1Q(vlan=100 + i % 2)
                 port.send(str(pkt))
                 yield asleep(0.00001 * random.random())  # to interleave
 
@@ -217,24 +220,25 @@ class TestFrameIO(TestCase):
 
         # sending from pin1, should be received by pout1
         bogus_frame = 'bogus packet'
-        pin1.send(bogus_frame)
+        bogus_frame_padded = bogus_frame + '\x00' * (
+                                FrameIOPort.MIN_PKT_SIZE - len(bogus_frame))
+        pin1.send(bogus_frame_padded)
         port, frame = yield queue1.get()
         self.assertEqual(port, pout1)
-        self.assertEqual(frame, bogus_frame)
+        self.assertEqual(frame, bogus_frame_padded)
         self.assertEqual(len(queue1.pending), 0)
         self.assertEqual(len(queue2.pending), 0)
 
         # sending from pin2, should be received by pout1
-        bogus_frame = 'bogus packet'
-        pin2.send(bogus_frame)
+        pin2.send(bogus_frame_padded)
         port, frame = yield queue1.get()
         self.assertEqual(port, pout1)
-        self.assertEqual(frame, bogus_frame)
+        self.assertEqual(frame, bogus_frame_padded)
         self.assertEqual(len(queue1.pending), 0)
         self.assertEqual(len(queue2.pending), 0)
 
         # sending from pin1, should be received by both pouts
-        ip_packet = str(Ether()/IP(dst='123.123.123.123'))
+        ip_packet = str(Ether() / IP(dst='123.123.123.123'))
         pin1.send(ip_packet)
         port, frame = yield queue1.get()
         self.assertEqual(port, pout1)
@@ -246,7 +250,7 @@ class TestFrameIO(TestCase):
         self.assertEqual(len(queue2.pending), 0)
 
         # sending from pin2, should be received by pout1
-        ip_packet = str(Ether()/IP(dst='123.123.123.123'))
+        ip_packet = str(Ether() / IP(dst='123.123.123.123'))
         pin2.send(ip_packet)
         port, frame = yield queue1.get()
         self.assertEqual(port, pout1)
@@ -265,4 +269,5 @@ class TestFrameIO(TestCase):
 
 if __name__ == '__main__':
     import unittest
+
     unittest.main()

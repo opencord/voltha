@@ -113,6 +113,7 @@ class FrameIOPort(object):
     RCV_SIZE_DEFAULT = 4096
     ETH_P_ALL = 0x03
     RCV_TIMEOUT = 10000
+    MIN_PKT_SIZE = 60
 
     def __init__(self, iface_name):
         self.iface_name = iface_name
@@ -186,7 +187,16 @@ class FrameIOPort(object):
         return sent_bytes
 
     def send_frame(self, frame):
-        return self.socket.send(frame)
+        try:
+            return self.socket.send(frame)
+        except socket.error, err:
+            if err[0] == os.errno.EINVAL:
+                if len(frame) < self.MIN_PKT_SIZE:
+                    padding = '\x00' * (self.MIN_PKT_SIZE - len(frame))
+                    frame = frame + padding
+                    return self.socket.send(frame)
+            else:
+                raise
 
     def up(self):
         if sys.platform.startswith('darwin'):
