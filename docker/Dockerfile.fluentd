@@ -17,5 +17,9 @@
 
 #DockerFile to Create Fluentd Forwards inside cord-voltha
 FROM fluent/fluentd
+RUN apk add --update bash
 COPY fluentd_config/fluent.conf /fluentd/etc/
 COPY fluentd_config/fluent-agg.conf /fluentd/etc/
+COPY docker/config/wait_for_it.sh /bin/wait_for_it.sh
+COPY fluentd_config/entrypoint.sh /bin/entrypoint.sh
+RUN chmod 755 /bin/wait_for_it.sh /bin/entrypoint.sh

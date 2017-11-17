@@ -1,0 +1,16 @@
+FROM opencord/voltha-protos as protos
+FROM opencord/voltha-base
+
+COPY . /voltha
+COPY --from=protos /protos/*.py /voltha/voltha/protos/
+COPY --from=protos /protos/*.desc /voltha/voltha/protos/
+COPY --from=protos /protos/*.proto /voltha/voltha/protos/
+COPY --from=protos /protos/third_party/google/api/*.py /voltha/voltha/protos/third_party/google/api/
+COPY --from=protos /protos/third_party/google/api/*.desc /voltha/voltha/protos/third_party/google/api/
+COPY --from=protos /protos/third_party/google/api/*.proto /voltha/voltha/protos/third_party/google/api/
+COPY --from=protos /protos/*.py /voltha/ofagent/protos/
+COPY --from=protos /protos/*.desc /voltha/ofagent/protos/
+COPY --from=protos /protos/*.proto /voltha/ofagent/protos/
+COPY --from=protos /protos/third_party/google/api/*.py /voltha/ofagent/protos/third_party/google/api/
+COPY --from=protos /protos/third_party/google/api/*.desc /voltha/ofagent/protos/third_party/google/api/
+COPY --from=protos /protos/third_party/google/api/*.proto /voltha/ofagent/protos/third_party/google/api/

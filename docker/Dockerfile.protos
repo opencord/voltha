@@ -1,8 +1,9 @@
-FROM protoc:latest
+FROM opencord/voltha-protoc:latest
 
 # Copy in source
-COPY voltha/protos/*.proto docker/config/build_all_protos.sh /protos/
-COPY voltha/protos/third_party /protos/third_party
+COPY voltha/protos/*.proto /protos/
+COPY voltha/protos/third_party/ /protos/third_party/
+COPY voltha/protos/Makefile.docker /protos/Makefile
 
 # Build GRPC PROTOC
 ENV PROTOC_PREFIX /usr/local
@@ -12,15 +13,5 @@ ENV PROTOC_DIR protobuf-$PROTOC_VERSION
 ENV PROTOC_TARBALL protobuf-python-$PROTOC_VERSION.tar.gz
 ENV PROTOC_DOWNLOAD_URI $PROTOC_DOWNLOAD_PREFIX/v$PROTOC_VERSION/$PROTOC_TARBALL
 
-WORKDIR /protos/third_party
-RUN /usr/bin/python -m grpc.tools.protoc \
-	-I. \
-	--python_out=. \
-	--grpc_python_out=. \
-	--descriptor_set_out=google/api/annotations.desc \
-	--include_imports \
-	--include_source_info \
-	google/api/annotations.proto google/api/http.proto
-
 WORKDIR /protos
-RUN ./build_all_protos.sh -I./third_party
+RUN make
