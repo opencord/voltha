@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "319bf695_5af75d0b",
+        "filename": "docker/Dockerfile.grafana",
+        "patchSetId": 1
+      },
+      "lineNbr": 15,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-11-20T05:46:34Z",
+      "side": 1,
+      "message": "Looks like a typo here.",
+      "revId": "5d7d3e6a329e8f10445f6bd3664e715e89f626a9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
