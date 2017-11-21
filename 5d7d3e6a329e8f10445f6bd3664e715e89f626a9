@@ -16,6 +16,24 @@
       "revId": "5d7d3e6a329e8f10445f6bd3664e715e89f626a9",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "afbd8cd9_05b5e98b",
+        "filename": "docker/Dockerfile.grafana",
+        "patchSetId": 1
+      },
+      "lineNbr": 15,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-11-21T20:14:16Z",
+      "side": 1,
+      "message": "Yes that\u0027s a typo. Let me amend that. :)",
+      "parentUuid": "319bf695_5af75d0b",
+      "revId": "5d7d3e6a329e8f10445f6bd3664e715e89f626a9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
