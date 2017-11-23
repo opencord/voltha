@@ -468,12 +468,12 @@ class XponAgent(object):
                         'xpon-agent-removing-interface-at-onu-device:',
                         onu_device_id=onu_device.id, data=data)
                     self.remove_interface_in_device(onu_device, data)
-                if isinstance(data, VOntaniConfig):
-                    self.delete_onu_device(olt_device, onu_device)
                 log.info(
                     'xpon-agent-removing-interface-at-olt-device:',
                     olt_device_id=olt_device.id, data=data)
                 self.remove_interface_in_device(olt_device, data)
+                if isinstance(data, VOntaniConfig):
+                    self.delete_onu_device(olt_device, onu_device)
 
     def create_channel_termination(self, olt_device, data):
         channel_pair = self.get_parent_data(data)

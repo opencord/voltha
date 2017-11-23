@@ -195,7 +195,11 @@ class IAdapter(object):
         raise NotImplementedError()
 
     def remove_tcont(self, device, tcont_data, traffic_descriptor_data):
-        raise NotImplementedError()
+        log.info('remove-tcont', device_id=device.id)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.remove_tcont(tcont_data, traffic_descriptor_data)
 
     def create_gemport(self, device, data):
         raise NotImplementedError()
@@ -204,7 +208,11 @@ class IAdapter(object):
         raise NotImplementedError()
 
     def remove_gemport(self, device, data):
-        raise NotImplementedError()
+        log.info('remove-gemport', device_id=device.id)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.remove_gemport(data)
 
     def create_multicast_gemport(self, device, data):
         raise NotImplementedError()
