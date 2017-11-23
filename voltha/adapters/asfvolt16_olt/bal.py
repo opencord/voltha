@@ -110,6 +110,26 @@ class Bal(object):
         return
 
     @inlineCallbacks
+    def deactivate_pon_port(self, olt_no, pon_port):
+        try:
+            obj = bal_pb2.BalCfg()
+            #            Fill Header details
+            obj.device_id = self.device_id.encode('ascii', 'ignore')
+            obj.hdr.obj_type = bal_model_ids_pb2.BAL_OBJ_ID_INTERFACE
+            #            Fill Access Terminal Details
+            obj.interface.key.intf_id = pon_port
+            obj.interface.key.intf_type = bal_model_types_pb2.BAL_INTF_TYPE_PON
+            obj.interface.data.admin_state = bal_model_types_pb2.BAL_STATE_DOWN
+            obj.interface.data.transceiver_type = \
+                bal_model_types_pb2.BAL_TRX_TYPE_XGPON_LTH_7226_PC
+            self.log.info('deactivating-pon-port-in-olt',
+                          olt=olt_no, pon_port=pon_port,
+                          pon_port_details=obj)
+        except Exception as e:
+            self.log.info('deactivating-pon-port in olt-exception', exc=str(e))
+        return
+
+    @inlineCallbacks
     def send_omci_request_message(self, proxy_address, msg):
         try:
             obj = bal_pb2.BalCfg()
@@ -394,6 +414,55 @@ class Bal(object):
                           sched_id=id,
                           direction=direction,
                           owner=owner_info,
+                          exc=str(e))
+        return
+
+
+    @inlineCallbacks
+    def deactivate_onu(self, onu_info):
+        try:
+            obj = bal_pb2.BalCfg()
+            # Fill Header details
+            obj.device_id = self.device_id.encode('ascii', 'ignore')
+            obj.hdr.obj_type = bal_model_ids_pb2.BAL_OBJ_ID_SUBSCRIBER_TERMINAL
+            # Fill Access Terminal Details
+            obj.terminal.key.intf_id = onu_info['pon_id']
+            obj.terminal.key.sub_term_id = onu_info['onu_id']
+            obj.terminal.data.admin_state = bal_model_types_pb2.BAL_STATE_DOWN
+            obj.terminal.data.serial_number.vendor_id = onu_info['vendor']
+            obj.terminal.data.serial_number.vendor_specific = \
+                onu_info['vendor_specific']
+            obj.terminal.data.registration_id = \
+                '202020202020202020202020202020202020202020202020202020202020202020202020'
+            self.log.info('deactivating-ONU-in-olt',
+                          onu_details=obj)
+            yield self.stub.BalCfgSet(obj)
+        except Exception as e:
+            self.log.info('deactivating-ONU-exception',
+                          onu_info['onu_id'], exc=str(e))
+        return
+
+    @inlineCallbacks
+    def delete_scheduler(self, id, direction):
+        try:
+            obj = bal_pb2.BalKey()
+            obj.hdr.obj_type = bal_model_ids_pb2.BAL_OBJ_ID_TM_SCHED
+            # Fill Access Terminal Details
+            if direction == 'downstream':
+                obj.tm_sched_key.dir =\
+                    bal_model_types_pb2.BAL_TM_SCHED_DIR_DS
+            else:
+                obj.tm_sched_key.dir = \
+                    bal_model_types_pb2.BAL_TM_SCHED_DIR_US
+            obj.tm_sched_key.id = id
+            self.log.info('Deleting Scheduler',
+                          scheduler_details=obj)
+            yield self.stub.BalCfgClear(obj)
+        except Exception as e:
+            self.log.info('creat-scheduler-exception',
+                          olt=self.olt.olt_id,
+                          sched_id=id,
+                          direction=direction,
                           exc=str(e))
         return
 
