@@ -495,26 +495,31 @@ class Asfvolt16Handler(OltDeviceHandler):
         err_status  = yield self.bal.set_bal_reboot(self.device_id.__str__())
         self.log.info('Reboot-Status', err_status = err_status)
 
+    def _handle_pm_counter_req_towards_device(self, device):
+        # Currently ASFVOLT16 supports only one NNI and its zero
+        #  ToDo A mechanism to fetch NNT_INT_ID needs to included
+        NNI_INT_ID = 0
+        self._handle_nni_pm_counter_req_towards_device(device, NNI_INT_ID)
+        if len(self.channel_terminations) > 0:
+           for value in self.channel_terminations.values():
+                self._handle_pon_pm_counter_req_towards_device(device, value.data.xgs_ponid)
+        reactor.callLater(self.pm_metrics.pm_default_freq / 10,
+                                  self._handle_pm_counter_req_towards_device, device)
+
     @inlineCallbacks
     def _handle_nni_pm_counter_req_towards_device(self, device, intf_id):
         interface_type = bal_model_types_pb2.BAL_INTF_TYPE_NNI
-        yield self._req_pm_counter_from_device_in_loop(device, interface_type, intf_id)
+        yield self._req_pm_counter_from_device(device, interface_type, intf_id)
 
-        reactor.callLater(self.pm_metrics.default_freq/10,
-                          self._handle_pm_counter_req_towards_device,
-                          device,intf_id)
 
     @inlineCallbacks
     def _handle_pon_pm_counter_req_towards_device(self, device, intf_id):
         interface_type = bal_model_types_pb2.BAL_INTF_TYPE_PON
-        yield self._req_pm_counter_from_device_in_loop(device, interface_type, intf_id)
+        yield self._req_pm_counter_from_device(device, interface_type, intf_id)
 
-        reactor.callLater(self.pm_metrics.default_freq/10,
-                          self._handle_pm_counter_req_towards_device,
-                          device,intf_id)
 
     @inlineCallbacks
-    def _req_pm_counter_from_device_in_loop(self, device, interface_type, intf_id):
+    def _req_pm_counter_from_device(self, device, interface_type, intf_id):
         # NNI port is hardcoded to 0
         kpi_status = -1
         if device.connect_status == ConnectStatus.UNREACHABLE:
@@ -825,7 +830,8 @@ class Asfvolt16Handler(OltDeviceHandler):
 
                 # Request PM counters(for NNI) from OLT device.
                 # intf_id:nni_port
-                self._handle_nni_pm_counter_req_towards_device(device,intf_id)
+                self._handle_pm_counter_req_towards_device(device)
+
         else:
             device.oper_status = OperStatus.FAILED
             device.reason = 'Failed to Intialize OLT'
