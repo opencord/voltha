@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "58ce6519_a14047be",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 522,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-11-27T05:20:54Z",
+      "side": 1,
+      "message": "The function name needs to changes. It is not called in a loop. Please change the name to \"_req_pm_counter_from_device\"",
+      "revId": "24dcd1cd9eb539f45cc7c598e8ef0004908315b8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
