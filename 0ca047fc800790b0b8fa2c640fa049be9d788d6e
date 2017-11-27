@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "296bc4b8_1400c72b",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 439,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-11-27T06:00:41Z",
+      "side": 1,
+      "message": "This looks better now.",
+      "revId": "0ca047fc800790b0b8fa2c640fa049be9d788d6e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
