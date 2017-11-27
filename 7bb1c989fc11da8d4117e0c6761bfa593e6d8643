@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "94b3ab34_707f8ca7",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 439,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-11-27T06:00:41Z",
+      "side": 1,
+      "message": "Looks like this should be moved before the break.  As-is it will execute only once and port can be \u003cNone\u003e.  Consider revising this code.",
+      "revId": "7bb1c989fc11da8d4117e0c6761bfa593e6d8643",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
