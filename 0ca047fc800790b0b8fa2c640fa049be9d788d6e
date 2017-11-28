@@ -16,6 +16,29 @@
       "revId": "0ca047fc800790b0b8fa2c640fa049be9d788d6e",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "0334c7b6_003e8b1a",
+        "filename": "voltha/core/xpon_agent.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 476,
+      "author": {
+        "id": 1000090
+      },
+      "writtenOn": "2017-11-28T17:05:34Z",
+      "side": 1,
+      "message": "Can you please provide reason for changing order of deleting onu device and removing interface from olt device",
+      "range": {
+        "startLine": 475,
+        "startChar": 16,
+        "endLine": 476,
+        "endChar": 66
+      },
+      "revId": "0ca047fc800790b0b8fa2c640fa049be9d788d6e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
