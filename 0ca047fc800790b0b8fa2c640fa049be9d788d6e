@@ -2,6 +2,29 @@
   "comments": [
     {
       "key": {
+        "uuid": "cd733134_1ddb237f",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 1606,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2017-11-28T17:16:12Z",
+      "side": 1,
+      "message": "Typo Error. It should be \u0027push_vlan\u0027, \u0027not push_push\u0027",
+      "range": {
+        "startLine": 1606,
+        "startChar": 23,
+        "endLine": 1606,
+        "endChar": 24
+      },
+      "revId": "0ca047fc800790b0b8fa2c640fa049be9d788d6e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "296bc4b8_1400c72b",
         "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
         "patchSetId": 5
