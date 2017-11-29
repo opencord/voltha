@@ -62,6 +62,30 @@
       "revId": "0ca047fc800790b0b8fa2c640fa049be9d788d6e",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7607f9bd_6866b1f0",
+        "filename": "voltha/core/xpon_agent.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 476,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-11-29T05:42:01Z",
+      "side": 1,
+      "message": "What we have seen is when self.delete_onu_device is called, the ONU device is removed from config_root. Then self.remove_interface_in_device (with VOntAniConfig) is called. As part of remove_interface handling if adapter were to query the ONU device for its processing, it will not available. This is the reason we changed the order.\nOnly once all the processing is complete the device should be removed from the config_root.",
+      "parentUuid": "0334c7b6_003e8b1a",
+      "range": {
+        "startLine": 475,
+        "startChar": 16,
+        "endLine": 476,
+        "endChar": 66
+      },
+      "revId": "0ca047fc800790b0b8fa2c640fa049be9d788d6e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
