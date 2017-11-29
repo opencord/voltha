@@ -30,7 +30,7 @@
         <igmpproxy.version>1.2.0-SNAPSHOT</igmpproxy.version>
         <mcast.version>1.4.0-SNAPSHOT</mcast.version>
         <olt.version>1.4.0-SNAPSHOT</olt.version>
-        <sadis.version>1.2.0-SNAPSHOT</sadis.version>
+        <sadis.version>2.0.0-SNAPSHOT</sadis.version>
     </properties>
 
     <build>
