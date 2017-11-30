@@ -55,6 +55,7 @@ from voltha.protos.bbf_fiber_multicast_gemport_body_pb2 import \
     MulticastGemportsConfigData
 from voltha.protos.bbf_fiber_multicast_distribution_set_body_pb2 import \
     MulticastDistributionSetData
+from voltha.adapters.asfvolt16_olt.restClient.restClient import restClient
 import time
 import binascii
 
@@ -188,6 +189,8 @@ class Asfvolt16Handler(OltDeviceHandler):
         self.heartbeat_interval = 5
         self.heartbeat_failed_limit = 1
         self.is_heartbeat_started = 0
+        self.rest_client = None
+        self.is_healthmonitor_started = 0
 
     def __del__(self):
         super(Asfvolt16Handler, self).__del__()
@@ -389,6 +392,11 @@ class Asfvolt16Handler(OltDeviceHandler):
             # Request PM counters from OLT device.
             self._handle_pm_counter_req_towards_device(device)
 
+        if self.is_healthmonitor_started == 0:
+            self.rest_client =  restClient (device.host_and_port, self.adapter, self.log, self.device_id)
+            self.rest_client.startHealthMonitoring () 
+            self.is_healthmonitor_started = 1
+
         # Set the logical device id
         device = self.adapter_agent.get_device(device.id)
         if device.parent_id:
@@ -494,6 +502,8 @@ class Asfvolt16Handler(OltDeviceHandler):
     def reboot(self):
         err_status  = yield self.bal.set_bal_reboot(self.device_id.__str__())
         self.log.info('Reboot-Status', err_status = err_status)
+        #Reboot OLT through Redfish Interface
+        #self.rest_client.rebootDevice ()
 
     @inlineCallbacks
     def _handle_nni_pm_counter_req_towards_device(self, device, intf_id):
@@ -826,6 +836,11 @@ class Asfvolt16Handler(OltDeviceHandler):
                 # Request PM counters(for NNI) from OLT device.
                 # intf_id:nni_port
                 self._handle_nni_pm_counter_req_towards_device(device,intf_id)
+
+            if self.is_healthmonitor_started == 0:
+                self.rest_client =  restClient (self.host_and_port, self.adapter, self.log, self.device_id)
+                self.rest_client.startHealthMonitoring () 
+                self.is_healthmonitor_started = 1
         else:
             device.oper_status = OperStatus.FAILED
             device.reason = 'Failed to Intialize OLT'
@@ -1114,6 +1129,9 @@ class Asfvolt16Handler(OltDeviceHandler):
         raise NotImplementedError()
 
     def disable(self):
+        if (self.rest_client is not None):
+            self.log.debug ('Disabling OLT Health monitoring')
+            self.rest_client.stopHealthMonitoring ()
         super(Asfvolt16Handler, self).disable()
 
     def delete(self):
