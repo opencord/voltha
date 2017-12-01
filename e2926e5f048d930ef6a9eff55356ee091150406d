@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "db917e44_56e84a6d",
+        "filename": "voltha/adapters/asfvolt16_olt/restClient/chassis.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-12-01T04:28:22Z",
+      "side": 1,
+      "message": "Please note the VOLTHA log message convention used elsewhere in asfvolt16_olt adapter.  Use \u0027-\u0027 instead of \u0027 \u0027 (spaces) between words.  I am noting this once here but change all applicable places where this is needed.",
+      "revId": "e2926e5f048d930ef6a9eff55356ee091150406d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b992f164_75f92729",
+        "filename": "voltha/adapters/asfvolt16_olt/restClient/restClient.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-12-01T04:28:22Z",
+      "side": 1,
+      "message": "Fix typo: \"Method\"",
+      "revId": "e2926e5f048d930ef6a9eff55356ee091150406d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
