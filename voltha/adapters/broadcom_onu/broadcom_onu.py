@@ -148,7 +148,13 @@ class BroadcomOnuAdapter(object):
         raise NotImplementedError()
 
     def delete_device(self, device):
-        raise NotImplementedError()
+        log.info('delete-device', device_id=device.id)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.delete(device)
+            del self.devices_handlers[device.id]
+        return
 
     def get_device_details(self, device):
         raise NotImplementedError()
@@ -233,7 +239,11 @@ class BroadcomOnuAdapter(object):
         raise NotImplementedError()
 
     def remove_tcont(self, device, tcont_data, traffic_descriptor_data):
-        raise NotImplementedError()
+        log.info('remove-tcont', device_id=device.id)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.remove_tcont(tcont_data, traffic_descriptor_data)
 
     def create_gemport(self, device, data):
         log.info('create-gemport', device_id=device.id)
@@ -246,7 +256,11 @@ class BroadcomOnuAdapter(object):
         raise NotImplementedError()
 
     def remove_gemport(self, device, data):
-        raise NotImplementedError()
+        log.info('remove-gemport', device_id=device.id)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.remove_gemport(data)
 
     def create_multicast_gemport(self, device, data):
         log.info('create-multicast-gemport', device_id=device.id)
@@ -307,13 +321,13 @@ class BroadcomOnuHandler(object):
             if event_msg['event_data']['activation_successful'] == True:
                 for uni in self.uni_ports:
                     port_no = self.proxy_address.channel_id + uni
-                    reactor.callLater(1,
-                      self.message_exchange,
-                      self.proxy_address.onu_id,
-                      self.proxy_address.onu_session_id,
-                      port_no)
+                    yield self.message_exchange(
+                         self.proxy_address.onu_id,
+                         self.proxy_address.onu_session_id,
+                         port_no)
 
                 device = self.adapter_agent.get_device(self.device_id)
+                device.connect_status = ConnectStatus.REACHABLE
                 device.oper_status = OperStatus.ACTIVE
                 self.adapter_agent.update_device(device)
 
@@ -406,6 +420,24 @@ class BroadcomOnuHandler(object):
 
         log.info('reconciling-broadcom-onu-device-ends')
 
+    @inlineCallbacks
+    def delete(self, device):
+        self.log.info('delete-onu')
+
+        # construct message
+        # MIB Reset - OntData - 0
+        self.send_mib_reset()
+        yield self.wait_for_response()
+
+        self.proxy_address = device.proxy_address
+        self.adapter_agent.unregister_for_proxied_messages(device.proxy_address)
+
+        ports = self.adapter_agent.get_ports(self.device_id, Port.PON_ONU)
+        if ports is not None:
+            for port in ports:
+                if port.label == 'PON port':
+                    self.adapter_agent.delete_port(self.device_id, port)
+                    break
 
     @inlineCallbacks
     def update_flow_table(self, device, flows):
@@ -750,6 +782,19 @@ class BroadcomOnuHandler(object):
                     interworking_tp_pointer=0x0,
                     gal_profile_pointer=0x1
                 )
+            )
+        )
+        self.send_omci_message(frame)
+
+    def send_delete_omci_mesage(self,
+                                class_id,
+                                entity_id):
+        frame = OmciFrame(
+            transaction_id=self.get_tx_id(),
+            message_type=OmciDelete.message_id,
+            omci_message=OmciDelete(
+                entity_class=class_id,
+                entity_id=entity_id
             )
         )
         self.send_omci_message(frame)
@@ -1398,6 +1443,26 @@ class BroadcomOnuHandler(object):
                 device_port_no=uni_port.port_no
             ))
 
+    def del_uni_port(self, device, parent_logical_device_id,
+                     name, parent_port_num=None):
+        self.log.info('del-uni-port', device_id=device.id,
+                      logical_device_id=parent_logical_device_id,
+                      name=name)
+        if parent_port_num is not None:
+            uni = parent_port_num
+            port_no = parent_port_num
+        else:
+            uni = self.uni_ports[0]
+            port_no = device.proxy_address.channel_id + uni
+            # register physical ports
+        ports = self.adapter_agent.get_ports(self.device_id, Port.ETHERNET_UNI)
+        for port in ports:
+            if port.label == 'UNI facing Ethernet port '+str(uni):
+                break
+        self.adapter_agent.delete_port(self.device_id, port)
+        self.adapter_agent.delete_logical_port_by_id(parent_logical_device_id,
+                                                     'uni-{}'.format(port_no))
+
     def create_interface(self, data):
         if isinstance(data, VEnetConfig):
             parent_port_num = None
@@ -1444,7 +1509,23 @@ class BroadcomOnuHandler(object):
         return
 
     def remove_interface(self, data):
-        self.log.info('Not Implemented yet')
+        if isinstance(data, VEnetConfig):
+            parent_port_num = None
+            onu_device = self.adapter_agent.get_device(self.device_id)
+            ports = self.adapter_agent.get_ports(onu_device.parent_id, Port.ETHERNET_UNI)
+            parent_port_num = None
+            for port in ports:
+                if port.label == data.interface.name:
+                    parent_port_num = port.port_no
+                    break
+
+            parent_device = self.adapter_agent.get_device(onu_device.parent_id)
+            logical_device_id = parent_device.parent_id
+            assert logical_device_id
+            self.del_uni_port(onu_device, logical_device_id,
+                              data.name, parent_port_num)
+        else:
+            self.log.info('Not handled Yet')
         return
 
     @inlineCallbacks
@@ -1478,6 +1559,24 @@ class BroadcomOnuHandler(object):
 
 
     @inlineCallbacks
+    def remove_gemport(self, data):
+        log.info('remove-gemport')
+        gem_port= GemportsConfigData()
+        gem_port.CopyFrom(data)
+        self.send_set_8021p_mapper_service_profile(0x8001, 0xFFFF)
+
+        yield self.wait_for_response()
+
+        self.send_delete_omci_mesage(GemInterworkingTp.class_id,
+                                     gem_port.gemport_id)
+        yield self.wait_for_response()
+
+        #To-Do Need to see how the valuse 0x8001 is derived
+        self.send_delete_omci_mesage(GemPortNetworkCtp.class_id,
+                                     gem_port.gemport_id)
+        yield self.wait_for_response()
+
+    @inlineCallbacks
     def create_tcont(self, tcont_data, traffic_descriptor_data):
         log.info('create-tcont')
 	tcont = TcontsConfigData()
@@ -1488,6 +1587,12 @@ class BroadcomOnuHandler(object):
                 yield self.wait_for_response()
 	else:
             self.log.info('Recevied NULL tcont Data', tcont= tcont.alloc_id)
+
+    @inlineCallbacks
+    def remove_tcont(self, tcont_data, traffic_descriptor_data):
+        log.info('remove-tcont')
+        self.send_set_tcont(0x8001, 0xFFFF)
+        yield self.wait_for_response()
 
     def create_multicast_gemport(self, data):
         self.log.info('Send relevant OMCI message')
