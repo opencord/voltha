@@ -43,9 +43,8 @@ class ethernet(object):
                                                str(portDict['Id'])},
                                         alarmSeverity=portDict['Status']
                                         ['Health'])
-                            self.log.debug("Raising-alarm-for-Port",
+                            self.log.info("Raising-alarm-for-Port",
                                            portDict['Id'])
-
                     else:
                         self.log.debug("Disabled-Port", portDict)
             except Exception as e:

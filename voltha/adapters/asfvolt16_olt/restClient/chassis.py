@@ -45,7 +45,7 @@ class chassis (object):
                                      alarm={'Health-check-failed-for-Fan':
                                             str(fanDict['Id'])},
                                      alarmSeverity=fanDict['Status']['Health'])
-                            self.log.debug("Raising-alarm-for-fan",
+                            self.log.info("Raising-alarm-for-fan",
                                            fanDict['Id'])
                     else:
                         self.log.debug("Disabled-Fan-Info-:", fanDict)
@@ -72,7 +72,7 @@ class chassis (object):
                                      alarm={'Health-check-failed-for-Psu':
                                             str(psuDict['MemberId'])},
                                      alarmSeverity=psuDict['Status']['Health'])
-                            self.log.debug("Raising-alarm-for-PSU",
+                            self.log.info("Raising-alarm-for-PSU",
                                            psuDict['MemberId'])
                     else:
                         self.log.debug("Power-supply-disabled",
