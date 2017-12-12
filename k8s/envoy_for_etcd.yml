@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: voltha
+  labels:
+    name: voltha
+spec:
+  clusterIP: None
+  ports:
+    - name: rest
+      port: 8882
+      targetPort: 8882
+    - name: mystery
+      port: 8001
+      targetPort: 8001
+    - name: mystery2
+      port: 8443
+      targetPort: 8443
+    - name: grpc
+      port: 50555
+      targetPort: 50555
+  selector:
+    app: voltha
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: voltha
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: voltha
+    spec:
+      containers:
+        - name: voltha
+          image: "voltha/envoy:latest"
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          args:
+            - "/usr/local/bin/envoyd"
+            - "-envoy-cfg-template=/envoy/voltha-grpc-proxy.template.json"
+            - "-envoy-config=/envoy/voltha-grpc-proxy.json"
+            - "-kv=etcd"
+            - "-kv-svc-name=etcd"
+            - "-kv-port=2379"
+          ports:
+            - containerPort: 8882
+              name: rest-port
+            - containerPort: 8001
+              name: mystery-port
+            - containerPort: 8443
+              name: mystery2-port
+            - containerPort: 50555
+              name: grpc-port
+          imagePullPolicy: Never
+
+
