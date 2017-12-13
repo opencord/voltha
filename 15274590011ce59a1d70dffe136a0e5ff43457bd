@@ -2,6 +2,29 @@
   "comments": [
     {
       "key": {
+        "uuid": "5b447a07_93302230",
+        "filename": "envoy/go/envoyd/envoyd.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 417,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2017-12-13T15:03:16Z",
+      "side": 1,
+      "message": "I\u0027ll merge this update but I would suggest that you create a normalized data structure that contains the key value and potentially other values that may be of interest that are common across the KV stores such that if we need to use them in the future they\u0027re just there and very little re-factoring is necessary. It also allows this normalized structure to grow without changing the \"API\" of the many functions that would use it. Let me know if you prefer to amend this update or create a new one. I\u0027m fine either way.",
+      "range": {
+        "startLine": 417,
+        "startChar": 34,
+        "endLine": 417,
+        "endChar": 42
+      },
+      "revId": "15274590011ce59a1d70dffe136a0e5ff43457bd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b75920e0_83e0e6b1",
         "filename": "envoy/go/envoyd/envoyd.go",
         "patchSetId": 1
