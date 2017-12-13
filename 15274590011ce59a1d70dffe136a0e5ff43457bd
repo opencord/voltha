@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6659c3da_bcc4878f",
+        "filename": "envoy/go/envoyd/envoyd.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 547,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2017-12-13T13:38:21Z",
+      "side": 1,
+      "message": "This will break out of the second level loop.  Should another break be present for the first level for loop?",
+      "revId": "15274590011ce59a1d70dffe136a0e5ff43457bd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
