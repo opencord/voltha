@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "a09ad668_4287202a",
+        "filename": "envoy/go/envoyd/envoyd.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 417,
+      "author": {
+        "id": 1000196
+      },
+      "writtenOn": "2017-12-13T15:19:27Z",
+      "side": 1,
+      "message": "I have a lot of work left to do on consul/etcd/kubernetes.  I would prefer that this update be merged and a new sub-task created under the story to track your request.",
+      "parentUuid": "5b447a07_93302230",
+      "range": {
+        "startLine": 417,
+        "startChar": 34,
+        "endLine": 417,
+        "endChar": 42
+      },
+      "revId": "15274590011ce59a1d70dffe136a0e5ff43457bd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b75920e0_83e0e6b1",
         "filename": "envoy/go/envoyd/envoyd.go",
         "patchSetId": 1
@@ -36,6 +60,24 @@
       "writtenOn": "2017-12-13T14:37:19Z",
       "side": 1,
       "message": "In k8s, it would be interesting to see if we still need to poll or watches will work fine.    For now, this is good.",
+      "revId": "15274590011ce59a1d70dffe136a0e5ff43457bd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "dab3b0a5_41642c2c",
+        "filename": "envoy/go/envoyd/envoyd.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 542,
+      "author": {
+        "id": 1000196
+      },
+      "writtenOn": "2017-12-13T15:19:27Z",
+      "side": 1,
+      "message": "Yes, I mentioned this in the first bullet under \"Future updates could\" in the commit message: \"replace the current polling of etcd\u0027s assignment key with an asynchronous technique\".",
+      "parentUuid": "b75920e0_83e0e6b1",
       "revId": "15274590011ce59a1d70dffe136a0e5ff43457bd",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
