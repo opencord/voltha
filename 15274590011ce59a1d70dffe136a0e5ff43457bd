@@ -16,6 +16,24 @@
       "revId": "15274590011ce59a1d70dffe136a0e5ff43457bd",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "e4a0b97f_8a86f546",
+        "filename": "envoy/go/envoyd/envoyd.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 547,
+      "author": {
+        "id": 1000196
+      },
+      "writtenOn": "2017-12-13T14:36:49Z",
+      "side": 1,
+      "message": "I believe the outer loop is intended to be infinite; all this file does is wait for changes in the value of the assignment key and then react.  I modeled this function on the existing monitorConsulKey, which also does not break out of its outer loop.",
+      "parentUuid": "6659c3da_bcc4878f",
+      "revId": "15274590011ce59a1d70dffe136a0e5ff43457bd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
