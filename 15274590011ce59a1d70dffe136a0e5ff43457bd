@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "b75920e0_83e0e6b1",
+        "filename": "envoy/go/envoyd/envoyd.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 542,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-12-13T14:37:19Z",
+      "side": 1,
+      "message": "In k8s, it would be interesting to see if we still need to poll or watches will work fine.    For now, this is good.",
+      "revId": "15274590011ce59a1d70dffe136a0e5ff43457bd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "6659c3da_bcc4878f",
         "filename": "envoy/go/envoyd/envoyd.go",
         "patchSetId": 1
