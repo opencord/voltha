@@ -341,6 +341,12 @@ class BroadcomOnuHandler(object):
             device.oper_status = OperStatus.DISCOVERED
             self.adapter_agent.update_device(device)
 
+        elif (event_msg['event'] == 'deactivate-onu'):
+            device = self.adapter_agent.get_device(self.device_id)
+            device.connect_status = ConnectStatus.UNREACHABLE
+            device.oper_status = OperStatus.DISCOVERED
+            self.adapter_agent.update_device(device)
+
         elif event_msg['event'] == 'ranging-completed':
 
             if event_msg['event_data']['ranging_successful'] == True:
