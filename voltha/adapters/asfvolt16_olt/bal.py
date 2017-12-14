@@ -30,6 +30,8 @@ ASFVOLT Adapter port is 60001
 """
 ADAPTER_PORT = 60001
 
+GRPC_TIMEOUT = 5
+
 
 class Bal(object):
     def __init__(self, olt, log):
@@ -70,7 +72,7 @@ class Bal(object):
             self.log.info('Adapter-port-IP', init.voltha_adapter_ip_port)
             self.log.info('connecting-olt', host_and_port=host_and_port,
                           init_details=init)
-            yield self.stub.BalApiInit(init)
+            yield self.stub.BalApiInit(init, timeout=GRPC_TIMEOUT)
 
     def activate_olt(self):
         self.log.info('activating-olt')
@@ -86,7 +88,7 @@ class Bal(object):
         self.log.info('Activating-Access-Terminal-Device',
                       admin_state=admin_state, device_id=self.device_id,
                       access_terminal_details=obj)
-        yield self.stub.BalCfgSet(obj)
+        yield self.stub.BalCfgSet(obj, timeout=GRPC_TIMEOUT)
 
     @inlineCallbacks
     def activate_pon_port(self, olt_no, pon_port):
@@ -104,7 +106,7 @@ class Bal(object):
             self.log.info('activating-pon-port-in-olt',
                           olt=olt_no, pon_port=pon_port,
                           pon_port_details=obj)
-            yield self.stub.BalCfgSet(obj)
+            yield self.stub.BalCfgSet(obj, timeout=GRPC_TIMEOUT)
         except Exception as e:
             self.log.info('activating-pon-port-in-olt-exception', exc=str(e))
         return
@@ -147,7 +149,7 @@ class Bal(object):
             self.log.info('send_omci_request_message',
                           proxy_address=proxy_address.channel_id,
                           omci_msg_details=obj)
-            yield self.stub.BalCfgSet(obj)
+            yield self.stub.BalCfgSet(obj, timeout=GRPC_TIMEOUT)
         except Exception as e:
             self.log.info('send-proxied_message-exception', exc=str(e))
         return
@@ -170,7 +172,7 @@ class Bal(object):
                 '202020202020202020202020202020202020202020202020202020202020202020202020'
             self.log.info('activating-ONU-in-olt',
                           onu_details=obj)
-            yield self.stub.BalCfgSet(obj)
+            yield self.stub.BalCfgSet(obj, timeout=GRPC_TIMEOUT)
         except Exception as e:
             self.log.info('activating-ONU-exception',
                           onu_info['onu_id'], exc=str(e))
@@ -213,7 +215,7 @@ class Bal(object):
         obj.packet.data.pkt = pkt
         self.log.info('sending-packet-out',
                       packet_out_details=obj)
-        yield self.stub.BalCfgSet(obj)
+        yield self.stub.BalCfgSet(obj, timeout=GRPC_TIMEOUT)
 
     @inlineCallbacks
     def add_flow(self, onu_id, intf_id, flow_id, gem_port,
@@ -331,7 +333,7 @@ class Bal(object):
                     return
             self.log.info('adding-flow-to-OLT-Device',
                           flow_details=obj)
-            yield self.stub.BalCfgSet(obj)
+            yield self.stub.BalCfgSet(obj, timeout=GRPC_TIMEOUT)
         except Exception as e:
             self.log.info('add_flow-exception',
                           flow_id, onu_id, exc=str(e))
@@ -360,7 +362,7 @@ class Bal(object):
             obj.flow.data.sub_term_id = onu_id
             self.log.info('deleting-flows-from-OLT-Device',
                           flow_details=obj)
-            yield self.stub.BalCfgSet(obj)
+            yield self.stub.BalCfgSet(obj, timeout=GRPC_TIMEOUT)
         except Exception as e:
             self.log.info('delete_flow-exception',
                           flow_id, onu_id, exc=str(e))
@@ -407,7 +409,7 @@ class Bal(object):
             obj.tm_sched_cfg.data.num_priorities = num_priority
             self.log.info('Creating-Scheduler',
                           scheduler_details=obj)
-            yield self.stub.BalCfgSet(obj)
+            yield self.stub.BalCfgSet(obj, timeout=GRPC_TIMEOUT)
         except Exception as e:
             self.log.info('creat-scheduler-exception',
                           olt=self.olt.olt_id,
@@ -436,7 +438,7 @@ class Bal(object):
                 '202020202020202020202020202020202020202020202020202020202020202020202020'
             self.log.info('deactivating-ONU-in-olt',
                           onu_details=obj)
-            yield self.stub.BalCfgSet(obj)
+            yield self.stub.BalCfgSet(obj, timeout=GRPC_TIMEOUT)
         except Exception as e:
             self.log.info('deactivating-ONU-exception',
                           onu_info['onu_id'], exc=str(e))
@@ -457,7 +459,7 @@ class Bal(object):
             obj.tm_sched_key.id = id
             self.log.info('Deleting Scheduler',
                           scheduler_details=obj)
-            yield self.stub.BalCfgClear(obj)
+            yield self.stub.BalCfgClear(obj, timeout=GRPC_TIMEOUT)
         except Exception as e:
             self.log.info('creat-scheduler-exception',
                           olt=self.olt.olt_id,
@@ -473,7 +475,7 @@ class Bal(object):
             obj = bal_model_types_pb2.BalInterfaceKey()
             obj.intf_id = intf_id
             obj.intf_type = interface_type
-            stats = yield self.stub.BalCfgStatGet(obj)
+            stats = yield self.stub.BalCfgStatGet(obj, timeout=GRPC_TIMEOUT)
             self.log.info('Fetching-statistics-success',
                           stats_data=stats.data)
             returnValue(stats)
@@ -486,7 +488,7 @@ class Bal(object):
         try:
             obj = bal_pb2.BalReboot()
             obj.device_id = device_id
-            err = yield self.stub.BalApiReboot(obj)
+            err = yield self.stub.BalApiReboot(obj, timeout=GRPC_TIMEOUT)
             self.log.info('OLT-Reboot-Success', reboot_err=err)
             returnValue(err)
         except Exception as e:
@@ -498,7 +500,7 @@ class Bal(object):
         try:
             obj = bal_pb2.BalHeartbeat()
             obj.device_id = device_id
-            rebootStatus = yield self.stub.BalApiHeartbeat(obj)
+            rebootStatus = yield self.stub.BalApiHeartbeat(obj, timeout=GRPC_TIMEOUT)
             self.log.info('OLT-HeartBeat-Response-Received-from',
                           device=device_id, rebootStatus=rebootStatus)
             returnValue(rebootStatus)
@@ -510,7 +512,7 @@ class Bal(object):
             try:
                 obj = bal_pb2.BalDefault()
                 obj.device_id = str(device_id)
-                bal_ind = self.ind_stub.BalGetIndFromDevice(obj)
+                bal_ind = self.ind_stub.BalGetIndFromDevice(obj, timeout=GRPC_TIMEOUT)
                 if bal_ind.ind_present == True:
                     self.log.info('Indication-received',
                                   device=device_id, bal_ind=bal_ind)

@@ -374,7 +374,7 @@ class Asfvolt16Handler(OltDeviceHandler):
 
         if self.is_heartbeat_started == 0:
             self.log.info('heart-beat-is-not-yet-started-starting-now')
-            self.heartbeat(device)
+            self.start_heartbeat()
 
             # Now set the initial PM configuration for this device
             self.pm_metrics=Asfvolt16OltPmMetrics(device)
@@ -406,7 +406,9 @@ class Asfvolt16Handler(OltDeviceHandler):
 
 
     @inlineCallbacks
-    def heartbeat(self, device, state = 'run'):
+    def heartbeat(self, state = 'run'):
+        device = self.adapter_agent.get_device(self.device_id)
+
         self.log.debug('olt-heartbeat', device=device, state=state,
                        count=self.heartbeat_count)
         self.is_heartbeat_started = 1
@@ -440,9 +442,7 @@ class Asfvolt16Handler(OltDeviceHandler):
         try:
             d = yield self.bal.get_bal_heartbeat(self.device_id.__str__())
         except Exception as e:
-             d = None
-
-        _device = device
+            d = None
 
         if d == None:
             # something is not right - OLT is not Reachable
@@ -453,7 +453,7 @@ class Asfvolt16Handler(OltDeviceHandler):
             if self.heartbeat_miss > 0:
                 self.heartbeat_miss = 0
                 if d.is_reboot == bal_pb2.BAL_OLT_UP_AFTER_REBOOT:
-                    self.log.info('Activating-OLT-again-after-reboot')
+                    self.log.info('activating-olt-again-after-reboot')
 
                     # Since OLT is reachable after reboot, OLT should configurable with
                     # all the old existing flows. NNI port should be mark it as down for
@@ -470,26 +470,28 @@ class Asfvolt16Handler(OltDeviceHandler):
                             self.adapter_agent.publish_inter_adapter_message(child_device.id,
                                                                              msg)
                     #Activate Device
-                    self.activate(device);
+                    self.activate(device)
                 else:
-                    _device.connect_status = ConnectStatus.REACHABLE
-                    _device.oper_status = OperStatus.ACTIVE
-                    _device.reason = ''
-                    self.adapter_agent.update_device(_device)
-                self.log.info('Clearing-the-Hearbeat-Alarm')
-                heartbeat_alarm(_device, 0)
+                    device.connect_status = ConnectStatus.REACHABLE
+                    device.oper_status = OperStatus.ACTIVE
+                    device.reason = ''
+                    self.adapter_agent.update_device(device)
+                    # Update the device control block with the latest update
+                    self.log.info("all-fine-no-heartbeat-miss",device=device)
+                self.log.info('clearing-hearbeat-alarm')
+                heartbeat_alarm(device, 0)
 
         if (self.heartbeat_miss >= self.heartbeat_failed_limit) and \
-           (_device.connect_status == ConnectStatus.REACHABLE):
+           (device.connect_status == ConnectStatus.REACHABLE):
             self.log.info('olt-heartbeat-failed', count=self.heartbeat_miss)
-            _device.connect_status = ConnectStatus.UNREACHABLE
-            _device.oper_status = OperStatus.FAILED
-            _device.reason = 'Lost connectivity to OLT'
-            self.adapter_agent.update_device(_device)
+            device.connect_status = ConnectStatus.UNREACHABLE
+            device.oper_status = OperStatus.FAILED
+            device.reason = 'Lost connectivity to OLT'
+            self.adapter_agent.update_device(device)
             heartbeat_alarm(device, 1, self.heartbeat_miss)
 
         self.heartbeat_count += 1
-        reactor.callLater(self.heartbeat_interval, self.heartbeat, device)
+        reactor.callLater(self.heartbeat_interval, self.heartbeat)
 
     @inlineCallbacks
     def reboot(self):
@@ -828,7 +830,7 @@ class Asfvolt16Handler(OltDeviceHandler):
             #heart beat - To health checkup of OLT
             if self.is_heartbeat_started == 0:
                 self.log.info('Heart-beat-is-not-yet-started-starting-now')
-                self.heartbeat(device)
+                self.start_heartbeat()
 
                 self.pm_metrics=Asfvolt16OltPmMetrics(device)
                 pm_config = self.pm_metrics.make_proto()
@@ -848,6 +850,9 @@ class Asfvolt16Handler(OltDeviceHandler):
             self.adapter_agent.update_device(device)
             reactor.callLater(15, self.activate, device)
         return
+
+    def start_heartbeat(self):
+        reactor.callLater(0, self.heartbeat)
 
     def handle_not_started_onu(self, child_device, ind_info):
         if ind_info['_sub_group_type'] == 'onu_discovery':
@@ -1024,7 +1029,7 @@ class Asfvolt16Handler(OltDeviceHandler):
         try:
             if isinstance(data, ChannelgroupConfig):
                 if data.name in self.channel_groups:
-                    self.log('Channel-Group-already-present',
+                    self.log.info('Channel-Group-already-present',
                              channel_group=data)
                 else:
                     channel_group_config = ChannelgroupConfig()
@@ -1032,7 +1037,7 @@ class Asfvolt16Handler(OltDeviceHandler):
                     self.channel_groups[data.name] = channel_group_config
             if isinstance(data, ChannelpartitionConfig):
                 if data.name in self.channel_partitions:
-                    self.log('Channel-partition-already-present',
+                    self.log.info('Channel-partition-already-present',
                              channel_partition=data)
                 else:
                     channel_partition_config = ChannelpartitionConfig()
@@ -1041,7 +1046,7 @@ class Asfvolt16Handler(OltDeviceHandler):
                         channel_partition_config
             if isinstance(data, ChannelpairConfig):
                 if data.name in self.channel_pairs:
-                    self.log('Channel-pair-already-present',
+                    self.log.info('Channel-pair-already-present',
                              channel_pair=data)
                 else:
                     channel_pair_config = ChannelpairConfig()
@@ -1062,16 +1067,26 @@ class Asfvolt16Handler(OltDeviceHandler):
                     channel_termination_config.CopyFrom(data)
                     self.channel_terminations[data.name] = \
                         channel_termination_config
+                    self.log.info('channel-termnination-data',
+                                   data=data,chan_term=self.channel_terminations)
             if isinstance(data, VOntaniConfig):
+                self.handle_v_ont_ani_config(data)
                 if data.name in self.v_ont_anis:
                     self.log.info('v_ont_ani-already-present',
                                   v_ont_ani=data)
                 else:
-                    self.handle_v_ont_ani_config(data)
                     v_ont_ani_config = VOntAniHandler()
                     v_ont_ani_config.v_ont_ani.CopyFrom(data)
                     self.v_ont_anis[data.name] = v_ont_ani_config
             if isinstance(data, VEnetConfig):
+                self.adapter_agent.add_port(self.device_id, Port(
+                                            port_no=self._get_next_uni_port(),
+                                            label=data.interface.name,
+                                            type=Port.ETHERNET_UNI,
+                                            admin_state=AdminState.ENABLED,
+                                            oper_status=OperStatus.ACTIVE
+                                           ))
+
                 if data.name in self.v_enets:
                     self.log.info('v_enet-already-present',
                                   v_enet=data)
@@ -1079,13 +1094,6 @@ class Asfvolt16Handler(OltDeviceHandler):
                     v_enet_config = VEnetHandler()
                     v_enet_config.v_enet.CopyFrom(data)
                     self.log.info("creating-port-at-olt")
-                    self.adapter_agent.add_port(self.device_id, Port(
-                        port_no=self._get_next_uni_port(),
-                        label=data.interface.name,
-                        type=Port.ETHERNET_UNI,
-                        admin_state=AdminState.ENABLED,
-                        oper_status=OperStatus.ACTIVE
-                    ))
                     self.v_enets[data.name] = v_enet_config
             if isinstance(data, OntaniConfig):
                 if data.name in self.ont_anis:
