@@ -72,7 +72,7 @@ class BroadcomOnuAdapter(object):
         self.descriptor = Adapter(
             id=self.name,
             vendor='Voltha project',
-            version='0.4',
+            version='0.41',
             config=AdapterConfig(log_level=LogLevel.INFO)
         )
         self.devices_handlers = dict()  # device_id -> BroadcomOnuHandler()
@@ -338,6 +338,12 @@ class BroadcomOnuHandler(object):
 
         elif event_msg['event'] == 'deactivation-completed':
             device = self.adapter_agent.get_device(self.device_id)
+            device.oper_status = OperStatus.DISCOVERED
+            self.adapter_agent.update_device(device)
+
+        elif (event_msg['event'] == 'deactivate-onu'):
+            device = self.adapter_agent.get_device(self.device_id)
+            device.connect_status = ConnectStatus.UNREACHABLE
             device.oper_status = OperStatus.DISCOVERED
             self.adapter_agent.update_device(device)
 
