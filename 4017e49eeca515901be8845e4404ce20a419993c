@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c0298493_2cc9a881",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 75,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-12-15T23:31:57Z",
+      "side": 1,
+      "message": "Should bump the version number of this adapter.  I recommend we start doing this going forward.  Why have the numbers if we don\u0027t maintain them?",
+      "revId": "4017e49eeca515901be8845e4404ce20a419993c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
