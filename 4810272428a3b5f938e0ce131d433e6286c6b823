@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "404d4ace_663dd816",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 508,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-12-18T10:18:43Z",
+      "side": 1,
+      "message": "If you do not need these lines, please remove them.",
+      "revId": "4810272428a3b5f938e0ce131d433e6286c6b823",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "4e912d56_a2a7a4ef",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1244,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-12-18T10:18:43Z",
+      "side": 1,
+      "message": "Have you verified this particular scenario to be working fine. The health monitoring is stopped when the device is disabled. How does it start back when the device is enabled?",
+      "revId": "4810272428a3b5f938e0ce131d433e6286c6b823",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5218d981_d6f2544e",
+        "filename": "voltha/adapters/asfvolt16_olt/restClient/chassis.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-12-18T10:18:43Z",
+      "side": 1,
+      "message": "All the new files should contain the Apache License banner. Please refer to other files.",
+      "revId": "4810272428a3b5f938e0ce131d433e6286c6b823",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ec9af50f_93defae6",
+        "filename": "voltha/adapters/asfvolt16_olt/restClient/chassis.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 6,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2017-12-18T10:18:43Z",
+      "side": 1,
+      "message": "Please use PEP8 convevtion for naming classes, functions, variables etc. I advice you to run PEP8 compliance check on all your changes.",
+      "revId": "4810272428a3b5f938e0ce131d433e6286c6b823",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
