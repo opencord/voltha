@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "6c556b48_ab28164a",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 508,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2017-12-18T23:57:21Z",
+      "side": 1,
+      "message": "These lines went in at my request to preserve the BAL reboot mechanism.  They can be removed once the Redfish server/client is integrated into the voltha-bal-driver firmware load.  Until then we should leave them commented.",
+      "parentUuid": "404d4ace_663dd816",
+      "revId": "4810272428a3b5f938e0ce131d433e6286c6b823",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "4e912d56_a2a7a4ef",
         "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
         "patchSetId": 1
