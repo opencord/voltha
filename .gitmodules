@@ -1,0 +1,6 @@
+[submodule "voltha/adapters/adtran_olt"]
+	path = voltha/adapters/adtran_olt
+	url = https://github.adtran.com/cboling/adtran_olt.git
+[submodule "voltha/adapters/adtran_onu"]
+	path = voltha/adapters/adtran_onu
+	url = https://github.adtran.com/cboling/adtran_onu.git
