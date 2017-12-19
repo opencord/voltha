@@ -42,6 +42,7 @@ structlog==17.2.0
 termcolor==1.1.0
 treq==17.8.0
 Twisted==17.9.0
+txaioetcd==0.3.0
 urllib3==1.22
 pyang==1.7.3
 lxml==3.6.4
@@ -52,6 +53,7 @@ txZMQ==0.8.0
 ncclient==0.5.3
 xmltodict==0.11.0
 dicttoxml==1.7.4
+etcd3==0.7.0
 
 # python-consul>=0.6.1  we need the pre-released version for now, because 0.6.1 does not
 # yet support Twisted. Once this is released, it will be the 0.6.2 version
