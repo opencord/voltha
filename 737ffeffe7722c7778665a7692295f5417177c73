@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "133f6cf2_575e63b4",
+        "filename": "compose/docker-compose-system-test-with-etcd.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 32,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-12-19T15:41:48Z",
+      "side": 1,
+      "message": "Do you need consul here?  You can use etcd with registrator.",
+      "revId": "737ffeffe7722c7778665a7692295f5417177c73",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9dc8ab1d_19d9a55b",
+        "filename": "voltha/coordinator_etcd.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 44,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-12-19T15:41:48Z",
+      "side": 1,
+      "message": "Ideally, this code can be simplified since some constructs in etcd is more robust that consul, e.g. watch.    I guess since we will be moving coordinator to it\u0027s own container then no need to spend too much effort on it.    I would still suggest the failure tests with etcd.",
+      "revId": "737ffeffe7722c7778665a7692295f5417177c73",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "542badbe_b45bbd6c",
+        "filename": "voltha/core/config/config_backend.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 222,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-12-19T15:41:48Z",
+      "side": 1,
+      "message": "etcd?",
+      "revId": "737ffeffe7722c7778665a7692295f5417177c73",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b265f040_d9887539",
+        "filename": "voltha/main.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 356,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2017-12-19T15:41:48Z",
+      "side": 1,
+      "message": "Is this needed?",
+      "revId": "737ffeffe7722c7778665a7692295f5417177c73",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
