@@ -58,6 +58,8 @@ from voltha.protos.bbf_fiber_multicast_distribution_set_body_pb2 import \
     MulticastDistributionSetData
 import time
 import binascii
+from argparse import ArgumentParser, ArgumentError
+import shlex
 
 ASFVOLT_NNI_PORT = 129
 # ASFVOLT_NNI_PORT needs to be other than pon port value.
@@ -163,6 +165,12 @@ class Asfvolt16OltPmMetrics:
             freq_override = False)
         return pm_config
 
+class MyArgumentParser(ArgumentParser):
+    # Must override the exit command to prevent it from
+    # calling sys.exit().  Return exception instead.
+    def exit(self, status=0, message=None):
+        raise Exception(message)
+
 class Asfvolt16Handler(OltDeviceHandler):
 
     def __init__(self, adapter, device_id):
@@ -189,6 +197,7 @@ class Asfvolt16Handler(OltDeviceHandler):
         self.heartbeat_interval = 5
         self.heartbeat_failed_limit = 1
         self.is_heartbeat_started = 0
+        self.transceiver_type = bal_model_types_pb2.BAL_TRX_TYPE_XGPON_LTH_7226_PC;
 
     def __del__(self):
         super(Asfvolt16Handler, self).__del__()
@@ -316,6 +325,17 @@ class Asfvolt16Handler(OltDeviceHandler):
             device.reason = 'No host_and_port field provided'
             self.adapter_agent.update_device(device)
             return
+
+        # Parse extra command line options
+        if device.extra_args is not None and len(device.extra_args) > 0:
+            try:
+                self.parse_provisioning_options(device.extra_args)
+            except Exception as e:
+                self.log.exception('parse-provisioning-options', e=e)
+                device.oper_status = OperStatus.FAILED
+                device.reason = 'Invalid extra options provided'
+                self.adapter_agent.update_device(device)
+                return
 
         self.bal.connect_olt(device.host_and_port, self.device_id)
 
@@ -977,8 +997,25 @@ class Asfvolt16Handler(OltDeviceHandler):
             self.log.exception('', exc=str(e))
         return
 
+    def hex_format(self, regid):
+        ascii_regid = map(ord, regid)
+        size=len(ascii_regid)
+        if size > 36:
+            del ascii_regid[36:]
+        else:
+            ascii_regid += (36-size) * [0]
+        return ''.join('{:02x}'.format(e) for e in ascii_regid)
+
+    def get_registration_id(self, data):
+        if data.data.expected_registration_id is not None and \
+            len(data.data.expected_registration_id) > 0:
+            return self.hex_format(data.data.expected_registration_id)
+        # default reg id
+        return '202020202020202020202020202020202020202020202020202020202020202020202020'
+
     def handle_v_ont_ani_config(self, data):
         serial_number = data.data.expected_serial_number
+        registration_id = self.get_registration_id(data)
         child_device = self.adapter_agent.get_child_device(
             self.device_id,
             serial_number=serial_number)
@@ -995,6 +1032,7 @@ class Asfvolt16Handler(OltDeviceHandler):
             onu_info['onu_id'] = child_device.proxy_address.onu_id
             onu_info['vendor'] = child_device.vendor_id
             onu_info['vendor_specific'] = serial_number[4:]
+            onu_info['reg_id'] = registration_id
             self.bal.activate_onu(onu_info)
         else:
             self.log.info('Invalid-ONU-state-to-activate',
@@ -1003,6 +1041,7 @@ class Asfvolt16Handler(OltDeviceHandler):
 
     def delete_v_ont_ani(self, data):
         serial_number = data.data.expected_serial_number
+        registration_id = self.get_registration_id(data)
         child_device = self.adapter_agent.get_child_device(
             self.device_id,
             serial_number=serial_number)
@@ -1019,6 +1058,7 @@ class Asfvolt16Handler(OltDeviceHandler):
             onu_info['onu_id'] = child_device.proxy_address.onu_id
             onu_info['vendor'] = child_device.vendor_id
             onu_info['vendor_specific'] = serial_number[4:]
+            onu_info['reg_id'] = registration_id
             self.bal.deactivate_onu(onu_info)
         else:
             self.log.info('Invalid-ONU-state-to-deactivate',
@@ -1058,7 +1098,8 @@ class Asfvolt16Handler(OltDeviceHandler):
                 self.add_port(port_no=data.data.xgs_ponid,
                               port_type=Port.PON_OLT,
                               label=data.name)
-                self.bal.activate_pon_port(self.olt_id, data.data.xgs_ponid)
+                self.bal.activate_pon_port(self.olt_id, data.data.xgs_ponid,
+                                           self.transceiver_type)
                 if data.name in self.channel_terminations:
                     self.log.info('Channel-termination-already-present',
                                   channel_termination=data)
@@ -1128,7 +1169,8 @@ class Asfvolt16Handler(OltDeviceHandler):
                     self.del_port(label=data.name,
                                   port_type=Port.PON_OLT,
                                   port_no=data.data.xgs_ponid)
-                    self.bal.deactivate_pon_port(self.olt_id, data.data.xgs_ponid)
+                    self.bal.deactivate_pon_port(self.olt_id, data.data.xgs_ponid,
+                                                 self.transceiver_type)
                     del self.channel_terminations[data.name]
             if isinstance(data, VOntaniConfig):
                 if data.name in self.v_ont_anis:
@@ -1904,3 +1946,39 @@ class Asfvolt16Handler(OltDeviceHandler):
                                flow_id=uplink_flow_id,
                                onu_id=onu_device.proxy_address.onu_id,
                                intf_id=onu_device.proxy_address.channel_id)
+
+    def parse_provisioning_options(self, extra_args):
+        parser = MyArgumentParser(add_help=False)
+        parser.add_argument('--transceiver', '-x', action='store',
+                            choices=['gpon_sps_43_48',
+                                     'gpon_sps_sog_4321',
+                                     'gpon_lte_3680_m',
+                                     'gpon_source_photonics',
+                                     'gpon_lte_3680_p',
+                                     'xgpon_lth_7222_pc',
+                                     'xgpon_lth_7226_pc',
+                                     'xgpon_lth_5302_pc',
+                                     'xgpon_lth_7226_a_pc_plus'],
+                            default='xgpon_lth_7226_pc')
+        try:
+            args = parser.parse_args(shlex.split(extra_args))
+            self.log.debug('parsing-extra-arguments', args=args)
+
+            self.transceiver_type = {
+                'gpon_sps_43_48': bal_model_types_pb2.BAL_TRX_TYPE_GPON_SPS_43_48,
+                'gpon_sps_sog_4321': bal_model_types_pb2.BAL_TRX_TYPE_GPON_SPS_SOG_4321,
+                'gpon_lte_3680_m': bal_model_types_pb2.BAL_TRX_TYPE_GPON_LTE_3680_M,
+                'gpon_source_photonics': bal_model_types_pb2.BAL_TRX_TYPE_GPON_SOURCE_PHOTONICS,
+                'gpon_lte_3680_p': bal_model_types_pb2.BAL_TRX_TYPE_GPON_LTE_3680_P,
+                'xgpon_lth_7222_pc': bal_model_types_pb2.BAL_TRX_TYPE_XGPON_LTH_7222_PC,
+                'xgpon_lth_7226_pc': bal_model_types_pb2.BAL_TRX_TYPE_XGPON_LTH_7226_PC,
+                'xgpon_lth_5302_pc': bal_model_types_pb2.BAL_TRX_TYPE_XGPON_LTH_5302_PC,
+                'xgpon_lth_7226_a_pc_plus': bal_model_types_pb2.BAL_TRX_TYPE_XGPON_LTH_7226_A_PC_PLUS,
+            }[args.transceiver]
+
+        except ArgumentError as e:
+            raise Exception('invalid-arguments: {}'.format(e.message))
+
+        except Exception as e:
+            raise Exception('option-parsing-error: {}'.format(e.message))
+

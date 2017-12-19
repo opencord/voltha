@@ -91,7 +91,7 @@ class Bal(object):
         yield self.stub.BalCfgSet(obj, timeout=GRPC_TIMEOUT)
 
     @inlineCallbacks
-    def activate_pon_port(self, olt_no, pon_port):
+    def activate_pon_port(self, olt_no, pon_port, transceiver_type):
         try:
             obj = bal_pb2.BalCfg()
             #            Fill Header details
@@ -101,18 +101,18 @@ class Bal(object):
             obj.interface.key.intf_id = pon_port
             obj.interface.key.intf_type = bal_model_types_pb2.BAL_INTF_TYPE_PON
             obj.interface.data.admin_state = bal_model_types_pb2.BAL_STATE_UP
-            obj.interface.data.transceiver_type = \
-                bal_model_types_pb2.BAL_TRX_TYPE_XGPON_LTH_7226_PC
+            obj.interface.data.transceiver_type = transceiver_type
             self.log.info('activating-pon-port-in-olt',
                           olt=olt_no, pon_port=pon_port,
-                          pon_port_details=obj)
+                          pon_port_details=obj,
+                          transceiver_type=transceiver_type)
             yield self.stub.BalCfgSet(obj, timeout=GRPC_TIMEOUT)
         except Exception as e:
             self.log.info('activating-pon-port-in-olt-exception', exc=str(e))
         return
 
     @inlineCallbacks
-    def deactivate_pon_port(self, olt_no, pon_port):
+    def deactivate_pon_port(self, olt_no, pon_port, transceiver_type):
         try:
             obj = bal_pb2.BalCfg()
             #            Fill Header details
@@ -122,11 +122,11 @@ class Bal(object):
             obj.interface.key.intf_id = pon_port
             obj.interface.key.intf_type = bal_model_types_pb2.BAL_INTF_TYPE_PON
             obj.interface.data.admin_state = bal_model_types_pb2.BAL_STATE_DOWN
-            obj.interface.data.transceiver_type = \
-                bal_model_types_pb2.BAL_TRX_TYPE_XGPON_LTH_7226_PC
+            obj.interface.data.transceiver_type = transceiver_type
             self.log.info('deactivating-pon-port-in-olt',
                           olt=olt_no, pon_port=pon_port,
-                          pon_port_details=obj)
+                          pon_port_details=obj,
+                          transceiver_type=transceiver_type)
         except Exception as e:
             self.log.info('deactivating-pon-port in olt-exception', exc=str(e))
         return
@@ -168,8 +168,7 @@ class Bal(object):
             obj.terminal.data.serial_number.vendor_id = onu_info['vendor']
             obj.terminal.data.serial_number.vendor_specific = \
                 onu_info['vendor_specific']
-            obj.terminal.data.registration_id = \
-                '202020202020202020202020202020202020202020202020202020202020202020202020'
+            obj.terminal.data.registration_id = onu_info['reg_id']
             self.log.info('activating-ONU-in-olt',
                           onu_details=obj)
             yield self.stub.BalCfgSet(obj, timeout=GRPC_TIMEOUT)
@@ -434,8 +433,7 @@ class Bal(object):
             obj.terminal.data.serial_number.vendor_id = onu_info['vendor']
             obj.terminal.data.serial_number.vendor_specific = \
                 onu_info['vendor_specific']
-            obj.terminal.data.registration_id = \
-                '202020202020202020202020202020202020202020202020202020202020202020202020'
+            obj.terminal.data.registration_id = onu_info['reg_id']
             self.log.info('deactivating-ONU-in-olt',
                           onu_details=obj)
             yield self.stub.BalCfgSet(obj, timeout=GRPC_TIMEOUT)
