@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "7a24343a_e7f5727e",
+        "filename": "compose/docker-compose-system-test-with-etcd.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 32,
+      "author": {
+        "id": 1000196
+      },
+      "writtenOn": "2017-12-19T15:54:30Z",
+      "side": 1,
+      "message": "I assume there\u0027s some minor config work to point registrator towards etcd instead of consul; my focus was on swarm and kubernetes. Could do in future update...",
+      "parentUuid": "133f6cf2_575e63b4",
+      "revId": "737ffeffe7722c7778665a7692295f5417177c73",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9dc8ab1d_19d9a55b",
         "filename": "voltha/coordinator_etcd.py",
         "patchSetId": 1
@@ -30,6 +48,24 @@
       "writtenOn": "2017-12-19T15:41:48Z",
       "side": 1,
       "message": "Ideally, this code can be simplified since some constructs in etcd is more robust that consul, e.g. watch.    I guess since we will be moving coordinator to it\u0027s own container then no need to spend too much effort on it.    I would still suggest the failure tests with etcd.",
+      "revId": "737ffeffe7722c7778665a7692295f5417177c73",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "517c934e_8795d04a",
+        "filename": "voltha/coordinator_etcd.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 44,
+      "author": {
+        "id": 1000196
+      },
+      "writtenOn": "2017-12-19T15:54:30Z",
+      "side": 1,
+      "message": "Yes, there\u0027s certainly much experimentation that can be done with etcd\u0027s features.  I saw this as happening on an on-going basis.",
+      "parentUuid": "9dc8ab1d_19d9a55b",
       "revId": "737ffeffe7722c7778665a7692295f5417177c73",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -64,6 +100,24 @@
       "writtenOn": "2017-12-19T15:41:48Z",
       "side": 1,
       "message": "Is this needed?",
+      "revId": "737ffeffe7722c7778665a7692295f5417177c73",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "745daf89_257c8457",
+        "filename": "voltha/main.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 356,
+      "author": {
+        "id": 1000196
+      },
+      "writtenOn": "2017-12-19T15:54:30Z",
+      "side": 1,
+      "message": "Initially it was, as the back end was still using consul while the cluster management front end was switched to etcd.  This should eventually be removed in concert with the removal of other consul residuals (e.g. envoy has a residual need for consul which should also be removed). I believe this should be a separate update and testing activity.",
+      "parentUuid": "b265f040_d9887539",
       "revId": "737ffeffe7722c7778665a7692295f5417177c73",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
