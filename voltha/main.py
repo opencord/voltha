@@ -36,6 +36,7 @@ from common.utils.nethelpers import get_my_primary_interface, \
     get_my_primary_local_ipv4
 from voltha.adapters.loader import AdapterLoader
 from voltha.coordinator import Coordinator
+from voltha.coordinator_etcd import CoordinatorEtcd
 from voltha.core.core import VolthaCore
 from voltha.core.config.config_backend import load_backend
 from voltha.northbound.diagnostics import Diagnostics
@@ -52,6 +53,7 @@ VERSION = '0.9.0'
 defs = dict(
     config=os.environ.get('CONFIG', './voltha.yml'),
     consul=os.environ.get('CONSUL', 'localhost:8500'),
+    etcd=os.environ.get('ETCD', 'localhost:2379'),
     inter_core_subnet=os.environ.get('INTER_CORE_SUBNET', None),
     pon_subnet=os.environ.get('PON_SUBNET', None),
     external_host_address=os.environ.get('EXTERNAL_HOST_ADDRESS',
@@ -87,6 +89,11 @@ def parse_args():
         default=defs['consul'],
         help=_help)
 
+    _help = '<hostname>:<port> to etcd server (default: %s)' % defs['etcd']
+    parser.add_argument(
+        '-e', '--etcd', dest='etcd', action='store',
+        default=defs['etcd'],
+        help=_help)
 
     _help = ('<inter_core_subnet> is the subnet connecting all the voltha '
              'instances in a cluster (default: %s)' % defs['inter_core_subnet'])
@@ -215,7 +222,7 @@ def parse_args():
     _help = 'backend to use for config persitence'
     parser.add_argument('-b', '--backend',
                         default=defs['backend'],
-                        choices=['none', 'consul'],
+                        choices=['none', 'consul', 'etcd'],
                         help=_help)
 
     args = parser.parse_args()
@@ -321,20 +328,34 @@ class Main(object):
                           internal_host=self.args.internal_host_address,
                           external_host=self.args.external_host_address,
                           interface=self.args.interface,
-                          consul=self.args.consul)
+                          consul=self.args.consul,
+                          etcd=self.args.etcd)
 
             registry.register('main', self)
 
-            yield registry.register(
-                'coordinator',
-                Coordinator(
-                    internal_host_address=self.args.internal_host_address,
-                    external_host_address=self.args.external_host_address,
-                    rest_port=self.args.rest_port,
-                    instance_id=self.instance_id,
-                    config=self.config,
-                    consul=self.args.consul)
-            ).start()
+            if self.args.backend == 'consul':
+                yield registry.register(
+                    'coordinator',
+                    Coordinator(
+                        internal_host_address=self.args.internal_host_address,
+                        external_host_address=self.args.external_host_address,
+                        rest_port=self.args.rest_port,
+                        instance_id=self.instance_id,
+                        config=self.config,
+                        consul=self.args.consul)
+                ).start()
+            elif self.args.backend == 'etcd':
+                yield registry.register(
+                    'coordinator',
+                    CoordinatorEtcd(
+                        internal_host_address=self.args.internal_host_address,
+                        external_host_address=self.args.external_host_address,
+                        rest_port=self.args.rest_port,
+                        instance_id=self.instance_id,
+                        config=self.config,
+                        consul=self.args.consul,
+                        etcd=self.args.etcd)
+                ).start()
 
             self.log.info('waiting-for-config-assignment')
 
