@@ -315,11 +315,6 @@ def get_goto_table_id(flow):
             return instruction.goto_table.table_id
     return None
 
-def get_metadata(flow):
-    for field in get_ofb_fields(flow):
-        if field.type == METADATA:
-            return field.table_metadata
-    return None
 
 # test and extract next table and group information
 
@@ -455,8 +450,6 @@ class RouteHop(object):
             self._device == other._device and
             self._ingress_port == other._ingress_port and
             self._egress_port == other._egress_port)
-    def __ne__(self, other):
-        return not self.__eq__(other)
 
 
 class FlowDecomposer(object):
@@ -687,15 +680,10 @@ class FlowDecomposer(object):
                         # re-run route request to determine egress device and
                         # ports
                         route2 = self.get_route(in_port_no, out_port_no)
-                        if route2 is None:
-                            log.error('mc-no-route', in_port_no=in_port_no,
-                                out_port_no=out_port_no, route2=route2,
-                                comment='ignoring flow')
-                            continue
 
                         assert len(route2) == 2
                         ingress_hop2, egress_hop = route2
-                        assert ingress_hop.ingress_port == ingress_hop2.ingress_port
+                        assert ingress_hop == ingress_hop2
 
                         fl_lst, _ = device_rules.setdefault(
                             egress_hop.device.id, ([], []))
@@ -726,5 +714,4 @@ class FlowDecomposer(object):
     def get_route(self, ingress_port_no, egress_port_no):
         raise NotImplementedError('derived class must provide')
 
-    def get_wildcard_input_ports(self, exclude_port=None):
-        raise NotImplementedError('derived class must provide')
+

@@ -37,6 +37,7 @@ from voltha.protos.openflow_13_pb2 import Flows, FlowGroups
 
 _ = third_party
 
+
 def mac_str_to_tuple(mac):
     return tuple(int(d, 16) for d in mac.split(':'))
 
@@ -73,7 +74,8 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
                 topic='packet-in:{}'.format(logical_device.id),
                 callback=self.handle_packet_in_event)
 
-            self.log = structlog.get_logger(logical_device_id=logical_device.id)
+            self.log = structlog.get_logger(
+                logical_device_id=logical_device.id)
 
             self._routes = None
         except Exception, e:
@@ -127,7 +129,6 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         pass  # TODO
 
     def update_flow_table(self, flow_mod):
-
         self.log.info("update-flow-table")
         command = flow_mod.command
 
@@ -309,7 +310,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
 
         # Check if flow.table_id is covered by flow_mod.table_id
         if flow_mod.table_id != ofp.OFPTT_ALL and \
-                        flow.table_id != flow_mod.table_id:
+                flow.table_id != flow_mod.table_id:
             return False
 
         # Check out_port
@@ -349,7 +350,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
                 for action in instruction.actions.actions:
                     assert isinstance(action, ofp.ofp_action)
                     if action.type == ofp.OFPAT_OUTPUT and \
-                        action.output.port == out_port:
+                            action.output.port == out_port:
                         return True
 
         # otherwise...
@@ -367,8 +368,8 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
                 for action in instruction.actions.actions:
                     assert isinstance(action, ofp.ofp_action)
                     if action.type == ofp.OFPAT_GROUP and \
-                        action.group.group_id == group_id:
-                            return True
+                            action.group.group_id == group_id:
+                        return True
 
         # otherwise...
         return False
@@ -507,7 +508,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
 
     def _flow_table_updated(self, flows):
         self.log.debug('flow-table-updated',
-                  logical_device_id=self.logical_device_id, flows=flows)
+                       logical_device_id=self.logical_device_id, flows=flows)
 
         # TODO we have to evolve this into a policy-based, event based pattern
         # This is a raw implementation of the specific use-case with certain
@@ -622,11 +623,12 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             graph, self._routes = self.compute_routes(
                 self.root_proxy, logical_ports)
             self._default_rules = self._generate_default_rules(graph)
+            self.log.info("default-rules", default_rules=self._default_rules)
             root_ports = [p for p in logical_ports if p.root_port]
             self.log.info("root-ports", root_ports=root_ports)
             # assert len(root_ports) == 1
             self._nni_logical_port_no = root_ports[0].ofp_port.port_no
-
+            self.log.info("end")
 
     def _generate_default_rules(self, graph):
 
@@ -723,7 +725,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
     def get_route(self, ingress_port_no, egress_port_no):
         self._assure_cached_tables_up_to_date()
         if egress_port_no is not None and \
-                        (egress_port_no & 0x7fffffff) == ofp.OFPP_CONTROLLER:
+                (egress_port_no & 0x7fffffff) == ofp.OFPP_CONTROLLER:
             # treat it as if the output port is the NNI of the OLT
             egress_port_no = self._nni_logical_port_no
 
@@ -732,7 +734,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         # in which case we need to create a half-route where only the egress
         # hop is filled, the first hope is None
         if ingress_port_no is None and \
-                        egress_port_no == self._nni_logical_port_no:
+                egress_port_no == self._nni_logical_port_no:
             # We can use the 2nd hop of any upstream route, so just find the
             # first upstream:
             for (ingress, egress), route in self._routes.iteritems():
@@ -750,18 +752,12 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             # This can occur is a leaf device is disabled
             self.log.exception('no-downstream-route',
                                ingress_port_no=ingress_port_no,
-                               egress_port_no= egress_port_no
+                               egress_port_no=egress_port_no
                                )
             return None
-
 
         return self._routes.get((ingress_port_no, egress_port_no))
 
     def get_all_default_rules(self):
         self._assure_cached_tables_up_to_date()
         return self._default_rules
-
-    def get_wildcard_input_ports(self, exclude_port=None):
-        logical_ports = self.self_proxy.get('/ports')
-        return [port.ofp_port.port_no for port in logical_ports
-                if port.ofp_port.port_no != exclude_port]

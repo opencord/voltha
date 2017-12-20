@@ -25,12 +25,14 @@ from voltha.protos.openflow_13_pb2 import ofp_desc, ofp_switch_features, OFPC_FL
 
 log = structlog.get_logger()
 
+
 def mac_str_to_tuple(mac):
     """
     Convert 'xx:xx:xx:xx:xx:xx' MAC address string to a tuple of integers.
     Example: mac_str_to_tuple('00:01:02:03:04:05') == (0, 1, 2, 3, 4, 5)
     """
     return tuple(int(d, 16) for d in mac.split(':'))
+
 
 class DeviceManager(object):
 
@@ -55,8 +57,8 @@ class DeviceManager(object):
         # active, standby etc. Choose the active or running software
         # below. See simulated_olt for example implementation
         self.device.images.image.extend([
-                                          Image(version="0.0.1")
-                                        ])
+            Image(version="0.0.1")
+        ])
         self.device.serial_number = self.device.mac_address
         self.device.oper_status = ConnectStatus.REACHABLE
         self.adapter_agent.update_device(self.device)
@@ -130,10 +132,10 @@ class DeviceManager(object):
                                             logical_port)
 
     def onu_detected(self, parent_port_no=None,
-                        child_device_type=None,
-                        onu_id=None,
-                        serial_number=None,
-                        onu_session_id=None):
+                     child_device_type=None,
+                     onu_id=None,
+                     serial_number=None,
+                     onu_session_id=None):
         self.adapter_agent.child_device_detected(
             parent_device_id=self.device.id,
             parent_port_no=parent_port_no,
@@ -141,7 +143,7 @@ class DeviceManager(object):
             serial_number=serial_number,
             proxy_address=Device.ProxyAddress(
                 device_id=self.device.id,
-                channel_id=parent_port_no, # happens to be the channel id as well
+                channel_id=parent_port_no,  # happens to be the channel id as well
                 onu_id=onu_id,
                 onu_session_id=onu_session_id
             ),

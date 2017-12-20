@@ -36,13 +36,8 @@ from voltha.protos.voltha_pb2 import \
 from voltha.registry import IComponent
 from xpon_agent import XponAgent
 from xpon_handler import XponHandler
-from voltha.protos.bbf_fiber_base_pb2 import ChannelgroupConfig, \
-    ChannelpartitionConfig, ChannelpairConfig, OntaniConfig, VOntaniConfig, \
-    VEnetConfig
-from voltha.protos.bbf_fiber_traffic_descriptor_profile_body_pb2 import \
-    TrafficDescriptorProfileData
-from voltha.protos.bbf_fiber_tcont_body_pb2 import TcontsConfigData
-from voltha.protos.bbf_fiber_gemport_body_pb2 import GemportsConfigData
+from voltha.protos.bbf_fiber_base_pb2 import ChannelgroupConfig, ChannelpartitionConfig, \
+    ChannelpairConfig, OntaniConfig, VOntaniConfig, VEnetConfig
 
 log = structlog.get_logger()
 
@@ -96,11 +91,6 @@ class VolthaCore(object):
 
         log.info('started')
         returnValue(self)
-
-    @inlineCallbacks
-    def register_grpc_service(self):
-        yield self.local_handler.register_grpc_service()
-        yield self.global_handler.register_grpc_service()
 
     def stop(self):
         log.debug('stopping')
@@ -169,8 +159,7 @@ class VolthaCore(object):
             self._handle_add_logical_device(data)
         elif isinstance(data, (ChannelgroupConfig, ChannelpartitionConfig,
                                ChannelpairConfig, OntaniConfig, VOntaniConfig,
-                               VEnetConfig, TrafficDescriptorProfileData,
-                               TcontsConfigData, GemportsConfigData)):
+                               VEnetConfig)):
             self.xpon_agent.create_interface(data)
         elif isinstance(data, AlarmFilter):
             self._handle_add_alarm_filter(data)
@@ -184,9 +173,8 @@ class VolthaCore(object):
         elif isinstance(data, LogicalDevice):
             self._handle_remove_logical_device(data)
         elif isinstance(data, (ChannelgroupConfig, ChannelpartitionConfig,
-                               ChannelpairConfig, OntaniConfig, VOntaniConfig,
-                               VEnetConfig, TrafficDescriptorProfileData,
-                               TcontsConfigData, GemportsConfigData)):
+                                ChannelpairConfig, OntaniConfig, VOntaniConfig,
+                                VEnetConfig)):
             self.xpon_agent.remove_interface(data)
         elif isinstance(data, AlarmFilter):
             self._handle_remove_alarm_filter(data)
