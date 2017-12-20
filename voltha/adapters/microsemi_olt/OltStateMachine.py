@@ -19,17 +19,19 @@ from voltha.adapters.microsemi_olt.BaseOltAutomaton import BaseOltAutomaton
 from voltha.adapters.microsemi_olt.PAS5211 import PAS5211MsgGetProtocolVersion, PAS5211MsgGetOltVersion, \
     PAS5211MsgGetOltVersionResponse, PAS5211MsgGetProtocolVersionResponse, \
     SnrBurstDelay, RngBurstDelay, GeneralOpticsParams, ResetValues, ResetTimingCtrl, PreambleParams, \
-    PAS5211MsgSetOltOpticsResponse, CHANNELS, PAS5211MsgSetOpticsIoControlResponse, PAS5211MsgGetGeneralParamResponse, PAS5211MsgAddOltChannel, \
+    PAS5211MsgSetOltOpticsResponse, CHANNELS, PAS5211MsgSetOpticsIoControlResponse, PAS5211MsgGetGeneralParamResponse, \
+    PAS5211MsgAddOltChannel, \
     PAS5211MsgAddOltChannelResponse, PAS5211MsgSetAlarmConfigResponse, PAS5211MsgGetDbaMode, \
     PAS5211MsgGetDbaModeResponse, PAS5211MsgStartDbaAlgorithm, \
-    PAS5211MsgStartDbaAlgorithmResponse,  PAS5211MsgSetOltChannelActivationPeriod, \
-    PAS5211MsgSetOltChannelActivationPeriodResponse
-from voltha.adapters.microsemi_olt.PAS5211_constants import PON_OPTICS_VOLTAGE_IF_LVPECL, PON_ENABLE, PON_POLARITY_ACTIVE_HIGH, \
+    PAS5211MsgStartDbaAlgorithmResponse, PAS5211MsgSetOltChannelActivationPeriod, \
+    PAS5211MsgSetOltChannelActivationPeriodResponse, PAS5211MsgHeader
+from voltha.adapters.microsemi_olt.PAS5211_constants import PON_OPTICS_VOLTAGE_IF_LVPECL, PON_ENABLE, \
+    PON_POLARITY_ACTIVE_HIGH, \
     PON_SD_SOURCE_LASER_SD, PON_RESET_TYPE_DELAY_BASED, PON_DISABLE, PON_RESET_TYPE_NORMAL_START_BURST_BASED, \
-    PON_TX_ENABLE_DEFAULT, PON_ALARM_LOS,  PON_DBA_MODE_LOADED_NOT_RUNNING,  PON_DBA_MODE_RUNNING
+    PON_TX_ENABLE_DEFAULT, PON_ALARM_LOS, PON_DBA_MODE_LOADED_NOT_RUNNING, PON_DBA_MODE_RUNNING
 from voltha.adapters.microsemi_olt.PAS5211_utils import general_param, olt_optics_pkt, burst_timing, io_ctrl_optics, \
     alarm_config
-
+from voltha.extensions.omci.omci_frame import OmciFrame
 import structlog
 
 from voltha.protos.common_pb2 import ConnectStatus
@@ -38,15 +40,25 @@ log = structlog.get_logger()
 
 
 class OltStateMachine(BaseOltAutomaton):
-
     send_state = []
     dba_needs_start = False
 
     def check_channel_state(self):
         for i in CHANNELS:
-                if not self.send_state[i]:
-                    return False
+            if not self.send_state[i]:
+                return False
         self.send_state = []
+        return True
+
+    def master_filter(self, pkt):
+
+        if not super(OltStateMachine, self).master_filter(pkt):
+            return False
+
+        if OmciFrame in pkt:
+            log.debug("OMCI-message-type: {}".format(pkt[OmciFrame].message_type))
+            return False
+
         return True
 
     """
@@ -133,17 +145,18 @@ class OltStateMachine(BaseOltAutomaton):
     def wait_activation(self):
         pass
 
-    @ATMT.state()
+    @ATMT.state(final=1)
     def initialized(self):
-        pass
-
-    @ATMT.state()
-    def wait_keepalive(self):
-        pass
+        log.debug('OLT state machine ended')
+    #
+    # @ATMT.state()
+    # def wait_keepalive(self):
+    #     pass
 
     @ATMT.state(error=1)
     def ERROR(self):
-        pass
+        raise self.initialized()
+        # pass
 
     """
     Transitions
@@ -212,7 +225,8 @@ class OltStateMachine(BaseOltAutomaton):
         general_optics_param = GeneralOpticsParams(laser_reset_polarity=PON_POLARITY_ACTIVE_HIGH,
                                                    laser_sd_polarity=PON_POLARITY_ACTIVE_HIGH,
                                                    sd_source=PON_SD_SOURCE_LASER_SD, sd_hold_snr_ranging=PON_DISABLE,
-                                                   sd_hold_normal=PON_DISABLE, reset_type_snr_ranging=PON_RESET_TYPE_DELAY_BASED,
+                                                   sd_hold_normal=PON_DISABLE,
+                                                   reset_type_snr_ranging=PON_RESET_TYPE_DELAY_BASED,
                                                    reset_type_normal=PON_RESET_TYPE_NORMAL_START_BURST_BASED,
                                                    laser_reset_enable=PON_ENABLE)
 
@@ -221,21 +235,21 @@ class OltStateMachine(BaseOltAutomaton):
                                                              laser_reset_d2=2,
                                                              laser_reset_d1=5),
                                 reset_snr_burst=ResetValues(bcdr_reset_d2=2,
-                                                             bcdr_reset_d1=9,
-                                                             laser_reset_d2=2,
-                                                             laser_reset_d1=1),
+                                                            bcdr_reset_d1=9,
+                                                            laser_reset_d2=2,
+                                                            laser_reset_d1=1),
                                 reset_rng_burst=ResetValues(bcdr_reset_d2=2,
-                                                             bcdr_reset_d1=9,
-                                                             laser_reset_d2=2,
-                                                             laser_reset_d1=1),
+                                                            bcdr_reset_d1=9,
+                                                            laser_reset_d2=2,
+                                                            laser_reset_d1=1),
                                 single_reset=ResetValues(bcdr_reset_d2=1,
-                                                             bcdr_reset_d1=1,
-                                                             laser_reset_d2=1,
-                                                             laser_reset_d1=1),
+                                                         bcdr_reset_d1=1,
+                                                         laser_reset_d2=1,
+                                                         laser_reset_d1=1),
                                 double_reset=ResetValues(bcdr_reset_d2=1,
-                                                             bcdr_reset_d1=1,
-                                                             laser_reset_d2=1,
-                                                             laser_reset_d1=1))
+                                                         bcdr_reset_d1=1,
+                                                         laser_reset_d2=1,
+                                                         laser_reset_d1=1))
 
         preamble = PreambleParams(correlation_preamble_length=8, preamble_length_snr_rng=119,
                                   guard_time_data_mode=32, type1_size_data=0,
@@ -245,11 +259,11 @@ class OltStateMachine(BaseOltAutomaton):
                                   delimiter_byte3=131)
 
         olt_optics = olt_optics_pkt(PON_OPTICS_VOLTAGE_IF_LVPECL, burst=burst_timing(1, 1,
-                                                    snr_burst=snr_burst_delay,
-                                                    rng_burst=rng_burst_delay),
-                                 general=general_optics_param,
-                                 reset=reset,
-                                 preamble=preamble)
+                                                                                     snr_burst=snr_burst_delay,
+                                                                                     rng_burst=rng_burst_delay),
+                                    general=general_optics_param,
+                                    reset=reset,
+                                    preamble=preamble)
 
         for id in CHANNELS:
             self.send_state.append(False)
@@ -398,7 +412,6 @@ class OltStateMachine(BaseOltAutomaton):
         log.error("No DBA information returned; disconnecting")
         raise self.ERROR()
 
-
     @ATMT.receive_condition(wait_dba_mode)
     def wait_for_dba_mode(self, pkt):
 
@@ -419,7 +432,8 @@ class OltStateMachine(BaseOltAutomaton):
     # Transition from got_dba_mode
     @ATMT.condition(got_dba_mode)
     def send_start_dba(self):
-        dba_start = PAS5211MsgStartDbaAlgorithm(size=0, initialization_data=None)
+        dba_start = PAS5211MsgStartDbaAlgorithm(
+            size=0, initialization_data=None)
         for id in CHANNELS:
             self.send_state.append(False)
             self.send(self.p(dba_start, channel_id=id))
@@ -427,7 +441,7 @@ class OltStateMachine(BaseOltAutomaton):
 
     # Transitions from wait_dba_start
     @ATMT.timeout(wait_dba_start, 3)
-    def dba_timeout(self):
+    def dba_start_timeout(self):
         log.error("DBA has not started; disconnecting")
         raise self.ERROR()
 
@@ -442,7 +456,8 @@ class OltStateMachine(BaseOltAutomaton):
     # Transitions from got_dba_start
     @ATMT.condition(got_dba_start)
     def send_activation_period(self):
-        activation = PAS5211MsgSetOltChannelActivationPeriod(activation_period=1000)
+        activation = PAS5211MsgSetOltChannelActivationPeriod(
+            activation_period=1000)
         for id in CHANNELS:
             self.send_state.append(False)
             self.send(self.p(activation, channel_id=id))
@@ -462,25 +477,61 @@ class OltStateMachine(BaseOltAutomaton):
                 log.info("Ruby OLT at {} initialised".format(self.target))
                 self.device.create_logical_device()
                 self.device.activate()
+                self.device.add_upstream_port(129)
+                # keep_alive = KeepAlive(
+                #     iface=self.interface, comm=self.comm, target=self.target, device=self.device)
+                # keep_alive.run()
                 raise self.initialized()
         raise self.wait_activation()
 
-    # Keep alive loop
-    @ATMT.timeout(initialized, 1)
+
+class KeepAlive(BaseOltAutomaton):
+    """
+        Master filter: Only allow PAS5211MsgGetOltVersionResponse
+    """
+
+    def master_filter(self, pkt):
+        if not super(KeepAlive, self).master_filter(pkt):
+            return False
+
+        if PAS5211MsgGetOltVersionResponse in pkt:
+            return True
+
+        return False
+
+    """
+        States
+    """
+
+    @ATMT.state(initial=1)
+    def init_keepalive(self):
+        pass
+
+    @ATMT.state()
+    def wait_keepalive(self):
+        pass
+
+    @ATMT.state(error=1)
+    def ERROR(self):
+        pass
+
+    """
+        Transitions
+    """
+
+    # Send Keep Alive
+    @ATMT.condition(init_keepalive)
     def send_keepalive(self):
         self.send(self.p(PAS5211MsgGetOltVersion()))
-        raise self.wait_keepalive()
+        raise self.got_keepalive()
 
-    # Transitions from wait_keepalive
+    #
     @ATMT.timeout(wait_keepalive, 1)
     def timeout_keepalive(self):
         log.error("OLT not responding to keep alive; disconnecting")
         raise self.ERROR()
 
+    # Received Keep Alive
     @ATMT.receive_condition(wait_keepalive)
-    def wait_for_keepalive(self, pkt):
-        if PAS5211MsgGetOltVersionResponse in pkt:
-            raise self.initialized()
-
-
-
+    def got_keepalive(self, pkt):
+        raise self.send_keepalive()

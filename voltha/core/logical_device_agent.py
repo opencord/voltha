@@ -128,6 +128,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
 
     def update_flow_table(self, flow_mod):
 
+        self.log.info("update-flow-table")
         command = flow_mod.command
 
         if command == ofp.OFPFC_ADD:
@@ -169,6 +170,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
     # ~~~~~~~~~~~~~~~~~~~~~~~~~ LOW LEVEL FLOW HANDLERS ~~~~~~~~~~~~~~~~~~~~~~~
 
     def flow_add(self, mod):
+        self.log.info("flow-add")
         assert isinstance(mod, ofp.ofp_flow_mod)
         assert mod.cookie_mask == 0
 
@@ -512,28 +514,34 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         # built-in assumptions, and not yet device vendor specific. The policy-
         # based refinement will be introduced that later.
 
-        groups = self.groups_proxy.get('/').items
-        device_rules_map = self.decompose_rules(flows.items, groups)
-        for device_id, (flows, groups) in device_rules_map.iteritems():
-            self.root_proxy.update('/devices/{}/flows'.format(device_id),
-                                   Flows(items=flows.values()))
-            self.root_proxy.update('/devices/{}/flow_groups'.format(device_id),
-                                   FlowGroups(items=groups.values()))
+        # groups = self.groups_proxy.get('/').items
+        # device_rules_map = self.decompose_rules(flows.items, groups)
+        # for device_id, (flows, groups) in device_rules_map.iteritems():
+        #     self.root_proxy.update('/devices/{}/flows'.format(device_id),
+        #                            Flows(items=flows.values()))
+        #     self.root_proxy.update('/devices/{}/flow_groups'.format(device_id),
+        #                            FlowGroups(items=groups.values()))
+
+        root_device_id = self.self_proxy.get('/').root_device_id
+
+        self.root_proxy.update('/devices/{}/flows'.format(root_device_id),
+                               Flows(items=flows.items))
 
     # ~~~~~~~~~~~~~~~~~~~~ GROUP TABLE UPDATE HANDLING ~~~~~~~~~~~~~~~~~~~~~~~~
 
     def _group_table_updated(self, flow_groups):
-        self.log.debug('group-table-updated',
-                  logical_device_id=self.logical_device_id,
-                  flow_groups=flow_groups)
+        pass
+        # self.log.debug('group-table-updated',
+        #                logical_device_id=self.logical_device_id,
+        #                flow_groups=flow_groups)
 
-        flows = self.flows_proxy.get('/').items
-        device_flows_map = self.decompose_rules(flows, flow_groups.items)
-        for device_id, (flows, groups) in device_flows_map.iteritems():
-            self.root_proxy.update('/devices/{}/flows'.format(device_id),
-                                   Flows(items=flows.values()))
-            self.root_proxy.update('/devices/{}/flow_groups'.format(device_id),
-                                   FlowGroups(items=groups.values()))
+        # flows = self.flows_proxy.get('/').items
+        # device_flows_map = self.decompose_rules(flows, flow_groups.items)
+        # for device_id, (flows, groups) in device_flows_map.iteritems():
+        #     self.root_proxy.update('/devices/{}/flows'.format(device_id),
+        #                            Flows(items=flows.values()))
+        #     self.root_proxy.update('/devices/{}/flow_groups'.format(device_id),
+        #                            FlowGroups(items=groups.values()))
 
     # ~~~~~~~~~~~~~~~~~~~ APIs NEEDED BY FLOW DECOMPOSER ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -610,32 +618,56 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
     def _assure_cached_tables_up_to_date(self):
         if self._routes is None:
             logical_ports = self.self_proxy.get('/ports')
+            self.log.info("logical-ports", logical_ports=logical_ports)
             graph, self._routes = self.compute_routes(
                 self.root_proxy, logical_ports)
             self._default_rules = self._generate_default_rules(graph)
             root_ports = [p for p in logical_ports if p.root_port]
-            assert len(root_ports) == 1, 'Only one root port supported at this time'
+            self.log.info("root-ports", root_ports=root_ports)
+            # assert len(root_ports) == 1
             self._nni_logical_port_no = root_ports[0].ofp_port.port_no
 
 
     def _generate_default_rules(self, graph):
 
         def root_device_default_rules(device):
-            flows = OrderedDict()
+            ports = self.root_proxy.get('/devices/{}/ports'.format(device.id))
+            upstream_ports = [
+                port for port in ports if port.type == Port.ETHERNET_NNI
+            ]
+            assert len(upstream_ports) == 1
+            downstream_ports = [
+                port for port in ports if port.type == Port.PON_OLT
+            ]
+            assert len(downstream_ports) == 1, \
+                'Initially, we only handle one PON port'
+            flows = OrderedDict((f.id, f) for f in [
+                mk_flow_stat(
+                    priority=2000,
+                    match_fields=[
+                        in_port(upstream_ports[0].port_no),
+                        vlan_vid(ofp.OFPVID_PRESENT | 4000),
+                        vlan_pcp(0)
+                    ],
+                    actions=[
+                        pop_vlan(),
+                        output(downstream_ports[0].port_no)
+                    ]
+                )
+            ])
             groups = OrderedDict()
             return flows, groups
 
         def leaf_device_default_rules(device):
             ports = self.root_proxy.get('/devices/{}/ports'.format(device.id))
             upstream_ports = [
-                port for port in ports if port.type == Port.PON_ONU \
-                                            or port.type == Port.VENET_ONU
+                port for port in ports if port.type == Port.PON_ONU
             ]
             assert len(upstream_ports) == 1
             downstream_ports = [
                 port for port in ports if port.type == Port.ETHERNET_UNI
             ]
-            # assert len(downstream_ports) == 1
+            assert len(downstream_ports) == 1
             flows = OrderedDict((f.id, f) for f in [
                 mk_flow_stat(
                     priority=500,

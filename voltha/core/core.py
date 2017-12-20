@@ -199,11 +199,16 @@ class VolthaCore(object):
     def _handle_add_device(self, device):
         # when a device is added, we attach an observer to it so that we can
         # guard it and propagate changes down to its owner adapter
-        assert isinstance(device, Device)
-        path = '/devices/{}'.format(device.id)
-        assert device.id not in self.device_agents
-        self.device_agents[device.id] = yield DeviceAgent(self, device).start()
-        self.xpon_agent.register_interface(device.id, path, update=False)
+        log.debug('_handle_add_device', device=device)
+        try:
+            assert isinstance(device, Device)
+            path = '/devices/{}'.format(device.id)
+            assert device.id not in self.device_agents
+            self.device_agents[device.id] = yield DeviceAgent(self, device).start()
+            self.xpon_agent.register_interface(device.id, path, update=False)
+        except Exception, e:
+            log.exception('exception', e=e)
+            raise e
 
     @inlineCallbacks
     def _handle_reconcile_existing_device(self, device, reconcile):

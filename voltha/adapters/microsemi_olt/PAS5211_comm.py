@@ -54,16 +54,17 @@ def determine_src_mac(iface):
         return netifaces.ifaddresses(iface)[netifaces.AF_LINK][0]['addr']
     return None
 
+seqgen = sequence_generator(0)
 
 class PAS5211Communication(object):
     def __init__(self, dst_mac, init=0, iface = None):
         self.iface = iface
         self.dst_mac = dst_mac
-        self.seqgen = sequence_generator(init)
+        # self.seqgen = sequence_generator(init)
         self.src_mac = determine_src_mac(self.iface)
 
     def frame(self, msg, channel_id=-1, onu_id=-1, onu_session_id=-1):
-        return constructPAS5211Frames(msg, self.seqgen.next(), self.src_mac,
+        return constructPAS5211Frames(msg, seqgen.next(), self.src_mac,
                                       self.dst_mac, channel_id=channel_id,
                                       onu_id=onu_id, onu_session_id=onu_session_id)
 

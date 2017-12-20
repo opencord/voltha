@@ -89,7 +89,7 @@ class ConfigRoot(ConfigNode):
 
     def update(self, path, data, strict=None, txid=None, mk_branch=None):
         assert mk_branch is None
-        self.check_callback_queue()
+        # self.check_callback_queue()
         try:
             if txid is not None:
                 dirtied = self._dirty_nodes[txid]
@@ -108,7 +108,7 @@ class ConfigRoot(ConfigNode):
 
     def add(self, path, data, txid=None, mk_branch=None):
         assert mk_branch is None
-        self.check_callback_queue()
+        # self.check_callback_queue()
         try:
             if txid is not None:
                 dirtied = self._dirty_nodes[txid]
@@ -126,7 +126,7 @@ class ConfigRoot(ConfigNode):
 
     def remove(self, path, txid=None, mk_branch=None):
         assert mk_branch is None
-        self.check_callback_queue()
+        # self.check_callback_queue()
         try:
             if txid is not None:
                 dirtied = self._dirty_nodes[txid]

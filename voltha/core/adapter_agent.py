@@ -40,12 +40,6 @@ from voltha.protos.voltha_pb2 import DeviceGroup, LogicalDevice, \
     LogicalPort, AdminState, OperStatus, AlarmFilterRuleKey
 from voltha.registry import registry
 from common.utils.id_generation import create_cluster_device_id
-import re
-
-
-class MacAddressError(BaseException):
-    def __init__(self, error):
-        self.error = error
 
 @implementer(IAdapterAgent)
 class AdapterAgent(object):
@@ -130,13 +124,15 @@ class AdapterAgent(object):
             self._make_up_to_date('/device_types', key, device_type)
 
     def _make_up_to_date(self, container_path, key, data):
+        self.log.info('_make_up_to_date for '+str(key))
         full_path = container_path + '/' + str(key)
         root_proxy = self.core.get_proxy('/')
         try:
             root_proxy.get(full_path)
             root_proxy.update(full_path, data)
-        except KeyError:
+        except KeyError, e:
             root_proxy.add(container_path, data)
+            self.log.exception('failure', e=e, key=str(key), data=data)
         return full_path
 
     def _remove_node(self, container_path, key):
@@ -175,21 +171,6 @@ class AdapterAgent(object):
     def reboot_device(self, device):
         return self.adapter.reboot_device(device)
 
-    def download_image(self, device, request):
-        return self.adapter.download_image(device, request)
-
-    def get_image_download_status(self, device, request):
-        return self.adapter.get_image_download_status(device, request)
-
-    def cancel_image_download(self, device, request):
-        return self.adapter.cancel_image_download(device, request)
-
-    def activate_image_update(self, device, request):
-        return self.adapter.activate_image_update(device, request)
-
-    def revert_image_update(self, device, request):
-        return self.adapter.revert_image_update(device, request)
-
     def self_test(self, device):
         return self.adapter.self_test_device(device)
 
@@ -215,53 +196,15 @@ class AdapterAgent(object):
     # def update_pm_collection(self, device, pm_collection_config):
     #    return self.adapter.update_pm_collection(device, pm_collection_config)
 
-    def create_interface(self, device, data):
-        return self.adapter.create_interface(device, data)
+    def create_interface (self, device, data):
+        return self.adapter.create_interface (device, data)
 
-    def update_interface(self, device, data):
-        return self.adapter.update_interface(device, data)
+    def update_interface (self, device, data):
+        return self.adapter.update_interface (device, data)
 
     def remove_interface(self, device, data):
         return self.adapter.remove_interface(device, data)
 
-    def create_tcont(self, device, tcont_data, traffic_descriptor_data):
-        return self.adapter.create_tcont(device, tcont_data,
-                                         traffic_descriptor_data)
-
-    def update_tcont(self, device, tcont_data, traffic_descriptor_data):
-        return self.adapter.update_tcont(device, tcont_data,
-                                         traffic_descriptor_data)
-
-    def remove_tcont(self, device, tcont_data, traffic_descriptor_data):
-        return self.adapter.remove_tcont(device, tcont_data,
-                                         traffic_descriptor_data)
-
-    def create_gemport(self, device, data):
-        return self.adapter.create_gemport(device, data)
-
-    def update_gemport(self, device, data):
-        return self.adapter.update_gemport(device, data)
-
-    def remove_gemport(self, device, data):
-        return self.adapter.remove_gemport(device, data)
-
-    def create_multicast_gemport(self, device, data):
-        return self.adapter.create_multicast_gemport(device, data)
-
-    def update_multicast_gemport(self, device, data):
-        return self.adapter.update_multicast_gemport(device, data)
-
-    def remove_multicast_gemport(self, device, data):
-        return self.adapter.remove_multicast_gemport(device, data)
-
-    def create_multicast_distribution_set(self, device, data):
-        return self.adapter.create_multicast_distribution_set(device, data)
-
-    def update_multicast_distribution_set(self, device, data):
-        return self.adapter.update_multicast_distribution_set(device, data)
-
-    def remove_multicast_distribution_set(self, device, data):
-        return self.adapter.remove_multicast_distribution_set(device, data)
 
     # ~~~~~~~~~~~~~~~~~~~ Adapter-Facing Service ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -353,29 +296,6 @@ class AdapterAgent(object):
         device = self.get_device(device_id)
         self.adapter.update_pm_config(device, device_pm_config)
 
-    def update_image_download(self, img_dnld):
-        self.log.info('update-image-download', img_dnld=img_dnld)
-        try:
-            # we run the update through the device_agent so that the change
-            # does not loop back to the adapter unnecessarily
-            device_agent = self.core.get_device_agent(img_dnld.id)
-            device_agent.update_device_image_download(img_dnld)
-        except Exception as e:
-            self.log.exception(e.message)
-
-    def delete_image_download(self, img_dnld):
-        self.log.info('delete-image-download', img_dnld=img_dnld)
-        try:
-            root_proxy = self.core.get_proxy('/')
-            path = '/devices/{}/image_downloads/{}'.\
-                    format(img_dnld.id, img_dnld.name)
-            root_proxy.get(path)
-            root_proxy.remove(path)
-            device_agent = self.core.get_device_agent(img_dnld.id)
-            device_agent.unregister_device_image_download(img_dnld.name)
-        except Exception as e:
-            self.log.exception(e.message)
-
     def _add_peer_reference(self, device_id, port):
         # for referential integrity, add/augment references
         port.device_id = device_id
@@ -414,12 +334,6 @@ class AdapterAgent(object):
         ports = self.root_proxy.get('/devices/{}/ports'.format(device_id))
         return [p for p in ports if p.type == port_type]
 
-    def delete_port(self, device_id, port):
-        assert isinstance(port, Port)
-        # for referential integrity, add/augment references
-        self._del_peer_reference(device_id, port)
-        # Delete port
-        self._remove_node('/devices/{}/ports'.format(device_id), port.port_no)
 
     def disable_all_ports(self, device_id):
         """
@@ -453,13 +367,6 @@ class AdapterAgent(object):
             self._make_up_to_date('/devices/{}/ports'.format(device_id),
                                   port.port_no, port)
 
-    def update_operstatus_all_ports(self, device_id, oper_status):
-        ports = self.root_proxy.get('/devices/{}/ports'.format(device_id))
-        for port in ports:
-            port.oper_status = oper_status
-            self._make_up_to_date('/devices/{}/ports'.format(device_id),
-                                  port.port_no, port)
-
     def delete_all_peer_references(self, device_id):
         """
         Remove all peer port references for that device
@@ -484,10 +391,6 @@ class AdapterAgent(object):
         self.log.info('delete-port-reference', device_id=device_id, port=port)
         self._del_peer_reference(device_id, port)
 
-        # update child port details
-        self._make_up_to_date('/devices/{}/ports'.format(device_id),
-                              port.port_no, port)
-
     def add_port_reference_to_parent(self, device_id, port):
         """
         Add the port reference to the parent device
@@ -498,40 +401,18 @@ class AdapterAgent(object):
         assert isinstance(port, Port)
         self.log.info('add-port-reference', device_id=device_id, port=port)
         self._add_peer_reference(device_id, port)
-        # update child port details
-        self._make_up_to_date('/devices/{}/ports'.format(device_id),
-                              port.port_no, port)
 
-    def _find_first_available_id(self, dpid=None):
-
-        def _is_valid_mac_address(dpid):
-            return re.match("[0-9a-f]{2}([-:])[0-9a-f]{2}(\\1[0-9a-f]{2}){4}$",
-                     dpid)
-
-        # If a dpid is provided then validate whether it is a MAC address
-        switch_id = 1
-        if dpid:
-            dpid = dpid.lower()
-            if not _is_valid_mac_address(dpid):
-                raise MacAddressError('Invalid-mac-address-format')
-            switch_id = int(dpid.replace(':', ''), 16)
-
+    def _find_first_available_id(self):
         logical_devices = self.root_proxy.get('/logical_devices')
         existing_ids = set(ld.id for ld in logical_devices)
         existing_datapath_ids = set(ld.datapath_id for ld in logical_devices)
         core_id = registry('core').core_store_id
-
+        i = 1
         while True:
-            ld_id, dp_id = create_cluster_logical_device_ids(core_id, switch_id)
-            id_exists = dp_id in existing_datapath_ids or ld_id in \
-                                                            existing_ids
-            if not id_exists:
+            ld_id, dp_id = create_cluster_logical_device_ids(core_id, i)
+            if dp_id not in existing_datapath_ids and ld_id not in existing_ids:
                 return ld_id, dp_id
-            else:
-                if dpid:
-                    raise MacAddressError('Already-registered-mac-address')
-                else:
-                    switch_id += 1
+            i += 1
 
     def get_logical_device(self, logical_device_id):
         return self.root_proxy.get('/logical_devices/{}'.format(
@@ -541,18 +422,11 @@ class AdapterAgent(object):
         return self.root_proxy.get('/logical_devices/{}/ports/{}'.format(
             logical_device_id, port_id))
 
-    def create_logical_device(self, logical_device, dpid=None):
-        """
-        Allow the adapters to provide their own datapath id.  This must
-        be the OLT MAC address.
-        :param logical_device:
-        :param dpid: OLT MAC address
-        :return: updated logical device
-        """
+    def create_logical_device(self, logical_device):
         assert isinstance(logical_device, LogicalDevice)
 
         if not logical_device.id:
-            ld_id, dp_id = self._find_first_available_id(dpid)
+            ld_id, dp_id = self._find_first_available_id()
             logical_device.id = ld_id
             logical_device.datapath_id = dp_id
 
@@ -570,10 +444,10 @@ class AdapterAgent(object):
 
     def reconcile_logical_device(self, logical_device_id):
         """
-        This is called by the adapter to reconcile the physical device with 
+        This is called by the adapter to reconcile the physical device with
         the logical device.  For now, we only set the packet-out subscription
-        :param logical_device_id: 
-        :return: 
+        :param logical_device_id:
+        :return:
         """
         # Keep a reference to the packet out subscription as it will be
         # referred during removal
@@ -622,15 +496,12 @@ class AdapterAgent(object):
         self._remove_node('/logical_devices/{}/ports'.format(
             logical_device_id), port.id)
 
-    def delete_logical_port_by_id(self, logical_device_id, port_id):
-        self._remove_node('/logical_devices/{}/ports'.format(
-            logical_device_id), port_id)
-
     def update_logical_port(self, logical_device_id, port):
         assert isinstance(port, LogicalPort)
         self.log.debug('update-logical-port',
                        logical_device_id=logical_device_id,
                        port=port)
+
         self._make_up_to_date(
             '/logical_devices/{}/ports'.format(logical_device_id),
             port.id, port)
@@ -659,8 +530,6 @@ class AdapterAgent(object):
             device_agent.reconcile_existing_device(child)
 
 
-    #Obselete API - discouraged to be decommissioned after
-    #adapters are align to new APIs
     def child_device_detected(self,
                               parent_device_id,
                               parent_port_no,
@@ -669,52 +538,27 @@ class AdapterAgent(object):
                               admin_state,
                               **kw):
         # we create new ONU device objects and insert them into the config
-        device = Device(
-            id=create_cluster_device_id(self.core.core_store_id),
-            # id=uuid4().hex[:12],
-            type=child_device_type,
-            parent_id=parent_device_id,
-            parent_port_no=parent_port_no,
-            proxy_address=proxy_address,
-            admin_state=admin_state,
-            **kw
-        )
-        self._make_up_to_date(
-            '/devices', device.id, device)
+        try:
+            device = Device(
+                id=create_cluster_device_id(self.core.core_store_id),
+                # id=uuid4().hex[:12],
+                type=child_device_type,
+                parent_id=parent_device_id,
+                parent_port_no=parent_port_no,
+                proxy_address=proxy_address,
+                admin_state=admin_state,
+                **kw
+            )
 
-        topic = self._gen_tx_proxy_address_topic(proxy_address)
-        self._tx_event_subscriptions[topic] = self.event_bus.subscribe(
-            topic, lambda t, m: self._send_proxied_message(proxy_address, m))
+            self._make_up_to_date(
+                '/devices', device.id, device)
 
-    def add_onu_device(self,
-                       parent_device_id,
-                       parent_port_no,
-                       vendor_id,
-                       proxy_address,
-                       admin_state,
-                       **kw):
-        device_type = next((dt for dt in self.root_proxy.get('/device_types')
-                            if dt.vendor_id == vendor_id and \
-                            dt.id.endswith("_onu")), None)
-        # we create new ONU device objects and insert them into the config
-        device = Device(
-            id=create_cluster_device_id(self.core.core_store_id),
-            # id=uuid4().hex[:12],
-            type=device_type.id,
-            vendor_id=vendor_id,
-            parent_id=parent_device_id,
-            parent_port_no=parent_port_no,
-            proxy_address=proxy_address,
-            admin_state=admin_state,
-            adapter=device_type.adapter,
-            **kw
-        )
-        self._make_up_to_date('/devices', device.id, device)
-
-        topic = self._gen_tx_proxy_address_topic(proxy_address)
-        self._tx_event_subscriptions[topic] = self.event_bus.subscribe(
-            topic, lambda t, m: self._send_proxied_message(proxy_address, m))
-
+            topic = self._gen_tx_proxy_address_topic(proxy_address)
+            self._tx_event_subscriptions[topic] = self.event_bus.subscribe(
+                topic, lambda t, m: self._send_proxied_message(proxy_address, m))
+        except Exception, e:
+            self.log.exception('exception', e=e)
+            raise e
 
     def get_child_device_with_proxy_address(self, proxy_address):
         # Proxy address is defined as {parent id, channel_id}
@@ -759,7 +603,7 @@ class AdapterAgent(object):
 
         for child_id in children_ids:
             device = self.get_device(child_id)
-            if oper_status is not None:
+            if oper_status:
                 device.oper_status = oper_status
             if connect_status:
                 device.connect_status = connect_status
@@ -767,6 +611,27 @@ class AdapterAgent(object):
                 device.admin_state = admin_state
             self._make_up_to_date(
                 '/devices', device.id, device)
+
+    def update_child_device_state(self,
+                                  device,
+                                   oper_status=None,
+                                   connect_status=None,
+                                   admin_state=None):
+        """ Update status of all child devices """
+        self.log.debug('update-device',
+                       device_id=device.id,
+                       oper_status=oper_status,
+                       connect_status=connect_status,
+                       admin_state=admin_state)
+
+        if oper_status:
+            device.oper_status = oper_status
+        if connect_status:
+            device.connect_status = connect_status
+        if admin_state:
+            device.admin_state = admin_state
+        self._make_up_to_date(
+            '/devices', device.id, device)
 
     def delete_child_device(self, parent_device_id, child_device_id):
         onu_device = self.root_proxy.get('/devices/{}'.format(child_device_id))

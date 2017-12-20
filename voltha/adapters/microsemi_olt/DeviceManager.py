@@ -97,6 +97,16 @@ class DeviceManager(object):
 
         self.logical_device = self.adapter_agent.create_logical_device(ld)
 
+    def add_upstream_port(self, port):
+        nni_port = Port(
+            port_no=port,
+            label='NNI facing Ethernet port',
+            type=Port.ETHERNET_NNI,
+            admin_state=AdminState.ENABLED,
+            oper_status=OperStatus.ACTIVE
+        )
+        self.adapter_agent.add_port(self.device.id, nni_port)
+
     def add_port(self, port):
         self.adapter_agent.add_port(self.device.id, port)
 
@@ -138,6 +148,19 @@ class DeviceManager(object):
             admin_state=AdminState.ENABLED,
             vlan=0
         )
+
+    def deactivate_onu(self, onu_id=None, channel_id=None, onu_session_id=None):
+        try:
+            child_device = self.adapter_agent.get_child_device_with_proxy_address(Device.ProxyAddress(
+                device_id=self.device.id,
+                channel_id=channel_id,
+                onu_id=onu_id,
+                onu_session_id=onu_session_id
+            ))
+            if child_device:
+                self.adapter_agent.update_child_device_state(child_device, admin_state=AdminState.DISABLED)
+        except KeyError:
+            log.info("ONU {} cannot be deactivated".format(onu_id))
 
     def activate(self):
         self.device = self.adapter_agent.get_device(self.device.id)

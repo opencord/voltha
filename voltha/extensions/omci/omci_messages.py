@@ -298,3 +298,13 @@ class OmciMibResetResponse(OmciMessage):
         ShortField("entity_id", 0),
         ByteField("success_code", 0)
     ]
+
+class OmciAttributeValueChange(OmciMessage):
+    name = "AttributeValueChange"
+    message_id = 0x11
+    fields_desc = [
+        ShortField("entity_class", None),
+        ShortField("entity_id", 0),
+        ShortField("attributes_mask", None),
+        OmciMaskedData("data")
+    ]

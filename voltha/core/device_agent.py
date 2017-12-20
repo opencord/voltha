@@ -295,13 +295,21 @@ class DeviceAgent(object):
             assert callable(transition_handler)
             yield transition_handler(self, device, dry_run)
 
-    @inlineCallbacks
+    # inlineCallbacks
     def _activate_device(self, device, dry_run=False):
+        reactor.callLater(10, self.activate_device , device, dry_run) # Delay 1 second the execution
+
+    def activate_device(self, device, dry_run=False):
         self.log.debug('activate-device', device=device, dry_run=dry_run)
         if not dry_run:
             device.oper_status = OperStatus.ACTIVATING
-            self.update_device(device)
-            yield self.adapter_agent.adopt_device(device)
+            try:
+                self.update_device(device)
+            except Exception, e:
+                self.log.exception('exception', e=e)
+                raise e
+            #yield self.adapter_agent.adopt_device(device)
+            return self.adapter_agent.adopt_device(device)
 
     def update_device(self, device):
         self.last_data = device  # so that we don't propagate back
@@ -401,6 +409,7 @@ class DeviceAgent(object):
 
         # if device accepts bulk flow update, lets just call that
         if self.device_type.accepts_bulk_flow_update:
+            self.log.info("device-type-accepts-bulk-flow-updates", adapter_agent=self.adapter_agent)
             groups = self.groups_proxy.get('/') # gather flow groups
             yield self.adapter_agent.update_flows_bulk(
                 device=self.last_data,
