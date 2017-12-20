@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "83dc20b2_2b4c7da4",
+        "filename": "voltha/core/core.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 40,
+      "author": {
+        "id": 1000228
+      },
+      "writtenOn": "2017-12-20T16:31:45Z",
+      "side": 1,
+      "message": "Not clear to me, why xPon objects TrafficDescriptorProfileData, TcontsConfigData, and GemportsConfigDat are removed from the core?",
+      "range": {
+        "startLine": 40,
+        "startChar": 52,
+        "endLine": 40,
+        "endChar": 63
+      },
+      "revId": "5452bb6ae8033dcff7022e68b7de3fce2da52dfd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
