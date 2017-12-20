@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: vcli
+  labels:
+    name: vcli
+spec:
+  ports:
+    - name: ssh
+      port: 5022
+      targetPort: 22
+  selector:
+    app: vcli
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: vcli
+spec:
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: vcli
+    spec:
+      containers:
+        - name: vcli
+          image: "cord/vcli:latest"
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          args:
+            - "/cli/cli/setup.sh"
+            - "-C consul:8500"
+            - "-g voltha:50555"
+            - "-s voltha:18880"
+            - "-G"
+          ports:
+            - containerPort: 22
+              name: ssh-port
+          imagePullPolicy: Never
+
+

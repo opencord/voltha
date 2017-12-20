@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: vcore
+  labels:
+    name: vcore
+spec:
+  clusterIP: None
+  ports:
+    - name: rest
+      port: 8880
+      targetPort: 8880
+    - name: mystery
+      port: 18880
+      targetPort: 18880
+    - name: grpc
+      port: 50556
+      targetPort: 50556
+  selector:
+    app: vcore
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: vcore
+spec:
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: vcore
+    spec:
+      containers:
+        - name: voltha
+          image: "cord/voltha:latest"
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          args:
+            - "voltha/voltha/main.py"
+            - "-v"
+            - "--consul=consul:8500"
+            - "--etcd=etcd:2379"
+            - "--kafka=kafka"
+            - "--rest-port=8880"
+            - "--grpc-port=50556"
+            - "--interface=eth1"
+            - "--backend=etcd"
+            - "--pon-subnet=172.29.19.0/24"
+          ports:
+            - containerPort: 8880
+              name: rest-port
+            - containerPort: 18880
+              name: mystery-port
+            - containerPort: 50556
+              name: grpc-port
+          imagePullPolicy: Never
+
+
