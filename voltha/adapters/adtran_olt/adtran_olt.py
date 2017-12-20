@@ -16,7 +16,7 @@
 Adtran 1-U OLT adapter.
 """
 import structlog
-from twisted.internet import reactor
+from twisted.internet import reactor, defer
 from zope.interface import implementer
 
 from adtran_olt_handler import AdtranOltHandler
@@ -51,7 +51,7 @@ class AdtranOltAdapter(object):
         self.descriptor = Adapter(
             id=self.name,
             vendor='Adtran, Inc.',
-            version='0.9',
+            version='0.12',
             config=AdapterConfig(log_level=LogLevel.INFO)
         )
         log.debug('adtran_olt.__init__', adapter_agent=adapter_agent)
@@ -132,9 +132,15 @@ class AdtranOltAdapter(object):
         :return: (Deferred) Shall be fired to acknowledge device ownership.
         """
         log.info('adopt-device', device=device)
-        self.devices_handlers[device.id] = AdtranOltHandler(self, device.id)
-        reactor.callLater(0, self.devices_handlers[device.id].activate, device)
-        return device
+        kwargs = {
+            'adapter': self,
+            'device-id': device.id
+        }
+        self.devices_handlers[device.id] = AdtranOltHandler(**kwargs)
+        d = defer.Deferred()
+        reactor.callLater(0, self.devices_handlers[device.id].activate,
+                          device, done_deferred=d)
+        return d
 
     def reconcile_device(self, device):
         """
@@ -148,9 +154,15 @@ class AdtranOltAdapter(object):
         :return: (Deferred) Shall be fired to acknowledge device ownership.
         """
         log.info('reconcile-device', device=device)
-        self.devices_handlers[device.id] = AdtranOltHandler(self, device.id)
-        reactor.callLater(0, self.devices_handlers[device.id].activate, device, reconciling=True)
-        return device
+        kwargs = {
+            'adapter': self,
+            'device-id': device.id
+        }
+        self.devices_handlers[device.id] = AdtranOltHandler(**kwargs)
+        d = defer.Deferred()
+        reactor.callLater(0, self.devices_handlers[device.id].activate, device,
+                          done_deferred=d, reconciling=True)
+        return d
 
     def abandon_device(self, device):
         """
@@ -172,8 +184,10 @@ class AdtranOltAdapter(object):
         :return: (Deferred) Shall be fired to acknowledge disabling the device.
         """
         log.info('disable-device', device=device)
-        reactor.callLater(0, self.devices_handlers[device.id].disable)
-        return device
+        handler = self.devices_handlers.get(device.id)
+        if handler is not None:
+            reactor.callLater(0, handler.disable)
+            return device
 
     def reenable_device(self, device):
         """
@@ -184,45 +198,54 @@ class AdtranOltAdapter(object):
         :return: (Deferred) Shall be fired to acknowledge re-enabling the device.
         """
         log.info('reenable-device', device=device)
-        reactor.callLater(0, self.devices_handlers[device.id].reenable)
-        return device
+        handler = self.devices_handlers.get(device.id)
+        if handler is not None:
+            d = defer.Deferred()
+            reactor.callLater(0, handler.reenable, done_deferred=d)
+            return d
 
     def reboot_device(self, device):
         """
-        This is called to reboot a device based on a NBI call.  The admin
-        state of the device will not change after the reboot
+        This is called to reboot a device based on a NBI call.  The admin state of the device
+        will not change after the reboot
 
         :param device: A Voltha.Device object.
         :return: (Deferred) Shall be fired to acknowledge the reboot.
         """
         log.info('reboot_device', device=device)
-        reactor.callLater(0, self.devices_handlers[device.id].reboot)
-        return device
+        handler = self.devices_handlers.get(device.id)
+        if handler is not None:
+            reactor.callLater(0, handler.reboot)
+            return device
 
     def download_image(self, device, request):
         """
-        This is called to request downloading a specified image into
-        the standby partition of a device based on a NBI call.
-        This call is expected to be non-blocking.
+        This is called to request downloading a specified image into the standby partition
+        of a device based on a NBI call.
+
         :param device: A Voltha.Device object.
-                       A Voltha.ImageDownload object.
+        :param request: A Voltha.ImageDownload object.
         :return: (Deferred) Shall be fired to acknowledge the download.
         """
         log.info('image_download', device=device, request=request)
-        raise NotImplementedError()
+        handler = self.devices_handlers.get(device.id)
+        if handler is not None:
+            return handler.start_download(device, request, defer.Deferred())
 
     def get_image_download_status(self, device, request):
         """
-        This is called to inquire about a requested image download
-        status based on a NBI call.
-        The adapter is expected to update the DownloadImage DB object
+        This is called to inquire about a requested image download status based
+        on a NBI call. The adapter is expected to update the DownloadImage DB object
         with the query result
+
         :param device: A Voltha.Device object.
-                       A Voltha.ImageDownload object.
+        :param request: A Voltha.ImageDownload object.
         :return: (Deferred) Shall be fired to acknowledge
         """
         log.info('get_image_download', device=device, request=request)
-        raise NotImplementedError()
+        handler = self.devices_handlers.get(device.id)
+        if handler is not None:
+            return handler.download_status(device, request, defer.Deferred())
 
     def cancel_image_download(self, device, request):
         """
@@ -230,11 +253,13 @@ class AdtranOltAdapter(object):
         based on a NBI call.  The admin state of the device will not
         change after the download.
         :param device: A Voltha.Device object.
-                       A Voltha.ImageDownload object.
+        :param request: A Voltha.ImageDownload object.
         :return: (Deferred) Shall be fired to acknowledge
         """
         log.info('cancel_image_download', device=device)
-        raise NotImplementedError()
+        handler = self.devices_handlers.get(device.id)
+        if handler is not None:
+            return handler.cancel_download(device, request, defer.Deferred())
 
     def activate_image_update(self, device, request):
         """
@@ -246,11 +271,13 @@ class AdtranOltAdapter(object):
         activated image running on device
         This call is expected to be non-blocking.
         :param device: A Voltha.Device object.
-                       A Voltha.ImageDownload object.
+        :param request: A Voltha.ImageDownload object.
         :return: (Deferred) OperationResponse object.
         """
         log.info('activate_image_update', device=device, request=request)
-        raise NotImplementedError()
+        handler = self.devices_handlers.get(device.id)
+        if handler is not None:
+            return handler.activate_image(device, request, defer.Deferred())
 
     def revert_image_update(self, device, request):
         """
@@ -263,11 +290,13 @@ class AdtranOltAdapter(object):
         previous image running on device
         This call is expected to be non-blocking.
         :param device: A Voltha.Device object.
-                       A Voltha.ImageDownload object.
+        :param request: A Voltha.ImageDownload object.
         :return: (Deferred) OperationResponse object.
         """
         log.info('revert_image_update', device=device, request=request)
-        raise NotImplementedError()
+        handler = self.devices_handlers.get(device.id)
+        if handler is not None:
+            return handler.revert_image(device, request, defer.Deferred())
 
     def self_test_device(self, device):
         """
@@ -277,7 +306,6 @@ class AdtranOltAdapter(object):
         """
         from voltha.protos.voltha_pb2 import SelfTestResponse
         log.info('self-test-device', device=device.id)
-
         # TODO: Support self test?
         return SelfTestResponse(result=SelfTestResponse.NOT_SUPPORTED)
 
@@ -290,7 +318,9 @@ class AdtranOltAdapter(object):
         :return: (Deferred) Shall be fired to acknowledge the deletion.
         """
         log.info('delete-device', device=device)
-        reactor.callLater(0, self.devices_handlers[device.id].delete)
+        handler = self.devices_handlers.get(device.id)
+        if handler is not None:
+            reactor.callLater(0, handler.delete)
         return device
 
     def get_device_details(self, device):
@@ -319,8 +349,9 @@ class AdtranOltAdapter(object):
                  groups=groups, num_flows=len(flows.items))
         assert len(groups.items) == 0, "Cannot yet deal with groups"
 
-        handler = self.devices_handlers[device.id]
-        return handler.update_flow_table(flows.items, device)
+        handler = self.devices_handlers.get(device.id)
+        if handler is not None:
+            return handler.update_flow_table(flows.items, device)
 
     def update_flows_incrementally(self, device, flow_changes, group_changes):
         """
@@ -342,8 +373,9 @@ class AdtranOltAdapter(object):
         :param pm_configs: A Pms
         """
         log.debug('update_pm_config', device=device, pm_configs=pm_configs)
-        handler = self.devices_handlers[device.id]
-        handler.update_pm_config(device, pm_configs)
+        handler = self.devices_handlers.get(device.id)
+        if handler is not None:
+            handler.update_pm_config(device, pm_configs)
 
     def send_proxied_message(self, proxy_address, msg):
         """
@@ -359,8 +391,9 @@ class AdtranOltAdapter(object):
                 indicate that the message was successfully *sent*.
         """
         log.debug('send-proxied-message', proxy_address=proxy_address, msg=msg)
-        handler = self.devices_handlers[proxy_address.device_id]
-        handler.send_proxied_message(proxy_address, msg)
+        handler = self.devices_handlers.get(proxy_address.device_id)
+        if handler is not None:
+            handler.send_proxied_message(proxy_address, msg)
 
     def receive_proxied_message(self, proxy_address, msg):
         """
@@ -399,8 +432,9 @@ class AdtranOltAdapter(object):
             return di
 
         device_id = ldi_to_di(logical_device_id)
-        handler = self.devices_handlers[device_id]
-        handler.packet_out(egress_port_no, msg)
+        handler = self.devices_handlers.get(device_id)
+        if handler is not None:
+            handler.packet_out(egress_port_no, msg)
 
     def receive_inter_adapter_message(self, msg):
         """
@@ -439,33 +473,30 @@ class AdtranOltAdapter(object):
         API to create various interfaces (only some PON interfaces as of now)
         in the devices
         """
-        log.info('create-interface', data=data)
-        if device.id in self.devices_handlers:
-            handler = self.devices_handlers[device.id]
-            if handler is not None:
-                handler.create_interface(data)
+        log.debug('create-interface', data=data)
+        handler = self.devices_handlers.get(device.id)
+        if handler is not None:
+            handler.xpon_create(data)
 
     def update_interface(self, device, data):
         """
         API to update various interfaces (only some PON interfaces as of now)
         in the devices
         """
-        log.info('update-interface', data=data)
-        if device.id in self.devices_handlers:
-            handler = self.devices_handlers[device.id]
-            if handler is not None:
-                handler.update_interface(data)
+        log.debug('update-interface', data=data)
+        handler = self.devices_handlers.get(device.id)
+        if handler is not None:
+            handler.xpon_update(data)
 
     def remove_interface(self, device, data):
         """
         API to delete various interfaces (only some PON interfaces as of now)
         in the devices
         """
-        log.info('remove-interface', data=data)
-        if device.id in self.devices_handlers:
-            handler = self.devices_handlers[device.id]
-            if handler is not None:
-                handler.remove_interface(data)
+        log.debug('remove-interface', data=data)
+        handler = self.devices_handlers.get(device.id)
+        if handler is not None:
+            handler.xpon_remove(data)
 
     def receive_onu_detect_state(self, proxy_address, state):
         """
@@ -480,72 +511,67 @@ class AdtranOltAdapter(object):
         """
         API to create tcont object in the devices
         :param device: device id
-        :tcont_data: tcont data object
-        :traffic_descriptor_data: traffic descriptor data object
+        :param tcont_data: tcont data object
+        :param traffic_descriptor_data: traffic descriptor data object
         :return: None
         """
         log.info('create-tcont', tcont_data=tcont_data,
                  traffic_descriptor_data=traffic_descriptor_data)
-        if device.id in self.devices_handlers:
-            handler = self.devices_handlers[device.id]
-            if handler is not None:
-                handler.create_tcont(tcont_data, traffic_descriptor_data)
+        handler = self.devices_handlers.get(device.id)
+        if handler is not None:
+            handler.create_tcont(tcont_data, traffic_descriptor_data)
 
     def update_tcont(self, device, tcont_data, traffic_descriptor_data):
         """
         API to update tcont object in the devices
         :param device: device id
-        :tcont_data: tcont data object
-        :traffic_descriptor_data: traffic descriptor data object
+        :param tcont_data: tcont data object
+        :param traffic_descriptor_data: traffic descriptor data object
         :return: None
         """
         log.info('update-tcont', tcont_data=tcont_data,
                  traffic_descriptor_data=traffic_descriptor_data)
-        if device.id in self.devices_handlers:
-            handler = self.devices_handlers[device.id]
-            if handler is not None:
-                handler.update_tcont(tcont_data, traffic_descriptor_data)
+        handler = self.devices_handlers.get(device.id)
+        if handler is not None:
+            handler.update_tcont(tcont_data, traffic_descriptor_data)
 
     def remove_tcont(self, device, tcont_data, traffic_descriptor_data):
         """
         API to delete tcont object in the devices
         :param device: device id
-        :tcont_data: tcont data object
-        :traffic_descriptor_data: traffic descriptor data object
+        :param tcont_data: tcont data object
+        :param traffic_descriptor_data: traffic descriptor data object
         :return: None
         """
         log.info('remove-tcont', tcont_data=tcont_data,
                  traffic_descriptor_data=traffic_descriptor_data)
-        if device.id in self.devices_handlers:
-            handler = self.devices_handlers[device.id]
-            if handler is not None:
-                handler.remove_tcont(tcont_data, traffic_descriptor_data)
+        handler = self.devices_handlers.get(device.id)
+        if handler is not None:
+            handler.remove_tcont(tcont_data, traffic_descriptor_data)
 
     def create_gemport(self, device, data):
         """
         API to create gemport object in the devices
         :param device: device id
-        :data: gemport data object
+        :param data: gemport data object
         :return: None
         """
         log.info('create-gemport', data=data)
-        if device.id in self.devices_handlers:
-            handler = self.devices_handlers[device.id]
-            if handler is not None:
-                handler.create_gemport(data)
+        handler = self.devices_handlers.get(device.id)
+        if handler is not None:
+            handler.xpon_create(data)
 
     def update_gemport(self, device, data):
         """
         API to update gemport object in the devices
         :param device: device id
-        :data: gemport data object
+        :param data: gemport data object
         :return: None
         """
         log.info('update-gemport', data=data)
-        if device.id in self.devices_handlers:
-            handler = self.devices_handlers[device.id]
-            if handler is not None:
-                handler.update_gemport(data)
+        handler = self.devices_handlers.get(device.id)
+        if handler is not None:
+            handler.xpon_update(data)
 
     def remove_gemport(self, device, data):
         """
@@ -555,10 +581,9 @@ class AdtranOltAdapter(object):
         :return: None
         """
         log.info('remove-gemport', data=data)
-        if device.id in self.devices_handlers:
-            handler = self.devices_handlers[device.id]
-            if handler is not None:
-                handler.remove_gemport(data)
+        handler = self.devices_handlers.get(device.id)
+        if handler is not None:
+            handler.xpon_remove(data)
 
     def create_multicast_gemport(self, device, data):
         """
@@ -568,10 +593,9 @@ class AdtranOltAdapter(object):
         :return: None
         """
         log.info('create-mcast-gemport', data=data)
-        if device.id in self.devices_handlers:
-            handler = self.devices_handlers[device.id]
-            if handler is not None:
-                handler.create_multicast_gemport(data)
+        handler = self.devices_handlers.get(device.id)
+        if handler is not None:
+            handler.xpon_create(data)
 
     def update_multicast_gemport(self, device, data):
         """
@@ -581,10 +605,9 @@ class AdtranOltAdapter(object):
         :return: None
         """
         log.info('update-mcast-gemport', data=data)
-        if device.id in self.devices_handlers:
-            handler = self.devices_handlers[device.id]
-            if handler is not None:
-                handler.update_multicast_gemport(data)
+        handler = self.devices_handlers.get(device.id)
+        if handler is not None:
+            handler.xpon_update(data)
 
     def remove_multicast_gemport(self, device, data):
         """
@@ -594,10 +617,9 @@ class AdtranOltAdapter(object):
         :return: None
         """
         log.info('remove-mcast-gemport', data=data)
-        if device.id in self.devices_handlers:
-            handler = self.devices_handlers[device.id]
-            if handler is not None:
-                handler.remove_multicast_gemport(data)
+        handler = self.devices_handlers.get(device.id)
+        if handler is not None:
+            handler.xpon_remove(data)
 
     def create_multicast_distribution_set(self, device, data):
         """
@@ -608,10 +630,9 @@ class AdtranOltAdapter(object):
         :return: None
         """
         log.info('create-mcast-distribution-set', data=data)
-        if device.id in self.devices_handlers:
-            handler = self.devices_handlers[device.id]
-            if handler is not None:
-                handler.create_multicast_distribution_set(data)
+        handler = self.devices_handlers.get(device.id)
+        if handler is not None:
+            handler.xpon_create(data)
 
     def update_multicast_distribution_set(self, device, data):
         """
@@ -622,10 +643,9 @@ class AdtranOltAdapter(object):
         :return: None
         """
         log.info('update-mcast-distribution-set', data=data)
-        if device.id in self.devices_handlers:
-            handler = self.devices_handlers[device.id]
-            if handler is not None:
-                handler.create_multicast_distribution_set(data)
+        handler = self.devices_handlers.get(device.id)
+        if handler is not None:
+            handler.xpon_update(data)
 
     def remove_multicast_distribution_set(self, device, data):
         """
@@ -636,7 +656,6 @@ class AdtranOltAdapter(object):
         :return: None
         """
         log.info('remove-mcast-distribution-set', data=data)
-        if device.id in self.devices_handlers:
-            handler = self.devices_handlers[device.id]
-            if handler is not None:
-                handler.create_multicast_distribution_set(data)
+        handler = self.devices_handlers.get(device.id)
+        if handler is not None:
+            handler.xpon_remove(data)

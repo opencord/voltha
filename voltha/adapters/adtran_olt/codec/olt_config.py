@@ -53,7 +53,7 @@ class OltConfig(object):
         Provides decode of PON list from within
         """
         def __init__(self, packet):
-            assert 'pon-id' in packet
+            assert 'pon-id' in packet, 'pon-id not found'
             self._packet = packet
             self._onus = None
 
@@ -108,7 +108,7 @@ class OltConfig(object):
             Provides decode of onu list for a PON port
             """
             def __init__(self, packet):
-                assert 'onu-id' in packet
+                assert 'onu-id' in packet, 'onu-id not found'
                 self._packet = packet
                 self._tconts = None
                 self._tconts_dict = None
@@ -119,11 +119,11 @@ class OltConfig(object):
                 return "OltConfig.Pon.Onu: onu-id: {}".format(self.onu_id)
 
             @staticmethod
-            def decode(onu_list):
+            def decode(onu_dict):
                 onus = {}
 
-                if onu_list is not None:
-                    for onu_data in onu_list:
+                if onu_dict is not None and 'onu' in onu_dict:
+                    for onu_data in onu_dict['onu']:
                         onu = OltConfig.Pon.Onu(onu_data)
                         assert onu.onu_id not in onus
                         onus[onu.onu_id] = onu
@@ -136,8 +136,8 @@ class OltConfig(object):
                 return self._packet['onu-id']
 
             @property
-            def serial_number(self):
-                """The serial number is unique for each ONU"""
+            def serial_number_64(self):
+                """The serial number (base-64) is unique for each ONU"""
                 return self._packet.get('serial-number', '')
 
             @property
@@ -179,7 +179,7 @@ class OltConfig(object):
                 Provides decode of onu list for the T-CONT container
                 """
                 def __init__(self, packet):
-                    assert 'alloc-id' in packet
+                    assert 'alloc-id' in packet, 'alloc-id not found'
                     self._packet = packet
                     self._traffic_descriptor = None
                     self._best_effort = None
@@ -282,7 +282,7 @@ class OltConfig(object):
                 Provides decode of onu list for the gem-ports container
                 """
                 def __init__(self, packet):
-                    assert 'port-id' in packet
+                    assert 'port-id' in packet, 'port-id not found'
                     self._packet = packet
 
                 def __str__(self):

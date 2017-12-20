@@ -14,27 +14,27 @@
 
 import datetime
 import random
+import json
+import xmltodict
 
-from twisted.internet import reactor, defer
+from twisted.internet import reactor
 from twisted.internet.defer import returnValue, inlineCallbacks, succeed
 
 from adtran_device_handler import AdtranDeviceHandler
-from tcont import TCont, TrafficDescriptor, BestEffort
-from gem_port import GemPort
+from download import Download
+from xpon.adtran_olt_xpon import AdtranOltXPON
 from codec.olt_state import OltState
 from flow.flow_entry import FlowEntry
 from net.adtran_zmq import AdtranZmqClient
 from voltha.extensions.omci.omci import *
 from voltha.protos.common_pb2 import AdminState, OperStatus
-from voltha.protos.device_pb2 import Device
-from voltha.protos.bbf_fiber_base_pb2 import \
-    ChannelgroupConfig, ChannelpartitionConfig, ChannelpairConfig, ChannelterminationConfig, \
-    OntaniConfig, VOntaniConfig, VEnetConfig
+from voltha.protos.device_pb2 import ImageDownload
 
 FIXED_ONU = True  # Enhanced ONU support
 ATT_NETWORK = True  # Use AT&T cVlan scheme
 
-class AdtranOltHandler(AdtranDeviceHandler):
+
+class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
     """
     The OLT Handler is used to wrap a single instance of a 10G OLT 1-U pizza-box
     """
@@ -44,7 +44,8 @@ class AdtranOltHandler(AdtranDeviceHandler):
 
     GPON_OLT_HW_URI = '/restconf/data/gpon-olt-hw'
     GPON_OLT_HW_STATE_URI = GPON_OLT_HW_URI + ':olt-state'
-    GPON_PON_CONFIG_LIST_URI = GPON_OLT_HW_URI + ':olt/pon'
+    GPON_OLT_HW_CONFIG_URI = GPON_OLT_HW_URI + ':olt'
+    GPON_PON_CONFIG_LIST_URI = GPON_OLT_HW_CONFIG_URI + '/pon'
 
     # Per-PON info
 
@@ -64,28 +65,18 @@ class AdtranOltHandler(AdtranDeviceHandler):
 
     BASE_ONU_OFFSET = 64
 
-    def __init__(self, adapter, device_id, timeout=20):
-        super(AdtranOltHandler, self).__init__(adapter, device_id, timeout=timeout)
-        self.gpon_olt_hw_revision = None
+    def __init__(self, **kwargs):
+        super(AdtranOltHandler, self).__init__(**kwargs)
+
         self.status_poll = None
         self.status_poll_interval = 5.0
         self.status_poll_skew = self.status_poll_interval / 10
-
         self.zmq_client = None
-
-        # xPON config dictionaries
-
-        self._channel_groups = {}         # Name -> dict
-        self._channel_partitions = {}     # Name -> dict
-        self._channel_pairs = {}          # Name -> dict
-        self._channel_terminations = {}   # Name -> dict
-        self._v_ont_anis = {}             # Name -> dict
-        self._ont_anis = {}               # Name -> dict
-        self._v_enets = {}                # Name -> dict
-        self._tconts = {}                 # Name -> dict
-        self._traffic_descriptors = {}    # Name -> dict
-        self._gem_ports = {}              # Name -> dict
-        self._cached_xpon_pon_info = {}   # PON-id -> dict
+        self.ssh_deferred = None
+        self._system_id = None
+        self._download_protocols = None
+        self._download_deferred = None
+        self._downloads = {}        # name -> Download obj
 
     def __del__(self):
         # OLT Specific things here.
@@ -105,8 +96,33 @@ class AdtranOltHandler(AdtranDeviceHandler):
 
         AdtranDeviceHandler.__del__(self)
 
+    def _cancel_deferred(self):
+        d1, self.status_poll = self.status_poll, None
+        d2, self.ssh_deferred = self.ssh_deferred, None
+        d3, self._download_deferred = self._download_deferred, None
+
+        for d in [d1, d2, d3]:
+            try:
+                if d is not None and not d.called:
+                    d.cancel()
+            except:
+                pass
+
     def __str__(self):
         return "AdtranOltHandler: {}".format(self.ip_address)
+
+    @property
+    def system_id(self):
+        return self._system_id
+
+    @system_id.setter
+    def system_id(self, value):
+        if self._system_id != value:
+            self._system_id = value
+
+            data = json.dumps({'olt-id': str(value)})
+            uri = AdtranOltHandler.GPON_OLT_HW_CONFIG_URI
+            self.rest_client.request('PATCH', uri, data=data, name='olt-system-id')
 
     @inlineCallbacks
     def get_device_info(self, device):
@@ -122,7 +138,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
                 the device type specification returned by device_types().
         """
         from codec.physical_entities_state import PhysicalEntitiesState
-
+        # TODO: After a CLI 'reboot' command, the device info may get messed up (prints labels and not values)  Enter device and type 'show'
         device = {
             'model': 'n/a',
             'hardware_version': 'n/a',
@@ -181,6 +197,19 @@ class AdtranOltHandler(AdtranDeviceHandler):
                 specific extensions.
         :return: (Deferred or None).
         """
+        from net.rcmd import RCmd
+        try:
+            # Also get the MAC Address for the OLT
+            command = "ip -o link | grep eth0 | sed -n -e 's/^.*ether //p' | awk '{ print $1 }'"
+            rcmd = RCmd(self.ip_address, self.netconf_username, self.netconf_password,
+                        command)
+            self.default_mac_addr = yield rcmd.execute()
+            self.log.info("mac-addr", mac_addr=self.default_mac_addr)
+
+        except Exception as e:
+            log.exception('mac-address', e=e)
+            raise
+
         try:
             from codec.ietf_interfaces import IetfInterfacesState
             from nni_port import MockNniPort
@@ -287,20 +316,95 @@ class AdtranOltHandler(AdtranDeviceHandler):
 
         :param reconciling: (boolean) True if taking over for another VOLTHA
         """
-        # For the pizzabox OLT, periodically query the OLT state of all PONs. This
-        # is simpler then having each PON port do its own poll.  From this, we can:
-        #
-        # o Discover any new or missing ONT/ONUs
-        #
-        # o Discover any LOS for any ONT/ONUs
-        #
-        # o TODO Update some PON level statistics
+        # Make sure configured for ZMQ remote access
+        self._ready_zmq()
 
+        # ZeroMQ client
         self.zmq_client = AdtranZmqClient(self.ip_address, rx_callback=self.rx_packet, port=self.zmq_port)
+
+        # Download support
+        self._download_deferred = reactor.callLater(0, self._get_download_protocols)
+
+        # Register for adapter messages
+        self.adapter_agent.register_for_inter_adapter_messages()
+
+        # PON Status
         self.status_poll = reactor.callLater(5, self.poll_for_status)
         return succeed('Done')
 
+    def on_heatbeat_alarm(self, active):
+        if not active:
+            self._ready_zmq()
+
+    @inlineCallbacks
+    def _get_download_protocols(self):
+        if self._download_protocols is None:
+            try:
+                config = '<filter>' + \
+                          '<file-servers-state xmlns="http://www.adtran.com/ns/yang/adtran-file-servers">' + \
+                           '<profiles>' + \
+                            '<supported-protocol/>' + \
+                           '</profiles>' + \
+                          '</file-servers-state>' + \
+                         '</filter>'
+
+                results = yield self.netconf_client.get(config)
+
+                result_dict = xmltodict.parse(results.data_xml)
+                entries = result_dict['data']['file-servers-state']['profiles']['supported-protocol']
+                self._download_protocols = [entry['#text'].split(':')[-1] for entry in entries
+                                            if '#text' in entry]
+
+            except Exception as e:
+                self.log.exception('protocols', e=e)
+                self._download_protocols = None
+                self._download_deferred = reactor.callLater(10, self._get_download_protocols)
+
+    @inlineCallbacks
+    def _ready_zmq(self):
+        from net.rcmd import RCmd
+        # Check for port status
+        command = 'netstat -pan | grep -i 0.0.0.0:{} |  wc -l'.format(self.zmq_port)
+        rcmd = RCmd(self.ip_address, self.netconf_username, self.netconf_password, command)
+
+        try:
+            self.log.debug('check-request', command=command)
+            results = yield rcmd.execute()
+            self.log.info('check-results', results=results, result_type=type(results))
+            create_it = int(results) != 1
+
+        except Exception as e:
+            self.log.exception('find', e=e)
+            create_it = True
+
+        if create_it:
+            next_run = 15
+            command = 'mkdir -p /etc/pon_agent; touch /etc/pon_agent/debug.conf; '
+            command += 'ps -ae | grep -i ngpon2_agent; '
+            command += 'service_supervisor stop ngpon2_agent; service_supervisor start ngpon2_agent; '
+            command += 'ps -ae | grep -i ngpon2_agent'
+
+            rcmd = RCmd(self.ip_address, self.netconf_username, self.netconf_password, command)
+
+            try:
+                self.log.debug('create-request', command=command)
+                results = yield rcmd.execute()
+                self.log.info('create-results', results=results, result_type=type(results))
+
+            except Exception as e:
+                self.log.exception('mkdir', e=e)
+        else:
+            next_run = 0
+
+        if next_run > 0:
+            self.ssh_deferred = reactor.callLater(next_run, self._ready_zmq)
+
     def disable(self):
+        self._cancel_deferred()
+
+        # Drop registration for adapter messages
+        self.adapter_agent.unregister_for_inter_adapter_messages()
+
         c, self.zmq_client = self.zmq_client, None
         if c is not None:
             try:
@@ -308,63 +412,69 @@ class AdtranOltHandler(AdtranDeviceHandler):
             except:
                 pass
 
-        d, self.status_poll = self.status_poll, None
-        if d is not None and not d.called:
-            try:
-                d.cancel()
-            except:
-                pass
-
         super(AdtranOltHandler, self).disable()
 
-    def reenable(self):
-        super(AdtranOltHandler, self).reenable()
+    def reenable(self, done_deferred=None):
+        super(AdtranOltHandler, self).reenable(done_deferred=done_deferred)
 
-        self.zmq_client = AdtranZmqClient(self.ip_address, rx_callback=self.rx_packet, port=self.zmq_port)
+        self._ready_zmq()
+        self.zmq_client = AdtranZmqClient(self.ip_address, rx_callback=self.rx_packet,
+                                          port=self.zmq_port)
+        # Register for adapter messages
+        self.adapter_agent.register_for_inter_adapter_messages()
+
         self.status_poll = reactor.callLater(1, self.poll_for_status)
 
     def reboot(self):
+        self._cancel_deferred()
+
         c, self.zmq_client = self.zmq_client, None
         if c is not None:
             c.shutdown()
 
-        d, self.status_poll = self.status_poll, None
-        try:
-            if d is not None and not d.called:
-                d.cancel()
-        except:
-            pass
+        # Drop registration for adapter messages
+        self.adapter_agent.unregister_for_inter_adapter_messages()
+
+        # Download supported protocols may change (if new image gets activated)
+        self._download_protocols = None
+
         super(AdtranOltHandler, self).reboot()
 
     def _finish_reboot(self, timeout, previous_oper_status, previous_conn_status):
         super(AdtranOltHandler, self)._finish_reboot(timeout, previous_oper_status, previous_conn_status)
 
+        self._ready_zmq()
+
+        # Download support
+        self._download_deferred = reactor.callLater(0, self._get_download_protocols)
+
+        # Register for adapter messages
+        self.adapter_agent.register_for_inter_adapter_messages()
+
         self.zmq_client = AdtranZmqClient(self.ip_address, rx_callback=self.rx_packet, port=self.zmq_port)
-        self.status_poll = reactor.callLater(1, self.poll_for_status)
+        self.status_poll = reactor.callLater(5, self.poll_for_status)
 
     def delete(self):
+        self._cancel_deferred()
+
+        # Drop registration for adapter messages
+        self.adapter_agent.unregister_for_inter_adapter_messages()
+
         c, self.zmq_client = self.zmq_client, None
         if c is not None:
             c.shutdown()
 
-        d, self.status_poll = self.status_poll, None
-        try:
-            if d is not None and not d.called:
-                d.cancel()
-        except:
-            pass
         super(AdtranOltHandler, self).delete()
 
     def rx_packet(self, message):
         try:
             self.log.debug('rx_packet')
 
-            pon_id, onu_id, msg, is_omci = AdtranZmqClient.decode_packet(message)
-
+            pon_id, onu_id, msg_bytes, is_omci = AdtranZmqClient.decode_packet(message,
+                                                                               self.is_async_control)
             if is_omci:
                 proxy_address = self._pon_onu_id_to_proxy_address(pon_id, onu_id)
-
-                self.adapter_agent.receive_proxied_message(proxy_address, msg)
+                self.adapter_agent.receive_proxied_message(proxy_address, msg_bytes)
             else:
                 pass  # TODO: Packet in support not yet supported
                 # self.adapter_agent.send_packet_in(logical_device_id=logical_device_id,
@@ -413,23 +523,6 @@ class AdtranOltHandler(AdtranDeviceHandler):
         delay += random.uniform(-delay / 10, delay / 10)
 
         self.status_poll = reactor.callLater(delay, self.poll_for_status)
-
-    @inlineCallbacks
-    def deactivate(self, device):
-        # OLT Specific things here
-
-        d, self.startup = self.startup, None
-        try:
-            if d is not None and not d.called:
-                d.cancel()
-        except:
-            pass
-        # self.pons.clear()
-
-        # TODO: Any other? OLT specific deactivate steps
-
-        # Call into base class and have it clean up as well
-        super(AdtranOltHandler, self).deactivate(device)
 
     @inlineCallbacks
     def update_flow_table(self, flows, device):
@@ -498,8 +591,8 @@ class AdtranOltHandler(AdtranDeviceHandler):
                 onu = pon.onu(onu_id)
 
                 if onu is not None and onu.enabled:
-                    data = AdtranZmqClient.encode_omci_message(msg, pon_id, onu_id)
-
+                    data = AdtranZmqClient.encode_omci_message(msg, pon_id, onu_id,
+                                                               self.is_async_control)
                     try:
                         self.zmq_client.send(data)
 
@@ -509,19 +602,6 @@ class AdtranOltHandler(AdtranDeviceHandler):
                     self.log.debug('onu-invalid-or-disabled', pon_id=pon_id, onu_id=onu_id)
             else:
                 self.log.debug('pon-invalid-or-disabled', pon_id=pon_id)
-
-    @staticmethod
-    def is_gpon_olt_hw(content):
-        """
-        If the hello content
-
-        :param content: (dict) Results of RESTCONF adtran-hello GET request
-        :return: (string) GPON OLT H/w RESTCONF revision number or None on error/not GPON
-        """
-        for item in content.get('module-info', None):
-            if item.get('module-name') == 'gpon-olt-hw':
-                return AdtranDeviceHandler.parse_module_revision(item.get('revision', None))
-        return None
 
     def get_channel_id(self, pon_id, onu_id):
         from pon_port import PonPort
@@ -597,646 +677,540 @@ class AdtranOltHandler(AdtranDeviceHandler):
         if self.is_logical_port(port):
             raise NotImplemented('TODO: Logical ports not yet supported')
 
-    def get_xpon_info(self, pon_id, pon_id_type='xgs-ponid'):
-        """
-        Lookup all xPON configuraiton data for a specific pon-id / channel-termination
-        :param pon_id: (int) PON Identifier
-        :return: (dict) reduced xPON information for the specific PON port
-        """
-        if pon_id not in self._cached_xpon_pon_info:
-
-            terminations = {key: val for key, val in self._channel_terminations.iteritems()
-                            if val[pon_id_type] == pon_id}
-
-            pair_names = set([term['channel-pair'] for term in terminations.itervalues()])
-            pairs = {key: val for key, val in self._channel_pairs.iteritems()
-                     if key in pair_names}
-
-            partition_names = set([pair['channel-partition'] for pair in pairs.itervalues()])
-            partitions = {key: val for key, val in self._channel_partitions.iteritems()
-                          if key in partition_names}
-
-            v_ont_anis = {key: val for key, val in self._v_ont_anis.iteritems()
-                          if val['preferred-channel-pair'] in pair_names}
-            v_ont_ani_names = set(v_ont_anis.keys())
-
-            group_names = set(pair['channel-group'] for pair in pairs.itervalues())
-            groups = {key: val for key, val in self._channel_groups.iteritems()
-                      if key in group_names}
-
-            venets = {key: val for key, val in self._v_enets.iteritems()
-                      if val['v-ont-ani'] in v_ont_ani_names}
-
-            tconts = {key: val for key, val in self._tconts.iteritems()
-                      if val.vont_ani in v_ont_ani_names}
-            tcont_names = set(tconts.keys())
-
-            gem_ports = {key: val for key, val in self._gem_ports.iteritems()
-                         if val.tconf_ref in tcont_names}
-
-            self._cached_xpon_pon_info[pon_id] = {
-                'channel-terminations': terminations,
-                'channel-pairs': pairs,
-                'channel-partitions': partitions,
-                'channel-groups': groups,
-                'v-ont-anis': v_ont_anis,
-                'v-enets': venets,
-                'tconts': tconts,
-                'gem-ports': gem_ports
-            }
-        return self._cached_xpon_pon_info[pon_id]
-
-    def _get_xpon_collection(self, data):
-        if isinstance(data, ChannelgroupConfig):
-            return self._channel_groups
-        elif isinstance(data, ChannelpartitionConfig):
-            return self._channel_partitions
-        elif isinstance(data, ChannelpairConfig):
-            return self._channel_pairs
-        elif isinstance(data, ChannelterminationConfig):
-            return self._channel_terminations
-        elif isinstance(data, OntaniConfig):
-            return self._ont_anis
-        elif isinstance(data, VOntaniConfig):
-            return self._v_ont_anis
-        elif isinstance(data, VEnetConfig):
-            return self._v_enets
-        return None
-
-    @property
-    def channel_terminations(self):
-        return self._channel_terminations
-
-    @property
-    def channel_pairs(self):
-        return self._channel_pairs
-
-    @property
-    def channel_partitions(self):
-        return self._channel_partitions
-
-    @property
-    def v_ont_anis(self):
-        return self._v_ont_anis
-
-    @property
-    def v_enets(self):
-        return self._v_enets
-
-    @property
-    def tconts(self):
-        return self._tconts
-
-    def _data_to_dict(self, data):
-        name = data.name
-        interface = data.interface
-        inst_data = data.data
-
-        if isinstance(data, ChannelgroupConfig):
-            return 'channel-group', {
-                'name': name,
-                'enabled': interface.enabled,
-                'system-id': inst_data.system_id,
-                'polling-period': inst_data.polling_period
-            }
-
-        elif isinstance(data, ChannelpartitionConfig):
-            def _auth_method_enum_to_string(value):
-                from voltha.protos.bbf_fiber_types_pb2 import SERIAL_NUMBER, LOID, \
-                    REGISTRATION_ID, OMCI, DOT1X
-                return {
-                    SERIAL_NUMBER: 'serial-number',
-                    LOID: 'loid',
-                    REGISTRATION_ID: 'registration-id',
-                    OMCI: 'omci',
-                    DOT1X: 'dot1x'
-                }.get(value, 'unknown')
-
-            return 'channel-partition', {
-                'name': name,
-                'enabled': interface.enabled,
-                'authentication-method': _auth_method_enum_to_string(inst_data.authentication_method),
-                'channel-group': inst_data.channelgroup_ref,
-                'fec-downstream': inst_data.fec_downstream,
-                'mcast-aes': inst_data.multicast_aes_indicator,
-                'differential-fiber-distance': inst_data.differential_fiber_distance
-            }
-
-        elif isinstance(data, ChannelpairConfig):
-            return 'channel-pair', {
-                'name': name,
-                'enabled': interface.enabled,
-                'channel-group': inst_data.channelgroup_ref,
-                'channel-partition': inst_data.channelpartition_ref,
-                'line-rate': inst_data.channelpair_linerate
-            }
-
-        elif isinstance(data, ChannelterminationConfig):
-            return 'channel-termination', {
-                'name': name,
-                'enabled': interface.enabled,
-                'xgs-ponid': inst_data.xgs_ponid,
-                'xgpon-ponid': inst_data.xgpon_ponid,
-                'channel-pair': inst_data.channelpair_ref,
-                'ber-calc-period': inst_data.ber_calc_period
-            }
-
-        elif isinstance(data, OntaniConfig):
-            return 'ont-ani', {
-                'name': name,
-                'enabled': interface.enabled,
-                'upstream-fec': inst_data.upstream_fec_indicator,
-                'mgnt-gemport-aes': inst_data.mgnt_gemport_aes_indicator
-            }
-
-        elif isinstance(data, VOntaniConfig):
-            return 'vOnt-ani', {
-                'name': name,
-                'enabled': interface.enabled,
-                'onu-id': inst_data.onu_id,
-                'expected-serial-number': inst_data.expected_serial_number,
-                'preferred-channel-pair': inst_data.preferred_chanpair,
-                'channel-partition': inst_data.parent_ref,
-                'upstream-channel-speed': inst_data.upstream_channel_speed,
-                'data': data
-            }
-
-        elif isinstance(data, VEnetConfig):
-            return 'vEnet', {
-                'name': name,
-                'enabled': interface.enabled,
-                'v-ont-ani': inst_data.v_ontani_ref
-            }
-
+    def _update_download_status(self, request, download):
+        if download is not None:
+            request.state = download.download_state
+            request.reason = download.failure_reason
+            request.image_state = download.image_state
+            request.additional_info = download.additional_info
+            request.downloaded_bytes = download.downloaded_bytes
         else:
-            raise NotImplementedError('Unknown data type')
+            request.state = ImageDownload.DOWNLOAD_UNKNOWN
+            request.reason = ImageDownload.UNKNOWN_ERROR
+            request.image_state = ImageDownload.IMAGE_UNKNOWN
+            request.additional_info = "Download request '{}' not found".format(request.name)
+            request.downloaded_bytes = 0
 
-    def create_interface(self, data):
+        self.adapter_agent.update_image_download(request)
+
+    def start_download(self, device, request, done):
         """
-        Create XPON interfaces
-        :param data: (xpon config info)
+        This is called to request downloading a specified image into
+        the standby partition of a device based on a NBI call.
+
+        :param device: A Voltha.Device object.
+        :param request: A Voltha.ImageDownload object.
+        :param done: (Deferred) Deferred to fire when done
+        :return: (Deferred) Shall be fired to acknowledge the download.
         """
-        self.log.debug('create-interface', interface=data.interface, inst_data=data.data)
+        log.info('image_download', request=request)
 
-        name = data.name
-        items = self._get_xpon_collection(data)
+        try:
+            if request.name in self._downloads:
+                raise Exception("Download request with name '{}' already exists".
+                                format(request.name))
+            try:
+                download = Download.create(self, request, self._download_protocols)
 
-        if items is not None and name not in items:
-            self._cached_xpon_pon_info = {}     # Clear cached data
+            except Exception:
+                request.additional_info = 'Download request creation failed due to exception'
+                raise
 
-        item_type, new_item = self._data_to_dict(data)
-        #self.log.debug('new-item', item_type=item_type, item=new_item)
+            try:
+                self._downloads[download.name] = download
+                self._update_download_status(request, download)
+                done.callback('started')
+                return done
 
-        if name not in items:
-            self.log.debug('new-item', item_type=item_type, item=new_item)
+            except Exception:
+                request.additional_info = 'Download request startup failed due to exception'
+                del self._downloads[download.name]
+                download.cancel_download(request)
+                raise
 
-            items[name] = new_item
+        except Exception as e:
+            self.log.exception('create', e=e)
 
-            if isinstance(data, ChannelterminationConfig):
-                self._on_channel_termination_create(name)
+            request.reason = ImageDownload.UNKNOWN_ERROR
+            request.state = ImageDownload.DOWNLOAD_FAILED
+            if not request.additional_info:
+                request.additional_info = e.message
 
-    def update_interface(self, data):
+            self.adapter_agent.update_image_download(request)
+
+            # restore admin state to enabled
+            device.admin_state = AdminState.ENABLED
+            self.adapter_agent.update_device(device)
+            raise
+
+    def download_status(self, device, request, done):
         """
-        Update XPON interfaces
-        :param data: (xpon config info)
+        This is called to inquire about a requested image download status based
+        on a NBI call.
+
+        The adapter is expected to update the DownloadImage DB object with the
+        query result
+
+        :param device: A Voltha.Device object.
+        :param request: A Voltha.ImageDownload object.
+        :param done: (Deferred) Deferred to fire when done
+
+        :return: (Deferred) Shall be fired to acknowledge
         """
-        name = data.name
-        items = self._get_xpon_collection(data)
+        log.info('download_status', request=request)
+        download = self._downloads.get(request.name)
 
-        if items is None:
-            raise ValueError('Unknown data type: {}'.format(type(data)))
+        self._update_download_status(request, download)
 
-        existing_item = items.get(name)
-        if existing_item is None:
-            raise KeyError("'{}' not found. Type: {}".format(name, type(data)))
+        if request.state != ImageDownload.DOWNLOAD_STARTED:
+            # restore admin state to enabled
+            device.admin_state = AdminState.ENABLED
+            self.adapter_agent.update_device(device)
 
-        item_type, update_item = self._data_to_dict(data)
-        self.log.debug('update-item', item_type=item_type, item=update_item)
+        done.callback(request.state)
+        return done
 
-        # Calculate the difference
-        diffs = AdtranDeviceHandler._dict_diff(existing_item, update_item)
+    def cancel_download(self, device, request, done):
+        """
+        This is called to cancel a requested image download based on a NBI
+        call.  The admin state of the device will not change after the
+        download.
 
-        if len(diffs) == 0:
-            self.log.debug('update-item-no-diffs')
+        :param device: A Voltha.Device object.
+        :param request: A Voltha.ImageDownload object.
+        :param done: (Deferred) Deferred to fire when done
 
-        self._cached_xpon_pon_info = {}     # Clear cached data
+        :return: (Deferred) Shall be fired to acknowledge
+        """
+        log.info('cancel_download', request=request)
 
-        # Act on changed items
-        if isinstance(data, ChannelgroupConfig):
-            self._on_channel_group_modify(name, items, diffs)
+        download = self._downloads.get(request.name)
 
-        elif isinstance(data, ChannelpartitionConfig):
-            self._on_channel_partition_modify(name, items, diffs)
-
-        elif isinstance(data, ChannelpairConfig):
-            self._on_channel_pair_modify(name, items, diffs)
-
-        elif isinstance(data, ChannelterminationConfig):
-            self._on_channel_termination_modify(name, items, diffs)
-
-        elif isinstance(data, OntaniConfig):
-            raise NotImplementedError('TODO: not yet supported')
-
-        elif isinstance(data, VOntaniConfig):
-            raise NotImplementedError('TODO: not yet supported')
-
-        elif isinstance(data, VEnetConfig):
-            raise NotImplementedError('TODO: not yet supported')
-
+        if download is not None:
+            del self._downloads[request.name]
+            result = download.cancel_download(request)
+            self._update_download_status(request, download)
+            done.callback(result)
         else:
-            raise NotImplementedError('Unknown data type')
+            self._update_download_status(request, download)
+            done.errback(KeyError('Download request not found'))
 
-        raise NotImplementedError('TODO: not yet supported')
+        if device.admin_state == AdminState.DOWNLOADING_IMAGE:
+            device.admin_state = AdminState.ENABLED
+            self.adapter_agent.update_device(device)
 
-    def remove_interface(self, data):
+        return done
+
+    def activate_image(self, device, request, done):
         """
-        Deleete XPON interfaces
-        :param data: (xpon config info)
+        This is called to activate a downloaded image from a standby partition
+        into active partition.
+
+        Depending on the device implementation, this call may or may not
+        cause device reboot. If no reboot, then a reboot is required to make
+        the activated image running on device
+
+        :param device: A Voltha.Device object.
+        :param request: A Voltha.ImageDownload object.
+        :param done: (Deferred) Deferred to fire when done
+
+        :return: (Deferred) OperationResponse object.
         """
-        name = data.name
+        log.info('activate_image', request=request)
 
-        items = self._get_xpon_collection(data)
-        item = items.get(name)
-        self.log.debug('delete-interface', name=name, data=data)
-
-        if item is not None:
-            self._cached_xpon_pon_info = {}     # Clear cached data
-            del items[name]
-
-            if isinstance(data, ChannelgroupConfig):
-                pass  # Rely upon xPON logic to not allow delete of a referenced group
-
-            elif isinstance(data, ChannelpartitionConfig):
-                pass  # Rely upon xPON logic to not allow delete of a referenced partition
-
-            elif isinstance(data, ChannelpairConfig):
-                pass  # Rely upon xPON logic to not allow delete of a referenced pair
-
-            elif isinstance(data, ChannelterminationConfig):
-                self._on_channel_termination_delete(name)
-
-            elif isinstance(data, OntaniConfig):
-                pass
-
-            elif isinstance(data, VOntaniConfig):
-                pass
-
-            elif isinstance(data, VEnetConfig):
-                pass
-
-            else:
-                raise NotImplementedError('Unknown data type')
-
-            raise NotImplementedError('TODO: not yet supported')
-
-    def _valid_to_modify(self, item_type, valid, diffs):
-        bad_keys = [mod_key not in valid for mod_key in diffs]
-        if len(bad_keys) != 0:
-            self.log.warn("{} modification of '{}' not supported").format(item_type, bad_keys[0])
-            return False
-        return True
-
-    def _get_related_pons(self, item_type):
-
-        if isinstance(item_type, ChannelgroupConfig):
-            return []   # TODO: Implement
-
-        elif isinstance(item_type, ChannelpartitionConfig):
-            return []   # TODO: Implement
-
-        elif isinstance(item_type, ChannelpairConfig):
-            return []   # TODO: Implement
-
-        elif isinstance(item_type, ChannelterminationConfig):
-            return []   # TODO: Implement
-
+        download = self._downloads.get(request.name)
+        if download is not None:
+            del self._downloads[request.name]
+            result = download.activate_image()
+            self._update_download_status(request, download)
+            done.callback(result)
         else:
-            return []
+            self._update_download_status(request, download)
+            done.errback(KeyError('Download request not found'))
 
-    def _on_channel_group_modify(self, name, items, diffs):
-        if len(diffs) == 0:
-            return
+        # restore admin state to enabled
+        device.admin_state = AdminState.ENABLED
+        self.adapter_agent.update_device(device)
+        return done
 
-        valid_keys = ['polling-period']     # Modify of these keys supported
+    def revert_image(self, device, request, done):
+        """
+        This is called to deactivate the specified image at active partition,
+        and revert to previous image at standby partition.
 
-        if self._valid_to_modify('channel-group', valid_keys, diffs.keys()):
-            self.log.info('TODO: Not-Implemented-yet')
-            # for k, v in diffs.items:
-            #     items[name][k] = v
+        Depending on the device implementation, this call may or may not
+        cause device reboot. If no reboot, then a reboot is required to
+        make the previous image running on device
 
-    def _on_channel_partition_modify(self, name, items, diffs):
-        if len(diffs) == 0:
-            return
+        :param device: A Voltha.Device object.
+        :param request: A Voltha.ImageDownload object.
+        :param done: (Deferred) Deferred to fire when done
 
-        valid_keys = ['fec-downstream', 'mcast-aes', 'differential-fiber-distance']
+        :return: (Deferred) OperationResponse object.
+        """
+        log.info('revert_image', request=request)
 
-        if self._valid_to_modify('channel-partition', valid_keys, diffs.keys()):
-            self.log.info('TODO: Not-Implemented-yet')
-            # for k, v in diffs.items:
-            #     items[name][k] = v
+        download = self._downloads.get(request.name)
+        if download is not None:
+            del self._downloads[request.name]
+            result = download.revert_image()
+            self._update_download_status(request, download)
+            done.callback(result)
+        else:
+            self._update_download_status(request, download)
+            done.errback(KeyError('Download request not found'))
 
-    def _on_channel_pair_modify(self, name, items, diffs):
-        if len(diffs) == 0:
-            return
+        # restore admin state to enabled
+        device.admin_state = AdminState.ENABLED
+        self.adapter_agent.update_device(device)
+        return done
 
-        valid_keys = ['line-rate']     # Modify of these keys supported
+    def on_channel_group_modify(self, cgroup, update, diffs):
+        valid_keys = ['enable',
+                      'polling-period',
+                      'system-id']  # Modify of these keys supported
 
-        if self._valid_to_modify('channel-pair', valid_keys, diffs.keys()):
-            self.log.info('TODO: Not-Implemented-yet')
-            # for k, v in diffs.items:
-            #     items[name][k] = v
+        invalid_key = next((key for key in diffs.keys() if key not in valid_keys), None)
+        if invalid_key is not None:
+            raise KeyError("channel-group leaf '{}' is read-only or write-once".format(invalid_key))
 
-    def _on_channel_termination_create(self, name, pon_type='xgs-ponid'):
-        assert name in self._channel_terminations, \
-            '{} is not a channel-termination'.format(name)
-        ct = self._channel_terminations[name]
+        pons = self.get_related_pons(cgroup)
+        keys = [k for k in diffs.keys() if k in valid_keys]
 
-        pon_id = ct[pon_type]
-        # Look up the southbound PON port
+        for k in keys:
+            if k == 'enabled':
+                pass  # TODO: ?
 
-        pon_port = self.southbound_ports.get(pon_id, None)
+            elif k == 'polling-period':
+                for pon in pons:
+                    pon.discovery_tick = update[k]
+
+            elif k == 'system-id':
+                self.system_id(update[k])
+
+        return update
+
+    def on_channel_partition_modify(self, cpartition, update, diffs):
+        valid_keys = ['enabled', 'fec-downstream', 'mcast-aes', 'differential-fiber-distance']
+
+        invalid_key = next((key for key in diffs.keys() if key not in valid_keys), None)
+        if invalid_key is not None:
+            raise KeyError("channel-partition leaf '{}' is read-only or write-once".format(invalid_key))
+
+        pons = self.get_related_pons(cpartition)
+        keys = [k for k in diffs.keys() if k in valid_keys]
+
+        for k in keys:
+            if k == 'enabled':
+                pass  # TODO: ?
+
+            elif k == 'fec-downstream':
+                for pon in pons:
+                    pon.downstream_fec_enable = update[k]
+
+            elif k == 'mcast-aes':
+                for pon in pons:
+                    pon.mcast_aes = update[k]
+
+            elif k == 'differential-fiber-distance':
+                for pon in pons:
+                    pon.deployment_range = update[k] * 1000  # pon-agent uses meters
+        return update
+
+    def on_channel_pair_modify(self, cpair, update, diffs):
+        valid_keys = ['enabled', 'line-rate']  # Modify of these keys supported
+
+        invalid_key = next((key for key in diffs.keys() if key not in valid_keys), None)
+        if invalid_key is not None:
+            raise KeyError("channel-pair leaf '{}' is read-only or write-once".format(invalid_key))
+
+        pons = self.get_related_pons(cpair)
+        keys = [k for k in diffs.keys() if k in valid_keys]
+
+        for k in keys:
+            if k == 'enabled':
+                pass                        # TODO: ?
+
+            elif k == 'line-rate':
+                for pon in pons:
+                    pon.line_rate = update[k]
+        return update
+
+    def on_channel_termination_create(self, ct, pon_type='xgs-ponid'):
+        pons = self.get_related_pons(ct, pon_type=pon_type)
+        pon_port = pons[0] if len(pons) == 1 else None
+
         if pon_port is None:
-            raise ValueError('Unknown PON port. PON-ID: {}'.format(pon_id))
+            raise ValueError('Unknown PON port. PON-ID: {}'.format(ct[pon_type]))
 
-        assert ct['channel-pair'] in self._channel_pairs, \
+        assert ct['channel-pair'] in self.channel_pairs, \
             '{} is not a channel-pair'.format(ct['channel-pair'])
-        cpair = self._channel_pairs[ct['channel-pair']]
+        cpair = self.channel_pairs[ct['channel-pair']]
 
-        assert cpair['channel-group'] in self._channel_groups, \
+        assert cpair['channel-group'] in self.channel_groups, \
             '{} is not a -group'.format(cpair['channel-group'])
-        assert cpair['channel-partition'] in self._channel_partitions, \
+        assert cpair['channel-partition'] in self.channel_partitions, \
             '{} is not a channel-partition'.format(cpair('channel-partition'))
-        cg = self._channel_groups[cpair['channel-group']]
-        cpart = self._channel_partitions[cpair['channel-partition']]
+        cg = self.channel_groups[cpair['channel-group']]
+        cpart = self.channel_partitions[cpair['channel-partition']]
 
-        enabled = ct['enabled']
-        
         polling_period = cg['polling-period']
+        system_id = cg['system-id']
         authentication_method = cpart['authentication-method']
         # line_rate = cpair['line-rate']
         downstream_fec = cpart['fec-downstream']
         deployment_range = cpart['differential-fiber-distance']
-        # mcast_aes = cpart['mcast-aes']
-
+        mcast_aes = cpart['mcast-aes']
         # TODO: Support BER calculation period
-        # TODO Support setting of line rate
 
-        pon_port.xpon_name = name
+        pon_port.xpon_name = ct['name']
         pon_port.discovery_tick = polling_period
         pon_port.authentication_method = authentication_method
-        pon_port.deployment_range = deployment_range * 1000     # pon-agent uses meters
+        pon_port.deployment_range = deployment_range * 1000  # pon-agent uses meters
         pon_port.downstream_fec_enable = downstream_fec
-        # TODO: For now, upstream FEC = downstream
-        pon_port.upstream_fec_enable = downstream_fec
+        pon_port.mcast_aes = mcast_aes
+        # pon_port.line_rate = line_rate            # TODO: support once 64-bits
+        self.system_id = system_id
 
-        # TODO: pon_port.mcast_aes = mcast_aes
-
+        # Enabled 'should' be a logical 'and' of all referenced items but
+        # there is no easy way to detected changes in referenced items.
+        # enabled = ct['enabled'] and cpair['enabled'] and cg['enabled'] and cpart['enabled']
+        enabled = ct['enabled']
         pon_port.admin_state = AdminState.ENABLED if enabled else AdminState.DISABLED
+        return ct
 
-    def _on_channel_termination_modify(self, name, items, diffs):
-        if len(diffs) == 0:
-            return
+    def on_channel_termination_modify(self, ct, update, diffs, pon_type='xgs-ponid'):
+        valid_keys = ['enabled']  # Modify of these keys supported
 
-        valid_keys = ['enabled']     # Modify of these keys supported
+        invalid_key = next((key for key in diffs.keys() if key not in valid_keys), None)
+        if invalid_key is not None:
+            raise KeyError("channel-termination leaf '{}' is read-only or write-once".format(invalid_key))
 
-        if self._valid_to_modify('channel-termination', valid_keys, diffs.keys()):
-            self.log.info('TODO: Not-Implemented-yet')
-            # for k, v in diffs.items:
-            #     items[name][k] = v
+        pons = self.get_related_pons(ct, pon_type=pon_type)
+        pon_port = pons[0] if len(pons) == 1 else None
 
-    def _on_channel_termination_delete(self, name, pon_type='xgs-ponid'):
-        assert name in self._channel_terminations, \
-            '{} is not a channel-termination'.format(name)
-        ct = self._channel_terminations[name]
-
-        # Look up the southbound PON port
-        pon_id = ct[pon_type]
-        pon_port = self.southbound_ports.get(pon_id, None)
         if pon_port is None:
-            raise ValueError('Unknown PON port. PON-ID: {}'.format(pon_id))
+            raise ValueError('Unknown PON port. PON-ID: {}'.format(ct[pon_type]))
+
+        keys = [k for k in diffs.keys() if k in valid_keys]
+
+        for k in keys:
+            if k == 'enabled':
+                enabled = update[k]
+                pon_port.admin_state = AdminState.ENABLED if enabled else AdminState.DISABLED
+        return update
+
+    def on_channel_termination_delete(self, ct, pon_type='xgs-ponid'):
+        pons = self.get_related_pons(ct, pon_type=pon_type)
+        pon_port = pons[0] if len(pons) == 1 else None
+
+        if pon_port is None:
+            raise ValueError('Unknown PON port. PON-ID: {}'.format(ct[pon_type]))
 
         pon_port.admin_state = AdminState.DISABLED
+        return None
 
-    def _on_ont_ani_create(self, name):
-        self.log.info('TODO: Not-Implemented-yet')
-        # elif isinstance(data, OntaniConfig):
-        #     return 'ont-ani', {
-        #         'name': name,
-        #         'enabled': interface.enabled,
-        #         'upstream-fec': inst_data.upstream_fec_indicator,
-        #         'mgnt-gemport-aes': inst_data.mgnt_gemport_aes_indicator
-        #     }
+    def on_ont_ani_modify(self, ont_ani, update, diffs):
+        valid_keys = ['enabled', 'upstream-fec']  # Modify of these keys supported
 
-    def _on_ont_ani_delete(self, name):
-        self.log.info('TODO: Not-Implemented-yet')
+        invalid_key = next((key for key in diffs.keys() if key not in valid_keys), None)
+        if invalid_key is not None:
+            raise KeyError("ont-ani leaf '{}' is read-only or write-once".format(invalid_key))
 
-    def _on_ont_ani_modify(self, name, items, existing, update, diffs):
-        pass
+        onus = self.get_related_onus(ont_ani)
+        keys = [k for k in diffs.keys() if k in valid_keys]
 
-    def create_tcont(self, tcont_data, traffic_descriptor_data):
-        """
-        Create TCONT information
-        :param tcont_data:
-        :param traffic_descriptor_data:
-        """
-        self.log.debug('create-tcont', tcont=tcont_data, td=traffic_descriptor_data)
+        for k in keys:
+            if k == 'enabled':
+                pass      # TODO: Have only ONT use this value?
 
-        traffic_descriptor = TrafficDescriptor.create(traffic_descriptor_data)
-        tcont = TCont.create(tcont_data, traffic_descriptor)
+            elif k == 'upstream-fec':
+                for onu in onus:
+                    onu.upstream_fec_enable = update[k]
+        return update
 
-        if tcont.name not in self._tconts:
-            self._cached_xpon_pon_info = {}     # Clear cached data
-            self._tconts[tcont.name] = tcont
+    def on_vont_ani_modify(self, vont_ani, update, diffs):
+        valid_keys = ['enabled',
+                      'expected-serial-number',
+                      'upstream-channel-speed'
+                      ]  # Modify of these keys supported
 
-            # Update any ONUs referenced
-            tcont.xpon_create(self)
+        invalid_key = next((key for key in diffs.keys() if key not in valid_keys), None)
+        if invalid_key is not None:
+            raise KeyError("vont-ani leaf '{}' is read-only or write-once".format(invalid_key))
 
-            if traffic_descriptor.name not in self._traffic_descriptors:
-                self._traffic_descriptors[traffic_descriptor.name] = traffic_descriptor
+        onus = self.get_related_onus(vont_ani)
+        keys = [k for k in diffs.keys() if k in valid_keys]
 
-                # Update any ONUs referenced
-                traffic_descriptor.xpon_create(self, tcont)
+        for k in keys:
+            if k == 'enabled':
+                for onu in onus:
+                    onu.enabled = update[k]
+            elif k == 'expected-serial-number':
+                for onu in onus:
+                    if onu.serial_number != update[k]:
+                        onu.pon.delete_onu(onu.onu_id)
+            elif k == 'upstream-channel-speed':
+                for onu in onus:
+                    onu.upstream_channel_speed = update[k]
+        return update
 
-    def update_tcont(self, tcont_data, traffic_descriptor_data):
-        """
-        Update TCONT information
-        :param tcont_data:
-        :param traffic_descriptor_data:
-        """
-        self.log.debug('update-tcont', tcont=tcont_data, td=traffic_descriptor_data)
+    def on_vont_ani_delete(self, vont_ani):
+        onus = self.get_related_onus(vont_ani)
 
-        if tcont_data.name not in self._tconts:
-            raise KeyError("TCONT '{}' does not exists".format(tcont_data.name))
+        for onu in onus:
+            try:
+                onu.pon.delete_onu(onu.onu_id)
 
-        if traffic_descriptor_data.name not in self._traffic_descriptors:
-            raise KeyError("Traffic Descriptor '{}' does not exists".
-                           format(traffic_descriptor_data.name))
+            except Exception as e:
+                self.log.exception('onu', onu=onu, e=e)
 
-        self._cached_xpon_pon_info = {}     # Clear cached data
+        return None
 
-        traffic_descriptor = TrafficDescriptor.create(traffic_descriptor_data)
-        tcont = TCont.create(tcont_data, traffic_descriptor)
-        #
-        # Update any ONUs referenced
-        # tcont.xpon_update(self)
-        # traffic_descriptor.xpon_update(self, tcont)
-        pass
-        raise NotImplementedError('TODO: Not yet supported')
+    def _get_tcont_onu(self, vont_ani):
+        onu = None
+        try:
+            vont_ani = self.v_ont_anis.get(vont_ani)
+            ch_pair = self.channel_pairs.get(vont_ani['preferred-channel-pair'])
+            ch_term = next((term for term in self.channel_terminations.itervalues()
+                            if term['channel-pair'] == ch_pair['name']), None)
 
-    def remove_tcont(self, tcont_data, traffic_descriptor_data):
-        """
-        Remove TCONT information
-        :param tcont_data:
-        :param traffic_descriptor_data:
-        """
-        self.log.debug('remove-tcont', tcont=tcont_data, td=traffic_descriptor_data)
+            pon = self.pon(ch_term['xgs-ponid'])
+            onu = pon.onu(vont_ani['onu-id'])
 
-        tcont = self._tconts.get(tcont_data.name)
-        traffic_descriptor = self._traffic_descriptors.get(traffic_descriptor_data.name)
+        except Exception:
+            pass
 
-        if traffic_descriptor is not None:
-            del self._traffic_descriptors[traffic_descriptor_data.name]
+        return onu
 
-            self._cached_xpon_pon_info = {}     # Clear cached data
-            pass         # Perform any needed operations
-            # raise NotImplementedError('TODO: Not yet supported')
+    def on_tcont_create(self, tcont):
+        from xpon.olt_tcont import OltTCont
 
-        if tcont is not None:
-            del self._tconts[tcont_data.name]
+        td = self.traffic_descriptors.get(tcont.get('td-ref'))
+        traffic_descriptor = td['object'] if td is not None else None
 
-            self._cached_xpon_pon_info = {}     # Clear cached data
+        tcont['object'] = OltTCont.create(tcont, traffic_descriptor)
 
-            # Update any ONUs referenced
-            # tcont.xpon_delete(self)
+        # Look up any ONU associated with this TCONT (should be only one if any)
+        onu = self._get_tcont_onu(tcont['vont-ani'])
 
-            pass         # Perform any needed operations
-            raise NotImplementedError('TODO: Not yet supported')
+        if onu is not None:                 # Has it been discovered yet?
+            onu.add_tcont(tcont['object'])
 
-    def create_gemport(self, data):
-        """
-        Create GEM Port
-        :param data:
-        """
-        self.log.debug('create-gemport', gem_port=data)
+        return tcont
 
-        gem_port = GemPort.create(data, self)
+    def on_tcont_modify(self, tcont, update, diffs):
+        valid_keys = ['td-ref']  # Modify of these keys supported
 
-        if gem_port.name in self._gem_ports:
-            raise KeyError("GEM Port '{}' already exists".format(gem_port.name))
+        invalid_key = next((key for key in diffs.keys() if key not in valid_keys), None)
+        if invalid_key is not None:
+            raise KeyError("TCONT leaf '{}' is read-only or write-once".format(invalid_key))
 
-        self._cached_xpon_pon_info = {}  # Clear cached data
-        self._gem_ports[gem_port.name] = gem_port
+        tc = tcont.get('object')
+        assert tc is not None, 'TCONT not found'
 
-        # Update any ONUs referenced
-        gem_port.xpon_create(self)
+        update['object'] = tc
 
-    def update_gemport(self, data):
-        """
-        Update GEM Port
-        :param data:
-        """
-        self.log.debug('update-gemport', gem_port=data)
+        # Look up any ONU associated with this TCONT (should be only one if any)
+        onu = self._get_tcont_onu(tcont['vont-ani'])
 
-        if data.name not in self._gem_ports:
-            raise KeyError("GEM Port '{}' does not exists".format(data.name))
+        if onu is not None:                 # Has it been discovered yet?
+            keys = [k for k in diffs.keys() if k in valid_keys]
 
-        self._cached_xpon_pon_info = {}  # Clear cached data
-        #gem_port = GemPort.create(data)
-        #
-        # TODO: On GEM Port changes, may need to add/delete/modify ONU Flow(s)
-        # Update any ONUs referenced
-        # gem_port.xpon_update(self)
-        pass
-        raise NotImplementedError('TODO: Not yet supported')
+            for k in keys:
+                if k == 'td-ref':
+                    td = self.traffic_descriptors.get(update['td-ref'])
+                    if td is not None:
+                        onu.update_tcont_td(tcont['alloc-id'], td)
 
-    def remove_gemport(self, data):
-        """
-        Delete GEM Port
-        :param data:
-        """
-        self.log.debug('remove-gemport', gem_port=data.name)
+        return update
 
-        gem_port = self._gem_ports.get(data.name)
+    def on_tcont_delete(self, tcont):
+        onu = self._get_tcont_onu(tcont['vont-ani'])
 
-        if gem_port is not None:
-            del self._gem_ports[data.name]
+        if onu is not None:
+            onu.remove_tcont(tcont['alloc-id'])
 
-            self._cached_xpon_pon_info = {}     # Clear cached data
-            #
-            # TODO: On GEM Port changes, may need to delete ONU Flow(s)
-            # Update any ONUs referenced
-            # gem_port.xpon_delete(self)
-            pass         # Perform any needed operations
-            raise NotImplementedError('TODO: Not yet supported')
+        return None
 
-    def create_multicast_gemport(self, data):
-        """
-        API to create multicast gemport object in the devices
-        :data: multicast gemport data object
-        :return: None
-        """
-        self.log.debug('create-mcast-gemport', gem_port=data)
-        #
-        #
-        #
-        raise NotImplementedError('TODO: Not yet supported')
+    def on_td_create(self, traffic_disc):
+        from xpon.olt_traffic_descriptor import OltTrafficDescriptor
+        traffic_disc['object'] = OltTrafficDescriptor.create(traffic_disc)
+        return traffic_disc
 
-    def update_multicast_gemport(self, data):
-        """
-        API to update  multicast gemport object in the devices
-        :data: multicast gemport data object
-        :return: None
-        """
-        self.log.debug('update-mcast-gemport', gem_port=data)
-        #
-        #
-        #
-        raise NotImplementedError('TODO: Not yet supported')
+    def on_td_modify(self, traffic_disc, update, diffs):
+        from xpon.olt_traffic_descriptor import OltTrafficDescriptor
 
-    def remove_multicast_gemport(self, data):
-        """
-        API to delete multicast gemport object in the devices
-        :data: multicast gemport data object
-        :return: None
-        """
-        self.log.debug('delete-mcast-gemport', gem_port=data.name)
-        #
-        #
-        #
-        raise NotImplementedError('TODO: Not yet supported')
+        valid_keys = ['fixed-bandwidth',
+                      'assured-bandwidth',
+                      'maximum-bandwidth',
+                      'priority',
+                      'weight',
+                      'additional-bw-eligibility-indicator']
+        invalid_key = next((key for key in diffs.keys() if key not in valid_keys), None)
+        if invalid_key is not None:
+            raise KeyError("traffic-descriptor leaf '{}' is read-only or write-once".format(invalid_key))
 
-    def create_multicast_distribution_set(self, data):
-        """
-        API to create multicast distribution rule to specify
-        the multicast VLANs that ride on the multicast gemport
-        :data: multicast distribution data object
-        :return: None
-        """
-        #
-        #
-        #
-        raise NotImplementedError('TODO: Not yet supported')
+        # New traffic descriptor
+        update['object'] = OltTrafficDescriptor.create(update)
 
-    def update_multicast_distribution_set(self, data):
-        """
-        API to update multicast distribution rule to specify
-        the multicast VLANs that ride on the multicast gemport
-        :data: multicast distribution data object
-        :return: None
-        """
-        #
-        #
-        #
-        raise NotImplementedError('TODO: Not yet supported')
+        td_name = traffic_disc['name']
+        tconts = {key: val for key, val in self.tconts.iteritems()
+                  if val['td-ref'] == td_name and td_name is not None}
 
-    def remove_multicast_distribution_set(self, data):
-        """
-        API to delete multicast distribution rule to specify
-        the multicast VLANs that ride on the multicast gemport
-        :data: multicast distribution data object
-        :return: None
-        """
-        #
-        #
-        #
-        raise NotImplementedError('TODO: Not yet supported')
+        for tcont in tconts.itervalues():
+            # Look up any ONU associated with this TCONT (should be only one if any)
+            onu = self._get_tcont_onu(tcont['vont-ani'])
+            if onu is not None:
+                onu.update_tcont_td(tcont['alloc-id'], update['object'])
+
+        return update
+
+    def on_td_delete(self, traffic_desc):
+        # TD may be used by more than one TCONT. Only delete if the last one
+        td_name = traffic_desc['name']
+        num_tconts = len([val for val in self.tconts.itervalues()
+                          if val['td-ref'] == td_name and td_name is not None])
+        return None if num_tconts <= 1 else traffic_desc
+
+    def on_gemport_create(self, gem_port):
+        from xpon.olt_gem_port import OltGemPort
+        # Create an GemPort object to wrap the dictionary
+        gem_port['object'] = OltGemPort.create(self, gem_port)
+
+        onus = self.get_related_onus(gem_port)
+        assert len(onus) <= 1, 'Too many ONUs: {}'.format(len(onus))
+
+        if len(onus) == 1:
+            onus[0].add_gem_port(gem_port['object'])
+
+        return gem_port
+
+    def on_gemport_modify(self, gem_port, update, diffs):
+        valid_keys = ['encryption',
+                      'traffic-class']  # Modify of these keys supported
+
+        invalid_key = next((key for key in diffs.keys() if key not in valid_keys), None)
+        if invalid_key is not None:
+            raise KeyError("GEM Port leaf '{}' is read-only or write-once".format(invalid_key))
+
+        port = gem_port.get('object')
+        assert port is not None, 'GemPort not found'
+
+        keys = [k for k in diffs.keys() if k in valid_keys]
+        update['object'] = port
+
+        for k in keys:
+            if k == 'encryption':
+                port.encryption = update[k]
+            elif k == 'traffic-class':
+                pass                    # TODO: Implement
+
+        return update
+
+    def on_gemport_delete(self, gem_port):
+        onus = self.get_related_onus(gem_port)
+        assert len(onus) <= 1, 'Too many ONUs: {}'.format(len(onus))
+        if len(onus) == 1:
+            onus[0].remove_gem_id(gem_port['gemport-id'])
+        return None

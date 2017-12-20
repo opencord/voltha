@@ -59,6 +59,9 @@ class NniPort(object):
         self._sync_tick = 10.0
         self._sync_deferred = None
 
+        self._stats_tick = 5.0
+        self._stats_deferred = None
+
         self._deferred = None
         self._state = NniPort.State.INITIAL
 
@@ -85,6 +88,19 @@ class NniPort(object):
         self._max_speed = kwargs.pop('max_speed', OFPPF_100GB_FD)
         self._device_port_no = kwargs.pop('device_port_no', self._port_no)
 
+        # Statistics
+        self.rx_packets = 0
+        self.rx_bytes = 0
+        self.tx_packets = 0
+        self.tx_bytes = 0
+        self.rx_dropped = 0
+        self.rx_errors = 0
+        self.rx_bcast = 0
+        self.rx_mcast = 0
+        self.tx_dropped = 0
+        self.tx_bcast = 0
+        self.tx_mcast = 0
+
     def __del__(self):
         self.stop()
 
@@ -95,7 +111,7 @@ class NniPort(object):
                                                                     self._parent)
 
     @property
-    def port_number(self):
+    def port_no(self):
         return self._port_no
 
     @property
@@ -109,6 +125,14 @@ class NniPort(object):
     @property
     def state(self):
         return self._state
+
+    @property
+    def admin_state(self):
+        return self._admin_state
+
+    @property
+    def oper_status(self):
+        return self._oper_status
 
     @property
     def adapter_agent(self):
@@ -133,7 +157,9 @@ class NniPort(object):
     def _cancel_deferred(self):
         d1, self._deferred = self._deferred, None
         d2, self._sync_deferred = self._sync_deferred, None
-        for d in [d1, d2]:
+        d3, self._stats_deferred = self._stats_deferred, None
+
+        for d in [d1, d2, d3]:
             try:
                 if d is not None and d.called:
                     d.cancel()
@@ -185,7 +211,6 @@ class NniPort(object):
     def start(self):
         """
         Start/enable this NNI
-        
         :return: (deferred)
         """
         if self._state == NniPort.State.RUNNING:
@@ -208,29 +233,32 @@ class NniPort(object):
 
         self._enabled = True
         self._admin_state = AdminState.ENABLED
-        self._oper_status = OperStatus.ACTIVE  # TODO: is this correct, how do we tell GRPC
+        self._oper_status = OperStatus.ACTIVE
         self._update_adapter_agent()
 
         # TODO: Start status polling of NNI interfaces
         self._deferred = None  # = reactor.callLater(3, self.do_stuff)
         self._state = NniPort.State.RUNNING
+
         # Begin hardware sync
         self._sync_deferred = reactor.callLater(self._sync_tick, self._sync_hardware)
+        self._stats_deferred= reactor.callLater(self._stats_tick * 2, self._update_statistics)
 
         try:
             results = yield self.set_config('enabled', True)
 
         except Exception as e:
             self.log.exception('nni-start', e=e)
-            self._admin_state = AdminState.UNKNOWN
-            raise
+            self._oper_status = OperStatus.UNKNOWN
+            self._update_adapter_agent()
+
 
         returnValue(self._deferred)
 
     @inlineCallbacks
     def stop(self):
         if self._state == NniPort.State.STOPPED:
-            returnValue(succeed('Stopped'))
+            returnValue('Stopped')
 
         self.log.info('stopping')
         self._cancel_deferred()
@@ -327,6 +355,19 @@ class NniPort(object):
                  '</filter>'
         return self._parent.netconf_client.get(config)
 
+    def get_nni_statistics(self):
+        state = '<filter xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">' + \
+                 ' <interfaces-state xmlns="urn:ietf:params:xml:ns:yang:ietf-interfaces">' + \
+                 '  <interface>' + \
+                 '   <name>{}</name>'.format(self._name) + \
+                 '   <admin-status/>' + \
+                 '   <oper-status/>' + \
+                 '   <statistics/>' + \
+                 '  </interface>' + \
+                 ' </interfaces>' + \
+                 '</filter>'
+        return self._parent.netconf_client.get(state)
+
     def _sync_hardware(self):
         if self._state == NniPort.State.RUNNING or self._state == NniPort.State.STOPPED:
             def read_config(results):
@@ -338,8 +379,12 @@ class NniPort(object):
                     enabled = entries.get('enabled',
                                           str(not self.enabled).lower()) == 'true'
 
-                    return succeed('in-sync') if self.enabled == enabled else \
-                        self.set_config('enabled', self.enabled)
+                    if self.enabled == enabled:
+                        return succeed('in-sync')
+
+                    self.set_config('enabled', self.enabled)
+                    self._oper_status = OperStatus.ACTIVE
+                    self._update_adapter_agent()
 
                 except Exception as e:
                     self.log.exception('read-config', e=e)
@@ -356,6 +401,59 @@ class NniPort(object):
             self._sync_deferred = self.get_nni_config()
             self._sync_deferred.addCallbacks(read_config, failure)
             self._sync_deferred.addBoth(reschedule)
+
+    def _decode_nni_statistics(self, entry):
+        admin_status = entry.get('admin-status')
+        oper_status = entry.get('oper-status')
+        admin_status = entry.get('admin-status')
+        phys_address = entry.get('phys-address')
+
+        stats = entry.get('statistics')
+        if stats is not None:
+            self.rx_bytes = int(stats.get('in-octets', 0))
+            self.rx_dropped = int(stats.get('in-discards', 0))
+            self.rx_errors = int(stats.get('in-errors', 0))
+            self.rx_bcast = int(stats.get('in-broadcast-pkts', 0))
+            self.rx_mcast = int(stats.get('in-multicast-pkts', 0))
+
+            self.tx_bytes = int(stats.get('out-octets', 0))
+            self.tx_bcast = int(stats.get('out-broadcast-pkts', 0))
+            self.tx_mcast = int(stats.get('out-multicast-pkts', 0))
+            self.tx_dropped = int(stats.get('out-discards', 0)) + int(stats.get('out-errors', 0))
+
+            self.rx_packets = int(stats.get('in-unicast-pkts', 0)) + self.rx_mcast + self.rx_bcast
+            self.tx_packets = int(stats.get('out-unicast-pkts', 0)) + self.tx_mcast + self.tx_bcast
+
+    def _update_statistics(self):
+        if self._state == NniPort.State.RUNNING:
+            def read_state(results):
+                self.log.debug('read-state', results=results)
+                try:
+                    result_dict = xmltodict.parse(results.data_xml)
+                    entry = result_dict['data']['interfaces-state']['interface']
+                    self._decode_nni_statistics(entry)
+                    return succeed('done')
+
+                except Exception as e:
+                    self.log.exception('read-state', e=e)
+                    return fail(Failure())
+
+            def failure(reason):
+                self.log.error('update-stats-failed', reason=reason)
+
+            def reschedule(_):
+                delay = self._stats_tick
+                delay += random.uniform(-delay / 10, delay / 10)
+                self._stats_deferred = reactor.callLater(delay, self._update_statistics)
+
+            try:
+                self._stats_deferred = self.get_nni_statistics()
+                self._stats_deferred.addCallbacks(read_state, failure)
+                self._stats_deferred.addBoth(reschedule)
+
+            except Exception as e:
+                self.log.exception('nni-sync', port=self.name, e=e)
+                self._stats_deferred = reactor.callLater(self._stats_tick, self._update_statistics)
 
 
 class MockNniPort(NniPort):

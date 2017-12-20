@@ -14,6 +14,7 @@
 
 import binascii
 import struct
+import json
 
 import structlog
 from txzmq import ZmqEndpoint, ZmqFactory
@@ -58,7 +59,25 @@ class AdtranZmqClient(object):
         log.debug('discarding-no-receiver')
 
     @staticmethod
-    def encode_omci_message(msg, pon_index, onu_id):
+    def encode_omci_message(msg, pon_index, onu_id, is_async_control):
+        """
+        Create an OMCI Tx Packet for the specified ONU
+
+        :param msg: (str) OMCI message to send
+        :param pon_index: (unsigned int) PON Port index
+        :param onu_id: (unsigned int) ONU ID
+        :param is_async_control: (bool) Newer async/JSON support
+
+        :return: (bytes) octet string to send
+        """
+        assert msg, 'No message provided'
+
+        return AdtranZmqClient._encode_omci_message_json(msg, pon_index, onu_id) \
+            if is_async_control else \
+            AdtranZmqClient._encode_omci_message_legacy(msg, pon_index, onu_id)
+
+    @staticmethod
+    def _encode_omci_message_legacy(msg, pon_index, onu_id):
         """
         Create an OMCI Tx Packet for the specified ONU
 
@@ -68,17 +87,43 @@ class AdtranZmqClient(object):
 
         :return: (bytes) octet string to send
         """
-        assert msg
         s = struct.Struct('!II')
+
+        # Check if length is prepended (32-bits = 4 bytes ASCII)
+        msglen = len(msg)
+        assert msglen == 40*2 or msglen == 44*2, 'Invalid OMCI message length'
+
+        if len(msg) > 40*2:
+            msg = msg[:40*2]
 
         return s.pack(pon_index, onu_id) + binascii.unhexlify(msg)
 
     @staticmethod
-    def decode_packet(packet):
+    def _encode_omci_message_json(msg, pon_index, onu_id):
+        """
+        Create an OMCI Tx Packet for the specified ONU
+
+        :param msg: (str) OMCI message to send
+        :param pon_index: (unsigned int) PON Port index
+        :param onu_id: (unsigned int) ONU ID
+
+        :return: (bytes) octet string to send
+        """
+
+        return json.dumps({"operation": "NOTIFY",
+                           "url": "adtran-olt-pon-control/omci-message",
+                           "pon-id": pon_index,
+                           "onu-id": onu_id,
+                           "message-contents": msg.decode("hex").encode("base64")
+                           })
+
+    @staticmethod
+    def decode_packet(packet, is_async_control):
         """
         Decode the packet provided by the ZMQ client
 
         :param packet: (bytes) Packet
+        :param is_async_control: (bool) Newer async/JSON support
         :return: (long, long, bytes, boolean) PON Index, ONU ID, Frame Contents (OMCI or Ethernet),\
                                               and a flag indicating if it is OMCI
         """
@@ -87,13 +132,15 @@ class AdtranZmqClient(object):
             if len(packet) > 1:
                 pass  # TODO: Can we get multiple packets?
 
-            return AdtranZmqClient._decode_omci_message(packet[0])
+            return AdtranZmqClient._decode_omci_message_json(packet[0]) if is_async_control \
+                else AdtranZmqClient._decode_omci_message_legacy(packet[0])
+
         return -1, -1, None, False
 
     @staticmethod
-    def _decode_omci_message(packet):
+    def _decode_omci_message_legacy(packet):
         """
-        Decode the packet provided by the ZMQ client
+        Decode the packet provided by the ZMQ client (binary legacy format)
 
         :param packet: (bytes) Packet
         :return: (long, long, bytes) PON Index, ONU ID, OMCI Frame Contents
@@ -102,6 +149,22 @@ class AdtranZmqClient(object):
         omci_msg = packet[8:]
 
         return pon_index, onu_id, omci_msg, True
+
+    @staticmethod
+    def _decode_omci_message_json(packet):
+        """
+        Decode the packet provided by the ZMQ client (JSON format)
+
+        :param packet: (string) Packet
+        :return: (long, long, bytes) PON Index, ONU ID, OMCI Frame Contents
+        """
+        msg = json.loads(packet)
+        pon_id = msg['pon-id']
+        onu_id = msg['onu-id']
+        msg_data = msg['message-contents'].decode("base64").encode("hex")
+        is_omci = msg['operation'] == "NOTIFY" and 'omci-message' in msg['url']
+
+        return pon_id, onu_id, msg_data, is_omci
 
     @staticmethod
     def _decode_packet_in_message(packet):

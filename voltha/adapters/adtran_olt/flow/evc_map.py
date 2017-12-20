@@ -265,8 +265,7 @@ class EVCMap(object):
                     if self._is_ingress_map else self._egress_install_xml()
 
                 log.debug('install', xml=map_xml, name=self.name)
-                results = yield self._flow.handler.netconf_client.edit_config(map_xml,
-                                                                              lock_timeout=10)
+                results = yield self._flow.handler.netconf_client.edit_config(map_xml)
                 self._installed = results.ok
                 self.status = '' if results.ok else results.error
 
@@ -292,10 +291,9 @@ class EVCMap(object):
         return EVCMap._xml_header('delete') + \
                '<name>{}</name>'.format(self.name) + EVCMap._xml_trailer()
 
-    @inlineCallbacks
     def remove(self):
         if not self.installed:
-            returnValue(succeed('Not installed'))
+            returnValue('Not installed')
 
         log.info('removing', evc_map=self)
 
@@ -311,7 +309,7 @@ class EVCMap(object):
         map_xml = self._ingress_remove_xml(self._gem_ids_and_vid) if self._is_ingress_map \
             else self._egress_remove_xml()
 
-        d = self._flow.handler.netconf_client.edit_config(map_xml, lock_timeout=30)
+        d = self._flow.handler.netconf_client.edit_config(map_xml)
         d.addCallbacks(_success, _failure)
         return d
 
@@ -378,8 +376,11 @@ class EVCMap(object):
             after = gem_ports()
 
             if len(before) > len(after):
-                self._installed = False
-                return self.install()
+                if len(after) == 0:
+                    return self.remove()
+                else:
+                    self._installed = False
+                    return self.install()
 
         return succeed('nop')
 
@@ -529,7 +530,7 @@ class EVCMap(object):
                         del_xml += '</evc-maps>'
                         log.debug('removing', xml=del_xml)
 
-                        return client.edit_config(del_xml, lock_timeout=30)
+                        return client.edit_config(del_xml)
 
             return succeed('no entries')
 

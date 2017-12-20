@@ -158,11 +158,10 @@ class MockNetconfClient(AdtranNetconfClient):
 
     @inlineCallbacks
     def edit_config(self, config, target='running', default_operation='merge',
-                    test_option=None, error_option=None, lock_timeout=-1):
+                    test_option=None, error_option=None):
         """
         Loads all or part of the specified config to the target configuration datastore with the ability to lock
-        the datastore during the edit.  To change multiple items, use your own calls to lock/unlock instead of
-        using the lock_timeout value
+        the datastore during the edit.
 
         :param config is the configuration, which must be rooted in the config element. It can be specified
                       either as a string or an Element.format="xml"
@@ -171,29 +170,15 @@ class MockNetconfClient(AdtranNetconfClient):
         :param test_option if specified must be one of { 'test_then_set', 'set' }
         :param error_option if specified must be one of { 'stop-on-error', 'continue-on-error', 'rollback-on-error' }
                             The 'rollback-on-error' error_option depends on the :rollback-on-error capability.
-        :param lock_timeout if >0, the maximum number of seconds to hold a lock on the datastore while the edit
-                            operation is underway
 
         :return: (defeered) for RpcReply
         """
-        if lock_timeout > 0:
-            try:
-                request = self.lock(target, lock_timeout)
-                yield request
-
-            except Exception as e:
-                log.exception('edit_config-lock', e=e)
-                raise
         try:
             yield asleep(random.uniform(0.1, 2.0))  # Simulate NETCONF request delay
 
         except Exception as e:
             log.exception('edit_config', e=e)
             raise
-
-        finally:
-            if lock_timeout > 0:
-                yield self.unlock(target)
 
         # TODO: Customize if needed...
         xml = _dummy_xml

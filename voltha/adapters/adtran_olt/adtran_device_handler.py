@@ -31,16 +31,14 @@ from voltha.adapters.adtran_olt.net.adtran_netconf import AdtranNetconfClient
 from voltha.adapters.adtran_olt.net.adtran_rest import AdtranRestClient
 from voltha.protos import third_party
 from voltha.protos.common_pb2 import OperStatus, AdminState, ConnectStatus
-from voltha.protos.events_pb2 import AlarmEventType, \
-    AlarmEventSeverity, AlarmEventState, AlarmEventCategory
 from voltha.protos.device_pb2 import Image
 from voltha.protos.logical_device_pb2 import LogicalDevice
 from voltha.protos.openflow_13_pb2 import ofp_desc, ofp_switch_features, OFPC_PORT_STATS, \
     OFPC_GROUP_STATS, OFPC_TABLE_STATS, OFPC_FLOW_STATS
 from voltha.registry import registry
-from adapter_alarms import AdapterAlarms
+from alarms.adapter_alarms import AdapterAlarms
 from common.frameio.frameio import BpfProgramFilter, hexify
-from adapter_pm_metrics import AdapterPmMetrics
+from pki.olt_pm_metrics import OltPmMetrics
 from common.utils.asleep import asleep
 from scapy.layers.l2 import Ether, Dot1Q
 from scapy.layers.inet import Raw
@@ -92,8 +90,14 @@ class AdtranDeviceHandler(object):
     # RPC XML shortcuts
     RESTART_RPC = '<system-restart xmlns="urn:ietf:params:xml:ns:yang:ietf-system"/>'
 
-    def __init__(self, adapter, device_id, timeout=20):
+    def __init__(self, **kwargs):
         from net.adtran_zmq import DEFAULT_ZEROMQ_OMCI_TCP_PORT
+
+        super(AdtranDeviceHandler, self).__init__()
+
+        adapter = kwargs['adapter']
+        device_id = kwargs['device-id']
+        timeout = kwargs.get('timeout', 20)
 
         self.adapter = adapter
         self.adapter_agent = adapter.adapter_agent
@@ -108,6 +112,7 @@ class AdtranDeviceHandler(object):
         self.alarms = None
         self.packet_in_vlan = DEFAULT_PACKET_IN_VLAN
         self.multicast_vlans = [DEFAULT_MULTICAST_VLAN]
+        self.default_mac_addr = '00:13:95:00:00:00'
 
         # Northbound and Southbound ports
         self.northbound_ports = {}  # port number -> Port
@@ -158,8 +163,9 @@ class AdtranDeviceHandler(object):
         self.heartbeat = None
         self.heartbeat_last_reason = ''
 
-        # Virtualized OLT Support
+        # Virtualized OLT Support & async command support
         self.is_virtual_olt = False
+        self.is_async_control = False
 
         # Installed flows
         self._evcs = {}  # Flow ID/name -> FlowEntry
@@ -278,6 +284,19 @@ class AdtranDeviceHandler(object):
 
             self._autoactivate = args.autoactivate
 
+            if not self.rest_username:
+                self.rest_username = 'NDE0NDRkNDk0ZQ==\n'.\
+                    decode('base64').decode('hex')
+            if not self.rest_password:
+                self.rest_password = 'NTA0MTUzNTM1NzRmNTI0NA==\n'.\
+                    decode('base64').decode('hex')
+            if not self.netconf_username:
+                self.netconf_username = 'Njg3Mzc2NzI2ZjZmNzQ=\n'.\
+                    decode('base64').decode('hex')
+            if not self.netconf_password:
+                self.netconf_password = 'NDI0ZjUzNDM0Zg==\n'.\
+                    decode('base64').decode('hex')
+
         except argparse.ArgumentError as e:
             self.activate_failed(device,
                                  'Invalid arguments: {}'.format(e.message),
@@ -297,226 +316,242 @@ class AdtranDeviceHandler(object):
         return self._autoactivate
 
     @inlineCallbacks
-    def activate(self, device, reconciling=False):
+    def activate(self, device, done_deferred=None, reconciling=False):
         """
         Activate the OLT device
 
         :param device: A voltha.Device object, with possible device-type
                        specific extensions.
+        :param done_deferred: (Deferred) Deferred to fire when done
         :param reconciling: If True, this adapter is taking over for a previous adapter
                             for an existing OLT
         """
         self.log.info('AdtranDeviceHandler.activating', reconciling=reconciling)
 
         if self.logical_device_id is None:
-            # Parse our command line options for this device
-            self.parse_provisioning_options(device)
-
-            ############################################################################
-            # Start initial discovery of RESTCONF support (if any)
-
             try:
-                self.startup = self.make_restconf_connection()
-                results = yield self.startup
-                self.log.debug('HELLO_Contents: {}'.format(pprint.PrettyPrinter().pformat(results)))
+                # Parse our command line options for this device
+                self.parse_provisioning_options(device)
 
-                # See if this is a virtualized OLT. If so, no NETCONF support available
+                ############################################################################
+                # Start initial discovery of RESTCONF support (if any)
 
-                self.is_virtual_olt = 'module-info' in results and\
-                                      any(mod.get('module-name', None) == 'adtran-ont-mock'
-                                          for mod in results['module-info'])
-
-            except Exception as e:
-                self.log.exception('Initial_RESTCONF_hello_failed', e=e)
-                self.activate_failed(device, e.message, reachable=False)
-
-            ############################################################################
-            # Start initial discovery of NETCONF support (if any)
-
-            try:
-                self.startup = self.make_netconf_connection()
-                yield self.startup
-
-            except Exception as e:
-                self.log.exception('NETCONF_connection_failed', e=e)
-                self.activate_failed(device, e.message, reachable=False)
-
-            ############################################################################
-            # Get the device Information
-
-            if reconciling:
-                device.connect_status = ConnectStatus.REACHABLE
-                self.adapter_agent.update_device(device)
-            else:
                 try:
-                    self.startup = self.get_device_info(device)
+                    self.startup = self.make_restconf_connection()
                     results = yield self.startup
+                    self.log.debug('HELLO_Contents: {}'.format(pprint.PrettyPrinter().pformat(results)))
 
-                    device.model = results.get('model', 'unknown')
-                    device.hardware_version = results.get('hardware_version', 'unknown')
-                    device.firmware_version = results.get('firmware_version', 'unknown')
-                    device.serial_number = results.get('serial_number', 'unknown')
+                    # See if this is a virtualized OLT. If so, no NETCONF support available
 
-                    def get_software_images():
-                        leafs = ['running-revision', 'candidate-revision', 'startup-revision']
-                        image_names = list(set([results.get(img, 'unknown') for img in leafs]))
-
-                        images = []
-                        image_count = 1
-                        for name in image_names:
-                            # TODO: Look into how to find out hash, is_valid, and install date/time
-                            image = Image(name='Candidate_{}'.format(image_count),
-                                          version=name,
-                                          is_active=(name == results.get('running-revision', 'xxx')),
-                                          is_committed=True,
-                                          is_valid=True,
-                                          install_datetime='Not Available')
-                            image_count += 1
-                            images.append(image)
-                        return images
-
-                    device.images.image.extend(get_software_images())
-                    device.root = True
-                    device.vendor = results.get('vendor', 'Adtran, Inc.')
-                    device.connect_status = ConnectStatus.REACHABLE
-                    self.adapter_agent.update_device(device)
+                    if 'module-info' in results:
+                        self.is_virtual_olt = any(mod.get('module-name', None) == 'adtran-ont-mock'
+                                                  for mod in results['module-info'])
+                        self.is_async_control = any(mod.get('module-name', None) == 'adtran-olt-pon-control'
+                                                   for mod in results['module-info'])
 
                 except Exception as e:
-                    self.log.exception('Device_info_failed', e=e)
+                    self.log.exception('Initial_RESTCONF_hello_failed', e=e)
                     self.activate_failed(device, e.message, reachable=False)
 
-            try:
-                # Enumerate and create Northbound NNI interfaces
+                ############################################################################
+                # Start initial discovery of NETCONF support (if any)
 
-                device.reason = 'Enumerating NNI Interfaces'
+                try:
+                    self.startup = self.make_netconf_connection()
+                    yield self.startup
+
+                except Exception as e:
+                    self.log.exception('NETCONF_connection_failed', e=e)
+                    self.activate_failed(device, e.message, reachable=False)
+
+                ############################################################################
+                # Get the device Information
+
+                if reconciling:
+                    device.connect_status = ConnectStatus.REACHABLE
+                    self.adapter_agent.update_device(device)
+                else:
+                    try:
+                        self.startup = self.get_device_info(device)
+                        results = yield self.startup
+
+                        device.model = results.get('model', 'unknown')
+                        device.hardware_version = results.get('hardware_version', 'unknown')
+                        device.firmware_version = results.get('firmware_version', 'unknown')
+                        device.serial_number = results.get('serial_number', 'unknown')
+
+                        def get_software_images():
+                            leafs = ['running-revision', 'candidate-revision', 'startup-revision']
+                            image_names = list(set([results.get(img, 'unknown') for img in leafs]))
+
+                            images = []
+                            image_count = 1
+                            for name in image_names:
+                                # TODO: Look into how to find out hash, is_valid, and install date/time
+                                image = Image(name='Candidate_{}'.format(image_count),
+                                              version=name,
+                                              is_active=(name == results.get('running-revision', 'xxx')),
+                                              is_committed=True,
+                                              is_valid=True,
+                                              install_datetime='Not Available')
+                                image_count += 1
+                                images.append(image)
+                            return images
+
+                        device.images.image.extend(get_software_images())
+                        device.root = True
+                        device.vendor = results.get('vendor', 'Adtran, Inc.')
+                        device.connect_status = ConnectStatus.REACHABLE
+                        self.adapter_agent.update_device(device)
+
+                    except Exception as e:
+                        self.log.exception('Device_info_failed', e=e)
+                        self.activate_failed(device, e.message, reachable=False)
+
+                try:
+                    # Enumerate and create Northbound NNI interfaces
+
+                    device.reason = 'Enumerating NNI Interfaces'
+                    self.adapter_agent.update_device(device)
+                    self.startup = self.enumerate_northbound_ports(device)
+                    results = yield self.startup
+
+                    self.startup = self.process_northbound_ports(device, results)
+                    yield self.startup
+
+                    device.reason = 'Adding NNI Interfaces to Adapter'
+                    self.adapter_agent.update_device(device)
+
+                    if not reconciling:
+                        for port in self.northbound_ports.itervalues():
+                            self.adapter_agent.add_port(device.id, port.get_port())
+
+                except Exception as e:
+                    self.log.exception('NNI_enumeration', e=e)
+                    self.activate_failed(device, e.message)
+
+                try:
+                    # Enumerate and create southbound interfaces
+
+                    device.reason = 'Enumerating PON Interfaces'
+                    self.adapter_agent.update_device(device)
+                    self.startup = self.enumerate_southbound_ports(device)
+                    results = yield self.startup
+
+                    self.startup = self.process_southbound_ports(device, results)
+                    yield self.startup
+
+                    device.reason = 'Adding PON Interfaces to Adapter'
+                    self.adapter_agent.update_device(device)
+
+                    if not reconciling:
+                        for port in self.southbound_ports.itervalues():
+                            self.adapter_agent.add_port(device.id, port.get_port())
+
+                except Exception as e:
+                    self.log.exception('PON_enumeration', e=e)
+                    self.activate_failed(device, e.message)
+
+                if reconciling:
+                    if device.admin_state == AdminState.ENABLED:
+                        if device.parent_id:
+                            self.logical_device_id = device.parent_id
+                            self.adapter_agent.reconcile_logical_device(device.parent_id)
+                        else:
+                            self.log.info('no-logical-device-set')
+
+                    # Reconcile child devices
+                    self.adapter_agent.reconcile_child_devices(device.id)
+                    ld_initialized = self.adapter_agent.get_logical_device()
+                    assert device.parent_id == ld_initialized.id, \
+                        'parent ID not Logical device ID'
+
+                else:
+                    # Complete activation by setting up logical device for this OLT and saving
+                    # off the devices parent_id
+
+                    ld_initialized = self.create_logical_device(device)
+
+                ############################################################################
+                # Setup PM configuration for this device
+                try:
+                    device.reason = 'Setting up PM configuration'
+                    self.adapter_agent.update_device(device)
+
+                    self.pm_metrics = OltPmMetrics(self, device, grouped=True, freq_override=False)
+                    pm_config = self.pm_metrics.make_proto()
+                    self.log.info("initial-pm-config", pm_config=pm_config)
+                    self.adapter_agent.update_device_pm_config(pm_config, init=True)
+
+                except Exception as e:
+                    self.log.exception('pm-setup', e=e)
+                    self.activate_failed(device, e.message)
+
+                ############################################################################
+                # Setup Alarm handler
+
+                device.reason = 'Setting up Adapter Alarms'
                 self.adapter_agent.update_device(device)
-                self.startup = self.enumerate_northbound_ports(device)
-                results = yield self.startup
 
-                self.startup = self.process_northbound_ports(device, results)
-                yield self.startup
+                self.alarms = AdapterAlarms(self.adapter, device.id)
 
-                device.reason = 'Adding NNI Interfaces to Adapter'
+                ############################################################################
+                # Create logical ports for all southbound and northbound interfaces
+                try:
+                    device.reason = 'Creating logical ports'
+                    self.adapter_agent.update_device(device)
+                    self.startup = self.create_logical_ports(device, ld_initialized, reconciling)
+                    yield self.startup
+
+                except Exception as e:
+                    self.log.exception('logical-port', e=e)
+                    self.activate_failed(device, e.message)
+
+                ############################################################################
+                # Register for ONU detection
+                # self.adapter_agent.register_for_onu_detect_state(device.id)
+
+                # Complete device specific steps
+                try:
+                    self.log.debug('device-activation-procedures')
+                    self.startup = self.complete_device_specific_activation(device, reconciling)
+                    yield self.startup
+
+                except Exception as e:
+                    self.log.exception('device-activation-procedures', e=e)
+                    self.activate_failed(device, e.message)
+
+                # Schedule the heartbeat for the device
+
+                self.log.debug('starting-heartbeat')
+                self.start_heartbeat(delay=10)
+
+                device = self.adapter_agent.get_device(device.id)
+                device.parent_id = ld_initialized.id
+                device.oper_status = OperStatus.ACTIVE
+                device.reason = ''
                 self.adapter_agent.update_device(device)
+                self.logical_device_id = ld_initialized.id
 
-                if not reconciling:
-                    for port in self.northbound_ports.itervalues():
-                        self.adapter_agent.add_port(device.id, port.get_port())
+                # finally, open the frameio port to receive in-band packet_in messages
+                self._activate_io_port()
+
+                # Start collecting stats from the device after a brief pause
+                reactor.callLater(10, self.start_kpi_collection, device.id)
+
+                # Signal completion
+
+                self.log.info('activated')
 
             except Exception as e:
-                self.log.exception('NNI_enumeration', e=e)
-                self.activate_failed(device, e.message)
+                self.log.exception('activate', e=e)
+                if done_deferred is not None:
+                    done_deferred.errback(e)
+                raise
+        if done_deferred is not None:
+            done_deferred.callback('activated')
 
-            try:
-                # Enumerate and create southbound interfaces
-
-                device.reason = 'Enumerating PON Interfaces'
-                self.adapter_agent.update_device(device)
-                self.startup = self.enumerate_southbound_ports(device)
-                results = yield self.startup
-
-                self.startup = self.process_southbound_ports(device, results)
-                yield self.startup
-
-                device.reason = 'Adding PON Interfaces to Adapter'
-                self.adapter_agent.update_device(device)
-
-                if not reconciling:
-                    for port in self.southbound_ports.itervalues():
-                        self.adapter_agent.add_port(device.id, port.get_port())
-
-            except Exception as e:
-                self.log.exception('PON_enumeration', e=e)
-                self.activate_failed(device, e.message)
-
-            if reconciling:
-                if device.admin_state == AdminState.ENABLED:
-                    if device.parent_id:
-                        self.logical_device_id = device.parent_id
-                        self.adapter_agent.reconcile_logical_device(device.parent_id)
-                    else:
-                        self.log.info('no-logical-device-set')
-
-                # Reconcile child devices
-                self.adapter_agent.reconcile_child_devices(device.id)
-                ld_initialized = self.adapter_agent.get_logical_device()
-                assert device.parent_id == ld_initialized.id, \
-                    'parent ID not Logical device ID'
-
-            else:
-                # Complete activation by setting up logical device for this OLT and saving
-                # off the devices parent_id
-
-                ld_initialized = self.create_logical_device(device)
-
-            ############################################################################
-            # Setup PM configuration for this device
-            try:
-                device.reason = 'Setting up PM configuration'
-                self.adapter_agent.update_device(device)
-
-                self.pm_metrics = AdapterPmMetrics(self.adapter, device)
-                pm_config = self.pm_metrics.make_proto()
-                self.log.info("initial-pm-config", pm_config=pm_config)
-                self.adapter_agent.update_device_pm_config(pm_config, init=True)
-
-            except Exception as e:
-                self.log.exception('pm-setup', e=e)
-                self.activate_failed(device, e.message)
-
-            ############################################################################
-            # Setup Alarm handler
-
-            device.reason = 'Setting up Adapter Alarms'
-            self.adapter_agent.update_device(device)
-
-            self.alarms = AdapterAlarms(self.adapter, device)
-
-            ############################################################################
-            # Create logical ports for all southbound and northbound interfaces
-            try:
-                device.reason = 'Creating logical ports'
-                self.adapter_agent.update_device(device)
-                self.startup = self.create_logical_ports(device, ld_initialized, reconciling)
-                yield self.startup
-
-            except Exception as e:
-                self.log.exception('logical-port', e=e)
-                self.activate_failed(device, e.message)
-
-            ############################################################################
-            # Register for ONU detection
-            # self.adapter_agent.register_for_onu_detect_state(device.id)
-
-            # Complete device specific steps
-            try:
-                self.log.debug('device-activation-procedures')
-                self.startup = self.complete_device_specific_activation(device, reconciling)
-                yield self.startup
-
-            except Exception as e:
-                self.log.exception('device-activation-procedures', e=e)
-                self.activate_failed(device, e.message)
-
-            # Schedule the heartbeat for the device
-
-            self.log.debug('starting-heartbeat')
-            self.start_heartbeat(delay=10)
-
-            device = self.adapter_agent.get_device(device.id)
-            device.parent_id = ld_initialized.id
-            device.oper_status = OperStatus.ACTIVE
-            device.reason = ''
-            self.adapter_agent.update_device(device)
-            self.logical_device_id = ld_initialized.id
-
-            # finally, open the frameio port to receive in-band packet_in messages
-            self._activate_io_port()
-
-            # Start collecting stats from the device after a brief pause
-            reactor.callLater(10, self.start_kpi_collection, device.id)
-
-            self.log.info('activated')
+        returnValue(done_deferred)
 
     def activate_failed(self, device, reason, reachable=True):
         """
@@ -535,7 +570,7 @@ class AdtranDeviceHandler(object):
 
         device.reason = reason
         self.adapter_agent.update_device(device)
-        raise RuntimeError('Failed to activate OLT: {}'.format(device.reason))
+        raise Exception('Failed to activate OLT: {}'.format(device.reason))
 
     @inlineCallbacks
     def make_netconf_connection(self, connect_timeout=None,
@@ -627,8 +662,8 @@ class AdtranDeviceHandler(object):
                                                     OFPC_PORT_STATS)),
             root_device_id=device.id)
 
-        ld_initialized = self.adapter_agent.create_logical_device(ld)
-
+        ld_initialized = self.adapter_agent.create_logical_device(ld,
+                                                                  dpid=self.default_mac_addr)
         return ld_initialized
 
     @inlineCallbacks
@@ -790,21 +825,6 @@ class AdtranDeviceHandler(object):
     def complete_device_specific_activation(self, _device, _reconciling):
         return defer.succeed('NOP')
 
-    def deactivate(self, device):
-        # Clear off logical device ID
-        self.logical_device_id = None
-
-        # Kill any heartbeat poll
-        h, self.heartbeat = self.heartbeat, None
-
-        try:
-            if h is not None and not h.called:
-                h.cancel()
-        except:
-            pass
-
-        # TODO: What else (delete logical device, ???)
-
     def disable(self):
         """
         This is called when a previously enabled device needs to be disabled based on a NBI call.
@@ -868,7 +888,7 @@ class AdtranDeviceHandler(object):
         # NOTE: Flows removed before this method is called
         # Wait for completion
 
-        self.startup = defer.gatherResults(dl)
+        self.startup = defer.gatherResults(dl, consumeErrors=True)
 
         def _drop_netconf():
             return self.netconf_client.close() if \
@@ -891,9 +911,10 @@ class AdtranDeviceHandler(object):
         return self.startup
 
     @inlineCallbacks
-    def reenable(self):
+    def reenable(self, done_deferred=None):
         """
         This is called when a previously disabled device needs to be enabled based on a NBI call.
+        :param done_deferred: (Deferred) Deferred to fire when done
         """
         self.log.info('re-enabling', device_id=self.device_id)
 
@@ -914,6 +935,10 @@ class AdtranDeviceHandler(object):
         # Set all ports to enabled
         self.adapter_agent.enable_all_ports(self.device_id)
 
+        # Recreate the logical device
+
+        ld_initialized = self.create_logical_device(device)
+
         try:
             yield self.make_restconf_connection()
 
@@ -925,10 +950,6 @@ class AdtranDeviceHandler(object):
 
         except Exception as e:
             self.log.exception('NETCONF-re-connection', e=e)
-
-        # Recreate the logical device
-
-        ld_initialized = self.create_logical_device(device)
 
         # Create logical ports for all southbound and northbound interfaces
 
@@ -964,7 +985,7 @@ class AdtranDeviceHandler(object):
 
         # Wait for completion
 
-        self.startup = defer.gatherResults(dl)
+        self.startup = defer.gatherResults(dl, consumeErrors=True)
         results = yield self.startup
 
         # Re-subscribe for ONU detection
@@ -977,6 +998,10 @@ class AdtranDeviceHandler(object):
         self._activate_io_port()
 
         self.log.info('re-enabled', device_id=device.id)
+
+        if done_deferred is not None:
+            done_deferred.callback('Done')
+
         returnValue(results)
 
     @inlineCallbacks
@@ -1114,7 +1139,7 @@ class AdtranDeviceHandler(object):
             dl.append(port.restart())
 
         try:
-            yield defer.gatherResults(dl)
+            yield defer.gatherResults(dl, consumeErrors=True)
         except Exception as e:
             self.log.exception('port-restart', e=e)
 
@@ -1277,24 +1302,20 @@ class AdtranDeviceHandler(object):
         # TODO: This has not been tested
         def _collect(device_id, prefix):
             from voltha.protos.events_pb2 import KpiEvent, KpiEventType, MetricValuePairs
-            import random
 
             try:
                 # Step 1: gather metrics from device
                 port_metrics = self.pm_metrics.collect_port_metrics()
 
                 # Step 2: prepare the KpiEvent for submission
-                # we can time-stamp them here (or could use time derived from OLT
+                # we can time-stamp them here or could use time derived from OLT
                 ts = arrow.utcnow().timestamp
                 kpi_event = KpiEvent(
                     type=KpiEventType.slice,
                     ts=ts,
                     prefixes={
-                        # OLT NNI port
-                        prefix + '.nni': MetricValuePairs(metrics=port_metrics['nni']),
-                        # OLT PON port
-                        prefix + '.pon': MetricValuePairs(metrics=port_metrics['pon'])
-                    }
+                        prefix + '.{}'.format(k): MetricValuePairs(metrics=port_metrics[k])
+                        for k in port_metrics.keys()}
                 )
                 # Step 3: submit
                 self.adapter_agent.submit_kpis(kpi_event)
@@ -1336,6 +1357,10 @@ class AdtranDeviceHandler(object):
             except Exception as e:
                 self.heartbeat = reactor.callLater(5, self._heartbeat_fail, e)
 
+    def on_heatbeat_alarm(self, active):
+        if active and self.netconf_client is None or not self.netconf_client.connected:
+            self.make_netconf_connection(close_existing_client=True)
+
     def heartbeat_check_status(self, _):
         """
         Check the number of heartbeat failures against the limit and emit an alarm if needed
@@ -1343,6 +1368,8 @@ class AdtranDeviceHandler(object):
         device = self.adapter_agent.get_device(self.device_id)
 
         try:
+            from alarms.heartbeat_alarm import HeartbeatAlarm
+
             if self.heartbeat_miss >= self.heartbeat_failed_limit:
                 if device.connect_status == ConnectStatus.REACHABLE:
                     self.log.warning('heartbeat-failed', count=self.heartbeat_miss)
@@ -1350,7 +1377,8 @@ class AdtranDeviceHandler(object):
                     device.oper_status = OperStatus.FAILED
                     device.reason = self.heartbeat_last_reason
                     self.adapter_agent.update_device(device)
-                    self.heartbeat_alarm(True, self.heartbeat_miss)
+                    HeartbeatAlarm(self, 'olt', self.heartbeat_miss).raise_alarm()
+                    self.on_heatbeat_alarm(True)
             else:
                 # Update device states
                 if device.connect_status != ConnectStatus.REACHABLE:
@@ -1358,7 +1386,8 @@ class AdtranDeviceHandler(object):
                     device.oper_status = OperStatus.ACTIVE
                     device.reason = ''
                     self.adapter_agent.update_device(device)
-                    self.heartbeat_alarm(False)
+                    HeartbeatAlarm(self, 'olt').clear_alarm()
+                    self.on_heatbeat_alarm(False)
 
                 if self.netconf_client is None or not self.netconf_client.connected:
                     self.make_netconf_connection(close_existing_client=True)
@@ -1385,38 +1414,9 @@ class AdtranDeviceHandler(object):
         self.heartbeat_last_reason = 'RESTCONF connectivity error'
         self.heartbeat_check_status(None)
 
-    def heartbeat_alarm(self, raise_alarm, heartbeat_misses=0):
-        alarm = 'Heartbeat'
-        alarm_data = {
-            'ts': arrow.utcnow().timestamp,
-            'description': self.alarms.format_description('olt', alarm,
-                                                          raise_alarm),
-            'id': self.alarms.format_id(alarm),
-            'type': AlarmEventType.EQUIPMENT,
-            'category': AlarmEventCategory.PON,
-            'severity': AlarmEventSeverity.CRITICAL,
-            'state': AlarmEventState.RAISED if raise_alarm else AlarmEventState.CLEARED
-        }
-        context_data = {'heartbeats_missed': heartbeat_misses}
-        self.alarms.send_alarm(context_data, alarm_data)
-
     @staticmethod
     def parse_module_revision(revision):
         try:
             return datetime.datetime.strptime(revision, '%Y-%m-%d')
         except Exception:
             return None
-
-    @staticmethod
-    def _dict_diff(lhs, rhs):
-        """
-        Compare the values of two dictionaries and return the items in 'rhs'
-        that are different than 'lhs. The RHS dictionary keys can be a subset of the
-        LHS dictionary, or the RHS dictionary keys can contain new values.
-
-        :param lhs: (dict) Original dictionary values
-        :param rhs: (dict) New dictionary values to compare to the original (lhs) dict
-        :return: (dict) Dictionary with differences from the RHS dictionary
-        """
-        assert len(lhs.keys()) == len(set(lhs.iterkeys()) & (rhs.iterkeys())), 'Dictionary Keys do not match'
-        return {k: v for k, v in rhs.items() if k not in lhs or lhs[k] != rhs[k]}

@@ -95,3 +95,11 @@ To list out any devices, you can use the following command:
 ```bash
 curl -k -s  https://${VOLTHA_IP}:${REST_PORT}/api/v1/local/devices | json_pp
 ```
+
+# Tested OLT Device Driver versions
+
+The minimum version number of for the OLT software is: *_11971320F1-ML-2287_*
+The specific PON-Agent version number is: _*ngpon2_agent-4.0.37-1.545.702565*_
+
+At this time, the version numbers above are also the latest ones tested. Work on validating
+newer releases is currently underway.

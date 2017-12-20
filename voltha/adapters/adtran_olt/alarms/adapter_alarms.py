@@ -14,6 +14,9 @@
 # limitations under the License.
 
 import structlog
+import arrow
+from voltha.protos.events_pb2 import AlarmEventType, \
+    AlarmEventSeverity, AlarmEventState, AlarmEventCategory
 
 # TODO: In the device adapter, the following alarms are still TBD
 #       (Taken from microsemi, so mileage may vare
@@ -42,10 +45,10 @@ import structlog
 
 
 class AdapterAlarms:
-    def __init__(self, adapter, device):
-        self.log = structlog.get_logger(device_id=device.id)
+    def __init__(self, adapter, device_id):
+        self.log = structlog.get_logger(device_id=device_id)
         self.adapter = adapter
-        self.device_id = device.id
+        self.device_id = device_id
         self.lc = None
 
     def format_id(self, alarm):
@@ -83,3 +86,42 @@ class AdapterAlarms:
 
         except Exception as e:
             self.log.exception('failed-to-send-alarm', e=e)
+
+
+class AlarmBase(object):
+    def __init__(self, handler, object_type, alarm,
+                 alarm_category,
+                 alarm_type=AlarmEventType.EQUIPMENT,
+                 alarm_severity=AlarmEventSeverity.CRITICAL):
+        self._handler = handler
+        self._object_type = object_type
+        self._alarm = alarm
+        self._alarm_category = alarm_category
+        self._alarm_type = alarm_type
+        self._alarm_severity = alarm_severity
+
+    def get_alarm_data(self, status):
+        return {
+            'ts': arrow.utcnow().timestamp,
+            'description': self._handler.alarms.format_description(self._object_type,
+                                                                   self._alarm,
+                                                                   status),
+            'id': self._handler.alarms.format_id(self._alarm),
+            'type': self._alarm_type,
+            'category': self._alarm_category,
+            'severity': self._alarm_severity,
+            'state': AlarmEventState.RAISED if status else AlarmEventState.CLEARED
+        }
+
+    def get_context_data(self):
+        return {}   # You should override this if needed
+
+    def raise_alarm(self):
+        alarm_data = self.get_alarm_data(True)
+        context_data = self.get_context_data()
+        self._handler.alarms.send_alarm(context_data, alarm_data)
+
+    def clear_alarm(self):
+        alarm_data = self.get_alarm_data(False)
+        context_data = self.get_context_data()
+        self._handler.alarms.send_alarm(context_data, alarm_data)

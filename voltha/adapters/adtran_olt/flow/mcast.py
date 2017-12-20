@@ -114,10 +114,9 @@ class MCastEVC(EVC):
         evc_table = _mcast_evcs.get(device_id)
 
         if evc_table is None or flow_id not in evc_table:
-            returnValue(succeed('NOP'))
+            returnValue('NOP')
 
         # Remove flow reference
-
         if self._flow.flow_id in self._downstream_flows:
             del self._downstream_flows[self._flow.flow_id]
 
@@ -125,7 +124,7 @@ class MCastEVC(EVC):
             # Use base class to clean up
             returnValue(super(MCastEVC, self).remove(remove_maps=True))
 
-        returnValue(succeed('More references'))
+        returnValue('More references')
 
     @inlineCallbacks
     def delete(self, delete_maps=True):
@@ -140,7 +139,7 @@ class MCastEVC(EVC):
                 for evc_map in self.evc_maps:
                     dl.append(evc_map.delete())   # TODO: implement bulk-flow procedures
 
-            yield defer.gatherResults(dl)
+            yield defer.gatherResults(dl, consumeErrors=True)
 
         except Exception as e:
             log.exception('removal', e=e)

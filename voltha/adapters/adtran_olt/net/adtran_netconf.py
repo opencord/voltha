@@ -216,7 +216,7 @@ class AdtranNetconfClient(object):
         Lock the configuration system
         :return: (deferred) for RpcReply
         """
-        log.debug('lock', source=source, timeout=lock_timeout)
+        log.info('lock', source=source, timeout=lock_timeout)
 
         if not self._session or not self._session.connected:
             raise NotImplemented('TODO: Support auto-connect if needed')
@@ -244,7 +244,7 @@ class AdtranNetconfClient(object):
 
         :return: (deferred) for RpcReply
         """
-        log.debug('unlock', source=source)
+        log.info('unlock', source=source)
 
         if not self._session or not self._session.connected:
             raise NotImplemented('TODO: Support auto-connect if needed')
@@ -267,11 +267,10 @@ class AdtranNetconfClient(object):
 
     @inlineCallbacks
     def edit_config(self, config, target='running', default_operation='none',
-                    test_option=None, error_option=None, lock_timeout=-1):
+                    test_option=None, error_option=None):
         """
         Loads all or part of the specified config to the target configuration datastore with the ability to lock
-        the datastore during the edit.  To change multiple items, use your own calls to lock/unlock instead of
-        using the lock_timeout value
+        the datastore during the edit.
 
         :param config is the configuration, which must be rooted in the config element. It can be specified
                       either as a string or an Element.format="xml"
@@ -280,8 +279,6 @@ class AdtranNetconfClient(object):
         :param test_option if specified must be one of { 'test_then_set', 'set' }
         :param error_option if specified must be one of { 'stop-on-error', 'continue-on-error', 'rollback-on-error' }
                             The 'rollback-on-error' error_option depends on the :rollback-on-error capability.
-        :param lock_timeout if >0, the maximum number of seconds to hold a lock on the datastore while the edit
-                            operation is underway
 
         :return: (deferred) for RpcReply
         """
@@ -295,15 +292,6 @@ class AdtranNetconfClient(object):
             except Exception as e:
                 log.exception('edit-config-connect', e=e)
 
-        rpc_reply = None
-        # if lock_timeout > 0:
-        #     try:
-        #         request = self._session.lock(target, lock_timeout)
-        #         rpc_reply = yield request
-        #
-        #     except Exception as e:
-        #         log.exception('edit_config-Lock', e=e)
-        #         raise
         try:
             if config[:7] != '<config':
                 config = '<config xmlns:xc="urn:ietf:params:xml:ns:netconf:base:1.0"' + \
@@ -316,16 +304,6 @@ class AdtranNetconfClient(object):
         except Exception as e:
             log.exception('edit_config', e=e)
             raise
-
-        finally:
-            pass
-            # if lock_timeout > 0:
-            #     try:
-            #         yield self._session.unlock(target)
-            #
-            #     except Exception as e:
-            #         log.exception('edit_config-unlock', e=e)
-            #         # Note that we just fall through and do not re-raise this exception
 
         returnValue(rpc_reply)
 

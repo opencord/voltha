@@ -507,7 +507,7 @@ class FlowEntry(object):
             flow_table = sig_table.get(self.signature)
 
         if flow_table is None or flow_id not in flow_table:
-            returnValue(succeed('NOP'))
+            returnValue('NOP')
 
         # Remove from flow table and clean up flow table if empty
 
@@ -546,13 +546,13 @@ class FlowEntry(object):
             if evc is not None:
                 dl.append(evc.delete())
 
-            yield gatherResults(dl)
+            yield gatherResults(dl, consumeErrors=True)
 
         except Exception as e:
             log.exception('removal', e=e)
 
         self.evc = None
-        returnValue(succeed('Done'))
+        returnValue('Done')
 
     @staticmethod
     def find_evc_map_flows(onu):

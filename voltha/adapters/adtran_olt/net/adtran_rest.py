@@ -86,7 +86,8 @@ class AdtranRestClient(object):
         return "AdtranRestClient {}@{}:{}".format(self._username, self._ip, self._port)
 
     @inlineCallbacks
-    def request(self, method, uri, data=None, name='', timeout=None, is_retry=False):
+    def request(self, method, uri, data=None, name='', timeout=None, is_retry=False,
+                suppress_error=False):
         """
         Send a REST request to the Adtran device
 
@@ -100,6 +101,8 @@ class AdtranRestClient(object):
                                    and in the real world.
         :return: (dict) On success with the proper results
         """
+        log.debug('request', method=method, uri=uri, data=data, retry=is_retry)
+
         if method.upper() not in self._valid_methods:
             raise NotImplementedError("REST method '{}' is not supported".format(method))
 
@@ -148,13 +151,14 @@ class AdtranRestClient(object):
             returnValue(ConnectionClosed)
 
         except Exception as e:
-            log.exception("REST {} '{}' request to '{}' failed: {}".format(method, name, url, str(e)))
+            log.exception("rest-request", method=method, url=url, name=name, e=e)
             raise
 
         if response.code not in self._valid_results[method.upper()]:
             message = "REST {} '{}' request to '{}' failed with status code {}".format(method, name,
                                                                                        url, response.code)
-            log.error(message)
+            if not suppress_error:
+                log.error(message)
             raise RestInvalidResponseCode(message, url, response.code)
 
         if response.code == self.HTTP_NO_CONTENT:
@@ -168,7 +172,7 @@ class AdtranRestClient(object):
             type_val = 'application/json'
 
             if not headers.hasHeader(type_key) or type_val not in headers.getRawHeaders(type_key, []):
-                raise Exception("REST {} '{}' request response from '{} was not JSON",
+                raise Exception("REST {} '{}' request response from '{}' was not JSON",
                                 method, name, url)
 
             content = yield response.content()
@@ -176,8 +180,8 @@ class AdtranRestClient(object):
                 result = json.loads(content)
 
             except Exception as e:
-                log.exception("REST {} '{}' JSON decode of '{}' failure: {}".format(method, name,
-                                                                                    url, str(e)))
+                log.exception("json-decode", method=method, url=url, name=name,
+                              content=content, e=e)
                 raise
 
             returnValue(result)

@@ -284,7 +284,7 @@ class EVC(object):
             try:
                 # Set installed to true while request is in progress
                 self._installed = True
-                results = yield self._flow.handler.netconf_client.edit_config(xml, lock_timeout=30)
+                results = yield self._flow.handler.netconf_client.edit_config(xml)
                 self._installed = results.ok
                 self.status = '' if results.ok else results.error
 
@@ -327,7 +327,7 @@ class EVC(object):
             self._installed = False
 
         xml = EVC._xml_header('delete') + '<name>{}</name>'.format(self.name) + EVC._xml_trailer()
-        d = self._flow.handler.netconf_client.edit_config(xml, lock_timeout=30)
+        d = self._flow.handler.netconf_client.edit_config(xml)
         d.addCallbacks(_success, _failure)
         dl.append(d)
 
@@ -335,7 +335,7 @@ class EVC(object):
             for evc_map in self.evc_maps:
                 dl.append(evc_map.remove())
 
-        return defer.gatherResults(dl)
+        return defer.gatherResults(dl, consumeErrors=True)
 
     @inlineCallbacks
     def delete(self, delete_maps=True):
@@ -352,7 +352,7 @@ class EVC(object):
                 for evc_map in self.evc_maps:
                     dl.append(evc_map.delete())   # TODO: implement bulk-flow procedures
 
-            yield defer.gatherResults(dl)
+            yield defer.gatherResults(dl, consumeErrors=True)
 
         except Exception as e:
             log.exception('removal', e=e)
@@ -362,7 +362,7 @@ class EVC(object):
         if f is not None and f.handler is not None:
             f.handler.remove_evc(self)
 
-        returnValue(succeed('Done'))
+        returnValue('Done')
 
     def reflow(self, reflow_maps=True):
         """
@@ -459,7 +459,7 @@ class EVC(object):
                         del_xml += '</evcs>'
                         log.debug('removing', xml=del_xml)
 
-                        return client.edit_config(del_xml, lock_timeout=30)
+                        return client.edit_config(del_xml)
 
             return succeed('no entries')
 

@@ -72,11 +72,11 @@ class OltState(object):
         """
         Provides decode of PON list from within
         """
-
         def __init__(self, packet):
             assert 'pon-id' in packet
             self._packet = packet
             self._onus = None
+            self._gems = None
 
         def __str__(self):
             return "OltState.Pon: pon-id: {}".format(self.pon_id)
@@ -116,27 +116,27 @@ class OltState(object):
         @property
         def rx_packets(self):
             """Sum all of the RX Packets of GEM ports that are not base TCONT's"""
-            return self._packet.get('rx-packets', 0)
+            return int(self._packet.get('rx-packets', 0))
 
         @property
         def tx_packets(self):
             """Sum all of the TX Packets of GEM ports that are not base TCONT's"""
-            return self._packet.get('tx-packets', 0)
+            return int(self._packet.get('tx-packets', 0))
 
         @property
         def rx_bytes(self):
             """Sum all of the RX Octets of GEM ports that are not base TCONT's"""
-            return self._packet.get('rx-bytes', 0)
+            return int(self._packet.get('rx-bytes', 0))
 
         @property
         def tx_bytes(self):
             """Sum all of the TX Octets of GEM ports that are not base TCONT's"""
-            return self._packet.get('tx-bytes', 0)
+            return int(self._packet.get('tx-bytes', 0))
 
         @property
         def tx_bip_errors(self):
             """Sum the TX ONU bip errors to get TX BIP's per PON"""
-            return self._packet.get('tx-bip-errors', 0)
+            return int(self._packet.get('tx-bip-errors', 0))
 
         @property
         def wm_tuned_out_onus(self):
@@ -171,7 +171,9 @@ class OltState(object):
         @property
         def gems(self):
             """This list is not in the proposed BBF model, the stats are part of ietf-interfaces"""
-            raise NotImplementedError('TODO: not yet supported')
+            if self._gems is None:
+                self._gems = OltState.Pon.Gem.decode(self._packet.get('gem', []))
+            return self._gems
 
         @property
         def onus(self):
@@ -186,7 +188,6 @@ class OltState(object):
             """
             Provides decode of onu list for a PON port
             """
-
             def __init__(self, packet):
                 assert 'onu-id' in packet, 'onu-id not found in packet'
                 self._packet = packet
@@ -236,3 +237,58 @@ class OltState(object):
                 """Distance to ONU"""
                 return self._packet.get('fiber-length', 0)
 
+
+        class Gem(object):
+            """
+            Provides decode of onu list for a PON port
+            """
+            def __init__(self, packet):
+                assert 'onu-id' in packet, 'onu-id not found in packet'
+                assert 'port-id' in packet, 'port-id not found in packet'
+                assert 'alloc-id' in packet, 'alloc-id not found in packet'
+                self._packet = packet
+
+            def __str__(self):
+                return "OltState.Pon.Gem: onu-id: {}, gem-id".\
+                    format(self.onu_id, self.gem_id)
+
+            @staticmethod
+            def decode(gem_list):
+                log.debug('gems:{}{}'.format(os.linesep,
+                                             pprint.PrettyPrinter().pformat(gem_list)))
+                gems = {}
+                for gem_data in gem_list:
+                    gem = OltState.Pon.Gem(gem_data)
+                    assert gem.gem_id not in gems
+                    gems[gem.gem_id] = gem
+
+                return gems
+
+            @property
+            def onu_id(self):
+                """The ID used to identify the ONU"""
+                return self._packet['onu-id']
+
+            @property
+            def alloc_id(self):
+                return self._packet['alloc-id']
+
+            @property
+            def gem_id(self):
+                return self._packet['port-id']
+
+            @property
+            def tx_packets(self):
+                return int(self._packet.get('tx-packets', 0))
+
+            @property
+            def tx_bytes(self):
+                return int(self._packet.get('tx-bytes', 0))
+
+            @property
+            def rx_packets(self):
+                return int(self._packet.get('rx-packets', 0))
+
+            @property
+            def rx_bytes(self):
+                return int(self._packet.get('rx-bytes', 0))
