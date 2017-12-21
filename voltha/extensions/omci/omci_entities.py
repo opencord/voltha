@@ -434,6 +434,7 @@ class OntG(EntityClass):
         ECA(ByteField("traffic_management_options", None), {AA.R}),
         ECA(ByteField("vp_vc_cross_connection_option", None), {AA.R},
             optional=True),
+        ECA(ByteField("battery_backup", None), {AA.R, AA.W}),
         ECA(ByteField("administrative_state", None), {AA.R, AA.W}),
         ECA(ByteField("operational_state", None), {AA.R}, optional=True),
         ECA(ByteField("ont_survival_time", None), {AA.R})
