@@ -51,6 +51,8 @@ log = structlog.get_logger()
 
 
 BRDCM_DEFAULT_VLAN = 4091
+ADMIN_STATE_LOCK = 1
+ADMIN_STATE_UNLOCK = 0
 
 @implementer(IAdapterInterface)
 class BroadcomOnuAdapter(object):
@@ -72,7 +74,7 @@ class BroadcomOnuAdapter(object):
         self.descriptor = Adapter(
             id=self.name,
             vendor='Voltha project',
-            version='0.41',
+            version='0.42',
             config=AdapterConfig(log_level=LogLevel.INFO)
         )
         self.devices_handlers = dict()  # device_id -> BroadcomOnuHandler()
@@ -115,10 +117,18 @@ class BroadcomOnuAdapter(object):
         raise NotImplementedError()
 
     def disable_device(self, device):
-        raise NotImplementedError()
+        log.info('disable-onu-device', device_id=device.id)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.disable(device)
 
     def reenable_device(self, device):
-        raise NotImplementedError()
+        log.info('reenable-onu-device', device_id=device.id)
+        if device.id in self.devices_handlers:
+            handler = self.devices_handlers[device.id]
+            if handler is not None:
+                handler.reenable(device)
 
     def reboot_device(self, device):
         raise NotImplementedError()
@@ -203,6 +213,15 @@ class BroadcomOnuAdapter(object):
         if device:
             handler = self.devices_handlers[device.id]
             handler.event_messages.put(msg)
+
+    def update_logical_port(self, logical_device_id, port_id, state):
+        self.log.info('updating-logical-port', logical_port_id=port_id,
+                      logical_device_id=logical_device_id, state=state)
+        logical_port = self.adapter_agent.get_logical_port(logical_device_id,
+                                                           port_id)
+        logical_port.ofp_port.state = state
+        self.adapter_agent.update_logical_port(logical_device_id,
+                                               logical_port)
 
     def create_interface(self, device, data):
         log.info('create-interface', device_id=device.id)
@@ -658,6 +677,24 @@ class BroadcomOnuHandler(object):
                 data=dict(
                     max_gem_payload_size=max_gem_payload_size
                 )
+            )
+        )
+        self.send_omci_message(frame)
+
+    def send_set_admin_state(self,
+                       entity_id,
+                       admin_state):
+        data = dict(
+            administrative_state=admin_state
+        )
+        frame = OmciFrame(
+            transaction_id=self.get_tx_id(),
+            message_type=OmciSet.message_id,
+            omci_message=OmciSet(
+                entity_class=OntG.class_id,
+                entity_id=entity_id,
+                attributes_mask=OntG.mask_for(*data.keys()),
+                data=data
             )
         )
         self.send_omci_message(frame)
@@ -1602,3 +1639,52 @@ class BroadcomOnuHandler(object):
 
     def create_multicast_gemport(self, data):
         self.log.info('Send relevant OMCI message')
+
+    @inlineCallbacks
+    def disable(self, device):
+        try:
+            self.log.info('sending-admin-state-lock-towards-device', device=device)
+            self.send_set_admin_state(0x0000, ADMIN_STATE_LOCK)
+            yield self.wait_for_response()
+            device = self.adapter_agent.get_device(device.id)
+            # Disable all ports on that device
+            self.adapter_agent.disable_all_ports(self.device_id)
+            parent_device = self.adapter_agent.get_device(device.parent_id)
+            logical_device_id = parent_device.parent_id
+            assert logical_device_id
+            # Mark OF PORT STATE DOWN
+            ports = self.adapter_agent.get_ports(device.id, Port.ETHERNET_UNI)
+            for port in ports:
+                state = OFPPS_LINK_DOWN
+                port_id = 'uni-{}'.format(port.port_no)
+                self.update_logical_port(logical_device_id, port_id, state)
+            device.oper_status = OperStatus.UNKNOWN
+            device.connect_status = ConnectStatus.UNREACHABLE
+            self.adapter_agent.update_device(device)
+        except Exception as e:
+            log.exception('exception-in-onu-disable', exception=e)
+
+    @inlineCallbacks
+    def reenable(self, device):
+        try:
+            self.log.info('sending-admin-state-unlock-towards-device', device=device)
+            self.send_set_admin_state(0x0000, ADMIN_STATE_UNLOCK)
+            yield self.wait_for_response()
+            device = self.adapter_agent.get_device(device.id)
+            # Re-enable the ports on that device
+            self.adapter_agent.enable_all_ports(device.id)
+            parent_device = self.adapter_agent.get_device(device.parent_id)
+            logical_device_id = parent_device.parent_id
+            assert logical_device_id
+            # Mark OF PORT STATE UP
+            ports = self.adapter_agent.get_ports(device.id, Port.ETHERNET_UNI)
+            for port in ports:
+                state = OFPPS_LIVE
+                port_id = 'uni-{}'.format(port.port_no)
+                self.update_logical_port(logical_device_id, port_id, state)
+            device.oper_status = OperStatus.ACTIVE
+            device.connect_status = ConnectStatus.REACHABLE
+            self.adapter_agent.update_device(device)
+        except Exception as e:
+            log.exception('exception-in-onu-reenable', exception=e)
+
