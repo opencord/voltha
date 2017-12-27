@@ -522,7 +522,7 @@ class GemInterworkingTp(EntityClass):
         ECA(ByteField("gal_loopback_configuration", None),
             {AA.R, AA.W}),
     ]
-    mandatory_operations = {}  # TODO
+    mandatory_operations = {OP.Create, OP.Delete, OP.Get, OP.Set}
 
 
 class GemPortNetworkCtp(EntityClass):
