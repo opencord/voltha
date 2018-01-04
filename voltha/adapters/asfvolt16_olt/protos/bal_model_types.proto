@@ -91,6 +91,19 @@ enum BalPktTagType {
     BAL_PKT_TAG_TYPE_DOUBLE_TAG          = 0x0004;   /**< Double tag. */
 }
 
+/**
+ * VLAN TPID definitions.
+ */
+enum BalVlanTpidType {
+    BAL_VLAN_TPID_TYPE_DEFAULT = 0x0000;     /**< Simple Bridge - i.e. VID 0, no tagging */
+    BAL_VLAN_TPID_TYPE_8021Q   = 0x8100;     /**< C-VLAN */
+    BAL_VLAN_TPID_TYPE_8021AD  = 0x88A8;     /**< S-VLAN */
+    BAL_VLAN_TPID_TYPE_9100    = 0x9100;     /**< Legacy TPID */
+    BAL_VLAN_TPID_TYPE_9200    = 0x9200;     /**< Legacy TPID */
+    BAL_VLAN_TPID_TYPE_9300    = 0x9300;     /**< Legacy TPID */
+    BAL_VLAN_TPID_TYPE_8021AH_ITAG = 0x88E7;  /**< 802.1ah I-Tag TPID */
+}
+
 /** Generic enable/disable enumeration
  */
 enum BalControl {
