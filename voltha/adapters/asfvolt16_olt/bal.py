@@ -322,6 +322,10 @@ class Bal(object):
                         bal_model_types_pb2.BAL_ACTION_ID_CMDS_BITMASK
                     obj.flow.data.action.presence_mask |= \
                         bal_model_types_pb2.BAL_ACTION_ID_O_VID
+                    obj.flow.data.action.o_tpid = \
+                        bal_model_types_pb2.BAL_VLAN_TPID_TYPE_8021AD
+                    obj.flow.data.action.presence_mask |= \
+                        bal_model_types_pb2.BAL_ACTION_ID_O_TPID
                 elif 'trap_to_host' in action_info:
                     obj.flow.data.action.cmds_bitmask |= \
                         bal_model_types_pb2.BAL_ACTION_CMD_ID_TRAP_TO_HOST
