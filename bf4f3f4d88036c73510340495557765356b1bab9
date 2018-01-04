@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "7a0b22cf_97c41f07",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 625,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2018-01-04T09:02:32Z",
+      "side": 1,
+      "message": "We should not store vlan(or any information) in adapter. We cannot get this info during reconciliation process.\nThe proper implementation would be either ONOS or voltha sending the flows to adapter during ONU reboot.",
+      "range": {
+        "startLine": 625,
+        "startChar": 30,
+        "endLine": 625,
+        "endChar": 36
+      },
+      "revId": "bf4f3f4d88036c73510340495557765356b1bab9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
