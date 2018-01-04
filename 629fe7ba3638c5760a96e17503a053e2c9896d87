@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "0d3a579b_e3aa32dc",
+        "filename": "voltha/adapters/asfvolt16_olt/bal.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 326,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2018-01-04T15:04:40Z",
+      "side": 1,
+      "message": "The tpid present in openflow message is already copied as \"action_info[\u0027tpid\u0027]\" while decoding the flows in adapter(i.e in update_flow_table method) . We can use this tpid instead of hard coding the value.",
+      "revId": "629fe7ba3638c5760a96e17503a053e2c9896d87",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
