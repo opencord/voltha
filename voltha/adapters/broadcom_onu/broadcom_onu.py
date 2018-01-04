@@ -320,6 +320,7 @@ class BroadcomOnuHandler(object):
         self.event_messages = DeferredQueue()
         self.proxy_address = None
         self.tx_id = 0
+        self.vids = []
 
         # Need to query ONU for number of supported uni ports
         # For now, temporarily set number of ports to 1 - port #2
@@ -335,6 +336,8 @@ class BroadcomOnuHandler(object):
     def handle_onu_events(self):
         event_msg = yield self.event_messages.get()
 
+        device = self.adapter_agent.get_device(self.device_id)
+
         if event_msg['event'] == 'activation-completed':
 
             if event_msg['event_data']['activation_successful'] == True:
@@ -345,38 +348,28 @@ class BroadcomOnuHandler(object):
                          self.proxy_address.onu_session_id,
                          port_no)
 
-                device = self.adapter_agent.get_device(self.device_id)
                 device.connect_status = ConnectStatus.REACHABLE
                 device.oper_status = OperStatus.ACTIVE
-                self.adapter_agent.update_device(device)
 
             else:
-                device = self.adapter_agent.get_device(self.device_id)
                 device.oper_status = OperStatus.FAILED
-                self.adapter_agent.update_device(device)
 
         elif event_msg['event'] == 'deactivation-completed':
-            device = self.adapter_agent.get_device(self.device_id)
             device.oper_status = OperStatus.DISCOVERED
-            self.adapter_agent.update_device(device)
 
         elif (event_msg['event'] == 'deactivate-onu'):
-            device = self.adapter_agent.get_device(self.device_id)
             device.connect_status = ConnectStatus.UNREACHABLE
             device.oper_status = OperStatus.DISCOVERED
-            self.adapter_agent.update_device(device)
 
         elif event_msg['event'] == 'ranging-completed':
 
             if event_msg['event_data']['ranging_successful'] == True:
-                device = self.adapter_agent.get_device(self.device_id)
                 device.oper_status = OperStatus.ACTIVATING
-                self.adapter_agent.update_device(device)
 
             else:
-                device = self.adapter_agent.get_device(self.device_id)
                 device.oper_status = OperStatus.FAILED
-                self.adapter_agent.update_device(device)
+
+        self.adapter_agent.update_device(device)
 
         # Handle next event
         reactor.callLater(0, self.handle_onu_events)
@@ -463,6 +456,34 @@ class BroadcomOnuHandler(object):
                 if port.label == 'PON port':
                     self.adapter_agent.delete_port(self.device_id, port)
                     break
+
+    @inlineCallbacks
+    def add_vlan(self, _set_vlan_vid):
+        # allow priority tagged packets
+        # Set AR - ExtendedVlanTaggingOperationConfigData
+        #          514 - RxVlanTaggingOperationTable - add VLAN <cvid> to priority tagged pkts - c-vid
+
+        self.send_delete_vlan_tagging_filter_data(0x2102)
+        yield self.wait_for_response()
+
+        #self.send_set_vlan_tagging_filter_data(0x2102, _set_vlan_vid)
+        self.send_create_vlan_tagging_filter_data(0x2102, _set_vlan_vid)
+        yield self.wait_for_response()
+
+        self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_untagged(0x202, 0x1000, _set_vlan_vid)
+        yield self.wait_for_response()
+
+        self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_single_tag(0x202, 8, 0, 0,
+										     1, 8, _set_vlan_vid)
+        yield self.wait_for_response()
+
+        # Set AR - ExtendedVlanTaggingOperationConfigData
+        #          514 - RxVlanTaggingOperationTable - add VLAN <cvid> to priority tagged pkts - c-vid
+        '''
+        self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_single_tag(0x205, 8, 0, 0,
+										     1, 8, _set_vlan_vid)
+        yield self.wait_for_response()
+        '''
 
     @inlineCallbacks
     def update_flow_table(self, device, flows):
@@ -600,31 +621,9 @@ class BroadcomOnuHandler(object):
                 # All flows created from ONU adapter should be OMCI based
                 #
                 if _vlan_vid == 0 and _set_vlan_vid != None and _set_vlan_vid != 0:
-                    # allow priority tagged packets
-                    # Set AR - ExtendedVlanTaggingOperationConfigData
-                    #          514 - RxVlanTaggingOperationTable - add VLAN <cvid> to priority tagged pkts - c-vid
-
-                    self.send_delete_vlan_tagging_filter_data(0x2102)
-                    yield self.wait_for_response()
-
-                    #self.send_set_vlan_tagging_filter_data(0x2102, _set_vlan_vid)
-                    self.send_create_vlan_tagging_filter_data(0x2102, _set_vlan_vid)
-                    yield self.wait_for_response()
-
-                    self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_untagged(0x202, 0x1000, _set_vlan_vid)
-                    yield self.wait_for_response()
-
-                    self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_single_tag(0x202, 8, 0, 0,
-                                                                                                     1, 8, _set_vlan_vid)
-                    yield self.wait_for_response()
-
-                    # Set AR - ExtendedVlanTaggingOperationConfigData
-                    #          514 - RxVlanTaggingOperationTable - add VLAN <cvid> to priority tagged pkts - c-vid
-                    '''
-                    self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_single_tag(0x205, 8, 0, 0,
-                                                                                                     1, 8, _set_vlan_vid)
-                    yield self.wait_for_response()
-                    '''
+                    self.add_vlan(_set_vlan_vid)
+                    self.vids.append(_set_vlan_vid)
+                    self.log.info('cached-vids', vids=self.vids)
 
             except Exception as e:
                 log.exception('failed-to-install-flow', e=e, flow=flow)
@@ -1600,6 +1599,8 @@ class BroadcomOnuHandler(object):
                                                        gem_port.gemport_id)
             yield self.wait_for_response()
 
+            if self.vids:
+                reactor.callLater(5, self.add_cached_vlans)
 
     @inlineCallbacks
     def remove_gemport(self, data):
@@ -1618,6 +1619,13 @@ class BroadcomOnuHandler(object):
         self.send_delete_omci_mesage(GemPortNetworkCtp.class_id,
                                      gem_port.gemport_id)
         yield self.wait_for_response()
+
+        if self.vids:
+            del self.vids[:]
+
+    def add_cached_vlans(self):
+        for vid in self.vids:
+            self.add_vlan(vid)
 
     @inlineCallbacks
     def create_tcont(self, tcont_data, traffic_descriptor_data):
