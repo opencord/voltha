@@ -1125,6 +1125,20 @@ class TestSelectMessageGeneration(TestCase):
                     '%s: %s' % (k, v) for k, v in omci.object_data.items())
             )
 
+    def test_onu_reboot(self):
+        ref = '0016590a01000000000000000000000000000'\
+              '0000000000000000000000000000000000000'\
+              '00000000000028'
+
+        frame = OmciFrame(
+            transaction_id=22,
+            message_type=OmciReboot.message_id,
+            omci_message=OmciReboot(
+                entity_class=OntG.class_id,
+                 entity_id=0
+            )
+        )
+        self.assertGeneratedFrameEquals(frame, ref)
 
 if __name__ == '__main__':
     main()
