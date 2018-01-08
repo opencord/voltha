@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "868d00d4_4d739828",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_ind_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 239,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-01-08T13:26:41Z",
+      "side": 1,
+      "message": "Align the logging to existing logging format (i.e, use \u0027-\u0027)",
+      "revId": "3c1e1bef70368415234505ff4e008d1f74804f3b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "819fa81a_e91be47b",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_ind_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 248,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-01-08T13:26:41Z",
+      "side": 1,
+      "message": "Are you sure this log statement is right? The StructLog takes arguments in key/value pairs. Also please align logging mechanism with exist logs (i.e. use \u0027-\u0027). This is useful for post-processing of logs.",
+      "revId": "3c1e1bef70368415234505ff4e008d1f74804f3b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
