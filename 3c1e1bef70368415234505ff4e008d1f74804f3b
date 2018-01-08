@@ -33,6 +33,24 @@
       "revId": "3c1e1bef70368415234505ff4e008d1f74804f3b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9bdd1802_57141fb4",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_ind_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 248,
+      "author": {
+        "id": 1000103
+      },
+      "writtenOn": "2018-01-08T16:42:23Z",
+      "side": 1,
+      "message": "Its good to correct, but looks like it doesnt throw any exception:\n\nevent: bal_subs_term_ind:registration_id, instance_id: compose_voltha_1_1515389415, vcore_id: 0001}\n20180108T053338.272 INFO     PoolThread-twisted.internet.reactor-0 asfvolt16_ind_handler.bal_subs_term_ind {device_id: 0001d53586e1e148, positional_args: (u\u0027123456789123456789123456789123456789\u0027,), event: bal_subs_term_ind:registration_id, instance_id: compose_voltha_1_1515389415, vcore_id: 0001}",
+      "parentUuid": "819fa81a_e91be47b",
+      "revId": "3c1e1bef70368415234505ff4e008d1f74804f3b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
