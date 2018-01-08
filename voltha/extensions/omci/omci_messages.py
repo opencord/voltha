@@ -331,3 +331,23 @@ class OmciTestResult(OmciMessage):
         # ME Test specific message contents starts here
         # TODO: Can this be coded easily with scapy?
     ]
+
+
+class OmciReboot(OmciMessage):
+    name = "OmciOnuReboot"
+    message_id = 0x59
+    fields_desc = [
+        ShortField("entity_class", None),
+        ShortField("entity_id", 0),
+        ByteField("reboot_code", 0)
+    ]
+
+
+class OmciRebootResponse(OmciMessage):
+    name = "OmciOnuRebootResponse"
+    message_id = 0x39
+    fields_desc = [
+        ShortField("entity_class", None),
+        ShortField("entity_id", 0),
+        ByteField("success_code", 0)
+    ]

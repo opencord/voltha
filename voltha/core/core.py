@@ -222,7 +222,7 @@ class VolthaCore(object):
             if self.alarm_filter_agent is not None:
                 self.alarm_filter_agent.remove_device_filters(device)
 
-            log.debug('removed-device-filter', device)
+            log.debug('removed-device-filter', device=device)
 
             yield self.device_agents[device.id].stop(device)
             del self.device_agents[device.id]
