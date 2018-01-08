@@ -735,7 +735,14 @@ class AdapterAgent(object):
     def delete_all_child_devices(self, parent_device_id):
         """ Remove all ONUs from a given OLT """
         devices = self.root_proxy.get('/devices')
-        children_ids = set(d.id for d in devices if d.parent_id == parent_device_id)
+        children_ids = set()
+        for device in devices:
+            if device.parent_id == parent_device_id:
+                children_ids.add(device.id)
+                topic = self._gen_tx_proxy_address_topic(device.proxy_address)
+                self.event_bus.unsubscribe(self._tx_event_subscriptions[topic])
+                del self._tx_event_subscriptions[topic]
+
         self.log.debug('devices-to-delete',
                        parent_id=parent_device_id,
                        children_ids=children_ids)
@@ -772,7 +779,12 @@ class AdapterAgent(object):
         onu_device = self.root_proxy.get('/devices/{}'.format(child_device_id))
         if onu_device is not None:
             if onu_device.parent_id == parent_device_id:
-                self.log.debug('deleting-child-device', parent_device_id=parent_device_id, child_device_id=child_device_id)
+                self.log.debug('deleting-child-device',
+                   parent_device_id=parent_device_id,
+                   child_device_id=child_device_id)
+                topic = self._gen_tx_proxy_address_topic(onu_device.proxy_address)
+                self.event_bus.unsubscribe(self._tx_event_subscriptions[topic])
+                del self._tx_event_subscriptions[topic]
                 self._remove_node('/devices', child_device_id)
 
     def _gen_rx_proxy_address_topic(self, proxy_address):
