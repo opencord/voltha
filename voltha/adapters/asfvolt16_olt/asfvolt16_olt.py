@@ -28,6 +28,7 @@ log = structlog.get_logger()
 
 class Asfvolt16Adapter(OltAdapter):
     def __init__(self, adapter_agent, config):
+        # The version will be changed once VOL-577 gets merged
         super(Asfvolt16Adapter, self).__init__(adapter_agent=adapter_agent,
                                                config=config,
                                                device_handler_class=Asfvolt16Handler,
