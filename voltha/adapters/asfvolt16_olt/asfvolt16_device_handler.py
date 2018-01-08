@@ -1235,7 +1235,7 @@ class Asfvolt16Handler(OltDeviceHandler):
             else:
                 self.log.info('Onu-is-not-configured', olt_id=self.olt_id,
                               intf_id=onu_device.proxy_address.channel_id,
-                              onu_data=onu_device.proxy_address.onu_id)
+                              onu_id=onu_device.proxy_address.onu_id)
             if tcont_data.name in v_ont_ani.tconts:
                 self.log.info('tcont-info-already-present',
                               tcont_info=tcont_data)
@@ -1259,6 +1259,8 @@ class Asfvolt16Handler(OltDeviceHandler):
             # find way to generate uninqe number.
             id = tcont_data.alloc_id
             self.bal.delete_scheduler(id, 'upstream')
+            self.log.info('tcont-deleted-successfully',
+                          tcont_name=tcont_data.name)
             if tcont_data.name in v_ont_ani.tconts:
                 del v_ont_ani.tconts[tcont_data.name]
 
