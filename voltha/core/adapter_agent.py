@@ -773,6 +773,9 @@ class AdapterAgent(object):
         if onu_device is not None:
             if onu_device.parent_id == parent_device_id:
                 self.log.debug('deleting-child-device', parent_device_id=parent_device_id, child_device_id=child_device_id)
+                topic = self._gen_tx_proxy_address_topic(onu_device.proxy_address)
+                self.event_bus.unsubscribe(self._tx_event_subscriptions[topic])
+                del self._tx_event_subscriptions[topic]
                 self._remove_node('/devices', child_device_id)
 
     def _gen_rx_proxy_address_topic(self, proxy_address):
