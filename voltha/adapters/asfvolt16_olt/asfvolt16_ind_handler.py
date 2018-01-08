@@ -42,8 +42,10 @@ class Asfvolt16IndHandler(object):
         ind_info = dict()
         ind_info['_object_type'] = 'access_terminal_indication'
         ind_info['_sub_group_type'] = 'access_terminal_indication'
-        if indication.access_term_ind.data.admin_state == \
-                bal_model_types_pb2.BAL_STATE_UP:
+        if ((indication.access_term_ind.data.admin_state == \
+                bal_model_types_pb2.BAL_STATE_UP) and \
+                (indication.access_term_ind.data.oper_status == \
+                bal_model_types_pb2.BAL_STATUS_UP)):
             ind_info['activation_successful'] = True
         else:
             ind_info['activation_successful'] = False
@@ -242,10 +244,15 @@ class Asfvolt16IndHandler(object):
         ind_info['_vendor_id'] = onu_data.data.serial_number.vendor_id
         ind_info['_vendor_specific'] = \
             onu_data.data.serial_number.vendor_specific
-        if ((bal_model_types_pb2.BAL_STATE_DOWN == onu_data.data.admin_state)\
-            or (bal_model_types_pb2.BAL_STATUS_UP != onu_data.data.oper_status)):
+        self.log.info('registration-id-in-bal-subs-term-ind-is',\
+                       registration_id=onu_data.data.registration_id[:36])
+        ind_info['registration_id'] = onu_data.data.registration_id[:36]
+        ind_info['activation_successful'] = None
+        if (bal_model_types_pb2.BAL_STATE_DOWN == onu_data.data.admin_state or
+            bal_model_types_pb2.BAL_STATUS_UP != onu_data.data.oper_status):
             ind_info['activation_successful'] = False
-        elif (bal_model_types_pb2.BAL_STATE_UP == onu_data.data.admin_state):
+        elif (bal_model_types_pb2.BAL_STATE_UP == onu_data.data.admin_state and
+            bal_model_types_pb2.BAL_STATUS_UP == onu_data.data.oper_status):
             ind_info['activation_successful'] = True
 
         reactor.callLater(0,

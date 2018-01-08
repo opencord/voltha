@@ -927,10 +927,22 @@ class Asfvolt16Handler(OltDeviceHandler):
             msg = {'proxy_address': child_device.proxy_address,
                    'event': 'activation-completed', 'event_data': ind_info}
 
+            balSubTermInd = {}
+            serial_number=(ind_info['_vendor_id'] +
+                           ind_info['_vendor_specific'])
+            balSubTermInd["serial_number"] = serial_number.__str__()
+            balSubTermInd["registration_id"] = ind_info['registration_id'].__str__()
+            self.log.info('onu_activated:registration_id',balSubTermInd["registration_id"])
+            balSubTermInd["device_id"] = (self.device_id).__str__()
+
             # Send the event message to the ONU adapter
             self.adapter_agent.publish_inter_adapter_message(child_device.id,
                                                              msg)
             if ind_info['activation_successful'] is True:
+                self.handle_alarms(self.device_id,"onu",\
+                       ind_info['_pon_id'],\
+                       "ONU_ACTIVATED",1,"high",\
+                       balSubTermInd)
                 for key, v_ont_ani in self.v_ont_anis.items():
                     if v_ont_ani.v_ont_ani.data.onu_id == \
                             child_device.proxy_address.onu_id:
@@ -960,13 +972,22 @@ class Asfvolt16Handler(OltDeviceHandler):
     }
 
     def handle_sub_term_ind(self, ind_info):
+        serial_number=(ind_info['_vendor_id'] +
+                           ind_info['_vendor_specific'])
         child_device = self.adapter_agent.get_child_device(
             self.device_id,
-            serial_number=(ind_info['_vendor_id'] +
-                           ind_info['_vendor_specific']))
+            serial_number=serial_number)
         if child_device is None:
             self.log.info('Onu-is-not-configured', olt_id=self.olt_id,
                           pon_ni=ind_info['_pon_id'], onu_data=ind_info)
+            if ind_info['_sub_group_type'] == 'onu_discovery':
+                balSubTermDisc = {}
+                balSubTermDisc["serial_number"] = serial_number.__str__()
+                balSubTermDisc["device_id"] = (self.device_id).__str__()
+                self.handle_alarms(self.device_id,"onu",\
+                               ind_info['_pon_id'],\
+                               "ONU_DISCOVERED",1,"high",\
+                               balSubTermDisc)
             return
 
         handler = self.onu_handlers.get(child_device.oper_status)
