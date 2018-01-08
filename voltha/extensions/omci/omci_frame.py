@@ -24,7 +24,8 @@ from voltha.extensions.omci.omci_messages import OmciCreate, OmciDelete, \
     OmciMibResetResponse, OmciMibReset, OmciMibUploadNextResponse, \
     OmciMibUploadNext, OmciMibUploadResponse, OmciMibUpload, \
     OmciGetAllAlarmsNextResponse, OmciAttributeValueChange, \
-    OmciTestResult, OmciAlarmNotification
+    OmciTestResult, OmciAlarmNotification, \
+    OmciReboot, OmciRebootResponse
 from voltha.extensions.omci.omci_messages import OmciCreateResponse
 
 
@@ -106,8 +107,14 @@ class OmciFrame(Packet):
             PacketField("omci_message", None, OmciTestResult), align=36),
             lambda pkt: pkt.message_type == OmciTestResult.message_id),
 
-        # TODO add entries for remaining OMCI message types
+        ConditionalField(FixedLenField(
+            PacketField("omci_message", None, OmciReboot), align=36),
+            lambda pkt: pkt.message_type == OmciReboot.message_id),
+        ConditionalField(FixedLenField(
+            PacketField("omci_message", None, OmciRebootResponse), align=36),
+            lambda pkt: pkt.message_type == OmciRebootResponse.message_id),
 
+        # TODO add entries for remaining OMCI message types
 
         IntField("omci_trailer", 0x00000028)
     ]
