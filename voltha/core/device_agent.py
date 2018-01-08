@@ -303,12 +303,23 @@ class DeviceAgent(object):
             self.update_device(device)
             yield self.adapter_agent.adopt_device(device)
 
+    @inlineCallbacks
     def update_device(self, device):
         self.last_data = device  # so that we don't propagate back
         self.proxy.update('/', device)
         if device.oper_status == OperStatus.ACTIVE and device.connect_status == ConnectStatus.REACHABLE:
             self.log.info('replay-create-interfaces ', device=device.id)
             self.core.xpon_agent.replay_interface(device.id)
+            # if device accepts bulk flow update, lets just call that
+            if self.device_type.accepts_bulk_flow_update:
+                flows = self.flows_proxy.get('/')  # gather flows
+                groups = self.groups_proxy.get('/') # gather flow groups
+                self.log.info('replay-flows ', device=device.id)
+                yield self.adapter_agent.update_flows_bulk(
+                    device=device,
+                    flows=flows,
+                    groups=groups)
+
 
     def update_device_pm_config(self, device_pm_config, init=False):
         self.callback_data = init# so that we don't push init data

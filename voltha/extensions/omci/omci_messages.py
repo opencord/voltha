@@ -298,3 +298,23 @@ class OmciMibResetResponse(OmciMessage):
         ShortField("entity_id", 0),
         ByteField("success_code", 0)
     ]
+
+
+class OmciReboot(OmciMessage):
+    name = "OmciOnuReboot"
+    message_id = 0x59
+    fields_desc = [
+        ShortField("entity_class", None),
+        ShortField("entity_id", 0),
+        ByteField("reboot_code", 0)
+    ]
+
+
+class OmciRebootResponse(OmciMessage):
+    name = "OmcOnuiRebootResponse"
+    message_id = 0x39
+    fields_desc = [
+        ShortField("entity_class", None),
+        ShortField("entity_id", 0),
+        ByteField("success_code", 0)
+    ]
