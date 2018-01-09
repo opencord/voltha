@@ -52,6 +52,24 @@
       "revId": "7d5292077602e17a5797fb43c5948c457ebf5e49",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d2c07400_dc6eb8f5",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_ind_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1000103
+      },
+      "writtenOn": "2018-01-09T15:20:55Z",
+      "side": 1,
+      "message": "Accepted",
+      "parentUuid": "2be6873b_8e7a9a6f",
+      "revId": "7d5292077602e17a5797fb43c5948c457ebf5e49",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
