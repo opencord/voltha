@@ -34,6 +34,24 @@
       "revId": "7d5292077602e17a5797fb43c5948c457ebf5e49",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "2be6873b_8e7a9a6f",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_ind_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1000350
+      },
+      "writtenOn": "2018-01-09T14:27:51Z",
+      "side": 1,
+      "message": "Should it still be covered as a possibility?  How about admin_state\u003d\u003dUP and oper_state\u003d\u003dUP for true.  All others false by default.",
+      "parentUuid": "e19538d6_89704189",
+      "revId": "7d5292077602e17a5797fb43c5948c457ebf5e49",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
