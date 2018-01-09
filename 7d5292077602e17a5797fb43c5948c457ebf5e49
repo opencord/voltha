@@ -16,6 +16,24 @@
       "revId": "7d5292077602e17a5797fb43c5948c457ebf5e49",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "e19538d6_89704189",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_ind_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1000103
+      },
+      "writtenOn": "2018-01-09T06:10:26Z",
+      "side": 1,
+      "message": "Practically, we have never arrived at this case wherein the admin state is invalid during subscriber activation/deactivation",
+      "parentUuid": "3bcf8fb3_a25d5955",
+      "revId": "7d5292077602e17a5797fb43c5948c457ebf5e49",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
