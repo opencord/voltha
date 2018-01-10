@@ -74,7 +74,7 @@ class BroadcomOnuAdapter(object):
         self.descriptor = Adapter(
             id=self.name,
             vendor='Voltha project',
-            version='0.42',
+            version='0.43',
             config=AdapterConfig(log_level=LogLevel.INFO)
         )
         self.devices_handlers = dict()  # device_id -> BroadcomOnuHandler()
@@ -213,15 +213,6 @@ class BroadcomOnuAdapter(object):
         if device:
             handler = self.devices_handlers[device.id]
             handler.event_messages.put(msg)
-
-    def update_logical_port(self, logical_device_id, port_id, state):
-        self.log.info('updating-logical-port', logical_port_id=port_id,
-                      logical_device_id=logical_device_id, state=state)
-        logical_port = self.adapter_agent.get_logical_port(logical_device_id,
-                                                           port_id)
-        logical_port.ofp_port.state = state
-        self.adapter_agent.update_logical_port(logical_device_id,
-                                               logical_port)
 
     def create_interface(self, device, data):
         log.info('create-interface', device_id=device.id)
@@ -444,6 +435,15 @@ class BroadcomOnuHandler(object):
         #       To be addressed in future commits.
 
         log.info('reconciling-broadcom-onu-device-ends')
+
+    def update_logical_port(self, logical_device_id, port_id, state):
+        self.log.info('updating-logical-port', logical_port_id=port_id,
+                      logical_device_id=logical_device_id, state=state)
+        logical_port = self.adapter_agent.get_logical_port(logical_device_id,
+                                                           port_id)
+        logical_port.ofp_port.state = state
+        self.adapter_agent.update_logical_port(logical_device_id,
+                                               logical_port)
 
     @inlineCallbacks
     def delete(self, device):
