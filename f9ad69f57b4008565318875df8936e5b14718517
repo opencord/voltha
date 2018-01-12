@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c61d25d7_1056ba8b",
+        "filename": "setup.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 15,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2018-01-12T23:29:52Z",
+      "side": 1,
+      "message": "Should we finally change the authors of VOLTHA?",
+      "revId": "f9ad69f57b4008565318875df8936e5b14718517",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
