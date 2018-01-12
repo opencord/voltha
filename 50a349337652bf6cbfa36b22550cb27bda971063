@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "bdb88710_a6416df2",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 935,
+      "author": {
+        "id": 1000350
+      },
+      "writtenOn": "2018-01-12T14:46:32Z",
+      "side": 1,
+      "message": "Log format not correct.  Fix or remove.",
+      "range": {
+        "startLine": 935,
+        "startChar": 25,
+        "endLine": 935,
+        "endChar": 27
+      },
+      "revId": "50a349337652bf6cbfa36b22550cb27bda971063",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
