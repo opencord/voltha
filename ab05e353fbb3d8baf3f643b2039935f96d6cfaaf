@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "48c83088_715fa79c",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 776,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2018-01-15T18:08:16Z",
+      "side": 1,
+      "message": "Should there be a test here to ensure that topic contains subscription objects?",
+      "revId": "ab05e353fbb3d8baf3f643b2039935f96d6cfaaf",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
