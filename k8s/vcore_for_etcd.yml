@@ -34,10 +34,6 @@ spec:
         - name: voltha
           image: "cord/voltha:latest"
           env:
-            - name: POD_IP
-              valueFrom:
-                fieldRef:
-                  fieldPath: status.podIP
             - name: NAMESPACE
               valueFrom:
                 fieldRef:
@@ -45,9 +41,8 @@ spec:
           args:
             - "voltha/voltha/main.py"
             - "-v"
-            - "--consul=consul:8500"
-            - "--etcd=etcd:2379"
-            - "--kafka=kafka"
+            - "--etcd=etcd.$(NAMESPACE).svc.cluster.local:2379"
+            - "--kafka=kafka.$(NAMESPACE).svc.cluster.local"
             - "--rest-port=8880"
             - "--grpc-port=50556"
             - "--interface=eth1"

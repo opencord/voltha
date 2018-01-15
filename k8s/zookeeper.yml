@@ -1,0 +1,161 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: zoo1
+spec:
+  clusterIP: None
+  selector:
+    app: zookeeper-1
+  ports:
+  - name: client
+    port: 2181
+    targetPort: 2181
+  - name: follower
+    port: 2888
+    targetPort: 2888
+  - name: leader
+    port: 3888
+    targetPort: 3888
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zoo2
+spec:
+  clusterIP: None
+  selector:
+    app: zookeeper-2
+  ports:
+  - name: client
+    port: 2181
+    targetPort: 2181
+  - name: follower
+    port: 2888
+    targetPort: 2888
+  - name: leader
+    port: 3888
+    targetPort: 3888
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zoo3
+spec:
+  clusterIP: None
+  selector:
+    app: zookeeper-3
+  ports:
+  - name: client
+    port: 2181
+    targetPort: 2181
+  - name: follower
+    port: 2888
+    targetPort: 2888
+  - name: leader
+    port: 3888
+    targetPort: 3888
+---
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: zookeeper1
+spec:
+  serviceName: zoo1
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zookeeper-1
+  template:
+    metadata:
+      labels:
+        app: zookeeper-1
+    spec:
+      containers:
+      - name: zoo1
+        image: zookeeper:3.4.11
+        ports:
+        - containerPort: 2181
+        - containerPort: 2888
+        - containerPort: 3888
+        env:
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: ZOO_MY_ID
+          value: "1"
+        - name: ZOO_SERVERS
+          value: >
+            server.1=zookeeper1-0.zoo1.$(NAMESPACE).svc.cluster.local:2888:3888
+            server.2=zookeeper2-0.zoo2.$(NAMESPACE).svc.cluster.local:2888:3888
+            server.3=zookeeper3-0.zoo3.$(NAMESPACE).svc.cluster.local:2888:3888
+---
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: zookeeper2
+spec:
+  serviceName: zoo2
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zookeeper-2
+  template:
+    metadata:
+      labels:
+        app: zookeeper-2
+    spec:
+      containers:
+      - name: zoo2
+        image: zookeeper:3.4.11
+        ports:
+        - containerPort: 2181
+        - containerPort: 2888
+        - containerPort: 3888
+        env:
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: ZOO_MY_ID
+          value: "2"
+        - name: ZOO_SERVERS
+          value: >
+            server.1=zookeeper1-0.zoo1.$(NAMESPACE).svc.cluster.local:2888:3888
+            server.2=zookeeper2-0.zoo2.$(NAMESPACE).svc.cluster.local:2888:3888
+            server.3=zookeeper3-0.zoo3.$(NAMESPACE).svc.cluster.local:2888:3888
+---
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: zookeeper3
+spec:
+  serviceName: zoo3
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zookeeper-3
+  template:
+    metadata:
+      labels:
+        app: zookeeper-3
+    spec:
+      containers:
+      - name: zoo3
+        image: zookeeper:3.4.11
+        ports:
+        - containerPort: 2181
+        - containerPort: 2888
+        - containerPort: 3888
+        env:
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: ZOO_MY_ID
+          value: "3"
+        - name: ZOO_SERVERS
+          value: >
+            server.1=zookeeper1-0.zoo1.$(NAMESPACE).svc.cluster.local:2888:3888
+            server.2=zookeeper2-0.zoo2.$(NAMESPACE).svc.cluster.local:2888:3888
+            server.3=zookeeper3-0.zoo3.$(NAMESPACE).svc.cluster.local:2888:3888
