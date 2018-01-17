@@ -36,7 +36,7 @@ DOCKER_BUILD_ARGS = $(DOCKER_PROXY_ARGS) $(DOCKER_BUILD_EXTRA_ARGS)
 
 VENVDIR := venv-$(shell uname -s | tr '[:upper:]' '[:lower:]')
 
-.PHONY: $(DIRS) $(DIRS_CLEAN) $(DIRS_FLAKE8) flake8 docker-base voltha ofagent podder netconf shovel onos dashd vcli portainer grafana nginx consul registrator envoy golang envoyd tools opennms logstash unum
+.PHONY: $(DIRS) $(DIRS_CLEAN) $(DIRS_FLAKE8) flake8 docker-base voltha ofagent netconf shovel onos dashd vcli portainer grafana nginx consul envoy golang envoyd tools opennms logstash unum
 
 # This should to be the first and default target in this Makefile
 help:
@@ -60,7 +60,6 @@ help:
 	@echo "docker-base  : Build the base docker container used by all other dockers"
 	@echo "voltha       : Build the voltha docker container"
 	@echo "ofagent      : Build the ofagent docker container"
-	@echo "podder       : Build the podder docker container"
 	@echo "netconf      : Build the netconf docker container"
 	@echo "shovel       : Build the shovel docker container"
 	@echo "onos         : Build the onos docker container"
@@ -110,11 +109,11 @@ production: protos prod-containers
 
 jenkins : protos jenkins-containers
 
-jenkins-containers: docker-base voltha ofagent netconf consul registrator unum
+jenkins-containers: docker-base voltha ofagent netconf consul unum
 
 prod-containers: docker-base voltha ofagent netconf shovel dashd vcli grafana consul tools golang envoyd envoy fluentd unum
 
-containers: docker-base voltha ofagent podder netconf shovel onos tester config-push dashd vcli portainer grafana nginx consul registrator tools golang envoyd envoy fluentd unum
+containers: docker-base voltha ofagent netconf shovel onos tester config-push dashd vcli portainer grafana nginx consul tools golang envoyd envoy fluentd unum
 
 docker-base:
 	docker build $(DOCKER_BUILD_ARGS) -t cord/voltha-base -f docker/Dockerfile.base .
@@ -127,9 +126,6 @@ voltha-adapters:
 
 ofagent:
 	docker build $(DOCKER_BUILD_ARGS) -t cord/ofagent -f docker/Dockerfile.ofagent .
-
-podder:
-	docker build $(DOCKER_BUILD_ARGS) -t cord/podder -f docker/Dockerfile.podder .
 
 tools:
 	docker build $(DOCKER_BUILD_ARGS) -t voltha/tools -f docker/Dockerfile.tools .
@@ -170,9 +166,6 @@ nginx:
 
 consul:
 	docker build $(DOCKER_BUILD_ARGS) -t voltha/consul -f docker/Dockerfile.consul .
-
-registrator:
-	docker build $(DOCKER_BUILD_ARGS) -t voltha/registrator -f docker/Dockerfile.registrator .
 
 grafana:
 	docker build $(DOCKER_BUILD_ARGS) -t voltha/grafana -f docker/Dockerfile.grafana .
@@ -216,9 +209,6 @@ fetch-jenkins:
 	docker pull ubuntu:xenial
 	docker pull wurstmeister/kafka:1.0.0
 	docker pull zookeeper:3.4.11
-	# These images are depricated and should be removed in subsequent commits.
-	docker pull gliderlabs/registrator:v7
-	docker pull wurstmeister/zookeeper:3.4.6
 fetch:
 	docker pull consul:0.9.2
 	docker pull fluent/fluentd:v0.14.23.rc1
@@ -229,11 +219,6 @@ fetch:
 	docker pull lyft/envoy:29361deae91575a1d46c7a21e913f19e75622ebe
 	docker pull registry:2
 	docker pull kamon/grafana_graphite:3.0
-	# These images are depricated and should be removed in subsequent commits.
-	docker pull gliderlabs/registrator:v7
-	docker pull wurstmeister/zookeeper:3.4.6
-	docker pull nginx:1.13.6
-
 
 purge-venv:
 	rm -fr ${VENVDIR}

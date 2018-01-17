@@ -58,7 +58,6 @@
   Creating compose_chameleon_1
   Creating compose_netconf_1
   Creating compose_zookeeper_1
-  Creating compose_podder_1
   Creating compose_kafka_1
   Creating compose_grafana_1
   Creating compose_shovel_1
@@ -93,7 +92,6 @@ Linux terminal, please issue the following command:
   compose_kafka_1         start-kafka.sh                   Up      0.0.0.0:...
   compose_netconf_1       /netconf/netconf/main.py - ...   Up      0.0.0.0:...
   compose_ofagent_1       /ofagent/ofagent/main.py - ...   Up
-  compose_podder_1        python podder/podder/main.py     Up
   compose_registrator_1   /bin/registrator -ip=10.0. ...   Up
   compose_shovel_1        /shovel/shovel/main.py --k ...   Up
   compose_voltha_1        /voltha/voltha/main.py -v  ...   Up      0.0.0.0:...
