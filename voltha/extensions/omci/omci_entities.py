@@ -762,7 +762,7 @@ class VirtualEthernetInterfacePt(EntityClass):
     mandatory_operations = {OP.Get, OP.Set}
 
 
-class EnhSecurityControl:
+class EnhSecurityControl(EntityClass):
     class_id = 332
     attributes = [
         ECA(ShortField("managed_entity_id", None), {AA.R}),
