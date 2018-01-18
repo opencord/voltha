@@ -36,7 +36,7 @@ defs = dict(
     consul=os.environ.get('CONSUL', 'localhost:8500'),
     external_host_address=os.environ.get('EXTERNAL_HOST_ADDRESS',
                                          get_my_primary_local_ipv4()),
-    netconf_port=os.environ.get('NETCONF_PORT', 1830),
+    netconf_port=os.environ.get('NETCONF_PORT', '1830'),
     server_private_key_file=os.environ.get('SERVER_PRIVATE_KEY_FILE',
                                            'server.key'),
     server_public_key_file=os.environ.get('SERVER_PRIVATE_KEY_FILE',
@@ -276,7 +276,7 @@ class Main(object):
             GrpcClient(args.consul, args.work_dir, args.grpc_endpoint)
 
         self.nc_server =  yield \
-                NCServer(args.netconf_port,
+                NCServer(int(args.netconf_port),
                          args.server_private_key_file,
                          args.server_public_key_file,
                          args.client_public_keys_file,
