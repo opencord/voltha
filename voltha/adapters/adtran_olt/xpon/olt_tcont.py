@@ -32,10 +32,10 @@ class OltTCont(TCont):
 
     @staticmethod
     def create(tcont, td):
-        from traffic_descriptor import TrafficDescriptor
+        from olt_traffic_descriptor import OltTrafficDescriptor
 
         assert isinstance(tcont, dict), 'TCONT should be a dictionary'
-        assert isinstance(td, TrafficDescriptor), 'Invalid Traffic Descriptor data type'
+        assert isinstance(td, OltTrafficDescriptor), 'Invalid Traffic Descriptor data type'
 
         return OltTCont(tcont['alloc-id'], td,
                         name=tcont['name'],

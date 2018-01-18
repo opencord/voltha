@@ -71,7 +71,8 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         self.status_poll = None
         self.status_poll_interval = 5.0
         self.status_poll_skew = self.status_poll_interval / 10
-        self.zmq_client = None
+        self.pon_agent = None
+        self.pio_agent = None
         self.ssh_deferred = None
         self._system_id = None
         self._download_protocols = None
@@ -319,8 +320,9 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         # Make sure configured for ZMQ remote access
         self._ready_zmq()
 
-        # ZeroMQ client
-        self.zmq_client = AdtranZmqClient(self.ip_address, rx_callback=self.rx_packet, port=self.zmq_port)
+        # ZeroMQ clients
+        self.pon_agent = AdtranZmqClient(self.ip_address, port=self.pon_agent_port, rx_callback=self.rx_pa_packet)
+        self.pio_agent = AdtranZmqClient(self.ip_address, port=self.pio_port, rx_callback=self.rx_pio_packet)
 
         # Download support
         self._download_deferred = reactor.callLater(0, self._get_download_protocols)
@@ -364,7 +366,7 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
     def _ready_zmq(self):
         from net.rcmd import RCmd
         # Check for port status
-        command = 'netstat -pan | grep -i 0.0.0.0:{} |  wc -l'.format(self.zmq_port)
+        command = 'netstat -pan | grep -i 0.0.0.0:{} |  wc -l'.format(self.pon_agent_port)
         rcmd = RCmd(self.ip_address, self.netconf_username, self.netconf_password, command)
 
         try:
@@ -405,7 +407,7 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         # Drop registration for adapter messages
         self.adapter_agent.unregister_for_inter_adapter_messages()
 
-        c, self.zmq_client = self.zmq_client, None
+        c, self.pon_agent = self.pon_agent, None
         if c is not None:
             try:
                 c.shutdown()
@@ -418,8 +420,9 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         super(AdtranOltHandler, self).reenable(done_deferred=done_deferred)
 
         self._ready_zmq()
-        self.zmq_client = AdtranZmqClient(self.ip_address, rx_callback=self.rx_packet,
-                                          port=self.zmq_port)
+        self.pon_agent = AdtranZmqClient(self.ip_address, port=self.pon_agent_port, rx_callback=self.rx_pa_packet)
+        self.pio_agent = AdtranZmqClient(self.ip_address, port=self.pio_port, rx_callback=self.rx_pio_packet)
+
         # Register for adapter messages
         self.adapter_agent.register_for_inter_adapter_messages()
 
@@ -428,7 +431,7 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
     def reboot(self):
         self._cancel_deferred()
 
-        c, self.zmq_client = self.zmq_client, None
+        c, self.pon_agent = self.pon_agent, None
         if c is not None:
             c.shutdown()
 
@@ -451,7 +454,9 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         # Register for adapter messages
         self.adapter_agent.register_for_inter_adapter_messages()
 
-        self.zmq_client = AdtranZmqClient(self.ip_address, rx_callback=self.rx_packet, port=self.zmq_port)
+        self.pon_agent = AdtranZmqClient(self.ip_address, port=self.pon_agent_port, rx_callback=self.rx_pa_packet)
+        self.pio_agent = AdtranZmqClient(self.ip_address, port=self.pio_port, rx_callback=self.rx_pio_packet)
+
         self.status_poll = reactor.callLater(5, self.poll_for_status)
 
     def delete(self):
@@ -460,28 +465,60 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         # Drop registration for adapter messages
         self.adapter_agent.unregister_for_inter_adapter_messages()
 
-        c, self.zmq_client = self.zmq_client, None
+        c, self.pon_agent = self.pon_agent, None
         if c is not None:
             c.shutdown()
 
         super(AdtranOltHandler, self).delete()
 
-    def rx_packet(self, message):
-        try:
-            self.log.debug('rx_packet')
+    def rx_pa_packet(self, packets):
+        self.log.debug('rx-pon-agent-packet')
 
-            pon_id, onu_id, msg_bytes, is_omci = AdtranZmqClient.decode_packet(message,
-                                                                               self.is_async_control)
-            if is_omci:
-                proxy_address = self._pon_onu_id_to_proxy_address(pon_id, onu_id)
-                self.adapter_agent.receive_proxied_message(proxy_address, msg_bytes)
-            else:
-                pass  # TODO: Packet in support not yet supported
-                # self.adapter_agent.send_packet_in(logical_device_id=logical_device_id,
-                #                                   logical_port_no=cvid,  # C-VID encodes port no
-                #                                   packet=str(msg))
-        except Exception as e:
-            self.log.exception('rx_packet', e=e)
+        for packet in packets:
+            try:
+                pon_id, onu_id, msg_bytes, is_omci = \
+                    AdtranZmqClient.decode_pon_agent_packet(packet,
+                                                            self.is_async_control)
+                if is_omci:
+                    proxy_address = self._pon_onu_id_to_proxy_address(pon_id, onu_id)
+
+                    if proxy_address is not None:
+                        self.adapter_agent.receive_proxied_message(proxy_address, msg_bytes)
+
+            except Exception as e:
+                self.log.exception('rx-pon-agent-packet', e=e)
+
+    def _compute_logical_port_no(self, port_no, evc_map, packet):
+        logical_port_no = None
+
+        if self.is_pon_port(port_no):
+            pon = self.get_southbound_port(port_no)
+
+        elif self.is_nni_port(port_no):
+            nni = self.get_northbound_port(port_no)
+            logical_port = nni.get_logical_port() if nni is not None else None
+            logical_port_no = logical_port.ofp_port.port_no if logical_port is not None else None
+
+        # TODO: Need to decode base on port_no & evc_map
+        return logical_port_no
+
+    def rx_pio_packet(self, packets):
+        self.log.debug('rx-packet-in', type=type(packets), data=packets)
+        assert isinstance(packets, list), 'Expected a list of packets'
+
+        if self.logical_device_id is not None:
+            for packet in packets:
+                try:
+                    port_no, evc_map, packet = AdtranZmqClient.decode_packet_in_message(packet)
+                    # packet.show()
+
+                    logical_port_no = self._compute_logical_port_no(port_no, evc_map, packet)
+
+                    self.adapter_agent.send_packet_in(logical_device_id=self.logical_device_id,
+                                                      logical_port_no=logical_port_no,
+                                                      packet=str(packet))
+                except Exception as e:
+                    self.log.exception('rx_pio_packet', e=e)
 
     def poll_for_status(self):
         self.log.debug('Initiating-status-poll')
@@ -582,7 +619,7 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         if isinstance(msg, Packet):
             msg = str(msg)
 
-        if self.zmq_client is not None:
+        if self.pon_agent is not None:
             pon_id, onu_id = self._proxy_address_to_pon_onu_id(proxy_address)
 
             pon = self.southbound_ports.get(pon_id)
@@ -594,10 +631,10 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
                     data = AdtranZmqClient.encode_omci_message(msg, pon_id, onu_id,
                                                                self.is_async_control)
                     try:
-                        self.zmq_client.send(data)
+                        self.pon_agent.send(data)
 
                     except Exception as e:
-                        self.log.exception('zmqClient-send', pon_id=pon_id, onu_id=onu_id, e=e)
+                        self.log.exception('pon-agent-send', pon_id=pon_id, onu_id=onu_id, e=e)
                 else:
                     self.log.debug('onu-invalid-or-disabled', pon_id=pon_id, onu_id=onu_id)
             else:
@@ -663,6 +700,9 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
     def get_southbound_port(self, port):
         pon_id = self._port_number_to_pon_id(port)
         return self.southbound_ports.get(pon_id, None)
+
+    def get_northbound_port(self, port):
+        return self.northbound_ports.get(port, None)
 
     def get_port_name(self, port):
         if self.is_nni_port(port):

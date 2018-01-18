@@ -91,7 +91,7 @@ class AdtranDeviceHandler(object):
     RESTART_RPC = '<system-restart xmlns="urn:ietf:params:xml:ns:yang:ietf-system"/>'
 
     def __init__(self, **kwargs):
-        from net.adtran_zmq import DEFAULT_ZEROMQ_OMCI_TCP_PORT
+        from net.adtran_zmq import DEFAULT_PON_AGENT_TCP_PORT, DEFAULT_PIO_TCP_PORT
 
         super(AdtranDeviceHandler, self).__init__()
 
@@ -152,7 +152,8 @@ class AdtranDeviceHandler(object):
         self.max_nni_ports = 1  # TODO: This is a VOLTHA imposed limit in 'flow_decomposer.py
                                 # and logical_device_agent.py
         # OMCI ZMQ Channel
-        self.zmq_port = DEFAULT_ZEROMQ_OMCI_TCP_PORT
+        self.pon_agent_port = DEFAULT_PON_AGENT_TCP_PORT
+        self.pio_port = DEFAULT_PIO_TCP_PORT
 
         # Heartbeat support
         self.heartbeat_count = 0
@@ -218,7 +219,7 @@ class AdtranDeviceHandler(object):
             del self._evcs[evc.name]
 
     def parse_provisioning_options(self, device):
-        from net.adtran_zmq import DEFAULT_ZEROMQ_OMCI_TCP_PORT
+        from net.adtran_zmq import DEFAULT_PON_AGENT_TCP_PORT
 
         if not device.ipv4_address:
             self.activate_failed(device, 'No ip_address field provided')
@@ -253,7 +254,7 @@ class AdtranDeviceHandler(object):
                             help='REST Password')
         parser.add_argument('--rc_port', '-T', action='store', default=_DEFAULT_RESTCONF_PORT, type=check_tcp_port,
                             help='RESTCONF TCP Port')
-        parser.add_argument('--zmq_port', '-z', action='store', default=DEFAULT_ZEROMQ_OMCI_TCP_PORT,
+        parser.add_argument('--zmq_port', '-z', action='store', default=DEFAULT_PON_AGENT_TCP_PORT,
                             type=check_tcp_port, help='ZeroMQ Port')
         parser.add_argument('--autoactivate', '-a', action='store_true', default=False,
                             help='Autoactivate / Demo mode')
@@ -280,7 +281,7 @@ class AdtranDeviceHandler(object):
             self.rest_password = args.rc_password
             self.rest_port = args.rc_port
 
-            self.zmq_port = args.zmq_port
+            self.pon_agent_port = args.zmq_port
 
             self._autoactivate = args.autoactivate
 
