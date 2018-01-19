@@ -2,7 +2,7 @@
 
 rm -fr buildreport
 rm -f envoyd
-docker run -e "http_proxy=$http_proxy" -e "https_proxy=$https_proxy" -v $(pwd):/src go-builder
+docker run -e "http_proxy=$http_proxy" -e "https_proxy=$https_proxy" -v $(pwd):/src voltha/go-builder
 #/build.sh
 uid=`id -u`
 gid=`id -g`

@@ -1,0 +1,291 @@
+# Copyright 2017 the original author or authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+version: "3"
+services:
+
+  # The Fluentd container is part of the data collection
+  # infrastructure.
+  fluentd:
+    image: "${REGISTRY}voltha/fluentd:${TAG:-latest}"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: 3
+    deploy:
+      mode: replicated
+      replicas: {{ SWARM_MANAGER_COUNT | default(2) }}
+      restart_policy:
+        condition: any
+    environment:
+        SERVICE_24224_NAME: "fluentd-intake"
+        FLUENTD_CONF: fluent.conf
+        WAIT_FOR: "fluentdactv:24224 fluentdstby:24224"
+        WAIT_FOR_TIMEOUT: 0
+    networks:
+      - voltha-net
+    ports:
+      - "24224"
+
+  # Free RADIUS can be used to test VOLTHA's authentication 
+  # sequence, i.e., EAPOL from a device behind an OLT to 
+  # RADIUS authentication on the back end systems. By default
+  # no instances of Free RADIUS are deployed.
+  freeradius:
+    deploy:
+      replicas: 0
+    image: "${REGISTRY}marcelmaatkamp/freeradius:${RADIUS_TAG:-latest}"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: 3
+    ports:
+      - "1812:1812/udp"
+      - "1813:1813"
+      - "18120:18120"
+    
+    # CONFIG: When deploying a Free RADIUS instance client and user
+    #      information will need to be configured for the service to
+    #      operate correctly.
+    #
+    #volumes:
+    #   - ${RADIUS_ROOT}/data/clients.conf:/etc/raddb/clients.conf
+    #   - ${RADIUS_ROOT}/data/users:/etc/raddb/users
+    networks:
+      - voltha-net
+
+  # The cluster manager container calculates and servers ONOS cluster
+  # meta data via HTTP so that ONOS instances can form an HA cluster.
+  # The cluster manager must run on a manager node so that it can 
+  # retrieve service information from manager nodes
+  onos_cluster_manager:
+    image: "${REGISTRY}voltha/unum:${TAG:-latest}"
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+    environment:
+      PERIOD: "10s"
+      LOG_LEVEL: "debug"
+      ORCHESTRATION: "swarm://"
+      LABELS: "org.voltha.onos.cluster:true"
+      NETWORK: "org.voltha.onos.cluster:true"
+    ports:
+      - 5411:5411
+    networks:
+      - voltha-net
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  # ONOS is the SDN controller for the solution and handles AAA,
+  # IGMP proxy, and L2 DHCP requests as well as manages flows
+  # down to the virtual devices (MCAST + OLT flows).
+  # Currently there is a single instance of ONOS as some of the
+  # applications running under ONOS do not support HA.
+  onos:
+    deploy:
+      replicas: 1
+      labels:
+        org.voltha.onos.cluster: "true"
+    image: "${REGISTRY}voltha/onos:${TAG:-latest}"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: 3
+    ports:
+      - 8101:8101 # ssh
+      - 6653:6653 # OF
+      - 8181:8181 # UI
+    environment:
+      EXTRA_JAVA_OPTS: "-Donos.cluster.metadata.uri=http://onos_cluster_manager:5411/config/"
+    networks:
+      - voltha-net
+
+  # The VCORE container is the core capabilities of VOLTHA including
+  # interacting with device adapters
+  vcore:
+    image: "${REGISTRY}voltha/voltha:${TAG:-latest}"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: 3
+    deploy:
+      replicas: {{ SWARM_MANAGER_COUNT | default(3) }}
+    entrypoint:
+      - voltha/voltha/main.py
+      - -v
+      - --consul=consul:8500
+      - --fluentd=fluentd:24224
+      - --kafka=kafka
+      - --rest-port=8880
+      - --grpc-port=50556
+      - --instance-id-is-container-name
+      - --backend=consul
+      - --inter-core-subnet=172.29.19.0/24
+      - --pon-subnet=172.29.19.0/24
+    networks:
+      - voltha-net
+    ports:
+      - "8880:8880"
+      - "18880:18880"
+      - "50556:50556"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock
+
+  # The OpenFlow Agent support the OpenFlow protocol communication
+  # between ONOS and VOLTHA.
+  ofagent:
+    image: "${REGISTRY}voltha/ofagent:${TAG:-latest}"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: 3
+    deploy:
+      replicas: 1
+    entrypoint:
+      - /ofagent/ofagent/main.py
+      - -v
+      - --consul=consul:8500
+      - --fluentd=fluentd:24224
+      - --controller=onos:6653
+      - --grpc-endpoint=vcore:50556
+      - --instance-id-is-container-name
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock
+    networks:
+      - voltha-net
+
+  # The VOLTHA container supports load balancing of request to
+  # the VOLTHA components as well as surfaces a REST API and maps
+  # the requests to GPRC
+  voltha:
+    image: "${REGISTRY}voltha/envoy:${TAG:-latest}"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: 3
+    deploy:
+      replicas: 1
+    entrypoint:
+      - /usr/local/bin/envoyd
+      - -envoy-cfg-template
+      - "/envoy/voltha-grpc-proxy.template.json"
+      - -envoy-config
+      - "/envoy/voltha-grpc-proxy.json"
+    networks:
+      - voltha-net
+    ports:
+      - "50555:50555"
+      - "8882:8882"
+      - "8443:8443"
+      - "8001:8001"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock
+
+  # The CLI container provides an CLI to the VOLTHA capabilitiy 
+  # that can be accessed via SSH.
+  cli:
+    image: "${REGISTRY}voltha/cli:${TAG:-latest}"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: 3
+    deploy:
+      replicas: {{ SWARM_MANAGER_COUNT | default(2) }}
+    entrypoint:
+      - /cli/cli/setup.sh
+      - -C consul:8500
+      - -g voltha:50555
+      - -s voltha:18880
+      - -G
+    networks:
+      - voltha-net
+    ports:
+      - "5022:22"
+
+  # The Netconf container provides an NETCONF API to be used
+  # with VOLTHA and maps that to GRPC requests
+  netconf:
+    image: "${REGISTRY}voltha/netconf:${TAG:-latest}"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: 3
+    deploy:
+      mode: global
+    environment:
+      SERVICE_1830_NAME: "netconf-server"
+    entrypoint:
+      - /netconf/netconf/main.py
+      - -v
+      - --consul=consul:8500
+      - --fluentd=fluentd:24224
+      - --grpc-endpoint=voltha:50555
+      - --instance-id-is-container-name
+    networks:
+      - voltha-net
+    ports:
+      - "830:1830"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock
+
+  # The tools container provides a bash command shell to which
+  # an operator can SSH that has the same network connectivity
+  # as other VOLTHA containers and is thus a convenient 
+  # troubleshooting tool
+  tools:
+    image: "${REGISTRY}voltha/tools:${TAG:-latest}"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: 3
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    ports:
+      - "4022:22"
+    networks:
+      - voltha-net
+      - kafka-net
+
+networks:
+  onos:
+    driver: overlay
+    driver_opts:
+      encrypted: "true"
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.25.0.0/24
+    labels:
+      org.voltha.onos.cluster: "true"
+
+  voltha-net:
+    external:
+      name: voltha_net
+
+  kafka-net:
+    external:
+      name: kafka_net

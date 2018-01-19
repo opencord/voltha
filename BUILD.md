@@ -38,7 +38,7 @@ make fetch
 make build
 ```
 
-The above has generated a new Docker image '''cord/voltha''' inside the VM. To see it, run:
+The above has generated a new Docker image '''voltha/voltha''' inside the VM. To see it, run:
 
 ```
 docker images
@@ -49,7 +49,7 @@ docker images
 The simplest way to run the image (in the foreground):
 
 ```
-docker run -ti --rm cord/voltha
+docker run -ti --rm voltha/voltha
 ```
 
 Unless you happen to have a consul agent running on your local system, you shall see that voltha is trying to connect to a consul agent, without success.
@@ -87,7 +87,7 @@ CONSUL_IP=`docker inspect compose_consul_1 | \
 With the IP address in hand, you can now start Voltha manually as:
 
 ```
-docker run -ti --rm --net=compose_default cord/voltha /voltha/voltha/main.py --consul=$CONSUL_IP:8500
+docker run -ti --rm --net=compose_default voltha/voltha /voltha/voltha/main.py --consul=$CONSUL_IP:8500
 ```
 
 This time it should successfully connect to consul and actually register itself.
@@ -372,7 +372,7 @@ make build
 Then you shall be able to see the created image and run the container:
 
 ```
-docker run -ti cord/voltha
+docker run -ti voltha/voltha
 ```
 
 After this, much or all of the things you can do inside the Vagrant box should also work natively on the Mac.

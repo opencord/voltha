@@ -58,9 +58,9 @@ command_defs = dict(
         DOCKER_COMPOSE_FILE),
     docker_stop_and_remove_all_containers="docker stop `docker ps -q` ; "
                                           "docker rm `docker ps -a -q`",
-    docker_start_voltha="docker run -ti --rm cord/voltha",
+    docker_start_voltha="docker run -ti --rm voltha/voltha",
     docker_start_voltha_with_consul_ip="docker run -ti --rm --net="
-                                       "compose_default cord/voltha "
+                                       "compose_default voltha/voltha "
                                        "/voltha/voltha/main.py --consul=",
     docker_get_consul_ip="docker inspect "
                          "compose_consul_1 | jq -r "

@@ -92,7 +92,7 @@ observing that EAPOL authentication does not succeed. To do this start
 our RG docker container.
 
 ```
-docker run --net=host --privileged --name RG -it cord/tester bash
+docker run --net=host --privileged --name RG -it voltha/tester bash
 ```
 
 this should land you in a command prompt that looks like

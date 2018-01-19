@@ -84,3 +84,6 @@ netconf/protos/third_party/google
 docs/manuals/user/_book
 docs/manual/user/*.pdf
 docs/manuals/user/node_modules/
+.coverage
+coverage.xml
+nosetests.xml

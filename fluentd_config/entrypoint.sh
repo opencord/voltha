@@ -1,3 +1,4 @@
+#!/usr/bin/dumb-init /bin/sh
 # Copyright 2018 the original author or authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,14 +13,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM centurylink/ca-certs
+uid=${FLUENT_UID:-1000}
 
-COPY tmp_portainer /
+# check if a old fluent user exists and delete it
+cat /etc/passwd | grep fluent
+if [ $? -eq 0 ]; then
+    deluser fluent
+fi
 
-VOLUME /data
+# (re)add the fluent user with $FLUENT_UID
+adduser -D -g '' -u ${uid} -h /home/fluent fluent
 
-WORKDIR /
+# chown home and data folder
+chown -R fluent /home/fluent
+chown -R fluent /fluentd
 
-EXPOSE 9000
+echo "$WAIT_FOR"
+if [ ! -z "$WAIT_FOR" ]; then
+  for i in $WAIT_FOR; do
+      /bin/wait_for_it.sh -t ${WAIT_FOR_TIMEOUT:-30} $i
+  done
+fi
 
-ENTRYPOINT ["/portainer"]
+exec su-exec fluent "$@"
+

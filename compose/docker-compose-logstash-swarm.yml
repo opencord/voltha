@@ -2,7 +2,7 @@ version: '3'
 
 services:
   logstash:
-    image: cord/logstash
+    image: "${REGISTRY}voltha/logstash:${TAG:-latest}"
     environment:
       - log.level=info
       - xpack.monitoring.enabled=false

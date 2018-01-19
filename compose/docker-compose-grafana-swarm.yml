@@ -12,7 +12,7 @@
 version: "3"
 services:
   grafana:
-    image: kamon/grafana_graphite
+    image: "${REGISTRY}kamon/grafana_graphite:${TAG:-latest}"
     logging:
       driver: "json-file"
       options:

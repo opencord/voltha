@@ -18,7 +18,7 @@
 """
 Run this test inside a docker container using the following syntax:
 
-docker run -ti --rm -v $(pwd):/voltha  --privileged cord/voltha-base \
+docker run -ti --rm -v $(pwd):/voltha  --privileged voltha/voltha-base \
     env PYTHONPATH=/voltha python \
     /voltha/tests/itests/run_as_root/test_frameio.py
 
