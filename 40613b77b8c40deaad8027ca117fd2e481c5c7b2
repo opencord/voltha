@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "4d78e8f6_9b7d4080",
+        "filename": "Makefile",
+        "patchSetId": 1
+      },
+      "lineNbr": 180,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2018-01-19T19:15:48Z",
+      "side": 1,
+      "message": "Shouldn\u0027t an ONOS container have the same tag regardless of where it\u0027s deployed or is there some specific flavor of ONOS that\u0027s built for VOLTHA.",
+      "range": {
+        "startLine": 180,
+        "startChar": 38,
+        "endLine": 180,
+        "endChar": 49
+      },
+      "revId": "40613b77b8c40deaad8027ca117fd2e481c5c7b2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3e5d4a41_5c2c13ba",
+        "filename": "compose/docker-compose-consul-cluster.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2018-01-19T19:15:48Z",
+      "side": 1,
+      "message": "Is there a good reason for removing the eth0 binding and the update check?",
+      "range": {
+        "startLine": 45,
+        "startChar": 0,
+        "endLine": 45,
+        "endChar": 4
+      },
+      "revId": "40613b77b8c40deaad8027ca117fd2e481c5c7b2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
