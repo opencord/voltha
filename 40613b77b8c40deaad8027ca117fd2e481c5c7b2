@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "20bb13ec_1b6ddbae",
+        "filename": "Makefile",
+        "patchSetId": 1
+      },
+      "lineNbr": 180,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2018-01-19T19:22:03Z",
+      "side": 1,
+      "message": "There is a specific version of ONOS build for VOLTHA. It has the required control plane applications installed.",
+      "parentUuid": "4d78e8f6_9b7d4080",
+      "range": {
+        "startLine": 180,
+        "startChar": 38,
+        "endLine": 180,
+        "endChar": 49
+      },
+      "revId": "40613b77b8c40deaad8027ca117fd2e481c5c7b2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "3e5d4a41_5c2c13ba",
         "filename": "compose/docker-compose-consul-cluster.yml",
         "patchSetId": 1
@@ -36,6 +60,30 @@
       "writtenOn": "2018-01-19T19:15:48Z",
       "side": 1,
       "message": "Is there a good reason for removing the eth0 binding and the update check?",
+      "range": {
+        "startLine": 45,
+        "startChar": 0,
+        "endLine": 45,
+        "endChar": 4
+      },
+      "revId": "40613b77b8c40deaad8027ca117fd2e481c5c7b2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "096455da_5fce18f5",
+        "filename": "compose/docker-compose-consul-cluster.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2018-01-19T19:22:03Z",
+      "side": 1,
+      "message": "yes, it doesn\u0027t work in all cases. uses the advertise with a a specification of the network will ensure the proper IP is selected. the bind and advertise option really do the same type of thing (figure out the IP).",
+      "parentUuid": "3e5d4a41_5c2c13ba",
       "range": {
         "startLine": 45,
         "startChar": 0,
