@@ -46,12 +46,12 @@ class OnuTrafficDescriptor(TrafficDescriptor):
         else:
             best_effort = None
 
-        return TrafficDescriptor(traffic_disc['fixed-bandwidth'],
-                                 traffic_disc['assured-bandwidth'],
-                                 traffic_disc['maximum-bandwidth'],
-                                 name=traffic_disc['name'],
-                                 best_effort=best_effort,
-                                 additional=additional)
+        return OnuTrafficDescriptor(traffic_disc['fixed-bandwidth'],
+                                    traffic_disc['assured-bandwidth'],
+                                    traffic_disc['maximum-bandwidth'],
+                                    name=traffic_disc['name'],
+                                    best_effort=best_effort,
+                                    additional=additional)
 
     @inlineCallbacks
     def add_to_hardware(self, omci):

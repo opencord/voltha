@@ -61,10 +61,10 @@ class HeartBeat(object):
         if self._enabled != value:
             self._enabled = value
 
-            if value:
-                self._start()
-            else:
-                self._stop()
+            # if value:
+            #     self._start()
+            # else:
+            #     self._stop()
 
     @property
     def check_item(self):

@@ -38,7 +38,7 @@ class OnuTCont(TCont):
         return self._entity_id
 
     @staticmethod
-    def create(handler, tcont, td):
+    def create(handler, tcont, td, is_mock=False):
         assert isinstance(tcont, dict), 'TCONT should be a dictionary'
         assert isinstance(td, TrafficDescriptor), 'Invalid Traffic Descriptor data type'
 
@@ -50,7 +50,8 @@ class OnuTCont(TCont):
                         td,
                         entity_id,
                         name=tcont['name'],
-                        vont_ani=tcont['vont-ani'])
+                        vont_ani=tcont['vont-ani'],
+                        is_mock=is_mock)
 
     @inlineCallbacks
     def add_to_hardware(self, omci):
@@ -62,8 +63,9 @@ class OnuTCont(TCont):
             #
             # NOTE: Entity ID should be computed. For NGPON2, they were starting
             #       at 256 and incrementing.
-            results = yield self._handler.omci.send_set_tcont(self._entity_id,  # Entity ID
-                                                              self.alloc_id)    # Alloc ID
+            results = None
+            # results = yield self._handler.omci.send_set_tcont(self._entity_id,  # Entity ID
+            #                                                   self.alloc_id)    # Alloc ID
 
             # response = yield omci.send(TcontFrame(self._entity_id,
             #                                       alloc_id=self.alloc_id).get())
@@ -79,7 +81,8 @@ class OnuTCont(TCont):
         if self._is_mock:
             returnValue('mock')
 
-        results = yield omci.send(TcontFrame(self._entity_id).delete())
+        results = None
+        # results = yield omci.send(TcontFrame(self._entity_id).delete())
         returnValue(results)
 
 

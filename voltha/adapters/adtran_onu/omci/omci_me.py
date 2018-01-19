@@ -14,186 +14,10 @@
 # limitations under the License.
 #
 """
-OMCI Message support
+OMCI Managed Entity Frame support
 """
 from voltha.extensions.omci.omci import *
-
-# abbreviations
-OP = EntityOperations
-
-
-class MEFrame(object):
-    """Base class to help simplify Frame Creation"""
-    def __init__(self, entity_class, entity_id, data):
-        assert issubclass(entity_class, EntityClass), \
-            "'{}' must be a subclass of MEFrame".format(entity_class)
-        self.check_type(entity_id, int)
-
-        if not 0 <= entity_id <= 0xFFFF:
-            raise ValueError('entity_id should be 0..65535')
-
-        self._class = entity_class
-        self._entity_id = entity_id
-        self.data = data
-
-        # TODO: add a required attributes check list for various operations
-        #       that each derive class can set as required. Then check these
-        #       in the appropriate operation method in this class and assert
-        #       if something is missing
-
-    def __str__(self):
-        return '{}: Entity_ID: {}, Data: {}'.\
-            format(type(self.entity_class), self._entity_id, self.data)
-
-    @staticmethod
-    def check_type(param, types):
-        if not isinstance(param, types):
-            raise TypeError("param '{}' should be a {}".format(param, types))
-
-    @property
-    def entity_class(self):
-        """
-        The Entity Class for this ME
-        :return: (EntityClass) Entity class
-        """
-        return self._class
-
-    @property
-    def entity_id(self):
-        """
-        The Entity ID for this ME frame
-        :return: (int) Entity ID (0..0xFFFF)
-        """
-        return self._entity_id
-
-    def create(self):
-        """
-        Create a Create request frame for this ME
-        :return: (OmciFrame) OMCI Frame
-        """
-        assert OP.Create in self.entity_class.mandatory_operations, \
-            "Set not allowed for '{}'".format(self.entity_class)
-        assert hasattr(self.entity_class, 'class_id'), 'class_id required for Create actions'
-        assert hasattr(self, 'entity_id'), 'entity_id required for Create actions'
-        assert hasattr(self, 'data'), 'data required for Create actions'
-
-        data = getattr(self, 'data')
-        MEFrame.check_type(data, dict)
-        assert len(data) > 0, 'No attributes supplied'
-
-        return OmciFrame(
-            transaction_id=None,
-            message_type=OmciCreate.message_id,
-            omci_message=OmciCreate(
-                entity_class=getattr(self.entity_class, 'class_id'),
-                entity_id=getattr(self, 'entity_id'),
-                data=data
-            ))
-
-    def delete(self):
-        """
-        Create a Delete request frame for this ME
-        :return: (OmciFrame) OMCI Frame
-        """
-        assert OP.Delete in self.entity_class.mandatory_operations, \
-            "Delete not allowed for '{}'".format(self.entity_class)
-
-        return OmciFrame(
-            transaction_id=None,
-            message_type=OmciGet.message_id,
-            omci_message=OmciGet(
-                entity_class=getattr(self.entity_class, 'class_id'),
-                entity_id=getattr(self, 'entity_id')
-            ))
-
-    def set(self):
-        """
-        Create a Set request frame for this ME
-        :return: (OmciFrame) OMCI Frame
-        """
-        assert OP.Set in self.entity_class.mandatory_operations, \
-            "Set not allowed for '{}'".format(self.entity_class)
-        assert hasattr(self, 'data'), 'data required for Set actions'
-
-        data = getattr(self, 'data')
-        MEFrame.check_type(data, dict)
-        assert len(data) > 0, 'No attributes supplied'
-
-        return OmciFrame(
-            transaction_id=None,
-            message_type=OmciSet.message_id,
-            omci_message=OmciSet(
-                entity_class=getattr(self.entity_class, 'class_id'),
-                entity_id=getattr(self, 'entity_id'),
-                attributes_mask=self.entity_class.mask_for(*data.keys()),
-                data=data
-            ))
-
-    def get(self):
-        """
-        Create a Get request frame for this ME
-        :return: (OmciFrame) OMCI Frame
-        """
-        assert OP.Get in self.entity_class.mandatory_operations, \
-            "Get not allowed for '{}'".format(self.entity_class)
-        assert hasattr(self, 'data'), 'data required for Get actions'
-
-        data = getattr(self, 'data')
-        MEFrame.check_type(data, (list, set, dict))
-        assert len(data) > 0, 'No attributes supplied'
-
-        mask_set = data.keys() if isinstance(data, dict) else data
-
-        return OmciFrame(
-            transaction_id=None,
-            message_type=OmciGet.message_id,
-            omci_message=OmciGet(
-                entity_class=getattr(self.entity_class, 'class_id'),
-                entity_id=getattr(self, 'entity_id'),
-                attributes_mask=self.entity_class.mask_for(*mask_set)
-            ))
-
-    @staticmethod
-    def _attr_to_data(attributes):
-        """
-        Convert an object into the 'data' set or dictionary for get/set/create/delete
-        requests.
-
-        This method takes a 'string', 'list', or 'set' for get requests and
-        converts it to a 'set' of attributes.
-
-        For create/set requests a dictionary of attribute/value pairs is required
-
-        :param attributes: (basestring, list, set, dict) attributes. For gets
-                           a string, list, set, or dict can be provided. For create/set
-                           operations, a dictionary should be provided. For delete
-                           the attributes may be None since they are ignored.
-
-        :return: (set, dict) set for get/deletes, dict for create/set
-        """
-        if isinstance(attributes, basestring):
-            # data = [str(attributes)]
-            data = set()
-            data.add(str(attributes))
-
-        elif isinstance(attributes, list):
-            assert all(isinstance(attr, basestring) for attr in attributes),\
-                'attribute list must be strings'
-            data = {str(attr) for attr in attributes}
-            assert len(data) == len(attributes), 'Attributes were not unique'
-
-        elif isinstance(attributes, set):
-            assert all(isinstance(attr, basestring) for attr in attributes),\
-                'attribute set must be strings'
-            data = {str(attr) for attr in attributes}
-
-        elif isinstance(attributes, (dict, type(None))):
-            data = attributes
-
-        else:
-            raise TypeError("Unsupported attributes type '{}'".format(type(attributes)))
-
-        return data
+from me_frame import MEFrame
 
 
 class CardholderFrame(MEFrame):
@@ -245,6 +69,30 @@ class CircuitPackFrame(MEFrame):
                                                MEFrame._attr_to_data(attributes))
 
 
+class ExtendedVlanTaggingOperationConfigurationDataFrame(MEFrame):
+    """
+    This managed entity organizes data associated with VLAN tagging. Regardless
+    of its point of attachment, the specified tagging operations refer to the
+     upstream direction.
+    """
+    def __init__(self, entity_id, attributes):
+        """
+        :param entity_id: (int) This attribute uniquely identifies each instance of
+                                this managed entity. Its value is the same as that
+                                of the cardholder managed entity containing this
+                                circuit pack instance. (0..65535)
+
+        :param attributes: (basestring, list, set, dict) attributes. For gets
+                           a string, list, or set can be provided. For create/set
+                           operations, a dictionary should be provided, for
+                           deletes None may be specified.
+        """
+        super(ExtendedVlanTaggingOperationConfigurationDataFrame,
+              self).__init__(ExtendedVlanTaggingOperationConfigurationData,
+                             entity_id,
+                             MEFrame._attr_to_data(attributes))
+
+
 class IpHostConfigDataFrame(MEFrame):
     """
     The IP host config data configures IPv4 based services offered on the ONU.
@@ -264,6 +112,33 @@ class IpHostConfigDataFrame(MEFrame):
                                                     MEFrame._attr_to_data(attributes))
 
 
+class GalEthernetProfileFrame(MEFrame):
+    """
+    This managed entity organizes data that describe the GTC adaptation layer
+    processing functions of the ONU for Ethernet services.
+    """
+    def __init__(self, entity_id, max_gem_payload_size=None):
+        """
+        :param entity_id: (int) This attribute uniquely identifies each instance of
+                                this managed entity. (0..65535)
+
+        :param max_gem_payload_size: (int) This attribute defines the maximum payload
+                                     size generated in the associated GEM interworking
+                                     termination point managed entity. (0..65535
+        """
+        MEFrame.check_type(max_gem_payload_size, (int, type(None)))
+        if max_gem_payload_size is not None and not 0 <= max_gem_payload_size <= 0xFFFF:  # TODO: verify min/max
+            raise ValueError('max_gem_payload_size should be 0..0xFFFF')
+
+        data = None if max_gem_payload_size is None else\
+            {
+                'max_gem_payload_size': max_gem_payload_size
+            }
+        super(GalEthernetProfileFrame, self).__init__(GalEthernetProfile,
+                                                      entity_id,
+                                                      data)
+
+
 class GemInterworkingTpFrame(MEFrame):
     """
     An instance of this managed entity represents a point in the ONU where the
@@ -275,6 +150,7 @@ class GemInterworkingTpFrame(MEFrame):
                  interworking_option=None,
                  service_profile_pointer=None,
                  interworking_tp_pointer=None,
+                 pptp_counter=None,
                  gal_profile_pointer=None,
                  attributes=None):
         """
@@ -319,11 +195,12 @@ class GemInterworkingTpFrame(MEFrame):
                            deletes None may be specified..
         """
         # Validate
-        self.check_type(gem_port_network_ctp_pointer, [int, type(None)])
-        self.check_type(interworking_option, [int, type(None)])
-        self.check_type(service_profile_pointer, [int, type(None)])
-        self.check_type(interworking_tp_pointer, [int, type(None)])
-        self.check_type(gal_profile_pointer, [int, type(None)])
+        self.check_type(gem_port_network_ctp_pointer, (int, type(None)))
+        self.check_type(interworking_option, (int, type(None)))
+        self.check_type(service_profile_pointer, (int, type(None)))
+        self.check_type(interworking_tp_pointer,(int, type(None)))
+        self.check_type(pptp_counter,(int, type(None)))
+        self.check_type(gal_profile_pointer, (int, type(None)))
 
         if gem_port_network_ctp_pointer is not None and not 0 <= gem_port_network_ctp_pointer <= 0xFFFE:  # TODO: Verify max
             raise ValueError('gem_port_network_ctp_pointer should be 0..0xFFFE')
@@ -336,6 +213,9 @@ class GemInterworkingTpFrame(MEFrame):
 
         if interworking_tp_pointer is not None and not 0 <= interworking_tp_pointer <= 0xFFFE:  # TODO: Verify max
             raise ValueError('interworking_tp_pointer should be 0..0xFFFE')
+
+        if pptp_counter is not None and not 0 <= pptp_counter <= 255:  # TODO: Verify max
+            raise ValueError('pptp_counter should be 0..255')
 
         if gal_profile_pointer is not None and not 0 <= gal_profile_pointer <= 0xFFFE:  # TODO: Verify max
             raise ValueError('gal_profile_pointer should be 0..0xFFFE')
@@ -351,19 +231,19 @@ class GemInterworkingTpFrame(MEFrame):
             data = data or dict()
 
             if gem_port_network_ctp_pointer is not None:
-                data[gem_port_network_ctp_pointer] = gem_port_network_ctp_pointer
+                data['gem_port_network_ctp_pointer'] = gem_port_network_ctp_pointer
 
             if interworking_option is not None:
-                data[interworking_option] = interworking_option
+                data['interworking_option'] = interworking_option
 
             if service_profile_pointer is not None:
-                data[service_profile_pointer] = service_profile_pointer
+                data['service_profile_pointer'] = service_profile_pointer
 
             if interworking_tp_pointer is not None:
-                data[interworking_tp_pointer] = interworking_tp_pointer
+                data['interworking_tp_pointer'] = interworking_tp_pointer
 
             if gal_profile_pointer is not None:
-                data[gal_profile_pointer] = gal_profile_pointer
+                data['gal_profile_pointer'] = gal_profile_pointer
 
         super(GemInterworkingTpFrame, self).__init__(GemInterworkingTp,
                                                      entity_id,
@@ -408,10 +288,10 @@ class GemPortNetworkCtpFrame(MEFrame):
         _directions = {"upstream": 1, "downstream": 2, "bi-directional": 3}
 
         # Validate
-        self.check_type(port_id, [int, type(None)])
-        self.check_type(tcont_id, [int, type(None)])
-        self.check_type(direction, [basestring, type(None)])
-        self.check_type(upstream_tm, [int, type(None)])
+        self.check_type(port_id, (int, type(None)))
+        self.check_type(tcont_id, (int, type(None)))
+        self.check_type(direction, (basestring, type(None)))
+        self.check_type(upstream_tm, (int, type(None)))
 
         if port_id is not None and not 0 <= port_id <= 0xFFFE:  # TODO: Verify max
             raise ValueError('port_id should be 0..0xFFFE')
@@ -433,13 +313,13 @@ class GemPortNetworkCtpFrame(MEFrame):
             data = data or dict()
 
             if port_id is not None:
-                data[port_id] = port_id
+                data['port_id'] = port_id
             if tcont_id is not None:
-                data[tcont_id] = tcont_id
+                data['tcont_pointer'] = tcont_id
             if direction is not None:
-                data[direction] = direction
+                data['direction'] = _directions[str(direction).lower()]
             if upstream_tm is not None:
-                data[upstream_tm] = upstream_tm
+                data['traffic_management_pointer_upstream'] = upstream_tm
 
         super(GemPortNetworkCtpFrame, self).__init__(GemPortNetworkCtp,
                                                      entity_id,
@@ -478,13 +358,13 @@ class Ieee8021pMapperServiceProfileFrame(MEFrame):
                     interwork_tp_pointer_for_p_bit_priority_7=OmciNullPointer
                 )
         else:
-            self.check_type(tp_pointer, [list, type(None)])
-            self.check_type(interwork_tp_pointers, [list, type(None)])
+            self.check_type(tp_pointer, (list, type(None)))
+            self.check_type(interwork_tp_pointers, (list, type(None)))
 
             data = dict()
 
             if tp_pointer is not None:
-                data[tp_pointer] = tp_pointer
+                data['tp_pointer'] = tp_pointer
 
             if interwork_tp_pointers is not None:
                 assert all(isinstance(tp, int) and 0 <= tp <= 0xFFFF
@@ -495,11 +375,11 @@ class Ieee8021pMapperServiceProfileFrame(MEFrame):
 
                 data = dict()
                 for pbit in range(0, len(interwork_tp_pointers)):
-                    data['interwork_tp_pointer_for_p_bit_priority_'.format(pbit)] = \
+                    data['interwork_tp_pointer_for_p_bit_priority_{}'.format(pbit)] = \
                         interwork_tp_pointers[pbit]
 
                 for pbit in range(len(interwork_tp_pointers), 7):
-                    data['interwork_tp_pointer_for_p_bit_priority_'.format(pbit)] = \
+                    data['interwork_tp_pointer_for_p_bit_priority_{}'.format(pbit)] = \
                         interwork_tp_pointers[len(interwork_tp_pointers) - 1]
 
         super(Ieee8021pMapperServiceProfileFrame, self).__init__(Ieee8021pMapperServiceProfile,
@@ -547,10 +427,10 @@ class MacBridgePortConfigurationDataFrame(MEFrame):
                            deletes None may be specified.
         """
         # Validate
-        self.check_type(bridge_id_pointer, [int, type(None)])
-        self.check_type(port_num, [int, type(None)])
-        self.check_type(tp_type, [int, type(None)])
-        self.check_type(tp_pointer, [int, type(None)])
+        self.check_type(bridge_id_pointer, (int, type(None)))
+        self.check_type(port_num, (int, type(None)))
+        self.check_type(tp_type, (int, type(None)))
+        self.check_type(tp_pointer, (int, type(None)))
 
         if bridge_id_pointer is not None and not 0 <= bridge_id_pointer <= 0xFFFE:  # TODO: Verify max
             raise ValueError('bridge_id_pointer should be 0..0xFFFE')
@@ -574,19 +454,40 @@ class MacBridgePortConfigurationDataFrame(MEFrame):
             data = data or dict()
 
             if bridge_id_pointer is not None:
-                data[bridge_id_pointer] = bridge_id_pointer
+                data['bridge_id_pointer'] = bridge_id_pointer
 
             if port_num is not None:
-                data[port_num] = port_num
+                data['port_num'] = port_num
 
             if tp_type is not None:
-                data[tp_type] = tp_type
+                data['tp_type'] = tp_type
 
             if tp_pointer is not None:
-                data[tp_pointer] = tp_pointer
+                data['tp_pointer'] = tp_pointer
 
         super(MacBridgePortConfigurationDataFrame, self).\
             __init__(MacBridgePortConfigurationData, entity_id, data)
+
+
+class MacBridgeServiceProfileFrame(MEFrame):
+    """
+    This managed entity models a MAC bridge in its entirety; any number
+    of ports may be associated with the bridge through pointers to the
+    MAC bridge service profile managed entity.
+    """
+    def __init__(self, entity_id, attributes=None):
+        """
+        :param entity_id: (int) This attribute uniquely identifies each instance of
+                                this managed entity. (0..65535)
+
+        :param attributes: (basestring, list, set, dict) attributes. For gets
+                           a string, list, or set can be provided. For create/set
+                           operations, a dictionary should be provided, for
+                           deletes None may be specified.
+        """
+        super(MacBridgeServiceProfileFrame, self).__init__(MacBridgeServiceProfile,
+                                                           entity_id,
+                                                           MEFrame._attr_to_data(attributes))
 
 
 class OntGFrame(MEFrame):
@@ -625,7 +526,7 @@ class PptpEthernetUniFrame(MEFrame):
     This managed entity represents the point at an Ethernet UNI where the physical path
     terminates and Ethernet physical level functions are performed.
     """
-    def __init__(self, entity_id, attributes):
+    def __init__(self, entity_id, attributes=None):
         """
         :param entity_id: (int) This attribute uniquely identifies each instance of
                                 this managed entity. (0..65535)
@@ -672,8 +573,8 @@ class TcontFrame(MEFrame):
                                 2 - WRR - Weighted round robin
         """
         # Validate
-        self.check_type(alloc_id, [int, type(None)])
-        self.check_type(policy, [int, type(None)])
+        self.check_type(alloc_id, (int, type(None)))
+        self.check_type(policy, (int, type(None)))
 
         if alloc_id is not None and not 0 <= alloc_id <= 0xFFF:
             raise ValueError('alloc_id should be 0..0xFFF')
@@ -687,10 +588,10 @@ class TcontFrame(MEFrame):
             data = dict()
 
             if alloc_id is not None:
-                data[alloc_id] = alloc_id
+                data['alloc_id'] = alloc_id
 
             if policy is not None:
-                data[policy] = policy
+                data['policy'] = policy
 
         super(TcontFrame, self).__init__(Tcont, entity_id, data)
 
@@ -713,30 +614,32 @@ class VlanTaggingFilterDataFrame(MEFrame):
 
         """
         # Validate
-        self.check_type(vlan_tcis, [list, type(None)])
-        self.check_type(forward_operation, [int, type(None)])
+        self.check_type(vlan_tcis, (list, type(None)))
+        self.check_type(forward_operation, (int, type(None)))
 
         if forward_operation is not None and not 0 <= forward_operation <= 0x21:
             raise ValueError('forward_operation should be 0..0x21')
 
         if vlan_tcis is None and forward_operation is None:
             data = None
+
         else:
             data = dict()
 
             if vlan_tcis is not None:
                 assert all(isinstance(tci, int) and 0 <= tci <= 0xFFFF
                            for tci in vlan_tcis), "VLAN TCI's are 0..0xFFFF"
+                assert 1 <= len(vlan_tcis) <= 12, 'Number of VLAN TCI values is 1..12'
+
                 for index in range(0, len(vlan_tcis)):
                     data['vlan_filter_{}'.format(index)] = vlan_tcis[index]
+
                 data['number_of_entries'] = len(vlan_tcis)
 
             if forward_operation is not None:
-                data[forward_operation] = forward_operation
+                assert 0 <= forward_operation <= 0x21, 'forwarding_operation must be 0x00..0x21'
+                data['forward_operation'] = forward_operation
 
         super(VlanTaggingFilterDataFrame, self).__init__(VlanTaggingFilterData,
                                                          entity_id,
                                                          data)
-
-
-# TODO: Wednesday - Start with send_create_extended_vlan_tagging_operation_configuration_data

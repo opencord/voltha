@@ -60,14 +60,15 @@ class OnuGemPort(GemPort):
             omci = None     # TODO: Get from handler
 
     @staticmethod
-    def create(handler, gem_port):
+    def create(handler, gem_port, is_mock=False):
         return OnuGemPort(gem_port['gemport-id'],
                           None,
                           encryption=gem_port['encryption'],  # aes_indicator,
                           tcont_ref=gem_port['tcont-ref'],
                           name=gem_port['name'],
                           traffic_class=gem_port['traffic-class'],
-                          handler=handler)
+                          handler=handler,
+                          is_mock=is_mock)
 
     @inlineCallbacks
     def add_to_hardware(self, omci):
@@ -86,12 +87,12 @@ class OnuGemPort(GemPort):
 
             # TODO: For TCONT ID, get the TCONT's entity ID that you programmed
             # TODO: For TM, is this the entity ID for a traffic descriptor?
-            results = yield omci.send_create_gem_port_network_ctp(self.gem_id,      # Entity ID
-                                                                  self.gem_id,      # Port ID
-                                                                  tcont.entity_id,  # TCONT ID
-                                                                  direction,        # Direction
-                                                                  0x100)            # TM
-
+            # results = yield omci.send_create_gem_port_network_ctp(self.gem_id,      # Entity ID
+            #                                                       self.gem_id,      # Port ID
+            #                                                       tcont.entity_id,  # TCONT ID
+            #                                                       direction,        # Direction
+            #                                                       0x100)            # TM
+            results = None
             # results = yield omci.send(GemPortNetworkCtpFrame(self.gem_id,      # Entity ID
             #                                                  self.gem_id,      # Port ID
             #                                                  tcont.entity_id,  # TCONT ID
@@ -106,9 +107,10 @@ class OnuGemPort(GemPort):
             # GEM Interworking config
             # TODO: For service mapper ID, always hardcoded or does it come from somewhere else
             #       It is probably the TCONT entity ID
-            results = yield omci.send_create_gem_inteworking_tp(self.gem_id,      # Entity ID
-                                                                self.gem_id,      # GEMPort NET CTP ID
-                                                                tcont.entity_id)  # Service Mapper Profile ID
+            results = None
+            # results = yield omci.send_create_gem_inteworking_tp(self.gem_id,      # Entity ID
+            #                                                     self.gem_id,      # GEMPort NET CTP ID
+            #                                                     tcont.entity_id)  # Service Mapper Profile ID
         except Exception as e:
             self.log.exception('interworking-create', e=e)
             raise
@@ -117,8 +119,9 @@ class OnuGemPort(GemPort):
             # Mapper Service Profile config
             # TODO: All p-bits currently go to the one and only GEMPORT ID for now
             # TODO: The entity ID is probably the TCONT entity ID
-            results = omci.send_set_8021p_mapper_service_profile(tcont.entity_id,  # Entity ID
-                                                                 self.gem_id)      # Interworking TP ID
+            results = None
+            # results = omci.send_set_8021p_mapper_service_profile(tcont.entity_id,  # Entity ID
+            #                                                      self.gem_id)      # Interworking TP ID
         except Exception as e:
             self.log.exception('mapper-set', e=e)
             raise

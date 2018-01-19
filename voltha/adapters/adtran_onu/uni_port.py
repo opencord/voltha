@@ -138,15 +138,11 @@ class UniPort(object):
         :return: VOLTHA Port object
         """
         if self._port is None:
-            device = self._handler.adapter_agent.get_device(self._handler.device_id)
-
             self._port = Port(port_no=self.port_number,
                               label='Ethernet port',
                               type=Port.ETHERNET_UNI,
                               admin_state=self._admin_state,
-                              oper_status=self._oper_status,
-                              peers=[Port.PeerPort(device_id=device.parent_id,
-                                                   port_no=device.parent_port_no)])
+                              oper_status=self._oper_status)
         return self._port
 
     def add_logical_port(self, openflow_port_no, control_vlan=None,

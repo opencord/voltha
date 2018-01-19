@@ -17,7 +17,8 @@
 import arrow
 
 from voltha.adapters.adtran_olt.xpon.adtran_xpon import AdtranXPON
-from omci.omci_cc import OMCISupport
+from omci.omci_cc import OMCI_CC
+from omci.omci_entities import onu_custom_entity_classes
 from pon_port import PonPort
 from uni_port import UniPort
 from heartbeat import HeartBeat
@@ -119,7 +120,7 @@ class AdtranOnuHandler(AdtranXPON):
 
     @property
     def is_mock(self):
-        return self._is_mock        # Not pointing to any real hardware
+        return self._is_mock        # Not pointing to real hardware
 
     @property
     def olt_created(self):
@@ -166,7 +167,9 @@ class AdtranOnuHandler(AdtranXPON):
         #
         self._cancel_deferred()
 
-        self._omci = OMCISupport(self, self.adapter, self.device_id)
+        self._omci = OMCI_CC(self.adapter_agent,
+                             self.device_id,
+                             custom_me_entries=onu_custom_entity_classes)
         self._omci.enabled = True
 
         # Handle received ONU event messages
@@ -241,6 +244,7 @@ class AdtranOnuHandler(AdtranXPON):
         device.model = 'n/a'
         device.hardware_version = 'n/a'
         device.firmware_version = 'n/a'
+        device.reason = ''
 
         # TODO: Support more versions as needed
         images = Image(version='NOT AVAILABLE')
@@ -287,14 +291,13 @@ class AdtranOnuHandler(AdtranXPON):
             self.adapter_agent.add_port(device.id, uni_port.get_port())
 
             device.serial_number = uuid4().hex
-            # self._add_logical_port(device.vlan, control_vlan=device.vlan)
             uni_port.add_logical_port(device.vlan, control_vlan=device.vlan)
 
             # Start things up for this ONU Handler.
             self.enabled = True
 
         # Start collecting stats from the device after a brief pause
-        reactor.callLater(10, self.start_kpi_collection, device.id)
+        reactor.callLater(30, self.start_kpi_collection, device.id)
 
         self.adapter_agent.update_device(device)
 
@@ -325,6 +328,7 @@ class AdtranOnuHandler(AdtranXPON):
         device = self.adapter_agent.get_device(device.id)
         device.connect_status = ConnectStatus.REACHABLE
         device.oper_status = OperStatus.ACTIVE
+        device.reason = ''
         self.adapter_agent.update_device(device)
 
         self.log.info('reconciling-ONU-device-ends')
@@ -554,6 +558,7 @@ class AdtranOnuHandler(AdtranXPON):
         previous_conn_status = device.connect_status
         device.oper_status = OperStatus.ACTIVATING
         device.connect_status = ConnectStatus.UNREACHABLE
+        device.reason = 'Rebooting'
 
         self.adapter_agent.update_device(device)
 
@@ -571,6 +576,7 @@ class AdtranOnuHandler(AdtranXPON):
         device = self.adapter_agent.get_device(self.device_id)
         device.oper_status = previous_oper_status
         device.connect_status = previous_conn_status
+        device.reason = ''
         self.adapter_agent.update_device(device)
         self.log.info('rebooted', device_id=self.device_id)
 
@@ -598,6 +604,7 @@ class AdtranOnuHandler(AdtranXPON):
         # Update the device operational status to UNKNOWN
         device.oper_status = OperStatus.UNKNOWN
         device.connect_status = ConnectStatus.UNREACHABLE
+        device.reason = 'Disabled'
         self.adapter_agent.update_device(device)
 
         # Remove the uni logical port from the OLT, if still present
@@ -681,6 +688,7 @@ class AdtranOnuHandler(AdtranXPON):
 
             device = self.adapter_agent.get_device(device.id)
             device.oper_status = OperStatus.ACTIVE
+            device.reason = ''
 
             self.enabled = True
             self.adapter_agent.update_device(device)
@@ -908,7 +916,8 @@ class AdtranOnuHandler(AdtranXPON):
 
         td = self.traffic_descriptors.get(tcont.get('td-ref'))
         traffic_descriptor = td['object'] if td is not None else None
-        tcont['object'] = OnuTCont.create(self, tcont, traffic_descriptor)
+        tcont['object'] = OnuTCont.create(self, tcont, traffic_descriptor,
+                                          is_mock=self.is_mock)
 
         # Look up any PON port  # TODO: Add the vont-ani 'name' to the PON Port and look up that way
         pon_port = self.pon_ports[0]
@@ -998,7 +1007,7 @@ class AdtranOnuHandler(AdtranXPON):
     def on_gemport_create(self, gem_port):
         from onu_gem_port import OnuGemPort
 
-        gem_port['object'] = OnuGemPort.create(self, gem_port)
+        gem_port['object'] = OnuGemPort.create(self, gem_port, is_mock=self.is_mock)
         # Look up any PON port  # TODO: Add the vont-ani 'name' to the PON Port and look up that way
         pon_port = self.pon_ports[0]
         if pon_port is not None:

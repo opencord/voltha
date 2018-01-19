@@ -27,7 +27,11 @@ class OnuPmMetrics(AdapterPmMetrics):
             ('tx_frames', PmConfig.COUNTER),
             ('tx_errors', PmConfig.COUNTER),
             ('rx_frames', PmConfig.COUNTER),
-            ('rx_onu_frames', PmConfig.COUNTER),
+            ('rx_unknown_tid', PmConfig.COUNTER),
+            ('rx_onu_frames', PmConfig.COUNTER),        # Rx ONU autonomouse messages
+            ('rx_alarm_overflow', PmConfig.COUNTER),    # Autonomous ONU generated alarm message overflows
+            ('rx_avc_overflow', PmConfig.COUNTER),      # Autonomous ONU generated AVC message overflows
+            ('rx_onu_discards', PmConfig.COUNTER),      # Autonomous ONU message unknown type discards
             ('rx_timeouts', PmConfig.COUNTER),
             ('consecutive_errors', PmConfig.COUNTER),
             ('reply_min', PmConfig.GUAGE),      # Milliseconds
