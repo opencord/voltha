@@ -3,14 +3,16 @@ version: '2'
 services:
 
  freeradius:
-  image: "marcelmaatkamp/freeradius"
+  image: "shad69/freeradius"
   ports:
    - "1812:1812/udp"
    - "1813:1813"
    - "18120:18120"
   volumes:
-   - "./data/clients.conf:/etc/raddb/clients.conf"
-   - "./data/users:/etc/raddb/users"
+   - "./freeradius/clients.conf:/usr/local/etc/raddb/clients.conf"
+   - "./freeradius/users:/usr/local/etc/raddb/users"
+   - "./freeradius/default:/usr/local/etc/raddb/sites-available/default"
+   - "./freeradius/inner-tunnel:/usr/local/etc/raddb/sites-available/inner-tunnel"
   networks:
    authnet:
     ipv4_address: 172.25.0.100
@@ -23,6 +25,8 @@ services:
    - "8181:8181" # UI
   environment:
    ONOS_APPS: 'drivers,openflow-base'
+  volumes:
+   - "../onos-config/network-cfg.json:/root/onos/config/network-cfg.json"
   networks:
     authnet:
      ipv4_address: 172.25.0.200
