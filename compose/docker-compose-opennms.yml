@@ -1,12 +1,12 @@
 version: '2'
 services:
   database_data:
-    image: tianon/true
+    image: "${REGISTRY}tianon/true:${TRUE_TAG:-latest}"
     volumes:
         - /var/lib/postgresql/data
 
   database:
-    image: postgres:9.6.1
+    image: "${REGISTRY}postgres:${POSTGRES_TAG:-9.6.1}"
     env_file:
       - ./opennms/env/postgres.env
     ports:
@@ -17,14 +17,14 @@ services:
       - database_data:rw
 
   opennms_data:
-    image: tianon/true
+    image: "${REGISTRY}tianon/true:${TRUE_TAG:-latest}"
     volumes:
       - /var/log/opennms
       - /var/opennms/rrd
       - /var/opennms/reports
 
   opennms:
-    image: cord/opennms
+    image: "${REGISTRY}voltha/opennms:${TAG:-latest}"
     env_file:
       - ./opennms/env/opennms.env
       - ./opennms/env/postgres.env

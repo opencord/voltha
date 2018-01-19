@@ -13,7 +13,7 @@
 version: "3"
 services:
   netconf:
-    image: cord/netconf:latest
+    image: "${REGISTRY}voltha/netconf:${TAG:-latest}"
     logging:
       driver: "json-file"
       options:

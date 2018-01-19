@@ -13,7 +13,7 @@ services:
 #
 
   fluentdactv:
-    image: cord/fluentd
+    image: "${REGISTRY}voltha/fluentd:${TAG:-latest}"
     logging:
       driver: "json-file"
       options:
@@ -30,10 +30,10 @@ services:
     ports:
       - "24224"
     volumes:
-      - "/var/log/voltha/logging_volume:/fluentd/log"
+      - ${VOLTHA_LOGS:-/var/log/voltha/logging_volume}:/fluentd/log
 
   fluentdstby:
-    image: cord/fluentd
+    image: "${REGISTRY}voltha/fluentd:${TAG:-latest}"
     logging:
       driver: "json-file"
       options:
@@ -50,7 +50,7 @@ services:
     ports:
       - "24224"
     volumes:
-      - "/var/log/voltha/logging_volume:/fluentd/log"
+      - ${VOLTHA_LOGS:-/var/log/voltha/logging_volume}:/fluentd/log
 
 networks:
   voltha-net:

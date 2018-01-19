@@ -4,7 +4,7 @@ services:
   # Dashboard daemon
   #
   dashd:
-    image: cord/dashd
+    image: "${REGISTRY}voltha/dashd:${TAG:-latest}"
     command: [
       "/dashd/dashd/main.py",
       "--kafka=@kafka",
@@ -23,17 +23,17 @@ services:
   # Single-node kafka service
   #
   kafka:
-    image: wurstmeister/kafka
+    image: "${REGISTRY}wurstmeister/kafka:${KAFKA_TAG:-latest}"
 
   #
   # Single-node consul agent
   #
   consul:
-    image: consul:latest
+    image: "${REGISTRY}consul:${CONSUL_TAG:-0.9.2}"
 
   #
   # Graphite-Grafana-statsd service instance
   # (demo place-holder for external KPI system)
   #
   grafana:
-    image: kamon/grafana_graphite
+    image: "${REGISTRY}kamon/grafana_graphite:${TAG:-latest}"

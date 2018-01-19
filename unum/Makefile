@@ -20,7 +20,7 @@ help:
 	@echo "  rm        - remove the sample 3 instance cluster"
 
 image:
-	docker build --rm --tag unum:latest .
+	docker build --rm --tag voltha/unum:latest .
 
 deploy:
 	docker stack deploy -c docker-compose.yml test

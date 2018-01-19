@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-#
 # Copyright 2016 the original author or authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
+ARG TAG=latest
 
-FROM cord/voltha-base
+FROM voltha/voltha-base:${TAG}
 
 MAINTAINER Zsolt Haraszti <zharaszt@ciena.com>
 MAINTAINER Ali Al-Shabibi <ali.al-shabibi@onlab.us>

@@ -8,7 +8,7 @@
 version: "3"
 services:
   registry:
-    image: registry:2
+    image: "${REGISTRY}registry:${REGISTRY_TAG:-2}"
     logging:
       driver: "json-file"
       options:

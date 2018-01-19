@@ -3,7 +3,7 @@ version: '2'
 services:
 
  freeradius:
-  image: "marcelmaatkamp/freeradius"
+   image: "${REGISTRY}marcelmaatkamp/freeradius:${RADIUS_TAG:-latest}"
   ports:
    - "1812:1812/udp"
    - "1813:1813"
@@ -16,7 +16,7 @@ services:
     ipv4_address: 172.25.0.100
 
  onos:
-  image: "cord/onos"
+  image: "${REGISTRY}voltha/onos:${TAG:-latest}"
   ports:
    - "8101:8101" # ssh
    - "6653:6653" # OF
@@ -28,7 +28,7 @@ services:
      ipv4_address: 172.25.0.200
 
 # onos_config_push:
-#  image: onos-config-push:phase2
+#  image: "${REGISTRY}onos-config-push:${TAG:-latest}"
 #  environment:
 #   ONOS_CONNECTION: 'onos:8181'
 #  volumes:
@@ -39,7 +39,7 @@ services:
 #   - "onos:onos"
 
 # freeradius-test:
-#  image: "marcelmaatkamp/freeradius"
+#  image: "${REGISTRY}marcelmaatkamp/freeradius:${RADIUS_TAG:-latest}"
 #  command: "radtest user password freeradius 0 SECRET"
 #  networks:
 #   authnet:

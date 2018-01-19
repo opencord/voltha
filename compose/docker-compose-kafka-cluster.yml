@@ -16,7 +16,7 @@
 version: '3'
 services:
     zk1:
-        image: zookeeper
+        image: "${REGISTRY}wurstmeister/zookeeper:${ZK_TAG:-latest}"
         logging:
             driver: "json-file"
             options:
@@ -29,7 +29,7 @@ services:
             ZOO_SERVERS: server.1=0.0.0.0:2888:3888 server.2=zk2:2888:3888 server.3=zk3:2888:3888
 
     zk2:
-        image: zookeeper
+        image: "${REGISTRY}wurstmeister/zookeeper:${ZK_TAG:-latest}"
         logging:
             driver: "json-file"
             options:
@@ -42,7 +42,7 @@ services:
             ZOO_SERVERS: server.1=zk1:2888:3888 server.2=0.0.0.0:2888:3888 server.3=zk3:2888:3888
 
     zk3:
-        image: zookeeper
+        image: "${REGISTRY}wurstmeister/zookeeper:${ZK_TAG:-latest}"
         logging:
             driver: "json-file"
             options:
@@ -57,7 +57,7 @@ services:
     kafka:
         deploy:
             mode: global
-        image: wurstmeister/kafka
+        image: "${REGISTRY}wurstmeister/kafka:${KAFKA_TAG:-latest}"
         logging:
             driver: "json-file"
             options:

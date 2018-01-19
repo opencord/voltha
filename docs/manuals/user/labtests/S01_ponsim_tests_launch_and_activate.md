@@ -157,7 +157,7 @@ Now that this OLT has not received any forwarding rules, it should drop all traf
 
 
 ```
-docker run --net=host --privileged --name RG -it cord/tester bash
+docker run --net=host --privileged --name RG -it voltha/tester bash
 ```
 
 this should land you in a command prompt that looks like
