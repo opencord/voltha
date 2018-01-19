@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-#
 # Copyright 2016 the original author or authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,9 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
 
 #DockerFile to Create Fluentd Forwards inside cord-voltha
 FROM fluent/fluentd:v0.14.23.rc1
+MAINTAINER Voltha Community <info@opennetworking.org>
+
+RUN apk add --update bash
 COPY fluentd_config/fluent.conf /fluentd/etc/
 COPY fluentd_config/fluent-agg.conf /fluentd/etc/
+COPY docker/config/wait_for_it.sh /bin/wait_for_it.sh
+COPY fluentd_config/entrypoint.sh /bin/entrypoint.sh
+RUN chmod 755 /bin/wait_for_it.sh /bin/entrypoint.sh

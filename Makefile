@@ -18,6 +18,10 @@ ifeq ($(VOLTHA_BASE)_set,_set)
 $(error To get started, please source the env.sh file)
 endif
 
+ifeq ($(TAG),)
+TAG := latest
+endif
+
 include setup.mk
 
 ifneq ($(http_proxy)$(https_proxy),)
@@ -32,11 +36,11 @@ DOCKER_PROXY_ARGS = \
        --build-arg FTP_PROXY=$(FTP_PROXY) \
        --build-arg NO_PROXY=$(NO_PROXY)
 endif
-DOCKER_BUILD_ARGS = $(DOCKER_PROXY_ARGS) $(DOCKER_BUILD_EXTRA_ARGS)
+DOCKER_BUILD_ARGS = --build-arg TAG=$(TAG) $(DOCKER_PROXY_ARGS) $(DOCKER_CACHE_ARG) --rm --force-rm $(DOCKER_BUILD_EXTRA_ARGS)
 
 VENVDIR := venv-$(shell uname -s | tr '[:upper:]' '[:lower:]')
 
-.PHONY: $(DIRS) $(DIRS_CLEAN) $(DIRS_FLAKE8) flake8 docker-base voltha ofagent netconf shovel onos dashd vcli portainer grafana nginx consul envoy golang envoyd tools opennms logstash unum
+.PHONY: $(DIRS) $(DIRS_CLEAN) $(DIRS_FLAKE8) flake8 docker-base voltha ofagent netconf shovel onos dashd cli portainer grafana nginx consul envoy golang envoyd tools opennms logstash unum start stop
 
 # This should to be the first and default target in this Makefile
 help:
@@ -64,12 +68,15 @@ help:
 	@echo "shovel       : Build the shovel docker container"
 	@echo "onos         : Build the onos docker container"
 	@echo "dashd        : Build the dashd docker container"
-	@echo "vcli         : Build the vcli docker container"
+	@echo "cli          : Build the cli docker container"
 	@echo "portainer    : Build the portainer docker container"
 	@echo "grafana      : Build the grafana docker container"
 	@echo "nginx        : Build the nginx docker container"
 	@echo "consul       : Build the consul docker container"
 	@echo "unum         : Build the unum docker container"
+	@echo "j2           : Build the Jinja2 template container"
+	@echo "start        : Start VOLTHA on the current system"
+	@echo "stop         : Stop VOLTHA on the current system"
 	@echo
 
 ## New directories can be added here
@@ -102,91 +109,104 @@ $(DIRS_FLAKE8):
 	@echo "    FLAKE8 $(basename $@)"
 	-$(Q)$(MAKE) -C $(basename $@) flake8
 
-
 build: protos containers
 
 production: protos prod-containers
 
 jenkins : protos jenkins-containers
 
-jenkins-containers: docker-base voltha ofagent netconf consul unum
+jenkins-containers: docker-base voltha ofagent netconf consul unum j2
 
-prod-containers: docker-base voltha ofagent netconf shovel dashd vcli grafana consul tools golang envoyd envoy fluentd unum
+prod-containers: docker-base voltha ofagent netconf shovel dashd cli grafana consul tools golang envoyd envoy fluentd unum j2
 
-containers: docker-base voltha ofagent netconf shovel onos tester config-push dashd vcli portainer grafana nginx consul tools golang envoyd envoy fluentd unum
+containers: docker-base voltha ofagent netconf shovel onos tester config-push dashd cli portainer grafana nginx consul tools golang envoyd envoy fluentd unum j2
 
 docker-base:
-	docker build $(DOCKER_BUILD_ARGS) -t cord/voltha-base -f docker/Dockerfile.base .
+	docker build $(DOCKER_BUILD_ARGS) -t voltha/voltha-base:$(TAG) -f docker/Dockerfile.base .
 
 voltha: voltha-adapters
-	docker build $(DOCKER_BUILD_ARGS) -t cord/voltha -f docker/Dockerfile.voltha .
+	docker build $(DOCKER_BUILD_ARGS) -t voltha/voltha:$(TAG) -f docker/Dockerfile.voltha .
 
 voltha-adapters:
 	make -C voltha/adapters/asfvolt16_olt
 
 ofagent:
-	docker build $(DOCKER_BUILD_ARGS) -t cord/ofagent -f docker/Dockerfile.ofagent .
+	docker build $(DOCKER_BUILD_ARGS) -t voltha/ofagent:$(TAG) -f docker/Dockerfile.ofagent .
 
 tools:
-	docker build $(DOCKER_BUILD_ARGS) -t voltha/tools -f docker/Dockerfile.tools .
+	docker build $(DOCKER_BUILD_ARGS) -t voltha/tools:$(TAG) -f docker/Dockerfile.tools .
 
 fluentd:
-	docker build $(DOCKER_BUILD_ARGS) -t cord/fluentd -f docker/Dockerfile.fluentd .
+	docker build $(DOCKER_BUILD_ARGS) -t voltha/fluentd:$(TAG) -f docker/Dockerfile.fluentd .
 
 envoy:
-	docker build $(DOCKER_BUILD_ARGS) -t voltha/envoy -f docker/Dockerfile.envoy .
+	docker build $(DOCKER_BUILD_ARGS) -t voltha/envoy:$(TAG) -f docker/Dockerfile.envoy .
 
 envoyd:
 	make -C envoy
 	make -C envoy/go/envoyd
 
 golang:
-	docker build $(DOCKER_BUILD_ARGS) -t go-builder -f envoy/go/golang-builder/Dockerfile ./envoy/go/golang-builder
+	docker build $(DOCKER_BUILD_ARGS) -t voltha/go-builder:$(TAG) -f envoy/go/golang-builder/Dockerfile ./envoy/go/golang-builder
 
 netconf:
-	docker build $(DOCKER_BUILD_ARGS) -t cord/netconf -f docker/Dockerfile.netconf .
+	docker build $(DOCKER_BUILD_ARGS) -t voltha/netconf:$(TAG) -f docker/Dockerfile.netconf .
 
 netopeer:
-	docker build $(DOCKER_BUILD_ARGS) -t cord/netopeer -f docker/Dockerfile.netopeer .
+	docker build $(DOCKER_BUILD_ARGS) -t voltha/netopeer:$(TAG) -f docker/Dockerfile.netopeer .
 
 shovel:
-	docker build $(DOCKER_BUILD_ARGS) -t cord/shovel -f docker/Dockerfile.shovel .
+	docker build $(DOCKER_BUILD_ARGS) -t voltha/shovel:$(TAG) -f docker/Dockerfile.shovel .
 
 dashd:
-	docker build $(DOCKER_BUILD_ARGS) -t cord/dashd -f docker/Dockerfile.dashd .
+	docker build $(DOCKER_BUILD_ARGS) -t voltha/dashd:$(TAG) -f docker/Dockerfile.dashd .
 
-vcli:
-	docker build $(DOCKER_BUILD_ARGS) -t cord/vcli -f docker/Dockerfile.cli .
+cli:
+	docker build $(DOCKER_BUILD_ARGS) -t voltha/cli:$(TAG) -f docker/Dockerfile.cli .
 
 portainer:
 	portainer/buildPortainer.sh
 
 nginx:
-	docker build $(DOCKER_BUILD_ARGS) -t voltha/nginx -f docker/Dockerfile.nginx .
+	docker build $(DOCKER_BUILD_ARGS) -t voltha/nginx:$(TAG) -f docker/Dockerfile.nginx .
 
 consul:
-	docker build $(DOCKER_BUILD_ARGS) -t voltha/consul -f docker/Dockerfile.consul .
+	docker build $(DOCKER_BUILD_ARGS) -t voltha/consul:$(TAG) -f docker/Dockerfile.consul .
 
 grafana:
-	docker build $(DOCKER_BUILD_ARGS) -t voltha/grafana -f docker/Dockerfile.grafana .
+	docker build $(DOCKER_BUILD_ARGS) -t voltha/grafana:$(TAG) -f docker/Dockerfile.grafana .
 
 onos:
-	docker build $(DOCKER_BUILD_ARGS) -t cord/onos -f docker/Dockerfile.onos docker
+	docker build $(DOCKER_BUILD_ARGS) -t voltha/onos:$(TAG) -f docker/Dockerfile.onos docker
 
 unum:
-	docker build $(DOCKER_BUILD_ARGS) -t voltha/unum -f unum/Dockerfile ./unum
+	docker build $(DOCKER_BUILD_ARGS) -t voltha/unum:$(TAG) -f unum/Dockerfile ./unum
 
 tester:
-	docker build $(DOCKER_BUILD_ARGS) -t cord/tester -f docker/Dockerfile.tester docker
+	docker build $(DOCKER_BUILD_ARGS) -t voltha/tester:$(TAG) -f docker/Dockerfile.tester docker
 
 config-push:
-	docker build $(DOCKER_BUILD_ARGS) -t cord/config-push -f docker/Dockerfile.configpush docker
+	docker build $(DOCKER_BUILD_ARGS) -t voltha/config-push:$(TAG) -f docker/Dockerfile.configpush docker
 
 opennms:
-	docker build $(DOCKER_BUILD_ARGS) -t cord/opennms -f docker/Dockerfile.opennms .
+	docker build $(DOCKER_BUILD_ARGS) -t voltha/opennms:$(TAG) -f docker/Dockerfile.opennms .
 
 logstash:
-	docker build $(DOCKER_BUILD_ARGS) -t cord/logstash -f docker/Dockerfile.logstash .
+	docker build $(DOCKER_BUILD_ARGS) -t voltha/logstash:$(TAG) -f docker/Dockerfile.logstash .
+
+j2:
+	docker build $(DOCKER_BUILD_ARGS) -t voltha/j2:$(TAG) -f docker/Dockerfile.j2 docker
+
+start:
+	bash -c 'echo $$VOLTHA_LOGS &&  TMP_STACK_FILE=$$(mktemp -u) && \
+		echo $$TMP_STACK_FILE && \
+		SWARM_MANAGER_COUNT=$$(docker node ls | grep Ready | egrep "(Leader)|(Reachable)" | wc -l | sed -e "s/ //g") && \
+	        cat ./compose/voltha-stack.yml.j2 2>&1 | docker run -e RADIUS_ROOT=$$RADIUS_ROOT -e CONSUL_ROOT=$$CONSUL_ROOT -e VOLTHA_LOGS=$$VOLTHA_LOGS -e SWARM_MANAGER_COUNT=$$SWARM_MANAGER_COUNT --rm -i voltha/j2 - 2>&1 > $$TMP_STACK_FILE && \
+	        docker stack deploy -c $$TMP_STACK_FILE voltha && \
+	        rm -f $$TMP_STACK_FILE'
+
+stop:
+	docker stack rm voltha
 
 protos:
 	make -C voltha/protos
@@ -280,7 +300,7 @@ jenkins-test: venv
 
 
 run-as-root-tests:
-	docker run -i --rm -v /cord/incubator/voltha:/voltha --privileged cord/voltha-base env PYTHONPATH=/voltha python /voltha/tests/itests/run_as_root/test_frameio.py
+	docker run -i --rm -v /cord/incubator/voltha:/voltha --privileged voltha/voltha-base env PYTHONPATH=/voltha python /voltha/tests/itests/run_as_root/test_frameio.py
 
 flake8: $(DIRS_FLAKE8)
 

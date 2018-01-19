@@ -15,7 +15,7 @@
 version: "3"
 services:
   dashd:
-    image: cord/dashd
+    image: "${REGISTRY}voltha/dashd:${TAG:-latest}"
     logging:
       driver: "json-file"
       options:
@@ -34,7 +34,7 @@ services:
       - voltha-net
 
   shovel:
-    image: cord/shovel
+    image: "${REGISTRY}voltha/shovel:${TAG:-latest}"
     logging:
       driver: "json-file"
       options:

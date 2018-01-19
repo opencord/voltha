@@ -11,7 +11,7 @@ services:
     freeradius:
         deploy:
             replicas: 1
-        image: "marcelmaatkamp/freeradius"
+        image: "${REGISTRY}marcelmaatkamp/freeradius:${RADIUS_TAG:-latest}"
         logging:
             driver: "json-file"
             options:
@@ -29,7 +29,7 @@ services:
             - voltha-net
 
     onos_cluster_manager:
-        image: "voltha/unum"
+        image: "${REGISTRY}voltha/unum:${TAG:-latest}"
         deploy:
             replicas: 1
             placement:
@@ -52,7 +52,7 @@ services:
            replicas: 3
            labels:
                org.voltha.onos.cluster: "true"
-        image: "cord/onos"
+        image: "${REGISTRY}voltha/onos:${TAG:-latest}"
         logging:
             driver: "json-file"
             options:

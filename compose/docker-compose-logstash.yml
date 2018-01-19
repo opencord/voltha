@@ -2,7 +2,7 @@ version: '2'
 
 services:
   logstash:
-    image: cord/logstash
+    image: "${REGISTRY}voltha/logstash:${TAG:-latest}"
     environment:
       - log.level=info
     command: logstash -f /etc/logstash/conf.d/

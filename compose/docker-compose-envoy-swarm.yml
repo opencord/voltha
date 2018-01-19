@@ -10,7 +10,7 @@
 version: "3"
 services:
   voltha:
-    image: voltha/envoy:latest
+    image: "${REGISTRY}voltha/envoy:${TAG:-latest}"
     logging:
       driver: "json-file"
       options:
