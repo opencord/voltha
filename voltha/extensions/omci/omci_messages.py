@@ -16,7 +16,7 @@
 import structlog
 from enum import Enum
 from scapy.fields import ByteField, StrFixedLenField, ConditionalField, Field
-from scapy.fields import ShortField
+from scapy.fields import ShortField, BitField
 from scapy.packet import Packet
 
 from voltha.extensions.omci.omci_defs import AttributeAccess
@@ -297,4 +297,37 @@ class OmciMibResetResponse(OmciMessage):
         ShortField("entity_class", None),
         ShortField("entity_id", 0),
         ByteField("success_code", 0)
+    ]
+
+
+class OmciAlarmNotification(OmciMessage):
+    name = "AlarmNotification"
+    message_id = 0x10
+    fields_desc = [
+        ShortField("entity_class", None),
+        ShortField("entity_id", 0),
+        BitField("alarm_bit_map", 0, 224),
+        ByteField("alarm_sequence_number", None)
+    ]
+
+
+class OmciAttributeValueChange(OmciMessage):
+    name = "AttributeValueChange"
+    message_id = 0x11
+    fields_desc = [
+        ShortField("entity_class", None),
+        ShortField("entity_id", 0),
+        ShortField("attributes_mask", None),
+        OmciMaskedData("data")
+    ]
+
+
+class OmciTestResult(OmciMessage):
+    name = "TestResult"
+    message_id = 0x1B
+    fields_desc = [
+        ShortField("entity_class", None),
+        ShortField("entity_id", 0)
+        # ME Test specific message contents starts here
+        # TODO: Can this be coded easily with scapy?
     ]

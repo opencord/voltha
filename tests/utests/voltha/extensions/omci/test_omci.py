@@ -542,6 +542,36 @@ class TestSelectMessageGeneration(TestCase):
         )
         self.assertGeneratedFrameEquals(frame, ref)
 
+    def test_parse_enh_security_avc(self):
+        refs = [
+            "0000110a014c0000008000202020202020202020202020202020202020202020"
+            "2020202020202020000000280be43cf4"
+        ]
+        for i, data in enumerate(refs):
+            frame = OmciFrame(hex2raw(data))
+            omci = frame.omci_message
+            # frame.show()
+
+    def test_parse_alarm_message(self):
+        refs = [
+            "0000100a00050101000000000000000000000000000000000000000000000000"
+            "0000000220000000000000280be43cf4"
+        ]
+        for i, data in enumerate(refs):
+            frame = OmciFrame(hex2raw(data))
+            omci = frame.omci_message
+            # frame.show()
+
+    def test_parse_results(self):
+        refs = [
+            "00001B0a014c0000008000202020202020202020202020202020202020202020"
+            "2020202020202020000000280be43cf4"
+        ]
+        for i, data in enumerate(refs):
+            frame = OmciFrame(hex2raw(data))
+            omci = frame.omci_message
+            # frame.show()
+
     def test_parsing_mib_upload_next_responses(self):
         refs = [
             "00032e0a00020000000200008000000000000000000000000000000000000000"
