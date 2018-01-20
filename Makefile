@@ -22,6 +22,10 @@ ifeq ($(TAG),)
 TAG := latest
 endif
 
+ifeq ($(TARGET_TAG),)
+TARGET_TAG := latest
+endif
+
 include setup.mk
 
 ifneq ($(http_proxy)$(https_proxy),)
@@ -45,7 +49,29 @@ DOCKER_BUILD_ARGS = --build-arg TAG=$(TAG) \
 
 VENVDIR := venv-$(shell uname -s | tr '[:upper:]' '[:lower:]')
 
-.PHONY: $(DIRS) $(DIRS_CLEAN) $(DIRS_FLAKE8) flake8 docker-base voltha ofagent netconf shovel onos dashd cli portainer grafana nginx consul envoy golang envoyd tools opennms logstash unum start stop
+DOCKER_IMAGE_LIST = \
+	base \
+	voltha \
+	ofagent \
+	tools \
+	fluentd \
+	envoy \
+	go-builder \
+	netconf \
+	shovel \
+	dashd \
+	cli \
+	portainer \
+	nginx \
+	consul \
+	grafana \
+	onos \
+	unum \
+	tester \
+	config-push \
+	j2
+
+.PHONY: $(DIRS) $(DIRS_CLEAN) $(DIRS_FLAKE8) flake8 docker-base voltha ofagent netconf shovel onos dashd cli portainer grafana nginx consul envoy golang envoyd tools opennms logstash unum start stop tag push pull
 
 # This should to be the first and default target in this Makefile
 help:
@@ -82,6 +108,9 @@ help:
 	@echo "j2           : Build the Jinja2 template container"
 	@echo "start        : Start VOLTHA on the current system"
 	@echo "stop         : Stop VOLTHA on the current system"
+	@echo "tag          : Tag a set of images"
+	@echo "push         : Push the docker images to an external repository"
+	@echo "pull         : Pull the docker images from a repository"
 	@echo
 
 ## New directories can be added here
@@ -212,6 +241,21 @@ start:
 
 stop:
 	docker stack rm voltha
+
+tag: $(patsubst  %,%.tag,$(DOCKER_IMAGE_LIST))
+
+push: tag $(patsubst  %,%.push,$(DOCKER_IMAGE_LIST))
+
+pull: $(patsubst  %,%.pull,$(DOCKER_IMAGE_LIST))
+
+%.tag:
+	docker tag ${REGISTRY}${REPOSITORY}voltha-$(subst .tag,,$@):${TAG} ${TARGET_REGISTRY}${TARGET_REPOSITORY}voltha-$(subst .tag,,$@):${TARGET_TAG}
+
+%.push:
+	docker push ${TARGET_REGISTRY}${TARGET_REPOSITORY}voltha-$(subst .push,,$@):${TARGET_TAG}
+
+%.pull:
+	docker pull ${REGISTRY}${REPOSITORY}voltha-$(subst .pull,,$@):${TAG}
 
 protos:
 	make -C voltha/protos
