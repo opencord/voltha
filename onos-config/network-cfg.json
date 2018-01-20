@@ -1,0 +1,66 @@
+{
+  "apps": {
+    "org.opencord.aaa": {
+      "AAA": {
+        "radiusIp": "172.25.0.100",
+        "nasIp": "5.6.7.8",
+        "radiusServerPort": "1812",
+        "radiusSecret": "SECRET",
+        "bindings" : [
+                {
+                 "mac" : "de:ad:be:ef:ba:11",
+                 "s-tag" : 2,
+                 "c-tag" : 2,
+         "nas_port_id" : "location"
+                },
+                {
+         "mac" : "de:ad:be:ef:ca:fe",
+         "s-tag" : 2,
+         "c-tag" : 122,
+         "nas_port_id" : "location"
+        }
+          ]
+    }
+ },
+    "org.onosproject.dhcp-relay" : {
+           "dhcprelay" : {
+               "dhcpserverConnectPoint" : "of:00000cafecafecafe/4",
+               "serverip" : "11.11.11.11",
+               "gatewayip" : "9.9.9.9"
+           }
+    },
+    "org.opencord.sadis" : {
+     "sadis" : {
+       "integration" : {
+         "cache" : {
+           "enabled" : true,
+           "maxsize" : 50,
+           "ttl" : "PT1m"
+         }
+       },
+       "entries" : [ {
+         "id" : "Enet UNI 1",
+         "cTag" : 4,
+         "sTag" : 3,
+         "nasPortId" : "Enet UNI 1"
+       }, {
+         "id" : "00010b47033149b3",
+         "hardwareIdentifier" : "de:ad:be:ef:ca:fe",
+         "ipAddress" : "192.90.0.182",
+         "nasId" : "B100-NASID"
+       } ]
+     }
+    }
+  },
+  "devices": {
+    "of:0001000000000001": {
+      "basic": {
+        "driver": "pmc-olt"
+      },
+      "accessDevice": {
+        "uplink": "129",
+        "vlan": "3"
+      }
+    }
+  }
+}

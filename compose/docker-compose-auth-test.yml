@@ -25,6 +25,9 @@ services:
    - "8181:8181" # UI
   environment:
    ONOS_APPS: 'drivers,openflow-base'
+  volumes:
+   - "../onos-config/network-cfg.json:/root/onos/config/network-cfg.json"
+   - "../onos-config/component-cfg.json:/root/onos/config/component-cfg.json"
   networks:
     authnet:
      ipv4_address: 172.25.0.200
