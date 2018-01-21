@@ -51,8 +51,8 @@ class EntityClass(object):
 
     class_id = 'to be filled by subclass'
     attributes = []
-    mandatory_operations = {}
-    optional_operations = {}
+    mandatory_operations = set()
+    optional_operations = set()
 
     # will be map of attr_name -> index in attributes, initialized by metaclass
     attribute_name_to_index_map = None
