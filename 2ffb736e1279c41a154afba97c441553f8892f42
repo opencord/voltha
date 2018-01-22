@@ -16,6 +16,24 @@
       "revId": "2ffb736e1279c41a154afba97c441553f8892f42",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1923794a_b21597e3",
+        "filename": "docker/Dockerfile.tools",
+        "patchSetId": 2
+      },
+      "lineNbr": 14,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2018-01-22T21:46:55Z",
+      "side": 1,
+      "message": "for Dockerfile build-arg values they are set using the --build-arg option to `docker build`, so they cannot be overriden by the environment.\n\nThat being said, in the VOLTHA Makefile when you do a build, the `--build-arg TAG\u003d$(TAG)` is set, so effectively when you do a make you can override it from the env.\n\n`TAG\u003d1.3 make build` would build images with the tag `1.3`",
+      "parentUuid": "005b6e13_d50eba28",
+      "revId": "2ffb736e1279c41a154afba97c441553f8892f42",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
