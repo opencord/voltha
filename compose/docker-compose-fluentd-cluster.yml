@@ -13,7 +13,7 @@ services:
 #
 
   fluentd:
-    image: "${REGISTRY}voltha/fluentd:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-fluentd:${TAG:-latest}"
     logging:
       driver: "json-file"
       options:

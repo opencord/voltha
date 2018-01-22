@@ -75,7 +75,7 @@ services:
   # Voltha server instance(s)
   #
   voltha:
-    image: "voltha/voltha:latest"
+    image: "${REGISTRY}${REPOSITORY}voltha-voltha:latest"
     command: [
       "/voltha/voltha/main.py",
       "-v",
@@ -99,12 +99,12 @@ services:
     - consul
     - fluentd
     environment:
-      SERVICE_8880_NAME: "voltha-health"
+      SERVICE_8880_NAME: "${REGISTRY}${REPOSITORY}voltha-health"
       SERVICE_8880_CHECK_HTTP: "/health"
       SERVICE_8880_CHECK_INTERVAL: "5s"
       SERVICE_8880_CHECK_TIMEOUT: "1s"
-      SERVICE_50555_NAME: "voltha-grpc"
-      SERVICE_18880_NAME: "voltha-sim-rest"
+      SERVICE_50555_NAME: "${REGISTRY}${REPOSITORY}voltha-grpc"
+      SERVICE_18880_NAME: "${REGISTRY}${REPOSITORY}voltha-sim-rest"
     volumes:
     - "/var/run/docker.sock:/tmp/docker.sock"
     networks:
@@ -115,14 +115,14 @@ services:
   # ofagent server instance
   #
   ofagent:
-    image: "voltha/ofagent:latest"
+    image: "${REGISTRY}${REPOSITORY}voltha-ofagent:latest"
     command: [
       "/ofagent/ofagent/main.py",
       "-v",
       "--consul=${DOCKER_HOST_IP}:8500",
       "--fluentd=fluentd:24224",
       "--controller=${DOCKER_HOST_IP}:6653",
-      "--grpc-endpoint=@voltha-grpc",
+      "--grpc-endpoint=@${REGISTRY}${REPOSITORY}voltha-grpc",
       "--instance-id-is-container-name",
       "-v"
     ]
@@ -140,14 +140,14 @@ services:
   # Netconf server instance(s)
   #
   netconf:
-    image: "voltha/netconf:latest"
+    image: "${REGISTRY}${REPOSITORY}voltha-netconf:latest"
     privileged: true
     command: [
       "/netconf/netconf/main.py",
       "-v",
       "--consul=${DOCKER_HOST_IP}:8500",
       "--fluentd=fluentd:24224",
-      "--grpc-endpoint=@voltha-grpc",
+      "--grpc-endpoint=@${REGISTRY}${REPOSITORY}voltha-grpc",
       "--instance-id-is-container-name",
       "-v"
     ]

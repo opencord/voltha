@@ -13,7 +13,7 @@ services:
 #
 
   fluentdactv:
-    image: "${REGISTRY}voltha/fluentd:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-fluentd:${TAG:-latest}"
     logging:
       driver: "json-file"
       options:
@@ -33,7 +33,7 @@ services:
       - ${VOLTHA_LOGS:-/var/log/voltha/logging_volume}:/fluentd/log
 
   fluentdstby:
-    image: "${REGISTRY}voltha/fluentd:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-fluentd:${TAG:-latest}"
     logging:
       driver: "json-file"
       options:
