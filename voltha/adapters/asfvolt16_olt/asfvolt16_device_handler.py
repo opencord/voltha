@@ -1518,14 +1518,9 @@ class Asfvolt16Handler(OltDeviceHandler):
     def divide_and_add_flow(self, v_enet, classifier, action):
         if 'ip_proto' in classifier:
             if classifier['ip_proto'] == 17:
-                self.log.error('Addition-of-DHCP-flows-are-defferd')
-                '''
-                # DHCP flow from the ONOS doesn't have Ctag and Stags
-                # information. For now DHCP flow will be added as a
-                # part of data flows.
-                # self.add_dhcp_flow(classifier, action, v_enet,
-                #                   ASFVOLT_DHCP_UNTAGGED_ID)
-                '''
+                yield self.prepare_and_add_dhcp_flow(classifier, action, v_enet,
+                                           ASFVOLT_DHCP_TAGGED_ID,
+                                           ASFVOLT_DOWNLINK_DHCP_TAGGED_ID)
             elif classifier['ip_proto'] == 2:
                 self.log.info('Addition-of-IGMP-flow-are-not-handled-yet')
                 '''
@@ -1544,11 +1539,6 @@ class Asfvolt16Handler(OltDeviceHandler):
                                     ASFVOLT_DOWNLINK_EAPOL_ID,
                                     ASFVOLT16_DEFAULT_VLAN)
         elif 'push_vlan' in action:
-
-            yield self.prepare_and_add_dhcp_flow(classifier, action, v_enet,
-                                           ASFVOLT_DHCP_TAGGED_ID,
-                                           ASFVOLT_DOWNLINK_DHCP_TAGGED_ID)
-
             #self.del_flow(v_enet, ASFVOLT_EAPOL_ID, ASFVOLT_DOWNLINK_EAPOL_ID)
             yield self.prepare_and_add_eapol_flow(classifier, action, v_enet,
                                            ASFVOLT_EAPOL_ID_DATA_VLAN,
@@ -1679,9 +1669,6 @@ class Asfvolt16Handler(OltDeviceHandler):
         dhcp_classifier['udp_src'] = 68
         dhcp_classifier['udp_dst'] = 67
         dhcp_classifier['pkt_tag_type'] = 'single_tag'
-        dhcp_classifier['vlan_vid'] = data_classifier['vlan_vid']
-        dhcp_action['push_vlan'] = True
-        dhcp_action['vlan_vid'] = data_action['vlan_vid']
         yield self.add_dhcp_flow(dhcp_classifier, dhcp_action, v_enet,
                            dhcp_id, downlink_dhcp_id)
 
