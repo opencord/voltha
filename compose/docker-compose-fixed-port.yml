@@ -62,7 +62,7 @@ services:
   # Fluentd log server
   #
   fluentd:
-    image: "${REGISTRY}voltha/fluentd:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-fluentd:${TAG:-latest}"
     ports:
     - "24224:24224"
     volumes:
@@ -93,7 +93,7 @@ services:
   # Shovel (Kafka-graphite-gateway)
   #
   shovel:
-    image: "${REGISTRY}voltha/shovel:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-shovel:${TAG:-latest}"
     command: [
       "/shovel/shovel/main.py",
       "--kafka=@kafka",
@@ -111,7 +111,7 @@ services:
   # Voltha server instance(s)
   #
   voltha:
-    image: "${REGISTRY}voltha/voltha:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-voltha:${TAG:-latest}"
     command: [
       "/voltha/voltha/main.py",
       "-v",
@@ -154,7 +154,7 @@ services:
   # ofagent server instance
   #
   ofagent:
-    image: "${REGISTRY}voltha/ofagent:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-ofagent:${TAG:-latest}"
     command: [
       "/ofagent/ofagent/main.py",
       "-v",
@@ -179,7 +179,7 @@ services:
   # Netconf server instance(s)
   #
   netconf:
-    image: "${REGISTRY}voltha/netconf:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-netconf:${TAG:-latest}"
     privileged: true
     command: [
       "/netconf/netconf/main.py",
@@ -207,7 +207,7 @@ services:
   # Dashboard daemon
   #
   dashd:
-    image: "${REGISTRY}voltha/dashd:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-dashd:${TAG:-latest}"
     command: [
       "/dashd/dashd/main.py",
       "--kafka=@kafka",

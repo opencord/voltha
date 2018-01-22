@@ -64,6 +64,8 @@ done
 # If `REGISTRY` is set, but doesn't end in a `/`, then
 # add one
 test -z "$REGISTRY" -o "$(echo ${REGISTRY: -1})" == "/" || REGISTRY="$REGISTRY/"
+test -z "$REPOSITORY" -o "$(echo ${REPOSITORY: -1})" == "/" || REGISTRY="$REPOSITORY/"
+TAG=${TAG:-latest}
 
 # Attempt to count Ready Docker Swarm managers
 export SWARM_MANAGER_COUNT=$(docker node ls | grep Ready | egrep '(Leader)|(Reachable)' | wc -l | sed -e 's/ //g')
@@ -146,6 +148,6 @@ sleep 2
 
 
 TMP_STACK_FILE=$(mktemp -u)
-cat $BASE_DIR/compose/docker-compose-all.yml.j2 2>&1 | docker run -e SWARM_MANAGER_COUNT=$SWARM_MANAGER_COUNT --rm -i voltha/j2 - 2>&1 > $TMP_STACK_FILE
+cat $BASE_DIR/compose/docker-compose-all.yml.j2 2>&1 | docker run -e SWARM_MANAGER_COUNT=$SWARM_MANAGER_COUNT --rm -i ${REGISTRY}${REPOSITORY}voltha-j2:${TAG} - 2>&1 > $TMP_STACK_FILE
 docker stack deploy -c $TMP_STACK_FILE voltha
 rm -f $TMP_STACK_FILE

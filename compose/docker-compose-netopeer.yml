@@ -1,6 +1,6 @@
 version: '2'
 services:
   netopeer:
-    image: "${REGISTRY}voltha/netopeer:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-netopeer:${TAG:-latest}"
     ports:
       - "1830:830"

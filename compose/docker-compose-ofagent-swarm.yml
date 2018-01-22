@@ -9,7 +9,7 @@
 version: "3.2"
 services:
     ofagent:
-        image: "${REGISTRY}voltha/ofagent:${TAG:-latest}"
+        image: "${REGISTRY}${REPOSITORY}voltha-ofagent:${TAG:-latest}"
         logging:
             driver: "json-file"
             options:

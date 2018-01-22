@@ -13,7 +13,7 @@
 # limitations under the License.
 
 #DockerFile to Create Fluentd Forwards inside cord-voltha
-FROM fluent/fluentd:v0.14.23.rc1
+FROM fluent/fluentd:v0.12.42
 MAINTAINER Voltha Community <info@opennetworking.org>
 
 RUN apk add --update bash

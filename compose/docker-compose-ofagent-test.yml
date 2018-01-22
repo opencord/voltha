@@ -38,7 +38,7 @@ services:
   # Fluentd log server
   #
   fluentd:
-    image: "${REGISTRY}voltha/fluentd:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-fluentd:${TAG:-latest}"
     ports:
     - "24224:24224"
     volumes:
@@ -50,7 +50,7 @@ services:
   # Voltha server instance(s)
   #
   voltha:
-    image: "${REGISTRY}voltha/voltha:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-voltha:${TAG:-latest}"
     command: [
       "/voltha/voltha/main.py",
       "-v",
@@ -88,7 +88,7 @@ services:
     - ponmgmt
 
   envoy:
-    image: "${REGISTRY}voltha/envoy:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-envoy:${TAG:-latest}"
     entrypoint:
       - /usr/local/bin/envoyd
       - -envoy-cfg-template
@@ -113,7 +113,7 @@ services:
   # Voltha cli container
   #
   cli:
-    image: "${REGISTRY}voltha/cli:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-cli:${TAG:-latest}"
     command: [
       "/cli/cli/setup.sh",
       "-L",
@@ -130,7 +130,7 @@ services:
   # onos-1
   #
   onos1:
-    image: "${REGISTRY}voltha/onos:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-onos:${TAG:-latest}"
     container_name: onos1
     ports:
     - 6633:6653
@@ -146,7 +146,7 @@ services:
   # onos-2
   #
   onos2:
-    image: "${REGISTRY}voltha/onos:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-onos:${TAG:-latest}"
     container_name: onos2
     ports:
     - 6644:6653
@@ -162,7 +162,7 @@ services:
   # onos-3
   #
   onos3:
-    image: "${REGISTRY}voltha/onos:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-onos:${TAG:-latest}"
     container_name: onos3
     ports:
     - 6655:6653
@@ -177,7 +177,7 @@ services:
   # ofagent server instance
   #
   ofagent:
-    image: "${REGISTRY}voltha/ofagent:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-ofagent:${TAG:-latest}"
     command: /ofagent/ofagent/main.py -v --consul=${DOCKER_HOST_IP}:8500 --fluentd=fluentd:24224 --controller ${DOCKER_HOST_IP}:6633 ${DOCKER_HOST_IP}:6644 ${DOCKER_HOST_IP}:6655 --grpc-endpoint=@voltha-grpc --instance-id-is-container-name --enable-tls --key-file=/ofagent/pki/voltha.key --cert-file=/ofagent/pki/voltha.crt
     depends_on:
     - consul

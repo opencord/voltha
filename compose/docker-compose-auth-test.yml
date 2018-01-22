@@ -16,7 +16,7 @@ services:
     ipv4_address: 172.25.0.100
 
  onos:
-  image: "${REGISTRY}voltha/onos:${TAG:-latest}"
+  image: "${REGISTRY}${REPOSITORY}voltha-onos:${TAG:-latest}"
   ports:
    - "8101:8101" # ssh
    - "6653:6653" # OF
@@ -28,7 +28,7 @@ services:
      ipv4_address: 172.25.0.200
 
 # onos_config_push:
-#  image: "${REGISTRY}onos-config-push:${TAG:-latest}"
+#  image: "${REGISTRY}${REPOSITORY}onos-config-push:${TAG:-latest}"
 #  environment:
 #   ONOS_CONNECTION: 'onos:8181'
 #  volumes:

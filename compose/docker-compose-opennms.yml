@@ -24,7 +24,7 @@ services:
       - /var/opennms/reports
 
   opennms:
-    image: "${REGISTRY}voltha/opennms:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-opennms:${TAG:-latest}"
     env_file:
       - ./opennms/env/opennms.env
       - ./opennms/env/postgres.env
