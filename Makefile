@@ -36,7 +36,12 @@ DOCKER_PROXY_ARGS = \
        --build-arg FTP_PROXY=$(FTP_PROXY) \
        --build-arg NO_PROXY=$(NO_PROXY)
 endif
-DOCKER_BUILD_ARGS = --build-arg TAG=$(TAG) $(DOCKER_PROXY_ARGS) $(DOCKER_CACHE_ARG) --rm --force-rm $(DOCKER_BUILD_EXTRA_ARGS)
+DOCKER_BUILD_ARGS = --build-arg TAG=$(TAG) \
+	--build-arg REGISTRY=$(REGISTRY) \
+	--build-arg REPOSITORY=$(REPOSITORY) \
+	$(DOCKER_PROXY_ARGS) $(DOCKER_CACHE_ARG) \
+	 --rm --force-rm \
+	$(DOCKER_BUILD_EXTRA_ARGS)
 
 VENVDIR := venv-$(shell uname -s | tr '[:upper:]' '[:lower:]')
 
@@ -122,86 +127,86 @@ prod-containers: docker-base voltha ofagent netconf shovel dashd cli grafana con
 containers: docker-base voltha ofagent netconf shovel onos tester config-push dashd cli portainer grafana nginx consul tools golang envoyd envoy fluentd unum j2
 
 docker-base:
-	docker build $(DOCKER_BUILD_ARGS) -t voltha/voltha-base:$(TAG) -f docker/Dockerfile.base .
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-base:${TAG} -f docker/Dockerfile.base .
 
 voltha: voltha-adapters
-	docker build $(DOCKER_BUILD_ARGS) -t voltha/voltha:$(TAG) -f docker/Dockerfile.voltha .
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-voltha:${TAG} -f docker/Dockerfile.voltha .
 
 voltha-adapters:
 	make -C voltha/adapters/asfvolt16_olt
 
 ofagent:
-	docker build $(DOCKER_BUILD_ARGS) -t voltha/ofagent:$(TAG) -f docker/Dockerfile.ofagent .
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-ofagent:${TAG} -f docker/Dockerfile.ofagent .
 
 tools:
-	docker build $(DOCKER_BUILD_ARGS) -t voltha/tools:$(TAG) -f docker/Dockerfile.tools .
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-tools:${TAG} -f docker/Dockerfile.tools .
 
 fluentd:
-	docker build $(DOCKER_BUILD_ARGS) -t voltha/fluentd:$(TAG) -f docker/Dockerfile.fluentd .
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-fluentd:${TAG} -f docker/Dockerfile.fluentd .
 
 envoy:
-	docker build $(DOCKER_BUILD_ARGS) -t voltha/envoy:$(TAG) -f docker/Dockerfile.envoy .
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-envoy:${TAG} -f docker/Dockerfile.envoy .
 
 envoyd:
 	make -C envoy
 	make -C envoy/go/envoyd
 
 golang:
-	docker build $(DOCKER_BUILD_ARGS) -t voltha/go-builder:$(TAG) -f envoy/go/golang-builder/Dockerfile ./envoy/go/golang-builder
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-go-builder:${TAG} -f envoy/go/golang-builder/Dockerfile ./envoy/go/golang-builder
 
 netconf:
-	docker build $(DOCKER_BUILD_ARGS) -t voltha/netconf:$(TAG) -f docker/Dockerfile.netconf .
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-netconf:${TAG} -f docker/Dockerfile.netconf .
 
 netopeer:
-	docker build $(DOCKER_BUILD_ARGS) -t voltha/netopeer:$(TAG) -f docker/Dockerfile.netopeer .
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-netopeer:${TAG} -f docker/Dockerfile.netopeer .
 
 shovel:
-	docker build $(DOCKER_BUILD_ARGS) -t voltha/shovel:$(TAG) -f docker/Dockerfile.shovel .
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-shovel:${TAG} -f docker/Dockerfile.shovel .
 
 dashd:
-	docker build $(DOCKER_BUILD_ARGS) -t voltha/dashd:$(TAG) -f docker/Dockerfile.dashd .
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-dashd:${TAG} -f docker/Dockerfile.dashd .
 
 cli:
-	docker build $(DOCKER_BUILD_ARGS) -t voltha/cli:$(TAG) -f docker/Dockerfile.cli .
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-cli:${TAG} -f docker/Dockerfile.cli .
 
 portainer:
-	portainer/buildPortainer.sh
+	REGISTRY=${REGISTRY} REPOSITORY=${REPOSITORY} TAG=${TAG} portainer/buildPortainer.sh
 
 nginx:
-	docker build $(DOCKER_BUILD_ARGS) -t voltha/nginx:$(TAG) -f docker/Dockerfile.nginx .
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-nginx:${TAG} -f docker/Dockerfile.nginx .
 
 consul:
-	docker build $(DOCKER_BUILD_ARGS) -t voltha/consul:$(TAG) -f docker/Dockerfile.consul .
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-consul:${TAG} -f docker/Dockerfile.consul .
 
 grafana:
-	docker build $(DOCKER_BUILD_ARGS) -t voltha/grafana:$(TAG) -f docker/Dockerfile.grafana .
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-grafana:${TAG} -f docker/Dockerfile.grafana .
 
 onos:
-	docker build $(DOCKER_BUILD_ARGS) -t voltha/onos:$(TAG) -f docker/Dockerfile.onos docker
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-onos:${TAG} -f docker/Dockerfile.onos docker
 
 unum:
-	docker build $(DOCKER_BUILD_ARGS) -t voltha/unum:$(TAG) -f unum/Dockerfile ./unum
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-unum:${TAG} -f unum/Dockerfile ./unum
 
 tester:
-	docker build $(DOCKER_BUILD_ARGS) -t voltha/tester:$(TAG) -f docker/Dockerfile.tester docker
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-tester:${TAG} -f docker/Dockerfile.tester docker
 
 config-push:
-	docker build $(DOCKER_BUILD_ARGS) -t voltha/config-push:$(TAG) -f docker/Dockerfile.configpush docker
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-config-push:${TAG} -f docker/Dockerfile.configpush docker
 
 opennms:
-	docker build $(DOCKER_BUILD_ARGS) -t voltha/opennms:$(TAG) -f docker/Dockerfile.opennms .
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-opennms:${TAG} -f docker/Dockerfile.opennms .
 
 logstash:
-	docker build $(DOCKER_BUILD_ARGS) -t voltha/logstash:$(TAG) -f docker/Dockerfile.logstash .
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-logstash:${TAG} -f docker/Dockerfile.logstash .
 
 j2:
-	docker build $(DOCKER_BUILD_ARGS) -t voltha/j2:$(TAG) -f docker/Dockerfile.j2 docker
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-j2:${TAG} -f docker/Dockerfile.j2 docker
 
 start:
 	bash -c 'echo $$VOLTHA_LOGS &&  TMP_STACK_FILE=$$(mktemp -u) && \
 		echo $$TMP_STACK_FILE && \
 		SWARM_MANAGER_COUNT=$$(docker node ls | grep Ready | egrep "(Leader)|(Reachable)" | wc -l | sed -e "s/ //g") && \
-	        cat ./compose/voltha-stack.yml.j2 2>&1 | docker run -e RADIUS_ROOT=$$RADIUS_ROOT -e CONSUL_ROOT=$$CONSUL_ROOT -e VOLTHA_LOGS=$$VOLTHA_LOGS -e SWARM_MANAGER_COUNT=$$SWARM_MANAGER_COUNT --rm -i voltha/j2 - 2>&1 > $$TMP_STACK_FILE && \
+		cat ./compose/voltha-stack.yml.j2 2>&1 | docker run -e RADIUS_ROOT=$$RADIUS_ROOT -e CONSUL_ROOT=$$CONSUL_ROOT -e VOLTHA_LOGS=$$VOLTHA_LOGS -e SWARM_MANAGER_COUNT=$$SWARM_MANAGER_COUNT --rm -i ${REGISTRY}${REPOSITORY}voltha-j2:${TAG} - 2>&1 > $$TMP_STACK_FILE && \
 	        docker stack deploy -c $$TMP_STACK_FILE voltha && \
 	        rm -f $$TMP_STACK_FILE'
 
@@ -225,13 +230,13 @@ distclean: clean
 
 fetch-jenkins:
 	docker pull consul:0.9.2
-	docker pull fluent/fluentd:v0.14.23.rc1
+	docker pull fluent/fluentd:v0.12.42
 	docker pull ubuntu:xenial
 	docker pull wurstmeister/kafka:1.0.0
 	docker pull zookeeper:3.4.11
 fetch:
 	docker pull consul:0.9.2
-	docker pull fluent/fluentd:v0.14.23.rc1
+	docker pull fluent/fluentd:v0.12.42
 	docker pull ubuntu:xenial
 	docker pull wurstmeister/kafka:1.0.0
 	docker pull zookeeper:3.4.11
@@ -300,7 +305,7 @@ jenkins-test: venv
 
 
 run-as-root-tests:
-	docker run -i --rm -v /cord/incubator/voltha:/voltha --privileged voltha/voltha-base env PYTHONPATH=/voltha python /voltha/tests/itests/run_as_root/test_frameio.py
+	docker run -i --rm -v /cord/incubator/voltha:/voltha --privileged ${REGISTRY}${REPOSITORY}voltha-base:${TAG} env PYTHONPATH=/voltha python /voltha/tests/itests/run_as_root/test_frameio.py
 
 flake8: $(DIRS_FLAKE8)
 

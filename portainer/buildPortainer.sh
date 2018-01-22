@@ -1,5 +1,7 @@
 #!/bin/bash
 
+TAG=${TAG:-latest}
+
 docker run -d --name pbuild -p 9999:9000 portainer/portainer:1.15.2
 rm -fr tmp_portainer
 mkdir tmp_portainer
@@ -21,7 +23,7 @@ s~src='\''~src='\''docker/~
 s~"images/logo.png"~"docker/images/logo.png"~
 ' tmp_portainer/index.html
 
-docker build -t voltha/portainer -f docker/Dockerfile.portainer .
+docker build -t ${REGISTRY}${REPOSITORY}voltha-portainer:${TAG} -f docker/Dockerfile.portainer .
 rm -fr tmp_portainer
 docker stop pbuild
 docker rm -f pbuild
