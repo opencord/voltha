@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ARG TAG=latest
+ARG REGISTRY_HOST=
+ARG REGISTRY=
 
-FROM voltha/voltha-base:${TAG}
+FROM ${REGISTRY_HOST}${REGISTRY}voltha-base:${TAG}
 
 MAINTAINER Sergio Slobodrian <sslobodr@ciena.com>
 

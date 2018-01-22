@@ -21,7 +21,7 @@ s~src='\''~src='\''docker/~
 s~"images/logo.png"~"docker/images/logo.png"~
 ' tmp_portainer/index.html
 
-docker build -t voltha/portainer -f docker/Dockerfile.portainer .
+docker build -t ${REGISTRY}voltha-portainer -f docker/Dockerfile.portainer .
 rm -fr tmp_portainer
 docker stop pbuild
 docker rm -f pbuild

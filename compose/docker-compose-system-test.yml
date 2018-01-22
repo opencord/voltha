@@ -63,7 +63,7 @@ services:
   # Fluentd log server
   #
   fluentd:
-    image: "${REGISTRY}voltha/fluentd:${TAG:-latest}"
+    image: "${REGISTRY_HOST}${REGISTRY}voltha-fluentd:${TAG:-latest}"
     ports:
     - "24224:24224"
     volumes:
@@ -76,7 +76,7 @@ services:
   # (demo place-holder for external KPI system)
   #
   grafana:
-    image: "${REGISTRY}voltha/grafana:${TAG:-latest}"
+    image: "${REGISTRY_HOST}${REGISTRY}voltha-grafana:${TAG:-latest}"
     ports:
     - "8883:80"
     - "2003:2003"
@@ -95,7 +95,7 @@ services:
   # Shovel (Kafka-graphite-gateway)
   #
   shovel:
-    image: "${REGISTRY}voltha/shovel:${TAG:-latest}"
+    image: "${REGISTRY_HOST}${REGISTRY}voltha-shovel:${TAG:-latest}"
     command: [
       "/shovel/shovel/main.py",
       "--kafka=@kafka",
@@ -113,7 +113,7 @@ services:
   # Voltha server instance(s)
   #
   voltha:
-    image: "${REGISTRY}voltha/voltha:${TAG:-latest}"
+    image: "${REGISTRY_HOST}${REGISTRY}voltha-voltha:${TAG:-latest}"
     command: [
       "/voltha/voltha/main.py",
       "-v",
@@ -151,7 +151,7 @@ services:
     - ponmgmt
 
   envoy:
-    image: "${REGISTRY}voltha/envoy:${TAG:-latest}"
+    image: "${REGISTRY_HOST}${REGISTRY}voltha-envoy:${TAG:-latest}"
     entrypoint:
       - /usr/local/bin/envoyd
       - -envoy-cfg-template
@@ -176,7 +176,7 @@ services:
   # Voltha cli container
   #
   cli:
-    image: "${REGISTRY}voltha/cli:${TAG:-latest}"
+    image: "${REGISTRY_HOST}${REGISTRY}voltha-cli:${TAG:-latest}"
     command: [
       "/cli/cli/setup.sh",
       "-L",
@@ -197,7 +197,7 @@ services:
   # ofagent server instance
   #
   ofagent:
-    image: "${REGISTRY}voltha/ofagent:${TAG:-latest}"
+    image: "${REGISTRY_HOST}${REGISTRY}voltha-ofagent:${TAG:-latest}"
     command: [
       "/ofagent/ofagent/main.py",
       "-v",
@@ -225,7 +225,7 @@ services:
   # Netconf server instance(s)
   #
   netconf:
-    image: "${REGISTRY}voltha/netconf:${TAG:-latest}"
+    image: "${REGISTRY_HOST}${REGISTRY}voltha-netconf:${TAG:-latest}"
     privileged: true
     command: [
       "/netconf/netconf/main.py",
@@ -253,7 +253,7 @@ services:
   # Dashboard daemon
   #
   dashd:
-    image: "${REGISTRY}voltha/dashd:${TAG:-latest}"
+    image: "${REGISTRY_HOST}${REGISTRY}voltha-dashd:${TAG:-latest}"
     command: [
       "/dashd/dashd/main.py",
       "--kafka=@kafka",
@@ -272,7 +272,7 @@ services:
   # Nginx service consolidation
   #
   nginx:
-    image: "${REGISTRY}voltha/nginx:${TAG:-latest}"
+    image: "${REGISTRY_HOST}${REGISTRY}voltha-nginx:${TAG:-latest}"
     ports:
     - "80:80"
     environment:
@@ -290,7 +290,7 @@ services:
   # Docker ui
   #
   portainer:
-    image: "${REGISTRY}voltha/portainer:${TAG:-latest}"
+    image: "${REGISTRY_HOST}${REGISTRY}voltha-portainer:${TAG:-latest}"
     ports:
     - "9000:9000"
     environment:

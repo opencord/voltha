@@ -146,6 +146,6 @@ sleep 2
 
 
 TMP_STACK_FILE=$(mktemp -u)
-cat $BASE_DIR/compose/docker-compose-all.yml.j2 2>&1 | docker run -e SWARM_MANAGER_COUNT=$SWARM_MANAGER_COUNT --rm -i voltha/j2 - 2>&1 > $TMP_STACK_FILE
+cat $BASE_DIR/compose/docker-compose-all.yml.j2 2>&1 | docker run -e SWARM_MANAGER_COUNT=$SWARM_MANAGER_COUNT --rm -i ${REGISTRY}voltha-j2 - 2>&1 > $TMP_STACK_FILE
 docker stack deploy -c $TMP_STACK_FILE voltha
 rm -f $TMP_STACK_FILE
