@@ -27,7 +27,7 @@ version: "3"
 services:
 
   consul:
-    image: "${REGISTRY}consul:${CONSUL_TAG:-0.9.2}"
+    image: "${REGISTRY_HOST}consul:${CONSUL_TAG:-0.9.2}"
     logging:
       driver: "json-file"
       options:
