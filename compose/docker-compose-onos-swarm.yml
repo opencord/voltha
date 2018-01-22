@@ -29,7 +29,7 @@ services:
             - voltha-net
 
     onos_cluster_manager:
-        image: "${REGISTRY}voltha/unum:${TAG:-latest}"
+        image: "${REGISTRY}${REPOSITORY}voltha-unum:${TAG:-latest}"
         deploy:
             replicas: 1
             placement:
@@ -52,7 +52,7 @@ services:
            replicas: 3
            labels:
                org.voltha.onos.cluster: "true"
-        image: "${REGISTRY}voltha/onos:${TAG:-latest}"
+        image: "${REGISTRY}${REPOSITORY}voltha-onos:${TAG:-latest}"
         logging:
             driver: "json-file"
             options:

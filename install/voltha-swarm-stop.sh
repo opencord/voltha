@@ -28,7 +28,9 @@ NETWORKS="voltha_net kafka_net"
 
 usage() {
     echo >&2 "$PROG: [-d <dir>] [-l <log-dir>] [-h]"
-    echo >&2 "  -z              zero out the consul data"
+    echo >&2 "  -z              zero out the consul fluentd data"
+    echo >&2 "  -l <log-dir>    directory from which fluentd logs will be removed"
+    echo >&2 "  -c <consul-dir> directory from which consul data is removed"
     echo >&2 "  -h              this message"
 }
 
@@ -39,6 +41,7 @@ while getopts d:l:c:zh OPT; do
     case "$OPT" in
         z) VOLUME_CLEANUP=1;;
         c) export CONSUL_ROOT="$OPTARG";;
+        l) export VOLTHA_LOGS="$OPTARG";;
         h) usage;
            exit 1;;
         esac
@@ -88,7 +91,7 @@ done
 
 # Attempt to count Ready Docker Swarm managers
 SWARM_MANAGER_COUNT=$(docker node ls | grep Ready | egrep '(Leader)|(Reachable)' | wc -l)
-echo -n "[volume] consul ... "
+echo -n "[cleanup] consul and fluentd ... "
 if [ $VOLUME_CLEANUP -ne 0 ]; then
     RUNNING=$(docker service ps volume_cleanup 2> /dev/null | wc -l)
     if [ $RUNNING -ne 0 ]; then
@@ -98,8 +101,9 @@ if [ $VOLUME_CLEANUP -ne 0 ]; then
     --mode=global --name=volume_cleanup \
     --mount=type=bind,src=${CONSUL_ROOT:-/cord/incubator/voltha/consul}/data,dst=/consul/data \
     --mount=type=bind,src=${CONSUL_ROOT:-/cord/incubator/voltha/consul}/config,dst=/consul/config \
+    --mount=type=bind,src=${VOLTHA_LOGS:-/var/log/voltha/logging_volume},dst=/fluentd/log \
     alpine:latest \
-    ash -c 'rm -rf /consul/data/* /consul/config/*' > /dev/null
+    ash -c 'rm -rf /consul/data/* /consul/config/* /fluentd/log/*' > /dev/null
 
     RETRY=10
     while [ $RETRY -ge 0 ]; do
