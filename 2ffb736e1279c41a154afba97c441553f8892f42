@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "5d4891d5_afd0bf25",
+        "filename": "compose/voltha-stack.yml.j2",
+        "patchSetId": 2
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2018-01-23T18:22:15Z",
+      "side": 1,
+      "message": "you know what. I can get behind \n\nREGISTRY/REPOSITORY/NAME\n\nI will update to this format.",
+      "parentUuid": "4617666d_0af3b3e7",
+      "range": {
+        "startLine": 26,
+        "startChar": 2,
+        "endLine": 26,
+        "endChar": 10
+      },
+      "revId": "2ffb736e1279c41a154afba97c441553f8892f42",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1ca2b341_0fffa97c",
         "filename": "compose/voltha-stack.yml.j2",
         "patchSetId": 2
