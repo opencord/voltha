@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "7fdb8ebf_af40cdbf",
+        "filename": "compose/voltha-stack.yml.j2",
+        "patchSetId": 2
+      },
+      "lineNbr": 28,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2018-01-23T15:39:22Z",
+      "side": 1,
+      "message": "Yes, and I blame docker for that. There is some detail on the https://groups.google.com/a/opencord.org/forum/#!topic/voltha-discuss/Sd0-6yVTVMs email thread. \n\nThe name of an image, as you know, is made up of\nRepository Host: defaults to dockerhub\n  SLASH\nRepository Name: default to empty\n  SLASH\nName: the name\n\nif we named all the images simply `voltha/\u003cname\u003e` and had images up on dockerhub then swarm would always download the imager from dockerhub when you deployed a stack; which is simply not workable for development.\n\nThe standard is to reference local images without a repository prefix, and as such our images would be just `\u003cname\u003e` locally. \n\nThis would be fine, except we have some images that are \"descendents\" of standard images in which we would have a name conflict.\n\nTo resolve these types of conflict projects tend to put a name prefix, i.e. `voltha-` in front of the name. \n\nWe could do that for only those images that conflict, but then working with name patterns in makefiles, edits, etc gets more complicated and the images simply are consistently named.\n\nAs such, i choose to go with the format of `voltha-\u003cname\u003e` for the image names and then the repository host and repository are optionally set via env variables depending on what you would like to do. \n\nSo, when working with local images, as in a local build, you would just be using `voltha-\u003cname\u003e` and not `voltha/voltha-name`. if you specified the REPOSITORY as `voltha/` then you would be using the dockerhub images.\n\nhope this makes sense.",
+      "parentUuid": "1ca2b341_0fffa97c",
+      "range": {
+        "startLine": 26,
+        "startChar": 2,
+        "endLine": 28,
+        "endChar": 58
+      },
+      "revId": "2ffb736e1279c41a154afba97c441553f8892f42",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "005b6e13_d50eba28",
         "filename": "docker/Dockerfile.tools",
         "patchSetId": 2
