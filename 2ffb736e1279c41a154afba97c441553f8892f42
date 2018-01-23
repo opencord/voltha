@@ -2,6 +2,29 @@
   "comments": [
     {
       "key": {
+        "uuid": "1ca2b341_0fffa97c",
+        "filename": "compose/voltha-stack.yml.j2",
+        "patchSetId": 2
+      },
+      "lineNbr": 28,
+      "author": {
+        "id": 1000120
+      },
+      "writtenOn": "2018-01-23T13:14:41Z",
+      "side": 1,
+      "message": "You renamed all the voltha specific containers from voltha/ voltha- if voltha/ is specified here all the containers will be named voltha/voltha-\u003cname\u003e. Isn\u0027t that a little excessive on the number of \"voltha\" qualifiers a name has?",
+      "range": {
+        "startLine": 26,
+        "startChar": 2,
+        "endLine": 28,
+        "endChar": 58
+      },
+      "revId": "2ffb736e1279c41a154afba97c441553f8892f42",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "005b6e13_d50eba28",
         "filename": "docker/Dockerfile.tools",
         "patchSetId": 2
