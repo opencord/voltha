@@ -2,6 +2,29 @@
   "comments": [
     {
       "key": {
+        "uuid": "1aabff86_b39fd9b0",
+        "filename": "compose/voltha-stack.yml.j2",
+        "patchSetId": 2
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1000005
+      },
+      "writtenOn": "2018-01-23T18:15:01Z",
+      "side": 1,
+      "message": "Should we rename this to REPOSITORY to be consistent with docker terminology? Then REGISTRY_HOST could be renamed to REGISTRY.",
+      "range": {
+        "startLine": 26,
+        "startChar": 2,
+        "endLine": 26,
+        "endChar": 10
+      },
+      "revId": "2ffb736e1279c41a154afba97c441553f8892f42",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1ca2b341_0fffa97c",
         "filename": "compose/voltha-stack.yml.j2",
         "patchSetId": 2
