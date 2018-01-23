@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "4617666d_0af3b3e7",
+        "filename": "compose/voltha-stack.yml.j2",
+        "patchSetId": 2
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2018-01-23T18:20:22Z",
+      "side": 1,
+      "message": "I like having `_HOST` as part of the first part, I think enforces that this is the \"HOST\" part, where calling it just `REGISTRY` doesn\u0027t seem as clear to me. \n\nI don\u0027t have an issue using REGISTRY_HOST and REPOSITORY, but again concerned about confusion with just `REGISTRY`. Happy to be convinced otherwise or out voted.",
+      "parentUuid": "1aabff86_b39fd9b0",
+      "range": {
+        "startLine": 26,
+        "startChar": 2,
+        "endLine": 26,
+        "endChar": 10
+      },
+      "revId": "2ffb736e1279c41a154afba97c441553f8892f42",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1ca2b341_0fffa97c",
         "filename": "compose/voltha-stack.yml.j2",
         "patchSetId": 2
