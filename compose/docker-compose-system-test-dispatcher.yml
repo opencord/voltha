@@ -63,7 +63,7 @@ services:
   # Fluentd log server
   #
   fluentd:
-    image: "${REGISTRY}${REPOSITORY}voltha-fluentd${TAG}"
+    image: "${REGISTRY}fluent/fluentd:v0.12.42"
     ports:
     - "24224:24224"
     volumes:
