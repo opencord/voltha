@@ -12,7 +12,7 @@
 #     docker stack deploy -c docker-compose-stats-swarm.yml stats
 #
 
-version: "3"
+version: "3.2"
 services:
   dashd:
     image: "${REGISTRY}voltha/dashd:${TAG:-latest}"

@@ -7,7 +7,7 @@
 #     docker stack deploy -c docker-compose-envoy-swarm.yml envoy
 #
 
-version: "3"
+version: "3.2"
 services:
   voltha:
     image: "${REGISTRY}voltha/envoy:${TAG:-latest}"

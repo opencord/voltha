@@ -9,7 +9,7 @@
 #     docker stack deploy -c docker-compose-grafana-swarm.yml grafana
 #
 
-version: "3"
+version: "3.2"
 services:
   grafana:
     image: "${REGISTRY}kamon/grafana_graphite:${TAG:-latest}"

@@ -7,7 +7,7 @@
 #     docker stack deploy -c docker-compose-cli.yml cli
 #
 
-version: "3"
+version: "3.2"
 services:
   cli:
     image: "${REGISTRY}voltha/cli:${TAG:-latest}"

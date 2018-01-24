@@ -23,7 +23,7 @@
 #
 # This command will create overlay network 'consul_net'.
 
-version: "3"
+version: "3.2"
 services:
 
   consul:
