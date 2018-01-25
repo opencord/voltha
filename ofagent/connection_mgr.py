@@ -41,6 +41,7 @@ log = get_logger()
 
 class ConnectionManager(object):
     def __init__(self, consul_endpoint, vcore_endpoint, controller_endpoints,
+                 instance_id,
                  enable_tls=False, key_file=None, cert_file=None,
                  vcore_retry_interval=0.5, devices_refresh_interval=5,
                  subscription_refresh_interval=5):
@@ -50,6 +51,7 @@ class ConnectionManager(object):
         self.controller_endpoints = controller_endpoints
         self.consul_endpoint = consul_endpoint
         self.vcore_endpoint = vcore_endpoint
+        self.instance_id = instance_id
         self.enable_tls = enable_tls
         self.key_file = key_file
         self.cert_file = cert_file
@@ -157,7 +159,7 @@ class ConnectionManager(object):
                     self._assign_grpc_attributes()
 
                 # Send subscription request to register the current ofagent instance
-                container_name = get_my_containers_name()
+                container_name = self.instance_id
                 stub = voltha_pb2.VolthaLocalServiceStub(self.channel)
                 subscription = stub.Subscribe(OfAgentSubscriber(ofagent_id=container_name))
 

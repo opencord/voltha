@@ -1,3 +1,4 @@
+import os
 from unittest import TestCase, main
 from connection_mgr import ConnectionManager
 
@@ -8,6 +9,10 @@ class TestConection_mgr(TestCase):
         voltha_endpoint= "localhost:8880"
         controller_endpoints = ["localhost:6633","localhost:6644","localhost:6655"]
         return (consul_endpoint,voltha_endpoint,controller_endpoints)
+
+    def gen_container_name(self):
+        instance_id = os.environ.get('HOSTNAME', 'localhost')
+        return instance_id
 
     def gen_devices(self):
         device =lambda: None
@@ -26,34 +31,39 @@ class TestConection_mgr(TestCase):
 
     def test_connection_mgr_init(self):
         consul_endpoint,voltha_endpoint,controller_endpoints  = self.gen_endpoints()
-        test_connection_init = ConnectionManager(consul_endpoint, voltha_endpoint, controller_endpoints)
+        my_name = self.gen_container_name()
+        test_connection_init = ConnectionManager(consul_endpoint, voltha_endpoint, controller_endpoints, my_name)
         self.assertEqual(test_connection_init.consul_endpoint,consul_endpoint)
         self.assertEqual(test_connection_init.vcore_endpoint, voltha_endpoint)
         self.assertEqual(test_connection_init.controller_endpoints, controller_endpoints)
 
     def test_resolve_endpoint(self):
         consul_endpoint, voltha_endpoint, controller_endpoints = self.gen_endpoints()
-        test_connection_init = ConnectionManager(consul_endpoint, voltha_endpoint, controller_endpoints)
+        my_name = self.gen_container_name()
+        test_connection_init = ConnectionManager(consul_endpoint, voltha_endpoint, controller_endpoints, my_name)
         host,port = test_connection_init.resolve_endpoint(endpoint=consul_endpoint)
         assert isinstance(port, int)
         assert isinstance(host, basestring)
 
     def test_refresh_agent_connections(self):
         consul_endpoint, voltha_endpoint, controller_endpoints = self.gen_endpoints()
+        my_name = self.gen_container_name()
         devices,device = self.gen_devices()
-        test_connection_init = ConnectionManager(consul_endpoint, voltha_endpoint, controller_endpoints)
+        test_connection_init = ConnectionManager(consul_endpoint, voltha_endpoint, controller_endpoints, my_name)
         test_connection_init.refresh_agent_connections(devices)
 
     def test_create_agent(self):
         consul_endpoint, voltha_endpoint, controller_endpoints = self.gen_endpoints()
+        my_name = self.gen_container_name()
         devices,device = self.gen_devices()
-        test_connection_init = ConnectionManager(consul_endpoint, voltha_endpoint, controller_endpoints)
+        test_connection_init = ConnectionManager(consul_endpoint, voltha_endpoint, controller_endpoints, my_name)
         test_connection_init.create_agent(device)
 
     def test_delete_agent(self):
         consul_endpoint, voltha_endpoint, controller_endpoints = self.gen_endpoints()
+        my_name = self.gen_container_name()
         devices,device = self.gen_devices()
-        test_connection_init = ConnectionManager(consul_endpoint, voltha_endpoint, controller_endpoints)
+        test_connection_init = ConnectionManager(consul_endpoint, voltha_endpoint, controller_endpoints, my_name)
         test_connection_init.create_agent(device)
         with self.assertRaises(Exception) as context:
             test_connection_init.delete_agent(device.datapath_id)
@@ -62,9 +72,10 @@ class TestConection_mgr(TestCase):
 
     def test_forward_packet_in(self):
         consul_endpoint, voltha_endpoint, controller_endpoints = self.gen_endpoints()
+        my_name = self.gen_container_name()
         devices,device = self.gen_devices()
         packet_in = self.gen_packet_in()
-        test_connection_init = ConnectionManager(consul_endpoint, voltha_endpoint, controller_endpoints)
+        test_connection_init = ConnectionManager(consul_endpoint, voltha_endpoint, controller_endpoints, my_name)
         test_connection_init.create_agent(device)
         test_connection_init.forward_packet_in(device.id, packet_in)
 

@@ -1,0 +1,171 @@
+#
+# This file describes a cluster of 3 fluentd forwarders that
+# send logs to a cluster of 2 fluentd aggregators: one active
+# and one standby.
+#
+# The active fluentd aggregator
+#
+apiVersion: v1
+kind: Service
+metadata:
+  name: fluentdactv
+spec:
+  clusterIP: None
+  selector:
+    app: fluentdactv
+  ports:
+  - protocol: TCP
+    port: 24224
+    targetPort: 24224
+---
+#
+# Ensure that the active aggregator is not deployed to the
+# same node as the standby
+#
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: fluentdactv
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: fluentdactv
+    spec:
+      terminationGracePeriodSeconds: 10
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - fluentdstby
+            topologyKey: kubernetes.io/hostname
+      containers:
+      - name: fluentdactv
+        image: cord/fluentd
+        imagePullPolicy: Never
+        volumeMounts:
+        - name: fluentd-log
+          mountPath: /fluentd/log
+        ports:
+        - containerPort: 24224
+        env:
+        - name: FLUENTD_CONF
+          value: fluent-agg.conf
+      volumes:
+      - name: fluentd-log
+        hostPath:
+          path: /var/log/voltha/logging_volume
+          type: Directory
+---
+#
+# The standby fluentd aggregator
+#
+apiVersion: v1
+kind: Service
+metadata:
+  name: fluentdstby
+spec:
+  clusterIP: None
+  selector:
+    app: fluentdstby
+  ports:
+  - protocol: TCP
+    port: 24224
+    targetPort: 24224
+---
+#
+# Ensure thet the standby aggregator is not deployed to the
+# same node as the active
+#
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: fluentdstby
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: fluentdstby
+    spec:
+      terminationGracePeriodSeconds: 10
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - fluentdactv
+            topologyKey: kubernetes.io/hostname
+      containers:
+      - name: fluentdstby
+        image: cord/fluentd
+        imagePullPolicy: Never
+        volumeMounts:
+        - name: fluentd-log
+          mountPath: /fluentd/log
+        ports:
+        - containerPort: 24224
+        env:
+        - name: FLUENTD_CONF
+          value: fluent-agg.conf
+      volumes:
+      - name: fluentd-log
+        hostPath:
+          path: /var/log/voltha/logging_volume
+          type: Directory
+---
+#
+# The cluster of fluentd forwarders
+#
+apiVersion: v1
+kind: Service
+metadata:
+  name: fluentd
+spec:
+  clusterIP: None
+  selector:
+    app: fluentd
+  ports:
+  - protocol: TCP
+    port: 24224
+    targetPort: 24224
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: fluentd
+spec:
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: fluentd
+    spec:
+      terminationGracePeriodSeconds: 10
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - fluentd
+            topologyKey: kubernetes.io/hostname
+      containers:
+      - name: fluentd
+        image: cord/fluentd
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 24224
+        env:
+        - name: FLUENTD_CONF
+          value: fluent.conf

@@ -238,7 +238,7 @@ class Main(object):
         self.log.info('starting-internal-components')
         args = self.args
         self.connection_manager = yield ConnectionManager(
-            args.consul, args.grpc_endpoint, args.controller,\
+            args.consul, args.grpc_endpoint, args.controller, args.instance_id, \
             args.enable_tls, args.key_file, args.cert_file).start()
         self.log.info('started-internal-services')
 
