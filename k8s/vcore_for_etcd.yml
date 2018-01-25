@@ -43,6 +43,7 @@ spec:
             - "-v"
             - "--etcd=etcd.$(NAMESPACE).svc.cluster.local:2379"
             - "--kafka=kafka.$(NAMESPACE).svc.cluster.local"
+            - "--fluentd=fluentd.$(NAMESPACE).svc.cluster.local:24224"
             - "--rest-port=8880"
             - "--grpc-port=50556"
             - "--interface=eth1"

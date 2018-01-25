@@ -31,30 +31,29 @@ spec:
         app: vcore
     spec:
       containers:
-        - name: voltha
-          image: "cord/voltha:latest"
-          env:
-            - name: NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
-          args:
-            - "voltha/voltha/main.py"
-            - "-v"
-            - "--consul=consul.$(NAMESPACE).svc.cluster.local:8500"
-            - "--kafka=kafka.$(NAMESPACE).svc.cluster.local"
-            - "--rest-port=8880"
-            - "--grpc-port=50556"
-            - "--interface=eth1"
-            - "--backend=consul"
-            - "--pon-subnet=172.29.19.0/24"
-          ports:
-            - containerPort: 8880
-              name: rest-port
-            - containerPort: 18880
-              name: mystery-port
-            - containerPort: 50556
-              name: grpc-port
-          imagePullPolicy: Never
-
-
+      - name: voltha
+        image: "cord/voltha:latest"
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8880
+          name: rest-port
+        - containerPort: 18880
+          name: mystery-port
+        - containerPort: 50556
+          name: grpc-port
+        env:
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        args:
+        - "voltha/voltha/main.py"
+        - "-v"
+        - "--consul=consul.$(NAMESPACE).svc.cluster.local:8500"
+        - "--kafka=kafka.$(NAMESPACE).svc.cluster.local"
+        - "--fluentd=fluentd.$(NAMESPACE).svc.cluster.local:24224"
+        - "--rest-port=8880"
+        - "--grpc-port=50556"
+        - "--interface=eth1"
+        - "--backend=consul"
+        - "--pon-subnet=172.29.19.0/24"

@@ -1,0 +1,41 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: ofagent
+spec:
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: ofagent
+    spec:
+      terminationGracePeriodSeconds: 10
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - ofagent
+            topologyKey: kubernetes.io/hostname
+      containers:
+      - name: ofagent
+        image: cord/ofagent
+        imagePullPolicy: Never
+        env:
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        args:
+        - "/ofagent/ofagent/main.py"
+        - "-v"
+        - "--consul=consul.$(NAMESPACE).svc.cluster.local:8500"
+        - "--fluentd=fluentd.$(NAMESPACE).svc.cluster.local:24224"
+        - "--controller=onos:6653"
+        - "--grpc-endpoint=vcore.$(NAMESPACE).svc.cluster.local:50556"
+        - "--enable-tls"
+        - "--key-file=/ofagent/pki/voltha.key"
+        - "--cert-file=/ofagent/pki/voltha.crt"
