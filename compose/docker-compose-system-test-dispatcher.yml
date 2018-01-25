@@ -4,7 +4,7 @@ services:
   # Single-node zookeeper service
   #
   zookeeper:
-    image: "${REGISTRY}wurstmeister/zookeeper:${ZK_TAG:-latest}"
+    image: "${REGISTRY}wurstmeister/zookeeper:latest"
     ports:
     - 2181
     environment:
@@ -13,7 +13,7 @@ services:
   # Single-node kafka service
   #
   kafka:
-    image: "${REGISTRY}wurstmeister/kafka:${KAFKA_TAG:-latest}"
+    image: "${REGISTRY}wurstmeister/kafka:latest"
     ports:
      - 9092
     environment:
@@ -30,7 +30,7 @@ services:
   # Single-node consul agent
   #
   consul:
-    image: "${REGISTRY}consul:${CONSUL_TAG:-0.9.2}"
+    image: "${REGISTRY}consul:0.9.2"
     command: agent -server -bootstrap -client 0.0.0.0 -ui
     ports:
     - "8300:8300"
@@ -46,7 +46,7 @@ services:
   # Registrator
   #
   registrator:
-    image: "${REGISTRY}gliderlabs/registrator:${REGISTRATOR_TAG:-latest}"
+    image: "${REGISTRY}gliderlabs/registrator:latest"
     command: [
       "-ip=${DOCKER_HOST_IP}",
       "-retry-attempts", "100",
@@ -63,7 +63,7 @@ services:
   # Fluentd log server
   #
   fluentd:
-    image: "${REGISTRY}voltha/fluentd:${TAG:-latest}"
+    image: "${REGISTRY}fluent/fluentd:v0.12.42"
     ports:
     - "24224:24224"
     volumes:
@@ -76,7 +76,7 @@ services:
   # (demo place-holder for external KPI system)
   #
   grafana:
-    image: "${REGISTRY}voltha/grafana:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-grafana${TAG}"
     ports:
     - "8883:80"
     - "2003:2003"
@@ -95,7 +95,7 @@ services:
   # Shovel (Kafka-graphite-gateway)
   #
   shovel:
-    image: "${REGISTRY}voltha/shovel:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-shovel${TAG}"
     command: [
       "/shovel/shovel/main.py",
       "--kafka=@kafka",
@@ -113,7 +113,7 @@ services:
   # Voltha server instance(s)
   #
   voltha:
-    image: "${REGISTRY}voltha/voltha:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-voltha${TAG}"
     command: [
       "/voltha/voltha/main.py",
       "-v",
@@ -151,7 +151,7 @@ services:
     - ponmgmt
 
   envoy:
-    image: "${REGISTRY}voltha/envoy:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-envoy${TAG}"
     entrypoint:
       - /usr/local/bin/envoyd
       - -envoy-cfg-template
@@ -176,7 +176,7 @@ services:
   # Voltha cli container
   #
   cli:
-    image: "${REGISTRY}voltha/cli:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-cli${TAG}"
     command: [
       "/cli/cli/setup.sh",
       "-L",
@@ -197,7 +197,7 @@ services:
   # ofagent server instance
   #
   ofagent:
-    image: "${REGISTRY}voltha/ofagent:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-ofagent${TAG}"
     command: [
       "/ofagent/ofagent/main.py",
       "-v",
@@ -222,7 +222,7 @@ services:
   # Netconf server instance(s)
   #
   netconf:
-    image: "${REGISTRY}voltha/netconf:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-netconf${TAG}"
     privileged: true
     command: [
       "/netconf/netconf/main.py",

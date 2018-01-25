@@ -10,7 +10,7 @@
 version: "3.2"
 services:
   cli:
-    image: "${REGISTRY}voltha/cli:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-cli:${TAG:-latest}"
     logging:
       driver: "json-file"
       options:

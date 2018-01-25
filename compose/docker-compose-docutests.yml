@@ -75,7 +75,7 @@ services:
   # Voltha server instance(s)
   #
   voltha:
-    image: "voltha/voltha:latest"
+    image: "${REGISTRY}${REPOSITORY}voltha-voltha:latest"
     command: [
       "/voltha/voltha/main.py",
       "-v",
@@ -115,7 +115,7 @@ services:
   # ofagent server instance
   #
   ofagent:
-    image: "voltha/ofagent:latest"
+    image: "${REGISTRY}${REPOSITORY}voltha-ofagent:latest"
     command: [
       "/ofagent/ofagent/main.py",
       "-v",
@@ -140,7 +140,7 @@ services:
   # Netconf server instance(s)
   #
   netconf:
-    image: "voltha/netconf:latest"
+    image: "${REGISTRY}${REPOSITORY}voltha-netconf:latest"
     privileged: true
     command: [
       "/netconf/netconf/main.py",

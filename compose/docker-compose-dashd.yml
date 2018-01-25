@@ -4,7 +4,7 @@ services:
   # Dashboard daemon
   #
   dashd:
-    image: "${REGISTRY}voltha/dashd:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-dashd:${TAG:-latest}"
     command: [
       "/dashd/dashd/main.py",
       "--kafka=@kafka",

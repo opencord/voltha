@@ -1,7 +1,7 @@
 version: "3.2"
 services:
   vcore:
-    image: "${REGISTRY}voltha/voltha:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-voltha:${TAG:-latest}"
     logging:
       driver: "json-file"
       options:

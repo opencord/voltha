@@ -20,18 +20,23 @@
 #                 templating capability, because as of 17.09.0-ce Docker
 #                 cannot use and environment variable for the `replicas`
 #                 attribute on a container. ]
-# REGISTRY    - The docker registry from which images should be pulled.
-#               If specified if should end in a `/`. Defaults to empty.
-# TAG         - The tag that should be used when referencing VOLTHA docker
-#               images, defaults to `latest`.
-# CONSUL_ROOT - The local path on which the consul/data and consul/config
-#               directories should be created. Defaults to `/var/local`.
-# VOLTHA_LOGS - The location into which `fluentd` should writes logs.
-#               Defaults to `/var/log`.
-# RADIUS_ROOT - The location in which the `data/clients.conf` and 
-#               `data/users` configuration files can be found. Defaults
-#               to `/var/local`.
+# REGISTRY      - The docker registry host from which images should be
+#                 pulled, i.e. `private-reg.com:5000/`. If specified
+#                 it should end in a `/`. Defaults to empty.
+# REPOSITORY    - The docker repository name from which voltha specific
+#                 images should be pulled, i.e. `voltha/`. If specified it
+#                 should end in a `/`. Defaults to empty.
+# TAG           - The tag that should be used when referencing VOLTHA docker
+#                 images, defaults to `latest`.
+# CONSUL_ROOT   - The local path on which the consul/data and consul/config
+#                 directories should be created. Defaults to `/var/local`.
+# VOLTHA_LOGS   - The location into which `fluentd` should writes logs.
+#                 Defaults to `/var/log`.
+# RADIUS_ROOT   - The location in which the `data/clients.conf` and 
+#                 `data/users` configuration files can be found. Defaults
+#                 to `/var/local`.
 # DOCKER_HOST_IP -
+
 # ZK_TAG      - The tag that should be used when referencing the ZooKeeper
 #               docker image. Defaults to `3.4.11`.
 # KAFKA_TAG   - The tag that should be used when referencing the Kafka
@@ -44,7 +49,7 @@ version: "3.2"
 
 services:
   zk1:
-    image: "${REGISTRY}zookeeper:${ZK_TAG:-3.4.11}"
+    image: "${REGISTRY}wurstmeister/zookeeper:${ZK_TAG:-latest}"
     logging:
       driver: "json-file"
       options:
@@ -57,7 +62,7 @@ services:
       ZOO_SERVERS: server.1=0.0.0.0:2888:3888 server.2=zk2:2888:3888 server.3=zk3:2888:3888
 
   zk2:
-    image: "${REGISTRY}zookeeper:${ZK_TAG:-3.4.11}"
+    image: "${REGISTRY}wurstmeister/zookeeper:${ZK_TAG:-latest}"
     logging:
       driver: "json-file"
       options:
@@ -70,7 +75,7 @@ services:
       ZOO_SERVERS: server.1=zk1:2888:3888 server.2=0.0.0.0:2888:3888 server.3=zk3:2888:3888
 
   zk3:
-    image: "${REGISTRY}zookeeper:${ZK_TAG:-3.4.11}"
+    image: "${REGISTRY}wurstmeister/zookeeper:${ZK_TAG:-latest}"
     logging:
       driver: "json-file"
       options:
@@ -85,7 +90,7 @@ services:
   kafka:
     deploy:
       mode: global
-    image: "${REGISTRY}wurstmeister/kafka:${KAFKA_TAG:-1.0.0}"
+    image: "${REGISTRY}wurstmeister/kafka:${KAFKA_TAG:-latest}"
     logging:
       driver: "json-file"
       options:
@@ -104,7 +109,7 @@ services:
       - 9092:9092
 
   consul:
-    image: ${REGISTRY}consul:${CONSUL_TAG:-0.9.2}
+    image: "${REGISTRY}consul:${CONSUL_TAG:-0.9.2}"
     logging:
       driver: "json-file"
       options:
@@ -152,7 +157,7 @@ services:
 {%- endif %}
 
   fluentdactv:
-    image: "${REGISTRY}voltha/fluentd:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-fluentd:${TAG:-latest}"
     logging:
       driver: "json-file"
       options:
@@ -174,7 +179,7 @@ services:
 {%- endif %}
 
   fluentdstby:
-    image: "${REGISTRY}voltha/fluentd:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-fluentd:${TAG:-latest}"
     logging:
       driver: "json-file"
       options:
@@ -198,7 +203,7 @@ services:
   # The Fluentd container is part of the data collection
   # infrastructure.
   fluentd:
-    image: "${REGISTRY}voltha/fluentd:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-fluentd:${TAG:-latest}"
     logging:
       driver: "json-file"
       options:
@@ -254,7 +259,7 @@ services:
   # The cluster manager must run on a manager node so that it can 
   # retrieve service information from manager nodes
   onos_cluster_manager:
-    image: "${REGISTRY}voltha/unum:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-unum:${TAG:-latest}"
     deploy:
       replicas: 1
       placement:
@@ -283,7 +288,7 @@ services:
       replicas: 1
       labels:
         org.voltha.onos.cluster: "true"
-    image: "${REGISTRY}voltha/onos:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-onos:${TAG:-latest}"
     logging:
       driver: "json-file"
       options:
@@ -301,7 +306,7 @@ services:
   # The VCORE container is the core capabilities of VOLTHA including
   # interacting with device adapters
   vcore:
-    image: "${REGISTRY}voltha/voltha:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-voltha:${TAG:-latest}"
     logging:
       driver: "json-file"
       options:
@@ -333,7 +338,7 @@ services:
   # The OpenFlow Agent support the OpenFlow protocol communication
   # between ONOS and VOLTHA.
   ofagent:
-    image: "${REGISTRY}voltha/ofagent:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-ofagent:${TAG:-latest}"
     logging:
       driver: "json-file"
       options:
@@ -358,7 +363,7 @@ services:
   # the VOLTHA components as well as surfaces a REST API and maps
   # the requests to GPRC
   voltha:
-    image: "${REGISTRY}voltha/envoy:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-envoy:${TAG:-latest}"
     logging:
       driver: "json-file"
       options:
@@ -387,7 +392,7 @@ services:
   # The CLI container provides an CLI to the VOLTHA capabilitiy 
   # that can be accessed via SSH.
   cli:
-    image: "${REGISTRY}voltha/cli:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-cli:${TAG:-latest}"
     logging:
       driver: "json-file"
       options:
@@ -411,7 +416,7 @@ services:
   # The Netconf container provides an NETCONF API to be used
   # with VOLTHA and maps that to GRPC requests
   netconf:
-    image: "${REGISTRY}voltha/netconf:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-netconf:${TAG:-latest}"
     logging:
       driver: "json-file"
       options:
@@ -440,7 +445,7 @@ services:
   # as other VOLTHA containers and is thus a convenient 
   # troubleshooting tool
   tools:
-    image: "${REGISTRY}voltha/tools:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-tools:${TAG:-latest}"
     logging:
       driver: "json-file"
       options:
