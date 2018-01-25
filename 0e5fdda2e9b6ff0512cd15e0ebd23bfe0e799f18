@@ -2,6 +2,29 @@
   "comments": [
     {
       "key": {
+        "uuid": "6df2587c_18782562",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 9
+      },
+      "lineNbr": 1762,
+      "author": {
+        "id": 1000103
+      },
+      "writtenOn": "2018-01-25T15:05:40Z",
+      "side": 1,
+      "message": "onu_device is already available to us via this function. There is no need to fetch it again.",
+      "range": {
+        "startLine": 1762,
+        "startChar": 8,
+        "endLine": 1762,
+        "endChar": 18
+      },
+      "revId": "0e5fdda2e9b6ff0512cd15e0ebd23bfe0e799f18",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b1a4e50d_90dd62e6",
         "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
         "patchSetId": 9
