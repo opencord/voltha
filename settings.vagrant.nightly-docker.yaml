@@ -3,10 +3,8 @@
 server_name: "voltha"
 # Use virtualbox for development
 vProvider: "virtualbox"
+build_mode: "docker"
 #vagrant_box: "ubuntu/xenial64"
-# This setting determines if VOLTHA is built with only docker or with host
-# install tools
-#build_mode: "docker"
 # This determines if test mode is active
 testMode: "false"
 # This determines if installer mode is active

@@ -40,12 +40,14 @@ log = logging.getLogger(__name__)
 LOCAL_CONSUL = "localhost:8500"
 LOCAL_CONSUL_URL = "http://%s" % LOCAL_CONSUL
 LOCAL_CONSUL_DNS = "@localhost -p 8600"
+DOCKER_COMPOSE_PROJECT = "compose"
 DOCKER_COMPOSE_FILE = "compose/docker-compose-docutests.yml"
 DOCKER_COMPOSE_FILE_SERVICES_COUNT = 7
 
 command_defs = dict(
     makefile_fetch_images="grep \"docker pull\" Makefile",
     make="make",
+    make_clean_build="make -e DOCKER_CACHE_ARG=--no-cache build",
     make_fetch="make fetch",
     remove_env_directory="rm -rf venv-linux",
     make_clean="make clean",
@@ -53,9 +55,10 @@ command_defs = dict(
     docker_stop="docker stop",
     docker_rm="docker rm",
     fluentd_logs="less /tmp/fluentd/data.log",
-    docker_voltha_logs="docker logs -f compose_voltha_1",
-    docker_compose_logs="docker-compose -f {} logs".format(
-        DOCKER_COMPOSE_FILE),
+    docker_voltha_logs="docker-compose -p {} -f {} logs voltha"
+        .format(DOCKER_COMPOSE_PROJECT, DOCKER_COMPOSE_FILE),
+    docker_compose_logs="docker-compose -p {} -f {} logs"
+        .format(DOCKER_COMPOSE_PROJECT, DOCKER_COMPOSE_FILE),
     docker_stop_and_remove_all_containers="docker stop `docker ps -q` ; "
                                           "docker rm `docker ps -a -q`",
     docker_start_voltha="docker run -ti --rm voltha/voltha",
@@ -66,29 +69,31 @@ command_defs = dict(
                          "compose_consul_1 | jq -r "
                          "'.[0].NetworkSettings.Networks."
                          "compose_default.IPAddress'",
-    docker_compose_start_consul="docker-compose -f {} up -d "
-                                "consul".format(DOCKER_COMPOSE_FILE),
-    docker_compose_start_all="docker-compose -f {} up -d "
-        .format(DOCKER_COMPOSE_FILE),
-    docker_compose_stop="docker-compose -f {} stop"
-        .format(DOCKER_COMPOSE_FILE),
-    docker_compose_rm_f="docker-compose -f {} rm -f"
-        .format(DOCKER_COMPOSE_FILE),
-    docker_compose_ps="docker-compose -f {} ps".format(DOCKER_COMPOSE_FILE),
+    docker_compose_start_consul="docker-compose -p {} -f {} up -d "
+                                "consul".format(DOCKER_COMPOSE_PROJECT, DOCKER_COMPOSE_FILE),
+    docker_compose_start_all="docker-compose -p {} -f {} up -d "
+        .format(DOCKER_COMPOSE_PROJECT, DOCKER_COMPOSE_FILE),
+    docker_compose_stop="docker-compose -p {} -f {} stop"
+        .format(DOCKER_COMPOSE_PROJECT, DOCKER_COMPOSE_FILE),
+    docker_compose_rm_f="docker-compose -p {} -f {} rm -f"
+        .format(DOCKER_COMPOSE_PROJECT, DOCKER_COMPOSE_FILE),
+    docker_compose_down="docker-compose -p {} -f {} down"
+        .format(DOCKER_COMPOSE_PROJECT, DOCKER_COMPOSE_FILE),
+    docker_compose_ps="docker-compose -p {} -f {} ps"
+        .format(DOCKER_COMPOSE_PROJECT, DOCKER_COMPOSE_FILE),
     docker_ps="docker ps",
     docker_ps_count="docker ps -q | wc -l",
-    docker_compose_is_consul_up="docker-compose -f {} ps | grep consul"
-        .format(DOCKER_COMPOSE_FILE),
+    docker_compose_is_consul_up="docker-compose -p {} -f {} ps | grep consul"
+        .format(DOCKER_COMPOSE_PROJECT, DOCKER_COMPOSE_FILE),
     consul_get_leader_ip_port="curl -s {}/v1/status/leader | jq -r ."
         .format(LOCAL_CONSUL_URL),
-    docker_compose_services_running="docker-compose -f {} ps -q"
-        .format(DOCKER_COMPOSE_FILE),
-    docker_compose_services_running_count="docker-compose -f {} ps -q | "
-                                          "grep Up "
-                                          "| wc -l".format(
-        DOCKER_COMPOSE_FILE),
-    docker_compose_services="docker-compose -f {} config --services"
-        .format(DOCKER_COMPOSE_FILE),
+    docker_compose_services_running="docker-compose -p {} -f {} ps -q"
+        .format(DOCKER_COMPOSE_PROJECT, DOCKER_COMPOSE_FILE),
+    docker_compose_services_running_count="docker-compose -p {} -f {} ps -q | "
+                                          "grep Up | wc -l"
+        .format(DOCKER_COMPOSE_PROJECT, DOCKER_COMPOSE_FILE),
+    docker_compose_services="docker-compose -p {} -f {} config --services"
+        .format(DOCKER_COMPOSE_PROJECT, DOCKER_COMPOSE_FILE),
     consul_get_services="curl -s {}/v1/catalog/services | jq -r ."
         .format(LOCAL_CONSUL_URL),
     consul_get_srv_voltha_health="curl -s {}/v1/catalog/service/voltha-health "
@@ -103,11 +108,12 @@ command_defs = dict(
                                    "voltha-health.service.consul SRV | "
                                    " awk \'{{print $3}}'"
         .format(LOCAL_CONSUL_DNS),
-    docker_compose_scale_voltha_to_10="docker-compose -f {} scale "
-                                      "voltha=10".format(DOCKER_COMPOSE_FILE),
-    docker_compose_scaled_voltha_ps="docker-compose -f {} ps voltha | "
+    docker_compose_scale_voltha_to_10="docker-compose -p {} -f {} scale "
+                                      "voltha=10"
+        .format(DOCKER_COMPOSE_PROJECT, DOCKER_COMPOSE_FILE),
+    docker_compose_scaled_voltha_ps="docker-compose -p {} -f {} ps voltha | "
                                     "grep Up | wc -l"
-        .format(DOCKER_COMPOSE_FILE),
+        .format(DOCKER_COMPOSE_PROJECT, DOCKER_COMPOSE_FILE),
     consul_verify_voltha_registration="curl -s {}"
                                       "/v1/kv/service/voltha/members?recurse |"
                                       " jq -r .".format(LOCAL_CONSUL_DNS)
@@ -195,14 +201,14 @@ class BuildMdTests(TestCase):
                   "secs \n\n".format(time.time() - t0)
 
     def test_03_make(self):
-        print "Test_03_make_Start:------------------"
+        print "Test_03_make_build_Start:------------------"
         t0 = time.time()
         try:
-            cmd = command_defs['make']
+            cmd = command_defs['make_clean_build']
             out, err, rc = run_command_to_completion_with_raw_stdout(cmd)
             self.assertEqual(rc, 0)
         finally:
-            print "Test_03_make_Start:------------------ took {} secs \n\n" \
+            print "Test_03_make_build_Start:------------------ took {} secs \n\n" \
                 .format(time.time() - t0)
 
     def test_04_run_voltha_standalone_without_consul(self):
@@ -368,7 +374,12 @@ class BuildMdTests(TestCase):
         try:
             # Pre-test - clean up all running docker containers
             print "Pre-test: Removing all running containers ..."
-            self._stop_and_remove_all_containers()
+            cmd = command_defs['docker_compose_stop']
+            _, err, rc = run_command_to_completion_with_raw_stdout(cmd)
+            self.assertEqual(rc, 0)
+            cmd = command_defs['docker_compose_rm_f']
+            _, err, rc = run_command_to_completion_with_raw_stdout(cmd)
+            self.assertEqual(rc, 0)
 
             # get a list of services in the docker-compose file
             print "Getting list of services in docker compose file ..."
@@ -486,8 +497,7 @@ class BuildMdTests(TestCase):
                                'registrator_1', 'kafka_1', 'zookeeper_1',
                                'ofagent_1', 'netconf_1']
             cmd = command_defs['docker_compose_logs']
-            docker_compose_logs = run_long_running_command_with_timeout(cmd, 5,
-                                                                        0)
+            docker_compose_logs = run_long_running_command_with_timeout(cmd, 5, 0)
             intersected_logs = [l for l in expected_output if
                                 l in docker_compose_logs]
             self.assertEqual(len(intersected_logs), len(expected_output))
@@ -499,7 +509,7 @@ class BuildMdTests(TestCase):
             expected_output = ['coordinator._renew_session', 'main.heartbeat']
             cmd = command_defs['docker_voltha_logs']
             docker_voltha_logs = run_long_running_command_with_timeout(cmd,
-                                                                       0.5, 3)
+                                                                       0.5, 5)
             intersected_logs = [l for l in expected_output if
                                 l in docker_voltha_logs]
             self.assertEqual(len(intersected_logs), len(expected_output))
@@ -507,7 +517,9 @@ class BuildMdTests(TestCase):
         finally:
             print "Stopping all containers ..."
             # clean up all created containers for this test
-            self._stop_and_remove_all_containers()
+            #self._stop_and_remove_all_containers()
+            cmd = command_defs['docker_compose_down']
+            _, err, rc = run_command_to_completion_with_raw_stdout(cmd)
 
             print "Test_07_start_all_containers_End:------------------ took {}" \
                   " secs \n\n".format(time.time() - t0)
