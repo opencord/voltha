@@ -14,8 +14,10 @@
 # limitations under the License.
 #
 
+ifneq ($(VOLTHA_BUILD),docker)
 ifeq ($(VOLTHA_BASE)_set,_set)
 $(error To get started, please source the env.sh file)
+endif
 endif
 
 ifeq ($(TAG),)
@@ -51,6 +53,7 @@ VENVDIR := venv-$(shell uname -s | tr '[:upper:]' '[:lower:]')
 
 DOCKER_IMAGE_LIST = \
 	base \
+	protos \
 	voltha \
 	ofagent \
 	tools \
@@ -158,14 +161,23 @@ containers: docker-base voltha ofagent netconf shovel onos tester config-push da
 docker-base:
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-base:${TAG} -f docker/Dockerfile.base .
 
+ifneq ($(VOLTHA_BUILD),docker)
 voltha: voltha-adapters
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-voltha:${TAG} -f docker/Dockerfile.voltha .
+else
+voltha:
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-voltha:${TAG} -f docker/Dockerfile.voltha_d .
+endif
 
 voltha-adapters:
 	make -C voltha/adapters/asfvolt16_olt
 
 ofagent:
+ifneq ($(VOLTHA_BUILD),docker)
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-ofagent:${TAG} -f docker/Dockerfile.ofagent .
+else
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-ofagent:${TAG} -f docker/Dockerfile.ofagent_d .
+endif
 
 tools:
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-tools:${TAG} -f docker/Dockerfile.tools .
@@ -174,17 +186,27 @@ fluentd:
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-fluentd:${TAG} -f docker/Dockerfile.fluentd .
 
 envoy:
+ifneq ($(VOLTHA_BUILD),docker)
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-envoy:${TAG} -f docker/Dockerfile.envoy .
+else
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-envoy:${TAG} -f docker/Dockerfile.envoy_d .
+endif
 
 envoyd:
+ifneq ($(VOLTHA_BUILD),docker)
 	make -C envoy
 	make -C envoy/go/envoyd
+endif
 
 golang:
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-go-builder:${TAG} -f envoy/go/golang-builder/Dockerfile ./envoy/go/golang-builder
 
 netconf:
+ifneq ($(VOLTHA_BUILD),docker)
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-netconf:${TAG} -f docker/Dockerfile.netconf .
+else
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-netconf:${TAG} -f docker/Dockerfile.netconf_d .
+endif
 
 netopeer:
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-netopeer:${TAG} -f docker/Dockerfile.netopeer .
@@ -196,10 +218,18 @@ dashd:
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-dashd:${TAG} -f docker/Dockerfile.dashd .
 
 cli:
+ifneq ($(VOLTHA_BUILD),docker)
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-cli:${TAG} -f docker/Dockerfile.cli .
+else
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-cli:${TAG} -f docker/Dockerfile.cli_d .
+endif
 
 portainer:
+ifneq ($(VOLTHA_BUILD),docker)
 	REGISTRY=${REGISTRY} REPOSITORY=${REPOSITORY} TAG=${TAG} portainer/buildPortainer.sh
+else
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-portainer:${TAG} -f docker/Dockerfile.portainer_d .
+endif
 
 nginx:
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-nginx:${TAG} -f docker/Dockerfile.nginx .
@@ -258,9 +288,13 @@ pull: $(patsubst  %,%.pull,$(DOCKER_IMAGE_LIST))
 	docker pull ${REGISTRY}${REPOSITORY}voltha-$(subst .pull,,$@):${TAG}
 
 protos:
+ifneq ($(VOLTHA_BUILD),docker)
 	make -C voltha/protos
 	make -C ofagent/protos
 	make -C netconf/protos
+else
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-protos:${TAG} -f docker/Dockerfile.protos .
+endif
 
 install-protoc:
 	make -C voltha/protos install-protoc
