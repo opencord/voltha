@@ -14,8 +14,10 @@
 # limitations under the License.
 #
 
+ifneq ($(VOLTHA_BUILD),docker)
 ifeq ($(VOLTHA_BASE)_set,_set)
 $(error To get started, please source the env.sh file)
+endif
 endif
 
 ifeq ($(TAG),)
@@ -51,6 +53,8 @@ VENVDIR := venv-$(shell uname -s | tr '[:upper:]' '[:lower:]')
 
 DOCKER_IMAGE_LIST = \
 	base \
+	protoc \
+	protos \
 	voltha \
 	ofagent \
 	tools \
@@ -69,7 +73,8 @@ DOCKER_IMAGE_LIST = \
 	unum \
 	tester \
 	config-push \
-	j2
+	j2 \
+	test_runner
 
 .PHONY: $(DIRS) $(DIRS_CLEAN) $(DIRS_FLAKE8) flake8 docker-base voltha ofagent netconf shovel onos dashd cli portainer grafana nginx consul envoy golang envoyd tools opennms logstash unum start stop tag push pull
 
@@ -86,6 +91,7 @@ help:
 	@echo "fetch        : Pre-fetch artifacts for subsequent local builds"
 	@echo "flake8       : Run specifically flake8 tests"
 	@echo "help         : Print this help"
+	@echo "protoc       : Build a container with protoc installed"
 	@echo "protos       : Compile all grpc/protobuf files"
 	@echo "rebuild-venv : Rebuild local Python virtualenv from scratch"
 	@echo "venv         : Build local Python virtualenv if did not exist yet"
@@ -106,6 +112,7 @@ help:
 	@echo "consul       : Build the consul docker container"
 	@echo "unum         : Build the unum docker container"
 	@echo "j2           : Build the Jinja2 template container"
+	@echo "test_runner  : Build a container from which tests are run"
 	@echo "start        : Start VOLTHA on the current system"
 	@echo "stop         : Stop VOLTHA on the current system"
 	@echo "tag          : Tag a set of images"
@@ -143,11 +150,11 @@ $(DIRS_FLAKE8):
 	@echo "    FLAKE8 $(basename $@)"
 	-$(Q)$(MAKE) -C $(basename $@) flake8
 
-build: protos containers
+build: protoc protos containers
 
-production: protos prod-containers
+production: protoc protos prod-containers
 
-jenkins : protos jenkins-containers
+jenkins : protoc protos jenkins-containers
 
 jenkins-containers: docker-base voltha ofagent netconf consul unum j2
 
@@ -158,14 +165,23 @@ containers: docker-base voltha ofagent netconf shovel onos tester config-push da
 docker-base:
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-base:${TAG} -f docker/Dockerfile.base .
 
+ifneq ($(VOLTHA_BUILD),docker)
 voltha: voltha-adapters
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-voltha:${TAG} -f docker/Dockerfile.voltha .
+else
+voltha:
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-voltha:${TAG} -f docker/Dockerfile.voltha_d .
+endif
 
 voltha-adapters:
 	make -C voltha/adapters/asfvolt16_olt
 
 ofagent:
+ifneq ($(VOLTHA_BUILD),docker)
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-ofagent:${TAG} -f docker/Dockerfile.ofagent .
+else
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-ofagent:${TAG} -f docker/Dockerfile.ofagent_d .
+endif
 
 tools:
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-tools:${TAG} -f docker/Dockerfile.tools .
@@ -174,17 +190,27 @@ fluentd:
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-fluentd:${TAG} -f docker/Dockerfile.fluentd .
 
 envoy:
+ifneq ($(VOLTHA_BUILD),docker)
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-envoy:${TAG} -f docker/Dockerfile.envoy .
+else
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-envoy:${TAG} -f docker/Dockerfile.envoy_d .
+endif
 
 envoyd:
+ifneq ($(VOLTHA_BUILD),docker)
 	make -C envoy
 	make -C envoy/go/envoyd
+endif
 
 golang:
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-go-builder:${TAG} -f envoy/go/golang-builder/Dockerfile ./envoy/go/golang-builder
 
 netconf:
+ifneq ($(VOLTHA_BUILD),docker)
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-netconf:${TAG} -f docker/Dockerfile.netconf .
+else
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-netconf:${TAG} -f docker/Dockerfile.netconf_d .
+endif
 
 netopeer:
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-netopeer:${TAG} -f docker/Dockerfile.netopeer .
@@ -196,10 +222,18 @@ dashd:
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-dashd:${TAG} -f docker/Dockerfile.dashd .
 
 cli:
+ifneq ($(VOLTHA_BUILD),docker)
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-cli:${TAG} -f docker/Dockerfile.cli .
+else
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-cli:${TAG} -f docker/Dockerfile.cli_d .
+endif
 
 portainer:
+ifneq ($(VOLTHA_BUILD),docker)
 	REGISTRY=${REGISTRY} REPOSITORY=${REPOSITORY} TAG=${TAG} portainer/buildPortainer.sh
+else
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-portainer:${TAG} -f docker/Dockerfile.portainer_d .
+endif
 
 nginx:
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-nginx:${TAG} -f docker/Dockerfile.nginx .
@@ -231,6 +265,9 @@ logstash:
 j2:
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-j2:${TAG} -f docker/Dockerfile.j2 docker
 
+test_runner:
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-test_runner:${TAG} -f docker/Dockerfile.test_runner .
+
 start:
 	bash -c 'echo $$VOLTHA_LOGS &&  TMP_STACK_FILE=$$(mktemp -u) && \
 		echo $$TMP_STACK_FILE && \
@@ -257,10 +294,19 @@ pull: $(patsubst  %,%.pull,$(DOCKER_IMAGE_LIST))
 %.pull:
 	docker pull ${REGISTRY}${REPOSITORY}voltha-$(subst .pull,,$@):${TAG}
 
+protoc:
+ifeq ($(VOLTHA_BUILD),docker)
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-protoc:${TAG} -f docker/Dockerfile.protoc .
+endif
+
 protos:
+ifneq ($(VOLTHA_BUILD),docker)
 	make -C voltha/protos
 	make -C ofagent/protos
 	make -C netconf/protos
+else
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-protos:${TAG} -f docker/Dockerfile.protos .
+endif
 
 install-protoc:
 	make -C voltha/protos install-protoc
@@ -314,16 +360,33 @@ test: venv protos run-as-root-tests
 	nosetests -s tests \
 	--exclude-dir=./tests/itests/run_as_root/
 
+ifneq ($(VOLTHA_BUILD),docker)
 utest: venv protos
 	@ echo "Executing all unit tests"
 	. ${VENVDIR}/bin/activate && \
 	    for d in $$(find ./tests/utests -type d|sort -nr); do echo $$d:; nosetests $$d; done
+else
+utest: protos test_runner
+	docker run -ti --rm ${REGISTRY}${REPSOITORY}voltha-test_runner:${TAG} bash -c \
+		'for d in $$(find ./tests/utests -type d|sort -nr); do echo $$d:; nosetests $$d; done'
+endif
 
+ifneq ($(VOLTHA_BUILD),docker)
 utest-with-coverage: venv protos
 	@ echo "Executing all unit tests and producing coverage results"
 	. ${VENVDIR}/bin/activate && \
         for d in $$(find ./tests/utests -type d|sort -nr); do echo $$d:; \
 	nosetests --with-xcoverage --with-xunit --cover-package=voltha,common,ofagent $$d; done
+else
+utest-with-coverage: protos test_runner
+	@echo "Executing all unit tests and producing coverage results"
+	docker run -ti --rm ${REGISTRY}${REPSOITORY}voltha-test_runner:${TAG} \
+		bash -c '\
+			for d in $$(find ./tests/utests -type d|sort -nr); do \
+				echo $$d:; \
+				nosetests --with-xcoverage --with-xunit --cover-package=voltha,common,ofagent $$d; \
+			done'
+endif
 
 itest: venv run-as-root-tests
 	@ echo "Executing all integration tests"
@@ -340,13 +403,21 @@ smoke-test: venv run-as-root-tests
 	tests/itests/docutests/build_md_test.py:BuildMdTests.test_07_start_all_containers \
 	--exclude-dir=./tests/itests/run_as_root/
 
+ifneq ($(VOLTHA_BUILD),docker)
 jenkins-test: venv
 	@ echo "Executing jenkins smoke tests"
 	. ${VENVDIR}/bin/activate && \
 	nosetests -s  \
 	tests/itests/docutests/build_md_test.py:BuildMdTests.test_07_start_all_containers \
 	--exclude-dir=./tests/itests/run_as_root/
-
+else
+jenkins-test:
+	@ echo "Executing jenkins smoke tests"
+	@ echo "Starting VOLTHA as docker-compose services"
+	docker-compose -f compose/docker-compose-docutests.yml up -d
+	sleep 20
+	docker-compose -f compose/docker-compose-docutests.yml down
+endif
 
 run-as-root-tests:
 	docker run -i --rm -v /cord/incubator/voltha:/voltha --privileged ${REGISTRY}${REPOSITORY}voltha-base:${TAG} env PYTHONPATH=/voltha python /voltha/tests/itests/run_as_root/test_frameio.py
