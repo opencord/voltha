@@ -28,7 +28,7 @@ services:
      ipv4_address: 172.25.0.200
 
 # onos_config_push:
-#  image: "${REGISTRY}${REPOSITORY}onos-config-push:${TAG:-latest}"
+#  image: "${REGISTRY}${REPOSITORY}voltha-config-push:${TAG:-latest}"
 #  environment:
 #   ONOS_CONNECTION: 'onos:8181'
 #  volumes:
