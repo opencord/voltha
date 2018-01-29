@@ -1,0 +1,13 @@
+- name: Latest apt packages
+  apt:
+    name: "{{ item }}"
+  with_items: "{{ use_latest_for }}"
+  tags: [voltha-dev]
+
+- name: Services are not running
+  service:
+    name: "{{ item }}"
+    state: stopped
+  ignore_errors: yes
+  with_items: "{{ obsolete_services }}"
+  tags: [voltha-dev]

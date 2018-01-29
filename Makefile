@@ -14,8 +14,10 @@
 # limitations under the License.
 #
 
+ifneq ($(VOLTHA_BUILD),docker)
 ifeq ($(VOLTHA_BASE)_set,_set)
 $(error To get started, please source the env.sh file)
+endif
 endif
 
 ifeq ($(TAG),)
@@ -24,6 +26,12 @@ endif
 
 ifeq ($(TARGET_TAG),)
 TARGET_TAG := latest
+endif
+
+# If no DOCKER_HOST_IP is specified grab a v4 IP address associated with
+# the default gateway
+ifeq ($(DOCKER_HOST_IP),)
+DOCKER_HOST_IP := $(shell ifconfig $$(netstat -rn | grep -E '^(default|0.0.0.0)' | head -1 | awk '{print $$NF}') | grep inet | awk '{print $$2}' | sed -e 's/addr://g')
 endif
 
 include setup.mk
@@ -40,7 +48,9 @@ DOCKER_PROXY_ARGS = \
        --build-arg FTP_PROXY=$(FTP_PROXY) \
        --build-arg NO_PROXY=$(NO_PROXY)
 endif
-DOCKER_BUILD_ARGS = --build-arg TAG=$(TAG) \
+
+DOCKER_BUILD_ARGS = \
+	--build-arg TAG=$(TAG) \
 	--build-arg REGISTRY=$(REGISTRY) \
 	--build-arg REPOSITORY=$(REPOSITORY) \
 	$(DOCKER_PROXY_ARGS) $(DOCKER_CACHE_ARG) \
@@ -51,6 +61,8 @@ VENVDIR := venv-$(shell uname -s | tr '[:upper:]' '[:lower:]')
 
 DOCKER_IMAGE_LIST = \
 	base \
+	protoc \
+	protos \
 	voltha \
 	ofagent \
 	tools \
@@ -69,9 +81,61 @@ DOCKER_IMAGE_LIST = \
 	unum \
 	tester \
 	config-push \
-	j2
+	j2 \
+	test_runner
 
-.PHONY: $(DIRS) $(DIRS_CLEAN) $(DIRS_FLAKE8) flake8 docker-base voltha ofagent netconf shovel onos dashd cli portainer grafana nginx consul envoy golang envoyd tools opennms logstash unum start stop tag push pull
+# The following list was scavanged from the compose / stack files as well as
+# from the Dockerfiles. If nothing else it highlights that VOLTHA is not
+# using consistent versions for some of the containers.
+
+# grep  -i "^FROM" docker/Dockerfile.* | grep -v voltha-  | sed -e 's/ as .*$//g' -e 's/\${REGISTRY}//g' | awk '{print $NF}' | grep -v '^scratch' | sed '/:.*$/!s/$/:latest/g' | sort -u | sed -e 's/^/       /g' -e 's/$/ \\/g'
+FETCH_BUILD_IMAGE_LIST = \
+       alpine:3.6 \
+       centos:7 \
+       centurylink/ca-certs:latest \
+       consul:0.9.2 \
+       debian:stretch-slim \
+       docker.elastic.co/logstash/logstash:5.6.0 \
+       fluent/fluentd:v0.12.42 \
+       gliderlabs/registrator:v7 \
+       golang:1.9.2 \
+       grpc/python:latest \
+       kamon/grafana_graphite:3.0 \
+       lyft/envoy:29361deae91575a1d46c7a21e913f19e75622ebe \
+       maven:3-jdk-8-alpine \
+       onosproject/onos:1.10.9 \
+       opennms/horizon-core-web:19.0.1-1 \
+       portainer/portainer:1.15.2 \
+       ubuntu:xenial
+
+# find compose -type f | xargs grep image: | awk '{print $NF}' | grep -v voltha- | sed -e 's/\"//g' -e 's/\${REGISTRY}//g' -e 's/:\${.*:-/:/g' -e 's/\}//g' -e '/:.*$/!s/$/:latest/g' | sort -u | sed -e 's/^/        /g' -e 's/$/ \\/g'
+FETCH_COMPOSE_IMAGE_LIST = \
+        consul:0.9.2 \
+        docker.elastic.co/elasticsearch/elasticsearch:5.6.0 \
+        fluent/fluentd:latest \
+        fluent/fluentd:v0.12.42 \
+        gliderlabs/registrator:latest \
+        kamon/grafana_graphite:latest \
+        marcelmaatkamp/freeradius:latest \
+        postgres:9.6.1 \
+        quay.io/coreos/etcd:v3.2.9 \
+        registry:2 \
+        tianon/true:latest \
+        wurstmeister/kafka:latest \
+        wurstmeister/zookeeper:latest
+
+# find k8s -type f | xargs grep image: | awk '{print $NF}' | sed -e 's/\"//g' | sed '/:.*$/!s/$/:latest/g' | sort -u | sed -e 's/^/       /g' -e 's/$/ \\/g'
+# Manually remove some image from this list as they don't reflect the new 
+# naming conventions for the VOLTHA build
+FETCH_K8S_IMAGE_LIST = \
+       consul:0.9.2 \
+       quay.io/coreos/etcd-operator:v0.7.2 \
+       wurstmeister/kafka:1.0.0 \
+       zookeeper:3.4.11
+
+FETCH_IMAGE_LIST = $(shell echo $(FETCH_BUILD_IMAGE_LIST) $(FETCH_COMPOSE_IMAGE_LIST) $(FETCH_K8S_IMAGE_LIST) | tr ' ' '\n' | sort -u)
+
+.PHONY: $(DIRS) $(DIRS_CLEAN) $(DIRS_FLAKE8) flake8 base voltha ofagent netconf shovel onos dashd cli portainer grafana nginx consul envoy go-builder envoyd tools opennms logstash unum start stop tag push pull
 
 # This should to be the first and default target in this Makefile
 help:
@@ -86,13 +150,14 @@ help:
 	@echo "fetch        : Pre-fetch artifacts for subsequent local builds"
 	@echo "flake8       : Run specifically flake8 tests"
 	@echo "help         : Print this help"
+	@echo "protoc       : Build a container with protoc installed"
 	@echo "protos       : Compile all grpc/protobuf files"
 	@echo "rebuild-venv : Rebuild local Python virtualenv from scratch"
 	@echo "venv         : Build local Python virtualenv if did not exist yet"
 	@echo "utest        : Run all unit tests"
 	@echo "itest        : Run all integration tests"
 	@echo "containers   : Build all the docker containers"
-	@echo "docker-base  : Build the base docker container used by all other dockers"
+	@echo "base         : Build the base docker container used by all other dockers"
 	@echo "voltha       : Build the voltha docker container"
 	@echo "ofagent      : Build the ofagent docker container"
 	@echo "netconf      : Build the netconf docker container"
@@ -106,6 +171,7 @@ help:
 	@echo "consul       : Build the consul docker container"
 	@echo "unum         : Build the unum docker container"
 	@echo "j2           : Build the Jinja2 template container"
+	@echo "test_runner  : Build a container from which tests are run"
 	@echo "start        : Start VOLTHA on the current system"
 	@echo "stop         : Stop VOLTHA on the current system"
 	@echo "tag          : Tag a set of images"
@@ -143,29 +209,38 @@ $(DIRS_FLAKE8):
 	@echo "    FLAKE8 $(basename $@)"
 	-$(Q)$(MAKE) -C $(basename $@) flake8
 
-build: protos containers
+build: protoc protos go-builder containers
 
-production: protos prod-containers
+production: protoc protos go-builder prod-containers
 
-jenkins : protos jenkins-containers
+jenkins: build
 
-jenkins-containers: docker-base voltha ofagent netconf consul unum j2
+jenkins-containers: base voltha ofagent netconf consul cli envoy fluentd unum j2
 
-prod-containers: docker-base voltha ofagent netconf shovel dashd cli grafana consul tools golang envoyd envoy fluentd unum j2
+prod-containers: base voltha ofagent netconf shovel onos dashd cli grafana consul tools envoy fluentd unum j2
 
-containers: docker-base voltha ofagent netconf shovel onos tester config-push dashd cli portainer grafana nginx consul tools golang envoyd envoy fluentd unum j2
+containers: base voltha ofagent netconf shovel onos tester config-push dashd cli portainer grafana nginx consul tools envoy fluentd unum j2 test_runner
 
-docker-base:
+base:
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-base:${TAG} -f docker/Dockerfile.base .
 
+ifneq ($(VOLTHA_BUILD),docker)
 voltha: voltha-adapters
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-voltha:${TAG} -f docker/Dockerfile.voltha .
+else
+voltha:
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-voltha:${TAG} -f docker/Dockerfile.voltha_d .
+endif
 
 voltha-adapters:
 	make -C voltha/adapters/asfvolt16_olt
 
 ofagent:
+ifneq ($(VOLTHA_BUILD),docker)
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-ofagent:${TAG} -f docker/Dockerfile.ofagent .
+else
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-ofagent:${TAG} -f docker/Dockerfile.ofagent_d .
+endif
 
 tools:
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-tools:${TAG} -f docker/Dockerfile.tools .
@@ -173,18 +248,28 @@ tools:
 fluentd:
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-fluentd:${TAG} -f docker/Dockerfile.fluentd .
 
-envoy:
+envoy: envoyd
+ifneq ($(VOLTHA_BUILD),docker)
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-envoy:${TAG} -f docker/Dockerfile.envoy .
+else
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-envoy:${TAG} -f docker/Dockerfile.envoy_d .
+endif
 
 envoyd:
+ifneq ($(VOLTHA_BUILD),docker)
 	make -C envoy
 	make -C envoy/go/envoyd
+endif
 
-golang:
+go-builder:
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-go-builder:${TAG} -f envoy/go/golang-builder/Dockerfile ./envoy/go/golang-builder
 
 netconf:
+ifneq ($(VOLTHA_BUILD),docker)
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-netconf:${TAG} -f docker/Dockerfile.netconf .
+else
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-netconf:${TAG} -f docker/Dockerfile.netconf_d .
+endif
 
 netopeer:
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-netopeer:${TAG} -f docker/Dockerfile.netopeer .
@@ -196,10 +281,18 @@ dashd:
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-dashd:${TAG} -f docker/Dockerfile.dashd .
 
 cli:
+ifneq ($(VOLTHA_BUILD),docker)
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-cli:${TAG} -f docker/Dockerfile.cli .
+else
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-cli:${TAG} -f docker/Dockerfile.cli_d .
+endif
 
 portainer:
+ifneq ($(VOLTHA_BUILD),docker)
 	REGISTRY=${REGISTRY} REPOSITORY=${REPOSITORY} TAG=${TAG} portainer/buildPortainer.sh
+else
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-portainer:${TAG} -f docker/Dockerfile.portainer_d .
+endif
 
 nginx:
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-nginx:${TAG} -f docker/Dockerfile.nginx .
@@ -231,6 +324,11 @@ logstash:
 j2:
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-j2:${TAG} -f docker/Dockerfile.j2 docker
 
+test_runner:
+ifeq ($(VOLTHA_BUILD),docker)
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-test_runner:${TAG} -f docker/Dockerfile.test_runner .
+endif
+
 start:
 	bash -c 'echo $$VOLTHA_LOGS &&  TMP_STACK_FILE=$$(mktemp -u) && \
 		echo $$TMP_STACK_FILE && \
@@ -257,10 +355,19 @@ pull: $(patsubst  %,%.pull,$(DOCKER_IMAGE_LIST))
 %.pull:
 	docker pull ${REGISTRY}${REPOSITORY}voltha-$(subst .pull,,$@):${TAG}
 
+protoc:
+ifeq ($(VOLTHA_BUILD),docker)
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-protoc:${TAG} -f docker/Dockerfile.protoc .
+endif
+
 protos:
+ifneq ($(VOLTHA_BUILD),docker)
 	make -C voltha/protos
 	make -C ofagent/protos
 	make -C netconf/protos
+else
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-protos:${TAG} -f docker/Dockerfile.protos .
+endif
 
 install-protoc:
 	make -C voltha/protos install-protoc
@@ -271,30 +378,24 @@ clean:
 distclean: clean
 	rm -rf ${VENVDIR}
 
-
-fetch-jenkins:
-	docker pull consul:0.9.2
-	docker pull fluent/fluentd:v0.12.42
-	docker pull ubuntu:xenial
-	docker pull wurstmeister/kafka:1.0.0
-	docker pull zookeeper:3.4.11
 fetch:
-	docker pull consul:0.9.2
-	docker pull fluent/fluentd:v0.12.42
-	docker pull ubuntu:xenial
-	docker pull wurstmeister/kafka:1.0.0
-	docker pull zookeeper:3.4.11
-	docker pull portainer/portainer:1.15.2
-	docker pull lyft/envoy:29361deae91575a1d46c7a21e913f19e75622ebe
-	docker pull registry:2
-	docker pull kamon/grafana_graphite:3.0
+	@bash -c ' \
+		for i in $(FETCH_IMAGE_LIST); do \
+			docker pull $$i; \
+		done'
+
+fetch-jenkins: fetch
 
 purge-venv:
 	rm -fr ${VENVDIR}
 
 rebuild-venv: purge-venv venv
 
+ifneq ($(VOLTHA_BUILD),docker)
 venv: ${VENVDIR}/.built
+else
+venv:
+endif
 
 ${VENVDIR}/.built:
 	@ virtualenv ${VENVDIR}
@@ -308,48 +409,172 @@ ${VENVDIR}/.built:
 	        uname -s > ${VENVDIR}/.built; \
 	    fi
 
+ifneq ($(VOLTHA_BUILD),docker)
 test: venv protos run-as-root-tests
 	@ echo "Executing all tests"
 	. ${VENVDIR}/bin/activate && \
 	nosetests -s tests \
 	--exclude-dir=./tests/itests/run_as_root/
+else
+test: protos test_runner run-as-root-tests
+	docker run \
+		-e VOLTHA_BUILD=docker \
+		-e REGISTRY=${REGISTRY} \
+		-e REPOSITORY=${REPOSITORY} \
+		-e TAG=${TAG} \
+		-e DOCKER_HOST_IP=${DOCKER_HOST_IP} \
+		--rm --net=host -v /var/run/docker.sock:/var/run/docker.sock \
+		${REGISTRY}${REPSOITORY}voltha-test_runner:${TAG} \
+		nosetests -s tests --exclude-dir=./tests/itests/run_as_root/
+endif
 
+ifneq ($(VOLTHA_BUILD),docker)
 utest: venv protos
 	@ echo "Executing all unit tests"
 	. ${VENVDIR}/bin/activate && \
 	    for d in $$(find ./tests/utests -type d|sort -nr); do echo $$d:; nosetests $$d; done
+else
+utest: protos test_runner
+	docker run \
+		-e VOLTHA_BUILD=docker \
+		-e REGISTRY=${REGISTRY} \
+		-e REPOSITORY=${REPOSITORY} \
+		-e TAG=${TAG} \
+		-e DOCKER_HOST_IP=${DOCKER_HOST_IP} \
+		--rm --net=host -v /var/run/docker.sock:/var/run/docker.sock \
+		${REGISTRY}${REPSOITORY}voltha-test_runner:${TAG} \
+		bash -c \
+		'for d in $$(find ./tests/utests -type d|sort -nr); do \
+			echo $$d:; \
+			nosetests $$d; \
+		done'
+endif
 
+ifneq ($(VOLTHA_BUILD),docker)
 utest-with-coverage: venv protos
 	@ echo "Executing all unit tests and producing coverage results"
 	. ${VENVDIR}/bin/activate && \
         for d in $$(find ./tests/utests -type d|sort -nr); do echo $$d:; \
 	nosetests --with-xcoverage --with-xunit --cover-package=voltha,common,ofagent $$d; done
+else
+utest-with-coverage: protos test_runner
+	@echo "Executing all unit tests and producing coverage results"
+	docker run \
+		-e VOLTHA_BUILD=docker \
+		-e REGISTRY=${REGISTRY} \
+		-e REPOSITORY=${REPOSITORY} \
+		-e TAG=${TAG} \
+		-e DOCKER_HOST_IP=${DOCKER_HOST_IP} \
+		--rm --net=host -v /var/run/docker.sock:/var/run/docker.sock \
+		${REGISTRY}${REPSOITORY}voltha-test_runner:${TAG} \
+		bash -c \
+		'for d in $$(find ./tests/utests -type d|sort -nr); do \
+			echo $$d:; \
+			nosetests --with-xcoverage --with-xunit --cover-package=voltha,common,ofagent $$d; \
+		done'
+endif
 
+ifneq ($(VOLTHA_BUILD),docker)
 itest: venv run-as-root-tests
 	@ echo "Executing all integration tests"
 	. ${VENVDIR}/bin/activate && \
+	rm -rf /tmp/fluentd/* && \
+	REGISTRY=${REGISTRY} \
+	REPOSITORY=${REPOSITORY} \
+	TAG=${TAG} \
+	DOCKER_HOST_IP=${DOCKER_HOST_IP} \
 	nosetests -s  \
-	tests/itests/docutests/build_md_test.py \
-	--exclude-dir=./tests/utests/ \
-	--exclude-dir=./tests/itests/run_as_root/
+		tests/itests/docutests/build_md_test.py \
+		--exclude-dir=./tests/utests/ \
+		--exclude-dir=./tests/itests/run_as_root/
+else
+itest: protos test_runner
+	@ echo "Executing all integration tests"
+	docker run \
+		-e VOLTHA_BUILD=docker \
+		-e REGISTRY=${REGISTRY} \
+		-e REPOSITORY=${REPOSITORY} \
+		-e TAG=${TAG} \
+		-e DOCKER_HOST_IP=${DOCKER_HOST_IP} \
+		--rm --net=host -v /var/run/docker.sock:/var/run/docker.sock \
+		${REGISTRY}${REPSOITORY}voltha-test_runner:${TAG} \
+		nosetests -s  \
+			tests/itests/docutests/build_md_test.py \
+			--exclude-dir=./tests/utests/ \
+			--exclude-dir=./tests/itests/run_as_root/
+endif
 
+ifneq ($(VOLTHA_BUILD),docker)
 smoke-test: venv run-as-root-tests
 	@ echo "Executing smoke tests"
 	. ${VENVDIR}/bin/activate && \
+	rm -rf /tmp/fluentd/* && \
+	REGISTRY=${REGISTRY} \
+	REPOSITORY=${REPOSITORY} \
+	TAG=${TAG} \
+	DOCKER_HOST_IP=${DOCKER_HOST_IP} \
 	nosetests -s  \
 	tests/itests/docutests/build_md_test.py:BuildMdTests.test_07_start_all_containers \
 	--exclude-dir=./tests/itests/run_as_root/
+else
+smoke-test: protos test_runner run-as-root-tests
+	@ echo "Executing smoke tests"
+	docker run \
+		-e VOLTHA_BUILD=docker \
+		-e REGISTRY=${REGISTRY} \
+		-e REPOSITORY=${REPOSITORY} \
+		-e TAG=${TAG} \
+		-e DOCKER_HOST_IP=${DOCKER_HOST_IP} \
+		--rm --net=host -v /var/run/docker.sock:/var/run/docker.sock \
+		${REGISTRY}${REPSOITORY}voltha-test_runner:${TAG} \
+		nosetests -s  \
+			tests/itests/docutests/build_md_test.py:BuildMdTests.test_07_start_all_containers \
+			--exclude-dir=./tests/itests/run_as_root/
+endif
 
+ifneq ($(VOLTHA_BUILD),docker)
 jenkins-test: venv
 	@ echo "Executing jenkins smoke tests"
 	. ${VENVDIR}/bin/activate && \
+	rm -rf /tmp/fluentd/* && \
+	REGISTRY=${REGISTRY} \
+	REPOSITORY=${REPOSITORY} \
+	TAG=${TAG} \
+	DOCKER_HOST_IP=${DOCKER_HOST_IP} \
 	nosetests -s  \
-	tests/itests/docutests/build_md_test.py:BuildMdTests.test_07_start_all_containers \
-	--exclude-dir=./tests/itests/run_as_root/
+		tests/itests/docutests/build_md_test.py:BuildMdTests.test_07_start_all_containers \
+		--exclude-dir=./tests/itests/run_as_root/
+else
+jenkins-test: protos test_runner
+	@ echo "Executing jenkins smoke tests"
+	@ echo "Starting VOLTHA as docker-compose services"
+	docker run \
+		-e REGISTRY=${REGISTRY} \
+		-e REPOSITORY=${REPOSITORY} \
+		-e TAG=${TAG} \
+		-e DOCKER_HOST_IP=${DOCKER_HOST_IP} \
+		--rm --net=host -v /var/run/docker.sock:/var/run/docker.sock \
+		${REGISTRY}${REPSOITORY}voltha-test_runner:${TAG} \
+		nosetests -s \
+			tests/itests/docutests/build_md_test.py:BuildMdTests.test_07_start_all_containers \
+			--exclude-dir=./tests/itests/run_as_root/
+endif
 
-
+ifneq ($(VOLTHA_BUILD),docker)
 run-as-root-tests:
 	docker run -i --rm -v /cord/incubator/voltha:/voltha --privileged ${REGISTRY}${REPOSITORY}voltha-base:${TAG} env PYTHONPATH=/voltha python /voltha/tests/itests/run_as_root/test_frameio.py
+else
+run-as-root-tests:
+	docker run \
+		-e VOLTHA_BUILD=docker \
+		-e REGISTRY=${REGISTRY} \
+		-e REPOSITORY=${REPOSITORY} \
+		-e TAG=${TAG} \
+		-e DOCKER_HOST_IP=${DOCKER_HOST_IP} \
+		--rm --privileged \
+		${REGISTRY}${REPOSITORY}voltha-test_runner:${TAG} \
+		env PYTHONPATH=/work python tests/itests/run_as_root/test_frameio.py
+endif
 
 flake8: $(DIRS_FLAKE8)
 
