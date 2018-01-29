@@ -5,19 +5,7 @@ hosts: [
 use_latest_for:
   - debian-keyring
   - debian-archive-keyring
-  - python-dev
-  - kafkacat
-  - libssl-dev
-  - libffi-dev
-  - libpcap-dev
-  - libxml2-dev
-  - libxslt1-dev
-  - python-virtualenv
   - jq
-  - python-nose
-  - python-flake8
-  - python-scapy
-#  - python-libpcap
 
 obsolete_services:
   - puppet

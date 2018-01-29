@@ -3,6 +3,7 @@
   serial: 1
   roles:
     - common
+    - voltha-dev
     - docker
     - docker-compose
     - java
