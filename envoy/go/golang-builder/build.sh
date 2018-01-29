@@ -58,7 +58,7 @@ for pkg in ${main_packages[@]}
 do
     # Grab the last segment from the package name
     name=${pkg##*/}
-    echo "* Building Go binary: $pkg"
+    echo "* Building Go binary: $pkg to goPath/src/$pkg/$name"
 
     flags=(-a -installsuffix cgo)
     ldflags=('-s -X main.version='$BUILD_VERSION)
@@ -74,6 +74,12 @@ do
     if [[ $COMPRESS_BINARY == "true" ]];
     then
       goupx $name
+    fi
+
+    if [ "$OUTPUT X" != " X" ]; then
+        echo "* Copy Go Binary to \"$OUTPUT/$name\""
+        mkdir -p $OUTPUT
+        cp "$goPath/src/$pkg/$name" "$OUTPUT/$name"
     fi
 
     if [ -e "/var/run/docker.sock" ] && [ -e "$goPath/src/$pkg/Dockerfile" ];
