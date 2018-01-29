@@ -72,9 +72,15 @@ Vagrant.configure(2) do |config|
     end
     d.vm.hostname = "#{settings['server_name']}"
     d.vm.network "private_network", ip: "10.100.198.220"
+    d.ssh.shell = "bash -c 'BASH_ENV=/etc/profile exec bash'"
     d.vm.provision :shell, path: "ansible/scripts/bootstrap_ansible.sh"
-    d.vm.provision :shell, inline: "PYTHONUNBUFFERED=1 ansible-playbook /cord/incubator/voltha/ansible/voltha.yml -c local"
-    d.vm.provision :shell, inline: "cd /cord/incubator/voltha && source env.sh && make install-protoc && chmod 777 /tmp/fluentd"
+    if "docker" == "#{settings['build_mode']}"
+	    d.vm.provision :shell, inline: "PYTHONUNBUFFERED=1 ansible-playbook /vagrant/ansible/voltha-docker.yml -c local"
+    else
+      d.vm.provision :shell, inline: "PYTHONUNBUFFERED=1 ansible-playbook /cord/incubator/voltha/ansible/voltha.yml -c local"
+      d.vm.provision :shell, inline: "cd /cord/incubator/voltha && source env.sh && make install-protoc"
+    end
+    d.vm.provision :shell, inline: "mkdir -p /tmp/fluentd && chmod 777 /tmp/fluentd"
     d.vm.provider Provider do |v|
       v.memory = 6144
       v.cpus = 4
