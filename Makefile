@@ -14,8 +14,10 @@
 # limitations under the License.
 #
 
+ifneq ($(VOLTHA_BUILD),docker)
 ifeq ($(VOLTHA_BASE)_set,_set)
 $(error To get started, please source the env.sh file)
+endif
 endif
 
 ifeq ($(TAG),)
@@ -51,6 +53,7 @@ VENVDIR := venv-$(shell uname -s | tr '[:upper:]' '[:lower:]')
 
 DOCKER_IMAGE_LIST = \
 	base \
+	protos \
 	voltha \
 	ofagent \
 	tools \
@@ -258,9 +261,13 @@ pull: $(patsubst  %,%.pull,$(DOCKER_IMAGE_LIST))
 	docker pull ${REGISTRY}${REPOSITORY}voltha-$(subst .pull,,$@):${TAG}
 
 protos:
+ifneq ($(VOLTHA_BUILD),docker)
 	make -C voltha/protos
 	make -C ofagent/protos
 	make -C netconf/protos
+else
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-protos:${TAG} -f docker/Dockerfile.protos .
+endif
 
 install-protoc:
 	make -C voltha/protos install-protoc
