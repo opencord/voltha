@@ -1,0 +1,13 @@
+---
+# The name to use for the server
+server_name: "voltha-docker"
+# Use virtualbox for development
+vProvider: "virtualbox"
+build_mode: "docker"
+#vagrant_box: "ubuntu/xenial64"
+# This determines if test mode is active
+testMode: "false"
+# This determines if installer mode is active
+installMode: "false"
+# Use KVM for production
+#vProvider: "KVM"
