@@ -1,0 +1,17 @@
+use_latest_for:
+  - python-dev
+  - kafkacat
+  - libssl-dev
+  - libffi-dev
+  - libpcap-dev
+  - libxml2-dev
+  - libxslt1-dev
+  - python-virtualenv
+  - python-nose
+  - python-flake8
+  - python-scapy
+#  - python-libpcap
+
+obsolete_services:
+  - puppet
+  - chef-client
