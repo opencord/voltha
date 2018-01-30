@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "ed1f0515_864248dc",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 9
+      },
+      "lineNbr": 1762,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-01-30T14:22:13Z",
+      "side": 1,
+      "message": "Ok. Addressed the comment.",
+      "parentUuid": "6df2587c_18782562",
+      "range": {
+        "startLine": 1762,
+        "startChar": 8,
+        "endLine": 1762,
+        "endChar": 18
+      },
+      "revId": "0e5fdda2e9b6ff0512cd15e0ebd23bfe0e799f18",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b1a4e50d_90dd62e6",
         "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
         "patchSetId": 9
@@ -36,6 +60,24 @@
       "writtenOn": "2018-01-25T12:29:21Z",
       "side": 1,
       "message": "We have the entire functionality from line 1772 defined in the local function \"update_logical_port\". Why not use the same rather than duplicating the code.?\nYou may have to rebase with https://gerrit.opencord.org/#/c/7853/",
+      "revId": "0e5fdda2e9b6ff0512cd15e0ebd23bfe0e799f18",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "8ab91680_0f88f6c6",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 9
+      },
+      "lineNbr": 1772,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-01-30T14:22:13Z",
+      "side": 1,
+      "message": "OK. Addressed the comment",
+      "parentUuid": "b1a4e50d_90dd62e6",
       "revId": "0e5fdda2e9b6ff0512cd15e0ebd23bfe0e799f18",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
