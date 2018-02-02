@@ -1,0 +1,56 @@
+#
+# The grafana service
+#
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+spec:
+  clusterIP: None
+  selector:
+    app: grafana
+  ports:
+  - name: ui-port
+    protocol: TCP
+    port: 8883
+    targetPort: 80
+  - name: port-2003
+    protocol: TCP
+    port: 2003
+    targetPort: 2003
+  - name: port-2004
+    protocol: TCP
+    port: 2004
+    targetPort: 2004
+  - name: port-8126
+    protocol: TCP
+    port: 8126
+    targetPort: 8126
+  - name: port-8125
+    protocol: TCP
+    port: 8125
+    targetPort: 8125
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: grafana
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+      - name: grafana
+        image: kamon/grafana_graphite:3.0
+        ports:
+        - containerPort: 80
+        - containerPort: 2003
+        - containerPort: 2004
+        - containerPort: 8126
+        - containerPort: 8125
+        env:
+        - name: GR_SERVER_ROOT_URL
+          value: "http://localhost:80/grafana/"

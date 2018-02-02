@@ -34,7 +34,7 @@ spec:
               topologyKey: kubernetes.io/hostname
       containers:
       - name: netconf
-        image: "cord/netconf:latest"
+        image: voltha-netconf
         imagePullPolicy: Never
         ports:
         - containerPort: 830

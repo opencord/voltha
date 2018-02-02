@@ -25,7 +25,7 @@ spec:
     spec:
       containers:
         - name: vcli
-          image: "cord/vcli:latest"
+          image: voltha-cli
           env:
             - name: POD_IP
               valueFrom:

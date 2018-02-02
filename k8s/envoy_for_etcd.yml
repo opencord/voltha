@@ -35,7 +35,7 @@ spec:
     spec:
       containers:
         - name: voltha
-          image: "voltha/envoy:latest"
+          image: voltha-envoy
           env:
             - name: POD_IP
               valueFrom:

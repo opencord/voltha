@@ -46,7 +46,7 @@ spec:
             topologyKey: kubernetes.io/hostname
       containers:
       - name: fluentdactv
-        image: cord/fluentd
+        image: voltha-fluentd
         imagePullPolicy: Never
         volumeMounts:
         - name: fluentd-log
@@ -106,7 +106,7 @@ spec:
             topologyKey: kubernetes.io/hostname
       containers:
       - name: fluentdstby
-        image: cord/fluentd
+        image: voltha-fluentd
         imagePullPolicy: Never
         volumeMounts:
         - name: fluentd-log
@@ -162,7 +162,7 @@ spec:
             topologyKey: kubernetes.io/hostname
       containers:
       - name: fluentd
-        image: cord/fluentd
+        image: voltha-fluentd
         imagePullPolicy: Never
         ports:
         - containerPort: 24224
