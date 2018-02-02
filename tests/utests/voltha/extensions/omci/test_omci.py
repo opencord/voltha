@@ -1111,7 +1111,7 @@ class TestSelectMessageGeneration(TestCase):
         ]
         mask = "%5s %9s %20s %9s %s"
         print
-        print mask % ("seq", "class_id", "class", "instance", "attributes")
+      print mask % ("seq", "class_id", "class", "instance", "attributes")
         for i, data in enumerate(refs):
             frame = OmciFrame(hex2raw(data))
             omci = frame.omci_message
@@ -1124,6 +1124,9 @@ class TestSelectMessageGeneration(TestCase):
                 '\n                                               '.join(
                     '%s: %s' % (k, v) for k, v in omci.object_data.items())
             )
+
+
+
 
 
 if __name__ == '__main__':
