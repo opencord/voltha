@@ -5,6 +5,7 @@ metadata:
   labels:
     name: consul
 spec:
+  type: ClusterIP
   clusterIP: None
   ports:
     - name: http
@@ -85,12 +86,9 @@ spec:
             - "-retry-join=consul-2.consul.$(NAMESPACE).svc.cluster.local"
             - "-client=0.0.0.0"
             - "-config-dir=/consul/config"
-            - "-datacenter=dc1"
             - "-data-dir=/consul/data"
-            - "-domain=cluster.local"
             - "-server"
             - "-ui"
-            - "-disable-host-node-id"
           lifecycle:
             preStop:
               exec:

@@ -32,7 +32,7 @@ spec:
     spec:
       containers:
       - name: voltha
-        image: "cord/voltha:latest"
+        image: voltha-voltha
         imagePullPolicy: Never
         ports:
         - containerPort: 8880

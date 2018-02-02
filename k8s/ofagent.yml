@@ -22,7 +22,7 @@ spec:
             topologyKey: kubernetes.io/hostname
       containers:
       - name: ofagent
-        image: cord/ofagent
+        image: voltha-ofagent
         imagePullPolicy: Never
         env:
         - name: NAMESPACE
