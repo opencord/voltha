@@ -1125,6 +1125,5 @@ class TestSelectMessageGeneration(TestCase):
                     '%s: %s' % (k, v) for k, v in omci.object_data.items())
             )
 
-
 if __name__ == '__main__':
     main()
