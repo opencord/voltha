@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "f44ed437_5d903f19",
+        "filename": "compose/voltha-stack.yml.j2",
+        "patchSetId": 1
+      },
+      "lineNbr": 316,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2018-02-05T17:41:51Z",
+      "side": 1,
+      "message": "do we want to set the onos creds here, if only as an example",
+      "range": {
+        "startLine": 316,
+        "startChar": 4,
+        "endLine": 316,
+        "endChar": 15
+      },
+      "revId": "eda4522a3dba2ecfe728cd9557254cdb232859a8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
