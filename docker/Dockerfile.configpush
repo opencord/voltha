@@ -17,6 +17,7 @@ FROM alpine:3.6
 RUN apk --update add curl
 
 COPY config/config-push /config-push
+RUN chmod +x /config-push
 COPY config/onos-config.json /data/onos-config.json
 
 VOLUME ["/data"]
