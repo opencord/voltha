@@ -22,6 +22,30 @@
       "revId": "eda4522a3dba2ecfe728cd9557254cdb232859a8",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "556befe3_2b8cca68",
+        "filename": "compose/voltha-stack.yml.j2",
+        "patchSetId": 1
+      },
+      "lineNbr": 316,
+      "author": {
+        "id": 1000005
+      },
+      "writtenOn": "2018-02-05T17:48:15Z",
+      "side": 1,
+      "message": "yeah good suggestion",
+      "parentUuid": "f44ed437_5d903f19",
+      "range": {
+        "startLine": 316,
+        "startChar": 4,
+        "endLine": 316,
+        "endChar": 15
+      },
+      "revId": "eda4522a3dba2ecfe728cd9557254cdb232859a8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
