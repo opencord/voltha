@@ -302,6 +302,24 @@ services:
     networks:
       - voltha-net
 
+  config_push:
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    image: "${REGISTRY}${REPOSITORY}voltha-config-push:${TAG:-latest}"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: 3
+    environment:
+      ONOS_CONNECTION: "onos:8181"
+      ONOS_USER: "karaf"
+      ONOS_PASSWORD: "karaf"
+    networks:
+      - voltha-net
+
   # The VCORE container is the core capabilities of VOLTHA including
   # interacting with device adapters
   vcore:
@@ -353,6 +371,9 @@ services:
       - --controller=onos:6653
       - --grpc-endpoint=vcore:50556
       - --instance-id-is-container-name
+      - --enable-tls
+      - --key-file=/ofagent/pki/voltha.key
+      - --cert-file=/ofagent/pki/voltha.crt
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock
     networks:
