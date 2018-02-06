@@ -18,7 +18,12 @@ from scapy.fields import PadField
 from scapy.packet import Raw
 
 
-class OmciUninitializedFieldError(Exception): pass
+class OmciUninitializedFieldError(Exception):
+    pass
+
+
+class OmciInvalidTypeError(Exception):
+    pass
 
 
 class FixedLenField(PadField):
@@ -87,7 +92,7 @@ class EntityOperations(Enum):
     AttributeValueChange = 17
     Test = 18
     StartSoftwareDownload = 19
-    DownlaodSection = 20
+    DownloadSection = 20
     EndSoftwareDownload = 21
     ActivateSoftware = 22
     CommitSoftware = 23
@@ -96,5 +101,4 @@ class EntityOperations(Enum):
     GetNext = 26
     TestResult = 27
     GetCurrentData = 28
-
-
+    SetTable = 29       # Defined in Extended Message Set Only
