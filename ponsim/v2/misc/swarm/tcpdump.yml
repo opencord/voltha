@@ -1,0 +1,44 @@
+version: "3.2"
+services:
+    tcpdump_wan:
+        image: tcpdump
+        deploy:
+            mode: global
+        networks: 
+            - wan
+#    tcpdump_lan:
+#        image: tcpdump
+#        deploy:
+#            mode: global
+#        networks:
+#            - lan
+#    tcpdump_internal:
+#        image: tcpdump
+#        deploy:
+#            mode: global
+#        networks:
+#            - internal
+#
+networks:
+#    wan:
+#        external:
+#            name: ponsim_wan
+#    lan:
+#        external:
+#            name: ponsim_lan
+#    internal:
+#        external:
+#            name: ponsim_internal
+#    internal:
+#        external:
+#            #name: ponsim_intra_pon
+#            name: ponsim_internal
+    wan:
+        external:
+            #name: voltha_voltha-net
+            name: ponsim_wan
+#
+#    lan:
+#        external:
+#            #name: voltha_pon-net
+##            name: pon_net

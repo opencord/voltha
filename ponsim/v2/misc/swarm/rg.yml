@@ -1,0 +1,13 @@
+version: "3.2"
+services:
+    olt:
+        image: cord/tester
+        networks:
+            - wan
+        entrypoint:
+            - /sbin/wpa_supplicant -Dwired -ieth0 -c /etc/wpa_supplicant/wpa_supplicant.conf
+
+networks:
+    wan:
+        external:
+            name: ponsim_wan

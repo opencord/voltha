@@ -1,0 +1,34 @@
+# build stage
+FROM golang:alpine AS build-env
+
+# Install required packages
+RUN apk add --no-cache wget git libpcap-dev make build-base protobuf
+
+# Prepare directory structure
+RUN ["mkdir", "-p", "/src/pki", "$GOPATH/src", "$GOPATH/pkg", "$GOPATH/bin"]
+RUN ["mkdir", "-p", "$GOPATH/src/github.com/opencord/voltha/ponsim/v2"]
+
+# Copy files 
+ADD . $GOPATH/src/github.com/opencord/voltha/ponsim/v2
+ADD . /src
+ADD pki /src/pki
+
+# Install golang protobuf and pcap support
+RUN go get -u github.com/golang/protobuf/protoc-gen-go
+RUN go get -u github.com/google/gopacket/pcap
+
+# Build 
+RUN cd /src && go get -d ./... && go build -o app
+
+# final stage
+FROM alpine
+
+# Install required packages
+RUN apk add --no-cache libpcap-dev
+WORKDIR /app
+
+# Copy required filesa
+COPY --from=build-env /src/app /app/
+COPY --from=build-env /src/pki /app/pki
+
+ENV VOLTHA_BASE /app

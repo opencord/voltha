@@ -1,0 +1,69 @@
+#------------------------------------
+#
+# Build stage
+#
+#------------------------------------
+
+FROM ubuntu:xenial AS build-env
+
+# Install required libraries
+RUN apt-get update && apt-get install -y wget git libpcap-dev make gcc
+
+# Install go distribution
+RUN set -e -x; \
+    cd /tmp; \
+    wget https://storage.googleapis.com/golang/go1.9.1.linux-amd64.tar.gz; \
+    tar -C /usr/local -xzf /tmp/go1.9.1.linux-amd64.tar.gz; \
+    rm -f /tmp/go1.9.1.linux-amd64.tar.gz
+
+# Go environment settings
+ENV GOROOT /usr/local/go
+ENV GOPATH /go
+ENV PATH $PATH:$GOROOT/bin:$GOPATH/bin
+
+# Prepare directory structure
+RUN ["mkdir", "-p", "/src/pki", "$GOPATH/src", "$GOPATH/pkg", "$GOPATH/bin"]
+RUN ["mkdir", "-p", "$GOPATH/src/github.com/opencord/voltha/ponsim/v2"]
+
+# Copy files
+ADD . $GOPATH/src/github.com/opencord/voltha/ponsim/v2
+ADD . /src
+ADD pki /src/pki/
+
+# Install PCAP and all required packages
+RUN go get -u github.com/google/gopacket/pcap
+
+# Install debugging tools (optional)
+#RUN go get -u github.com/derekparker/delve/cmd/dlv
+#RUN cd /src && go get -d ./...  && go build -gcflags='-N -l' -o app
+
+#------------------------------------
+#
+# Final image stage
+#
+#------------------------------------
+FROM ubuntu:xenial
+
+WORKDIR /app
+COPY --from=build-env /src /app/
+
+# Install required libraries
+RUN apt-get update && apt-get install -y wget libpcap-dev
+
+# Install optional libraries and files
+#RUN apt-get install -y net-tools telnet iputils-ping wpasupplicant tcpdump
+#COPY wpa_supplicant.conf /etc/wpa_supplicant/
+
+ENV VOLTHA_BASE /app
+
+# Install go distribution (for debugging tools)
+#RUN set -e -x; \
+#    cd /tmp; \
+#    wget https://storage.googleapis.com/golang/go1.9.1.linux-amd64.tar.gz; \
+#    tar -C /usr/local -xzf /tmp/go1.9.1.linux-amd64.tar.gz; \
+#    rm -f /tmp/go1.9.1.linux-amd64.tar.gz
+
+#COPY --from=build-env /go /go/
+#ENV GOROOT /usr/local/go
+#ENV GOPATH /go
+#ENV PATH $PATH:$GOROOT/bin:$GOPATH/bin

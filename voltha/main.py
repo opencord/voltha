@@ -225,6 +225,12 @@ def parse_args():
                         choices=['none', 'consul', 'etcd'],
                         help=_help)
 
+    _help = "disable use of frameio mechanism"
+    parser.add_argument('--no-frameio',
+                        dest='no_frameio',
+                        action='store_true',
+                        help=_help)
+
     args = parser.parse_args()
 
     # post-processing

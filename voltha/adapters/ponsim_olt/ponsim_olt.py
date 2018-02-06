@@ -26,6 +26,7 @@ import json
 import structlog
 from scapy.layers.l2 import Ether, Dot1Q
 from scapy.layers.inet import Raw
+from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
 
 from common.frameio.frameio import BpfProgramFilter, hexify
@@ -39,14 +40,13 @@ from voltha.protos.common_pb2 import OperStatus, ConnectStatus, AdminState
 from voltha.protos.device_pb2 import Port, Device, PmConfig, PmConfigs
 from voltha.protos.events_pb2 import KpiEvent, KpiEventType, MetricValuePairs
 from google.protobuf.empty_pb2 import Empty
-
 from voltha.protos.logical_device_pb2 import LogicalPort, LogicalDevice
 from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, \
     OFPPF_1GB_FD, \
     OFPC_GROUP_STATS, OFPC_PORT_STATS, OFPC_TABLE_STATS, OFPC_FLOW_STATS, \
     ofp_switch_features, ofp_desc
 from voltha.protos.openflow_13_pb2 import ofp_port
-from voltha.protos.ponsim_pb2 import FlowTable
+from voltha.protos.ponsim_pb2 import FlowTable, PonSimFrame
 from voltha.registry import registry
 
 from voltha.protos.bbf_fiber_base_pb2 import \
@@ -58,6 +58,7 @@ from voltha.protos.bbf_fiber_tcont_body_pb2 import TcontsConfigData
 from voltha.protos.bbf_fiber_gemport_body_pb2 import GemportsConfigData
 from voltha.protos.bbf_fiber_multicast_gemport_body_pb2 import \
     MulticastGemportsConfigData
+
 from voltha.protos.bbf_fiber_multicast_distribution_set_body_pb2 import \
     MulticastDistributionSetData
 
@@ -154,6 +155,10 @@ class AdapterPmMetrics:
         self.lc = LoopingCall(callback, self.device.id, prefix)
         self.lc.start(interval=self.default_freq / 10)
 
+    def stop_collector(self):
+        log.info("stopping-pm-collection", device_name=self.name,
+                 device_id=self.device.id)
+        self.lc.stop()
 
 class AdapterAlarms:
     def __init__(self, adapter, device):
@@ -346,6 +351,7 @@ class PonSimOltHandler(object):
         self.nni_port = None
         self.ofp_port_no = None
         self.interface = registry('main').get_args().interface
+        self.no_frameio = registry('main').get_args().no_frameio
         self.pm_metrics = None
         self.alarms = None
 
@@ -453,7 +459,8 @@ class PonSimOltHandler(object):
             ),
             root_device_id=device.id
         )
-        mac_address = "AA:BB:CC:DD:EE:FF"
+        # mac_address = "AA:BB:CC:DD:EE:FF"
+        mac_address = info.mac_address
         ld_initialized = self.adapter_agent.create_logical_device(ld,
                                                                   dpid=mac_address)
         cap = OFPPF_1GB_FD | OFPPF_FIBER
@@ -499,11 +506,16 @@ class PonSimOltHandler(object):
                 vlan=vlan_id
             )
 
-        # finally, open the frameio port to receive in-band packet_in messages
-        self.log.info('registering-frameio')
-        self.io_port = registry('frameio').open_port(
-            self.interface, self.rcv_io, is_inband_frame)
-        self.log.info('registered-frameio')
+        if self.no_frameio:
+            self.log.info('starting-frame-grpc-stream')
+            reactor.callInThread(self.rcv_grpc)
+            self.log.info('started-frame-grpc-stream')
+        else:
+            # finally, open the frameio port to receive in-band packet_in messages
+            self.log.info('registering-frameio')
+            self.io_port = registry('frameio').open_port(
+                self.interface, self.rcv_io, is_inband_frame)
+            self.log.info('registered-frameio')
 
         # Start collecting stats from the device after a brief pause
         self.start_kpi_collection(device.id)
@@ -557,21 +569,24 @@ class PonSimOltHandler(object):
         # Reconcile child devices
         self.adapter_agent.reconcile_child_devices(device.id)
 
-        # finally, open the frameio port to receive in-band packet_in messages
-        self.io_port = registry('frameio').open_port(
-            self.interface, self.rcv_io, is_inband_frame)
+        if self.no_frameio:
+            reactor.callInThread(self.rcv_grpc)
+        else:
+            # finally, open the frameio port to receive in-band packet_in messages
+            self.io_port = registry('frameio').open_port(
+                self.interface, self.rcv_io, is_inband_frame)
 
         # Start collecting stats from the device after a brief pause
         self.start_kpi_collection(device.id)
 
         self.log.info('reconciling-OLT-device-ends')
 
-    def rcv_io(self, port, frame):
-        self.log.info('received', iface_name=port.iface_name,
-                      frame_len=len(frame))
+    def _rcv_frame(self, frame):
         pkt = Ether(frame)
+
         if pkt.haslayer(Dot1Q):
             outer_shim = pkt.getlayer(Dot1Q)
+
             if isinstance(outer_shim.payload, Dot1Q):
                 inner_shim = outer_shim.payload
                 cvid = inner_shim.vlan
@@ -590,6 +605,25 @@ class PonSimOltHandler(object):
             elif pkt.haslayer(Raw):
                 raw_data = json.loads(pkt.getlayer(Raw).load)
                 self.alarms.send_alarm(self, raw_data)
+
+    @inlineCallbacks
+    def rcv_grpc(self):
+        """
+        This call establishes a GRPC stream to receive frames.
+        """
+        stub = ponsim_pb2.PonSimStub(self.get_channel())
+
+        # Attempt to establish a grpc stream with the remote ponsim service
+        frames = stub.ReceiveFrames(Empty())
+
+        for frame in frames:
+            self.log.info('received-grpc-frame', frame_len=len(frame.payload))
+            self._rcv_frame(frame.payload)
+
+    def rcv_io(self, port, frame):
+        self.log.info('received-io-frame', iface_name=port.iface_name,
+                      frame_len=len(frame))
+        self._rcv_frame(frame)
 
     def update_flow_table(self, flows):
         stub = ponsim_pb2.PonSimStub(self.get_channel())
@@ -623,7 +657,16 @@ class PonSimOltHandler(object):
             Dot1Q(vlan=egress_port, type=pkt.type) /
             pkt.payload
         )
-        self.io_port.send(str(out_pkt))
+
+        if self.no_frameio:
+            # send over grpc stream
+            stub = ponsim_pb2.PonSimStub(self.get_channel())
+            frame = PonSimFrame(id=self.device_id, payload=str(out_pkt))
+            stub.SendFrame(frame)
+        else:
+            # send over frameio
+            self.io_port.send(str(out_pkt))
+
 
     @inlineCallbacks
     def reboot(self):
@@ -672,6 +715,8 @@ class PonSimOltHandler(object):
 
     def disable(self):
         self.log.info('disabling', device_id=self.device_id)
+
+        self.stop_kpi_collection()
 
         # Get the latest device reference
         device = self.adapter_agent.get_device(self.device_id)
@@ -788,9 +833,13 @@ class PonSimOltHandler(object):
         self.adapter_agent.update_child_devices_state(device.id,
                                                       admin_state=AdminState.ENABLED)
 
-        # finally, open the frameio port to receive in-band packet_in messages
-        self.io_port = registry('frameio').open_port(
-            self.interface, self.rcv_io, is_inband_frame)
+        if self.no_frameio:
+            # establish frame grpc-stream
+            reactor.callInThread(self.rcv_grpc)
+        else:
+            # finally, open the frameio port to receive in-band packet_in messages
+            self.io_port = registry('frameio').open_port(
+                self.interface, self.rcv_io, is_inband_frame)
 
         self.log.info('re-enabled', device_id=device.id)
 
@@ -838,6 +887,10 @@ class PonSimOltHandler(object):
                 log.exception('failed-to-submit-kpis', e=e)
 
         self.pm_metrics.start_collector(_collect)
+
+    def stop_kpi_collection(self):
+        self.pm_metrics.stop_collector()
+
 
     def get_interface_config(self, data):
         interfaceConfig = InterfaceConfig()

@@ -79,6 +79,7 @@ DOCKER_IMAGE_LIST = \
 	grafana \
 	onos \
 	unum \
+	ponsim \
 	tester \
 	config-push \
 	j2 \
@@ -135,7 +136,7 @@ FETCH_K8S_IMAGE_LIST = \
 
 FETCH_IMAGE_LIST = $(shell echo $(FETCH_BUILD_IMAGE_LIST) $(FETCH_COMPOSE_IMAGE_LIST) $(FETCH_K8S_IMAGE_LIST) | tr ' ' '\n' | sort -u)
 
-.PHONY: $(DIRS) $(DIRS_CLEAN) $(DIRS_FLAKE8) flake8 base voltha ofagent netconf shovel onos dashd cli portainer grafana nginx consul envoy go-builder envoyd tools opennms logstash unum start stop tag push pull
+.PHONY: $(DIRS) $(DIRS_CLEAN) $(DIRS_FLAKE8) flake8 base voltha ofagent netconf shovel onos dashd cli portainer grafana nginx consul envoy go-builder envoyd tools opennms logstash unum ponsim start stop tag push pull
 
 # This should to be the first and default target in this Makefile
 help:
@@ -170,6 +171,7 @@ help:
 	@echo "nginx        : Build the nginx docker container"
 	@echo "consul       : Build the consul docker container"
 	@echo "unum         : Build the unum docker container"
+	@echo "ponsim       : Build the ponsim docker container"
 	@echo "j2           : Build the Jinja2 template container"
 	@echo "test_runner  : Build a container from which tests are run"
 	@echo "start        : Start VOLTHA on the current system"
@@ -219,7 +221,7 @@ jenkins-containers: base voltha ofagent netconf consul cli envoy fluentd unum j2
 
 prod-containers: base voltha ofagent netconf shovel onos dashd cli grafana consul tools envoy fluentd unum j2
 
-containers: base voltha ofagent netconf shovel onos tester config-push dashd cli portainer grafana nginx consul tools envoy fluentd unum j2 test_runner
+containers: base voltha ofagent netconf shovel onos tester config-push dashd cli portainer grafana nginx consul tools envoy fluentd unum ponsim j2 test_runner
 
 base:
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-base:${TAG} -f docker/Dockerfile.base .
@@ -320,6 +322,9 @@ opennms:
 
 logstash:
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-logstash:${TAG} -f docker/Dockerfile.logstash .
+
+ponsim:
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-ponsim:${TAG} -f docker/Dockerfile.ponsim .
 
 j2:
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-j2:${TAG} -f docker/Dockerfile.j2 docker

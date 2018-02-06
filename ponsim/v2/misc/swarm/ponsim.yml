@@ -1,0 +1,70 @@
+version: "3.2"
+services:
+    olt:
+        image: cord/ponsim-ng
+
+        deploy:
+            mode: replicated
+            replicas: 1
+
+        networks:
+            - lan
+            - internal
+
+        entrypoint:
+            - /app/app
+            - -device_type
+            - "OLT"
+            - -onus
+            - "10"
+            - -internal_if
+            - eth2
+            - -external_if
+            - eth0
+            #- -promiscuous
+            #- -alarm_sim
+            - -vcore_endpoint
+            - vcore
+
+    onu:
+        image: cord/ponsim-ng
+
+        deploy:
+            mode: replicated
+            replicas: 1
+
+        networks:
+            - internal
+            - monpont
+        entrypoint:
+            - /app/app
+            - -device_type 
+            - "ONU"
+            - -parent_addr
+            - "olt"
+            - -grpc_port 
+            - "50061"
+            - -internal_if 
+            - eth0 
+            - -external_if
+            - lo
+
+
+networks:
+    internal:
+        driver: overlay
+        driver_opts:
+           encrypted: "true"
+
+    wan:
+        driver: overlay
+        driver_opts:
+           encrypted: "true"
+
+    lan:
+        external:
+            name: pon_net
+
+    monpont:
+        external:
+            name: monmcvlan
