@@ -1,0 +1,89 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "2e0df1b8_32e39d25",
+        "filename": "ponsim/v2/misc/docker/Dockerfile.alpine",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-02-06T22:33:50Z",
+      "side": 1,
+      "message": "Are the files under \"misc\" needed?",
+      "revId": "a562357d14bc037e81f73f14078e86b00c5b452f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1005762a_b31b7ed2",
+        "filename": "ponsim/v2/ponsim.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 188,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-02-06T22:33:50Z",
+      "side": 1,
+      "message": "typo, ofagent?",
+      "revId": "a562357d14bc037e81f73f14078e86b00c5b452f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "94d69284_a268577a",
+        "filename": "voltha/adapters/ponsim_olt/ponsim_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 672,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-02-06T22:33:50Z",
+      "side": 1,
+      "message": "Do we have to re-establish the grpc channel on reboot?",
+      "revId": "a562357d14bc037e81f73f14078e86b00c5b452f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9d9cee9e_e1a8ee8f",
+        "filename": "voltha/adapters/ponsim_olt/ponsim_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 846,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-02-06T22:33:50Z",
+      "side": 1,
+      "message": "Do we need to clear the grpc channel?",
+      "revId": "a562357d14bc037e81f73f14078e86b00c5b452f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "bec74451_48eda1a2",
+        "filename": "voltha/main.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 228,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-02-06T22:33:50Z",
+      "side": 1,
+      "message": "Since ponsim is not the only adapter that uses frameio (tibit does).  This option can be confusing as setting it to no frameio will have ponsim using grpc but tibit still using frameio (requires tibit code change for that).  It may be better to have an option for ponsim only.",
+      "revId": "a562357d14bc037e81f73f14078e86b00c5b452f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
