@@ -521,7 +521,8 @@ class TestSelectMessageGeneration(TestCase):
                     port_spanning_tree_in=0,
                     lan_fcs_ind=0,
                     tp_type=11,
-                    tp_pointer=0x401
+                    tp_pointer=0x401,
+                    mac_learning_depth=0
                 )
             )
         )
