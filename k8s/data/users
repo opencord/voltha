@@ -1,0 +1,1 @@
+user Cleartext-Password := "password", MS-CHAP-Use-NTLM-Auth := 0

@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: Service
+metadata:
+   name: olt-alpha
+   labels:
+     name: olt-alpha
+spec:
+  ports:
+    - name: grpc
+      port: 50060
+      targetPort: 50060
+  selector:
+    app: olt-alpha
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: olt-alpha
+spec:
+   replicas: 1
+   template:
+     metadata:
+       labels:
+         app: olt-alpha
+       annotations:
+         cni: "weave"
+     spec:
+       containers:
+         - name: olt-alpha
+           image: "voltha-ponsim:latest"
+           env:
+             - name: POD_IP
+               valueFrom:
+                 fieldRef:
+                   fieldPath: status.podIP
+             - name: NAMESPACE
+               valueFrom:
+                 fieldRef:
+                   fieldPath: metadata.namespace
+
+           args:
+             - "/app/ponsim"
+             - "-device_type"
+             - "OLT"
+             - "-grpc_port"
+             - "50060"
+             - "-onus"
+             - "3"
+             - "-internal_if"
+             - "eth0"
+             - "-external_if"
+             - "eth0"
+             - "-vcore_endpoint"
+             - "vcore"
+             - "-promiscuous"
+
+           ports:
+            - containerPort: 50060
+              name: grpc-port
+
+           imagePullPolicy: Never

@@ -53,6 +53,8 @@ spec:
     metadata:
       labels:
         app: consul
+      annotations:
+        cni: "weave"
     spec:
       affinity:
         podAntiAffinity:

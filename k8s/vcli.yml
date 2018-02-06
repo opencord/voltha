@@ -4,6 +4,8 @@ metadata:
   name: vcli
   labels:
     name: vcli
+  annotations:
+    cni: "weave"
 spec:
   ports:
     - name: ssh
@@ -22,6 +24,8 @@ spec:
     metadata:
       labels:
         app: vcli
+      annotations:
+        cni: "weave"
     spec:
       containers:
         - name: vcli

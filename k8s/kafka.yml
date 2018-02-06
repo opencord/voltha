@@ -25,6 +25,8 @@ spec:
     metadata:
       labels:
         app: kafka
+      annotations:
+        cni: "weave"
     spec:
       terminationGracePeriodSeconds: 10
       affinity:

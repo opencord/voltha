@@ -32,6 +32,8 @@ spec:
     metadata:
       labels:
         app: voltha
+      annotations:
+        cni: "weave"
     spec:
       containers:
         - name: voltha
