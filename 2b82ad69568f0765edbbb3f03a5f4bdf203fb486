@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d102927d_3bfb7aad",
+        "filename": "k8s/vcli.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1000196
+      },
+      "writtenOn": "2018-02-07T21:26:08Z",
+      "side": 1,
+      "message": "In all other manifests, the \"cni\" annotation was added to either a Deployment or StatefulSet spec. Why is it added to the Service in this case as well?",
+      "revId": "2b82ad69568f0765edbbb3f03a5f4bdf203fb486",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
