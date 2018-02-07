@@ -16,6 +16,24 @@
       "revId": "2b82ad69568f0765edbbb3f03a5f4bdf203fb486",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "a51a8f4b_5cdd3d7b",
+        "filename": "k8s/vcli.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2018-02-07T21:29:32Z",
+      "side": 1,
+      "message": "It shouldn\u0027t be there ... i will remove it",
+      "parentUuid": "d102927d_3bfb7aad",
+      "revId": "2b82ad69568f0765edbbb3f03a5f4bdf203fb486",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
