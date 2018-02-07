@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "ec3c1d92_98abef56",
+        "filename": "k8s/fluentd.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2018-02-07T14:47:10Z",
+      "side": 1,
+      "message": "If CNI Genie is deployed, then we need to use the annotation statement.",
+      "parentUuid": "5dca9de4_76b0736e",
+      "range": {
+        "startLine": 35,
+        "startChar": 17,
+        "endLine": 35,
+        "endChar": 18
+      },
+      "revId": "b1a05dc07ceba1e679d1dff91244411f5eb2c13e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ee24ad03_69e0824e",
         "filename": "k8s/vcore_for_consul.yml",
         "patchSetId": 1
@@ -36,6 +60,24 @@
       "writtenOn": "2018-02-07T14:08:01Z",
       "side": 1,
       "message": "This subnet will likely have to change when we change the POD subnet as set up by kubeadm.  The 10.x.x.x subnet may conflict with Ciena\u0027s network.",
+      "revId": "b1a05dc07ceba1e679d1dff91244411f5eb2c13e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b1fdc490_777c898f",
+        "filename": "k8s/vcore_for_consul.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 61,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2018-02-07T14:47:10Z",
+      "side": 1,
+      "message": "Ok.  We could change it now, but that will require us to also update the /etc/cni/net.d/10-weave.conf file to use a different subnet on each host.",
+      "parentUuid": "ee24ad03_69e0824e",
       "revId": "b1a05dc07ceba1e679d1dff91244411f5eb2c13e",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
