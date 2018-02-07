@@ -29,6 +29,8 @@ spec:
     metadata:
       labels:
         app: vcore
+      annotations:
+        cni: "weave"
     spec:
       containers:
       - name: voltha
@@ -56,4 +58,5 @@ spec:
         - "--grpc-port=50556"
         - "--interface=eth1"
         - "--backend=consul"
-        - "--pon-subnet=172.29.19.0/24"
+        - "--pon-subnet=10.38.0.0/12"
+        - "--ponsim-comm=grpc"

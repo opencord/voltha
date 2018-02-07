@@ -32,6 +32,8 @@ spec:
     metadata:
       labels:
         app: fluentdactv
+      annotations:
+        cni: "weave"
     spec:
       terminationGracePeriodSeconds: 10
       affinity:
@@ -92,6 +94,8 @@ spec:
     metadata:
       labels:
         app: fluentdstby
+      annotations:
+        cni: "weave"
     spec:
       terminationGracePeriodSeconds: 10
       affinity:
@@ -148,6 +152,8 @@ spec:
     metadata:
       labels:
         app: fluentd
+      annotations:
+        cni: "weave"
     spec:
       terminationGracePeriodSeconds: 10
       affinity:

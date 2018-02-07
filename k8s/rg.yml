@@ -1,0 +1,27 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: rg
+spec:
+   replicas: 1
+   template:
+     metadata:
+       labels:
+         app: rg
+       annotations:
+         cni: "pon0"
+     spec:
+       containers:
+         - name: rg
+           image: "voltha-tester:latest"
+           env:
+             - name: POD_IP
+               valueFrom:
+                 fieldRef:
+                   fieldPath: status.podIP
+             - name: NAMESPACE
+               valueFrom:
+                 fieldRef:
+                   fieldPath: metadata.namespace
+           command: [ "/bin/bash", "-c", "trap : TERM INT; sleep infinity & wait" ]
+           imagePullPolicy: Never
