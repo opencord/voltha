@@ -81,6 +81,24 @@
       "revId": "b1a05dc07ceba1e679d1dff91244411f5eb2c13e",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "75080561_b0ca2496",
+        "filename": "k8s/vcore_for_consul.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 61,
+      "author": {
+        "id": 1000196
+      },
+      "writtenOn": "2018-02-07T14:57:11Z",
+      "side": 1,
+      "message": "No need to change it now; this is just a heads-up that a change may be required in the future when the installer work is being done.",
+      "parentUuid": "b1fdc490_777c898f",
+      "revId": "b1a05dc07ceba1e679d1dff91244411f5eb2c13e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
