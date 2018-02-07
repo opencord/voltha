@@ -1537,7 +1537,7 @@ tcont create -n "TCont 1" -r "Golden User" -t "TDP 1" -a 1024
                 print_pb_list_as_table("TConts for device ID = {}:".format(
                     self.device_id), tcont, {}, self.poutput)
             else:
-                tconts = stub.AllTcontsConfigData(Empty())
+                tconts = stub.GetAllTcontsConfigData(Empty())
                 print_pb_list_as_table(
                     "TConts:", tconts.tconts_config, {}, self.poutput)
             return
