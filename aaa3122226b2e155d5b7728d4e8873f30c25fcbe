@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fb70082e_c5ac6fd0",
+        "filename": "voltha/extensions/omci/omci_entities.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 884,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-02-07T13:54:34Z",
+      "side": 1,
+      "message": "As per the OMCI specification these fields were optional and you seem to have removed the optional field. Was this intentional? If not can you please have a re-look at other fields as well?",
+      "revId": "aaa3122226b2e155d5b7728d4e8873f30c25fcbe",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
