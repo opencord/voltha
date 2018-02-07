@@ -1,33 +1,39 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: vcli
-  labels:
-    name: vcli
+   name: onos
+   labels:
+     name: onos
 spec:
   ports:
     - name: ssh
-      port: 5022
-      targetPort: 22
+      port: 8101
+      targetPort: 8101
+    - name: of
+      port: 6653
+      targetPort: 6653
+    - name: ui
+      port: 8181
+      targetPort: 8181
   selector:
-    app: vcli
+    app: onos
 ---
 apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
-  name: vcli
+  name: onos
 spec:
-  replicas: 2
+  replicas: 1
   template:
     metadata:
       labels:
-        app: vcli
+        app: onos
       annotations:
         cni: "weave"
     spec:
       containers:
-        - name: vcli
-          image: voltha-cli
+        - name: onos
+          image: "voltha-onos:latest"
           env:
             - name: POD_IP
               valueFrom:
@@ -37,15 +43,13 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-          args:
-            - "/cli/cli/setup.sh"
-            - "-C consul:8500"
-            - "-g voltha:50555"
-            - "-s voltha:18880"
-            - "-G"
+            - name: ONOS_APPS
+              value: "drivers,openflow-base"
           ports:
-            - containerPort: 22
+            - containerPort: 8101
               name: ssh-port
+            - containerPort: 6653
+              name: of-port
+            - containerPort: 8181
+              name: ui-port
           imagePullPolicy: Never
-
-

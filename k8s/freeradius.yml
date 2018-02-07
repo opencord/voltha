@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: Service
+metadata:
+   name: freeradius
+   labels:
+     name: freeradius
+spec:
+  clusterIP: None
+  ports:
+    - name: radius-auth
+      protocol: UDP
+      port: 1812
+      targetPort: 1812
+    - name: radius-acc
+      protocol: UDP
+      port: 1813
+      targetPort: 1813
+    - name: radius
+      port: 18120
+      targetPort: 18120
+  selector:
+    app: freeradius
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: freeradius
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: freeradius
+      annotations:
+        cni: "weave"
+    spec:
+      containers:
+        - name: freeradius
+          image: "marcelmaatkamp/freeradius"
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          ports:
+            - containerPort: 1812
+              name: radauth-port
+            - containerPort: 1813
+              name: radacc-port
+            - containerPort: 18120
+              name: radius-port
+          volumeMounts:
+            - name: freeradius-config
+              mountPath: /etc/raddb/clients.conf
+              subPath: clients.conf
+            - name: freeradius-config
+              mountPath: /etc/raddb/users
+              subPath: users
+      volumes:
+        - name: freeradius-config
+          configMap:
+            name: freeradius-config

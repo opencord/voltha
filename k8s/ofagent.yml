@@ -8,6 +8,8 @@ spec:
     metadata:
       labels:
         app: ofagent
+      annotations:
+        cni: "weave"
     spec:
       terminationGracePeriodSeconds: 10
       affinity:
