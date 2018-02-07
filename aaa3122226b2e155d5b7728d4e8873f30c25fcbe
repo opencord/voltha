@@ -16,6 +16,24 @@
       "revId": "aaa3122226b2e155d5b7728d4e8873f30c25fcbe",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "957506a8_792a20db",
+        "filename": "voltha/extensions/omci/omci_entities.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 884,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-02-07T15:02:04Z",
+      "side": 1,
+      "message": "These changes are to bring the ME\u0027s into compliance with version 3 of the AT\u0026T OpenOMCI specification.  In this document, they followed the latest G.988 specification and changed several optional attributes in that specification from \u0027Optional\u0027 to \u0027mandatory\u0027.  This particular one is from page 104 of that spec.  A link to the AT\u0026T V3 spec is on the OpenOMCI VOLTHA wiki at https://wiki.opencord.org/pages/viewpage.action?pageId\u003d4456850",
+      "parentUuid": "fb70082e_c5ac6fd0",
+      "revId": "aaa3122226b2e155d5b7728d4e8873f30c25fcbe",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
