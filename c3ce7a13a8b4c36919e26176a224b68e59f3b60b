@@ -1,0 +1,89 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "082f4412_896355aa",
+        "filename": "ponsim/v2/common/interval_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 10,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-02-08T20:10:02Z",
+      "side": 1,
+      "message": "Is this still applicable?",
+      "revId": "c3ce7a13a8b4c36919e26176a224b68e59f3b60b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3485bddb_132c2667",
+        "filename": "ponsim/v2/core/ponsim_olt.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 62,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-02-08T20:10:02Z",
+      "side": 1,
+      "message": "ipAddress may be an empty string on error.   Is it ok to do a log.Fatal if a packet cannot be forwarded?",
+      "revId": "c3ce7a13a8b4c36919e26176a224b68e59f3b60b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "8c0d7f68_97b1d796",
+        "filename": "voltha/adapters/ponsim_olt/ponsim_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 689,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-02-08T20:10:02Z",
+      "side": 1,
+      "message": "Now, with real ponsim olt/onu containers, would we be able a simulate a real reboot?   If yes, we can create a jira as a follow up.",
+      "revId": "c3ce7a13a8b4c36919e26176a224b68e59f3b60b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "61285f9f_1b5c5e04",
+        "filename": "voltha/adapters/ponsim_olt/ponsim_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 743,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-02-08T20:10:02Z",
+      "side": 1,
+      "message": "Do you have to close the grpc connection?",
+      "revId": "c3ce7a13a8b4c36919e26176a224b68e59f3b60b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "2fa71e6d_6f2b7e44",
+        "filename": "voltha/adapters/ponsim_olt/ponsim_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 854,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-02-08T20:10:02Z",
+      "side": 1,
+      "message": "Remove grpc/frameio connection?",
+      "revId": "c3ce7a13a8b4c36919e26176a224b68e59f3b60b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
