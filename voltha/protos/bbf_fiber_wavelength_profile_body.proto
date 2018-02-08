@@ -1,6 +1,9 @@
 syntax = "proto3";
+
+option go_package = "github.com/opencord/voltha/protos/go/bbf_fiber";
+
 package bbf_fiber;
-import public "meta.proto";
+import "meta.proto";
 
 message WavelengthProfileData {
     string name = 1;
