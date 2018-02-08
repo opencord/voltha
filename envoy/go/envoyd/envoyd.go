@@ -145,7 +145,7 @@ func (ec * EnvoyControl) resolveServiceAddress(serviceName string) (err error) {
 		time.Sleep(time.Duration(ec.waitTime) * time.Second)
 	}
 	if err != nil {
-		log.Printf("%s name resolution failed %d times gving up", serviceName, ec.retries)
+		log.Printf("%s name resolution failed %d times giving up", serviceName, ec.retries)
 	}
 	return
 }
@@ -623,9 +623,9 @@ func (ec * EnvoyControl) ParseCommandArguments() {
 }
 
 func (ec * EnvoyControl) Initialize() (err error) {
-	// Resolve consul's virtual ip address
-	if err = ec.resolveServiceAddress(ec.consulSvcName); err != nil {
-		log.Fatal("Can't proceed without consul's vIP address: %s", err.Error())
+	// Resolve KV store's virtual ip address
+	if err = ec.resolveServiceAddress(ec.kvSvcName); err != nil {
+		log.Fatal("Can't proceed without KV store's vIP address: %s", err.Error())
 	}
 
 	// Resolve voltha's virtual ip address
@@ -638,7 +638,7 @@ func (ec * EnvoyControl) Initialize() (err error) {
 	}
 
 	if ec.httpDisabled == true && ec.httpsDisabled == true {
-		log.Printf("Cowardly refusing to disable both http and https, leavign them both enabled\n")
+		log.Printf("Cowardly refusing to disable both http and https, leaving them both enabled\n")
 	} else if ec.httpDisabled == true {
 		log.Printf("Diasabling http\n")
 		ec.envoyConfigTemplate = ec.envoyConfigTemplateNoHttp
@@ -663,7 +663,7 @@ func main() {
 	log.Printf("KV-store %s at %s:%s", ec.kvStore, ec.kvSvcName, ec.kvPort)
 
 	if err = ec.Initialize(); err != nil {
-		log.Fatal("Envoy control initialization failed, aboring: %s", err.Error())
+		log.Fatal("Envoy control initialization failed, aborting: %s", err.Error())
 	}
 
 

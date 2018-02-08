@@ -2,6 +2,6 @@ kind: ConfigMap
 apiVersion: v1
 metadata:
   name: nginx-configuration
-  namespace: ingress-nginx
+  namespace: voltha
   labels:
     app: ingress-nginx

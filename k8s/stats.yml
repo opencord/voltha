@@ -5,6 +5,7 @@ apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
   name: dashd
+  namespace: voltha
 spec:
   replicas: 1
   template:
@@ -35,6 +36,7 @@ apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
   name: shovel
+  namespace: voltha
 spec:
   replicas: 1
   template:
