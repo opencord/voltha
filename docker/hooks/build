@@ -1,0 +1,16 @@
+#!/bin/bash
+
+echo "=> Using custom build hook to add build arguments"
+echo "=> set DEBUG=true to see debug information"
+
+if [ "$DEBUG" == "true" ]; then
+  env | sort
+fi
+
+cd /src/${BUILD_CODE}${BUILD_PATH}
+
+if [ "$DEBUG" == "true" ]; then
+  echo docker build --build-arg REPOSITORY=$REPOSITORY --build-arg REGISTRY=$REGISTRY --build-arg TAG=${TAG:-latest} -t $IMAGE_NAME -f $DOCKERFILE_PATH .
+fi
+
+docker build --build-arg REPOSITORY=$REPOSITORY --build-arg REGISTRY=$REGISTRY --build-arg TAG=${TAG:-latest} -t $IMAGE_NAME -f $DOCKERFILE_PATH .
