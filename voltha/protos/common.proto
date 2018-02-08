@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+option go_package = "github.com/opencord/voltha/protos/go/common";
+
 package voltha;
 
 import "yang_options.proto";

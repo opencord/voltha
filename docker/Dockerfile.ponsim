@@ -1,0 +1,51 @@
+# -------------
+# Build stage
+
+FROM golang:alpine AS build-env
+
+# Install required packages
+RUN apk add --no-cache wget git libpcap-dev make build-base protobuf protobuf-dev
+
+# Prepare directory structure
+RUN ["mkdir", "-p", "/src/pki", "/src/protos"]
+RUN ["mkdir", "-p", "$GOPATH/src", "$GOPATH/pkg", "$GOPATH/bin"]
+RUN ["mkdir", "-p", "$GOPATH/src/github.com/opencord/voltha/protos/go"]
+
+# Copy files
+ADD ponsim/v2 $GOPATH/src/github.com/opencord/voltha/ponsim/v2
+ADD ponsim/v2 /src
+ADD pki /src/pki
+
+# Copy required proto files
+# ... VOLTHA protos
+ADD voltha/protos/*.proto /src/protos/
+# ... BAL protos
+ADD voltha/adapters/asfvolt16_olt/protos/*.proto /src/protos/
+# ... PONSIM protos
+ADD ponsim/v2/protos/*.proto /src/protos/
+
+# Install golang protobuf and pcap support
+RUN go get -u github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
+RUN go get -u github.com/golang/protobuf/protoc-gen-go
+RUN go get -u github.com/google/gopacket/pcap
+
+# Compile protobuf files
+RUN sh /src/scripts/build_protos.sh /src/protos
+
+# Build ponsim
+RUN cd /src && go get -d ./... && go build -o ponsim
+
+# -------------
+# Final stage
+
+FROM alpine
+
+# Install required packages
+RUN apk add --no-cache libpcap-dev
+WORKDIR /app
+
+# Copy required files
+COPY --from=build-env /src/ponsim /app/
+COPY --from=build-env /src/pki /app/pki
+
+ENV VOLTHA_BASE /app
