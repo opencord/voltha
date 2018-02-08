@@ -2,6 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
    name: onos
+   namespace: voltha
    labels:
      name: onos
 spec:
@@ -22,6 +23,7 @@ apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
   name: onos
+  namespace: voltha
 spec:
   replicas: 1
   template:

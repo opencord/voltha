@@ -16,6 +16,8 @@
 
 syntax = "proto3";
 
+option go_package = "github.com/opencord/voltha/protos/go/bal";
+
 import "bal_model_ids.proto";
 import "bal_model_types.proto";
 import "bal.proto";

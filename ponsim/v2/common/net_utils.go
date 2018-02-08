@@ -1,0 +1,107 @@
+package common
+
+import (
+	"github.com/google/gopacket"
+	"github.com/google/gopacket/layers"
+	"github.com/sirupsen/logrus"
+	"net"
+)
+
+func GetInterfaceIP(ifName string) string {
+	var err error
+	var netIf *net.Interface
+	var netAddrs []net.Addr
+	var netIp net.IP
+	var ipAddr string
+
+	if netIf, err = net.InterfaceByName(ifName); err == nil {
+		if netAddrs, err = netIf.Addrs(); err == nil {
+			for _, addr := range netAddrs {
+				Logger().WithFields(logrus.Fields{
+					"type": addr.Network(),
+				}).Debug("Address network type")
+				switch v := addr.(type) {
+				case *net.IPNet:
+					netIp = v.IP
+				case *net.IPAddr:
+					netIp = v.IP
+				}
+				if netIp == nil || netIp.IsLoopback() {
+					continue
+				}
+				netIp = netIp.To4()
+				if netIp == nil {
+					continue // not an ipv4 address
+				}
+				ipAddr = netIp.String()
+				break
+			}
+		}
+	}
+
+	return ipAddr
+}
+func GetHostIP(hostName string) string {
+	var err error
+	var ipAddrs []string
+	var ipAddr string
+
+	if ipAddrs, err = net.LookupHost(hostName); err == nil {
+		for _, ip := range ipAddrs {
+			if addr := net.ParseIP(ip); err == nil {
+				Logger().WithFields(logrus.Fields{
+					"ip": addr,
+				}).Debug("Host address")
+				if addr == nil /*|| addr.IsLoopback()*/ {
+					continue
+				}
+				ipAddr = ip
+				break
+			}
+		}
+	}
+
+	return ipAddr
+}
+func GetMacAddress(ifName string) net.HardwareAddr {
+	var err error
+	var netIf *net.Interface
+	var hwAddr net.HardwareAddr
+
+	if netIf, err = net.InterfaceByName(ifName); err == nil {
+		hwAddr = netIf.HardwareAddr
+	}
+
+	return hwAddr
+}
+
+func GetEthernetLayer(frame gopacket.Packet) *layers.Ethernet {
+	eth := &layers.Ethernet{}
+	if ethLayer := frame.Layer(layers.LayerTypeEthernet); ethLayer != nil {
+		eth, _ = ethLayer.(*layers.Ethernet)
+	}
+	return eth
+}
+func GetDot1QLayer(frame gopacket.Packet) *layers.Dot1Q {
+	var dot1q *layers.Dot1Q
+	//dot1q := &layers.Dot1Q{}
+	if dot1qLayer := frame.Layer(layers.LayerTypeDot1Q); dot1qLayer != nil {
+		dot1q, _ = dot1qLayer.(*layers.Dot1Q)
+	}
+	return dot1q
+}
+
+func GetIpLayer(frame gopacket.Packet) *layers.IPv4 {
+	ip := &layers.IPv4{}
+	if ipLayer := frame.Layer(layers.LayerTypeIPv4); ipLayer != nil {
+		ip, _ = ipLayer.(*layers.IPv4)
+	}
+	return ip
+}
+func GetUdpLayer(frame gopacket.Packet) *layers.UDP {
+	udp := &layers.UDP{}
+	if udpLayer := frame.Layer(layers.LayerTypeUDP); udpLayer != nil {
+		udp, _ = udpLayer.(*layers.UDP)
+	}
+	return udp
+}

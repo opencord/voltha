@@ -16,6 +16,8 @@
 
 syntax = "proto3";
 
+option go_package = "github.com/opencord/voltha/protos/go/bal";
+
 /** Error codes */
 enum BalErrno
 {

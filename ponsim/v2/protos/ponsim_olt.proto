@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+option go_package = "github.com/opencord/voltha/protos/go/ponsim";
+
+package ponsim;
+
+service PonSimOlt {
+    rpc Register (RegistrationRequest) returns (RegistrationReply) {}
+}
+
+message RegistrationRequest {
+    string id = 1;
+    string address = 2;
+    int32 port = 3;
+}
+
+message RegistrationReply {
+    string id = 1;
+
+    enum Status {
+        REGISTERED = 0;
+        FAILED = 1;
+        UNAVAILABLE = 2;
+    }
+
+    Status status = 2;
+    string status_message = 3;
+
+    string parent_address = 4;
+    int32 parent_port = 5;
+    int32 assigned_port = 6;
+}

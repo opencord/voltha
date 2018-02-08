@@ -68,6 +68,7 @@ defs = dict(
     kafka=os.environ.get('KAFKA', 'localhost:9092'),
     manhole_port=os.environ.get('MANHOLE_PORT', 12222),
     backend=os.environ.get('BACKEND', 'none'),
+    ponsim_comm=os.environ.get('PONSIM_COMM', 'frameio')
 )
 
 
@@ -223,6 +224,13 @@ def parse_args():
     parser.add_argument('-b', '--backend',
                         default=defs['backend'],
                         choices=['none', 'consul', 'etcd'],
+                        help=_help)
+
+    _help = "Communication mechanism to use with PON simulator"
+    parser.add_argument('-S', '--ponsim-comm',
+                        dest='ponsim_comm',
+                        default=defs['ponsim_comm'],
+                        choices=['frameio', 'grpc'],
                         help=_help)
 
     args = parser.parse_args()

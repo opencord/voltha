@@ -6,6 +6,8 @@
 
 syntax = "proto3";
 
+option go_package = "github.com/opencord/voltha/protos/go/voltha";
+
 package voltha;
 
 import "google/protobuf/empty.proto";

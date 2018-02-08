@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+option go_package = "github.com/opencord/voltha/protos/go/voltha";
+
 package voltha;
 
 import "google/protobuf/empty.proto";
@@ -19,6 +21,11 @@ message PonSimDeviceInfo {
 message FlowTable {
     int32 port = 1;  // Used to address right device
     repeated openflow_13.ofp_flow_stats flows = 2;
+}
+
+message PonSimFrame {
+    string id = 1;
+    bytes payload = 2;
 }
 
 message PonSimPacketCounter {
@@ -63,6 +70,11 @@ message InterfaceConfig {
 }
 
 service PonSim {
+    rpc SendFrame(PonSimFrame)
+        returns (google.protobuf.Empty) {}
+
+    rpc ReceiveFrames(google.protobuf.Empty)
+        returns (stream PonSimFrame) {}
 
     rpc GetDeviceInfo(google.protobuf.Empty)
         returns(PonSimDeviceInfo) {}
