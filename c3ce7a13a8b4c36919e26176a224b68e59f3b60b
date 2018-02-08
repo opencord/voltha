@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "784419ef_80e189d9",
+        "filename": "ponsim/v2/common/interval_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 10,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2018-02-08T20:40:34Z",
+      "side": 1,
+      "message": "I can remove this.",
+      "parentUuid": "082f4412_896355aa",
+      "revId": "c3ce7a13a8b4c36919e26176a224b68e59f3b60b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "3485bddb_132c2667",
         "filename": "ponsim/v2/core/ponsim_olt.go",
         "patchSetId": 1
@@ -30,6 +48,24 @@
       "writtenOn": "2018-02-08T20:10:02Z",
       "side": 1,
       "message": "ipAddress may be an empty string on error.   Is it ok to do a log.Fatal if a packet cannot be forwarded?",
+      "revId": "c3ce7a13a8b4c36919e26176a224b68e59f3b60b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "19b1b808_772f76c8",
+        "filename": "ponsim/v2/core/ponsim_olt.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 62,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2018-02-08T20:40:34Z",
+      "side": 1,
+      "message": "Fatal might be too much.... can change to Error",
+      "parentUuid": "3485bddb_132c2667",
       "revId": "c3ce7a13a8b4c36919e26176a224b68e59f3b60b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "2249e653_a0e96e41",
+        "filename": "voltha/adapters/ponsim_olt/ponsim_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 689,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2018-02-08T20:40:34Z",
+      "side": 1,
+      "message": "It might be possible.  Although, I will need to investigate to have a better idea of what is required.",
+      "parentUuid": "8c0d7f68_97b1d796",
+      "revId": "c3ce7a13a8b4c36919e26176a224b68e59f3b60b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "61285f9f_1b5c5e04",
         "filename": "voltha/adapters/ponsim_olt/ponsim_olt.py",
         "patchSetId": 1
@@ -70,6 +124,24 @@
     },
     {
       "key": {
+        "uuid": "f5653e1c_50f02ede",
+        "filename": "voltha/adapters/ponsim_olt/ponsim_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 743,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2018-02-08T20:40:34Z",
+      "side": 1,
+      "message": "Yes.  I guess it should handle this.  The existing code did not, but i will add a close channel method or something of that sort.",
+      "parentUuid": "61285f9f_1b5c5e04",
+      "revId": "c3ce7a13a8b4c36919e26176a224b68e59f3b60b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "2fa71e6d_6f2b7e44",
         "filename": "voltha/adapters/ponsim_olt/ponsim_olt.py",
         "patchSetId": 1
@@ -81,6 +153,24 @@
       "writtenOn": "2018-02-08T20:10:02Z",
       "side": 1,
       "message": "Remove grpc/frameio connection?",
+      "revId": "c3ce7a13a8b4c36919e26176a224b68e59f3b60b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "bf686275_ff55b16c",
+        "filename": "voltha/adapters/ponsim_olt/ponsim_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 854,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2018-02-08T20:40:34Z",
+      "side": 1,
+      "message": "I will add the necessary cleanup calls.",
+      "parentUuid": "2fa71e6d_6f2b7e44",
       "revId": "c3ce7a13a8b4c36919e26176a224b68e59f3b60b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
