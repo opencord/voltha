@@ -2,6 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: kafka
+  namespace: voltha
 spec:
   clusterIP: None
   selector:
@@ -15,6 +16,7 @@ apiVersion: apps/v1beta1
 kind: StatefulSet
 metadata:
   name: kafka
+  namespace: voltha
 spec:
   serviceName: kafka
   replicas: 3

@@ -2,7 +2,7 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: nginx-ingress-controller
-  namespace: ingress-nginx 
+  namespace: voltha
 spec:
   replicas: 1
   selector:

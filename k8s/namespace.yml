@@ -1,0 +1,9 @@
+#
+# Observation:
+#    It appears that when a namespace is created, Kubernetes creates
+#    a ServiceAccount called "default" for that new namespace.
+#
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: voltha

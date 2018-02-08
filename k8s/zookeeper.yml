@@ -2,6 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: zoo1
+  namespace: voltha
 spec:
   clusterIP: None
   selector:
@@ -21,6 +22,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: zoo2
+  namespace: voltha
 spec:
   clusterIP: None
   selector:
@@ -40,6 +42,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: zoo3
+  namespace: voltha
 spec:
   clusterIP: None
   selector:
@@ -59,6 +62,7 @@ apiVersion: apps/v1beta1
 kind: StatefulSet
 metadata:
   name: zookeeper1
+  namespace: voltha
 spec:
   serviceName: zoo1
   replicas: 1
@@ -96,6 +100,7 @@ apiVersion: apps/v1beta1
 kind: StatefulSet
 metadata:
   name: zookeeper2
+  namespace: voltha
 spec:
   serviceName: zoo2
   replicas: 1
@@ -133,6 +138,7 @@ apiVersion: apps/v1beta1
 kind: StatefulSet
 metadata:
   name: zookeeper3
+  namespace: voltha
 spec:
   serviceName: zoo3
   replicas: 1

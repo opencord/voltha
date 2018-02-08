@@ -9,6 +9,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: fluentdactv
+  namespace: voltha
 spec:
   clusterIP: None
   selector:
@@ -26,6 +27,7 @@ apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
   name: fluentdactv
+  namespace: voltha
 spec:
   replicas: 1
   template:
@@ -71,6 +73,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: fluentdstby
+  namespace: voltha
 spec:
   clusterIP: None
   selector:
@@ -88,6 +91,7 @@ apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
   name: fluentdstby
+  namespace: voltha
 spec:
   replicas: 1
   template:
@@ -133,6 +137,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: fluentd
+  namespace: voltha
 spec:
   clusterIP: None
   selector:
@@ -146,6 +151,7 @@ apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
   name: fluentd
+  namespace: voltha
 spec:
   replicas: 3
   template:
