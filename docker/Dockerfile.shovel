@@ -17,9 +17,7 @@ ARG REPOSITORY=
 
 FROM ${REGISTRY}${REPOSITORY}voltha-base:${TAG}
 
-MAINTAINER Zsolt Haraszti <zharaszt@ciena.com>
-MAINTAINER Ali Al-Shabibi <ali.al-shabibi@onlab.us>
-MAINTAINER Nathan Knuth   <nathan.knuth@tibitcom.com>
+MAINTAINER Voltha Community <info@opennetworking.org>
 
 # Bundle app source
 RUN mkdir /shovel && touch /shovel/__init__.py

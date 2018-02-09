@@ -17,7 +17,7 @@ ARG REPOSITORY=
 
 FROM ${REGISTRY}${REPOSITORY}voltha-base:${TAG}
 
-MAINTAINER Sergio Slobodrian <sslobodr@ciena.com>
+MAINTAINER Voltha Community <info@opennetworking.org>
 
 # Bundle app source
 RUN mkdir /cli && touch /cli/__init__.py

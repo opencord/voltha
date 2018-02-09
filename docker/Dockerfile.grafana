@@ -14,7 +14,7 @@
 
 FROM kamon/grafana_graphite:3.0
 
-MAINTAINER Sergio Slobodrian <sslobodr@ciena.com>
+MAINTAINER Voltha Community <info@opennetworking.org>
 
 # Update the configuration so grafana runs at a different root
 # everything else remains as defined in the kamon version

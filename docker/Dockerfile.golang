@@ -13,7 +13,7 @@
 # limitations under the License.
 
 FROM golang:1.9.2
-MAINTAINER Alex Peters <info@alexanderpeters.de>
+MAINTAINER Voltha Community <info@opennetworking.org>
 
 RUN apt-get update && apt-get install -y apt-transport-https ca-certificates jq curl gnupg2 software-properties-common
 

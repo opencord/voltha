@@ -14,7 +14,7 @@
 
 FROM centos:7
 
-MAINTAINER Stephane Barbarie <sbarbari@ciena.com>
+MAINTAINER Voltha Community <info@opennetworking.org>
 
 # install required packages
 RUN ["yum", "install", "-y", "epel-release"]

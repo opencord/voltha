@@ -14,9 +14,7 @@
 
 FROM alpine:3.6
 
-MAINTAINER Zsolt Haraszti <zharaszt@ciena.com>
-MAINTAINER Ali Al-Shabibi <ali.al-shabibi@onlab.us>
-MAINTAINER Nathan Knuth   <nathan.knuth@tibitcom.com>
+MAINTAINER Voltha Community <info@opennetworking.org>
 
 # Update to have latest images
 RUN apk add --update python py-pip && \
