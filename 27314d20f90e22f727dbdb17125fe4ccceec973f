@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "bbcde9b8_be877a59",
+        "filename": "scripts/run-voltha.sh",
+        "patchSetId": 1
+      },
+      "lineNbr": 11,
+      "author": {
+        "id": 1000005
+      },
+      "writtenOn": "2018-02-09T18:14:07Z",
+      "side": 1,
+      "message": "You mean embed the stack template in this script? Are you OK to remove the current template file in that case? I was trying to prevent having multiple copies of the stack template or of the logic to create the stack from the template.\n\nBTW this docker bug is super annoying - do you know if they\u0027re working on fixing it? When that is fixed we don\u0027t need any of this.",
+      "parentUuid": "c3f00767_46abed75",
+      "range": {
+        "startLine": 11,
+        "startChar": 13,
+        "endLine": 11,
+        "endChar": 27
+      },
+      "revId": "27314d20f90e22f727dbdb17125fe4ccceec973f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "a6db74f3_57b046c1",
         "filename": "scripts/run-voltha.sh",
         "patchSetId": 1
