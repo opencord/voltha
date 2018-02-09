@@ -7,17 +7,15 @@ from setuptools import setup
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
-twisted_deps = ['twisted']
-scapy_deps = ['scapy>=2.2.0']
 setup(
     name = 'voltha',
     version = '1.3.0',
-    author = 'Zsolt Haraszti, Nathan Knuth, Ali Al-Shabibi',
-    author_email = 'voltha-discuss@opencord.org',
+    author = 'Open Networking Foundation, et al',
+    author_email = 'info@opennetworking.org',
     description = ('Virtual Optical Line Terminal (OLT) Hardware Abstraction'),
-    license = 'LICENSE.txt',
+    license = 'Apache License 2.0',
     keywords = 'volt gpon cord',
-    url = 'http://gerrit.opencord.org/voltha',
+    url = 'https://gerrit.opencord.org/#/q/project:voltha',
     packages=['voltha', 'tests'],
     long_description=read('README.md'),
     classifiers=[
@@ -26,11 +24,4 @@ setup(
         'Programming Language :: Python',
         'License :: OSI Approved :: Apache License 2.0',
     ],
-    install_requires=[
-        'six>1.7.2',
-    ],
-    extras_require={
-        'twisted': twisted_deps,
-        'all' : twisted_deps
-    },
 )
