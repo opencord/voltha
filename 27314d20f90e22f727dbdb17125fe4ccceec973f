@@ -22,6 +22,57 @@
       "revId": "27314d20f90e22f727dbdb17125fe4ccceec973f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "a6db74f3_57b046c1",
+        "filename": "scripts/run-voltha.sh",
+        "patchSetId": 1
+      },
+      "lineNbr": 18,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2018-02-09T15:53:05Z",
+      "side": 1,
+      "message": "Was this a debug statement that was not deleted?",
+      "revId": "27314d20f90e22f727dbdb17125fe4ccceec973f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d6909e57_26f3c7d7",
+        "filename": "scripts/run-voltha.sh",
+        "patchSetId": 1
+      },
+      "lineNbr": 37,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2018-02-09T15:53:05Z",
+      "side": 1,
+      "message": "Wondering if status should do a little more that just stack ls, maybe look at number of services running compared to expected. `docker stack services voltha --format \u0027{{.Replicas}}\u0027`. The only problem is the push container is expected at 1 but is 0, because after it pushes it quits.",
+      "revId": "27314d20f90e22f727dbdb17125fe4ccceec973f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b90cd1fb_8cabcb9c",
+        "filename": "scripts/run-voltha.sh",
+        "patchSetId": 1
+      },
+      "lineNbr": 48,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2018-02-09T15:53:05Z",
+      "side": 1,
+      "message": "status?",
+      "revId": "27314d20f90e22f727dbdb17125fe4ccceec973f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
