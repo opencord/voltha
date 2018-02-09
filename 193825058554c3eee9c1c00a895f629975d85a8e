@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "4b88ceb4_9eec2c11",
+        "filename": "setup.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 15,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2018-02-09T22:30:53Z",
+      "side": 1,
+      "message": "This was the original proposal from David.",
+      "revId": "193825058554c3eee9c1c00a895f629975d85a8e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "e82e97e0_9a60fb85",
+        "filename": "setup.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 18,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2018-02-09T22:30:53Z",
+      "side": 1,
+      "message": "Should probably change this to \u0027Apache License 2.0\u0027.  This appears below in classifiers too.",
+      "revId": "193825058554c3eee9c1c00a895f629975d85a8e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "cf3a092b_8faec867",
+        "filename": "setup.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 20,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2018-02-09T22:30:53Z",
+      "side": 1,
+      "message": "This is the correct link.",
+      "revId": "193825058554c3eee9c1c00a895f629975d85a8e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d309221a_33383b35",
+        "filename": "setup.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2018-02-09T22:30:53Z",
+      "side": 1,
+      "message": "This is correct.  If you run \u0027python setup.py --long-description\u0027 it will print the contents of README.md",
+      "revId": "193825058554c3eee9c1c00a895f629975d85a8e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
