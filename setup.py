@@ -12,7 +12,7 @@ scapy_deps = ['scapy>=2.2.0']
 setup(
     name = 'voltha',
     version = '1.3.0',
-    author = 'Zsolt Haraszti, Nathan Knuth, Ali Al-Shabibi',
+    author = 'Open Networking Foundation, et al',
     author_email = 'voltha-discuss@opencord.org',
     description = ('Virtual Optical Line Terminal (OLT) Hardware Abstraction'),
     license = 'LICENSE.txt',
