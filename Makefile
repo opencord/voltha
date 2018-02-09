@@ -329,16 +329,13 @@ ifeq ($(VOLTHA_BUILD),docker)
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-test_runner:${TAG} -f docker/Dockerfile.test_runner .
 endif
 
+@MAKE_ENV := $(shell echo '$(.VARIABLES)' | awk -v RS=' ' '/^[a-zA-Z0-9]+$$/')
+@SHELL_EXPORT := $(foreach v,$(MAKE_ENV),$(v)='$($(v))')
 start:
-	bash -c 'echo $$VOLTHA_LOGS &&  TMP_STACK_FILE=$$(mktemp -u) && \
-		echo $$TMP_STACK_FILE && \
-		SWARM_MANAGER_COUNT=$$(docker node ls | grep Ready | egrep "(Leader)|(Reachable)" | wc -l | sed -e "s/ //g") && \
-		cat ./compose/voltha-stack.yml.j2 2>&1 | docker run -e RADIUS_ROOT=$$RADIUS_ROOT -e CONSUL_ROOT=$$CONSUL_ROOT -e VOLTHA_LOGS=$$VOLTHA_LOGS -e SWARM_MANAGER_COUNT=$$SWARM_MANAGER_COUNT --rm -i ${REGISTRY}${REPOSITORY}voltha-j2:${TAG} - 2>&1 > $$TMP_STACK_FILE && \
-	        docker stack deploy -c $$TMP_STACK_FILE voltha && \
-	        rm -f $$TMP_STACK_FILE'
-
+	$(SHELL_EXPORT) STACK_TEMPLATE=./compose/voltha-stack.yml.j2 ./scripts/run-voltha.sh start
+	
 stop:
-	docker stack rm voltha
+	./scripts/run-voltha.sh stop
 
 tag: $(patsubst  %,%.tag,$(DOCKER_IMAGE_LIST))
 
