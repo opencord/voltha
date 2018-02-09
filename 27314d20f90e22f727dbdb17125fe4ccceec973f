@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c3f00767_46abed75",
+        "filename": "scripts/run-voltha.sh",
+        "patchSetId": 1
+      },
+      "lineNbr": 11,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2018-02-09T02:02:37Z",
+      "side": 1,
+      "message": "What do you think about using a here document (http://tldp.org/LDP/abs/html/here-docs.html) embedded in the bash script as opposed to a separate file? This way everything you need is in a single download? That way someone can do something like\n\ncurl -sSL get.voltha.com | bash\n\nand be done with it.",
+      "range": {
+        "startLine": 11,
+        "startChar": 13,
+        "endLine": 11,
+        "endChar": 27
+      },
+      "revId": "27314d20f90e22f727dbdb17125fe4ccceec973f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
