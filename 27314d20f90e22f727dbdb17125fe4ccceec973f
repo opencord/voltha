@@ -97,6 +97,30 @@
     },
     {
       "key": {
+        "uuid": "79f5d384_e37c37fa",
+        "filename": "scripts/run-voltha.sh",
+        "patchSetId": 1
+      },
+      "lineNbr": 11,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2018-02-09T19:20:27Z",
+      "side": 1,
+      "message": "yes, it is a pain and it would be nice not to have to use the template. we could remove the template, just by always setting the values to 1. It means it would start without HA for things like consul, but it would eliminate the need for j2.",
+      "parentUuid": "852c3d77_22ae3e09",
+      "range": {
+        "startLine": 11,
+        "startChar": 13,
+        "endLine": 11,
+        "endChar": 27
+      },
+      "revId": "27314d20f90e22f727dbdb17125fe4ccceec973f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "a6db74f3_57b046c1",
         "filename": "scripts/run-voltha.sh",
         "patchSetId": 1
