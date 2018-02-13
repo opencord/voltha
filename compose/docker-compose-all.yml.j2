@@ -129,7 +129,7 @@ services:
     entrypoint:
       - voltha/voltha/main.py
       - -v
-      - --consul=consul:8500
+      - --consul=vconsul:8500
       - --fluentd=fluentd:24224
       - --kafka=kafka
       - --rest-port=8880
@@ -161,7 +161,7 @@ services:
     entrypoint:
       - /ofagent/ofagent/main.py
       - -v
-      - --consul=consul:8500
+      - --consul=vconsul:8500
       - --fluentd=fluentd:24224
       - --controller=onos:6653
       - --grpc-endpoint=vcore:50556
@@ -189,6 +189,10 @@ services:
       - "/envoy/voltha-grpc-proxy.template.json"
       - -envoy-config
       - "/envoy/voltha-grpc-proxy.json"
+      - -consul-svc-nme
+      - "vconsul"
+      - -kv-svc-name
+      - "vconsul"
     networks:
       - voltha-net
     ports:
@@ -212,7 +216,7 @@ services:
       replicas: {{ SWARM_MANAGER_COUNT | default(2) }}
     entrypoint:
       - /cli/cli/setup.sh
-      - -C consul:8500
+      - -C vconsul:8500
       - -g voltha:50555
       - -s voltha:18880
       - -G
@@ -237,7 +241,7 @@ services:
     entrypoint:
       - /netconf/netconf/main.py
       - -v
-      - --consul=consul:8500
+      - --consul=vconsul:8500
       - --fluentd=fluentd:24224
       - --grpc-endpoint=voltha:50555
       - --instance-id-is-container-name

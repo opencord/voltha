@@ -23,13 +23,13 @@ services:
       KAFKA_HEAP_OPTS: "-Xmx256M -Xms128M"
       SERVICE_9092_NAME: "kafka"
     depends_on:
-    - consul
+    - vconsul
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
   #
   # Single-node consul agent
   #
-  consul:
+  vconsul:
     image: "${REGISTRY}${REPOSITORY}voltha-consul${TAG}"
     command: agent -server -bootstrap -client 0.0.0.0 -ui
     ports:
@@ -51,10 +51,10 @@ services:
       "-ip=${DOCKER_HOST_IP}",
       "-retry-attempts", "100",
       # "-internal",
-      "consul-tls://consul:8501"
+      "consul-tls://vconsul:8501"
     ]
     links:
-    - consul
+    - vconsul
     volumes:
     - "/var/run/docker.sock:/tmp/docker.sock"
     environment:
@@ -107,7 +107,7 @@ services:
       "--host=${DOCKER_HOST_IP}"
     ]
     depends_on:
-    - consul
+    - vconsul
     - kafka
     - grafana
     restart: unless-stopped
@@ -134,9 +134,9 @@ services:
     - 50555
     - 18880
     depends_on:
-    - consul
+    - vconsul
     links:
-    - consul
+    - vconsul
     - fluentd
     environment:
       SERVICE_8880_NAME: "voltha-health"
@@ -187,10 +187,10 @@ services:
       "-v"
     ]
     depends_on:
-    - consul
+    - vconsul
     - voltha
     links:
-    - consul
+    - vconsul
     - fluentd
     volumes:
     - "/var/run/docker.sock:/tmp/docker.sock"
@@ -214,10 +214,10 @@ services:
     ports:
     - "830:1830"
     depends_on:
-    - consul
+    - vconsul
     - voltha
     links:
-    - consul
+    - vconsul
     - fluentd
     environment:
       SERVICE_1830_NAME: "netconf-server"
@@ -238,7 +238,7 @@ services:
       "--docker_host=${DOCKER_HOST_IP}"
     ]
     depends_on:
-    - consul
+    - vconsul
     - kafka
     - grafana
     restart: unless-stopped
@@ -256,7 +256,7 @@ services:
       "/nginx_config/start_service.sh"
     ]
     depends_on:
-    - consul
+    - vconsul
     - grafana
     - portainer
     restart: unless-stopped

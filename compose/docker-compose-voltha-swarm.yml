@@ -12,7 +12,7 @@ services:
     entrypoint:
       - voltha/voltha/main.py
       - -v
-      - --consul=consul:8500
+      - --consul=vconsul:8500
       - --fluentd=fluentd:24224
       - --kafka=kafka
       - --rest-port=8880

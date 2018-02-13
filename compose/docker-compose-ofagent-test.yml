@@ -4,7 +4,7 @@ services:
   #
   # Single-node consul agent
   #
-  consul:
+  vconsul:
     image: "${REGISTRY}consul:${CONSUL_TAG:-0.9.2}"
     command: agent -server -bootstrap -client 0.0.0.0 -ui
     ports:
@@ -27,10 +27,10 @@ services:
       "-retry-attempts", "100",
       "-cleanup",
       # "-internal",
-      "consul://consul:8500"
+      "consul://vconsul:8500"
     ]
     links:
-    - consul
+    - vconsul
     volumes:
     - "/var/run/docker.sock:/tmp/docker.sock"
 
@@ -70,9 +70,9 @@ services:
     - 18880
     - "60001:60001"
     depends_on:
-    - consul
+    - vconsul
     links:
-    - consul
+    - vconsul
     - fluentd
     environment:
       SERVICE_8880_NAME: "voltha-health"
@@ -95,6 +95,10 @@ services:
       - "/envoy/voltha-grpc-proxy.template.json"
       - -envoy-config
       - "/envoy/voltha-grpc-proxy.json"
+      - -consul-svc-nme
+      - "vconsul"
+      - -kv-svc-name
+      - "vconsul"
     ports:
       - "50555:50555"
       - "8882:8882"
@@ -180,10 +184,10 @@ services:
     image: "${REGISTRY}${REPOSITORY}voltha-ofagent:${TAG:-latest}"
     command: /ofagent/ofagent/main.py -v --consul=${DOCKER_HOST_IP}:8500 --fluentd=fluentd:24224 --controller ${DOCKER_HOST_IP}:6633 ${DOCKER_HOST_IP}:6644 ${DOCKER_HOST_IP}:6655 --grpc-endpoint=@voltha-grpc --instance-id-is-container-name --enable-tls --key-file=/ofagent/pki/voltha.key --cert-file=/ofagent/pki/voltha.crt
     depends_on:
-    - consul
+    - vconsul
     - voltha
     links:
-    - consul
+    - vconsul
     - fluentd
     volumes:
     - "/var/run/docker.sock:/tmp/docker.sock"

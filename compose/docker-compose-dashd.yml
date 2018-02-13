@@ -14,7 +14,7 @@ services:
       "--docker_host=${DOCKER_HOST_IP}"
     ]
     depends_on:
-    - consul
+    - vconsul
     - kafka
     - grafana
     restart: unless-stopped
@@ -28,7 +28,7 @@ services:
   #
   # Single-node consul agent
   #
-  consul:
+  vconsul:
     image: "${REGISTRY}consul:${CONSUL_TAG:-0.9.2}"
 
   #

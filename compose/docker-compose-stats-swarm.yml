@@ -2,7 +2,7 @@
 # This stackfile deploys dashd and shovel services to a docker swarm.
 #
 # Each of these services depends on:
-# - consul     (service)
+# - vconsul     (service)
 # - kafka      (service)
 # - grafana    (service)
 # - voltha_net (overlay network)
@@ -26,7 +26,7 @@ services:
     entrypoint:
       - /dashd/dashd/main.py
       - --kafka=kafka
-      - --consul=consul:8500
+      - --consul=vconsul:8500
       - --grafana_url=http://admin:admin@grafana:80/api
       - --topic=voltha.kpis
       - --docker_host=${DOCKER_HOST_IP}
@@ -45,7 +45,7 @@ services:
     entrypoint:
       - /shovel/shovel/main.py
       - --kafka=kafka
-      - --consul=consul:8500
+      - --consul=vconsul:8500
       - --topic=voltha.kpis
       - --host=grafana
     networks:
