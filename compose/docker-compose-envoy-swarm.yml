@@ -26,6 +26,10 @@ services:
       - "/envoy/voltha-grpc-proxy.template.json"
       - -envoy-config
       - "/envoy/voltha-grpc-proxy.json"
+      - -consul-svc-nme
+      - "vconsul"
+      - -kv-svc-name
+      - "vconsul"
     networks:
       - voltha-net
     ports:

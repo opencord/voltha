@@ -20,7 +20,7 @@ services:
         entrypoint:
             - /ofagent/ofagent/main.py
             - -v
-            - --consul=consul:8500
+            - --consul=vconsul:8500
             - --fluentd=fluentd:24224
             - --controller=onos:6653
             - --grpc-endpoint=vcore:50556

@@ -23,13 +23,13 @@ services:
       KAFKA_HEAP_OPTS: "-Xmx256M -Xms128M"
       SERVICE_9092_NAME: "kafka"
     depends_on:
-    - consul
+    - vconsul
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
   #
   # Single-node consul agent
   #
-  consul:
+  vconsul:
     image: "consul:0.9.2"
     command: agent -server -bootstrap -client 0.0.0.0 -ui
     ports:
@@ -52,10 +52,10 @@ services:
       "-retry-attempts", "100",
       "-cleanup",
       # "-internal",
-      "consul://consul:8500"
+      "consul://vconsul:8500"
     ]
     links:
-    - consul
+    - vconsul
     volumes:
     - "/var/run/docker.sock:/tmp/docker.sock"
 
@@ -94,9 +94,9 @@ services:
     - 50555
     - 18880
     depends_on:
-    - consul
+    - vconsul
     links:
-    - consul
+    - vconsul
     - fluentd
     environment:
       SERVICE_8880_NAME: "voltha-health"
@@ -127,10 +127,10 @@ services:
       "-v"
     ]
     depends_on:
-    - consul
+    - vconsul
     - voltha
     links:
-    - consul
+    - vconsul
     - fluentd
     volumes:
     - "/var/run/docker.sock:/tmp/docker.sock"
@@ -154,10 +154,10 @@ services:
     ports:
     - "830:1830"
     depends_on:
-    - consul
+    - vconsul
     - voltha
     links:
-    - consul
+    - vconsul
     - fluentd
     environment:
       SERVICE_1830_NAME: "netconf-server"

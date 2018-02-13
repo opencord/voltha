@@ -107,7 +107,7 @@ services:
     ports:
       - 9092:9092
 
-  consul:
+  vconsul:
     image: "${REGISTRY}consul:${CONSUL_TAG:-0.9.2}"
     logging:
       driver: "json-file"
@@ -334,7 +334,7 @@ services:
     entrypoint:
       - voltha/voltha/main.py
       - -v
-      - --consul=consul:8500
+      - --consul=vconsul:8500
       - --fluentd=fluentd:24224
       - --kafka=kafka
       - --rest-port=8880
@@ -366,7 +366,7 @@ services:
     entrypoint:
       - /ofagent/ofagent/main.py
       - -v
-      - --consul=consul:8500
+      - --consul=vconsul:8500
       - --fluentd=fluentd:24224
       - --controller=onos:6653
       - --grpc-endpoint=vcore:50556
@@ -395,6 +395,10 @@ services:
     #  DOCKER_HOST_IP: "${DOCKER_HOST_IP}"
     entrypoint:
       - /usr/local/bin/envoyd
+      - -consul-svc-nme
+      - "vconsul"
+      - -kv-svc-name
+      - "vconsul"
       - -envoy-cfg-template
       - "/envoy/voltha-grpc-proxy.template.json"
       - -envoy-config
@@ -424,7 +428,7 @@ services:
     #  DOCKER_HOST_IP: "${DOCKER_HOST_IP}"
     entrypoint:
       - /cli/cli/setup.sh
-      - -C consul:8500
+      - -C vconsul:8500
       - -g voltha:50555
       - -s voltha:18880
       - -G
@@ -449,7 +453,7 @@ services:
     entrypoint:
       - /netconf/netconf/main.py
       - -v
-      - --consul=consul:8500
+      - --consul=vconsul:8500
       - --fluentd=fluentd:24224
       - --grpc-endpoint=voltha:50555
       - --instance-id-is-container-name
