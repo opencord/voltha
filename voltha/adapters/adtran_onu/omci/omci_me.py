@@ -494,7 +494,7 @@ class OntGFrame(MEFrame):
     """
     This managed entity represents the ONU as equipment.
     """
-    def __init__(self, attributes):
+    def __init__(self, attributes=None):
         """
         :param attributes: (basestring, list, set, dict) attributes. For gets
                            a string, list, or set can be provided. For create/set
@@ -509,7 +509,7 @@ class Ont2GFrame(MEFrame):
     """
     This managed entity contains additional attributes associated with a PON ONU.
     """
-    def __init__(self, attributes):
+    def __init__(self, attributes=None):
         """
         :param attributes: (basestring, list, set, dict) attributes. For gets
                            a string, list, or set can be provided. For create/set
@@ -643,3 +643,22 @@ class VlanTaggingFilterDataFrame(MEFrame):
         super(VlanTaggingFilterDataFrame, self).__init__(VlanTaggingFilterData,
                                                          entity_id,
                                                          data)
+
+
+class OntDataFrame(MEFrame):
+    """
+    This managed entity models the MIB itself
+    """
+    def __init__(self, mib_data_sync=None):
+        """
+        :param mib_data_sync: (int) This attribute is used to check the alignment
+                                    of the MIB of the ONU with the corresponding MIB
+                                    in the OLT. (0..255)
+        """
+        self.check_type(mib_data_sync, (int, type(None)))
+        if mib_data_sync is not None and not 0 <= mib_data_sync <= 255:
+            raise ValueError('mib_data_sync should be 0..255')
+
+        data = {'mib_data_sync': mib_data_sync} if mib_data_sync is not None else None
+
+        super(OntDataFrame, self).__init__(OntData, 0, data)

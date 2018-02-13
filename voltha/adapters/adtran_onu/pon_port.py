@@ -338,6 +338,8 @@ class PonPort(object):
             returnValue('not-enabled')
 
         device = None
+        seq_no = 0
+        number_of_commands = 0
         omci = self._handler.omci
 
         if self._handler.is_mock:
@@ -354,7 +356,6 @@ class PonPort(object):
             results = yield omci.send_mib_reset()
             status = results.fields['omci_message'].fields['success_code']
             assert status == 0, 'Unexpected MIB reset response status: {}'.format(status)
-
             # TODO: On a real system, need to flush the external MIB database
             # TODO: Also would need to watch for any AVC being handled between the MIB reset and the DB flush
             self.mib_data_store = dict()
@@ -380,7 +381,6 @@ class PonPort(object):
                     pass
 
             # Successful if here
-
             device.reason = 'MIB Synchronization Complete'
             self._handler.adapter_agent.update_device(device)
 
@@ -389,7 +389,7 @@ class PonPort(object):
             self.log.info('mib-synchronized')
 
         except TimeoutError as e:
-            self.log.warn('mib-upload', e=e)
+            self.log.warn('mib-upload', e=e, seq_no=seq_no, number_of_commands=number_of_commands)
 
             if device is not None:
                 device.reason = 'mib-upload-failure: Response Timeout'

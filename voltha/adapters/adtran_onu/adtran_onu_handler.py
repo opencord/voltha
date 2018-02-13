@@ -39,7 +39,8 @@ from common.utils.indexpool import IndexPool
 
 _ = third_party
 _MAXIMUM_PORT = 128          # PON and UNI ports
-
+_ONU_REBOOT_MIN = 60
+_ONU_REBOOT_RETRY = 10
 
 class AdtranOnuHandler(AdtranXPON):
     def __init__(self, adapter, device_id):
@@ -544,41 +545,88 @@ class AdtranOnuHandler(AdtranXPON):
 
     @inlineCallbacks
     def reboot(self):
-        from common.utils.asleep import asleep
         self.log.info('rebooting', device_id=self.device_id)
         self._cancel_deferred()
 
-        # Drop registration for adapter messages
-        self.adapter_agent.unregister_for_inter_adapter_messages()
+        reregister = True
+        try:
+            # Drop registration for adapter messages
+            self.adapter_agent.unregister_for_inter_adapter_messages()
+
+        except KeyError:
+            reregister = False
 
         # Update the operational status to ACTIVATING and connect status to
         # UNREACHABLE
         device = self.adapter_agent.get_device(self.device_id)
+
         previous_oper_status = device.oper_status
         previous_conn_status = device.connect_status
+
         device.oper_status = OperStatus.ACTIVATING
         device.connect_status = ConnectStatus.UNREACHABLE
-        device.reason = 'Rebooting'
-
+        device.reason = 'Attempting reboot'
         self.adapter_agent.update_device(device)
 
-        # Sleep 10 secs, simulating a reboot
         # TODO: send alert and clear alert after the reboot
-        yield asleep(10)    # TODO: Need to reboot for real
 
-        # Register for adapter messages
-        self.adapter_agent.register_for_inter_adapter_messages()
+        if not self.is_mock:
+            from twisted.internet.defer import TimeoutError
+
+            try:
+                ######################################################
+                # MIB Reset - For ADTRAN ONU, we do not get a response
+                #             back (because we are rebooting)
+                pass
+                yield self.omci.send_reboot(timeout=0.1)
+
+            except TimeoutError:
+                # This is expected
+                returnValue('reboot-in-progress')
+
+            except Exception as e:
+                self.log.exception('send-reboot', e=e)
+                raise
+
+        # Reboot in progress. A reboot may take up to 3 min 30 seconds
+        # Go ahead and pause less than that and start to look
+        # for it being alive
+
+        device.reason = 'reboot in progress'
+        self.adapter_agent.update_device(device)
+
+        self._deferred = reactor.callLater(_ONU_REBOOT_MIN,
+                                           self._finish_reboot,
+                                           previous_oper_status,
+                                           previous_conn_status,
+                                           reregister)
+
+    @inlineCallbacks
+    def _finish_reboot(self, previous_oper_status, previous_conn_status,
+                       reregister):
+        from common.utils.asleep import asleep
+
+        if not self.is_mock:
+            # TODO: Do a simple poll and call this again if we timeout
+            # _ONU_REBOOT_RETRY
+            yield asleep(180)       # 3 minutes ...
 
         # Change the operational status back to its previous state.  With a
         # real OLT the operational state should be the state the device is
         # after a reboot.
         # Get the latest device reference
         device = self.adapter_agent.get_device(self.device_id)
+
         device.oper_status = previous_oper_status
         device.connect_status = previous_conn_status
         device.reason = ''
         self.adapter_agent.update_device(device)
-        self.log.info('rebooted', device_id=self.device_id)
+
+        if reregister:
+            self.adapter_agent.register_for_inter_adapter_messages()
+
+        self.log.info('reboot-complete', device_id=self.device_id)
+
 
     def self_test_device(self, device):
         """
@@ -699,17 +747,38 @@ class AdtranOnuHandler(AdtranXPON):
 
     def delete(self):
         self.log.info('deleting', device_id=self.device_id)
-        # A delete request may be received when an OLT is disabled
-
-        self.enabled = False
-
-        # TODO:  Need to implement this
-        # 1) Remove all flows from the device
-
-        self.log.info('deleted', device_id=self.device_id)
-
-        # Drop device ID
-        self.device_id = None
+        #
+        # handling needed here
+        # self.enabled = False
+        #
+        # # TODO:  Need to implement this
+        # # 1) Remove all flows from the device
+        #
+        # self.log.info('deleted', device_id=self.device_id)
+        #
+        # # Drop device ID
+        # self.device_id = None    @inlineCallbacks
+    # def delete_v_ont_ani(self, data):
+    #     self.log.info('deleting-v_ont_ani')
+    #
+    #     device = self.adapter_agent.get_device(self.device_id)
+    #     # construct message
+    #     # MIB Reset - OntData - 0
+    #     if device.connect_status != ConnectStatus.REACHABLE:
+    #         self.log.error('device-unreachable')
+    #         returnValue(None)
+    #
+    #     self.send_mib_reset()
+    #     yield self.wait_for_response()
+    #     self.proxy_address = device.proxy_address
+    #     self.adapter_agent.unregister_for_proxied_messages(device.proxy_address)
+    #
+    #     ports = self.adapter_agent.get_ports(self.device_id, Port.PON_ONU)
+    #     if ports is not None:
+    #         for port in ports:
+    #             if port.label == 'PON port':
+    #                 self.adapter_agent.delete_port(self.device_id, port)
+    #                 break
 
     def _check_for_mock_config(self, data):
         # Check for MOCK configuration
@@ -799,8 +868,7 @@ class AdtranOnuHandler(AdtranXPON):
         return update
 
     def on_vont_ani_delete(self, vont_ani):
-        # TODO: Is this ever called or is the iAdapter 'delete' called first?
-        return None   # Implement in your OLT, if needed
+        return self.delete()
 
     def on_venet_create(self, venet):
         self.log.info('venet-create', venet=venet)

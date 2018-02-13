@@ -70,7 +70,7 @@ class WatchdogConfigData(EntityClass):
     mandatory_operations = {OP.Get}
 
 
-class FlexibleConfigurationStatusPortal(EntityClass):
+class FCPortalOrSraStat(EntityClass):
     class_id = 65420
     attributes = [
         ECA(ShortField("managed_entity_id", None), {AA.R, AA.SBC}),
@@ -78,10 +78,9 @@ class FlexibleConfigurationStatusPortal(EntityClass):
     mandatory_operations = {OP.Get, OP.Set, OP.Create, OP.Delete}
 
 
-class ONU3G(EntityClass):
+class Onu3gOrInvStat2(EntityClass):
     class_id = 65422
     attributes = [
-        # TODO: Fix access for all attributes below
         ECA(ShortField("managed_entity_id", None), {AA.R, AA.SBC}),
     ]
     mandatory_operations = {OP.Set, OP.Get, OP.Create, OP.Delete}

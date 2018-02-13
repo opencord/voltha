@@ -26,6 +26,7 @@ from voltha.protos import third_party
 from common.frameio.frameio import hexify
 from voltha.extensions.omci.omci import *
 from omci_entities import add_onu_me_entities
+from omci_me import OntGFrame, OntDataFrame
 
 _ = third_party
 
@@ -167,6 +168,9 @@ class OMCI_CC(object):
         Attempt to retrieve and remove an ONU Alarm Message from the ONU
         autonomous message queue.
 
+        TODO: We may want to deprecate this, see TODO comment around line 399 in
+              the _request_success() method below
+
         :return: a Deferred which fires with the next Alarm Frame available in
                  the queue.
         """
@@ -178,6 +182,9 @@ class OMCI_CC(object):
         Attempt to retrieve and remove an ONU Attribute Value Change (AVC)
         Message from the ONU autonomous message queue.
 
+        TODO: We may want to deprecate this, see TODO comment around line 399 in
+              the _request_success() method below
+
         :return: a Deferred which fires with the next AVC Frame available in
                  the queue.
         """
@@ -188,6 +195,9 @@ class OMCI_CC(object):
         """
         Attempt to retrieve and remove an ONU Test Results Message from the
         ONU autonomous message queue.
+
+        TODO: We may want to deprecate this, see TODO comment around line 399 in
+              the _request_success() method below
 
         :return: a Deferred which fires with the next Test Results Frame is
                  available in the queue.
@@ -278,7 +288,7 @@ class OMCI_CC(object):
                     self._consecutive_errors = 0
 
                 except KeyError as e:
-                    # TODO: Investigate.  Probably an unknown/unsupported ME
+                    # Unknown, Unsupported, or vendor-specific ME. Key is the unknown classID
                     # TODO: Can we create a temporary one to hold it so upload does not always fail on new ME's?
                     self.log.exception('frame-decode-key-error', msg=hexlify(msg), e=e)
                     return
@@ -384,6 +394,13 @@ class OMCI_CC(object):
         # TODO: Here we could update the MIB database if we did a set/create/delete
         #       or perhaps a verify if a GET.  Also could increment mib counter
         #
+        # TODO: A better way to perform this in VOLTHA v1.3 would be to provide
+        #       a pub/sub capability for external users/tasks to monitor responses
+        #       that could optionally take a filter. This would allow a MIB-Sync
+        #       task to easily watch all AVC notifications as well as Set/Create/Delete
+        #       operations and keep them serialized.  It may also be a better/easier
+        #       way to handle things if we containerize OpenOMCI.
+        #
         try:
             if isinstance(rx_frame.omci_message, OmciGetResponse):
                 pass    # TODO: Implement MIB check or remove
@@ -454,42 +471,34 @@ class OMCI_CC(object):
         return d
 
     ###################################################################################
-    # TODO: The following three need to be ported to the new OMCI_CC and ME_Frame style
-    #       or perhaps made into static methods in the base ME_Frame class.
+    # MIB Action shortcuts
 
-    def send_mib_reset(self, entity_id=0, timeout=DEFAULT_OMCI_TIMEOUT):
+    def send_mib_reset(self, timeout=DEFAULT_OMCI_TIMEOUT):
+        """
+        Perform a MIB Reset
+        """
         self.log.debug('send-mib-reset')
-        frame = OmciFrame(
-            transaction_id=self._get_tx_tid(),
-            message_type=OmciMibReset.message_id,
-            omci_message=OmciMibReset(
-                entity_class=OntData.class_id,
-                entity_id=entity_id
-            )
-        )
+
+        frame = OntDataFrame().mib_reset()
         return self.send(frame, timeout)
 
     def send_mib_upload(self, timeout=DEFAULT_OMCI_TIMEOUT):
         self.log.debug('send-mib-upload')
-        frame = OmciFrame(
-            transaction_id=self._get_tx_tid(),
-            message_type=OmciMibUpload.message_id,
-            omci_message=OmciMibUpload(
-                entity_class=OntData.class_id,
-                entity_id=0
-            )
-        )
+
+        frame = OntDataFrame().mib_upload()
         return self.send(frame, timeout)
 
     def send_mib_upload_next(self, seq_no, timeout=DEFAULT_OMCI_TIMEOUT):
         self.log.debug('send-mib-upload-next')
-        frame = OmciFrame(
-            transaction_id=self._get_tx_tid(),
-            message_type=OmciMibUploadNext.message_id,
-            omci_message=OmciMibUploadNext(
-                entity_class=OntData.class_id,
-                entity_id=0,
-                command_sequence_number=seq_no
-            )
-        )
+
+        frame = OntDataFrame(seq_no).mib_upload_next()
+        return self.send(frame, timeout)
+
+    def send_reboot(self, timeout=DEFAULT_OMCI_TIMEOUT):
+        """
+        Send an ONU Device reboot request (ONU-G ME).
+        """
+        self.log.debug('send-mib-reboot')
+
+        frame = OntGFrame().reboot()
         return self.send(frame, timeout)

@@ -51,7 +51,7 @@ class MEFrame(object):
 
     @property
     def entity_class_name(self):
-        return self._class.__class__.__name__
+        return self._class.__name__
 
     @property
     def entity_id(self):
@@ -64,23 +64,34 @@ class MEFrame(object):
     @staticmethod
     def check_type(param, types):
         if not isinstance(param, types):
-            raise TypeError("param '{}' should be a {}".format(param, types))
+            raise TypeError("Parameter '{}' should be a {}".format(param, types))
 
     def _check_operation(self, operation):
         allowed = self.entity_class.mandatory_operations | self.entity_class.optional_operations
-        assert operation in allowed, "{} not allowed for '{}'".format(str(operation).split('.')[1],
+        assert operation in allowed, "{} not allowed for '{}'".format(operation.name,
                                                                       self.entity_class_name)
 
     def _check_attributes(self, attributes, access):
-        for attribute in attributes:
-            index = self.entity_class.attribute_name_to_index_map.get(attribute)
+        keys = attributes.keys() if isinstance(attributes, dict) else attributes
+        for attr_name in keys:
             # Bad attribute name (invalid or spelling error)?
-            assert index is not None, "Attribute '{}' is not valid for '{}'".format(attribute,
-                                                                                    self.entity_class_name)
+            index = self.entity_class.attribute_name_to_index_map.get(attr_name)
+            if index is None:
+                raise KeyError("Attribute '{}' is not valid for '{}'".
+                               format(attr_name, self.entity_class_name))
             # Invalid access?
-            # TODO: Add read-only access to EntityClass _access set. Currently it is protected
-            assert access in self.entity_class.attributes[index]._access,\
-                "No '{} access for attribute '{}".format(str(access).split('.')[1], attribute)
+            assert access in self.entity_class.attributes[index].access, \
+                "Access '{}' for attribute '{}' is not valid for '{}'".format(access.name,
+                                                                              attr_name,
+                                                                              self.entity_class_name)
+
+        if access.value in [AA.W.value, AA.SBC.value] and isinstance(attributes, dict):
+            for attr_name, value in attributes.iteritems():
+                index = self.entity_class.attribute_name_to_index_map.get(attr_name)
+                attribute = self.entity_class.attributes[index]
+                if not attribute.valid(value):
+                    raise ValueError("Invalid value '{}' for attribute '{}' of '{}".
+                                     format(value, attr_name, self.entity_class_name))
 
     @staticmethod
     def _attr_to_data(attributes):
@@ -138,7 +149,7 @@ class MEFrame(object):
         assert len(data) > 0, 'No attributes supplied'
 
         self._check_operation(OP.Create)
-        self._check_attributes(data.keys(), AA.Writable)
+        self._check_attributes(data, AA.Writable)
 
         return OmciFrame(
             transaction_id=None,
@@ -175,7 +186,7 @@ class MEFrame(object):
         assert len(data) > 0, 'No attributes supplied'
 
         self._check_operation(OP.Set)
-        self._check_attributes(data.keys(), AA.Writable)
+        self._check_attributes(data, AA.Writable)
 
         return OmciFrame(
             transaction_id=None,
@@ -209,4 +220,72 @@ class MEFrame(object):
                 entity_class=getattr(self.entity_class, 'class_id'),
                 entity_id=getattr(self, 'entity_id'),
                 attributes_mask=self.entity_class.mask_for(*mask_set)
+            ))
+
+    def reboot(self):
+        """
+        Create a Reboot request from for this ME
+        :return: (OmciFrame) OMCI Frame
+        """
+        self._check_operation(OP.Reboot)
+
+        return OmciFrame(
+            transaction_id=None,
+            message_type=OmciReboot.message_id,
+            omci_message=OmciReboot(
+                entity_class=getattr(self.entity_class, 'class_id'),
+                entity_id=getattr(self, 'entity_id')
+            ))
+
+    def mib_reset(self):
+        """
+        Create a MIB Reset request from for this ME
+        :return: (OmciFrame) OMCI Frame
+        """
+        self._check_operation(OP.MibReset)
+
+        return OmciFrame(
+            transaction_id=None,
+            message_type=OmciMibReset.message_id,
+            omci_message=OmciMibReset(
+                entity_class=getattr(self.entity_class, 'class_id'),
+                entity_id=getattr(self, 'entity_id')
+            ))
+
+    def mib_upload(self):
+        """
+        Create a MIB Upload request from for this ME
+        :return: (OmciFrame) OMCI Frame
+        """
+        self._check_operation(OP.MibUpload)
+
+        return OmciFrame(
+            transaction_id=None,
+            message_type=OmciMibUpload.message_id,
+            omci_message=OmciMibUpload(
+                entity_class=getattr(self.entity_class, 'class_id'),
+                entity_id=getattr(self, 'entity_id')
+            ))
+
+    def mib_upload_next(self):
+        """
+        Create a MIB Upload Next request from for this ME
+        :return: (OmciFrame) OMCI Frame
+        """
+        assert hasattr(self, 'data'), 'data required for Set actions'
+        data = getattr(self, 'data')
+        MEFrame.check_type(data, dict)
+        assert len(data) > 0, 'No attributes supplied'
+        assert 'mib_data_sync' in data, "'mib_data_sync' not in attributes list"
+
+        self._check_operation(OP.MibUploadNext)
+        self._check_attributes(data, AA.Writable)
+
+        return OmciFrame(
+            transaction_id=None,
+            message_type=OmciMibUploadNext.message_id,
+            omci_message=OmciMibUploadNext(
+                entity_class=getattr(self.entity_class, 'class_id'),
+                entity_id=getattr(self, 'entity_id'),
+                command_sequence_number=data['mib_data_sync']
             ))
