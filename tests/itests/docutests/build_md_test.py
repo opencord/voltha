@@ -418,8 +418,7 @@ class BuildMdTests(TestCase):
             cmd = command_defs['docker_ps_count']
             out, err, rc = run_command_to_completion_with_raw_stdout(cmd)
             self.assertEqual(rc, 0)
-            self.assertGreaterEqual(out.split(), [str(len(
-                docker_service_list))])
+            self.assertGreaterEqual(out, (len(docker_service_list)))
 
             # Retrieve the list of services from consul and validate against
             # the list obtained from docker composed
@@ -493,7 +492,7 @@ class BuildMdTests(TestCase):
             # first work of each line
             print "Verify docker compose logs has output from all the services " \
                   "..."
-            expected_output = ['voltha_1', 'fluentd_1', 'consul_1',
+            expected_output = ['voltha_1', 'fluentd_1', 'vconsul_1',
                                'registrator_1', 'kafka_1', 'zookeeper_1',
                                'ofagent_1', 'netconf_1']
             cmd = command_defs['docker_compose_logs']
