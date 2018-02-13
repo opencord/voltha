@@ -22,7 +22,7 @@ services:
       DOCKER_HOST_IP: "${DOCKER_HOST_IP}"
     entrypoint:
       - /cli/cli/setup.sh
-      - -C consul:8500
+      - -C vconsul:8500
       - -g voltha:50555
       - -s voltha:18880
       - -G
