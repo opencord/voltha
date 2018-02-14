@@ -14,13 +14,12 @@
 # limitations under the License.
 #
 import structlog
-from enum import Enum
 from scapy.fields import ByteField, StrFixedLenField, ConditionalField, Field
 from scapy.fields import ShortField, BitField
 from scapy.packet import Packet
 
 from voltha.extensions.omci.omci_defs import AttributeAccess
-from voltha.extensions.omci.omci_entities import entity_id_to_class_map
+import voltha.extensions.omci.omci_entities as omci_entities
 
 
 log = structlog.get_logger()
@@ -36,27 +35,27 @@ class OmciData(Field):
 
     def addfield(self, pkt, s, val):
         class_id = getattr(pkt, self._entity_class)
-        entity_class = entity_id_to_class_map.get(class_id)
+        entity_class = omci_entities.entity_id_to_class_map.get(class_id)
         for attribute in entity_class.attributes:
-            if AttributeAccess.SetByCreate not in attribute._access:
+            if AttributeAccess.SetByCreate not in attribute.access:
                 continue
-            if attribute._fld.name == 'managed_entity_id':
+            if attribute.field.name == 'managed_entity_id':
                 continue
-            fld = attribute._fld
+            fld = attribute.field
             s = fld.addfield(pkt, s, val.get(fld.name, fld.default))
         return s
 
     def getfield(self, pkt, s):
         """Extract an internal value from a string"""
         class_id = getattr(pkt, self._entity_class)
-        entity_class = entity_id_to_class_map.get(class_id)
+        entity_class = omci_entities.entity_id_to_class_map.get(class_id)
         data = {}
         for attribute in entity_class.attributes:
-            if AttributeAccess.SetByCreate not in attribute._access:
+            if AttributeAccess.SetByCreate not in attribute.access:
                 continue
-            if attribute._fld.name == 'managed_entity_id':
+            if attribute.field.name == 'managed_entity_id':
                 continue
-            fld = attribute._fld
+            fld = attribute.field
             s, value = fld.getfield(pkt, s)
             data[fld.name] = value
         return s, data
@@ -75,10 +74,10 @@ class OmciMaskedData(Field):
     def addfield(self, pkt, s, val):
         class_id = getattr(pkt, self._entity_class)
         attribute_mask = getattr(pkt, self._attributes_mask)
-        entity_class = entity_id_to_class_map.get(class_id)
+        entity_class = omci_entities.entity_id_to_class_map.get(class_id)
         indices = entity_class.attribute_indices_from_mask(attribute_mask)
         for index in indices:
-            fld = entity_class.attributes[index]._fld
+            fld = entity_class.attributes[index].field
             s = fld.addfield(pkt, s, val[fld.name])
         return s
 
@@ -86,22 +85,22 @@ class OmciMaskedData(Field):
         """Extract an internal value from a string"""
         class_id = getattr(pkt, self._entity_class)
         attribute_mask = getattr(pkt, self._attributes_mask)
-        entity_class = entity_id_to_class_map[class_id]
+        entity_class = omci_entities.entity_id_to_class_map[class_id]
         indices = entity_class.attribute_indices_from_mask(attribute_mask)
         data = {}
         for index in indices:
             try:
-                fld = entity_class.attributes[index]._fld
+                fld = entity_class.attributes[index].field
             except IndexError, e:
-                log.error("Cannot decode attribute {} for entity class {}".format(
-                        index, entity_class))
+                log.error("attribute-decode-failure", attribute_index=index,
+                          entity_class=entity_class, e=e)
                 continue
             try:
                 s, value = fld.getfield(pkt, s)
             except Exception, e:
                 raise
             data[fld.name] = value
-        return  s, data
+        return s, data
 
 
 class OmciMessage(Packet):

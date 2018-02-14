@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from enum import Enum
+from enum import Enum, IntEnum
 from scapy.fields import PadField
 from scapy.packet import Raw
 
@@ -102,3 +102,16 @@ class EntityOperations(Enum):
     TestResult = 27
     GetCurrentData = 28
     SetTable = 29       # Defined in Extended Message Set Only
+
+
+class ReasonCodes(IntEnum):
+    # OMCI Result and reason codes
+    Success = 0,            # Command processed successfully
+    ProcessingError = 1,    # Command processing error
+    NotSupported = 2,       # Command not supported
+    ParameterError = 3,     # Parameter error
+    UnknownEntity = 4,      # Unknown managed entity
+    UnknownInstance = 5,    # Unknown managed entity instance
+    DeviceBusy = 6,         # Device busy
+    InstanceExists = 7,     # Instance Exists
+    AttributeFailure = 9,   # Attribute(s) failed or unknown
