@@ -1,8 +1,9 @@
 from unittest import TestCase, main
 
 from loxi import of13
+from ofagent.loxi.of13.instruction import clear_actions
 from voltha.protos import third_party
-from ofagent.converter import to_loxi
+from ofagent.converter import to_loxi, to_grpc
 from voltha.core.flow_decomposer import *
 
 _ = third_party
@@ -223,6 +224,10 @@ class TestConverter(TestCase):
         for group_stat in group_stats:
             loxi_group_desc = to_loxi(group_stat.desc)
 
+    def test_clear_actions_instruction(self):
+        obj = clear_actions()
+        ofp_instruction = to_grpc(obj)
+        self.assertEqual(ofp_instruction.type, 5)
 
 if __name__ == '__main__':
     main()

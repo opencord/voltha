@@ -157,6 +157,8 @@ def ofp_flow_stats_to_loxi_flow_stats(pb):
             return of13.instruction.apply_actions(
                 actions=[make_loxi_action(a)
                          for a in inst['actions']['actions']])
+        elif type == pb2.OFPIT_CLEAR_ACTIONS:
+            return of13.instruction.clear_actions()
         elif type == pb2.OFPIT_GOTO_TABLE:
             return of13.instruction.goto_table(
                 table_id=inst['goto_table']['table_id'])
@@ -352,6 +354,10 @@ def loxi_apply_actions_to_ofp_instruction(lo):
         actions=pb2.ofp_instruction_actions(
             actions=[to_grpc(a) for a in lo.actions]))
 
+def loxi_clear_actions_to_ofp_instruction(lo):
+    return pb2.ofp_instruction(
+        type=pb2.OFPIT_CLEAR_ACTIONS)
+
 
 def loxi_goto_table_to_ofp_instruction(lo):
     return pb2.ofp_instruction(
@@ -414,6 +420,7 @@ to_grpc_converters = {
     of13.oxm.metadata: loxi_oxm_metadata_to_ofp_oxm,
 
     of13.instruction.apply_actions: loxi_apply_actions_to_ofp_instruction,
+    of13.instruction.clear_actions: loxi_clear_actions_to_ofp_instruction,
     of13.instruction.goto_table: loxi_goto_table_to_ofp_instruction,
 
     of13.action.output: loxi_output_action_to_ofp_action,

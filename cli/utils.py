@@ -146,6 +146,8 @@ def print_flows(what, id, type, flows, groups, printfn=_printfn):
             elif itype == 1:
                 table.add_cell(i, 10000, 'goto-table',
                                instruction['goto_table']['table_id'])
+            elif itype == 5:
+                table.add_cell(i, 10000, 'clear-actions', [])
             else:
                 raise NotImplementedError(
                     'not handling instruction type {}'.format(itype))
