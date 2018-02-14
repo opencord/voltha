@@ -317,6 +317,10 @@ services:
       ONOS_CONNECTION: "onos:8181"
       ONOS_USER: "karaf"
       ONOS_PASSWORD: "karaf"
+{%- if ONOS_CONFIG is defined and ONOS_CONFIG %}
+    volumes:
+      - {{ ONOS_CONFIG }}:/data/onos-config.json
+{%- endif %}
     networks:
       - voltha-net
 
