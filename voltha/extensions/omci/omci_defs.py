@@ -102,3 +102,16 @@ class EntityOperations(Enum):
     TestResult = 27
     GetCurrentData = 28
     SetTable = 29       # Defined in Extended Message Set Only
+
+
+class ReasonCodes(Enum):
+    # OMCI Result and reason codes
+    Success = 0,            # Command processed successfully
+    ProcessingError = 1,    # Command processing error
+    NotSupported = 2,       # Command not supported
+    ParameterError = 3,     # Parameter error
+    UnknownEntity = 4,      # Unknown managed entity
+    UnknownInstance = 5,    # Unknown managed entity instance
+    DeviceBusy = 6,         # Device busy
+    InstanceExists = 7,     # Instance Exists
+    AttributeFailure = 9,   # Attribute(s) failed or unknown
