@@ -320,7 +320,7 @@ class BroadcomOnuHandler(object):
 
         # Need to query ONU for number of supported uni ports
         # For now, temporarily set number of ports to 1 - port #2
-        self.uni_ports = (2,)
+        self.uni_ports = (1, 2, 3, 4, 5)
 
         # Handle received ONU event messages
         reactor.callLater(0, self.handle_onu_events)
@@ -604,20 +604,16 @@ class BroadcomOnuHandler(object):
                     self.send_create_vlan_tagging_filter_data(0x2102, _set_vlan_vid)
                     yield self.wait_for_response()
 
-                    self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_untagged(0x202, 0x1000, _set_vlan_vid)
-                    yield self.wait_for_response()
+                    for port_id in self.uni_ports:
 
-                    self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_single_tag(0x202, 8, 0, 0,
-                                                                                                     1, 8, _set_vlan_vid)
-                    yield self.wait_for_response()
+                        self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_untagged(0x200 + port_id, 0x1000, _set_vlan_vid)
+                        yield self.wait_for_response()
 
-                    # Set AR - ExtendedVlanTaggingOperationConfigData
-                    #          514 - RxVlanTaggingOperationTable - add VLAN <cvid> to priority tagged pkts - c-vid
-                    '''
-                    self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_single_tag(0x205, 8, 0, 0,
-                                                                                                     1, 8, _set_vlan_vid)
-                    yield self.wait_for_response()
-                    '''
+                        self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_single_tag(0x200 + port_id, 8, 0, 0,
+                                                                                                         1, 8, _set_vlan_vid)
+                        yield self.wait_for_response()
+
+
 
             except Exception as e:
                 self.log.exception('failed-to-install-flow', e=e, flow=flow)
@@ -1329,28 +1325,9 @@ class BroadcomOnuHandler(object):
         self.send_create_gal_ethernet_profile(1, 48)
         yield self.wait_for_response()
 
-        # Port 2
-        # Extended VLAN Tagging Operation config
-        # Create AR - ExtendedVlanTaggingOperationConfigData - 514 - 2 - 0x102(Uni-Port-Num)
-        # TODO: add entry here for additional UNI interfaces
-        self.send_create_extended_vlan_tagging_operation_configuration_data(0x202, 2, 0x102)
-        yield self.wait_for_response()
-
-        # Set AR - ExtendedVlanTaggingOperationConfigData - 514 - 8100 - 8100
-        self.send_set_extended_vlan_tagging_operation_tpid_configuration_data(0x202, 0x8100, 0x8100)
-        yield self.wait_for_response()
-
         # MAC Bridge Service config
         # Create AR - MacBridgeServiceProfile - 513
         self.send_create_mac_bridge_service_profile(0x201)
-        yield self.wait_for_response()
-
-        # Create AR - MacBridgePortConfigData - Entity_id -
-        #                                       bridge ID -
-        #                                       port num -
-        #                                       tp_type -
-        #                                       IEEE MApper poniter
-        self.send_create_mac_bridge_port_configuration_data(0x201, 0x201, 2, 1, 0x102)
         yield self.wait_for_response()
 
         # Mapper Service config
@@ -1368,15 +1345,40 @@ class BroadcomOnuHandler(object):
         self.send_create_vlan_tagging_filter_data(0x2102, cvid)
         yield self.wait_for_response()
 
-       # Set AR - ExtendedVlanTaggingOperationConfigData
-        #          514 - RxVlanTaggingOperationTable - add VLAN <cvid> to priority tagged pkts - c-vid
-        #self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_single_tag(0x202, 8, 0, 0, 1, 8, cvid)
-        #yield self.wait_for_response()
 
-        # Set AR - ExtendedVlanTaggingOperationConfigData
-        #          514 - RxVlanTaggingOperationTable - add VLAN <cvid> to untagged pkts - c-vid
-        self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_untagged(0x202, 0x1000, cvid)
-        yield self.wait_for_response()
+        for port_id in self.uni_ports:
+            # Extended VLAN Tagging Operation config
+            # Create AR - ExtendedVlanTaggingOperationConfigData - 514 - 2 - 0x102(Uni-Port-Num)
+            self.send_create_extended_vlan_tagging_operation_configuration_data(0x200 + port_id, 2, 0x100 + port_id)
+            yield self.wait_for_response()
+
+            # Set AR - ExtendedVlanTaggingOperationConfigData - 514 - 8100 - 8100
+            self.send_set_extended_vlan_tagging_operation_tpid_configuration_data(0x200 + port_id, 0x8100, 0x8100)
+            yield self.wait_for_response()
+
+
+
+            # Create AR - MacBridgePortConfigData - Entity_id -
+            #                                       bridge ID -
+            #                                       port num -
+            #                                       tp_type -
+            #                                       IEEE MApper poniter
+            self.send_create_mac_bridge_port_configuration_data(0x200 + port_id, 0x201, port_id, 1, 0x100 + port_id)
+            yield self.wait_for_response()
+
+
+
+
+
+           # Set AR - ExtendedVlanTaggingOperationConfigData
+            #          514 - RxVlanTaggingOperationTable - add VLAN <cvid> to priority tagged pkts - c-vid
+            #self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_single_tag(0x202, 8, 0, 0, 1, 8, cvid)
+            #yield self.wait_for_response()
+
+            # Set AR - ExtendedVlanTaggingOperationConfigData
+            #          514 - RxVlanTaggingOperationTable - add VLAN <cvid> to untagged pkts - c-vid
+            self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_untagged(0x200 + port_id, 0x1000, cvid)
+            yield self.wait_for_response()
 
         # Multicast related MEs
         # Set AR - MulticastOperationsProfile - Dynamic Access Control List table
@@ -1418,34 +1420,7 @@ class BroadcomOnuHandler(object):
         self.send_set_multicast_operations_profile_ds_igmp_mcast_tci(0x201, 4, cvid)
         yield self.wait_for_response()
 
-        '''
-        # Port 5
-        # Extended VLAN Tagging Operation config
-        # Create AR - ExtendedVlanTaggingOperationConfigData - 514 - 2 - 0x102
-        # TODO: add entry here for additional UNI interfaces
-        self.send_create_extended_vlan_tagging_operation_configuration_data(0x205, 2, 0x105)
-        yield self.wait_for_response()
 
-        # Set AR - ExtendedVlanTaggingOperationConfigData - 514 - 8100 - 8100
-        self.send_set_extended_vlan_tagging_operation_tpid_configuration_data(0x205, 0x8100, 0x8100)
-        yield self.wait_for_response()
-
-        # Set AR - ExtendedVlanTaggingOperationConfigData
-        #          514 - RxVlanTaggingOperationTable - add VLAN <cvid> to priority tagged pkts - c-vid
-        #self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_single_tag(0x205, 8, 0, 0, 1, 8, cvid)
-        #yield self.wait_for_response()
-
-        # Set AR - ExtendedVlanTaggingOperationConfigData
-        #          514 - RxVlanTaggingOperationTable - add VLAN <cvid> to untagged pkts - c-vid
-        self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_untagged(0x205, 0x1000, cvid)
-        yield self.wait_for_response()
-
-        # MAC Bridge Port config
-        # Create AR - MacBridgePortConfigData - 513 - 513 - 1 - 1 - 0x102
-        # TODO: add more entries here for other UNI ports
-        self.send_create_mac_bridge_port_configuration_data(0x205, 0x201, 5, 1, 0x105)
-        yield self.wait_for_response()
-        '''
 
     def add_uni_port(self, device, parent_logical_device_id,
                      name, parent_port_num=None):
