@@ -506,13 +506,10 @@ class BuildMdTests(TestCase):
             # some
             # key messages in the logs
             print "Verify docker voltha logs are produced ..."
-            expected_output = ['coordinator._renew_session', 'main.heartbeat']
-            cmd = command_defs['docker_voltha_logs']
-            docker_voltha_logs = run_long_running_command_with_timeout(cmd,
-                                                                       0.5, 5)
-            intersected_logs = [l for l in expected_output if
-                                l in docker_voltha_logs]
-            self.assertEqual(len(intersected_logs), len(expected_output))
+            self.wait_till('Basic voltha logs are absent',
+                           self._is_basic_voltha_logs_produced,
+                           interval=1,
+                           timeout=30)
 
         finally:
             print "Stopping all containers ..."
@@ -645,6 +642,15 @@ class BuildMdTests(TestCase):
         if not res:
             print "Not all consul services are ready ..."
         return res
+
+    def _is_basic_voltha_logs_produced(self):
+        expected_output = ['coordinator._renew_session', 'main.heartbeat']
+        cmd = command_defs['docker_voltha_logs']
+        docker_voltha_logs = run_long_running_command_with_timeout(cmd,
+                                                                   10, 5)
+        intersected_logs = [l for l in expected_output if
+                            l in docker_voltha_logs]
+        return  len(intersected_logs) == len(expected_output)
 
     def _run_consul(self):
         # run consul
