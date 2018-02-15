@@ -16,7 +16,7 @@
 
 from twisted.internet.defer import inlineCallbacks, returnValue
 from voltha.adapters.asfvolt16_olt.protos import bal_pb2, \
-    bal_model_types_pb2, bal_model_ids_pb2, bal_indications_pb2
+    bal_model_types_pb2, bal_model_ids_pb2, bal_indications_pb2, asfvolt_pb2
 from voltha.adapters.asfvolt16_olt.grpc_client import GrpcClient
 from voltha.adapters.asfvolt16_olt.asfvolt16_ind_handler \
                                        import Asfvolt16IndHandler
@@ -50,6 +50,7 @@ class Bal(object):
         self.grpc_client.connect(host_and_port)
         self.stub = bal_pb2.BalStub(self.grpc_client.channel)
         self.ind_stub = bal_indications_pb2.BalGetIndStub(self.grpc_client.channel)
+        self.asfvolt_stub = asfvolt_pb2.AsfvoltStub(self.grpc_client.channel)
         self.olt.running = True
 
         # Right now Bi-Directional GRPC support is not there in grpc-c.
@@ -504,6 +505,21 @@ class Bal(object):
             returnValue(rebootStatus)
         except Exception as e:
             self.log.info('OLT-HeartBeat-failed', exc=str(e))
+
+    @inlineCallbacks
+    def get_asfvolt_system_info(self, device_id):
+        self.log.info('get-asfvolt-system-info')
+        try:
+            obj = bal_pb2.BalDefault()
+            obj.device_id = device_id
+            asfvolt_system_info = \
+                 yield self.asfvolt_stub.AsfvoltGetSystemInfo(obj, timeout=GRPC_TIMEOUT)
+            self.log.debug('asf-volt-system-info',
+                            asfvolt_system_info=asfvolt_system_info)
+            returnValue(asfvolt_system_info)
+        except Exception as e:
+            self.log.error('get-asfvolt-system-info-failed', exc=str(e))
+            returnValue(None)
 
     def get_indication_info(self, device_id):
         while self.olt.running:
