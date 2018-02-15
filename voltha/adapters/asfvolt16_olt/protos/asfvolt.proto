@@ -1,0 +1,41 @@
+//
+// Copyright 2017 the original author or authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
+syntax = "proto3";
+
+import "bal.proto";
+
+message AsfSystemInfo {
+    string product_name      = 1;
+    string part_num          = 2;
+    string serial_num        = 3;
+    string mac_address       = 4;
+    string mac_range         = 5;
+    string manufacturer      = 6;
+    string manufacture_date  = 7;
+    string vendor            = 8;
+    string platform_name     = 9;
+    string label_revision    = 10;
+    string country_code      = 11;
+    string diag_version      = 12;
+    string onie_version      = 13;
+}
+
+service Asfvolt {
+    /* The grpc-c doesn't accept empty parameters in the RPC request.
+       Hence filling in some default message in the RPC request */
+    rpc AsfvoltGetSystemInfo(BalDefault) returns(AsfSystemInfo) {};
+}
