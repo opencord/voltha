@@ -351,8 +351,7 @@ class Asfvolt16Handler(OltDeviceHandler):
             self.add_port(port_no=ASFVOLT_NNI_PORT,
                           port_type=Port.ETHERNET_NNI,
                           label='NNI facing Ethernet port')
-            self.logical_device_id = \
-                self.add_logical_device(device_id=device.id)
+            self.add_logical_device(device_id=device.id)
             self.add_logical_port(port_no=ASFVOLT_NNI_PORT,
                                   port_type=Port.ETHERNET_NNI,
                                   device_id=device.id,
@@ -755,8 +754,24 @@ class Asfvolt16Handler(OltDeviceHandler):
                 break
         self.adapter_agent.delete_port(self.device_id, port)
 
+    @inlineCallbacks
     def add_logical_device(self, device_id):
         self.log.info('adding-logical-device', device_id=device_id)
+        # Initialze default values for dpid and serial_num
+        dpid = None
+        serial_num = self.host_and_port
+
+        try:
+            asfvolt_system_info = \
+                yield self.bal.get_asfvolt_system_info(device_id)
+            if asfvolt_system_info is not None:
+                if asfvolt_system_info.mac_address is not None:
+                    dpid = asfvolt_system_info.mac_address
+                if asfvolt_system_info.serial_num is not None:
+                    serial_num = asfvolt_system_info.serial_num
+        except Exception as e:
+            self.log.error('using-default-values', exc=str(e))
+
         ld = LogicalDevice(
             # not setting id and datapth_id will let the adapter
             # agent pick id
@@ -765,7 +780,7 @@ class Asfvolt16Handler(OltDeviceHandler):
                 hw_desc='n/a',
                 sw_desc='logical device for Edgecore ASFvOLT16 OLT',
                 #serial_num=uuid4().hex,
-                serial_num=self.host_and_port,
+                serial_num=serial_num,
                 dp_desc='n/a'
             ),
             switch_features=ofp_switch_features(
@@ -780,8 +795,8 @@ class Asfvolt16Handler(OltDeviceHandler):
             ),
             root_device_id=device_id
         )
-        ld_initialized = self.adapter_agent.create_logical_device(ld)
-        return ld_initialized.id
+        ld_initialized = self.adapter_agent.create_logical_device(ld, dpid=dpid)
+        self.logical_device_id = ld_initialized.id
 
     def add_logical_port(self, port_no, port_type,
                          device_id, logical_device_id):
