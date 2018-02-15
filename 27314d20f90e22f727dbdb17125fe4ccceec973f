@@ -145,6 +145,30 @@
     },
     {
       "key": {
+        "uuid": "570e2101_1f64d3a1",
+        "filename": "scripts/run-voltha.sh",
+        "patchSetId": 1
+      },
+      "lineNbr": 11,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2018-02-15T18:39:11Z",
+      "side": 1,
+      "message": "It is actually two places that it needs to be entered, once for replicas and once for the number of consul members to be expected. i guess the second value would work as a standard env var.\n\nnot sure if i want to give up the j2 version yet, but i share your concern about divergence. what if we create the static files from the j2 version as part of the build and create a 1 master version and a HA version (3 master) version?",
+      "parentUuid": "77dba3c2_895919f8",
+      "range": {
+        "startLine": 11,
+        "startChar": 13,
+        "endLine": 11,
+        "endChar": 27
+      },
+      "revId": "27314d20f90e22f727dbdb17125fe4ccceec973f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "a6db74f3_57b046c1",
         "filename": "scripts/run-voltha.sh",
         "patchSetId": 1
