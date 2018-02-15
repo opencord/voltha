@@ -16,6 +16,24 @@
       "revId": "ea786f015ad3bbc664e79af7ef7712a738da24bb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "4c94576c_20afc855",
+        "filename": "voltha/extensions/omci/omci_cc.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 467,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-02-15T18:05:19Z",
+      "side": 1,
+      "message": "I guess it could.  The Adapter Agent will create a message and then call into the EventBus module and do a publish. At this point it will send it to subscribers.  I\u0027ve looked at the call chain before and I think it calls directly into the OLT code which could block (depending on OLT implementation).\n\nDo you think a better approach may be to do an zero second call later?  I think that would work. After the defer.callLater on the adapter_agent call, immediately do the remaining code below (increment tx, save request, queue \u0027d\u0027 callbacks).  Then add an errback on the callLater to increment the appropriate error count should an exception be thrown during that process.  Queue cleanup of the \u0027d\u0027 defeer would be through success or errback/timeout.   Note that even if you do a \u0027send\u0027 without a timeout, there is a system imposed timeout of 60 seconds on the Send request so that we do not incur a memory leak and also mess up the tx TID logic (16-bit value)\n\nAny comments or suggestions?",
+      "parentUuid": "0eb60633_41f38d42",
+      "revId": "ea786f015ad3bbc664e79af7ef7712a738da24bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
