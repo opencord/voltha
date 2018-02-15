@@ -121,6 +121,30 @@
     },
     {
       "key": {
+        "uuid": "77dba3c2_895919f8",
+        "filename": "scripts/run-voltha.sh",
+        "patchSetId": 1
+      },
+      "lineNbr": 11,
+      "author": {
+        "id": 1000005
+      },
+      "writtenOn": "2018-02-15T00:11:34Z",
+      "side": 1,
+      "message": "I\u0027m OK to move to this solution - it does simplify things a lot. It just means that if you want to run with HA then you would have to edit the number of replicas in the stack file (I would rather avoid having a \u0027static\u0027 stack file as well as a templated stack file, because they\u0027ll diverge over time). But maybe that is better than having this complicated machinery just to fill in one variable?\n\nIf you are OK with having a stack file with replicas set to 1, I can make the change.",
+      "parentUuid": "79f5d384_e37c37fa",
+      "range": {
+        "startLine": 11,
+        "startChar": 13,
+        "endLine": 11,
+        "endChar": 27
+      },
+      "revId": "27314d20f90e22f727dbdb17125fe4ccceec973f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "a6db74f3_57b046c1",
         "filename": "scripts/run-voltha.sh",
         "patchSetId": 1
