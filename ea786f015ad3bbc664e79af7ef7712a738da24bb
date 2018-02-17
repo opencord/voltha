@@ -52,6 +52,24 @@
       "revId": "ea786f015ad3bbc664e79af7ef7712a738da24bb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "01c64802_2869af96",
+        "filename": "voltha/extensions/omci/omci_cc.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 467,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-02-17T15:58:51Z",
+      "side": 1,
+      "message": "In short, it is not any worse than what could happen right now in VOLTHA v1.2.x.  So an immediate fix is probably not needed. If we could find a \u0027safer\u0027 event bus mechanism, it might help with misbehaving (blocking) DA\u0027s for not only OMCI, but probably inter adapter channels and other VOLTHA pub/sub channels.\n\nIn the initial OpenOMCI release (V1.3.0), this will run in the context of the ONU doing the send. So just like an ONU calling it, it could block the VOLTHA instance if the OLT receiving it blocks due to being in the same Twisted context.  Part of this release is the rest of the code that I am putting together which, while it is still ran/started by the ONU, could easily move into VOLTHA core with just a few lines of code and this release will support all ONUs running on that VOLTHA instance. Still same chance of blocking since the core, xpon, and others all run in the same twisted context.\n\nIn the future when all DAs are containerized, I would assume an OLT not behaving well will not cause any issue with other ONUs running on other OLTs. Also if OpenOMCI was moved into a container, I would also assume that would insulate the issue as well.",
+      "parentUuid": "bd181674_23de0b36",
+      "revId": "ea786f015ad3bbc664e79af7ef7712a738da24bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
