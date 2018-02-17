@@ -34,6 +34,24 @@
       "revId": "ea786f015ad3bbc664e79af7ef7712a738da24bb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "bd181674_23de0b36",
+        "filename": "voltha/extensions/omci/omci_cc.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 467,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2018-02-17T00:49:30Z",
+      "side": 1,
+      "message": "The main concern is what gets blocked if this takes a long time to complete.  If only the next transaction to the same ONU it is not a big problem, right?",
+      "parentUuid": "4c94576c_20afc855",
+      "revId": "ea786f015ad3bbc664e79af7ef7712a738da24bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
