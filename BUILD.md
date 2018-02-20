@@ -299,6 +299,72 @@ Or, you can just wipe out your whole Vagrant instance:
 exit # from vagrant box back to your native environmnet
 vagrant destroy -f
 ```
+### Single-node Kubernetes
+
+To run voltha in a Kubernetes environment, the "voltha" development machine can be configured as a Kubernetes master running in a Kubernetes single-node cluster.
+
+To install Kubernetes, execute the following ansible playbook:
+```
+ansible-playbook /cord/incubator/voltha/ansible/kubernetes.yml -c local
+```
+Run these next commands to create the "voltha" namespace"
+```
+cd /cord/incubator/voltha
+kubectl apply -f k8s/namespace.yml
+```
+Follow the steps in either one of the next two sub-sections depending on whether a Consul or Etcd KV store is to be used with voltha.
+
+#### Single-node Kubernetes with Consul KV store
+
+In order to access the Consul UI, set up the ingress framework:
+```
+kubectl apply -f k8s/ingress/
+```
+Deploy the base components:
+```
+kubectl apply -f k8s/single-node/zookeeper.yml
+kubectl apply -f k8s/single-node/kafka.yml
+kubectl apply -f k8s/single-node/consul.yml
+kubectl apply -f k8s/single-node/fluentd.yml
+```
+The following steps will succeed only if the voltha images have been built:
+```
+kubectl apply -f k8s/single-node/vcore_for_consul.yml
+kubectl apply -f k8s/single-node/ofagent.yml
+kubectl apply -f k8s/envoy_for_consul.yml   # Note the file path
+kubectl apply -f k8s/single-node/vcli.yml
+kubectl apply -f k8s/single-node/netconf.yml
+```
+To deploy the monitoring components (Note the file paths):
+```
+kubectl apply -f k8s/grafana.yml
+kubectl apply -f k8s/stats.yml
+```
+#### Single-node Kubernetes with Etcd KV store
+
+Deploy the base components:
+```
+kubectl apply -f k8s/single-node/zookeeper.yml
+kubectl apply -f k8s/single-node/kafka.yml
+kubectl apply -f k8s/operator/etcd/cluster_role.yml
+kubectl apply -f k8s/operator/etcd/cluster_role_binding.yml
+kubectl apply -f k8s/operator/etcd/operator.yml
+kubectl apply -f k8s/single-node/etcd_cluster.yml
+kubectl apply -f k8s/single-node/fluentd.yml
+```
+The following steps will succeed only if the voltha images have been built:
+```
+kubectl apply -f k8s/single-node/vcore_for_etcd.yml
+kubectl apply -f k8s/single-node/ofagent.yml
+kubectl apply -f k8s/envoy_for_etcd.yml
+kubectl apply -f k8s/single-node/vcli.yml
+kubectl apply -f k8s/single-node/netconf.yml
+```
+To deploy the monitoring components (Note the file paths):
+```
+kubectl apply -f k8s/grafana.yml
+kubectl apply -f k8s/stats.yml
+```
 
 # Testing
 

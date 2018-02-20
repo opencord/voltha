@@ -1,0 +1,74 @@
+- name: Install Kubernetes dependencies
+  become: yes
+  apt:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+    - apt-transport-https
+    - jq
+    
+- name: Get apt signing key from Google Cloud
+  become: yes
+  apt_key:
+    url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+    state: present
+
+- name: Add Kubernetes apt repository
+  become: yes
+  apt_repository:
+    repo: 'deb http://apt.kubernetes.io/ kubernetes-xenial main'
+    filename: kubernetes
+    state: present
+    update_cache: yes
+
+- name: Install Kubernetes
+  become: yes
+  apt:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - kubeadm=1.8.5-00
+    - kubectl=1.8.5-00
+    - kubelet=1.8.5-00
+    - kubernetes-cni=0.6.0-00
+
+- name: Initialize node as Kubernetes master
+  become: yes
+  command: "kubeadm init --apiserver-advertise-address=10.100.198.220"
+
+- name: Create .kube directory under home
+  become: yes
+  file:
+    dest: /home/ubuntu/.kube
+    mode: 0755
+    owner: ubuntu
+    group: ubuntu
+    state: directory
+
+- name: Copy config to home directory
+  become: yes
+  command: "sudo cp /etc/kubernetes/admin.conf /home/ubuntu/.kube/config"
+
+- name: Change ownership of ~/.kube/config
+  become: yes
+  file:
+    path: /home/ubuntu/.kube/config
+    mode: 0600
+    owner: ubuntu
+    group: ubuntu
+
+- name: Set proxy-mode flag in kube-proxy daemonset (workaround for https://github.com/kubernetes/kubernetes/issues/34101)
+  become: yes
+  shell: "kubectl --kubeconfig=/etc/kubernetes/admin.conf -n kube-system get ds -l 'k8s-app==kube-proxy' -o json | jq '.items[0].spec.template.spec.containers[0].command |= .+ [\"--proxy-mode=userspace\"]' | kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f - && kubectl --kubeconfig=/etc/kubernetes/admin.conf -n kube-system delete pods -l 'k8s-app==kube-proxy'"
+  register: proxy
+  until: proxy.rc == 0
+  retries: 60
+  delay: 10
+
+- name: Allow workloads on Kubernetes master
+  become: yes
+  command: "kubectl --kubeconfig=/etc/kubernetes/admin.conf taint nodes --all node-role.kubernetes.io/master-"
+
+- name: Install pod network
+  become: yes
+  command: "kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f /cord/incubator/voltha/k8s/weave-net-1.8.yml"
