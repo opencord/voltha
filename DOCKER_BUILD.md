@@ -86,6 +86,10 @@ After all the services are started you can access the VOLTHA CLI using `ssh`
 ssh -p 5022 voltha@localhost
 ```
 
+_NOTE: The default password used when `ssh`-ing into the VOLTHA CLI is
+`admin`._
+
+
 VOLTHA can be stopped with
 ```bash
 VOLTHA_BUILD=docker make stop
@@ -130,3 +134,55 @@ t9eh5whkivfe        voltha_zk3                    replicated          1/1       
 ```
 
 _Notice the image names in this output are prefixed with `voltha/`_
+
+# Build VOLTHA CLI to use SSH Keys
+
+The default CLI container build as part of VOLTHA only provides password
+authentication. The following describes how you can build and use a custom
+CLI container that uses custom SSH keys.
+
+## Create the SSH Keys
+The following command can be used to create a valid SSH key:
+```bash
+ssh-keygen -t rsa -N '' -f ./voltha_rsa
+```
+
+This should generate two files: `voltha_rsa` and `voltha_rsa.pub`.
+
+_NOTE: If a different file name is for the key files then the environment
+variable `PUB_KEY_FILE` will have to be specified when the
+`make custom_cli` is executed, as described below. Additionally, when
+`ssh`-ing to VOLTHA, the modified file should be used._
+
+## Build the Custom CLI Container
+There is a make target provided to build the custom CLI container. 
+```bash
+VOLTHA_BUILD=docker make custom_cli
+```
+
+The custom CLI container will, by default, be names `voltha-cli-custom`. If
+you would like to customize the name of the custom docker CLI, this can be 
+done by setting the environment varible `CUSTOM_CLI_LABEL` when executing
+the `make` command, as shown as an example below.
+```bash
+CUSTOM_CLI_LABEL=-my-custom-cli VOLTHA_BUILD=docker make custom_cli
+```
+
+_NOTE: This make target will work with both the Docker and non-Docker builds._
+
+## Running VOLTHA with the Custom CLI Container
+Because the default `start` make target for VOLTHA uses the default CLI
+container, the `CUSTOM_CLI_LABEL` must be specified when executing the
+`start` make taget in order to use the custom CLI container.
+
+```bash
+CUSTOM_CLI_LABEL=-custom VOLTHA_BUILD=docker make start
+```
+
+## SSH-ing to VOLTHA
+Now that the CLI is active with SSH keys, the following command can be
+used to SSH without a password to VOLTHA
+
+```bash
+ssh -i voltha_rsa -p 5022 voltha@localhost
+```

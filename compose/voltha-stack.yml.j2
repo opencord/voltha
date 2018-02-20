@@ -412,7 +412,7 @@ services:
   # The CLI container provides an CLI to the VOLTHA capabilitiy 
   # that can be accessed via SSH.
   cli:
-    image: "${REGISTRY}${REPOSITORY}voltha-cli:${TAG:-latest}"
+    image: "${REGISTRY}${REPOSITORY}voltha-cli${CUSTOM_CLI_LABEL}:${TAG:-latest}"
     logging:
       driver: "json-file"
       options:

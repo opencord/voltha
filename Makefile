@@ -289,6 +289,13 @@ else
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-cli:${TAG} -f docker/Dockerfile.cli_d .
 endif
 
+custom_cli: cli
+ifeq ($(CUSTOM_CLI_LABEL),)
+	docker build ${DOCKER_BUILD_ARGS} -t ${REGISTRY}${REPOSITORY}voltha-cli-custom:${TAG} -f docker/Dockerfile.cli_custom .
+else
+	docker build ${DOCKER_BUILD_ARGS} -t ${REGISTRY}${REPOSITORY}voltha-cli${CUSTOM_CLI_LABEL}:${TAG} -f docker/Dockerfile.cli_custom .
+endif
+
 portainer:
 ifneq ($(VOLTHA_BUILD),docker)
 	REGISTRY=${REGISTRY} REPOSITORY=${REPOSITORY} TAG=${TAG} portainer/buildPortainer.sh
