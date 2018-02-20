@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1fdfd45f_9d83bf13",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 1353,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-02-20T05:47:22Z",
+      "side": 0,
+      "message": "This configuration seems to be missing. Is this not important and you verified this?",
+      "revId": "61a145d5c4f1ea64e9e6ea56018e52b5df0b13a1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
