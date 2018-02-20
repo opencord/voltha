@@ -1,0 +1,61 @@
+apiVersion: v1
+data:
+  fluentd.conf: |
+
+#   Uncomment this source in environments where voltha services are forwarding logs to the fluentd port directly.
+#    <source>
+#      @type forward
+#      port 24224
+#    </source>
+
+    <source>
+      @id fluentd-containers.log
+      @type tail
+      path /var/log/containers/*.log
+      exclude_path ["/var/log/containers/*kube-system*.log"]
+      pos_file /var/log/containers/ag-containers.log.pos
+      time_format %Y-%m-%dT%H:%M:%S.%NZ
+      tag voltha.*
+      log_level debug
+      format json
+      read_from_head true
+    </source>
+    <match **>
+      @type forward
+      heartbeat_type tcp
+
+      # primary host
+      <server>
+        host fluentdactv
+        port 24224
+      </server>
+      # use secondary host
+      <server>
+        host fluentdstby
+        port 24224
+        standby
+      </server>
+      # use longer flush_interval to reduce CPU usage.
+      # note that this is a trade-off against latency.
+      flush_interval 60s
+    </match>
+
+  fluentd-agg.conf: |
+    <source>
+      @type forward
+      port 24224
+    </source>
+    <match **>
+      @type file
+
+      path /fluentd/log/voltha
+      buffer_path /fluentd/log/*.log
+      append true
+      time_slice_wait 10m
+      time_format %Y%m%dT%H%M%S%z
+      time_slice_format %Y%m%d%H
+    </match>
+kind: ConfigMap
+metadata:
+  name: fluentd-config
+  namespace: voltha

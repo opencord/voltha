@@ -50,17 +50,22 @@ spec:
             topologyKey: kubernetes.io/hostname
       containers:
       - name: fluentdactv
-        image: voltha-fluentd
+        image: k8s.gcr.io/fluentd-gcp:1.30
         imagePullPolicy: Never
         volumeMounts:
         - name: fluentd-log
           mountPath: /fluentd/log
+        - name: config-volume
+          mountPath: /etc/fluentd-config
         ports:
         - containerPort: 24224
         env:
-        - name: FLUENTD_CONF
-          value: fluent-agg.conf
+        - name: FLUENTD_ARGS
+          value: -c /etc/fluentd-config/fluentd-agg.conf
       volumes:
+      - name: config-volume
+        configMap:
+          name: fluentd-config
       - name: fluentd-log
         hostPath:
           path: /var/log/voltha/logging_volume
@@ -114,24 +119,31 @@ spec:
             topologyKey: kubernetes.io/hostname
       containers:
       - name: fluentdstby
-        image: voltha-fluentd
+        image: k8s.gcr.io/fluentd-gcp:1.30 
         imagePullPolicy: Never
         volumeMounts:
         - name: fluentd-log
           mountPath: /fluentd/log
+        - name: config-volume
+          mountPath: /etc/fluentd-config
         ports:
         - containerPort: 24224
         env:
-        - name: FLUENTD_CONF
-          value: fluent-agg.conf
+        - name: FLUENTD_ARGS
+          value: -c /etc/fluentd-config/fluentd-agg.conf
       volumes:
+      - name: config-volume
+        configMap:
+          name: fluentd-config
       - name: fluentd-log
         hostPath:
           path: /var/log/voltha/logging_volume
           type: Directory
 ---
 #
-# The cluster of fluentd forwarders
+# The cluster of fluentd forwarders.  The service itself will be removed once all fluentd forwarding logic are removed
+# from the specific voltha services.   Fluentd is defined as a DaemonSet which implies that only 1 instance will
+# run on each node.   Each instance will also gets its configuration data from a config map (fluentd-config.yml).
 #
 apiVersion: v1
 kind: Service
@@ -147,37 +159,42 @@ spec:
     port: 24224
     targetPort: 24224
 ---
-apiVersion: apps/v1beta1
-kind: Deployment
+apiVersion: extensions/v1beta1
+kind: DaemonSet
 metadata:
   name: fluentd
   namespace: voltha
 spec:
-  replicas: 3
-  template:
+   template:
     metadata:
       labels:
         app: fluentd
       annotations:
         cni: "weave"
     spec:
-      terminationGracePeriodSeconds: 10
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchExpressions:
-              - key: app
-                operator: In
-                values:
-                - fluentd
-            topologyKey: kubernetes.io/hostname
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          effect: NoSchedule
       containers:
       - name: fluentd
-        image: voltha-fluentd
-        imagePullPolicy: Never
-        ports:
-        - containerPort: 24224
+        image: k8s.gcr.io/fluentd-gcp:1.30
         env:
-        - name: FLUENTD_CONF
-          value: fluent.conf
+        - name: FLUENTD_ARGS
+          value: -c /etc/fluentd-config/fluentd.conf
+        volumeMounts:
+        - name: varlog
+          mountPath: /var/log/
+        - name: varlogcontainers
+          mountPath: /var/lib/docker/containers/
+        - name: config-volume
+          mountPath: /etc/fluentd-config
+      volumes:
+      - name: varlog
+        hostPath:
+          path: /var/log/
+      - name: varlogcontainers
+        hostPath:
+          path: /var/lib/docker/containers/
+      - name: config-volume
+        configMap:
+          name: fluentd-config
