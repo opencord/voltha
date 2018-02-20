@@ -539,7 +539,8 @@ class SimulatedOltAdapter(object):
             ),
             root_device_id=device.id
         )
-        ld_initialized = self.adapter_agent.create_logical_device(ld)
+        ld_initialized = self.adapter_agent.create_logical_device(ld, device.mac_address)
+
         cap = OFPPF_1GB_FD | OFPPF_FIBER
         self.adapter_agent.add_logical_port(ld_initialized.id, LogicalPort(
             id='nni',

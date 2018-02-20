@@ -36,16 +36,19 @@ def create_cluster_logical_device_ids(core_id, switch_id):
     """
     Creates a logical device id and an OpenFlow datapath id that is unique 
     across the Voltha cluster.
-    The returned ids represents a 64 bits integer where the lower 48 bits is
-    the switch id and the upper 16 bits is the core id.
+    The returned logical device id  represents a 64 bits integer where the
+    lower 48 bits is the switch id and the upper 16 bits is the core id.   For
+    the datapath id the core id is set to '0000' as it is not used for voltha
+    core routing
     :param core_id: string
     :param switch_id:int
     :return: cluster logical device id and OpenFlow datapath id
     """
     switch_id = format(switch_id, '012x')
     core_in_hex=format(int(core_id, 16), '04x')
-    id = '{}{}'.format(core_in_hex[-4:], switch_id[-12:])
-    return id, int(id, 16)
+    ld_id = '{}{}'.format(core_in_hex[-4:], switch_id[-12:])
+    dpid_id = '{}{}'.format('0000', switch_id[-12:])
+    return ld_id, int(dpid_id, 16)
 
 def is_broadcast_core_id(id):
     assert id and len(id) == 16

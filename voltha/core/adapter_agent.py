@@ -47,6 +47,12 @@ class MacAddressError(BaseException):
     def __init__(self, error):
         self.error = error
 
+
+class IDError(BaseException):
+    def __init__(self, error):
+        self.error = error
+
+
 @implementer(IAdapterAgent)
 class AdapterAgent(object):
     """
@@ -289,7 +295,8 @@ class AdapterAgent(object):
         devices = self.root_proxy.get('/devices')
 
         # Get all child devices with the same parent ID
-        children_ids = set(d.id for d in devices if d.parent_id == parent_device_id)
+        children_ids = set(
+            d.id for d in devices if d.parent_id == parent_device_id)
 
         # Loop through all the child devices with this parent ID
         for child_id in children_ids:
@@ -367,8 +374,8 @@ class AdapterAgent(object):
         self.log.info('delete-image-download', img_dnld=img_dnld)
         try:
             root_proxy = self.core.get_proxy('/')
-            path = '/devices/{}/image_downloads/{}'.\
-                    format(img_dnld.id, img_dnld.name)
+            path = '/devices/{}/image_downloads/{}'. \
+                format(img_dnld.id, img_dnld.name)
             root_proxy.get(path)
             root_proxy.remove(path)
             device_agent = self.core.get_device_agent(img_dnld.id)
@@ -502,37 +509,6 @@ class AdapterAgent(object):
         self._make_up_to_date('/devices/{}/ports'.format(device_id),
                               port.port_no, port)
 
-    def _find_first_available_id(self, dpid=None):
-
-        def _is_valid_mac_address(dpid):
-            return re.match("[0-9a-f]{2}([-:])[0-9a-f]{2}(\\1[0-9a-f]{2}){4}$",
-                     dpid)
-
-        # If a dpid is provided then validate whether it is a MAC address
-        switch_id = 1
-        if dpid:
-            dpid = dpid.lower()
-            if not _is_valid_mac_address(dpid):
-                raise MacAddressError('Invalid-mac-address-format')
-            switch_id = int(dpid.replace(':', ''), 16)
-
-        logical_devices = self.root_proxy.get('/logical_devices')
-        existing_ids = set(ld.id for ld in logical_devices)
-        existing_datapath_ids = set(ld.datapath_id for ld in logical_devices)
-        core_id = registry('core').core_store_id
-
-        while True:
-            ld_id, dp_id = create_cluster_logical_device_ids(core_id, switch_id)
-            id_exists = dp_id in existing_datapath_ids or ld_id in \
-                                                            existing_ids
-            if not id_exists:
-                return ld_id, dp_id
-            else:
-                if dpid:
-                    raise MacAddressError('Already-registered-mac-address')
-                else:
-                    switch_id += 1
-
     def get_logical_device(self, logical_device_id):
         return self.root_proxy.get('/logical_devices/{}'.format(
             logical_device_id))
@@ -541,18 +517,58 @@ class AdapterAgent(object):
         return self.root_proxy.get('/logical_devices/{}/ports/{}'.format(
             logical_device_id, port_id))
 
+    def _create_cluster_ids_from_dpid(self, dpid):
+        """
+        Create a logical device id using a datapath id.
+        :param dpid: Must be present and formatted as a mac address
+        :return: a unique logical device id and a formatted datapath id.   If
+        the dpid was already registered then an exception will be raised.
+        """
+        switch_id = int(dpid.replace(':', ''), 16)
+        logical_devices = self.root_proxy.get('/logical_devices')
+        existing_ids = set(ld.id for ld in logical_devices)
+        existing_datapath_ids = set(ld.datapath_id for ld in logical_devices)
+        core_id = registry('core').core_store_id
+
+        ld_id, dp_id = create_cluster_logical_device_ids(core_id, switch_id)
+        ids_exist = dp_id in existing_datapath_ids or \
+                    ld_id in existing_ids
+        if not ids_exist:
+            return ld_id, dp_id
+        else:
+            self.log.error('ID-already-registered', logical_id=ld_id,
+                           dpid=dpid)
+            raise IDError('ID-already-registered')
+
+    def _is_valid_mac_address(self, data):
+        return re.match("[0-9a-f]{2}([-:])[0-9a-f]{2}(\\1[0-9a-f]{2}){4}$",
+                        data)
+
     def create_logical_device(self, logical_device, dpid=None):
         """
         Allow the adapters to provide their own datapath id.  This must
-        be the OLT MAC address.
-        :param logical_device:
-        :param dpid: OLT MAC address
+        be the OLT MAC address.  If the dpid is None or is not a mac
+        address then an exception will be raised.
+        :param logical_device: logical device
+        :param dpid: OLT MAC address.  dpid default param is None just to be
+        backward compatible with existing adapters.
         :return: updated logical device
         """
         assert isinstance(logical_device, LogicalDevice)
 
+        # Validate the dpid - it needs to be present and formatted as a mac
+        # address
+        if dpid:
+            dpid = dpid.lower()
+            if not self._is_valid_mac_address(dpid):
+                self.log.error('DPID-not-a-mac-address', dpid=dpid)
+                raise MacAddressError('DPID-not-a-mac-address')
+        else:
+            self.log.error('DPID-cannot-be-none')
+            raise MacAddressError("DPID-cannot-be-none")
+
         if not logical_device.id:
-            ld_id, dp_id = self._find_first_available_id(dpid)
+            ld_id, dp_id = self._create_cluster_ids_from_dpid(dpid)
             logical_device.id = ld_id
             logical_device.datapath_id = dp_id
 
@@ -581,7 +597,6 @@ class AdapterAgent(object):
             topic='packet-out:{}'.format(logical_device_id),
             callback=lambda _, p: self.receive_packet_out(logical_device_id, p)
         )
-
 
     def delete_logical_device(self, logical_device):
         """
@@ -658,9 +673,8 @@ class AdapterAgent(object):
             device_agent = self.core.get_device_agent(child.id)
             device_agent.reconcile_existing_device(child)
 
-
-    #Obselete API - discouraged to be decommissioned after
-    #adapters are align to new APIs
+    # Obselete API - discouraged to be decommissioned after
+    # adapters are align to new APIs
     def child_device_detected(self,
                               parent_device_id,
                               parent_port_no,
@@ -715,7 +729,6 @@ class AdapterAgent(object):
         self._tx_event_subscriptions[topic] = self.event_bus.subscribe(
             topic, lambda t, m: self._send_proxied_message(proxy_address, m))
 
-
     def get_child_device_with_proxy_address(self, proxy_address):
         # Proxy address is defined as {parent id, channel_id}
         devices = self.root_proxy.get('/devices')
@@ -756,7 +769,8 @@ class AdapterAgent(object):
                                    admin_state=None):
         """ Update status of all child devices """
         devices = self.root_proxy.get('/devices')
-        children_ids = set(d.id for d in devices if d.parent_id == parent_device_id)
+        children_ids = set(
+            d.id for d in devices if d.parent_id == parent_device_id)
         self.log.debug('update-devices',
                        parent_id=parent_device_id,
                        children_ids=children_ids,
@@ -780,9 +794,10 @@ class AdapterAgent(object):
         if onu_device is not None:
             if onu_device.parent_id == parent_device_id:
                 self.log.debug('deleting-child-device',
-                   parent_device_id=parent_device_id,
-                   child_device_id=child_device_id)
-                topic = self._gen_tx_proxy_address_topic(onu_device.proxy_address)
+                               parent_device_id=parent_device_id,
+                               child_device_id=child_device_id)
+                topic = self._gen_tx_proxy_address_topic(
+                    onu_device.proxy_address)
                 self.event_bus.unsubscribe(self._tx_event_subscriptions[topic])
                 del self._tx_event_subscriptions[topic]
                 self._remove_node('/devices', child_device_id)
@@ -824,7 +839,9 @@ class AdapterAgent(object):
 
     def register_for_inter_adapter_messages(self):
         self.event_bus.subscribe(self.adapter_name,
-            lambda t, m: self.adapter.receive_inter_adapter_message(m))
+                                 lambda t,
+                                        m: self.adapter.receive_inter_adapter_message(
+                                     m))
 
     def unregister_for_inter_adapter_messages(self):
         self.event_bus.unsubscribe(self.adapter_name)
@@ -894,8 +911,10 @@ class AdapterAgent(object):
         rule_values = {
             'id': alarm_event.id,
             'type': AlarmEventType.AlarmEventType.Name(alarm_event.type),
-            'category': AlarmEventCategory.AlarmEventCategory.Name(alarm_event.category),
-            'severity': AlarmEventSeverity.AlarmEventSeverity.Name(alarm_event.severity),
+            'category': AlarmEventCategory.AlarmEventCategory.Name(
+                alarm_event.category),
+            'severity': AlarmEventSeverity.AlarmEventSeverity.Name(
+                alarm_event.severity),
             'resource_id': alarm_event.resource_id,
             'device_id': device_id
         }
@@ -905,12 +924,16 @@ class AdapterAgent(object):
                 exclude = True
                 for rule in alarm_filter.rules:
                     self.log.debug("compare-alarm-event",
-                                   key=AlarmFilterRuleKey.AlarmFilterRuleKey.Name(rule.key),
-                                   actual=rule_values[AlarmFilterRuleKey.AlarmFilterRuleKey.Name(rule.key)].lower(),
+                                   key=AlarmFilterRuleKey.AlarmFilterRuleKey.Name(
+                                       rule.key),
+                                   actual=rule_values[
+                                       AlarmFilterRuleKey.AlarmFilterRuleKey.Name(
+                                           rule.key)].lower(),
                                    expected=rule.value.lower())
                     exclude = exclude and \
-                              (rule_values[AlarmFilterRuleKey.AlarmFilterRuleKey.Name(
-                                  rule.key)].lower() == rule.value.lower())
+                              (rule_values[
+                                   AlarmFilterRuleKey.AlarmFilterRuleKey.Name(
+                                       rule.key)].lower() == rule.value.lower())
                     if not exclude:
                         break
 
