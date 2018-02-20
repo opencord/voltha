@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: fluentd
+  namespace: voltha
+spec:
+  clusterIP: None
+  selector:
+    app: fluentd
+  ports:
+  - protocol: TCP
+    port: 24224
+    targetPort: 24224
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: fluentd
+  namespace: voltha
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: fluentd
+      annotations:
+        cni: "weave"
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: fluentd
+        image: fluent/fluentd:v0.12.42
+        volumeMounts:
+        - name: fluentd-log
+          mountPath: /fluentd/log
+        ports:
+        - containerPort: 24224
+      volumes:
+      - name: fluentd-log
+        hostPath:
+          path: /tmp/fluentd
+          type: Directory
+

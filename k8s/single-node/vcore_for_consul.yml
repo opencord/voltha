@@ -1,0 +1,64 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: vcore
+  namespace: voltha
+  labels:
+    name: vcore
+spec:
+  clusterIP: None
+  ports:
+    - name: rest
+      port: 8880
+      targetPort: 8880
+    - name: mystery
+      port: 18880
+      targetPort: 18880
+    - name: grpc
+      port: 50556
+      targetPort: 50556
+  selector:
+    app: vcore
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: vcore
+  namespace: voltha
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: vcore
+      annotations:
+        cni: "weave"
+    spec:
+      containers:
+      - name: voltha
+        image: voltha-voltha
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8880
+          name: rest-port
+        - containerPort: 18880
+          name: mystery-port
+        - containerPort: 50556
+          name: grpc-port
+        env:
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        args:
+        - "voltha/voltha/main.py"
+        - "-v"
+        - "--consul=consul.$(NAMESPACE).svc.cluster.local:8500"
+        - "--kafka=kafka.$(NAMESPACE).svc.cluster.local"
+        - "--fluentd=fluentd.$(NAMESPACE).svc.cluster.local:24224"
+        - "--rest-port=8880"
+        - "--grpc-port=50556"
+        - "--interface=eth1"
+        - "--backend=consul"
+        - "--pon-subnet=10.38.0.0/12"
+#        - "--ponsim-comm=grpc"
