@@ -34,6 +34,24 @@
       "revId": "61a145d5c4f1ea64e9e6ea56018e52b5df0b13a1",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1d2f64b9_74606f1d",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 1353,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-02-21T08:51:55Z",
+      "side": 0,
+      "message": "Thanks for the information.",
+      "parentUuid": "67972df6_100a61fd",
+      "revId": "61a145d5c4f1ea64e9e6ea56018e52b5df0b13a1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
