@@ -376,6 +376,14 @@ class BroadcomOnuHandler(object):
                 device.oper_status = OperStatus.FAILED
                 self.adapter_agent.update_device(device)
 
+        if event_msg['event'] == 'create-tcont':
+
+            while self.incoming_messages.pending:
+                _ = yield self.incoming_messages.get()
+            tcont = TcontsConfigData()
+            tcont.alloc_id = event_msg['event_data']['alloc_id']
+            self.create_tcont(tcont, traffic_descriptor_data=None)
+
         # Handle next event
         reactor.callLater(0, self.handle_onu_events)
 
