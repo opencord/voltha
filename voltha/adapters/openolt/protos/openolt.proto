@@ -1,0 +1,84 @@
+// Copyright (c) 2018 Shad Ansari
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package openolt;
+
+import "google/api/annotations.proto";
+
+message Empty {}
+
+message Number {
+    fixed32 val = 1;
+}
+
+// OLT (device) Indication
+message OltIndication {
+    string oper_state = 1;	// Operation state - up, down
+}
+
+// PON Interface Indication
+message PonIfIndication {
+    string if = 1;		// Interface name or identifier
+    string oper_state = 2;      // Oper state - up, down
+}
+
+// NNI Interface Indication
+message NniIfIndication {
+    string if = 1;             // Interface name or identifier
+    string oper_state = 2;      // Oper state - up, down
+}
+
+message SerialNumber
+{
+    bytes vendor_id = 1;
+    bytes vendor_specific = 2;
+}
+
+message OnuDiscIndication {
+    fixed32 intf_id = 1;
+    SerialNumber serial_number = 2;
+}
+
+// Streaming indication from OLT
+message Indication {
+    oneof data {
+        OltIndication olt_ind = 1;	// olt (device) indication
+        PonIfIndication pon_if_ind = 2;	// pon interface indication
+        NniIfIndication nni_if_ind = 3;	// nni interface indication
+        OnuDiscIndication onu_disc_ind = 4;
+    }
+}
+
+service Openolt {
+    // Enable (admin up) newly provisioned or disabled OLT.
+    rpc Enable(Empty) returns (Empty) {
+        option (google.api.http) = {
+          post: "/v1/Enable"
+          body: "*"
+        };
+    }
+
+    // Enable PON interface.
+    rpc EnablePonIf(Number) returns (Empty) {
+        option (google.api.http) = {
+          post: "/v1/EnablePonIf"
+          body: "*"
+        };
+    }
+
+   // A server-side streaming RPC for Olt indications.
+   rpc EnableIndication(Empty) returns (stream Indication) {}
+}
