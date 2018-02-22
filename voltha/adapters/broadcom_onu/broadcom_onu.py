@@ -376,6 +376,21 @@ class BroadcomOnuHandler(object):
                 device.oper_status = OperStatus.FAILED
                 self.adapter_agent.update_device(device)
 
+        elif event_msg['event'] == 'create-tcont':
+            tcont = TcontsConfigData()
+            tcont.alloc_id = event_msg['event_data']['alloc_id']
+            self.create_tcont(tcont, traffic_descriptor_data=None)
+
+        elif event_msg['event'] == 'create-venet':
+            venet = VEnetConfig(name=event_msg['event_data']['uni_name'])
+            venet.interface.name = event_msg['event_data']['interface_name']
+            self.create_interface(venet)
+
+        elif event_msg['event'] == 'create-gemport':
+            gem_port = GemportsConfigData()
+            gem_port.gemport_id = event_msg['event_data']['gemport_id']
+            self.create_gemport(gem_port)
+
         # Handle next event
         reactor.callLater(0, self.handle_onu_events)
 
@@ -1436,7 +1451,7 @@ class BroadcomOnuHandler(object):
             # register physical ports
         uni_port = Port(
             port_no=uni,
-            label='UNI facing Ethernet port '+str(uni),
+            label='uni-'+str(uni),
             type=Port.ETHERNET_UNI,
             admin_state=AdminState.ENABLED,
             oper_status=OperStatus.ACTIVE
@@ -1481,7 +1496,7 @@ class BroadcomOnuHandler(object):
             # register physical ports
         ports = self.adapter_agent.get_ports(self.device_id, Port.ETHERNET_UNI)
         for port in ports:
-            if port.label == 'UNI facing Ethernet port '+str(uni):
+            if port.label == 'uni-'+str(uni):
                 break
         self.adapter_agent.delete_port(self.device_id, port)
         self.adapter_agent.delete_logical_port_by_id(parent_logical_device_id,
