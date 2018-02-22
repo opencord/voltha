@@ -1,0 +1,151 @@
+// Copyright (c) 2018 Shad Ansari
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+package openolt;
+import "google/api/annotations.proto";
+
+service Openolt {
+
+    rpc ActivateOnu(Onu) returns (Empty) {
+        option (google.api.http) = {
+          post: "/v1/EnableOnu"
+          body: "*"
+        };
+    }
+
+    rpc OmciMsgOut(OmciMsg) returns (Empty) {
+        option (google.api.http) = {
+          post: "/v1/OmciMsgOut"
+          body: "*"
+        };
+    }
+
+    rpc FlowAdd(Flow) returns (Empty) {
+        option (google.api.http) = {
+          post: "/v1/FlowAdd"
+          body: "*"
+        };
+    }
+
+    rpc EnableIndication(Empty) returns (stream Indication) {}
+}
+
+message Indication {
+    oneof data {
+        OltIndication olt_ind = 1;
+        IntfIndication intf_ind = 2;
+        IntfOperIndication intf_oper_ind = 3;
+        OnuDiscIndication onu_disc_ind = 4;
+        OnuIndication onu_ind = 5;
+        OmciIndication omci_ind = 6;
+    }
+}
+
+message OltIndication {
+    string oper_state = 1;	// up, down
+}
+
+message IntfIndication {
+    fixed32 intf_id = 1;
+    string oper_state = 2;      // up, down
+}
+
+message OnuDiscIndication {
+    fixed32 intf_id = 1;
+    SerialNumber serial_number = 2;
+}
+
+message OnuIndication {
+    fixed32 intf_id = 1;
+    fixed32 onu_id = 2;
+    string oper_state = 3;      // up, down
+    SerialNumber serial_number = 4;
+}
+
+message IntfOperIndication {
+    string type = 1;		// nni, pon
+    fixed32 intf_id = 2;
+    string oper_state = 3;      // up, down
+}
+
+message OmciIndication {
+    fixed32 intf_id = 1;
+    fixed32 onu_id = 2;
+    bytes pkt = 3;
+}
+
+message Onu {
+    fixed32 intf_id = 1;
+    fixed32 onu_id = 2;
+    SerialNumber serial_number = 3;
+}
+
+message OmciMsg {
+    fixed32 intf_id = 1;
+    fixed32 onu_id = 2;
+    bytes pkt = 3;
+}
+
+message Classifier {
+    fixed32 o_tpid = 1;
+    fixed32 o_vid = 2;
+    fixed32 i_tpid = 3;
+    fixed32 i_vid = 4;
+    fixed32 o_pbits = 5;
+    fixed32 i_pbits = 6;
+    fixed32 eth_type = 7;
+    bytes dst_mac = 8;
+    bytes src_mac = 9;
+    fixed32 ip_proto = 10;
+    fixed32 dst_ip = 11;
+    fixed32 src_ip = 12;
+    fixed32 src_port = 13;
+    fixed32 dst_port = 14;
+    string pkt_tag_type = 15;	// untagged, single_tag, double_tag
+}
+
+message ActionCmd {
+    bool add_outer_tag = 1;
+    bool remove_outer_tag = 2;
+    bool trap_to_host = 3;
+}
+
+message Action {
+    ActionCmd cmd = 1;
+    fixed32 o_vid = 2;
+    fixed32 o_pbits = 3;
+    fixed32 o_tpid = 4;
+    fixed32 i_vid = 5;
+    fixed32 i_pbits = 6;
+    fixed32 i_tpid = 7;
+}
+
+message Flow {
+    fixed32 access_intf_id = 1;
+    fixed32 onu_id = 2;
+    fixed32 flow_id = 3;
+    string flow_type = 4;	// upstream, downstream, broadcast, multicast
+    fixed32 network_intf_id = 5;
+    fixed32 gemport_id = 6;
+    Classifier classifier = 7;
+    Action action = 8;
+}
+
+message SerialNumber {
+    bytes vendor_id = 1;
+    bytes vendor_specific = 2;
+}
+
+message Empty {}
