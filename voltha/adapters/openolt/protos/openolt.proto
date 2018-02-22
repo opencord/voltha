@@ -1,0 +1,50 @@
+// Copyright (c) 2018 Shad Ansari
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package openolt;
+
+import "google/api/annotations.proto";
+
+message Empty {}
+
+// Admin or Oper state.
+message State {
+    string State = 1;		// up, down
+}
+
+// OLT device indication
+message OltIndication {
+    string oper_state = 1;	// Operation state - up, down
+}
+
+// Streaming indication from OLT
+message Indication {
+    oneof data {
+        OltIndication olt_ind = 1;
+    }
+}
+
+service Openolt {
+    rpc SetOltAdminState(State) returns (Empty) {
+        option (google.api.http) = {
+          post: "/v1/SetOltAdminState"
+          body: "*"
+        };
+    }
+
+   // A server-side streaming RPC for Olt indications.
+   rpc GetIndication(Empty) returns (stream Indication) {}
+}
