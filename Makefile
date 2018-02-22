@@ -236,6 +236,7 @@ endif
 
 voltha-adapters:
 	make -C voltha/adapters/asfvolt16_olt
+	make -C voltha/adapters/openolt
 
 ofagent:
 ifneq ($(VOLTHA_BUILD),docker)
