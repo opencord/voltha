@@ -21,12 +21,10 @@ import sys
 import arrow
 from twisted.internet import reactor, defer
 from twisted.internet.defer import DeferredQueue, TimeoutError, CancelledError, failure, fail
-from voltha.protos import third_party
 from common.frameio.frameio import hexify
 from voltha.extensions.omci.omci import *
 from voltha.extensions.omci.omci_me import OntGFrame, OntDataFrame
 
-_ = third_party
 
 _MAX_INCOMING_ALARM_MESSAGES = 256
 _MAX_INCOMING_AVC_MESSAGES = 256
