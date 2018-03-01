@@ -217,10 +217,10 @@ scenario = [
         'pb2': gemport.GemportsConfigData(),
         'rpc': {
             "aes_indicator": True,
-            "name": "GEMPORT 2",
+            "name": "GEMPORT 3",
             "traffic_class": 0,
             "itf_ref": "Enet UNI 1",
-            "tcont_ref": "TCont 2",
+            "tcont_ref": "TCont 3",
             "gemport_id": 0
             }
         }
@@ -231,7 +231,7 @@ scenario = [
 id = 3
 LOCAL_CONSUL = "localhost:8500"
 # Retrieve details of the REST entry point
-rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'envoy-8443')
+rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'voltha-envoy-8443')
 # Construct the base_url
 BASE_URL = 'https://' + rest_endpoint
 
@@ -344,9 +344,11 @@ class TestXPon(RestBase):
         if isinstance(req, fb.ChannelgroupConfig):
             result['cg_index'] = 0
         elif isinstance(req, tcont.TcontsConfigData):
-            result['alloc_id'] = 0
+            if not dict1['alloc_id']:
+                result['alloc_id'] = 0
         elif isinstance(req, gemport.GemportsConfigData):
-            result['gemport_id'] = 0
+            if not dict1['gemport_id']:
+                result['gemport_id'] = 0
         return dict1 == result
 
 
@@ -379,7 +381,7 @@ def create_dynamic_method(key, value):
         result, prev_len = self.add(type, config, req, name)
         self.assertEqual(result[config][prev_len]['name'], name)
         self.assertEqual(len(result[config]), prev_len+1)
-        self.assertEqual(self.search(req, result[config][0]), True)
+        self.assertEqual(self.search(req, result[config][prev_len]), True)
 
     def _mod(self, type, config, req, name):
         result = self.modify(type, req, name)

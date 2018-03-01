@@ -57,7 +57,13 @@ obj_type_config = {
     'ontani': {'type':'ont_anis',
                'config':'ontani_config'},
     'venet':  {'type':'v_enets',
-               'config':'v_enet_config'}
+               'config':'v_enet_config'},
+    'gemport':{'type':'gemports',
+               'config':'gemports_config'},
+    'tcont':  {'type':'tconts',
+               'config':'tconts_config'},
+    'tdp':    {'type':'traffic_descriptor_profiles',
+               'config':'traffic_descriptor_profiles'}
 }
 
 
@@ -281,59 +287,57 @@ class DispatcherTest(RestBase):
         # A. Create xPON objects instance using REST
         # B. Ensuring that Channeltermination is present on specific instances
         # C. Ensuring that other xPON objects are present in all instances
-        #
-        # TEST COMMENTED OUT - SEE VOL-499
-        # for item in xpon_scenario:
-        #     for key,value in item.items():
-        #         _obj_action = [val for val in key.split('-')]
-        #         _type_config = obj_type_config[_obj_action[0]]
-        #         if _obj_action[1] == "mod":
-        #             continue
-        #         if _obj_action[0] == "cterm":
-        #             if _obj_action[1] == "add":
-        #                 #Ponsim OLT
-        #                 self._create_xpon_object_rest(_type_config,
-        #                                               value,
-        #                                               ponsim_olt.id)
-        #                 self._verify_xpon_object_on_device(
-        #                     _type_config,
-        #                     self.ponsim_voltha_stub_global,
-        #                     ponsim_olt.id)
-        #                 self._delete_xpon_object_rest(_type_config,
-        #                                               value,
-        #                                               ponsim_olt.id)
-        #                 #Simulated OLT
-        #                 self._create_xpon_object_rest(_type_config,
-        #                                               value,
-        #                                               simulated_olt.id)
-        #                 self._verify_xpon_object_on_device(
-        #                     _type_config,
-        #                     self.simulated_voltha_stub_global,
-        #                     simulated_olt.id)
-        #                 self._delete_xpon_object_rest(_type_config,
-        #                                               value,
-        #                                               simulated_olt.id)
-        #             elif _obj_action[1] == "del":
-        #                 continue
-        #         else:
-        #             if _obj_action[1] == "add":
-        #                 self._create_xpon_object_rest(_type_config, value)
-        #                 #Checking with Ponsim OLT
-        #                 self._verify_xpon_object_on_device(
-        #                     _type_config,
-        #                     self.ponsim_voltha_stub_global)
-        #                 #Checking with empty instance
-        #                 self._verify_xpon_object_on_device(
-        #                     _type_config,
-        #                     self.empty_voltha_stub_global)
-        #                 #Checking with Simulated OLT
-        #                 self._verify_xpon_object_on_device(
-        #                     _type_config,
-        #                     self.simulated_voltha_stub_global)
-        #             elif _obj_action[1] == "del":
-        #                 self._delete_xpon_object_rest(_type_config, value)
+        for item in xpon_scenario:
+            for key,value in item.items():
+                _obj_action = [val for val in key.split('-')]
+                _type_config = obj_type_config[_obj_action[0]]
+                if _obj_action[1] == "mod":
+                    continue
+                if _obj_action[0] == "cterm":
+                    if _obj_action[1] == "add":
+                        #Ponsim OLT
+                        self._create_xpon_object_rest(_type_config,
+                                                      value,
+                                                      ponsim_olt.id)
+                        self._verify_xpon_object_on_device(
+                            _type_config,
+                            self.ponsim_voltha_stub_global,
+                            ponsim_olt.id)
+                        self._delete_xpon_object_rest(_type_config,
+                                                      value,
+                                                      ponsim_olt.id)
+                        #Simulated OLT
+                        self._create_xpon_object_rest(_type_config,
+                                                      value,
+                                                      simulated_olt.id)
+                        self._verify_xpon_object_on_device(
+                            _type_config,
+                            self.simulated_voltha_stub_global,
+                            simulated_olt.id)
+                        self._delete_xpon_object_rest(_type_config,
+                                                      value,
+                                                      simulated_olt.id)
+                    elif _obj_action[1] == "del":
+                        continue
+                else:
+                    if _obj_action[1] == "add":
+                        self._create_xpon_object_rest(_type_config, value)
+                        #Checking with Ponsim OLT
+                        self._verify_xpon_object_on_device(
+                            _type_config,
+                            self.ponsim_voltha_stub_global)
+                        #Checking with empty instance
+                        self._verify_xpon_object_on_device(
+                            _type_config,
+                            self.empty_voltha_stub_global)
+                        #Checking with Simulated OLT
+                        self._verify_xpon_object_on_device(
+                            _type_config,
+                            self.simulated_voltha_stub_global)
+                    elif _obj_action[1] == "del":
+                        self._delete_xpon_object_rest(_type_config, value)
 
-        # TODO:  More tests to be added as new features are added
+        #TODO:  More tests to be added as new features are added
 
 
     def _get_grpc_address(self, voltha_instance):
@@ -370,7 +374,7 @@ class DispatcherTest(RestBase):
 
     def set_rest_endpoint(self):
         self.rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL,
-                                                      'envoy-8443')
+                                                      'voltha-envoy-8443')
         self.base_url = 'https://' + self.rest_endpoint
 
     def set_kafka_endpoint(self):
@@ -824,6 +828,12 @@ class DispatcherTest(RestBase):
             res = stub.GetAllOntaniConfig(Empty())
         elif obj_type["type"] == "v_enets":
             res = stub.GetAllVEnetConfig(Empty())
+        elif obj_type["type"] == "gemports":
+            res = stub.GetAllGemportsConfigData(Empty())
+        elif obj_type["type"] == "tconts":
+            res = stub.GetAllTcontsConfigData(Empty())
+        elif obj_type["type"] == "traffic_descriptor_profiles":
+            res = stub.GetAllTrafficDescriptorProfileData(Empty())
         return res
 
     def _create_xpon_object_rest(self, obj_type, value, device_id=None):
