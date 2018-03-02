@@ -7,31 +7,13 @@ logging:
       default:
         format: '%(asctime)s.%(msecs)03d %(levelname)-8s %(threadName)s %(module)s.%(funcName)s %(message)s'
         datefmt: '%Y%m%dT%H%M%S'
-      fluent_fmt:
-        '()': fluent.handler.FluentRecordFormatter
-        format:
-          level: '%(levelname)s'
-          hostname: '%(hostname)s'
-          where: '%(module)s.%(funcName)s'
-      fluent_default:
-        format: '%(asctime)s.%(msecs)03d %(levelname)-8s %(threadName)s %(module)s.%(funcName)s %(message)s'
-        datefmt: '%Y%m%dT%H%M%S'
+
     handlers:
         console:
             class : logging.StreamHandler
             level: DEBUG
             formatter: default
             stream: ext://sys.stdout
-        fluent:
-            class: fluent.handler.FluentHandler
-            host: localhost
-            port: 24224
-            tag: voltha.logging
-            # Since fluent formatter output an exception with grpc data, use
-            # a basic formatter for now.
-            # formatter: fluent_fmt
-            formatter: fluent_default
-            level: DEBUG
         localRotatingFile:
             class: logging.handlers.RotatingFileHandler
             filename: voltha.log
@@ -47,10 +29,9 @@ logging:
             handlers: [null]
             propagate: False
         conf:
-            handlers: [null]
             propagate: False
         '': # root logger
-            handlers: [console, fluent, localRotatingFile]
+            handlers: [console, localRotatingFile]
             level: INFO # this can be bumped up/down by -q and -v command line
                         # options
             propagate: False

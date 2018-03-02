@@ -58,7 +58,6 @@ defs = dict(
     pon_subnet=os.environ.get('PON_SUBNET', None),
     external_host_address=os.environ.get('EXTERNAL_HOST_ADDRESS',
                                          get_my_primary_local_ipv4()),
-    fluentd=os.environ.get('FLUENTD', None),
     grpc_port=os.environ.get('GRPC_PORT', 50055),
     instance_id=os.environ.get('INSTANCE_ID', os.environ.get('HOSTNAME', '1')),
     internal_host_address=os.environ.get('INTERNAL_HOST_ADDRESS',
@@ -128,14 +127,6 @@ def parse_args():
                         default=defs['grpc_port'],
                         help=_help)
 
-    _help = ('<hostname>:<port> to fluentd server (default: %s). (If not '
-             'specified (None), the address from the config file is used'
-             % defs['fluentd'])
-    parser.add_argument('-F', '--fluentd',
-                        dest='fluentd',
-                        action='store',
-                        default=defs['fluentd'],
-                        help=_help)
 
     _help = ('<hostname> or <ip> at which Voltha is reachable from inside the'
              'cluster (default: %s)' % defs['internal_host_address'])
@@ -289,8 +280,7 @@ class Main(object):
         verbosity_adjust = (args.verbose or 0) - (args.quiet or 0)
         self.log = setup_logging(self.config.get('logging', {}),
                                  args.instance_id,
-                                 verbosity_adjust=verbosity_adjust,
-                                 fluentd=args.fluentd)
+                                 verbosity_adjust=verbosity_adjust)
 
         # configurable variables from voltha.yml file
         #self.configurable_vars = self.config.get('Constants', {})

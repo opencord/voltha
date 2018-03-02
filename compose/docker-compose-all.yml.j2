@@ -130,7 +130,6 @@ services:
       - voltha/voltha/main.py
       - -v
       - --consul=vconsul:8500
-      - --fluentd=fluentd:24224
       - --kafka=kafka
       - --rest-port=8880
       - --grpc-port=50556
@@ -162,7 +161,6 @@ services:
       - /ofagent/ofagent/main.py
       - -v
       - --consul=vconsul:8500
-      - --fluentd=fluentd:24224
       - --controller=onos:6653
       - --grpc-endpoint=vcore:50556
       - --instance-id-is-container-name
@@ -242,7 +240,6 @@ services:
       - /netconf/netconf/main.py
       - -v
       - --consul=vconsul:8500
-      - --fluentd=fluentd:24224
       - --grpc-endpoint=voltha:50555
       - --instance-id-is-container-name
     networks:

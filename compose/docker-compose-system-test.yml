@@ -114,11 +114,19 @@ services:
   #
   voltha:
     image: "${REGISTRY}${REPOSITORY}voltha-voltha${TAG}"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+#      Use the fluentd driver to push logs to fluentd instead
+#      driver: "fluentd"
+#      options:
+#        fluentd-address: ${DOCKER_HOST_IP}:24224
     command: [
       "/voltha/voltha/main.py",
       "-v",
       "--consul=${DOCKER_HOST_IP}:8500",
-      "--fluentd=fluentd:24224",
       "--rest-port=8880",
       "--grpc-port=50556",
       "--kafka=@kafka",
@@ -136,7 +144,6 @@ services:
     - vconsul
     links:
     - vconsul
-    - fluentd
     environment:
       SERVICE_8880_NAME: "voltha-health"
       SERVICE_8880_CHECK_HTTP: "/health"
@@ -203,11 +210,19 @@ services:
   #
   ofagent:
     image: "${REGISTRY}${REPOSITORY}voltha-ofagent${TAG}"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+#      Use the fluentd driver to push logs to fluentd instead
+#      driver: "fluentd"
+#      options:
+#        fluentd-address: ${DOCKER_HOST_IP}:24224
     command: [
       "/ofagent/ofagent/main.py",
       "-v",
       "--consul=${DOCKER_HOST_IP}:8500",
-      "--fluentd=fluentd:24224",
       "--controller=${DOCKER_HOST_IP}:6653",
       "--grpc-endpoint=@voltha-grpc",
       "--instance-id-is-container-name",
@@ -221,7 +236,6 @@ services:
     - voltha
     links:
     - vconsul
-    - fluentd
     volumes:
     - "/var/run/docker.sock:/tmp/docker.sock"
     restart: unless-stopped
@@ -231,12 +245,20 @@ services:
   #
   netconf:
     image: "${REGISTRY}${REPOSITORY}voltha-netconf${TAG}"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+#      Use the fluentd driver to push logs to fluentd instead
+#      driver: "fluentd"
+#      options:
+#        fluentd-address: ${DOCKER_HOST_IP}:24224
     privileged: true
     command: [
       "/netconf/netconf/main.py",
       "-v",
       "--consul=${DOCKER_HOST_IP}:8500",
-      "--fluentd=fluentd:24224",
       "--grpc-endpoint=@voltha-grpc",
       "--instance-id-is-container-name",
       "-v"
@@ -248,7 +270,6 @@ services:
     - voltha
     links:
     - vconsul
-    - fluentd
     environment:
       SERVICE_1830_NAME: "netconf-server"
     volumes:
