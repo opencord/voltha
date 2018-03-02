@@ -20,6 +20,8 @@ metadata:
 spec:
   serviceName: kafka
   replicas: 3
+  updateStrategy:
+    type: RollingUpdate
   selector:
     matchLabels:
       app: kafka

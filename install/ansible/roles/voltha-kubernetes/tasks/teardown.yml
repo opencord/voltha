@@ -1,0 +1,82 @@
+# ONOS
+- name: "VOLT-HA Teardown | Stop ONOS"
+  command: kubectl delete --ignore-not-found=true -f {{ target_voltha_dir }}/k8s/onos.yml
+  run_once: true
+
+# FreeRADIUS
+- name: "VOLT-HA Teardown | Stop FreeRADIUS"
+  command: kubectl delete --ignore-not-found=true -f {{ target_voltha_dir }}/k8s/freeradius.yml
+  run_once: true
+
+# FreeRADIUS Config
+- name: "VOLT-HA Teardown | Remove FreeRADIUS Configuration"
+  command: kubectl delete --ignore-not-found=true -f {{ target_voltha_dir }}/k8s/freeradius-config.yml
+  run_once: true
+
+# Dashd and Shovel
+- name: "VOLT-HA Teardown | Stop DASHD and SHOVEL"
+  command: kubectl delete --ignore-not-found=true -f {{ target_voltha_dir }}/k8s/stats.yml
+  run_once: true
+
+# Grafana
+- name: "VOLT-HA Teardown | Stop Grafana"
+  command: kubectl delete --ignore-not-found=true -f {{ target_voltha_dir }}/k8s/grafana.yml
+  run_once: true
+
+# NETCONF
+- name: "VOLT-HA Teardown | Stop NETCONF"
+  command: kubectl delete --ignore-not-found=true -f {{ target_voltha_dir }}/k8s/netconf.yml
+  run_once: true
+
+# Voltha CLI
+- name: "VOLT-HA Teardown | Stop VOLT-HA CLI"
+  command: kubectl delete --ignore-not-found=true -f {{ target_voltha_dir }}/k8s/vcli.yml
+  run_once: true
+
+# Envoy (for consul)
+- name: "VOLT-HA Teardown | Stop Envoy (for consul)"
+  command: kubectl delete --ignore-not-found=true -f {{ target_voltha_dir }}/k8s/envoy_for_consul.yml
+  run_once: true
+
+# OFagent
+- name: "VOLT-HA Teardown | Stop OpenFlow Agent"
+  command: kubectl delete --ignore-not-found=true -f {{ target_voltha_dir }}/k8s/ofagent.yml
+  run_once: true
+
+# Voltha Core (for consul)
+- name: "VOLT-HA Teardown | Stop VOLT-HA core (for consul)"
+  command: kubectl delete --ignore-not-found=true -f {{ target_voltha_dir }}/k8s/vcore_for_consul.yml
+  run_once: true
+
+# Consul
+- name: "VOLT-HA Teardown | Stop consul"
+  command: kubectl delete --ignore-not-found=true -f {{ target_voltha_dir }}/k8s/consul.yml
+  run_once: true
+
+# Fluentd
+- name: "VOLT-HA Teardown | Stop fluentd"
+  command: kubectl delete --ignore-not-found=true -f {{ target_voltha_dir }}/k8s/fluentd.yml
+  run_once: true
+
+# Kafka
+- name: "VOLT-HA Teardown | Stop kafka"
+  command: kubectl delete --ignore-not-found=true -f {{ target_voltha_dir }}/k8s/kafka.yml
+  run_once: true
+
+# Zookeeper
+- name: "VOLT-HA Teardown | Stop zookeeper"
+  command: kubectl delete --ignore-not-found=true -f {{ target_voltha_dir }}/k8s/zookeeper.yml
+  run_once: true
+
+# Ingress
+- name: "VOLT-HA Teardown | Stop Ingress Controller"
+  command: kubectl delete --ignore-not-found=true -f {{ target_voltha_dir }}/k8s/ingress
+  run_once: true
+
+# Namespace
+- name: "VOLT-HA Teardown | Remove Namespace"
+  command: kubectl delete --ignore-not-found=true -f {{ target_voltha_dir }}/k8s/namespace.yml
+  run_once: true
+
+
+

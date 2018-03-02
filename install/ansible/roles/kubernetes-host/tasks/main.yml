@@ -1,0 +1,56 @@
+# Note: When the target == "cluster" the installer
+# is running to install voltha in the cluster hosts.
+# Whe the target == "installer" the installer is being
+# created.
+- name: A .ssh directory for the voltha user exists
+  file:
+    #path: "{{ ansible_env['HOME'] }}/.ssh"
+    path: "{{ target_voltha_home }}/.ssh"
+    state: directory
+    owner: voltha
+    group: voltha
+  tags: [cluster_host]
+
+- name: known_hosts file is absent for the voltha user
+  file:
+    path: "{{ target_voltha_home }}/.ssh/known_hosts"
+    state: absent
+  tags: [cluster_host]
+
+- name: Known host checking is disabled
+  copy:
+    src: files/ssh_config
+    dest: "{{ target_voltha_home }}/.ssh/config"
+    owner: voltha
+    group: voltha
+    mode: 0600
+  tags: [cluster_host]
+
+- name: Cluster host keys are propagated to all hosts in the cluster
+  copy:
+    src: files/.keys
+    dest: "{{ target_voltha_home }}"
+    owner: voltha
+    group: voltha
+    mode: 0600
+  tags: [cluster_host]
+
+- name: A voltha directory under /var/log for voltha logs exists
+  file:
+    path: "/var/log/voltha/logging_volume"
+    state: directory
+  tags: [cluster_host]
+
+- name: Directories for voltha processes are created
+  file:
+    path: "{{ target_voltha_dir }}/{{ item }}"
+    state: directory
+    mode: 0755
+    owner: voltha
+    group: voltha
+  with_items:
+    - registry_data
+    - consul/data
+    - consul/config
+  when: target == "cluster"
+  tags: [cluster_host]

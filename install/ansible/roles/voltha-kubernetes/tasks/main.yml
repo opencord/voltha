@@ -1,0 +1,8 @@
+- import_tasks: config.yml
+  when: config_voltha is defined
+
+- import_tasks: deploy.yml
+  when: deploy_voltha is defined
+
+- import_tasks: teardown.yml
+  when: teardown_voltha is defined

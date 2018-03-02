@@ -14,3 +14,5 @@ docker_daemon_json_dest: /etc/docker
 registry_volume_size: 5
 consul_volume_size: 5
 logger_volume_size: 20
+install_source: /home/vinstall
+voltha_namespace: voltha
