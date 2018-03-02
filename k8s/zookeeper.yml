@@ -66,6 +66,8 @@ metadata:
 spec:
   serviceName: zoo1
   replicas: 1
+  updateStrategy:
+    type: RollingUpdate
   selector:
     matchLabels:
       app: zookeeper-1
@@ -104,6 +106,8 @@ metadata:
 spec:
   serviceName: zoo2
   replicas: 1
+  updateStrategy:
+    type: RollingUpdate
   selector:
     matchLabels:
       app: zookeeper-2
@@ -142,6 +146,8 @@ metadata:
 spec:
   serviceName: zoo3
   replicas: 1
+  updateStrategy:
+    type: RollingUpdate
   selector:
     matchLabels:
       app: zookeeper-3

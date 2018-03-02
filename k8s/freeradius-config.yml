@@ -1,0 +1,13 @@
+apiVersion: v1
+data:
+  clients.conf: |
+    client 192.168.64.0/18 {
+      secret = SECRET
+    }
+  users: |
+    user Cleartext-Password := "password", MS-CHAP-Use-NTLM-Auth := 0
+
+kind: ConfigMap
+metadata:
+  name: freeradius-config
+  namespace: voltha
