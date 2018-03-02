@@ -29,12 +29,12 @@ except ImportError:
     from dummy_thread import get_ident as _get_ident
 
 
-class FluentRenderer(object):
+class StructuredLogRenderer(object):
     def __call__(self, logger, name, event_dict):
         # in order to keep structured log data in event_dict to be forwarded as
-        # is to the fluent logger, we need to pass it into the logger framework
-        # as the first positional argument.
-        args = (event_dict, )
+        # is, we need to pass it into the logger framework as the first
+        # positional argument.
+        args = (event_dict,)
         kwargs = {}
         return args, kwargs
 
@@ -58,14 +58,12 @@ class PlainRenderedOrderedDict(OrderedDict):
             del _repr_running[call_key]
 
 
-def setup_logging(log_config, instance_id, verbosity_adjust=0, fluentd=None):
+def setup_logging(log_config, instance_id, verbosity_adjust=0):
     """
     Set up logging such that:
     - The primary logging entry method is structlog
       (see http://structlog.readthedocs.io/en/stable/index.html)
     - By default, the logging backend is Python standard lib logger
-    - Alternatively, fluentd can be configured with to be the backend,
-      providing direct bridge to a fluent logging agent.
     """
 
     def add_exc_info_flag_for_exception(_, name, event_dict):
@@ -77,20 +75,6 @@ def setup_logging(log_config, instance_id, verbosity_adjust=0, fluentd=None):
         event_dict['instance_id'] = instance_id
         return event_dict
 
-    # if fluentd is specified, we need to override the config data with
-    # its host and port info
-    if fluentd is not None:
-        fluentd_host = fluentd.split(':')[0].strip()
-        fluentd_port = int(fluentd.split(':')[1].strip())
-
-        handlers = log_config.get('handlers', None)
-        if isinstance(handlers, dict):
-            for _, defs in handlers.iteritems():
-                if isinstance(defs, dict):
-                    if defs.get('class', '').endswith('FluentHandler'):
-                        defs['host'] = fluentd_host
-                        defs['port'] = fluentd_port
-
     # Configure standard logging
     logging.config.dictConfig(log_config)
     logging.root.level -= 10 * verbosity_adjust
@@ -100,7 +84,7 @@ def setup_logging(log_config, instance_id, verbosity_adjust=0, fluentd=None):
         structlog.processors.StackInfoRenderer(),
         structlog.processors.format_exc_info,
         add_instance_id,
-        FluentRenderer(),
+        StructuredLogRenderer(),
     ]
     structlog.configure(logger_factory=structlog.stdlib.LoggerFactory(),
                         context_class=PlainRenderedOrderedDict,
@@ -138,7 +122,7 @@ def update_logging(instance_id, vcore_id):
         structlog.processors.format_exc_info,
         add_instance_id,
         add_vcore_id,
-        FluentRenderer(),
+        StructuredLogRenderer(),
     ]
     structlog.configure(processors=processors)
 

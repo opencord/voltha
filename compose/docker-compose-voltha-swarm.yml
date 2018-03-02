@@ -13,7 +13,6 @@ services:
       - voltha/voltha/main.py
       - -v
       - --consul=vconsul:8500
-      - --fluentd=fluentd:24224
       - --kafka=kafka
       - --rest-port=8880
       - --grpc-port=50556

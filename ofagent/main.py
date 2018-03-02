@@ -33,7 +33,6 @@ defs = dict(
     external_host_address=os.environ.get('EXTERNAL_HOST_ADDRESS',
                                          get_my_primary_local_ipv4()),
     grpc_endpoint=os.environ.get('GRPC_ENDPOINT', 'localhost:50055'),
-    fluentd=os.environ.get('FLUENTD', None),
     instance_id=os.environ.get('INSTANCE_ID', os.environ.get('HOSTNAME', '1')),
     internal_host_address=os.environ.get('INTERNAL_HOST_ADDRESS',
                                          get_my_primary_local_ipv4()),
@@ -75,15 +74,6 @@ def parse_args():
                         dest='external_host_address',
                         action='store',
                         default=defs['external_host_address'],
-                        help=_help)
-
-    _help = ('<hostname>:<port> to fluentd server (default: %s). (If not '
-             'specified (None), the address from the config file is used'
-             % defs['fluentd'])
-    parser.add_argument('-F', '--fluentd',
-                        dest='fluentd',
-                        action='store',
-                        default=defs['fluentd'],
                         help=_help)
 
     _help = ('gRPC end-point to connect to. It can either be a direct'
@@ -217,8 +207,7 @@ class Main(object):
         verbosity_adjust = (args.verbose or 0) - (args.quiet or 0)
         self.log = setup_logging(self.config.get('logging', {}),
                                  args.instance_id,
-                                 verbosity_adjust=verbosity_adjust,
-                                 fluentd=args.fluentd)
+                                 verbosity_adjust=verbosity_adjust)
 
         # components
         self.connection_manager = None

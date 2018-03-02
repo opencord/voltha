@@ -21,7 +21,6 @@ services:
             - /ofagent/ofagent/main.py
             - -v
             - --consul=vconsul:8500
-            - --fluentd=fluentd:24224
             - --controller=onos:6653
             - --grpc-endpoint=vcore:50556
             - --instance-id-is-container-name

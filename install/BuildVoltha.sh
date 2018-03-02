@@ -36,10 +36,14 @@ else
 	echo 'testMode: "false"' >> settings.vagrant.yaml
 fi
 
-# Special actions that differentiate a cluster build from a singel instance build
-cp voltha/voltha.production.yml voltha/voltha.yml
-cp ofagent/ofagent.production.yml ofagent/ofagent.yml
-cp netconf/netconf.production.yml netconf/netconf.yml
+# This was required before as logging was different in production vs development. The
+# logging decision was made at compile time.
+# By using the docker logging option (docker swarm mode only) in the deployment
+# files, now the logging decision is made at deployment time, hence the same voltha,
+# netconf and ofagent images can be used both in development and production.
+#cp voltha/voltha.production.yml voltha/voltha.yml
+#cp ofagent/ofagent.production.yml ofagent/ofagent.yml
+#cp netconf/netconf.production.yml netconf/netconf.yml
 
 # Destroy the VM if it's running
 vagrant destroy voltha${uId}
