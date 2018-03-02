@@ -1,0 +1,23 @@
+- hosts: cluster
+  remote_user: voltha
+  serial: 1
+  vars:
+    target: cluster
+  roles:
+    - { role: common, when: config_voltha is defined }
+    - { role: kubernetes-host, when: config_voltha is defined }
+    - { role: voltha-kubernetes, when: config_voltha is defined }
+
+- hosts:  k8s-master
+  remote_user: voltha
+  serial: 1
+  roles:
+    - {
+        role: voltha-kubernetes, when: deploy_voltha is defined,
+        monitor_voltha_stats: true,
+        use_ponsim: true
+      }
+    - {
+        role: voltha-kubernetes,
+        when: teardown_voltha is defined
+      }

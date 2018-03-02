@@ -37,7 +37,7 @@
 
 #- name: Required configuration directories are copied
 #  copy:
-#    src: "/home/vinstall/{{ item }}"
+#    src: "{{ install_source }}/{{ item }}"
 #    dest: "{{ target_voltha_home }}"
 #    owner: voltha
 #    group: voltha
@@ -50,7 +50,7 @@
 
 - name: Required configuration directories are copied
   synchronize:
-    src: "/home/vinstall/{{ item }}"
+    src: "{{ install_source }}/{{ item }}"
     dest: "{{ target_voltha_home }}"
     archive: no
     owner: no
@@ -65,7 +65,7 @@
 
 - name: Required configuration scripts are copied
   synchronize:
-    src: "/home/vinstall/{{ item }}"
+    src: "{{ install_source }}/{{ item }}"
     dest: "{{ target_voltha_home }}"
     archive: no
     owner: no
@@ -104,7 +104,7 @@
 
 #- name: upstart barrier filesystem loop mount script is installed
 #  copy:
-#    src: "/home/vinstall/losetup.conf"
+#    src: "{{ install_source }}/losetup.conf"
 #    dest: /etc/init
 #    owner: root
 #    group: root
