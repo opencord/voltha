@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "def80703_fd59d2ed",
+        "filename": "compose/docker-compose-system-test.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 122,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2018-03-03T00:02:58Z",
+      "side": 1,
+      "message": "Did you want to keep these lines?",
+      "revId": "ac7d759a52b479d4159fbed6a39f9f8800c66068",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
