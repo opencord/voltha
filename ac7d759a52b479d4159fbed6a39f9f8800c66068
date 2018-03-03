@@ -16,6 +16,24 @@
       "revId": "ac7d759a52b479d4159fbed6a39f9f8800c66068",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "8a15fd56_7d0779f5",
+        "filename": "compose/docker-compose-system-test.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 122,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-03-03T03:27:47Z",
+      "side": 1,
+      "message": "Yes.  It is there as an example of how to push to fluentd instead of just stdout.",
+      "parentUuid": "def80703_fd59d2ed",
+      "revId": "ac7d759a52b479d4159fbed6a39f9f8800c66068",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
