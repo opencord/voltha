@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6eba21c1_ab1cdf55",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 363,
+      "author": {
+        "id": 1000350
+      },
+      "writtenOn": "2018-03-06T15:02:12Z",
+      "side": 1,
+      "message": "I know python defaults to return None but I prefer to see explicit return of None or False at the bottom if match not found.",
+      "range": {
+        "startLine": 363,
+        "startChar": 72,
+        "endLine": 363,
+        "endChar": 74
+      },
+      "revId": "aca5b3988c426e8d2579f6f6b6528f5c271cf6ca",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
