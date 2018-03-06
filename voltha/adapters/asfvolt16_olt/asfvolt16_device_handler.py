@@ -65,6 +65,9 @@ ASFVOLT_NNI_PORT = 129
 # ASFVOLT_NNI_PORT needs to be other than pon port value.
 # Edgecore OLT assigns PONport between 0 to 15, hence
 # having a value 129 for NNI port to avoid collision.
+
+ASFVOLT16_MAX_PON_PORT_ID = 15
+
 # TODO: VLAN ID needs to come from some sort of configuration.
 ASFVOLT16_DEFAULT_VLAN = 4091
 PACKET_IN_VLAN = 4091
@@ -187,6 +190,7 @@ class Asfvolt16Handler(OltDeviceHandler):
         self.ont_anis = dict()
         self.v_enets = dict()
         self.traffic_descriptors = dict()
+        self.pon_id_gem_port_to_v_enet_name = dict()
         self.adapter_name = adapter.name
         self.uni_port_num = 20
         self.pm_metrics = None
@@ -273,6 +277,46 @@ class Asfvolt16Handler(OltDeviceHandler):
             return ports[0]
         return None
 
+    def create_pon_id_and_gem_port_to_uni_port_map(self,
+                                                   gem_port, v_enet
+                                                   ):
+        v_enet_name = v_enet.v_enet.name
+        v_ont_ani = self.v_ont_anis[v_enet.v_enet.data.v_ontani_ref]
+        pon_id = -1
+        # if the v_ont_ani and the channel_termination refer to the same
+        # channel_pair, we have the right channel_termination. We pick the
+        # xgs_ponid from this channel_termination.
+        for channel_termination in self.channel_terminations.itervalues():
+            if v_ont_ani.v_ont_ani.data.preferred_chanpair == \
+                   channel_termination.data.channelpair_ref:
+                pon_id = channel_termination.data.xgs_ponid
+                self.pon_id_gem_port_to_v_enet_name[(pon_id, gem_port)] = v_enet_name
+                self.log.debug("entry-created", pon_id=pon_id,
+                                gem_port=gem_port, v_enet_name=v_enet_name)
+                break
+        if pon_id < 0:
+            raise Exception("pon-id-gem-port-to-uni-port-map-creation-failed")
+
+    def delete_pon_id_and_gem_port_to_uni_port_map(self,
+                                                   gem_port, v_enet
+                                                   ):
+        v_enet_name = v_enet.v_enet.name
+        v_ont_ani = self.v_ont_anis[v_enet.v_enet.data.v_ontani_ref]
+        pon_id = -1
+        # if the v_ont_ani and the channel_termination refer to the same
+        # channel_pair, we have the right channel_termination. We pick the
+        # xgs_ponid from this channel_termination.
+        for channel_termination in self.channel_terminations.itervalues():
+            if v_ont_ani.v_ont_ani.data.preferred_chanpair == \
+                   channel_termination.data.channelpair_ref:
+                pon_id = channel_termination.data.xgs_ponid
+                del self.pon_id_gem_port_to_v_enet_name[(pon_id, gem_port)]
+                self.log.debug("entry-deleted", pon_id=pon_id,
+                                gem_port=gem_port, v_enet_name=v_enet_name)
+                break
+        if pon_id < 0:
+            raise Exception("pon-id-gem-port-to-uni-port-map-deletion-failed")
+
     def store_flows(self, uplink_classifier, uplink_action,
                     v_enet, traffic_class):
         flow = FlowInfo()
@@ -315,6 +359,15 @@ class Asfvolt16Handler(OltDeviceHandler):
         if uni is not None:
            logical_port = uni.port_no
         return logical_port
+
+    def get_logical_port_from_pon_id_and_gem_port(self, pon_id, gem_port):
+        v_enet_name = self.pon_id_gem_port_to_v_enet_name[(pon_id, gem_port)]
+        ports = self.adapter_agent.get_ports(self.device_id, Port.ETHERNET_UNI)
+        if ports is not None:
+            for port in ports:
+                if port.label == v_enet_name:
+                    return port.port_no
+        return None
 
     def activate(self, device):
 
@@ -378,12 +431,8 @@ class Asfvolt16Handler(OltDeviceHandler):
 
         try:
             # Establishing connection towards OLT
-            self.bal.connect_olt(device.host_and_port, self.device_id,is_init=False)
-            device.connect_status = ConnectStatus.REACHABLE
-            device.oper_status = OperStatus.ACTIVE
-            self.adapter_agent.update_device(device)
+            self.bal.connect_olt(device.host_and_port, self.device_id, is_init=False)
             reactor.callInThread(self.bal.get_indication_info, self.device_id)
-
         except Exception as e:
             self.log.exception('device-unreachable', error=e)
             device.connect_status = ConnectStatus.UNREACHABLE
@@ -401,10 +450,8 @@ class Asfvolt16Handler(OltDeviceHandler):
             self.log.info("initial-pm-config", pm_config=pm_config)
             self.adapter_agent.update_device_pm_config(pm_config,init=True)
 
-
             # Apply the PM configuration
             self.update_pm_config(device, pm_config)
-
 
             # Request PM counters from OLT device.
             self._handle_pm_counter_req_towards_device(device)
@@ -421,8 +468,12 @@ class Asfvolt16Handler(OltDeviceHandler):
         # Reconcile child devices
         self.log.info("reconcile-all-child-devices")
         self.adapter_agent.reconcile_child_devices(device.id)
-        self.log.info('reconciling-asfvolt16-device-ends',device=device)
 
+        device.connect_status = ConnectStatus.REACHABLE
+        device.oper_status = OperStatus.ACTIVE
+        self.adapter_agent.update_device(device)
+
+        self.log.info('reconciling-asfvolt16-device-ends',device=device)
 
     @inlineCallbacks
     def heartbeat(self, state = 'run'):
@@ -1044,7 +1095,7 @@ class Asfvolt16Handler(OltDeviceHandler):
 
     def get_registration_id(self, data):
         if data.data.expected_registration_id is not None and \
-            len(data.data.expected_registration_id) > 0:
+           len(data.data.expected_registration_id) > 0:
             return self.hex_format(data.data.expected_registration_id)
         # default reg id
         return '202020202020202020202020202020202020202020202020202020202020202020202020'
@@ -1129,6 +1180,11 @@ class Asfvolt16Handler(OltDeviceHandler):
                     channel_pair_config.CopyFrom(data)
                     self.channel_pairs[data.name] = channel_pair_config
             if isinstance(data, ChannelterminationConfig):
+                if data.data.xgs_ponid > ASFVOLT16_MAX_PON_PORT_ID:
+                    raise ValueError\
+                        ("pon_id-%u-is-greater-than-%u"
+                         % (data.data.xgs_ponid, ASFVOLT16_MAX_PON_PORT_ID))
+
                 self.log.info('Activating-PON-port-at-OLT',
                               pon_id=data.data.xgs_ponid)
                 self.add_port(port_no=data.data.xgs_ponid,
@@ -1288,6 +1344,9 @@ class Asfvolt16Handler(OltDeviceHandler):
             if data.gemport_id > 9215:
                 raise Exception('supported range for '
                                 'gem-port is from 1024 to 9215')
+            self.create_pon_id_and_gem_port_to_uni_port_map(
+                data.gemport_id, v_enet
+            )
             gem_port = GemportsConfigData()
             gem_port.CopyFrom(data)
             v_enet.gem_ports[data.name] = gem_port
@@ -1303,6 +1362,10 @@ class Asfvolt16Handler(OltDeviceHandler):
         if data.itf_ref in self.v_enets:
             v_enet = self.v_enets[data.itf_ref]
             if data.name in v_enet.gem_ports:
+                gem_port = v_enet.gem_ports[data.name]
+                self.delete_pon_id_and_gem_port_to_uni_port_map(
+                    gem_port.gemport_id, v_enet
+                )
                 self.del_all_flow(v_enet)
                 del v_enet.gem_ports[data.name]
                 #To-Do Need to know what to do with flows.
@@ -1318,7 +1381,12 @@ class Asfvolt16Handler(OltDeviceHandler):
 
     def handle_packet_in(self, ind_info):
         self.log.info('Received-Packet-In', ind_info=ind_info)
-        logical_port = self.get_logical_port_using_gem_port(ind_info['svc_port'])
+        logical_port = self.get_logical_port_from_pon_id_and_gem_port(
+            ind_info['intf_id'],
+            ind_info['svc_port'])
+        if not logical_port:
+            self.log.error("uni-logical_port-not-found")
+            return
         pkt = Ether(ind_info['packet'])
         kw = dict(
                   logical_device_id=self.logical_device_id,
@@ -1368,19 +1436,18 @@ class Asfvolt16Handler(OltDeviceHandler):
                 self.log.info('Unable-to-find-logical-port-info',
                               logical_port_number=egress_port)
                 return
-            onu_device = None
+
             onu_device = self.adapter_agent.get_device(logical_port.device_id)
+
             if onu_device is None:
                 self.log.info('Unable-to-find-onu_device-info',
                               onu_device_id=logical_port.device_id)
                 return
+
             pkt_info['intf_id'] = onu_device.proxy_address.channel_id
             pkt_info['onu_id'] = onu_device.proxy_address.onu_id
-
             pkt_info['dest_type'] = 'onu'
-            #pkt_info['dest_type'] = 'gem_port'
-            if pkt_info['dest_type'] == 'gem_port':
-                pkt_info['gem_port'] = 1024
+
         self.bal.packet_out(send_pkt, pkt_info)
 
     def update_flow_table(self, flows):
@@ -1948,7 +2015,7 @@ class Asfvolt16Handler(OltDeviceHandler):
             yield asleep(0.1)
         except Exception as e:
             self.log.exception('failed-to-install-downstream-flow', e=e,
-                               flow_id=flow_id,
+                               flow_id=downlink_flow_id,
                                onu_id=onu_device.proxy_address.onu_id,
                                intf_id=onu_device.proxy_address.channel_id)
 
@@ -2006,4 +2073,3 @@ class Asfvolt16Handler(OltDeviceHandler):
 
         except Exception as e:
             raise Exception('option-parsing-error: {}'.format(e.message))
-
