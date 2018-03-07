@@ -22,6 +22,30 @@
       "revId": "aca5b3988c426e8d2579f6f6b6528f5c271cf6ca",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "015c7b52_2f94b47f",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 363,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-03-07T02:24:01Z",
+      "side": 1,
+      "message": "Agreed. Uploaded a new patch.",
+      "parentUuid": "6eba21c1_ab1cdf55",
+      "range": {
+        "startLine": 363,
+        "startChar": 72,
+        "endLine": 363,
+        "endChar": 74
+      },
+      "revId": "aca5b3988c426e8d2579f6f6b6528f5c271cf6ca",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
