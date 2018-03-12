@@ -169,8 +169,8 @@ class MEFrame(object):
 
         return OmciFrame(
             transaction_id=None,
-            message_type=OmciGet.message_id,
-            omci_message=OmciGet(
+            message_type=OmciDelete.message_id,
+            omci_message=OmciDelete(
                 entity_class=getattr(self.entity_class, 'class_id'),
                 entity_id=getattr(self, 'entity_id')
             ))

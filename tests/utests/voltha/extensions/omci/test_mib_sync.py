@@ -13,12 +13,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from nose.twistedtools import threaded_reactor, stop_reactor
+
+from unittest import TestCase, main
+from mock.mock_adapter_agent import MockAdapterAgent
 
 
-def setup_module():
-    threaded_reactor()
+
+class TestMibSync(TestCase):
+    """
+    Test the MIB Synchronizer State Machine
+    """
+    def setUp(self):
+        self.adapter_agent = MockAdapterAgent()
+
+    def tearDown(self):
+        if self.adapter_agent is not None:
+            self.adapter_agent.tearDown()
+
+    # TODO: Add tests
 
 
-def teardown_module():
-    stop_reactor()
+if __name__ == '__main__':
+    main()

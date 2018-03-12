@@ -24,6 +24,8 @@ from twisted.internet.defer import DeferredQueue, TimeoutError, CancelledError, 
 from common.frameio.frameio import hexify
 from voltha.extensions.omci.omci import *
 from voltha.extensions.omci.omci_me import OntGFrame, OntDataFrame
+from common.event_bus import EventBusClient
+from enum import IntEnum
 
 
 _MAX_INCOMING_ALARM_MESSAGES = 256
@@ -34,12 +36,40 @@ DEFAULT_OMCI_TIMEOUT = 3            # Seconds
 MAX_OMCI_REQUEST_AGE = 60           # Seconds
 MAX_OMCI_TX_ID = 0xFFFF             # 2 Octets max
 
+CONNECTED_KEY = 'connected'
+TX_REQUEST_KEY = 'tx-request'
+RX_RESPONSE_KEY = 'rx-response'
+
+
+class OmciCCRxEvents(IntEnum):
+    AVC_Notification = 0,
+    MIB_Upload = 1,
+    MIB_Upload_Next = 2,
+    Create = 3,
+    Delete = 4,
+    Set = 5,
+    Alarm_Notification = 6,
+    Test_Result = 7,
+    MIB_Reset = 8,
+    Connectivity = 9
+
+
 # abbreviations
 OP = EntityOperations
+RxEvent = OmciCCRxEvents
 
 
 class OMCI_CC(object):
     """ Handle OMCI Communication Channel specifics for Adtran ONUs"""
+
+    _frame_to_event_type = {
+        OmciMibResetResponse.message_id: RxEvent.MIB_Reset,
+        OmciMibUploadResponse.message_id: RxEvent.MIB_Upload,
+        OmciMibUploadNextResponse.message_id: RxEvent.MIB_Upload_Next,
+        OmciCreateResponse.message_id: RxEvent.Create,
+        OmciDeleteResponse.message_id: RxEvent.Delete,
+        OmciSetResponse.message_id: RxEvent.Set,
+    }
 
     def __init__(self, adapter_agent, device_id, me_map=None,
                  alarm_queue_limit=_MAX_INCOMING_ALARM_MESSAGES,
@@ -72,12 +102,27 @@ class OMCI_CC(object):
         self._reply_max = 0           # Longest successful tx -> rx
         self._reply_sum = 0.0         # Total seconds for successful tx->rx (float for average)
 
+        self.event_bus = EventBusClient()
+
         # If a list of custom ME Entities classes were provided, insert them into
         # main class_id to entity map.
         # TODO: If this class becomes hidden from the ONU DA, move this to the OMCI State Machine runner
 
     def __str__(self):
         return "OMCISupport: {}".format(self._device_id)
+
+    @staticmethod
+    def event_bus_topic(device_id, event):
+        """
+        Get the topic name for a given event Frame Type
+        :param device_id: (str) ONU Device ID
+        :param event: (OmciCCRxEvents) Type of event
+        :return: (str) Topic string
+        """
+        assert event in OmciCCRxEvents, \
+            'Event {} is not an OMCI-CC Rx Event'.format(event.Name)
+
+        return 'omci-rx:{}:{}'.format(device_id, event.name)
 
     @property
     def enabled(self):
@@ -199,9 +244,6 @@ class OMCI_CC(object):
         Start the OMCI Communications Channel
         """
         assert self._enabled, 'Start should only be called if enabled'
-        #
-        # TODO: Perform any other common startup tasks here
-        #
         self.flush()
 
         device = self._adapter_agent.get_device(self._device_id)
@@ -212,9 +254,6 @@ class OMCI_CC(object):
         Stop the OMCI Communications Channel
         """
         assert not self._enabled, 'Stop should only be called if disabled'
-        #
-        # TODO: Perform common shutdown tasks here
-        #
         self.flush()
         self._proxy_address = None
 
@@ -225,7 +264,6 @@ class OMCI_CC(object):
 
     def _receive_onu_message(self, rx_frame):
         """ Autonomously generated ONU frame Rx handler"""
-        # TODO: Best way to handle autonomously generated ONU frames may be pub/sub method
         from twisted.internet.defer import QueueOverflow
         self.log.debug('rx-onu-frame', frame_type=type(rx_frame),
                        frame=hexify(str(rx_frame)))
@@ -235,7 +273,12 @@ class OMCI_CC(object):
 
         self._rx_onu_frames += 1
 
+        msg = {TX_REQUEST_KEY: None,
+               RX_RESPONSE_KEY: rx_frame}
+
         if msg_type == EntityOperations.AlarmNotification.value:
+            topic = OMCI_CC.event_bus_topic(self._device_id, RxEvent.Alarm_Notification)
+            reactor.callLater(0,  self.event_bus.publish, topic, msg)
             try:
                 self._alarm_queue.put((rx_frame, arrow.utcnow().float_timestamp))
 
@@ -244,15 +287,26 @@ class OMCI_CC(object):
                 self.log.warn('onu-rx-alarm-overflow', cnt=self._rx_alarm_overflow)
 
         elif msg_type == EntityOperations.AttributeValueChange.value:
+            topic = OMCI_CC.event_bus_topic(self._device_id, RxEvent.AVC_Notification)
+            reactor.callLater(0,  self.event_bus.publish, topic, msg)
             try:
                 self._alarm_queue.put((rx_frame, arrow.utcnow().float_timestamp))
 
             except QueueOverflow:
                 self._rx_avc_overflow += 1
                 self.log.warn('onu-rx-avc-overflow', cnt=self._rx_avc_overflow)
+
+        elif msg_type == EntityOperations.TestResult.value:
+            topic = OMCI_CC.event_bus_topic(self._device_id, RxEvent.Test_Result)
+            reactor.callLater(0,  self.event_bus.publish, topic, msg)
+            try:
+                self._test_results_queue.put((rx_frame, arrow.utcnow().float_timestamp))
+
+            except QueueOverflow:
+                self.log.warn('onu-rx-test-results-overflow')
+
         else:
             # TODO: Need to add test results message support
-
             self.log.warn('onu-unsupported-autonomous-message', type=msg_type)
             self._rx_onu_discards += 1
 
@@ -282,6 +336,11 @@ class OMCI_CC(object):
                     if rx_tid == 0:
                         return self._receive_onu_message(rx_frame)
 
+                    # Previously unreachable if this is the very first Rx or we
+                    # have been running consecutive errors
+                    if self._rx_frames == 0 or self._consecutive_errors != 0:
+                        reactor.callLater(0, self._publish_connectivity_event, True)
+
                     self._rx_frames += 1
                     self._consecutive_errors = 0
 
@@ -299,7 +358,7 @@ class OMCI_CC(object):
                     omci_entities.entity_id_to_class_map = saved_me_map     # Always restore it.
 
                 try:
-                    (ts, d, _, _) = self._requests.pop(rx_tid)
+                    (ts, d, tx_frame, _) = self._requests.pop(rx_tid)
 
                     ts_diff = now - arrow.Arrow.utcfromtimestamp(ts)
                     secs = ts_diff.total_seconds()
@@ -310,8 +369,6 @@ class OMCI_CC(object):
 
                     if secs > self._reply_max:
                         self._reply_max = secs
-
-                    # TODO: Could also validate response type based on request action
 
                 except KeyError as e:
                     # Possible late Rx on a message that timed-out
@@ -325,10 +382,43 @@ class OMCI_CC(object):
                         return d.errback(failure.Failure(e))
                     return
 
-                d.callback(rx_frame)
+                # Notify sender of completed request
+                reactor.callLater(0, d.callback, rx_frame)
+
+                # Publish Rx event to listeners in a different task
+                reactor.callLater(0, self._publish_rx_frame, tx_frame, rx_frame)
 
             except Exception as e:
                 self.log.exception('rx-msg', e=e)
+
+    def _publish_rx_frame(self, tx_frame, rx_frame):
+        """
+        Notify listeners of successful response frame
+        :param tx_frame: (OmciFrame) Original request frame
+        :param rx_frame: (OmciFrame) Response frame
+        """
+        if self._enabled and isinstance(rx_frame, OmciFrame):
+            frame_type = rx_frame.fields['omci_message'].message_id
+            event_type = OMCI_CC._frame_to_event_type.get(frame_type)
+
+            if event_type is not None:
+                topic = OMCI_CC.event_bus_topic(self._device_id, event_type)
+                msg = {TX_REQUEST_KEY: tx_frame,
+                       RX_RESPONSE_KEY: rx_frame}
+
+                self.event_bus.publish(topic=topic, msg=msg)
+
+    def _publish_connectivity_event(self, connected):
+        """
+        Notify listeners of Rx/Tx connectivity over OMCI
+        :param connected: (bool) True if connectivity transitioned from unreachable
+                                 to reachable
+        """
+        if self._enabled:
+            topic = OMCI_CC.event_bus_topic(self._device_id,
+                                            RxEvent.Connectivity)
+            msg = {CONNECTED_KEY: connected}
+            self.event_bus.publish(topic=topic, msg=msg)
 
     def flush(self, max_age=0):
         limit = arrow.utcnow().float_timestamp - max_age
@@ -379,6 +469,10 @@ class OMCI_CC(object):
             value.trap(CancelledError)
             self._rx_timeouts += 1
             self._consecutive_errors += 1
+
+            if self._consecutive_errors == 1:
+                reactor.callLater(0, self._publish_connectivity_event, False)
+
             self.log.info('timeout', tx_id=tx_tid, timeout=timeout)
             value = failure.Failure(TimeoutError(timeout, "Deferred"))
 
@@ -391,34 +485,8 @@ class OMCI_CC(object):
         :param rx_frame: (OmciFrame) OMCI response frame with matching TID
         :return: (OmciFrame) OMCI response frame with matching TID
         """
-        #
-        # TODO: Here we could update the MIB database if we did a set/create/delete
-        #       or perhaps a verify if a GET.  Also could increment mib counter
-        #
-        # TODO: A better way to perform this in VOLTHA v1.3 would be to provide
-        #       a pub/sub capability for external users/tasks to monitor responses
-        #       that could optionally take a filter. This would allow a MIB-Sync
-        #       task to easily watch all AVC notifications as well as Set/Create/Delete
-        #       operations and keep them serialized.  It may also be a better/easier
-        #       way to handle things if we containerize OpenOMCI.
-        #
-        try:
-            if isinstance(rx_frame.omci_message, OmciGetResponse):
-                pass    # TODO: Implement MIB check or remove
-
-            elif isinstance(rx_frame.omci_message, OmciSetResponse):
-                pass    # TODO: Implement MIB update
-
-            elif isinstance(rx_frame.omci_message, OmciCreateResponse):
-                pass    # TODO: Implement MIB update
-
-            elif isinstance(rx_frame.omci_message, OmciDeleteResponse):
-                pass    # TODO: Implement MIB update
-
-        except Exception as e:
-            self.log.exception('omci-message', e=e)
-            raise
-
+        # At this point, no additional processing is required
+        # Continue with Rx Success callbacks.
         return rx_frame
 
     def send(self, frame, timeout=DEFAULT_OMCI_TIMEOUT):
@@ -478,6 +546,10 @@ class OMCI_CC(object):
         except Exception as e:
             self._tx_errors += 1
             self._consecutive_errors += 1
+
+            if self._consecutive_errors == 1:
+                reactor.callLater(0, self._publish_connectivity_event, False)
+
             self.log.exception('send-omci', e=e)
             return fail(result=failure.Failure(e))
 

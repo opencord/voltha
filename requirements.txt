@@ -41,6 +41,7 @@ jsonschema==2.6.0
 six==1.11.0
 structlog==17.2.0
 termcolor==1.1.0
+transitions==0.6.4
 treq==17.8.0
 Twisted==17.9.0
 txaioetcd==0.3.0

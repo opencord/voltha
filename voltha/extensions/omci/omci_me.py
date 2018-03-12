@@ -564,7 +564,7 @@ class TcontFrame(MEFrame):
 
         :param alloc_id: (int) This attribute links the T-CONT with the alloc-ID
                                assigned by the OLT in the assign_alloc-ID PLOAM
-                               message (0..0xFFF)
+                               message (0..0xFFF) or 0xFFFF to mark as free
 
         :param policy: (int) This attribute indicates the T-CONT's traffic scheduling
                              policy. Valid values:
@@ -576,8 +576,8 @@ class TcontFrame(MEFrame):
         self.check_type(alloc_id, (int, type(None)))
         self.check_type(policy, (int, type(None)))
 
-        if alloc_id is not None and not 0 <= alloc_id <= 0xFFF:
-            raise ValueError('alloc_id should be 0..0xFFF')
+        if alloc_id is not None and not (0 <= alloc_id <= 0xFFF or alloc_id == 0xFFFF):
+            raise ValueError('alloc_id should be 0..0xFFF or 0xFFFF to mark it as free')
 
         if policy is not None and not 0 <= policy <= 2:
             raise ValueError('policy should be 0..2')
