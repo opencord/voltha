@@ -14,7 +14,6 @@
 # limitations under the License.
 #
 from unittest import TestCase, main
-from nose.twistedtools import threaded_reactor, stop_reactor
 from mock.mock_adapter_agent import MockAdapterAgent
 from mock.mock_onu_handler import MockOnuHandler
 from mock.mock_olt_handler import MockOltHandler
@@ -32,15 +31,7 @@ OP = EntityOperations
 RC = ReasonCodes
 
 
-def setup_module():
-    threaded_reactor()
-
-
-def teardown_module():
-    stop_reactor()
-
-
-class TestOmciCcExample(TestCase):
+class TestOmciCc(TestCase):
     """
     Test the Open OMCI Communication channels
 
