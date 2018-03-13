@@ -44,7 +44,6 @@ defs = dict(
     topic=os.environ.get('KAFKA_TOPIC', 'voltha.kpis'),
     docker_host=os.environ.get('DOCKER_HOST', None),
 
-    fluentd=os.environ.get('FLUENTD', None),
     instance_id=os.environ.get('INSTANCE_ID', os.environ.get('HOSTNAME', '1')),
     internal_host_address=os.environ.get('INTERNAL_HOST_ADDRESS',
                                          get_my_primary_local_ipv4()),
@@ -94,15 +93,6 @@ def parse_args():
         '-d', '--docker_host', dest='docker_host', action='store',
         default=defs['docker_host'],
         help=_help)
-
-    _help = ('<hostname>:<port> to fluentd server (default: %s). (If not '
-             'specified (None), the address from the config file is used'
-             % defs['fluentd'])
-    parser.add_argument('-F', '--fluentd',
-                        dest='fluentd',
-                        action='store',
-                        default=defs['fluentd'],
-                        help=_help)
 
     _help = ('unique string id of this netconf server instance (default: %s)'
              % defs['instance_id'])
@@ -184,8 +174,7 @@ class Main(object):
         verbosity_adjust = (args.verbose or 0) - (args.quiet or 0)
         self.log = setup_logging(self.config.get('logging', {}),
                                  args.instance_id,
-                                 verbosity_adjust=verbosity_adjust,
-                                 fluentd=args.fluentd)
+                                 verbosity_adjust=verbosity_adjust)
 
         self.dashd_server = None
 
