@@ -335,12 +335,8 @@ class BroadcomOnuHandler(object):
         if event_msg['event'] == 'activation-completed':
 
             if event_msg['event_data']['activation_successful'] == True:
-                for uni in self.uni_ports:
-                    port_no = self.proxy_address.channel_id + uni
-                    yield self.message_exchange(
-                         self.proxy_address.onu_id,
-                         self.proxy_address.onu_session_id,
-                         port_no)
+
+                yield self.message_exchange()
 
                 device = self.adapter_agent.get_device(self.device_id)
                 device.connect_status = ConnectStatus.REACHABLE
@@ -1323,8 +1319,7 @@ class BroadcomOnuHandler(object):
             self.log.info('wait-for-response-exception', exc=str(e))
 
     @inlineCallbacks
-    def message_exchange(self, onu, gem, cvid):
-        self.log.info('message_exchange', onu=onu, gem=gem, cvid=cvid)
+    def message_exchange(self):
         # reset incoming message queue
         while self.incoming_messages.pending:
             _ = yield self.incoming_messages.get()
@@ -1573,7 +1568,6 @@ class BroadcomOnuHandler(object):
 
     def remove_interface(self, data):
         if isinstance(data, VEnetConfig):
-            parent_port_num = None
             onu_device = self.adapter_agent.get_device(self.device_id)
             ports = self.adapter_agent.get_ports(onu_device.parent_id, Port.ETHERNET_UNI)
             parent_port_num = None
