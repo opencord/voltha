@@ -7,10 +7,12 @@ if [ "$DEBUG" == "true" ]; then
   env | sort
 fi
 
+TAG=${CACHE_TAG:-latest}
+
 cd /src/${BUILD_CODE}${BUILD_PATH}
 
 if [ "$DEBUG" == "true" ]; then
-  echo docker build --build-arg REPOSITORY=$REPOSITORY --build-arg REGISTRY=$REGISTRY --build-arg TAG=${TAG:-latest} -t $IMAGE_NAME -f $DOCKERFILE_PATH .
+  echo docker build --build-arg REPOSITORY=$REPOSITORY --build-arg REGISTRY=$REGISTRY --build-arg TAG=$TAG -t $IMAGE_NAME -f $DOCKERFILE_PATH .
 fi
 
-docker build --build-arg REPOSITORY=$REPOSITORY --build-arg REGISTRY=$REGISTRY --build-arg TAG=${TAG:-latest} -t $IMAGE_NAME -f $DOCKERFILE_PATH .
+docker build --build-arg REPOSITORY=$REPOSITORY --build-arg REGISTRY=$REGISTRY --build-arg TAG=$TAG -t $IMAGE_NAME -f $DOCKERFILE_PATH .
