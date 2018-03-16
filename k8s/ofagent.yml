@@ -36,7 +36,6 @@ spec:
         - "/ofagent/ofagent/main.py"
         - "-v"
         - "--consul=consul.$(NAMESPACE).svc.cluster.local:8500"
-        - "--fluentd=fluentd.$(NAMESPACE).svc.cluster.local:24224"
         - "--controller=onos:6653"
         - "--grpc-endpoint=vcore.$(NAMESPACE).svc.cluster.local:50556"
         - "--enable-tls"

@@ -37,5 +37,4 @@ spec:
         - "/netconf/netconf/main.py"
         - "-v"
         - "--consul=consul:8500"
-        - "--fluentd=fluentd:24224"
         - "--grpc-endpoint=voltha:50555"
