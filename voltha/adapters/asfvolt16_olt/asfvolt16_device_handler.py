@@ -56,6 +56,7 @@ from voltha.protos.bbf_fiber_multicast_gemport_body_pb2 import \
     MulticastGemportsConfigData
 from voltha.protos.bbf_fiber_multicast_distribution_set_body_pb2 import \
     MulticastDistributionSetData
+from voltha.adapters.asfvolt16_olt.rest_client.rest_client import RestClient
 import time
 import binascii
 from argparse import ArgumentParser, ArgumentError
@@ -202,6 +203,8 @@ class Asfvolt16Handler(OltDeviceHandler):
         self.heartbeat_failed_limit = 1
         self.is_heartbeat_started = 0
         self.transceiver_type = bal_model_types_pb2.BAL_TRX_TYPE_XGPON_LTH_7226_PC;
+        self.rest_client = None
+        self.is_healthmonitor_started = 0
 
     def __del__(self):
         super(Asfvolt16Handler, self).__del__()
@@ -456,6 +459,13 @@ class Asfvolt16Handler(OltDeviceHandler):
             # Request PM counters from OLT device.
             self._handle_pm_counter_req_towards_device(device)
 
+        if self.is_healthmonitor_started == 0:
+            self.rest_client = RestClient(device.host_and_port, self.adapter,
+                                          self.log, self.device_id)
+            self.log.info("starting-health-monitoring")
+            self.rest_client.start_health_monitoring()
+            self.is_healthmonitor_started = 1
+
         # Set the logical device id
         device = self.adapter_agent.get_device(device.id)
         if device.parent_id:
@@ -567,6 +577,8 @@ class Asfvolt16Handler(OltDeviceHandler):
     def reboot(self):
         err_status  = yield self.bal.set_bal_reboot(self.device_id.__str__())
         self.log.info('Reboot-Status', err_status = err_status)
+        #Reboot OLT through Redfish Interface
+        #self.rest_client.reboot_device()
 
     def _handle_pm_counter_req_towards_device(self, device):
         # Currently ASFVOLT16 supports only one NNI and its zero
@@ -930,6 +942,12 @@ class Asfvolt16Handler(OltDeviceHandler):
                 # intf_id:nni_port
                 self._handle_pm_counter_req_towards_device(device)
 
+            if self.is_healthmonitor_started == 0:
+                self.rest_client = RestClient(self.host_and_port, self.adapter,
+                                              self.log, self.device_id)
+                self.log.info("starting-health-monitoring")
+                self.rest_client.start_health_monitoring()
+                self.is_healthmonitor_started = 1
         else:
             device.oper_status = OperStatus.FAILED
             device.reason = 'Failed to Intialize OLT'
