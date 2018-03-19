@@ -1,0 +1,114 @@
+diff --git a/voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py b/voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py
+index 919e950..df4233c 100644
+--- a/voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py
++++ b/voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py
+@@ -575,10 +575,10 @@ class Asfvolt16Handler(OltDeviceHandler):
+ 
+     @inlineCallbacks
+     def reboot(self):
+-        err_status  = yield self.bal.set_bal_reboot(self.device_id.__str__())
+-        self.log.info('Reboot-Status', err_status = err_status)
++        #err_status  = yield self.bal.set_bal_reboot(self.device_id.__str__())
++        #self.log.info('Reboot-Status', err_status = err_status)
+         #Reboot OLT through Redfish Interface
+-        #self.rest_client.reboot_device()
++        yield self.rest_client.reboot_device()
+ 
+     def _handle_pm_counter_req_towards_device(self, device):
+         # Currently ASFVOLT16 supports only one NNI and its zero
+diff --git a/voltha/adapters/asfvolt16_olt/rest_client/chassis.py b/voltha/adapters/asfvolt16_olt/rest_client/chassis.py
+index 290aacd..fce32b9 100644
+--- a/voltha/adapters/asfvolt16_olt/rest_client/chassis.py
++++ b/voltha/adapters/asfvolt16_olt/rest_client/chassis.py
+@@ -56,21 +56,20 @@ class Chassis(object):
+                 for fan in fans_list:
+                     response = self.rest_client.http_get(fan['@odata.id'])
+                     fan_dict = json.loads(response.text)['Fan']
+-                    if (fan_dict['Status']['State'] == 'Enabled'):
+-                        self.log.info("Enabled-Fan-Info-:", Id=fan_dict['Id'],
+-                                      rpm=fan_dict['Reading'],
+-                                      Health=fan_dict['Status']['Health'])
+-                        if (fan_dict['Status']['Health'] != 'OK'):
+-                            # Raise Alarm
+-                            self.rest_client.generate_alarm(
+-                                status=True,
+-                                alarm={'Health-check-failed-for-Fan':
+-                                       str(fan_dict['Id'])},
+-                                alarm_severity=fan_dict['Status']['Health'])
+-                            self.log.info("Raising-alarm-for-fan",
+-                                          Id=fan_dict['Id'])
+-                    else:
+-                        self.log.info("Disabled-Fan-Id-:", Id=fan_dict['Id'])
++                    self.log.info("Fan-Info-:", Id=fan_dict['Id'],
++                                  rpm=fan_dict['Reading'],
++                                  State=fan_dict['Status']['State'],
++                                  Health=fan_dict['Status']['Health'])
++
++                    if (fan_dict['Status']['Health'] != 'OK'):
++                        # Raise Alarm
++                        self.rest_client.generate_alarm(
++                            status=True,
++                            alarm={'Health-check-failed-for-Fan':
++                                   str(fan_dict['Id'])},
++                            alarm_severity=fan_dict['Status']['Health'])
++                        self.log.info("Raising-alarm-for-fan",
++                                      Id=fan_dict['Id'])
+             except Exception as e:
+                 self.log.debug("Exception-occurred-:", str(e))
+ 
+@@ -86,25 +85,23 @@ class Chassis(object):
+                 for psu in psu_list:
+                     response = self.rest_client.http_get(psu['@odata.id'])
+                     psu_dict = json.loads(response.text)['PowerSupply']
+-                    if (psu_dict['Status']['State'] == 'Enabled'):
+-                        self.log.info("Enabled-Power-Supply-:",
+-                                      Id=psu_dict['MemberId'],
+-                                      Power=psu_dict['PowerConsumedWatts'],
+-                                      Temperature=psu_dict['PsuTemperature'],
+-                                      FanRpm=psu_dict['PsuFanRpm'],
+-                                      Health=psu_dict['Status']['Health'])
+-                        if (psu_dict['Status']['Health'] != 'OK'):
+-                            # Raise Alarm
+-                            self.rest_client.generate_alarm(
+-                                status=True,
+-                                alarm={'Health-check-failed-for-Psu':
+-                                       str(psu_dict['MemberId'])},
+-                                alarm_severity=psu_dict['Status']['Health'])
+-                            self.log.info("Raising-alarm-for-PSU",
++                    self.log.info("Power-Supply-:",
++                                  Id=psu_dict['MemberId'],
++                                  Power=psu_dict['PowerConsumedWatts'],
++                                  Temperature=psu_dict['PsuTemperature'],
++                                  FanRpm=psu_dict['PsuFanRpm'],
++                                  State=psu_dict['Status']['State'],
++                                  Health=psu_dict['Status']['Health'])
++
++                    if (psu_dict['Status']['Health'] != 'OK'):
++                        # Raise Alarm
++                        self.rest_client.generate_alarm(
++                            status=True,
++                            alarm={'Health-check-failed-for-Psu':
++                                    str(psu_dict['MemberId'])},
++                            alarm_severity=psu_dict['Status']['Health'])
++                        self.log.info("Raising-alarm-for-PSU",
+                                           Id=psu_dict['MemberId'])
+-                    else:
+-                        self.log.info("Power-supply-disabled",
+-                                      Id=psu_dict['MemberId'])
+             except Exception as e:
+                 self.log.debug("Exception-occurred-:", str(e))
+ 
+diff --git a/voltha/adapters/asfvolt16_olt/rest_client/systems.py b/voltha/adapters/asfvolt16_olt/rest_client/systems.py
+index cdd2d9d..a207d37 100644
+--- a/voltha/adapters/asfvolt16_olt/rest_client/systems.py
++++ b/voltha/adapters/asfvolt16_olt/rest_client/systems.py
+@@ -24,7 +24,8 @@ import json
+ class Systems (object):
+     def __init__(self, rest_client):
+         self.sys_reset_uri = ''
+-        self.reset_allow_values = []
++        # GracefulRestart/PushPowerButton/NMI.
++        self.reset_allow_values = ["GracefulRestart"]
+         self.rest_client = rest_client
+         self.log = rest_client.log
+         self.system_reboot_uri_get()
