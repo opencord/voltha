@@ -3,11 +3,11 @@
 echo "=> Using custom build hook to add build arguments"
 echo "=> set DEBUG=true to see debug information"
 
+TAG=${DOCKER_TAG:-latest}
+
 if [ "$DEBUG" == "true" ]; then
   env | sort
 fi
-
-TAG=${CACHE_TAG:-latest}
 
 cd /src/${BUILD_CODE}${BUILD_PATH}
 
