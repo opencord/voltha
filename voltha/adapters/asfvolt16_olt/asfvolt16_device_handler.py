@@ -52,6 +52,12 @@ from voltha.protos.bbf_fiber_traffic_descriptor_profile_body_pb2 import \
     TrafficDescriptorProfileData
 from voltha.protos.bbf_fiber_tcont_body_pb2 import TcontsConfigData
 from voltha.protos.bbf_fiber_gemport_body_pb2 import GemportsConfigData
+from voltha.protos.bbf_fiber_multicast_gemport_body_pb2 import \
+    MulticastGemportsConfigData
+from voltha.protos.bbf_fiber_multicast_distribution_set_body_pb2 import \
+    MulticastDistributionSetData
+from voltha.adapters.asfvolt16_olt.rest_client.rest_client import RestClient
+import time
 import binascii
 from argparse import ArgumentParser, ArgumentError
 import shlex
@@ -214,9 +220,9 @@ class Asfvolt16Handler(OltDeviceHandler):
         self.heartbeat_interval = 5
         self.heartbeat_failed_limit = 1
         self.is_heartbeat_started = 0
-        self.transceiver_type = bal_model_types_pb2.BAL_TRX_TYPE_XGPON_LTH_7226_PC
-        self.asfvolt_device_info = Asfvolt16DeviceInfo(self.bal,
-                                                       self.log, self.device_id)
+        self.transceiver_type = bal_model_types_pb2.BAL_TRX_TYPE_XGPON_LTH_7226_PC;
+        self.rest_client = None
+        self.is_healthmonitor_started = 0
 
     def __del__(self):
         super(Asfvolt16Handler, self).__del__()
@@ -476,6 +482,13 @@ class Asfvolt16Handler(OltDeviceHandler):
             # Request PM counters from OLT device.
             self._handle_pm_counter_req_towards_device(device)
 
+        if self.is_healthmonitor_started == 0:
+            self.rest_client = RestClient(device.host_and_port, self.adapter,
+                                          self.log, self.device_id)
+            self.log.info("starting-health-monitoring")
+            self.rest_client.start_health_monitoring()
+            self.is_healthmonitor_started = 1
+
         # Set the logical device id
         device = self.adapter_agent.get_device(device.id)
         if device.parent_id:
@@ -599,8 +612,13 @@ class Asfvolt16Handler(OltDeviceHandler):
 
     @inlineCallbacks
     def reboot(self):
-        err_status  = yield self.bal.set_bal_reboot(self.device_id.__str__())
-        self.log.info('Reboot-Status', err_status = err_status)
+        if self.rest_client.chassis_get_state() is False:
+            err_status  = yield self.bal.set_bal_reboot(self.device_id.__str__())
+            self.log.info('Reboot-Status', err_status = err_status)
+        else:
+            # Reboot OLT through Redfish Interface
+            self.log.info('Redfish-Reboot')
+            yield self.rest_client.reboot_device()
 
     def _handle_pm_counter_req_towards_device(self, device):
         for port in self.asfvolt_device_info.sfp_device_presence_map.iterkeys():
@@ -989,11 +1007,12 @@ class Asfvolt16Handler(OltDeviceHandler):
                 # intf_id:nni_port
                 self._handle_pm_counter_req_towards_device(device)
 
-            device.connect_status = ConnectStatus.REACHABLE
-            device.oper_status = OperStatus.ACTIVE
-            device.reason = 'OLT activated successfully'
-            self.adapter_agent.update_device(device)
-
+            if self.is_healthmonitor_started == 0:
+                self.rest_client = RestClient(self.host_and_port, self.adapter,
+                                              self.log, self.device_id)
+                self.log.info("starting-health-monitoring")
+                self.rest_client.start_health_monitoring()
+                self.is_healthmonitor_started = 1
         else:
             device.oper_status = OperStatus.FAILED
             device.reason = 'Failed to Intialize OLT'
