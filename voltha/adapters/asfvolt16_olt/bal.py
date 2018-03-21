@@ -469,14 +469,18 @@ class Bal(object):
 
     @inlineCallbacks
     def get_bal_interface_stats(self, intf_id, interface_type):
-        self.log.info('Fetching-Statistics')
+        # This happens too often and the below log is unnecessary.
+        # The status are anyway available on kafka
+        # self.log.debug('Fetching-Statistics')
         try:
             obj = bal_model_types_pb2.BalInterfaceKey()
             obj.intf_id = intf_id
             obj.intf_type = interface_type
             stats = yield self.stub.BalCfgStatGet(obj, timeout=GRPC_TIMEOUT)
-            self.log.info('Fetching-statistics-success',
-                          stats_data=stats.data)
+            # This happens too often and the below log is unnecessary.
+            # The status are anyway available on kafka
+            # self.log.debug('Fetching-statistics-success',
+            #               stats_data=stats.data)
             returnValue(stats)
         except Exception as e:
             self.log.info('Fetching-statistics-failed', exc=str(e))
@@ -520,6 +524,22 @@ class Bal(object):
         except Exception as e:
             self.log.error('get-asfvolt-system-info-failed', exc=str(e))
             returnValue(None)
+
+    @inlineCallbacks
+    def get_asfvolt_sfp_presence_map(self, device_id):
+        self.log.info('get-asfvolt-sfp-presence-map')
+        sfp_presence_bitmap = None
+        try:
+            obj = bal_pb2.BalDefault()
+            obj.device_id = device_id
+            sfp_presence_bitmap = \
+                 yield self.asfvolt_stub.AsfvoltGetSfpPresenceBitmap(obj, timeout=GRPC_TIMEOUT)
+            self.log.debug('asf-volt-sfp-presence-bit-map',
+                           sfp_presence_bitmap=sfp_presence_bitmap.bitmap)
+            returnValue(sfp_presence_bitmap.bitmap)
+        except Exception as e:
+            self.log.error('get-asfvolt-sfp-presence-map-failed', exc=str(e))
+            returnValue(sfp_presence_bitmap)
 
     def get_indication_info(self, device_id):
         while self.olt.running:

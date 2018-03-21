@@ -53,7 +53,7 @@ class Asfvolt16IndHandler(object):
         reactor.callLater(0,
                           device_handler.handle_access_term_ind,
                           ind_info,
-                          indication.access_term_ind.key.access_term_id)
+                          indication.access_term_ind)
         bal_err = bal_pb2.BalErr()
         bal_err.err = bal_errno_pb2.BAL_ERR_OK
         return bal_err
