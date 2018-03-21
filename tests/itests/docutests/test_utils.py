@@ -119,3 +119,20 @@ def is_valid_ip(ip):
         return True
     except socket.error:
         return False
+
+def get_pod_ip(pod_name_prefix):
+    '''
+    This function works only in the single-node Kubernetes environment, where
+    the name of a Voltha pod may look something like 'vcore-64ffb9b49c-sstfn'.
+    The function searches for the pod whose name is prefixed with 'vcore-'
+    and returns the IP address of that pod.
+    In the Kubernetes clustered environment, there would likely be multiple pods
+    so named, in which case the target pod sought could not be found.
+
+    TODO: Investigate other CLIs or APIs that could be used to determine the pod IP.
+    '''
+    pod_name_prefix = pod_name_prefix + "-"
+    out, err, rc = run_command_to_completion_with_raw_stdout('kubectl -n voltha get pods -o wide | grep ' +
+                                                             pod_name_prefix)
+    tokens = out.split()
+    return tokens[5]
