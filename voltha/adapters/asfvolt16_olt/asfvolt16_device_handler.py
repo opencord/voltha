@@ -20,6 +20,7 @@ Asfvolt16 OLT adapter
 
 import arrow
 from twisted.internet.defer import inlineCallbacks
+from itertools import count, ifilterfalse
 from voltha.protos.events_pb2 import KpiEvent, MetricValuePairs
 from voltha.protos.events_pb2 import KpiEventType
 from voltha.protos.device_pb2 import PmConfigs, PmConfig,PmGroupConfig
@@ -27,11 +28,9 @@ from voltha.adapters.asfvolt16_olt.protos import bal_errno_pb2, bal_pb2, bal_mod
 from voltha.protos.events_pb2 import AlarmEvent, AlarmEventType, \
     AlarmEventSeverity, AlarmEventState, AlarmEventCategory
 from scapy.layers.l2 import Ether, Dot1Q
-from uuid import uuid4
 from common.frameio.frameio import BpfProgramFilter
 from common.utils.asleep import asleep
 from twisted.internet import reactor
-from common.frameio.frameio import hexify
 from scapy.packet import Packet
 import voltha.core.flow_decomposer as fd
 from voltha.protos.common_pb2 import OperStatus, ConnectStatus
@@ -45,6 +44,7 @@ from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, OFPPS_LINK_DO
 from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.adapters.asfvolt16_olt.bal import Bal
 from voltha.adapters.device_handler import OltDeviceHandler
+from voltha.adapters.asfvolt16_olt.asfvolt16_device_info import Asfvolt16DeviceInfo
 from voltha.protos.bbf_fiber_base_pb2 import \
     ChannelgroupConfig, ChannelpartitionConfig, ChannelpairConfig, \
     ChannelterminationConfig, OntaniConfig, VOntaniConfig, VEnetConfig
@@ -52,21 +52,30 @@ from voltha.protos.bbf_fiber_traffic_descriptor_profile_body_pb2 import \
     TrafficDescriptorProfileData
 from voltha.protos.bbf_fiber_tcont_body_pb2 import TcontsConfigData
 from voltha.protos.bbf_fiber_gemport_body_pb2 import GemportsConfigData
-from voltha.protos.bbf_fiber_multicast_gemport_body_pb2 import \
-    MulticastGemportsConfigData
-from voltha.protos.bbf_fiber_multicast_distribution_set_body_pb2 import \
-    MulticastDistributionSetData
-import time
 import binascii
 from argparse import ArgumentParser, ArgumentError
 import shlex
 
-ASFVOLT_NNI_PORT = 129
-# ASFVOLT_NNI_PORT needs to be other than pon port value.
-# Edgecore OLT assigns PONport between 0 to 15, hence
-# having a value 129 for NNI port to avoid collision.
+# The current scheme of device port numbering is below.
+# 0 to 127 is reserved for OLT PON PORTS - Unique per OLT
+# 128 to 255 is reserved for OLT NNI PORTS - Unique per OLT
+# 256 is reserved for ONU PON PORT (assume one PON port for the ONU) - Same for all ONU
+# 257 and above is reserved for ONU UNI port numbering. - Unique per OLT
 
-ASFVOLT16_MAX_PON_PORT_ID = 15
+MIN_ASFVOLT_PON_PORT_NUM = 0
+MAX_ASFVOLT_PON_PORT_NUM = MIN_ASFVOLT_PON_PORT_NUM + 127
+NUM_OF_ASFVOLT_PON_PORTS = MAX_ASFVOLT_PON_PORT_NUM - \
+                           MIN_ASFVOLT_PON_PORT_NUM + 1
+
+MIN_ASFVOLT_NNI_LOGICAL_PORT_NUM = MAX_ASFVOLT_PON_PORT_NUM + 1
+MAX_ASFVOLT_NNI_LOGICAL_PORT_NUM = MIN_ASFVOLT_NNI_LOGICAL_PORT_NUM + 127
+NUM_OF_ASFVOLT_NNI_LOGICAL_PORTS = MAX_ASFVOLT_NNI_LOGICAL_PORT_NUM - \
+                                   MIN_ASFVOLT_NNI_LOGICAL_PORT_NUM + 1
+
+ONU_PON_PORT_ID = MAX_ASFVOLT_NNI_LOGICAL_PORT_NUM + 1
+NUM_OF_ONU_PON_PORTS = 1
+
+ONU_UNI_PORT_START_ID = ONU_PON_PORT_ID + 1
 
 # TODO: VLAN ID needs to come from some sort of configuration.
 ASFVOLT16_DEFAULT_VLAN = 4091
@@ -106,6 +115,7 @@ class FlowInfo(object):
         self.action = dict()
         self.traffic_class = None
 
+
 class VEnetHandler(object):
 
     def __init__(self):
@@ -113,11 +123,13 @@ class VEnetHandler(object):
         self.gem_ports = dict()
         self.pending_flows = []
 
+
 class VOntAniHandler(object):
 
     def __init__(self):
         self.v_ont_ani = VOntaniConfig()
         self.tconts = dict()
+
 
 class Asfvolt16OltPmMetrics:
     class Metrics:
@@ -168,11 +180,13 @@ class Asfvolt16OltPmMetrics:
             freq_override = False)
         return pm_config
 
+
 class MyArgumentParser(ArgumentParser):
     # Must override the exit command to prevent it from
     # calling sys.exit().  Return exception instead.
     def exit(self, status=0, message=None):
         raise Exception(message)
+
 
 class Asfvolt16Handler(OltDeviceHandler):
 
@@ -192,7 +206,6 @@ class Asfvolt16Handler(OltDeviceHandler):
         self.traffic_descriptors = dict()
         self.pon_id_gem_port_to_v_enet_name = dict()
         self.adapter_name = adapter.name
-        self.uni_port_num = 20
         self.pm_metrics = None
         self.heartbeat_count = 0
         self.heartbeat_miss = 0
@@ -201,7 +214,9 @@ class Asfvolt16Handler(OltDeviceHandler):
         self.heartbeat_interval = 5
         self.heartbeat_failed_limit = 1
         self.is_heartbeat_started = 0
-        self.transceiver_type = bal_model_types_pb2.BAL_TRX_TYPE_XGPON_LTH_7226_PC;
+        self.transceiver_type = bal_model_types_pb2.BAL_TRX_TYPE_XGPON_LTH_7226_PC
+        self.asfvolt_device_info = Asfvolt16DeviceInfo(self.bal,
+                                                       self.log, self.device_id)
 
     def __del__(self):
         super(Asfvolt16Handler, self).__del__()
@@ -210,8 +225,24 @@ class Asfvolt16Handler(OltDeviceHandler):
         return "Asfvolt16Handler: {}".format(self.host_and_port)
 
     def _get_next_uni_port(self):
-        self.uni_port_num += 1
-        return self.uni_port_num
+        uni_ports = self.adapter_agent.get_ports(self.device_id,
+                                                 Port.ETHERNET_UNI)
+        uni_port_nums = set([uni_port.port_no for uni_port in uni_ports])
+        # We need to start allocating port numbers from ONU_UNI_PORT_START_ID.
+        # Find the first unused port number.
+        next_port_num = next(ifilterfalse(uni_port_nums.__contains__,
+                                          count(ONU_UNI_PORT_START_ID)))
+        if next_port_num <= 65535:
+            return next_port_num
+        else:
+            raise ValueError("invalid-port-number-{}".format(next_port_num))
+
+    def _valid_nni_port(self, port):
+        if port < self.asfvolt_device_info.asfvolt16_device_topology.num_of_pon_ports or \
+            port >= (self.asfvolt_device_info.asfvolt16_device_topology.num_of_pon_ports +
+                     self.asfvolt_device_info.asfvolt16_device_topology.num_of_nni_ports):
+            return False
+        return True
 
     def get_venet(self, **kwargs):
         name = kwargs.pop('name', None)
@@ -257,7 +288,7 @@ class Asfvolt16Handler(OltDeviceHandler):
         return None
 
     def get_traffic_profile(self, name):
-        for key, traffic_profile in self.traffic_descriptors():
+        for key, traffic_profile in self.traffic_descriptors.items():
             if name is not None:
                 if name == traffic_profile.name:
                     return traffic_profile
@@ -370,7 +401,6 @@ class Asfvolt16Handler(OltDeviceHandler):
         return None
 
     def activate(self, device):
-
         self.log.info('activating-asfvolt16-olt', device=device)
 
         if not device.host_and_port:
@@ -400,27 +430,17 @@ class Asfvolt16Handler(OltDeviceHandler):
             device.model = 'ASFvOLT16'
             device.serial_number = device.host_and_port
             self.adapter_agent.update_device(device)
-
-            self.add_port(port_no=ASFVOLT_NNI_PORT,
-                          port_type=Port.ETHERNET_NNI,
-                          label='NNI facing Ethernet port')
             self.add_logical_device(device_id=device.id)
-            self.add_logical_port(port_no=ASFVOLT_NNI_PORT,
-                                  port_type=Port.ETHERNET_NNI,
-                                  device_id=device.id,
-                                  logical_device_id=self.logical_device_id)
             reactor.callInThread(self.bal.get_indication_info, self.device_id)
 
         self.bal.activate_olt()
 
-        device = self.adapter_agent.get_device(device.id)
         device.parent_id = self.logical_device_id
         device.connect_status = ConnectStatus.REACHABLE
         device.oper_status = OperStatus.ACTIVATING
         self.adapter_agent.update_device(device)
 
     def reconcile(self, device):
-
         self.log.info('reconciling-asfvolt16-starts',device=device)
 
         if not device.host_and_port:
@@ -479,8 +499,12 @@ class Asfvolt16Handler(OltDeviceHandler):
     def heartbeat(self, state = 'run'):
         device = self.adapter_agent.get_device(self.device_id)
 
-        self.log.debug('olt-heartbeat', device=device, state=state,
-                       count=self.heartbeat_count)
+        # Commenting this unnecessary debug. Debug prints only in case of
+        # heartbeat miss/recovery should be good enough.
+        # The status of the device can anyway be queried from the CLI if
+        # necessary.
+        # self.log.debug('olt-heartbeat', device=device, state=state,
+        #               count=self.heartbeat_count)
         self.is_heartbeat_started = 1
 
         def heartbeat_alarm(device, status, heartbeat_misses=0):
@@ -525,11 +549,21 @@ class Asfvolt16Handler(OltDeviceHandler):
                 if d.is_reboot == bal_pb2.BAL_OLT_UP_AFTER_REBOOT:
                     self.log.info('activating-olt-again-after-reboot')
 
-                    # Since OLT is reachable after reboot, OLT should configurable with
-                    # all the old existing flows. NNI port should be mark it as down for
-                    # ONOS to push the old flows
-                    self.update_logical_port(ASFVOLT_NNI_PORT, Port.ETHERNET_NNI,
-                                             OFPPS_LINK_DOWN)
+                    for port in self.asfvolt_device_info.sfp_device_presence_map.iterkeys():
+                        # ignore any sfp other than the NNI.
+                        if not self._valid_nni_port(port):
+                            continue
+
+                        # Since OLT is reachable after reboot, OLT should configurable with
+                        # all the old existing flows. NNI ports should be mark it as down for
+                        # ONOS to push the old flows
+                        nni_intf_id = (port -
+                                       self.asfvolt_device_info.
+                                       asfvolt16_device_topology.num_of_pon_ports)
+                        self.update_logical_port(nni_intf_id + MIN_ASFVOLT_NNI_LOGICAL_PORT_NUM,
+                                                 Port.ETHERNET_NNI,
+                                                 OFPPS_LINK_DOWN)
+
                     for key, v_ont_ani in self.v_ont_anis.items():
                         child_device = self.adapter_agent.get_child_device(
                            self.device_id, onu_id=v_ont_ani.v_ont_ani.data.onu_id)
@@ -547,8 +581,8 @@ class Asfvolt16Handler(OltDeviceHandler):
                     device.reason = ''
                     self.adapter_agent.update_device(device)
                     # Update the device control block with the latest update
-                    self.log.info("all-fine-no-heartbeat-miss",device=device)
-                self.log.info('clearing-hearbeat-alarm')
+                    self.log.debug("all-fine-no-heartbeat-miss", device=device)
+                self.log.info('clearing-heartbeat-alarm')
                 heartbeat_alarm(device, 0)
 
         if (self.heartbeat_miss >= self.heartbeat_failed_limit) and \
@@ -569,27 +603,29 @@ class Asfvolt16Handler(OltDeviceHandler):
         self.log.info('Reboot-Status', err_status = err_status)
 
     def _handle_pm_counter_req_towards_device(self, device):
-        # Currently ASFVOLT16 supports only one NNI and its zero
-        #  ToDo A mechanism to fetch NNT_INT_ID needs to included
-        NNI_INT_ID = 0
-        self._handle_nni_pm_counter_req_towards_device(device, NNI_INT_ID)
-        if len(self.channel_terminations) > 0:
-           for value in self.channel_terminations.values():
-                self._handle_pon_pm_counter_req_towards_device(device, value.data.xgs_ponid)
+        for port in self.asfvolt_device_info.sfp_device_presence_map.iterkeys():
+            if not self._valid_nni_port(port):
+                continue
+            nni_intf_id = (port -
+                            self.asfvolt_device_info.
+                            asfvolt16_device_topology.num_of_pon_ports)
+            self._handle_nni_pm_counter_req_towards_device(device, nni_intf_id)
+        for value in self.channel_terminations.itervalues():
+            self._handle_pon_pm_counter_req_towards_device(device,
+                                                           value.data.xgs_ponid)
         reactor.callLater(self.pm_metrics.pm_default_freq / 10,
-                                  self._handle_pm_counter_req_towards_device, device)
+                          self._handle_pm_counter_req_towards_device,
+                          device)
 
     @inlineCallbacks
     def _handle_nni_pm_counter_req_towards_device(self, device, intf_id):
         interface_type = bal_model_types_pb2.BAL_INTF_TYPE_NNI
         yield self._req_pm_counter_from_device(device, interface_type, intf_id)
 
-
     @inlineCallbacks
     def _handle_pon_pm_counter_req_towards_device(self, device, intf_id):
         interface_type = bal_model_types_pb2.BAL_INTF_TYPE_PON
         yield self._req_pm_counter_from_device(device, interface_type, intf_id)
-
 
     @inlineCallbacks
     def _req_pm_counter_from_device(self, device, interface_type, intf_id):
@@ -598,51 +634,55 @@ class Asfvolt16Handler(OltDeviceHandler):
         if device.connect_status == ConnectStatus.UNREACHABLE:
            self.log.info('Device-is-not-Reachable')
         else:
-           try:
-              stats_info = yield self.bal.get_bal_interface_stats(intf_id, interface_type)
-              kpi_status = 0
-              self.log.info('stats_info',stats_info=stats_info)
-           except Exception as e:
-              kpi_status = -1
+            try:
+                stats_info = yield self.bal.get_bal_interface_stats(intf_id, interface_type)
+                kpi_status = 0
+                # Commenting this unnecessary debug log. The statistics information
+                # is also available from kafka_proxy.send_message debug log.
+                # self.log.debug('stats_info', stats_info=stats_info)
+            except Exception as e:
+                kpi_status = -1
 
-        if kpi_status == 0 and stats_info!=None:
-           pm_data = { }
-           pm_data["rx_bytes"]= stats_info.data.rx_bytes
-           pm_data["rx_packets"]= stats_info.data.rx_packets
-           pm_data["rx_ucast_packets"]= stats_info.data.rx_ucast_packets
-           pm_data["rx_mcast_packets"]= stats_info.data.rx_mcast_packets
-           pm_data["rx_bcast_packets"]= stats_info.data.rx_bcast_packets
-           pm_data["rx_error_packets"]= stats_info.data.rx_error_packets
-           pm_data["rx_unknown_protos"]= stats_info.data.rx_unknown_protos
-           pm_data["tx_bytes"]= stats_info.data.tx_bytes
-           pm_data["tx_packets"]= stats_info.data.tx_packets
-           pm_data["tx_ucast_packets"]= stats_info.data.tx_ucast_packets
-           pm_data["tx_mcast_packets"]= stats_info.data.tx_mcast_packets
-           pm_data["tx_bcast_packets"]= stats_info.data.tx_bcast_packets
-           pm_data["tx_error_packets"]= stats_info.data.tx_error_packets
-           pm_data["rx_crc_errors"]= stats_info.data.rx_crc_errors
-           pm_data["bip_errors"]= stats_info.data.bip_errors
+        if kpi_status == 0 and stats_info != None:
+            pm_data = {}
+            pm_data["rx_bytes"] = stats_info.data.rx_bytes
+            pm_data["rx_packets"] = stats_info.data.rx_packets
+            pm_data["rx_ucast_packets"] = stats_info.data.rx_ucast_packets
+            pm_data["rx_mcast_packets"] = stats_info.data.rx_mcast_packets
+            pm_data["rx_bcast_packets"] = stats_info.data.rx_bcast_packets
+            pm_data["rx_error_packets"] = stats_info.data.rx_error_packets
+            pm_data["rx_unknown_protos"] = stats_info.data.rx_unknown_protos
+            pm_data["tx_bytes"] = stats_info.data.tx_bytes
+            pm_data["tx_packets"] = stats_info.data.tx_packets
+            pm_data["tx_ucast_packets"] = stats_info.data.tx_ucast_packets
+            pm_data["tx_mcast_packets"] = stats_info.data.tx_mcast_packets
+            pm_data["tx_bcast_packets"] = stats_info.data.tx_bcast_packets
+            pm_data["tx_error_packets"] = stats_info.data.tx_error_packets
+            pm_data["rx_crc_errors"] = stats_info.data.rx_crc_errors
+            pm_data["bip_errors"] = stats_info.data.bip_errors
 
-           self.log.info('KPI stats', pm_data = pm_data)
-           name = 'asfvolt16_olt'
-           prefix = 'voltha.{}.{}'.format(name, self.device_id)
-           ts = arrow.utcnow().timestamp
-           if stats_info.key.intf_type == bal_model_types_pb2.BAL_INTF_TYPE_NNI:
-              prefixes = {
-                      prefix + '.nni': MetricValuePairs(metrics = pm_data)
-              }
-           elif stats_info.key.intf_type == bal_model_types_pb2.BAL_INTF_TYPE_PON:
-              prefixes = {
-                      prefix + '.pon': MetricValuePairs(metrics = pm_data)
-              }
+            # Commenting this unnecessary debug log. The statistics information
+            # is also available from kafka_proxy.send_message debug log.
+            # self.log.debug('KPI stats', pm_data=pm_data)
+            name = 'asfvolt16_olt'
+            prefix = 'voltha.{}.{}'.format(name, self.device_id)
+            ts = arrow.utcnow().timestamp
+            if stats_info.key.intf_type == bal_model_types_pb2.BAL_INTF_TYPE_NNI:
+                prefixes = {
+                    prefix + '.nni': MetricValuePairs(metrics=pm_data)
+                }
+            elif stats_info.key.intf_type == bal_model_types_pb2.BAL_INTF_TYPE_PON:
+                prefixes = {
+                    prefix + '.pon': MetricValuePairs(metrics=pm_data)
+                }
 
-           kpi_event = KpiEvent(
-                 type=KpiEventType.slice,
-                 ts=ts,
-                 prefixes=prefixes)
-           self.adapter_agent.submit_kpis(kpi_event)
+            kpi_event = KpiEvent(
+                type=KpiEventType.slice,
+                ts=ts,
+                prefixes=prefixes)
+            self.adapter_agent.submit_kpis(kpi_event)
         else:
-           self.log.info('Lost-Connectivity-to-OLT')
+            self.log.info('Lost-Connectivity-to-OLT')
 
     def update_pm_config(self, device, pm_config):
         self.log.info("update-pm-config", device=device, pm_config=pm_config)
@@ -850,7 +890,8 @@ class Asfvolt16Handler(OltDeviceHandler):
         self.logical_device_id = ld_initialized.id
 
     def add_logical_port(self, port_no, port_type,
-                         device_id, logical_device_id):
+                         device_id, logical_device_id,
+                         port_state=OFPPS_LINK_DOWN):
         self.log.info('adding-logical-port', port_no=port_no,
                       port_type=port_type, device_id=device_id)
         if port_type is Port.ETHERNET_NNI:
@@ -864,11 +905,10 @@ class Asfvolt16Handler(OltDeviceHandler):
 
         ofp = ofp_port(
             port_no=port_no,  # is 0 OK?
-            hw_addr=mac_str_to_tuple('00:00:00:00:00:%02x' % 129),
+            hw_addr=mac_str_to_tuple('00:00:00:00:00:%02x' % (port_no + 1)),
             name=label,
             config=0,
-            #state=OFPPS_LIVE,
-            state=OFPPS_LINK_DOWN,
+            state=port_state,
             curr=cap,
             advertised=cap,
             peer=cap,
@@ -900,20 +940,39 @@ class Asfvolt16Handler(OltDeviceHandler):
         self.adapter_agent.update_logical_port(self.logical_device_id,
                                                logical_port)
 
-    def handle_access_term_ind(self, ind_info, intf_id):
+    def handle_access_term_ind(self, ind_info, access_term_ind):
         device = self.adapter_agent.get_device(self.device_id)
         if ind_info['activation_successful'] is True:
             self.log.info('successful-access-terminal-Indication',
                           olt_id=self.olt_id)
-            device.connect_status = ConnectStatus.REACHABLE
-            device.oper_status = OperStatus.ACTIVE
-            device.reason = 'OLT activated successfully'
-            self.adapter_agent.update_device(device)
-            self.update_logical_port(ASFVOLT_NNI_PORT, Port.ETHERNET_NNI,
-                                     OFPPS_LIVE)
+
+            self.asfvolt_device_info.update_device_topology(access_term_ind)
+            self.asfvolt_device_info.update_device_software_info(access_term_ind)
+            self.asfvolt_device_info.read_and_build_device_sfp_presence_map()
+
+            # For all the detected NNI ports, create corresponding physical and
+            # logical ports on the device and logical device.
+            for port in self.asfvolt_device_info.sfp_device_presence_map.iterkeys():
+                if not self._valid_nni_port(port):
+                    continue
+
+                nni_intf_id = (port -
+                                self.asfvolt_device_info.
+                                asfvolt16_device_topology.num_of_pon_ports)
+                self.add_port(port_no=nni_intf_id +
+                              MIN_ASFVOLT_NNI_LOGICAL_PORT_NUM,
+                              port_type=Port.ETHERNET_NNI,
+                              label='NNI facing Ethernet port')
+                self.add_logical_port(port_no=nni_intf_id + \
+                                      MIN_ASFVOLT_NNI_LOGICAL_PORT_NUM,
+                                      port_type=Port.ETHERNET_NNI,
+                                      device_id=device.id,
+                                      logical_device_id=self.logical_device_id,
+                                      port_state=OFPPS_LIVE)
+
             self.log.info('OLT-activation-complete')
 
-            #heart beat - To health checkup of OLT
+            # heart beat - To health checkup of OLT
             if self.is_heartbeat_started == 0:
                 self.log.info('Heart-beat-is-not-yet-started-starting-now')
                 self.start_heartbeat()
@@ -929,6 +988,11 @@ class Asfvolt16Handler(OltDeviceHandler):
                 # Request PM counters(for NNI) from OLT device.
                 # intf_id:nni_port
                 self._handle_pm_counter_req_towards_device(device)
+
+            device.connect_status = ConnectStatus.REACHABLE
+            device.oper_status = OperStatus.ACTIVE
+            device.reason = 'OLT activated successfully'
+            self.adapter_agent.update_device(device)
 
         else:
             device.oper_status = OperStatus.FAILED
@@ -1180,10 +1244,12 @@ class Asfvolt16Handler(OltDeviceHandler):
                     channel_pair_config.CopyFrom(data)
                     self.channel_pairs[data.name] = channel_pair_config
             if isinstance(data, ChannelterminationConfig):
-                if data.data.xgs_ponid > ASFVOLT16_MAX_PON_PORT_ID:
+                max_pon_ports = self.asfvolt_device_info.\
+                        asfvolt16_device_topology.num_of_pon_ports
+                if data.data.xgs_ponid > max_pon_ports:
                     raise ValueError\
                         ("pon_id-%u-is-greater-than-%u"
-                         % (data.data.xgs_ponid, ASFVOLT16_MAX_PON_PORT_ID))
+                         % (data.data.xgs_ponid, max_pon_ports))
 
                 self.log.info('Activating-PON-port-at-OLT',
                               pon_id=data.data.xgs_ponid)
@@ -1212,13 +1278,24 @@ class Asfvolt16Handler(OltDeviceHandler):
                     v_ont_ani_config.v_ont_ani.CopyFrom(data)
                     self.v_ont_anis[data.name] = v_ont_ani_config
             if isinstance(data, VEnetConfig):
-                self.adapter_agent.add_port(self.device_id, Port(
-                                            port_no=self._get_next_uni_port(),
-                                            label=data.interface.name,
-                                            type=Port.ETHERNET_UNI,
-                                            admin_state=AdminState.ENABLED,
-                                            oper_status=OperStatus.ACTIVE
-                                           ))
+                uni_ports = self.adapter_agent.get_ports(self.device_id,
+                                                         Port.ETHERNET_UNI)
+                uni_port_labels = [uni_port.label for uni_port in uni_ports]
+                if data.interface.name not in uni_port_labels:
+                    # Add the port only if it didnt already exist. Each port
+                    # has a unique label
+                    self.adapter_agent.add_port(self.device_id, Port(
+                                                port_no=self._get_next_uni_port(),
+                                                label=data.interface.name,
+                                                type=Port.ETHERNET_UNI,
+                                                admin_state=AdminState.ENABLED,
+                                                oper_status=OperStatus.ACTIVE
+                                                ))
+                else:
+                    # Usually happens during xpon replay after voltha reboot.
+                    # The port already exists in vcore. We will not create again.
+                    # Throw a message and proceed ahead.
+                    self.log.info("port-already-exists", port_label=data.interface.name)
 
                 if data.name in self.v_enets:
                     self.log.info('v_enet-already-present',
@@ -1420,10 +1497,11 @@ class Asfvolt16Handler(OltDeviceHandler):
                       packet=str(payload).encode("HEX"))
         send_pkt = binascii.unhexlify(str(payload).encode("HEX"))
 
-        if egress_port == ASFVOLT_NNI_PORT:
-            port_id = 'nni'
+        if egress_port >= MIN_ASFVOLT_NNI_LOGICAL_PORT_NUM and \
+           egress_port <= MAX_ASFVOLT_NNI_LOGICAL_PORT_NUM:
             pkt_info['dest_type'] = 'nni'
-            pkt_info['intf_id'] = 0
+            # BAL expects NNI intf_id to be between 0 to 15.
+            pkt_info['intf_id'] = egress_port - MIN_ASFVOLT_NNI_LOGICAL_PORT_NUM
             self.log.info('packet-out-is-for-olt-nni')
             send_pkt = binascii.unhexlify(str(pkt).encode("HEX"))
         else:

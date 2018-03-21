@@ -34,8 +34,20 @@ message AsfSystemInfo {
     string onie_version      = 13;
 }
 
+message AsfSfpPresenceBitmap {
+    // This is a bit map of SFP presence.
+    // 0th bit is PON0
+    // 15th bit is PON15
+    // 16th bit is NNI0
+    // 19th bit is NNI3
+    // In total there are 16 PON ports and 4 NNI ports
+    uint32 bitmap = 1;
+}
+
 service Asfvolt {
     /* The grpc-c doesn't accept empty parameters in the RPC request.
        Hence filling in some default message in the RPC request */
     rpc AsfvoltGetSystemInfo(BalDefault) returns(AsfSystemInfo) {};
+    rpc AsfvoltGetSfpPresenceBitmap(BalDefault) returns(AsfSfpPresenceBitmap) {};
+
 }
