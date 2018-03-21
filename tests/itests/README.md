@@ -76,8 +76,21 @@ areas:
 ```
 cd /cord/incubator/voltha
 . ./env.sh
+```
+To run the test in the docker-compose environment:
+```
 docker-compose -f compose/docker-compose-system-test.yml up -d
 nosetests -s tests/itests/voltha/test_cold_activation_sequence.py
+```
+To run the test in a single-node Docker swarm environment (see document voltha/DOCKER_BUILD.md):
+```
+VOLTHA_BUILD=docker make start
+nosetests -s tests/itests/voltha/test_cold_activation_sequence.py --tc-file=tests/itests/env/swarm-consul.ini
+```
+To run the test in a single-node Kubernetes environment (see document voltha/BUILD.md):
+```
+./tests/itests/env/voltha-k8s-start.sh
+nosetests -s tests/itests/voltha/test_cold_activation_sequence.py --tc-file=tests/itests/env/k8s-consul.ini
 ```
 * **Device_state_changes**: This tests uses the ponsim OLT and ONUs to exercise 
 the device state changes (preprovisioning, enabled, disabled, reboot). 
@@ -131,7 +144,7 @@ Run the test:
 cd /cord/incubator/voltha
 . ./env.sh
 nosetests -s tests/itests/voltha/test_persistence.py
-```  
+```
 
 * **Voltha_rest_apis**: This test exercises the Envoy REST interface and 
 indirectly
@@ -141,10 +154,22 @@ indirectly
 ```
 cd /cord/incubator/voltha
 . ./env.sh
+```
+To run the test in the docker-compose environment:
+```
 docker-compose -f compose/docker-compose-system-test.yml up -d
 nosetests -s tests/itests/voltha/test_voltha_rest_apis.py
-```    
-
+```
+To run the test in a single-node Docker swarm environment (see document voltha/DOCKER_BUILD.md):
+```
+VOLTHA_BUILD=docker make start
+nosetests -s tests/itests/voltha/test_voltha_rest_apis.py --tc-file=tests/itests/env/swarm-consul.ini
+```
+To run the test in a single-node Kubernetes environment (see document voltha/BUILD.md):
+```
+./tests/itests/env/voltha-k8s-start.sh
+nosetests -s tests/itests/voltha/test_voltha_rest_apis.py --tc-file=tests/itests/env/k8s-consul.ini
+```
 * **Voltha_alarm_events**: This test exercises the creation and clearing of alarm events
 
 The test will first verify that the kafka alarm topic exists.  It will then create a simulated_olt

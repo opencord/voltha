@@ -8,16 +8,32 @@ from voltha.protos.common_pb2 import AdminState, OperStatus
 from voltha.protos import openflow_13_pb2 as ofp
 from tests.itests.voltha.rest_base import RestBase
 from common.utils.consulhelpers import get_endpoint_from_consul
+from structlog import get_logger
+from tests.itests.docutests.test_utils import get_pod_ip
+from testconfig import config
 
 LOCAL_CONSUL = "localhost:8500"
+
+log = get_logger()
+
+orch_env = 'docker-compose'
+if 'test_parameters' in config and 'orch_env' in config['test_parameters']:
+    orch_env = config['test_parameters']['orch_env']
+log.debug('orchestration-environment', orch_env=orch_env)
 
 class TestColdActivationSequence(RestBase):
 
     # Retrieve details of the REST entry point
-    rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'envoy-8443')
+    if orch_env == 'k8s-single-node':
+        rest_endpoint = get_pod_ip('voltha') + ':8443'
+    elif orch_env == 'swarm-single-node':
+        rest_endpoint = 'localhost:8443'
+    else:
+        rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'voltha-envoy-8443')
 
     # Construct the base_url
     base_url = 'https://' + rest_endpoint
+    log.debug('cold-activation-test', base_url=base_url)
 
     def wait_till(self, msg, predicate, interval=0.1, timeout=5.0):
         deadline = time() + timeout
@@ -200,11 +216,8 @@ class TestColdActivationSequence(RestBase):
         self.assertGreaterEqual(len(flows), 4)
 
     def verify_olt_eapol_flow(self, olt_id):
-        # olt shall have two flow rules, one is the default and the
-        # second is the result of eapol forwarding with rule:
-        # if eth_type == 0x888e => push vlan(1000); out_port=nni_port
         flows = self.get('/api/v1/devices/{}/flows'.format(olt_id))['items']
-        self.assertEqual(len(flows), 2)
+        self.assertEqual(len(flows), 8)
         flow = flows[1]
         self.assertEqual(flow['table_id'], 0)
         self.assertEqual(flow['priority'], 1000)
