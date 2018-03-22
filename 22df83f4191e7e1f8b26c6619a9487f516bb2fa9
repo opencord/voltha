@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "1c5cd946_1991f642",
+        "filename": "compose/docker-compose-ofagent-test.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-03-22T17:13:33Z",
+      "side": 1,
+      "message": "All the swarm files seems to have the correct naming format.   I did not test the TAG myself though.",
+      "parentUuid": "c8925b58_3b35e3b0",
+      "revId": "22df83f4191e7e1f8b26c6619a9487f516bb2fa9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "16157e2d_3d5ba826",
         "filename": "tests/itests/docutests/test_utils.py",
         "patchSetId": 1
@@ -66,6 +84,24 @@
       "side": 1,
       "message": "That would impact many more test files. How about I move the file in my next submission?",
       "parentUuid": "16157e2d_3d5ba826",
+      "revId": "22df83f4191e7e1f8b26c6619a9487f516bb2fa9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "916dae5b_13379f12",
+        "filename": "tests/itests/docutests/test_utils.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 123,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-03-22T17:13:33Z",
+      "side": 1,
+      "message": "sure",
+      "parentUuid": "6eefb204_fe35ba50",
       "revId": "22df83f4191e7e1f8b26c6619a9487f516bb2fa9",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
