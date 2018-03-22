@@ -73,6 +73,24 @@
     },
     {
       "key": {
+        "uuid": "fe409fe9_9b69a8bb",
+        "filename": "compose/docker-compose-ofagent-test.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-03-22T17:54:15Z",
+      "side": 1,
+      "message": "If docker-compose needs to be upgraded then we should do so.   If the issue with TAGs is only with docker-compose then we should consider dropping docker compose from the test.  In any case these are food for thoughts.",
+      "parentUuid": "d7ecea32_8d2dc0ed",
+      "revId": "22df83f4191e7e1f8b26c6619a9487f516bb2fa9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "16157e2d_3d5ba826",
         "filename": "tests/itests/docutests/test_utils.py",
         "patchSetId": 1
