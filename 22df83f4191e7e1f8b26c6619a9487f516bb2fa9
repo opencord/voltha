@@ -55,6 +55,24 @@
     },
     {
       "key": {
+        "uuid": "d7ecea32_8d2dc0ed",
+        "filename": "compose/docker-compose-ofagent-test.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1000196
+      },
+      "writtenOn": "2018-03-22T17:46:27Z",
+      "side": 1,
+      "message": "docker-compose-ofagent-test.yml is NOT a swarm file but a docker-compose V2 file and it conforms to the image naming format found in docker-compose V2 file docker-compose-system-test.yml.",
+      "parentUuid": "1c5cd946_1991f642",
+      "revId": "22df83f4191e7e1f8b26c6619a9487f516bb2fa9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "16157e2d_3d5ba826",
         "filename": "tests/itests/docutests/test_utils.py",
         "patchSetId": 1
