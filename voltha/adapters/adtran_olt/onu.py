@@ -22,16 +22,6 @@ from twisted.internet.defer import inlineCallbacks, returnValue, succeed
 from adtran_olt_handler import AdtranOltHandler
 from net.adtran_rest import RestInvalidResponseCode
 
-# Following is only used in autoactivate/demo mode. Otherwise xPON commands should be used
-_VSSN_TO_VENDOR = {
-    'ADTN': 'adtran_onu',
-    'BRCM': 'broadcom_onu',
-    'DP??': 'dpoe_onu',       # TODO: Get actual VSSN for this vendor
-    'PMCS': 'pmcs_onu',
-    'PSMO': 'ponsim_onu',
-    'TBIT': 'tibit_onu',
-}
-
 _MAX_EXPEDITE_COUNT = 5
 _EXPEDITE_SECS = 2
 _HW_SYNC_SECS = 30
@@ -63,7 +53,8 @@ class Onu(object):
         self._gem_ports = {}                           # gem-id -> GemPort
         self._tconts = {}                              # alloc-id -> TCont
         self._onu_vid = onu_info['onu-vid']
-        self._uni_ports = [onu_info['onu-vid']]
+        self.untagged_vlan = self._onu_vid
+        self._uni_ports = [onu_info['onu-vid']]     # TODO: Get rid of this
         assert len(self._uni_ports) == 1, 'Only one UNI port supported at this time'
         self._channel_id = onu_info['channel-id']
         self._enabled = onu_info['enabled']
@@ -84,9 +75,15 @@ class Onu(object):
         self._resync_flows = False
         self._sync_deferred = None     # For sync of ONT config to hardware
 
+        if onu_info['venet'] is not None:
+            port_no, subscriber_vlan, self.untagged_vlan = Onu.decode_venet(onu_info['venet'],
+                                                                            self.olt.untagged_vlan)
+            if port_no is not None:
+                self._uni_ports = [port_no]
+            if subscriber_vlan is not None:
+                self._onu_vid = subscriber_vlan
+
         self.log = structlog.get_logger(pon_id=self._pon_id, onu_id=self._onu_id)
-        self._vendor_id = _VSSN_TO_VENDOR.get(self._serial_number_string.upper()[:4],
-                                              'Unsupported_{}'.format(self._serial_number_string))
 
     def __del__(self):
         # self.stop()
@@ -95,7 +92,40 @@ class Onu(object):
     def __str__(self):
         return "ONU-{}:{}, SN: {}/{}".format(self._onu_id, self._pon_id,
                                              self._serial_number_string, self._serial_number_base64)
-    
+
+    @staticmethod
+    def decode_venet(venet_info, untagged_vlan):
+        # TODO: Move this one and ONU one into venet decode to dict() area
+        try:
+            # Allow spaces or dashes as separator, select last as the
+            # port number.  UNI-1,  UNI 1, and UNI 3-2-1 are the same
+            port_no = int(venet_info['name'].replace(' ', '-').split('-')[-1:][0])
+            subscriber_vlan = port_no
+            try:
+                # Subscriber VLAN and Untagged vlan are comma separated
+                parts = venet_info['description'].split(',')
+                sub_part = next((part for part in parts if 'vlan' in part.lower()), None)
+                untagged_part = next((part for part in parts if 'untagged' in part.lower()), None)
+                try:
+                    if sub_part is not None:
+                        subscriber_vlan = int(sub_part.split(':')[-1:][0])
+                except Exception as e:
+                    pass
+                try:
+                    if untagged_part is not None:
+                        untagged_vlan = int(untagged_part.split(':')[-1:][0])
+                except Exception as e:
+                    pass
+            except Exception as e:
+                pass
+
+            return port_no, subscriber_vlan, untagged_vlan
+
+        except ValueError:
+            pass
+        except KeyError:
+            pass
+
     @staticmethod
     def serial_number_to_string(value):
         sval = base64.decodestring(value)
@@ -208,28 +238,22 @@ class Onu(object):
 
             device_id = self.olt.device_id
 
-            if self.olt.autoactivate:
-                self._proxy_address = Device.ProxyAddress(device_id=device_id,
-                                                          channel_id=self.onu_vid,
-                                                          channel_group_id=self.pon.pon_id,
-                                                          onu_id=self.onu_id)
-            else:
-                try:
-                    v_ont_ani = self._vont_ani
-                    voltha_core = self.olt.adapter_agent.core
-                    xpon_agent = voltha_core.xpon_agent
-                    channel_group_id = xpon_agent.get_channel_group_for_vont_ani(v_ont_ani)
-                    parent_chnl_pair_id = xpon_agent.get_port_num(device_id,
-                                                                  v_ont_ani.data.preferred_chanpair)
-                    self._proxy_address = Device.ProxyAddress(
-                        device_id=device_id,
-                        channel_group_id=channel_group_id,
-                        channel_id=parent_chnl_pair_id,
-                        channel_termination=v_ont_ani.data.preferred_chanpair,
-                        onu_id=self.onu_id,
-                        onu_session_id=self.onu_id)
-                except Exception:
-                    pass
+            try:
+                v_ont_ani = self._vont_ani
+                voltha_core = self.olt.adapter_agent.core
+                xpon_agent = voltha_core.xpon_agent
+                channel_group_id = xpon_agent.get_channel_group_for_vont_ani(v_ont_ani)
+                parent_chnl_pair_id = xpon_agent.get_port_num(device_id,
+                                                              v_ont_ani.data.preferred_chanpair)
+                self._proxy_address = Device.ProxyAddress(
+                    device_id=device_id,
+                    channel_group_id=channel_group_id,
+                    channel_id=parent_chnl_pair_id,
+                    channel_termination=v_ont_ani.data.preferred_chanpair,
+                    onu_id=self.onu_id,
+                    onu_session_id=self.onu_id)
+            except Exception:
+                pass
 
         return self._proxy_address
 
@@ -260,10 +284,6 @@ class Onu(object):
     @property
     def serial_number(self):
         return self._serial_number_string
-
-    @property
-    def vendor_id(self):
-        return self._vendor_id
 
     @property
     def rssi(self):
@@ -333,6 +353,19 @@ class Onu(object):
 
             except Exception as e:  # TODO: Add breakpoint here during unexpected reboot test
                 self.log.exception('onu-create', e=e)
+                # See if it failed due to already being configured
+                url = AdtranOltHandler.GPON_ONU_CONFIG_URI.format(self._pon_id, self._onu_id)
+                url += '/serial-number'
+
+                try:
+                    results = yield self.olt.rest_client.request('GET', uri, name=name)
+                    self.log.debug('onu-create-check', results=results)
+                    if len(results) != 1 or results[0].get('serial-number', '') != self._serial_number_base64:
+                        raise e
+
+                except Exception as e:
+                    self.log.exception('onu-exists-check', e=e)
+                    raise
 
         # Now set up all tconts & gem-ports
         first_sync = self._sync_tick
@@ -359,7 +392,6 @@ class Onu(object):
         # Recalculate PON upstream FEC
 
         self.pon.upstream_fec_enable = self.pon.any_upstream_fec_enabled
-
         returnValue('created')
 
     @inlineCallbacks
@@ -727,15 +759,19 @@ class Onu(object):
     def gem_port(self, gem_id):
         return self._gem_ports.get(gem_id)
 
-    def gem_ids(self, exception_gems):
+    def gem_ids(self, untagged_gem, exception_gems):  # FIXED_ONU
         """Get all GEM Port IDs used by this ONU"""
         if exception_gems:
             gem_ids = sorted([gem_id for gem_id, gem in self._gem_ports.items()
-                             if gem.exception and not gem.multicast])  # FIXED_ONU
+                             if gem.exception and not gem.multicast])
+            return gem_ids
+        elif untagged_gem:
+            gem_ids = sorted([gem_id for gem_id, gem in self._gem_ports.items()
+                             if gem.untagged and not gem.exception and not gem.multicast])
             return gem_ids
         else:
             return sorted([gem_id for gem_id, gem in self._gem_ports.items()
-                          if not gem.multicast and not gem.exception])  # FIXED_ONU
+                          if not gem.multicast and not gem.exception and not gem.untagged])
 
     @inlineCallbacks
     def add_gem_port(self, gem_port, reflow=False):

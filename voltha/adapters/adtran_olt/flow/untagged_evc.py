@@ -12,33 +12,36 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from voltha.core.flow_decomposer import *
 from evc import EVC
-from flow_entry import FlowEntry
 from twisted.internet import defer
-from twisted.internet.defer import returnValue, inlineCallbacks, succeed, gatherResults
+from twisted.internet.defer import returnValue, inlineCallbacks
+import voltha.core.flow_decomposer as fd
+from voltha.core.flow_decomposer import *
 
 log = structlog.get_logger()
 
-EVC_NAME_FORMAT = 'VOLTHA-MCAST-{}'                      # format(flow.vlan_id)
+EVC_NAME_FORMAT = 'VOLTHA-UNTAGGED-{}'            # format(flow.vlan_id)
 EVC_NAME_REGEX_ALL = EVC_NAME_FORMAT.format('*')
 
 
-_mcast_evcs = {}  # device-id -> flow dictionary
-                  #                  |
-                  #                  +-> vlan-id -> evcs
+_untagged_evcs = {}  # device-id -> flow dictionary
+                     #                  |
+                     #                  +-> untagged-vlan-id -> evcs
 
 
-class MCastEVC(EVC):
+class UntaggedEVC(EVC):
     """
-    Class to wrap Multicast EVC and EVC-MAP functionality
+    Class to wrap Untagged (no C-Tag) EVC functionality
     """
     def __init__(self, flow_entry):
-        super(MCastEVC, self).__init__(flow_entry)
+        super(UntaggedEVC, self).__init__(flow_entry)
+        # No Inner-VID
+        self._switching_method = EVC.SwitchingMethod.SINGLE_TAGGED
         self._downstream_flows = {flow_entry.flow_id}     # Matching Downstream Flow IDs
+        self.service_evc = True
 
     def __str__(self):
-        return "MCAST-{}: MEN: {}, VLAN: {}".format(self._name, self._men_ports, self._s_tag)
+        return "VOLTHA-UNTAGGED-{}: MEN: {}, VLAN: {}".format(self._name, self._men_ports, self._s_tag)
 
     def _create_name(self):
         #
@@ -46,44 +49,32 @@ class MCastEVC(EVC):
         #
         return EVC_NAME_FORMAT.format(self._flow.vlan_id)
 
-    def _create_evc_map(self, flow_entry):
-        from evc_map import EVCMap
-        flow = FakeUpstreamFlow(flow_entry.flow, flow_entry.handler)
-        return EVCMap.create_ingress_map(flow, self)
-
     @staticmethod
     def create(flow_entry):
-        from evc_map import EVCMap
-
         device_id = flow_entry.device_id
-        if device_id not in _mcast_evcs:
-            _mcast_evcs[device_id] = {}
+        evc_table = _untagged_evcs.get(device_id)
 
-        evc_table = _mcast_evcs[device_id]
+        if evc_table is None:
+            _untagged_evcs[device_id] = dict()
+            evc_table = _untagged_evcs[device_id]
 
         try:
             evc = evc_table.get(flow_entry.vlan_id)
 
             if evc is None:
                 # Create EVC and initial EVC Map
-                evc = MCastEVC(flow_entry)
+                evc = UntaggedEVC(flow_entry)
                 evc_table[flow_entry.vlan_id] = evc
             else:
-                if flow_entry.flow_id in evc.downstream_flows:       # TODO: Debug only to see if flow_ids are unique
+                if flow_entry.flow_id in evc.downstream_flows:    # TODO: Debug only to see if flow_ids are unique
                     pass
                 else:
                     evc.add_downstream_flows(flow_entry.flow_id)
 
-            fake_flow = FakeUpstreamFlow(flow_entry.flow, flow_entry.handler)
-            evc_map_name = EVCMap.create_evc_map_name(fake_flow)
-
-            if evc_map_name not in evc.evc_map_names:
-                EVCMap.create_ingress_map(fake_flow, evc)
-
             return evc
 
         except Exception as e:
-            log.exception('mcast-create', e=e)
+            log.exception('untagged-create', e=e)
             return None
 
     @property
@@ -111,7 +102,7 @@ class MCastEVC(EVC):
 
         device_id = self._handler.device_id
         flow_id = self._flow.id
-        evc_table = _mcast_evcs.get(device_id)
+        evc_table = _untagged_evcs.get(device_id)
 
         if evc_table is None or flow_id not in evc_table:
             returnValue('NOP')
@@ -122,7 +113,7 @@ class MCastEVC(EVC):
 
         if len(self._downstream_flows) == 0:
             # Use base class to clean up
-            returnValue(super(MCastEVC, self).remove(remove_maps=True))
+            returnValue(super(UntaggedEVC, self).remove(remove_maps=True))
 
         returnValue('More references')
 
@@ -137,7 +128,7 @@ class MCastEVC(EVC):
             dl = [self.remove()]
             if delete_maps:
                 for evc_map in self.evc_maps:
-                    dl.append(evc_map.delete(self))   # TODO: implement bulk-flow procedures
+                    dl.append(evc_map.delete(None))   # TODO: implement bulk-flow procedures
 
             yield defer.gatherResults(dl, consumeErrors=True)
 
@@ -161,23 +152,3 @@ class MCastEVC(EVC):
         :return: (deferred)
         """
         pass    # TODO: ???
-
-
-class FakeUpstreamFlow(FlowEntry):
-    def __init__(self, flow, handler):
-        super(FakeUpstreamFlow, self).__init__(flow, handler)
-        self._decode()
-        # Change name that the base class set
-        self._name = self.create_flow_name()
-        self._flow_direction = FlowEntry.FlowDirection.UPSTREAM
-        self.in_port, self.output = self.output, self.in_port
-        self.flow_id = '{}-MCAST'.format(self.vlan_id)
-        self._logical_port = self.vlan_id
-        self.push_vlan_id = [self.vlan_id]
-        self.vlan_id = None
-        self.signature = None
-        self.inner_vid = None
-        self.pop_vlan = 0
-
-    def create_flow_name(self):
-        return 'flow-{}-{}-MCAST'.format(self.device_id, self.vlan_id)

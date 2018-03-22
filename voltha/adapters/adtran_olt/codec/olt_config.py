@@ -122,9 +122,14 @@ class OltConfig(object):
             def decode(onu_dict):
                 onus = {}
 
-                if onu_dict is not None and 'onu' in onu_dict:
-                    for onu_data in onu_dict['onu']:
-                        onu = OltConfig.Pon.Onu(onu_data)
+                if onu_dict is not None:
+                    if 'onu' in onu_dict:
+                        for onu_data in onu_dict['onu']:
+                            onu = OltConfig.Pon.Onu(onu_data)
+                            assert onu.onu_id not in onus
+                            onus[onu.onu_id] = onu
+                    elif len(onu_dict) > 0 and 'onu-id' in onu_dict[0]:
+                        onu = OltConfig.Pon.Onu(onu_dict[0])
                         assert onu.onu_id not in onus
                         onus[onu.onu_id] = onu
 

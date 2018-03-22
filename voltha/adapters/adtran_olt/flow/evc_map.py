@@ -16,6 +16,8 @@ import xmltodict
 import re
 import structlog
 from enum import Enum
+from acl import ACL
+from twisted.internet import defer
 from twisted.internet.defer import inlineCallbacks, returnValue, succeed
 
 log = structlog.get_logger()
@@ -25,7 +27,7 @@ log = structlog.get_logger()
 #       cover an entire pon, the name will have the ONU ID and GEM ID appended to it upon
 #       installation with a period as a separator.
 
-EVC_MAP_NAME_FORMAT = 'VOLTHA-{}-{}'   # format(ingress-port, flow.id)
+EVC_MAP_NAME_FORMAT = 'VOLTHA-{}-{}'   # format(logical-ingress-port-number, flow-id)
 EVC_MAP_NAME_REGEX_ALL = 'VOLTHA-*'
 
 
@@ -66,19 +68,22 @@ class EVCMap(object):
             raise ValueError('Invalid PriorityOption enumeration')
 
     def __init__(self, flow, evc, is_ingress_map):
-        self._flow = flow
-        self._evc = evc
-        self._gem_ids_and_vid = None   # { key -> onu-id, value -> tuple(sorted GEM Port IDs, onu_vid) }
+        self._handler = flow.handler      # Same for all Flows attached to this EVC MAP
+        self._flows = {flow.flow_id: flow}
+        self._evc = None
+        self._new_acls = dict()           # ACL Name -> ACL Object (To be installed into h/w)
+        self._existing_acls = dict()      # ACL Name -> ACL Object (Already in H/w)
+        self._gem_ids_and_vid = None      # { key -> onu-id, value -> tuple(sorted GEM Port IDs, onu_vid) }
         self._is_ingress_map = is_ingress_map
         self._pon_id = None
         self._installed = False
+        self._needs_update = False
         self._status_message = None
-
+        self._deferred = None
         self._name = None
         self._enabled = True
         self._uni_port = None
         self._evc_connection = EVCMap.EvcConnection.DEFAULT
-        self._evc_name = None
         self._men_priority = EVCMap.PriorityOption.DEFAULT
         self._men_pri = 0  # If Explicit Priority
 
@@ -103,28 +108,35 @@ class EVCMap(object):
         self._udp_src = None
 
         try:
-            self._valid = self._decode()
+            self._valid = self._decode(evc)
 
         except Exception as e:
             log.exception('decode', e=e)
             self._valid = False
 
-        if self._valid:
-            evc.add_evc_map(self)
-        else:
-            self._evc = None
-
     def __str__(self):
-        return "EVCMap-{}: UNI: {}, isACL: {}".format(self._name, self._uni_port,
-                                                      self._needs_acl_support)
+        return "EVCMap-{}: UNI: {}, hasACL: {}".format(self._name, self._uni_port,
+                                                       self._needs_acl_support)
 
     @staticmethod
-    def create_ingress_map(flow, evc):
-        return EVCMap(flow, evc, True)
+    def create_ingress_map(flow, evc, dry_run=False):
+        evc_map = EVCMap(flow, evc, True)
+
+        if evc_map._valid and not dry_run:
+            evc.add_evc_map(evc_map)
+            evc_map._evc = evc
+
+        return evc_map
 
     @staticmethod
-    def create_egress_map(flow, evc):
-        return EVCMap(flow, evc, False)
+    def create_egress_map(flow, evc, dry_run=False):
+        evc_map = EVCMap(flow, evc, False)
+
+        if evc_map._valid and not dry_run:
+            evc.add_evc_map(evc_map)
+            evc_map._evc = evc
+
+        return evc_map
 
     @property
     def valid(self):
@@ -184,12 +196,16 @@ class EVCMap(object):
     def _xml_trailer():
         return '</evc-map></evc-maps>'
 
+    def get_evcmap_name(self, onu_id, gem_id):
+        return'{}.{}.{}'.format(self.name, onu_id, gem_id)
+
     def _common_install_xml(self):
         xml = '<enabled>{}</enabled>'.format('true' if self._enabled else 'false')
         xml += '<uni>{}</uni>'.format(self._uni_port)
 
-        if self._evc_name is not None:
-            xml += '<evc>{}</evc>'.format(self._evc_name)
+        evc_name = self._evc.name if self._evc is not None else None
+        if evc_name is not None:
+            xml += '<evc>{}</evc>'.format(evc_name)
         else:
             xml += EVCMap.EvcConnection.xml(self._evc_connection)
 
@@ -218,7 +234,11 @@ class EVCMap(object):
     def _ingress_install_xml(self, onu_s_gem_ids_and_vid):
         from ..onu import Onu
 
-        xml = '<evc-maps xmlns="http://www.adtran.com/ns/yang/adtran-evc-maps">'
+        if len(self._new_acls):
+            xml = '<evc-maps xmlns="http://www.adtran.com/ns/yang/adtran-evc-maps"' +\
+                   '         xmlns:adtn-evc-map-acl="http://www.adtran.com/ns/yang/adtran-evc-map-access-control-list">'
+        else:
+            xml = '<evc-maps xmlns="http://www.adtran.com/ns/yang/adtran-evc-maps">'
 
         for onu_or_vlan_id, gem_ids_and_vid in onu_s_gem_ids_and_vid.iteritems():
             first_gem_id = True
@@ -238,6 +258,13 @@ class EVCMap(object):
                     xml += '<men-ctag>{}</men-ctag>'.format(vid)  # Added in August 2017 model
                     xml += '</network-ingress-filter>'
 
+                if len(self._new_acls):
+                    xml += '<adtn-evc-map-acl:access-lists>'
+                    xml += ' <adtn-evc-map-acl:ingress-acl>'
+                    for acl in self._new_acls.itervalues():
+                        xml += acl.evc_map_ingress_xml()
+                    xml += ' </adtn-evc-map-acl:ingress-acl>'
+                    xml += '</adtn-evc-map-acl:access-lists>'
                 xml += self._common_install_xml()
                 xml += '</evc-map>'
         xml += '</evc-maps>'
@@ -258,20 +285,45 @@ class EVCMap(object):
                 ports.extend(gems_and_vids[0])
             return ports
 
-        if self._valid and not self._installed and len(gem_ports()) > 0:
-            try:
-                # TODO: create generator of XML once we have MANY to install at once
-                map_xml = self._ingress_install_xml(self._gem_ids_and_vid) \
-                    if self._is_ingress_map else self._egress_install_xml()
+        if self._valid and len(gem_ports()) > 0:
+            # Install ACLs first (if not yet installed)
+            acl_list = self._new_acls.values()
+            self._new_acls = dict()
 
-                log.debug('install', xml=map_xml, name=self.name)
-                results = yield self._flow.handler.netconf_client.edit_config(map_xml)
-                self._installed = results.ok
-                self.status = '' if results.ok else results.error
+            for acl in acl_list:
+                try:
+                    yield acl.install()
+                    # if not results.ok:
+                    #     pass                # TODO : do anything?
 
-            except Exception as e:
-                log.exception('install', name=self.name, e=e)
-                raise
+                except Exception as e:
+                    log.exception('acl-install', name=self.name, e=e)
+                    self._new_acls.update(acl_list)
+                    raise
+
+            # Now EVC-MAP
+            if not self._installed or self._needs_update:
+                try:
+                    self._cancel_deferred()
+                    map_xml = self._ingress_install_xml(self._gem_ids_and_vid) \
+                        if self._is_ingress_map else self._egress_install_xml()
+
+                    log.debug('install', xml=map_xml, name=self.name)
+                    results = yield self._handler.netconf_client.edit_config(map_xml)
+                    was_installed = self._installed
+                    self._installed = results.ok
+                    self._needs_update = results.ok
+                    self.status = '' if results.ok else results.error
+
+                    if results.ok:
+                        self._existing_acls.update(acl_list)
+                    else:
+                        self._new_acls.update(acl_list)
+
+                except Exception as e:
+                    log.exception('map-install', name=self.name, e=e)
+                    self._new_acls.update(acl_list)
+                    raise
 
         returnValue(self._installed and self._valid)
 
@@ -291,7 +343,7 @@ class EVCMap(object):
         return EVCMap._xml_header('delete') + \
                '<name>{}</name>'.format(self.name) + EVCMap._xml_trailer()
 
-    def remove(self):
+    def _remove(self):
         if not self.installed:
             returnValue('Not installed')
 
@@ -305,31 +357,54 @@ class EVCMap(object):
             log.error('remove-failed', failure=failure)
             self._installed = False
 
-        # TODO: create generator of XML once we have MANY to install at once
+        def _remove_acls(_):
+            acls, self._new_acls = self._new_acls, dict()
+            existing, self._existing_acls = self._existing_acls, dict()
+            acls.update(existing)
+
+            dl = []
+            for acl in acls.itervalues():
+                dl.append(acl.remove())
+
+            if len(dl) > 0:
+                defer.gatherResults(dl, consumeErrors=True)
+
         map_xml = self._ingress_remove_xml(self._gem_ids_and_vid) if self._is_ingress_map \
             else self._egress_remove_xml()
 
-        d = self._flow.handler.netconf_client.edit_config(map_xml)
+        d = self._handler.netconf_client.edit_config(map_xml)
         d.addCallbacks(_success, _failure)
+        d.addBoth(_remove_acls)
         return d
 
     @inlineCallbacks
-    def delete(self):
+    def delete(self, flow):
         """
         Remove from hardware and delete/clean-up EVC-MAP Object
+
+        :param flow: (FlowEntry) Specific flow to remove from the MAP or None if all
+                                 flows should be removed
+        :return:
         """
-        if self._evc is not None:
-            self._evc.remove_evc_map(self)
-            self._evc = None
+        flows = [flow] if flow is not None else list(self._flows.values())
+        removing_all = len(flows) == len(self._flows)
 
-        self._flow = None
-        self._valid = False
+        if not removing_all:
+            for f in flows:
+                self._remove_flow(f)
 
-        try:
-            yield self.remove()
+        else:
+            if self._evc is not None:
+                self._evc.remove_evc_map(self)
+                self._evc = None
 
-        except Exception as e:
-            log.exception('removal', e=e)
+            self._valid = False
+            self._cancel_deferred()
+            try:
+                yield self._remove()
+
+            except Exception as e:
+                log.exception('removal', e=e)
 
         returnValue('Done')
 
@@ -340,8 +415,142 @@ class EVCMap(object):
         return reflow
 
     @staticmethod
+    def find_matching_ingress_flow(flow, upstream_flow_table):
+        """
+        Look for an existing EVC-MAP that may match this flow.  Called when upstream signature
+        for a flow does not make match. This can happen if an ACL flow is added and only an User
+        Data flow exists, or if only an ACL flow exists.
+
+        :param flow: (FlowEntry) flow to add
+        :param upstream_flow_table: (dict of FlowEntry) Existing upstream flows for this device,
+                                     including the flow we are looking to add
+        :return: (EVCMap) if appropriate one is found, else None
+        """
+        # A User Data flow will have:
+        #      signature: <dev>.1.5.2.242
+        #       down-sig: <dev>.1.*.2.*
+        #   logical-port: 66
+        #    is-acl-flow: False
+        #
+        # An ACL flow will have:
+        #      signature: <dev>.1.5.[4092 or 4094].None    (untagged VLAN == utility VLAN case)
+        #       down-sig: <dev>.1.*.[4092 or 4094].*
+        #   logical-port: 66
+        #    is-acl-flow: True
+        #
+        # Reduce the upstream flow table to only those that match the ingress,
+        # and logical-ports match (and is not this flow) and have a map
+
+        log.debug('find-matching-ingress-flow', logical_port=flow.logical_port, flow=flow.output)
+        candidate_flows = [f for f in upstream_flow_table.itervalues() if
+                           f.logical_port == flow.logical_port and
+                           f.output == flow.output and
+                           f.evc_map is not None]        # This weeds out this flow
+
+        log.debug('find-matching-ingress-flow', candidate_flows=candidate_flows)
+        return candidate_flows[0].evc_map if len(candidate_flows) > 0 else None
+
+    def add_flow(self, flow, evc):
+        """
+        Add a new flow to an existing EVC-MAP. This can be called to add:
+          o an ACL flow to an existing utility/untagged EVC, or
+          o an ACL flow to an existing User Data Flow, or
+          o a User Data Flow to an existing ACL flow (and this needs the EVC updated
+            as well.
+
+        Note that the Downstream EVC provided is the one that matches this flow. If
+        this is adding an ACL to and existing User data flow, we DO NOT want to
+        change the EVC Map's EVC
+
+        :param flow: (FlowEntry) New flow
+        :param evc: (EVC) Matching EVC for downstream flow
+        """
+        from flow_entry import FlowEntry
+        # Create temporary EVC-MAP
+        assert flow.flow_direction == FlowEntry.FlowDirection.UPSTREAM, \
+            'Only Upstream flows additions are supported at this time'
+
+        tmp_map = EVCMap.create_ingress_map(flow, evc, dry_run=True) \
+            if flow.flow_direction == FlowEntry.FlowDirection.UPSTREAM \
+            else EVCMap.create_egress_map(flow, evc, dry_run=True)
+
+        if tmp_map is None or not tmp_map.valid:
+            return None
+
+        self._needs_update = True
+
+        if len(tmp_map._new_acls) > 0:
+            self._new_acls.update(tmp_map._new_acls)        # New ACL flow
+            log.debug('add-acl-flows', map=str(self), new=tmp_map._new_acls)
+
+        # Look up existing EVC for this flow. If it is a service EVC for
+        # Packet In/Out, and this is a regular flow, migrate to the newer EVC
+        if self._evc.service_evc and not evc.service_evc:
+            log.info('new-evc-for-map', old=self._evc.name, new=evc.name)
+            self._evc.remove_evc_map(self)
+            evc.add_evc_map(self)
+            self._evc = evc
+        return self
+
+    @inlineCallbacks
+    def _remove_flow(self, flow):
+        """
+        Remove a specific flow from an EVC_MAP. This includes removing any
+        ACL entries associated with the flow and could result in moving the
+        EVC-MAP over to another EVC.
+
+        :param flow: (FlowEntry) Flow to remove
+        :param removing_all: (bool) If True, all flows are being removed from EVC-MAP
+        """
+        try:
+            self._flows.pop(flow.flow_id)
+
+            if not flow.handler.exception_gems:  # ! FIXED_ONU
+                # Remove any ACLs
+
+                acl = ACL.create(flow)
+                if acl is not None:
+                    # Remove ACL from EVC-MAP entry
+
+                    try:
+                        # TODO: Create EVC-MAP with proper 'delete-acl-list' request
+                        # TODO: and send it
+                        pass
+
+                        # TODO: Scan EVC to see if it needs to move back to the Utility
+                        #       or Untagged EVC from a user data EVC
+                        pass
+
+                    except Exception as e:
+                        log.exception('acl-remove-from-evc', e=e)
+
+                    # Remove ACL itself
+                    try:
+                        yield acl.remove()
+
+                    except Exception as e:
+                        log.exception('acl-remove', e=e)
+
+        except Exception as e:
+            log.exception('remove-failed', e=e)
+
+    @staticmethod
     def create_evc_map_name(flow):
-        return EVC_MAP_NAME_FORMAT.format(flow.in_port, flow.flow_id)
+        return EVC_MAP_NAME_FORMAT.format(flow.logical_port, flow.flow_id)
+
+    @staticmethod
+    def decode_evc_map_name(name):
+        """
+        Reverse engineer EVC-MAP name parameters. Helpful in quick packet-in
+        processing
+
+        :param name: (str) EVC Map Name
+        :return: (dict) Logical Ingress Port, OpenFlow Flow-ID
+        """
+        items = name.split('-') if name is not None else dict()
+
+        return {'ingress-port': items[1],
+                'flow-id': items[2]} if len(items) == 3 else dict()
 
     def add_gem_port(self, gem_port, reflow=False):
         # TODO: Refactor
@@ -377,20 +586,18 @@ class EVCMap(object):
 
             if len(before) > len(after):
                 if len(after) == 0:
-                    return self.remove()
+                    return self._remove()
                 else:
                     self._installed = False
                     return self.install()
 
         return succeed('nop')
 
-
-#    self._gem_ids_and_vid = None  # { key -> onu-id, value -> tuple(sorted GEM Port IDs, onu_vid) }
-
     def _setup_gem_ids(self):
         from flow_entry import FlowEntry
 
-        flow = self._flow  # TODO: Drop saving of flow once debug complete
+        # all flows should have same GEM port setup
+        flow = self._flows.itervalues().next()
         is_pon = flow.handler.is_pon_port(flow.in_port)
 
         if self._is_ingress_map and is_pon:
@@ -398,25 +605,27 @@ class EVCMap(object):
 
             if pon_port is not None:
                 self._pon_id = pon_port.pon_id
-                self._gem_ids_and_vid = pon_port.gem_ids(flow.logical_port,
-                                                         self._needs_acl_support,
+                exception_gems = self._needs_acl_support and flow.handler.exception_gems  # FIXED_ONU
+                untagged_gem = flow.eth_type == FlowEntry.EtherType.EAPOL and\
+                    flow.handler.untagged_vlan != flow.handler.utility_vlan
+                self._gem_ids_and_vid = pon_port.gem_ids(flow.logical_port, untagged_gem,
+                                                         exception_gems,   # FIXED_ONU
                                                          flow.is_multicast_flow)
-
-                # TODO: Only EAPOL ACL support for the first demo - FIXED_ONU
-                if self._needs_acl_support and self._eth_type != FlowEntry.EtherType.EAPOL.value:
+                # FIXED_ONU
+                if exception_gems and self._eth_type != FlowEntry.EtherType.EAPOL:
                     self._gem_ids_and_vid = dict()
 
-    def _decode(self):
+    def _decode(self, evc):
         from evc import EVC
         from flow_entry import FlowEntry
 
-        flow = self._flow  # TODO: Drop saving of flow once debug complete
+        # Only called from initializer, so first flow is only flow
+        flow = self._flows.itervalues().next()
 
         self._name = EVCMap.create_evc_map_name(flow)
 
-        if self._evc:
+        if evc:
             self._evc_connection = EVCMap.EvcConnection.EVC
-            self._evc_name = self._evc.name
         else:
             self._status_message = 'Can only create EVC-MAP if EVC supplied'
             return False
@@ -426,7 +635,7 @@ class EVCMap(object):
 
         if is_pon or is_uni:
             self._uni_port = flow.handler.get_port_name(flow.in_port)
-            self._evc.ce_vlan_preservation = False
+            evc.ce_vlan_preservation = False
         else:
             self._status_message = 'EVC-MAPS without UNI or PON ports are not supported'
             return False    # UNI Ports handled in the EVC Maps
@@ -435,11 +644,11 @@ class EVCMap(object):
 
         self._eth_type = flow.eth_type
 
-        if self._eth_type == FlowEntry.EtherType.IPv4.value:
+        if self._eth_type == FlowEntry.EtherType.IPv4:
             self._ip_protocol = flow.ip_protocol
             self._ipv4_dst = flow.ipv4_dst
 
-            if self._ip_protocol == FlowEntry.IpProtocol.UDP.value:
+            if self._ip_protocol == FlowEntry.IpProtocol.UDP:
                 self._udp_dst = flow.udp_dst
                 self._udp_src = flow.udp_src
 
@@ -449,25 +658,24 @@ class EVCMap(object):
         self._setup_gem_ids()
 
         # self._match_untagged = flow.vlan_id is None and flow.inner_vid is None
-        self._c_tag = flow.inner_vid
+        self._c_tag = flow.inner_vid or flow.vlan_id
 
         # If a push of a single VLAN is present with a POP of the VLAN in the EVC's
         # flow, then this is a traditional EVC flow
 
-        self._evc.men_to_uni_tag_manipulation = EVC.Men2UniManipulation.POP_OUT_TAG_ONLY
-        self._evc.switching_method = EVC.SwitchingMethod.DOUBLE_TAGGED
+        evc.men_to_uni_tag_manipulation = EVC.Men2UniManipulation.POP_OUT_TAG_ONLY
+        evc.switching_method = EVC.SwitchingMethod.DOUBLE_TAGGED  # \
+        #     if self._c_tag is not None else EVC.SwitchingMethod.SINGLE_TAGGED
 
-        # if len(flow.push_vlan_id) == 1 and self._evc.flow_entry.pop_vlan == 1:
-        #     self._evc.men_to_uni_tag_manipulation = EVC.Men2UniManipulation.SYMMETRIC
-        #     self._evc.switching_method = EVC.SwitchingMethod.SINGLE_TAGGED
-        #     self._evc.stpid = flow.push_vlan_tpid[0]
-        #
-        # elif len(flow.push_vlan_id) == 2 and self._evc.flow_entry.pop_vlan == 1:
-        #     self._evc.men_to_uni_tag_manipulation = EVC.Men2UniManipulation.POP_OUT_TAG_ONLY
-        #     self._evc.switching_method = EVC.SwitchingMethod.DOUBLE_TAGGED
-        #     # self._match_ce_vlan_id = 'something maybe'
-        #     raise NotImplementedError('TODO: Not supported/needed yet')
+        if not flow.handler.exception_gems:  # ! FIXED_ONU
+            try:
+                acl = ACL.create(flow)
+                if acl.name not in self._new_acls:
+                    self._new_acls[acl.name] = acl
 
+            except Exception as e:
+                log.exception('ACL-decoding', e=e)
+                return False
         return True
 
     # Bulk operations
@@ -538,3 +746,11 @@ class EVCMap(object):
         d.addCallbacks(do_delete, request_failed, callbackArgs=[regex_], errbackArgs=['get'])
         d.addCallbacks(delete_complete, request_failed, errbackArgs=['edit-config'])
         return d
+
+    def _cancel_deferred(self):
+        d, self._deferred = self._deferred, None
+        try:
+            if d is not None and not d.called:
+                d.cancel()
+        except:
+            pass

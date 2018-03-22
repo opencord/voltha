@@ -24,6 +24,7 @@ class GemPort(object):
                  tcont_ref=None,
                  traffic_class=None,
                  intf_ref=None,
+                 untagged=False,
                  exception=False,        # FIXED_ONU
                  name=None,
                  handler=None):
@@ -36,6 +37,7 @@ class GemPort(object):
         self._encryption = encryption
         self._omci_transport = omci_transport
         self.multicast = multicast
+        self.untagged = untagged
         self.exception = exception        # FIXED_ONU
         self._handler = handler
 

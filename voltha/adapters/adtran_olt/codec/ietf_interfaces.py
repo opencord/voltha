@@ -268,26 +268,48 @@ class IetfInterfacesState(object):
         return OFPPF_100GB_FD
 
     @staticmethod
-    def get_nni_port_entries(rpc_reply, nni_type='ethernet'):
+    def _get_port_number(name, if_index):
+        import re
+
+        formats = [
+            'xpon \d/{1,2}\d',                          # OLT version 3 (Feb 2018++)
+            'Hundred-Gigabit-Ethernet \d/\d/{1,2}\d',   # OLT version 2
+            'XPON \d/\d/{1,2}\d',                       # OLT version 2
+            'hundred-gigabit-ethernet \d/{1,2}\d',      # OLT version 1
+            'channel-termination {1,2}\d',              # OLT version 1
+        ]
+        p2 = re.compile('\d+')
+
+        for regex in formats:
+            p = re.compile(regex, re.IGNORECASE)
+            match = p.match(name)
+            if match is not None:
+                return int(p2.findall(name)[-1])
+
+    @staticmethod
+    def get_port_entries(rpc_reply, port_type):
         """
-        Get the port entries that make up the northbound interfaces
+        Get the port entries that make up the northbound and
+        southbound interfaces
 
         :param rpc_reply:
-        :param nni_type:
+        :param port_type:
         :return:
         """
-        port_no = 1
-        ports = []
+        ports = dict()
         result_dict = xmltodict.parse(rpc_reply.data_xml)
         entries = result_dict['data']['interfaces-state']['interface']
         if not isinstance(entries, list):
             entries = [entries]
-        nni_ports = [entry for entry in entries if 'name' in entry and nni_type in entry['name']]
+        port_entries = [entry for entry in entries if 'name' in entry and
+                        port_type.lower() in entry['name'].lower()]
 
-        for entry in nni_ports:
+        for entry in port_entries:
             port = {
-                'port_no': port_no,
+                'port_no': IetfInterfacesState._get_port_number(entry.get('name'),
+                                                                entry.get('ifindex')),
                 'name': entry.get('name', 'unknown'),
+                'ifIndex': entry.get('ifIndex'),
                 # 'label': None,
                 'mac_address': IetfInterfacesState._get_mac_addr(entry),
                 'admin_state': IetfInterfacesState._get_admin_state(entry),
@@ -297,7 +319,10 @@ class IetfInterfacesState(object):
                 'current_speed': IetfInterfacesState._get_of_speed(entry),
                 'max_speed': IetfInterfacesState._get_of_speed(entry),
             }
-            ports.append(port)
-            port_no += 1
+            port_no = port['port_no']
+            if port_no not in ports:
+                ports[port_no] = port
+            else:
+                ports[port_no].update(port)
 
         return ports

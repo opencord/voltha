@@ -16,7 +16,7 @@ import json
 import random
 
 import structlog
-from enum import Enum
+from port import AdtnPort
 from twisted.internet import reactor, defer
 from twisted.internet.defer import inlineCallbacks, returnValue, succeed
 
@@ -29,12 +29,9 @@ from voltha.protos.common_pb2 import OperStatus, AdminState
 from voltha.protos.device_pb2 import Port
 
 
-class PonPort(object):
+class PonPort(AdtnPort):
     """
-    A class similar to the 'Port' class in the VOLTHA
-
-    TODO: Merge this with the Port class or cleanup where possible
-          so we do not duplicate fields/properties/methods
+    GPON Port
     """
     MAX_ONUS_SUPPORTED = 256
     DEFAULT_ENABLED = False
@@ -43,73 +40,51 @@ class PonPort(object):
     _MCAST_ONU_ID = 253
     _MCAST_ALLOC_BASE = 0x500
 
-    class State(Enum):
-        INITIAL = 0   # Created and initialization in progress
-        RUNNING = 1   # PON port contacted, ONU discovery active
-        STOPPED = 2   # Disabled
-        DELETING = 3  # Cleanup
-
-    _SUPPORTED_ACTIVATION_METHODS = ['autodiscovery', 'autoactivate']
+    _SUPPORTED_ACTIVATION_METHODS = ['autodiscovery']    # , 'autoactivate']
     _SUPPORTED_AUTHENTICATION_METHODS = ['serial-number']
 
-    def __init__(self, pon_index, port_no, parent):
-        # TODO: Weed out those properties supported by common 'Port' object (future)
-        self.log = structlog.get_logger(device_id=parent.device_id, pon_id=pon_index)
+    def __init__(self, parent, **kwargs):
+
+        super(PonPort, self).__init__(parent, **kwargs)
+
+        assert 'pon-id' in kwargs, 'PON ID not found'
 
         self._parent = parent
-        self._pon_id = pon_index
-        self._port_no = port_no
-        self._name = 'xpon 0/{}'.format(pon_index+1)
-        self._label = 'pon-{}'.format(pon_index)
-        self._port = None
-        self._discovery_tick = 20.0
-        self._no_onu_discover_tick = self._discovery_tick / 2
-        self._discovered_onus = []  # List of serial numbers
-        self._sync_tick = 20.0
+        self._pon_id = kwargs['pon-id']
+        self.log = structlog.get_logger(device_id=parent.device_id, pon_id=self._pon_id)
+        self._port_no = kwargs['port_no']
+        self._name = 'xpon 0/{}'.format(self._pon_id+1)
+        self._label = 'pon-{}'.format(self._pon_id)
+
         self._in_sync = False
         self._expedite_sync = False
         self._expedite_count = 0
+
+        self._discovery_tick = 20.0
+        self._no_onu_discover_tick = self._discovery_tick / 2
+        self._discovered_onus = []  # List of serial numbers
 
         self._onus = {}         # serial_number-base64 -> ONU  (allowed list)
         self._onu_by_id = {}    # onu-id -> ONU
         self._next_onu_id = Onu.MIN_ONU_ID + 128
         self._mcast_gem_ports = {}                # VLAN -> GemPort
 
-        self._admin_state = AdminState.DISABLED
-        self._oper_status = OperStatus.DISCOVERED
-        self._state = PonPort.State.INITIAL
-        self._deferred = None                     # General purpose
         self._discovery_deferred = None           # Specifically for ONU discovery
-        self._sync_deferred = None                # For sync of PON config to hardware
         self._active_los_alarms = set()           # ONU-ID
 
         # xPON configuration
 
         self._xpon_name = None
-        self._enabled = False
         self._downstream_fec_enable = False
         self._upstream_fec_enable = False
         self._deployment_range = 25000
         self._authentication_method = 'serial-number'
         self._mcast_aes = False
         self._line_rate = 'down_10_up_10'
-
-        if self.olt.autoactivate:
-            # Enable PON on startup
-            self._activation_method = 'autoactivate'
-            self._admin_state = AdminState.ENABLED
-        else:
-            self._activation_method = 'autodiscovery'
+        self._activation_method = 'autodiscovery'
 
         # Statistics
-        self.rx_packets = 0
-        self.rx_bytes = 0
-        self.tx_packets = 0
-        self.tx_bytes = 0
         self.tx_bip_errors = 0
-
-    def __del__(self):
-        self.stop()
 
     def __str__(self):
         return "PonPort-{}: Admin: {}, Oper: {}, OLT: {}".format(self._label,
@@ -134,14 +109,6 @@ class PonPort(object):
         return self._port
 
     @property
-    def port_no(self):
-        return self._port_no
-
-    @property
-    def name(self):
-        return self._name
-
-    @property
     def xpon_name(self):
         return self._xpon_name
 
@@ -153,10 +120,6 @@ class PonPort(object):
     @property
     def pon_id(self):
         return self._pon_id
-
-    @property
-    def olt(self):
-        return self._parent
 
     @property
     def onus(self):
@@ -180,27 +143,6 @@ class PonPort(object):
         return self._onu_by_id.get(onu_id)
 
     @property
-    def state(self):
-        return self._state
-
-    @property
-    def admin_state(self):
-        return self._admin_state
-
-    @admin_state.setter
-    def admin_state(self, value):
-        if self._admin_state != value:
-            self._admin_state = value
-            if self._admin_state == AdminState.ENABLED:
-                self.start()
-            else:
-                self.stop()
-
-    @property
-    def oper_status(self):
-        return self._oper_status
-
-    @property
     def in_service_onus(self):
         return len({onu.onu_id for onu in self.onus
                     if onu.onu_id not in self._active_los_alarms})
@@ -214,22 +156,6 @@ class PonPort(object):
         return distance
 
     @property
-    def adapter_agent(self):
-        return self.olt.adapter_agent
-
-    @property
-    def enabled(self):
-        return self._enabled
-
-    @enabled.setter
-    def enabled(self, value):
-        assert isinstance(value, bool), 'enabled is a boolean'
-        if self._enabled != value:
-            if value:
-                self.start()
-            self.stop()
-
-    @property
     def downstream_fec_enable(self):
         return self._downstream_fec_enable
 
@@ -239,8 +165,8 @@ class PonPort(object):
 
         if self._downstream_fec_enable != value:
             self._downstream_fec_enable = value
-            if self._state == PonPort.State.RUNNING:
-                self._deferred = self._set_pon_config("downstream-fec-enable", value)
+            if self.state == AdtnPort.State.RUNNING:
+                self.deferred = self._set_pon_config("downstream-fec-enable", value)
 
     @property
     def upstream_fec_enable(self):
@@ -251,8 +177,8 @@ class PonPort(object):
         assert isinstance(value, bool), 'upstream FEC enabled is a boolean'
         if self._upstream_fec_enable != value:
             self._upstream_fec_enable = value
-            if self._state == PonPort.State.RUNNING:
-                self._deferred = self._set_pon_config("upstream-fec-enable", value)
+            if self.state == AdtnPort.State.RUNNING:
+                self.deferred = self._set_pon_config("upstream-fec-enable", value)
 
     @property
     def any_upstream_fec_enabled(self):
@@ -270,7 +196,7 @@ class PonPort(object):
         assert isinstance(value, bool), 'MCAST AES is a boolean'
         if self._mcast_aes != value:
             self._mcast_aes = value
-            if self._state == PonPort.State.RUNNING:
+            if self.state == AdtnPort.State.RUNNING:
                 pass    # TODO
 
     @property
@@ -283,7 +209,7 @@ class PonPort(object):
         # TODO cast to enum
         if self._line_rate != value:
             self._line_rate = value
-            if self._state == PonPort.State.RUNNING:
+            if self.state == AdtnPort.State.RUNNING:
                 pass    # TODO
 
     @property
@@ -299,8 +225,8 @@ class PonPort(object):
                              format(PonPort.MAX_DEPLOYMENT_RANGE))
         if self._deployment_range != value:
             self._deployment_range = value
-            if self._state == PonPort.State.RUNNING:
-                self._deferred = self._set_pon_config("deployment-range", value)
+            if self.state == AdtnPort.State.RUNNING:
+                self.deferred = self._set_pon_config("deployment-range", value)
 
     @property
     def discovery_tick(self):
@@ -348,70 +274,41 @@ class PonPort(object):
             raise ValueError('Invalid ONU authentication method')
         self._authentication_method = value
 
-    def get_logical_port(self):
-        """
-        Get the VOLTHA logical port for this port. For PON ports, a logical port
-        is not currently created, so always return None
+    def cancel_deferred(self):
+        super(PonPort, self).cancel_deferred()
 
-        :return: VOLTHA logical port or None if not supported
-        """
-        return None
+        d, self._discovery_deferred = self._discovery_deferred, None
 
-    def _cancel_deferred(self):
-        d1, self._deferred = self._deferred, None
-        d2, self._discovery_deferred = self._discovery_deferred, None
-        d3, self._sync_deferred = self._sync_deferred, None
-
-        for d in [d1, d2, d3]:
-            try:
-                if d is not None and not d.called:
-                    d.cancel()
-            except Exception as e:
-                pass
+        try:
+            if d is not None and not d.called:
+                d.cancel()
+        except Exception as e:
+            pass
 
     def _update_adapter_agent(self):
         # TODO: Currently the adapter_agent does not allow 'update' of port status
         # self.adapter_agent.update_port(self.olt.device_id, self.get_port())
         pass
 
-    def start(self):
-        """
-        Start/enable this PON and start ONU discover
-        """
-        if self._state == PonPort.State.RUNNING:
-            return succeed('Running')
-
-        self.log.info('start')
-
-        self._cancel_deferred()
-        self._state = PonPort.State.INITIAL
-        self._oper_status = OperStatus.ACTIVATING
-        self._enabled = True
-
-        # Do the rest of the startup in an async method
-        self._deferred = reactor.callLater(0.5, self._finish_startup)
-        self._update_adapter_agent()
-
-        return succeed('Scheduled')
-
     @inlineCallbacks
-    def _finish_startup(self):
+    def finish_startup(self):
         """
         Do all startup offline since REST may fail
         """
-        if self._state != PonPort.State.INITIAL:
+        if self.state != AdtnPort.State.INITIAL:
             returnValue('Done')
 
         self.log.debug('final-startup')
+        results = None
 
         try:
-            self._deferred = self._get_pon_config()
-            results = yield self._deferred
+            self.deferred = self._get_pon_config()
+            results = yield self.deferred
 
         except Exception as e:
             self.log.exception('initial-GET', e=e)
-            self._deferred = reactor.callLater(5, self._finish_startup)
-            returnValue(self._deferred)
+            self.deferred = reactor.callLater(5, self.finish_startup)
+            returnValue(self.deferred)
 
         # Load config from hardware
 
@@ -423,19 +320,19 @@ class PonPort(object):
 
         if enabled != self._enabled:
             try:
-                self._deferred = self._set_pon_config("enabled", True)
-                yield self._deferred
+                self.deferred = self._set_pon_config("enabled", True)
+                yield self.deferred
 
             except Exception as e:
                 self.log.exception('final-startup-enable', e=e)
-                self._deferred = reactor.callLater(3, self._finish_startup)
-                returnValue(self._deferred)
+                self.deferred = reactor.callLater(3, self.finish_startup)
+                returnValue(self.deferred)
 
         if downstream_fec_enable != self._downstream_fec_enable:
             try:
-                self._deferred = self._set_pon_config("downstream-fec-enable",
-                                                      self._downstream_fec_enable)
-                yield self._deferred
+                self.deferred = self._set_pon_config("downstream-fec-enable",
+                                                     self._downstream_fec_enable)
+                yield self.deferred
 
             except Exception as e:
                 self.log.warning('final-startup-downstream-FEC', e=e)
@@ -444,9 +341,9 @@ class PonPort(object):
 
         if upstream_fec_enable != self._upstream_fec_enable:
             try:
-                self._deferred = self._set_pon_config("upstream-fec-enable",
-                                                      self._upstream_fec_enable)
-                yield self._deferred
+                self.deferred = self._set_pon_config("upstream-fec-enable",
+                                                     self._upstream_fec_enable)
+                yield self.deferred
 
             except Exception as e:
                 self.log.warning('final-startup-upstream-FEC', e=e)
@@ -455,22 +352,14 @@ class PonPort(object):
 
         if deployment_range != self._deployment_range:
             try:
-                self._deferred = self._set_pon_config("deployment-range",
-                                                      self._deployment_range)
-                yield self._deferred
+                self.deferred = self._set_pon_config("deployment-range",
+                                                     self._deployment_range)
+                yield self.deferred
 
             except Exception as e:
                 self.log.warning('final-startup-deployment-range', e=e)
                 self._in_sync = False
                 # Non-fatal. May have failed due to no SFQ in slot
-
-        # If here, initial settings were successfully written to hardware
-
-        self._admin_state = AdminState.ENABLED
-        self._oper_status = OperStatus.ACTIVE  # TODO: is this correct, how do we tell GRPC
-        self._state = PonPort.State.RUNNING
-
-        # Restart any ONU's in case here due to reboot
 
         if len(self._onus) > 0:
             dl = []
@@ -483,41 +372,26 @@ class PonPort(object):
         # Begin to ONU discovery and hardware sync
 
         self._discovery_deferred = reactor.callLater(5, self._discover_onus)
-        self._sync_deferred = reactor.callLater(60, self._sync_hardware)
 
-        self._update_adapter_agent()
+        # If here, initial settings were successfully written to hardware
+
+        super(PonPort, self).finish_startup()
         returnValue('Enabled')
 
-    @inlineCallbacks
-    def stop(self):
-        if self._state == PonPort.State.STOPPED:
-            self.log.debug('already stopped')
-            returnValue('Stopped')
-
-        self.log.info('stopping')
-
-        self._cancel_deferred()
-        self._enabled = False
-        self._admin_state = AdminState.DISABLED
-        self._oper_status = OperStatus.UNKNOWN
-        self._update_adapter_agent()
-
-        self._state = PonPort.State.STOPPED
-
+    def finish_stop(self):
         # Remove all existing ONUs. They will need to be re-discovered
-
+        dl = []
         onu_ids = frozenset(self._onu_by_id.keys())
         for onu_id in onu_ids:
             try:
-                yield self.delete_onu(onu_id)
+                dl.append(self.delete_onu(onu_id))
+
             except Exception as e:
                 self.log.exception('onu-cleanup', onu_id=onu_id, e=e)
 
-        results = yield self._set_pon_config("enabled", False)
-        self._sync_deferred = reactor.callLater(self._sync_tick, self._sync_hardware)
+        dl.append(self._set_pon_config("enabled", False))
 
-        self.log.debug('stopped')
-        returnValue(results)
+        return defer.gatherResults(dl, consumeErrors=True)
 
     @inlineCallbacks
     def reset(self):
@@ -525,16 +399,16 @@ class PonPort(object):
         Set the PON Port to a known good state on initial port startup.  Actual
         PON 'Start' is done elsewhere
         """
-        if self._state != PonPort.State.INITIAL:
-            self.log.error('reset-ignored', state=self._state)
+        if self.state != AdtnPort.State.INITIAL:
+            self.log.error('reset-ignored', state=self.state)
             returnValue('Ignored')
 
-        initial_port_state = AdminState.ENABLED if self.olt.autoactivate else AdminState.DISABLED
+        initial_port_state = AdminState.DISABLED
         self.log.info('reset', initial_state=initial_port_state)
 
         try:
-            self._deferred = self._get_pon_config()
-            results = yield self._deferred
+            self.deferred = self._get_pon_config()
+            results = yield self.deferred
             enabled = results.get('enabled', False)
 
         except Exception as e:
@@ -545,7 +419,7 @@ class PonPort(object):
 
         if enable != enabled:
             try:
-                self._deferred = yield self._set_pon_config("enabled", enable)
+                self.deferred = yield self._set_pon_config("enabled", enable)
             except Exception as e:
                 self.log.exception('reset-enabled', e=e, enabled=enabled)
 
@@ -567,7 +441,7 @@ class PonPort(object):
                         yield defer.gatherResults(dl, consumeErrors=True)
 
                 except Exception as e:
-                    self.log.exception('rest-ONU-delete', onu_id=onu_id, e=e)
+                    self.log.exception('rest-ONU-delete', e=e)
                     pass  # Non-fatal
 
         except Exception as e:
@@ -575,31 +449,15 @@ class PonPort(object):
 
         returnValue('Reset complete')
 
-    def restart(self):
-        if self._state == PonPort.State.RUNNING or self._state == PonPort.State.STOPPED:
-            start_it = (self._state == PonPort.State.RUNNING)
-            self._state = PonPort.State.INITIAL
-
-            return self.start() if start_it else self.stop()
-        return succeed('nop')
-
-    def delete(self):
-        """
-        Parent device is being deleted. Do not change any config but
-        stop all polling
-        """
-        self.log.info('Deleting')
-        self._state = PonPort.State.DELETING
-        self._cancel_deferred()
-
-    def gem_ids(self, vid, exception_gems, multicast_gems):
+    def gem_ids(self, logical_port, untagged_gem, exception_gems, multicast_gems):  # FIXED_ONU
         """
         Get all GEM Port IDs used on a given PON
 
-        :param vid: (int) VLAN ID if customer ONU specific. None if for all ONUs
-                          on PON, if Multicast, VID for Multicast, or None for all\
+        :param logical_port: (int) Logical port umber of ONU. None if for all ONUs
+                          on PON, if Multicast, VID for Multicast, or None for all
                           Multicast GEMPorts
-        :param exception_gems: (boolean) Select from special purpose ACL GEM-Portas
+        :param untagged_gem: (boolean) Select from special purpose untagged GEM Port
+        :param exception_gems: (boolean) Select from special purpose ACL GEM Port
         :param multicast_gems: (boolean) Select from available Multicast GEM Ports
         :return: (dict) data_gem -> key -> onu-id, value -> tuple(sorted list of GEM Port IDs, onu_vid)
                         mcast_gem-> key -> mcast-vid, value -> GEM Port IDs
@@ -609,14 +467,15 @@ class PonPort(object):
         if multicast_gems:
             # Multicast GEMs belong to the PON, but we may need to register them on
             # all ONUs. Rework when BBF MCAST Gems are supported
-            for vlan, gem_port in self._mcast_gem_ports.iteritems():
-                if vid is None or (vid == vlan and vid in self.olt.multicast_vlans):
+            for vlan, gem_port in self._mcast_gem_ports.iteritems():    # TODO: redo logic
+                if logical_port is None or (logical_port == vlan and logical_port in self.olt.multicast_vlans):
                     gem_ids[vlan] = ([gem_port.gem_id], None)
         else:
             for onu_id, onu in self._onu_by_id.iteritems():
-                if vid is None or vid == onu.onu_vid:
-                    gem_ids[onu_id] = (onu.gem_ids(exception_gems), onu.onu_vid)  # FIXED_ONU
-
+                if logical_port is None or logical_port == onu.logical_port:
+                    gem_ids[onu_id] = (onu.gem_ids(untagged_gem, exception_gems),
+                                       onu.onu_vid if not untagged_gem
+                                       else self.olt.untagged_vlan)
         return gem_ids
 
     def _get_pon_config(self):
@@ -654,7 +513,7 @@ class PonPort(object):
                                                             self._onu_discovery_init_complete,
                                                             None)
 
-    def _onu_discovery_init_complete(self, _):
+    def _onu_discovery_init_complete(self, _result):
         """
         This method is called after the REST POST to request ONU discovery is
         completed.  The results (body) of the post is always empty / 204 NO CONTENT
@@ -663,8 +522,8 @@ class PonPort(object):
         delay += random.uniform(-delay / 10, delay / 10)
         self._discovery_deferred = reactor.callLater(delay, self._discover_onus)
 
-    def _sync_hardware(self):
-        if self._state == PonPort.State.RUNNING or self._state == PonPort.State.STOPPED:
+    def sync_hardware(self):
+        if self.state == AdtnPort.State.RUNNING or self.state == AdtnPort.State.STOPPED:
             def read_config(results):
                 self.log.debug('read-config', results=results)
                 config = OltConfig.Pon.decode([results])
@@ -679,7 +538,7 @@ class PonPort(object):
                     self._expedite_sync = True
                     dl.append(self._set_pon_config("enabled", self.enabled))
 
-                elif self._state == PonPort.State.RUNNING:
+                elif self.state == AdtnPort.State.RUNNING:
                     if self.deployment_range != config.deployment_range:
                         self._in_sync = False
                         self._expedite_sync = True
@@ -701,7 +560,7 @@ class PonPort(object):
                 return config.onus
 
             def sync_onus(hw_onus):
-                if self._state == PonPort.State.RUNNING:
+                if self.state == AdtnPort.State.RUNNING:
                     self.log.debug('sync-pon-onu-results', config=hw_onus)
 
                     # ONU's have their own sync task, extra (should be deleted) are
@@ -723,7 +582,7 @@ class PonPort(object):
             def reschedule(_):
                 # Speed up sequential resync a limited number of times if out of sync.
 
-                delay = self._sync_tick
+                delay = self.sync_tick
 
                 if self._expedite_sync:
                     self._expedite_count += 1
@@ -733,12 +592,12 @@ class PonPort(object):
                     self._expedite_count = 0
 
                 delay += random.uniform(-delay / 10, delay / 10)
-                self._sync_deferred = reactor.callLater(delay, self._sync_hardware)
+                self.sync_deferred = reactor.callLater(delay, self.sync_hardware)
 
-            self._sync_deferred = self._get_pon_config()
-            self._sync_deferred.addCallbacks(read_config, failure, errbackArgs=['get-config'])
-            self._sync_deferred.addCallbacks(sync_onus, failure, errbackArgs=['pon-sync'])
-            self._sync_deferred.addBoth(reschedule)
+            self.sync_deferred = self._get_pon_config()
+            self.sync_deferred.addCallbacks(read_config, failure, errbackArgs=['get-config'])
+            self.sync_deferred.addCallbacks(sync_onus, failure, errbackArgs=['pon-sync'])
+            self.sync_deferred.addBoth(reschedule)
 
     def process_status_poll(self, status):
         """
@@ -873,7 +732,7 @@ class PonPort(object):
         self.log.debug('discovered-ONUs', list=discovered_onus)
 
         # Only request discovery if activation is auto-discovery or auto-activate
-        continue_discovery = ['autodiscovery', 'autoactivate']
+        continue_discovery = ['autodiscovery']   # , 'autoactivate']
 
         if self._activation_method not in continue_discovery:
             return set(), set()
@@ -892,22 +751,7 @@ class PonPort(object):
         :return: (dict) onu config data or None on lookup failure
         """
         try:
-            from flow.demo_data import get_tconts, get_gem_ports, get_onu_id
-
-            if self.activation_method == "autoactivate":
-                # This is currently just for 'DEMO' mode
-                onu_id = get_onu_id(serial_number)
-                if onu_id is None:
-                    onu_id = self.get_next_onu_id()
-                enabled = True
-                channel_speed = 8500000000
-                tconts = get_tconts(serial_number, onu_id)
-                gem_ports = get_gem_ports(serial_number, onu_id)
-                vont_ani = None
-                xpon_name = None
-                upstream_fec_enabled = True
-
-            elif self.activation_method == "autodiscovery":
+            if self.activation_method == "autodiscovery":
                 if self.authentication_method == 'serial-number':
                     gpon_info = self.olt.get_xpon_info(self.pon_id)
 
@@ -931,6 +775,11 @@ class PonPort(object):
 
                         gem_ports = {key: val for key, val in gpon_info['gem-ports'].iteritems()
                                      if val.tcont_ref in tconts.keys()}
+
+                        venet = next((val for val in gpon_info['v-enets'].itervalues()
+                                      if val['vont-ani'] == vont_info['name']), None)
+                        # TODO: need to handle case where ont_ani, gems, venets, tconts are assigned
+                        #       after activation is started. only vont-ani needs to be set to get here
 
                     except StopIteration:
                         # Can happen if vont-ani or ont-ani has not yet been configured
@@ -959,9 +808,10 @@ class PonPort(object):
                 'password': Onu.DEFAULT_PASSWORD,
                 't-conts': tconts,
                 'gem-ports': gem_ports,
-                'onu-vid': self.olt.get_channel_id(self._pon_id, onu_id),
+                'onu-vid': self.olt.get_onu_vid(onu_id),
                 'channel-id': self.olt.get_channel_id(self._pon_id, onu_id),
-                'vont-ani': vont_ani
+                'vont-ani': vont_ani,
+                'venet': venet
             }
             # Hold off ONU activation until at least one GEM Port is defined.
             self.log.debug('onu-info', gem_ports=gem_ports)
@@ -984,19 +834,25 @@ class PonPort(object):
             from alarms.onu_discovery_alarm import OnuDiscoveryAlarm
             self.log.info('onu-lookup-failure', serial_number=serial_number_64)
             OnuDiscoveryAlarm(self.olt, self.pon_id, serial_number).raise_alarm()
-            return
+            returnValue('new-onu')
 
         if serial_number_64 not in status.onus or onu_info['onu-id'] in self._active_los_alarms:
             onu = None
             onu_id = onu_info['onu-id']
 
-            if serial_number_64 in self._onus or onu_id in self._onu_by_id:
+            if serial_number_64 in self._onus and onu_id in self._onu_by_id:
+                # Handles fast entry into this task before FPGA can set/clear results
+                returnValue('sticky-onu')
+
+            elif (serial_number_64 in self._onus and onu_id not in self._onu_by_id) or \
+                    (serial_number_64 not in self._onus and onu_id in self._onu_by_id):
                 # May be here due to unmanaged power-cycle on OLT or fiber bounced for a
                 # previously activated ONU. Drop it and add bac on next discovery cycle
                 self.delete_onu(onu_id)
 
             elif len(self._onus) >= self.MAX_ONUS_SUPPORTED:
                 self.log.warning('max-onus-provisioned', count=len(self._onus))
+                returnValue('max-onus-reached')
 
             else:
                 # TODO: Make use of upstream_channel_speed variable
@@ -1025,36 +881,10 @@ class PonPort(object):
 
                     yield onu.create(tconts, gem_ports)
 
-                    # If autoactivate (demo) mode and not reflow, activate the ONU
-                    if self.olt.autoactivate:
-                        self.activate_onu(onu)
-
                 except Exception as e:
                     self.log.exception('add-onu', serial_number=serial_number_64, e=e)
                     del self._onus[serial_number_64]
                     del self._onu_by_id[onu.onu_id]
-
-    def activate_onu(self, onu):
-        """
-        Called when a new ONU is discovered and VOLTHA device adapter needs to be informed
-        :param onu:
-        """
-        if self.olt.autoactivate:
-            self.log.info('activate-onu', onu=onu)
-
-            olt = self.olt
-            adapter = self.adapter_agent
-            channel_id = onu.onu_vid
-
-            proxy = onu.proxy_address
-
-            # NOTE: The following method will be deprecated. Use xPON
-            adapter.child_device_detected(parent_device_id=olt.device_id,
-                                          parent_port_no=self._port_no,
-                                          child_device_type=onu.vendor_id,
-                                          proxy_address=proxy,
-                                          admin_state=AdminState.ENABLED,
-                                          vlan=channel_id)
 
     def get_next_onu_id(self):
         used_ids = [onu.onu_id for onu in self.onus]
@@ -1103,13 +933,6 @@ class PonPort(object):
             except Exception as e:
                 self.log.exception('onu-delete', serial_number=onu.serial_number, e=e)
 
-            if self.olt.autoactivate:
-                # Clean up adapter agent of this ONU
-                if proxy is not None:
-                    onu_device = self.olt.adapter_agent.get_child_device_with_proxy_address(proxy)
-                    if onu_device is not None:
-                        self.olt.adapter_agent.delete_child_device(self.olt.device_id,
-                                                                   onu_device.device_id)
         else:
             try:
                 yield self._remove_from_hardware(onu_id)

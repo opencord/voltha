@@ -298,7 +298,7 @@ class AdtranXPON(object):
 
         if name in items:
             # Treat like an update. It will update collection if needed
-            return self.xpon_update(data)
+            return self.xpon_update(data, td=td)
 
         log.debug('new-item', item_type=item_type, item=new_item)
         items[name] = new_item
@@ -315,7 +315,7 @@ class AdtranXPON(object):
         else:
             del items[name]
 
-    def xpon_update(self, data):
+    def xpon_update(self, data, td=None):
         log.debug('xpon-update', data=data)
 
         name = data.name
@@ -328,7 +328,7 @@ class AdtranXPON(object):
         if existing_item is None:
             raise KeyError("'{}' not found. Type: {}".format(name, type(data)))
 
-        item_type, update_item = self._data_to_dict(data)
+        item_type, update_item = self._data_to_dict(data, td=td)
         log.debug('update-item', item_type=item_type, item=update_item)
 
         def _dict_diff(lhs, rhs):

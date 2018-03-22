@@ -14,7 +14,7 @@
 
 import xmltodict
 import re
-from enum import Enum
+from enum import IntEnum
 from twisted.internet import reactor, defer
 from twisted.internet.defer import inlineCallbacks, returnValue, succeed
 from voltha.core.flow_decomposer import *
@@ -30,7 +30,7 @@ class EVC(object):
     """
     Class to wrap EVC functionality
     """
-    class SwitchingMethod(Enum):
+    class SwitchingMethod(IntEnum):
         SINGLE_TAGGED = 1
         DOUBLE_TAGGED = 2
         MAC_SWITCHED = 3
@@ -51,7 +51,7 @@ class EVC(object):
                 return '<double-tag-mac-switched/>'
             raise ValueError('Invalid SwitchingMethod enumeration')
 
-    class Men2UniManipulation(Enum):
+    class Men2UniManipulation(IntEnum):
         SYMMETRIC = 1
         POP_OUT_TAG_ONLY = 2
         DEFAULT = SYMMETRIC
@@ -67,7 +67,7 @@ class EVC(object):
                 return fmt.format('<pop-outer-tag-only/>')
             raise ValueError('Invalid Men2UniManipulation enumeration')
 
-    class ElineFlowType(Enum):
+    class ElineFlowType(IntEnum):
         NNI_TO_UNI = 1
         UNI_TO_NNI = 2
         NNI_TO_NNI = 3
@@ -92,6 +92,7 @@ class EVC(object):
         self._s_tag = None
         self._stpid = None
         self._switching_method = None
+        self.service_evc = False
 
         self._ce_vlan_preservation = None
         self._men_to_uni_tag_manipulation = None
@@ -167,7 +168,7 @@ class EVC(object):
     @switching_method.setter
     def switching_method(self, value):
         assert self._switching_method is None or self._switching_method == value,\
-            'Switching Method can only be set once'
+            'Switching Method can only be set once. EVC: {}'.format(self.name)
         self._switching_method = value
 
     @property
@@ -298,7 +299,6 @@ class EVC(object):
             for evc_map in self.evc_maps:
                 try:
                     yield evc_map.install()
-                    pass  # TODO: What to do on error?
 
                 except Exception as e:
                     evc_map.status = 'Exception during EVC-MAP Install: {}'.format(e.message)
@@ -350,7 +350,7 @@ class EVC(object):
 
             if delete_maps:
                 for evc_map in self.evc_maps:
-                    dl.append(evc_map.delete())   # TODO: implement bulk-flow procedures
+                    dl.append(evc_map.delete(None))   # TODO: implement bulk-flow procedures
 
             yield defer.gatherResults(dl, consumeErrors=True)
 

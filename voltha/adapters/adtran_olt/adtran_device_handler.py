@@ -37,7 +37,7 @@ from voltha.protos.openflow_13_pb2 import ofp_desc, ofp_switch_features, OFPC_PO
     OFPC_GROUP_STATS, OFPC_TABLE_STATS, OFPC_FLOW_STATS
 from voltha.registry import registry
 from alarms.adapter_alarms import AdapterAlarms
-from common.frameio.frameio import BpfProgramFilter, hexify
+from common.frameio.frameio import BpfProgramFilter
 from pki.olt_pm_metrics import OltPmMetrics
 from common.utils.asleep import asleep
 from scapy.layers.l2 import Ether, Dot1Q
@@ -46,8 +46,11 @@ from scapy.layers.inet import Raw
 _ = third_party
 
 DEFAULT_PACKET_IN_VLAN = 4000
-DEFAULT_MULTICAST_VLAN = 4050
-_MANAGEMENT_VLAN = 4093
+DEFAULT_POC_3_MULTICAST_VLAN = 4050
+DEFAULT_MULTICAST_VLAN = 4000
+DEFAULT_UTILITY_VLAN = 4094
+DEFAULT_UNTAGGED_VLAN = DEFAULT_UTILITY_VLAN    # if RG does not send priority tagged frames
+#DEFAULT_UNTAGGED_VLAN = 4092
 
 _DEFAULT_RESTCONF_USERNAME = ""
 _DEFAULT_RESTCONF_PASSWORD = ""
@@ -57,12 +60,13 @@ _DEFAULT_NETCONF_USERNAME = ""
 _DEFAULT_NETCONF_PASSWORD = ""
 _DEFAULT_NETCONF_PORT = 830
 
+FIXED_ONU = True  # Enhanced ONU support
+
 
 class AdtranDeviceHandler(object):
     """
     A device that supports the ADTRAN RESTCONF protocol for communications
     with a VOLTHA/VANILLA managed device.
-
     Port numbering guidelines for Adtran OLT devices.  Derived classes may augment
     the numbering scheme below as needed.
 
@@ -91,7 +95,8 @@ class AdtranDeviceHandler(object):
     RESTART_RPC = '<system-restart xmlns="urn:ietf:params:xml:ns:yang:ietf-system"/>'
 
     def __init__(self, **kwargs):
-        from net.adtran_zmq import DEFAULT_PON_AGENT_TCP_PORT, DEFAULT_PIO_TCP_PORT
+        from net.pio_zmq import DEFAULT_PIO_TCP_PORT
+        from net.pon_zmq import DEFAULT_PON_AGENT_TCP_PORT
 
         super(AdtranDeviceHandler, self).__init__()
 
@@ -112,7 +117,12 @@ class AdtranDeviceHandler(object):
         self.alarms = None
         self.packet_in_vlan = DEFAULT_PACKET_IN_VLAN
         self.multicast_vlans = [DEFAULT_MULTICAST_VLAN]
+        self.untagged_vlan = DEFAULT_UNTAGGED_VLAN
+        self.utility_vlan = DEFAULT_UTILITY_VLAN
         self.default_mac_addr = '00:13:95:00:00:00'
+        self._is_inband_frame = None                    # TODO: Deprecate after PIO available
+        self.exception_gems = FIXED_ONU
+        self._rest_support = None
 
         # Northbound and Southbound ports
         self.northbound_ports = {}  # port number -> Port
@@ -139,16 +149,6 @@ class AdtranDeviceHandler(object):
         self.netconf_password = _DEFAULT_NETCONF_PASSWORD
         self._netconf_client = None
 
-        # If Auto-activate is true, all PON ports (up to a limit below) will be auto-enabled
-        # and any ONU's discovered will be auto-activated.
-        #
-        # If it is set to False, then the xPON API/CLI should be used to enable any PON
-        # ports. Before enabling a PON, set it's polling interval. If the polling interval
-        # is 0, then manual ONU discovery is in effect. If >0, then every 'polling' seconds
-        # autodiscover is requested. Any discovered ONUs will need to have their serial-numbers
-        # registered (via xPON API/CLI) before they are activated.
-
-        self._autoactivate = False
         self.max_nni_ports = 1  # TODO: This is a VOLTHA imposed limit in 'flow_decomposer.py
                                 # and logical_device_agent.py
         # OMCI ZMQ Channel
@@ -164,9 +164,8 @@ class AdtranDeviceHandler(object):
         self.heartbeat = None
         self.heartbeat_last_reason = ''
 
-        # Virtualized OLT Support & async command support
+        # Virtualized OLT Support
         self.is_virtual_olt = False
-        self.is_async_control = False
 
         # Installed flows
         self._evcs = {}  # Flow ID/name -> FlowEntry
@@ -219,7 +218,8 @@ class AdtranDeviceHandler(object):
             del self._evcs[evc.name]
 
     def parse_provisioning_options(self, device):
-        from net.adtran_zmq import DEFAULT_PON_AGENT_TCP_PORT
+        from net.pon_zmq import DEFAULT_PON_AGENT_TCP_PORT
+        from net.pio_zmq import DEFAULT_PIO_TCP_PORT
 
         if not device.ipv4_address:
             self.activate_failed(device, 'No ip_address field provided')
@@ -255,23 +255,31 @@ class AdtranDeviceHandler(object):
         parser.add_argument('--rc_port', '-T', action='store', default=_DEFAULT_RESTCONF_PORT, type=check_tcp_port,
                             help='RESTCONF TCP Port')
         parser.add_argument('--zmq_port', '-z', action='store', default=DEFAULT_PON_AGENT_TCP_PORT,
-                            type=check_tcp_port, help='ZeroMQ Port')
-        parser.add_argument('--autoactivate', '-a', action='store_true', default=False,
-                            help='Autoactivate / Demo mode')
+                            type=check_tcp_port, help='PON Agent ZeroMQ Port')
+        parser.add_argument('--pio_port', '-Z', action='store', default=DEFAULT_PIO_TCP_PORT,
+                            type=check_tcp_port, help='PIO Service ZeroMQ Port')
         parser.add_argument('--multicast_vlan', '-M', action='store',
                             default='{}'.format(DEFAULT_MULTICAST_VLAN),
-                            help='Multicast VLAN')
-        parser.add_argument('--packet_in_vlan', '-V', action='store', default=DEFAULT_PACKET_IN_VLAN,
-                            type=check_vid, help='OpenFlow Packet-In/Out VLAN')
-
+                            help='Multicast VLAN'),
+        parser.add_argument('--untagged_vlan', '-v', action='store',
+                            default='{}'.format(DEFAULT_UNTAGGED_VLAN),
+                            help='VLAN for Untagged Frames from ONUs'),
+        parser.add_argument('--utility_vlan', '-B', action='store',
+                            default='{}'.format(DEFAULT_UTILITY_VLAN),
+                            help='VLAN for Untagged Frames from ONUs'),
+        parser.add_argument('--no_exception_gems', '-X', action='store_true', default=not FIXED_ONU,
+                            help='Native OpenFlow Packet-In/Out support')
         try:
             args = parser.parse_args(shlex.split(device.extra_args))
 
-            self.packet_in_vlan = args.packet_in_vlan
-            self._is_inband_frame = BpfProgramFilter('(ether[14:2] & 0xfff) = 0x{:03x}'.
-                                                     format(self.packet_in_vlan))
-            # May have multiple multicast VLANs
-            self.multicast_vlans = [int(vid.strip()) for vid in args.multicast_vlan.split(',')]
+            self.exception_gems = not args.no_exception_gems
+            if self.exception_gems:
+                self._is_inband_frame = BpfProgramFilter('(ether[14:2] & 0xfff) = 0x{:03x}'.
+                                                         format(self.packet_in_vlan))
+                self.multicast_vlans = [DEFAULT_POC_3_MULTICAST_VLAN]
+            else:
+                # May have multiple multicast VLANs
+                self.multicast_vlans = [int(vid.strip()) for vid in args.multicast_vlan.split(',')]
 
             self.netconf_username = args.nc_username
             self.netconf_password = args.nc_password
@@ -282,8 +290,7 @@ class AdtranDeviceHandler(object):
             self.rest_port = args.rc_port
 
             self.pon_agent_port = args.zmq_port
-
-            self._autoactivate = args.autoactivate
+            self.pio_port = args.pio_port
 
             if not self.rest_username:
                 self.rest_username = 'NDE0NDRkNDk0ZQ==\n'.\
@@ -304,17 +311,6 @@ class AdtranDeviceHandler(object):
                                  reachable=False)
         except Exception as e:
             self.log.exception('option_parsing_error: {}'.format(e.message))
-
-    @property
-    def autoactivate(self):
-        """
-        Flag indicating if auto-discover/enable of PON ports is enabled as
-        well as ONU auto activation. useful for demos
-
-        If autoactivate is enabled, the default startup state (first time) for a PON port is disabled
-        If autoactivate is disabled, the default startup state for a PON port is enabled
-        """
-        return self._autoactivate
 
     @inlineCallbacks
     def activate(self, device, done_deferred=None, reconciling=False):
@@ -340,15 +336,13 @@ class AdtranDeviceHandler(object):
                 try:
                     self.startup = self.make_restconf_connection()
                     results = yield self.startup
+                    self._rest_support = results
                     self.log.debug('HELLO_Contents: {}'.format(pprint.PrettyPrinter().pformat(results)))
 
                     # See if this is a virtualized OLT. If so, no NETCONF support available
-
-                    if 'module-info' in results:
-                        self.is_virtual_olt = any(mod.get('module-name', None) == 'adtran-ont-mock'
-                                                  for mod in results['module-info'])
-                        self.is_async_control = any(mod.get('module-name', None) == 'adtran-olt-pon-control'
-                                                   for mod in results['module-info'])
+                    self.is_virtual_olt = 'module-info' in results and\
+                                          any(mod.get('module-name', None) == 'adtran-ont-mock'
+                                              for mod in results['module-info'])
 
                 except Exception as e:
                     self.log.exception('Initial_RESTCONF_hello_failed', e=e)
@@ -380,26 +374,8 @@ class AdtranDeviceHandler(object):
                         device.hardware_version = results.get('hardware_version', 'unknown')
                         device.firmware_version = results.get('firmware_version', 'unknown')
                         device.serial_number = results.get('serial_number', 'unknown')
+                        device.images.image.extend(results.get('software-images', []))
 
-                        def get_software_images():
-                            leafs = ['running-revision', 'candidate-revision', 'startup-revision']
-                            image_names = list(set([results.get(img, 'unknown') for img in leafs]))
-
-                            images = []
-                            image_count = 1
-                            for name in image_names:
-                                # TODO: Look into how to find out hash, is_valid, and install date/time
-                                image = Image(name='Candidate_{}'.format(image_count),
-                                              version=name,
-                                              is_active=(name == results.get('running-revision', 'xxx')),
-                                              is_committed=True,
-                                              is_valid=True,
-                                              install_datetime='Not Available')
-                                image_count += 1
-                                images.append(image)
-                            return images
-
-                        device.images.image.extend(get_software_images())
                         device.root = True
                         device.vendor = results.get('vendor', 'Adtran, Inc.')
                         device.connect_status = ConnectStatus.REACHABLE
@@ -694,7 +670,7 @@ class AdtranDeviceHandler(object):
                 self.log.exception('port-reset', e=e)
                 self.activate_failed(device, e.message)
 
-            # Clean up all EVC and EVC maps (exceptions are ok)
+            # Clean up all EVCs, EVC maps and ACLs (exceptions are ok)
             try:
                 from flow.evc import EVC
                 self.startup = yield EVC.remove_all(self.netconf_client)
@@ -708,6 +684,13 @@ class AdtranDeviceHandler(object):
 
             except Exception as e:
                 self.log.exception('evc-map-cleanup', e=e)
+
+            try:
+                from flow.acl import ACL
+                self.startup = yield ACL.remove_all(self.netconf_client)
+
+            except Exception as e:
+                self.log.exception('acl-cleanup', e=e)
 
         # Start/stop the interfaces as needed. These are deferred calls
 
@@ -824,6 +807,7 @@ class AdtranDeviceHandler(object):
 
     @inlineCallbacks
     def complete_device_specific_activation(self, _device, _reconciling):
+        # NOTE: Override this in your derived class for any device startup completion
         return defer.succeed('NOP')
 
     def disable(self):
@@ -1118,7 +1102,7 @@ class AdtranDeviceHandler(object):
 
         # Pause additional 5 seconds to let allow OLT microservices to complete some more initialization
         yield asleep(5)
-
+        # TODO: Update device info. The software images may have changed...
         # Get the latest device reference
 
         device = self.adapter_agent.get_device(self.device_id)
@@ -1232,10 +1216,12 @@ class AdtranDeviceHandler(object):
         self.log.info('deleted', device_id=self.device_id)
 
     def _activate_io_port(self):
-        if self.io_port is None:
+        if self.packet_in_vlan != 0 and self._is_inband_frame is not None and self.io_port is None:
             self.log.info('registering-frameio')
             self.io_port = registry('frameio').open_port(
                 self.interface, self._rcv_io, self._is_inband_frame)
+        else:
+            self.io_port = None
 
     def _deactivate_io_port(self):
         io, self.io_port = self.io_port, None
@@ -1269,30 +1255,7 @@ class AdtranDeviceHandler(object):
                 self.alarms.send_alarm(self, raw_data)
 
     def packet_out(self, egress_port, msg):
-        if self.io_port is not None:
-            self.log.debug('sending-packet-out', egress_port=egress_port,
-                           msg=hexify(msg))
-            pkt = Ether(msg)
-
-            #ADTRAN To remove any extra tags 
-            while ( pkt.type == 0x8100 ):
-                msg_hex=hexify(msg)
-                msg_hex=msg_hex[:24]+msg_hex[32:]
-                bytes = []
-                msg_hex = ''.join( msg_hex.split(" ") )
-                for i in range(0, len(msg_hex), 2):
-                    bytes.append( chr( int (msg_hex[i:i+2], 16 ) ) )
-                msg = ''.join( bytes )
-                pkt = Ether(msg)
-            #END
-
-            out_pkt = (
-                Ether(src=pkt.src, dst=pkt.dst) /
-                Dot1Q(vlan=self.packet_in_vlan) /
-                Dot1Q(vlan=egress_port, type=pkt.type) /
-                pkt.payload
-            )
-            self.io_port.send(str(out_pkt))
+        raise NotImplementedError('Overload in a derived class')
 
     def update_pm_config(self, device, pm_config):
         # TODO: This has not been tested

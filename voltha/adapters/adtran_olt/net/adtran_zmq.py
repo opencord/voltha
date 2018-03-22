@@ -13,9 +13,6 @@
 # limitations under the License.
 
 import sys
-import json
-import struct
-import binascii
 import structlog
 
 from twisted.internet.defer import succeed
@@ -32,13 +29,7 @@ from zmq.auth.base import Authenticator
 
 from threading import Thread, Event
 
-log = structlog.get_logger()
 zmq_factory = ZmqFactory()
-
-# An OMCI message minimally has a 32-bit PON index and 32-bit ONU ID.
-
-DEFAULT_PON_AGENT_TCP_PORT = 5656
-DEFAULT_PIO_TCP_PORT = 5657
 
 
 class AdtranZmqClient(object):
@@ -46,148 +37,65 @@ class AdtranZmqClient(object):
     Adtran ZeroMQ Client for PON Agent and/or packet in/out service
     """
     def __init__(self, ip_address, rx_callback, port):
-        external_conn = 'tcp://{}:{}'.format(ip_address, port)
-        endpoint = ZmqEndpoint('connect', external_conn)
+        self.log = structlog.get_logger()
 
-        self._socket = ZmqPairConnection(zmq_factory, endpoint)
+        external_conn = 'tcp://{}:{}'.format(ip_address, port)
+
+        self.zmq_endpoint = ZmqEndpoint('connect', external_conn)
+        self._socket = ZmqPairConnection(zmq_factory, self.zmq_endpoint)
         self._socket.onReceive = rx_callback or AdtranZmqClient.rx_nop
+        self.auth = None
 
     def send(self, data):
         try:
             self._socket.send(data)
 
         except Exception as e:
-            log.exception('send', e=e)
+            self.log.exception('send', e=e)
 
     def shutdown(self):
         self._socket.onReceive = AdtranZmqClient.rx_nop
         self._socket.shutdown()
 
-    @staticmethod
-    def rx_nop(message):
-        log.debug('discarding-no-receiver')
+    @property
+    def socket(self):
+        return self._socket
 
     @staticmethod
-    def encode_omci_message(msg, pon_index, onu_id, is_async_control):
-        """
-        Create an OMCI Tx Packet for the specified ONU
+    def rx_nop(_):
+        pass
 
-        :param msg: (str) OMCI message to send
-        :param pon_index: (unsigned int) PON Port index
-        :param onu_id: (unsigned int) ONU ID
-        :param is_async_control: (bool) Newer async/JSON support
+    def setup_plain_security(self, username, password):
+        self.log.debug('setup-plain-security')
 
-        :return: (bytes) octet string to send
-        """
-        assert msg, 'No message provided'
+        def configure_plain(_):
+            self.log.debug('plain-security', username=username,
+                           password=password)
 
-        return AdtranZmqClient._encode_omci_message_json(msg, pon_index, onu_id) \
-            if is_async_control else \
-            AdtranZmqClient._encode_omci_message_legacy(msg, pon_index, onu_id)
+            self.auth.configure_plain(domain='*', passwords={username: password})
+            self._socket.socket.plain_username = username
+            self._socket.socket.plain_password = password
 
-    @staticmethod
-    def _encode_omci_message_legacy(msg, pon_index, onu_id):
-        """
-        Create an OMCI Tx Packet for the specified ONU
+        def add_endoints(_results):
+            self._socket.addEndpoints([self.zmq_endpoint])
 
-        :param msg: (str) OMCI message to send
-        :param pon_index: (unsigned int) PON Port index
-        :param onu_id: (unsigned int) ONU ID
+        def config_failure(_results):
+            raise Exception('Failed to configure plain-text security')
 
-        :return: (bytes) octet string to send
-        """
-        s = struct.Struct('!II')
+        def endpoint_failure(_results):
+            raise Exception('Failed to complete endpoint setup')
 
-        # Check if length is prepended (32-bits = 4 bytes ASCII)
-        msglen = len(msg)
-        assert msglen == 40*2 or msglen == 44*2, 'Invalid OMCI message length'
+        self.auth = TwistedZmqAuthenticator()
 
-        if len(msg) > 40*2:
-            msg = msg[:40*2]
+        d = self.auth.start()
+        d.addCallbacks(configure_plain, config_failure)
+        d.addCallbacks(add_endoints, endpoint_failure)
 
-        return s.pack(pon_index, onu_id) + binascii.unhexlify(msg)
+        return d
 
-    @staticmethod
-    def _encode_omci_message_json(msg, pon_index, onu_id):
-        """
-        Create an OMCI Tx Packet for the specified ONU
-
-        :param msg: (str) OMCI message to send
-        :param pon_index: (unsigned int) PON Port index
-        :param onu_id: (unsigned int) ONU ID
-
-        :return: (bytes) octet string to send
-        """
-
-        return json.dumps({"operation": "NOTIFY",
-                           "url": "adtran-olt-pon-control/omci-message",
-                           "pon-id": pon_index,
-                           "onu-id": onu_id,
-                           "message-contents": msg.decode("hex").encode("base64")
-                           })
-
-    @staticmethod
-    def decode_pon_agent_packet(packet, is_async_control):
-        """
-        Decode the PON-Agent packet provided by the ZMQ client
-
-        :param packet: (bytes) Packet
-        :param is_async_control: (bool) Newer async/JSON support
-        :return: (long, long, bytes, boolean) PON Index, ONU ID, Frame Contents (OMCI or Ethernet),\
-                                              and a flag indicating if it is OMCI
-        """
-        return AdtranZmqClient._decode_omci_message_json(packet) if is_async_control \
-            else AdtranZmqClient._decode_omci_message_legacy(packet)
-
-    @staticmethod
-    def _decode_omci_message_legacy(packet):
-        """
-        Decode the packet provided by the ZMQ client (binary legacy format)
-
-        :param packet: (bytes) Packet
-        :return: (long, long, bytes) PON Index, ONU ID, OMCI Frame Contents
-        """
-        (pon_index, onu_id) = struct.unpack_from('!II', packet)
-        omci_msg = packet[8:]
-
-        return pon_index, onu_id, omci_msg, True
-
-    @staticmethod
-    def _decode_omci_message_json(packet):
-        """
-        Decode the packet provided by the ZMQ client (JSON format)
-
-        :param packet: (string) Packet
-        :return: (long, long, bytes) PON Index, ONU ID, OMCI Frame Contents
-        """
-        msg = json.loads(packet)
-        pon_id = msg['pon-id']
-        onu_id = msg['onu-id']
-        msg_data = msg['message-contents'].decode("base64").encode("hex")
-        is_omci = msg['operation'] == "NOTIFY" and 'omci-message' in msg['url']
-
-        return pon_id, onu_id, msg_data, is_omci
-
-    @staticmethod
-    def decode_packet_in_message(packet):
-        from scapy.layers.l2 import Ether
-        try:
-            message = json.loads(packet)
-            log.debug('message', message=message)
-
-            for field in ['url', 'evc-map-name', 'total-len', 'port-number', 'message-contents']:
-                assert field in message, "Missing field '{}' in received packet".format(field)
-
-            decoded = message['message-contents'].decode('base64')
-            assert len(decoded.encode('hex')) == message['total-len'], \
-                'Decoded length ({}) != Message Encoded lenght ({})'.\
-                    format(len(decoded.encode('hex')), message['total-len'])
-
-            return message['port-number'], message['evc-map'], Ether(decoded)
-
-        except Exception as e:
-            log.exception('decode', e=e)
-            raise
+    def setup_curve_security(self):
+        self.log.debug('setup-curve-security')
+        raise NotImplementedError('TODO: curve transport security is not yet supported')
 
 
 class ZmqPairConnection(ZmqConnection):
@@ -248,6 +156,7 @@ class ZmqPairConnection(ZmqConnection):
 ###############################################################################################
 ###############################################################################################
 
+
 def _inherit_docstrings(cls):
     """inherit docstrings from Authenticator, so we don't duplicate them"""
     for name, method in cls.__dict__.items():
@@ -258,11 +167,13 @@ def _inherit_docstrings(cls):
             method.__doc__ = upstream_method.__doc__
     return cls
 
+
 @_inherit_docstrings
 class TwistedZmqAuthenticator(object):
     """Run ZAP authentication in a background thread but communicate via Twisted ZMQ"""
 
     def __init__(self, encoding='utf-8'):
+        self.log = structlog.get_logger()
         self.context = zmq_factory.context
         self.encoding = encoding
         self.pipe = None
@@ -274,21 +185,21 @@ class TwistedZmqAuthenticator(object):
             self.pipe.send([b'ALLOW'] + [b(a, self.encoding) for a in addresses])
 
         except Exception as e:
-            log.exception('allow', e=e)
+            self.log.exception('allow', e=e)
 
     def deny(self, *addresses):
         try:
             self.pipe.send([b'DENY'] + [b(a, self.encoding) for a in addresses])
 
         except Exception as e:
-            log.exception('deny', e=e)
+            self.log.exception('deny', e=e)
 
     def configure_plain(self, domain='*', passwords=None):
         try:
             self.pipe.send([b'PLAIN', b(domain, self.encoding), jsonapi.dumps(passwords or {})])
 
         except Exception as e:
-            log.exception('configure-plain', e=e)
+            self.log.exception('configure-plain', e=e)
 
     def configure_curve(self, domain='*', location=''):
         try:
@@ -297,7 +208,7 @@ class TwistedZmqAuthenticator(object):
             self.pipe.send([b'CURVE', domain, location])
 
         except Exception as e:
-            log.exception('configure-curve', e=e)
+            self.log.exception('configure-curve', e=e)
 
     def start(self, rx_callback=AdtranZmqClient.rx_nop):
         """Start the authentication thread"""
@@ -316,7 +227,7 @@ class TwistedZmqAuthenticator(object):
                                          self.thread, timeout=10)
 
         except Exception as e:
-            log.exception('start', e=e)
+            self.log.exception('start', e=e)
 
     @staticmethod
     def _do_thread_start(thread, timeout=10):
@@ -366,6 +277,7 @@ class LocalAuthenticationThread(Thread):
 
     def __init__(self, context, endpoint, encoding='utf-8', authenticator=None):
         super(LocalAuthenticationThread, self).__init__(name='0mq Authenticator')
+        self.log = structlog.get_logger()
         self.context = context or zmq.Context.instance()
         self.encoding = encoding
         self.started = Event()
@@ -403,7 +315,7 @@ class LocalAuthenticationThread(Thread):
             self.authenticator.stop()
 
         except Exception as e:
-            log.exception("run", e=e)
+            self.log.exception("run", e=e)
 
     def _handle_zap(self):
         """
@@ -428,21 +340,21 @@ class LocalAuthenticationThread(Thread):
             return terminate
 
         command = msg[0]
-        log.debug("auth received API command", command=command)
+        self.log.debug("auth received API command", command=command)
 
         if command == b'ALLOW':
             addresses = [u(m, self.encoding) for m in msg[1:]]
             try:
                 self.authenticator.allow(*addresses)
             except Exception as e:
-                log.exception("Failed to allow", addresses=addresses, e=e)
+                self.log.exception("Failed to allow", addresses=addresses, e=e)
 
         elif command == b'DENY':
             addresses = [u(m, self.encoding) for m in msg[1:]]
             try:
                 self.authenticator.deny(*addresses)
             except Exception as e:
-                log.exception("Failed to deny", addresses=addresses, e=e)
+                self.log.exception("Failed to deny", addresses=addresses, e=e)
 
         elif command == b'PLAIN':
             domain = u(msg[1], self.encoding)
@@ -462,6 +374,6 @@ class LocalAuthenticationThread(Thread):
             terminate = True
 
         else:
-            log.error("Invalid auth command from API", command=command)
+            self.log.error("Invalid auth command from API", command=command)
 
         return terminate

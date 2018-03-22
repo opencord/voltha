@@ -33,6 +33,7 @@ class OltGemPort(GemPort):
                  tcont_ref=None,
                  traffic_class=None,
                  intf_ref=None,
+                 untagged=False,
                  exception=False,  # FIXED_ONU
                  name=None,
                  handler=None,
@@ -44,6 +45,7 @@ class OltGemPort(GemPort):
                                          tcont_ref=tcont_ref,
                                          traffic_class=traffic_class,
                                          intf_ref=intf_ref,
+                                         untagged=untagged,
                                          exception=exception,
                                          name=name,
                                          handler=handler)
@@ -51,13 +53,17 @@ class OltGemPort(GemPort):
 
     @staticmethod
     def create(handler, gem_port):
-        exception = gem_port['gemport-id'] in [2180, 2186, 2192,         # FIXED_ONU
-                                               2198, 2204, 2210,
-                                               2216, 2222, 2228,
-                                               2234, 2240, 2246,
-                                               2252, 2258]
-        mcast = gem_port['gemport-id'] in [4095]
+        if handler.exception_gems:
+            exception = gem_port['gemport-id'] in [2180, 2186, 2192,         # FIXED_ONU
+                                                   2198, 2204, 2210,
+                                                   2216, 2222, 2228,
+                                                   2234, 2240, 2246,
+                                                   2252, 2258]
+        else:
+            exception = False         # FIXED_ONU
 
+        mcast = gem_port['gemport-id'] in [4095]    # TODO: Perform proper lookup
+        untagged = 'untagged' in gem_port['name'].lower()
         # TODO: Use next once real BBF mcast available.
         # port_ref = 'channel-pair-ref 'if mcast else 'venet-ref'
         port_ref = 'venet-ref 'if mcast else 'venet-ref'
@@ -71,7 +77,8 @@ class OltGemPort(GemPort):
                           intf_ref=gem_port.get(port_ref),
                           handler=handler,
                           multicast=mcast,
-                          exception=exception)
+                          untagged=untagged,
+                          exception=exception)    # FIXED_ONU
 
     @property
     def encryption(self):

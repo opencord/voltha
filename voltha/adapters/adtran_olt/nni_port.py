@@ -18,7 +18,7 @@ import random
 
 import structlog
 import xmltodict
-from enum import Enum
+from port import AdtnPort
 from twisted.internet import reactor, defer
 from twisted.internet.defer import inlineCallbacks, returnValue, succeed, fail
 from twisted.python.failure import Failure
@@ -29,51 +29,36 @@ from voltha.protos.logical_device_pb2 import LogicalPort
 from voltha.protos.openflow_13_pb2 import OFPPF_100GB_FD, OFPPF_FIBER, OFPPS_LIVE, ofp_port
 
 
-class NniPort(object):
+class NniPort(AdtnPort):
     """
-    A class similar to the 'Port' class in the VOLTHA
-    
-    TODO: Merge this with the Port class or cleanup where possible
-          so we do not duplicate fields/properties/methods
+    Northbound network port, often Ethernet-based
     """
-    class State(Enum):
-        INITIAL = 0   # Created and initialization in progress
-        RUNNING = 1   # PON port contacted, ONU discovery active
-        STOPPED = 2   # Disabled
-        DELETING = 3  # Cleanup
-
     def __init__(self, parent, **kwargs):
+        super(NniPort, self).__init__(parent, **kwargs)
+
         # TODO: Weed out those properties supported by common 'Port' object
-        assert parent, 'parent is None'
-        assert 'port_no' in kwargs, 'Port number not found'
 
         self.log = structlog.get_logger(port_no=kwargs.get('port_no'))
         self.log.info('creating')
 
-        self._port_no = kwargs.get('port_no')
         self._name = kwargs.get('name', 'nni-{}'.format(self._port_no))
-        self._port = None
-        self._logical_port = None
-        self._parent = parent
 
-        self._sync_tick = 10.0
-        self._sync_deferred = None
+        self._logical_port = None
+
+        self.sync_tick = 10.0
 
         self._stats_tick = 5.0
         self._stats_deferred = None
 
-        self._deferred = None
-        self._state = NniPort.State.INITIAL
-
         # Local cache of NNI configuration
 
-        self._enabled = None
         self._ianatype = '<type xmlns:ianaift="urn:ietf:params:xml:ns:yang:iana-if-type">ianaift:ethernetCsmacd</type>'
 
         # And optional parameters
         # TODO: Currently cannot update admin/oper status, so create this enabled and active
         # self._admin_state = kwargs.pop('admin_state', AdminState.UNKNOWN)
         # self._oper_status = kwargs.pop('oper_status', OperStatus.UNKNOWN)
+        self._enabled = True
         self._admin_state = AdminState.ENABLED
         self._oper_status = OperStatus.ACTIVE
 
@@ -89,10 +74,6 @@ class NniPort(object):
         self._device_port_no = kwargs.pop('device_port_no', self._port_no)
 
         # Statistics
-        self.rx_packets = 0
-        self.rx_bytes = 0
-        self.tx_packets = 0
-        self.tx_bytes = 0
         self.rx_dropped = 0
         self.rx_errors = 0
         self.rx_bcast = 0
@@ -101,75 +82,11 @@ class NniPort(object):
         self.tx_bcast = 0
         self.tx_mcast = 0
 
-    def __del__(self):
-        self.stop()
-
     def __str__(self):
         return "NniPort-{}: Admin: {}, Oper: {}, parent: {}".format(self._port_no,
                                                                     self._admin_state,
                                                                     self._oper_status,
                                                                     self._parent)
-
-    @property
-    def port_no(self):
-        return self._port_no
-
-    @property
-    def name(self):
-        return self._name
-
-    @property
-    def olt(self):
-        return self._parent
-
-    @property
-    def state(self):
-        return self._state
-
-    @property
-    def admin_state(self):
-        return self._admin_state
-
-    @property
-    def oper_status(self):
-        return self._oper_status
-
-    @property
-    def adapter_agent(self):
-        return self.olt.adapter_agent
-
-    @property
-    def iana_type(self):
-        return self._ianatype
-
-    @property
-    def enabled(self):
-        return self._enabled
-
-    @enabled.setter
-    def enabled(self, value):
-        assert isinstance(value, bool), 'enabled is a boolean'
-        if self._enabled != value:
-            if value:
-                self.start()
-            self.stop()
-
-    def _cancel_deferred(self):
-        d1, self._deferred = self._deferred, None
-        d2, self._sync_deferred = self._sync_deferred, None
-        d3, self._stats_deferred = self._stats_deferred, None
-
-        for d in [d1, d2, d3]:
-            try:
-                if d is not None and d.called:
-                    d.cancel()
-            except:
-                pass
-
-    def _update_adapter_agent(self):
-        # TODO: Currently the adapter_agent does not allow 'update' of port status
-        # self.adapter_agent.update_port(self.olt.device_id, self.get_port())
-        pass
 
     def get_port(self):
         """
@@ -183,6 +100,25 @@ class NniPort(object):
                               admin_state=self._admin_state,
                               oper_status=self._oper_status)
         return self._port
+
+    @property
+    def iana_type(self):
+        return self._ianatype
+
+    def cancel_deferred(self):
+        super(NniPort, self).cancel_deferred()
+
+        d, self._stats_deferred = self._stats_deferred, None
+        try:
+            if d is not None and d.called:
+                d.cancel()
+        except:
+            pass
+
+    def _update_adapter_agent(self):
+        # TODO: Currently the adapter_agent does not allow 'update' of port status
+        # self.adapter_agent.update_port(self.olt.device_id, self.get_port())
+        pass
 
     def get_logical_port(self):
         """
@@ -208,96 +144,37 @@ class NniPort(object):
                                              root_port=True)
         return self._logical_port
 
-    def start(self):
-        """
-        Start/enable this NNI
-        :return: (deferred)
-        """
-        if self._state == NniPort.State.RUNNING:
-            return succeed('Running')
-
-        self.log.info('starting')
-        self._cancel_deferred()
-
-        self._oper_status = OperStatus.ACTIVATING
-        self._update_adapter_agent()
-
-        # Do the rest of the startup in an async method
-        self._deferred = reactor.callLater(0, self._finish_startup)
-        return succeed('Scheduled')
-
     @inlineCallbacks
-    def _finish_startup(self):
-        if self._state != NniPort.State.INITIAL:
+    def finish_startup(self):
+
+        if self.state != AdtnPort.State.INITIAL:
             returnValue('Done')
 
-        self._enabled = True
-        self._admin_state = AdminState.ENABLED
-        self._oper_status = OperStatus.ACTIVE
-        self._update_adapter_agent()
-
         # TODO: Start status polling of NNI interfaces
-        self._deferred = None  # = reactor.callLater(3, self.do_stuff)
-        self._state = NniPort.State.RUNNING
+        self.deferred = None  # = reactor.callLater(3, self.do_stuff)
+        self.state = AdtnPort.State.RUNNING
 
-        # Begin hardware sync
-        self._sync_deferred = reactor.callLater(self._sync_tick, self._sync_hardware)
-        self._stats_deferred= reactor.callLater(self._stats_tick * 2, self._update_statistics)
+        # Begin statistics sync
+        self._stats_deferred = reactor.callLater(self._stats_tick * 2, self._update_statistics)
 
         try:
-            results = yield self.set_config('enabled', True)
+            yield self.set_config('enabled', True)
+
+            super(NniPort, self).finish_startup()
 
         except Exception as e:
             self.log.exception('nni-start', e=e)
             self._oper_status = OperStatus.UNKNOWN
             self._update_adapter_agent()
 
+        returnValue('Enabled')
 
-        returnValue(self._deferred)
-
-    @inlineCallbacks
-    def stop(self):
-        if self._state == NniPort.State.STOPPED:
-            returnValue('Stopped')
-
-        self.log.info('stopping')
-        self._cancel_deferred()
+    def finish_stop(self):
 
         # NOTE: Leave all NNI ports active (may have inband management)
         # TODO: Revisit leaving NNI Ports active on disable
 
-        self._enabled = None
-        self._state = NniPort.State.STOPPED
-
-        self._admin_state = AdminState.DISABLED
-        self._oper_status = OperStatus.UNKNOWN
-        self._update_adapter_agent()
-
-        try:
-            yield self.set_config('enabled', False)
-
-        except Exception as e:
-            self.log.exception('nni-stop', e=e)
-            self._admin_state = AdminState.UNKNOWN
-            raise
-
-        returnValue(self._deferred)
-
-    def restart(self):
-        if self._state == NniPort.State.RUNNING or self._state == NniPort.State.STOPPED:
-            start_it = (self._state == NniPort.State.RUNNING)
-            self._state = NniPort.State.INITIAL
-            return self.start() if start_it else self.stop()
-        return succeed('nop')
-
-    def delete(self):
-        """
-        Parent device is being deleted. Do not change any config but
-        stop all polling
-        """
-        self.log.info('deleting', label=self._label)
-        self._state = NniPort.State.DELETING
-        self._cancel_deferred()
+        return self.set_config('enabled', False)
 
     @inlineCallbacks
     def reset(self):
@@ -305,8 +182,8 @@ class NniPort(object):
         Set the NNI Port to a known good state on initial port startup.  Actual
         NNI 'Start' is done elsewhere
         """
-        if self._state != NniPort.State.INITIAL:
-            self.log.error('reset-ignored', state=self._state)
+        if self.state != AdtnPort.State.INITIAL:
+            self.log.error('reset-ignored', state=self.state)
             returnValue('Ignored')
 
         self.log.info('resetting', label=self._label)
@@ -368,8 +245,8 @@ class NniPort(object):
                  '</filter>'
         return self._parent.netconf_client.get(state)
 
-    def _sync_hardware(self):
-        if self._state == NniPort.State.RUNNING or self._state == NniPort.State.STOPPED:
+    def sync_hardware(self):
+        if self.state == AdtnPort.State.RUNNING or self.state == AdtnPort.State.STOPPED:
             def read_config(results):
                 self.log.debug('read-config', results=results)
                 try:
@@ -394,13 +271,13 @@ class NniPort(object):
                 self.log.error('hardware-sync-failed', reason=reason)
 
             def reschedule(_):
-                delay = self._sync_tick
+                delay = self.sync_tick
                 delay += random.uniform(-delay / 10, delay / 10)
-                self._sync_deferred = reactor.callLater(delay, self._sync_hardware)
+                self.sync_deferred = reactor.callLater(delay, self.sync_hardware)
 
-            self._sync_deferred = self.get_nni_config()
-            self._sync_deferred.addCallbacks(read_config, failure)
-            self._sync_deferred.addBoth(reschedule)
+            self.sync_deferred = self.get_nni_config()
+            self.sync_deferred.addCallbacks(read_config, failure)
+            self.sync_deferred.addBoth(reschedule)
 
     def _decode_nni_statistics(self, entry):
         admin_status = entry.get('admin-status')
@@ -425,7 +302,7 @@ class NniPort(object):
             self.tx_packets = int(stats.get('out-unicast-pkts', 0)) + self.tx_mcast + self.tx_bcast
 
     def _update_statistics(self):
-        if self._state == NniPort.State.RUNNING:
+        if self.state == AdtnPort.State.RUNNING:
             def read_state(results):
                 self.log.debug('read-state', results=results)
                 try:
@@ -490,13 +367,45 @@ class MockNniPort(NniPort):
         """
         return GetReply(raw)
 
+    @staticmethod
+    def get_pon_port_state_results():
+        from ncclient.operations.retrieve import GetReply
+        raw = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <rpc-reply xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"
+        xmlns:nc="urn:ietf:params:xml:ns:netconf:base:1.0"
+        message-id="urn:uuid:59e71979-01bb-462f-b17a-b3a45e1889ac">
+          <data>
+            <interfaces-state xmlns="urn:ietf:params:xml:ns:yang:ietf-interfaces">
+              <interface><name>XPON 0/1</name></interface>
+              <interface><name>XPON 0/2</name></interface>
+              <interface><name>XPON 0/3</name></interface>
+              <interface><name>XPON 0/4</name></interface>
+              <interface><name>XPON 0/5</name></interface>
+              <interface><name>XPON 0/6</name></interface>
+              <interface><name>XPON 0/7</name></interface>
+              <interface><name>XPON 0/8</name></interface>
+              <interface><name>XPON 0/9</name></interface>
+              <interface><name>XPON 0/10</name></interface>
+              <interface><name>XPON 0/11</name></interface>
+              <interface><name>XPON 0/12</name></interface>
+              <interface><name>XPON 0/13</name></interface>
+              <interface><name>XPON 0/14</name></interface>
+              <interface><name>XPON 0/15</name></interface>
+              <interface><name>XPON 0/16</name></interface>
+            </interfaces-state>
+          </data>
+        </rpc-reply>
+        """
+        return GetReply(raw)
+
     def reset(self):
         """
         Set the NNI Port to a known good state on initial port startup.  Actual
         NNI 'Start' is done elsewhere
         """
-        if self._state != NniPort.State.INITIAL:
-            self.log.error('reset-ignored', state=self._state)
+        if self.state != AdtnPort.State.INITIAL:
+            self.log.error('reset-ignored', state=self.state)
             return fail()
 
         self.log.info('resetting', label=self._label)

@@ -25,12 +25,13 @@ from download import Download
 from xpon.adtran_olt_xpon import AdtranOltXPON
 from codec.olt_state import OltState
 from flow.flow_entry import FlowEntry
-from net.adtran_zmq import AdtranZmqClient
+from net.pio_zmq import PioClient
+from net.pon_zmq import PonClient
+from voltha.core.flow_decomposer import *
 from voltha.extensions.omci.omci import *
 from voltha.protos.common_pb2 import AdminState, OperStatus
-from voltha.protos.device_pb2 import ImageDownload
+from voltha.protos.device_pb2 import ImageDownload, Image
 
-FIXED_ONU = True  # Enhanced ONU support
 ATT_NETWORK = True  # Use AT&T cVlan scheme
 
 
@@ -71,9 +72,10 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         self.status_poll = None
         self.status_poll_interval = 5.0
         self.status_poll_skew = self.status_poll_interval / 10
-        self.pon_agent = None
-        self.pio_agent = None
-        self.ssh_deferred = None
+        self._pon_agent = None
+        self._pio_agent = None
+        self._is_async_control = False
+        self._ssh_deferred = None
         self._system_id = None
         self._download_protocols = None
         self._download_deferred = None
@@ -99,7 +101,7 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
 
     def _cancel_deferred(self):
         d1, self.status_poll = self.status_poll, None
-        d2, self.ssh_deferred = self.ssh_deferred, None
+        d2, self._ssh_deferred = self._ssh_deferred, None
         d3, self._download_deferred = self._download_deferred, None
 
         for d in [d1, d2, d3]:
@@ -142,13 +144,14 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         # TODO: After a CLI 'reboot' command, the device info may get messed up (prints labels and not values)  Enter device and type 'show'
         device = {
             'model': 'n/a',
-            'hardware_version': 'n/a',
-            'serial_number': 'n/a',
+            'hardware_version': 'unknown',
+            'serial_number': 'unknown',
             'vendor': 'Adtran, Inc.',
-            'firmware_version': 'n/a',
-            'running-revision': 'n/a',
-            'candidate-revision': 'n/a',
-            'startup-revision': 'n/a',
+            'firmware_version': 'unknown',
+            'running-revision': 'unknown',
+            'candidate-revision': 'unknown',
+            'startup-revision': 'unknown',
+            'software-images': []
         }
         if self.is_virtual_olt:
             returnValue(device)
@@ -173,17 +176,35 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
                                                                 'n/a')).translate(None, '?')
                     device['serial_number'] = str(module.get('serial-number',
                                                              'n/a')).translate(None, '?')
-                    device['firmware_version'] = str(device.get('firmware-revision',
-                                                                'unknown')).translate(None, '?')
                     if 'software' in module:
                         if 'software' in module['software']:
                             software = module['software']['software']
-                            device['running-revision'] = str(software.get('running-revision',
-                                                                          'n/a')).translate(None, '?')
-                            device['candidate-revision'] = str(software.get('candidate-revision',
-                                                                            'n/a')).translate(None, '?')
-                            device['startup-revision'] = str(software.get('startup-revision',
-                                                                          'n/a')).translate(None, '?')
+                            if isinstance(software, dict):
+                                device['running-revision'] = str(software.get('running-revision',
+                                                                              'n/a')).translate(None, '?')
+                                device['candidate-revision'] = str(software.get('candidate-revision',
+                                                                                'n/a')).translate(None, '?')
+                                device['startup-revision'] = str(software.get('startup-revision',
+                                                                              'n/a')).translate(None, '?')
+                            elif isinstance(software, list):
+                                for sw_item in software:
+                                    sw_type = sw_item.get('name', '').lower()
+                                    if sw_type == 'firmware':
+                                        device['firmware_version'] = str(sw_item.get('running-revision',
+                                                                                     'unknown')).translate(None, '?')
+                                    elif sw_type == 'software':
+                                        for rev_type in ['startup-revision',
+                                                         'running-revision',
+                                                         'candidate-revision']:
+                                            if rev_type in sw_item:
+                                                image = Image(name=rev_type,
+                                                              version=sw_item[rev_type],
+                                                              is_active=(rev_type == 'running-revision'),
+                                                              is_committed=True,
+                                                              is_valid=True,
+                                                              install_datetime='Not Available')
+                                                device['software-images'].append(image)
+
         except Exception as e:
             self.log.exception('get-pe-state', e=e)
 
@@ -223,8 +244,8 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
                 self.startup = ietf_interfaces.get_state()
                 results = yield self.startup
 
-            ports = ietf_interfaces.get_nni_port_entries(results)
-            yield returnValue(ports)
+            ports = ietf_interfaces.get_port_entries(results, 'ethernet')
+            returnValue(ports)
 
         except Exception as e:
             log.exception('enumerate_northbound_ports', e=e)
@@ -242,19 +263,42 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         """
         from nni_port import NniPort, MockNniPort
 
-        for port in results:
-            port_no = port['port_no']
-            self.log.info('processing-nni', port_no=port_no, name=port['port_no'])
+        for port in results.itervalues():
+            port_no = port.get('port_no')
             assert port_no, 'Port number not found'
-            assert port_no not in self.northbound_ports, 'Port number is not a northbound port'
+            assert port_no not in self.northbound_ports, \
+                'Port number {} already in northbound ports'.format(port_no)
+
+            self.log.info('processing-nni', port_no=port_no, name=port['port_no'])
             self.northbound_ports[port_no] = NniPort(self, **port) if not self.is_virtual_olt \
                 else MockNniPort(self, **port)
 
-            # TODO: For now, limit number of NNI ports to make debugging easier
-            if len(self.northbound_ports) >= self.max_nni_ports:
+            if len(self.northbound_ports) >= self.max_nni_ports: # TODO: For now, limit number of NNI ports to make debugging easier
                 break
 
         self.num_northbound_ports = len(self.northbound_ports)
+
+    def _olt_version(self):
+        #  Version
+        #     0     Unknown
+        #     1     V1 OMCI format
+        #     2     V2 OMCI format
+        #     3     2018-01-11 or later
+        version = 0
+        info = self._rest_support.get('module-info', [dict()])
+        hw_mod_ver_str = next((mod.get('revision') for mod in info
+                               if mod.get('module-name', '').lower() == 'gpon-olt-hw'), None)
+
+        if hw_mod_ver_str is not None:
+            try:
+                from datetime import datetime
+                hw_mod_dt = datetime.strptime(hw_mod_ver_str, '%Y-%m-%d')
+                version = 2 if hw_mod_dt >= datetime(2017, 9, 21) else 2
+
+            except Exception as e:
+                self.log.exception('ver-str-check', e=e)
+
+        return version
 
     @inlineCallbacks
     def enumerate_southbound_ports(self, device):
@@ -262,16 +306,45 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         Enumerate all southbound ports of this device.
 
         :param device: A voltha.Device object, with possible device-type
-                specific extensions.
+                       specific extensions.
         :return: (Deferred or None).
         """
         ###############################################################################
         # Determine number of southbound ports. We know it is 16, but this keeps this
         # device adapter generic for our other OLTs up to this point.
 
-        self.startup = self.rest_client.request('GET', self.GPON_PON_CONFIG_LIST_URI, 'pon-config')
-        results = yield self.startup
-        returnValue(results)
+        self.startup = self.rest_client.request('GET', self.GPON_PON_CONFIG_LIST_URI,
+                                                'pon-config')
+        try:
+            results = yield self.startup
+
+            from codec.ietf_interfaces import IetfInterfacesState
+            from nni_port import MockNniPort
+
+            ietf_interfaces = IetfInterfacesState(self.netconf_client)
+
+            if self.is_virtual_olt:
+                nc_results = MockNniPort.get_pon_port_state_results()
+            else:
+                self.startup = ietf_interfaces.get_state()
+                nc_results = yield self.startup
+
+            ports = ietf_interfaces.get_port_entries(nc_results, 'xpon')
+            if len(ports) == 0:
+                ports = ietf_interfaces.get_port_entries(nc_results,
+                                                         'channel-termination')
+            for data in results:
+                pon_id = data['pon-id']
+                port = ports[pon_id + 1]
+                port['pon-id'] = pon_id
+                port['admin_state'] = AdminState.ENABLED if data.get('enabled', False)\
+                    else AdminState.DISABLED
+
+        except Exception as e:
+            log.exception('enumerate_southbound_ports', e=e)
+            raise
+
+        returnValue(ports)
 
     def process_southbound_ports(self, device, results):
         """
@@ -285,19 +358,17 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         """
         from pon_port import PonPort
 
-        for pon in results:
-            # Number PON Ports after the NNI ports
-            pon_id = pon['pon-id']
-            log.info('processing-pon-port', pon_id=pon_id)
-            assert pon_id not in self.southbound_ports,\
-                'Pon ID not found in southbound ports'
+        for pon in results.itervalues():
+            pon_id = pon.get('pon-id')
+            assert pon_id is not None, 'PON ID not found'
+            assert pon_id not in self.southbound_ports, \
+                'PON ID {} already in southbound ports'.format(pon_id)
+            if pon['ifIndex'] is None:
+                pon['port_no'] = self._pon_id_to_port_number(pon_id)
+            else:
+                pass        # Need to adjust ONU numbering !!!!
 
-            self.southbound_ports[pon_id] = PonPort(pon_id,
-                                                    self._pon_id_to_port_number(pon_id),
-                                                    self)
-            if self.autoactivate:
-                self.southbound_ports[pon_id].downstream_fec_enable = True
-                self.southbound_ports[pon_id].upstream_fec_enable = True
+            self.southbound_ports[pon_id] = PonPort(self, **pon)
 
         self.num_southbound_ports = len(self.southbound_ports)
 
@@ -318,11 +389,10 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         :param reconciling: (boolean) True if taking over for another VOLTHA
         """
         # Make sure configured for ZMQ remote access
-        self._ready_zmq()
+        self._ready_network_access()
 
         # ZeroMQ clients
-        self.pon_agent = AdtranZmqClient(self.ip_address, port=self.pon_agent_port, rx_callback=self.rx_pa_packet)
-        self.pio_agent = AdtranZmqClient(self.ip_address, port=self.pio_port, rx_callback=self.rx_pio_packet)
+        self._zmq_startup()
 
         # Download support
         self._download_deferred = reactor.callLater(0, self._get_download_protocols)
@@ -336,7 +406,7 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
 
     def on_heatbeat_alarm(self, active):
         if not active:
-            self._ready_zmq()
+            self._ready_network_access()
 
     @inlineCallbacks
     def _get_download_protocols(self):
@@ -363,8 +433,11 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
                 self._download_deferred = reactor.callLater(10, self._get_download_protocols)
 
     @inlineCallbacks
-    def _ready_zmq(self):
+    def _ready_network_access(self):
         from net.rcmd import RCmd
+        # Software version
+        self._is_async_control = self._olt_version() >= 2
+
         # Check for port status
         command = 'netstat -pan | grep -i 0.0.0.0:{} |  wc -l'.format(self.pon_agent_port)
         rcmd = RCmd(self.ip_address, self.netconf_username, self.netconf_password, command)
@@ -380,48 +453,90 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
             create_it = True
 
         if create_it:
-            next_run = 15
-            command = 'mkdir -p /etc/pon_agent; touch /etc/pon_agent/debug.conf; '
-            command += 'ps -ae | grep -i ngpon2_agent; '
-            command += 'service_supervisor stop ngpon2_agent; service_supervisor start ngpon2_agent; '
-            command += 'ps -ae | grep -i ngpon2_agent'
+            def v1_method():
+                command = 'mkdir -p /etc/pon_agent; touch /etc/pon_agent/debug.conf; '
+                command += 'ps -ae | grep -i ngpon2_agent; '
+                command += 'service_supervisor stop ngpon2_agent; service_supervisor start ngpon2_agent; '
+                command += 'ps -ae | grep -i ngpon2_agent'
 
-            rcmd = RCmd(self.ip_address, self.netconf_username, self.netconf_password, command)
-
-            try:
                 self.log.debug('create-request', command=command)
-                results = yield rcmd.execute()
-                self.log.info('create-results', results=results, result_type=type(results))
+                return RCmd(self.ip_address, self.netconf_username, self.netconf_password, command)
 
-            except Exception as e:
-                self.log.exception('mkdir', e=e)
+            def v2_v3_method():
+                # Old V2 method
+                command = "sed --in-place=voltha-sav 's/^#export ZMQ_LISTEN/export ZMQ_LISTEN/' " \
+                          "/etc/ngpon2_agent/ngpon2_agent_feature_flags; "
+
+                # V3 unifies listening port, compatible with v2
+                # command = "sed --in-place '/add feature flags/aexport ZMQ_LISTEN_ON_ANY_ADDRESS=1' " \
+                #            "/etc/ngpon2_agent/ngpon2_agent_feature_flags; "
+                # command += "sed --in-place '/^export ZMQ_LISTEN/aAGENT_LISTEN_ON_ANY_ADDRESS=1' " \
+                #            "/etc/ngpon2_agent/ngpon2_agent_feature_flags; "
+
+                command += 'ps -ae | grep -i ngpon2_agent; '
+                command += 'service_supervisor stop ngpon2_agent; service_supervisor start ngpon2_agent; '
+                command += 'ps -ae | grep -i ngpon2_agent'
+
+                self.log.debug('create-request', command=command)
+                return RCmd(self.ip_address, self.netconf_username, self.netconf_password, command)
+
+            # Look for version
+            next_run = 15
+            version = v2_v3_method if self._olt_version() > 1 else v1_method
+
+            if version is not None:
+                try:
+                    rcmd = version()
+                    results = yield rcmd.execute()
+                    self.log.info('create-results', results=results, result_type=type(results))
+
+                except Exception as e:
+                    self.log.exception('mkdir-and-restart', e=e)
         else:
             next_run = 0
 
         if next_run > 0:
-            self.ssh_deferred = reactor.callLater(next_run, self._ready_zmq)
+            self._ssh_deferred = reactor.callLater(next_run, self._ready_network_access)
+
+    def _zmq_startup(self):
+        # ZeroMQ clients
+        self._pon_agent = PonClient(self.ip_address,
+                                    port=self.pon_agent_port,
+                                    rx_callback=self.rx_pa_packet)
+
+        try:
+            self._pio_agent = PioClient(self.ip_address,
+                                        port=self.pio_port,
+                                        rx_callback=self.rx_pio_packet)
+        except Exception as e:
+            self._pio_agent = None
+            self.log.exception('pio-agent', e=e)
+
+    def _zmq_shutdown(self):
+        pon, self._pon_agent = self._pon_agent, None
+        pio, self._pio_agent = self._pio_agent, None
+
+        for c in [pon, pio]:
+            if c is not None:
+                try:
+                    c.shutdown()
+                except:
+                    pass
 
     def disable(self):
         self._cancel_deferred()
 
         # Drop registration for adapter messages
         self.adapter_agent.unregister_for_inter_adapter_messages()
-
-        c, self.pon_agent = self.pon_agent, None
-        if c is not None:
-            try:
-                c.shutdown()
-            except:
-                pass
+        self._zmq_shutdown()
 
         super(AdtranOltHandler, self).disable()
 
     def reenable(self, done_deferred=None):
         super(AdtranOltHandler, self).reenable(done_deferred=done_deferred)
 
-        self._ready_zmq()
-        self.pon_agent = AdtranZmqClient(self.ip_address, port=self.pon_agent_port, rx_callback=self.rx_pa_packet)
-        self.pio_agent = AdtranZmqClient(self.ip_address, port=self.pio_port, rx_callback=self.rx_pio_packet)
+        self._ready_network_access()
+        self._zmq_startup()
 
         # Register for adapter messages
         self.adapter_agent.register_for_inter_adapter_messages()
@@ -431,12 +546,9 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
     def reboot(self):
         self._cancel_deferred()
 
-        c, self.pon_agent = self.pon_agent, None
-        if c is not None:
-            c.shutdown()
-
         # Drop registration for adapter messages
         self.adapter_agent.unregister_for_inter_adapter_messages()
+        self._zmq_shutdown()
 
         # Download supported protocols may change (if new image gets activated)
         self._download_protocols = None
@@ -446,16 +558,14 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
     def _finish_reboot(self, timeout, previous_oper_status, previous_conn_status):
         super(AdtranOltHandler, self)._finish_reboot(timeout, previous_oper_status, previous_conn_status)
 
-        self._ready_zmq()
+        self._ready_network_access()
 
         # Download support
         self._download_deferred = reactor.callLater(0, self._get_download_protocols)
 
         # Register for adapter messages
         self.adapter_agent.register_for_inter_adapter_messages()
-
-        self.pon_agent = AdtranZmqClient(self.ip_address, port=self.pon_agent_port, rx_callback=self.rx_pa_packet)
-        self.pio_agent = AdtranZmqClient(self.ip_address, port=self.pio_port, rx_callback=self.rx_pio_packet)
+        self._zmq_startup()
 
         self.status_poll = reactor.callLater(5, self.poll_for_status)
 
@@ -464,35 +574,44 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
 
         # Drop registration for adapter messages
         self.adapter_agent.unregister_for_inter_adapter_messages()
-
-        c, self.pon_agent = self.pon_agent, None
-        if c is not None:
-            c.shutdown()
+        self._zmq_shutdown()
 
         super(AdtranOltHandler, self).delete()
 
     def rx_pa_packet(self, packets):
         self.log.debug('rx-pon-agent-packet')
 
-        for packet in packets:
-            try:
-                pon_id, onu_id, msg_bytes, is_omci = \
-                    AdtranZmqClient.decode_pon_agent_packet(packet,
-                                                            self.is_async_control)
-                if is_omci:
-                    proxy_address = self._pon_onu_id_to_proxy_address(pon_id, onu_id)
+        if self._pon_agent is not None:
+            for packet in packets:
+                try:
+                    pon_id, onu_id, msg_bytes, is_omci = \
+                        self._pon_agent.decode_packet(packet, self._is_async_control)
+                    if is_omci:
+                        proxy_address = self._pon_onu_id_to_proxy_address(pon_id, onu_id)
 
-                    if proxy_address is not None:
-                        self.adapter_agent.receive_proxied_message(proxy_address, msg_bytes)
+                        if proxy_address is not None:
+                            self.adapter_agent.receive_proxied_message(proxy_address, msg_bytes)
 
-            except Exception as e:
-                self.log.exception('rx-pon-agent-packet', e=e)
+                except Exception as e:
+                    self.log.exception('rx-pon-agent-packet', e=e)
 
     def _compute_logical_port_no(self, port_no, evc_map, packet):
         logical_port_no = None
 
+        # Upstream direction?
         if self.is_pon_port(port_no):
-            pon = self.get_southbound_port(port_no)
+            #TODO: Validate the evc-map name
+            from flow.evc_map import EVCMap
+            map_info = EVCMap.decode_evc_map_name(evc_map)
+            logical_port_no = int(map_info.get('ingress-port'))
+
+            if logical_port_no is None:
+                # Get PON
+                pon = self.get_southbound_port(port_no)
+
+                # Examine Packet and decode gvid
+                if packet is not None:
+                    pass
 
         elif self.is_nni_port(port_no):
             nni = self.get_northbound_port(port_no)
@@ -506,19 +625,127 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         self.log.debug('rx-packet-in', type=type(packets), data=packets)
         assert isinstance(packets, list), 'Expected a list of packets'
 
-        if self.logical_device_id is not None:
+        # TODO self._pio_agent.socket.socket.closed might be a good check here as well
+        if self.logical_device_id is not None and self._pio_agent is not None:
             for packet in packets:
-                try:
-                    port_no, evc_map, packet = AdtranZmqClient.decode_packet_in_message(packet)
-                    # packet.show()
+                url_type = self._pio_agent.get_url_type(packet)
+                if url_type == PioClient.UrlType.EVCMAPS_RESPONSE:
+                    exception_map = self._pio_agent.decode_query_response_packet(packet)
+                    self.log.debug('rx-pio-packet', exception_map=exception_map)
 
-                    logical_port_no = self._compute_logical_port_no(port_no, evc_map, packet)
+                elif url_type == PioClient.UrlType.PACKET_IN:
+                    try:
+                        from scapy.layers.l2 import Ether, Dot1Q
+                        ifindex, evc_map, packet = self._pio_agent.decode_packet(packet)
 
-                    self.adapter_agent.send_packet_in(logical_device_id=self.logical_device_id,
-                                                      logical_port_no=logical_port_no,
-                                                      packet=str(packet))
-                except Exception as e:
-                    self.log.exception('rx_pio_packet', e=e)
+                        # convert ifindex to physical port number (HACK)
+                        port_no = (ifindex - 60000) + 4
+
+                        logical_port_no = self._compute_logical_port_no(port_no, evc_map, packet)
+
+                        if logical_port_no is not None:
+                            if self.is_pon_port(port_no) and packet.haslayer(Dot1Q):
+                                # Scrub g-vid
+                                inner_pkt = packet.getlayer(Dot1Q)
+                                assert inner_pkt.haslayer(Dot1Q), 'Expected a C-Tag'
+                                packet = Ether(src=packet.src, dst=packet.dst, type=inner_pkt.type)\
+                                    / inner_pkt.payload
+
+                            self.adapter_agent.send_packet_in(logical_device_id=self.logical_device_id,
+                                                              logical_port_no=logical_port_no,
+                                                              packet=str(packet))
+                        else:
+                            self.log.warn('logical-port-not-found', port_no=port_no, evc_map=evc_map)
+
+                    except Exception as e:
+                        self.log.exception('rx-pio-packet', e=e)
+
+                else:
+                    self.log.warn('packet-in-unknown-url-type', url_type=url_type)
+
+    def packet_out(self, egress_port, msg):
+        """
+        Pass a packet_out message content to adapter so that it can forward it
+        out to the device. This is only called on root devices.
+
+        :param egress_port: egress logical port number
+        :param msg: actual message
+        :return: None        """
+
+        if self.pio_port is not None or self.io_port is not None:
+            from scapy.layers.l2 import Ether, Dot1Q
+            from scapy.layers.inet import IP, UDP
+            from common.frameio.frameio import hexify
+
+            self.log.debug('sending-packet-out', egress_port=egress_port,
+                           msg=hexify(msg))
+            pkt = Ether(msg)
+
+            # Remove any extra tags
+            while pkt.type == 0x8100:
+                msg_hex = hexify(msg)
+                msg_hex = msg_hex[:24] + msg_hex[32:]
+                bytes = []
+                msg_hex = ''.join(msg_hex.split(" "))
+                for i in range(0, len(msg_hex), 2):
+                    bytes.append(chr(int(msg_hex[i:i+2], 16)))
+
+                msg = ''.join(bytes)
+                pkt = Ether(msg)
+
+            if self.io_port is not None:
+                out_pkt = (
+                    Ether(src=pkt.src, dst=pkt.dst) /
+                    Dot1Q(vlan=self.packet_in_vlan) /
+                    Dot1Q(vlan=egress_port, type=pkt.type) /
+                    pkt.payload
+                )
+                self.io_port.send(str(out_pkt))
+
+            elif self._pio_agent is not None:
+                port, ctag, vlan_id, evcmapname = FlowEntry.get_packetout_info(self.device_id, egress_port)
+                exceptiontype = None
+                if pkt.type == FlowEntry.EtherType.EAPOL:
+                    exceptiontype = 'eapol'
+                elif pkt.type == 2:
+                    exceptiontype = 'igmp'
+                elif pkt.type == FlowEntry.EtherType.IPv4:
+                    ippkt = IP(pkt.payload)
+                    if ippkt.proto == FlowEntry.IpProtocol.UDP:
+                        udppkt = UDP(ippkt.payload)
+                        # packet out from DHCP server is reversed ports
+                        if udppkt.sport == 67 and udppkt.dport == 68:
+                            exceptiontype = 'dhcp'
+
+                if exceptiontype is None:
+                    self.log.warn('packet-out-exceptiontype-unknown', eEtherType=pkt.type)
+
+                elif port is not None and ctag is not None and vlan_id is not None and evcmapname is not None:
+                    self.log.debug('sending-pio-packet-out', port=port, ctag=ctag, vlan_id=vlan_id, evcmapname=evcmapname, exceptiontype=exceptiontype)
+                    out_pkt = (
+                        Ether(src=pkt.src, dst=pkt.dst) /
+                        Dot1Q(vlan=port) /
+                        Dot1Q(vlan=vlan_id) /
+                        Dot1Q(vlan=ctag, type=pkt.type) /
+                        pkt.payload
+                    )
+                    data = self._pio_agent.encode_packet(port, str(out_pkt), evcmapname, exceptiontype)
+                    try:
+                        self._pio_agent.send(data)
+
+                    except Exception as e:
+                        self.log.exception('pio-send', egress_port=egress_port, e=e)
+                else:
+                    self.log.debug('packet-out-flow-not-found', egress_port=egress_port)
+
+    def send_packet_exceptions_request(self):
+        if self._pio_agent is not None:
+            request = self._pio_agent.query_request_packet()
+            try:
+                self._pio_agent.send(request)
+
+            except Exception as e:
+                self.log.exception('pio-send', e=e)
 
     def poll_for_status(self):
         self.log.debug('Initiating-status-poll')
@@ -561,6 +788,34 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
 
         self.status_poll = reactor.callLater(delay, self.poll_for_status)
 
+    def _create_untagged_flow(self):
+        nni_port = self.northbound_ports.get(1).port_no
+        pon_port = self.southbound_ports.get(0).port_no
+
+        return mk_flow_stat(
+            priority=100,
+            match_fields=[
+                in_port(nni_port),
+                vlan_vid(ofp.OFPVID_PRESENT + self.untagged_vlan),
+                # eth_type(FlowEntry.EtherType.EAPOL)       ?? TODO: is this needed
+            ],
+            actions=[output(pon_port)]
+        )
+
+    def _create_utility_flow(self):
+        nni_port = self.northbound_ports.get(1).port_no
+        pon_port = self.southbound_ports.get(0).port_no
+
+        return mk_flow_stat(
+            priority=200,
+            match_fields=[
+                in_port(nni_port),
+                vlan_vid(ofp.OFPVID_PRESENT + self.utility_vlan),
+                # eth_type(FlowEntry.EtherType.EAPOL)       ?? TODO: is this needed
+            ],
+            actions=[output(pon_port)]
+        )
+
     @inlineCallbacks
     def update_flow_table(self, flows, device):
         """
@@ -571,11 +826,33 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         :param device: A voltha.Device object, with possible device-type
                        specific extensions.
         """
+
         self.log.debug('bulk-flow-update', num_flows=len(flows),
                        device_id=device.id, flows=flows)
 
         valid_flows = []
 
+        # Special helper egress Packet In/Out flows
+        for special_flow in (self._create_untagged_flow(),
+                             self._create_utility_flow()):
+            valid_flow, evc = FlowEntry.create(special_flow, self)
+
+            if valid_flow is not None:
+                valid_flows.append(valid_flow.flow_id)
+
+            if evc is not None:
+                try:
+                    evc.schedule_install()
+                    self.add_evc(evc)
+
+                except Exception as e:
+                    evc.status = 'EVC Install Exception: {}'.format(e.message)
+                    self.log.exception('EVC-install', e=e)
+
+        # verify exception flows were installed by OLT PET process
+        reactor.callLater(5, self.send_packet_exceptions_request)
+
+        # Now process bulk flows
         for flow in flows:
             try:
                 # Try to create an EVC.
@@ -619,7 +896,7 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         if isinstance(msg, Packet):
             msg = str(msg)
 
-        if self.pon_agent is not None:
+        if self._pon_agent is not None:
             pon_id, onu_id = self._proxy_address_to_pon_onu_id(proxy_address)
 
             pon = self.southbound_ports.get(pon_id)
@@ -628,10 +905,10 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
                 onu = pon.onu(onu_id)
 
                 if onu is not None and onu.enabled:
-                    data = AdtranZmqClient.encode_omci_message(msg, pon_id, onu_id,
-                                                               self.is_async_control)
+                    data = self._pon_agent.encode_omci_packet(msg, pon_id, onu_id,
+                                                              self._is_async_control)
                     try:
-                        self.pon_agent.send(data)
+                        self._pon_agent.send(data)
 
                     except Exception as e:
                         self.log.exception('pon-agent-send', pon_id=pon_id, onu_id=onu_id, e=e)
@@ -640,21 +917,22 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
             else:
                 self.log.debug('pon-invalid-or-disabled', pon_id=pon_id)
 
-    def get_channel_id(self, pon_id, onu_id):
-        from pon_port import PonPort
+    def get_onu_vid(self, onu_id):  # TODO: Deprecate this with packet-in/out support
         if ATT_NETWORK:
-            if FIXED_ONU:
-                return (onu_id * 120) + 2
-            return 1 + onu_id + (pon_id * 120)
+            return (onu_id * 120) + 2
 
-        if FIXED_ONU:
-            return self._onu_offset(onu_id)
-        return self._onu_offset(onu_id) + (pon_id * PonPort.MAX_ONUS_SUPPORTED)
+        return None
+
+    def get_channel_id(self, pon_id, onu_id):   # TODO: Make this more unique. Just don't call the ONU VID method
+        from pon_port import PonPort
+        return self.get_onu_vid(onu_id)
+        # return self._onu_offset(onu_id) + (pon_id * PonPort.MAX_ONUS_SUPPORTED)
 
     def _onu_offset(self, onu_id):
         # Start ONU's just past the southbound PON port numbers. Since ONU ID's start
         # at zero, add one
-        assert AdtranOltHandler.BASE_ONU_OFFSET > (self.num_northbound_ports + self.num_southbound_ports + 1)
+        # assert AdtranOltHandler.BASE_ONU_OFFSET > (self.num_northbound_ports + self.num_southbound_ports + 1)
+        assert AdtranOltHandler.BASE_ONU_OFFSET > (4 + self.num_southbound_ports + 1)  # Skip over uninitialized ports
         return AdtranOltHandler.BASE_ONU_OFFSET + onu_id
 
     def _pon_onu_id_to_proxy_address(self, pon_id, onu_id):
@@ -675,27 +953,72 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         :return: (tuple) pon-id, onu-id
         """
         onu_id = proxy_address.onu_id
-
-        if self.autoactivate:
-            # Legacy method
-            pon_id = proxy_address.channel_group_id
-        else:
-            # xPON method
-            pon_id = self._port_number_to_pon_id(proxy_address.channel_id)
+        pon_id = self._port_number_to_pon_id(proxy_address.channel_id)
 
         return pon_id, onu_id
 
     def _pon_id_to_port_number(self, pon_id):
-        return pon_id + 1 + self.num_northbound_ports
+        # return pon_id + 1 + self.num_northbound_ports
+        return pon_id + 1 + 4   # Skip over uninitialized ports
 
     def _port_number_to_pon_id(self, port):
-        return port - 1 - self.num_northbound_ports
+        # return port - 1 - self.num_northbound_ports
+        return port - 1 - 4  # Skip over uninitialized ports
 
     def is_pon_port(self, port):
         return self._port_number_to_pon_id(port) in self.southbound_ports
 
     def is_uni_port(self, port):
         return port >= self._onu_offset(0)  # TODO: Really need to rework this one...
+
+    def get_onu_port_and_vlans(self, flow_entry):
+        """
+        Get the logical port (openflow port) for a given southbound port of an ONU
+
+        :param flow_entry: (FlowEntry) Flow to parse
+        :return: None or openflow port number and the actual VLAN IDs we should use
+        """
+        if flow_entry.flow_direction == FlowEntry.FlowDirection.UPSTREAM:
+            # Upstream will have VID=Logical_port until VOL-460 is addressed
+            ingress_port = flow_entry.in_port
+            vid = flow_entry.vlan_id
+
+        else:
+            ingress_port = flow_entry.output
+            vid = flow_entry.inner_vid
+
+        pon_port = self.get_southbound_port(ingress_port)
+        if pon_port is None:
+            return None, None, None
+
+        if flow_entry.flow_direction == FlowEntry.FlowDirection.UPSTREAM:
+            if self.exception_gems:             # FIXED_ONU
+                ingress_port = vid
+                return ingress_port, vid, vid   # TODO: Needs work
+
+            # Upstream ACLs will have VID=Logical_port until VOL-460 is addressed
+            # but User data flows have the correct VID / C-Tag.
+            if flow_entry.is_acl_flow:
+                onu = next((onu for onu in pon_port.onus if
+                            onu.logical_port == vid), None)
+            else:
+                onu = next((onu for onu in pon_port.onus if
+                            onu.onu_vid == vid), None)
+
+        elif flow_entry.vlan_id in (FlowEntry.LEGACY_CONTROL_VLAN,
+                                    flow_entry.handler.untagged_vlan):
+            # User data flows have inner_vid=correct C-tag. Legacy control VLANs
+            # have inner_vid == logical_port until VOL-460 is addressed
+            onu = next((onu for onu in pon_port.onus if
+                        onu.logical_port == vid), None)
+        else:
+            onu = next((onu for onu in pon_port.onus if
+                        onu.onu_vid == vid), None)
+
+        if onu is None:
+            return None, None, None
+
+        return onu.logical_port, onu.onu_vid, onu.untagged_vlan
 
     def get_southbound_port(self, port):
         pon_id = self._port_number_to_pon_id(port)
