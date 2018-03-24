@@ -1,0 +1,174 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "17b441ca_79bbc15a",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 46
+      },
+      "lineNbr": 56,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-03-24T07:32:42Z",
+      "side": 1,
+      "message": "How do we reconcile this data in case of failure. We are maintaining some states here. I am not saying this needs to be fixed right away, but something to think about for the future.\nThis is applicable for any states we maintain in the adapter, like uni_port_num generation, gem_ports/tconts generation logic etc.",
+      "revId": "0c67c2fe1d6e995ccb9ca0b3c87b03bee2aa9b07",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "106be970_84294c9e",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 46
+      },
+      "lineNbr": 76,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-03-24T07:32:42Z",
+      "side": 1,
+      "message": "\u0027device\u0027 is already available from kwargs[\u0027device\u0027]. May not be necessary to pull it again.",
+      "revId": "0c67c2fe1d6e995ccb9ca0b3c87b03bee2aa9b07",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3a17eff2_3490f451",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 46
+      },
+      "lineNbr": 78,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-03-24T07:32:42Z",
+      "side": 1,
+      "message": "How does the OpenOlt adapter know the vendor and model of the OLT. It will good if this comes as part of the device provisioning in voltha.",
+      "revId": "0c67c2fe1d6e995ccb9ca0b3c87b03bee2aa9b07",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "883d6709_a1559ed8",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 46
+      },
+      "lineNbr": 92,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-03-24T07:32:42Z",
+      "side": 1,
+      "message": "Why are we not using twisted python constructs here, instead of the \"threading\" module? I am not sure how the indications processing in this thread interacts with the main twisted reactor thread.",
+      "revId": "0c67c2fe1d6e995ccb9ca0b3c87b03bee2aa9b07",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1c8e596e_991021bd",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 46
+      },
+      "lineNbr": 94,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-03-24T07:32:42Z",
+      "side": 1,
+      "message": "It is not clear where the OLT is getting activated. Does it get activated as soon as you establish the gRPC connection?",
+      "revId": "0c67c2fe1d6e995ccb9ca0b3c87b03bee2aa9b07",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "267a24bf_985d0662",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 46
+      },
+      "lineNbr": 95,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-03-24T07:32:42Z",
+      "side": 1,
+      "message": "Where are we activating the PON ports? The gRPC interface doesn\u0027t have the necessary RPCs to do that.",
+      "revId": "0c67c2fe1d6e995ccb9ca0b3c87b03bee2aa9b07",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fd1d309f_9bb6d6d1",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 46
+      },
+      "lineNbr": 96,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-03-24T07:32:42Z",
+      "side": 1,
+      "message": "How is the connection loss towards the OLT taken care of. Heartbeats??. Can we have some placeholders in the code for that.",
+      "revId": "0c67c2fe1d6e995ccb9ca0b3c87b03bee2aa9b07",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b9878e2b_c23f8751",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 46
+      },
+      "lineNbr": 113,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-03-24T07:32:42Z",
+      "side": 1,
+      "message": "I guess we can still reduce this 1s interval to few 100ms",
+      "revId": "0c67c2fe1d6e995ccb9ca0b3c87b03bee2aa9b07",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "80a695d6_f226028e",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 46
+      },
+      "lineNbr": 120,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-03-24T07:32:42Z",
+      "side": 1,
+      "message": "Where is the check for PON or NNI port?",
+      "revId": "0c67c2fe1d6e995ccb9ca0b3c87b03bee2aa9b07",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "deda25d2_4e77364d",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 46
+      },
+      "lineNbr": 197,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-03-24T07:32:42Z",
+      "side": 1,
+      "message": "Does the onu_indication always correspond to event \"activation-completed\" ?",
+      "revId": "0c67c2fe1d6e995ccb9ca0b3c87b03bee2aa9b07",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
