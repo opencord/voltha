@@ -19,6 +19,23 @@
     },
     {
       "key": {
+        "uuid": "29d9bbee_1f01e856",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 46
+      },
+      "lineNbr": 72,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-03-24T07:37:06Z",
+      "side": 1,
+      "message": "I don\u0027t think this would work. The latest voltha version would need us to specify the dpid, and it has to be a mac_address. What version of voltha has this adapter been tested with?",
+      "revId": "0c67c2fe1d6e995ccb9ca0b3c87b03bee2aa9b07",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "106be970_84294c9e",
         "filename": "voltha/adapters/openolt/openolt_device.py",
         "patchSetId": 46
