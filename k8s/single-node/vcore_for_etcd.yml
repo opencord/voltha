@@ -32,7 +32,7 @@ spec:
       labels:
         app: vcore
       annotations:
-        cni: "weave"
+        cni: "calico"
     spec:
       containers:
         - name: voltha

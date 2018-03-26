@@ -11,6 +11,8 @@ spec:
     metadata:
       labels:
         app: default-http-backend
+      annotations:
+        cni: "calico"
     spec:
       terminationGracePeriodSeconds: 60
       containers:

@@ -24,7 +24,7 @@ spec:
       labels:
         app: fluentd
       annotations:
-        cni: "weave"
+        cni: "calico"
     spec:
       terminationGracePeriodSeconds: 10
       containers:

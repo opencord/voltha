@@ -13,6 +13,7 @@ spec:
       labels:
         app: ingress-nginx
       annotations:
+        cni: "calico"
         prometheus.io/port: '10254'
         prometheus.io/scrape: 'true'
     spec:

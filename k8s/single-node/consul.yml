@@ -56,7 +56,7 @@ spec:
       labels:
         app: consul
       annotations:
-        cni: "weave"
+        cni: "calico"
     spec:
       terminationGracePeriodSeconds: 10
       containers:

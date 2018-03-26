@@ -10,7 +10,7 @@ spec:
       labels:
         app: ofagent
       annotations:
-        cni: "weave"
+        cni: "calico"
     spec:
       terminationGracePeriodSeconds: 10
       containers:

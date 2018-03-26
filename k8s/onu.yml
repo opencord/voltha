@@ -25,7 +25,7 @@ spec:
        labels:
          app: onu
        annotations:
-         cni: "weave,pon0"
+         cni: "calico,pon0"
      spec:
        containers:
          - name: onu

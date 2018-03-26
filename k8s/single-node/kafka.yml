@@ -28,7 +28,7 @@ spec:
       labels:
         app: kafka
       annotations:
-        cni: "weave"
+        cni: "calico"
     spec:
       terminationGracePeriodSeconds: 10
       containers:
