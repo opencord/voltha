@@ -314,7 +314,7 @@
 
 - name: The glusterfs service is started
   service:
-    name: glusterfs-server
+    name: glusterd
     enabled: yes
     state: started
   when: target == "cluster"

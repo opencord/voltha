@@ -1,10 +1,10 @@
 - name: "VOLT-HA Deploy | Add Namespace"
-  command: kubectl apply -f {{ target_voltha_dir }}/k8s/namespace.yml
+  command: kubectl apply -f {{ target_voltha_home }}/k8s/namespace.yml
   run_once: true
 
 # Ingress
 - name: "VOLT-HA Deploy | Start Ingress Controller"
-  command: kubectl apply -f {{ target_voltha_dir }}/k8s/ingress
+  command: kubectl apply -f {{ target_voltha_home }}/k8s/ingress
   run_once: true
 
 - name: "VOLT-HA Deploy | Wait for Default HTTP backend to be ready"
@@ -18,7 +18,7 @@
 # Zookeeper
 
 - name: "VOLT-HA Deploy | Start zookeeper"
-  command: kubectl apply -f {{ target_voltha_dir }}/k8s/zookeeper.yml
+  command: kubectl apply -f {{ target_voltha_home }}/k8s/zookeeper.yml
   run_once: true
 
 - name: "VOLT-HA Deploy | Wait for zookeeper to be ready"
@@ -31,17 +31,21 @@
 
 # Kafka
 - name: "VOLT-HA Deploy | Start kafka"
-  command: kubectl apply -f {{ target_voltha_dir }}/k8s/kafka.yml
+  command: kubectl apply -f {{ target_voltha_home }}/k8s/kafka.yml
   run_once: true
 
 - name: "VOLT-HA Deploy | Wait for kafka to be ready"
   command: kubectl rollout status statefulset/kafka -w -n {{ voltha_namespace }}
   run_once: true
 
-# Fluentd
+# Fluentd Config
+- name: "VOLT-HA Deploy | Add Fluentd Configuration"
+  command: kubectl apply -f {{ target_voltha_home }}/k8s/fluentd-config.yml
+  run_once: true
 
+# Fluentd
 - name: "VOLT-HA Deploy | Start fluentd"
-  command: kubectl apply -f {{ target_voltha_dir }}/k8s/fluentd.yml
+  command: kubectl apply -f {{ target_voltha_home }}/k8s/fluentd.yml
   run_once: true
 
 - name: "VOLT-HA Deploy | Wait for fluentd to be ready"
@@ -49,12 +53,11 @@
   with_items:
     - fluentdactv
     - fluentdstby
-    - fluentd
   run_once: true
 
 # Consul
 - name: "VOLT-HA Deploy | Start consul"
-  command: kubectl apply -f {{ target_voltha_dir }}/k8s/consul.yml
+  command: kubectl apply -f {{ target_voltha_home }}/k8s/consul.yml
   run_once: true
 
 - name: "VOLT-HA Deploy | Wait for consul to be ready"
@@ -63,7 +66,7 @@
 
 # Voltha Core (for consul)
 - name: "VOLT-HA Deploy | Start VOLT-HA core (for consul)"
-  command: kubectl apply -f {{ target_voltha_dir }}/k8s/vcore_for_consul.yml
+  command: kubectl apply -f {{ target_voltha_home }}/k8s/vcore_for_consul.yml
   run_once: true
 
 - name: "VOLT-HA Deploy | Wait for VOLT-HA core (for consul) to be ready"
@@ -72,7 +75,7 @@
 
 # OFagent
 - name: "VOLT-HA Deploy | Start OpenFlow Agent"
-  command: kubectl apply -f {{ target_voltha_dir }}/k8s/ofagent.yml
+  command: kubectl apply -f {{ target_voltha_home }}/k8s/ofagent.yml
   run_once: true
 
 - name: "VOLT-HA Deploy | Wait for OpenFlow Agent to be ready"
@@ -81,7 +84,7 @@
 
 # Envoy (for consul)
 - name: "VOLT-HA Deploy | Start Envoy (for consul)"
-  command: kubectl apply -f {{ target_voltha_dir }}/k8s/envoy_for_consul.yml
+  command: kubectl apply -f {{ target_voltha_home }}/k8s/envoy_for_consul.yml
   run_once: true
 
 - name: "VOLT-HA Deploy | Wait for Envoy (for consul) to be ready"
@@ -90,7 +93,7 @@
 
 # Voltha CLI
 - name: "VOLT-HA Deploy | Start VOLT-HA CLI"
-  command: kubectl apply -f {{ target_voltha_dir }}/k8s/vcli.yml
+  command: kubectl apply -f {{ target_voltha_home }}/k8s/vcli.yml
   run_once: true
 
 - name: "VOLT-HA Deploy | Wait for VOLT-HA CLI to be ready"
@@ -99,7 +102,7 @@
 
 # NETCONF
 - name: "VOLT-HA Deploy | Start NETCONF"
-  command: kubectl apply -f {{ target_voltha_dir }}/k8s/netconf.yml
+  command: kubectl apply -f {{ target_voltha_home }}/k8s/netconf.yml
   run_once: true
 
 - name: "VOLT-HA Deploy | Wait for NETCONF to be ready"
@@ -108,7 +111,7 @@
 
 # Grafana
 - name: "VOLT-HA Deploy | Start Grafana"
-  command: kubectl apply -f {{ target_voltha_dir }}/k8s/grafana.yml
+  command: kubectl apply -f {{ target_voltha_home }}/k8s/grafana.yml
   run_once: true
   when: monitor_voltha_stats
 
@@ -119,7 +122,7 @@
 
 # Dashd and Shovel
 - name: "VOLT-HA Deploy | Start DASHD and SHOVEL"
-  command: kubectl apply -f {{ target_voltha_dir }}/k8s/stats.yml
+  command: kubectl apply -f {{ target_voltha_home }}/k8s/stats.yml
   run_once: true
   when: monitor_voltha_stats
 
@@ -130,30 +133,3 @@
     - shovel
   run_once: true
   when: monitor_voltha_stats
-
-# FreeRADIUS Config
-- name: "VOLT-HA Deploy | Add FreeRADIUS Configuration"
-  command: kubectl apply -f {{ target_voltha_dir }}/k8s/freeradius-config.yml
-  run_once: true
-
-# FreeRADIUS
-- name: "VOLT-HA Deploy | Start FreeRADIUS"
-  command: kubectl apply -f {{ target_voltha_dir }}/k8s/freeradius.yml
-  run_once: true
-
-- name: "VOLT-HA Deploy | Wait for FreeRADIUS to be ready"
-  command: kubectl rollout status deployment/freeradius -w -n {{ voltha_namespace }}
-  run_once: true
-
-# ONOS
-- name: "VOLT-HA Deploy | Start ONOS"
-  command: kubectl apply -f {{ target_voltha_dir }}/k8s/onos.yml
-  run_once: true
-
-- name: "VOLT-HA Deploy | Wait for ONOS to be ready"
-  command: kubectl rollout status deployment/onos -w -n {{ voltha_namespace }}
-  run_once: true
-
-
-
-

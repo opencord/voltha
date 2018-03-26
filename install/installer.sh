@@ -105,93 +105,118 @@ do
 
 done
 
+# Add the dependent software list to the cluster variables
+echo -e "${lBlue}Setting up dependent software${NC}"
+# Delete any grub updates since the boot disk is almost
+# guaranteed not to be the same device as the installer.
+mkdir grub_updates
+sudo mv deb_files/*grub* grub_updates
+# Sort the packages in dependency order to get rid of scary non-errors
+# that are issued by ansible.
+#echo -e "${lBlue}Dependency sorting dependent software${NC}"
+#./sort_packages.sh
+#echo "deb_files:" >> ansible/group_vars/all
+#for i in `cat sortedDebs.txt`
+#do
+#echo "  - $i" >> ansible/group_vars/all
+#done
+
+# Make sure the ssh keys propagate to all hosts allowing passwordless logins between them
+echo -e "${lBlue}Propagating ssh keys${NC}"
 cp -r .keys ansible/roles/cluster-host/files
 
+# Install python on all the 3 servers since python is required for
+for i in $hosts
+do
+    echo -e "${lBlue}Installing ${lCyan}Python${lBlue}${NC}"
+    scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i .keys/$i -r python-deb voltha@$i:.
+    ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i .keys/$i  voltha@$i "sudo dpkg -i /home/voltha/python-deb/*minimal*"
+    ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i .keys/$i  voltha@$i sudo dpkg -i -R /home/voltha/python-deb
+    ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i .keys/$i  voltha@$i rm -fr python-deb
+
+done
 
 if [  "$cluster_framework" == "kubernetes" ]; then
 
-	echo -e "${green}Deploying kubernetes${NC}"
+    echo -e "${green}Deploying kubernetes${NC}"
 
-    rm -rf kubespray
+    # Remove previously created inventory if it exists
+    cp -rfp kubespray/inventory kubespray/inventory/voltha
 
-    git clone https://github.com/kubernetes-incubator/kubespray.git
+    # Adjust kubespray configuration
 
-    cp -rfp kubespray/inventory/sample kubespray/inventory/voltha
-
-    # TODO: Replace with variables taken from config file
-    # bootstrap_os: ubuntu
-    # network_plugin: weave
-
+    # Destination OS
     sed -i -e "/bootstrap_os: none/s/.*/bootstrap_os: ubuntu/" \
         kubespray/inventory/voltha/group_vars/all.yml
-    sed -i -e "/kube_network_plugin: calico/s/.*/kube_network_plugin: weave/" \
-        kubespray/inventory/voltha/group_vars/k8s-cluster.yml
+
+    # Subnet used for deployed k8s services
     sed -i -e "/kube_service_addresses: 10.233.0.0\/18/s/.*/kube_service_addresses: $cluster_service_subnet/" \
         kubespray/inventory/voltha/group_vars/k8s-cluster.yml
+
+    # Subnet used for deployed k8s pods
     sed -i -e "/kube_pods_subnet: 10.233.64.0\/18/s/.*/kube_pods_subnet: $cluster_pod_subnet/" \
         kubespray/inventory/voltha/group_vars/k8s-cluster.yml
-    sed -i -e "s/docker_options: \"/&--insecure-registry=$cluster_registry /" \
-        kubespray/inventory/voltha/group_vars/k8s-cluster.yml
 
+    # Prevent any downloads from kubespray
+    sed -i -e "s/skip_downloads: false/skip_downloads: true/" \
+        kubespray/cluster.yml
+    sed -i -e "s/- { role: docker, tags: docker }/#&/" \
+        kubespray/cluster.yml
+    sed -i -e "s/skip_downloads: false/skip_downloads: true/" \
+        kubespray/roles/download/defaults/main.yml
+    sed -i -e "s/when: ansible_os_family == \"Debian\"/& and skip_downloads == \"false\" /" \
+        kubespray/roles/kubernetes/preinstall/tasks/main.yml
+    sed -i -e "s/or is_atomic)/& and skip_downloads == \"false\" /" \
+        kubespray/roles/kubernetes/preinstall/tasks/main.yml
+
+    # Disable swapon check
+    sed -i -e "s/kubelet_fail_swap_on|default(true)/kubelet_fail_swap_on|default(false)/" \
+        kubespray/roles/kubernetes/preinstall/tasks/verify-settings.yml
+
+    # Construct node inventory
     CONFIG_FILE=kubespray/inventory/voltha/hosts.ini python3 \
         kubespray/contrib/inventory_builder/inventory.py $hosts
+
+    ordered_nodes=`CONFIG_FILE=kubespray/inventory/voltha/hosts.ini python3 \
+        kubespray/contrib/inventory_builder/inventory.py print_ips`
 
     # The inventory defines
     sed -i -e '/\[kube-master\]/a\
     node3
     ' kubespray/inventory/voltha/hosts.ini
 
-    ansible-playbook -u root -i kubespray/inventory/voltha/hosts.ini kubespray/cluster.yml
-
     echo "[k8s-master]" > ansible/hosts/k8s-master
 
+    mkdir -p kubespray/inventory/voltha/host_vars
+
     ctr=1
-    for i in $hosts
+    for i in $ordered_nodes
     do
+        echo -e "${lBlue}Adding SSH keys to kubespray ansible${NC}"
+        echo "ansible_ssh_private_key_file: $wd/.keys/$i" > kubespray/inventory/voltha/host_vars/node$ctr
+
         if [ $ctr -eq 1 ]; then
             echo  $i >> ansible/hosts/k8s-master
-            ctr=0
         fi
+        ctr=$((ctr + 1))
     done
 
-    ansible-playbook ansible/voltha-k8s.yml -i ansible/hosts/cluster -e 'config_voltha=true'
-    ansible-playbook ansible/voltha-k8s.yml -i ansible/hosts/k8s-master -e 'deploy_voltha=true'
+    # Prepare Voltha
+    # ... Prepares environment and copies all required container images
+    # ... including the ones needed by kubespray
+    cp ansible/ansible.cfg .ansible.cfg
+    ansible-playbook -v ansible/voltha-k8s.yml -i ansible/hosts/cluster -e 'config_voltha=true'
+
+    # Deploy kubernetes
+    ANSIBLE_CONFIG=kubespray/ansible.cfg ansible-playbook -v -b \
+        --become-method=sudo --become-user root -u voltha \
+        -i kubespray/inventory/voltha/hosts.ini kubespray/cluster.yml
+
+    # Deploy Voltha
+    ansible-playbook -v ansible/voltha-k8s.yml -i ansible/hosts/k8s-master -e 'deploy_voltha=true'
 
 else
-    #
     # Legacy swarm instructions
-    #
-
-    # Add the dependent software list to the cluster variables
-    echo -e "${lBlue}Setting up dependent software${NC}"
-    # Delete any grub updates since the boot disk is almost
-    # guaranteed not to be the same device as the installer.
-    mkdir grub_updates
-    sudo mv deb_files/*grub* grub_updates
-    # Sort the packages in dependency order to get rid of scary non-errors
-    # that are issued by ansible.
-    #echo -e "${lBlue}Dependency sorting dependent software${NC}"
-    #./sort_packages.sh
-    #echo "deb_files:" >> ansible/group_vars/all
-    #for i in `cat sortedDebs.txt`
-    #do
-    #echo "  - $i" >> ansible/group_vars/all
-    #done
-
-    # Make sure the ssh keys propagate to all hosts allowing passwordless logins between them
-    echo -e "${lBlue}Propagating ssh keys${NC}"
-    cp -r .keys ansible/roles/cluster-host/files
-
-    # Install python on all the 3 servers since python is required for
-    for i in $hosts
-    do
-        echo -e "${lBlue}Installing ${lCyan}Python${lBlue}${NC}"
-        scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i .keys/$i -r python-deb voltha@$i:.
-        ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i .keys/$i  voltha@$i "sudo dpkg -i /home/voltha/python-deb/*minimal*"
-        ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i .keys/$i  voltha@$i sudo dpkg -i -R /home/voltha/python-deb
-        ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i .keys/$i  voltha@$i rm -fr python-deb
-
-    done
 
     # Create the daemon.json file for the swarm
     echo "{" > daemon.json

@@ -32,6 +32,7 @@
     - install/BashLoginTarget.sh
     - install/ansible
     - compose
+    - k8s 
     - consul_config/basic.json
   tags: [installer]
 

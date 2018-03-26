@@ -13,6 +13,12 @@
   with_items: "{{ hosts }}"
   tags: [common]
 
+- name: GlusterFS repository is available
+  apt_repository:
+    repo: 'ppa:gluster/glusterfs-3.13'
+  when: target != "cluster"
+  tags: [common]
+
 - name: Latest apt packages
   apt:
     name: "{{ item }}"

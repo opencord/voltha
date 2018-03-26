@@ -24,7 +24,7 @@
 
 - name: VOLT-HA Config | Required directory exists
   file:
-    path: "{{ target_voltha_dir }}"
+    path: "{{ target_voltha_home }}"
     state: directory
     owner: voltha
     group: voltha
@@ -34,7 +34,7 @@
 - name: VOLT-HA Config | Configuration files and directories are copied
   synchronize:
     src: "{{ install_source }}/{{ item }}"
-    dest: "{{ target_voltha_dir }}"
+    dest: "{{ target_voltha_home }}"
     archive: no
     owner: no
     perms: no
@@ -47,7 +47,7 @@
 
 - name: VOLT-HA Config | Configuration directories are owned by voltha
   file:
-    path: "{{ target_voltha_dir }}/{{ item }}"
+    path: "{{ target_voltha_home }}/{{ item }}"
     owner: voltha
     group: voltha
     recurse: yes
@@ -72,12 +72,5 @@
 - name: VOLT-HA Config | Docker images are re-tagged to cluster registry names
   command: docker tag {{ docker_registry }}/{{ item }} {{ inventory_hostname }}:5001/{{ item }}
   with_items: "{{ voltha_containers }}"
-  when: target == "cluster"
-  tags: [voltha]
-
-- name: VOLT-HA Config | Add CNI bridge for PONSIM layer 2 support
-  template:
-    src: ponsim_bridge.j2
-    dest: "/etc/cni/net.d/10-pon0.conf"
   when: target == "cluster"
   tags: [voltha]

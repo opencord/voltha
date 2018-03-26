@@ -14,6 +14,7 @@ ipTimeout=10
 # Command line argument variables
 testMode="no"
 rebuildVoltha="no"
+useKubernetes="no"
 
 
 
@@ -43,6 +44,10 @@ parse_args()
 				rebuildVoltha="yes"
 				echo -e "${lBlue}Voltha rebuild is ${green}enabled${NC}"
 				;;
+                        "k8s" )
+                                useKubernetes="yes"
+                                echo -e "${lBlue}Kubernetes framework is ${green}enabled${NC}"
+                                ;;
 		esac
 	done
 }
@@ -256,6 +261,10 @@ if [ "$testMode" == "yes" ]; then
 	vagrant destroy ha-serv${uId}-{1,2,3}
 	vagrant up ha-serv${uId}-{1,2,3}
 	./devSetHostList.sh
+
+	if [ "$useKubernetes" == "yes" ]; then
+		./devSetKubernetes.sh
+	fi
 fi
 
 # Ensure that the voltha VM is running so that images can be secured
@@ -278,6 +287,11 @@ if [ -z "$vVm" -o "$rebuildVoltha" == "yes" ]; then
 		echo -e "${red}Voltha build failed!! ${lCyan}Please review the log and correct${lBlue} is running${NC}"
 		exit 1
 	fi
+
+        if [ "$useKubernetes" == "yes" ]; then
+		# Load required k8s libraries on the voltha instance
+                ./preloadKubernetes.sh
+        fi
 fi
 
 # Extract all the image names and tags from the running voltha VM
@@ -288,7 +302,8 @@ if [ "$testMode" == "yes" ]; then
 	echo -e "${lBlue}Extracting the docker image list from the voltha VM${NC}"
 	volIpAddr=`virsh domifaddr $vVmName${uId} | tail -n +3 | awk '{ print $4 }' | sed -e 's~/.*~~'`
 	ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i ../.vagrant/machines/voltha${uId}/libvirt/private_key vagrant@$volIpAddr "docker image ls" > images.tmp
-	cat images.tmp | grep -v 5000 | tail -n +2 | awk '{printf("  - %s:%s\n", $1, $2)}' | grep -v "<none>" > image-list.cfg
+        # Construct list of images; exclude all entries that point to the registry
+	cat images.tmp | grep -v :5000 | tail -n +2 | awk '{printf("  - %s:%s\n", $1, $2)}' | grep -v "<none>" > image-list.cfg
 	rm -f images.tmp
 	sed -i -e '/voltha_containers:/,$d' ansible/group_vars/all
 	echo "voltha_containers:" >> ansible/group_vars/all
@@ -299,14 +314,19 @@ if [ "$testMode" == "yes" ]; then
 else
 	echo -e "${lBlue}Set up the docker image list from ${lCyan}containers.cfg${NC}"
 	sed -i -e '/voltha_containers:/,$d' ansible/group_vars/all
-	cat containers.cfg >> ansible/group_vars/all
+
+        if [ "$useKubernetes" == "yes" ]; then
+		cat containers.cfg.k8s >> ansible/group_vars/all
+ 	else
+		cat containers.cfg >> ansible/group_vars/all
+	fi
 fi
 
 
 # Install python which is required for ansible
 echo -e "${lBlue}Installing ${lCyan}Python${NC}"
 ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem vinstall@$ipAddr sudo apt-get update 
-ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem vinstall@$ipAddr sudo apt-get -y install python
+ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem vinstall@$ipAddr sudo apt-get -y install python python-netaddr
 
 # Move all the python deb files to their own directory so they can be installed first
 echo -e "${lBlue}Caching ${lCyan}Python${lBlue} install${NC}"
@@ -314,6 +334,12 @@ ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem vinst
 ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem vinstall@$ipAddr "sudo mv /var/cache/apt/archives/*.deb /home/vinstall/python-deb"
 ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem vinstall@$ipAddr "sudo chown -R vinstall.vinstall /home/vinstall/python-deb"
 
+if [ "$useKubernetes" == "yes" ]; then
+       echo -e "${lBlue}Cloning ${lCyan}Kubespray${lBlue} repository${NC}"
+       ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem vinstall@$ipAddr "git clone --branch v2.4.0 https://github.com/kubernetes-incubator/kubespray.git /home/vinstall/kubespray"
+       #ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem vinstall@$ipAddr "git clone https://github.com/kubernetes-incubator/kubespray.git /home/vinstall/kubespray"
+       ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem vinstall@$ipAddr "sudo chown -R vinstall.vinstall /home/vinstall/kubespray"
+fi
 
 # Create the docker.cfg file in the ansible tree using the VMs IP address
 echo 'DOCKER_OPTS="$DOCKER_OPTS --insecure-registry '$ipAddr':5000 -H tcp://0.0.0.0:2375 -H unix:///var/run/docker.sock --registry-mirror=http://'$ipAddr':5001"' > ansible/roles/docker/templates/docker.cfg

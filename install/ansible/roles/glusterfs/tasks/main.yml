@@ -26,3 +26,21 @@
     - registry_volume
     - logging_volume
 
+- name: The replicated registry filesystem is mounted
+  mount:
+    path: "{{ target_voltha_dir }}/registry_data"
+    src: "{{ inventory_hostname }}:/registry_volume"
+    fstype: glusterfs
+    opts:  "defaults,_netdev,noauto,x-systemd.automount"
+    state: mounted
+  when: target == "cluster"
+
+- name: The replicated logging filesystem is mounted on boot
+  mount:
+    path: "/var/log/voltha"
+    src: "{{ inventory_hostname }}:/logging_volume"
+    fstype: glusterfs
+    opts:  "defaults,_netdev,noauto,x-systemd.automount"
+    state: mounted
+  when: target == "cluster"
+  tags: [cluster_host]

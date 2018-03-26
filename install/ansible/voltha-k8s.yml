@@ -4,20 +4,29 @@
   vars:
     target: cluster
   roles:
-    - { role: common, when: config_voltha is defined }
-    - { role: kubernetes-host, when: config_voltha is defined }
-    - { role: voltha-kubernetes, when: config_voltha is defined }
+    - common
+    - cluster-host
+    - docker
+    - { role: voltha-k8s, when: config_voltha is defined }
+
+- hosts: cluster
+  remote_user: voltha
+  serial: 1
+  vars:
+    target: cluster
+  roles:
+    - glusterfs
 
 - hosts:  k8s-master
   remote_user: voltha
   serial: 1
   roles:
     - {
-        role: voltha-kubernetes, when: deploy_voltha is defined,
+        role: voltha-k8s, when: deploy_voltha is defined,
         monitor_voltha_stats: true,
         use_ponsim: true
       }
     - {
-        role: voltha-kubernetes,
+        role: voltha-k8s,
         when: teardown_voltha is defined
       }
