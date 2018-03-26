@@ -34,11 +34,11 @@ spec:
       labels:
         app: zookeeper
       annotations:
-        cni: "weave"
+        cni: "calico"
     spec:
       containers:
       - name: zoo
-        image: zookeeper:3.4.11
+        image: zookeeper:latest
         ports:
         - containerPort: 2181
         - containerPort: 2888

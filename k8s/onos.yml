@@ -31,7 +31,7 @@ spec:
       labels:
         app: onos
       annotations:
-        cni: "weave"
+        cni: "calico"
     spec:
       containers:
         - name: onos

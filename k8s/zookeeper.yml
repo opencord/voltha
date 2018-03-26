@@ -76,11 +76,11 @@ spec:
       labels:
         app: zookeeper-1
       annotations:
-        cni: "weave"
+        cni: "calico"
     spec:
       containers:
       - name: zoo1
-        image: zookeeper:3.4.11
+        image: zookeeper:latest
         ports:
         - containerPort: 2181
         - containerPort: 2888
@@ -116,11 +116,11 @@ spec:
       labels:
         app: zookeeper-2
       annotations:
-        cni: "weave"
+        cni: "calico"
     spec:
       containers:
       - name: zoo2
-        image: zookeeper:3.4.11
+        image: zookeeper:latest
         ports:
         - containerPort: 2181
         - containerPort: 2888
@@ -156,11 +156,11 @@ spec:
       labels:
         app: zookeeper-3
       annotations:
-        cni: "weave"
+        cni: "calico"
     spec:
       containers:
       - name: zoo3
-        image: zookeeper:3.4.11
+        image: zookeeper:latest
         ports:
         - containerPort: 2181
         - containerPort: 2888

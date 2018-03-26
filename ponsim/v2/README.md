@@ -266,8 +266,6 @@ EOF
 ```
 cd k8s
 
-kubectl create configmap freeradius-config --from-file data/clients.conf --from-file data/users
-
 kubectl apply -f consul.yml
 kubectl apply -f zookeeper.yml
 kubectl apply -f kafka.yml
@@ -276,6 +274,7 @@ kubectl apply -f vcore_for_consul.yml
 kubectl apply -f ofagent.yml
 kubectl apply -f vcli.yml
 kubectl apply -f onos.yml
+kubectl apply -f freeradius-config.yml
 kubectl apply -f freeradius.yml
 ```
 

@@ -35,7 +35,7 @@ spec:
       labels:
         app: voltha
       annotations:
-        cni: "weave"
+        cni: "calico"
     spec:
       containers:
         - name: voltha
