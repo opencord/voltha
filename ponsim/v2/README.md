@@ -2,21 +2,71 @@
 
 The PON simulator was re-written for the purpose of easily integrating it in a cluster environment.
 
+It supports the following deployment configurations:
+
+* In a Kubernetes cluster
+* In standalone command line mode (not containerized).
+
+**Please note: Swarm mode is NOT supported by this simulator.**
+
 Here are some differences with the legacy PONSIM implementation:
 * The OLT and ONU instances are deployed as independent entities.
 * Both OLT and ONU are scalable containers.
 * OLT-ONU and VOLTHA-OLT communication is done via GRPC
 
-# 2. Directory structure
+# 2. PON Simulator Usage
+
+```
+Usage of ./ponsim:
+  -alarm_freq int
+    	Frequency of simulated alarms (in seconds) (default 60)
+  -alarm_sim
+    	Enable generation of simulated alarms
+  -api_type string
+    	Type of API used to communicate with devices (PONSIM or BAL) (default "PONSIM")
+  -device_type string
+    	Type of device to simulate (OLT or ONU) (default "OLT")
+  -external_if string
+    	External Communication Interface for read/write network traffic (default "eth1")
+  -fluentd string
+    	Fluentd host address
+  -grpc_addr string
+    	Address used to establish GRPC server connection
+  -grpc_port int
+    	Port used to establish GRPC server connection (default 50060)
+  -internal_if string
+    	Internal Communication Interface for read/write network traffic (default "eth0")
+  -name string
+    	Name of the PON device (default "PON")
+  -no_banner
+    	Omit startup banner log lines
+  -onus int
+    	Number of ONUs to simulate (default 1)
+  -parent_addr string
+    	Address of OLT to connect to (default "olt")
+  -parent_port int
+    	Port of OLT to connect to (default 50060)
+  -promiscuous
+    	Enable promiscuous mode on network interfaces
+  -quiet
+    	Suppress debug and info logs
+  -vcore_endpoint string
+    	Voltha core endpoint address (default "vcore")
+  -verbose
+    	Enable verbose logging
+```
+
+# 3. Directory structure
 
 ```
 ./common - Contains utilities used within the project
 ./core - Contains the main component for handling the OLT/ONU services
 ./grpc - Contains the GRPC server implementation along with the necessary NBI and SBI handlers
-./misc - Contains scripts and required protobuf files
+./protos - Contains protobuf files specific to the PON simulator 
+./scripts - Miscellaneous scripts required by the PON simulator
 ```
 
-# 3. Requirements
+# 4. Requirements
 
 # Golang Installation
 
@@ -40,9 +90,9 @@ export GOPATH=~/go
 export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 ```
 
-# 4. Build the PON simulator
+# 5. Build the PON simulator
 
-## Container
+## Container Mode
 
 The PON simulator container can be built by issuing the following command.
 
@@ -50,9 +100,9 @@ The PON simulator container can be built by issuing the following command.
 make ponsim
 ```
 
-## Local
+## Standalone Mode
 
-In order to run the PON simulator as a standalone application, you need to do some manual setups
+To run the PON simulator in standalone mode, you need to do some manual setups.
 
 ### Protos
 
@@ -80,47 +130,7 @@ go build -o $GOPATH/bin/ponsim $GOPATH/src/github.com/opencord/voltha/ponsim/v2/
 ``` 
 
 
-# 5. PON Simulator Usage
-
-```
-Usage of ./ponsim:
-  -alarm_freq int
-    	Frequency of simulated alarms (in seconds) (default 60)
-  -alarm_sim
-    	Enable generation of simulated alarms
-  -api_type string
-    	Type of API used to communicate with devices (PONSIM or BAL) (default "PONSIM")
-  -device_type string
-    	Type of device to simulate (OLT or ONU) (default "OLT")
-  -external_if string
-    	External Communication Interface for read/write network traffic (default "eth2")
-  -grpc_addr string
-    	Address used to establish GRPC server connection
-  -grpc_port int
-    	Port used to establish GRPC server connection (default 50060)
-  -internal_if string
-    	Internal Communication Interface for read/write network traffic (default "eth1")
-  -name string
-    	Name of the PON device (default "PON")
-  -no_banner
-    	Omit startup banner log lines
-  -onus int
-    	Number of ONUs to simulate (default 1)
-  -parent_addr string
-    	Address of OLT to connect to (default "olt")
-  -parent_port int
-    	Port of OLT to connect to (default 50060)
-  -promiscuous
-    	Enable promiscuous mode on network interfaces
-  -quiet
-    	Suppress debug and info logs
-  -vcore_endpoint string
-    	Voltha core endpoint address (default "vcore")
-  -verbose
-    	Enable verbose logging
-```
-
-# 6. Run in local mode (no container)
+# 6. Run in standalone mode (no container)
 
 ## Create the necessary docker networks
 
@@ -139,6 +149,28 @@ echo 8 > /sys/class/net/ponsim_wan/bridge/group_fwd_mask
 ```
 
 ## Start VOLTHA
+
+Edit compose/docker-compose-system-test.yml to specify the communication type to use between
+the PON simulator and the voltha service.
+ 
+**--ponsim-comm=grpc**
+
+e.g.
+```
+...
+      "/voltha/voltha/main.py",
+      "-v",
+      "--consul=${DOCKER_HOST_IP}:8500",
+      "--rest-port=8880",
+      "--grpc-port=50556",
+      "--kafka=@kafka",
+      "--instance-id-is-container-name",
+      "--interface=eth1",
+      "--backend=consul",
+      "-v",
+      "--ponsim-comm=grpc"
+...
+```
 
 ```
 docker-compose -f compose/docker-compose-system-test.yml up -d
@@ -225,17 +257,15 @@ Note: The following instructions are just a reference and may be incomplete.
 
 ## Install networking components
 
-Install the Weave network package
+### Support multiple network interfaces
 
-```
-kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
-```
-
-Install the CNI Genie package (Required to support multiple network interfaces in a container)
+Install the CNI Genie package which is required to support multiple network interfaces in a container.
 
 ```
 kubectl apply -f https://raw.githubusercontent.com/Huawei-PaaS/CNI-Genie/master/conf/1.8/genie.yaml
 ```
+
+### Configure network bridge for PON simulator
 
 Configure PON management network template (on each host).  
 
@@ -243,7 +273,7 @@ Configure PON management network template (on each host).
 # Run as root
 sudo su
 
-cat <<EOF >> /etc/cni/net.d/10-pon0.conf
+cat <<EOF >> /etc/cni/net.d/20-pon0.conf
 {
     "name": "pon0",
     "type": "bridge",
@@ -256,7 +286,7 @@ cat <<EOF >> /etc/cni/net.d/10-pon0.conf
       "routes": [
         { "dst": "0.0.0.0/0" }
       ]
-    }
+   }
 }
 EOF
 ```
@@ -266,8 +296,7 @@ EOF
 ```
 cd k8s
 
-kubectl create configmap freeradius-config --from-file data/clients.conf --from-file data/users
-
+kubectl apply -f namespace.yml
 kubectl apply -f consul.yml
 kubectl apply -f zookeeper.yml
 kubectl apply -f kafka.yml
@@ -276,6 +305,7 @@ kubectl apply -f vcore_for_consul.yml
 kubectl apply -f ofagent.yml
 kubectl apply -f vcli.yml
 kubectl apply -f onos.yml
+kubectl apply -f freeradius-config.yml
 kubectl apply -f freeradius.yml
 ```
 
@@ -310,7 +340,7 @@ enable
 kubectl apply -f rg.yml
 
 # Enter the RG container
-kubectl exec <rg container id> -ti bash
+kubectl -n voltha exec <rg container id> -ti bash
 
 # Execute some test (e.g. EAPOL authentication)
 wpa_supplicant -i eth0 -Dwired -c /etc/wpa_supplicant/wpa_supplicant.conf

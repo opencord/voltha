@@ -22,6 +22,8 @@ spec:
     metadata:
       labels:
         app: netconf
+      annotations:
+        cni: "calico"
     spec:
       terminationGracePeriodSeconds: 10
       affinity:

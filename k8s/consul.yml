@@ -58,7 +58,7 @@ spec:
       labels:
         app: consul
       annotations:
-        cni: "weave"
+        cni: "calico"
     spec:
       affinity:
         podAntiAffinity:

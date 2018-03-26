@@ -34,7 +34,7 @@ spec:
       labels:
         app: zookeeper
       annotations:
-        cni: "weave"
+        cni: "calico"
     spec:
       containers:
       - name: zoo

@@ -12,6 +12,8 @@ spec:
     metadata:
       labels:
         app: dashd
+      annotations:
+        cni: "calico"
     spec:
       containers:
       - name: dashd
@@ -43,6 +45,8 @@ spec:
     metadata:
       labels:
         app: shovel
+      annotations:
+        cni: "calico"
     spec:
       containers:
       - name: shovel

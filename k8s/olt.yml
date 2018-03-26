@@ -25,7 +25,7 @@ spec:
        labels:
          app: olt
        annotations:
-         cni: "weave"
+         cni: "calico"
      spec:
        containers:
          - name: olt
