@@ -1,0 +1,78 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a6d221a_3550c44d",
+        "filename": "k8s/kafka.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 48,
+      "author": {
+        "id": 1000196
+      },
+      "writtenOn": "2018-03-26T21:26:17Z",
+      "side": 1,
+      "message": "Wouldn\u0027t it be better to use a specific version for test repeatability?",
+      "range": {
+        "startLine": 48,
+        "startChar": 28,
+        "endLine": 48,
+        "endChar": 33
+      },
+      "revId": "f6fb8fa0fbdc6df64548ae76b52324d422bda048",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "397e0d5d_251c3c82",
+        "filename": "k8s/single-node/consul.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 59,
+      "author": {
+        "id": 1000196
+      },
+      "writtenOn": "2018-03-26T21:26:17Z",
+      "side": 1,
+      "message": "This will break the single-node Kubernetes environment which still uses Weave. Please raise a JIRA to align the single-node environment with the clustered environment.",
+      "revId": "f6fb8fa0fbdc6df64548ae76b52324d422bda048",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f74266e3_eab82081",
+        "filename": "k8s/zookeeper.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 83,
+      "author": {
+        "id": 1000196
+      },
+      "writtenOn": "2018-03-26T21:26:17Z",
+      "side": 1,
+      "message": "Wouldn\u0027t it be better to use a specific version for test repeatability?",
+      "revId": "f6fb8fa0fbdc6df64548ae76b52324d422bda048",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "34b9b412_657c252b",
+        "filename": "ponsim/v2/README.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 269,
+      "author": {
+        "id": 1000196
+      },
+      "writtenOn": "2018-03-26T21:26:17Z",
+      "side": 1,
+      "message": "Creation of voltha namespace is missing.",
+      "revId": "f6fb8fa0fbdc6df64548ae76b52324d422bda048",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
