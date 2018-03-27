@@ -15,10 +15,9 @@
 #
 
 import arrow
+import structlog
 
 from voltha.adapters.adtran_olt.xpon.adtran_xpon import AdtranXPON
-from omci.omci_cc import OMCI_CC
-from omci.omci_entities import onu_custom_entity_classes
 from pon_port import PonPort
 from uni_port import UniPort
 from heartbeat import HeartBeat
@@ -34,13 +33,14 @@ from twisted.internet.defer import returnValue
 from voltha.protos import third_party
 from voltha.protos.common_pb2 import OperStatus, ConnectStatus
 from voltha.protos.device_pb2 import Image
-from voltha.extensions.omci.omci import *
 from common.utils.indexpool import IndexPool
+from voltha.extensions.omci.openomci_agent import OpenOMCIAgent
 
 _ = third_party
 _MAXIMUM_PORT = 128          # PON and UNI ports
 _ONU_REBOOT_MIN = 60
 _ONU_REBOOT_RETRY = 10
+
 
 class AdtranOnuHandler(AdtranXPON):
     def __init__(self, adapter, device_id):
@@ -60,12 +60,17 @@ class AdtranOnuHandler(AdtranXPON):
         self._upstream_channel_speed = 0
 
         self._unis = dict()         # Port # -> UniPort
-        self._pons = dict()         # Port # -> PonPort
+        self._pon = None
         self._heartbeat = HeartBeat.create(self, device_id)
 
         self._deferred = None
         self._event_deferred = None
-        self._omci = None
+
+        # TODO: Remove next two lines if/when OpenOMCI is in the core or a container
+        #       in order to support multiple ONUs per instance
+        self._omci_agent = OpenOMCIAgent(self.adapter_agent.core)
+        self._omci_agent.start()
+
         self._port_number_pool = IndexPool(_MAXIMUM_PORT, 1)
 
         self._olt_created = False   # True if deprecated method of OLT creating DA is used
@@ -128,8 +133,14 @@ class AdtranOnuHandler(AdtranXPON):
         return self._olt_created    # ONU was created with deprecated 'child_device_detected' call
 
     @property
+    def omci_agent(self):
+        return self._omci_agent
+
+    @property
     def omci(self):
-        return self._omci
+        # TODO: Decrement access to Communications channel at this point?  What about current PM stuff?
+        _onu_omci_device = self._pon.onu_omci_device
+        return _onu_omci_device.omci_cc if _onu_omci_device is not None else None
 
     @property
     def heartbeat(self):
@@ -148,11 +159,8 @@ class AdtranOnuHandler(AdtranXPON):
         return self._unis.get(port_no_or_name)
 
     @property
-    def pon_ports(self):
-        return self._pons.values()
-
-    def pon_port(self, port_no):
-        return self._pons.get(port_no)
+    def pon_port(self):
+        return self._pon
 
     @property
     def _next_port_number(self):
@@ -163,17 +171,10 @@ class AdtranOnuHandler(AdtranXPON):
 
     def start(self):
         assert self._enabled, 'Start should only be called if enabled'
-        #
-        # TODO: Perform common startup tasks here
-        #
+
         self._cancel_deferred()
 
-        self._omci = OMCI_CC(self.adapter_agent,
-                             self.device_id,
-                             custom_me_entries=onu_custom_entity_classes)
-        self._omci.enabled = True
-
-        # Handle received ONU event messages
+        # Handle received ONU event messages   TODO: Deprecate this....
         self._event_messages = DeferredQueue()
         self._event_deferred = reactor.callLater(0, self._handle_onu_events)
 
@@ -181,10 +182,10 @@ class AdtranOnuHandler(AdtranXPON):
         self.adapter_agent.register_for_inter_adapter_messages()
 
         # Port startup
-        for port in self.uni_ports:
-            port.enabled = True
+        if self._pon is not None:
+            self._pon.enabled = True
 
-        for port in self.pon_ports:
+        for port in self.uni_ports:
             port.enabled = True
 
         # Heartbeat
@@ -203,16 +204,16 @@ class AdtranOnuHandler(AdtranXPON):
         # Heartbeat
         self._heartbeat.stop()
 
+        # OMCI Communications
+        # if self._onu_omci_device is not None:
+        #     self._onu_omci_device.stop()
+
         # Port shutdown
         for port in self.uni_ports:
             port.enabled = False
 
-        for port in self.pon_ports:
-            port.enabled = False
-
-        omci, self._omci = self._omci, None
-        if omci is not None:
-            omci.enabled = False
+        if self._pon is not None:
+            self._pon.enabled = False
 
         queue, self._event_deferred = self._event_deferred, None
         if queue is not None:
@@ -220,8 +221,8 @@ class AdtranOnuHandler(AdtranXPON):
                 _ = yield queue.get()
 
     def receive_message(self, msg):
-        if self._omci is not None and self.enabled:
-            self._omci.receive_message(msg)
+        if self.omci is not None and self.enabled:
+            self.omci.receive_message(msg)
 
     def activate(self, device):
         self.log.info('activating')
@@ -271,28 +272,26 @@ class AdtranOnuHandler(AdtranXPON):
         # Need to query ONU for number of supported uni ports
         # For now, temporarily set number of ports to 1 - port #2
 
-        # Register physical ports.  Should have at least one of each
-
-        pon_port = PonPort.create(self, self._next_port_number)
-
-        self._pons[pon_port.port_number] = pon_port
-        self.adapter_agent.add_port(device.id, pon_port.get_port())
-
         parent_device = self.adapter_agent.get_device(device.parent_id)
         self.logical_device_id = parent_device.parent_id
         assert self.logical_device_id, 'Invalid logical device ID'
+
+        # Register physical ports.  Should have at least one of each
+
+        self._pon = PonPort.create(self, self._next_port_number)
+        self.adapter_agent.add_port(device.id, self._pon.get_port())
 
         if self._olt_created:
             # vlan non-zero if created via legacy method (not xPON). Also
             # Set a random serial number since not xPON based
 
-            uni_port = UniPort.create(self, self._next_port_number,
-                                      'deprecated', device.vlan)
+            uni_port = UniPort.create(self, self._next_port_number, device.vlan,
+                                      'deprecated', device.vlan, None)
             self._unis[uni_port.port_number] = uni_port
             self.adapter_agent.add_port(device.id, uni_port.get_port())
 
             device.serial_number = uuid4().hex
-            uni_port.add_logical_port(device.vlan, control_vlan=device.vlan)
+            uni_port.add_logical_port(device.vlan, subscriber_vlan=device.vlan)
 
             # Start things up for this ONU Handler.
             self.enabled = True
@@ -376,7 +375,7 @@ class AdtranOnuHandler(AdtranXPON):
         # self.log.info('bulk-flow-update', device_id=device.id, flows=flows)
 
         import voltha.core.flow_decomposer as fd
-        from voltha.protos.openflow_13_pb2 import OFPXMC_OPENFLOW_BASIC, ofp_port
+        from voltha.protos.openflow_13_pb2 import OFPXMC_OPENFLOW_BASIC
 
         def is_downstream(port):
             return port == 100  # Need a better way
@@ -384,7 +383,7 @@ class AdtranOnuHandler(AdtranXPON):
         def is_upstream(port):
             return not is_downstream(port)
 
-        omci = self._omci
+        omci = self.omci
 
         for flow in flows:
             _type = None
@@ -482,7 +481,7 @@ class AdtranOnuHandler(AdtranXPON):
 
                     elif action.type == fd.PUSH_VLAN:
                         _push_tpid = action.push.ethertype
-                        log.info('action-type-push-vlan',
+                        self.log.info('action-type-push-vlan',
                                  push_tpid=_push_tpid, in_port=_in_port)
                         if action.push.ethertype != 0x8100:
                             self.log.error('unhandled-tpid',
@@ -501,9 +500,8 @@ class AdtranOnuHandler(AdtranXPON):
                             self.log.error('unsupported-action-set-field-type',
                                            field_type=_field.type)
                     else:
-                        log.error('unsupported-action-type',
-                                  action_type=action.type, in_port=_in_port)
-
+                        self.log.error('unsupported-action-type',
+                                       action_type=action.type, in_port=_in_port)
                 #
                 # All flows created from ONU adapter should be OMCI based
                 #
@@ -541,7 +539,7 @@ class AdtranOnuHandler(AdtranXPON):
                     '''
 
             except Exception as e:
-                log.exception('failed-to-install-flow', e=e, flow=flow)
+                self.log.exception('failed-to-install-flow', e=e, flow=flow)
 
     @inlineCallbacks
     def reboot(self):
@@ -627,7 +625,6 @@ class AdtranOnuHandler(AdtranXPON):
 
         self.log.info('reboot-complete', device_id=self.device_id)
 
-
     def self_test_device(self, device):
         """
         This is called to Self a device based on a NBI call.
@@ -673,9 +670,9 @@ class AdtranOnuHandler(AdtranXPON):
                               portid=port_id)
 
         # Remove pon port from parent
-        for port in self.pon_ports:
+        if self._pon is not None:
             self.adapter_agent.delete_port_reference_from_parent(self.device_id,
-                                                                 port.get_port())
+                                                                 self._pon.get_port())
 
         # Just updating the port status may be an option as well
         # port.ofp_port.config = OFPPC_NO_RECV
@@ -715,10 +712,10 @@ class AdtranOnuHandler(AdtranXPON):
             # self.uni_port = self._get_uni_port()   deprecated
 
             # Add the pon port reference to the parent
-            for port in self.pon_ports:
+            if self._pon is not None:
                 # TODO: Send 'enable' to PonPort?
                 self.adapter_agent.add_port_reference_to_parent(device.id,
-                                                                port.get_port())
+                                                                self._pon.get_port())
 
             # Update the connect status to REACHABLE
             device.connect_status = ConnectStatus.REACHABLE
@@ -732,7 +729,7 @@ class AdtranOnuHandler(AdtranXPON):
             if self.olt_created:
                 # vlan non-zero if created via legacy method (not xPON)
                 self.uni_port('deprecated').add_logical_port(device.vlan, device.vlan,
-                                                             control_vlan=device.vlan)
+                                                             subscriber_vlan=device.vlan)
 
             device = self.adapter_agent.get_device(device.id)
             device.oper_status = OperStatus.ACTIVE
@@ -747,6 +744,12 @@ class AdtranOnuHandler(AdtranXPON):
 
     def delete(self):
         self.log.info('deleting', device_id=self.device_id)
+
+        # OpenOMCI cleanup
+        if self._omci_agent is not None:
+            self._omci_agent.remove_device(self.device_id, cleanup=True)
+            #self._onu_omci_device = None
+            self._omci_agent = None
         #
         # handling needed here
         # self.enabled = False
@@ -783,7 +786,7 @@ class AdtranOnuHandler(AdtranXPON):
     def _check_for_mock_config(self, data):
         # Check for MOCK configuration
         description = data.get('description')
-        if description is not None and description.lower() == 'mock':
+        if description is not None and 'mock' in description.lower():
             self._is_mock = True
 
     def on_ont_ani_create(self, ont_ani):
@@ -919,16 +922,22 @@ class AdtranOnuHandler(AdtranXPON):
             # Set a random serial number since not xPON based
 
             device = self.adapter_agent.get_device(self.device_id)
-            ofp_port_no, cntl_vlan = UniPort.decode_openflow_port_and_control_vlan(self, venet)
+            ofp_port_no, subscriber_vlan, untagged_vlan = UniPort.decode_venet(venet)
 
             uni_port = UniPort.create(self, venet['name'],
                                       self._next_port_number,
-                                      cntl_vlan)
+                                      ofp_port_no,
+                                      subscriber_vlan,
+                                      untagged_vlan)
 
             self._unis[uni_port.port_number] = uni_port
             self.adapter_agent.add_port(device.id, uni_port.get_port())
 
-            uni_port.add_logical_port(ofp_port_no, control_vlan=cntl_vlan)
+            # If the PON has already synchronized, add the logical port now
+            # since we know we have been activated
+
+            if self._pon is not None and self._pon.connected:
+                uni_port.add_logical_port(ofp_port_no, subscriber_vlan=subscriber_vlan)
 
         # TODO: Next is just for debugging to see what this call returns after
         #       we add a UNI
@@ -987,11 +996,8 @@ class AdtranOnuHandler(AdtranXPON):
         tcont['object'] = OnuTCont.create(self, tcont, traffic_descriptor,
                                           is_mock=self.is_mock)
 
-        # Look up any PON port  # TODO: Add the vont-ani 'name' to the PON Port and look up that way
-        pon_port = self.pon_ports[0]
-
-        if pon_port is not None:
-            pon_port.add_tcont(tcont['object'])
+        if self._pon is not None:
+            self._pon.add_tcont(tcont['object'])
 
         return tcont
 
@@ -1007,25 +1013,20 @@ class AdtranOnuHandler(AdtranXPON):
 
         update['object'] = tc
 
-        # Look up any PON port  # TODO: Add the vont-ani 'name' to the PON Port and look up that way
-        pon_port = self.pon_ports[0]
-
-        if pon_port is not None:
+        if self._pon is not None:
             keys = [k for k in diffs.keys() if k in valid_keys]
 
             for k in keys:
                 if k == 'td-ref':
                     td = self.traffic_descriptors.get(update['td-ref'])
                     if td is not None:
-                        pon_port.update_tcont_td(tcont['alloc-id'], td)
+                        self._pon.update_tcont_td(tcont['alloc-id'], td)
 
         return update
 
     def on_tcont_delete(self, tcont):
-        pon_port = self.pon_ports[0]        # Look up any PON port  # TODO: Add the vont-ani 'name' to the PON Port and look up that way
-
-        if pon_port is not None:
-            pon_port.remove_tcont(tcont['alloc-id'])
+        if self._pon is not None:
+            self._pon.remove_tcont(tcont['alloc-id'])
 
         return None
 
@@ -1056,10 +1057,8 @@ class AdtranOnuHandler(AdtranXPON):
                   if val['td-ref'] == td_name and td_name is not None}
 
         for tcont in tconts.itervalues():
-            pon_port = self.pon_ports[0]        # Look up any PON port  # TODO: Add the vont-ani 'name' to the PON Port and look up that way
-
-            if pon_port is not None:
-                pon_port.update_tcont_td(tcont['alloc-id'], update['object'])
+            if self._pon is not None:
+                self._pon.update_tcont_td(tcont['alloc-id'], update['object'])
 
         return update
 
@@ -1074,13 +1073,12 @@ class AdtranOnuHandler(AdtranXPON):
 
     def on_gemport_create(self, gem_port):
         from onu_gem_port import OnuGemPort
+        assert self._pon is not None, 'No PON port'
 
-        gem_port['object'] = OnuGemPort.create(self, gem_port, is_mock=self.is_mock)
-        # Look up any PON port  # TODO: Add the vont-ani 'name' to the PON Port and look up that way
-        pon_port = self.pon_ports[0]
-        if pon_port is not None:
-            pon_port.add_gem_port(gem_port['object'])
-
+        gem_port['object'] = OnuGemPort.create(self, gem_port,
+                                               self._pon.next_gem_entity_id,
+                                               is_mock=self.is_mock)
+        self._pon.add_gem_port(gem_port['object'])
         return gem_port
 
     def on_gemport_modify(self, gem_port, update, diffs):
@@ -1106,9 +1104,8 @@ class AdtranOnuHandler(AdtranXPON):
         return update
 
     def on_gemport_delete(self, gem_port):
-        pon_port = self.pon_ports[0]        # Look up any PON port  # TODO: Add the vont-ani 'name' to the PON Port and look up that way
-        if pon_port is not None:
-            pon_port.remove_gem_id(gem_port['gemport-id'])
+        if self._pon is not None:
+            self._pon.remove_gem_id(gem_port['gemport-id'])
 
         return None
 

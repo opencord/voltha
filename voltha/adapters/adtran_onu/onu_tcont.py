@@ -17,20 +17,20 @@ from twisted.internet.defer import  inlineCallbacks, returnValue, succeed
 
 from voltha.adapters.adtran_olt.xpon.tcont import TCont
 from voltha.adapters.adtran_olt.xpon.traffic_descriptor import TrafficDescriptor
-from omci.omci_me import TcontFrame
+from voltha.extensions.omci.omci_me import TcontFrame
 
 
 class OnuTCont(TCont):
     """
     Adtran ONU specific implementation
     """
-    def __init__(self, handler, alloc_id, traffic_descriptor, entity_id,
+    def __init__(self, handler, alloc_id, traffic_descriptor,
                  name=None, vont_ani=None, is_mock=False):
         super(OnuTCont, self).__init__(alloc_id, traffic_descriptor,
                                        name=name, vont_ani=vont_ani)
         self._handler = handler
         self._is_mock = is_mock
-        self._entity_id = entity_id
+        self._entity_id = None
         self.log = structlog.get_logger(device_id=handler.device_id, alloc_id=alloc_id)
 
     @property
@@ -42,33 +42,31 @@ class OnuTCont(TCont):
         assert isinstance(tcont, dict), 'TCONT should be a dictionary'
         assert isinstance(td, TrafficDescriptor), 'Invalid Traffic Descriptor data type'
 
-        # TODO: Pass in a unique TCONT Entity ID from the ONU's PON Object
-        entity_id = 0x8001
-
         return OnuTCont(handler,
                         tcont['alloc-id'],
                         td,
-                        entity_id,
                         name=tcont['name'],
                         vont_ani=tcont['vont-ani'],
                         is_mock=is_mock)
 
     @inlineCallbacks
-    def add_to_hardware(self, omci):
+    def add_to_hardware(self, omci, tcont_entity_id):
+        self.log.debug('add-to-hardware', tcont_entity_id=tcont_entity_id)
+
+        self._entity_id = tcont_entity_id
         if self._is_mock:
             returnValue('mock')
 
         try:
-            # TODO: What is a valid Entity ID (compute and save if needed)
-            #
-            # NOTE: Entity ID should be computed. For NGPON2, they were starting
-            #       at 256 and incrementing.
-            results = None
-            # results = yield self._handler.omci.send_set_tcont(self._entity_id,  # Entity ID
-            #                                                   self.alloc_id)    # Alloc ID
+            frame = TcontFrame(self.entity_id, self.alloc_id).set()
+            results = yield omci.send(frame)
 
-            # response = yield omci.send(TcontFrame(self._entity_id,
-            #                                       alloc_id=self.alloc_id).get())
+            status = results.fields['omci_message'].fields['success_code']
+            failed_attributes_mask = results.fields['omci_message'].fields['failed_attributes_mask']
+            unsupported_attributes_mask = results.fields['omci_message'].fields['unsupported_attributes_mask']
+            self.log.debug('set-tcont', status=status,
+                           failed_attributes_mask=failed_attributes_mask,
+                           unsupported_attributes_mask=unsupported_attributes_mask)
 
         except Exception as e:
             self.log.exception('tcont-set', e=e)
@@ -78,20 +76,20 @@ class OnuTCont(TCont):
 
     @inlineCallbacks
     def remove_from_hardware(self, omci):
+        self.log.debug('remove-from-hardware', tcont_entity_id=self.entity_id)
         if self._is_mock:
             returnValue('mock')
 
-        results = None
-        # results = yield omci.send(TcontFrame(self._entity_id).delete())
+        # Release tcont by setting alloc_id=0xFFFF
+        try:
+            frame = TcontFrame(self.entity_id, 0xFFFF).set()
+            results = yield omci.send(frame)
+
+            status = results.fields['omci_message'].fields['success_code']
+            self.log.debug('delete-tcont', status=status)
+
+        except Exception as e:
+            self.log.exception('tcont-delete', e=e)
+            raise
+
         returnValue(results)
-
-
-
-
-
-
-
-
-
-
-

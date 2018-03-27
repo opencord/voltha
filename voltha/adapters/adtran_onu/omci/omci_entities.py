@@ -17,10 +17,7 @@
 import inspect
 
 import sys
-from scapy.fields import ByteField, ShortField
-from scapy.fields import IntField, StrFixedLenField
-
-
+from scapy.fields import ShortField
 from voltha.extensions.omci.omci_entities import EntityClassAttribute, \
     AttributeAccess, EntityOperations, EntityClass
 
@@ -89,21 +86,18 @@ class Onu3gOrInvStat2(EntityClass):
 #################################################################################
 # entity class lookup table from entity_class values
 _onu_entity_classes_name_map = dict(
-    inspect.getmembers(sys.modules[__name__],
-    lambda o: inspect.isclass(o) and
-              issubclass(o, EntityClass) and
-              o is not EntityClass)
+    inspect.getmembers(sys.modules[__name__], lambda o:
+    inspect.isclass(o) and issubclass(o, EntityClass) and o is not EntityClass)
 )
+_onu_custom_entity_classes = [c for c in _onu_entity_classes_name_map.itervalues()]
+_onu_custom_entity_id_to_class_map = dict()
 
-onu_custom_entity_classes = [c for c in _onu_entity_classes_name_map.itervalues()]
 
-
-def add_onu_me_entities(new_me_classes):
-    from voltha.extensions.omci.omci_entities import entity_classes, entity_id_to_class_map
-
-    for entity_class in new_me_classes:
-        assert entity_class.class_id not in entity_id_to_class_map, \
+def onu_custom_me_entities():
+    for entity_class in _onu_custom_entity_classes:
+        assert entity_class.class_id not in _onu_custom_entity_id_to_class_map, \
             "Class ID '{}' already exists in the class map".format(entity_class.class_id)
-        entity_id_to_class_map[entity_class.class_id] = entity_class
+        _onu_custom_entity_id_to_class_map[entity_class.class_id] = entity_class
 
-    entity_classes.extend(new_me_classes)
+    return _onu_custom_entity_id_to_class_map
+

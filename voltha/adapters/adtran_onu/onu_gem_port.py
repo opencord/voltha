@@ -16,20 +16,21 @@
 import structlog
 from voltha.adapters.adtran_olt.xpon.gem_port import GemPort
 from twisted.internet.defer import inlineCallbacks, returnValue, succeed
-from omci.omci_me import GemPortNetworkCtpFrame
+from voltha.extensions.omci.omci_me import GemPortNetworkCtpFrame, GemInterworkingTpFrame
 
 
 class OnuGemPort(GemPort):
     """
     Adtran ONU specific implementation
     """
-    def __init__(self, gem_id, alloc_id,
+    def __init__(self, gem_id, alloc_id, entity_id,
                  encryption=False,
                  omci_transport=False,
                  multicast=False,
                  tcont_ref=None,
                  traffic_class=None,
                  intf_ref=None,
+                 untagged=False,
                  exception=False,  # FIXED_ONU
                  name=None,
                  handler=None,
@@ -41,11 +42,17 @@ class OnuGemPort(GemPort):
                                          tcont_ref=tcont_ref,
                                          traffic_class=traffic_class,
                                          intf_ref=intf_ref,
+                                         untagged=untagged,
                                          exception=exception,
                                          name=name,
                                          handler=handler)
         self._is_mock = is_mock
+        self._entity_id = entity_id
         self.log = structlog.get_logger(device_id=handler.device_id, gem_id=gem_id)
+
+    @property
+    def entity_id(self):
+        return self._entity_id
 
     @property
     def encryption(self):
@@ -57,102 +64,102 @@ class OnuGemPort(GemPort):
 
         if self._encryption != value:
             self._encryption = value
-            omci = None     # TODO: Get from handler
 
     @staticmethod
-    def create(handler, gem_port, is_mock=False):
+    def create(handler, gem_port, entity_id, is_mock=False):
+
         return OnuGemPort(gem_port['gemport-id'],
                           None,
+                          entity_id,
                           encryption=gem_port['encryption'],  # aes_indicator,
                           tcont_ref=gem_port['tcont-ref'],
                           name=gem_port['name'],
                           traffic_class=gem_port['traffic-class'],
                           handler=handler,
+                          untagged='untagged' in gem_port['name'].lower(),
                           is_mock=is_mock)
 
     @inlineCallbacks
-    def add_to_hardware(self, omci):
+    def add_to_hardware(self, omci,
+                        tcont_entity_id,
+                        ieee_mapper_service_profile_entity_id,
+                        gal_enet_profile_entity_id):
+        self.log.debug('add-to-hardware', gem_id=self.gem_id,
+                       tcont_entity_id=tcont_entity_id,
+                       ieee_mapper_service_profile_entity_id=ieee_mapper_service_profile_entity_id,
+                       gal_enet_profile_entity_id=gal_enet_profile_entity_id)
         if self._is_mock:
             returnValue('mock')
-
-        omci = self._handler.omci
-        tcont = self.tcont
-        assert omci is not None, 'No OMCI engine'
-        assert tcont is not None, 'No TCONT'
-        assert tcont.entity_id == 0x8001, 'Hardcoded Entity ID NOT FOUND'
 
         try:
             direction = "downstream" if self.multicast else "bi-directional"
             assert not self.multicast, 'MCAST is not supported yet'
 
-            # TODO: For TCONT ID, get the TCONT's entity ID that you programmed
-            # TODO: For TM, is this the entity ID for a traffic descriptor?
-            # results = yield omci.send_create_gem_port_network_ctp(self.gem_id,      # Entity ID
-            #                                                       self.gem_id,      # Port ID
-            #                                                       tcont.entity_id,  # TCONT ID
-            #                                                       direction,        # Direction
-            #                                                       0x100)            # TM
-            results = None
-            # results = yield omci.send(GemPortNetworkCtpFrame(self.gem_id,      # Entity ID
-            #                                                  self.gem_id,      # Port ID
-            #                                                  tcont.entity_id,  # TCONT ID
-            #                                                  direction,        # Direction
-            #                                                  0x100).create()   # TM
+            frame = GemPortNetworkCtpFrame(
+                    self.entity_id,          # same entity id as GEM port
+                    port_id=self.gem_id,
+                    tcont_id=tcont_entity_id,
+                    direction=direction,
+                    upstream_tm=0x8000         # TM ID, 32768 unique ID set in TD set  TODO: Parameterize
+            ).create()
+            results = yield omci.send(frame)
+
+            status = results.fields['omci_message'].fields['success_code']
+            error_mask = results.fields['omci_message'].fields['parameter_error_attributes_mask']
+            self.log.debug('create-gem-port-network-ctp', status=status, error_mask=error_mask)
 
         except Exception as e:
             self.log.exception('gemport-create', e=e)
             raise
 
         try:
-            # GEM Interworking config
-            # TODO: For service mapper ID, always hardcoded or does it come from somewhere else
-            #       It is probably the TCONT entity ID
-            results = None
-            # results = yield omci.send_create_gem_inteworking_tp(self.gem_id,      # Entity ID
-            #                                                     self.gem_id,      # GEMPort NET CTP ID
-            #                                                     tcont.entity_id)  # Service Mapper Profile ID
+            frame = GemInterworkingTpFrame(
+                self.entity_id,          # same entity id as GEM port
+                gem_port_network_ctp_pointer=self.entity_id,
+                interworking_option=5,                             # IEEE 802.1
+                service_profile_pointer=ieee_mapper_service_profile_entity_id,
+                interworking_tp_pointer=0x0,
+                pptp_counter=1,
+                gal_profile_pointer=gal_enet_profile_entity_id
+            ).create()
+            results = yield omci.send(frame)
+
+            status = results.fields['omci_message'].fields['success_code']
+            error_mask = results.fields['omci_message'].fields['parameter_error_attributes_mask']
+            self.log.debug('create-gem-interworking-tp', status=status, error_mask=error_mask)
+
         except Exception as e:
             self.log.exception('interworking-create', e=e)
-            raise
-
-        try:
-            # Mapper Service Profile config
-            # TODO: All p-bits currently go to the one and only GEMPORT ID for now
-            # TODO: The entity ID is probably the TCONT entity ID
-            results = None
-            # results = omci.send_set_8021p_mapper_service_profile(tcont.entity_id,  # Entity ID
-            #                                                      self.gem_id)      # Interworking TP ID
-        except Exception as e:
-            self.log.exception('mapper-set', e=e)
             raise
 
         returnValue(results)
 
     @inlineCallbacks
     def remove_from_hardware(self, omci):
+        self.log.debug('remove-from-hardware',  gem_id=self.gem_id)
         if self._is_mock:
             returnValue('mock')
 
-        omci = self._handler.omci
-        assert omci is not None, 'No OMCI engine'
+        try:
+            frame = GemInterworkingTpFrame(self.entity_id).delete()
+            results = yield omci.send(frame)
 
-        results = succeed('TODO: Implement me')
+            status = results.fields['omci_message'].fields['success_code']
+            self.log.debug('delete-gem-interworking-tp', status=status)
 
-        # uri = AdtranOltHandler.GPON_GEM_CONFIG_URI.format(pon_id, onu_id, self.gem_id)
-        # name = 'gem-port-delete-{}-{}: {}'.format(pon_id, onu_id, self.gem_id)
-        # return session.request('DELETE', uri, name=name)
+        except Exception as e:
+            self.log.exception('interworking-delete', e=e)
+            raise
+
+        try:
+            frame = GemPortNetworkCtpFrame(self.entity_id).delete()
+            results = yield omci.send(frame)
+
+            status = results.fields['omci_message'].fields['success_code']
+            self.log.debug('delete-gem-port-network-ctp', status=status)
+
+        except Exception as e:
+            self.log.exception('gemport-delete', e=e)
+            raise
+
         returnValue(results)
-
-    def set_config(self, omci, value, leaf):
-        if self._is_mock:
-            return
-
-        # from ..adtran_olt_handler import AdtranOltHandler
-        #
-        # data = json.dumps({leaf: value})
-        # uri = AdtranOltHandler.GPON_GEM_CONFIG_URI.format(self.pon_id,
-        #                                                   self.onu_id,
-        #                                                   self.gem_id)
-        # name = 'onu-set-config-{}-{}-{}'.format(self._pon_id, leaf, str(value))
-        # return session.request('PATCH', uri, data=data, name=name)
-        pass # TODO: Implement me

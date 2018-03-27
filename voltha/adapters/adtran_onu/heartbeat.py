@@ -15,7 +15,8 @@
 import structlog
 from twisted.internet import reactor
 from voltha.protos.common_pb2 import OperStatus, ConnectStatus
-from omci.omci_me import OntGFrame
+from voltha.extensions.omci.omci_me import OntGFrame
+
 
 class HeartBeat(object):
     """Wraps health-check support for ONU"""

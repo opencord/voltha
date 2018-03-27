@@ -17,10 +17,10 @@
 """
 Adtran ONU adapter.
 """
+import structlog
 import binascii
 from voltha.adapters.iadapter import OnuAdapter
 from voltha.protos import third_party
-from voltha.extensions.omci.omci import *
 from adtran_onu_handler import AdtranOnuHandler
 from twisted.internet import reactor
 
@@ -36,7 +36,7 @@ class AdtranOnuAdapter(OnuAdapter):
                                                device_handler_class=AdtranOnuHandler,
                                                name='adtran_onu',
                                                vendor='Adtran, Inc.',
-                                               version='0.5',
+                                               version='0.6',
                                                device_type='adtran_onu',
                                                vendor_id='ADTN')
 
@@ -76,7 +76,7 @@ class AdtranOnuAdapter(OnuAdapter):
     def receive_inter_adapter_message(self, msg):
         # Currently the only OLT Device adapter that uses this is the EdgeCore
 
-        log.info('receive_inter_adapter_message', msg=msg)
+        self.log.info('receive_inter_adapter_message', msg=msg)
         proxy_address = msg['proxy_address']
         assert proxy_address is not None
 
@@ -100,7 +100,7 @@ class AdtranOnuAdapter(OnuAdapter):
         raise NotImplementedError('Not an ONU method')
 
     def receive_proxied_message(self, proxy_address, msg):
-        log.debug('receive-proxied-message', proxy_address=proxy_address,
+        self.log.debug('receive-proxied-message', proxy_address=proxy_address,
                   device_id=proxy_address.device_id, msg=binascii.hexlify(msg))
         # Device_id from the proxy_address is the olt device id. We need to
         # get the onu device id using the port number in the proxy_address

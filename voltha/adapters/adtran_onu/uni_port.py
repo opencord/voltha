@@ -24,8 +24,10 @@ from voltha.protos.openflow_13_pb2 import ofp_port
 
 class UniPort(object):
     """Wraps southbound-port(s) support for ONU"""
+    DEFAULT_UNTAGGED_VLAN = 4092
 
-    def __init__(self, handler, name, port_no, control_vlan=None):
+    def __init__(self, handler, name, port_no, ofp_port_no, subscriber_vlan=None,
+                 untagged_vlan=None):
         self.log = structlog.get_logger(device_id=handler.device_id,
                                         port_no=port_no)
         self._enabled = False
@@ -33,21 +35,22 @@ class UniPort(object):
         self._name = name
         self._port = None
         self._port_number = port_no
-        self._logical_port_number = None
-        self._control_vlan = control_vlan
+        self._ofp_port_no = ofp_port_no         # Set at by creator (vENET create)
+        self._logical_port_number = None        # Set at time of logical port creation
+        self._subscriber_vlan = subscriber_vlan
+        self._untagged_vlan = untagged_vlan
 
         self._admin_state = AdminState.ENABLED
         self._oper_status = OperStatus.ACTIVE
         # TODO Add state, stats, alarm reference, ...
-
         pass
 
     def __str__(self):
         return "UniPort: {}:{}".format(self.name, self.port_number)
 
     @staticmethod
-    def create(handler, name, port_no, control_vlan):
-        port = UniPort(handler, name, port_no, control_vlan)
+    def create(handler, name, port_no, ofp_port_no, subscriber_vlan, untagged_vlan):
+        port = UniPort(handler, name, port_no, ofp_port_no,subscriber_vlan, untagged_vlan)
         return port
 
     def _start(self):
@@ -117,20 +120,37 @@ class UniPort(object):
         pass
 
     @staticmethod
-    def decode_openflow_port_and_control_vlan(self, venet_info):
+    def decode_venet(venet_info):
         try:
-            # Allow spaces or dashes as separator, select last as
-            # the port number
-
+            # Allow spaces or dashes as separator, select last as the
+            # port number.  UNI-1,  UNI 1, and UNI 3-2-1 are the same
             port_no = int(venet_info['name'].replace(' ', '-').split('-')[-1:][0])
-            cntl_vlan = port_no
+            subscriber_vlan = port_no
+            untagged_vlan = UniPort.DEFAULT_UNTAGGED_VLAN
+            try:
+                # Subscriber VLAN and Untagged vlan are comma separated
+                parts = venet_info['description'].split(',')
+                sub_part = next((part for part in parts if 'vlan' in part.lower()), None)
+                untagged_part = next((part for part in parts if 'untagged' in part.lower()), None)
+                try:
+                    if sub_part is not None:
+                        subscriber_vlan = int(sub_part.split(':')[-1:][0])
+                except Exception as e:
+                    pass
+                try:
+                    if untagged_part is not None:
+                        untagged_vlan = int(untagged_part.split(':')[-1:][0])
+                except Exception as e:
+                    pass
+            except Exception as e:
+                pass
 
-            return port_no, cntl_vlan
+            return port_no, subscriber_vlan, untagged_vlan
 
         except ValueError:
-            self.log.error('invalid-uni-port-name', name=venet_info['name'])
+            pass
         except KeyError:
-            self.log.error('invalid-venet-data', data=venet_info)
+            pass
 
     def get_port(self):
         """
@@ -145,28 +165,32 @@ class UniPort(object):
                               oper_status=self._oper_status)
         return self._port
 
-    def add_logical_port(self, openflow_port_no, control_vlan=None,
+    def add_logical_port(self, openflow_port_no, subscriber_vlan=None,
                          capabilities=OFPPF_10GB_FD | OFPPF_FIBER,
                          speed=OFPPF_10GB_FD):
 
-        if self._logical_port_number is None:
-            self._logical_port_number = openflow_port_no
-            self._control_vlan = control_vlan
+        # Use vENET provisioned values if none supplied
+        port_no = openflow_port_no or self._ofp_port_no
+        vlan = subscriber_vlan or self._subscriber_vlan
+
+        if self._logical_port_number is None and port_no is not None:
+            self._logical_port_number = port_no
+            self._subscriber_vlan = vlan
 
             device = self._handler.adapter_agent.get_device(self._handler.device_id)
 
-            if control_vlan is not None and device.vlan != control_vlan:
-                device.vlan = control_vlan
+            if vlan is not None and device.vlan != vlan:
+                device.vlan = vlan
                 self._handler.adapter_agent.update_device(device)
 
             openflow_port = ofp_port(
-                port_no=openflow_port_no,
+                port_no=port_no,
                 hw_addr=mac_str_to_tuple('08:00:%02x:%02x:%02x:%02x' %
                                          ((device.parent_port_no >> 8 & 0xff),
                                           device.parent_port_no & 0xff,
-                                          (openflow_port_no >> 8) & 0xff,
-                                          openflow_port_no & 0xff)),
-                name='uni-{}'.format(openflow_port_no),
+                                          (port_no >> 8) & 0xff,
+                                          port_no & 0xff)),
+                name='uni-{}'.format(port_no),
                 config=0,
                 state=OFPPS_LIVE,
                 curr=capabilities,
@@ -177,7 +201,7 @@ class UniPort(object):
             )
             self._handler.adapter_agent.add_logical_port(self._handler.logical_device_id,
                                                          LogicalPort(
-                                                             id='uni-{}'.format(openflow_port),
+                                                             id='uni-{}'.format(port_no),
                                                              ofp_port=openflow_port,
                                                              device_id=device.id,
                                                              device_port_no=self._port_number))
