@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1d675b14_ff8a8426",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 56,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2018-03-27T15:55:40Z",
+      "side": 1,
+      "message": "Merge conflict is not resolved here.",
+      "revId": "0b347d27f4c5ef39a0ad9723abe94a755448317a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b120a453_26c65eb3",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 230,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2018-03-27T15:55:40Z",
+      "side": 1,
+      "message": "Merge conflict is not resolved here.",
+      "revId": "0b347d27f4c5ef39a0ad9723abe94a755448317a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "dfd7d98f_04f7f6ce",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 1025,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2018-03-27T15:55:40Z",
+      "side": 1,
+      "message": "Merge conflict is not resolved here.",
+      "revId": "0b347d27f4c5ef39a0ad9723abe94a755448317a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
