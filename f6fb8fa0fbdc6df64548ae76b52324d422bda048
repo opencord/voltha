@@ -59,6 +59,74 @@
     },
     {
       "key": {
+        "uuid": "e34f8392_be0f526a",
+        "filename": "ponsim/v2/README.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 3,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-03-27T15:21:20Z",
+      "side": 1,
+      "message": "There is no mention that it currently works in the kubernetes cluster only and command line (for docker compose I presume).",
+      "revId": "f6fb8fa0fbdc6df64548ae76b52324d422bda048",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "2020494d_5c05478a",
+        "filename": "ponsim/v2/README.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 10,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-03-27T15:21:20Z",
+      "side": 1,
+      "message": "I would put usage first before developer details.",
+      "revId": "f6fb8fa0fbdc6df64548ae76b52324d422bda048",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "79b4893c_f0c2aa20",
+        "filename": "ponsim/v2/README.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 123,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-03-27T15:21:20Z",
+      "side": 1,
+      "message": "Need to precise what local means.\n\nAlso, giving a brief summary of the steps required leading to the details of these steps would be clearer for someone running ponsim.",
+      "revId": "f6fb8fa0fbdc6df64548ae76b52324d422bda048",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1f576ba0_86d2d0c0",
+        "filename": "ponsim/v2/README.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 228,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-03-27T15:21:20Z",
+      "side": 1,
+      "message": "If you are using calico then this needs to change",
+      "revId": "f6fb8fa0fbdc6df64548ae76b52324d422bda048",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "34b9b412_657c252b",
         "filename": "ponsim/v2/README.md",
         "patchSetId": 1
