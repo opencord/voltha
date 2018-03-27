@@ -42,6 +42,24 @@
     },
     {
       "key": {
+        "uuid": "5d093baf_1f77034d",
+        "filename": "k8s/single-node/consul.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 59,
+      "author": {
+        "id": 1000196
+      },
+      "writtenOn": "2018-03-27T19:55:41Z",
+      "side": 1,
+      "message": "Single-node Kubernetes appears to work fine with Calico.  I can change the ansible script and the k8s/single-node manifests to align with the cluster installation.",
+      "parentUuid": "397e0d5d_251c3c82",
+      "revId": "f6fb8fa0fbdc6df64548ae76b52324d422bda048",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "f74266e3_eab82081",
         "filename": "k8s/zookeeper.yml",
         "patchSetId": 1
