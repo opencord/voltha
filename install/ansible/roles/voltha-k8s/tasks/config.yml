@@ -74,3 +74,8 @@
   with_items: "{{ voltha_containers }}"
   when: target == "cluster"
   tags: [voltha]
+
+- name: VOLT-HA Config | Disable all swaps
+  command: swapoff -a
+  when: target == "cluster"
+  tags: [voltha]

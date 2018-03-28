@@ -26,5 +26,5 @@ voltha_containers:
   - voltha-shovel:latest
   - voltha-tools:latest
   - voltha-voltha:latest
-  - wurstmeister/kafka:latest
-  - zookeeper:latest
+  - wurstmeister/kafka:1.0.0
+  - zookeeper:3.4.11

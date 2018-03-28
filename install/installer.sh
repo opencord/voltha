@@ -169,10 +169,6 @@ if [  "$cluster_framework" == "kubernetes" ]; then
     sed -i -e "s/or is_atomic)/& and skip_downloads == \"false\" /" \
         kubespray/roles/kubernetes/preinstall/tasks/main.yml
 
-    # Disable swapon check
-    sed -i -e "s/kubelet_fail_swap_on|default(true)/kubelet_fail_swap_on|default(false)/" \
-        kubespray/roles/kubernetes/preinstall/tasks/verify-settings.yml
-
     # Construct node inventory
     CONFIG_FILE=kubespray/inventory/voltha/hosts.ini python3 \
         kubespray/contrib/inventory_builder/inventory.py $hosts

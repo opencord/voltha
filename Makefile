@@ -140,8 +140,8 @@ FETCH_K8S_IMAGE_LIST = \
        quay.io/coreos/hyperkube:v1.9.2_coreos.0 \
        quay.io/coreos/etcd-operator:v0.7.2 \
        quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.10.2 \
-       wurstmeister/kafka:latest \
-       zookeeper:latest
+       wurstmeister/kafka:1.0.0 \
+       zookeeper:3.4.11
 
 FETCH_IMAGE_LIST = $(shell echo $(FETCH_BUILD_IMAGE_LIST) $(FETCH_COMPOSE_IMAGE_LIST) $(FETCH_K8S_IMAGE_LIST) | tr ' ' '\n' | sort -u)
 
