@@ -8,9 +8,15 @@ from voltha.protos.common_pb2 import AdminState, OperStatus
 from voltha.protos import openflow_13_pb2 as ofp
 from tests.itests.voltha.rest_base import RestBase
 from common.utils.consulhelpers import get_endpoint_from_consul
+from testconfig import config
+from tests.itests.test_utils import get_pod_ip
 
 LOCAL_CONSUL = "localhost:8500"
 
+orch_env = 'docker-compose'
+if 'test_parameters' in config and 'orch_env' in config['test_parameters']:
+    orch_env = config['test_parameters']['orch_env']
+print('orchestration-environment: {}'.format(orch_env))
 
 class TestDeviceStateChangeSequence(RestBase):
     """
@@ -24,7 +30,15 @@ class TestDeviceStateChangeSequence(RestBase):
     """
 
     # Retrieve details of the REST entry point
-    rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'envoy-8443')
+    if orch_env == 'k8s-single-node':
+        rest_endpoint = get_pod_ip('voltha') + ':8443'
+        olt_host_and_port = get_pod_ip('olt') + ':50060'
+    elif orch_env == 'swarm-single-node':
+        rest_endpoint = 'localhost:8443'
+        olt_host_and_port = 'localhost:50060'
+    else:
+        rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'voltha-envoy-8443')
+        olt_host_and_port = '172.17.0.1:50060'
 
     # Construct the base_url
     base_url = 'https://' + rest_endpoint
@@ -127,7 +141,7 @@ class TestDeviceStateChangeSequence(RestBase):
     def add_olt_device(self):
         device = Device(
             type='ponsim_olt',
-            host_and_port='172.17.0.1:50060'
+            host_and_port=self.olt_host_and_port
         )
         device = self.post('/api/v1/devices', MessageToDict(device),
                            expected_http_code=200)
@@ -150,15 +164,13 @@ class TestDeviceStateChangeSequence(RestBase):
 
         self.wait_till(
             'admin state moves to ACTIVATING or ACTIVE',
-            lambda: self.get(path)['oper_status'] in ('ACTIVATING', 'ACTIVE'),
-            timeout=0.5)
+            lambda: self.get(path)['oper_status'] in ('ACTIVATING', 'ACTIVE'))
 
         # eventually, it shall move to active state and by then we shall have
         # device details filled, connect_state set, and device ports created
         self.wait_till(
             'admin state ACTIVE',
-            lambda: self.get(path)['oper_status'] == 'ACTIVE',
-            timeout=0.5)
+            lambda: self.get(path)['oper_status'] == 'ACTIVE')
         device = self.get(path)
         self.assertEqual(device['connect_status'], 'REACHABLE')
 
@@ -203,8 +215,7 @@ class TestDeviceStateChangeSequence(RestBase):
         # the olt device
         self.wait_till(
             'find four ONUs linked to the olt device',
-            lambda: len(self.find_onus(olt_id)) >= 4,
-            2
+            lambda: len(self.find_onus(olt_id)) >= 4
         )
         # verify that they are properly set
         onus = self.find_onus(olt_id)
@@ -280,11 +291,8 @@ class TestDeviceStateChangeSequence(RestBase):
         self.assertGreaterEqual(len(flows), 4)
 
     def verify_olt_eapol_flow(self, olt_id):
-        # olt shall have two flow rules, one is the default and the
-        # second is the result of eapol forwarding with rule:
-        # if eth_type == 0x888e => push vlan(1000); out_port=nni_port
         flows = self.get('/api/v1/devices/{}/flows'.format(olt_id))['items']
-        self.assertEqual(len(flows), 2)
+        self.assertEqual(len(flows), 8)
         flow = flows[1]
         self.assertEqual(flow['table_id'], 0)
         self.assertEqual(flow['priority'], 1000)
@@ -301,14 +309,12 @@ class TestDeviceStateChangeSequence(RestBase):
 
         self.wait_till(
             'operational state moves to UNKNOWN',
-            lambda: self.get(path)['oper_status'] == 'UNKNOWN',
-            timeout=0.5)
+            lambda: self.get(path)['oper_status'] == 'UNKNOWN')
 
         # eventually, the connect_state should be UNREACHABLE
         self.wait_till(
-            'connest status UNREACHABLE',
-            lambda: self.get(path)['connect_status'] == 'UNREACHABLE',
-            timeout=0.5)
+            'connect status UNREACHABLE',
+            lambda: self.get(path)['connect_status'] == 'UNREACHABLE')
 
         # Device's ports should be INACTIVE
         ports = self.get(path + '/ports')['items']

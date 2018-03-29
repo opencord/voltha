@@ -9,7 +9,7 @@ from voltha.core.flow_decomposer import mk_simple_flow_mod, in_port, output
 from voltha.protos import openflow_13_pb2 as ofp
 from common.utils.consulhelpers import get_endpoint_from_consul
 from structlog import get_logger
-from tests.itests.docutests.test_utils import get_pod_ip
+from tests.itests.test_utils import get_pod_ip
 from testconfig import config
 
 LOCAL_CONSUL = "localhost:8500"

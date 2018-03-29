@@ -22,7 +22,7 @@ from unittest import TestCase,main
 
 this_dir = os.path.abspath(os.path.dirname(__file__))
 
-from tests.itests.docutests.test_utils import run_command_to_completion_with_raw_stdout
+from tests.itests.test_utils import run_command_to_completion_with_raw_stdout
 from voltha.protos.device_pb2 import Device
 from google.protobuf.json_format import MessageToDict
 from tests.itests.voltha.rest_base import RestBase

@@ -27,7 +27,7 @@ from unittest import skip
 
 this_dir = os.path.abspath(os.path.dirname(__file__))
 
-from tests.itests.docutests.test_utils import run_command_to_completion_with_raw_stdout
+from tests.itests.test_utils import run_command_to_completion_with_raw_stdout
 
 log = logging.getLogger(__name__)
 

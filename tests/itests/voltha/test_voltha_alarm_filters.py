@@ -4,7 +4,7 @@ import simplejson
 from google.protobuf.json_format import MessageToDict
 
 from common.utils.consulhelpers import get_endpoint_from_consul
-from tests.itests.docutests.test_utils import \
+from tests.itests.test_utils import \
     run_long_running_command_with_timeout
 from tests.itests.voltha.rest_base import RestBase
 from voltha.protos.device_pb2 import Device

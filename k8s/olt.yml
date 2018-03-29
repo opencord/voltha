@@ -45,7 +45,7 @@ spec:
              - "-device_type"
              - "OLT"
              - "-onus"
-             - "3"
+             - "4"
              - "-internal_if"
              - "eth0"
              - "-external_if"

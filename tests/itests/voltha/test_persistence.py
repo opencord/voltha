@@ -7,7 +7,7 @@ import os
 import subprocess
 import select
 
-from tests.itests.docutests.test_utils import \
+from tests.itests.test_utils import \
     run_command_to_completion_with_raw_stdout, \
     run_command_to_completion_with_stdout_in_list
 from unittest import skip

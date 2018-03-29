@@ -52,7 +52,7 @@ spec:
             - "--interface=eth1"
             - "--backend=etcd"
             - "--pon-subnet=10.38.0.0/12"
-#            - "--ponsim-comm=grpc"
+            - "--ponsim-comm=grpc"
           ports:
             - containerPort: 8880
               name: rest-port

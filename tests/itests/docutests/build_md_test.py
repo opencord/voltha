@@ -29,7 +29,7 @@ import traceback
 
 this_dir = os.path.abspath(os.path.dirname(__file__))
 
-from test_utils import run_command_to_completion_with_raw_stdout, \
+from tests.itests.test_utils import run_command_to_completion_with_raw_stdout, \
     is_open, \
     is_valid_ip, \
     run_long_running_command_with_timeout, \

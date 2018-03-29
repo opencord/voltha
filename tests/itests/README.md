@@ -101,7 +101,7 @@ It exercises the following areas:
     * Ponsim_olt and Ponsim_onu adapters
     * Ponsim 
 
-First start the Voltha ensemble:
+To run the test in the docker-compose environment, first start the Voltha ensemble:
 ```
 cd /cord/incubator/voltha
 . ./env.sh
@@ -112,13 +112,26 @@ Then start PONSIM in a separate window:
 sudo -s
 . ./env.sh
 ./ponsim/main.py -v -o 4
-``` 
+```
 Run the test:
 ``` 
 cd /cord/incubator/voltha
 . ./env.sh
 nosetests -s tests/itests/voltha/test_device_state_changes.py
 ```  
+To set up the test in a single-node Kubernetes environment (see document voltha/BUILD.md):
+```
+. ./env.sh
+./tests/itests/env/voltha-k8s-start.sh
+```
+Refer to the Kubernetes section in document voltha/ponsim/v2/README.md to set up the node for PONSIM. To install the CNI plugin, you may enter:
+```
+kubectl apply -f k8s/genie-cni-1.8.yml
+```
+To run the test:
+```
+nosetests -s tests/itests/voltha/test_device_state_changes.py --tc-file=tests/itests/env/k8s-consul.ini
+```
 
 * **Persistence**: This test goes through several voltha restarts along with variations 
 of configurations in between to ensure data integrity is preserved.

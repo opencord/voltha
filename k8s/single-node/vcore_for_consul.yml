@@ -60,4 +60,4 @@ spec:
         - "--interface=eth1"
         - "--backend=consul"
         - "--pon-subnet=10.38.0.0/12"
-#        - "--ponsim-comm=grpc"
+        - "--ponsim-comm=grpc"
