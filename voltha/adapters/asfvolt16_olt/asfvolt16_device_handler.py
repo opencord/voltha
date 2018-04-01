@@ -107,6 +107,8 @@ ASFVOLT_DOWNLINK_HSIA_ID = 14
 ASFVOLT_DNS_ID = 15
 ASFVOLT_DOWNLINK_DNS_ID = 16
 
+RESERVED_VLAN_ID = 4095
+
 
 class FlowInfo(object):
 
@@ -1905,14 +1907,16 @@ class Asfvolt16Handler(OltDeviceHandler):
             # Copy O_OVID
             downlink_classifier['vlan_vid'] = downlink_action['vlan_vid']
             # Copy I_OVID
-            downlink_classifier['metadata'] = uplink_classifier['vlan_vid']
+            if uplink_classifier['vlan_vid'] != RESERVED_VLAN_ID:
+                # downlink_classifier['metadata'] is the I_VID, which is not required
+                # when we use transparent tagging
+                downlink_classifier['metadata'] = uplink_classifier['vlan_vid']
             if 'push_vlan' in downlink_action:
                 downlink_action.pop('push_vlan')
             downlink_action['trap_to_host'] = True
         else:
             downlink_classifier['pkt_tag_type'] =  'untagged'
             downlink_classifier.pop('vlan_vid')
-
 
         downlink_flow_id = self.get_flow_id(onu_device.proxy_address.onu_id,
                                             onu_device.proxy_address.channel_id,
@@ -1954,7 +1958,14 @@ class Asfvolt16Handler(OltDeviceHandler):
 
         downlink_classifier['pkt_tag_type'] = 'double_tag'
         downlink_classifier['vlan_vid'] = uplink_action['vlan_vid']
-        downlink_classifier['metadata'] = uplink_classifier['vlan_vid']
+
+        if uplink_classifier['vlan_vid'] != RESERVED_VLAN_ID:
+            downlink_classifier['metadata'] = uplink_classifier['vlan_vid']
+        else:
+            # when we use transparent tagging, we need not use any vlan classifier,
+            # vlan tagging will happen based on pkt_tag_type
+            del uplink_classifier['vlan_vid']
+
         del downlink_action['push_vlan']
         downlink_action['pop_vlan'] = True
 
