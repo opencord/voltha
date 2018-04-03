@@ -79,3 +79,8 @@
   command: swapoff -a
   when: target == "cluster"
   tags: [voltha]
+
+- name: VOLT-HA Config | Comment out swap partitions from /etc/fstab
+  command: sed -i -e 's/^\/.* swap .*/#&/' /etc/fstab
+  when: target == "cluster"
+  tag: [voltha]
