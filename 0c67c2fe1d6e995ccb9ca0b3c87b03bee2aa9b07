@@ -121,6 +121,24 @@
     },
     {
       "key": {
+        "uuid": "57ac1285_4eaa1c3e",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 46
+      },
+      "lineNbr": 95,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-04-03T06:03:08Z",
+      "side": 1,
+      "message": "Adapter is not responsible for bringing up interfaces. The OLT is expected to bring up all its interfaces and send indications of interface operational up.",
+      "parentUuid": "267a24bf_985d0662",
+      "revId": "0c67c2fe1d6e995ccb9ca0b3c87b03bee2aa9b07",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fd1d309f_9bb6d6d1",
         "filename": "voltha/adapters/openolt/openolt_device.py",
         "patchSetId": 46
