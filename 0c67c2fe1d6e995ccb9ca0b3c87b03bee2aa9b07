@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "a08595c6_b59d97a6",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 46
+      },
+      "lineNbr": 56,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-04-04T18:17:52Z",
+      "side": 1,
+      "message": "Agree - Documented as a TBD in VOL-669",
+      "parentUuid": "17b441ca_79bbc15a",
+      "revId": "0c67c2fe1d6e995ccb9ca0b3c87b03bee2aa9b07",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "29d9bbee_1f01e856",
         "filename": "voltha/adapters/openolt/openolt_device.py",
         "patchSetId": 46
@@ -36,6 +54,24 @@
     },
     {
       "key": {
+        "uuid": "0e7b0d87_00759d23",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 46
+      },
+      "lineNbr": 72,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-04-04T18:17:52Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "29d9bbee_1f01e856",
+      "revId": "0c67c2fe1d6e995ccb9ca0b3c87b03bee2aa9b07",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "106be970_84294c9e",
         "filename": "voltha/adapters/openolt/openolt_device.py",
         "patchSetId": 46
@@ -47,6 +83,24 @@
       "writtenOn": "2018-03-24T07:32:42Z",
       "side": 1,
       "message": "\u0027device\u0027 is already available from kwargs[\u0027device\u0027]. May not be necessary to pull it again.",
+      "revId": "0c67c2fe1d6e995ccb9ca0b3c87b03bee2aa9b07",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7156a08c_7ee1c65b",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 46
+      },
+      "lineNbr": 76,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-04-04T18:17:52Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "106be970_84294c9e",
       "revId": "0c67c2fe1d6e995ccb9ca0b3c87b03bee2aa9b07",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -87,6 +141,24 @@
     },
     {
       "key": {
+        "uuid": "be9543b0_0622a091",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 46
+      },
+      "lineNbr": 92,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-04-04T18:17:52Z",
+      "side": 1,
+      "message": "Documented as a TBD in VOL-669.",
+      "parentUuid": "883d6709_a1559ed8",
+      "revId": "0c67c2fe1d6e995ccb9ca0b3c87b03bee2aa9b07",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1c8e596e_991021bd",
         "filename": "voltha/adapters/openolt/openolt_device.py",
         "patchSetId": 46
@@ -98,6 +170,24 @@
       "writtenOn": "2018-03-24T07:32:42Z",
       "side": 1,
       "message": "It is not clear where the OLT is getting activated. Does it get activated as soon as you establish the gRPC connection?",
+      "revId": "0c67c2fe1d6e995ccb9ca0b3c87b03bee2aa9b07",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "6795fde1_b59c752d",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 46
+      },
+      "lineNbr": 94,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-04-04T18:17:52Z",
+      "side": 1,
+      "message": "Yes - This adapter assumes that OLT is activated at power-up (like any switch or router would) and has made all interfaces operational up.",
+      "parentUuid": "1c8e596e_991021bd",
       "revId": "0c67c2fe1d6e995ccb9ca0b3c87b03bee2aa9b07",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -139,6 +229,24 @@
     },
     {
       "key": {
+        "uuid": "bae7a435_a1c7c81e",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 46
+      },
+      "lineNbr": 95,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-04-04T18:17:52Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "57ac1285_4eaa1c3e",
+      "revId": "0c67c2fe1d6e995ccb9ca0b3c87b03bee2aa9b07",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fd1d309f_9bb6d6d1",
         "filename": "voltha/adapters/openolt/openolt_device.py",
         "patchSetId": 46
@@ -150,6 +258,24 @@
       "writtenOn": "2018-03-24T07:32:42Z",
       "side": 1,
       "message": "How is the connection loss towards the OLT taken care of. Heartbeats??. Can we have some placeholders in the code for that.",
+      "revId": "0c67c2fe1d6e995ccb9ca0b3c87b03bee2aa9b07",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "165b9e03_073b5525",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 46
+      },
+      "lineNbr": 96,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-04-04T18:17:52Z",
+      "side": 1,
+      "message": "Documented as a TBD in VOL-669",
+      "parentUuid": "fd1d309f_9bb6d6d1",
       "revId": "0c67c2fe1d6e995ccb9ca0b3c87b03bee2aa9b07",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -173,6 +299,24 @@
     },
     {
       "key": {
+        "uuid": "3b971835_0da12046",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 46
+      },
+      "lineNbr": 113,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-04-04T18:17:52Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "b9878e2b_c23f8751",
+      "revId": "0c67c2fe1d6e995ccb9ca0b3c87b03bee2aa9b07",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "80a695d6_f226028e",
         "filename": "voltha/adapters/openolt/openolt_device.py",
         "patchSetId": 46
@@ -190,6 +334,24 @@
     },
     {
       "key": {
+        "uuid": "ebb4e0e3_da3185b5",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 46
+      },
+      "lineNbr": 120,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-04-04T18:17:52Z",
+      "side": 1,
+      "message": "I am finding that the interface indication is only being generated by BAL for PON interfaces. The operation indication (below) is being generated by BAL for both PON and NNI. Thats the reason I find its OK to assume that this indication is only for PON.",
+      "parentUuid": "80a695d6_f226028e",
+      "revId": "0c67c2fe1d6e995ccb9ca0b3c87b03bee2aa9b07",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "deda25d2_4e77364d",
         "filename": "voltha/adapters/openolt/openolt_device.py",
         "patchSetId": 46
@@ -201,6 +363,24 @@
       "writtenOn": "2018-03-24T07:32:42Z",
       "side": 1,
       "message": "Does the onu_indication always correspond to event \"activation-completed\" ?",
+      "revId": "0c67c2fe1d6e995ccb9ca0b3c87b03bee2aa9b07",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "589e624b_fad2d388",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 46
+      },
+      "lineNbr": 197,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-04-04T18:17:52Z",
+      "side": 1,
+      "message": "For the limited functionality supported at this time by this adapter, I find it OK to assume that onu_indication impleies activation-completed. As more use cases and error cases are handled this may change.",
+      "parentUuid": "deda25d2_4e77364d",
       "revId": "0c67c2fe1d6e995ccb9ca0b3c87b03bee2aa9b07",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
