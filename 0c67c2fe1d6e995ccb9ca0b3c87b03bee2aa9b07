@@ -124,6 +124,24 @@
     },
     {
       "key": {
+        "uuid": "8088a107_c2c69a1e",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 46
+      },
+      "lineNbr": 78,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-04-05T01:20:26Z",
+      "side": 1,
+      "message": "Documented as a TBD in VOL-669.",
+      "parentUuid": "3a17eff2_3490f451",
+      "revId": "0c67c2fe1d6e995ccb9ca0b3c87b03bee2aa9b07",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "883d6709_a1559ed8",
         "filename": "voltha/adapters/openolt/openolt_device.py",
         "patchSetId": 46
