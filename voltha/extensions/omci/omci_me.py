@@ -653,11 +653,11 @@ class OntDataFrame(MEFrame):
         """
         :param mib_data_sync: (int) This attribute is used to check the alignment
                                     of the MIB of the ONU with the corresponding MIB
-                                    in the OLT. (0..255)
+                                    in the OLT. (0..0xFFFF)
         """
         self.check_type(mib_data_sync, (int, type(None)))
-        if mib_data_sync is not None and not 0 <= mib_data_sync <= 255:
-            raise ValueError('mib_data_sync should be 0..255')
+        if mib_data_sync is not None and not 0 <= mib_data_sync <= 0xFFFF:
+            raise ValueError('mib_data_sync should be 0..0xFFFF')   # TODO: Verify max value
 
         data = {'mib_data_sync': mib_data_sync} if mib_data_sync is not None else None
 
