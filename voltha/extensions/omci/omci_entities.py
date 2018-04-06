@@ -17,6 +17,7 @@ import inspect
 
 import sys
 from binascii import hexlify
+import json
 from scapy.fields import ByteField, ShortField, MACField, BitField, IPField
 from scapy.fields import IntField, StrFixedLenField, LongField
 from scapy.packet import Packet
@@ -532,6 +533,9 @@ class VlanTaggingOperation(Packet):
         BitField("treatment_inner_tpid_de", 0, 3),
     ]
 
+    def to_json(self):
+        return json.dumps(self.fields)
+
 
 class ExtendedVlanTaggingOperationConfigurationData(EntityClass):
     class_id = 171
@@ -814,6 +818,9 @@ class AccessControlRow0(Packet):
         ShortField("reserved0", 0)
     ]
 
+    def to_json(self):
+        return json.dumps(self.fields)
+
 
 class AccessControlRow1(Packet):
     name = "AccessControlRow1"
@@ -831,6 +838,9 @@ class AccessControlRow1(Packet):
         ShortField("reserved1", 0)
     ]
 
+    def to_json(self):
+        return json.dumps(self.fields)
+
 
 class AccessControlRow2(Packet):
     name = "AccessControlRow2"
@@ -844,6 +854,8 @@ class AccessControlRow2(Packet):
         StrFixedLenField("reserved2", None, 10)
     ]
 
+    def to_json(self):
+        return json.dumps(self.fields)
 
 class DownstreamIgmpMulticastTci(Packet):
     name = "DownstreamIgmpMulticastTci"
@@ -851,6 +863,9 @@ class DownstreamIgmpMulticastTci(Packet):
         ByteField("ctrl_type", None),
         ShortField("tci", None)
     ]
+
+    def to_json(self):
+        return json.dumps(self.fields)
 
 
 class MulticastOperationsProfile(EntityClass):
@@ -903,6 +918,9 @@ class MulticastServicePackage(Packet):
         StrFixedLenField("reserved1", None, 8)
     ]
 
+    def to_json(self):
+        return json.dumps(self.fields)
+
 
 class AllowedPreviewGroupsRow0(Packet):
     name = "AllowedPreviewGroupsRow0"
@@ -918,6 +936,9 @@ class AllowedPreviewGroupsRow0(Packet):
         ShortField("vlan_id_uni", None)
     ]
 
+    def to_json(self):
+        return json.dumps(self.fields)
+
 
 class AllowedPreviewGroupsRow1(Packet):
     name = "AllowedPreviewGroupsRow1"
@@ -932,6 +953,9 @@ class AllowedPreviewGroupsRow1(Packet):
         ShortField("duration", None),
         ShortField("time_left", None)
     ]
+
+    def to_json(self):
+        return json.dumps(self.fields)
 
 
 class MulticastSubscriberConfigInfo(EntityClass):

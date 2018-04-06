@@ -14,6 +14,9 @@
 # limitations under the License.
 #
 
+from voltha.core.config.config_root import ConfigRoot
+from voltha.protos.voltha_pb2 import VolthaInstance
+
 
 class MockProxyAddress(object):
     def __init__(self, device_id, pon_id, onu_id):
@@ -28,10 +31,20 @@ class MockProxyAddress(object):
 
 class MockDevice(object):
     def __init__(self, device_id, proxy_address=None, serial_number=None):
+        from voltha.extensions.omci.omci_entities import entity_id_to_class_map
         self.id = device_id
         self.parent_id = None
         self.proxy_address = proxy_address
         self.serial_number = serial_number
+        self.me_map = entity_id_to_class_map
+
+
+class MockCore(object):
+    def __init__(self):
+        self.root = ConfigRoot(VolthaInstance())
+
+    def get_proxy(self, path):
+        return self.root.get_proxy(path)
 
 
 class MockAdapterAgent(object):
@@ -46,7 +59,7 @@ class MockAdapterAgent(object):
     """
     def __init__(self):
         self._devices = dict()      # device-id -> mock device
-        pass
+        self.core = MockCore()
 
     def tearDown(self):
         """Test case cleanup"""

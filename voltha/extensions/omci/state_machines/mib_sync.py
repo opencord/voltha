@@ -110,8 +110,9 @@ class MibSynchronizer(object):
         self._deferred = None
         self._current_task = None   # TODO: Support multiple running tasks after v.1.3.0 release
         self._task_deferred = None
-        self._mib_data_sync = db.get_mib_data_sync(device_id) or 0
-        self._last_mib_db_sync_value = db.get_last_sync(device_id)
+        self._mib_data_sync = 0
+        self._last_mib_db_sync_value = None
+        self._device_in_db = False
 
         self._event_bus = EventBusClient()
         self._subscriptions = {               # RxEvent.enum -> Subscription Object
@@ -214,12 +215,34 @@ class MibSynchronizer(object):
         # TODO: Stop and remove any currently running or scheduled tasks
         # TODO: Anything else?
 
+    def _seed_database(self):
+        if not self._device_in_db:
+            try:
+                try:
+                    self._database.start()
+                    self._database.add(self._device_id)
+                    self.log.debug('seed-db-does-not-exist', device_id=self._device_id)
+
+                except KeyError:
+                    # Device already is in database
+                    self.log.debug('seed-db-exist', device_id=self._device_id)
+                    self._mib_data_sync = self._database.get_mib_data_sync(self._device_id)
+                    self._last_mib_db_sync_value = self._database.get_last_sync(self._device_id)
+
+                self._device_in_db = True
+
+            except Exception as e:
+                self.log.exception('seed-database-failure', e=e)
+
     def on_enter_starting(self):
         """
         Determine ONU status and start MIB Synchronization tasks
         """
         self._device = self._agent.get_device(self._device_id)
         self.log.debug('state-transition', new_onu=self.is_new_onu)
+
+        # Make sure root of external MIB Database exists
+        self._seed_database()
 
         # Set up Response and Autonomous notification subscriptions
         try:

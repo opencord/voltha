@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 from task import Task
-from twisted.internet.defer import inlineCallbacks, TimeoutError, failure
+from twisted.internet.defer import inlineCallbacks, TimeoutError, failure, AlreadyCalledError
 from twisted.internet import reactor
 
 
@@ -94,24 +94,50 @@ class MibUploadTask(Task):
             # Begin MIB Upload
             results = yield device.omci_cc.send_mib_upload()
             number_of_commands = results.fields['omci_message'].fields['number_of_commands']
+            failed = False
 
             for seq_no in xrange(number_of_commands):
                 if not device.active or not device.omci_cc.enabled:
                     self.deferred.errback(failure.Failure(
                         GeneratorExit('OMCI and/or ONU is not active')))
                     return
-                yield device.omci_cc.send_mib_upload_next(seq_no)
 
-            # Successful if here
-            self.log.info('mib-synchronized')
-            self.deferred.callback('success, loaded {} ME Instances'.
-                                   format(number_of_commands))
+                for retry in range(0, 3):
+                    try:
+                        self.log.debug('mib-upload-next-request', seq_no=seq_no, retry=retry, number_of_commands=number_of_commands)
+                        yield device.omci_cc.send_mib_upload_next(seq_no)
+                        self.log.debug('mib-upload-next-success', seq_no=seq_no, number_of_commands=number_of_commands)
+                        failed = False
+                        break
+
+                    except TimeoutError as e:
+                        from common.utils.asleep import asleep
+                        self.log.warn('mib-upload-timeout', e=e, seq_no=seq_no,
+                                      number_of_commands=number_of_commands)
+                        failed = True
+                        if retry < 2:
+                            yield asleep(0.3)
+
+            if not failed:
+                # Successful if here
+                self.log.info('mib-synchronized')
+                self.deferred.callback('success, loaded {} ME Instances'.
+                                       format(number_of_commands))
+            else:
+                self.deferred.errback(failure.Failure(e))
 
         except TimeoutError as e:
-            self.log.warn('mib-upload-timeout', e=e, seq_no=seq_no,
+            self.log.warn('mib-upload-timeout-on-reset', e=e, seq_no=seq_no,
                           number_of_commands=number_of_commands)
             self.deferred.errback(failure.Failure(e))
 
+        except AlreadyCalledError:
+            # Can occur if task canceled due to MIB Sync state change
+            self.log.debug('already-called-exception', seq_no=seq_no,
+                           number_of_commands=number_of_commands)
+            assert self.deferred.called, \
+                'Unexpected AlreadyCalledError exception: seq: {} of {}'.format(seq_no,
+                                                                                number_of_commands)
         except Exception as e:
             self.log.exception('mib-upload', e=e)
             self.deferred.errback(failure.Failure(e))

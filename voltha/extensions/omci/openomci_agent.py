@@ -15,6 +15,7 @@
 #
 import structlog
 from voltha.extensions.omci.database.mib_db_dict import MibDbVolatileDict
+from voltha.extensions.omci.database.mib_db_ext import MibDbExternal
 from voltha.extensions.omci.state_machines.mib_sync import MibSynchronizer
 from voltha.extensions.omci.tasks.mib_upload import MibUploadTask
 from voltha.extensions.omci.tasks.get_mds_task import GetMdsTask
@@ -25,7 +26,8 @@ from voltha.extensions.omci.onu_device_entry import OnuDeviceEntry
 OpenOmciAgentDefaults = {
     'mib-synchronizer': {
         'state-machine': MibSynchronizer,  # Implements the MIB synchronization state machine
-        'database': MibDbVolatileDict,     # Implements ME MIB database
+        # 'database': MibDbVolatileDict,     # Implements volatile ME MIB database
+        'database': MibDbExternal,         # Implements persistent ME MIB database
         'tasks': {
             'mib-upload': MibUploadTask,
             'get-mds': GetMdsTask,
@@ -74,6 +76,11 @@ class OpenOMCIAgent(object):
         # self._alarm_db = None
         # self._alarm_synchronizer_info = support_classes['alarm-synchronizer']
         # self._alarm_database_cls = self._alarm_synchronizer_info['database']
+
+    @property
+    def core(self):
+        """ Return a reference to the VOLTHA Core component"""
+        return self._core
 
     def start(self):
         """
