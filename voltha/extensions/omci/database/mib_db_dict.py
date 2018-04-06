@@ -61,7 +61,7 @@ class MibDbVolatileDict(MibDbApi):
         :param device_id: (str) Device ID of ONU to add
         :param overwrite: (bool) Overwrite existing entry if found.
 
-        :raises KeyError: If device does not exist and 'overwrite' is False
+        :raises KeyError: If device already exist and 'overwrite' is False
         """
         self.log.debug('add-device', device_id=device_id, overwrite=overwrite)
 
@@ -77,6 +77,7 @@ class MibDbVolatileDict(MibDbApi):
 
         now = datetime.utcnow()
         self._data[device_id] = {
+            DEVICE_ID_KEY: device_id,
             CREATED_KEY: now,
             MODIFIED_KEY: now,
             MDS_KEY: 0,
@@ -129,6 +130,7 @@ class MibDbVolatileDict(MibDbApi):
                 LAST_SYNC_KEY: last_sync
             }
 
+        device_db[DEVICE_ID_KEY] = device_id
         device_db[MODIFIED_KEY] = now
         device_db[MDS_KEY] = 0
         device_db[VERSION_KEY] = MibDbVolatileDict.CURRENT_VERSION
@@ -183,14 +185,14 @@ class MibDbVolatileDict(MibDbApi):
 
         return self._data[device_id].get(LAST_SYNC_KEY)
 
-    def set(self, device_id, class_id, entity_id, attributes):
+    def set(self, device_id, class_id, instance_id, attributes):
         """
         Set a database value.  This should only be called by the MIB synchronizer
         and its related tasks
 
         :param device_id: (str) ONU Device ID
         :param class_id: (int) ME Class ID
-        :param entity_id: (int) ME Entity ID
+        :param instance_id: (int) ME Entity ID
         :param attributes: (dict) Attribute dictionary
 
         :returns: (bool) True if the value was saved to the database. False if the
@@ -209,19 +211,22 @@ class MibDbVolatileDict(MibDbApi):
 
             if class_db is None:
                 device_db[class_id] = {
+                    CLASS_ID_KEY: class_id,
                     CREATED_KEY: now,
                     MODIFIED_KEY: now
                 }
                 class_db = device_db[class_id]
                 self._modified = now
 
-            instance_db = class_db.get(entity_id)
+            instance_db = class_db.get(instance_id)
             if instance_db is None:
-                class_db[entity_id] = {
+                class_db[instance_id] = {
+                    INSTANCE_ID_KEY: instance_id,
                     CREATED_KEY: now,
-                    MODIFIED_KEY: now
+                    MODIFIED_KEY: now,
+                    ATTRIBUTES_KEY: dict()
                 }
-                instance_db = class_db[entity_id]
+                instance_db = class_db[instance_id]
                 class_db[MODIFIED_KEY] = now
                 device_db[MODIFIED_KEY] = now
                 self._modified = now
@@ -239,13 +244,14 @@ class MibDbVolatileDict(MibDbApi):
                         format(attribute, type(db_value), type(value))
 
                 if db_value is None or db_value != value:
-                    instance_db[attribute] = value
+                    instance_db[ATTRIBUTES_KEY][attribute] = value
                     changed = True
 
-                    instance_db[MODIFIED_KEY] = now
-                    class_db[MODIFIED_KEY] = now
-                    device_db[MODIFIED_KEY] = now
-                    self._modified = now
+            if changed:
+                instance_db[MODIFIED_KEY] = now
+                class_db[MODIFIED_KEY] = now
+                device_db[MODIFIED_KEY] = now
+                self._modified = now
 
             return changed
 
@@ -253,14 +259,14 @@ class MibDbVolatileDict(MibDbApi):
             self.log.error('set-failure', e=e)
             raise
 
-    def delete(self, device_id, class_id, entity_id):
+    def delete(self, device_id, class_id, instance_id):
         """
         Delete an entity from the database if it exists.  If all instances
         of a class are deleted, the class is deleted as well.
 
         :param device_id: (str) ONU Device ID
         :param class_id: (int) ME Class ID
-        :param entity_id: (int) ME Entity ID
+        :param instance_id: (int) ME Entity ID
 
         :returns: (bool) True if the instance was found and deleted. False
                          if it did not exist.
@@ -278,17 +284,18 @@ class MibDbVolatileDict(MibDbApi):
             if class_db is None:
                 return False
 
-            instance_db = class_db.get(entity_id)
+            instance_db = class_db.get(instance_id)
             if instance_db is None:
                 return False
 
             now = datetime.utcnow()
-            del class_db[entity_id]
+            del class_db[instance_id]
 
             if len(class_db) == len([CREATED_KEY, MODIFIED_KEY]):
                 del device_db[class_id]
             else:
                 class_db[MODIFIED_KEY] = now
+
             device_db[MODIFIED_KEY] = now
             self._modified = now
 
@@ -308,7 +315,7 @@ class MibDbVolatileDict(MibDbApi):
         :param device_id: (str) ONU Device ID
         :param class_id:  (int) Managed Entity class ID
         :param instance_id: (int) Managed Entity instance
-        :param attributes: (list or str) Managed Entity instance's attributes
+        :param attributes: (list/set or str) Managed Entity instance's attributes
 
         :return: (dict) The value(s) requested. If class/inst/attribute is
                         not found, an empty dictionary is returned
@@ -342,11 +349,11 @@ class MibDbVolatileDict(MibDbApi):
         if attributes is None or len(instance_db) == 0:
             return instance_db              # TODO: copy.deepcopy(instance_db)
 
-        if not isinstance(attributes, (basestring, list)):
-            raise TypeError('Attributes should be a string or list of strings')
+        if not isinstance(attributes, (basestring, list, set)):
+            raise TypeError('Attributes should be a string or list/set of strings')
 
-        if not isinstance(attributes, list):
+        if not isinstance(attributes, (list, set)):
             attributes = [attributes]
 
-        return {attr: val for attr, val in instance_db.iteritems()
+        return {attr: val for attr, val in instance_db[ATTRIBUTES_KEY].iteritems()
                 if attr in attributes}

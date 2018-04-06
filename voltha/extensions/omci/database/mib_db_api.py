@@ -26,6 +26,10 @@ MODIFIED_KEY = 'modified'
 MDS_KEY = 'mib_data_sync'
 LAST_SYNC_KEY = 'last_mib_sync'
 VERSION_KEY = 'version'
+DEVICE_ID_KEY = 'device_id'
+CLASS_ID_KEY = 'class_id'
+INSTANCE_ID_KEY = 'instance_id'
+ATTRIBUTES_KEY = 'attributes'
 
 
 class DatabaseStateError(Exception):
@@ -108,7 +112,7 @@ class MibDbApi(object):
         :param device_id: (str) Device ID of ONU to add
         :param overwrite: (bool) Overwrite existing entry if found.
 
-        :raises KeyError: If device does not exist and 'overwrite' is False
+        :raises KeyError: If device already exists and 'overwrite' is False
         """
         raise NotImplementedError('Implement this in your derive class')
 
@@ -164,7 +168,7 @@ class MibDbApi(object):
         :param device_id: (str) ONU Device ID
         :param class_id:  (int) Managed Entity class ID
         :param instance_id: (int) Managed Entity instance
-        :param attributes: (list or str) Managed Entity instance's attributes
+        :param attributes: (list/set or str) Managed Entity instance's attributes
 
         :return: (dict) The value(s) requested. If class/inst/attribute is
                         not found, an empty dictionary is returned

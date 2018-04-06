@@ -117,8 +117,13 @@ class OnuDeviceEntry(object):
 
     @property
     def custom_me_map(self):
-        """ Custom Managed Entity Map for this device"""
+        """ Vendor-specific Managed Entity Map for this vendor's device"""
         return self._custom_me_map
+
+    @property
+    def me_map(self):
+        """ Combined ME and Vendor-specific Managed Entity Map for this device"""
+        return self._me_map
 
     def _cancel_deferred(self):
         d, self._deferred = self._deferred, None
