@@ -31,6 +31,7 @@ COPY pki /voltha/pki
 COPY --from=protos /protos/voltha /voltha/voltha/protos
 COPY --from=protos /protos/google/api /voltha/voltha/protos/third_party/google/api
 COPY --from=protos /protos/asfvolt16_olt /voltha/voltha/adapters/asfvolt16_olt/protos
+COPY --from=protos /protos/openolt /voltha/voltha/adapters/openolt/protos
 
 # Exposing process and default entry point
 # EXPOSE 8000
