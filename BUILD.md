@@ -301,15 +301,19 @@ vagrant destroy -f
 ```
 ### Single-node Kubernetes
 
-To run voltha in a Kubernetes environment, the "voltha" development machine can be configured as a Kubernetes master running in a Kubernetes single-node cluster.
+To run voltha in a Kubernetes environment, the "voltha" development machine can be configured as a Kubernetes master running in a single-node cluster.
 
 To install Kubernetes, execute the following ansible playbook:
 ```
-ansible-playbook /cord/incubator/voltha/ansible/kubernetes.yml -c local
-```
-Run these next commands to create the "voltha" namespace"
-```
 cd /cord/incubator/voltha
+ansible-playbook ansible/kubernetes.yml -c local
+```
+Wait for the kube-dns pod to reach the Running state by executing the command:
+```
+kubectl get pods --all-namespaces -w
+```
+Run this next command to create the "voltha" namespace"
+```
 kubectl apply -f k8s/namespace.yml
 ```
 Follow the steps in either one of the next two sub-sections depending on whether a Consul or Etcd KV store is to be used with voltha.
