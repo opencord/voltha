@@ -245,16 +245,14 @@ nosetests -s tests/itests/voltha/test_voltha_alarm_filters.py
 * **Dispatcher**:  This test exercises the requests forwarding via the Global 
 handler.
 
-Before running the test, start a voltha ensemble.  The first command is to 
-ensure we will be running cleanly:
+To run the test in the docker-compose environment:
 ```
 cd /cord/incubator/voltha
 . ./env.sh
-docker-compose -f compose/docker-compose-system-test-dispatcher.yml down
-docker-compose -f compose/docker-compose-system-test-dispatcher.yml up -d
+nosetests -s tests/itests/voltha/test_dispatcher.py
 ```  
 
-During this test, the user will be prompted to start ponsim.  Use 
+During the test, the user will be prompted to start ponsim.  Use 
 these commands to run ponsim with 1 OLT and 4 ONUs.
 
 ``` 
@@ -271,13 +269,11 @@ sudo -s
 echo 8 > /sys/class/net/ponmgmt/bridge/group_fwd_mask            
 ``` 
 
-Run the test:
+To run the test in Kubernetes, set up a single-node environment by following
+document voltha/BUILD.md. The test is fully automated; simple execute:
 ```
-cd /cord/incubator/voltha
-. ./env.sh
-nosetests -s tests/itests/voltha/test_dispatcher.py
-```  
-
+nosetests -s tests/itests/voltha/test_dispatcher.py --tc-file=tests/itests/env/k8s-consul.ini
+```
 * **Voltha_Xpon**: This test uses the ponsim-OLT to verfiy addition, modification and deletion 
 of channelgroups, channelpartition, channelpair, channeltermination, VOntani, Ontani, VEnet for xpon
 

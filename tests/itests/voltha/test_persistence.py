@@ -252,7 +252,7 @@ class TestConsulPersistence(RestBase):
 
     def set_rest_endpoint(self):
         self.rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL,
-                                                      'envoy-8443')
+                                                      'voltha-envoy-8443')
         self.base_url = 'https://' + self.rest_endpoint
 
     def set_kafka_endpoint(self):
@@ -545,7 +545,7 @@ class TestConsulPersistence(RestBase):
         # second is the result of eapol forwarding with rule:
         # if eth_type == 0x888e => push vlan(1000); out_port=nni_port
         flows = self.get('/api/v1/devices/{}/flows'.format(olt_id))['items']
-        self.assertEqual(len(flows), 2)
+        self.assertEqual(len(flows), 8)
         flow = flows[1]
         self.assertEqual(flow['table_id'], 0)
         self.assertEqual(flow['priority'], 1000)

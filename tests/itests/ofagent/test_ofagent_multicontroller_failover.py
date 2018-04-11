@@ -112,7 +112,7 @@ class TestOFAGENT_MultiController(RestBase):
 
     def get_rest_endpoint(self):
         # Retrieve details on the REST entry point
-        rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'envoy-8443')
+        rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'voltha-envoy-8443')
 
         # Construct the base_url
         self.base_url = 'https://' + rest_endpoint
