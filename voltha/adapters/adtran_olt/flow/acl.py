@@ -20,7 +20,7 @@ from twisted.internet.defer import inlineCallbacks, returnValue, succeed
 
 log = structlog.get_logger()
 
-_acl_list = {}      # Key -> Name: List of encoded EVCs
+_acl_list = {}      # Key -> device-id -> Name: List of encoded EVCs
 
 ACL_NAME_FORMAT = 'VOLTHA-ACL-{}-{}'  # format(flow_entry.handler.device_id, flow_entry.flow.id)
 ACL_NAME_REGEX_ALL = 'VOLTHA-ACL-*'
@@ -217,8 +217,12 @@ class ACL(object):
         log.debug('installing-acl', installed=self._installed)
 
         if not self._installed and self._enabled:
-            if self._name in _acl_list:
-                self._status_message = "ACL '{}' already is installed".format(self._name)
+            if self._handler.device_id not in _acl_list:
+                _acl_list[self._handler.device_id] = {}
+
+            acls_installed = _acl_list[self._handler.device_id]
+            if self._name in acls_installed:
+                self._status_message = "ACL '{}' id already installed".format(self._name)
                 raise Exception(self._status_message)
 
             try:
@@ -230,7 +234,7 @@ class ACL(object):
                 self._status_message = '' if results.ok else results.error
 
                 if self._installed:
-                    _acl_list[self._name] = self
+                    acls_installed[self._name] = self
 
             except Exception as e:
                 log.exception('install-failure', name=self._name, e=e)
@@ -251,7 +255,9 @@ class ACL(object):
             self._status_message = '' if results.ok else results.error
 
             if not self._installed:
-                _acl_list.pop(self._name)
+                acls_installed = _acl_list.get(self._handler.device_id)
+                if acls_installed is not None and self._name in acls_installed:
+                    del acls_installed[self._name]
 
         returnValue(not self._installed)
 

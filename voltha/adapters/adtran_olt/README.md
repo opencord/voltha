@@ -14,7 +14,6 @@ entering two dashes '_--_'.  The full syntax to use is.
 |  -T   | --rc_port        | 8081    | REST TCP Port |
 |  -z   | --zmq_port       | 5656    | ZeroMQ OMCI Proxy Port |
 |  -M   | --multicast_vlan | 4000    | Multicast VLANs (comma-delimeted) |
-|  -V   | --packet_in_vlan | 4000    | OpenFlow Packet-In/Out VLAN, Zero to disable |
 |  -v   | --untagged_vlan  | 4092    | VLAN wrapper for untagged ONU frames |
 
 For example, if your Adtran OLT is address 10.17.174.193 with the default TCP ports and

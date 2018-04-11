@@ -74,12 +74,12 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         self.status_poll_skew = self.status_poll_interval / 10
         self._pon_agent = None
         self._pio_agent = None
-        self._is_async_control = False
         self._ssh_deferred = None
         self._system_id = None
         self._download_protocols = None
         self._download_deferred = None
         self._downloads = {}        # name -> Download obj
+        self._pio_exception_map = []
 
     def __del__(self):
         # OLT Specific things here.
@@ -141,7 +141,8 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
                 the device type specification returned by device_types().
         """
         from codec.physical_entities_state import PhysicalEntitiesState
-        # TODO: After a CLI 'reboot' command, the device info may get messed up (prints labels and not values)  Enter device and type 'show'
+        # TODO: After a CLI 'reboot' command, the device info may get messed up (prints labels and not values)
+        # #     Enter device and type 'show'
         device = {
             'model': 'n/a',
             'hardware_version': 'unknown',
@@ -388,9 +389,6 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
 
         :param reconciling: (boolean) True if taking over for another VOLTHA
         """
-        # Make sure configured for ZMQ remote access
-        self._ready_network_access()
-
         # ZeroMQ clients
         self._zmq_startup()
 
@@ -406,7 +404,7 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
 
     def on_heatbeat_alarm(self, active):
         if not active:
-            self._ready_network_access()
+            self.ready_network_access()
 
     @inlineCallbacks
     def _get_download_protocols(self):
@@ -433,10 +431,8 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
                 self._download_deferred = reactor.callLater(10, self._get_download_protocols)
 
     @inlineCallbacks
-    def _ready_network_access(self):
+    def ready_network_access(self):
         from net.rcmd import RCmd
-        # Software version
-        self._is_async_control = self._olt_version() >= 2
 
         # Check for port status
         command = 'netstat -pan | grep -i 0.0.0.0:{} |  wc -l'.format(self.pon_agent_port)
@@ -464,25 +460,26 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
 
             def v2_v3_method():
                 # Old V2 method
-                command = "sed --in-place=voltha-sav 's/^#export ZMQ_LISTEN/export ZMQ_LISTEN/' " \
-                          "/etc/ngpon2_agent/ngpon2_agent_feature_flags; "
+                # For V2 images, want -> export ZMQ_LISTEN_ON_ANY_ADDRESS=1
+                # For V3+ images, want -> export AGENT_LISTEN_ON_ANY_ADDRESS=1
 
                 # V3 unifies listening port, compatible with v2
-                # command = "sed --in-place '/add feature flags/aexport ZMQ_LISTEN_ON_ANY_ADDRESS=1' " \
-                #            "/etc/ngpon2_agent/ngpon2_agent_feature_flags; "
-                # command += "sed --in-place '/^export ZMQ_LISTEN/aAGENT_LISTEN_ON_ANY_ADDRESS=1' " \
-                #            "/etc/ngpon2_agent/ngpon2_agent_feature_flags; "
+                cmd = "sed --in-place '/add feature/aexport ZMQ_LISTEN_ON_ANY_ADDRESS=1' " \
+                      "/etc/ngpon2_agent/ngpon2_agent_feature_flags; "
+                cmd += "sed --in-place '/add feature/aexport AGENT_LISTEN_ON_ANY_ADDRESS=1' " \
+                      "/etc/ngpon2_agent/ngpon2_agent_feature_flags; "
 
-                command += 'ps -ae | grep -i ngpon2_agent; '
-                command += 'service_supervisor stop ngpon2_agent; service_supervisor start ngpon2_agent; '
-                command += 'ps -ae | grep -i ngpon2_agent'
+                # Note: 'ps' commands are to help decorate the logfile with useful info
+                cmd += 'ps -ae | grep -i ngpon2_agent; '
+                cmd += 'service_supervisor stop ngpon2_agent; service_supervisor start ngpon2_agent; '
+                cmd += 'ps -ae | grep -i ngpon2_agent'
 
-                self.log.debug('create-request', command=command)
-                return RCmd(self.ip_address, self.netconf_username, self.netconf_password, command)
+                self.log.debug('create-request', command=cmd)
+                return RCmd(self.ip_address, self.netconf_username, self.netconf_password, cmd)
 
             # Look for version
             next_run = 15
-            version = v2_v3_method if self._olt_version() > 1 else v1_method
+            version = v2_v3_method    # NOTE: Only v2 or later supported.
 
             if version is not None:
                 try:
@@ -496,7 +493,9 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
             next_run = 0
 
         if next_run > 0:
-            self._ssh_deferred = reactor.callLater(next_run, self._ready_network_access)
+            self._ssh_deferred = reactor.callLater(next_run, self.ready_network_access)
+
+        returnValue('retrying' if next_run > 0 else 'ready')
 
     def _zmq_startup(self):
         # ZeroMQ clients
@@ -535,7 +534,7 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
     def reenable(self, done_deferred=None):
         super(AdtranOltHandler, self).reenable(done_deferred=done_deferred)
 
-        self._ready_network_access()
+        self.ready_network_access()
         self._zmq_startup()
 
         # Register for adapter messages
@@ -558,7 +557,7 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
     def _finish_reboot(self, timeout, previous_oper_status, previous_conn_status):
         super(AdtranOltHandler, self)._finish_reboot(timeout, previous_oper_status, previous_conn_status)
 
-        self._ready_network_access()
+        self.ready_network_access()
 
         # Download support
         self._download_deferred = reactor.callLater(0, self._get_download_protocols)
@@ -584,8 +583,8 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         if self._pon_agent is not None:
             for packet in packets:
                 try:
-                    pon_id, onu_id, msg_bytes, is_omci = \
-                        self._pon_agent.decode_packet(packet, self._is_async_control)
+                    pon_id, onu_id, msg_bytes, is_omci = self._pon_agent.decode_packet(packet)
+
                     if is_omci:
                         proxy_address = self._pon_onu_id_to_proxy_address(pon_id, onu_id)
 
@@ -632,14 +631,23 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
                 if url_type == PioClient.UrlType.EVCMAPS_RESPONSE:
                     exception_map = self._pio_agent.decode_query_response_packet(packet)
                     self.log.debug('rx-pio-packet', exception_map=exception_map)
+                    # update latest pio exception map
+                    self._pio_exception_map = exception_map
 
                 elif url_type == PioClient.UrlType.PACKET_IN:
                     try:
                         from scapy.layers.l2 import Ether, Dot1Q
                         ifindex, evc_map, packet = self._pio_agent.decode_packet(packet)
 
-                        # convert ifindex to physical port number (HACK)
-                        port_no = (ifindex - 60000) + 4
+                        # convert ifindex to physical port number
+                        # pon port numbers start at 60001 and end at 600016 (16 pons)
+                        if ifindex > 60000 and ifindex < 60017:
+                            port_no = (ifindex - 60000) + 4
+                        # nni port numbers start at 1401 and end at 1404 (16 nnis)
+                        elif ifindex > 1400 and ifindex < 1405:
+                            port_no = ifindex - 1400
+                        else:
+                            raise ValueError('Unknown physical port. ifindex: {}'.format(ifindex))
 
                         logical_port_no = self._compute_logical_port_no(port_no, evc_map, packet)
 
@@ -674,7 +682,7 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
 
         if self.pio_port is not None or self.io_port is not None:
             from scapy.layers.l2 import Ether, Dot1Q
-            from scapy.layers.inet import IP, UDP
+            from scapy.layers.inet import UDP
             from common.frameio.frameio import hexify
 
             self.log.debug('sending-packet-out', egress_port=egress_port,
@@ -710,33 +718,43 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
                 elif pkt.type == 2:
                     exceptiontype = 'igmp'
                 elif pkt.type == FlowEntry.EtherType.IPv4:
-                    ippkt = IP(pkt.payload)
-                    if ippkt.proto == FlowEntry.IpProtocol.UDP:
-                        udppkt = UDP(ippkt.payload)
-                        # packet out from DHCP server is reversed ports
-                        if udppkt.sport == 67 and udppkt.dport == 68:
-                            exceptiontype = 'dhcp'
+                    if UDP in pkt and pkt[UDP].sport == 67 and pkt[UDP].dport == 68:
+                        exceptiontype = 'dhcp'
 
                 if exceptiontype is None:
                     self.log.warn('packet-out-exceptiontype-unknown', eEtherType=pkt.type)
 
-                elif port is not None and ctag is not None and vlan_id is not None and evcmapname is not None:
-                    self.log.debug('sending-pio-packet-out', port=port, ctag=ctag, vlan_id=vlan_id, evcmapname=evcmapname, exceptiontype=exceptiontype)
+                elif port is not None and ctag is not None and vlan_id is not None and \
+                     evcmapname is not None and self.pio_exception_exists(evcmapname, exceptiontype):
+
+                    self.log.debug('sending-pio-packet-out', port=port, ctag=ctag, vlan_id=vlan_id,
+                                   evcmapname=evcmapname, exceptiontype=exceptiontype)
                     out_pkt = (
                         Ether(src=pkt.src, dst=pkt.dst) /
-                        Dot1Q(vlan=port) /
                         Dot1Q(vlan=vlan_id) /
                         Dot1Q(vlan=ctag, type=pkt.type) /
                         pkt.payload
                     )
                     data = self._pio_agent.encode_packet(port, str(out_pkt), evcmapname, exceptiontype)
+                    self.log.debug('pio-packet-out', message=data)
                     try:
                         self._pio_agent.send(data)
 
                     except Exception as e:
                         self.log.exception('pio-send', egress_port=egress_port, e=e)
                 else:
-                    self.log.debug('packet-out-flow-not-found', egress_port=egress_port)
+                    self.log.warn('packet-out-flow-not-found', egress_port=egress_port)
+
+    def pio_exception_exists(self, name, exp):
+        # verify exception is in the OLT's reported exception map for this evcmap name
+        if exp is None:
+            return False
+        entry = next((entry for entry in self._pio_exception_map if entry['evc-map-name'] == name), None)
+        if entry is None:
+            return False
+        if exp not in entry['exception-types']:
+            return False
+        return True
 
     def send_packet_exceptions_request(self):
         if self._pio_agent is not None:
@@ -905,8 +923,7 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
                 onu = pon.onu(onu_id)
 
                 if onu is not None and onu.enabled:
-                    data = self._pon_agent.encode_omci_packet(msg, pon_id, onu_id,
-                                                              self._is_async_control)
+                    data = self._pon_agent.encode_omci_packet(msg, pon_id, onu_id)
                     try:
                         self._pon_agent.send(data)
 

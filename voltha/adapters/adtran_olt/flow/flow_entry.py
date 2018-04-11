@@ -286,11 +286,7 @@ class FlowEntry(object):
                 downstream_flow.evc = MCastEVC.create(downstream_flow)
 
             elif downstream_flow.is_acl_flow:
-                if any(flow.eth_type == FlowEntry.EtherType.EAPOL for flow in upstream_flows) and\
-                       downstream_flow.handler.utility_vlan != downstream_flow.handler.untagged_vlan:
-                    downstream_flow.evc = UntaggedEVC.create(downstream_flow)
-                else:
-                    downstream_flow.evc = UtilityEVC.create(downstream_flow)
+                downstream_flow.evc = downstream_flow.get_utility_evc(upstream_flows)
             else:
                 downstream_flow.evc = EVC(downstream_flow)
 
@@ -331,6 +327,15 @@ class FlowEntry(object):
             or downstream_flow.is_multicast_flow
 
         return downstream_flow.evc if all_maps_valid else None
+
+    def get_utility_evc(self, upstream_flows=None, use_default_vlan_id=False):
+        assert self.is_acl_flow, 'Utility evcs are for acl flows only'
+        if upstream_flows is not None and\
+            any(flow.eth_type == FlowEntry.EtherType.EAPOL for flow in upstream_flows) and\
+            self.handler.utility_vlan != self.handler.untagged_vlan:
+            return UntaggedEVC.create(self, use_default_vlan_id)
+
+        return UtilityEVC.create(self, use_default_vlan_id)
 
     @property
     def _needs_acl_support(self):    # FIXED_ONU- maybe
@@ -695,20 +700,26 @@ class FlowEntry(object):
         """
         from ..onu import Onu
 
-        log.debug('get-packetout-info', device_id=device_id, logical_port=logical_port)
         all_flow_entries = _existing_upstream_flow_entries.get(device_id) or {}
         for flow_entry in all_flow_entries.itervalues():
             log.debug('get-packetout-info', flow_entry=flow_entry)
-            if flow_entry.evc_map is not None and flow_entry.evc_map.valid and flow_entry.logical_port == logical_port:
+
+            # match logical port
+            if flow_entry.evc_map is not None and flow_entry.evc_map.valid and \
+               flow_entry.logical_port == logical_port:
                 evc_map = flow_entry.evc_map
                 gem_ids_and_vid = evc_map.gem_ids_and_vid
+
+                # must have valid gem id
                 if len(gem_ids_and_vid) > 0:
                     for onu_id, gem_ids_with_vid in gem_ids_and_vid.iteritems():
-                        log.debug('get-packetout-info', onu_id=onu_id, gem_ids_with_vid=gem_ids_with_vid)
+                        log.debug('get-packetout-info', onu_id=onu_id, 
+                                   gem_ids_with_vid=gem_ids_with_vid)
                         if len(gem_ids_with_vid) > 0:
                             gem_ids = gem_ids_with_vid[0]
                             ctag = gem_ids_with_vid[1]
                             gem_id = gem_ids[0]     # TODO: always grab fist in list
-                            return flow_entry.in_port, ctag, Onu.gem_id_to_gvid(gem_id), evc_map.get_evcmap_name(onu_id, gem_id)
+                            return flow_entry.in_port, ctag, Onu.gem_id_to_gvid(gem_id), \
+                                   evc_map.get_evcmap_name(onu_id, gem_id)
         return  None, None, None, None
 

@@ -60,7 +60,7 @@ _DEFAULT_NETCONF_USERNAME = ""
 _DEFAULT_NETCONF_PASSWORD = ""
 _DEFAULT_NETCONF_PORT = 830
 
-FIXED_ONU = True  # Enhanced ONU support
+FIXED_ONU = False  # TODO: Deprecate this.  Enhanced ONU support
 
 
 class AdtranDeviceHandler(object):
@@ -267,7 +267,7 @@ class AdtranDeviceHandler(object):
         parser.add_argument('--utility_vlan', '-B', action='store',
                             default='{}'.format(DEFAULT_UTILITY_VLAN),
                             help='VLAN for Untagged Frames from ONUs'),
-        parser.add_argument('--no_exception_gems', '-X', action='store_true', default=not FIXED_ONU,
+        parser.add_argument('--no_exception_gems', '-X', action='store_true', default=True,
                             help='Native OpenFlow Packet-In/Out support')
         try:
             args = parser.parse_args(shlex.split(device.extra_args))
@@ -331,32 +331,37 @@ class AdtranDeviceHandler(object):
                 self.parse_provisioning_options(device)
 
                 ############################################################################
-                # Start initial discovery of RESTCONF support (if any)
-
-                try:
-                    self.startup = self.make_restconf_connection()
-                    results = yield self.startup
-                    self._rest_support = results
-                    self.log.debug('HELLO_Contents: {}'.format(pprint.PrettyPrinter().pformat(results)))
-
-                    # See if this is a virtualized OLT. If so, no NETCONF support available
-                    self.is_virtual_olt = 'module-info' in results and\
-                                          any(mod.get('module-name', None) == 'adtran-ont-mock'
-                                              for mod in results['module-info'])
-
-                except Exception as e:
-                    self.log.exception('Initial_RESTCONF_hello_failed', e=e)
-                    self.activate_failed(device, e.message, reachable=False)
+                # Currently, only virtual OLT (pizzabox) is supported
+                # self.is_virtual_olt = Add test for MOCK Device if we want to support it
 
                 ############################################################################
                 # Start initial discovery of NETCONF support (if any)
-
                 try:
                     self.startup = self.make_netconf_connection()
                     yield self.startup
 
                 except Exception as e:
-                    self.log.exception('NETCONF_connection_failed', e=e)
+                    self.log.exception('netconf-connection', e=e)
+                    self.activate_failed(device, e.message, reachable=False)
+
+                ############################################################################
+                # Update access information on network device for full protocol support
+                try:
+                    self.startup = self.ready_network_access()
+                    yield self.startup
+
+                except Exception as e:
+                    self.log.exception('network-setup', e=e)
+                    self.activate_failed(device, e.message, reachable=False)
+
+                ############################################################################
+                # Restconf setup
+                try:
+                    self.startup = self.make_restconf_connection()
+                    yield self.startup
+
+                except Exception as e:
+                    self.log.exception('restconf-setup', e=e)
                     self.activate_failed(device, e.message, reachable=False)
 
                 ############################################################################
@@ -382,7 +387,7 @@ class AdtranDeviceHandler(object):
                         self.adapter_agent.update_device(device)
 
                     except Exception as e:
-                        self.log.exception('Device_info_failed', e=e)
+                        self.log.exception('device-info', e=e)
                         self.activate_failed(device, e.message, reachable=False)
 
                 try:
@@ -404,7 +409,7 @@ class AdtranDeviceHandler(object):
                             self.adapter_agent.add_port(device.id, port.get_port())
 
                 except Exception as e:
-                    self.log.exception('NNI_enumeration', e=e)
+                    self.log.exception('NNI-enumeration', e=e)
                     self.activate_failed(device, e.message)
 
                 try:
@@ -517,7 +522,6 @@ class AdtranDeviceHandler(object):
                 reactor.callLater(10, self.start_kpi_collection, device.id)
 
                 # Signal completion
-
                 self.log.info('activated')
 
             except Exception as e:
@@ -525,10 +529,16 @@ class AdtranDeviceHandler(object):
                 if done_deferred is not None:
                     done_deferred.errback(e)
                 raise
+
         if done_deferred is not None:
             done_deferred.callback('activated')
 
         returnValue(done_deferred)
+
+    @inlineCallbacks
+    def ready_network_access(self):
+        # Override in device specific class if needed
+        returnValue('nop')
 
     def activate_failed(self, device, reason, reachable=True):
         """

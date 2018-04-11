@@ -25,7 +25,7 @@ EVC_NAME_REGEX_ALL = EVC_NAME_FORMAT.format('*')
 
 _utility_evcs = {}  # device-id -> flow dictionary
                     #                  |
-                    #                  +-> untagged-vlan-id -> evcs
+                    #                  +-> utility-vlan-id -> evcs
 
 
 class UtilityEVC(EVC):
@@ -40,15 +40,16 @@ class UtilityEVC(EVC):
     def __str__(self):
         return "VOLTHA-UTILITY-{}: MEN: {}, VLAN: {}".format(self._name, self._men_ports, self._s_tag)
 
-    def _create_name(self):
+    def _create_name(self, vlan_id=None):
         #
         # TODO: Take into account selection criteria and output to make the name
         #
-        return EVC_NAME_FORMAT.format(self._flow.vlan_id)
+        return EVC_NAME_FORMAT.format(self._flow.vlan_id if vlan_id is None else vlan_id)
 
     @staticmethod
-    def create(flow_entry):
+    def create(flow_entry, use_default_vlan_id=False):
         device_id = flow_entry.device_id
+        vlan_id = flow_entry.vlan_id if not use_default_vlan_id else flow_entry.handler.utility_vlan
         evc_table = _utility_evcs.get(device_id)
 
         if evc_table is None:
@@ -56,12 +57,18 @@ class UtilityEVC(EVC):
             evc_table = _utility_evcs[device_id]
 
         try:
-            evc = evc_table.get(flow_entry.vlan_id)
+            evc = evc_table.get(vlan_id)
 
             if evc is None:
                 # Create EVC and initial EVC Map
                 evc = UtilityEVC(flow_entry)
-                evc_table[flow_entry.vlan_id] = evc
+
+                # reapply the stag and name if forced vlan id
+                if use_default_vlan_id:
+                    evc._s_tag = vlan_id
+                    evc._name = evc._create_name(vlan_id)
+
+                evc_table[vlan_id] = evc
             else:
                 if flow_entry.flow_id in evc.downstream_flows:    # TODO: Debug only to see if flow_ids are unique
                     pass
@@ -71,7 +78,7 @@ class UtilityEVC(EVC):
             return evc
 
         except Exception as e:
-            log.exception('untagged-create', e=e)
+            log.exception('utility-create', e=e)
             return None
 
     @property
@@ -97,7 +104,7 @@ class UtilityEVC(EVC):
         """
         log.info('removing', evc=self, remove_maps=remove_maps)
 
-        device_id = self._handler.device_id
+        device_id = self._flow.handler.device_id
         flow_id = self._flow.id
         evc_table = _utility_evcs.get(device_id)
 
@@ -121,6 +128,7 @@ class UtilityEVC(EVC):
         """
         log.info('deleting', evc=self, delete_maps=delete_maps)
 
+        assert self._flow, 'Delete EVC must have flow reference'
         try:
             dl = [self.remove()]
             if delete_maps:

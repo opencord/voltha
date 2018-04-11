@@ -231,10 +231,10 @@ class EVCMap(object):
         # self._udp_src = None
         return xml
 
-    def _ingress_install_xml(self, onu_s_gem_ids_and_vid):
+    def _ingress_install_xml(self, onu_s_gem_ids_and_vid, acl_list):
         from ..onu import Onu
 
-        if len(self._new_acls):
+        if len(acl_list):
             xml = '<evc-maps xmlns="http://www.adtran.com/ns/yang/adtran-evc-maps"' +\
                    '         xmlns:adtn-evc-map-acl="http://www.adtran.com/ns/yang/adtran-evc-map-access-control-list">'
         else:
@@ -258,12 +258,12 @@ class EVCMap(object):
                     xml += '<men-ctag>{}</men-ctag>'.format(vid)  # Added in August 2017 model
                     xml += '</network-ingress-filter>'
 
-                if len(self._new_acls):
+                if len(acl_list):
                     xml += '<adtn-evc-map-acl:access-lists>'
-                    xml += ' <adtn-evc-map-acl:ingress-acl>'
-                    for acl in self._new_acls.itervalues():
+                    for acl in acl_list:
+                        xml += ' <adtn-evc-map-acl:ingress-acl>'
                         xml += acl.evc_map_ingress_xml()
-                    xml += ' </adtn-evc-map-acl:ingress-acl>'
+                        xml += ' </adtn-evc-map-acl:ingress-acl>'
                     xml += '</adtn-evc-map-acl:access-lists>'
                 xml += self._common_install_xml()
                 xml += '</evc-map>'
@@ -277,6 +277,27 @@ class EVCMap(object):
         xml += EVCMap._xml_trailer()
         return xml
 
+    def _ingress_remove_acl_xml(self, onu_s_gem_ids_and_vid, acl):
+        xml = '<evc-maps xmlns="http://www.adtran.com/ns/yang/adtran-evc-maps"' +\
+               ' xmlns:adtn-evc-map-acl="http://www.adtran.com/ns/yang/adtran-evc-map-access-control-list">'
+        for onu_or_vlan_id, gem_ids_and_vid in onu_s_gem_ids_and_vid.iteritems():
+            first_gem_id = True
+            vid = gem_ids_and_vid[1]
+            ident = '{}.{}'.format(self._pon_id, onu_or_vlan_id) if vid is None \
+                else onu_or_vlan_id
+
+            for gem_id in gem_ids_and_vid[0]:
+                xml += '<evc-map>'
+                xml += '<name>{}.{}.{}</name>'.format(self.name, ident, gem_id)
+                xml += '<adtn-evc-map-acl:access-lists>'
+                xml += ' <adtn-evc-map-acl:ingress-acl xc:operation="delete">'
+                xml += acl.evc_map_ingress_xml()
+                xml += ' </adtn-evc-map-acl:ingress-acl>'
+                xml += '</adtn-evc-map-acl:access-lists>'
+                xml += '</evc-map>'
+        xml += '</evc-maps>'
+        return xml
+
     @inlineCallbacks
     def install(self):
         def gem_ports():
@@ -287,10 +308,10 @@ class EVCMap(object):
 
         if self._valid and len(gem_ports()) > 0:
             # Install ACLs first (if not yet installed)
-            acl_list = self._new_acls.values()
+            work_acls = self._new_acls.copy()
             self._new_acls = dict()
 
-            for acl in acl_list:
+            for acl in work_acls.itervalues():
                 try:
                     yield acl.install()
                     # if not results.ok:
@@ -298,14 +319,14 @@ class EVCMap(object):
 
                 except Exception as e:
                     log.exception('acl-install', name=self.name, e=e)
-                    self._new_acls.update(acl_list)
+                    self._new_acls.update(work_acls)
                     raise
 
             # Now EVC-MAP
             if not self._installed or self._needs_update:
                 try:
                     self._cancel_deferred()
-                    map_xml = self._ingress_install_xml(self._gem_ids_and_vid) \
+                    map_xml = self._ingress_install_xml(self._gem_ids_and_vid, work_acls.values()) \
                         if self._is_ingress_map else self._egress_install_xml()
 
                     log.debug('install', xml=map_xml, name=self.name)
@@ -316,13 +337,14 @@ class EVCMap(object):
                     self.status = '' if results.ok else results.error
 
                     if results.ok:
-                        self._existing_acls.update(acl_list)
+                        self._existing_acls.update(work_acls)
+
                     else:
-                        self._new_acls.update(acl_list)
+                        self._new_acls.update(work_acls)
 
                 except Exception as e:
                     log.exception('map-install', name=self.name, e=e)
-                    self._new_acls.update(acl_list)
+                    self._new_acls.update(work_acls)
                     raise
 
         returnValue(self._installed and self._valid)
@@ -389,6 +411,7 @@ class EVCMap(object):
         flows = [flow] if flow is not None else list(self._flows.values())
         removing_all = len(flows) == len(self._flows)
 
+        log.debug('delete', removing_all=removing_all)
         if not removing_all:
             for f in flows:
                 self._remove_flow(f)
@@ -477,6 +500,7 @@ class EVCMap(object):
         if tmp_map is None or not tmp_map.valid:
             return None
 
+        self._flows[flow.flow_id] = flow
         self._needs_update = True
 
         if len(tmp_map._new_acls) > 0:
@@ -500,26 +524,45 @@ class EVCMap(object):
         EVC-MAP over to another EVC.
 
         :param flow: (FlowEntry) Flow to remove
-        :param removing_all: (bool) If True, all flows are being removed from EVC-MAP
         """
         try:
-            self._flows.pop(flow.flow_id)
+            del self._flows[flow.flow_id]
 
             if not flow.handler.exception_gems:  # ! FIXED_ONU
                 # Remove any ACLs
 
-                acl = ACL.create(flow)
+                acl_name = ACL.flow_to_name(flow)
+                acl = None
+
+                # if not yet installed just remove it from list
+                if acl_name in self._new_acls:
+                    del self._new_acls[acl_name]
+                else:
+                    acl = self._existing_acls[acl_name]
                 if acl is not None:
                     # Remove ACL from EVC-MAP entry
 
                     try:
-                        # TODO: Create EVC-MAP with proper 'delete-acl-list' request
-                        # TODO: and send it
-                        pass
+                        map_xml = self._ingress_remove_acl_xml(self._gem_ids_and_vid, acl)
+                        log.debug('remove', xml=map_xml, name=acl.name)
+                        results = yield self._handler.netconf_client.edit_config(map_xml)
+                        if results.ok:
+                            del self._existing_acls[acl.name]
 
-                        # TODO: Scan EVC to see if it needs to move back to the Utility
-                        #       or Untagged EVC from a user data EVC
-                        pass
+                        # Scan EVC to see if it needs to move back to the Utility
+                        # or Untagged EVC from a user data EVC
+                        if not self._evc.service_evc and\
+                            len(self._flows) > 0 and\
+                            all(f.is_acl_flow for f in self._flows.itervalues()):
+
+                            self._evc.remove_evc_map(self)
+                            first_flow = self._flows.itervalues().next()
+                            self._evc = first_flow.get_utility_evc(None, True)
+                            self._evc.add_evc_map(self)
+                            log.debug('moved-acl-flows-to-utility-evc', newevcname=self._evc.name)
+
+                            self._needs_update = True
+                            self._evc.schedule_install()
 
                     except Exception as e:
                         log.exception('acl-remove-from-evc', e=e)
