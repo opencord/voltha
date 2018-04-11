@@ -344,6 +344,7 @@ class EVC(object):
         """
         log.info('deleting', evc=self, delete_maps=delete_maps)
 
+        assert self._flow, 'Delete EVC must have flow reference'
         try:
             dl = [self.remove()]
             self._valid = False

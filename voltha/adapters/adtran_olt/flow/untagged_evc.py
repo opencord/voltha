@@ -43,15 +43,16 @@ class UntaggedEVC(EVC):
     def __str__(self):
         return "VOLTHA-UNTAGGED-{}: MEN: {}, VLAN: {}".format(self._name, self._men_ports, self._s_tag)
 
-    def _create_name(self):
+    def _create_name(self, vlan_id=None):
         #
         # TODO: Take into account selection criteria and output to make the name
         #
-        return EVC_NAME_FORMAT.format(self._flow.vlan_id)
+        return EVC_NAME_FORMAT.format(self._flow.vlan_id if vlan_id is None else vlan_id)
 
     @staticmethod
-    def create(flow_entry):
+    def create(flow_entry, use_default_vlan_id=False):
         device_id = flow_entry.device_id
+        vlan_id = flow_entry.vlan_id if use_default_vlan_id else flow_entry.handler.untagged_vlan
         evc_table = _untagged_evcs.get(device_id)
 
         if evc_table is None:
@@ -64,6 +65,12 @@ class UntaggedEVC(EVC):
             if evc is None:
                 # Create EVC and initial EVC Map
                 evc = UntaggedEVC(flow_entry)
+
+                # reapply the stag and name if forced vlan id
+                if use_default_vlan_id:
+                    evc._s_tag = vlan_id
+                    evc._create_name(vlan_id)
+
                 evc_table[flow_entry.vlan_id] = evc
             else:
                 if flow_entry.flow_id in evc.downstream_flows:    # TODO: Debug only to see if flow_ids are unique
@@ -100,7 +107,7 @@ class UntaggedEVC(EVC):
         """
         log.info('removing', evc=self, remove_maps=remove_maps)
 
-        device_id = self._handler.device_id
+        device_id = self._flow.handler.device_id
         flow_id = self._flow.id
         evc_table = _untagged_evcs.get(device_id)
 
@@ -124,6 +131,7 @@ class UntaggedEVC(EVC):
         """
         log.info('deleting', evc=self, delete_maps=delete_maps)
 
+        assert self._flow, 'Delete EVC must have flow reference'
         try:
             dl = [self.remove()]
             if delete_maps:
