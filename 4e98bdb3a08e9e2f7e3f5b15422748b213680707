@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c79cef55_9376c039",
+        "filename": "tests/itests/voltha/test_dispatcher.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 150,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-04-12T11:51:32Z",
+      "side": 1,
+      "message": "For this new TODO, could you create a JIRA to track this so that when a development/test resource becomes available, they can look into and add this back in (or remove it in case it is no longer applicable).",
+      "revId": "4e98bdb3a08e9e2f7e3f5b15422748b213680707",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
