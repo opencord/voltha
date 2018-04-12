@@ -16,6 +16,24 @@
       "revId": "4e98bdb3a08e9e2f7e3f5b15422748b213680707",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "95ebee0a_b6325144",
+        "filename": "tests/itests/voltha/test_dispatcher.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 150,
+      "author": {
+        "id": 1000196
+      },
+      "writtenOn": "2018-04-12T14:44:59Z",
+      "side": 1,
+      "message": "Raised JIRA VOL-672: list_device_flows sub-test in the Voltha integration test suite no longer passes.",
+      "parentUuid": "c79cef55_9376c039",
+      "revId": "4e98bdb3a08e9e2f7e3f5b15422748b213680707",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
