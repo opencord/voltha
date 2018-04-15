@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 from unittest import TestCase, main
+from nose.tools import assert_raises
 from voltha.extensions.omci.me_frame import *
 from voltha.extensions.omci.omci_me import *
 from voltha.extensions.omci.omci import *
@@ -268,6 +269,34 @@ class TestSelectMeFrameGeneration(TestCase):
 
     def test_constraint_errors(self):
         self.assertTrue(True)  # TODO Also test some attribute constraint failures
+
+    def test_mib_upload_next(self):
+        # Test for VOL-649 error. SCAPY was only originally coded for a 'get'
+        # action (8-bit MIB Data Sync value) but MIB Upload Next commands have
+        # a 16-bit field.
+        #
+        # 255 and less always worked
+        OntDataFrame(sequence_number=0).mib_upload_next()
+        OntDataFrame(sequence_number=255).mib_upload_next()
+        # But not 256+
+        OntDataFrame(sequence_number=256).mib_upload_next()
+        OntDataFrame(sequence_number=1000).mib_upload_next()
+        OntDataFrame(sequence_number=0xFFFE).mib_upload_next()
+
+        # Also test the optional arguments for the other actions
+        OntDataFrame().get()
+        OntDataFrame(mib_data_sync=4).set()
+        OntDataFrame().mib_reset()
+        OntDataFrame().mib_upload()
+        # OntDataFrame(ignore_arc=True).get_all_alarms()        Not yet coded
+        # OntDataFrame(ignore_arc=False).get_all_alarms()       Not yet coded
+
+        # Range/type checks
+        assert_raises(ValueError, OntDataFrame, mib_data_sync=-1)
+        assert_raises(ValueError, OntDataFrame, mib_data_sync=256)
+        assert_raises(ValueError, OntDataFrame, sequence_number=-1)
+        assert_raises(ValueError, OntDataFrame, sequence_number=0x10000)
+        assert_raises(TypeError, OntDataFrame, ignore_arc=123)
 
 
 if __name__ == '__main__':

@@ -213,7 +213,8 @@ class OntData(EntityClass):
     attributes = [
         ECA(ShortField("managed_entity_id", None), {AA.R},
             range_check=lambda x: x == 0),
-        ECA(ByteField("mib_data_sync", 0), {AA.R, AA.W})
+        # Only 1 octet used if GET/SET operation
+        ECA(ShortField("mib_data_sync", 0), {AA.R, AA.W})
     ]
     mandatory_operations = {OP.Get, OP.Set,
                             OP.GetAllAlarms, OP.GetAllAlarmsNext,
@@ -856,6 +857,7 @@ class AccessControlRow2(Packet):
 
     def to_json(self):
         return json.dumps(self.fields)
+
 
 class DownstreamIgmpMulticastTci(Packet):
     name = "DownstreamIgmpMulticastTci"

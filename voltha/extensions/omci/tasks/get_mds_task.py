@@ -83,7 +83,7 @@ class GetMdsTask(Task):
             #########################################
             # Request (MDS supplied value does not matter for a 'get' request)
 
-            results = yield device.omci_cc.send(OntDataFrame(mib_data_sync=123).get())
+            results = yield device.omci_cc.send(OntDataFrame().get())
 
             omci_msg = results.fields['omci_message'].fields
             status = omci_msg['success_code']
