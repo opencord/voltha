@@ -649,16 +649,41 @@ class OntDataFrame(MEFrame):
     """
     This managed entity models the MIB itself
     """
-    def __init__(self, mib_data_sync=None):
+    def __init__(self, mib_data_sync=None, sequence_number=None, ignore_arc=None):
         """
+        For 'get', 'MIB reset', 'MIB upload', pass no value
+        For 'set' actions, pass mib_data_sync value (0..255)
+        For 'MIB upload next',and 'Get all alarms next' pass sequence_number value (0..65535)
+        For 'Get all alarms", set ignore_arc to True to get all alarms regadrless
+                              of ARC status or False to get all alarms not currently
+                              under ARC
+
         :param mib_data_sync: (int) This attribute is used to check the alignment
                                     of the MIB of the ONU with the corresponding MIB
-                                    in the OLT. (0..0xFFFF)
+                                    in the OLT. (0..0xFF)
+        :param sequence_number: (int) This is used for MIB Upload Next (0..0xFFFF)
+        :param ignore_arc: (bool) None for all but 'get_all_alarm' commands
         """
         self.check_type(mib_data_sync, (int, type(None)))
-        if mib_data_sync is not None and not 0 <= mib_data_sync <= 0xFFFF:
-            raise ValueError('mib_data_sync should be 0..0xFFFF')   # TODO: Verify max value
+        if mib_data_sync is not None and not 0 <= mib_data_sync <= 0xFF:
+            raise ValueError('mib_data_sync should be 0..0xFF')
 
-        data = {'mib_data_sync': mib_data_sync} if mib_data_sync is not None else None
+        if sequence_number is not None and not 0 <= sequence_number <= 0xFFFF:
+            raise ValueError('sequence_number should be 0..0xFFFF')
+
+        if ignore_arc is not None and not isinstance(ignore_arc, bool):
+            raise TypeError('ignore_arc should be a boolean')
+
+        if mib_data_sync is not None:
+            data = {'mib_data_sync': mib_data_sync}
+
+        elif sequence_number is not None:
+            data = {'mib_data_sync': sequence_number}
+
+        elif ignore_arc is not None:
+            data = {'mib_data_sync': 0 if ignore_arc else 1}
+
+        else:
+            data = {'mib_data_sync'}    # Make Get's happy
 
         super(OntDataFrame, self).__init__(OntData, 0, data)

@@ -576,7 +576,7 @@ class OMCI_CC(object):
     def send_mib_upload_next(self, seq_no, timeout=DEFAULT_OMCI_TIMEOUT):
         self.log.debug('send-mib-upload-next')
 
-        frame = OntDataFrame(seq_no).mib_upload_next()
+        frame = OntDataFrame(sequence_number=seq_no).mib_upload_next()
         return self.send(frame, timeout)
 
     def send_reboot(self, timeout=DEFAULT_OMCI_TIMEOUT):
