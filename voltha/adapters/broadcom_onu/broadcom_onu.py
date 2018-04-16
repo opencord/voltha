@@ -53,6 +53,7 @@ log = structlog.get_logger()
 BRDCM_DEFAULT_VLAN = 4091
 ADMIN_STATE_LOCK = 1
 ADMIN_STATE_UNLOCK = 0
+RESERVED_VLAN_ID = 4095
 
 @implementer(IAdapterInterface)
 class BroadcomOnuAdapter(object):
@@ -611,20 +612,32 @@ class BroadcomOnuHandler(object):
                     self.send_delete_vlan_tagging_filter_data(0x2102)
                     yield self.wait_for_response()
 
-                    #self.send_set_vlan_tagging_filter_data(0x2102, _set_vlan_vid)
-                    self.send_create_vlan_tagging_filter_data(0x2102, _set_vlan_vid)
-                    yield self.wait_for_response()
-
-                    for port_id in self.uni_ports:
-
-                        self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_untagged(0x200 + port_id, 0x1000, _set_vlan_vid)
+                    # self.send_set_vlan_tagging_filter_data(0x2102, _set_vlan_vid)
+                    if _set_vlan_vid != RESERVED_VLAN_ID:
+                        # As per G.988 - Table 9.3.11-1 - Forward operation attribute values
+                        # Forward action of 0x10 allows VID Investigation
+                        self.send_create_vlan_tagging_filter_data(0x2102, _set_vlan_vid, 0x10)
                         yield self.wait_for_response()
 
-                        self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_single_tag(0x200 + port_id, 8, 0, 0,
-                                                                                                         1, 8, _set_vlan_vid)
+                        for port_id in self.uni_ports:
+
+                            self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_untagged(\
+                                                                     0x200 + port_id, 0x1000, _set_vlan_vid)
+                            yield self.wait_for_response()
+
+                            self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_single_tag(0x200 + port_id, 8, 0, 0,
+                                                                                                             1, 8, _set_vlan_vid)
+                            yield self.wait_for_response()
+                    else:
+                        # As per G.988 - Table 9.3.11-1 - Forward operation attribute values
+                        # Forward action of 0x00 does not perform VID Investigation for transparent vlan case
+                        self.send_create_vlan_tagging_filter_data(0x2102, _set_vlan_vid, 0x00)
                         yield self.wait_for_response()
 
-
+                        for port_id in self.uni_ports:
+                            self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_single_tag(\
+                                                                       0x200 + port_id, 14, 4096, 0, 0, 15, 0)
+                            yield self.wait_for_response()
 
             except Exception as e:
                 self.log.exception('failed-to-install-flow', e=e, flow=flow)
@@ -892,7 +905,8 @@ class BroadcomOnuHandler(object):
 
     def send_create_vlan_tagging_filter_data(self,
                                              entity_id,
-                                             vlan_id):
+                                             vlan_id,
+                                             fwd_operation):
         frame = OmciFrame(
             transaction_id=self.get_tx_id(),
             message_type=OmciCreate.message_id,
@@ -901,7 +915,7 @@ class BroadcomOnuHandler(object):
                 entity_id=entity_id,
                 data=dict(
                     vlan_filter_0=vlan_id,
-                    forward_operation=0x10,
+                    forward_operation=fwd_operation,
                     number_of_entries=1
                 )
             )
@@ -1352,7 +1366,8 @@ class BroadcomOnuHandler(object):
 
         # VLAN Tagging Filter config
         # Create AR - VlanTaggingFilterData - 8450 - c-vid
-        self.send_create_vlan_tagging_filter_data(0x2102, cvid)
+        # As per G.988 - Table 9.3.11-1 - Forward operation attribute values
+        self.send_create_vlan_tagging_filter_data(0x2102, cvid, 0x10)
         yield self.wait_for_response()
 
 
