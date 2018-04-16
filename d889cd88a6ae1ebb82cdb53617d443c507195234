@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "25ac0ca1_31fbaac7",
+        "filename": "voltha/extensions/omci/omci_me.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 656,
+      "author": {
+        "id": 1000115
+      },
+      "writtenOn": "2018-04-16T04:52:48Z",
+      "side": 1,
+      "message": "should be 0..65535",
+      "revId": "d889cd88a6ae1ebb82cdb53617d443c507195234",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
