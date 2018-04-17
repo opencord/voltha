@@ -28,7 +28,7 @@ from voltha.protos.common_pb2 import OperationResp
 from voltha.protos.voltha_pb2 import \
     add_VolthaGlobalServiceServicer_to_server, VolthaLocalServiceStub, \
     VolthaGlobalServiceServicer, Voltha, VolthaInstances, VolthaInstance, \
-    LogicalDevice, Ports, Flows, FlowGroups, Device, SelfTestResponse, \
+    LogicalDevice, LogicalPort, Ports, Flows, FlowGroups, Device, SelfTestResponse, \
     VolthaGlobalServiceStub, Devices, DeviceType, DeviceTypes, DeviceGroup, \
     AlarmFilter, AlarmFilters
 from voltha.registry import registry
@@ -207,6 +207,26 @@ class GlobalHandler(VolthaGlobalServiceServicer):
 
     @twisted_async
     @inlineCallbacks
+    def GetLogicalDevicePort(self, request, context):
+        log.info('grpc-request', request=request)
+
+        response = yield self.dispatcher.dispatch('GetLogicalDevicePort',
+                                                  request,
+                                                  context,
+                                                  id=request.id)
+        log.debug('grpc-response', response=response)
+        if isinstance(response, DispatchError):
+            log.warn('grpc-error-response', error=response.error_code)
+            context.set_details(
+                'Logical port \'{}\' on device \'{}\' error'.format(request.port_id, request.id))
+            context.set_code(response.error_code)
+            returnValue(LogicalPort())
+        else:
+            log.debug('grpc-success-response', response=response)
+            returnValue(response)
+
+    @twisted_async
+    @inlineCallbacks
     def ListLogicalDeviceFlows(self, request, context):
         log.info('grpc-request', request=request)
         response = yield self.dispatcher.dispatch('ListLogicalDeviceFlows',
@@ -220,6 +240,44 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                 'Logical device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(Flows())
+        else:
+            log.debug('grpc-success-response', response=response)
+            returnValue(response)
+
+    @twisted_async
+    @inlineCallbacks
+    def EnableLogicalDevicePort(self, request, context):
+        log.info('grpc-request', request=request)
+        response = yield self.dispatcher.dispatch('EnableLogicalDevicePort',
+                                                  request,
+                                                  context,
+                                                  id=request.id)
+        log.debug('grpc-response', response=response)
+        if isinstance(response, DispatchError):
+            log.warn('grpc-error-response', error=response.error_code)
+            context.set_details(
+                'Logical device \'{}\' error'.format(request.id))
+            context.set_code(response.error_code)
+            returnValue(Empty())
+        else:
+            log.debug('grpc-success-response', response=response)
+            returnValue(response)
+
+    @twisted_async
+    @inlineCallbacks
+    def DisableLogicalDevicePort(self, request, context):
+        log.info('grpc-request', request=request)
+        response = yield self.dispatcher.dispatch('DisableLogicalDevicePort',
+                                                  request,
+                                                  context,
+                                                  id=request.id)
+        log.debug('grpc-response', response=response)
+        if isinstance(response, DispatchError):
+            log.warn('grpc-error-response', error=response.error_code)
+            context.set_details(
+                'Logical device \'{}\' error'.format(request.id))
+            context.set_code(response.error_code)
+            returnValue(Empty())
         else:
             log.debug('grpc-success-response', response=response)
             returnValue(response)
