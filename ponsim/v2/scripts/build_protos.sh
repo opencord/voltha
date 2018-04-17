@@ -29,6 +29,7 @@ export IETF_PB="$SRC_DIR/ietf_interfaces.proto"
 export OF_PB="$SRC_DIR/openflow_13.proto"
 export BAL_PB="$SRC_DIR/bal*.proto"
 export BBF_PB="$SRC_DIR/bbf*.proto"
+export OMCI_PB="$SRC_DIR/omci*.proto"
 
 export PB_VARS="\
     VOLTHA_PB \
@@ -38,7 +39,8 @@ export PB_VARS="\
     IETF_PB \
     OF_PB \
     BAL_PB \
-    BBF_PB"
+    BBF_PB \
+    OMCI_PB"
 
 for pb_var in $PB_VARS
 do

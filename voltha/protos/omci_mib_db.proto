@@ -15,7 +15,7 @@
 //
 syntax = "proto3";
 
-option go_package = "github.com/opencord/voltha/protos/go/voltha";
+option go_package = "github.com/opencord/voltha/protos/go/omci";
 
 package omci;
 
