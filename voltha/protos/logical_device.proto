@@ -8,6 +8,13 @@ import "meta.proto";
 import "google/api/annotations.proto";
 import "openflow_13.proto";
 
+message LogicalPortId {
+    // unique id of logical device
+    string id = 1;
+
+    // id of the port on the logical device
+    string port_id = 2;
+}
 
 message LogicalPort {
     string id = 1;

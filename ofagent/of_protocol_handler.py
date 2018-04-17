@@ -178,8 +178,20 @@ class OpenFlowProtocolHandler(object):
         # https://jira.opencord.org/browse/CORD-826
         pass
 
+    @inlineCallbacks
     def handle_port_mod_request(self, req):
-        raise NotImplementedError()
+        if self.role == ofp.OFPCR_ROLE_MASTER or self.role == ofp.OFPCR_ROLE_EQUAL:
+            port = yield self.rpc.get_port(self.device_id, str(req.port_no))
+
+            if port.ofp_port.config & ofp.OFPPC_PORT_DOWN != \
+                    req.config & ofp.OFPPC_PORT_DOWN:
+                if req.config & ofp.OFPPC_PORT_DOWN:
+                    self.rpc.disable_port(self.device_id, port.id)
+                else:
+                    self.rpc.enable_port(self.device_id, port.id)
+
+        elif self.role == ofp.OFPCR_ROLE_SLAVE:
+            self.cxn.send(ofp.message.bad_request_error_msg(code=ofp.OFPBRC_IS_SLAVE))
 
     def handle_table_mod_request(self, req):
         raise NotImplementedError()
