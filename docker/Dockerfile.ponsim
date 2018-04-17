@@ -1,7 +1,7 @@
 # -------------
 # Build stage
 
-FROM golang:alpine AS build-env
+FROM golang:1.9.2-alpine AS build-env
 
 # Install required packages
 RUN apk add --no-cache wget git libpcap-dev make build-base protobuf protobuf-dev
