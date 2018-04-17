@@ -53,7 +53,7 @@ message DeviceGroups {
 
 message AlarmFilterRuleKey {
     option (yang_child_rule) = MOVE_TO_PARENT_LEVEL;
-    
+
     enum AlarmFilterRuleKey {
         id = 0;
         type = 1;
@@ -290,6 +290,28 @@ service VolthaGlobalService {
         option (voltha.yang_xml_tag).xml_tag = 'ports';
     }
 
+    // Gets a logical device port
+    rpc GetLogicalDevicePort(LogicalPortId) returns(LogicalPort) {
+        option (google.api.http) = {
+            get: "/api/v1/logical_devices/{id}/ports/{port_id}"
+        };
+        option (voltha.yang_xml_tag).xml_tag = 'port';
+    }
+
+    // Enables a logical device port
+    rpc EnableLogicalDevicePort(LogicalPortId) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/logical_devices/{id}/ports/{port_id}/enable"
+        };
+    }
+
+    // Disables a logical device port
+    rpc DisableLogicalDevicePort(LogicalPortId) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/logical_devices/{id}/ports/{port_id}/disable"
+        };
+    }
+
     // List all flows of a logical device
     rpc ListLogicalDeviceFlows(ID) returns(openflow_13.Flows) {
         option (google.api.http) = {
@@ -350,8 +372,8 @@ service VolthaGlobalService {
     }
 
     // Enable a device.  If the device was in pre-provisioned state then it
-    // will tansition to ENABLED state.  If it was is DISABLED state then it
-    // will tansition to ENABLED state as well.
+    // will transition to ENABLED state.  If it was is DISABLED state then it
+    // will transition to ENABLED state as well.
     rpc EnableDevice(ID) returns(google.protobuf.Empty) {
         option (google.api.http) = {
             post: "/api/v1/devices/{id}/enable"
@@ -981,6 +1003,28 @@ service VolthaLocalService {
             get: "/api/v1/local/logical_devices/{id}/ports"
         };
         option (voltha.yang_xml_tag).xml_tag = 'ports';
+    }
+
+    // Gets a logical device port
+    rpc GetLogicalDevicePort(LogicalPortId) returns(LogicalPort) {
+        option (google.api.http) = {
+            get: "/api/v1/logical_devices/{id}/ports/{port_id}"
+        };
+        option (voltha.yang_xml_tag).xml_tag = 'port';
+    }
+
+    // Enables a logical device port
+    rpc EnableLogicalDevicePort(LogicalPortId) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/logical_devices/{id}/ports/{port_id}/enable"
+        };
+    }
+
+    // Disables a logical device port
+    rpc DisableLogicalDevicePort(LogicalPortId) returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/logical_devices/{id}/ports/{port_id}/disable"
+        };
     }
 
     // List all flows of a logical device

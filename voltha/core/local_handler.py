@@ -29,7 +29,7 @@ from voltha.protos.openflow_13_pb2 import PacketIn, Flows, FlowGroups, \
 from voltha.protos.voltha_pb2 import \
     add_VolthaLocalServiceServicer_to_server, VolthaLocalServiceServicer, \
     VolthaInstance, Adapters, LogicalDevices, LogicalDevice, Ports, \
-    LogicalPorts, Devices, Device, DeviceType, \
+    LogicalPort, LogicalPorts, Devices, Device, DeviceType, \
     DeviceTypes, DeviceGroups, DeviceGroup, AdminState, OperStatus, ChangeEvent, \
     AlarmFilter, AlarmFilters, SelfTestResponse, OfAgentSubscriber
 from voltha.protos.device_pb2 import PmConfigs, Images, ImageDownload, ImageDownloads
@@ -178,6 +178,25 @@ class LocalHandler(VolthaLocalServiceServicer):
             return LogicalPorts()
 
     @twisted_async
+    def GetLogicalDevicePort(self, request, context):
+        log.info('grpc-request', requst=request)
+
+        if '/' in request.id:
+            context.set_details(
+                'Malformed logical device id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return LogicalPort()
+
+        try:
+            return self.root.get(
+                '/logical_devices/{}/ports/{}'.format(request.id, request.port_id))
+        except KeyError:
+            context.set_details(
+                'Logical port \'{}\' not found on device \'{}\''.format(request.port_id, request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return LogicalPort()
+
+    @twisted_async
     def ListLogicalDeviceFlows(self, request, context):
         log.info('grpc-request', request=request)
 
@@ -196,6 +215,46 @@ class LocalHandler(VolthaLocalServiceServicer):
                 'Logical device \'{}\' not found'.format(request.id))
             context.set_code(StatusCode.NOT_FOUND)
             return Flows()
+
+    @twisted_async
+    def EnableLogicalDevicePort(self, request, context):
+        log.info('grpc-request', request=request)
+
+        if '/' in request.id:
+            context.set_details(
+                'Malformed logical device id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return Empty()
+
+        try:
+            agent = self.core.get_logical_device_agent(request.id)
+            agent.port_enable(request.port_id)
+            return Empty()
+        except KeyError:
+            context.set_details(
+                'Logical device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return Empty()
+
+    @twisted_async
+    def DisableLogicalDevicePort(self, request, context):
+        log.info('grpc-request', request=request)
+
+        if '/' in request.id:
+            context.set_details(
+                'Malformed logical device id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return Empty()
+
+        try:
+            agent = self.core.get_logical_device_agent(request.id)
+            agent.port_disable(request.port_id)
+            return Empty()
+        except KeyError:
+            context.set_details(
+                'Logical device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return Empty()
 
     @twisted_async
     def UpdateLogicalDeviceFlowTable(self, request, context):

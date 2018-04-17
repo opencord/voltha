@@ -469,6 +469,22 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         if changed:
             self.groups_proxy.update('/', FlowGroups(items=groups.values()))
 
+    def port_enable(self, port_id):
+        self.log.info("port-enable", port_id=port_id)
+
+        proxy = self.port_proxy[port_id]
+        port = proxy.get('/')
+        port.ofp_port.config = port.ofp_port.config & ~ofp.OFPPC_PORT_DOWN
+        proxy.update('/', port)
+
+    def port_disable(self, port_id):
+        self.log.info("port-disable", port_id=port_id)
+
+        proxy = self.port_proxy[port_id]
+        port = proxy.get('/')
+        port.ofp_port.config = port.ofp_port.config & ~ofp.OFPPC_PORT_DOWN | ofp.OFPPC_PORT_DOWN
+        proxy.update('/', port)
+
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ PACKET_OUT ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def packet_out(self, ofp_packet_out):
