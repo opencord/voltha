@@ -39,7 +39,7 @@ from voltha.protos.common_pb2 import LogLevel, OperStatus, ConnectStatus, \
     AdminState
 from voltha.protos.logical_device_pb2 import LogicalDevice, LogicalPort
 from voltha.protos.openflow_13_pb2 import ofp_desc, ofp_port, OFPPF_1GB_FD, \
-    OFPPF_FIBER, OFPPS_LIVE, ofp_switch_features, OFPC_PORT_STATS, \
+    OFPPC_PORT_DOWN, OFPPF_FIBER, OFPPS_LIVE, ofp_switch_features, OFPC_PORT_STATS, \
     OFPC_GROUP_STATS, OFPC_TABLE_STATS, OFPC_FLOW_STATS
 
 log = structlog.get_logger()

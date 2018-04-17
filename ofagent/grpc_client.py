@@ -28,7 +28,7 @@ from twisted.internet import threads
 from twisted.internet.defer import inlineCallbacks, returnValue, DeferredQueue
 
 from protos.voltha_pb2 import ID, VolthaLocalServiceStub, FlowTableUpdate, \
-    FlowGroupTableUpdate, PacketOut
+    FlowGroupTableUpdate, PacketOut, LogicalPortId, LogicalPortUpdate
 from google.protobuf import empty_pb2
 
 
@@ -148,11 +148,28 @@ class GrpcClient(object):
         self.packet_out_queue.put(packet_out)
 
     @inlineCallbacks
+    def get_port(self, device_id, port_id):
+        req = LogicalPortId(id=device_id, port_id=port_id)
+        res = yield threads.deferToThread(
+            self.local_stub.GetLogicalDevicePort, req)
+        returnValue(res)
+
+    @inlineCallbacks
     def get_port_list(self, device_id):
         req = ID(id=device_id)
         res = yield threads.deferToThread(
             self.local_stub.ListLogicalDevicePorts, req)
         returnValue(res.items)
+
+    @inlineCallbacks
+    def update_port(self, device_id, logical_port):
+        req = LogicalPortUpdate(
+            id=device_id,
+            port=logical_port
+        )
+        res = yield threads.deferToThread(
+            self.local_stub.UpdateLogicalDevicePort, req)
+        returnValue(res)
 
     @inlineCallbacks
     def get_device_info(self, device_id):
