@@ -16,6 +16,24 @@
       "revId": "d889cd88a6ae1ebb82cdb53617d443c507195234",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "c3ab055b_92326405",
+        "filename": "voltha/extensions/omci/omci_me.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 656,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-04-17T14:37:04Z",
+      "side": 1,
+      "message": "Will fix and submit patch after TST today",
+      "parentUuid": "25ac0ca1_31fbaac7",
+      "revId": "d889cd88a6ae1ebb82cdb53617d443c507195234",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
