@@ -64,7 +64,7 @@ services:
                 max-size: "10m"
                 max-file: 3
         environment:
-            KAFKA_ADVERTISED_PORT: 9092
+            KAFKA_LISTENERS: PLAINTEXT://:9092
             KAFKA_ZOOKEEPER_CONNECT: zk1:2181,zk2:2181,zk3:2181
             KAFKA_HEAP_OPTS: -Xmx256M -Xms128M
         volumes:
@@ -83,4 +83,3 @@ networks:
     voltha-net:
         external:
             name: voltha_net
-
