@@ -14,8 +14,8 @@
 #
 #
 # SWARM_MANAGER_COUNT - The number of managers in the swarm cluster. This is
-#               used to limit the number of instances of some of the 
-#               service instances for smaller clusters. 
+#               used to limit the number of instances of some of the
+#               service instances for smaller clusters.
 #               [ NOTE - currently this parameter is handled via a Jinga2
 #                 templating capability, because as of 17.09.0-ce Docker
 #                 cannot use and environment variable for the `replicas`
@@ -32,7 +32,7 @@
 #                 directories should be created. Defaults to `/var/local`.
 # VOLTHA_LOGS   - The location into which `fluentd` should writes logs.
 #                 Defaults to `/var/log`.
-# RADIUS_ROOT   - The location in which the `data/clients.conf` and 
+# RADIUS_ROOT   - The location in which the `data/clients.conf` and
 #                 `data/users` configuration files can be found. Defaults
 #                 to `/var/local`.
 # DOCKER_HOST_IP -
@@ -96,7 +96,7 @@ services:
         max-size: "10m"
         max-file: 3
     environment:
-      KAFKA_ADVERTISED_PORT: 9092
+      KAFKA_LISTENERS: PLAINTEXT://:9092
       KAFKA_ZOOKEEPER_CONNECT: zk1:2181,zk2:2181,zk3:2181
       KAFKA_HEAP_OPTS: -Xmx256M -Xms128M
     volumes:
@@ -223,8 +223,8 @@ services:
     ports:
       - "24224"
 
-  # Free RADIUS can be used to test VOLTHA's authentication 
-  # sequence, i.e., EAPOL from a device behind an OLT to 
+  # Free RADIUS can be used to test VOLTHA's authentication
+  # sequence, i.e., EAPOL from a device behind an OLT to
   # RADIUS authentication on the back end systems. By default
   # no instances of Free RADIUS are deployed.
   freeradius:
@@ -240,8 +240,8 @@ services:
       - "1812:1812/udp"
       - "1813:1813"
       - "18120:18120"
-  
-{%- if RADIUS_ROOT is defined and RADIUS_ROOT %}  
+
+{%- if RADIUS_ROOT is defined and RADIUS_ROOT %}
     # CONFIG: When deploying a Free RADIUS instance client and user
     #      information will need to be configured for the service to
     #      operate correctly.
@@ -255,7 +255,7 @@ services:
 
   # The cluster manager container calculates and servers ONOS cluster
   # meta data via HTTP so that ONOS instances can form an HA cluster.
-  # The cluster manager must run on a manager node so that it can 
+  # The cluster manager must run on a manager node so that it can
   # retrieve service information from manager nodes
   onos_cluster_manager:
     image: "${REGISTRY}${REPOSITORY}voltha-unum:${TAG:-latest}"
@@ -415,7 +415,7 @@ services:
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock
 
-  # The CLI container provides an CLI to the VOLTHA capabilitiy 
+  # The CLI container provides an CLI to the VOLTHA capabilitiy
   # that can be accessed via SSH.
   cli:
     image: "${REGISTRY}${REPOSITORY}voltha-cli${CUSTOM_CLI_LABEL}:${TAG:-latest}"
@@ -467,7 +467,7 @@ services:
 
   # The tools container provides a bash command shell to which
   # an operator can SSH that has the same network connectivity
-  # as other VOLTHA containers and is thus a convenient 
+  # as other VOLTHA containers and is thus a convenient
   # troubleshooting tool
   tools:
     image: "${REGISTRY}${REPOSITORY}voltha-tools:${TAG:-latest}"
