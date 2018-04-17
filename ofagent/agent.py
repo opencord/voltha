@@ -18,17 +18,13 @@ import sys
 
 import structlog
 import os.path
-from twisted.internet import protocol
-from twisted.internet import reactor
-from twisted.internet import reactor, ssl
-from twisted.internet import reactor
+from twisted.internet import protocol, reactor, ssl
 from twisted.internet.defer import Deferred, inlineCallbacks
 
 import loxi.of13 as of13
 from common.utils.asleep import asleep
 from of_connection import OpenFlowConnection
 from of_protocol_handler import OpenFlowProtocolHandler
-# from ofagent.protos.openflow_13_pb2 import ChangeEvent
 
 log = structlog.get_logger()
 
@@ -208,4 +204,3 @@ if __name__ == '__main__':
 
     reactor.addSystemEventTrigger('before', 'shutdown', shutdown)
     reactor.run()
-

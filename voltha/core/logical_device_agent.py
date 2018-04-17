@@ -1,4 +1,4 @@
-#
+
 # Copyright 2017 the original author or authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -464,6 +464,14 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
 
         if changed:
             self.groups_proxy.update('/', FlowGroups(items=groups.values()))
+
+    def port_update(self, port):
+        self.log.info('port-update', port=port)
+
+        assert isinstance(port, LogicalPort)
+
+        proxy = self.port_proxy[port.id]
+        proxy.update('/', port)
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ PACKET_OUT ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
