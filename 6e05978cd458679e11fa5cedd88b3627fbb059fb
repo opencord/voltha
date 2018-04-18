@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "33c27078_aadc0a26",
+        "filename": "compose/docker-compose-auth-test.yml",
+        "patchSetId": 2
+      },
+      "lineNbr": 6,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2018-04-18T21:39:42Z",
+      "side": 1,
+      "message": "why remove the ability to override the tag?",
+      "range": {
+        "startLine": 6,
+        "startChar": 39,
+        "endLine": 6,
+        "endChar": 45
+      },
+      "revId": "6e05978cd458679e11fa5cedd88b3627fbb059fb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
