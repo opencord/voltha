@@ -84,18 +84,21 @@ class OpenoltDevice(object):
         device.oper_status = OperStatus.ACTIVATING
         self.adapter_agent.update_device(device)
 
+
         # Initialize gRPC
         self.channel = grpc.insecure_channel(self.host_and_port)
-        self.stub = openolt_pb2_grpc.OpenoltStub(self.channel)
+        self.channel_ready_future = grpc.channel_ready_future(self.channel)
 
         # Start indications thread
-        self.indications_thread = threading.Thread(target=self.process_indication)
+        self.indications_thread = threading.Thread(target=self.process_indications)
         self.indications_thread.daemon = True
         self.indications_thread.start()
 
-    def process_indication(self):
+    def process_indications(self):
+        self.channel_ready_future.result() # blocks till gRPC connection is complete
+        self.stub = openolt_pb2_grpc.OpenoltStub(self.channel)
         self.indications = self.stub.EnableIndication(openolt_pb2.Empty())
-        while 1:
+        while True:
             # get the next indication from olt
             ind = next(self.indications)
             self.log.debug("rx indication", indication=ind)
