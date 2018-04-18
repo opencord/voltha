@@ -247,11 +247,6 @@ class AdtranOnuHandler(AdtranXPON):
         device.hardware_version = 'n/a'
         device.firmware_version = 'n/a'
         device.reason = ''
-
-        # TODO: Support more versions as needed
-        images = Image(version='NOT AVAILABLE')
-        device.images.image.extend([images])
-
         device.connect_status = ConnectStatus.UNKNOWN
 
         ############################################################################
@@ -745,11 +740,18 @@ class AdtranOnuHandler(AdtranXPON):
     def delete(self):
         self.log.info('deleting', device_id=self.device_id)
 
+        for uni in self._unis.itervalues():
+            uni.stop()
+            uni.delete()
+
+        self._pon.stop()
+        self._pon.delete()
+
         # OpenOMCI cleanup
         if self._omci_agent is not None:
             self._omci_agent.remove_device(self.device_id, cleanup=True)
-            #self._onu_omci_device = None
             self._omci_agent = None
+
         #
         # handling needed here
         # self.enabled = False
