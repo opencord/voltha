@@ -3,20 +3,24 @@ version: '2'
 services:
 
  freeradius:
-   image: "${REGISTRY}marcelmaatkamp/freeradius:${RADIUS_TAG:-latest}"
+  image: "${REGISTRY}tpdock/freeradius:latest"
   ports:
    - "1812:1812/udp"
    - "1813:1813"
    - "18120:18120"
+  environment:
+   RADIUS_LISTEN_IP: '*'
+   USERS_FILE: '/etc/raddb/users'
+   RADIUS_CLIENTS : 'SECRET@172.25.0.200'
   volumes:
-   - "./data/clients.conf:/etc/raddb/clients.conf"
    - "./data/users:/etc/raddb/users"
   networks:
    authnet:
     ipv4_address: 172.25.0.100
 
+
  onos:
-  image: "${REGISTRY}${REPOSITORY}voltha-onos:${TAG:-latest}"
+  image: "${REGISTRY}${REPOSITORY}voltha-onos:latest"
   ports:
    - "8101:8101" # ssh
    - "6653:6653" # OF
