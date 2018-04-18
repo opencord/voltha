@@ -17,7 +17,7 @@ from twisted.internet.defer import inlineCallbacks, returnValue, TimeoutError
 from twisted.internet import reactor
 
 from voltha.protos.common_pb2 import AdminState
-from voltha.protos.device_pb2 import Port
+from voltha.protos.device_pb2 import Port, Image
 
 from voltha.protos.common_pb2 import OperStatus, ConnectStatus
 
@@ -122,8 +122,8 @@ class PonPort(object):
     def delete(self):
         self.enabled = False
         self._valid = False
+        self._onu_omci_device = None
         self._handler = None
-        # TODO: anything else
 
     @property
     def enabled(self):
@@ -215,37 +215,52 @@ class PonPort(object):
                                                             257, 'number_of_ports') or 1
                 assert num_ports == 1, 'Invalid number of ports: {}'.format(num_ports)
 
-                mac_address = omci.query_mib_single_attribute(IpHostConfigData.class_id,
-                                                              0, 'mac_address') or 'unknown'
-                device.mac_address = str(mac_address)
+                host_info = omci.query_mib(IpHostConfigData.class_id)
+                mgmt_mac_address = next((host_info[inst].get('attributes').get('mac_address')
+                                         for inst in host_info
+                                         if isinstance(inst, int)), 'unknown')
+                device.mac_address = str(mgmt_mac_address)
 
                 ont2_attributes = omci.query_mib(Ont2G.class_id, 0, ['equipment_id',
                                                                      'omcc_version',
                                                                      'vendor_product_code'])
                 equipment_id = ont2_attributes.get('equipment_id') or " unknown    unknown "
-                eqptId_bootVersion = str(equipment_id)
+                eqptId_bootVersion = str(equipment_id).rstrip('\0')
                 eqptId = eqptId_bootVersion[0:10]          # ie) BVMDZ10DRA
                 bootVersion = eqptId_bootVersion[12:20]    # ie) CML.D55~
 
-                omcc_version = str(ont2_attributes.get('omcc_version', 'unknown'))
-                vendorProductCode = str(ont2_attributes.get('vendor_product_code', 'unknown'))
+                omcc_version = int(ont2_attributes.get('omcc_version', 0))
+                vendorProductCode = str(ont2_attributes.get('vendor_product_code', 'unknown')).rstrip('\0')
 
-                version = omci.query_mib_single_attribute(OntG.class_id, 0, 'version') or 'unknown'
-                device.model = str(version)
-                # # TODO: Combine ONTG calls into a single call with multiple attributes
-                # # TODO: Look into ONTG and ONT2G to see if we can get other items of interest
-                # #       such as max tconts, max gem ports, and so on. Make use of them
+                images = [Image(name='boot-code',
+                                version=bootVersion.rstrip('\0'),
+                                is_active=False,
+                                is_committed=True,
+                                is_valid=True,
+                                install_datetime='Not Available',
+                                hash='Not Available')]
 
-                sw_version = omci.query_mib_single_attribute(SoftwareImage.class_id, 0, 'version') or 'unknown'
-                device.firmware_version = str(sw_version)
-                # # is_committed = data["is_committed"]
-                # # is_active = data["is_active"]
-                # # is_valid = data["is_valid"]
-                # # device.hardware_version = 'TODO: to be filled'
-                # # TODO: Support more versions as needed
-                # # images = Image(version=results.get('software_version', 'unknown'))
-                # # device.images.image.extend([images])
+                model = omci.query_mib_single_attribute(OntG.class_id, 0, 'version') or 'unknown'
+                device.model = str(model).rstrip('\0')
 
+                sw_info = {k: v.get('attributes') for k, v in omci.query_mib(SoftwareImage.class_id).items()
+                           if isinstance(k, int)}
+
+                for info in sw_info.itervalues():
+                    is_active = info.get('is_active', False)
+                    if is_active:
+                        device.firmware_version = str(info.get('version', 'Not Available').rstrip('\0'))
+
+                    images.append(Image(name='running-revision' if is_active else 'candidate-revision',
+                                        version=str(info.get('version', 'Not Available').rstrip('\0')),
+                                        is_active=is_active,
+                                        is_committed=info.get('is_committed', False),
+                                        is_valid=info.get('is_valid', False),
+                                        install_datetime='Not Available',
+                                        hash=str(info.get('image_hash', 'Not Available').rstrip('\0'))))
+                device.images.image.extend(images)
+
+                # Save our device information
                 self._handler.adapter_agent.update_device(device)
                 self._dev_info_loaded = True
 
@@ -788,6 +803,7 @@ class PonPort(object):
         def onu_is_reachable(_topic, msg):
             """
             Reach-ability change event
+            :param _topic: (str) subscription topic, not used
             :param msg: (dict) 'connected' key holds True if reachable
             """
             if self._connectivity_subscription is not None:
@@ -804,6 +820,7 @@ class PonPort(object):
                         self._connected = True
 
                         device = self._handler.adapter_agent.get_device(self._handler.device_id)
+                        device.oper_status = OperStatus.ACTIVE
                         device.connect_status = ConnectStatus.REACHABLE
                         self._handler.adapter_agent.update_device(device)
 
