@@ -113,9 +113,9 @@ the simulator in a non-containerized way, you will need to build the protobuf fi
 mkdir -p ponsim/v2/protos
 cp voltha/protos/*.proto ponsim/v2/protos
 cp voltha/adapters/asfvolt16_olt/protos/*.proto ponsim/v2/protos
-cp ponsim/v2/misc/protos/*.proto ponsim/v2/protos
+cp ponsim/v2/protos/*.proto ponsim/v2/protos
 
-sh ponsim/v2/misc/scripts/build_protos.sh ponsim/v2/protos
+sh ponsim/v2/scripts/build_protos.sh ponsim/v2/protos
 
 ```
 
