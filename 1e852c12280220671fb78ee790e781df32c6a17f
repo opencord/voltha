@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6127936a_914d34d9",
+        "filename": "install/ansible/roles/voltha-k8s/tasks/deploy.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 75,
+      "author": {
+        "id": 1000196
+      },
+      "writtenOn": "2018-04-19T18:26:11Z",
+      "side": 1,
+      "message": "Is consul being replaced by etcd providing the user with no way to choose between the two?",
+      "revId": "1e852c12280220671fb78ee790e781df32c6a17f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "11a424c5_ffcea67d",
+        "filename": "install/containers.cfg.k8s",
+        "patchSetId": 1
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1000196
+      },
+      "writtenOn": "2018-04-19T18:26:11Z",
+      "side": 1,
+      "message": "Why are there 2 versions of the etcd container?",
+      "revId": "1e852c12280220671fb78ee790e781df32c6a17f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
