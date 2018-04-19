@@ -18,9 +18,9 @@
   command: kubectl delete --ignore-not-found=true -f {{ target_voltha_home }}/k8s/vcli.yml
   run_once: true
 
-# Envoy (for consul)
-- name: "VOLT-HA Teardown | Stop Envoy (for consul)"
-  command: kubectl delete --ignore-not-found=true -f {{ target_voltha_home }}/k8s/envoy_for_consul.yml
+# Envoy (for etcd)
+- name: "VOLT-HA Teardown | Stop Envoy (for etcd)"
+  command: kubectl delete --ignore-not-found=true -f {{ target_voltha_home }}/k8s/envoy_for_etcd.yml
   run_once: true
 
 # OFagent
@@ -28,14 +28,29 @@
   command: kubectl delete --ignore-not-found=true -f {{ target_voltha_home }}/k8s/ofagent.yml
   run_once: true
 
-# Voltha Core (for consul)
-- name: "VOLT-HA Teardown | Stop VOLT-HA core (for consul)"
-  command: kubectl delete --ignore-not-found=true -f {{ target_voltha_home }}/k8s/vcore_for_consul.yml
+# Voltha Core (for etcd)
+- name: "VOLT-HA Teardown | Stop VOLT-HA core (for etcd)"
+  command: kubectl delete --ignore-not-found=true -f {{ target_voltha_home }}/k8s/vcore_for_etcd.yml
   run_once: true
 
-# Consul
-- name: "VOLT-HA Teardown | Stop consul"
-  command: kubectl delete --ignore-not-found=true -f {{ target_voltha_home }}/k8s/consul.yml
+# Etcd cluster
+- name: "VOLT-HA Teardown | Stop etcd cluster"
+  command: kubectl delete --ignore-not-found=true -f {{ target_voltha_home }}/k8s/operator/etcd/etcd_cluster.yml
+  run_once: true
+
+# Etcd operator
+- name: "VOLT-HA Teardown | Stop etcd operator"
+  command: kubectl delete --ignore-not-found=true -f {{ target_voltha_home }}/k8s/operator/etcd/operator.yml
+  run_once: true
+
+# Etcd cluster role binding
+- name: "VOLT-HA Teardown | Stop etcd cluster role binding"
+  command: kubectl delete --ignore-not-found=true -f {{ target_voltha_home }}/k8s/operator/etcd/cluster_role_binding.yml
+  run_once: true
+
+# Etcd cluster role
+- name: "VOLT-HA Teardown | Stop etcd cluster role"
+  command: kubectl delete --ignore-not-found=true -f {{ target_voltha_home }}/k8s/operator/etcd/cluster_role.yml
   run_once: true
 
 # Fluentd

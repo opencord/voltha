@@ -336,8 +336,7 @@ ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem vinst
 
 if [ "$useKubernetes" == "yes" ]; then
        echo -e "${lBlue}Cloning ${lCyan}Kubespray${lBlue} repository${NC}"
-       ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem vinstall@$ipAddr "git clone --branch v2.4.0 https://github.com/kubernetes-incubator/kubespray.git /home/vinstall/kubespray"
-       #ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem vinstall@$ipAddr "git clone https://github.com/kubernetes-incubator/kubespray.git /home/vinstall/kubespray"
+       ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem vinstall@$ipAddr "git clone --branch v2.5.0 https://github.com/kubernetes-incubator/kubespray.git /home/vinstall/kubespray"
        ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i key.pem vinstall@$ipAddr "sudo chown -R vinstall.vinstall /home/vinstall/kubespray"
 fi
 
