@@ -361,29 +361,28 @@ class RubyAdapterHandler(object):
                 log.debug('uplink-bandwidth-port-match')
                 for action in fd.get_actions(flow):
                     if action.type == fd.SET_FIELD:
-                        if flow.table_id == 1:
-                            vlan = action.set_field.field.ofb_field.vlan_vid & 0xfff 
-                            if vlan == svlan_id:
-                                bandwidth = fd.get_metadata(flow)
-                                if bandwidth:
-                                    log.debug('Bandwidth found:{}'.format(bandwidth))
-        return bandwidth
-
-    def get_downlink_bandwidth(self, cvlan_id, svlan_id, port, flows):
-        bandwidth = None
-        for flow in flows:
-            _in_port = fd.get_in_port(flow)
-            if _in_port == PMC_UPSTREAM_PORT:
-                log.debug('downlink-bandwidth-port-match')
-                if flow.table_id == 1:
-                    metadata = fd.get_metadata(flow)
-                    if metadata:
-                        if metadata == port:
-                            vlan = self.get_vlan(flow) & 0xfff    
-                            if vlan == cvlan_id:
-                                bandwidth = fd.get_metadata(flow)                        
+                        vlan = action.set_field.field.ofb_field.vlan_vid & 0xfff
+                        if vlan == svlan_id:
+                            bandwidth = fd.get_metadata(flow)
+                            if bandwidth:
                                 log.debug('Bandwidth found:{}'.format(bandwidth))
         return bandwidth
+
+    # def get_downlink_bandwidth(self, cvlan_id, svlan_id, port, flows):
+    #     bandwidth = None
+    #     for flow in flows:
+    #         _in_port = fd.get_in_port(flow)
+    #         if _in_port == PMC_UPSTREAM_PORT:
+    #             log.debug('downlink-bandwidth-port-match')
+    #             if flow.table_id == 1:
+    #                 metadata = fd.get_metadata(flow)
+    #                 if metadata:
+    #                     if metadata == port:
+    #                         vlan = self.get_vlan(flow) & 0xfff
+    #                         if vlan == cvlan_id:
+    #                             bandwidth = fd.get_metadata(flow)                        
+    #                             log.debug('Bandwidth found:{}'.format(bandwidth))
+    #     return bandwidth
     
     def update_flow_table(self, device, flows):
         try:
@@ -415,8 +414,9 @@ class RubyAdapterHandler(object):
                     
                     # Get bandwidths...
 
-                    uplink_bandwidth = self.get_uplink_bandwidth(cvlan_id, svlan_id, port, flows)
-                    downlink_bandwidth = self.get_downlink_bandwidth(cvlan_id, svlan_id, port, flows)
+                    uplink_bandwidth = self.get_uplink_bandwidth(cvlan_id, svlan_id, port, flows.items)
+                    downlink_bandwidth = uplink_bandwidth
+                    # downlink_bandwidth = self.get_downlink_bandwidth(cvlan_id, svlan_id, port, flows.items)
                     
                     onu_id = self.ports[port]['onu_id']
                     onu_session_id = self.ports[port]['onu_session_id']
