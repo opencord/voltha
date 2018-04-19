@@ -196,7 +196,9 @@ class DeviceManager(object):
                 onu_session_id=onu_session_id
             ))
             if child_device:
-                self.adapter_agent.update_child_device_state(child_device, admin_state=AdminState.DISABLED)
+                # self.adapter_agent.update_child_device_state(child_device, admin_state=AdminState.DISABLED)
+                child_device.admin_state=AdminState.DISABLED
+                self.adapter_agent.update_device(child_device)
         except KeyError:
             log.debug("ONU {} cannot be deactivated".format(onu_id))
 
