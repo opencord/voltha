@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "012229bf_251919bd",
+        "filename": "ofagent/of_protocol_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 182,
+      "author": {
+        "id": 1000005
+      },
+      "writtenOn": "2018-04-19T21:47:06Z",
+      "side": 1,
+      "message": "I don\u0027t know specifically what actions need to be done by the adapters - I expect this will be specific to the adapters and to the type of port that is being referenced. We\u0027ll need to work through the logic to take down ONU ports in the adapter layer separately - I view this task as just implementing the port_mod handling in the northbound of VOLTHA so that the controller can change the state of the logical device ports.",
+      "parentUuid": "bb8ffd86_d7d29856",
+      "revId": "e21d9e2dbf97eaece7698ea9eab7cc5069804bfa",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "21d98ae7_90585792",
         "filename": "voltha/core/logical_device_agent.py",
         "patchSetId": 3
@@ -30,6 +48,24 @@
       "writtenOn": "2018-04-19T14:15:19Z",
       "side": 1,
       "message": "Should there be a check to ensure only the OF port status is being changed?",
+      "revId": "e21d9e2dbf97eaece7698ea9eab7cc5069804bfa",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "eb099375_c7601115",
+        "filename": "voltha/core/logical_device_agent.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 469,
+      "author": {
+        "id": 1000005
+      },
+      "writtenOn": "2018-04-19T21:47:06Z",
+      "side": 1,
+      "message": "Possibly - not sure how it is working in VOLTHA - do we usually allow modification of objects like devices and ports from the northbound interfaces? Or should devices and ports mostly be modified by the adapters only? If we just want to modify the config state of the port then the API should probably just expose that, rather than looking like it allows the entire port to be modified. What are you thoughts on this?",
+      "parentUuid": "21d98ae7_90585792",
       "revId": "e21d9e2dbf97eaece7698ea9eab7cc5069804bfa",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "70b83609_583f7a85",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 3
+      },
+      "lineNbr": 307,
+      "author": {
+        "id": 1000005
+      },
+      "writtenOn": "2018-04-19T21:47:06Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "b05f616a_4127a285",
+      "revId": "e21d9e2dbf97eaece7698ea9eab7cc5069804bfa",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1d1087a0_54cd9c65",
         "filename": "voltha/protos/voltha.proto",
         "patchSetId": 3
@@ -64,6 +118,24 @@
       "writtenOn": "2018-04-19T14:15:19Z",
       "side": 1,
       "message": "Not required.",
+      "revId": "e21d9e2dbf97eaece7698ea9eab7cc5069804bfa",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "80505c0e_d2cb23ca",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 3
+      },
+      "lineNbr": 1017,
+      "author": {
+        "id": 1000005
+      },
+      "writtenOn": "2018-04-19T21:47:06Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "1d1087a0_54cd9c65",
       "revId": "e21d9e2dbf97eaece7698ea9eab7cc5069804bfa",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
