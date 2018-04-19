@@ -55,21 +55,33 @@
     - fluentdstby
   run_once: true
 
-# Consul
-- name: "VOLT-HA Deploy | Start consul"
-  command: kubectl apply -f {{ target_voltha_home }}/k8s/consul.yml
+# Etcd
+- name: "VOLT-HA Deploy | Define etcd cluster role"
+  command: kubectl apply -f {{ target_voltha_home }}/k8s/operator/etcd/cluster_role.yml
   run_once: true
 
-- name: "VOLT-HA Deploy | Wait for consul to be ready"
-  command: kubectl rollout status statefulset/consul -w -n {{ voltha_namespace }}
+- name: "VOLT-HA Deploy | Define etcd cluster role binding"
+  command: kubectl apply -f {{ target_voltha_home }}/k8s/operator/etcd/cluster_role_binding.yml
   run_once: true
 
-# Voltha Core (for consul)
-- name: "VOLT-HA Deploy | Start VOLT-HA core (for consul)"
-  command: kubectl apply -f {{ target_voltha_home }}/k8s/vcore_for_consul.yml
+- name: "VOLT-HA Deploy | Start etcd operator"
+  command: kubectl apply -f {{ target_voltha_home }}/k8s/operator/etcd/operator.yml
   run_once: true
 
-- name: "VOLT-HA Deploy | Wait for VOLT-HA core (for consul) to be ready"
+- name: "VOLT-HA Deploy | Wait for etcd operator to be ready"
+  command: kubectl rollout status deployment/etcd-operator -w -n {{ voltha_namespace }}
+  run_once: true
+
+- name: "VOLT-HA Deploy | Start etcd cluster"
+  command: kubectl apply -f {{ target_voltha_home }}/k8s/operator/etcd/etcd_cluster.yml
+  run_once: true
+
+# Voltha Core (for etcd)
+- name: "VOLT-HA Deploy | Start VOLT-HA core (for etcd)"
+  command: kubectl apply -f {{ target_voltha_home }}/k8s/vcore_for_etcd.yml
+  run_once: true
+
+- name: "VOLT-HA Deploy | Wait for VOLT-HA core (for etcd) to be ready"
   command: kubectl rollout status deployment/vcore -w -n {{ voltha_namespace }}
   run_once: true
 
@@ -82,12 +94,12 @@
   command: kubectl rollout status deployment/ofagent -w -n {{ voltha_namespace }}
   run_once: true
 
-# Envoy (for consul)
-- name: "VOLT-HA Deploy | Start Envoy (for consul)"
-  command: kubectl apply -f {{ target_voltha_home }}/k8s/envoy_for_consul.yml
+# Envoy (for etcd)
+- name: "VOLT-HA Deploy | Start Envoy (for etcd)"
+  command: kubectl apply -f {{ target_voltha_home }}/k8s/envoy_for_etcd.yml
   run_once: true
 
-- name: "VOLT-HA Deploy | Wait for Envoy (for consul) to be ready"
+- name: "VOLT-HA Deploy | Wait for Envoy (for etcd) to be ready"
   command: kubectl rollout status deployment/voltha -w -n {{ voltha_namespace }}
   run_once: true
 

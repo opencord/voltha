@@ -130,15 +130,18 @@ FETCH_COMPOSE_IMAGE_LIST = \
 # naming conventions for the VOLTHA build
 FETCH_K8S_IMAGE_LIST = \
        alpine:3.6 \
+       busybox:latest \
+       nginx:1.13 \
        consul:0.9.2 \
        fluent/fluentd:v0.12.42 \
        gcr.io/google_containers/defaultbackend:1.4 \
-       gcr.io/google_containers/kubernetes-dashboard-amd64:v1.8.1 \
+       gcr.io/google_containers/kubernetes-dashboard-amd64:v1.8.3 \
        k8s.gcr.io/fluentd-gcp:1.30 \
        kamon/grafana_graphite:3.0 \
        marcelmaatkamp/freeradius:latest \
-       quay.io/coreos/hyperkube:v1.9.2_coreos.0 \
+       gcr.io/google-containers/hyperkube:v1.9.5 \
        quay.io/coreos/etcd-operator:v0.7.2 \
+       quay.io/coreos/etcd:v3.2.9 \
        quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.10.2 \
        wurstmeister/kafka:1.0.0 \
        zookeeper:3.4.11

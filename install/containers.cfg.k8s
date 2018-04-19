@@ -1,4 +1,7 @@
 voltha_containers:
+  - alpine:3.6
+  - busybox:latest
+  - nginx:1.13
   - consul:0.9.2
   - fluent/fluentd:v0.12.42
   - gcr.io/google_containers/cluster-proportional-autoscaler-amd64:1.1.2
@@ -6,17 +9,18 @@ voltha_containers:
   - gcr.io/google_containers/k8s-dns-dnsmasq-nanny-amd64:1.14.8
   - gcr.io/google_containers/k8s-dns-kube-dns-amd64:1.14.8
   - gcr.io/google_containers/k8s-dns-sidecar-amd64:1.14.8
-  - gcr.io/google_containers/kubernetes-dashboard-amd64:v1.8.1
+  - gcr.io/google_containers/kubernetes-dashboard-amd64:v1.8.3
   - gcr.io/google_containers/pause-amd64:3.0
   - k8s.gcr.io/fluentd-gcp:1.30
   - kamon/grafana_graphite:3.0
   - lyft/envoy:29361deae91575a1d46c7a21e913f19e75622ebe
-  - quay.io/calico/cni:v1.11.0
-  - quay.io/calico/ctl:v1.6.1
-  - quay.io/calico/node:v2.6.2
-  - quay.io/calico/routereflector:v0.4.0
+  - quay.io/calico/cni:v1.11.4
+  - quay.io/calico/ctl:v1.6.3
+  - quay.io/calico/node:v2.6.8
   - quay.io/coreos/etcd:v3.2.4
-  - quay.io/coreos/hyperkube:v1.9.2_coreos.0
+  - quay.io/coreos/etcd-operator:v0.7.2 
+  - quay.io/coreos/etcd:v3.2.9
+  - gcr.io/google-containers/hyperkube:v1.9.5
   - quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.10.2
   - voltha-cli:latest
   - voltha-dashd:latest

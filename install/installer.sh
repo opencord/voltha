@@ -141,7 +141,7 @@ if [  "$cluster_framework" == "kubernetes" ]; then
     echo -e "${green}Deploying kubernetes${NC}"
 
     # Remove previously created inventory if it exists
-    cp -rfp kubespray/inventory kubespray/inventory/voltha
+    cp -rfp kubespray/inventory/sample kubespray/inventory/voltha
 
     # Adjust kubespray configuration
 
@@ -169,17 +169,28 @@ if [  "$cluster_framework" == "kubernetes" ]; then
     sed -i -e "s/or is_atomic)/& and skip_downloads == \"false\" /" \
         kubespray/roles/kubernetes/preinstall/tasks/main.yml
 
+    # Configure failover parameters
+    sed -i -e "s/kube_controller_node_monitor_grace_period: .*/kube_controller_node_monitor_grace_period: 20s/" \
+        kubespray/roles/kubernetes/master/defaults/main.yml
+    sed -i -e "s/kube_controller_pod_eviction_timeout: .*/kube_controller_pod_eviction_timeout: 30s/" \
+        kubespray/roles/kubernetes/master/defaults/main.yml
+
     # Construct node inventory
     CONFIG_FILE=kubespray/inventory/voltha/hosts.ini python3 \
         kubespray/contrib/inventory_builder/inventory.py $hosts
 
+    # The inventory builder configures 2 masters.
+    # Due to non-stable behaviours, force the use of a single master
+    cat kubespray/inventory/voltha/hosts.ini \
+	| sed -e ':begin;$!N;s/\(\[kube-master\]\)\n/\1/;tbegin;P;D' \
+	| sed -e '/\[kube-master\].*/,/\[kube-node\]/{//!d}' \
+	| sed -e 's/\(\[kube-master\]\)\(.*\)/\1\n\2\n/' \
+	> kubespray/inventory/voltha/hosts.ini.tmp
+
+    mv kubespray/inventory/voltha/hosts.ini.tmp kubespray/inventory/voltha/hosts.ini
+
     ordered_nodes=`CONFIG_FILE=kubespray/inventory/voltha/hosts.ini python3 \
         kubespray/contrib/inventory_builder/inventory.py print_ips`
-
-    # The inventory defines
-    sed -i -e '/\[kube-master\]/a\
-    node3
-    ' kubespray/inventory/voltha/hosts.ini
 
     echo "[k8s-master]" > ansible/hosts/k8s-master
 
@@ -207,6 +218,58 @@ if [  "$cluster_framework" == "kubernetes" ]; then
     ANSIBLE_CONFIG=kubespray/ansible.cfg ansible-playbook -v -b \
         --become-method=sudo --become-user root -u voltha \
         -i kubespray/inventory/voltha/hosts.ini kubespray/cluster.yml
+
+    # Now all 3 servers need to be rebooted because of software installs.
+    # Reboot them and wait patiently until they all come back.
+    # Note this destroys the registry tunnel wich is no longer needed.
+    hList=""
+    for i in $hosts
+    do
+        echo -e "${lBlue}Rebooting cluster hosts${NC}"
+        ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i .keys/$i  voltha@$i sudo telinit 6
+        hList="$i $hList"
+    done
+
+    # Give the hosts time to shut down so that pings stop working or the
+    # script just falls through the next loop and the rest fails.
+    echo -e "${lBlue}Waiting for shutdown${NC}"
+    sleep 5
+
+
+    while [ ! -z "$hList" ];
+    do
+        # Attempt to ping the VMs on the list one by one.
+        echo -e "${lBlue}Waiting for hosts to reboot ${yellow}$hList${NC}"
+        for i in $hList
+        do
+            ping -q -c 1 $i > /dev/null 2>&1
+            ret=$?
+            if [ $ret -eq 0 ]; then
+                ipExpr=`echo $i | sed -e "s/\./[.]/g"`
+                hList=`echo $hList | sed -e "s/$ipExpr//" | sed -e "s/^ //" | sed -e "s/ $//"`
+            fi
+        done
+
+    done
+    
+    # Wait for kubernetes to settle after reboot
+    k8sIsUp="no"
+    while [ "$k8sIsUp" == "no" ];
+    do
+        # Attempt to ping the VMs on the list one by one.
+        echo -e "${lBlue}Waiting for kubernetes to settle${NC}"
+        for i in $hosts
+        do
+            nc -vz $i 6443 > /dev/null 2>&1
+            ret=$?
+            if [ $ret -eq 0 ]; then
+                k8sIsUp="yes"
+                break
+            fi
+            sleep 1
+        done
+    done
+    echo -e "${lBlue}Kubernetes is up and running${NC}"
 
     # Deploy Voltha
     ansible-playbook -v ansible/voltha-k8s.yml -i ansible/hosts/k8s-master -e 'deploy_voltha=true'
