@@ -10,6 +10,8 @@ from voltha.protos import bbf_fiber_tcont_body_pb2 as tcont
 from voltha.protos import bbf_fiber_traffic_descriptor_profile_body_pb2 as tdp
 from common.utils.consulhelpers import get_endpoint_from_consul
 from tests.itests.voltha.xpon_scenario import scenario as xpon_scenario
+from tests.itests.test_utils import get_pod_ip
+from testconfig import config
 
 '''
 These tests use the Ponsim OLT to verify create, update, and delete
@@ -31,8 +33,17 @@ host_and_port = '172.17.0.1:50060'
 #for ordering the test cases
 id = 3
 LOCAL_CONSUL = "localhost:8500"
+
+orch_env = 'docker-compose'
+if 'test_parameters' in config and 'orch_env' in config['test_parameters']:
+    orch_env = config['test_parameters']['orch_env']
+print 'orchestration-environment: %s' % orch_env
+
 # Retrieve details of the REST entry point
-rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'voltha-envoy-8443')
+if orch_env == 'k8s-single-node':
+    rest_endpoint = get_pod_ip('voltha') + ':8443'
+else:
+    rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'voltha-envoy-8443')
 # Construct the base_url
 BASE_URL = 'https://' + rest_endpoint
 

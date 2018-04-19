@@ -1,16 +1,25 @@
 from unittest import main
 from common.utils.consulhelpers import get_endpoint_from_consul
-from tests.itests.test_utils import \
+from tests.itests.test_utils import get_pod_ip, \
     run_long_running_command_with_timeout
 from tests.itests.voltha.rest_base import RestBase
 from google.protobuf.json_format import MessageToDict
 from voltha.protos.device_pb2 import Device
 import simplejson, jsonschema
 import re
+from tests.itests.orch_environment import get_orch_environment
+from testconfig import config
 
 # ~~~~~~~ Common variables ~~~~~~~
 
 LOCAL_CONSUL = "localhost:8500"
+ENV_DOCKER_COMPOSE = 'docker-compose'
+ENV_K8S_SINGLE_NODE = 'k8s-single-node'
+
+orch_env = ENV_DOCKER_COMPOSE
+if 'test_parameters' in config and 'orch_env' in config['test_parameters']:
+    orch_env = config['test_parameters']['orch_env']
+print 'orchestration-environment: %s' % orch_env
 
 COMMANDS = dict(
     kafka_client_run="kafkacat -b {} -L",
@@ -43,14 +52,16 @@ ALARM_SCHEMA = {
 
 
 class VolthaAlarmEventTests(RestBase):
-    # Retrieve details on the REST entry point
-    rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'envoy-8443')
+    # Get endpoint info
+    if orch_env == ENV_K8S_SINGLE_NODE:
+        rest_endpoint = get_pod_ip('voltha') + ':8443'
+        kafka_endpoint = get_pod_ip('kafka')
+    else:
+        rest_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'voltha-envoy-8443')
+        kafka_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'kafka')
 
     # Construct the base_url
     base_url = 'https://' + rest_endpoint
-
-    # Start by querying consul to get the endpoint details
-    kafka_endpoint = get_endpoint_from_consul(LOCAL_CONSUL, 'kafka')
 
     # ~~~~~~~~~~~~ Tests ~~~~~~~~~~~~
 
@@ -105,6 +116,7 @@ class VolthaAlarmEventTests(RestBase):
     def add_device(self):
         device = Device(
             type='simulated_olt',
+            mac_address='00:00:00:00:00:01'
         )
         device = self.post('/api/v1/devices', MessageToDict(device),
                            expected_http_code=200)
