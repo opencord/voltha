@@ -329,12 +329,11 @@ class RubyAdapterHandler(object):
             _in_port = fd.get_in_port(flow)
             if _in_port == PMC_UPSTREAM_PORT:
                 log.debug('svlan-port-match')
-                if flow.table_id == 0:
-                    metadata = fd.get_metadata(flow)
-                    if metadata:
-                        if metadata == port:
-                            svlan_id = self.get_vlan(flow) & 0xfff                            
-                            log.debug('SVLAN found:{}'.format(svlan_id))
+                metadata = fd.get_metadata(flow)
+                if metadata:
+                    if metadata == port:
+                        svlan_id = self.get_vlan(flow) & 0xfff                            
+                        log.debug('SVLAN found:{}'.format(svlan_id))
 
         return svlan_id
 
@@ -347,11 +346,10 @@ class RubyAdapterHandler(object):
                 log.debug('cvlan-port-match')
                 for action in fd.get_actions(flow):
                     if action.type == fd.SET_FIELD:
-                        if flow.table_id == 1:
-                            vlan = action.set_field.field.ofb_field.vlan_vid & 0xfff
-                            if vlan == svlan_id:
-                                cvlan_id = self.get_vlan(flow) & 0xfff
-                                log.debug('CVLAN found:{}'.format(cvlan_id))
+                        vlan = action.set_field.field.ofb_field.vlan_vid & 0xfff
+                        if vlan == svlan_id:
+                            cvlan_id = self.get_vlan(flow) & 0xfff
+                            log.debug('CVLAN found:{}'.format(cvlan_id))
         return cvlan_id
 
     def get_uplink_bandwidth(self, cvlan_id, svlan_id, port, flows):
