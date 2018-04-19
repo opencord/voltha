@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "bb8ffd86_d7d29856",
+        "filename": "ofagent/of_protocol_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 182,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-04-19T14:15:19Z",
+      "side": 1,
+      "message": "Do you mind add some comments on what state transitions would be allowed and also what should the change of OF port should trigger on the physical devices?   Some of it can be added to the Jira as well.",
+      "revId": "e21d9e2dbf97eaece7698ea9eab7cc5069804bfa",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "21d98ae7_90585792",
+        "filename": "voltha/core/logical_device_agent.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 469,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-04-19T14:15:19Z",
+      "side": 1,
+      "message": "Should there be a check to ensure only the OF port status is being changed?",
+      "revId": "e21d9e2dbf97eaece7698ea9eab7cc5069804bfa",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b05f616a_4127a285",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 3
+      },
+      "lineNbr": 307,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-04-19T14:15:19Z",
+      "side": 1,
+      "message": "This line is not required as the update returns an empty data structure",
+      "revId": "e21d9e2dbf97eaece7698ea9eab7cc5069804bfa",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1d1087a0_54cd9c65",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 3
+      },
+      "lineNbr": 1017,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-04-19T14:15:19Z",
+      "side": 1,
+      "message": "Not required.",
+      "revId": "e21d9e2dbf97eaece7698ea9eab7cc5069804bfa",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
