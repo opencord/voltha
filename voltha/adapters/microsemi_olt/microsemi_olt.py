@@ -479,7 +479,7 @@ class RubyAdapterHandler(object):
         return None
 
     def reinstall_flows_sequence(self, device, onu_id, svlan, cvlan, port_id, 
-            alloc_id, onu_session_id, channel_id):
+            alloc_id, onu_session_id, channel_id, uplink_bandwidth, downlink_bandwidth):
         log.debug('init-flow-reinstallaton')
         try:  
             olt = OltReinstallFlowStateMachine(iface=self.interface, comm=self.comm,
@@ -492,13 +492,13 @@ class RubyAdapterHandler(object):
             log.exception('failed-to-launch-reinstall-flow', e=e)
                     
     def install_flows_sequence(self, device, onu_id, svlan, cvlan, port_id, 
-            alloc_id, onu_session_id, channel_id):
+            alloc_id, onu_session_id, channel_id, uplink_bandwidth, downlink_bandwidth):
         log.debug('init-flow-installaton')
         try:  
             olt = OltInstallFlowStateMachine(iface=self.interface, comm=self.comm,
                     target=self.target, device=self.device_manager, onu_id=onu_id,
                     channel_id=channel_id, port_id=port_id, onu_session_id=onu_session_id,
-                    alloc_id=alloc_id, svlan_id=svlan, cvlan_id=cvlan, uplink_bandwidth, 
+                    alloc_id=alloc_id, svlan_id=svlan, cvlan_id=cvlan,
                     uplink_bandwidth=uplink_bandwidth, downlink_bandwidth=downlink_bandwidth)    
             olt.runbg()
         except Exception as e:
