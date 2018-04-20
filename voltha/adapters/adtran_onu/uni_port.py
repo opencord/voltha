@@ -107,6 +107,14 @@ class UniPort(object):
         return self._port_number
 
     @property
+    def subscriber_vlan(self):
+        """
+        Subscriber vlan assigned to this UNI
+        :return: (int) subscriber vlan
+        """
+        return self._subscriber_vlan
+
+    @property
     def logical_port_number(self):
         """
         Logical device port number (used as OpenFlow port for UNI)
@@ -115,9 +123,19 @@ class UniPort(object):
         return self._logical_port_number
 
     def _update_adapter_agent(self):
-        # TODO: Currently does the adapter_agent allow 'update' of port status
-        # self.adapter_agent.update_port(self.olt.device_id, self.get_port())
-        pass
+        """
+        Update the port status and state in the core
+        """
+        self.log.debug('update-adapter-agent', admin_state=self._admin_state,
+            oper_status=self._oper_status)
+
+        if self._port is not None:
+            self._port.admin_state = self._admin_state
+            self._port.oper_status = self._oper_status
+
+        # adapter_agent add_port also does an update of existing port
+        self._handler.adapter_agent.add_port(self._handler.logical_device_id,
+                                             self.get_port())
 
     @staticmethod
     def decode_venet(venet_info):
@@ -165,9 +183,25 @@ class UniPort(object):
                               oper_status=self._oper_status)
         return self._port
 
+    def port_id_name(self):
+        return 'uni-{}'.format(self._logical_port_number)
+
     def add_logical_port(self, openflow_port_no, subscriber_vlan=None,
                          capabilities=OFPPF_10GB_FD | OFPPF_FIBER,
                          speed=OFPPF_10GB_FD):
+
+        if self._logical_port_number is not None:
+            # delete old logical port if it exists
+            try:
+                port = self.adapter_agent.get_logical_port(self._handler.logical_device_id,
+                                                           self.port_id_name())
+                self.adapter_agent.delete_logical_port(self._handler.logical_device_id, port)
+
+            except Exception as e:
+                # assume this exception was because logical port does not already exist
+                pass
+
+            self._logical_port_number = None
 
         # Use vENET provisioned values if none supplied
         port_no = openflow_port_no or self._ofp_port_no
@@ -190,7 +224,7 @@ class UniPort(object):
                                           device.parent_port_no & 0xff,
                                           (port_no >> 8) & 0xff,
                                           port_no & 0xff)),
-                name='uni-{}'.format(port_no),
+                name=self.port_id_name(),
                 config=0,
                 state=OFPPS_LIVE,
                 curr=capabilities,
@@ -201,7 +235,7 @@ class UniPort(object):
             )
             self._handler.adapter_agent.add_logical_port(self._handler.logical_device_id,
                                                          LogicalPort(
-                                                             id='uni-{}'.format(port_no),
+                                                             id=self.port_id_name(),
                                                              ofp_port=openflow_port,
                                                              device_id=device.id,
                                                              device_port_no=self._port_number))
