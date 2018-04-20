@@ -85,7 +85,8 @@ class OltRemoveFlowStateMachine(BaseOltAutomaton):
                 if pkt[PAS5211MsgHeader].channel_id == self.channel_id:
                     if pkt[PAS5211MsgHeader].onu_id == self.onu_id:
                         if OmciFrame not in pkt:
-                            return True
+                            if PAS5211MsgSendFrameResponse not in pkt:
+                                return True
 
         return False
 

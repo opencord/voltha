@@ -415,6 +415,8 @@ class RubyAdapterHandler(object):
                     # Get bandwidths...
 
                     uplink_bandwidth = self.get_uplink_bandwidth(cvlan_id, svlan_id, port, flows.items)
+                    if uplink_bandwidth == None:
+                        uplink_bandwidth = 300
                     downlink_bandwidth = uplink_bandwidth
                     # downlink_bandwidth = self.get_downlink_bandwidth(cvlan_id, svlan_id, port, flows.items)
                     

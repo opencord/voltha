@@ -91,7 +91,8 @@ class OltInstallFlowStateMachine(BaseOltAutomaton):
                 if pkt[PAS5211MsgHeader].channel_id == self.channel_id:
                     if pkt[PAS5211MsgHeader].onu_id == self.onu_id:
                         if OmciFrame not in pkt:
-                            return True
+                            if PAS5211MsgSendFrameResponse not in pkt:
+                                return True
 
         return False
 
@@ -236,7 +237,7 @@ class OltInstallFlowStateMachine(BaseOltAutomaton):
         #log.debug('api-proxy-response')
         if PAS5211MsgGetOnuIdByPortIdResponse in pkt: 
             log.debug('[RESPONSE] PAS5211MsgGetOnuIdByPortIdResponse')
-            self.send_send_dba_algorithm_msg(self.device.device, self.port_id, bandwidth=self.uplink_bandwidth)
+            self.send_send_dba_algorithm_msg(self.device.device, self.port_id, self.uplink_bandwidth)
             raise self.wait_send_dba_algorithm_msg_response()
         else:
             log.debug('Unexpected pkt {}'.format(pkt.summary()))
@@ -362,7 +363,7 @@ class OltInstallFlowStateMachine(BaseOltAutomaton):
                 self.send_unset_port_id_downlink_policing(self.device.device, 1, self.port_id)
                 raise self.wait_unset_port_id_downlink_policing_response()
             else:
-                self.send_set_downlink_policing(self.device.device,bandwidth=self.downlink_bandwidth)
+                self.send_set_downlink_policing(self.device.device,self.downlink_bandwidth)
                 raise self.wait_set_downlink_policing_response()
         else:
             log.debug('Unexpected pkt {}'.format(pkt.summary()))
@@ -392,7 +393,7 @@ class OltInstallFlowStateMachine(BaseOltAutomaton):
         #log.debug('api-proxy-response')
         if PAS5211RemoveDownstreamPolicingConfigResponse in pkt: 
             log.debug('[RESPONSE] PAS5211RemoveDownstreamPolicingConfigResponse')
-            self.send_set_downlink_policing(self.device.device)
+            self.send_set_downlink_policing(self.device.device, self.downlink_bandwidth)
             raise self.wait_set_downlink_policing_response()
         else:
             log.debug('Unexpected pkt {}'.format(pkt.summary()))
@@ -573,7 +574,7 @@ class OltInstallFlowStateMachine(BaseOltAutomaton):
         self.send(self.px(msg))
         log.debug("[SENT] PAS5211UnsetPortIdPolicingConfig")
 
-    def send_set_downlink_policing(self, device, bandwidth=300):
+    def send_set_downlink_policing(self, device, bandwidth):
         msg = PAS5211SetDownstreamPolicingConfig(
             committed_bandwidth = SLA_gr_bw_gros*1024,
             excessive_bandwidth = (bandwidth - SLA_gr_bw_gros)*1024,
@@ -591,7 +592,7 @@ class OltInstallFlowStateMachine(BaseOltAutomaton):
         self.send(self.px(msg))
         log.debug("[SENT] PAS5211SetPortIdPolicingConfig")
 
-    def send_send_dba_algorithm_msg(self, device, port_id, bandwidth=300):
+    def send_send_dba_algorithm_msg(self, device, port_id, bandwidth):
         alloc_id = []
         mx_bw = []
         gr_bw = []
