@@ -126,6 +126,24 @@
     },
     {
       "key": {
+        "uuid": "fb454187_6f492a5e",
+        "filename": "voltha/core/logical_device_agent.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 469,
+      "author": {
+        "id": 1000005
+      },
+      "writtenOn": "2018-04-20T16:53:11Z",
+      "side": 1,
+      "message": "No I don\u0027t think so - I think setting the port config is probably the only thing that should be changed by the user, other attributes should be owned by the adapter that created the port. \nHow are the access restrictions recorded?",
+      "parentUuid": "b15b15db_2f7cc17f",
+      "revId": "e21d9e2dbf97eaece7698ea9eab7cc5069804bfa",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b05f616a_4127a285",
         "filename": "voltha/protos/voltha.proto",
         "patchSetId": 3
