@@ -144,6 +144,24 @@
     },
     {
       "key": {
+        "uuid": "3423eba4_86dad9c7",
+        "filename": "voltha/core/logical_device_agent.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 469,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-04-20T17:44:02Z",
+      "side": 1,
+      "message": "The access restrictions (really whether an attribute is read-only or not) is set at the data model layer.  Your can set it in the proto file.  Take a look at the voltha.proto and you will see those \"annotations\".   In this scenario, it may be better to change the voltha API to updateOFPortState rather than update the OF port .",
+      "parentUuid": "fb454187_6f492a5e",
+      "revId": "e21d9e2dbf97eaece7698ea9eab7cc5069804bfa",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b05f616a_4127a285",
         "filename": "voltha/protos/voltha.proto",
         "patchSetId": 3
