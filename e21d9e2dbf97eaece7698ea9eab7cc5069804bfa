@@ -55,6 +55,24 @@
     },
     {
       "key": {
+        "uuid": "bcbc58c6_4776a8a5",
+        "filename": "ofagent/of_protocol_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 182,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-04-20T01:07:32Z",
+      "side": 1,
+      "message": "ok.   I suggest to raise a different Jira ticket (or create a sub-task to the existing one) to address the work required by the adapters.",
+      "parentUuid": "99f20cd2_333eeba3",
+      "revId": "e21d9e2dbf97eaece7698ea9eab7cc5069804bfa",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "21d98ae7_90585792",
         "filename": "voltha/core/logical_device_agent.py",
         "patchSetId": 3
@@ -84,6 +102,24 @@
       "side": 1,
       "message": "Possibly - not sure how it is working in VOLTHA - do we usually allow modification of objects like devices and ports from the northbound interfaces? Or should devices and ports mostly be modified by the adapters only? If we just want to modify the config state of the port then the API should probably just expose that, rather than looking like it allows the entire port to be modified. What are you thoughts on this?",
       "parentUuid": "21d98ae7_90585792",
+      "revId": "e21d9e2dbf97eaece7698ea9eab7cc5069804bfa",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b15b15db_2f7cc17f",
+        "filename": "voltha/core/logical_device_agent.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 469,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-04-20T01:07:32Z",
+      "side": 1,
+      "message": "In voltha we have some access restrictions on the data model whereby some objects/attributes are read only.   Modifications of a device and port depend on the use case.  For example we expose API to reboot/enable/disable a device.   In the OF port context, I would think if the state is changed from UP to DOWN then that would trigger the disable ONU device.   Are there attributes other than config state that would likely be modified by a user?",
+      "parentUuid": "eb099375_c7601115",
       "revId": "e21d9e2dbf97eaece7698ea9eab7cc5069804bfa",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
