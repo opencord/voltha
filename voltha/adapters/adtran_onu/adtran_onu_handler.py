@@ -35,6 +35,7 @@ from voltha.protos.common_pb2 import OperStatus, ConnectStatus
 from voltha.protos.device_pb2 import Image
 from common.utils.indexpool import IndexPool
 from voltha.extensions.omci.openomci_agent import OpenOMCIAgent
+from voltha.extensions.omci.omci_me import *
 
 _ = third_party
 _MAXIMUM_PORT = 128          # PON and UNI ports
@@ -650,13 +651,16 @@ class AdtranOnuHandler(AdtranXPON):
         # Remove the uni logical port from the OLT, if still present
         parent_device = self.adapter_agent.get_device(device.parent_id)
         assert parent_device
-        logical_device_id = parent_device.parent_id
-        assert logical_device_id
+
 
         for uni in self.uni_ports:
-            port_id = 'uni-{}'.format(uni.port_number)
+            #port_id = 'uni-{}'.format(uni.port_number)
+            port_id = uni.port_id_name()
 
             try:
+                #TODO: there is no logical device if olt disables first
+                logical_device_id = parent_device.parent_id
+                assert logical_device_id
                 port = self.adapter_agent.get_logical_port(logical_device_id,
                                                            port_id)
                 self.adapter_agent.delete_logical_port(logical_device_id, port)
@@ -664,10 +668,32 @@ class AdtranOnuHandler(AdtranXPON):
                 self.log.info('logical-port-not-found', device_id=self.device_id,
                               portid=port_id)
 
-        # Remove pon port from parent
+        # Remove pon port from parent and disable
         if self._pon is not None:
             self.adapter_agent.delete_port_reference_from_parent(self.device_id,
                                                                  self._pon.get_port())
+            self._pon.enabled = False
+
+        # Send Uni Admin State Down
+
+        # ethernet_uni_entity_id = 0x101
+        # omci = self._handler.omci
+        # attributes = dict(
+        #     administrative_state=1  # - lock
+        # )
+        # frame = PptpEthernetUniFrame(
+        #     ethernet_uni_entity_id,  # Entity ID
+        #     attributes=attributes  # See above
+        # ).set()
+        # results = yield omci.send(frame)
+        #
+        # status = results.fields['omci_message'].fields['success_code']
+        # failed_attributes_mask = results.fields['omci_message'].fields['failed_attributes_mask']
+        # unsupported_attributes_mask = results.fields['omci_message'].fields['unsupported_attributes_mask']
+        # self.log.debug('set-pptp-ethernet-uni', status=status,
+        #                failed_attributes_mask=failed_attributes_mask,
+        #                unsupported_attributes_mask=unsupported_attributes_mask)
+
 
         # Just updating the port status may be an option as well
         # port.ofp_port.config = OFPPC_NO_RECV
@@ -708,7 +734,7 @@ class AdtranOnuHandler(AdtranXPON):
 
             # Add the pon port reference to the parent
             if self._pon is not None:
-                # TODO: Send 'enable' to PonPort?
+                self._pon.enabled = True
                 self.adapter_agent.add_port_reference_to_parent(device.id,
                                                                 self._pon.get_port())
 
@@ -725,15 +751,23 @@ class AdtranOnuHandler(AdtranXPON):
                 # vlan non-zero if created via legacy method (not xPON)
                 self.uni_port('deprecated').add_logical_port(device.vlan, device.vlan,
                                                              subscriber_vlan=device.vlan)
+            else:
+                # reestablish logical ports for each UNI
+                for uni in self.uni_ports:
+                    self.adapter_agent.add_port(device.id, uni.get_port())
+                    uni.add_logical_port(uni.logical_port_number, subscriber_vlan=uni.subscriber_vlan)
 
             device = self.adapter_agent.get_device(device.id)
             device.oper_status = OperStatus.ACTIVE
+            device.connect_status = ConnectStatus.REACHABLE
             device.reason = ''
 
             self.enabled = True
             self.adapter_agent.update_device(device)
 
             self.log.info('re-enabled', device_id=device.id)
+            self._pon._dev_info_loaded = False
+            self._bridge_initialized = False
         except Exception, e:
             self.log.exception('error-reenabling', e=e)
 
@@ -751,7 +785,6 @@ class AdtranOnuHandler(AdtranXPON):
         if self._omci_agent is not None:
             self._omci_agent.remove_device(self.device_id, cleanup=True)
             self._omci_agent = None
-
         #
         # handling needed here
         # self.enabled = False

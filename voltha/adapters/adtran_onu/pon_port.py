@@ -175,9 +175,19 @@ class PonPort(object):
         return self._port
 
     def _update_adapter_agent(self):
-        # TODO: Currently does the adapter_agent allow 'update' of port status
-        # self.adapter_agent.update_port(self.olt.device_id, self.get_port())
-        pass
+        """
+        Update the port status and state in the core
+        """
+        self.log.debug('update-adapter-agent', admin_state=self._admin_state,
+            oper_status=self._oper_status)
+
+        if self._port is not None:
+            self._port.admin_state = self._admin_state
+            self._port.oper_status = self._oper_status
+
+        # adapter_agent add_port also does an update of port status
+        self._handler.adapter_agent.add_port(self._handler.device_id, self.get_port())
+
 
     @property
     def onu_omci_device(self):
@@ -205,6 +215,9 @@ class PonPort(object):
             try:
                 for uni in self._handler.uni_ports:
                     uni.add_logical_port(None, None)
+
+                #BKP
+                device = self._handler.adapter_agent.get_device(self._handler.device_id)
 
                 vendor = omci.query_mib_single_attribute(OntG.class_id, 0, 'vendor_id') or 'ADTN'
                 assert vendor == 'ADTN', \
@@ -263,6 +276,7 @@ class PonPort(object):
                 # Save our device information
                 self._handler.adapter_agent.update_device(device)
                 self._dev_info_loaded = True
+                self._bridge_initialized = False
 
             except Exception as e:
                 self.log.exception('device-info-load', e=e)
@@ -274,9 +288,11 @@ class PonPort(object):
     def resync_omci_settings(self):
         self._cancel_resync_deferred()
 
-        if not self._bridge_initialized:
+        device = self._handler.adapter_agent.get_device(self._handler.device_id)
+
+        if not self._bridge_initialized and device.vlan > 0 :
             self.log.info('resync-omci-settings', initialized=self._bridge_initialized)
-            device = self._handler.adapter_agent.get_device(self._handler.device_id)
+            #device = self._handler.adapter_agent.get_device(self._handler.device_id)
 
             if not self.enabled or device is None:
                 returnValue('not-enabled')
@@ -662,6 +678,9 @@ class PonPort(object):
                 self._handler.adapter_agent.update_device(device)
 
                 # Try again later
+                self._deferred = reactor.callLater(_STARTUP_RETRY_WAIT,
+                                                   self.resync_omci_settings)
+        else:
                 self._deferred = reactor.callLater(_STARTUP_RETRY_WAIT,
                                                    self.resync_omci_settings)
 
