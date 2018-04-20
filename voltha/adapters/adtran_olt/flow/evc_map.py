@@ -551,7 +551,7 @@ class EVCMap(object):
 
                         # Scan EVC to see if it needs to move back to the Utility
                         # or Untagged EVC from a user data EVC
-                        if not self._evc.service_evc and\
+                        if self._evc and not self._evc.service_evc and\
                             len(self._flows) > 0 and\
                             all(f.is_acl_flow for f in self._flows.itervalues()):
 

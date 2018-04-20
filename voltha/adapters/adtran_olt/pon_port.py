@@ -101,11 +101,9 @@ class PonPort(AdtnPort):
             self._port = Port(port_no=self._port_no,
                               label=self._label,
                               type=Port.PON_OLT,
-                              admin_state=AdminState.ENABLED,
-                              oper_status=OperStatus.ACTIVE)
-            # TODO: For now, no way to report the proper ADMIN or OPER status
-            # admin_state=self._admin_state,
-            # oper_status=self._oper_status)
+                              admin_state=self._admin_state,
+                              oper_status=self._oper_status)
+
         return self._port
 
     @property
@@ -286,9 +284,30 @@ class PonPort(AdtnPort):
             pass
 
     def _update_adapter_agent(self):
-        # TODO: Currently the adapter_agent does not allow 'update' of port status
-        # self.adapter_agent.update_port(self.olt.device_id, self.get_port())
-        pass
+        """
+        Update the port status and state in the core
+        """
+        self.log.debug('update-adapter-agent', admin_state=self._admin_state,
+            oper_status=self._oper_status)
+
+        # because the core does not provide methods for updating admin
+        # and oper status per port, we need to copy any existing port
+        # info so that we don't wipe out the peers
+        if self._port is not None:
+            agent_ports = self.adapter_agent.get_ports(self.olt.device_id, Port.PON_OLT)
+
+            agent_port = next((ap for ap in agent_ports if ap.port_no == self._port_no), None)
+
+            # copy current Port info
+            if agent_port is not None:
+                self._port = agent_port;
+
+        # set new states
+        self._port.admin_state = self._admin_state
+        self._port.oper_status = self._oper_status
+
+        # adapter_agent add_port also does an update of existing port
+        self.adapter_agent.add_port(self.olt.device_id, self.get_port())
 
     @inlineCallbacks
     def finish_startup(self):
@@ -399,9 +418,9 @@ class PonPort(AdtnPort):
         Set the PON Port to a known good state on initial port startup.  Actual
         PON 'Start' is done elsewhere
         """
-        if self.state != AdtnPort.State.INITIAL:
-            self.log.error('reset-ignored', state=self.state)
-            returnValue('Ignored')
+        #if self.state != AdtnPort.State.INITIAL:
+        #    self.log.error('reset-ignored', state=self.state)
+        #    returnValue('Ignored')
 
         initial_port_state = AdminState.DISABLED
         self.log.info('reset', initial_state=initial_port_state)

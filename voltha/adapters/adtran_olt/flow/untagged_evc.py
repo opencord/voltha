@@ -98,7 +98,6 @@ class UntaggedEVC(EVC):
     def remove_downstream_flows(self, flow_id):
         self._downstream_flows.discard(flow_id)
 
-    @inlineCallbacks
     def remove(self, remove_maps=True):
         """
         Remove EVC (and optional associated EVC-MAPs) from hardware
@@ -108,21 +107,22 @@ class UntaggedEVC(EVC):
         log.info('removing', evc=self, remove_maps=remove_maps)
 
         device_id = self._flow.handler.device_id
-        flow_id = self._flow.id
+        flow_id = self._flow.flow_id
         evc_table = _untagged_evcs.get(device_id)
 
-        if evc_table is None or flow_id not in evc_table:
-            returnValue('NOP')
+        if evc_table is None:
+            return defer.succeed('NOP')
+
 
         # Remove flow reference
         if self._flow.flow_id in self._downstream_flows:
-            del self._downstream_flows[self._flow.flow_id]
+            self._downstream_flows.discard(self._flow.flow_id)
 
         if len(self._downstream_flows) == 0:
             # Use base class to clean up
-            returnValue(super(UntaggedEVC, self).remove(remove_maps=True))
+            return super(UntaggedEVC, self).remove(remove_maps=True)
 
-        returnValue('More references')
+        return defer.succeed('More references')
 
     @inlineCallbacks
     def delete(self, delete_maps=True):
@@ -140,13 +140,14 @@ class UntaggedEVC(EVC):
 
             yield defer.gatherResults(dl, consumeErrors=True)
 
+            self._evc_maps = None
+            f, self._flow = self._flow, None
+            if f is not None and f.handler is not None:
+                f.handler.remove_evc(self)
+
         except Exception as e:
             log.exception('removal', e=e)
 
-        self._evc_maps = None
-        f, self._flow = self._flow, None
-        if f is not None and f.handler is not None:
-            f.handler.remove_evc(self)
 
     def reflow(self, reflow_maps=True):
         pass    # TODO: Implement or use base class?
@@ -159,4 +160,5 @@ class UntaggedEVC(EVC):
         :param regex_: (String) Regular expression for name matching
         :return: (deferred)
         """
-        pass    # TODO: ???
+        _untagged_evcs.clear()
+        EVC.remove_all(client, regex_)

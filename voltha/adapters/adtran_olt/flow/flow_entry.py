@@ -595,20 +595,8 @@ class FlowEntry(object):
                 del _existing_upstream_flow_entries[device_id]
 
         elif self.flow_direction == FlowEntry.FlowDirection.DOWNSTREAM:
-            flow_evc = flow_table['evc']
-
-            # If this flow owns the EVC, assign it to a remaining flow
-            if flow_evc is not None and flow_id == flow_evc.flow_entry.flow_id:
-                flow_table['evc'].flow_entry = next((_flow for _flow in flow_table.itervalues()
-                                                     if isinstance(_flow, FlowEntry)
-                                                     and _flow.flow_id != flow_id), None)
-
             if len(flow_table) == 1:   # Only 'evc' entry present
-                evc = flow_evc
-                del flow_table['evc']
-                del sig_table[self.signature]
-                if len(sig_table) == 0:
-                    del _existing_downstream_flow_entries[device_id]
+                evc = flow_table['evc']
             else:
                 assert flow_table['evc'] is not None, 'EVC flow re-assignment error'
 
@@ -625,6 +613,24 @@ class FlowEntry(object):
 
         except Exception as e:
             log.exception('removal', e=e)
+
+        if self.flow_direction == FlowEntry.FlowDirection.DOWNSTREAM:
+
+            # If this flow owns the EVC, assign it to a remaining flow
+            flow_evc = flow_table['evc']
+
+            if flow_evc is not None and flow_evc.flow_entry is not None and \
+                flow_id == flow_evc.flow_entry.flow_id:
+                flow_table['evc'].flow_entry = next((_flow for _flow in flow_table.itervalues()
+                                                     if isinstance(_flow, FlowEntry)
+                                                     and _flow.flow_id != flow_id), None)
+
+        # If evc was deleted, remove the flow table reference
+        if evc is not None:
+            del flow_table['evc']
+            del sig_table[self.signature]
+            if len(sig_table) == 0:
+                del _existing_downstream_flow_entries[device_id]
 
         self.evc = None
         returnValue('Done')
@@ -680,13 +686,19 @@ class FlowEntry(object):
     # Bulk operations
 
     @staticmethod
-    def remove_all():
+    def clear_all(device_id):
         """
-        Remove all matching EVCs and associated EVC MAPs from hardware
+        Remove all flows for the device.
 
-        :param regex_: (String) Regular expression for name matching
+        :param device_id: voltha adapter device id
         """
-        raise NotImplemented("TODO: Implement this")
+
+        if device_id in _existing_downstream_flow_entries:
+            del _existing_downstream_flow_entries[device_id]
+
+        if device_id in _existing_upstream_flow_entries:
+            del _existing_upstream_flow_entries[device_id]
+
 
     @staticmethod
     def get_packetout_info(device_id, logical_port):

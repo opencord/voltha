@@ -174,7 +174,7 @@ class AdtnPort(object):
         if self.state == AdtnPort.State.RUNNING:
             return succeed('Running')
 
-        self.log.info('start')
+        self.log.info('start-port')
 
         self.cancel_deferred()
         self.state = AdtnPort.State.INITIAL

@@ -522,12 +522,19 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
                 except:
                     pass
 
+    def _unregister_for_inter_adapter_messages(self):
+        try:
+            self.adapter_agent.unregister_for_inter_adapter_messages()
+        except:
+            pass
+
     def disable(self):
         self._cancel_deferred()
 
         # Drop registration for adapter messages
-        self.adapter_agent.unregister_for_inter_adapter_messages()
+        self._unregister_for_inter_adapter_messages()
         self._zmq_shutdown()
+        self._pio_exception_map = []
 
         super(AdtranOltHandler, self).disable()
 
@@ -546,7 +553,7 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         self._cancel_deferred()
 
         # Drop registration for adapter messages
-        self.adapter_agent.unregister_for_inter_adapter_messages()
+        self._unregister_for_inter_adapter_messages()
         self._zmq_shutdown()
 
         # Download supported protocols may change (if new image gets activated)
@@ -572,7 +579,7 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         self._cancel_deferred()
 
         # Drop registration for adapter messages
-        self.adapter_agent.unregister_for_inter_adapter_messages()
+        self._unregister_for_inter_adapter_messages()
         self._zmq_shutdown()
 
         super(AdtranOltHandler, self).delete()
@@ -850,22 +857,23 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
 
         valid_flows = []
 
-        # Special helper egress Packet In/Out flows
-        for special_flow in (self._create_untagged_flow(),
-                             self._create_utility_flow()):
-            valid_flow, evc = FlowEntry.create(special_flow, self)
+        if flows:
+            # Special helper egress Packet In/Out flows
+            for special_flow in (self._create_untagged_flow(),
+                                 self._create_utility_flow()):
+                valid_flow, evc = FlowEntry.create(special_flow, self)
 
-            if valid_flow is not None:
-                valid_flows.append(valid_flow.flow_id)
+                if valid_flow is not None:
+                    valid_flows.append(valid_flow.flow_id)
 
-            if evc is not None:
-                try:
-                    evc.schedule_install()
-                    self.add_evc(evc)
+                if evc is not None:
+                    try:
+                        evc.schedule_install()
+                        self.add_evc(evc)
 
-                except Exception as e:
-                    evc.status = 'EVC Install Exception: {}'.format(e.message)
-                    self.log.exception('EVC-install', e=e)
+                    except Exception as e:
+                        evc.status = 'EVC Install Exception: {}'.format(e.message)
+                        self.log.exception('EVC-install', e=e)
 
         # verify exception flows were installed by OLT PET process
         reactor.callLater(5, self.send_packet_exceptions_request)

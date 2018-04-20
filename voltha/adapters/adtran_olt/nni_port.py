@@ -93,12 +93,23 @@ class NniPort(AdtnPort):
         Get the VOLTHA PORT object for this port
         :return: VOLTHA Port object
         """
+        self.log.debug('get-port-status-update', port=self._port_no,
+            label=self._label)
         if self._port is None:
             self._port = Port(port_no=self._port_no,
                               label=self._label,
                               type=Port.ETHERNET_NNI,
                               admin_state=self._admin_state,
                               oper_status=self._oper_status)
+
+        if self._port.admin_state != self._admin_state or\
+           self._port.oper_status != self._oper_status:
+
+            self.log.debug('get-port-status-update', admin_state=self._admin_state,
+                oper_status = self._oper_status)
+            self._port.admin_state = self._admin_state
+            self._port.oper_status = self._oper_status
+
         return self._port
 
     @property
@@ -116,9 +127,10 @@ class NniPort(AdtnPort):
             pass
 
     def _update_adapter_agent(self):
-        # TODO: Currently the adapter_agent does not allow 'update' of port status
-        # self.adapter_agent.update_port(self.olt.device_id, self.get_port())
-        pass
+        # adapter_agent add_port also does an update of port status
+        self.log.debug('update-adapter-agent', admin_state=self._admin_state,
+            oper_status=self._oper_status)
+        self.adapter_agent.add_port(self.olt.device_id, self.get_port())
 
     def get_logical_port(self):
         """
@@ -150,9 +162,9 @@ class NniPort(AdtnPort):
         if self.state != AdtnPort.State.INITIAL:
             returnValue('Done')
 
+        self.log.debug('final-startup')
         # TODO: Start status polling of NNI interfaces
         self.deferred = None  # = reactor.callLater(3, self.do_stuff)
-        self.state = AdtnPort.State.RUNNING
 
         # Begin statistics sync
         self._stats_deferred = reactor.callLater(self._stats_tick * 2, self._update_statistics)
@@ -182,9 +194,9 @@ class NniPort(AdtnPort):
         Set the NNI Port to a known good state on initial port startup.  Actual
         NNI 'Start' is done elsewhere
         """
-        if self.state != AdtnPort.State.INITIAL:
-            self.log.error('reset-ignored', state=self.state)
-            returnValue('Ignored')
+        #if self.state != AdtnPort.State.INITIAL:
+        #    self.log.error('reset-ignored', state=self.state)
+        #    returnValue('Ignored')
 
         self.log.info('resetting', label=self._label)
 
@@ -251,7 +263,11 @@ class NniPort(AdtnPort):
                 self.log.debug('read-config', results=results)
                 try:
                     result_dict = xmltodict.parse(results.data_xml)
-                    entries = result_dict['data']['interfaces']['interface']
+                    interfaces = result_dict['data']['interfaces']
+                    if 'if:interface' in interfaces:
+                        entries = interfaces['if:interface']
+                    else:
+                        entries = interfaces['interface']
 
                     enabled = entries.get('enabled',
                                           str(not self.enabled).lower()) == 'true'

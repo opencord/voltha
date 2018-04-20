@@ -290,6 +290,15 @@ class ACL(object):
         raise NotImplemented("TODO: Implement this")
 
     @staticmethod
+    def clear_all(device_id):
+        """
+        Clear all acls for this device id from the list
+        :param device_id: id of the device
+        """
+        if device_id in _acl_list:
+            del _acl_list[device_id]
+
+    @staticmethod
     def remove_all(client, regex_=ACL_NAME_REGEX_ALL):
         """
         Remove all matching ACLs from hardware

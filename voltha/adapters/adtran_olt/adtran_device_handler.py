@@ -169,13 +169,32 @@ class AdtranDeviceHandler(object):
 
         # Installed flows
         self._evcs = {}  # Flow ID/name -> FlowEntry
+ 
+
+    def _delete_logical_device(self):
+        ldi, self.logical_device_id = self.logical_device_id, None
+
+        if ldi is None:
+            return
+
+        self.log.debug('delete-logical-device', ldi=ldi)
+
+        logical_device = self.adapter_agent.get_logical_device(ldi)
+        self.adapter_agent.delete_logical_device(logical_device)
+
+        device = self.adapter_agent.get_device(self.device_id)
+        device.parent_id = ''
+
+        #  Update the logical device mapping
+        if ldi in self.adapter.logical_device_id_to_root_device_id:
+            del self.adapter.logical_device_id_to_root_device_id[ldi]
+
 
     def __del__(self):
         # Kill any startup or heartbeat defers
 
         d, self.startup = self.startup, None
         h, self.heartbeat = self.heartbeat, None
-        ldi, self.logical_device_id = self.logical_device_id, None
 
         if d is not None and not d.called:
             d.cancel()
@@ -186,10 +205,7 @@ class AdtranDeviceHandler(object):
         self._deactivate_io_port()
 
         # Remove the logical device
-
-        if ldi is not None:
-            logical_device = self.adapter_agent.get_logical_device(ldi)
-            self.adapter_agent.delete_logical_device(logical_device)
+        self._delete_logical_device()
 
         self.northbound_ports.clear()
         self.southbound_ports.clear()
@@ -478,6 +494,20 @@ class AdtranDeviceHandler(object):
                 self.alarms = AdapterAlarms(self.adapter, device.id)
 
                 ############################################################################
+                # Set the ports in a known good initial state
+                if not reconciling:
+                    try:
+                        for port in self.northbound_ports.itervalues():
+                            self.startup = yield port.reset()
+
+                        for port in self.southbound_ports.itervalues():
+                            self.startup = yield port.reset()
+
+                    except Exception as e:
+                        self.log.exception('port-reset', e=e)
+                        self.activate_failed(device, e.message)
+
+                ############################################################################
                 # Create logical ports for all southbound and northbound interfaces
                 try:
                     device.reason = 'Creating logical ports'
@@ -668,22 +698,14 @@ class AdtranDeviceHandler(object):
                 if lp is not None:
                     self.adapter_agent.add_logical_port(ld_initialized.id, lp)
 
-            # Set the ports in a known good initial state
-            try:
-                for port in self.northbound_ports.itervalues():
-                    self.startup = yield port.reset()
-
-                for port in self.southbound_ports.itervalues():
-                    self.startup = yield port.reset()
-
-            except Exception as e:
-                self.log.exception('port-reset', e=e)
-                self.activate_failed(device, e.message)
-
             # Clean up all EVCs, EVC maps and ACLs (exceptions are ok)
             try:
                 from flow.evc import EVC
                 self.startup = yield EVC.remove_all(self.netconf_client)
+                from flow.utility_evc import UtilityEVC
+                self.startup = yield UtilityEVC.remove_all(self.netconf_client)
+                from flow.untagged_evc import UntaggedEVC
+                self.startup = yield UntaggedEVC.remove_all(self.netconf_client)
 
             except Exception as e:
                 self.log.exception('evc-cleanup', e=e)
@@ -695,12 +717,16 @@ class AdtranDeviceHandler(object):
             except Exception as e:
                 self.log.exception('evc-map-cleanup', e=e)
 
+            from flow.acl import ACL
+            ACL.clear_all(device.id)
             try:
-                from flow.acl import ACL
                 self.startup = yield ACL.remove_all(self.netconf_client)
 
             except Exception as e:
                 self.log.exception('acl-cleanup', e=e)
+
+            from flow.flow_entry import FlowEntry
+            FlowEntry.clear_all(device.id)
 
         # Start/stop the interfaces as needed. These are deferred calls
 
@@ -856,19 +882,15 @@ class AdtranDeviceHandler(object):
         device.connect_status = ConnectStatus.UNREACHABLE
         self.adapter_agent.update_device(device)
 
-        # Remove the logical device
-        ldi, self.logical_device_id = self.logical_device_id, None
-
-        if ldi is not None:
-            logical_device = self.adapter_agent.get_logical_device(ldi)
-            self.adapter_agent.delete_logical_device(logical_device)
-
         # Disable all child devices first
         self.adapter_agent.update_child_devices_state(self.device_id,
                                                       admin_state=AdminState.DISABLED)
 
         # Remove the peer references from this device
         self.adapter_agent.delete_all_peer_references(self.device_id)
+
+        # Remove the logical device
+        self._delete_logical_device()
 
         # Set all ports to disabled
         self.adapter_agent.disable_all_ports(self.device_id)
@@ -898,10 +920,6 @@ class AdtranDeviceHandler(object):
         self.startup.addCallbacks(_drop_netconf, _null_clients)
         self.startup.addCallbacks(_null_clients, _null_clients)
 
-        #  Update the logical device mapping
-        if ldi in self.adapter.logical_device_id_to_root_device_id:
-            del self.adapter.logical_device_id_to_root_device_id[ldi]
-
         self.log.info('disabled', device_id=device.id)
         return self.startup
 
@@ -925,14 +943,27 @@ class AdtranDeviceHandler(object):
 
         # Update the connect status to REACHABLE
         device.connect_status = ConnectStatus.REACHABLE
+        device.oper_status = OperStatus.ACTIVATING
         self.adapter_agent.update_device(device)
 
-        # Set all ports to enabled
-        self.adapter_agent.enable_all_ports(self.device_id)
+        # Reenable any previously configured southbound ports
+        for port in self.southbound_ports.itervalues():
+            self.log.debug('reenable-checking-pon-port', pon_id=port.pon_id)
 
-        # Recreate the logical device
+            gpon_info = self.get_xpon_info(port.pon_id)
+            if gpon_info is not None and \
+                gpon_info['channel-terminations'] is not None and \
+                len(gpon_info['channel-terminations']) > 0:
 
-        ld_initialized = self.create_logical_device(device)
+                cterms = gpon_info['channel-terminations']
+                if any(term.get('enabled') for term in cterms.itervalues()):
+                    self.log.info('reenable', pon_id=port.pon_id)
+                    port.enabled = True
+
+        # Flows should not exist on re-enable. They are re-pushed
+        if len(self._evcs):
+            self.log.warn('evcs-found', evcs=self._evcs)
+        self._evcs.clear()
 
         try:
             yield self.make_restconf_connection()
@@ -946,8 +977,11 @@ class AdtranDeviceHandler(object):
         except Exception as e:
             self.log.exception('NETCONF-re-connection', e=e)
 
-        # Create logical ports for all southbound and northbound interfaces
+        # Recreate the logical device
+        # NOTE: This causes a flow update event
+        ld_initialized = self.create_logical_device(device)
 
+        # Create logical ports for all southbound and northbound interfaces
         try:
             self.startup = self.create_logical_ports(device, ld_initialized, False)
             yield self.startup
@@ -959,29 +993,14 @@ class AdtranDeviceHandler(object):
         device.parent_id = ld_initialized.id
         device.oper_status = OperStatus.ACTIVE
         device.reason = ''
-        self.adapter_agent.update_device(device)
         self.logical_device_id = ld_initialized.id
+
+        # update device active status now
+        self.adapter_agent.update_device(device)
 
         # Reenable all child devices
         self.adapter_agent.update_child_devices_state(device.id,
                                                       admin_state=AdminState.ENABLED)
-        dl = []
-
-        for port in self.northbound_ports.itervalues():
-            dl.append(port.start())
-
-        for port in self.southbound_ports.itervalues():
-            dl.append(port.start())
-
-        # Flows should not exist on re-enable. They are re-pushed
-        if len(self._evcs):
-            self.log.error('evcs-found', evcs=self._evcs)
-        self._evcs.clear()
-
-        # Wait for completion
-
-        self.startup = defer.gatherResults(dl, consumeErrors=True)
-        results = yield self.startup
 
         # Re-subscribe for ONU detection
         # self.adapter_agent.register_for_onu_detect_state(self.device.id)
@@ -997,7 +1016,7 @@ class AdtranDeviceHandler(object):
         if done_deferred is not None:
             done_deferred.callback('Done')
 
-        returnValue(results)
+        returnValue('reenabled')
 
     @inlineCallbacks
     def reboot(self):
@@ -1183,7 +1202,7 @@ class AdtranDeviceHandler(object):
         # Remove all flows from the device
         # TODO: Create a bulk remove-all by device-id
 
-        evcs = self._evcs()
+        evcs = self._evcs
         self._evcs.clear()
 
         for evc in evcs:
@@ -1192,10 +1211,8 @@ class AdtranDeviceHandler(object):
         # Remove all child devices
         self.adapter_agent.delete_all_child_devices(self.device_id)
 
-        # Remove the logical device
-        logical_device = self.adapter_agent.get_logical_device(self.logical_device_id)
-        self.adapter_agent.delete_logical_device(logical_device)
-        # TODO: For some reason, the logical device does not seem to get deleted
+        # Remove the logical device (should already be gone if disable came first)
+        self._delete_logical_device()
 
         # Remove the peer references from this device
         self.adapter_agent.delete_all_peer_references(self.device_id)
