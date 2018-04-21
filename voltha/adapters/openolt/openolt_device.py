@@ -37,6 +37,7 @@ from voltha.protos.bbf_fiber_tcont_body_pb2 import TcontsConfigData
 import voltha.core.flow_decomposer as fd
 
 ASFVOLT_HSIA_ID = 13 # FIXME
+ASFVOLT_DHCP_TAGGED_ID = 5 # FIXME
 
 Onu = collections.namedtuple("Onu", ["intf_id", "onu_id"])
 
@@ -84,18 +85,21 @@ class OpenoltDevice(object):
         device.oper_status = OperStatus.ACTIVATING
         self.adapter_agent.update_device(device)
 
+
         # Initialize gRPC
         self.channel = grpc.insecure_channel(self.host_and_port)
-        self.stub = openolt_pb2_grpc.OpenoltStub(self.channel)
+        self.channel_ready_future = grpc.channel_ready_future(self.channel)
 
         # Start indications thread
-        self.indications_thread = threading.Thread(target=self.process_indication)
+        self.indications_thread = threading.Thread(target=self.process_indications)
         self.indications_thread.daemon = True
         self.indications_thread.start()
 
-    def process_indication(self):
+    def process_indications(self):
+        self.channel_ready_future.result() # blocks till gRPC connection is complete
+        self.stub = openolt_pb2_grpc.OpenoltStub(self.channel)
         self.indications = self.stub.EnableIndication(openolt_pb2.Empty())
-        while 1:
+        while True:
             # get the next indication from olt
             ind = next(self.indications)
             self.log.debug("rx indication", indication=ind)
@@ -576,22 +580,21 @@ class OpenoltDevice(object):
     def divide_and_add_flow(self, onu_id, intf_id, classifier, action):
         if 'ip_proto' in classifier:
             if classifier['ip_proto'] == 17:
-                self.log.error('dhcp flow add ignored')
+                self.log.info('dhcp flow add')
+                self.add_dhcp_trap(classifier, action, onu_id, intf_id)
             elif classifier['ip_proto'] == 2:
                 self.log.info('igmp flow add ignored')
             else:
-                self.log.info("Invalid-Classifier-to-handle",
-                              classifier=classifier,
-                              action=action)
+                self.log.info("Invalid-Classifier-to-handle", classifier=classifier,
+                        action=action)
         elif 'eth_type' in classifier:
             if classifier['eth_type'] == 0x888e:
                 self.log.error('epol flow add ignored')
         elif 'push_vlan' in action:
             self.add_data_flow(onu_id, intf_id, classifier, action)
         else:
-            self.log.info('Invalid-flow-type-to-handle',
-                          classifier=classifier,
-                          action=action)
+            self.log.info('Invalid-flow-type-to-handle', classifier=classifier,
+                    action=action)
 
     def add_data_flow(self, onu_id, intf_id, uplink_classifier, uplink_action):
 
@@ -610,8 +613,7 @@ class OpenoltDevice(object):
         # will take care of handling all the p bits.
         # We need to revisit when mulitple gem port per p bits is needed.
         self.add_hsia_flow(onu_id, intf_id, uplink_classifier, uplink_action,
-                          downlink_classifier, downlink_action,
-                          ASFVOLT_HSIA_ID)
+                downlink_classifier, downlink_action, ASFVOLT_HSIA_ID)
 
     def mk_classifier(self, classifier_info):
 
@@ -664,46 +666,52 @@ class OpenoltDevice(object):
         return action
 
     def add_hsia_flow(self, onu_id, intf_id, uplink_classifier, uplink_action,
-                     downlink_classifier, downlink_action, hsia_id):
+                downlink_classifier, downlink_action, hsia_id):
 
         gemport_id = self.mk_gemport_id(onu_id)
-        alloc_id = self.mk_alloc_id(onu_id)
         flow_id = self.mk_flow_id(onu_id, intf_id, hsia_id)
 
-        self.log.info('add_hsia_flow',
-                      onu_id=onu_id,
-                      classifier=uplink_classifier,
-                      action=uplink_action,
-                      gemport_id=gemport_id,
-                      flow_id=flow_id,
-                      sched_info=alloc_id)
+        self.log.info('add upstream flow', onu_id=onu_id, classifier=uplink_classifier,
+                action=uplink_action, gemport_id=gemport_id, flow_id=flow_id)
 
         flow = openolt_pb2.Flow(
-            onu_id=onu_id,
-            flow_id=flow_id,
-            flow_type="upstream",
-            gemport_id=gemport_id,
-            classifier=self.mk_classifier(uplink_classifier),
-            action=self.mk_action(uplink_action))
+                onu_id=onu_id, flow_id=flow_id, flow_type="upstream",
+                gemport_id=gemport_id, classifier=self.mk_classifier(uplink_classifier),
+                action=self.mk_action(uplink_action))
+
         self.stub.FlowAdd(flow)
         time.sleep(0.1) # FIXME
 
-        self.log.info('Adding-ARP-downstream-flow',
-                      classifier=downlink_classifier,
-                      action=downlink_action,
-                      gemport_id=gemport_id,
-                      flow_id=flow_id)
+        self.log.info('add downstream flow', classifier=downlink_classifier,
+                action=downlink_action, gemport_id=gemport_id, flow_id=flow_id)
 
         flow = openolt_pb2.Flow(
-            onu_id=onu_id,
-            flow_id=flow_id,
-            flow_type="downstream",
-            access_intf_id=intf_id,
-            gemport_id=gemport_id,
-            classifier=self.mk_classifier(downlink_classifier),
-            action=self.mk_action(downlink_action))
+                onu_id=onu_id, flow_id=flow_id, flow_type="downstream",
+                access_intf_id=intf_id, gemport_id=gemport_id,
+                classifier=self.mk_classifier(downlink_classifier),
+                action=self.mk_action(downlink_action))
+
         self.stub.FlowAdd(flow)
         time.sleep(0.1) # FIXME
+
+    def add_dhcp_trap(self, classifier, action, onu_id, intf_id):
+
+        self.log.info('add dhcp trap', classifier=classifier, action=action)
+
+        action.clear()
+        action['trap_to_host'] = True
+        classifier['pkt_tag_type'] = 'single_tag'
+        classifier.pop('vlan_vid', None)
+
+        gemport_id = self.mk_gemport_id(onu_id)
+        flow_id = self.mk_flow_id(onu_id, intf_id, ASFVOLT_DHCP_TAGGED_ID)
+
+        flow = openolt_pb2.Flow(
+                onu_id=onu_id, flow_id=flow_id, flow_type="upstream",
+                gemport_id=gemport_id, classifier=self.mk_classifier(classifier),
+                action=self.mk_action(action))
+
+        self.stub.FlowAdd(flow)
 
     def mk_flow_id(self, onu_id, intf_id, id):
         # Tp-Do Need to generate unique flow ID using
