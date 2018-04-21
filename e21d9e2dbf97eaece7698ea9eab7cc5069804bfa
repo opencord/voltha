@@ -162,6 +162,24 @@
     },
     {
       "key": {
+        "uuid": "a5d04b46_a4dd01ae",
+        "filename": "voltha/core/logical_device_agent.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 469,
+      "author": {
+        "id": 1000005
+      },
+      "writtenOn": "2018-04-21T00:55:59Z",
+      "side": 1,
+      "message": "I pushed a new version with a different API - let me know what you think.",
+      "parentUuid": "3423eba4_86dad9c7",
+      "revId": "e21d9e2dbf97eaece7698ea9eab7cc5069804bfa",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b05f616a_4127a285",
         "filename": "voltha/protos/voltha.proto",
         "patchSetId": 3
