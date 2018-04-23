@@ -40,9 +40,24 @@ kubectl apply -f k8s/olt.yml
 
 # An ONU container creates the pon0 bridge
 kubectl apply -f k8s/onu.yml
-sleep 30
+
 echo 8 > tests/itests/env/tmp_pon0_group_fwd_mask
-sudo cp tests/itests/env/tmp_pon0_group_fwd_mask /sys/class/net/pon0/bridge/group_fwd_mask
+RETRY=30
+while [ $RETRY -gt 0 ];
+do
+    if [ -f /sys/class/net/pon0/bridge/group_fwd_mask ]; then
+        echo "pon0 found"
+        sudo cp tests/itests/env/tmp_pon0_group_fwd_mask /sys/class/net/pon0/bridge/group_fwd_mask
+        break
+    else
+        echo "waiting for pon0..."
+        RETRY=$(expr $RETRY - 1)
+        sleep 1
+    fi
+done
+if [ $RETRY -eq 0 ]; then
+    echo "Timed out waiting for creation of bridge pon0"
+fi
 rm tests/itests/env/tmp_pon0_group_fwd_mask
 
 kubectl apply -f k8s/rg.yml
