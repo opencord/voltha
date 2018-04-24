@@ -104,7 +104,7 @@ class OpenoltDevice(object):
         # Create logical device
         ld = LogicalDevice(
             desc=ofp_desc(
-                mfr_desc='FIXME', hw_desc='FIXME',
+                hw_desc='FIXME',
                 sw_desc='FIXME', serial_num='FIXME',
                 dp_desc='n/a'),
             switch_features=ofp_switch_features(

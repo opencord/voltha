@@ -408,9 +408,8 @@ class SimulatedOltAdapter(object):
             id='simulated1',
             datapath_id=1,
             desc=ofp_desc(
-                mfr_desc='cord project',
-                hw_desc='simualted pon',
-                sw_desc='simualted pon',
+                hw_desc='simulated pon',
+                sw_desc='simulated pon',
                 serial_num=uuid4().hex,
                 dp_desc='n/a'
             ),
@@ -521,9 +520,8 @@ class SimulatedOltAdapter(object):
         ld = LogicalDevice(
             # not setting id and datapth_id will let the adapter agent pick id
             desc=ofp_desc(
-                mfr_desc='cord porject',
-                hw_desc='simualted pon',
-                sw_desc='simualted pon',
+                hw_desc='simulated pon',
+                sw_desc='simulated pon',
                 serial_num=uuid4().hex,
                 dp_desc='n/a'
             ),
@@ -964,5 +962,3 @@ class SimulatedOltAdapter(object):
                                           logical_port_no=1,
                                           packet=eapol_start)
         return '{"status": "sent"}'
-
-

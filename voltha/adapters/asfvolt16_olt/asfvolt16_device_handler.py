@@ -869,7 +869,6 @@ class Asfvolt16Handler(OltDeviceHandler):
             # not setting id and datapth_id will let the adapter
             # agent pick id
             desc=ofp_desc(
-                mfr_desc='cord project',
                 hw_desc='n/a',
                 sw_desc='logical device for Edgecore ASFvOLT16 OLT',
                 #serial_num=uuid4().hex,
