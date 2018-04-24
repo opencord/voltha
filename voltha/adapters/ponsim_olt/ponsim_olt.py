@@ -458,7 +458,6 @@ class PonSimOltHandler(object):
             # not setting id and datapath_id.  Adapter agent will pick the id
             # and will pick the datapath_id is it is not provided
             desc=ofp_desc(
-                mfr_desc='cord porject',
                 hw_desc='simualted pon',
                 sw_desc='simualted pon',
                 serial_num=uuid4().hex,
@@ -810,7 +809,6 @@ class PonSimOltHandler(object):
         ld = LogicalDevice(
             # not setting id and datapth_id will let the adapter agent pick id
             desc=ofp_desc(
-                mfr_desc='cord porject',
                 hw_desc='simulated pon',
                 sw_desc='simulated pon',
                 serial_num=uuid4().hex,

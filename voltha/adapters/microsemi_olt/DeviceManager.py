@@ -76,7 +76,6 @@ class DeviceManager(object):
         # that will correspond to the NNI port
         ld = LogicalDevice(
             desc=ofp_desc(
-                mfr_desc=self.device.vendor,
                 hw_desc=self.device.hardware_version,
                 sw_desc=self.device.firmware_version,
                 serial_num=uuid4().hex,
