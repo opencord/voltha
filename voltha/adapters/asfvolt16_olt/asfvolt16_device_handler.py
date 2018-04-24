@@ -54,6 +54,7 @@ from voltha.protos.bbf_fiber_tcont_body_pb2 import TcontsConfigData
 from voltha.protos.bbf_fiber_gemport_body_pb2 import GemportsConfigData
 import binascii
 from argparse import ArgumentParser, ArgumentError
+from voltha.isp import att
 import shlex
 
 # The current scheme of device port numbering is below.
@@ -1038,12 +1039,54 @@ class Asfvolt16Handler(OltDeviceHandler):
         pon_id = ind_info['_pon_id']
         self.log.info('handle-activated-onu', olt_id=self.olt_id,
                       pon_ni=pon_id, onu_data=ind_info)
-        msg = {'proxy_address': child_device.proxy_address,
-               'event': 'activation-completed', 'event_data': ind_info}
+        # Check if re-activation is necessary
 
-        # Send the event message to the ONU adapter
-        self.adapter_agent.publish_inter_adapter_message(child_device.id,
+        if ind_info['activation_successful'] is True:
+            # No need to re-activate
+            self.log.info('onu-successfully-activated', olt_id=self.olt_id,
+                          pon_ni=pon_id, onu_data=ind_info)
+            msg = {'proxy_address': child_device.proxy_address,
+                   'event': 'activation-completed', 'event_data': ind_info}
+
+            # Send the event message to the ONU adapter
+            self.adapter_agent.publish_inter_adapter_message(child_device.id,
                                                          msg)
+        else:
+            # Re-activate ONU
+            # ONU is assumed activated by Voltha by it is not
+            self.log.info('onu-requires-reactivation', olt_id=self.olt_id,
+                          pon_ni=pon_id, onu_data=ind_info)
+
+            msg = {'proxy_address': child_device.proxy_address,
+                   'event': 'reactivate-onu', 'event_data': ind_info}
+            # Send the event message to the ONU adapter
+            self.adapter_agent.publish_inter_adapter_message(child_device.id,
+                                                         msg)
+            serial_number = (ind_info['_vendor_id'] +
+                             ind_info['_vendor_specific'])
+            #Find v_ont_ani to get registration id
+            matching_v_ont_ani = None
+            for v_ont_ani in self.v_ont_anis:
+                if v_ont_ani.v_ont_ani.data.expected_serial_number == child_device.serial_number:
+                    #Matching v_ont_ani for this ONU found
+                    matching_v_ont_ani = v_ont_ani.v_ont_ani
+                    self.log.debug('matching-v_ont_ani-found', onu_device=child_device, v_ont_ani=matching_v_ont_ani)
+            if matching_v_ont_ani is None:
+                self.log.warn('no-matching-v_ont_ani-found-for-onu', onu_device=child_device, v_ont_anis=self.v_ont_anis)
+            #Getting registration id
+            registration_id = self.get_registration_id(matching_v_ont_ani)
+            self.log.info('Reactivating-ONU',
+                          serial_number=serial_number,
+                          onu_id=child_device.proxy_address.onu_id,
+                          pon_id=child_device.parent_port_no)
+            onu_info = dict()
+            onu_info['pon_id'] = child_device.parent_port_no
+            onu_info['onu_id'] = child_device.proxy_address.onu_id
+            onu_info['vendor'] = child_device.vendor_id
+            onu_info['vendor_specific'] = serial_number[4:]
+            onu_info['reg_id'] = registration_id
+            self.bal.activate_onu(onu_info)
+
 
     def handle_discovered_onu(self, child_device, ind_info):
         pon_id = ind_info['_pon_id']
@@ -1051,6 +1094,7 @@ class Asfvolt16Handler(OltDeviceHandler):
             self.log.info('Activation-is-in-progress', olt_id=self.olt_id,
                           pon_ni=pon_id, onu_data=ind_info,
                           onu_id=child_device.proxy_address.onu_id)
+
 
         elif ind_info['_sub_group_type'] == 'sub_term_indication':
             self.log.info('ONU-activation-is-completed', olt_id=self.olt_id,
@@ -1120,7 +1164,16 @@ class Asfvolt16Handler(OltDeviceHandler):
                                ind_info['_pon_id'],\
                                "ONU_DISCOVERED",1,"high",\
                                balSubTermDisc)
+                try:
+                    att.new_onu_detected({"serial_number": str(serial_number), "device_id": str(self.device_id),
+                                        "pon_id": ind_info['_pon_id'], "olt_event_message" : ind_info})
+                except Exception as e:
+                    self.log.error('ISP ONU auto-activation error', e, balSubTermDisc)
+
             return
+
+        self.log.debug('onu-device-already-exists', olt_id=self.olt_id,
+                      pon_ni=ind_info['_pon_id'], onu_data=ind_info, onu_oper_status=child_device.oper_status)
 
         handler = self.onu_handlers.get(child_device.oper_status)
         if handler:
