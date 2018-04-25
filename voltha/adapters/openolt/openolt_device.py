@@ -21,6 +21,7 @@ import collections
 import time
 
 from twisted.internet import reactor
+from scapy.layers.l2 import Ether
 
 from voltha.protos.device_pb2 import Port, Device
 from voltha.protos.common_pb2 import OperStatus, AdminState, ConnectStatus
@@ -42,6 +43,41 @@ ASFVOLT_DHCP_TAGGED_ID = 5 # FIXME
 Onu = collections.namedtuple("Onu", ["intf_id", "onu_id"])
 
 """
+GEM port id
+
+     12             5          0
+    +----------------+----------+
+    |   onu id       |  svc id  |
+    +----------------+----------+
+
+- onu id field is 8 bits (256 ONUs per PON).
+- svc id is used to differentiate multiple GEM ports of an ONU.
+  This could be a LAN/UNI port index, GEM ID, queue ID,
+  traffic class ID, or some other service profile information.
+  svc id is 5 bits (32 GEM ports per ONU)
+
+Logical (OF) UNI port number
+
+    15             9                0
+    +--+------------+----------------+
+    |0 |  pon id    |    onu id      |
+    +--+------------+----------------+
+
+- pon id is a zero based id representing a pon interface
+  This is usually the pon interface id assigned by the hardware
+- Note that no LAN (UNI) port information is included.
+  Do we represent physical LAN/UNI ports as OF ports?
+  Or does it make more sense to represent GEM ports as OF ports?
+
+Logical (OF) NNI port number
+
+     15                              0
+    +--+------------------------------+
+    |1 |           nni  id            |
+    +--+------------------------------+
+"""
+
+"""
 OpenoltDevice represents an OLT.
 """
 class OpenoltDevice(object):
@@ -57,7 +93,6 @@ class OpenoltDevice(object):
         self.oper_state = 'unknown'
         self.nni_oper_state = dict() #intf_id -> oper_state
         self.onus = {} # Onu -> serial_number
-        self.uni_port_num = 20 # FIXME
 
         # Create logical device
         ld = LogicalDevice(
@@ -116,6 +151,8 @@ class OpenoltDevice(object):
                 reactor.callFromThread(self.onu_indication, ind.onu_ind)
             elif ind.HasField('omci_ind'):
                 reactor.callFromThread(self.omci_indication, ind.omci_ind)
+            elif ind.HasField('pkt_ind'):
+                reactor.callFromThread(self.packet_indication, ind.pkt_ind)
 
     def olt_indication(self, olt_indication):
 	self.log.debug("olt indication", olt_ind=olt_indication)
@@ -186,9 +223,8 @@ class OpenoltDevice(object):
 	    self.log.info("onu activation in progress",
                 intf_id=onu_disc_indication.intf_id, onu_id=onu_id)
 
-    def _get_next_uni_port(self):
-        self.uni_port_num += 1
-        return self.uni_port_num
+    def mk_uni_port_num(self, intf_id, onu_id, uni_id):
+        return intf_id << 9 | onu_id << 3 | uni_id
 
     def onu_indication(self, onu_indication):
 
@@ -219,7 +255,7 @@ class OpenoltDevice(object):
         #
         # v_enet create (olt)
         #
-        uni_no = self._get_next_uni_port()
+        uni_no = self.mk_uni_port_num(onu_indication.intf_id, onu_indication.onu_id, 0)
         uni_name = self.port_name(uni_no, Port.ETHERNET_UNI)
 	self.adapter_agent.add_port(
             self.device_id,
@@ -248,8 +284,13 @@ class OpenoltDevice(object):
                'event_data':{'gemport_id':gemport_id}}
         self.adapter_agent.publish_inter_adapter_message(onu_device.id, msg)
 
-    def mk_gemport_id(self, onu_id):
-        return 1023 + onu_id # FIXME
+    def mk_gemport_id(self, onu_id, uni_idx=0):
+        # FIXME - driver should do prefixing 1 << 13 as its Maple specific
+        return 1<<13 | onu_id<<5 | uni_idx
+
+    def onu_id_from_gemport_id(self, gemport_id):
+        # FIXME - driver should remove the (1 << 13) prefix as its Maple specific
+        return (gemport_id & ~(1<<13)) >> 5
 
     def mk_alloc_id(self, onu_id):
         return 1023 + onu_id # FIXME
@@ -265,6 +306,25 @@ class OpenoltDevice(object):
         self.adapter_agent.receive_proxied_message(
             onu_device.proxy_address,
             omci_indication.pkt)
+
+    def packet_indication(self, pkt_indication):
+
+        self.log.debug("packet indication", intf_id=pkt_indication.intf_id,
+                gemport_id=pkt_indication.gemport_id,
+                flow_id=pkt_indication.flow_id)
+
+        onu_id = self.onu_id_from_gemport_id(pkt_indication.gemport_id)
+        logical_port_num = self.mk_uni_port_num(pkt_indication.intf_id, onu_id, 0)
+
+        pkt = Ether(pkt_indication.pkt)
+        kw = dict(
+                  logical_device_id=self.logical_device_id,
+                  logical_port_no=logical_port_num,
+                  )
+        self.adapter_agent.send_packet_in(packet=str(pkt), **kw)
+
+    def packet_out(self, egress_port, msg):
+        pass
 
     def activate_onu(self, intf_id, onu_id, serial_number):
 
@@ -564,6 +624,7 @@ class OpenoltDevice(object):
                         self.log.error('unsupported-action-type',
                                        action_type=action.type, in_port=_in_port)
 
+                # FIXME - Why ignore downstream flows?
                 if is_down_stream is False:
                     intf_id, onu_id = self.parse_port_no(classifier_info['in_port'])
                     self.divide_and_add_flow(onu_id, intf_id, classifier_info, action_info)
@@ -573,10 +634,9 @@ class OpenoltDevice(object):
     def parse_port_no(self, port_no):
         return 0, 1 # FIXME
 
-    # This function will divide the upstream flow into both
-    # upstreand and downstream flow, as broadcom devices
-    # expects down stream flows to be added to handle
-    # packet_out messge from controller.
+    # FIXME - No need for divide_and_add_flow if
+    # both upstream and downstream flows
+    # are acted upon (not just upstream flows).
     def divide_and_add_flow(self, onu_id, intf_id, classifier, action):
         if 'ip_proto' in classifier:
             if classifier['ip_proto'] == 17:

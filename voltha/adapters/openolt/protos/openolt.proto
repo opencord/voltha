@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Shad Ansari
+// Copyright (c) 2018 Open Networking Foundation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -50,6 +50,7 @@ message Indication {
         OnuDiscIndication onu_disc_ind = 4;
         OnuIndication onu_ind = 5;
         OmciIndication omci_ind = 6;
+        PacketIndication pkt_ind = 7;
     }
 }
 
@@ -84,6 +85,13 @@ message OmciIndication {
     fixed32 intf_id = 1;
     fixed32 onu_id = 2;
     bytes pkt = 3;
+}
+
+message PacketIndication {
+    fixed32 intf_id = 1;
+    fixed32 gemport_id = 2;
+    fixed32 flow_id = 3;
+    bytes pkt = 4;
 }
 
 message Onu {
