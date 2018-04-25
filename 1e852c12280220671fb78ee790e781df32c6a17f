@@ -69,6 +69,24 @@
       "revId": "1e852c12280220671fb78ee790e781df32c6a17f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1682894d_6dabd1b0",
+        "filename": "install/containers.cfg.k8s",
+        "patchSetId": 1
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2018-04-25T12:54:12Z",
+      "side": 1,
+      "message": "No.  This is right.  Kubespray uses a different version of etcd.  So i need to deploy both, otherwise I need to overwrite the one configured in the kubespay release.",
+      "parentUuid": "c841ba50_703ddb50",
+      "revId": "1e852c12280220671fb78ee790e781df32c6a17f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
