@@ -50,7 +50,7 @@ class UniPort(object):
 
     @staticmethod
     def create(handler, name, port_no, ofp_port_no, subscriber_vlan, untagged_vlan):
-        port = UniPort(handler, name, port_no, ofp_port_no,subscriber_vlan, untagged_vlan)
+        port = UniPort(handler, name, port_no, ofp_port_no, subscriber_vlan, untagged_vlan)
         return port
 
     def _start(self):
@@ -58,6 +58,7 @@ class UniPort(object):
 
         self._admin_state = AdminState.ENABLED
         self._oper_status = OperStatus.ACTIVE
+
         self._update_adapter_agent()
         # TODO: start h/w sync
         # TODO: Enable the actual physical port?
@@ -68,6 +69,7 @@ class UniPort(object):
 
         self._admin_state = AdminState.DISABLED
         self._oper_status = OperStatus.UNKNOWN
+
         self._update_adapter_agent()
         # TODO: Disable/power-down the actual physical port?
         pass
@@ -127,15 +129,19 @@ class UniPort(object):
         Update the port status and state in the core
         """
         self.log.debug('update-adapter-agent', admin_state=self._admin_state,
-            oper_status=self._oper_status)
+                       oper_status=self._oper_status)
 
         if self._port is not None:
             self._port.admin_state = self._admin_state
             self._port.oper_status = self._oper_status
 
-        # adapter_agent add_port also does an update of existing port
-        self._handler.adapter_agent.add_port(self._handler.logical_device_id,
-                                             self.get_port())
+        try:
+            # adapter_agent add_port also does an update of existing port
+            self._handler.adapter_agent.add_port(self._handler.device_id,
+                                                 self.get_port())
+
+        except Exception as e:
+            self.log.exception('update-port', e=e)
 
     @staticmethod
     def decode_venet(venet_info):

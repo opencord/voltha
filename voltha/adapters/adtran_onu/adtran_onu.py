@@ -36,7 +36,7 @@ class AdtranOnuAdapter(OnuAdapter):
                                                device_handler_class=AdtranOnuHandler,
                                                name='adtran_onu',
                                                vendor='Adtran, Inc.',
-                                               version='0.6',
+                                               version='0.7',
                                                device_type='adtran_onu',
                                                vendor_id='ADTN')
 

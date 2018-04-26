@@ -785,38 +785,6 @@ class AdtranOnuHandler(AdtranXPON):
         if self._omci_agent is not None:
             self._omci_agent.remove_device(self.device_id, cleanup=True)
             self._omci_agent = None
-        #
-        # handling needed here
-        # self.enabled = False
-        #
-        # # TODO:  Need to implement this
-        # # 1) Remove all flows from the device
-        #
-        # self.log.info('deleted', device_id=self.device_id)
-        #
-        # # Drop device ID
-        # self.device_id = None    @inlineCallbacks
-    # def delete_v_ont_ani(self, data):
-    #     self.log.info('deleting-v_ont_ani')
-    #
-    #     device = self.adapter_agent.get_device(self.device_id)
-    #     # construct message
-    #     # MIB Reset - OntData - 0
-    #     if device.connect_status != ConnectStatus.REACHABLE:
-    #         self.log.error('device-unreachable')
-    #         returnValue(None)
-    #
-    #     self.send_mib_reset()
-    #     yield self.wait_for_response()
-    #     self.proxy_address = device.proxy_address
-    #     self.adapter_agent.unregister_for_proxied_messages(device.proxy_address)
-    #
-    #     ports = self.adapter_agent.get_ports(self.device_id, Port.PON_ONU)
-    #     if ports is not None:
-    #         for port in ports:
-    #             if port.label == 'PON port':
-    #                 self.adapter_agent.delete_port(self.device_id, port)
-    #                 break
 
     def _check_for_mock_config(self, data):
         # Check for MOCK configuration
