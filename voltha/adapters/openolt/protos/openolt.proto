@@ -32,6 +32,13 @@ service Openolt {
         };
     }
 
+    rpc OnuPacketOut(OnuPacket) returns (Empty) {
+        option (google.api.http) = {
+          post: "/v1/OnuPacketOut"
+          body: "*"
+        };
+    }
+
     rpc FlowAdd(Flow) returns (Empty) {
         option (google.api.http) = {
           post: "/v1/FlowAdd"
@@ -101,6 +108,12 @@ message Onu {
 }
 
 message OmciMsg {
+    fixed32 intf_id = 1;
+    fixed32 onu_id = 2;
+    bytes pkt = 3;
+}
+
+message OnuPacket {
     fixed32 intf_id = 1;
     fixed32 onu_id = 2;
     bytes pkt = 3;

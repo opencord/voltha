@@ -21,7 +21,8 @@ import collections
 import time
 
 from twisted.internet import reactor
-from scapy.layers.l2 import Ether
+from scapy.layers.l2 import Ether, Dot1Q
+import binascii
 
 from voltha.protos.device_pb2 import Port, Device
 from voltha.protos.common_pb2 import OperStatus, AdminState, ConnectStatus
@@ -58,7 +59,7 @@ GEM port id
 
 Logical (OF) UNI port number
 
-    15             9                0
+     15            8                0
     +--+------------+----------------+
     |0 |  pon id    |    onu id      |
     +--+------------+----------------+
@@ -181,7 +182,7 @@ class OpenoltDevice(object):
 
         if intf_oper_indication.type == "nni":
 
-            # FIXME - Ignore all nni ports except nni port 0
+            # FIXME - creating logical port for 2nd interface throws exception!
             if intf_oper_indication.intf_id != 0:
                 return
 
@@ -223,8 +224,14 @@ class OpenoltDevice(object):
 	    self.log.info("onu activation in progress",
                 intf_id=onu_disc_indication.intf_id, onu_id=onu_id)
 
-    def mk_uni_port_num(self, intf_id, onu_id, uni_id):
-        return intf_id << 9 | onu_id << 3 | uni_id
+    def mk_uni_port_num(self, intf_id, onu_id):
+        return intf_id << 8 | onu_id
+
+    def onu_id_from_port_num(self, port_num):
+        return port_num & 0xFF
+
+    def intf_id_from_port_num(self, port_num):
+        return (port_num >> 8) & 0x7F
 
     def onu_indication(self, onu_indication):
 
@@ -255,7 +262,7 @@ class OpenoltDevice(object):
         #
         # v_enet create (olt)
         #
-        uni_no = self.mk_uni_port_num(onu_indication.intf_id, onu_indication.onu_id, 0)
+        uni_no = self.mk_uni_port_num(onu_indication.intf_id, onu_indication.onu_id)
         uni_name = self.port_name(uni_no, Port.ETHERNET_UNI)
 	self.adapter_agent.add_port(
             self.device_id,
@@ -314,7 +321,7 @@ class OpenoltDevice(object):
                 flow_id=pkt_indication.flow_id)
 
         onu_id = self.onu_id_from_gemport_id(pkt_indication.gemport_id)
-        logical_port_num = self.mk_uni_port_num(pkt_indication.intf_id, onu_id, 0)
+        logical_port_num = self.mk_uni_port_num(pkt_indication.intf_id, onu_id)
 
         pkt = Ether(pkt_indication.pkt)
         kw = dict(
@@ -324,7 +331,31 @@ class OpenoltDevice(object):
         self.adapter_agent.send_packet_in(packet=str(pkt), **kw)
 
     def packet_out(self, egress_port, msg):
-        pass
+        pkt = Ether(msg)
+        self.log.info('packet out', egress_port=egress_port,
+                packet=str(pkt).encode("HEX"))
+
+        if pkt.haslayer(Dot1Q):
+            outer_shim = pkt.getlayer(Dot1Q)
+            if isinstance(outer_shim.payload, Dot1Q):
+                payload = (
+                    Ether(src=pkt.src, dst=pkt.dst, type=outer_shim.type) /
+                    outer_shim.payload
+                )
+            else:
+                payload = pkt
+        else:
+            payload = pkt
+
+        self.log.info('sending-packet-to-device', egress_port=egress_port,
+                packet=str(payload).encode("HEX"))
+
+        send_pkt = binascii.unhexlify(str(payload).encode("HEX"))
+
+        onu_pkt = openolt_pb2.OnuPacket(intf_id=intf_id_from_port_num(egress_port),
+                onu_id=onu_id_from_port_num(egress_port), pkt=send_pkt)
+
+        self.stub.OnuPacketOut(onu_packet)
 
     def activate_onu(self, intf_id, onu_id, serial_number):
 
