@@ -329,7 +329,7 @@ class PonPort(object):
 
                 for tcont in self._tconts.itervalues():
                     free_entity_id = next((k for k, v in tcont_idents.items()
-                                          if isinstance(k, int) and v.get('alloc_id', 0) == 0xFFFF), None)
+                                          if isinstance(k, int) and v.get('attributes', {}).get('alloc_id', 0) == 0xFFFF), None)
                     if free_entity_id is None:
                         self.log.error('no-available-tconts')
                         break
