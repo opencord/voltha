@@ -101,7 +101,8 @@ class SimulatedOnuAdapter(object):
         raise NotImplementedError()
 
     def disable_device(self, device):
-        raise NotImplementedError()
+        device.oper_status = OperStatus.UNKNOWN
+        self.adapter_agent.update_device(device)
 
     def reenable_device(self, device):
         raise NotImplementedError()
