@@ -20,7 +20,6 @@ from voltha.adapters.microsemi_olt.PAS5211 import PAS5211Msg, PAS5211MsgHeader, 
 
 log = structlog.get_logger()
 
-
 def constructPAS5211Frames(msg, seq, src_mac, dst_mac, channel_id=-1,
                            onu_id=-1, onu_session_id=-1):
 
@@ -41,26 +40,23 @@ def constructPAS5211Frames(msg, seq, src_mac, dst_mac, channel_id=-1,
 
     return frame
 
-
 def sequence_generator(init):
     num = init
     while True:
         yield num
         num += 1
 
-
 def determine_src_mac(iface):
     if iface in netifaces.interfaces():
         return netifaces.ifaddresses(iface)[netifaces.AF_LINK][0]['addr']
     return None
 
-
 class PAS5211Communication(object):
     def __init__(self, dst_mac, init=0, iface = None):
         self.iface = iface
         self.dst_mac = dst_mac
-        self.seqgen = sequence_generator(init)
         self.src_mac = determine_src_mac(self.iface)
+        self.seqgen = sequence_generator(init)
 
     def frame(self, msg, channel_id=-1, onu_id=-1, onu_session_id=-1):
         return constructPAS5211Frames(msg, self.seqgen.next(), self.src_mac,
