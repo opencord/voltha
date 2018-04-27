@@ -17,16 +17,22 @@ ARG REPOSITORY=
 
 FROM ${REGISTRY}${REPOSITORY}voltha-base:${TAG}
 
-MAINTAINER Voltha Community <info@opennetworking.org>
-
 # Bundle app source
-# Handle pre-requisites
-RUN apt-get update && apt-get -y install nginx-full && apt-get -y install wget
-# Download the consul-template software
-RUN wget https://releases.hashicorp.com/consul-template/0.18.2/consul-template_0.18.2_linux_amd64.tgz -O - | tar xzf - -C /usr/bin 
-#
-RUN mkdir -p /nginx_config
+# Handle pre-requisites and download/verify the consul-template software
+RUN apt-get update && apt-get install -y \
+    nginx-full \
+    curl \
+ && rm -rf /var/lib/apt/lists/* \
+ && curl -Lo /consul-template.tgz https://releases.hashicorp.com/consul-template/0.18.2/consul-template_0.18.2_linux_amd64.tgz \
+ && echo "6749a9b09f93712041651c27817c8d138a7efdadaaad6d0553164fa3dc215d13  /consul-template.tgz" | sha256sum -c - \
+ && tar -xzvf /consul-template.tgz -C /usr/bin \
+ && rm -rf /consul-template.tgz \
+ && mkdir -p /nginx_config
+
 COPY nginx_config /nginx_config
+
+RUN ln -s /usr/lib/nginx/modules /nginx_config/modules
+
 # Exposing process and default entry point
 ENTRYPOINT ["/nginx_config/start_service.sh"]
 
