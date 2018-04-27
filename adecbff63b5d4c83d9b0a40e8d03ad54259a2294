@@ -1,0 +1,319 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "e05718f0_e523daf3",
+        "filename": "voltha/adapters/microsemi_olt/PAS5211.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 414,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2018-04-27T15:40:52Z",
+      "side": 1,
+      "message": "delete line",
+      "revId": "adecbff63b5d4c83d9b0a40e8d03ad54259a2294",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ac398fce_52a5b883",
+        "filename": "voltha/adapters/microsemi_olt/PAS5211.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 431,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2018-04-27T15:40:52Z",
+      "side": 1,
+      "message": "delete line",
+      "revId": "adecbff63b5d4c83d9b0a40e8d03ad54259a2294",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "29594923_a4721f9b",
+        "filename": "voltha/adapters/microsemi_olt/PAS5211.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 439,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2018-04-27T15:40:52Z",
+      "side": 1,
+      "message": "delete line",
+      "revId": "adecbff63b5d4c83d9b0a40e8d03ad54259a2294",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "01b82e06_f324ef48",
+        "filename": "voltha/adapters/microsemi_olt/PAS5211.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 455,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2018-04-27T15:40:52Z",
+      "side": 1,
+      "message": "for this and allow below, there should be only one line of spacing",
+      "revId": "adecbff63b5d4c83d9b0a40e8d03ad54259a2294",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "71eece66_1b85d0ce",
+        "filename": "voltha/adapters/microsemi_olt/PAS5211.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 507,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2018-04-27T15:40:52Z",
+      "side": 1,
+      "message": "???",
+      "range": {
+        "startLine": 507,
+        "startChar": 8,
+        "endLine": 507,
+        "endChar": 47
+      },
+      "revId": "adecbff63b5d4c83d9b0a40e8d03ad54259a2294",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d17c8b1a_87362711",
+        "filename": "voltha/adapters/microsemi_olt/PAS5211.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 559,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2018-04-27T15:40:52Z",
+      "side": 1,
+      "message": "???",
+      "range": {
+        "startLine": 559,
+        "startChar": 38,
+        "endLine": 559,
+        "endChar": 72
+      },
+      "revId": "adecbff63b5d4c83d9b0a40e8d03ad54259a2294",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "c4a4d633_77c7d49f",
+        "filename": "voltha/adapters/microsemi_olt/PAS5211.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 828,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2018-04-27T15:40:52Z",
+      "side": 1,
+      "message": "can we put in general comments on top of the line the comment relates to?",
+      "range": {
+        "startLine": 828,
+        "startChar": 37,
+        "endLine": 828,
+        "endChar": 47
+      },
+      "revId": "adecbff63b5d4c83d9b0a40e8d03ad54259a2294",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "0b79b169_b1319f96",
+        "filename": "voltha/adapters/microsemi_olt/PAS5211.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1333,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2018-04-27T15:40:52Z",
+      "side": 1,
+      "message": "remove spaces",
+      "range": {
+        "startLine": 1333,
+        "startChar": 19,
+        "endLine": 1333,
+        "endChar": 23
+      },
+      "revId": "adecbff63b5d4c83d9b0a40e8d03ad54259a2294",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "96f7b578_7bc65dea",
+        "filename": "voltha/adapters/microsemi_olt/PAS5211_comm.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 63,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2018-04-27T15:40:52Z",
+      "side": 1,
+      "message": "should be removed? Comment on top to say why is commented?",
+      "range": {
+        "startLine": 63,
+        "startChar": 8,
+        "endLine": 63,
+        "endChar": 46
+      },
+      "revId": "adecbff63b5d4c83d9b0a40e8d03ad54259a2294",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "c5b38225_53f8e91a",
+        "filename": "voltha/adapters/microsemi_olt/PAS5211_constants.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 227,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2018-04-27T15:40:52Z",
+      "side": 1,
+      "message": "I think some are tabs, some are spaces. And they have different indentation. Should we align all of them?",
+      "range": {
+        "startLine": 198,
+        "startChar": 0,
+        "endLine": 227,
+        "endChar": 27
+      },
+      "revId": "adecbff63b5d4c83d9b0a40e8d03ad54259a2294",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "2548b9e7_fd4ff374",
+        "filename": "voltha/adapters/microsemi_olt/PAS5211_constants.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 248,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2018-04-27T15:40:52Z",
+      "side": 1,
+      "message": "remove space",
+      "range": {
+        "startLine": 248,
+        "startChar": 0,
+        "endLine": 248,
+        "endChar": 1
+      },
+      "revId": "adecbff63b5d4c83d9b0a40e8d03ad54259a2294",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "e674c823_ecd7be6c",
+        "filename": "voltha/adapters/microsemi_olt/PAS5211_constants.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 293,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2018-04-27T15:40:52Z",
+      "side": 1,
+      "message": "remove space",
+      "range": {
+        "startLine": 293,
+        "startChar": 15,
+        "endLine": 293,
+        "endChar": 16
+      },
+      "revId": "adecbff63b5d4c83d9b0a40e8d03ad54259a2294",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "20234eee_83fd1c91",
+        "filename": "voltha/adapters/microsemi_olt/PAS5211_constants.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 308,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2018-04-27T15:40:52Z",
+      "side": 1,
+      "message": "please leave in all files only one line at the end",
+      "revId": "adecbff63b5d4c83d9b0a40e8d03ad54259a2294",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "93cd205f_39372eb3",
+        "filename": "voltha/adapters/microsemi_olt/microsemi_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 28,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2018-04-27T15:40:52Z",
+      "side": 1,
+      "message": "remove space",
+      "range": {
+        "startLine": 28,
+        "startChar": 73,
+        "endLine": 28,
+        "endChar": 74
+      },
+      "revId": "adecbff63b5d4c83d9b0a40e8d03ad54259a2294",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "bdf14350_7e550d06",
+        "filename": "voltha/adapters/microsemi_olt/microsemi_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 102,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2018-04-27T15:40:52Z",
+      "side": 1,
+      "message": "increase version",
+      "range": {
+        "startLine": 102,
+        "startChar": 21,
+        "endLine": 102,
+        "endChar": 24
+      },
+      "revId": "adecbff63b5d4c83d9b0a40e8d03ad54259a2294",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
