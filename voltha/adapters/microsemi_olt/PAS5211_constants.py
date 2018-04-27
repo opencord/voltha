@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from enum import Enum
 
 """
 PAS5211 Constants
@@ -60,7 +61,6 @@ PON_GPIO_LINE_7 = 7
 def PON_EXT_GPIO_LINE(line):
     return line + 8
 
-# from enum PON_alarm_t
 PON_ALARM_SOFTWARE_ERROR = 0
 PON_ALARM_LOS = 1
 PON_ALARM_LOSI = 2
@@ -77,12 +77,14 @@ PON_ALARM_DGI = 12
 PON_ALARM_LOKI = 13
 PON_ALARM_TIWI = 14
 PON_ALARM_TIA = 15
+PON_ALARM_AUTH_FAILED_IN_REGISTRATION_ID_MODE = 20
+PON_ALARM_SUFI = 21
+
 PON_ALARM_VIRTUAL_SCOPE_ONU_LASER_ALWAYS_ON = 16
 PON_ALARM_VIRTUAL_SCOPE_ONU_SIGNAL_DEGRADATION = 17
 PON_ALARM_VIRTUAL_SCOPE_ONU_EOL = 18
 PON_ALARM_VIRTUAL_SCOPE_ONU_EOL_DATABASE_IS_FULL = 19
-PON_ALARM_AUTH_FAILED_IN_REGISTRATION_ID_MODE = 20
-PON_ALARM_SUFI = 21
+
 PON_ALARM_LAST_ALARM = 22
 
 # from enum PON_general_parameters_type_t
@@ -202,6 +204,29 @@ PON_LOGICAL_OBJECT_TYPE_MAX			        = PON_LOGICAL_OBJECT_TYPE_ONU_ID_BY_ALLOC_
 PMC_OFAL_MAX_BI_DIRECTIONAL_FLOW_PER_ONU    = 16
 PMC_OFAL_START_FLOW_ID_BASE                 = 1000
 
+PON_DL_VLAN_SVLAN_REMOVE        = 3
+PON_DL_VLAN_CVLAN_NO_CHANGE     = 0
+
+PON_VLAN_DONT_CHANGE_TAG    = 0
+PON_VLAN_CHANGE_TAG         = 1
+PON_VLAN_CHANGE_OTHER_TAG   = 2
+PON_VLAN_CHANGE_REMOVE_TAG  = 3
+
+PON_VLAN_UNUSED_TAG             = -1
+PON_VLAN_DEST_DATAPATH          = 1
+PON_VLAN_UNCHANGED_PRIORITY     = -1
+PON_VLAN_REPLACE_PRIORITY       = -2
+PON_VLAN_UNUSED_PRIORITY        = -1
+
+
+PON_OUTPUT_VLAN_PRIO_HANDLE_DONT_CHANGE         = 0
+PON_OUTPUT_VLAN_PRIO_HANDLE_INCOMING_VLAN       = 1
+PON_OUTPUT_VLAN_PRIO_HANDLE_DL_VLAN_TABLE       = 2
+
+PON_N_TO_1_VLAN_MODE    = 0
+PON_1_TO_1_VLAN_MODE    = 1
+
+
 # OMCI
 
 OMCI_8021P_MSP_UNMARKED_FRAME_TAG_FRAME = 1
@@ -218,10 +243,18 @@ OMCI_EX_VLAN_TAG_OCD_DS_MODE_US_INVERSE             = 0
 # Physical path termination point Ethernet UNI
 OMCI_EX_VLAN_TAG_OCD_ASSOCIATION_TYPE_PPTP_ETH_UNI  = 2
 
+
+
+ 
+
+
 # GEM Port Network CTP
 
 # Direction definitions
 GEM_DIR_BIDIRECT    = 3 # bi-directional
+
+# PMC
+PMC_UPSTREAM_PORT   = 129
 
 
 # SLA
@@ -234,9 +267,42 @@ PYTHAGORAS_DBA_STATUS_REPORT_NSR            = 0
 PYTHAGORAS_SET_SLA_RESP_SIZE                = 10
 
 # Random values found in PMC code
-SLA_gr_bw_gros = 1;
-SLA_be_bw_gros = 10;
-SLA_gr_bw_fine = 0;
+SLA_gr_bw_gros = 30
+SLA_be_bw_gros = 300
+SLA_gr_bw_fine = 0
 SLA_be_bw_fine = 0
 
+PON_MAX_DS_POLICING_CONFIGURATION_INDEX = 255
+PMC_OFAL_NO_POLICY = PON_MAX_DS_POLICING_CONFIGURATION_INDEX+1
+
+#Enum classes to set alarm parameters
+
+class AlarmEventType(Enum):
+    COMMUNICATION = 0
+    ENVIRONMENT = 1
+    EQUIPTMENT = 2
+    SERVICE = 3
+    PROCESSING = 4
+    SECURITY = 5
+
+class AlarmEventCategory(Enum):
+    PON = 0
+
+class AlarmEventState(Enum):
+    RAISED = 1
+    CLEARED = 0 
+
+class AlarmEventSeverity(Enum):
+    INDETERMINATE = 0
+    WARNING = 1
+    MINOR = 2
+    MAJOR = 3
+    CRITICAL = 4
+
+AlarmEventStateDefault = 1
+
+UPSTREAM = 1
+DOWNSTREAM = 2
+
+PASCOMM_RETRIES = 5
 

@@ -26,6 +26,14 @@ from voltha.adapters.microsemi_olt.PAS5211 import PAS5211MsgSendFrame, PAS5211Ms
 from voltha.adapters.microsemi_olt.PAS5211_constants import PON_ENABLE, PON_TRUE
 from voltha.adapters.microsemi_olt.PAS5211_constants import PON_PORT_PON
 
+from voltha.adapters.microsemi_olt.PAS5211 import PAS5211MsgHeader, PAS5211MsgGetOltVersionResponse, PAS5211MsgGetOltVersionResponse
+
+from voltha.extensions.omci.omci_messages import OmciMibResetResponse
+
+from voltha.extensions.omci.omci_frame import OmciFrame
+
+import sys, gc
+
 log = structlog.get_logger()
 
 
@@ -40,6 +48,34 @@ class OMCIProxy(BaseOltAutomaton):
         self.msg = kwargs.pop('msg')
 
         BaseOltAutomaton.parse_args(self, debug=debug, store=store, **kwargs)
+    
+    def restart(self, *args, **kargs):
+        self.msg = kargs.pop('msg')
+        super(OMCIProxy, self).restart()
+
+
+    def master_filter(self, pkt):
+        if not super(OMCIProxy, self).master_filter(pkt):
+            return False
+
+        if not self.proxy_address.channel_id:
+            self.proxy_address.channel_id = 0
+        
+        if not self.proxy_address.onu_id:
+            self.proxy_address.onu_id = 0
+
+        if PAS5211MsgHeader in pkt:
+            if PAS5211MsgGetOltVersionResponse not in pkt:
+                if pkt[PAS5211MsgHeader].channel_id == self.proxy_address.channel_id:
+                    if pkt[PAS5211MsgHeader].onu_id == self.proxy_address.onu_id:
+                        # OMCI response
+                        if OmciFrame in pkt:
+                            if pkt[OmciFrame].message_type not in (16, 17):
+                                return True
+                        # # SendFrameResponse corresponding to OMCI PAS request
+                        elif PAS5211MsgSendFrameResponse in pkt:
+                            return True
+        return False
 
     """
     States
@@ -60,10 +96,12 @@ class OMCIProxy(BaseOltAutomaton):
     @ATMT.state(error=1)
     def error(self, msg):
         log.error(msg)
+        raise self.end()
 
     @ATMT.state(final=1)
     def end(self):
-        pass
+        log.debug('omci-msg-end')
+        # pass
 
     """
     Utils
@@ -80,17 +118,19 @@ class OMCIProxy(BaseOltAutomaton):
 
     @ATMT.condition(got_omci_msg)
     def send_omci_msg(self):
-        log.debug('send-omci-msg')
+        log.debug('send-omci-msg', proxy_address=self.proxy_address)
         send_frame = PAS5211MsgSendFrame(port_type=PON_PORT_PON, port_id=self.proxy_address.onu_id,
                                          management_frame=PON_TRUE, frame=self.msg)
         to_send = self.px(send_frame)
-        to_send.show()
         self.send(to_send)
         raise self.wait_send_response()
 
     # Transitions from wait_send_response
-    @ATMT.timeout(wait_send_response, 3)
+    @ATMT.timeout(wait_send_response, 10)
     def timeout_wait_send_response(self):
+        log.debug('omci-proxy-timeout')
+        # Send back empty packet...
+        self.adaptor_agent.receive_proxied_message(self.proxy_address, dict())
         raise self.error("No ack for OMCI for {}".format(self.proxy_address))
 
     @ATMT.receive_condition(wait_send_response)
@@ -99,15 +139,25 @@ class OMCIProxy(BaseOltAutomaton):
             raise self.wait_event()
 
     # Transitions from wait_event
-    @ATMT.timeout(wait_event, 3)
+    @ATMT.timeout(wait_event, 20)
     def timeout_wait_event(self):
+        log.debug('omci-proxy-timeout')
+        # Send back empty packet...
+        self.adaptor_agent.receive_proxied_message(self.proxy_address, dict())
         raise self.error("No OMCI event for {}".format(self.proxy_address))
 
     @ATMT.receive_condition(wait_event)
     def wait_for_event(self, pkt):
         if PAS5211EventFrameReceived in pkt:
+            log.debug("PAS5211EventFrameReceived")
             # FIXME we may need to verify the transaction id
             #  to make sure we have the right packet
-            self.adaptor_agent.recieve_proxied_message(self.proxy_address,
-                                                       pkt['PAS5211EventFrameReceived'])
+            # pkt.show()
+            # pkt['PAS5211EventFrameReceived'].show()
+            log.debug("rcv-omci-msg", proxy_address=self.proxy_address)
+            self.adaptor_agent.receive_proxied_message(self.proxy_address, pkt)
             raise self.end()
+
+    def __del__(self):
+        log.debug("OMCIProxy deleted")
+        super(OMCIProxy, self).__del__()
