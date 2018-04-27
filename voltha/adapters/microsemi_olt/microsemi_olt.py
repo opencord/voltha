@@ -25,7 +25,10 @@ from voltha.adapters.microsemi_olt.APIProxy import APIProxy
 from voltha.adapters.microsemi_olt.ActivationWatcher import ActivationWatcher
 from voltha.adapters.microsemi_olt.DeviceManager import DeviceManager
 from voltha.adapters.microsemi_olt.OMCIProxy import OMCIProxy
-from voltha.adapters.microsemi_olt.OltStateMachine import OltStateMachine
+from voltha.adapters.microsemi_olt.OltStateMachine import OltStateMachine 
+from voltha.adapters.microsemi_olt.OltInstallFlowStateMachine import OltInstallFlowStateMachine
+from voltha.adapters.microsemi_olt.OltRemoveFlowStateMachine import OltRemoveFlowStateMachine
+from voltha.adapters.microsemi_olt.OltReinstallFlowStateMachine import OltReinstallFlowStateMachine
 from voltha.adapters.microsemi_olt.PAS5211_comm import PAS5211Communication
 from voltha.extensions.omci.omci_frame import OmciFrame
 from voltha.extensions.omci.omci_messages import OmciMessage
@@ -35,8 +38,42 @@ from voltha.protos.common_pb2 import LogLevel
 from voltha.protos.device_pb2 import DeviceTypes, DeviceType
 from voltha.protos.health_pb2 import HealthStatus
 from voltha.registry import registry
-
 from zope.interface import implementer
+
+import voltha.core.flow_decomposer as fd
+
+from voltha.protos.openflow_13_pb2 import OFPPF_1GB_FD, OFPPF_FIBER, ofp_port, OFPPS_LIVE, OFPXMC_OPENFLOW_BASIC
+
+from voltha.protos.openflow_13_pb2 import Flows, FlowGroups
+
+from voltha.adapters.microsemi_olt.PAS5211 import PAS5211GetOnuAllocs, PAS5211GetOnuAllocsResponse, PAS5211GetSnInfo, \
+    PAS5211GetSnInfoResponse, PAS5211GetOnusRange, PAS5211GetOnusRangeResponse, PAS5211MsgSetOnuOmciPortId, \
+    PAS5211MsgSetOnuOmciPortIdResponse, PAS5211MsgSetOnuAllocId, PAS5211MsgSetOnuAllocIdResponse, \
+    PAS5211SetSVlanAtConfig, PAS5211SetSVlanAtConfigResponse, PAS5211SetVlanDownConfig, \
+    PAS5211SetVlanDownConfigResponse, PAS5211SetDownVlanHandl, PAS5211SetDownVlanHandlResponse, \
+    PAS5211SetUplinkVlanHandl, PAS5211SetDownstreamPolicingConfigResponse, PAS5211SetDownstreamPolicingConfig, \
+    PAS5211SetPortIdPolicingConfig, PAS5211UnsetPortIdPolicingConfig, \
+    PAS5211MsgSendDbaAlgorithmMsg, PAS5211MsgSendDbaAlgorithmMsgResponse, \
+    PAS5211SetUpstreamPolicingConfigResponse, PAS5211SetUpstreamPolicingConfig, \
+    PAS5211MsgSetPortIdConfig, PAS5211MsgSetPortIdConfigResponse, \
+    PAS5211MsgGetOnuIdByPortId, PAS5211MsgGetOnuIdByPortIdResponse, \
+    PAS5211SetVlanUplinkConfiguration, PAS5211SetVlanUplinkConfigurationResponse, PAS5211SetUplinkVlanHandlResponse, PAS5211SetVlanGenConfig, PAS5211SetVlanGenConfigResponse, \
+    PAS5211GetPortIdDownstreamPolicingConfig, PAS5211GetPortIdDownstreamPolicingConfigResponse, PAS5211RemoveDownstreamPolicingConfig, \
+    PAS5211MsgHeader, PAS5211UnsetPortIdPolicingConfigResponse, PAS5211RemoveDownstreamPolicingConfigResponse, \
+    PAS5211SetPortIdPolicingConfigResponse
+from voltha.adapters.microsemi_olt.PAS5211_constants import OMCI_GEM_IWTP_IW_OPT_8021P_MAPPER, PON_FALSE, \
+    PON_1_TO_1_VLAN_MODE, PON_TRUE, PON_VLAN_UNUSED_TAG, PON_VLAN_UNUSED_PRIORITY, PON_VLAN_REPLACE_PRIORITY, \
+    PON_OUTPUT_VLAN_PRIO_HANDLE_INCOMING_VLAN, PON_VLAN_UNCHANGED_PRIORITY, PON_OUTPUT_VLAN_PRIO_HANDLE_DONT_CHANGE, \
+    PON_OUTPUT_VLAN_PRIO_HANDLE_DL_VLAN_TABLE, PON_DL_VLAN_SVLAN_REMOVE, PON_DL_VLAN_CVLAN_NO_CHANGE, \
+    PON_VLAN_DEST_DATAPATH, GEM_DIR_BIDIRECT, OMCI_MAC_BRIDGE_PCD_LANFCS_FORWARDED, \
+    OMCI_MAC_BRIDGE_PCD_ENCAP_METHOD_LLC, OMCI_8021P_MSP_UNMARKED_FRAME_TAG_FRAME, OMCI_8021P_MSP_TP_TYPE_NULL, \
+    OMCI_EX_VLAN_TAG_OCD_ASSOCIATION_TYPE_PPTP_ETH_UNI, OMCI_EX_VLAN_TAG_OCD_DS_MODE_US_INVERSE, PMC_UPSTREAM_PORT, \
+    PON_DISABLE, PON_VLAN_CHANGE_TAG, PON_VLAN_DONT_CHANGE_TAG, PON_PORT_TYPE_GEM, PON_PORT_DESTINATION_CNI0, PON_ENABLE, SLA_gr_bw_gros, PYTHAGORAS_UPDATE_AID_SLA, \
+    SLA_gr_bw_gros, SLA_be_bw_gros, SLA_gr_bw_fine, SLA_be_bw_fine, PYTHAGORAS_DBA_DATA_COS, PYTHAGORAS_DBA_STATUS_REPORT_NSR, \
+    PMC_OFAL_NO_POLICY, UPSTREAM, DOWNSTREAM
+
+from twisted.internet import reactor
+from twisted.internet.defer import DeferredQueue, inlineCallbacks, returnValue
 
 log = structlog.get_logger()
 _ = third_party
@@ -58,25 +95,23 @@ class RubyAdapter(object):
     def __init__(self, adaptor_agent, config):
         self.adaptor_agent = adaptor_agent
         self.config = config
-        self.olts = {}
+        self.device_handlers = dict()
         self.descriptor = Adapter(
             id=self.name,
             vendor='Microsemi / Celestica',
-            version='0.1',
+            version='0.2',
             config=AdapterConfig(log_level=LogLevel.INFO)
         )
 
-        self.interface = registry('main').get_args().interface
-
     def start(self):
-        log.info('starting')
+        log.debug('starting')
         log.info('started')
         return self
 
     def stop(self):
         log.debug('stopping')
-        for target in self.olts.keys():
-            self._abandon(target)
+        for handler in self.device_handlers:
+            handler.stop()
         log.info('stopped')
         return self
 
@@ -93,23 +128,15 @@ class RubyAdapter(object):
         raise NotImplementedError()
 
     def adopt_device(self, device):
-        device_manager = DeviceManager(device, self.adaptor_agent)
-        target = device.mac_address
-        comm = PAS5211Communication(dst_mac=target, iface=self.interface)
-        olt = OltStateMachine(iface=self.interface, comm=comm,
-                              target=target, device=device_manager)
-        activation = ActivationWatcher(iface=self.interface, comm=comm,
-                                       target=target, device=device_manager)
-        reactor.callLater(0, self._init_olt, olt, activation)
-
-        log.info('adopted-device', device=device)
-        self.olts[target] = (olt, activation, comm)
+        log.debug('adopt-device', device=device)
+        self.device_handlers[device.id] = RubyAdapterHandler(self.adaptor_agent, self.config, self.descriptor)
+        reactor.callLater(0, self.device_handlers[device.id].activate, device)
 
     def reconcile_device(self, device):
         raise NotImplementedError()
 
     def abandon_device(self, device):
-        self._abandon(device.mac_address)
+        self.stop()
 
     def disable_device(self, device):
         raise NotImplementedError()
@@ -121,52 +148,6 @@ class RubyAdapter(object):
         raise NotImplementedError()
 
     def reboot_device(self, device):
-        raise NotImplementedError()
-
-    def download_image(self, device, request):
-        raise NotImplementedError()
-
-    def get_image_download_status(self, device, request):
-        raise NotImplementedError()
-
-    def cancel_image_download(self, device, request):
-        raise NotImplementedError()
-
-    def activate_image_update(self, device, request):
-        raise NotImplementedError()
-
-    def revert_image_update(self, device, request):
-        raise NotImplementedError()
-
-    def self_test_device(self, device):
-        """
-        This is called to Self a device based on a NBI call.
-        :param device: A Voltha.Device object.
-        :return: Will return result of self test
-        """
-        log.info('self-test-device', device=device.id)
-        raise NotImplementedError()
-
-    def delete_device(self, device):
-        raise NotImplementedError()
-
-    def get_device_details(self, device):
-        raise NotImplementedError()
-
-    def update_flows_bulk(self, device, flows, groups):
-        log.debug('bulk-flow-update', device_id=device.id,
-                  flows=flows, groups=groups)
-
-    def create_interface(self, device, data):
-        raise NotImplementedError()
-
-    def update_interface(self, device, data):
-        raise NotImplementedError()
-
-    def remove_interface(self, device, data):
-        raise NotImplementedError()
-
-    def receive_onu_detect_state(self, device_id, state):
         raise NotImplementedError()
 
     def create_tcont(self, device, tcont_data, traffic_descriptor_data):
@@ -205,39 +186,72 @@ class RubyAdapter(object):
     def remove_multicast_distribution_set(self, device, data):
         raise NotImplementedError()
 
+    def download_image(self, device, request):
+        raise NotImplementedError()
+
+    def get_image_download_status(self, device, request):
+        raise NotImplementedError()
+
+    def cancel_image_download(self, device, request):
+        raise NotImplementedError()
+
+    def activate_image_update(self, device, request):
+        raise NotImplementedError()
+
+    def revert_image_update(self, device, request):
+        raise NotImplementedError()
+
+    def self_test_device(self, device):
+        log.debug('self-test-device', device=device.id)
+        raise NotImplementedError()
+
+    def delete_device(self, device):
+        raise NotImplementedError()
+
+    def get_device_details(self, device):
+        raise NotImplementedError()
+
+    def update_flows_bulk(self, device, flows, groups):
+        try:
+            log.debug('olt-bulk-flow-update', device_id=device.id,
+                  flows=flows, groups=groups)
+
+            handler = self.device_handlers[device.id]
+            if handler:
+                handler.update_flow_table(device, flows)
+            else:
+                log.debug("No handler found for device {}".format(device.id))
+
+        except Exception as e:
+            log.exception('failed-olt-bulk-flow-update', e=e)
+
+
+    def create_interface(self, device, data):
+        raise NotImplementedError()
+
+    def update_interface(self, device, data):
+        raise NotImplementedError()
+
+    def remove_interface(self, device, data):
+        raise NotImplementedError()
+
+    def receive_onu_detect_state(self, device_id, state):
+        raise NotImplementedError()
+
     def send_proxied_message(self, proxy_address, msg):
+        log.debug("send-proxied-message-olt", proxy_address=proxy_address)
         device = self.adaptor_agent.get_device(proxy_address.device_id)
-        _, _, comm = self.olts[device.mac_address]
-        if isinstance(msg, OmciFrame):
-            log.info('send-omci-proxied-message', proxy_address=proxy_address, device=device)
-            # TODO make this more efficient
-            omci_proxy = OMCIProxy(proxy_address=proxy_address,
-                                   msg=msg,
-                                   adapter_agent=self.adaptor_agent,
-                                   target=device.mac_address,
-                                   comm=comm,
-                                   iface=self.interface)
-            omci_proxy.runbg()
-
-
-        else:
-            log.info('send-proxied-message', proxy_address=proxy_address)
-            api_proxy = APIProxy(proxy_address=proxy_address,
-                                 msg=msg,
-                                 adapter_agent=self.adaptor_agent,
-                                 target=device.mac_address,
-                                 comm=comm,
-                                 iface=self.interface)
-            api_proxy.runbg()
+        self.device_handlers[device.id].send_proxied_message(proxy_address, msg)
 
     def receive_proxied_message(self, proxy_address, msg):
+        log.debug("receive-proxied-message-olt-handler", proxy_address=proxy_address)
         raise NotImplementedError()
 
     def update_flows_incrementally(self, device, flow_changes, group_changes):
         raise NotImplementedError()
 
     def receive_packet_out(self, logical_device_id, egress_port_no, msg):
-        log.info('packet-out', logical_device_id=logical_device_id,
+        log.debug('packet-out', logical_device_id=logical_device_id,
                  egress_port_no=egress_port_no, msg_len=len(msg))
 
     def receive_inter_adapter_message(self, msg):
@@ -249,21 +263,289 @@ class RubyAdapter(object):
     def unsuppress_alarm(self, filter):
         raise NotImplementedError()
 
-    ##
-    # Private methods
-    ##
-    def _init_olt(self, olt, activation_watch):
+class RubyAdapterHandler(object):
+
+    name = "microsemi_olt"
+
+    supported_device_types = [
+        DeviceType(
+            id=name,
+            adapter=name,
+            accepts_bulk_flow_update=True
+        )
+    ]
+
+    def __init__(self, adaptor_agent, config, descriptor):
+        self.adaptor_agent = adaptor_agent
+        self.config = config
+        self.descriptor = descriptor
+        self.device = None
+        self.device_manager = None
+        self.comm = None
+        self.activation = None
+        self.olt = None
+        self.ports = dict()
+        self.last_iteration_ports = []
+        self.interface = registry('main').get_args().interface
+
+    def stop(self):
+        log.debug('stopping')
+        self._abandon(self.target)
+        log.info('stopped')
+        return self
+
+    def activate(self, device):
+        log.debug('activate-device', device=device)
+        self.device = device
+        self.device_manager = DeviceManager(device, self.adaptor_agent)
+        self.target = device.mac_address
+        self.comm = PAS5211Communication(dst_mac=self.target, iface=self.interface)
+
+        olt = OltStateMachine(iface=self.interface, comm=self.comm,
+                              target=self.target, device=self.device_manager)
+        activation = ActivationWatcher(iface=self.interface, comm=self.comm,
+                                target=self.target, device=self.device_manager, olt_adapter=self)
         olt.runbg()
-        activation_watch.runbg()
+        activation.runbg()
+
+        self.olt = olt
+
+    def abandon_device(self, device):
+        self._abandon(self.target)
+
+    def get_port_list(self, flows):
+        port_list = []
+        for flow in flows:
+            _in_port = fd.get_in_port(flow)
+            if _in_port not in (0, PMC_UPSTREAM_PORT):
+                if _in_port not in port_list:
+                    port_list.append(_in_port)
+                    log.debug('field-type-in-port', in_port=_in_port, port_list=port_list)
+        return port_list
+
+    def get_svlan(self, port, flows):
+        svlan_id = None
+        for flow in flows:
+            _in_port = fd.get_in_port(flow)
+            if _in_port == PMC_UPSTREAM_PORT:
+                log.debug('svlan-port-match')
+                metadata = fd.get_metadata(flow)
+                if metadata:
+                    if metadata == port:
+                        svlan_id = self.get_vlan(flow) & 0xfff
+                        log.debug('SVLAN found:{}'.format(svlan_id))
+
+        return svlan_id
+
+    def get_cvlan(self, svlan_id, port, flows):
+        cvlan_id = None
+        # Look for cvlan ...
+        for flow in flows:
+            _in_port = fd.get_in_port(flow)
+            if _in_port == port:
+                log.debug('cvlan-port-match')
+                for action in fd.get_actions(flow):
+                    if action.type == fd.SET_FIELD:
+                        vlan = action.set_field.field.ofb_field.vlan_vid & 0xfff
+                        if vlan == svlan_id:
+                            cvlan_id = self.get_vlan(flow) & 0xfff
+                            log.debug('CVLAN found:{}'.format(cvlan_id))
+        return cvlan_id
+
+    def get_uplink_bandwidth(self, cvlan_id, svlan_id, port, flows):
+        bandwidth = None
+        # Look for cvlan ...
+        for flow in flows:
+            _in_port = fd.get_in_port(flow)
+            if _in_port == port:
+                log.debug('uplink-bandwidth-port-match')
+                for action in fd.get_actions(flow):
+                    if action.type == fd.SET_FIELD:
+                        vlan = action.set_field.field.ofb_field.vlan_vid & 0xfff
+                        if vlan == svlan_id:
+                            bandwidth = fd.get_metadata(flow)
+                            if bandwidth:
+                                log.debug('Bandwidth found:{}'.format(bandwidth))
+        return bandwidth
+
+    def get_downlink_bandwidth(self, cvlan_id, svlan_id, port, flows):
+        bandwidth = None
+        for flow in flows:
+            _in_port = fd.get_in_port(flow)
+            if _in_port == PMC_UPSTREAM_PORT:
+                log.debug('downlink-bandwidth-port-match')
+                if flow.table_id == 1:
+                    metadata = fd.get_metadata(flow)
+                    if metadata:
+                        if metadata == port:
+                            vlan = self.get_vlan(flow) & 0xfff
+                            if vlan == cvlan_id:
+                                bandwidth = fd.get_metadata(flow)
+                                log.debug('Bandwidth found:{}'.format(bandwidth))
+        return bandwidth
+
+    def update_flow_table(self, device, flows):
+        try:
+            cvlan_id = None
+            svlan_id = None
+
+            log.debug('olt-update-flow-table', device_id=device.id, flows=flows)
+            # Look for in ports mentioned in flows received ...
+            port_list = self.get_port_list(flows.items)
+
+            new_ports = set(port_list)-set(self.last_iteration_ports)
+            log.debug("new-ports", new_ports=new_ports)
+
+            disconnected_ports = set(self.last_iteration_ports)-set(port_list)
+            log.debug("disconnected-ports", disconnected_ports=disconnected_ports)
+
+            # For those new ports, check if we can proceed with flow installation...
+            for port in new_ports:
+                # Got svlan for that port ...
+                svlan_id = self.get_svlan(port, flows.items)
+
+                # ... look for the corresponding cvlan...
+                if svlan_id:
+                    cvlan_id = self.get_cvlan(svlan_id, port, flows.items)
+
+                # Both vlan found!
+                if svlan_id and cvlan_id:
+
+                    # Get bandwidths from flow info...
+                    uplink_bandwidth = self.get_uplink_bandwidth(cvlan_id, svlan_id, port, flows.items)
+                    if uplink_bandwidth == None:
+                        uplink_bandwidth = SLA_be_bw_gros
+
+                    downlink_bandwidth = self.get_downlink_bandwidth(cvlan_id, svlan_id, port, flows.items)
+                    if downlink_bandwidth == None:
+                        downlink_bandwidth = SLA_be_bw_gros
+
+                    onu_id = self.ports[port]['onu_id']
+                    onu_session_id = self.ports[port]['onu_session_id']
+                    port_id = 1000 + 16 * onu_id
+                    alloc_id = port_id
+                    channel_id= port / 32
+
+                    # Check if flow is already installed, if so, continue with next port
+                    if self.ports[port].get('cvlan') and self.ports[port].get('svlan'):
+                        if self.ports[port].get('svlan') == svlan_id:
+                            # Flow already installed
+                            if self.ports[port].get('cvlan') == cvlan_id:
+                                continue
+                            # We have new VLANs so we reinstall!
+                            else:
+                                self.reinstall_flows_sequence(device, onu_id, svlan_id, cvlan_id, port_id,
+                                    alloc_id, onu_session_id, channel_id, uplink_bandwidth, downlink_bandwidth)
+                        else:
+                            # New installation...
+                            self.install_flows_sequence(device, onu_id, svlan_id, cvlan_id, port_id,
+                                alloc_id, onu_session_id, channel_id, uplink_bandwidth, downlink_bandwidth)
+                    else:
+                        # New installation...
+                        self.install_flows_sequence(device, onu_id, svlan_id, cvlan_id, port_id,
+                            alloc_id, onu_session_id, channel_id, uplink_bandwidth, downlink_bandwidth)
+
+                    self.ports[port]['svlan'] = svlan_id
+                    self.ports[port]['cvlan'] = cvlan_id
+
+                else:
+                    # Finally, it is an incomplete port, so we remove from port list
+                    port_list.remove(port)
+
+            # For those ports without flows, uninstall them
+            for port in disconnected_ports:
+
+                onu_id = self.ports[port]['onu_id']
+                onu_session_id = self.ports[port]['onu_session_id']
+                port_id = 1000 + 16 * onu_id
+                alloc_id = port_id
+                channel_id= port / 32
+
+                if self.ports[port].get('cvlan') and self.ports[port].get('svlan'):
+                    self.uninstall_flows_sequence(device, onu_id, port_id, alloc_id, onu_session_id, 
+                        channel_id)
+                    self.ports[port]['svlan'] = None
+                    self.ports[port]['cvlan'] = None
+
+            self.last_iteration_ports = port_list
+
+        except Exception as e:
+            log.exception('failed-to-olt-update-flow-table', e=e)
+
+    def get_vlan(self, flow):
+        for field in fd.get_ofb_fields(flow):
+            if field.type == fd.VLAN_VID:
+                return field.vlan_vid
+        return None
+
+    def reinstall_flows_sequence(self, device, onu_id, svlan, cvlan, port_id,
+            alloc_id, onu_session_id, channel_id, uplink_bandwidth, downlink_bandwidth):
+        log.debug('init-flow-reinstallaton')
+        try:
+            olt = OltReinstallFlowStateMachine(iface=self.interface, comm=self.comm,
+                    target=self.target, device=self.device_manager, onu_id=onu_id,
+                    channel_id=channel_id, port_id=port_id, onu_session_id=onu_session_id,
+                    alloc_id=alloc_id, svlan_id=svlan, cvlan_id=cvlan,
+                    uplink_bandwidth=uplink_bandwidth, downlink_bandwidth=downlink_bandwidth)
+            olt.runbg()
+        except Exception as e:
+            log.exception('failed-to-launch-reinstall-flow', e=e)
+
+    def install_flows_sequence(self, device, onu_id, svlan, cvlan, port_id,
+            alloc_id, onu_session_id, channel_id, uplink_bandwidth, downlink_bandwidth):
+        log.debug('init-flow-installaton')
+        try:
+            olt = OltInstallFlowStateMachine(iface=self.interface, comm=self.comm,
+                    target=self.target, device=self.device_manager, onu_id=onu_id,
+                    channel_id=channel_id, port_id=port_id, onu_session_id=onu_session_id,
+                    alloc_id=alloc_id, svlan_id=svlan, cvlan_id=cvlan,
+                    uplink_bandwidth=uplink_bandwidth, downlink_bandwidth=downlink_bandwidth)
+            olt.runbg()
+        except Exception as e:
+            log.exception('failed-to-launch-install-flow', e=e)
+
+    def uninstall_flows_sequence(self, device, onu_id, port_id, alloc_id, onu_session_id,
+            channel_id):
+        log.debug('init-flow-deinstallaton')
+        try:
+            olt = OltRemoveFlowStateMachine(iface=self.interface, comm=self.comm,
+                    target=self.target, device=self.device_manager, onu_id=onu_id,
+                    channel_id=channel_id, port_id=port_id, onu_session_id=onu_session_id,
+                    alloc_id=alloc_id)
+            olt.runbg()
+        except Exception as e:
+            log.exception('failed-to-launch-deinstallaton-flow', e=e)
 
     def _abandon(self, target):
-        olt, activation, _ = self.olts[target]
-        olt.stop()
-        activation.stop()
-        del self.olts[target]
+        self.olt.stop()
+        self.activation.stop()
 
+    # Method exposed to Activation Watcher to get onu info from Activation
+    def add_onu_info(self, port, onu_id, onu_session_id):
+        existing_port = self.ports.get(port)
+        if existing_port:
+            existing_port['onu_id'] = onu_id
+            existing_port['onu_session_id'] = onu_session_id
+        else:
+            self.ports[port] = {'onu_id': onu_id, 'onu_session_id': onu_session_id}
 
+    def send_proxied_message(self, proxy_address, msg):
+        log.debug("send-proxied-message-olt-handler", proxy_address=proxy_address)
 
+        if isinstance(msg, OmciFrame):
+            omci_proxy = OMCIProxy(proxy_address=proxy_address,
+                                   msg=msg,
+                                   adapter_agent=self.adaptor_agent,
+                                   target=self.device.mac_address,
+                                   comm=self.comm,
+                                   iface=self.interface)
+            omci_proxy.runbg()
 
-
-
+        else:
+            api_proxy = APIProxy(proxy_address=proxy_address,
+                                 msg=msg,
+                                 adapter_agent=self.adaptor_agent,
+                                 target=self.device.mac_address,
+                                 comm=self.comm,
+                                 iface=self.interface)
+            api_proxy.runbg()
