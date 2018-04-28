@@ -38,45 +38,84 @@ from voltha.adapters.openolt.protos import openolt_pb2_grpc, openolt_pb2
 from voltha.protos.bbf_fiber_tcont_body_pb2 import TcontsConfigData
 import voltha.core.flow_decomposer as fd
 
-ASFVOLT_HSIA_ID = 13 # FIXME
-ASFVOLT_DHCP_TAGGED_ID = 5 # FIXME
+HSIA_FLOW_INDEX = 0 # FIXME
+DHCP_FLOW_INDEX = 1 # FIXME
+EAPOL_FLOW_INDEX = 2 # FIXME
+EAPOL_DOWNLINK_FLOW_INDEX = 3 # FIXME
 
-ASFVOLT_EAPOL_ID = 1 # FIXME
-ASFVOLT_DOWNLINK_EAPOL_ID = 2 # FIXME
-
-# FIXME - BRDCM_DEFAULT_VLAN in broadcom_onu.py
-ASFVOLT16_DEFAULT_VLAN = 4091
+# FIXME - see also BRDCM_DEFAULT_VLAN in broadcom_onu.py
+DEFAULT_MGMT_VLAN = 4091
 
 Onu = collections.namedtuple("Onu", ["intf_id", "onu_id"])
 
 """
-GEM port id
+Encoding of identifiers
+=======================
 
-     12             5          0
-    +----------------+----------+
-    |   onu id       |  svc id  |
-    +----------------+----------+
+GEM port ID
 
-- onu id field is 8 bits (256 ONUs per PON).
-- svc id is used to differentiate multiple GEM ports of an ONU.
-  This could be a LAN/UNI port index, GEM ID, queue ID,
-  traffic class ID, or some other service profile information.
-  svc id is 5 bits (32 GEM ports per ONU)
+    GEM port id is unique per PON port
+
+     10              3      0
+    +--+--------------+------+
+    |1 |     onu id   | GEM  |
+    |  |              | idx  |
+    +--+--------------+------+
+
+    GEM port id range (0, 1023) is reserved
+    onu id = 7 bits = 128 ONUs per PON
+    GEM index = 3 bits = 8 GEM ports per ONU
+
+Alloc ID
+
+    Uniquely identifies a T-CONT
+    Ranges from 0 to 4095
+    Unique per PON interface
+
+     12         6            0
+    +------------+------------+
+    |   onu id   | Alloc idx  |
+    +------------+------------+
+
+    onu id = 7 bits = 128 ONUs per PON
+    Alloc index = 6 bits = 64 GEM ports per ONU
+
+Flow id
+
+    Identifies a flow within a single OLT
+    Flow Id is unique per OLT
+    Multiple GEM ports can map to same flow id
+
+     13    11              4      0
+    +--------+--------------+------+
+    | pon id |    onu id    | Flow |
+    |        |              | idx  |
+    +--------+--------------+------+
+
+    14 bits = 16384 flows (per OLT).
+
+    pon id = 4 bits = 16 PON ports
+    onu id = 7 bits = 128 ONUss per PON port
+    Flow index = 3 bits = 4 bi-directional flows per ONU
+                        = 8 uni-directional flows per ONU
+
 
 Logical (OF) UNI port number
 
-     15            8                0
-    +--+------------+----------------+
-    |0 |  pon id    |    onu id      |
-    +--+------------+----------------+
+    OpenFlow port number corresponding to PON UNI
 
-- pon id is a zero based id representing a pon interface
-  This is usually the pon interface id assigned by the hardware
-- Note that no LAN (UNI) port information is included.
-  Do we represent physical LAN/UNI ports as OF ports?
-  Or does it make more sense to represent GEM ports as OF ports?
+     15       11              4      0
+    +--+--------+--------------+------+
+    |0 | pon id |    onu id    |   0  |
+    +--+--------+--------------+------+
+
+    pon id = 4 bits = 16 PON ports
+    onu id = 7 bits = 128 ONUs per PON port
+
 
 Logical (OF) NNI port number
+
+    OpenFlow port number corresponding to OLT NNI
 
      15                              0
     +--+------------------------------+
@@ -231,16 +270,15 @@ class OpenoltDevice(object):
                 intf_id=onu_disc_indication.intf_id, onu_id=onu_id)
 
     def mk_uni_port_num(self, intf_id, onu_id):
-        return intf_id << 8 | onu_id
+        return intf_id << 11 | onu_id << 4
 
     def onu_id_from_port_num(self, port_num):
-        return port_num & 0xFF
+        return (port_num >> 4) & 0x7F
 
     def intf_id_from_port_num(self, port_num):
-        return (port_num >> 8) & 0x7F
+        return (port_num >> 11) & 0xF
 
     def onu_indication(self, onu_indication):
-
         self.log.debug("onu indication", intf_id=onu_indication.intf_id,
                 onu_id=onu_indication.onu_id)
 
@@ -297,16 +335,17 @@ class OpenoltDevice(object):
                'event_data':{'gemport_id':gemport_id}}
         self.adapter_agent.publish_inter_adapter_message(onu_device.id, msg)
 
-    def mk_gemport_id(self, onu_id, uni_idx=0):
-        # FIXME - driver should do prefixing 1 << 13 as its Maple specific
-        return 1<<13 | onu_id<<5 | uni_idx
+    def mk_gemport_id(self, onu_id, idx=0):
+        return 1<<10 | onu_id<<3 | idx
 
     def onu_id_from_gemport_id(self, gemport_id):
-        # FIXME - driver should remove the (1 << 13) prefix as its Maple specific
-        return (gemport_id & ~(1<<13)) >> 5
+        return (gemport_id & ~(1<<10)) >> 3
 
-    def mk_alloc_id(self, onu_id):
+    def mk_alloc_id(self, onu_id, idx=0):
+        # FIXME - driver should do prefixing 1 << 10 as it is Maple specific
+        #return 1<<10 | onu_id<<6 | idx
         return 1023 + onu_id # FIXME
+
 
     def omci_indication(self, omci_indication):
 
@@ -691,7 +730,7 @@ class OpenoltDevice(object):
         elif 'push_vlan' in action:
             # FIXME - Is this required?
             #self.prepare_and_add_eapol_flow(intf_id, onu_id, classifier, action)
-            #        ASFVOLT_EAPOL_ID_DATA_VLAN, ASFVOLT_DOWNLINK_EAPOL_ID_DATA_VLAN)
+            #        EAPOL_FLOW_INDEX_DATA_VLAN, EAPOL_DOWNLINK_FLOW_INDEX_DATA_VLAN)
             self.add_data_flow(intf_id, onu_id, classifier, action)
         else:
             self.log.info('Invalid-flow-type-to-handle', classifier=classifier,
@@ -714,7 +753,7 @@ class OpenoltDevice(object):
         # will take care of handling all the p bits.
         # We need to revisit when mulitple gem port per p bits is needed.
         self.add_hsia_flow(intf_id, onu_id, uplink_classifier, uplink_action,
-                downlink_classifier, downlink_action, ASFVOLT_HSIA_ID)
+                downlink_classifier, downlink_action, HSIA_FLOW_INDEX)
 
     def mk_classifier(self, classifier_info):
 
@@ -805,7 +844,7 @@ class OpenoltDevice(object):
         classifier.pop('vlan_vid', None)
 
         gemport_id = self.mk_gemport_id(onu_id)
-        flow_id = self.mk_flow_id(intf_id, onu_id, ASFVOLT_DHCP_TAGGED_ID)
+        flow_id = self.mk_flow_id(intf_id, onu_id, DHCP_FLOW_INDEX)
 
         upstream_flow = openolt_pb2.Flow(
                 onu_id=onu_id, flow_id=flow_id, flow_type="upstream",
@@ -815,9 +854,9 @@ class OpenoltDevice(object):
         self.stub.FlowAdd(upstream_flow)
 
     def add_eapol_flow(self, intf_id, onu_id, uplink_classifier, uplink_action,
-            uplink_eapol_id=ASFVOLT_EAPOL_ID,
-            downlink_eapol_id=ASFVOLT_DOWNLINK_EAPOL_ID,
-            vlan_id=ASFVOLT16_DEFAULT_VLAN):
+            uplink_eapol_id=EAPOL_FLOW_INDEX,
+            downlink_eapol_id=EAPOL_DOWNLINK_FLOW_INDEX,
+            vlan_id=DEFAULT_MGMT_VLAN):
 
         self.log.info('add eapol flow', classifier=uplink_classifier, action=uplink_action)
 
@@ -852,9 +891,5 @@ class OpenoltDevice(object):
 
         self.stub.FlowAdd(downstream_flow)
 
-    def mk_flow_id(self, intf_id, onu_id, id):
-        # To-Do Need to generate unique flow ID using
-        # OnuID, IntfId, id
-        # BAL accepts flow_id till 16384. So we are
-        # using only onu_id and id to generate flow ID.
-        return ((onu_id << 5) | id)
+    def mk_flow_id(self, intf_id, onu_id, idx):
+        return intf_id<<11 | onu_id<<4  | idx
