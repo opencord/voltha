@@ -575,9 +575,6 @@ class OpenoltDevice(object):
                     is_down_stream = False
                     self.log.info('upstream-flow')
 
-                _out_port = fd.get_out_port(flow)  # may be None
-                self.log.info('out-port', out_port=_out_port)
-
                 for field in fd.get_ofb_fields(flow):
 
                     if field.type == fd.ETH_TYPE:
@@ -675,13 +672,11 @@ class OpenoltDevice(object):
 
                 # FIXME - Why ignore downstream flows?
                 if is_down_stream is False:
-                    intf_id, onu_id = self.parse_port_no(classifier_info['in_port'])
+                    intf_id = self.intf_id_from_port_num(classifier_info['in_port'])
+                    onu_id = self.onu_id_from_port_num(classifier_info['in_port'])
                     self.divide_and_add_flow(intf_id, onu_id, classifier_info, action_info)
             except Exception as e:
                 self.log.exception('failed-to-install-flow', e=e, flow=flow)
-
-    def parse_port_no(self, port_no):
-        return 0, 1 # FIXME
 
     # FIXME - No need for divide_and_add_flow if
     # both upstream and downstream flows
