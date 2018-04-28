@@ -352,12 +352,11 @@ class OpenoltDevice(object):
         self.log.debug("omci indication", intf_id=omci_indication.intf_id,
                 onu_id=omci_indication.onu_id)
 
-        onu_device = self.adapter_agent.get_child_device(
-            self.device_id,
-            onu_id=omci_indication.onu_id)
-        self.adapter_agent.receive_proxied_message(
-            onu_device.proxy_address,
-            omci_indication.pkt)
+        onu_device = self.adapter_agent.get_child_device(self.device_id,
+                onu_id=omci_indication.onu_id)
+
+        self.adapter_agent.receive_proxied_message(onu_device.proxy_address,
+                omci_indication.pkt)
 
     def packet_indication(self, pkt_indication):
 
@@ -369,10 +368,8 @@ class OpenoltDevice(object):
         logical_port_num = self.mk_uni_port_num(pkt_indication.intf_id, onu_id)
 
         pkt = Ether(pkt_indication.pkt)
-        kw = dict(
-                  logical_device_id=self.logical_device_id,
-                  logical_port_no=logical_port_num,
-                  )
+        kw = dict(logical_device_id=self.logical_device_id,
+                logical_port_no=logical_port_num)
         self.adapter_agent.send_packet_in(packet=str(pkt), **kw)
 
     def packet_out(self, egress_port, msg):
@@ -403,48 +400,38 @@ class OpenoltDevice(object):
         self.stub.OnuPacketOut(onu_packet)
 
     def activate_onu(self, intf_id, onu_id, serial_number):
-
         self.log.info("activate onu", intf_id=intf_id, onu_id=onu_id,
-                      serial_number=serial_number)
+                serial_number=serial_number)
 
         self.onus[Onu(intf_id=intf_id, onu_id=onu_id)] = serial_number
 
-        onu = openolt_pb2.Onu(
-            intf_id=intf_id, onu_id=onu_id, serial_number=serial_number)
+        onu = openolt_pb2.Onu(intf_id=intf_id, onu_id=onu_id,
+                serial_number=serial_number)
 
         self.stub.ActivateOnu(onu)
 
-
     def send_proxied_message(self, proxy_address, msg):
-        omci = openolt_pb2.OmciMsg(
-            intf_id=proxy_address.channel_id, # intf_id
-            onu_id=proxy_address.onu_id,
-            pkt=str(msg))
+        omci = openolt_pb2.OmciMsg(intf_id=proxy_address.channel_id, # intf_id
+                onu_id=proxy_address.onu_id, pkt=str(msg))
         self.stub.OmciMsgOut(omci)
 
     def add_onu_device(self, intf_id, port_no, onu_id, serial_number):
-
         self.log.info("Adding ONU", port_no=port_no, onu_id=onu_id,
-                      serial_number=serial_number)
+                serial_number=serial_number)
 
         # NOTE - channel_id of onu is set to intf_id
-        proxy_address = Device.ProxyAddress(
-            device_id=self.device_id,
-            channel_id=intf_id,
-            onu_id=onu_id,
-            onu_session_id=onu_id)
+        proxy_address = Device.ProxyAddress(device_id=self.device_id,
+                channel_id=intf_id, onu_id=onu_id, onu_session_id=onu_id)
 
         self.log.info("Adding ONU", proxy_address=proxy_address)
 
-        serial_number_str = ''.join([
-            serial_number.vendor_id,
-            self.stringify_vendor_specific(serial_number.vendor_specific)])
+        serial_number_str = ''.join([serial_number.vendor_id,
+                self.stringify_vendor_specific(serial_number.vendor_specific)])
 
-        self.adapter_agent.add_onu_device(
-            parent_device_id=self.device_id, parent_port_no=port_no,
-            vendor_id=serial_number.vendor_id, proxy_address=proxy_address,
-            root=True, serial_number=serial_number_str,
-            admin_state=AdminState.ENABLED) # FIXME
+        self.adapter_agent.add_onu_device(parent_device_id=self.device_id,
+                parent_port_no=port_no, vendor_id=serial_number.vendor_id,
+                proxy_address=proxy_address, root=True,
+                serial_number=serial_number_str, admin_state=AdminState.ENABLED)
 
     def intf_id_to_port_no(self, intf_id, intf_type):
         if intf_type is Port.ETHERNET_NNI:
@@ -467,7 +454,8 @@ class OpenoltDevice(object):
             prefix = "uni"
         return prefix + "-" + str(port_no)
 
-    def update_device_status(self, connect_status=None, oper_status=None, reason=None):
+    def update_device_status(self, connect_status=None, oper_status=None,
+            reason=None):
         device = self.adapter_agent.get_device(self.device_id)
         if connect_status is not None:
             device.connect_status = connect_status
@@ -486,25 +474,15 @@ class OpenoltDevice(object):
         curr_speed = OFPPF_1GB_FD
         max_speed = OFPPF_1GB_FD
 
-        ofp = ofp_port(
-            port_no=port_no,
-            hw_addr=mac_str_to_tuple('00:00:00:00:00:%02x' % port_no),
-            name=label,
-            config=0,
-            state=OFPPS_LIVE,
-            curr=cap,
-            advertised=cap,
-            peer=cap,
-            curr_speed=curr_speed,
-            max_speed=max_speed)
+        ofp = ofp_port(port_no=port_no,
+                hw_addr=mac_str_to_tuple('00:00:00:00:00:%02x' % port_no),
+                name=label, config=0, state=OFPPS_LIVE, curr=cap,
+                advertised=cap, peer=cap, curr_speed=curr_speed,
+                max_speed=max_speed)
 
-        logical_port = LogicalPort(
-            id=label,
-            ofp_port=ofp,
-            device_id=self.device_id,
-            device_port_no=port_no,
-            root_port=True
-        )
+        logical_port = LogicalPort(id=label, ofp_port=ofp,
+                device_id=self.device_id, device_port_no=port_no,
+                root_port=True)
 
         self.adapter_agent.add_logical_port(self.logical_device_id, logical_port)
 
@@ -513,29 +491,26 @@ class OpenoltDevice(object):
 
         label = self.port_name(port_no, port_type)
 
-        self.log.info('adding-port', port_no=port_no, label=label, port_type=port_type)
-        port = Port(
-            port_no=port_no,
-            label=label,
-            type=port_type,
-            admin_state=AdminState.ENABLED,
-            oper_status=oper_status
-        )
+        self.log.info('adding-port', port_no=port_no, label=label,
+                port_type=port_type)
+
+        port = Port(port_no=port_no, label=label, type=port_type,
+            admin_state=AdminState.ENABLED, oper_status=oper_status)
+
         self.adapter_agent.add_port(self.device_id, port)
+
         return port_no, label
 
     def set_oper_state(self, new_state):
         if self.oper_state != new_state:
 	    if new_state == 'up':
-	        self.update_device_status(
-		    connect_status=ConnectStatus.REACHABLE,
-		    oper_status=OperStatus.ACTIVE,
-		    reason='OLT indication - operation state up')
+	        self.update_device_status(connect_status=ConnectStatus.REACHABLE,
+		        oper_status=OperStatus.ACTIVE,
+		        reason='OLT indication - operation state up')
 	    elif new_state == 'down':
-	        self.update_device_status(
-		    connect_status=ConnectStatus.REACHABLE,
-		    oper_status=OperStatus.FAILED,
-		    reason='OLT indication - operation state down')
+	        self.update_device_status(connect_status=ConnectStatus.REACHABLE,
+		        oper_status=OperStatus.FAILED,
+		        reason='OLT indication - operation state down')
             else:
 	        raise ValueError('Invalid oper_state in olt_indication')
 
@@ -554,14 +529,14 @@ class OpenoltDevice(object):
 
     def stringify_vendor_specific(self, vendor_specific):
         return ''.join(str(i) for i in [
-		    ord(vendor_specific[0])>>4 & 0x0f,
-		    ord(vendor_specific[0]) & 0x0f,
-		    ord(vendor_specific[1])>>4 & 0x0f,
-		    ord(vendor_specific[1]) & 0x0f,
-		    ord(vendor_specific[2])>>4 & 0x0f,
-		    ord(vendor_specific[2]) & 0x0f,
-		    ord(vendor_specific[3])>>4 & 0x0f,
-		    ord(vendor_specific[3]) & 0x0f])
+                ord(vendor_specific[0])>>4 & 0x0f,
+                ord(vendor_specific[0]) & 0x0f,
+                ord(vendor_specific[1])>>4 & 0x0f,
+                ord(vendor_specific[1]) & 0x0f,
+                ord(vendor_specific[2])>>4 & 0x0f,
+                ord(vendor_specific[2]) & 0x0f,
+                ord(vendor_specific[3])>>4 & 0x0f,
+                ord(vendor_specific[3]) & 0x0f])
 
     def lookup_onu(self, serial_number):
         onu_id = None
@@ -608,52 +583,52 @@ class OpenoltDevice(object):
                     if field.type == fd.ETH_TYPE:
                         classifier_info['eth_type'] = field.eth_type
                         self.log.info('field-type-eth-type',
-                                      eth_type=classifier_info['eth_type'])
+                                eth_type=classifier_info['eth_type'])
 
                     elif field.type == fd.IP_PROTO:
                         classifier_info['ip_proto'] = field.ip_proto
                         self.log.info('field-type-ip-proto',
-                                      ip_proto=classifier_info['ip_proto'])
+                                ip_proto=classifier_info['ip_proto'])
 
                     elif field.type == fd.IN_PORT:
                         classifier_info['in_port'] = field.port
                         self.log.info('field-type-in-port',
-                                      in_port=classifier_info['in_port'])
+                                in_port=classifier_info['in_port'])
 
                     elif field.type == fd.VLAN_VID:
                         classifier_info['vlan_vid'] = field.vlan_vid & 0xfff
                         self.log.info('field-type-vlan-vid',
-                                      vlan=classifier_info['vlan_vid'])
+                                vlan=classifier_info['vlan_vid'])
 
                     elif field.type == fd.VLAN_PCP:
                         classifier_info['vlan_pcp'] = field.vlan_pcp
                         self.log.info('field-type-vlan-pcp',
-                                      pcp=classifier_info['vlan_pcp'])
+                                pcp=classifier_info['vlan_pcp'])
 
                     elif field.type == fd.UDP_DST:
                         classifier_info['udp_dst'] = field.udp_dst
                         self.log.info('field-type-udp-dst',
-                                      udp_dst=classifier_info['udp_dst'])
+                                udp_dst=classifier_info['udp_dst'])
 
                     elif field.type == fd.UDP_SRC:
                         classifier_info['udp_src'] = field.udp_src
                         self.log.info('field-type-udp-src',
-                                      udp_src=classifier_info['udp_src'])
+                                udp_src=classifier_info['udp_src'])
 
                     elif field.type == fd.IPV4_DST:
                         classifier_info['ipv4_dst'] = field.ipv4_dst
                         self.log.info('field-type-ipv4-dst',
-                                      ipv4_dst=classifier_info['ipv4_dst'])
+                                ipv4_dst=classifier_info['ipv4_dst'])
 
                     elif field.type == fd.IPV4_SRC:
                         classifier_info['ipv4_src'] = field.ipv4_src
                         self.log.info('field-type-ipv4-src',
-                                      ipv4_dst=classifier_info['ipv4_src'])
+                                ipv4_dst=classifier_info['ipv4_src'])
 
                     elif field.type == fd.METADATA:
                         classifier_info['metadata'] = field.table_metadata
                         self.log.info('field-type-metadata',
-                                      metadata=classifier_info['metadata'])
+                                metadata=classifier_info['metadata'])
 
                     else:
                         raise NotImplementedError('field.type={}'.format(
@@ -664,23 +639,21 @@ class OpenoltDevice(object):
                     if action.type == fd.OUTPUT:
                         action_info['output'] = action.output.port
                         self.log.info('action-type-output',
-                                      output=action_info['output'],
-                                      in_port=classifier_info['in_port'])
+                                output=action_info['output'],
+                                in_port=classifier_info['in_port'])
 
                     elif action.type == fd.POP_VLAN:
                         action_info['pop_vlan'] = True
-                        self.log.info('action-type-pop-vlan',
-                                      in_port=_in_port)
+                        self.log.info('action-type-pop-vlan', in_port=_in_port)
 
                     elif action.type == fd.PUSH_VLAN:
                         action_info['push_vlan'] = True
                         action_info['tpid'] = action.push.ethertype
                         self.log.info('action-type-push-vlan',
-                                      push_tpid=action_info['tpid'],
-                                      in_port=_in_port)
+                                push_tpid=action_info['tpid'], in_port=_in_port)
                         if action.push.ethertype != 0x8100:
                             self.log.error('unhandled-tpid',
-                                           ethertype=action.push.ethertype)
+                                   ethertype=action.push.ethertype)
 
                     elif action.type == fd.SET_FIELD:
                         # action_info['action_type'] = 'set_field'
@@ -688,17 +661,17 @@ class OpenoltDevice(object):
                         assert (action.set_field.field.oxm_class ==
                                 OFPXMC_OPENFLOW_BASIC)
                         self.log.info('action-type-set-field',
-                                      field=_field, in_port=_in_port)
+                                field=_field, in_port=_in_port)
                         if _field.type == fd.VLAN_VID:
                             self.log.info('set-field-type-vlan-vid',
-                                          vlan_vid=_field.vlan_vid & 0xfff)
+                                    vlan_vid=_field.vlan_vid & 0xfff)
                             action_info['vlan_vid'] = (_field.vlan_vid & 0xfff)
                         else:
                             self.log.error('unsupported-action-set-field-type',
-                                           field_type=_field.type)
+                                    field_type=_field.type)
                     else:
                         self.log.error('unsupported-action-type',
-                                       action_type=action.type, in_port=_in_port)
+                                action_type=action.type, in_port=_in_port)
 
                 # FIXME - Why ignore downstream flows?
                 if is_down_stream is False:
