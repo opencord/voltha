@@ -57,6 +57,8 @@ ncclient==0.5.3
 xmltodict==0.11.0
 dicttoxml==1.7.4
 etcd3==0.7.0
+pyparsing==2.2.0
+packaging==17.1
 
 # python-consul>=0.6.1  we need the pre-released version for now, because 0.6.1 does not
 # yet support Twisted. Once this is released, it will be the 0.6.2 version
@@ -64,4 +66,3 @@ git+https://github.com/cablehead/python-consul.git
 
 # Twisted Python kafka client
 git+https://github.com/ciena/afkak.git
-
