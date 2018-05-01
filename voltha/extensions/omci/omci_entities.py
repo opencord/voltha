@@ -390,6 +390,35 @@ class MacBridgePortConfigurationData(EntityClass):
     notifications = {OP.AlarmNotification}
 
 
+class MacBridgePortFilterPreAssignTable(EntityClass):
+    class_id = 79
+    attributes = [
+        ECA(ShortField("managed_entity_id", None), {AA.R, AA.SBC}),
+        ECA(ShortField("ipv4_multicast", 0), {AA.R, AA.W},
+            range_check=lambda x: 0 <= x <= 1),
+        ECA(ShortField("ipv6_multicast", 0), {AA.R, AA.W},
+            range_check=lambda x: 0 <= x <= 1),
+        ECA(ShortField("ipv4_broadcast", 0), {AA.R, AA.W},
+            range_check=lambda x: 0 <= x <= 1),
+        ECA(ShortField("rarp", 0), {AA.R, AA.W},
+            range_check=lambda x: 0 <= x <= 1),
+        ECA(ShortField("ipx", 0), {AA.R, AA.W},
+            range_check=lambda x: 0 <= x <= 1),
+        ECA(ShortField("netbeui", 0), {AA.R, AA.W},
+            range_check=lambda x: 0 <= x <= 1),
+        ECA(ShortField("appletalk", 0), {AA.R, AA.W},
+            range_check=lambda x: 0 <= x <= 1),
+        ECA(ShortField("bridge_management_information", 0), {AA.R, AA.W},
+            range_check=lambda x: 0 <= x <= 1),
+        ECA(ShortField("arp", 0), {AA.R, AA.W},
+            range_check=lambda x: 0 <= x <= 1),
+        ECA(ShortField("pppoe_broadcast", 0), {AA.R, AA.W},
+            range_check=lambda x: 0 <= x <= 1)
+    ]
+    mandatory_operations = {OP.Get, OP.Set}
+    notifications = {OP.AlarmNotification}
+
+
 class VlanTaggingFilterData(EntityClass):
     class_id = 84
     attributes = [
