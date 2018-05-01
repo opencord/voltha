@@ -274,6 +274,12 @@ class VolthaCli(Cmd):
         from pdb import set_trace
         set_trace()
 
+    def do_version(self, line):
+        """Show the VOLTHA core version"""
+        stub = self.get_stub()
+        voltha = stub.GetVoltha(Empty())
+        self.poutput('{}'.format(voltha.version))
+
     def do_health(self, line):
         """Show connectivity status to Voltha status"""
         stub = voltha_pb2.HealthServiceStub(self.get_channel())
