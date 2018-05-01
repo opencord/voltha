@@ -63,7 +63,7 @@ class BroadcomOnuAdapter(object):
     supported_device_types = [
         DeviceType(
             id=name,
-            vendor_id='BRCM',
+            vendor_ids=['BRCM', 'ALPH'],
             adapter=name,
             accepts_bulk_flow_update=True
         )

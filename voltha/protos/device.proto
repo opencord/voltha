@@ -21,6 +21,8 @@ message DeviceType {
     // 4 bytes of vendor id from ONU serial number
     string vendor_id = 5;
 
+    repeated string vendor_ids = 6;
+
     // Name of the adapter that handles device type
     string adapter = 2;
 
