@@ -46,11 +46,11 @@ from voltha.northbound.rest.health_check import init_rest_service
 from voltha.protos.common_pb2 import LogLevel
 from voltha.registry import registry, IComponent
 from common.frameio.frameio import FrameIOManager
-
-VERSION = '0.9.0'
+from packaging.version import Version
 
 
 defs = dict(
+    version_file='./VERSION',
     config=os.environ.get('CONFIG', './voltha.yml'),
     container_name_regex=os.environ.get('CORE_NUMBER_EXTRACTOR', '^.*\.([0-9]+)\..*$'),
     consul=os.environ.get('CONSUL', 'localhost:8500'),
@@ -238,9 +238,9 @@ def parse_args():
     if args.instance_id_is_container_name:
         args.instance_id = get_my_containers_name()
 
-    """ 
-    The container external, internal IP and PON interface needs to be 
-    set based on the subnet data.  At this time the internal IP is not used. 
+    """
+    The container external, internal IP and PON interface needs to be
+    set based on the subnet data.  At this time the internal IP is not used.
     The external IP is used for inter-core communications.  If the subnets are
     set then they take precedence over the other relevant arguments (
     external and internal host as well as interface
@@ -290,6 +290,9 @@ class Main(object):
                                  verbosity_adjust=verbosity_adjust)
         self.log.info('core-number-extractor', regex=args.container_name_regex)
 
+        self.voltha_version = self.get_version()
+        self.log.info('VOLTHA version is {}'.format(self.voltha_version))
+
         # configurable variables from voltha.yml file
         #self.configurable_vars = self.config.get('Constants', {})
 
@@ -312,6 +315,23 @@ class Main(object):
             self.start_kafka_heartbeat(self.instance_id)
 
         self.manhole = None
+
+    def get_version(self):
+        path = defs['version_file']
+        if not path.startswith('/'):
+            dir = os.path.dirname(os.path.abspath(__file__))
+            path = os.path.join(dir, path)
+
+        path = os.path.abspath(path)
+        version_file = open(path, 'r')
+        v = version_file.read()
+
+        # Use Version to validate the version string - exception will be raised
+        # if the version is invalid
+        Version(v)
+
+        version_file.close()
+        return v
 
     def start(self):
         self.start_reactor()  # will not return except Keyboard interrupt
@@ -387,7 +407,7 @@ class Main(object):
                     instance_id=self.instance_id,
                     core_store_id = self.core_store_id,
                     grpc_port=self.args.grpc_port,
-                    version=VERSION,
+                    version=self.voltha_version,
                     log_level=LogLevel.INFO
                 )
             ).start(config_backend=load_backend(store_id=self.core_store_id,
