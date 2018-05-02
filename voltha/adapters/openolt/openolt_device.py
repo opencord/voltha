@@ -46,7 +46,8 @@ EAPOL_DOWNLINK_FLOW_INDEX = 3 # FIXME
 # FIXME - see also BRDCM_DEFAULT_VLAN in broadcom_onu.py
 DEFAULT_MGMT_VLAN = 4091
 
-Onu = collections.namedtuple("Onu", ["intf_id", "onu_id"])
+OnuKey = collections.namedtuple('OnuKey', ['intf_id', 'onu_id'])
+OnuRec = collections.namedtuple('OnuRec', ['serial_number', 'state'])
 
 """
 Encoding of identifiers
@@ -138,7 +139,7 @@ class OpenoltDevice(object):
         self.log = structlog.get_logger(id=self.device_id, ip=self.host_and_port)
         self.oper_state = 'unknown'
         self.nni_oper_state = dict() #intf_id -> oper_state
-        self.onus = {} # Onu -> serial_number
+        self.onus = {} # OnuKey -> OnuRec
 
         # Create logical device
         ld = LogicalDevice(
@@ -245,29 +246,38 @@ class OpenoltDevice(object):
             pass
 
     def onu_discovery_indication(self, onu_disc_indication):
-	self.log.debug("onu discovery indication", intf_id=onu_disc_indication.intf_id,
-            serial_number=onu_disc_indication.serial_number)
+        intf_id = onu_disc_indication.intf_id
+        serial_number=onu_disc_indication.serial_number
 
-        onu_id = self.lookup_onu(serial_number=onu_disc_indication.serial_number)
+	self.log.debug("onu discovery indication", intf_id=intf_id,
+            serial_number=serial_number)
 
-        if onu_id is None:
-            onu_id = self.new_onu_id(onu_disc_indication.intf_id)
+        key = self.lookup_key(serial_number=serial_number)
+
+        if key is None:
+            onu_id = self.new_onu_id(intf_id)
             try:
-                self.add_onu_device(
-                    onu_disc_indication.intf_id,
-                    self.intf_id_to_port_no(onu_disc_indication.intf_id, Port.PON_OLT),
-                    onu_id,
-                    onu_disc_indication.serial_number)
+                self.add_onu_device(intf_id,
+                        self.intf_id_to_port_no(intf_id, Port.PON_OLT),
+                        onu_id, serial_number)
             except Exception as e:
                 self.log.exception('onu activation failed', e=e)
             else:
-                self.activate_onu(
-                    onu_disc_indication.intf_id, onu_id,
-                    serial_number=onu_disc_indication.serial_number)
+		self.log.info("activate onu", intf_id=intf_id, onu_id=onu_id,
+                        serial_number=serial_number)
+                self.onus[OnuKey(intf_id=intf_id, onu_id=onu_id)] \
+                        = OnuRec(serial_number=serial_number, state='discovered')
+		onu = openolt_pb2.Onu(intf_id=intf_id, onu_id=onu_id,
+			serial_number=serial_number)
+		self.stub.ActivateOnu(onu)
         else:
-            # FIXME - handle discovery of already activated onu
-	    self.log.info("onu activation in progress",
-                intf_id=onu_disc_indication.intf_id, onu_id=onu_id)
+            # FIXME - handle onu discover indication for a discovered/activated onu
+            onu_id = key.onu_id
+            intf_id = key.intf_id
+            if self.onus[key].state == 'discovered' or \
+                    self.onus[key].state == 'active':
+	        self.log.info("ignore onu discovery indication", intf_id=intf_id,
+                        onu_id=onu_id, state=self.onus[key].state)
 
     def mk_uni_port_num(self, intf_id, onu_id):
         return intf_id << 11 | onu_id << 4
@@ -282,8 +292,23 @@ class OpenoltDevice(object):
         self.log.debug("onu indication", intf_id=onu_indication.intf_id,
                 onu_id=onu_indication.onu_id)
 
-        # FIXME - handle onu_id/serial_number mismatch
-        assert onu_indication.onu_id == self.lookup_onu(serial_number=onu_indication.serial_number)
+        key = self.lookup_key(serial_number=onu_indication.serial_number)
+
+        # FIXME - handle serial_number mismatch
+        assert key is not None
+
+        # FIXME - handle intf_id mismatch (ONU move?)
+        assert onu_indication.intf_id == key.intf_id
+
+        # FIXME - handle onu id mismatch
+        assert onu_indication.onu_id == key.onu_id
+
+        if self.onus[key].state is not 'discovered':
+            self.log.debug("ignore onu indication", intf_id=onu_indication.intf_id,
+                    onu_id=onu_indication.onu_id, state=self.onus[key].state)
+            return
+
+        self.onus[key] = self.onus[key]._replace(state='active')
 
         onu_device = self.adapter_agent.get_child_device(
             self.device_id, onu_id=onu_indication.onu_id)
@@ -399,17 +424,6 @@ class OpenoltDevice(object):
 
         self.stub.OnuPacketOut(onu_packet)
 
-    def activate_onu(self, intf_id, onu_id, serial_number):
-        self.log.info("activate onu", intf_id=intf_id, onu_id=onu_id,
-                serial_number=serial_number)
-
-        self.onus[Onu(intf_id=intf_id, onu_id=onu_id)] = serial_number
-
-        onu = openolt_pb2.Onu(intf_id=intf_id, onu_id=onu_id,
-                serial_number=serial_number)
-
-        self.stub.ActivateOnu(onu)
-
     def send_proxied_message(self, proxy_address, msg):
         omci = openolt_pb2.OmciMsg(intf_id=proxy_address.channel_id, # intf_id
                 onu_id=proxy_address.onu_id, pkt=str(msg))
@@ -521,8 +535,8 @@ class OpenoltDevice(object):
         # onu_id is unique per PON.
         # FIXME - Remove hardcoded limit on ONUs per PON (64)
         for i in range(1, 64):
-            onu = Onu(intf_id=intf_id, onu_id=i)
-            if onu not in self.onus:
+            key = OnuKey(intf_id=intf_id, onu_id=i)
+            if key not in self.onus:
                 onu_id = i
                 break
         return onu_id
@@ -538,16 +552,16 @@ class OpenoltDevice(object):
                 ord(vendor_specific[3])>>4 & 0x0f,
                 ord(vendor_specific[3]) & 0x0f])
 
-    def lookup_onu(self, serial_number):
-        onu_id = None
-        for onu, s in self.onus.iteritems():
-            if s.vendor_id == serial_number.vendor_id:
-                str1 = self.stringify_vendor_specific(s.vendor_specific)
+    def lookup_key(self, serial_number):
+        key = None
+        for k, r in self.onus.iteritems():
+            if r.serial_number.vendor_id == serial_number.vendor_id:
+                str1 = self.stringify_vendor_specific(r.serial_number.vendor_specific)
                 str2 = self.stringify_vendor_specific(serial_number.vendor_specific)
                 if str1 == str2:
-                    onu_id = onu.onu_id
+                    key = k
                     break
-        return onu_id
+        return key
 
     def update_flow_table(self, flows):
         device = self.adapter_agent.get_device(self.device_id)
