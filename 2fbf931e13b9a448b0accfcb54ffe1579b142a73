@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "f8c69fd8_a8c9e2b2",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 1076,
+      "author": {
+        "id": 1000103
+      },
+      "writtenOn": "2018-05-04T09:38:03Z",
+      "side": 1,
+      "message": "matching_v_ont_ani cannot be used here if it is None as in the above \"if\" condition",
+      "revId": "2fbf931e13b9a448b0accfcb54ffe1579b142a73",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f0439754_269defd5",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 376,
+      "author": {
+        "id": 1000103
+      },
+      "writtenOn": "2018-05-04T09:38:03Z",
+      "side": 1,
+      "message": "The configurations would be replayed by xpon handler if it has already been created for the particular onu. creating again is not need.\nIt is needed only if the reboot happens before the creation of gem/tconts, which i believe is a corner case scenerio",
+      "revId": "2fbf931e13b9a448b0accfcb54ffe1579b142a73",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
