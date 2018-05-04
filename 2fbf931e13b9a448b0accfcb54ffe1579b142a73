@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "6f167c98_f65c1662",
+        "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 1069,
+      "author": {
+        "id": 1000103
+      },
+      "writtenOn": "2018-05-04T10:10:50Z",
+      "side": 1,
+      "message": "Both the serial number and registration id must be matched to ascertain that it is a previously discovered ONU.",
+      "revId": "2fbf931e13b9a448b0accfcb54ffe1579b142a73",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "f8c69fd8_a8c9e2b2",
         "filename": "voltha/adapters/asfvolt16_olt/asfvolt16_device_handler.py",
         "patchSetId": 3
