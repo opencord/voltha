@@ -454,7 +454,7 @@ class OpenoltDevice(object):
         elif intf_type is Port.PON_OLT:
             # Interface Ids (reported by device) are zero-based indexed
             # OpenFlow port numbering is one-based.
-            return intf_id + 1
+            return intf_id + 65 # FIXME
         else:
 	    raise Exception('Invalid port type')
 
