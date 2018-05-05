@@ -236,7 +236,7 @@ class OpenoltDevice(object):
                 self.nni_oper_state[intf_oper_indication.intf_id] = oper_state
                 port_no, label = self.add_port(intf_oper_indication.intf_id, Port.ETHERNET_NNI, oper_state)
 	        self.log.debug("int_oper_indication", port_no=port_no, label=label)
-                self.add_logical_port(port_no) # FIXME - add oper_state
+                self.add_logical_port(port_no, intf_oper_indication.intf_id) # FIXME - add oper_state
             elif intf_oper_indication.intf_id != self.nni_oper_state:
                 # FIXME - handle subsequent NNI oper state change
                 pass
@@ -345,7 +345,7 @@ class OpenoltDevice(object):
         #
         # v_enet create (onu)
         #
-        interface_name = self.port_name(onu_indication.intf_id, Port.PON_OLT)
+        interface_name = self.port_name(onu_indication.intf_id, Port.PON_OLT, onu_indication.intf_id)
         msg = {'proxy_address':onu_device.proxy_address,
                'event':'create-venet',
                'event_data':{'uni_name':uni_name, 'interface_name':uni_name}}
@@ -454,16 +454,17 @@ class OpenoltDevice(object):
         elif intf_type is Port.PON_OLT:
             # Interface Ids (reported by device) are zero-based indexed
             # OpenFlow port numbering is one-based.
-            return intf_id + 65 # FIXME
+            #return intf_id + 65 # FIXME
+            return 0x2<<28 | intf_id
         else:
 	    raise Exception('Invalid port type')
 
 
-    def port_name(self, port_no, port_type):
+    def port_name(self, port_no, port_type, intf_id=None):
         if port_type is Port.ETHERNET_NNI:
             prefix = "nni"
         elif port_type is Port.PON_OLT:
-            prefix = "pon"
+            return "pon" + str(intf_id)
         elif port_type is Port.ETHERNET_UNI:
             prefix = "uni"
         return prefix + "-" + str(port_no)
@@ -479,7 +480,7 @@ class OpenoltDevice(object):
             device.reason = reason
         self.adapter_agent.update_device(device)
 
-    def add_logical_port(self, port_no):
+    def add_logical_port(self, port_no, intf_id):
         self.log.info('adding-logical-port', port_no=port_no)
 
         label = self.port_name(port_no, Port.ETHERNET_NNI)
@@ -503,7 +504,7 @@ class OpenoltDevice(object):
     def add_port(self, intf_id, port_type, oper_status):
         port_no = self.intf_id_to_port_no(intf_id, port_type)
 
-        label = self.port_name(port_no, port_type)
+        label = self.port_name(port_no, port_type, intf_id)
 
         self.log.info('adding-port', port_no=port_no, label=label,
                 port_type=port_type)
