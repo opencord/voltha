@@ -210,7 +210,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             self.flows_proxy.update('/', Flows(items=flows))
 
     def flow_delete(self, mod):
-        assert isinstance(mod, ofp.ofp_flow_mod)
+        assert isinstance(mod, (ofp.ofp_flow_mod, ofp.ofp_flow_stats))
 
         # read from model
         flows = list(self.flows_proxy.get('/').items)
@@ -231,8 +231,10 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         if to_delete:
             self.flows_proxy.update('/', Flows(items=flows))
 
-        # send notifications for discarded flow as required by OpenFlow
-        self.announce_flows_deleted(to_delete)
+        # from mod send announcement
+        if isinstance(mod, ofp.ofp_flow_mod):
+            # send notifications for discarded flow as required by OpenFlow
+            self.announce_flows_deleted(to_delete)
 
     def flow_delete_strict(self, mod):
         assert isinstance(mod, ofp.ofp_flow_mod)
@@ -298,7 +300,10 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         """
 
         assert isinstance(flow, ofp.ofp_flow_stats)
-        assert isinstance(flow_mod, ofp.ofp_flow_mod)
+        assert isinstance(flow_mod, (ofp.ofp_flow_mod, ofp.ofp_flow_stats))
+
+        if isinstance(flow_mod, ofp.ofp_flow_stats):
+            return cls.flow_match(flow, flow_mod)
 
         # Check if flow.cookie is covered by mod.cookie and mod.cookie_mask
         if (flow.cookie & flow_mod.cookie_mask) != \
@@ -319,7 +324,6 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         if (flow_mod.out_group & 0x7fffffff) != ofp.OFPG_ANY and \
                 not cls.flow_has_out_group(flow, flow_mod.out_group):
             return False
-
         # Priority is ignored
 
         # Check match condition

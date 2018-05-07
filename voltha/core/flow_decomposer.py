@@ -511,7 +511,8 @@ class FlowDecomposer(object):
         route = self.get_route(in_port_no, out_port_no)
         if route is None:
             log.error('no-route', in_port_no=in_port_no,
-                      out_port_no=out_port_no, comment='ignoring flow')
+                      out_port_no=out_port_no, comment='deleting flow')
+            self.flow_delete(flow)
             return device_rules
 
         assert len(route) == 2
@@ -637,7 +638,8 @@ class FlowDecomposer(object):
                         route = self.get_route(in_port_no, inner_tag)
                         if route is None:
                             log.error('no-route-double-tag', in_port_no=in_port_no,
-                                      out_port_no=inner_tag, comment='ignoring flow')
+                                      out_port_no=inner_tag, comment='deleting flow')
+                            self.flow_delete(flow)
                             return device_rules
                         assert len(route) == 2
                         ingress_hop, egress_hop = route
@@ -724,7 +726,8 @@ class FlowDecomposer(object):
                         if route2 is None:
                             log.error('mc-no-route', in_port_no=in_port_no,
                                 out_port_no=out_port_no, route2=route2,
-                                comment='ignoring flow')
+                                comment='deleting flow')
+                            self.flow_delete(flow)
                             continue
 
                         assert len(route2) == 2
@@ -762,3 +765,7 @@ class FlowDecomposer(object):
 
     def get_wildcard_input_ports(self, exclude_port=None):
         raise NotImplementedError('derived class must provide')
+
+    def flow_delete(self, mod):
+        raise NotImplementedError('derived class must provide')
+        
