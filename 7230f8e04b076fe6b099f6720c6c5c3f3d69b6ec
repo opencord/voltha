@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "43df42c7_cd1512cc",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 354,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-05-08T14:38:32Z",
+      "side": 1,
+      "message": "As soon the coonection_status is made REACHABLE and operation_status is made ACTIVE the xpon replays the entire configuration. You may look at device_agent.py.\nIf this is not working I would prefer that we analyze the logs to see what is happening.\nDo you see any \"Unhandled error\" around the part where xpon replays the config. Probably there was an error in twisted context which was Unhandled and the replay task was cut short.",
+      "revId": "7230f8e04b076fe6b099f6720c6c5c3f3d69b6ec",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
