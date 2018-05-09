@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from datetime import datetime
 from mib_db_api import *
 from voltha.protos.omci_mib_db_pb2 import MibInstanceData, MibClassData, \
     MibDeviceData, MibAttributeData
@@ -105,14 +104,18 @@ class MibDbExternal(MibDbApi):
             eca = entity.attributes[attr_index]
             field = eca.field
 
-            if isinstance(field, (StrField, MACField, IPField)):
-                #  For StrField, value is an str already (or possibly JSON encoded object)
-                #  For MACField, value is a string in ':' delimited form
-                #  For IPField, value is a string in '.' delimited form
+            if isinstance(field, StrFixedLenField):
+                #  For StrFixedLenField, value is an str already (or possibly JSON encoded object)
                 if hasattr(value, 'to_json'):
                     str_value = value.to_json()
                 else:
                     str_value = str(value)
+
+            elif isinstance(field, (StrField, MACField, IPField)):
+                #  For StrField, value is an str already
+                #  For MACField, value is a string in ':' delimited form
+                #  For IPField, value is a string in '.' delimited form
+                str_value = str(value)
 
             elif isinstance(field, (ByteField, ShortField, IntField, LongField)):
                 #  For ByteField, ShortField, IntField, and LongField value is an int
@@ -156,7 +159,12 @@ class MibDbExternal(MibDbApi):
             field = eca.field
 
             if isinstance(field, StrFixedLenField):
-                value = str_value
+                from scapy.base_classes import Packet_metaclass
+                if isinstance(field.default, Packet_metaclass) and \
+                        hasattr(field.default, 'to_json'):
+                    value = json.loads(str_value)
+                else:
+                    value = str_value
 
             elif isinstance(field, MACField):
                 value = str_value
@@ -165,6 +173,8 @@ class MibDbExternal(MibDbApi):
                 value = str_value
 
             elif isinstance(field, (ByteField, ShortField, IntField, LongField)):
+                if str_value.lower() in ('true', 'false'):
+                    str_value = '1' if str_value.lower() == 'true' else '0'
                 value = int(str_value)
 
             elif isinstance(field, BitField):
@@ -359,6 +369,7 @@ class MibDbExternal(MibDbApi):
 
         :param device_id: (str) ONU Device ID
         :raises DatabaseStateError: If the database is not enabled
+        :raises KeyError: If the device does not exist in the database
         """
         self.log.debug('on-mib-reset', device_id=device_id)
 
@@ -747,7 +758,6 @@ class MibDbExternal(MibDbApi):
 
                     else:
                         # Specific attribute(s)
-
                         if isinstance(attributes, basestring):
                             attributes = {attributes}
 

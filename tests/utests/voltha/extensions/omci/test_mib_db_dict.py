@@ -15,7 +15,8 @@
 #
 from unittest import main, TestCase
 
-from voltha.extensions.omci.database.mib_db_ext import *
+from voltha.extensions.omci.omci_entities import *
+from voltha.extensions.omci.database.mib_db_dict import *
 from voltha.extensions.omci.database.mib_db_api import MODIFIED_KEY, CREATED_KEY,\
     DEVICE_ID_KEY, MDS_KEY, LAST_SYNC_KEY
 from mock.mock_adapter_agent import MockAdapterAgent, MockDevice
@@ -25,12 +26,12 @@ import time
 _DEVICE_ID = 'br-549'
 
 
-class TestOmciMibDbExt(TestCase):
+class TestOmciMibDbDict(TestCase):
 
     def setUp(self):
         self.adapter_agent = MockAdapterAgent()
         self.adapter_agent.add_device(MockDevice(_DEVICE_ID))  # For Entity class lookups
-        self.db = MibDbExternal(self.adapter_agent)
+        self.db = MibDbVolatileDict(self.adapter_agent)
 
     def tearDown(self):
         self.db.stop()
@@ -149,13 +150,12 @@ class TestOmciMibDbExt(TestCase):
         start_time = datetime.utcnow()
         self.db.add(_DEVICE_ID)
         dev_data = self.db.query(_DEVICE_ID)
+        end_time = datetime.utcnow()
 
         self.assertEqual(dev_data[DEVICE_ID_KEY], _DEVICE_ID)
         self.assertEquals(dev_data[MDS_KEY], 0)
         self.assertIsNone(dev_data[LAST_SYNC_KEY])
-        self.assertEqual(dev_data[VERSION_KEY], MibDbExternal.CURRENT_VERSION)
-
-        self.assertGreaterEqual(self.db.created, start_time)
+        self.assertEqual(dev_data[VERSION_KEY], MibDbVolatileDict.CURRENT_VERSION)
 
         # Remove it
         self.db.remove(_DEVICE_ID)
@@ -314,6 +314,7 @@ class TestOmciMibDbExt(TestCase):
 
         self.db.set(_DEVICE_ID, class_id, inst_id_1, attributes)
         self.db.set(_DEVICE_ID, class_id, inst_id_2, attributes)
+        set_time = datetime.utcnow()
         time.sleep(0.1)
 
         dev_data = self.db.query(_DEVICE_ID)
@@ -326,6 +327,7 @@ class TestOmciMibDbExt(TestCase):
 
         # Delete one instance
         time.sleep(0.1)
+        del_time = datetime.utcnow()
         result = self.db.delete(_DEVICE_ID, class_id, inst_id_1)
         self.assertTrue(result)     # True returned if a del actually happened
 
@@ -458,7 +460,6 @@ class TestOmciMibDbExt(TestCase):
         data = self.db.query(_DEVICE_ID, class_id, inst_id, attributes.keys())
         self.assertTrue(all(isinstance(data[k], type(attributes[k])) for k in attributes.keys()))
         self.assertTrue(all(data[k] == attributes[k] for k in attributes.keys()))
-
 
     def test_complex_json_serialization(self):
         self.db.start()
