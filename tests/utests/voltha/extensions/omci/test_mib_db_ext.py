@@ -1,9 +1,22 @@
 
+
+#
+# Copyright 2017 the original author or authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 from unittest import main, TestCase
 
-from voltha.protos.omci_mib_db_pb2 import MibInstanceData, MibClassData, \
-    MibDeviceData, MibAttributeData
-from datetime import datetime
 from voltha.extensions.omci.database.mib_db_ext import *
 from voltha.extensions.omci.database.mib_db_api import MODIFIED_KEY, CREATED_KEY,\
     DEVICE_ID_KEY, MDS_KEY, LAST_SYNC_KEY
@@ -14,7 +27,7 @@ import time
 _DEVICE_ID = 'br-549'
 
 
-class TestOmciMibDb(TestCase):
+class TestOmciMibDbExt(TestCase):
 
     def setUp(self):
         self.adapter_agent = MockAdapterAgent()
@@ -376,14 +389,6 @@ class TestOmciMibDb(TestCase):
         self.assertTrue(all(isinstance(data[k], basestring) for k in attributes.keys()))
         self.assertTrue(all(data[k] == attributes[k] for k in attributes.keys()))
 
-    def test_object_as_a_str_field_serialization(self):
-        # Some entity classes such as ExtendedVlanTaggingOperationConfigurationData
-        # (class-id = 171) have a Scapy Packet derived object (VlanTaggingOperation)
-        # that in the parent object is a StrFixedLenField.
-        # These classes should encode into a JSON string.  Test this serialization
-        # as well as deserialization
-        pass    # TODO: More tests here
-
     def test_mac_address_ip_field_serialization(self):
         self.db.start()
         self.db.add(_DEVICE_ID)
@@ -455,6 +460,43 @@ class TestOmciMibDb(TestCase):
         data = self.db.query(_DEVICE_ID, class_id, inst_id, attributes.keys())
         self.assertTrue(all(isinstance(data[k], type(attributes[k])) for k in attributes.keys()))
         self.assertTrue(all(data[k] == attributes[k] for k in attributes.keys()))
+
+
+    def test_complex_json_serialization(self):
+        self.db.start()
+        self.db.add(_DEVICE_ID)
+
+        class_id = ExtendedVlanTaggingOperationConfigurationData.class_id
+        inst_id = 0x202
+        table_data = VlanTaggingOperation(
+            filter_outer_priority=15,
+            filter_inner_priority=8,
+            filter_inner_vid=1024,
+            filter_inner_tpid_de=5,
+            filter_ether_type=0,
+            treatment_tags_to_remove=1,
+            pad3=2,
+            treatment_outer_priority=15,
+            treatment_inner_priority=8,
+            treatment_inner_vid=1024,
+            treatment_inner_tpid_de=4
+        )
+        attributes = dict(
+            received_frame_vlan_tagging_operation_table=table_data
+        )
+        self.db.set(_DEVICE_ID, class_id, inst_id, attributes)
+
+        data = self.db.query(_DEVICE_ID, class_id, inst_id, attributes.keys())
+        table_as_dict = json.loads(table_data.to_json())
+
+        self.assertTrue(all(isinstance(data['received_frame_vlan_tagging_operation_table'][k],
+                                       type(attributes['received_frame_vlan_tagging_operation_table'].fields[k]))
+                            for k in attributes['received_frame_vlan_tagging_operation_table'].fields.keys()))
+        self.assertTrue(all(data['received_frame_vlan_tagging_operation_table'][k] ==
+                            attributes['received_frame_vlan_tagging_operation_table'].fields[k]
+                            for k in attributes['received_frame_vlan_tagging_operation_table'].fields.keys()))
+        self.assertTrue(all(data['received_frame_vlan_tagging_operation_table'][k] == table_as_dict[k]
+                            for k in table_as_dict.keys()))
 
 
 if __name__ == '__main__':

@@ -535,7 +535,7 @@ class VlanTaggingOperation(Packet):
     ]
 
     def to_json(self):
-        return json.dumps(self.fields)
+        return json.dumps(self.fields, separators=(',', ':'))
 
 
 class ExtendedVlanTaggingOperationConfigurationData(EntityClass):
@@ -820,7 +820,7 @@ class AccessControlRow0(Packet):
     ]
 
     def to_json(self):
-        return json.dumps(self.fields)
+        return json.dumps(self.fields, separators=(',', ':'))
 
 
 class AccessControlRow1(Packet):
@@ -840,7 +840,7 @@ class AccessControlRow1(Packet):
     ]
 
     def to_json(self):
-        return json.dumps(self.fields)
+        return json.dumps(self.fields, separators=(',', ':'))
 
 
 class AccessControlRow2(Packet):
@@ -856,7 +856,7 @@ class AccessControlRow2(Packet):
     ]
 
     def to_json(self):
-        return json.dumps(self.fields)
+        return json.dumps(self.fields, separators=(',', ':'))
 
 
 class DownstreamIgmpMulticastTci(Packet):
@@ -867,7 +867,7 @@ class DownstreamIgmpMulticastTci(Packet):
     ]
 
     def to_json(self):
-        return json.dumps(self.fields)
+        return json.dumps(self.fields, separators=(',', ':'))
 
 
 class MulticastOperationsProfile(EntityClass):
@@ -921,7 +921,7 @@ class MulticastServicePackage(Packet):
     ]
 
     def to_json(self):
-        return json.dumps(self.fields)
+        return json.dumps(self.fields, separators=(',', ':'))
 
 
 class AllowedPreviewGroupsRow0(Packet):
@@ -939,7 +939,7 @@ class AllowedPreviewGroupsRow0(Packet):
     ]
 
     def to_json(self):
-        return json.dumps(self.fields)
+        return json.dumps(self.fields, separators=(',', ':'))
 
 
 class AllowedPreviewGroupsRow1(Packet):
@@ -957,7 +957,7 @@ class AllowedPreviewGroupsRow1(Packet):
     ]
 
     def to_json(self):
-        return json.dumps(self.fields)
+        return json.dumps(self.fields, separators=(',', ':'))
 
 
 class MulticastSubscriberConfigInfo(EntityClass):
