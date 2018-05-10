@@ -356,10 +356,15 @@ class BroadcomOnuHandler(object):
 
         elif event_msg['event'] == 'deactivate-onu':
             device = self.adapter_agent.get_device(self.device_id)
+            self.disable_ports(device)
             device.connect_status = ConnectStatus.UNREACHABLE
             device.oper_status = OperStatus.DISCOVERED
             self.adapter_agent.update_device(device)
-            self.disable_ports(device)
+
+        elif (event_msg['event'] == 'olt-reboot'):
+            device = self.adapter_agent.get_device(self.device_id)
+            device.connect_status = ConnectStatus.UNREACHABLE
+            self.adapter_agent.update_device(device)
 
         elif event_msg['event'] == 'ranging-completed':
 
@@ -387,6 +392,15 @@ class BroadcomOnuHandler(object):
             gem_port = GemportsConfigData()
             gem_port.gemport_id = event_msg['event_data']['gemport_id']
             self.create_gemport(gem_port)
+        elif event_msg['event'] == 'olt-disabled':
+            device = self.adapter_agent.get_device(self.device_id)
+            device.connect_status = ConnectStatus.UNREACHABLE
+            self.adapter_agent.update_device(device)
+
+        elif event_msg['event'] == 'olt-enabled':
+            device = self.adapter_agent.get_device(self.device_id)
+            device.connect_status = ConnectStatus.REACHABLE
+            self.adapter_agent.update_device(device)
 
         # Handle next event
         reactor.callLater(0, self.handle_onu_events)
@@ -1770,3 +1784,18 @@ class BroadcomOnuHandler(object):
         for port in ports:
             port_id = 'uni-{}'.format(port.port_no)
             self.update_logical_port(logical_device_id, port_id, OFPPS_LINK_DOWN)
+
+    def enable_ports(self, onu_device):
+        self.log.info('enable-ports', device_id=self.device_id)
+
+        # Disable all ports on that device
+        self.adapter_agent.enable_all_ports(self.device_id)
+
+        parent_device = self.adapter_agent.get_device(onu_device.parent_id)
+        assert parent_device
+        logical_device_id = parent_device.parent_id
+        assert logical_device_id
+        ports = self.adapter_agent.get_ports(onu_device.id, Port.ETHERNET_UNI)
+        for port in ports:
+            port_id = 'uni-{}'.format(port.port_no)
+            self.update_logical_port(logical_device_id, port_id, OFPPS_LIVE)
