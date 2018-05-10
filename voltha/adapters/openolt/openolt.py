@@ -59,6 +59,7 @@ class OpenoltAdapter(object):
         self.devices = dict()  # device_id -> OpenoltDevice()
         self.interface = registry('main').get_args().interface
         self.logical_device_id_to_root_device_id = dict()
+        self.num_devices = 0
 
     def start(self):
         log.info('started', interface=self.interface)
@@ -86,7 +87,8 @@ class OpenoltAdapter(object):
         log.info('adopt-device', device=device)
         kwargs = {
             'adapter_agent': self.adapter_agent,
-            'device': device
+            'device': device,
+            'device_num': self.num_devices + 1
         }
         try:
             self.devices[device.id] = OpenoltDevice(**kwargs)
@@ -94,6 +96,8 @@ class OpenoltAdapter(object):
             log.error('Failed to adopt OpenOLT device', error=e)
             del self.devices[device.id]
             raise
+        else:
+            self.num_devices += 1
 
     def reconcile_device(self, device):
         log.info('reconcile-device', device=device)
