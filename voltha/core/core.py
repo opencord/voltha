@@ -213,6 +213,8 @@ class VolthaCore(object):
         self.device_agents[device.id] = \
             yield DeviceAgent(self, device).start(device=device,
                                                   reconcile=reconcile)
+        path = '/devices/{}'.format(device.id)
+        self.xpon_agent.register_interface(device.id, path, update=False)
 
     @inlineCallbacks
     def _handle_remove_device(self, device):

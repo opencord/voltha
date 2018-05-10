@@ -79,6 +79,10 @@ class Bal(object):
         self.log.info('activating-olt')
         self.set_access_terminal_admin_state(bal_model_types_pb2.BAL_STATE_UP)
 
+    def deactivate_olt(self):
+        self.log.info('deactivating-olt')
+        self.set_access_terminal_admin_state(bal_model_types_pb2.BAL_STATE_DOWN)
+
     @inlineCallbacks
     def set_access_terminal_admin_state(self, admin_state):
         obj = bal_pb2.BalCfg()
@@ -86,7 +90,7 @@ class Bal(object):
         obj.hdr.obj_type = bal_model_ids_pb2.BAL_OBJ_ID_ACCESS_TERMINAL
         obj.cfg.key.access_term_id = 0
         obj.cfg.data.admin_state = admin_state
-        self.log.info('Activating-Access-Terminal-Device',
+        self.log.info('Admin-stage-change-Access-Terminal-Device',
                       admin_state=admin_state, device_id=self.device_id,
                       access_terminal_details=obj)
         yield self.stub.BalCfgSet(obj, timeout=GRPC_TIMEOUT)
@@ -128,6 +132,7 @@ class Bal(object):
                           olt=olt_no, pon_port=pon_port,
                           pon_port_details=obj,
                           transceiver_type=transceiver_type)
+            yield self.stub.BalCfgSet(obj, timeout=GRPC_TIMEOUT)
         except Exception as e:
             self.log.info('deactivating-pon-port in olt-exception', exc=str(e))
         return

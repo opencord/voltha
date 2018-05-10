@@ -334,7 +334,7 @@ class VolthaCli(Cmd):
                     break
                 self.poutput('waiting for device to be enabled...')
                 sleep(.5)
-        except Exception, e:
+        except Exception as  e:
             self.poutput('Error enabling {}.  Error:{}'.format(device_id, e))
 
     complete_activate_olt = complete_device
@@ -349,7 +349,7 @@ class VolthaCli(Cmd):
             stub = self.get_stub()
             stub.RebootDevice(voltha_pb2.ID(id=device_id))
             self.poutput('rebooted {}'.format(device_id))
-        except Exception, e:
+        except Exception as e:
             self.poutput('Error rebooting {}.  Error:{}'.format(device_id, e))
 
     def do_self_test(self, line):
@@ -363,7 +363,7 @@ class VolthaCli(Cmd):
             res = stub.SelfTest(voltha_pb2.ID(id=device_id))
             self.poutput('Self Tested {}'.format(device_id))
             self.poutput(dumps(pb2dict(res), indent=4))
-        except Exception, e:
+        except Exception as e:
             self.poutput('Error in self test {}.  Error:{}'.format(device_id, e))
 
     def do_delete(self, line):
@@ -376,7 +376,7 @@ class VolthaCli(Cmd):
             stub = self.get_stub()
             stub.DeleteDevice(voltha_pb2.ID(id=device_id))
             self.poutput('deleted {}'.format(device_id))
-        except Exception, e:
+        except Exception as e:
             self.poutput('Error deleting {}.  Error:{}'.format(device_id, e))
 
     def do_disable(self, line):
@@ -392,15 +392,14 @@ class VolthaCli(Cmd):
             # Do device query and verify that the device admin status is
             # DISABLED and Operational Status is unknown
             device = stub.GetDevice(voltha_pb2.ID(id=device_id))
-            if device.oper_status == voltha_pb2.OperStatus.UNKNOWN and \
-                            device.admin_state == voltha_pb2.AdminState.DISABLED:
+            if device.admin_state == voltha_pb2.AdminState.DISABLED:
                 self.poutput('disabled successfully {}'.format(device_id))
             else:
                 self.poutput('disabling failed {}.  Admin State:{} '
                              'Operation State: {}'.format(device_id,
                                                           device.admin_state,
                                                           device.oper_status))
-        except Exception, e:
+        except Exception as e:
             self.poutput('Error disabling {}.  Error:{}'.format(device_id, e))
 
     def do_test(self, line):

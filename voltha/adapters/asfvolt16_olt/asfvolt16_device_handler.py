@@ -19,7 +19,7 @@ Asfvolt16 OLT adapter
 """
 
 import arrow
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, DeferredQueue, QueueOverflow, QueueUnderflow
 from itertools import count, ifilterfalse
 from voltha.protos.events_pb2 import KpiEvent, MetricValuePairs
 from voltha.protos.events_pb2 import KpiEventType
@@ -219,6 +219,7 @@ class Asfvolt16Handler(OltDeviceHandler):
         self.transceiver_type = bal_model_types_pb2.BAL_TRX_TYPE_XGPON_LTH_7226_PC
         self.asfvolt_device_info = Asfvolt16DeviceInfo(self.bal,
                                                        self.log, self.device_id)
+        self.pon_port_config_resp = DeferredQueue(size=1)
 
     def __del__(self):
         super(Asfvolt16Handler, self).__del__()
@@ -259,10 +260,17 @@ class Asfvolt16Handler(OltDeviceHandler):
                         return v_enet
         return None
 
-    def get_v_ont_ani(self, name):
-        for key, v_ont_ani in self.v_ont_anis.items():
-            if key == name:
-                return v_ont_ani
+    def get_v_ont_ani(self, **kwargs):
+        name = kwargs.pop('name', None)
+        onu_id = kwargs.pop('onu_id', None)
+        if name is not None:
+            for key, v_ont_ani in self.v_ont_anis.items():
+                if key == name:
+                    return v_ont_ani
+        if onu_id is not None:
+            for key, v_ont_ani in self.v_ont_anis.items():
+                if onu_id == v_ont_ani.v_ont_ani.data.onu_id:
+                    return v_ont_ani
         return None
 
     def get_gem_port_info(self, v_enet, **kwargs):
@@ -375,7 +383,7 @@ class Asfvolt16Handler(OltDeviceHandler):
             self.log.error('Failed-to-get-v-enet', gem_port_id=gem_port_id)
             return
 
-        v_ont_ani = self.get_v_ont_ani(v_enet.v_enet.data.v_ontani_ref)
+        v_ont_ani = self.get_v_ont_ani(name=v_enet.v_enet.data.v_ontani_ref)
         if v_ont_ani is None:
             self.log.info('Failed-to-get-v_ont_ani',
                           v_ont_ani=v_enet.v_enet.data.v_ontani_ref)
@@ -596,6 +604,14 @@ class Asfvolt16Handler(OltDeviceHandler):
             self.adapter_agent.update_device(device)
             heartbeat_alarm(device, 1, self.heartbeat_miss)
 
+            child_devices = self.adapter_agent.get_child_devices(self.device_id)
+            for child in child_devices:
+                msg = {'proxy_address': child.proxy_address,
+                       'event': 'olt-reboot'}
+                # Send the event message to the ONU adapter
+                self.adapter_agent.publish_inter_adapter_message(child.id,
+                                                                 msg)
+
         self.heartbeat_count += 1
         reactor.callLater(self.heartbeat_interval, self.heartbeat)
 
@@ -757,6 +773,12 @@ class Asfvolt16Handler(OltDeviceHandler):
 
     def BalIfaceIndication(self, device_id, Iface_ID):
         self.log.info('Interface-Indication')
+
+        try:
+            self.pon_port_config_resp.get()
+        except QueueUnderflow:
+            self.log.error("no-data-in-queue")
+
         device = self.adapter_agent.get_device(self.device_id)
         self._handle_pon_pm_counter_req_towards_device(device,Iface_ID)
 
@@ -995,10 +1017,13 @@ class Asfvolt16Handler(OltDeviceHandler):
             device.reason = 'OLT activated successfully'
             self.adapter_agent.update_device(device)
 
-        else:
+        elif ind_info['deactivation_successful'] is True:
             device.oper_status = OperStatus.FAILED
-            device.reason = 'Failed to Intialize OLT'
+            device.reason = 'device deactivated successfully'
             self.adapter_agent.update_device(device)
+        else:
+            device.oper_status = OperStatus.UNKNOWN
+            device.reason = 'operation status unknown'
             reactor.callLater(15, self.activate, device)
         return
 
@@ -1217,6 +1242,7 @@ class Asfvolt16Handler(OltDeviceHandler):
                           onu_id=child_device.proxy_address.onu_id,
                           serial_number=serial_number)
 
+    @inlineCallbacks
     def create_interface(self, data):
         try:
             if isinstance(data, ChannelgroupConfig):
@@ -1254,6 +1280,18 @@ class Asfvolt16Handler(OltDeviceHandler):
 
                 self.log.info('Activating-PON-port-at-OLT',
                               pon_id=data.data.xgs_ponid)
+
+                # We put the transaction in a deferredQueue
+                # Only one transaction can exist in the queue at a given time.
+                # We do this we enable the pon ports sequentially.
+                while True:
+                    try:
+                        self.pon_port_config_resp.put(data)
+                        break
+                    except QueueOverflow:
+                        self.log.info('another-pon-port-enable-pending')
+                        yield asleep(0.3)
+
                 self.add_port(port_no=data.data.xgs_ponid,
                               port_type=Port.PON_OLT,
                               label=data.name)
@@ -1451,8 +1489,111 @@ class Asfvolt16Handler(OltDeviceHandler):
             self.log.info('VEnet-is-not-configured-yet.',
                           gem_port_info=data)
 
+    @inlineCallbacks
     def disable(self):
-        super(Asfvolt16Handler, self).disable()
+        self.log.info("disable")
+        device = self.adapter_agent.get_device(self.device_id)
+        for channel_termination in self.channel_terminations.itervalues():
+            pon_port = channel_termination.data.xgs_ponid
+
+            while True:
+                try:
+                    self.pon_port_config_resp.put(channel_termination)
+                    break
+                except QueueOverflow:
+                    self.log.info('another-pon-port-disable-pending')
+                    yield asleep(0.3)
+
+            yield self.bal.deactivate_pon_port(olt_no=self.olt_id,
+                                               pon_port=pon_port,
+                                               transceiver_type=
+                                               self.transceiver_type)
+
+        # deactivate olt
+        yield self.bal.deactivate_olt()
+        device.admin_state = AdminState.DISABLED
+        device.oper_status = OperStatus.FAILED
+        device.connect_status = ConnectStatus.UNREACHABLE
+        self.adapter_agent.update_device(device)
+        # deactivate nni port
+        for port in self.asfvolt_device_info.sfp_device_presence_map.iterkeys():
+            # ignore any sfp other than the NNI.
+            if not self._valid_nni_port(port):
+                continue
+
+            # Since OLT is reachable after reboot, OLT should configurable with
+            # all the old existing flows. NNI ports should be mark it as down for
+            # ONOS to push the old flows
+            nni_intf_id = (port -
+                           self.asfvolt_device_info.
+                           asfvolt16_device_topology.num_of_pon_ports)
+            self.update_logical_port(nni_intf_id + MIN_ASFVOLT_NNI_LOGICAL_PORT_NUM,
+                                     Port.ETHERNET_NNI,
+                                     OFPPS_LINK_DOWN)
+
+        # send event to child devices(onus)
+        for child_device in self.adapter_agent.\
+                get_child_devices(self.device_id):
+           msg = {'proxy_address': child_device.proxy_address,
+                  'event': 'olt-disabled'}
+           # Send evnt to such child devices which were REACHABLE,
+           # so that those devices can be marked UNREACHABLE
+           if child_device.connect_status == ConnectStatus.REACHABLE:
+               self.adapter_agent.publish_inter_adapter_message(child_device.id,
+                                                                msg)
+
+    @inlineCallbacks
+    def reenable(self):
+        self.log.info("enable")
+        device = self.adapter_agent.get_device(self.device_id)
+        yield self.bal.activate_olt()
+        # activate pon ports
+        for channel_termination in self.channel_terminations.itervalues():
+            pon_port = channel_termination.data.xgs_ponid
+
+            while True:
+                try:
+                    self.pon_port_config_resp.put(channel_termination)
+                    break
+                except QueueOverflow:
+                    self.log.info('another-pon-port-enable-pending')
+                    yield asleep(0.3)
+
+            yield self.bal.activate_pon_port(olt_no=self.olt_id,
+                                             pon_port=pon_port,
+                                             transceiver_type=
+                                             self.transceiver_type)
+
+        device.oper_status = OperStatus.ACTIVE
+        device.connect_status = ConnectStatus.REACHABLE
+        self.adapter_agent.update_device(device)
+
+        # activate nni port
+        for port in self.asfvolt_device_info.sfp_device_presence_map.iterkeys():
+            # ignore any sfp other than the NNI.
+            if not self._valid_nni_port(port):
+                continue
+
+            # Since OLT is reachable after reboot, OLT should configurable with
+            # all the old existing flows. NNI ports should be mark it as down for
+            # ONOS to push the old flows
+            nni_intf_id = (port -
+                           self.asfvolt_device_info.
+                           asfvolt16_device_topology.num_of_pon_ports)
+            self.update_logical_port(nni_intf_id + MIN_ASFVOLT_NNI_LOGICAL_PORT_NUM,
+                                     Port.ETHERNET_NNI,
+                                     OFPPS_LIVE)
+
+        # send event to child devices(onus)
+        for child_device in self.adapter_agent.\
+                get_child_devices(self.device_id):
+           msg = {'proxy_address': child_device.proxy_address,
+                  'event': 'olt-enabled'}
+           # Send evnt to such child devices which were UNREACHABLE,
+           # so that those devices can be marked REACHABLE
+           if child_device.connect_status == ConnectStatus.UNREACHABLE:
+               self.adapter_agent.publish_inter_adapter_message(child_device.id,
+                                                                msg)
 
     def delete(self):
         super(Asfvolt16Handler, self).delete()
@@ -1743,7 +1884,7 @@ class Asfvolt16Handler(OltDeviceHandler):
             self.store_flows(uplink_classifier, uplink_action,
                              v_enet, traffic_class=2)
             return
-        v_ont_ani = self.get_v_ont_ani(v_enet.v_enet.data.v_ontani_ref)
+        v_ont_ani = self.get_v_ont_ani(name=v_enet.v_enet.data.v_ontani_ref)
         if v_ont_ani is None:
             self.log.info('Failed-to-get-v_ont_ani',
                           v_ont_ani=v_enet.v_enet.data.v_ontani_ref)
@@ -1849,7 +1990,7 @@ class Asfvolt16Handler(OltDeviceHandler):
             self.store_flows(uplink_classifier, uplink_action,
                              v_enet, traffic_class=2)
             return
-        v_ont_ani = self.get_v_ont_ani(v_enet.v_enet.data.v_ontani_ref)
+        v_ont_ani = self.get_v_ont_ani(name=v_enet.v_enet.data.v_ontani_ref)
         if v_ont_ani is None:
             self.log.error('Failed-to-get-v_ont_ani',
                            v_ont_ani=v_enet.v_enet.data.v_ontani_ref)
@@ -1988,7 +2129,7 @@ class Asfvolt16Handler(OltDeviceHandler):
             self.store_flows(uplink_classifier, uplink_action,
                              v_enet, traffic_class=2)
             return
-        v_ont_ani = self.get_v_ont_ani(v_enet.v_enet.data.v_ontani_ref)
+        v_ont_ani = self.get_v_ont_ani(name=v_enet.v_enet.data.v_ontani_ref)
         if v_ont_ani is None:
             self.log.info('Failed-to-get-v_ont_ani',
                           v_ont_ani=v_enet.v_enet.data.v_ontani_ref)

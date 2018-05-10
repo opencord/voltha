@@ -39,16 +39,22 @@ class Asfvolt16IndHandler(object):
     def bal_acc_term_ind(self, indication, device_handler):
         #     ind_info: {'_object_type': <str>
         #                'actv_status': <str>}
+        self.log.info("access-term-ind",indication=indication)
         ind_info = dict()
         ind_info['_object_type'] = 'access_terminal_indication'
         ind_info['_sub_group_type'] = 'access_terminal_indication'
-        if ((indication.access_term_ind.data.admin_state == \
-                bal_model_types_pb2.BAL_STATE_UP) and \
-                (indication.access_term_ind.data.oper_status == \
-                bal_model_types_pb2.BAL_STATUS_UP)):
-            ind_info['activation_successful'] = True
-        else:
-            ind_info['activation_successful'] = False
+        ind_info['activation_successful'] = False
+        ind_info['deactivation_successful'] = False
+        if indication.access_term_ind.data.admin_state == \
+           bal_model_types_pb2.BAL_STATE_UP:
+            if indication.access_term_ind.data.oper_status == \
+               bal_model_types_pb2.BAL_STATUS_UP:
+                ind_info['activation_successful'] = True
+        elif indication.access_term_ind.data.admin_state == \
+             bal_model_types_pb2.BAL_STATE_DOWN:
+            if indication.access_term_ind.data.oper_status == \
+               bal_model_types_pb2.BAL_STATUS_DOWN:
+                ind_info['deactivation_successful'] = True
 
         reactor.callLater(0,
                           device_handler.handle_access_term_ind,
