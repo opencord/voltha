@@ -63,6 +63,10 @@ message Indication {
 
 message OltIndication {
     string oper_state = 1;	// up, down
+    string mac = 2;
+    string serial_number = 3;
+    string manufacturer = 4;
+    string name = 5;
 }
 
 message IntfIndication {
