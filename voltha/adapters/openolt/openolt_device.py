@@ -144,8 +144,6 @@ class OpenoltDevice(object):
 
         # Update device
         device.root = True
-        device.vendor = 'Edgecore'
-        device.model = 'ASFvOLT16'
         device.serial_number = self.host_and_port # FIXME
         device.connect_status = ConnectStatus.REACHABLE
         device.oper_status = OperStatus.ACTIVATING
@@ -202,14 +200,7 @@ class OpenoltDevice(object):
             mac = olt_indication.mac
 
         # Create logical OF device
-        desc = ofp_desc(hw_desc='FIXME', sw_desc='FIXME', serial_num='FIXME',
-                dp_desc='xgs-pon-olt')
-        capabilities = (OFPC_FLOW_STATS | OFPC_TABLE_STATS | OFPC_GROUP_STATS | \
-                OFPC_PORT_STATS)
-        switch_features = ofp_switch_features(n_buffers=256, n_tables=2,
-                capabilities=capabilities)
-        ld = LogicalDevice(desc=desc, switch_features=switch_features,
-                root_device_id=self.device_id)
+        ld = LogicalDevice(root_device_id=self.device_id)
         ld_initialized = self.adapter_agent.create_logical_device(ld, dpid=mac)
         self.logical_device_id = ld_initialized.id
 
@@ -554,7 +545,7 @@ class OpenoltDevice(object):
 
     def update_flow_table(self, flows):
         device = self.adapter_agent.get_device(self.device_id)
-        self.log.info('update flow table', flows=flows)
+        self.log.debug('update flow table')
 
         for flow in flows:
             self.log.info('flow-details', device_id=self.device_id, flow=flow)
@@ -678,6 +669,11 @@ class OpenoltDevice(object):
                     intf_id = self.intf_id_from_port_num(classifier_info['in_port'])
                     onu_id = self.onu_id_from_port_num(classifier_info['in_port'])
                     self.divide_and_add_flow(intf_id, onu_id, classifier_info, action_info)
+                #else:
+                #    self.log.info('ignore downstream flow', flow=flow,
+                #            classifier_info=classifier_info,
+                #            action_info=action_info)
+
             except Exception as e:
                 self.log.exception('failed-to-install-flow', e=e, flow=flow)
 
