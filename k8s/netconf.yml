@@ -26,16 +26,6 @@ spec:
         cni: "calico"
     spec:
       terminationGracePeriodSeconds: 10
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector:
-                matchExpressions:
-                  - key: app
-                    operator: In
-                    values:
-                      - netconf
-              topologyKey: kubernetes.io/hostname
       containers:
       - name: netconf
         image: voltha-netconf

@@ -52,6 +52,7 @@ VERSION = '0.9.0'
 
 defs = dict(
     config=os.environ.get('CONFIG', './voltha.yml'),
+    container_name_regex=os.environ.get('CORE_NUMBER_EXTRACTOR', '^.*\.([0-9]+)\..*$'),
     consul=os.environ.get('CONSUL', 'localhost:8500'),
     etcd=os.environ.get('ETCD', 'localhost:2379'),
     inter_core_subnet=os.environ.get('INTER_CORE_SUBNET', None),
@@ -82,6 +83,12 @@ def parse_args():
                         action='store',
                         default=defs['config'],
                         help=_help)
+
+    _help = 'Regular expression for extracting core number from container name (default: %s)' % defs['container_name_regex']
+    parser.add_argument(
+        '-X', '--core-number-extractor', dest='container_name_regex', action='store',
+        default=defs['container_name_regex'],
+        help=_help)
 
     _help = '<hostname>:<port> to consul agent (default: %s)' % defs['consul']
     parser.add_argument(
@@ -281,6 +288,7 @@ class Main(object):
         self.log = setup_logging(self.config.get('logging', {}),
                                  args.instance_id,
                                  verbosity_adjust=verbosity_adjust)
+        self.log.info('core-number-extractor', regex=args.container_name_regex)
 
         # configurable variables from voltha.yml file
         #self.configurable_vars = self.config.get('Constants', {})
@@ -288,7 +296,7 @@ class Main(object):
         if not args.no_banner:
             print_banner(self.log)
 
-        # Create a unique instnce id using the passed-in instanceid and
+        # Create a unique instance id using the passed-in instance id and
         # UTC timestamp
         current_time = arrow.utcnow().timestamp
         self.instance_id = self.args.instance_id + '_' + str(current_time)
@@ -340,7 +348,8 @@ class Main(object):
                         rest_port=self.args.rest_port,
                         instance_id=self.instance_id,
                         config=self.config,
-                        consul=self.args.consul)
+                        consul=self.args.consul,
+                        container_name_regex=self.args.container_name_regex)
                 ).start()
             elif self.args.backend == 'etcd':
                 yield registry.register(
@@ -352,7 +361,8 @@ class Main(object):
                         instance_id=self.instance_id,
                         config=self.config,
                         consul=self.args.consul,
-                        etcd=self.args.etcd)
+                        etcd=self.args.etcd,
+                        container_name_regex=self.args.container_name_regex)
                 ).start()
 
             self.log.info('waiting-for-config-assignment')

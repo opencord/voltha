@@ -66,7 +66,8 @@ class CoordinatorEtcd(object):
                  rest_port,
                  config,
                  consul='localhost:8500',
-                 etcd='localhost:2379'):
+                 etcd='localhost:2379',
+                 container_name_regex='^.*\.([0-9]+)\..*$'):
 
         log.info('initializing-coordinator')
         self.config = config['coordinator']
@@ -128,6 +129,8 @@ class CoordinatorEtcd(object):
         kv_port = etcd.split(':')[1].strip()
         self.etcd_url = u'http://' + kv_host + u':' + kv_port
         self.etcd = Client(reactor, self.etcd_url)
+
+        self.container_name_regex = container_name_regex
 
         self.wait_for_leader_deferreds = []
 
@@ -499,16 +502,19 @@ class CoordinatorEtcd(object):
     @inlineCallbacks
     def _retry(self, operation, *args, **kw):
         prefix = False
+        keys_only = False
         for name, value in kw.items():
             if name == 'acquire':
                 lease = value
                 kw['lease'] = lease
                 kw.pop('acquire')
             elif name == 'keys':
+                keys_only = True
+                prefix = True
+                keyset = KeySet(bytes(args[0]), prefix=True)
                 kw['keys_only'] = True
                 kw.pop('keys')
             elif name=='recurse':
-#               if value == 'True':
                 prefix = True
                 keyset = KeySet(bytes(args[0]), prefix=True)
                 kw.pop('recurse')
@@ -536,8 +542,10 @@ class CoordinatorEtcd(object):
                                 result = (index, record)
                     else:
                         # Get values for all keys that match the prefix
+                        # If keys_only requested, get only the keys
                         index = 0
                         records = []
+                        keys = []
                         res = yield etcd.get(keyset, **kw)
                         if args[0] == 'service/voltha/assignments/':
                             log.info('assignments', result=res)
@@ -546,19 +554,22 @@ class CoordinatorEtcd(object):
                                 # Which index should be returned? The max over all keys?
                                 if kv.mod_revision > index:
                                     index = kv.mod_revision
-                                rec = dict()
-                                rec['Key'] = kv.key
-                                rec['Value'] = kv.value
-                                rec['ModifyIndex'] = kv.mod_revision
-                                rec['Session'] = self.lease.lease_id if self.lease else ''
-                                records.append(rec)
-                        result = (index, records)
+                                if keys_only:
+                                    keys.append(kv.key)
+                                else:
+                                    rec = dict()
+                                    rec['Key'] = kv.key
+                                    rec['Value'] = kv.value
+                                    rec['ModifyIndex'] = kv.mod_revision
+                                    rec['Session'] = self.lease.lease_id if self.lease else ''
+                                    records.append(rec)
+                        result = (index, keys) if keys_only else (index, records)
                 elif operation == 'PUT':
                     key = bytes(args[0])
                     result = yield etcd.set(key, args[1], **kw)
                 elif operation == 'DELETE':
                     key = bytes(args[0])
-                    result = yield etcd.delete(key, **kw)
+                    result = yield etcd.delete(keyset)
                 else:
                     # Default case - consider operation as a function call
                     result = yield operation(*args, **kw)

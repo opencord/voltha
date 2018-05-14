@@ -20,13 +20,19 @@ spec:
   selector:
     app: vcore
 ---
-apiVersion: apps/v1beta1
-kind: Deployment
+apiVersion: apps/v1
+kind: StatefulSet
 metadata:
   name: vcore
   namespace: voltha
 spec:
+  serviceName: vcore
   replicas: 3
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: vcore
   template:
     metadata:
       labels:
@@ -34,6 +40,7 @@ spec:
       annotations:
         cni: "calico"
     spec:
+      terminationGracePeriodSeconds: 0
       containers:
         - name: voltha
           image: voltha-voltha
@@ -53,6 +60,7 @@ spec:
             - "--backend=etcd"
             - "--pon-subnet=10.38.0.0/12"
             - "--ponsim-comm=grpc"
+            - "--core-number-extractor=^.*-([0-9]+)_.*$"
           ports:
             - containerPort: 8880
               name: rest-port
