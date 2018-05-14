@@ -429,10 +429,10 @@ class OpenoltDevice(object):
 
         send_pkt = binascii.unhexlify(str(payload).encode("HEX"))
 
-        onu_pkt = openolt_pb2.OnuPacket(intf_id=intf_id_from_port_num(egress_port),
-                onu_id=onu_id_from_port_num(egress_port), pkt=send_pkt)
+        onu_pkt = openolt_pb2.OnuPacket(intf_id=self.intf_id_from_port_num(egress_port),
+                onu_id=self.onu_id_from_port_num(egress_port), pkt=send_pkt)
 
-        self.stub.OnuPacketOut(onu_packet)
+        self.stub.OnuPacketOut(onu_pkt)
 
     def send_proxied_message(self, proxy_address, msg):
         omci = openolt_pb2.OmciMsg(intf_id=proxy_address.channel_id, # intf_id
