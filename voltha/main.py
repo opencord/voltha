@@ -52,6 +52,7 @@ VERSION = '0.9.0'
 
 defs = dict(
     config=os.environ.get('CONFIG', './voltha.yml'),
+    orch=os.environ.get('ORCH', 'docker'),
     consul=os.environ.get('CONSUL', 'localhost:8500'),
     etcd=os.environ.get('ETCD', 'localhost:2379'),
     inter_core_subnet=os.environ.get('INTER_CORE_SUBNET', None),
@@ -82,6 +83,12 @@ def parse_args():
                         action='store',
                         default=defs['config'],
                         help=_help)
+
+    _help = 'Orchestration environment: Docker or Kubernetes (default: %s)' % defs['orch']
+    parser.add_argument(
+        '-O', '--orch', dest='orch', action='store',
+        default=defs['orch'],
+        help=_help)
 
     _help = '<hostname>:<port> to consul agent (default: %s)' % defs['consul']
     parser.add_argument(
@@ -228,6 +235,9 @@ def parse_args():
 
     # post-processing
 
+    if args.orch != 'k8s':
+        args.orch = 'docker'
+
     if args.instance_id_is_container_name:
         args.instance_id = get_my_containers_name()
 
@@ -281,6 +291,7 @@ class Main(object):
         self.log = setup_logging(self.config.get('logging', {}),
                                  args.instance_id,
                                  verbosity_adjust=verbosity_adjust)
+        self.log.info('orchestration-environment', orchestrator=args.orch)
 
         # configurable variables from voltha.yml file
         #self.configurable_vars = self.config.get('Constants', {})
@@ -340,7 +351,8 @@ class Main(object):
                         rest_port=self.args.rest_port,
                         instance_id=self.instance_id,
                         config=self.config,
-                        consul=self.args.consul)
+                        consul=self.args.consul,
+                        orch=self.args.orch)
                 ).start()
             elif self.args.backend == 'etcd':
                 yield registry.register(
@@ -352,7 +364,8 @@ class Main(object):
                         instance_id=self.instance_id,
                         config=self.config,
                         consul=self.args.consul,
-                        etcd=self.args.etcd)
+                        etcd=self.args.etcd,
+                        orch=self.args.orch)
                 ).start()
 
             self.log.info('waiting-for-config-assignment')
