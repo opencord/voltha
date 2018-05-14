@@ -13,16 +13,6 @@ spec:
         cni: "calico"
     spec:
       terminationGracePeriodSeconds: 10
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchExpressions:
-              - key: app
-                operator: In
-                values:
-                - ofagent
-            topologyKey: kubernetes.io/hostname
       containers:
       - name: ofagent
         image: voltha-ofagent

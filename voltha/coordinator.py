@@ -65,7 +65,8 @@ class Coordinator(object):
                  instance_id,
                  rest_port,
                  config,
-                 consul='localhost:8500'):
+                 consul='localhost:8500',
+                 container_name_regex='^.*\.([0-9]+)\..*$'):
 
         log.info('initializing-coordinator')
         self.config = config['coordinator']
@@ -119,6 +120,8 @@ class Coordinator(object):
 
         # TODO need to handle reconnect events properly
         self.consul = Consul(host=self.host, port=self.port)
+
+        self.container_name_regex = container_name_regex
 
         self.wait_for_leader_deferreds = []
 

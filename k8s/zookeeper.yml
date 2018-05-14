@@ -78,6 +78,7 @@ spec:
       annotations:
         cni: "calico"
     spec:
+      terminationGracePeriodSeconds: 0
       containers:
       - name: zoo1
         image: zookeeper:3.4.11
@@ -118,6 +119,7 @@ spec:
       annotations:
         cni: "calico"
     spec:
+      terminationGracePeriodSeconds: 0
       containers:
       - name: zoo2
         image: zookeeper:3.4.11
@@ -158,6 +160,7 @@ spec:
       annotations:
         cni: "calico"
     spec:
+      terminationGracePeriodSeconds: 0
       containers:
       - name: zoo3
         image: zookeeper:3.4.11

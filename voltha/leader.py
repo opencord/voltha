@@ -26,6 +26,9 @@ from simplejson import dumps, loads
 from common.utils.asleep import asleep
 from common.utils.id_generation import get_next_core_id
 
+ENV_DOCKER_SWARM = 'docker'
+ENV_KUBERNETES = 'k8s'
+
 log = get_logger()
 
 
@@ -42,9 +45,8 @@ class Leader(object):
     """
 
     ID_EXTRACTOR = '^(%s)([^/]+)$'
-    CORE_STORE_KEY_EXTRACTOR = '^%s(?P<core_store_id>[^/]+)/root$'
-    CORE_NUMBER_EXTRACTOR = '^.*\.([0-9]+)\..*$'
-    START_TIMESTAMP_EXTRACTOR = '^.*\..*\..*_([0-9]+)$'
+    CORE_STORE_KEY_EXTRACTOR = '^%s/(?P<core_store_id>[^/]+)/root$'
+    START_TIMESTAMP_EXTRACTOR = '^.*_([0-9]+)$'
     ASSIGNMENT_ID_EXTRACTOR = '^(%s)([^/]+)/core_store$'
 
     # Public methods:
@@ -72,8 +74,8 @@ class Leader(object):
         self.core_data_id_match = re.compile(
             self.CORE_STORE_KEY_EXTRACTOR % self.coord.core_store_prefix).match
 
-        self.core_match = re.compile(self.CORE_NUMBER_EXTRACTOR).match
-        self.timestamp_match = re.compile(self.START_TIMESTAMP_EXTRACTOR ).match
+        self.core_match = re.compile(self.coord.container_name_regex).match
+        self.timestamp_match = re.compile(self.START_TIMESTAMP_EXTRACTOR).match
 
         self.assignment_id_match = re.compile(
             self.ASSIGNMENT_ID_EXTRACTOR % self.coord.assignment_prefix).match
@@ -168,9 +170,10 @@ class Leader(object):
         # This method removes any duplicates from the member list using the
         # voltha number from the member id and the time that voltha instance
         # started, again from the member id.  This method is meaningful only
-        # in the swarm cluster.  In a non-cluster environment the member id
-        # is formatted differently.  In such a case, the method below will
-        # create an exception and return the member list as is.
+        # in a clustered environment (e.g. Docker swarm or Kubernetes). In
+        # a non-cluster environment the member id is formatted differently.
+        # In such a case, the method below will create an exception and
+        # return the member list as is.
 
         try:
             unique_members = {}
@@ -202,7 +205,8 @@ class Leader(object):
                 return updated_members
             else:
                 return members
-        except:
+        except Exception as e:
+            log.exception('extraction-error', e=e)
             return members
 
     @inlineCallbacks
