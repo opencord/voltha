@@ -6,7 +6,7 @@ metadata:
   labels:
     name: voltha
 spec:
-  clusterIP: None
+  type: NodePort
   ports:
     - name: rest
       port: 8882
@@ -16,6 +16,7 @@ spec:
       targetPort: 8001
     - name: mystery2
       port: 8443
+      nodePort: 32443
       targetPort: 8443
     - name: grpc
       port: 50555
