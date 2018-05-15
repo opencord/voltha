@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "a8cfeab4_00707fe1",
+        "filename": "voltha/main.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 55,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-05-15T14:14:31Z",
+      "side": 1,
+      "message": "I do not recommend having cluster dependent code in a micro service.  In this particular scenario, since you need the cluster environment to figure out how to extract an ID from the container name then it would be more preferable to have the regular expression match pattern as part of the input parameters instead of the cluster environment.\n\nThoughts?\nKhen",
+      "revId": "8536d3ac5c5b5a0ee03ea3ec437aac29042f73b0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "d6ea8409_10ae51c6",
         "filename": "voltha/main.py",
         "patchSetId": 1
