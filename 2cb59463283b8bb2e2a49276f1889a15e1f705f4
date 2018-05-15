@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "7fdf522e_faa242f8",
+        "filename": "voltha/leader.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-05-15T18:03:12Z",
+      "side": 1,
+      "message": "Not required?",
+      "revId": "2cb59463283b8bb2e2a49276f1889a15e1f705f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
