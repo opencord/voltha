@@ -267,6 +267,19 @@ class TestSelectMeFrameGeneration(TestCase):
 
         self.assertGeneratedFrameEquals(frame, ref)
 
+    def test_set_pptp_ethernet_uni_frame(self):
+        ref = '0000480A000B020109000005EE000000' \
+              '00000000000000000000000000000000' \
+              '000000000000000000000028'
+        data = dict(
+            administrative_state=0,  # 0 - Unlock
+            max_frame_size=1518      # two-octet field
+        )
+        frame = PptpEthernetUniFrame(0x201,
+                                     attributes=data).set()
+
+        self.assertGeneratedFrameEquals(frame, ref)
+
     def test_constraint_errors(self):
         self.assertTrue(True)  # TODO Also test some attribute constraint failures
 

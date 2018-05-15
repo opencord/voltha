@@ -319,7 +319,7 @@ class PptpEthernetUni(EntityClass):
             range_check=lambda x: 0 <= x <= 1, optional=True, avc=True),
         ECA(ByteField("config_ind", 0), {AA.R},
             range_check=lambda x: x in [0, 1, 2, 3, 4, 0x11, 0x12, 0x13]),
-        ECA(ByteField("max_frame_size", 1518), {AA.R, AA.W}, optional=True),
+        ECA(ShortField("max_frame_size", 1518), {AA.R, AA.W}, optional=True),
         ECA(ByteField("dte_dce_ind", 0), {AA.R, AA.W},
             range_check=lambda x: 0 <= x <= 2),
         ECA(ShortField("pause_time", 0), {AA.R, AA.W}, optional=True),
