@@ -82,6 +82,10 @@ class OpenOMCIAgent(object):
         """ Return a reference to the VOLTHA Core component"""
         return self._core
 
+    @property
+    def database_class(self):
+        return self._mib_database_cls
+
     def start(self):
         """
         Start OpenOMCI

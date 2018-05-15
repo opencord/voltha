@@ -59,6 +59,7 @@ class MibSynchronizer(object):
         {'trigger': 'force_resync', 'source': 'auditing', 'dest': 'resynchronizing'},
 
         {'trigger': 'success', 'source': 'resynchronizing', 'dest': 'in_sync'},
+        {'trigger': 'diffs_found', 'source': 'resynchronizing', 'dest': 'out_of_sync'},
         {'trigger': 'timeout', 'source': 'resynchronizing', 'dest': 'out_of_sync'},
 
         # Do wildcard 'stop' trigger last so it covers all previous states
@@ -113,6 +114,10 @@ class MibSynchronizer(object):
         self._mib_data_sync = 0
         self._last_mib_db_sync_value = None
         self._device_in_db = False
+
+        self._on_olt_only_diffs = None
+        self._on_onu_only_diffs = None
+        self._attr_diffs = None
 
         self._event_bus = EventBusClient()
         self._subscriptions = {               # RxEvent.enum -> Subscription Object
@@ -270,7 +275,7 @@ class MibSynchronizer(object):
         Begin full MIB data sync, starting with a MIB RESET
         """
         def success(results):
-            self.log.info('mib-upload-success: {}'.format(results))
+            self.log.debug('mib-upload-success: {}'.format(results))
             self._current_task = None
             self._deferred = reactor.callLater(0, self.success)
 
@@ -293,7 +298,7 @@ class MibSynchronizer(object):
         self._mib_data_sync = self._database.get_mib_data_sync(self._device_id) or 0
 
         def success(onu_mds_value):
-            self.log.info('examine-mds-success: {}'.format(onu_mds_value))
+            self.log.debug('examine-mds-success: {}'.format(onu_mds_value))
             self._current_task = None
 
             # Examine MDS value
@@ -326,13 +331,69 @@ class MibSynchronizer(object):
 
     def on_enter_out_of_sync(self):
         """
+        The MIB in OpenOMCI and the ONU are out of sync.  This can happen if:
+
+           o the MIB_Data_Sync values are not equal, or
+           o the MIBs were compared and differences were found.
+
+        If all of the *_diff properties are allNone, then we are here after initial
+        startup and MDS did not match, or the MIB Audit/Resync state failed.
+
+        In the second case, one or more of our *_diff properties will be non-None.
+        If that is true, we need to update the ONU accordingly.
+
         Schedule a tick to occur to in the future to request an audit
         """
         self.log.debug('state-transition', audit_delay=self._audit_delay)
         self._device.mib_db_in_sync = False
 
-        if self._audit_delay > 0:
-            self._deferred = reactor.callLater(self._audit_delay, self.audit_mib)
+        if all(diff is None for diff in [self._on_olt_only_diffs,
+                                         self._on_onu_only_diffs,
+                                         self._attr_diffs]):
+            # Retry the Audit process
+            self._deferred = reactor.callLater(1, self.audit_mib)
+
+        else:
+            step = 'Nothing'
+            class_id = 0
+            instance_id = 0
+            attribute = ''
+
+            try:
+                # Need to update the ONU accordingly
+                if self._attr_diffs is not None:
+                    assert self._attr_diffs is not None, 'Should match'
+                    step = 'attribute-update'
+                    pass    # TODO: Perform the 'set' commands needed
+
+                if self._on_onu_only_diffs is not None:
+                    step = 'onu-cleanup'
+                    #
+                    # TODO: May want to watch for ONU only attributes
+                    #    It is possible that if they are the 'default' value or
+                    #    are not used if another attribute is set a specific way.
+                    #
+                    #    For instance, no one may set the gal_loopback_configuration
+                    #    in the GEM Interworking Termination point since its default
+                    #    values is '0' disable, but when we audit, the ONU will report zer
+                    #
+                    #    A good way to perhaps fix this is to update our database with the
+                    #    default.  Or perhaps set all defaults in the database in the first
+                    #    place when we do the initial create/set
+                    #
+                    pass  # TODO: Perform 'delete' commands as needed, see 'default' note above
+
+                if self._on_olt_only_diffs is not None:
+                    step = 'olt-push'
+                    pass    # TODO: Perform 'create' commands as needed
+
+                self._deferred = reactor.callLater(1, self.audit_mib)
+
+            except Exception as e:
+                self.log.exception('onu-update', e=e, step=step, class_id=class_id,
+                                   instance_id=instance_id, attribute=attribute)
+                # Retry the Audit process
+                self._deferred = reactor.callLater(1, self.audit_mib)
 
     def on_enter_auditing(self):
         """
@@ -350,6 +411,7 @@ class MibSynchronizer(object):
             def success(onu_mds_value):
                 self.log.debug('get-mds-success: {}'.format(onu_mds_value))
                 self._current_task = None
+
                 # Examine MDS value
                 if self._mib_data_sync == onu_mds_value:
                     self._deferred = reactor.callLater(0, self.success)
@@ -369,15 +431,40 @@ class MibSynchronizer(object):
     def on_enter_resynchronizing(self):
         """
         Perform a resynchronization of the MIB database
+
+        First calculate any differences
         """
         def success(results):
-            self.log.info('resync-success: {}'.format(results))
+            self.log.debug('resync-success: {}'.format(results))
+
+            on_olt_only = results.get('on-olt-only')
+            on_onu_only = results.get('on-onu-only')
+            attr_diffs = results.get('attr-diffs')
+
             self._current_task = None
-            self._deferred = reactor.callLater(0, self.success)
+            self._on_olt_only_diffs = on_olt_only if len(on_olt_only) else None
+            self._on_onu_only_diffs = on_onu_only if len(on_onu_only) else None
+            self._attr_diffs = attr_diffs if len(attr_diffs) else None
+
+            if all(diff is None for diff in [self._on_olt_only_diffs,
+                                             self._on_onu_only_diffs,
+                                             self._attr_diffs]):
+                # TODO: If here, do we need to make sure OpenOMCI mib_data_sync matches
+                #       the ONU.  Remember we compared against an ONU snapshot, it may
+                #       be different now.  Best thing to do is perhaps set it to our
+                #       MDS value if different. Also remember that setting the MDS on
+                #       the ONU to 'n' is a set command and it will be 'n+1' after the
+                #       set.
+                self._deferred = reactor.callLater(0, self.success)
+            else:
+                self._deferred = reactor.callLater(0, self.diffs_found)
 
         def failure(reason):
             self.log.info('resync-failure', reason=reason)
             self._current_task = None
+            self._on_olt_only_diffs = None
+            self._on_onu_only_diffs = None
+            self._attr_diffs = None
             self._deferred = reactor.callLater(self._timeout_delay, self.timeout)
 
         self._current_task = self._resync_task(self._agent, self._device_id)
@@ -391,7 +478,7 @@ class MibSynchronizer(object):
         :param _topic: (str) OMCI-RX topic
         :param msg: (dict) Dictionary with 'rx-response' and 'tx-request' (if any)
         """
-        self.log.info('on-mib-reset-response', state=self.state)
+        self.log.debug('on-mib-reset-response', state=self.state)
         try:
             response = msg[RX_RESPONSE_KEY]
 
@@ -426,7 +513,7 @@ class MibSynchronizer(object):
         :param _topic: (str) OMCI-RX topic
         :param msg: (dict) Dictionary with 'rx-response' and 'tx-request' (if any)
         """
-        self.log.info('on-avc-notification', state=self.state)
+        self.log.debug('on-avc-notification', state=self.state)
 
         if self._subscriptions[RxEvent.AVC_Notification]:
             try:
@@ -454,8 +541,8 @@ class MibSynchronizer(object):
 
                     if changed:
                         # Autonomous creation and deletion of managed entities do not
-                        # result in an incrwment of the MIB data sync value. However,
-                        # AVC's in response to a change by the Operater do incur an
+                        # result in an increment of the MIB data sync value. However,
+                        # AVC's in response to a change by the Operator do incur an
                         # increment of the MIB Data Sync
                         pass
 
@@ -532,7 +619,7 @@ class MibSynchronizer(object):
         :param _topic: (str) OMCI-RX topic
         :param msg: (dict) Dictionary with 'rx-response' and 'tx-request' (if any)
         """
-        self.log.info('on-create-response', state=self.state)
+        self.log.debug('on-create-response', state=self.state)
 
         if self._subscriptions[RxEvent.Create]:
             if self.state in ['disabled', 'uploading']:
@@ -541,15 +628,16 @@ class MibSynchronizer(object):
             try:
                 request = msg[TX_REQUEST_KEY]
                 response = msg[RX_RESPONSE_KEY]
+                status = response.fields['omci_message'].fields['success_code']
 
-                if response.fields['omci_message'].fields['success_code'] != RC.Success:
+                if status != RC.Success and status != RC.InstanceExists:
                     # TODO: Support offline ONTs in post VOLTHA v1.3.0
                     omci_msg = response.fields['omci_message']
                     self.log.warn('set-response-failure',
                                   class_id=omci_msg.fields['entity_class'],
                                   instance_id=omci_msg.fields['entity_id'],
-                                  status=omci_msg.fields['status_code'],
-                                  status_text=self._status_to_text(omci_msg.fields['status_code']),
+                                  status=omci_msg.fields['success_code'],
+                                  status_text=self._status_to_text(omci_msg.fields['success_code']),
                                   parameter_error_attributes_mask=omci_msg.fields['parameter_error_attributes_mask'])
                 else:
                     omci_msg = request.fields['omci_message'].fields
@@ -575,7 +663,7 @@ class MibSynchronizer(object):
         :param _topic: (str) OMCI-RX topic
         :param msg: (dict) Dictionary with 'rx-response' and 'tx-request' (if any)
         """
-        self.log.info('on-delete-response', state=self.state)
+        self.log.debug('on-delete-response', state=self.state)
 
         if self._subscriptions[RxEvent.Delete]:
             if self.state in ['disabled', 'uploading']:
@@ -591,8 +679,8 @@ class MibSynchronizer(object):
                     self.log.warn('set-response-failure',
                                   class_id=omci_msg.fields['entity_class'],
                                   instance_id=omci_msg.fields['entity_id'],
-                                  status=omci_msg.fields['status_code'],
-                                  status_text=self._status_to_text(omci_msg.fields['status_code']))
+                                  status=omci_msg.fields['success_code'],
+                                  status_text=self._status_to_text(omci_msg.fields['success_code']))
                 else:
                     omci_msg = request.fields['omci_message'].fields
                     class_id = omci_msg['entity_class']
@@ -616,7 +704,7 @@ class MibSynchronizer(object):
         :param _topic: (str) OMCI-RX topic
         :param msg: (dict) Dictionary with 'rx-response' and 'tx-request' (if any)
         """
-        self.log.info('on-set-response', state=self.state)
+        self.log.debug('on-set-response', state=self.state)
 
         if self._subscriptions[RxEvent.Set]:
             if self.state in ['disabled', 'uploading']:
@@ -631,8 +719,8 @@ class MibSynchronizer(object):
                     self.log.warn('set-response-failure',
                                   class_id=omci_msg.fields['entity_class'],
                                   instance_id=omci_msg.fields['entity_id'],
-                                  status=omci_msg.fields['status_code'],
-                                  status_text=self._status_to_text(omci_msg.fields['status_code']),
+                                  status=omci_msg.fields['success_code'],
+                                  status_text=self._status_to_text(omci_msg.fields['success_code']),
                                   unsupported_attribute_mask=omci_msg.fields['unsupported_attributes_mask'],
                                   failed_attribute_mask=omci_msg.fields['failed_attributes_mask'])
                 else:
