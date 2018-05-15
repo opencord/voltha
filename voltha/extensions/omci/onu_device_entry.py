@@ -27,6 +27,7 @@ from enum import IntEnum
 OP = EntityOperations
 RC = ReasonCodes
 
+ACTIVE_KEY = 'active'
 IN_SYNC_KEY = 'in-sync'
 LAST_IN_SYNC_KEY = 'last-in-sync-time'
 
@@ -47,8 +48,12 @@ class OnuDeviceEntry(object):
         """
         Class initializer
 
+        :param omci_agent: (OpenOMCIAgent) Reference to OpenOMCI Agent
         :param device_id: (str) ONU Device ID
+        :param adapter_agent: (AdapterAgent) Adapter agent for ONU
         :param custom_me_map: (dict) Additional/updated ME to add to class map
+        :param mib_synchronizer_info: (dict) MIB Synchronization State Machine & Task information
+        :param mib_db: (MibDbApi) MIB Database reference
         """
         self.log = structlog.get_logger(device_id=device_id)
 
@@ -154,6 +159,9 @@ class OnuDeviceEntry(object):
             self.event_bus.publish(topic=topic, msg=msg)
 
     def start(self):
+        """
+        Start the ONU Device Entry state machines
+        """
         if self._started:
             return
 
@@ -175,6 +183,11 @@ class OnuDeviceEntry(object):
         self._publish_device_status_event()
 
     def stop(self):
+        """
+        Stop the ONU Device Entry state machines
+
+        When the ONU Device Entry is stopped,
+        """
         if not self._started:
             return
 
@@ -198,11 +211,19 @@ class OnuDeviceEntry(object):
         """
         topic = OnuDeviceEntry.event_bus_topic(self.device_id,
                                                OnuDeviceEvents.DeviceStatusEvent)
-        msg = {'active': self._started}
+        msg = {ACTIVE_KEY: self._started}
         self.event_bus.publish(topic=topic, msg=msg)
 
     def delete(self):
+        """
+        Stop the ONU Device's state machine and remove the ONU, and any related
+        OMCI state information from the OpenOMCI Framework
+        """
         self.stop()
+
+        # OpenOMCI cleanup
+        if self._omci_agent is not None:
+            self._omci_agent.remove_device(self._device_id, cleanup=True)
 
     def query_mib(self, class_id=None, instance_id=None, attributes=None):
         """

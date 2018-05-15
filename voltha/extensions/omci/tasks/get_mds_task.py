@@ -87,7 +87,10 @@ class GetMdsTask(Task):
 
             omci_msg = results.fields['omci_message'].fields
             status = omci_msg['success_code']
-            self.log.debug('ont-data-mds', status=status)
+            self.log.debug('ont-data-mds', status=status,
+                           mib_data_sync=omci_msg['data']['mib_data_sync']
+                           if 'data' in omci_msg and 'mib_data_sync' in omci_msg['data']
+                           else None)
 
             assert status == RC.Success, 'Unexpected Response Status: {}'.format(status)
 

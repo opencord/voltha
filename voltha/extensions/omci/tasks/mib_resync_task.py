@@ -14,13 +14,13 @@
 # limitations under the License.
 #
 from task import Task
-from datetime import datetime
 from twisted.internet.defer import inlineCallbacks, TimeoutError, failure, returnValue
 from twisted.internet import reactor
 from common.utils.asleep import asleep
 from voltha.extensions.omci.database.mib_db_dict import *
-from voltha.extensions.omci.omci_defs import ReasonCodes
 from voltha.extensions.omci.omci_entities import OntData
+from voltha.extensions.omci.omci_defs import AttributeAccess
+AA = AttributeAccess
 
 
 class MibCopyException(Exception):
@@ -64,7 +64,7 @@ class MibResyncTask(Task):
         self._local_deferred = None
         self._device = omci_agent.get_device(device_id)
         self._db_active = MibDbVolatileDict(omci_agent)
-        self._db_active.add(device_id)
+        self._db_active.start()
 
     def cancel_deferred(self):
         super(MibResyncTask, self).cancel_deferred()
@@ -78,21 +78,23 @@ class MibResyncTask(Task):
 
     def start(self):
         """
-        Start MIB Synchronization tasks
+        Start MIB Re-Synchronization task
         """
         super(MibResyncTask, self).start()
         self._local_deferred = reactor.callLater(0, self.perform_mib_resync)
         self._db_active.start()
+        self._db_active.add(self.device_id)
 
     def stop(self):
         """
-        Shutdown MIB Synchronization tasks
+        Shutdown MIB Re-Synchronization task
         """
         self.log.debug('stopping')
 
         self.cancel_deferred()
         self._device = None
         self._db_active.stop()
+        self._db_active = None
         super(MibResyncTask, self).stop()
 
     @inlineCallbacks
@@ -100,7 +102,7 @@ class MibResyncTask(Task):
         """
         Perform the MIB Resynchronization sequence
 
-        The sequence to be performed are:
+        The sequence to be performed is:
             - get a copy of the current MIB database (db_copy)
 
             - perform MIB upload commands to get ONU's database and save this
@@ -115,47 +117,39 @@ class MibResyncTask(Task):
         """
         self.log.info('perform-mib-resync')
 
-        # Try at least 3 times to snapshot the current MIB and get the
-        # MIB upload request out so ONU snapshots its database
-
-        db_copy = None
-        number_of_commands = None
-        commands_retrieved = 0
-
         try:
             results = yield self.snapshot_mib()
             db_copy = results[0]
-            number_of_commands = results[1]
 
-            # Start the MIB upload sequence
-            commands_retrieved = yield self.upload_mib(number_of_commands)
+            if db_copy is None:
+                e = MibCopyException('Failed to get local database copy')
+                self.deferred.errback(failure.Failure(e))
+
+            else:
+                number_of_commands = results[1]
+
+                # Start the MIB upload sequence
+                commands_retrieved = yield self.upload_mib(number_of_commands)
+
+                if commands_retrieved < number_of_commands:
+                    e = MibDownloadException('Only retrieved {} of {} instances'.
+                                             format(commands_retrieved, number_of_commands))
+                    self.deferred.errback(failure.Failure(e))
+                else:
+                    # Compare the databases
+                    on_olt_only, on_onu_only, attr_diffs = \
+                        self.compare_mibs(db_copy, self._db_active.query(self.device_id))
+
+                    self.deferred.callback(
+                            {
+                                'on-olt-only': on_olt_only if len(on_olt_only) else None,
+                                'on-onu-only': on_onu_only if len(on_onu_only) else None,
+                                'attr-diffs': attr_diffs if len(attr_diffs) else None
+                            })
 
         except Exception as e:
+            self.log.exception('resync', e=e)
             self.deferred.errback(failure.Failure(e))
-            returnValue(None)
-
-        if db_copy is None:
-            e = MibCopyException('Failed to get local database copy')
-            self.deferred.errback(failure.Failure(e))
-            returnValue('FAILED')
-
-        if commands_retrieved < number_of_commands:
-            e = MibDownloadException('Only retrieved {} of {} instances'.
-                                     format(commands_retrieved, number_of_commands))
-            self.deferred.errback(failure.Failure(e))
-            returnValue('FAILED')
-
-        # Compare the database
-
-        mib_differences = self.compare_mibs(db_copy,
-                                            self._db_active.query(self.device_id))
-
-        if mib_differences is None:
-            self.deferred.callback('success')
-            self.deferred.callback('TODO: This task has not been coded.')
-
-        # TODO: Handle mismatches
-        pass
 
     @inlineCallbacks
     def snapshot_mib(self):
@@ -173,11 +167,11 @@ class MibResyncTask(Task):
             for retries in xrange(0, max_tries + 1):
                 # Send MIB Upload so ONU snapshots its MIB
                 try:
-                    mib_upload_time = datetime.utcnow()
                     number_of_commands = yield self.send_mib_upload()
 
                     if number_of_commands is None:
                         if retries >= max_tries:
+                            db_copy = None
                             break
 
                 except TimeoutError as e:
@@ -190,14 +184,6 @@ class MibResyncTask(Task):
 
                 # Get a snapshot of the local MIB database
                 db_copy = self._device.query_mib()
-
-                if db_copy is None or db_copy[MODIFIED_KEY] > mib_upload_time:
-                    if retries >= max_tries:
-                        break
-
-                    yield asleep(MibResyncTask.db_copy_retry_delay)
-                    continue
-                break
 
         except Exception as e:
             self.log.exception('mib-resync', e=e)
@@ -237,13 +223,12 @@ class MibResyncTask(Task):
     def upload_mib(self, number_of_commands):
         ########################################
         # Begin MIB Upload
-
         seq_no = None
 
         for seq_no in xrange(number_of_commands):
-            max_tries = MibResyncTask.max_mib_upload_next_retries - 1
+            max_tries = MibResyncTask.max_mib_upload_next_retries
 
-            for retries in xrange(0, max_tries + 1):
+            for retries in xrange(0, max_tries):
                 try:
                     response = yield self._device.omci_cc.send_mib_upload_next(seq_no)
 
@@ -253,37 +238,146 @@ class MibResyncTask(Task):
 
                     # Filter out the 'mib_data_sync' from the database. We save that at
                     # the device level and do not want it showing up during a re-sync
-                    # during data compares
+                    # during data comparison
 
                     if class_id == OntData.class_id:
-                        pass      # TODO: Save to a local variable
+                        break
 
                     attributes = {k: v for k, v in omci_msg['object_data'].items()}
 
                     # Save to the database
                     self._db_active.set(self.device_id, class_id, entity_id, attributes)
+                    break
 
-                except TimeoutError as e:
-                    self.log.warn('mib-resync-timeout', e=e, seq_no=seq_no,
+                except TimeoutError:
+                    self.log.warn('mib-resync-timeout', seq_no=seq_no,
                                   number_of_commands=number_of_commands)
-                    if retries >= max_tries:
+
+                    if retries < max_tries - 1:
+                        yield asleep(MibResyncTask.mib_upload_next_delay)
+                    else:
                         raise
 
-                    yield asleep(MibResyncTask.mib_upload_next_delay)
-                    continue
+                except Exception as e:
+                    self.log.exception('resync', e=e, seq_no=seq_no,
+                                       number_of_commands=number_of_commands)
 
-        returnValue(seq_no)
+        returnValue(seq_no + 1)     # seq_no is zero based.
 
     def compare_mibs(self, db_copy, db_active):
         """
         Compare the our db_copy with the ONU's active copy
+
         :param db_copy: (dict) OpenOMCI's copy of the database
         :param db_active: (dict) ONU's database snapshot
-        :return: (dict) Difference dictionary
+        :return: (dict), (dict), dict()  Differences
         """
-        return None        # TODO: Do this
+        # Class & Entities only in local copy (OpenOMCI)
+        on_olt_only = self.get_lsh_only_dict(db_copy, db_active)
+
+        # Class & Entities only on remote (ONU)
+        on_onu_only = self.get_lsh_only_dict(db_active, db_copy)
+
+        # Class & Entities on both local & remote, but one or more attributes
+        # are different on the ONU.  This is the value that the local (OpenOMCI)
+        # thinks should be on the remote (ONU)
+
+        me_map = self.omci_agent.get_device(self.device_id).me_map
+        attr_diffs = self.get_attribute_diffs(db_copy, db_active, me_map)
+
         # TODO: Note that certain MEs are excluded from the MIB upload.  In particular,
-        #       instances of some gneeral purpose MEs, such as the Managed Entity ME and
+        #       instances of some general purpose MEs, such as the Managed Entity ME and
         #       and the Attribute ME are not included in the MIB upload.  Also all table
         #       attributes are not included in the MIB upload (but we do not yet support
         #       tables in this OpenOMCI implementation (VOLTHA v1.3.0)
+
+        return on_olt_only, on_onu_only, attr_diffs
+
+    def get_lsh_only_dict(self, lhs, rhs):
+        """
+        Compare two MIB database dictionaries and return the ME Class ID and
+        instances that are unique to the lhs dictionary. Both parameters
+        should be in the common MIB Database output dictionary format that
+        is returned by the mib 'query' command.
+
+        :param lhs: (dict) Left-hand-side argument.
+        :param rhs: (dict) Right-hand-side argument
+
+        return: (list(int,int)) List of tuples where (class_id, inst_id)
+        """
+        results = list()
+
+        for cls_id, cls_data in lhs.items():
+            # Get unique classes
+            #
+            # Skip keys that are not class IDs
+            if not isinstance(cls_id, int):
+                continue
+
+            if cls_id not in rhs:
+                results.extend([(cls_id, inst_id) for inst_id in cls_data.keys()
+                                if isinstance(inst_id, int)])
+            else:
+                # Get unique instances of a class
+                lhs_cls = cls_data
+                rhs_cls = rhs[cls_id]
+
+                for inst_id, _ in lhs_cls.items():
+                    # Skip keys that are not instance IDs
+                    if isinstance(cls_id, int) and inst_id not in rhs_cls:
+                        results.extend([(cls_id, inst_id)])
+
+        return results
+
+    def get_attribute_diffs(self, omci_copy, onu_copy, me_map):
+        """
+        Compare two OMCI MIBs and return the ME class and instance IDs that exists
+        on both the local copy and the remote ONU that have different attribute
+        values. Both parameters should be in the common MIB Database output
+        dictionary format that is returned by the mib 'query' command.
+
+        :param omci_copy: (dict) OpenOMCI copy (OLT-side) of the MIB Database
+        :param onu_copy: (dict) active ONU latest copy its database
+        :param me_map: (dict) ME Class ID MAP for this ONU
+
+        return: (list(int,int,str)) List of tuples where (class_id, inst_id, attribute)
+                                    points to the specific ME instance where attributes
+                                    are different
+        """
+        results = list()
+        ro_set = {AA.R}
+
+        # Get class ID's that are in both
+        class_ids = {cls_id for cls_id, _ in omci_copy.items()
+                     if isinstance(cls_id, int) and cls_id in onu_copy}
+
+        for cls_id in class_ids:
+            # Get unique instances of a class
+            olt_cls = omci_copy[cls_id]
+            onu_cls = onu_copy[cls_id]
+
+            # Weed out read-only attributes. Attributes on onu may be read-only. These
+            # will only show up it the OpenOMCI (OLT-side) database if it changed and
+            # an AVC Notification was sourced by the ONU
+            # TODO: These could be calculated once at ONU startup (device add)
+            ro_attrs = {attr.field.name for attr in me_map[cls_id].attributes
+                        if attr.access == ro_set}
+
+            # Get set of common instance IDs
+            inst_ids = {inst_id for inst_id, _ in olt_cls.items()
+                        if isinstance(inst_id, int) and inst_id in onu_cls}
+
+            for inst_id in inst_ids:
+                omci_attributes = {k for k in olt_cls[inst_id][ATTRIBUTES_KEY].iterkeys()}
+                onu_attributes = {k for k in onu_cls[inst_id][ATTRIBUTES_KEY].iterkeys()}
+
+                # Get attributes that exist in one database, but not the other
+                sym_diffs = (omci_attributes ^ onu_attributes) - ro_attrs
+                results.extend([(cls_id, inst_id, attr) for attr in sym_diffs])
+
+                # Get common attributes with different values
+                common_attributes = (omci_attributes & onu_attributes) - ro_attrs
+                results.extend([(cls_id, inst_id, attr) for attr in common_attributes
+                               if olt_cls[inst_id][ATTRIBUTES_KEY][attr] !=
+                                onu_cls[inst_id][ATTRIBUTES_KEY][attr]])
+        return results

@@ -26,6 +26,7 @@ from voltha.extensions.omci.omci import *
 from voltha.extensions.omci.omci_me import OntGFrame, OntDataFrame
 from common.event_bus import EventBusClient
 from enum import IntEnum
+from binascii import hexlify
 
 
 _MAX_INCOMING_ALARM_MESSAGES = 256
