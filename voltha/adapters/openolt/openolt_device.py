@@ -342,7 +342,8 @@ class OpenoltDevice(object):
         # v_enet create (olt)
         #
         uni_no = self.mk_uni_port_num(onu_indication.intf_id, onu_indication.onu_id)
-        uni_name = self.port_name(uni_no, Port.ETHERNET_UNI)
+        uni_name = self.port_name(uni_no, Port.ETHERNET_UNI,
+                serial_number=onu_indication.serial_number)
 	self.adapter_agent.add_port(
             self.device_id,
             Port(
@@ -355,7 +356,6 @@ class OpenoltDevice(object):
         #
         # v_enet create (onu)
         #
-        interface_name = self.port_name(onu_indication.intf_id, Port.PON_OLT, onu_indication.intf_id)
         msg = {'proxy_address':onu_device.proxy_address,
                'event':'create-venet',
                'event_data':{'uni_name':uni_name, 'interface_name':uni_name}}
@@ -467,14 +467,14 @@ class OpenoltDevice(object):
 	    raise Exception('Invalid port type')
 
 
-    def port_name(self, port_no, port_type, intf_id=None):
+    def port_name(self, port_no, port_type, intf_id=None, serial_number=None):
         if port_type is Port.ETHERNET_NNI:
-            prefix = "nni"
+            return "nni" "-" + str(port_no)
         elif port_type is Port.PON_OLT:
             return "pon" + str(intf_id)
         elif port_type is Port.ETHERNET_UNI:
-            prefix = "uni"
-        return prefix + "-" + str(port_no)
+            return ''.join([serial_number.vendor_id,
+                    self.stringify_vendor_specific(serial_number.vendor_specific)])
 
     def add_logical_port(self, port_no, intf_id):
         self.log.info('adding-logical-port', port_no=port_no)
@@ -523,14 +523,14 @@ class OpenoltDevice(object):
 
     def stringify_vendor_specific(self, vendor_specific):
         return ''.join(str(i) for i in [
-                ord(vendor_specific[0])>>4 & 0x0f,
-                ord(vendor_specific[0]) & 0x0f,
-                ord(vendor_specific[1])>>4 & 0x0f,
-                ord(vendor_specific[1]) & 0x0f,
-                ord(vendor_specific[2])>>4 & 0x0f,
-                ord(vendor_specific[2]) & 0x0f,
-                ord(vendor_specific[3])>>4 & 0x0f,
-                ord(vendor_specific[3]) & 0x0f])
+                hex(ord(vendor_specific[0])>>4 & 0x0f)[2:],
+                hex(ord(vendor_specific[0]) & 0x0f)[2:],
+                hex(ord(vendor_specific[1])>>4 & 0x0f)[2:],
+                hex(ord(vendor_specific[1]) & 0x0f)[2:],
+                hex(ord(vendor_specific[2])>>4 & 0x0f)[2:],
+                hex(ord(vendor_specific[2]) & 0x0f)[2:],
+                hex(ord(vendor_specific[3])>>4 & 0x0f)[2:],
+                hex(ord(vendor_specific[3]) & 0x0f)[2:]])
 
     def lookup_key(self, serial_number):
         key = None
