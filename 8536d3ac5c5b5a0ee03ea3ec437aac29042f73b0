@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "7ac88db1_f52af3fe",
+        "filename": "voltha/main.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 55,
+      "author": {
+        "id": 1000196
+      },
+      "writtenOn": "2018-05-15T14:55:27Z",
+      "side": 1,
+      "message": "There had already been cluster-dependent code in the micro-service; check out comment \"This method is meaningful only in the swarm cluster\" at the head of method leader._sanitize_member_list. I agree with you, but that said, the container-parsing detail is simply moved from the micro-service internals to its ingress arguments.",
+      "parentUuid": "a8cfeab4_00707fe1",
+      "revId": "8536d3ac5c5b5a0ee03ea3ec437aac29042f73b0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "d6ea8409_10ae51c6",
         "filename": "voltha/main.py",
         "patchSetId": 1
