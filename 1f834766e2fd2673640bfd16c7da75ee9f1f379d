@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "cfb4a939_df1951ed",
+        "filename": "voltha/extensions/omci/database/mib_db_dict.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 311,
+      "author": {
+        "id": 1000417
+      },
+      "writtenOn": "2018-05-15T05:56:32Z",
+      "side": 1,
+      "message": "427~65279: Reserved for future standardization\n65280~65535: Reserved for vendor specific use\n\nFor now, OpenOMCI does not include those ME classes. It is related the OMCI Interchangeability test with vendor ONU. Should we limit range of those ME classes?",
+      "range": {
+        "startLine": 311,
+        "startChar": 32,
+        "endLine": 311,
+        "endChar": 38
+      },
+      "revId": "1f834766e2fd2673640bfd16c7da75ee9f1f379d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
