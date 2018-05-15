@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d6ea8409_10ae51c6",
+        "filename": "voltha/main.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 238,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2018-05-15T12:40:55Z",
+      "side": 1,
+      "message": "isn\u0027t this a redundant check, since it defaults to orch\u003ddocker?",
+      "revId": "8536d3ac5c5b5a0ee03ea3ec437aac29042f73b0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
