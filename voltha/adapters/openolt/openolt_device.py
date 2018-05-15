@@ -801,7 +801,7 @@ class OpenoltDevice(object):
         self.stub.FlowAdd(flow)
         time.sleep(0.1) # FIXME
 
-    def add_dhcp_trap(intf_id, onu_id, self, classifier, action):
+    def add_dhcp_trap(self, intf_id, onu_id, classifier, action):
 
         self.log.info('add dhcp trap', classifier=classifier, action=action)
 
