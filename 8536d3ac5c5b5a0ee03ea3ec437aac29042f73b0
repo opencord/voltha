@@ -33,6 +33,24 @@
       "revId": "8536d3ac5c5b5a0ee03ea3ec437aac29042f73b0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "2fd08eb7_b9d21cf4",
+        "filename": "voltha/main.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 238,
+      "author": {
+        "id": 1000196
+      },
+      "writtenOn": "2018-05-15T14:44:03Z",
+      "side": 1,
+      "message": "What happens if an argument for \u0027orch\u0027 is supplied but its value is neither \u0027k8s\u0027 nor \u0027docker\u0027?",
+      "parentUuid": "d6ea8409_10ae51c6",
+      "revId": "8536d3ac5c5b5a0ee03ea3ec437aac29042f73b0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
