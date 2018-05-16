@@ -93,6 +93,30 @@
       "revId": "67aeed8e715b2e4024c42f457a30a6f5c8d9b69c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "83cef652_6b2f4a89",
+        "filename": "voltha/extensions/omci/omci_entities.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 326,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-05-16T14:49:25Z",
+      "side": 1,
+      "message": "Actually, I was looking at the wrong attribute that defaults to zero.  This does default to 2 according to the OpenOMCI v3.0 specification (Page 122).  I did notice however that it is marked optional and that is not reflected in the code. Also a range_check constraint could be added since this attribute takes on values of 0,1,or 2.\n\nAs a side not, the optional and default value are not currently used by the OpenOMCI code at this time.",
+      "parentUuid": "10822592_603e978b",
+      "range": {
+        "startLine": 326,
+        "startChar": 41,
+        "endLine": 326,
+        "endChar": 43
+      },
+      "revId": "67aeed8e715b2e4024c42f457a30a6f5c8d9b69c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
