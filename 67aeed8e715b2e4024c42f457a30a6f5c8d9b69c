@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "445c8895_bae5acf9",
+        "filename": "tests/utests/voltha/extensions/omci/test_me_frame.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 276,
+      "author": {
+        "id": 1000417
+      },
+      "writtenOn": "2018-05-16T02:19:33Z",
+      "side": 1,
+      "message": "Noted. The 10Gbps Symmetric speed line rate should support Jumbo frame. Not for only manage the 1518 frame size (ex: 9216). And need to set the \"power_control\" attribute to 1 (enable power).",
+      "range": {
+        "startLine": 276,
+        "startChar": 31,
+        "endLine": 276,
+        "endChar": 37
+      },
+      "revId": "67aeed8e715b2e4024c42f457a30a6f5c8d9b69c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "4f9a61de_504eb16c",
+        "filename": "voltha/extensions/omci/omci_entities.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 326,
+      "author": {
+        "id": 1000417
+      },
+      "writtenOn": "2018-05-16T02:19:33Z",
+      "side": 1,
+      "message": "The cardholder is created by ONU. We don\u0027t know the slot 0 or another virtual slot will provide by ONU. recommend this value to 0 (bridged).",
+      "range": {
+        "startLine": 326,
+        "startChar": 41,
+        "endLine": 326,
+        "endChar": 43
+      },
+      "revId": "67aeed8e715b2e4024c42f457a30a6f5c8d9b69c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
