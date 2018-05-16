@@ -200,7 +200,19 @@ class OpenoltDevice(object):
             mac = olt_indication.mac
 
         # Create logical OF device
-        ld = LogicalDevice(root_device_id=self.device_id)
+        ld = LogicalDevice(
+            root_device_id=self.device_id,
+            switch_features=ofp_switch_features(
+                n_buffers=256,  # TODO fake for now
+                n_tables=2,  # TODO ditto
+                capabilities=(  # TODO and ditto
+                    OFPC_FLOW_STATS
+                    | OFPC_TABLE_STATS
+                    | OFPC_PORT_STATS
+                    | OFPC_GROUP_STATS
+                )
+            )
+        )
         ld_initialized = self.adapter_agent.create_logical_device(ld, dpid=mac)
         self.logical_device_id = ld_initialized.id
 
