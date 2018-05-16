@@ -580,7 +580,7 @@ class CoordinatorEtcd(object):
                     log.exception(e)
                 yield self._backoff('unknown-error')
 
-        log.info('end-op', operation=operation, args=args, kw=kw, result=result)
+        log.info('end-op', operation=operation, args=args, kw=kw)
         returnValue(result)
 
     @inlineCallbacks
