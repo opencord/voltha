@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "6444709c_dd1d93c3",
+        "filename": "tests/utests/voltha/extensions/omci/test_me_frame.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 276,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-05-16T14:41:06Z",
+      "side": 1,
+      "message": "This is only a test for decode purposes",
+      "parentUuid": "445c8895_bae5acf9",
+      "range": {
+        "startLine": 276,
+        "startChar": 31,
+        "endLine": 276,
+        "endChar": 37
+      },
+      "revId": "67aeed8e715b2e4024c42f457a30a6f5c8d9b69c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "4f9a61de_504eb16c",
         "filename": "voltha/extensions/omci/omci_entities.py",
         "patchSetId": 1
@@ -36,6 +60,30 @@
       "writtenOn": "2018-05-16T02:19:33Z",
       "side": 1,
       "message": "The cardholder is created by ONU. We don\u0027t know the slot 0 or another virtual slot will provide by ONU. recommend this value to 0 (bridged).",
+      "range": {
+        "startLine": 326,
+        "startChar": 41,
+        "endLine": 326,
+        "endChar": 43
+      },
+      "revId": "67aeed8e715b2e4024c42f457a30a6f5c8d9b69c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "10822592_603e978b",
+        "filename": "voltha/extensions/omci/omci_entities.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 326,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-05-16T14:41:06Z",
+      "side": 1,
+      "message": "Good catch, I will update the code and submit a patch version",
+      "parentUuid": "4f9a61de_504eb16c",
       "range": {
         "startLine": 326,
         "startChar": 41,
