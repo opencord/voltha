@@ -16,6 +16,24 @@
       "revId": "7687e0af5449425c0deb2f50004bf30b68320085",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "aa0c834f_841cf58f",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 203,
+      "author": {
+        "id": 1000005
+      },
+      "writtenOn": "2018-05-16T18:10:20Z",
+      "side": 1,
+      "message": "No they don\u0027t - if you don\u0027t tell ONOS that you support flow stats requests, then it won\u0027t send any requests and flows will be stuck in the PENDING_ADD state in ONOS.",
+      "parentUuid": "b784f55d_763e757b",
+      "revId": "7687e0af5449425c0deb2f50004bf30b68320085",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
