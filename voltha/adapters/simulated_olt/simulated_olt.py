@@ -38,8 +38,7 @@ from voltha.core.flow_decomposer import *
 from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.protos.adapter_pb2 import Adapter, AdapterConfig
 from voltha.protos.device_pb2 import DeviceType, DeviceTypes, Device, Port, \
-     PmConfigs, PmConfig, PmGroupConfig, Image, ImageDownload
-from voltha.protos.common_pb2 import OperationResp
+     PmConfigs, PmConfig, Image, ImageDownload
 from voltha.protos.voltha_pb2 import SelfTestResponse
 from voltha.protos.events_pb2 import KpiEvent, KpiEventType, MetricValuePairs
 from voltha.protos.health_pb2 import HealthStatus
@@ -49,9 +48,8 @@ from voltha.protos.logical_device_pb2 import LogicalDevice, LogicalPort
 from voltha.protos.openflow_13_pb2 import ofp_desc, ofp_port, OFPPF_1GB_FD, \
     OFPPF_FIBER, OFPPS_LIVE, ofp_switch_features, OFPC_PORT_STATS, \
     OFPC_GROUP_STATS, OFPC_TABLE_STATS, OFPC_FLOW_STATS
-from voltha.protos.events_pb2 import AlarmEvent, AlarmEventType, \
+from voltha.protos.events_pb2 import AlarmEventType, \
     AlarmEventSeverity, AlarmEventState, AlarmEventCategory
-import sys
 
 log = structlog.get_logger()
 
@@ -173,7 +171,6 @@ class SimulatedOltAdapter(object):
 
     app = Klein()
 
-
     def __init__(self, adapter_agent, config):
         self.adapter_agent = adapter_agent
         self.config = config
@@ -194,8 +191,6 @@ class SimulatedOltAdapter(object):
         self.control_endpoint = endpoints.TCP4ServerEndpoint(reactor, 18880)
         self.control_endpoint.listen(self.get_test_control_site())
 
-        # TODO tmp: populate some devices and logical devices
-        # reactor.callLater(0, self._tmp_populate_stuff)
         log.info('started')
 
     def stop(self):
@@ -343,135 +338,6 @@ class SimulatedOltAdapter(object):
             SelfTestResponse.NOT_SUPPORTED,
             SelfTestResponse.UNKNOWN_ERROR]))
         return result
-
-    def _tmp_populate_stuff(self):
-        """
-        pretend that we discovered some devices and create:
-        - devices
-        - device ports for each
-        - logical device
-        - logical device ports
-        """
-
-        olt = Device(
-            id='simulated_olt_1',
-            type='simulated_olt',
-            root=True,
-            vendor='simulated',
-            model='n/a',
-            hardware_version='n/a',
-            firmware_version='n/a',
-            software_version='1.0',
-            serial_number=uuid4().hex,
-            adapter=self.name,
-            oper_status=OperStatus.DISCOVERED
-        )
-        self.adapter_agent.add_device(olt)
-        self.adapter_agent.add_port(
-            olt.id, Port(port_no=1, label='pon', type=Port.PON_OLT))
-        self.adapter_agent.add_port(
-            olt.id, Port(port_no=2, label='eth', type=Port.ETHERNET_NNI))
-
-        onu1 = Device(
-            id='simulated_onu_1',
-            type='simulated_onu',
-            root=False,
-            parent_id=olt.id,
-            parent_port_no=1,
-            vendor='simulated',
-            model='n/a',
-            hardware_version='n/a',
-            firmware_version='n/a',
-            software_version='1.0',
-            serial_number=uuid4().hex,
-            adapter='simulated_onu',
-            oper_status=OperStatus.DISCOVERED,
-            vlan=101
-        )
-        self.adapter_agent.add_device(onu1)
-        self.adapter_agent.add_port(onu1.id, Port(
-            port_no=2, label='eth', type=Port.ETHERNET_UNI))
-        self.adapter_agent.add_port(onu1.id, Port(
-            port_no=1,
-            label='pon',
-            type=Port.PON_ONU,
-            peers=[Port.PeerPort(device_id=olt.id, port_no=1)]))
-
-        onu2 = Device(
-            id='simulated_onu_2',
-            type='simulated_onu',
-            root=False,
-            parent_id=olt.id,
-            parent_port_no=1,
-            vendor='simulated',
-            model='n/a',
-            hardware_version='n/a',
-            firmware_version='n/a',
-            software_version='1.0',
-            serial_number=uuid4().hex,
-            adapter='simulated_onu',
-            oper_status=OperStatus.DISCOVERED,
-            vlan=102
-        )
-        self.adapter_agent.add_device(onu2)
-        self.adapter_agent.add_port(onu2.id, Port(
-            port_no=2, label='eth', type=Port.ETHERNET_UNI))
-        self.adapter_agent.add_port(onu2.id, Port(
-            port_no=1,
-            label='pon',
-            type=Port.PON_ONU,
-            peers=[Port.PeerPort(device_id=olt.id, port_no=1)]))
-
-        ld = LogicalDevice(
-            id='simulated1',
-            datapath_id=1,
-            desc=ofp_desc(
-                hw_desc='simulated pon',
-                sw_desc='simulated pon',
-                serial_num=uuid4().hex,
-                dp_desc='n/a'
-            ),
-            switch_features=ofp_switch_features(
-                n_buffers=256,  # TODO fake for now
-                n_tables=2,  # TODO ditto
-                capabilities=(  # TODO and ditto
-                    OFPC_FLOW_STATS
-                    | OFPC_TABLE_STATS
-                    | OFPC_PORT_STATS
-                    | OFPC_GROUP_STATS
-                )
-            ),
-            root_device_id=olt.id
-        )
-        self.adapter_agent.create_logical_device(ld)
-
-        cap = OFPPF_1GB_FD | OFPPF_FIBER
-        for port_no, name, device_id, device_port_no, root_port in [
-            (1, 'onu1', onu1.id, 2, False),
-            (2, 'onu2', onu2.id, 2, False),
-            (129, 'olt1', olt.id, 2, True)]:
-            port = LogicalPort(
-                id=name,
-                ofp_port=ofp_port(
-                    port_no=port_no,
-                    hw_addr=mac_str_to_tuple('00:00:00:00:00:%02x' % port_no),
-                    name=name,
-                    config=0,
-                    state=OFPPS_LIVE,
-                    curr=cap,
-                    advertised=cap,
-                    peer=cap,
-                    curr_speed=OFPPF_1GB_FD,
-                    max_speed=OFPPF_1GB_FD
-                ),
-                device_id=device_id,
-                device_port_no=device_port_no,
-                root_port=root_port
-            )
-            self.adapter_agent.add_logical_port(ld.id, port)
-
-        olt.parent_id = ld.id
-        self.adapter_agent.update_device(olt)
 
     @inlineCallbacks
     def _simulate_device_activation(self, device):
