@@ -75,7 +75,7 @@ class AdapterAgent(object):
         self._rx_event_subscriptions = {}
         self._tx_event_subscriptions = {}
         self.event_bus = EventBusClient()
-        self.packet_out_subscription = None
+        self.packet_out_subscriptions = {}
         self.log = structlog.get_logger(adapter_name=adapter_name)
         self._onu_detect_event_subscriptions = {}
 
@@ -200,6 +200,9 @@ class AdapterAgent(object):
         return self.adapter.self_test_device(device)
 
     def delete_device(self, device):
+        # Remove all child devices
+        self.delete_all_child_devices(device.id)
+
         return self.adapter.delete_device(device)
 
     def get_device_details(self, device):
@@ -580,7 +583,7 @@ class AdapterAgent(object):
 
         # Keep a reference to the packet out subscription as it will be
         # referred during removal
-        self.packet_out_subscription = self.event_bus.subscribe(
+        self.packet_out_subscriptions[logical_device.id] = self.event_bus.subscribe(
             topic='packet-out:{}'.format(logical_device.id),
             callback=lambda _, p: self.receive_packet_out(logical_device.id, p)
         )
@@ -596,7 +599,7 @@ class AdapterAgent(object):
         """
         # Keep a reference to the packet out subscription as it will be
         # referred during removal
-        self.packet_out_subscription = self.event_bus.subscribe(
+        self.packet_out_subscriptions[logical_device_id] = self.event_bus.subscribe(
             topic='packet-out:{}'.format(logical_device_id),
             callback=lambda _, p: self.receive_packet_out(logical_device_id, p)
         )
@@ -611,7 +614,8 @@ class AdapterAgent(object):
         assert isinstance(logical_device, LogicalDevice)
 
         # Remove packet out subscription
-        self.event_bus.unsubscribe(self.packet_out_subscription)
+        self.event_bus.unsubscribe(self.packet_out_subscriptions[logical_device.id])
+        del self.packet_out_subscriptions[logical_device.id]
 
         # Remove node from the data model - this will trigger the logical
         # device 'remove callbacks' as well as logical ports 'remove
