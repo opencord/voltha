@@ -226,7 +226,25 @@ class SimulatedOltAdapter(object):
         raise NotImplementedError()
 
     def disable_device(self, device):
-        raise NotImplementedError()
+        device.oper_status = OperStatus.UNKNOWN
+        device.connect_status = ConnectStatus.UNREACHABLE
+        self.adapter_agent.update_device(device)
+
+        # Remove the logical device
+        logical_device = self.adapter_agent.get_logical_device(device.parent_id)
+        self.adapter_agent.delete_logical_device(logical_device)
+
+        # Disable all child devices first
+        self.adapter_agent.update_child_devices_state(device.id,
+                                                      admin_state=AdminState.DISABLED)
+
+        # Remove the peer references from this device
+        self.adapter_agent.delete_all_peer_references(device.id)
+
+        # Set all ports to disabled
+        self.adapter_agent.disable_all_ports(device.id)
+
+        log.info('disabled', device_id=device.id)
 
     def reenable_device(self, device):
         raise NotImplementedError()
