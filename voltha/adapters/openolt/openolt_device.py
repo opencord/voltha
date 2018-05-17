@@ -38,6 +38,8 @@ from voltha.adapters.openolt.protos import openolt_pb2_grpc, openolt_pb2
 from voltha.protos.bbf_fiber_tcont_body_pb2 import TcontsConfigData
 import voltha.core.flow_decomposer as fd
 
+import openolt_platform as platform
+
 HSIA_FLOW_INDEX = 0 # FIXME
 DHCP_FLOW_INDEX = 1 # FIXME
 EAPOL_FLOW_INDEX = 2 # FIXME
@@ -48,82 +50,6 @@ DEFAULT_MGMT_VLAN = 4091
 
 OnuKey = collections.namedtuple('OnuKey', ['intf_id', 'onu_id'])
 OnuRec = collections.namedtuple('OnuRec', ['serial_number', 'state'])
-
-"""
-Encoding of identifiers
-=======================
-
-GEM port ID
-
-    GEM port id is unique per PON port
-
-     10              3      0
-    +--+--------------+------+
-    |1 |     onu id   | GEM  |
-    |  |              | idx  |
-    +--+--------------+------+
-
-    GEM port id range (0, 1023) is reserved
-    onu id = 7 bits = 128 ONUs per PON
-    GEM index = 3 bits = 8 GEM ports per ONU
-
-Alloc ID
-
-    Uniquely identifies a T-CONT
-    Ranges from 0 to 4095
-    Unique per PON interface
-
-     12         6            0
-    +------------+------------+
-    |   onu id   | Alloc idx  |
-    +------------+------------+
-
-    onu id = 7 bits = 128 ONUs per PON
-    Alloc index = 6 bits = 64 GEM ports per ONU
-
-Flow id
-
-    Identifies a flow within a single OLT
-    Flow Id is unique per OLT
-    Multiple GEM ports can map to same flow id
-
-     13    11              4      0
-    +--------+--------------+------+
-    | pon id |    onu id    | Flow |
-    |        |              | idx  |
-    +--------+--------------+------+
-
-    14 bits = 16384 flows (per OLT).
-
-    pon id = 4 bits = 16 PON ports
-    onu id = 7 bits = 128 ONUss per PON port
-    Flow index = 3 bits = 4 bi-directional flows per ONU
-                        = 8 uni-directional flows per ONU
-
-
-Logical (OF) UNI port number
-
-    OpenFlow port number corresponding to PON UNI
-
-     15       11              4      0
-    +--+--------+--------------+------+
-    |0 | pon id |    onu id    |   0  |
-    +--+--------+--------------+------+
-
-    pon id = 4 bits = 16 PON ports
-    onu id = 7 bits = 128 ONUs per PON port
-
-
-PON OLT (OF) port number
-
-    OpenFlow port number corresponding to PON OLT ports
-
-     31    28                                 0
-    +--------+------------------------~~~------+
-    |  0x2   |          pon intf id            |
-    +--------+------------------------~~~------+
-
-"""
 
 """
 OpenoltDevice represents an OLT.
@@ -278,7 +204,7 @@ class OpenoltDevice(object):
             onu_id = self.new_onu_id(intf_id)
             try:
                 self.add_onu_device(intf_id,
-                        self.intf_id_to_port_no(intf_id, Port.PON_OLT),
+                        platform.intf_id_to_port_no(intf_id, Port.PON_OLT),
                         onu_id, serial_number)
             except Exception as e:
                 self.log.exception('onu activation failed', e=e)
@@ -298,15 +224,6 @@ class OpenoltDevice(object):
                     self.onus[key].state == 'active':
 	        self.log.info("ignore onu discovery indication", intf_id=intf_id,
                         onu_id=onu_id, state=self.onus[key].state)
-
-    def mk_uni_port_num(self, intf_id, onu_id):
-        return intf_id << 11 | onu_id << 4
-
-    def onu_id_from_port_num(self, port_num):
-        return (port_num >> 4) & 0x7F
-
-    def intf_id_from_port_num(self, port_num):
-        return (port_num >> 11) & 0xF
 
     def onu_indication(self, onu_indication):
         self.log.debug("onu indication", intf_id=onu_indication.intf_id,
@@ -344,7 +261,7 @@ class OpenoltDevice(object):
         #
         # tcont create (onu)
         #
-        alloc_id = self.mk_alloc_id(onu_indication.onu_id)
+        alloc_id = platform.mk_alloc_id(onu_indication.onu_id)
         msg = {'proxy_address':onu_device.proxy_address,
                'event':'create-tcont',
                'event_data':{'alloc_id':alloc_id}}
@@ -353,7 +270,7 @@ class OpenoltDevice(object):
         #
         # v_enet create (olt)
         #
-        uni_no = self.mk_uni_port_num(onu_indication.intf_id, onu_indication.onu_id)
+        uni_no = platform.mk_uni_port_num(onu_indication.intf_id, onu_indication.onu_id)
         uni_name = self.port_name(uni_no, Port.ETHERNET_UNI,
                 serial_number=onu_indication.serial_number)
 	self.adapter_agent.add_port(
@@ -376,23 +293,11 @@ class OpenoltDevice(object):
         #
         # gem port create
         #
-        gemport_id = self.mk_gemport_id(onu_indication.onu_id)
+        gemport_id = platform.mk_gemport_id(onu_indication.onu_id)
         msg = {'proxy_address':onu_device.proxy_address,
                'event':'create-gemport',
                'event_data':{'gemport_id':gemport_id}}
         self.adapter_agent.publish_inter_adapter_message(onu_device.id, msg)
-
-    def mk_gemport_id(self, onu_id, idx=0):
-        return 1<<10 | onu_id<<3 | idx
-
-    def onu_id_from_gemport_id(self, gemport_id):
-        return (gemport_id & ~(1<<10)) >> 3
-
-    def mk_alloc_id(self, onu_id, idx=0):
-        # FIXME - driver should do prefixing 1 << 10 as it is Maple specific
-        #return 1<<10 | onu_id<<6 | idx
-        return 1023 + onu_id # FIXME
-
 
     def omci_indication(self, omci_indication):
 
@@ -411,8 +316,8 @@ class OpenoltDevice(object):
                 gemport_id=pkt_indication.gemport_id,
                 flow_id=pkt_indication.flow_id)
 
-        onu_id = self.onu_id_from_gemport_id(pkt_indication.gemport_id)
-        logical_port_num = self.mk_uni_port_num(pkt_indication.intf_id, onu_id)
+        onu_id = platform.onu_id_from_gemport_id(pkt_indication.gemport_id)
+        logical_port_num = platform.mk_uni_port_num(pkt_indication.intf_id, onu_id)
 
         pkt = Ether(pkt_indication.pkt)
         kw = dict(logical_device_id=self.logical_device_id,
@@ -441,8 +346,8 @@ class OpenoltDevice(object):
 
         send_pkt = binascii.unhexlify(str(payload).encode("HEX"))
 
-        onu_pkt = openolt_pb2.OnuPacket(intf_id=self.intf_id_from_port_num(egress_port),
-                onu_id=self.onu_id_from_port_num(egress_port), pkt=send_pkt)
+        onu_pkt = openolt_pb2.OnuPacket(intf_id=platform.intf_id_from_port_num(egress_port),
+                onu_id=platform.onu_id_from_port_num(egress_port), pkt=send_pkt)
 
         self.stub.OnuPacketOut(onu_pkt)
 
@@ -468,16 +373,6 @@ class OpenoltDevice(object):
                 parent_port_no=port_no, vendor_id=serial_number.vendor_id,
                 proxy_address=proxy_address, root=True,
                 serial_number=serial_number_str, admin_state=AdminState.ENABLED)
-
-    def intf_id_to_port_no(self, intf_id, intf_type):
-        if intf_type is Port.ETHERNET_NNI:
-            # FIXME - Remove hardcoded '129'
-            return intf_id + 129
-        elif intf_type is Port.PON_OLT:
-            return 0x2<<28 | intf_id
-        else:
-	    raise Exception('Invalid port type')
-
 
     def port_name(self, port_no, port_type, intf_id=None, serial_number=None):
         if port_type is Port.ETHERNET_NNI:
@@ -510,7 +405,7 @@ class OpenoltDevice(object):
         self.adapter_agent.add_logical_port(self.logical_device_id, logical_port)
 
     def add_port(self, intf_id, port_type, oper_status):
-        port_no = self.intf_id_to_port_no(intf_id, port_type)
+        port_no = platform.intf_id_to_port_no(intf_id, port_type)
 
         label = self.port_name(port_no, port_type, intf_id)
 
@@ -678,8 +573,8 @@ class OpenoltDevice(object):
 
                 # FIXME - Why ignore downstream flows?
                 if is_down_stream is False:
-                    intf_id = self.intf_id_from_port_num(classifier_info['in_port'])
-                    onu_id = self.onu_id_from_port_num(classifier_info['in_port'])
+                    intf_id = platform.intf_id_from_port_num(classifier_info['in_port'])
+                    onu_id = platform.onu_id_from_port_num(classifier_info['in_port'])
                     self.divide_and_add_flow(intf_id, onu_id, classifier_info, action_info)
                 #else:
                 #    self.log.info('ignore downstream flow', flow=flow,
@@ -707,9 +602,6 @@ class OpenoltDevice(object):
                 self.log.info('eapol flow add')
                 self.add_eapol_flow(intf_id, onu_id, classifier, action)
         elif 'push_vlan' in action:
-            # FIXME - Is this required?
-            #self.prepare_and_add_eapol_flow(intf_id, onu_id, classifier, action)
-            #        EAPOL_FLOW_INDEX_DATA_VLAN, EAPOL_DOWNLINK_FLOW_INDEX_DATA_VLAN)
             self.add_data_flow(intf_id, onu_id, classifier, action)
         else:
             self.log.info('Invalid-flow-type-to-handle', classifier=classifier,
@@ -787,8 +679,8 @@ class OpenoltDevice(object):
     def add_hsia_flow(self, intf_id, onu_id, uplink_classifier, uplink_action,
                 downlink_classifier, downlink_action, hsia_id):
 
-        gemport_id = self.mk_gemport_id(onu_id)
-        flow_id = self.mk_flow_id(intf_id, onu_id, hsia_id)
+        gemport_id = platform.mk_gemport_id(onu_id)
+        flow_id = platform.mk_flow_id(intf_id, onu_id, hsia_id)
 
         self.log.info('add upstream flow', onu_id=onu_id, classifier=uplink_classifier,
                 action=uplink_action, gemport_id=gemport_id, flow_id=flow_id)
@@ -822,8 +714,8 @@ class OpenoltDevice(object):
         classifier['pkt_tag_type'] = 'single_tag'
         classifier.pop('vlan_vid', None)
 
-        gemport_id = self.mk_gemport_id(onu_id)
-        flow_id = self.mk_flow_id(intf_id, onu_id, DHCP_FLOW_INDEX)
+        gemport_id = platform.mk_gemport_id(onu_id)
+        flow_id = platform.mk_flow_id(intf_id, onu_id, DHCP_FLOW_INDEX)
 
         upstream_flow = openolt_pb2.Flow(
                 onu_id=onu_id, flow_id=flow_id, flow_type="upstream",
@@ -842,8 +734,8 @@ class OpenoltDevice(object):
         downlink_classifier = dict(uplink_classifier)
         downlink_action = dict(uplink_action)
 
-        gemport_id = self.mk_gemport_id(onu_id)
-        uplink_flow_id = self.mk_flow_id(intf_id, onu_id, uplink_eapol_id)
+        gemport_id = platform.mk_gemport_id(onu_id)
+        uplink_flow_id = platform.mk_flow_id(intf_id, onu_id, uplink_eapol_id)
 
         # Add Upstream EAPOL Flow.
         uplink_classifier['pkt_tag_type'] = 'single_tag'
@@ -859,7 +751,7 @@ class OpenoltDevice(object):
         self.stub.FlowAdd(upstream_flow)
 
         # Add Downstream EAPOL Flow.
-        downlink_flow_id = self.mk_flow_id(intf_id, onu_id, downlink_eapol_id)
+        downlink_flow_id = platform.mk_flow_id(intf_id, onu_id, downlink_eapol_id)
         downlink_classifier['pkt_tag_type'] = 'single_tag'
         downlink_classifier['vlan_vid'] = vlan_id
 
@@ -869,6 +761,3 @@ class OpenoltDevice(object):
                 action=self.mk_action(downlink_action))
 
         self.stub.FlowAdd(downstream_flow)
-
-    def mk_flow_id(self, intf_id, onu_id, idx):
-        return intf_id<<11 | onu_id<<4  | idx
