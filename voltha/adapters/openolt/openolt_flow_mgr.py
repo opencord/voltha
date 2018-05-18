@@ -36,7 +36,7 @@ class OpenOltFlowMgr(object):
         self.stub = stub
 
     def add_flow(self, flow, is_down_stream):
-        self.log.info('add flow', flow=flow, is_down_stream=is_down_stream)
+        self.log.debug('add flow', flow=flow, is_down_stream=is_down_stream)
         classifier_info = dict()
         action_info = dict()
 
@@ -46,43 +46,43 @@ class OpenOltFlowMgr(object):
         for field in fd.get_ofb_fields(flow):
             if field.type == fd.ETH_TYPE:
                 classifier_info['eth_type'] = field.eth_type
-                self.log.info('field-type-eth-type',
+                self.log.debug('field-type-eth-type',
                         eth_type=classifier_info['eth_type'])
             elif field.type == fd.IP_PROTO:
                 classifier_info['ip_proto'] = field.ip_proto
-                self.log.info('field-type-ip-proto',
+                self.log.debug('field-type-ip-proto',
                         ip_proto=classifier_info['ip_proto'])
             elif field.type == fd.IN_PORT:
                 classifier_info['in_port'] = field.port
-                self.log.info('field-type-in-port',
+                self.log.debug('field-type-in-port',
                         in_port=classifier_info['in_port'])
             elif field.type == fd.VLAN_VID:
                 classifier_info['vlan_vid'] = field.vlan_vid & 0xfff
-                self.log.info('field-type-vlan-vid',
+                self.log.debug('field-type-vlan-vid',
                         vlan=classifier_info['vlan_vid'])
             elif field.type == fd.VLAN_PCP:
                 classifier_info['vlan_pcp'] = field.vlan_pcp
-                self.log.info('field-type-vlan-pcp',
+                self.log.debug('field-type-vlan-pcp',
                         pcp=classifier_info['vlan_pcp'])
             elif field.type == fd.UDP_DST:
                 classifier_info['udp_dst'] = field.udp_dst
-                self.log.info('field-type-udp-dst',
+                self.log.debug('field-type-udp-dst',
                         udp_dst=classifier_info['udp_dst'])
             elif field.type == fd.UDP_SRC:
                 classifier_info['udp_src'] = field.udp_src
-                self.log.info('field-type-udp-src',
+                self.log.debug('field-type-udp-src',
                         udp_src=classifier_info['udp_src'])
             elif field.type == fd.IPV4_DST:
                 classifier_info['ipv4_dst'] = field.ipv4_dst
-                self.log.info('field-type-ipv4-dst',
+                self.log.debug('field-type-ipv4-dst',
                         ipv4_dst=classifier_info['ipv4_dst'])
             elif field.type == fd.IPV4_SRC:
                 classifier_info['ipv4_src'] = field.ipv4_src
-                self.log.info('field-type-ipv4-src',
+                self.log.debug('field-type-ipv4-src',
                         ipv4_dst=classifier_info['ipv4_src'])
             elif field.type == fd.METADATA:
                 classifier_info['metadata'] = field.table_metadata
-                self.log.info('field-type-metadata',
+                self.log.debug('field-type-metadata',
                         metadata=classifier_info['metadata'])
             else:
                 raise NotImplementedError('field.type={}'.format(
@@ -91,16 +91,16 @@ class OpenOltFlowMgr(object):
         for action in fd.get_actions(flow):
             if action.type == fd.OUTPUT:
                 action_info['output'] = action.output.port
-                self.log.info('action-type-output',
+                self.log.debug('action-type-output',
                         output=action_info['output'],
                         in_port=classifier_info['in_port'])
             elif action.type == fd.POP_VLAN:
                 action_info['pop_vlan'] = True
-                self.log.info('action-type-pop-vlan', in_port=in_port)
+                self.log.debug('action-type-pop-vlan', in_port=in_port)
             elif action.type == fd.PUSH_VLAN:
                 action_info['push_vlan'] = True
                 action_info['tpid'] = action.push.ethertype
-                self.log.info('action-type-push-vlan',
+                self.log.debug('action-type-push-vlan',
                         push_tpid=action_info['tpid'], in_port=in_port)
                 if action.push.ethertype != 0x8100:
                     self.log.error('unhandled-tpid',
@@ -110,10 +110,10 @@ class OpenOltFlowMgr(object):
                 _field = action.set_field.field.ofb_field
                 assert (action.set_field.field.oxm_class ==
                         OFPXMC_OPENFLOW_BASIC)
-                self.log.info('action-type-set-field',
+                self.log.debug('action-type-set-field',
                         field=_field, in_port=in_port)
                 if _field.type == fd.VLAN_VID:
-                    self.log.info('set-field-type-vlan-vid',
+                    self.log.debug('set-field-type-vlan-vid',
                             vlan_vid=_field.vlan_vid & 0xfff)
                     action_info['vlan_vid'] = (_field.vlan_vid & 0xfff)
                 else:
@@ -142,18 +142,18 @@ class OpenOltFlowMgr(object):
                 self.log.debug('dhcp flow add')
                 self.add_dhcp_trap(intf_id, onu_id, classifier, action)
             elif classifier['ip_proto'] == 2:
-                self.log.info('igmp flow add ignored')
+                self.log.debug('igmp flow add ignored')
             else:
-                self.log.info("Invalid-Classifier-to-handle", classifier=classifier,
+                self.log.debug("Invalid-Classifier-to-handle", classifier=classifier,
                         action=action)
         elif 'eth_type' in classifier:
             if classifier['eth_type'] == 0x888e:
-                self.log.info('eapol flow add')
+                self.log.debug('eapol flow add')
                 self.add_eapol_flow(intf_id, onu_id, classifier, action)
         elif 'push_vlan' in action:
             self.add_data_flow(intf_id, onu_id, classifier, action)
         else:
-            self.log.info('Invalid-flow-type-to-handle', classifier=classifier,
+            self.log.debug('Invalid-flow-type-to-handle', classifier=classifier,
                     action=action)
 
     def add_data_flow(self, intf_id, onu_id, uplink_classifier, uplink_action):
@@ -181,7 +181,7 @@ class OpenOltFlowMgr(object):
         gemport_id = platform.mk_gemport_id(onu_id)
         flow_id = platform.mk_flow_id(intf_id, onu_id, hsia_id)
 
-        self.log.info('add upstream flow', onu_id=onu_id, classifier=uplink_classifier,
+        self.log.debug('add upstream flow', onu_id=onu_id, classifier=uplink_classifier,
                 action=uplink_action, gemport_id=gemport_id, flow_id=flow_id)
 
         flow = openolt_pb2.Flow(
@@ -190,9 +190,8 @@ class OpenOltFlowMgr(object):
                 action=self.mk_action(uplink_action))
 
         self.stub.FlowAdd(flow)
-        time.sleep(0.1) # FIXME
 
-        self.log.info('add downstream flow', classifier=downlink_classifier,
+        self.log.debug('add downstream flow', classifier=downlink_classifier,
                 action=downlink_action, gemport_id=gemport_id, flow_id=flow_id)
 
         flow = openolt_pb2.Flow(
@@ -202,11 +201,10 @@ class OpenOltFlowMgr(object):
                 action=self.mk_action(downlink_action))
 
         self.stub.FlowAdd(flow)
-        time.sleep(0.1) # FIXME
 
     def add_dhcp_trap(self, intf_id, onu_id, classifier, action):
 
-        self.log.info('add dhcp trap', classifier=classifier, action=action)
+        self.log.debug('add dhcp trap', classifier=classifier, action=action)
 
         action.clear()
         action['trap_to_host'] = True
@@ -228,7 +226,7 @@ class OpenOltFlowMgr(object):
             downlink_eapol_id=EAPOL_DOWNLINK_FLOW_INDEX,
             vlan_id=DEFAULT_MGMT_VLAN):
 
-        self.log.info('add eapol flow', classifier=uplink_classifier, action=uplink_action)
+        self.log.debug('add eapol flow', classifier=uplink_classifier, action=uplink_action)
 
         downlink_classifier = dict(uplink_classifier)
         downlink_action = dict(uplink_action)
