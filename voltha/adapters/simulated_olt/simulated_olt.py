@@ -517,6 +517,7 @@ class SimulatedOltAdapter(object):
         # that will correspond to the NNI port
         yield asleep(0.05)
         logical_device_id = uuid4().hex[:12]
+        ld_mac = ':'.join([a+b for a,b in zip(logical_device_id[::2], logical_device_id[1::2])])
         ld = LogicalDevice(
             # not setting id and datapth_id will let the adapter agent pick id
             desc=ofp_desc(
@@ -537,7 +538,7 @@ class SimulatedOltAdapter(object):
             ),
             root_device_id=device.id
         )
-        ld_initialized = self.adapter_agent.create_logical_device(ld, device.mac_address)
+        ld_initialized = self.adapter_agent.create_logical_device(ld, ld_mac)
 
         cap = OFPPF_1GB_FD | OFPPF_FIBER
         self.adapter_agent.add_logical_port(ld_initialized.id, LogicalPort(
