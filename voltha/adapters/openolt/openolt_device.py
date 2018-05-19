@@ -22,6 +22,7 @@ import collections
 from twisted.internet import reactor
 from scapy.layers.l2 import Ether, Dot1Q
 import binascii
+from transitions import Machine
 
 from voltha.protos.device_pb2 import Port, Device
 from voltha.protos.common_pb2 import OperStatus, AdminState, ConnectStatus
@@ -46,6 +47,12 @@ OpenoltDevice represents an OLT.
 """
 class OpenoltDevice(object):
 
+    states = ['up', 'down']
+    transitions = [
+            { 'trigger': 'olt_up', 'source': 'down', 'dest': 'up', 'before': 'olt_indication_up' },
+            { 'trigger': 'olt_down', 'source': 'up', 'dest': 'down', 'before': 'olt_indication_down' }
+    ]
+
     def __init__(self, **kwargs):
         super(OpenoltDevice, self).__init__()
 
@@ -64,6 +71,13 @@ class OpenoltDevice(object):
         device.connect_status = ConnectStatus.REACHABLE
         device.oper_status = OperStatus.ACTIVATING
         self.adapter_agent.update_device(device)
+
+        # Initialize the OLT state machine
+        self.machine = Machine(model=self, states=OpenoltDevice.states,
+                transitions=OpenoltDevice.transitions,
+                send_event=True, initial='down', ignore_invalid_triggers=True)
+        self.machine.add_transition(trigger='olt_ind_up', source='down', dest='up')
+        self.machine.add_transition(trigger='olt_ind_loss', source='up', dest='down')
 
         # Initialize gRPC
         self.channel = grpc.insecure_channel(self.host_and_port)
@@ -106,12 +120,14 @@ class OpenoltDevice(object):
                 reactor.callFromThread(self.packet_indication, ind.pkt_ind)
 
     def olt_indication(self, olt_indication):
-	self.log.debug("olt indication", olt_ind=olt_indication)
+        if olt_indication.oper_state == "up":
+            self.olt_up(ind=olt_indication)
+        elif olt_indication.oper_state == "down":
+            self.olt_down(ind=olt_indication)
 
-        # FIXME
-        if olt_indication.oper_state == "down":
-	    self.log.error("ignore olt oper state down", olt_ind=olt_indication)
-            return
+    def olt_indication_up(self, event):
+        olt_indication = event.kwargs.get('ind', None)
+	self.log.debug("olt indication", olt_ind=olt_indication)
 
         if not hasattr(olt_indication, 'mac') or \
                 not olt_indication.mac:
@@ -142,6 +158,9 @@ class OpenoltDevice(object):
         device.oper_status = OperStatus.ACTIVE
         self.adapter_agent.update_device(device)
 
+    def olt_indication_down(self, event):
+        olt_indication = event.kwargs.get('ind', None)
+	self.log.debug("olt indication", olt_ind=olt_indication)
 
     def intf_indication(self, intf_indication):
 	self.log.debug("intf indication", intf_id=intf_indication.intf_id,
