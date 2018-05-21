@@ -756,9 +756,10 @@ class AdapterAgent(object):
             if device.parent_id == parent_device_id:
                 children_ids.add(device.id)
                 topic = self._gen_tx_proxy_address_topic(device.proxy_address)
-                self.event_bus.unsubscribe(self._tx_event_subscriptions[topic])
-                del self._tx_event_subscriptions[topic]
-
+                tx_event_subscription =  self._tx_event_subscriptions.get(topic)
+                if tx_event_subscription:
+                    self.event_bus.unsubscribe(tx_event_subscription)
+                    del self._tx_event_subscriptions[topic]
         self.log.debug('devices-to-delete',
                        parent_id=parent_device_id,
                        children_ids=children_ids)
@@ -801,8 +802,10 @@ class AdapterAgent(object):
                                child_device_id=child_device_id)
                 topic = self._gen_tx_proxy_address_topic(
                     onu_device.proxy_address)
-                self.event_bus.unsubscribe(self._tx_event_subscriptions[topic])
-                del self._tx_event_subscriptions[topic]
+                tx_event_subscription =  self._tx_event_subscriptions.get(topic)
+                if tx_event_subscription:
+                    self.event_bus.unsubscribe(tx_event_subscription)
+                    del self._tx_event_subscriptions[topic]
                 self._remove_node('/devices', child_device_id)
 
     def _gen_rx_proxy_address_topic(self, proxy_address):
@@ -823,8 +826,10 @@ class AdapterAgent(object):
 
     def unregister_for_proxied_messages(self, proxy_address):
         topic = self._gen_rx_proxy_address_topic(proxy_address)
-        self.event_bus.unsubscribe(self._rx_event_subscriptions[topic])
-        del self._rx_event_subscriptions[topic]
+        rx_event_subscription =  self._rx_event_subscriptions.get(topic)
+        if rx_event_subscription:
+            self.event_bus.unsubscribe(rx_event_subscription)
+            del self._rx_event_subscriptions[topic]
 
     def _receive_proxied_message(self, proxy_address, msg):
         self.adapter.receive_proxied_message(proxy_address, msg)
