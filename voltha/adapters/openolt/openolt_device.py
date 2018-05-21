@@ -129,11 +129,7 @@ class OpenoltDevice(object):
         olt_indication = event.kwargs.get('ind', None)
 	self.log.debug("olt indication", olt_ind=olt_indication)
 
-        if not hasattr(olt_indication, 'mac') or \
-                not olt_indication.mac:
-            mac = '00:00:00:00:00:' + '{:02x}'.format(self.device_num)
-        else:
-            mac = olt_indication.mac
+        dpid = '00:00:' + self.ip_hex(self.host_and_port.split(":")[0])
 
         # Create logical OF device
         ld = LogicalDevice(
@@ -149,7 +145,7 @@ class OpenoltDevice(object):
                 )
             )
         )
-        ld_initialized = self.adapter_agent.create_logical_device(ld, dpid=mac)
+        ld_initialized = self.adapter_agent.create_logical_device(ld, dpid=dpid)
         self.logical_device_id = ld_initialized.id
 
         # Update phys OF device
@@ -490,3 +486,14 @@ class OpenoltDevice(object):
                     self.flow_mgr.add_flow(flow, is_down_stream)
                 except Exception as e:
                     self.log.exception('failed-to-install-flow', e=e, flow=flow)
+
+    # There has to be a better way to do this
+    def ip_hex(self, ip):
+        octets = ip.split(".")
+        hex_ip = []
+        for octet in octets:
+            octet_hex = hex(int(octet))
+            octet_hex = octet_hex.split('0x')[1]
+            octet_hex = octet_hex.rjust(2, '0')
+            hex_ip.append(octet_hex)
+        return ":".join(hex_ip)
