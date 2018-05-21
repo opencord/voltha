@@ -756,8 +756,10 @@ class AdapterAgent(object):
             if device.parent_id == parent_device_id:
                 children_ids.add(device.id)
                 topic = self._gen_tx_proxy_address_topic(device.proxy_address)
-                self.event_bus.unsubscribe(self._tx_event_subscriptions[topic])
-                del self._tx_event_subscriptions[topic]
+                tx_event_subscription =  self._tx_event_subscriptions.get(topic)
+                if tx_event_subscription:
+                    self.event_bus.unsubscribe(tx_event_subscription)
+                    del self._tx_event_subscriptions[topic]
 
         self.log.debug('devices-to-delete',
                        parent_id=parent_device_id,
