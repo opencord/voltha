@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d3416f6b_ba40f9bc",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 806,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-05-21T08:41:55Z",
+      "side": 1,
+      "message": "Don\u0027t we need to do the similar handling here?",
+      "revId": "3b9391906cdb0e87f7540816e97c997e98a5dbc8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "08bb116c_dcbcb080",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 828,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-05-21T08:41:55Z",
+      "side": 1,
+      "message": "Don\u0027t we need similar handling here",
+      "revId": "3b9391906cdb0e87f7540816e97c997e98a5dbc8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
