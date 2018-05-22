@@ -79,6 +79,7 @@ message OnuIndication {
     fixed32 intf_id = 1;
     fixed32 onu_id = 2;
     string oper_state = 3;      // up, down
+    string admin_state = 5;     // up, down
     SerialNumber serial_number = 4;
 }
 

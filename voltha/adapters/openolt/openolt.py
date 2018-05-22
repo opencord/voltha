@@ -140,7 +140,7 @@ class OpenoltAdapter(object):
         raise NotImplementedError()
 
     def self_test_device(self, device):
-        from voltha.protos.voltha_pb2 import SelfTestResponse
+        #from voltha.protos.voltha_pb2 import SelfTestResponse
         raise NotImplementedError()
 
     def delete_device(self, device):
@@ -217,7 +217,7 @@ class OpenoltAdapter(object):
         raise NotImplementedError()
 
     def receive_onu_detect_state(self, proxy_address, state):
-        log.debug('receive-onu-detect-state', data=data)
+        log.debug('receive-onu-detect-state', proxy_address=proxy_address, state=state)
         raise NotImplementedError()
 
     def create_tcont(self, device, tcont_data, traffic_descriptor_data):

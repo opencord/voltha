@@ -27,20 +27,21 @@ from transitions import Machine
 from voltha.protos.device_pb2 import Port, Device
 from voltha.protos.common_pb2 import OperStatus, AdminState, ConnectStatus
 from voltha.protos.logical_device_pb2 import LogicalDevice
-from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, \
+from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, OFPPS_LINK_DOWN, \
     OFPPF_1GB_FD, OFPC_GROUP_STATS, OFPC_PORT_STATS, OFPC_TABLE_STATS, \
     OFPC_FLOW_STATS, ofp_switch_features, ofp_port
 from voltha.protos.logical_device_pb2 import LogicalPort, LogicalDevice
 from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.registry import registry
 from voltha.adapters.openolt.protos import openolt_pb2_grpc, openolt_pb2
+from voltha.protos.bbf_fiber_tcont_body_pb2 import TcontsConfigData
+from voltha.protos.bbf_fiber_gemport_body_pb2 import GemportsConfigData
+from voltha.protos.bbf_fiber_base_pb2 import VEnetConfig
 import voltha.core.flow_decomposer as fd
 
 import openolt_platform as platform
 from openolt_flow_mgr import OpenOltFlowMgr
 
-OnuKey = collections.namedtuple('OnuKey', ['intf_id', 'onu_id'])
-OnuRec = collections.namedtuple('OnuRec', ['serial_number', 'state'])
 
 """
 OpenoltDevice represents an OLT.
@@ -63,7 +64,7 @@ class OpenoltDevice(object):
         self.host_and_port = device.host_and_port
         self.log = structlog.get_logger(id=self.device_id, ip=self.host_and_port)
         self.nni_oper_state = dict() #intf_id -> oper_state
-        self.onus = {} # OnuKey -> OnuRec
+        self.proxy = registry('core').get_proxy('/')
 
         # Update device
         device.root = True
@@ -107,11 +108,9 @@ class OpenoltDevice(object):
             elif ind.HasField('intf_ind'):
                 reactor.callFromThread(self.intf_indication, ind.intf_ind)
             elif ind.HasField('intf_oper_ind'):
-                reactor.callFromThread(self.intf_oper_indication,
-                        ind.intf_oper_ind)
+                reactor.callFromThread(self.intf_oper_indication, ind.intf_oper_ind)
             elif ind.HasField('onu_disc_ind'):
-                reactor.callFromThread(self.onu_discovery_indication,
-                        ind.onu_disc_ind)
+                reactor.callFromThread(self.onu_discovery_indication, ind.onu_disc_ind)
             elif ind.HasField('onu_ind'):
                 reactor.callFromThread(self.onu_indication, ind.onu_ind)
             elif ind.HasField('omci_ind'):
@@ -127,7 +126,7 @@ class OpenoltDevice(object):
 
     def olt_indication_up(self, event):
         olt_indication = event.kwargs.get('ind', None)
-	self.log.debug("olt indication", olt_ind=olt_indication)
+        self.log.debug("olt indication", olt_ind=olt_indication)
 
         dpid = '00:00:' + self.ip_hex(self.host_and_port.split(":")[0])
 
@@ -156,10 +155,10 @@ class OpenoltDevice(object):
 
     def olt_indication_down(self, event):
         olt_indication = event.kwargs.get('ind', None)
-	self.log.debug("olt indication", olt_ind=olt_indication)
+        self.log.debug("olt indication", olt_ind=olt_indication)
 
     def intf_indication(self, intf_indication):
-	self.log.debug("intf indication", intf_id=intf_indication.intf_id,
+        self.log.debug("intf indication", intf_id=intf_indication.intf_id,
             oper_state=intf_indication.oper_state)
 
         if intf_indication.oper_state == "up":
@@ -171,10 +170,8 @@ class OpenoltDevice(object):
         self.add_port(intf_indication.intf_id, Port.PON_OLT, oper_status)
 
     def intf_oper_indication(self, intf_oper_indication):
-	self.log.debug("Received interface oper state change indication",
-                intf_id=intf_oper_indication.intf_id,
-                type=intf_oper_indication.type,
-                oper_state=intf_oper_indication.oper_state)
+        self.log.debug("Received interface oper state change indication", intf_id=intf_oper_indication.intf_id,
+            type=intf_oper_indication.type, oper_state=intf_oper_indication.oper_state)
 
         if intf_oper_indication.oper_state == "up":
             oper_state = OperStatus.ACTIVE
@@ -190,7 +187,7 @@ class OpenoltDevice(object):
             if intf_oper_indication.intf_id not in self.nni_oper_state:
                 self.nni_oper_state[intf_oper_indication.intf_id] = oper_state
                 port_no, label = self.add_port(intf_oper_indication.intf_id, Port.ETHERNET_NNI, oper_state)
-	        self.log.debug("int_oper_indication", port_no=port_no, label=label)
+                self.log.debug("int_oper_indication", port_no=port_no, label=label)
                 self.add_logical_port(port_no, intf_oper_indication.intf_id) # FIXME - add oper_state
             elif intf_oper_indication.intf_id != self.nni_oper_state:
                 # FIXME - handle subsequent NNI oper state change
@@ -204,109 +201,216 @@ class OpenoltDevice(object):
         intf_id = onu_disc_indication.intf_id
         serial_number=onu_disc_indication.serial_number
 
-	self.log.debug("onu discovery indication", intf_id=intf_id,
-            serial_number=serial_number)
+        self.log.debug("onu discovery indication", intf_id=intf_id, serial_number=serial_number)
 
-        key = self.lookup_key(serial_number=serial_number)
+        serial_number_str = self.stringify_serial_number(serial_number)
 
-        if key is None:
+        onu_device = self.adapter_agent.get_child_device(self.device_id, serial_number=serial_number_str)
+
+        if onu_device is None:
             onu_id = self.new_onu_id(intf_id)
             try:
                 self.add_onu_device(intf_id,
                         platform.intf_id_to_port_no(intf_id, Port.PON_OLT),
                         onu_id, serial_number)
-            except Exception as e:
-                self.log.exception('onu activation failed', e=e)
-            else:
-		self.log.info("activate onu", intf_id=intf_id, onu_id=onu_id,
+                self.log.info("activate-onu", intf_id=intf_id, onu_id=onu_id,
                         serial_number=serial_number)
-                self.onus[OnuKey(intf_id=intf_id, onu_id=onu_id)] \
-                        = OnuRec(serial_number=serial_number, state='discovered')
-		onu = openolt_pb2.Onu(intf_id=intf_id, onu_id=onu_id,
-			serial_number=serial_number)
-		self.stub.ActivateOnu(onu)
+                onu = openolt_pb2.Onu(intf_id=intf_id, onu_id=onu_id,serial_number=serial_number)
+                self.stub.ActivateOnu(onu)
+            except Exception as e:
+                self.log.exception('onu-activation-failed', e=e)
+
         else:
-            # FIXME - handle onu discover indication for a discovered/activated onu
-            onu_id = key.onu_id
-            intf_id = key.intf_id
-            if self.onus[key].state == 'discovered' or \
-                    self.onus[key].state == 'active':
-	        self.log.info("ignore onu discovery indication", intf_id=intf_id,
-                        onu_id=onu_id, state=self.onus[key].state)
+            onu_id = onu_device.proxy_address.onu_id
+            if onu_device.oper_status == OperStatus.DISCOVERED:
+                self.log.info("ignore onu discovery indication, the onu has been discovered and should be \
+                              activating shorlty", intf_id=intf_id, onu_id=onu_id, state=onu_device.oper_status)
+            elif onu_device.oper_status== OperStatus.ACTIVE:
+                self.log.warn("onu discovery indication whereas onu is supposed to be active",
+                              intf_id=intf_id, onu_id=onu_id, state=onu_device.oper_status)
+            else:
+                self.log.warn('unexpected state', onu_id=onu_id, onu_device_oper_state=onu_device.oper_status)
 
     def onu_indication(self, onu_indication):
-        self.log.debug("onu indication", intf_id=onu_indication.intf_id,
-                onu_id=onu_indication.onu_id)
+        self.log.debug("onu-indication", intf_id=onu_indication.intf_id,
+                onu_id=onu_indication.onu_id, serial_number=onu_indication.serial_number,
+                    oper_state=onu_indication.oper_state, admin_state=onu_indication.admin_state)
 
-        key = self.lookup_key(serial_number=onu_indication.serial_number)
+        serial_number_str = self.stringify_serial_number(onu_indication.serial_number)
+
+        if serial_number_str == '000000000000':
+            self.log.debug('serial-number-was-not-provided-or-default-serial-number-provided-identifying-onu-by-onu_id')
+            #FIXME: if multiple PON ports onu_id is not a sufficient key
+            onu_device = self.adapter_agent.get_child_device(
+                self.device_id,
+                onu_id=onu_indication.onu_id)
+        else :
+            onu_device = self.adapter_agent.get_child_device(
+                self.device_id,
+                serial_number=serial_number_str)
+
+        self.log.debug('onu-device', olt_device_id=self.device_id, device=onu_device)
 
         # FIXME - handle serial_number mismatch
-        assert key is not None
-
-        # FIXME - handle intf_id mismatch (ONU move?)
-        assert onu_indication.intf_id == key.intf_id
-
-        # FIXME - handle onu id mismatch
-        assert onu_indication.onu_id == key.onu_id
-
-        if self.onus[key].state is not 'discovered':
-            self.log.debug("ignore onu indication",
-                    intf_id=onu_indication.intf_id,
-                    onu_id=onu_indication.onu_id,
-                    state=self.onus[key].state)
+        # assert key is not None
+        # assert onu_device is not None
+        if onu_device is None:
+            self.log.warn('onu-device-is-none-invalid-message')
             return
 
-        self.onus[key] = self.onus[key]._replace(state='active')
+        if platform.intf_id_from_port_num(onu_device.parent_port_no) != onu_indication.intf_id:
+            self.log.warn('ONU-is-on-a-different-intf-id-now',
+                          previous_intf_id=platform.intf_id_from_port_num(onu_device.parent_port_no),
+                          current_intf_id=onu_indication.intf_id)
+            # FIXME - handle intf_id mismatch (ONU move?)
 
-        onu_device = self.adapter_agent.get_child_device(self.device_id,
-                onu_id=onu_indication.onu_id)
-        assert onu_device is not None
 
-        msg = {'proxy_address':onu_device.proxy_address,
-               'event':'activation-completed',
-               'event_data':{'activation_successful':True}}
-        self.adapter_agent.publish_inter_adapter_message(onu_device.id, msg)
+        if onu_device.proxy_address.onu_id != onu_indication.onu_id:
+            # FIXME - handle onu id mismatch
+            self.log.warn('ONU-id-mismatch', expected_onu_id=onu_device.proxy_address.onu_id,
+                          received_onu_id=onu_indication.onu_id)
 
-        #
-        # tcont create (onu)
-        #
-        alloc_id = platform.mk_alloc_id(onu_indication.onu_id)
-        msg = {'proxy_address':onu_device.proxy_address,
-               'event':'create-tcont',
-               'event_data':{'alloc_id':alloc_id}}
-        self.adapter_agent.publish_inter_adapter_message(onu_device.id, msg)
-
-        #
-        # v_enet create (olt)
-        #
         uni_no = platform.mk_uni_port_num(onu_indication.intf_id, onu_indication.onu_id)
-        uni_name = self.port_name(uni_no, Port.ETHERNET_UNI,
-                serial_number=onu_indication.serial_number)
-	self.adapter_agent.add_port(
-            self.device_id,
-            Port(
-                port_no=uni_no,
-                label=uni_name,
-                type=Port.ETHERNET_UNI,
-                admin_state=AdminState.ENABLED,
-                oper_status=OperStatus.ACTIVE))
+        uni_name = self.port_name(uni_no, Port.ETHERNET_UNI, serial_number=serial_number_str)
 
-        #
-        # v_enet create (onu)
-        #
-        msg = {'proxy_address':onu_device.proxy_address,
-               'event':'create-venet',
-               'event_data':{'uni_name':uni_name, 'interface_name':uni_name}}
-        self.adapter_agent.publish_inter_adapter_message(onu_device.id, msg)
+        self.log.debug('port-number-ready', uni_no=uni_no, uni_name=uni_name)
 
-        #
-        # gem port create
-        #
-        gemport_id = platform.mk_gemport_id(onu_indication.onu_id)
-        msg = {'proxy_address':onu_device.proxy_address,
-               'event':'create-gemport',
-               'event_data':{'gemport_id':gemport_id}}
-        self.adapter_agent.publish_inter_adapter_message(onu_device.id, msg)
+        #Admin state
+        if onu_indication.admin_state == 'down':
+            if onu_indication.oper_state != 'down':
+                self.log.error('ONU-admin-state-down-and-oper-status-not-down', oper_state=onu_indication.oper_state)
+                onu_indication.oper_state = 'down' # Forcing the oper state change code to execute
+
+            if onu_device.admin_state != AdminState.DISABLED:
+                onu_device.admin_state = AdminState.DISABLED
+                self.adapter_agent.update(onu_device)
+                self.log.debug('putting-onu-in-disabled-state', onu_serial_number=onu_device.serial_number)
+
+            #Port and logical port update is taken care of by oper state block
+
+        elif onu_indication.admin_state == 'up':
+            if onu_device.admin_state != AdminState.ENABLED:
+                onu_device.admin_state = AdminState.ENABLED
+                self.adapter_agent.update(onu_device)
+                self.log.debug('putting-onu-in-enabled-state', onu_serial_number=onu_device.serial_number)
+
+        else:
+            self.log.warn('Invalid-or-not-implemented-admin-state', received_admin_state=onu_indication.admin_state)
+
+        self.log.debug('admin-state-dealt-with')
+
+        #Operating state
+        if onu_indication.oper_state == 'down':
+            #Move to discovered state
+            self.log.debug('onu-oper-state-is-down')
+
+            if onu_device.oper_status != OperStatus.DISCOVERED:
+                onu_device.oper_status = OperStatus.DISCOVERED
+                self.adapter_agent.update_device(onu_device)
+            #Set port oper state to Discovered
+            #add port will update port if it exists
+            self.adapter_agent.add_port(
+                self.device_id,
+                Port(
+                    port_no=uni_no,
+                    label=uni_name,
+                    type=Port.ETHERNET_UNI,
+                    admin_state=onu_device.admin_state,
+                    oper_status=OperStatus.DISCOVERED))
+
+            #Disable logical port
+            openolt_device = self.adapter_agent.get_device(self.device_id)
+            onu_ports = self.proxy.get('devices/{}/ports'.format(onu_device.id))
+            onu_port_id = None
+            for onu_port in onu_ports:
+                if onu_port.port_no == uni_no:
+                    onu_port_id = onu_port.label
+            if onu_port_id is None:
+                self.log.error('matching-onu-port-label-not-found', onu_id=onu_device.id, olt_id=self.device_id,
+                              onu_ports=onu_ports)
+                return
+            try:
+                onu_logical_port = self.adapter_agent.get_logical_port(logical_device_id=openolt_device.parent_id,
+                                                                   port_id=onu_port_id)
+                onu_logical_port.ofp_port.state=OFPPS_LINK_DOWN
+                self.adapter_agent.update_logical_port(logical_device_id=openolt_device.parent_id, port= onu_logical_port)
+                self.log.debug('cascading-oper-state-to-port-and-logical-port')
+            except KeyError as e:
+                self.log.error('matching-onu-port-label-invalid', onu_id=onu_device.id, olt_id=self.device_id,
+                               onu_ports=onu_ports, onu_port_id=onu_port_id, error=e)
+
+        elif onu_indication.oper_state == 'up':
+
+            if onu_device.oper_status != OperStatus.DISCOVERED:
+                self.log.debug("ignore onu indication", intf_id=onu_indication.intf_id,
+                               onu_id=onu_indication.onu_id, state=onu_device.oper_state,
+                               msg_oper_state=onu_indication.oper_state)
+                return
+
+            #Device was in Discovered state, setting it to active
+
+
+
+            onu_adapter_agent = registry('adapter_loader').get_agent(onu_device.adapter)
+            if onu_adapter_agent is None:
+                self.log.error('onu_adapter_agent-could-not-be-retrieved', onu_device=onu_device)
+                return
+
+            #Prepare onu configuration
+
+            # onu initialization, base configuration (bridge setup ...)
+            def onu_initialization():
+
+                #FIXME: that's definitely cheating
+                if onu_device.adapter == 'broadcom_onu':
+                    onu_adapter_agent.adapter.devices_handlers[onu_device.id].message_exchange()
+                    self.log.debug('broadcom-message-exchange-started')
+
+            # tcont creation (onu)
+            tcont = TcontsConfigData()
+            tcont.alloc_id = platform.mk_alloc_id(onu_indication.onu_id)
+
+            # gem port creation
+            gem_port = GemportsConfigData()
+            gem_port.gemport_id = platform.mk_gemport_id(onu_indication.onu_id)
+
+            #ports creation/update
+            def port_config():
+
+                # "v_enet" creation (olt)
+
+                #add_port update port when it exists
+                self.adapter_agent.add_port(
+                    self.device_id,
+                    Port(
+                        port_no=uni_no,
+                        label=uni_name,
+                        type=Port.ETHERNET_UNI,
+                        admin_state=AdminState.ENABLED,
+                        oper_status=OperStatus.ACTIVE))
+
+                # v_enet creation (onu)
+
+                venet = VEnetConfig(name=uni_name)
+                venet.interface.name = uni_name
+                onu_adapter_agent.create_interface(onu_device, venet)
+
+            # ONU device status update in the datastore
+            def onu_update_oper_status():
+                onu_device.oper_status = OperStatus.ACTIVE
+                onu_device.connect_status = ConnectStatus.REACHABLE
+                self.adapter_agent.update_device(onu_device)
+
+            # FIXME : the asynchronicity has to be taken care of properly
+            onu_initialization()
+            reactor.callLater(10, onu_adapter_agent.create_tcont, device=onu_device,
+                                                            tcont_data=tcont, traffic_descriptor_data=None)
+            reactor.callLater(11, onu_adapter_agent.create_gemport, onu_device, gem_port)
+            reactor.callLater(12, port_config)
+            reactor.callLater(12, onu_update_oper_status)
+
+        else:
+            self.log.warn('Not-implemented-or-invalid-value-of-oper-state', oper_state=onu_indication.oper_state)
 
     def omci_indication(self, omci_indication):
 
@@ -341,6 +445,7 @@ class OpenoltDevice(object):
         if pkt.haslayer(Dot1Q):
             outer_shim = pkt.getlayer(Dot1Q)
             if isinstance(outer_shim.payload, Dot1Q):
+                #If double tag, remove the outer tag
                 payload = (
                     Ether(src=pkt.src, dst=pkt.dst, type=outer_shim.type) /
                     outer_shim.payload
@@ -375,8 +480,7 @@ class OpenoltDevice(object):
 
         self.log.info("Adding ONU", proxy_address=proxy_address)
 
-        serial_number_str = ''.join([serial_number.vendor_id,
-                self.stringify_vendor_specific(serial_number.vendor_specific)])
+        serial_number_str = self.stringify_serial_number(serial_number)
 
         self.adapter_agent.add_onu_device(parent_device_id=self.device_id,
                 parent_port_no=port_no, vendor_id=serial_number.vendor_id,
@@ -385,12 +489,14 @@ class OpenoltDevice(object):
 
     def port_name(self, port_no, port_type, intf_id=None, serial_number=None):
         if port_type is Port.ETHERNET_NNI:
-            return "nni" "-" + str(port_no)
+            return "nni-" + str(port_no)
         elif port_type is Port.PON_OLT:
             return "pon" + str(intf_id)
         elif port_type is Port.ETHERNET_UNI:
-            return ''.join([serial_number.vendor_id,
-                    self.stringify_vendor_specific(serial_number.vendor_specific)])
+            if serial_number is not None:
+                return serial_number
+            else:
+                return "uni-{}".format(port_no)
 
     def add_logical_port(self, port_no, intf_id):
         self.log.info('adding-logical-port', port_no=port_no)
@@ -430,9 +536,16 @@ class OpenoltDevice(object):
 
     def new_onu_id(self, intf_id):
         onu_id = None
+        onu_devices = self.adapter_agent.get_child_devices(self.device_id)
         for i in range(1, 512):
-            key = OnuKey(intf_id=intf_id, onu_id=i)
-            if key not in self.onus:
+            # key = OnuKey(intf_id=intf_id, onu_id=i)
+            # if key not in self.onus:
+            id_not_taken = True
+            for child_device in onu_devices:
+                if child_device.proxy_address.onu_id == i:
+                    id_not_taken = False
+                    break
+            if id_not_taken:
                 onu_id = i
                 break
         return onu_id
@@ -448,16 +561,6 @@ class OpenoltDevice(object):
                 hex(ord(vendor_specific[3])>>4 & 0x0f)[2:],
                 hex(ord(vendor_specific[3]) & 0x0f)[2:]])
 
-    def lookup_key(self, serial_number):
-        key = None
-        for k, r in self.onus.iteritems():
-            if r.serial_number.vendor_id == serial_number.vendor_id:
-                str1 = self.stringify_vendor_specific(r.serial_number.vendor_specific)
-                str2 = self.stringify_vendor_specific(serial_number.vendor_specific)
-                if str1 == str2:
-                    key = k
-                    break
-        return key
 
     def update_flow_table(self, flows):
         device = self.adapter_agent.get_device(self.device_id)
@@ -497,3 +600,7 @@ class OpenoltDevice(object):
             octet_hex = octet_hex.rjust(2, '0')
             hex_ip.append(octet_hex)
         return ":".join(hex_ip)
+
+    def stringify_serial_number(self, serial_number):
+        return ''.join([serial_number.vendor_id,
+                                     self.stringify_vendor_specific(serial_number.vendor_specific)])
