@@ -22,7 +22,7 @@ from requests import ConnectionError
 from structlog import get_logger
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, returnValue, Deferred
-from twisted.internet.task import LoopingCall
+from twisted.internet.error import DNSLookupError
 from zope.interface import implementer
 
 from leader import Leader
@@ -203,7 +203,7 @@ class Coordinator(object):
         wait_time = self.RETRY_BACKOFF[min(self.retries,
                                            len(self.RETRY_BACKOFF) - 1)]
         self.retries += 1
-        log.error(msg, retry_in=wait_time)
+        log.info(msg, retry_in=wait_time)
         return asleep(wait_time)
 
     def _clear_backoff(self):
@@ -548,6 +548,10 @@ class Coordinator(object):
                               session=self.consul.Session,
                               e=e)
                 yield self._backoff('cannot-connect-to-consul')
+            except DNSLookupError, e:
+                log.info('dns-lookup-failed', operation=operation, args=args,
+                            host=self.host)
+                yield self._backoff('dns-lookup-failed')
             except StaleMembershipEntryException, e:
                 log.exception('stale-membership-record-in-the-way',
                               operation=operation,
