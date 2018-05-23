@@ -22,6 +22,30 @@
       "revId": "45b216d1f08cbbf52352aa20afb2e2f04ad598e6",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b1f77783_1a998d1b",
+        "filename": "voltha/extensions/omci/state_machines/mib_sync.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 366,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-05-23T19:41:11Z",
+      "side": 1,
+      "message": "That is a left-over comment and I can remove it on the next update to the code.\n\nI will go ahead and clean it up locally and once we get the BroadCOM ONU working and the capabilities report, we will need to figure the best way to do re-sync.",
+      "parentUuid": "39a56cce_0ccb7098",
+      "range": {
+        "startLine": 364,
+        "startChar": 16,
+        "endLine": 366,
+        "endChar": 45
+      },
+      "revId": "45b216d1f08cbbf52352aa20afb2e2f04ad598e6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
