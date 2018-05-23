@@ -201,9 +201,9 @@ class OpenoltDevice(object):
         intf_id = onu_disc_indication.intf_id
         serial_number=onu_disc_indication.serial_number
 
-        self.log.debug("onu discovery indication", intf_id=intf_id, serial_number=serial_number)
-
         serial_number_str = self.stringify_serial_number(serial_number)
+
+        self.log.debug("onu discovery indication", intf_id=intf_id, serial_number=serial_number_str)
 
         onu_device = self.adapter_agent.get_child_device(self.device_id, serial_number=serial_number_str)
 
@@ -214,7 +214,7 @@ class OpenoltDevice(object):
                         platform.intf_id_to_port_no(intf_id, Port.PON_OLT),
                         onu_id, serial_number)
                 self.log.info("activate-onu", intf_id=intf_id, onu_id=onu_id,
-                        serial_number=serial_number)
+                        serial_number=serial_number_str)
                 onu = openolt_pb2.Onu(intf_id=intf_id, onu_id=onu_id,serial_number=serial_number)
                 self.stub.ActivateOnu(onu)
             except Exception as e:
@@ -222,8 +222,8 @@ class OpenoltDevice(object):
 
         else:
             onu_id = onu_device.proxy_address.onu_id
-            if onu_device.oper_status == OperStatus.DISCOVERED:
-                self.log.info("ignore onu discovery indication, the onu has been discovered and should be \
+            if onu_device.oper_status == OperStatus.DISCOVERED or onu_device.oper_status == OperStatus.ACTIVATING:
+                self.log.debug("ignore onu discovery indication, the onu has been discovered and should be \
                               activating shorlty", intf_id=intf_id, onu_id=onu_id, state=onu_device.oper_status)
             elif onu_device.oper_status== OperStatus.ACTIVE:
                 self.log.warn("onu discovery indication whereas onu is supposed to be active",
@@ -258,9 +258,9 @@ class OpenoltDevice(object):
             self.log.warn('onu-device-is-none-invalid-message')
             return
 
-        if platform.intf_id_from_port_num(onu_device.parent_port_no) != onu_indication.intf_id:
+        if platform.intf_id_from_pon_port_no(onu_device.parent_port_no) != onu_indication.intf_id:
             self.log.warn('ONU-is-on-a-different-intf-id-now',
-                          previous_intf_id=platform.intf_id_from_port_num(onu_device.parent_port_no),
+                          previous_intf_id=platform.intf_id_from_pon_port_no(onu_device.parent_port_no),
                           current_intf_id=onu_indication.intf_id)
             # FIXME - handle intf_id mismatch (ONU move?)
 
@@ -460,7 +460,7 @@ class OpenoltDevice(object):
 
         send_pkt = binascii.unhexlify(str(payload).encode("HEX"))
 
-        onu_pkt = openolt_pb2.OnuPacket(intf_id=platform.intf_id_from_port_num(egress_port),
+        onu_pkt = openolt_pb2.OnuPacket(intf_id=platform.intf_id_from_pon_port_no(egress_port),
                 onu_id=platform.onu_id_from_port_num(egress_port), pkt=send_pkt)
 
         self.stub.OnuPacketOut(onu_pkt)

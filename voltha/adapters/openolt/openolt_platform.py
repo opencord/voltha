@@ -112,8 +112,11 @@ def mk_flow_id(intf_id, onu_id, idx):
 def onu_id_from_port_num(port_num):
     return (port_num >> 4) & 0x7F
 
-def intf_id_from_port_num(port_num):
+def intf_id_from_uni_port_num(port_num):
     return (port_num >> 11) & 0xF
+
+def intf_id_from_pon_port_no(port_no):
+    return port_no & 0xF
 
 def intf_id_to_port_no(intf_id, intf_type):
     if intf_type is Port.ETHERNET_NNI:

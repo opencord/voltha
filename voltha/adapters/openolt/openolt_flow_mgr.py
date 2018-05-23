@@ -125,7 +125,7 @@ class OpenOltFlowMgr(object):
 
         # FIXME - Why ignore downstream flows?
         if is_down_stream is False:
-            intf_id = platform.intf_id_from_port_num(classifier_info['in_port'])
+            intf_id = platform.intf_id_from_uni_port_num(classifier_info['in_port'])
             onu_id = platform.onu_id_from_port_num(classifier_info['in_port'])
             self.divide_and_add_flow(intf_id, onu_id, classifier_info, action_info)
         #else:
@@ -186,8 +186,9 @@ class OpenOltFlowMgr(object):
 
         flow = openolt_pb2.Flow(
                 onu_id=onu_id, flow_id=flow_id, flow_type="upstream",
-                gemport_id=gemport_id, classifier=self.mk_classifier(uplink_classifier),
-                action=self.mk_action(uplink_action))
+                access_intf_id=intf_id, gemport_id=gemport_id,
+                classifier=self.mk_classifier(uplink_classifier), action=self.mk_action(uplink_action))
+
 
         self.stub.FlowAdd(flow)
 
@@ -216,8 +217,8 @@ class OpenOltFlowMgr(object):
 
         upstream_flow = openolt_pb2.Flow(
                 onu_id=onu_id, flow_id=flow_id, flow_type="upstream",
-                gemport_id=gemport_id, classifier=self.mk_classifier(classifier),
-                action=self.mk_action(action))
+                access_intf_id=intf_id, gemport_id=gemport_id,
+                classifier=self.mk_classifier(classifier), action=self.mk_action(action))
 
         self.stub.FlowAdd(upstream_flow)
 
@@ -242,8 +243,8 @@ class OpenOltFlowMgr(object):
 
         upstream_flow = openolt_pb2.Flow(
                 onu_id=onu_id, flow_id=uplink_flow_id, flow_type="upstream",
-                gemport_id=gemport_id, classifier=self.mk_classifier(uplink_classifier),
-                action=self.mk_action(uplink_action))
+                access_intf_id=intf_id,gemport_id=gemport_id,
+                classifier=self.mk_classifier(uplink_classifier), action=self.mk_action(uplink_action))
 
         self.stub.FlowAdd(upstream_flow)
 
@@ -254,8 +255,9 @@ class OpenOltFlowMgr(object):
 
         downstream_flow = openolt_pb2.Flow(
                 onu_id=onu_id, flow_id=downlink_flow_id, flow_type="downstream",
-                gemport_id=gemport_id, classifier=self.mk_classifier(downlink_classifier),
-                action=self.mk_action(downlink_action))
+                access_intf_id=intf_id, gemport_id=gemport_id,
+                classifier=self.mk_classifier(downlink_classifier), action=self.mk_action(downlink_action))
+
 
         self.stub.FlowAdd(downstream_flow)
 
