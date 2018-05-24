@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "4262ac35_f89d9839",
+        "filename": "voltha/main.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 313,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2018-05-24T13:47:54Z",
+      "side": 1,
+      "message": "what if it started with ../ (two dots) then this wouldn\u0027t get the expected results. i wonder if  os.path.abspath(os.path.abspath(__fille__) + path) would get you the right thing. and then only do this if path doesn\u0027t start with a \u0027/\u0027?",
+      "range": {
+        "startLine": 313,
+        "startChar": 16,
+        "endLine": 313,
+        "endChar": 26
+      },
+      "revId": "bef2586a56aea85215558b354bf3045b55371ee3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
