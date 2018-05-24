@@ -461,6 +461,25 @@ class TestOmciMibDbDict(TestCase):
         self.assertTrue(all(isinstance(data[k], type(attributes[k])) for k in attributes.keys()))
         self.assertTrue(all(data[k] == attributes[k] for k in attributes.keys()))
 
+    def test_list_field_serialization(self):
+        self.db.start()
+        self.db.add(_DEVICE_ID)
+
+        class_id = VlanTaggingFilterData.class_id
+        inst_id = 0
+        vlan_filter_list = [0] * 12
+        vlan_filter_list[0] = 0x1234
+
+        attributes = {
+            'vlan_filter_list': vlan_filter_list,        # FieldListField
+            'forward_operation': 0,
+            'number_of_entries': 1
+        }
+        self.db.set(_DEVICE_ID, class_id, inst_id, attributes)
+        data = self.db.query(_DEVICE_ID, class_id, inst_id, attributes.keys())
+        self.assertTrue(all(isinstance(data[k], type(attributes[k])) for k in attributes.keys()))
+        self.assertTrue(all(data[k] == attributes[k] for k in attributes.keys()))
+
     def test_complex_json_serialization(self):
         self.db.start()
         self.db.add(_DEVICE_ID)

@@ -17,7 +17,7 @@ from mib_db_api import *
 from voltha.protos.omci_mib_db_pb2 import MibInstanceData, MibClassData, \
     MibDeviceData, MibAttributeData
 from voltha.extensions.omci.omci_entities import *
-from scapy.fields import StrField
+from scapy.fields import StrField, FieldListField
 
 
 class MibDbExternal(MibDbApi):
@@ -126,6 +126,9 @@ class MibDbExternal(MibDbApi):
                 #
                 str_value = str(value)
 
+            elif isinstance(field, FieldListField):
+                str_value = json.dumps(value, separators=(',', ':'))
+
             else:
                 self.log.warning('default-conversion', type=type(field),
                                  class_id=class_id, attribute=attr_name, value=str(value))
@@ -179,6 +182,9 @@ class MibDbExternal(MibDbApi):
 
             elif isinstance(field, BitField):
                 value = long(str_value)
+
+            elif isinstance(field, FieldListField):
+                value = json.loads(str_value)
 
             else:
                 self.log.warning('default-conversion', type=type(field),

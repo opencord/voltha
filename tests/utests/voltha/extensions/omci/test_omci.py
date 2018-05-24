@@ -1,3 +1,18 @@
+#
+# Copyright 2017 the original author or authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 from unittest import TestCase, main
 
 from voltha.extensions.omci.omci import *
@@ -374,6 +389,9 @@ class TestSelectMessageGeneration(TestCase):
         ref = '001F440A005421010400000000000000' \
               '00000000000000000000000000000000' \
               '100100000000000000000028'
+        vlan_filter_list = [0] * 12
+        vlan_filter_list[0] = 0x0400
+
         frame = OmciFrame(
             transaction_id=31,
             message_type=OmciCreate.message_id,
@@ -381,7 +399,7 @@ class TestSelectMessageGeneration(TestCase):
                 entity_class=VlanTaggingFilterData.class_id,
                 entity_id=0x2101,
                 data=dict(
-                    vlan_filter_0=0x0400,
+                    vlan_filter_list=vlan_filter_list,
                     forward_operation=0x10,
                     number_of_entries=1
                 )

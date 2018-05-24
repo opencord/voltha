@@ -19,7 +19,7 @@ import sys
 from binascii import hexlify
 import json
 from scapy.fields import ByteField, ShortField, MACField, BitField, IPField
-from scapy.fields import IntField, StrFixedLenField, LongField
+from scapy.fields import IntField, StrFixedLenField, LongField, FieldListField
 from scapy.packet import Packet
 
 from voltha.extensions.omci.omci_defs import OmciUninitializedFieldError, \
@@ -424,18 +424,9 @@ class VlanTaggingFilterData(EntityClass):
     class_id = 84
     attributes = [
         ECA(ShortField("managed_entity_id", None), {AA.R, AA.SBC}),
-        ECA(ShortField("vlan_filter_0", None), {AA.R, AA.W, AA.SBC}),
-        ECA(ShortField("vlan_filter_1", None), {AA.R, AA.W, AA.SBC}),
-        ECA(ShortField("vlan_filter_2", None), {AA.R, AA.W, AA.SBC}),
-        ECA(ShortField("vlan_filter_3", None), {AA.R, AA.W, AA.SBC}),
-        ECA(ShortField("vlan_filter_4", None), {AA.R, AA.W, AA.SBC}),
-        ECA(ShortField("vlan_filter_5", None), {AA.R, AA.W, AA.SBC}),
-        ECA(ShortField("vlan_filter_6", None), {AA.R, AA.W, AA.SBC}),
-        ECA(ShortField("vlan_filter_7", None), {AA.R, AA.W, AA.SBC}),
-        ECA(ShortField("vlan_filter_8", None), {AA.R, AA.W, AA.SBC}),
-        ECA(ShortField("vlan_filter_9", None), {AA.R, AA.W, AA.SBC}),
-        ECA(ShortField("vlan_filter_10", None), {AA.R, AA.W, AA.SBC}),
-        ECA(ShortField("vlan_filter_11", None), {AA.R, AA.W, AA.SBC}),
+        ECA(FieldListField("vlan_filter_list", None,
+                           ShortField('', 0), count_from=lambda _: 12),
+            {AA.R, AA.W, AA.SBC}),
         ECA(ByteField("forward_operation", None), {AA.R, AA.W, AA.SBC},
             range_check=lambda x: 0x00 <= x <= 0x21),
         ECA(ByteField("number_of_entries", None), {AA.R, AA.W, AA.SBC})
