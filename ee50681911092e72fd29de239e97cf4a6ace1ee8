@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5a113665_6ad83f7c",
+        "filename": "setup.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 12,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2018-05-24T13:47:28Z",
+      "side": 1,
+      "message": "Confused here. Why are we setting this in a version file, if the other patch is reading the version inform from a file?",
+      "revId": "ee50681911092e72fd29de239e97cf4a6ace1ee8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
