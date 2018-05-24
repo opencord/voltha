@@ -627,17 +627,23 @@ class VlanTaggingFilterDataFrame(MEFrame):
             data = dict()
 
             if vlan_tcis is not None:
+                num_tcis = len(vlan_tcis)
+
+                assert 0 <= num_tcis <= 12, 'Number of VLAN TCI values is 0..12'
                 assert all(isinstance(tci, int) and 0 <= tci <= 0xFFFF
                            for tci in vlan_tcis), "VLAN TCI's are 0..0xFFFF"
-                assert 1 <= len(vlan_tcis) <= 12, 'Number of VLAN TCI values is 1..12'
 
-                for index in range(0, len(vlan_tcis)):
-                    data['vlan_filter_{}'.format(index)] = vlan_tcis[index]
+                if num_tcis > 0:
+                    vlan_filter_list = [0] * 12
+                    for index in range(0, num_tcis):
+                        vlan_filter_list[index] = vlan_tcis[index]
 
-                data['number_of_entries'] = len(vlan_tcis)
+                    data['vlan_filter_list'] = vlan_filter_list
+                data['number_of_entries'] = num_tcis
 
             if forward_operation is not None:
-                assert 0 <= forward_operation <= 0x21, 'forwarding_operation must be 0x00..0x21'
+                assert 0 <= forward_operation <= 0x21, \
+                    'forwarding_operation must be 0x00..0x21'
                 data['forward_operation'] = forward_operation
 
         super(VlanTaggingFilterDataFrame, self).__init__(VlanTaggingFilterData,
