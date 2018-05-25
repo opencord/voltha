@@ -46,6 +46,13 @@ service Openolt {
         };
     }
 
+    rpc HeartbeatCheck(Empty) returns (Heartbeat) {
+        option (google.api.http) = {
+          post: "/v1/HeartbeatCheck"
+          body: "*"
+        };
+    }
+
     rpc EnableIndication(Empty) returns (stream Indication) {}
 }
 
@@ -100,6 +107,10 @@ message PacketIndication {
     fixed32 gemport_id = 2;
     fixed32 flow_id = 3;
     bytes pkt = 4;
+}
+
+message Heartbeat {
+    fixed32 heartbeat_signature = 1;
 }
 
 message Onu {
