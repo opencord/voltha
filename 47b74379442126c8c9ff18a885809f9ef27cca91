@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c73f6638_6a1f2144",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 90,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-05-25T22:36:10Z",
+      "side": 1,
+      "message": "This will block the twisted thread. That is one less thread in the twisted thread pool which is shared voltha-wide. For that reason, this blocking call was made from the indications thread.",
+      "revId": "47b74379442126c8c9ff18a885809f9ef27cca91",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
