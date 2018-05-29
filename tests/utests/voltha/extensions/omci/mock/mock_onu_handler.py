@@ -16,6 +16,7 @@
 
 from mock_adapter_agent import MockProxyAddress, MockDevice
 from voltha.extensions.omci.omci_cc import *
+from voltha.extensions.omci.omci_entities import entity_id_to_class_map
 
 
 class MockOnuHandler(MockDevice):
@@ -37,7 +38,7 @@ class MockOnuHandler(MockDevice):
         self._adapter_agent = adapter_agent
 
         self.onu_mock = None
-        self.omci_cc = OMCI_CC(adapter_agent, device_id)
+        self.omci_cc = OMCI_CC(adapter_agent, device_id, me_map=entity_id_to_class_map)
 
         # Items that you can change to perform various test failures
 

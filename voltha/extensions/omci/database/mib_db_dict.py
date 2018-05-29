@@ -263,7 +263,7 @@ class MibDbVolatileDict(MibDbApi):
                     value = value.to_json()
 
                 # Other complex packet types may be a repeated list field (FieldListField)
-                elif isinstance(value, list):
+                elif isinstance(value, (list, dict)):
                     value = json.dumps(value, separators=(',', ':'))
 
                 db_value = instance_db[ATTRIBUTES_KEY].get(attribute) \

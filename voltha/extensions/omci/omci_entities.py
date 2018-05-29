@@ -1056,14 +1056,6 @@ class EnhSecurityControl(EntityClass):
     mandatory_operations = {OP.Set, OP.Get, OP.GetNext}
     notifications = {OP.AttributeValueChange}
 
-
-class Unknown347(EntityClass):
-    class_id = 347
-    attributes = [
-
-    ]
-
-
 # entity class lookup table from entity_class values
 entity_classes_name_map = dict(
     inspect.getmembers(sys.modules[__name__],
