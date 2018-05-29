@@ -329,7 +329,8 @@ class DeviceAgent(object):
     def _propagate_change(self, device, dry_run=False):
         self.log.debug('propagate-change', device=device, dry_run=dry_run)
         if device != self.last_data:
-            raise NotImplementedError()
+            self.log.warn('Not-implemented-default-to-noop')
+            #raise NotImplementedError()
         else:
             self.log.debug('no-op')
 

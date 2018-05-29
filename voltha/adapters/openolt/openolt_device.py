@@ -87,16 +87,13 @@ class OpenoltDevice(object):
         # Initialize gRPC
         self.channel = grpc.insecure_channel(self.host_and_port)
         self.channel_ready_future = grpc.channel_ready_future(self.channel)
-        self.channel_ready_future.result()  # blocks till gRPC connection is complete
         self.stub = openolt_pb2_grpc.OpenoltStub(self.channel)
 
         self.flow_mgr = OpenOltFlowMgr(self.log, self.stub)
 
-        # Start indications thread
-        self.indications_thread = threading.Thread(target=self.process_indications)
-        self.indications_thread.setDaemon(True)
-        self.indications_thread_active = True
-        self.indications_thread.start()
+        # Indications thread plcaholder (started by heartbeat thread)
+        self.indications_thread = None
+        self.indications_thread_active = False
 
         # Start heartbeat thread
         self.heartbeat_thread = threading.Thread(target=self.heartbeat)
@@ -187,8 +184,40 @@ class OpenoltDevice(object):
         self.log.debug("olt indication", olt_ind=olt_indication, admin_state=new_admin_state, oper_state=new_oper_state,
                        connect_state=new_connect_state)
 
+        # Propagating to the children
+
+        # Children ports
+        child_devices = self.adapter_agent.get_child_devices(self.device_id)
+        for onu_device in child_devices:
+            uni_no = platform.mk_uni_port_num(onu_device.proxy_address.channel_id, onu_device.proxy_address.onu_id)
+            uni_name = self.port_name(uni_no, Port.ETHERNET_UNI, serial_number=onu_device.serial_number)
+
+            self.onu_ports_down(onu_device, uni_no, uni_name, new_oper_state)
+        # Children devices
+        self.adapter_agent.update_child_devices_state(self.device_id, oper_status=new_oper_state,
+                                                      connect_status=ConnectStatus.UNREACHABLE,
+                                                      admin_state=new_admin_state)
+        # Device Ports
+        device_ports = self.adapter_agent.get_ports(self.device_id, Port.ETHERNET_NNI)
+        logical_ports_ids = [port.label for port in device_ports]
+        device_ports += self.adapter_agent.get_ports(self.device_id, Port.PON_OLT)
+
+        for port in device_ports:
+            if new_admin_state is not None:
+                port.admin_state = new_admin_state
+            if new_oper_state is not None:
+                port.oper_status = new_oper_state
+            self.adapter_agent.add_port(self.device_id, port)
+
+        # Device logical port
+        for logical_port_id in logical_ports_ids:
+            logical_port = self.adapter_agent.get_logical_port(self.logical_device_id, logical_port_id)
+            logical_port.ofp_port.state = OFPPS_LINK_DOWN
+            self.adapter_agent.update_logical_port(self.logical_device_id, logical_port)
+
+        # Device
         device = self.adapter_agent.get_device(self.device_id)
-        if new_admin_state is not  None:
+        if new_admin_state is not None:
             device.admin_state = new_admin_state
         if new_oper_state is not None:
             device.oper_status = new_oper_state
@@ -196,17 +225,6 @@ class OpenoltDevice(object):
             device.connect_status = new_connect_state
 
         self.adapter_agent.update_device(device)
-        #Propagating to the children
-        self.adapter_agent.update_child_devices_state(self.device_id, oper_status=new_oper_state,
-                                              connect_status=ConnectStatus.UNREACHABLE, admin_state=new_admin_state)
-
-        child_devices = self.adapter_agent.get_child_devices(self.device_id)
-        for onu_device in child_devices:
-            uni_no = platform.mk_uni_port_num(onu_device.proxy_address.channel_id, onu_device.proxy_address.onu_id)
-            uni_name = self.port_name(uni_no, Port.ETHERNET_UNI, serial_number=onu_device.serial_number)
-
-            self.onu_ports_down(onu_device, uni_no, uni_name, new_oper_state)
-
 
     def intf_indication(self, intf_indication):
         self.log.debug("intf indication", intf_id=intf_indication.intf_id,
@@ -465,7 +483,6 @@ class OpenoltDevice(object):
                 oper_status=oper_state))
 
         # Disable logical port
-        openolt_device = self.adapter_agent.get_device(self.device_id)
         onu_ports = self.proxy.get('devices/{}/ports'.format(onu_device.id))
         onu_port_id = None
         for onu_port in onu_ports:
@@ -476,10 +493,10 @@ class OpenoltDevice(object):
                            onu_ports=onu_ports)
             return
         try:
-            onu_logical_port = self.adapter_agent.get_logical_port(logical_device_id=openolt_device.parent_id,
+            onu_logical_port = self.adapter_agent.get_logical_port(logical_device_id=self.logical_device_id,
                                                                    port_id=onu_port_id)
             onu_logical_port.ofp_port.state = OFPPS_LINK_DOWN
-            self.adapter_agent.update_logical_port(logical_device_id=openolt_device.parent_id, port=onu_logical_port)
+            self.adapter_agent.update_logical_port(logical_device_id=self.logical_device_id, port=onu_logical_port)
             self.log.debug('cascading-oper-state-to-port-and-logical-port')
         except KeyError as e:
             self.log.error('matching-onu-port-label-invalid', onu_id=onu_device.id, olt_id=self.device_id,
@@ -518,6 +535,8 @@ class OpenoltDevice(object):
 
     def heartbeat(self):
 
+        self.channel_ready_future.result()  # blocks till gRPC connection is complete
+
         while self.heartbeat_thread_active:
 
             try:
@@ -530,7 +549,7 @@ class OpenoltDevice(object):
                     #TODO : send alarm/notify monitoring system
                     # Using reactor to synchronize update
                     # flagging it as unreachable and in unknow state
-                    reactor.callLater(0, self.olt_down, oper_state=OperStatus.UNKNOWN,
+                    reactor.callFromThread(self.olt_down, oper_state=OperStatus.UNKNOWN,
                                       connect_state=ConnectStatus.UNREACHABLE)
 
             else:
@@ -554,10 +573,10 @@ class OpenoltDevice(object):
                     self.log.info('OLT-connection-restored')
                     #TODO : suppress alarm/notify monitoring system
                     # flagging it as reachable again
-                    reactor.callLater(0, self.olt_reachable)
+                    reactor.callFromThread(self.olt_reachable)
 
                 if not self.indications_thread_active:
-                    self.log.info('restarting-indications-thread')
+                    self.log.info('(re)starting-indications-thread')
                     # reset indications thread
                     self.indications_thread = threading.Thread(target=self.process_indications)
                     self.indications_thread.setDaemon(True)
