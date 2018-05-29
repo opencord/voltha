@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3755505b_db8ae6b1",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 94,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-05-29T21:50:30Z",
+      "side": 1,
+      "message": "This mandates that the driver implement the heartbeat api. It is desirable to have heartbeat functionality as optional. Lets give this some more thought and fix in a subsequent commit.",
+      "revId": "369a5060a61a34a9042e5ac48a62114e2c2900fc",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
