@@ -109,11 +109,13 @@ class OpenoltAdapter(object):
 
     def disable_device(self, device):
         log.info('disable-device', device=device)
-        raise NotImplementedError()
+        handler = self.devices[device.id]
+        handler.disable()
 
     def reenable_device(self, device):
         log.info('reenable-device', device=device)
-        raise NotImplementedError()
+        handler = self.devices[device.id]
+        handler.reenable()
 
     def reboot_device(self, device):
         log.info('reboot_device', device=device)
@@ -145,7 +147,9 @@ class OpenoltAdapter(object):
 
     def delete_device(self, device):
         log.info('delete-device', device=device)
-        raise NotImplementedError()
+        handler = self.devices[device.id]
+        handler.delete()
+        del self.devices[device.id]
 
     def get_device_details(self, device):
         log.debug('get_device_details', device=device)
