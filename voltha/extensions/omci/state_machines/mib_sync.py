@@ -162,6 +162,16 @@ class MibSynchronizer(object):
     def __str__(self):
         return 'MIBSynchronizer: Device ID: {}, State:{}'.format(self._device_id, self.state)
 
+    def delete(self):
+        """
+        Cleanup any state information
+        """
+        self.stop()
+        db, self._database = self._database, None
+
+        if db is not None:
+            db.remove(self._device_id)
+
     @property
     def device_id(self):
         return self._device_id
@@ -302,7 +312,7 @@ class MibSynchronizer(object):
             self._current_task = None
 
             # Examine MDS value
-            if self._mib_data_sync == onu_mds_value:
+            if self.mib_data_sync == onu_mds_value:
                 self._deferred = reactor.callLater(0, self.success)
             else:
                 self._deferred = reactor.callLater(0, self.mismatch)
@@ -362,7 +372,6 @@ class MibSynchronizer(object):
             try:
                 # Need to update the ONU accordingly
                 if self._attr_diffs is not None:
-                    assert self._attr_diffs is not None, 'Should match'
                     step = 'attribute-update'
                     pass    # TODO: Perform the 'set' commands needed
 
@@ -375,11 +384,11 @@ class MibSynchronizer(object):
                     #
                     #    For instance, no one may set the gal_loopback_configuration
                     #    in the GEM Interworking Termination point since its default
-                    #    values is '0' disable, but when we audit, the ONU will report zer
+                    #    values is '0' disable, but when we audit, the ONU will report zero.
                     #
                     #    A good way to perhaps fix this is to update our database with the
                     #    default.  Or perhaps set all defaults in the database in the first
-                    #    place when we do the initial create/set
+                    #    place when we do the initial create/set.
                     #
                     pass  # TODO: Perform 'delete' commands as needed, see 'default' note above
 
@@ -413,7 +422,7 @@ class MibSynchronizer(object):
                 self._current_task = None
 
                 # Examine MDS value
-                if self._mib_data_sync == onu_mds_value:
+                if self.mib_data_sync == onu_mds_value:
                     self._deferred = reactor.callLater(0, self.success)
                 else:
                     self._device.mib_db_in_sync = False
@@ -551,7 +560,7 @@ class MibSynchronizer(object):
 
     def on_mib_upload_response(self, _topic, msg):
         """
-        Process a Set response
+        Process a MIB Upload response
 
         :param _topic: (str) OMCI-RX topic
         :param msg: (dict) Dictionary with 'rx-response' and 'tx-request' (if any)
@@ -562,6 +571,7 @@ class MibSynchronizer(object):
             # Check if expected in current mib_sync state
             if self.state == 'resynchronizing':
                 # The resync task handles this
+                # TODO: Remove this subscription if we never do anything with the response
                 return
 
             if self.state != 'uploading':
@@ -569,7 +579,7 @@ class MibSynchronizer(object):
 
     def on_mib_upload_next_response(self, _topic, msg):
         """
-        Process a Set response
+        Process a MIB Upload Next response
 
         :param _topic: (str) OMCI-RX topic
         :param msg: (dict) Dictionary with 'rx-response' and 'tx-request' (if any)
