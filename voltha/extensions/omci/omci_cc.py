@@ -40,6 +40,7 @@ MAX_OMCI_TX_ID = 0xFFFF             # 2 Octets max
 CONNECTED_KEY = 'connected'
 TX_REQUEST_KEY = 'tx-request'
 RX_RESPONSE_KEY = 'rx-response'
+UNKNOWN_CLASS_ATTRIBUTE_KEY = 'voltha-unknown-blob'
 
 
 class OmciCCRxEvents(IntEnum):
@@ -97,6 +98,7 @@ class OMCI_CC(object):
         self._rx_avc_overflow = 0     # Autonomously generated ONU AVC rx overflow
         self._rx_onu_discards = 0     # Autonomously generated ONU unknown message types
         self._rx_timeouts = 0
+        self._rx_unknown_me = 0       # Number of managed entities Rx without a decode definition
         self._tx_errors = 0           # Exceptions during tx request
         self._consecutive_errors = 0  # Rx & Tx errors in a row, a good RX resets this to 0
         self._reply_min = sys.maxint  # Fastest successful tx -> rx
@@ -156,6 +158,10 @@ class OMCI_CC(object):
     @property
     def rx_unknown_tid(self):
         return self._rx_unknown_tid         # Tx TID not found
+
+    @property
+    def rx_unknown_me(self):
+        return self._rx_unknown_me
 
     @property
     def rx_onu_frames(self):
@@ -347,9 +353,10 @@ class OMCI_CC(object):
 
                 except KeyError as e:
                     # Unknown, Unsupported, or vendor-specific ME. Key is the unknown classID
-                    # TODO: Can we create a temporary one to hold it so upload does not always fail on new ME's?
-                    self.log.exception('frame-decode-key-error', msg=hexlify(msg), e=e)
-                    return
+                    self.log.debug('frame-decode-key-error', msg=hexlify(msg), e=e)
+                    rx_frame = self._decode_unknown_me(msg)
+                    self._rx_unknown_me += 1
+                    rx_tid = rx_frame.fields.get('transaction_id')
 
                 except Exception as e:
                     self.log.exception('frame-decode', msg=hexlify(msg), e=e)
@@ -391,6 +398,64 @@ class OMCI_CC(object):
 
             except Exception as e:
                 self.log.exception('rx-msg', e=e)
+
+    def _decode_unknown_me(self, msg):
+        """
+        Decode an ME for an unsupported class ID.  This should only occur for a subset
+        of message types (Get, Set, MIB Upload Next, ...) and they should only be
+        responses as well.
+
+        There are some times below that are commented out. For VOLTHA 2.0, it is
+        expected that any get, set, create, delete for unique (often vendor) MEs
+        will be coded by the ONU utilizing it and supplied to OpenOMCI as a
+        vendor-specific ME during device initialization.
+
+        :param msg: (str) Binary data
+        :return: (OmciFrame) resulting frame
+        """
+        from struct import unpack
+
+        (tid, msg_type, framing) = unpack('!HBB', msg[0:4])
+
+        assert framing == 0xa, 'Only basic OMCI framing supported at this time'
+        msg = msg[4:]
+
+        # TODO: Commented out items below are future work (not expected for VOLTHA v2.0)
+        (msg_class, kwargs) = {
+            # OmciCreateResponse.message_id: (OmciCreateResponse, None),
+            # OmciDeleteResponse.message_id: (OmciDeleteResponse, None),
+            # OmciSetResponse.message_id: (OmciSetResponse, None),
+            # OmciGetResponse.message_id: (OmciGetResponse, None),
+            # OmciGetAllAlarmsNextResponse.message_id: (OmciGetAllAlarmsNextResponse, None),
+            OmciMibUploadNextResponse.message_id: (OmciMibUploadNextResponse,
+                                                   {
+                                                       'entity_class': unpack('!H', msg[0:2])[0],
+                                                       'entity_id': unpack('!H', msg[2:4])[0],
+                                                       'object_entity_class': unpack('!H', msg[4:6])[0],
+                                                       'object_entity_id': unpack('!H', msg[6:8])[0],
+                                                       'object_attributes_mask': unpack('!H', msg[8:10])[0],
+                                                       'object_data': {
+                                                           UNKNOWN_CLASS_ATTRIBUTE_KEY: hexlify(msg[10:-4])
+                                                       },
+                                                   }),
+            # OmciAlarmNotification.message_id: (OmciAlarmNotification, None),
+            # OmciAttributeValueChange.message_id: (OmciAttributeValueChange,
+            #                                       {
+            #                                           'entity_class': unpack('!H', msg[0:2])[0],
+            #                                           'entity_id': unpack('!H', msg[2:4])[0],
+            #                                           'data': {
+            #                                               UNKNOWN_CLASS_ATTRIBUTE_KEY: hexlify(msg[4:-8])
+            #                                           },
+            #                                       }),
+            # OmciTestResult.message_id: (OmciTestResult, None),
+        }.get(msg_type, None)
+
+        if msg_class is None:
+            raise TypeError('Unsupport Message Type for Unknown Decode: {}',
+                            msg_type)
+
+        return OmciFrame(transaction_id=tid, message_type=msg_type,
+                         omci_message=msg_class(**kwargs))
 
     def _publish_rx_frame(self, tx_frame, rx_frame):
         """

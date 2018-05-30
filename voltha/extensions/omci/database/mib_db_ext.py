@@ -99,10 +99,16 @@ class MibDbExternal(MibDbApi):
         """
         try:
             me_map = self._omci_agent.get_device(device_id).me_map
-            entity = me_map[class_id]
-            attr_index = entity.attribute_name_to_index_map[attr_name]
-            eca = entity.attributes[attr_index]
-            field = eca.field
+
+            if class_id in me_map:
+                entity = me_map[class_id]
+                attr_index = entity.attribute_name_to_index_map[attr_name]
+                eca = entity.attributes[attr_index]
+                field = eca.field
+            else:
+                # Here for auto-defined MEs (ones not defined in ME Map)
+                from voltha.extensions.omci.omci_cc import UNKNOWN_CLASS_ATTRIBUTE_KEY
+                field = StrFixedLenField(UNKNOWN_CLASS_ATTRIBUTE_KEY, None, 24)
 
             if isinstance(field, StrFixedLenField):
                 #  For StrFixedLenField, value is an str already (or possibly JSON encoded object)
@@ -156,10 +162,16 @@ class MibDbExternal(MibDbApi):
         """
         try:
             me_map = self._omci_agent.get_device(device_id).me_map
-            entity = me_map[class_id]
-            attr_index = entity.attribute_name_to_index_map[attr_name]
-            eca = entity.attributes[attr_index]
-            field = eca.field
+
+            if class_id in me_map:
+                entity = me_map[class_id]
+                attr_index = entity.attribute_name_to_index_map[attr_name]
+                eca = entity.attributes[attr_index]
+                field = eca.field
+            else:
+                # Here for auto-defined MEs (ones not defined in ME Map)
+                from voltha.extensions.omci.omci_cc import UNKNOWN_CLASS_ATTRIBUTE_KEY
+                field = StrFixedLenField(UNKNOWN_CLASS_ATTRIBUTE_KEY, None, 24)
 
             if isinstance(field, StrFixedLenField):
                 from scapy.base_classes import Packet_metaclass

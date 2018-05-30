@@ -18,6 +18,7 @@ from unittest import main, TestCase
 from voltha.extensions.omci.database.mib_db_ext import *
 from voltha.extensions.omci.database.mib_db_api import MODIFIED_KEY, CREATED_KEY,\
     DEVICE_ID_KEY, MDS_KEY, LAST_SYNC_KEY
+from voltha.extensions.omci.omci_cc import UNKNOWN_CLASS_ATTRIBUTE_KEY
 from mock.mock_adapter_agent import MockAdapterAgent, MockDevice
 from nose.tools import raises, assert_raises
 import time
@@ -513,6 +514,23 @@ class TestOmciMibDbExt(TestCase):
                             for k in attributes['received_frame_vlan_tagging_operation_table'].fields.keys()))
         self.assertTrue(all(data['received_frame_vlan_tagging_operation_table'][k] == table_as_dict[k]
                             for k in table_as_dict.keys()))
+
+    def test_unknown_me_serialization(self):
+        self.db.start()
+        self.db.add(_DEVICE_ID)
+
+        blob = '00010000000c0000000000000000000000000000000000000000'
+        class_id = 0xff78
+        inst_id = 0x101
+        attributes = {
+            UNKNOWN_CLASS_ATTRIBUTE_KEY: blob
+        }
+        self.db.set(_DEVICE_ID, class_id, inst_id, attributes)
+
+        data = self.db.query(_DEVICE_ID, class_id, inst_id, attributes.keys())
+        self.assertTrue(isinstance(UNKNOWN_CLASS_ATTRIBUTE_KEY, basestring))
+        self.assertTrue(all(isinstance(attributes[k], basestring) for k in attributes.keys()))
+        self.assertTrue(all(data[k] == attributes[k] for k in attributes.keys()))
 
 
 if __name__ == '__main__':
