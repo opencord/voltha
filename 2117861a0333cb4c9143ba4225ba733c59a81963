@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "80086d50_c3e1660b",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 760,
+      "author": {
+        "id": 1000005
+      },
+      "writtenOn": "2018-05-30T19:03:49Z",
+      "side": 1,
+      "message": "I think disable should remove the logical device, logical ports, and peer references. At least that is what is happening in other adapters like ponsim and adtran. And then all that stuff needs to be recreated in the reenable call. This is super nasty IMO but it looks to be how other adapters are working right now.",
+      "revId": "2117861a0333cb4c9143ba4225ba733c59a81963",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
