@@ -1,5 +1,5 @@
 #
-# Copyright 2017 the original author or authors.
+# Copyright 2018 the original author or authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -44,7 +44,7 @@ class OnuDeviceEntry(object):
     An ONU Device entry in the MIB
     """
     def __init__(self, omci_agent, device_id, adapter_agent, custom_me_map,
-                 mib_synchronizer_info, mib_db):
+                 mib_db, support_classes):
         """
         Class initializer
 
@@ -52,8 +52,8 @@ class OnuDeviceEntry(object):
         :param device_id: (str) ONU Device ID
         :param adapter_agent: (AdapterAgent) Adapter agent for ONU
         :param custom_me_map: (dict) Additional/updated ME to add to class map
-        :param mib_synchronizer_info: (dict) MIB Synchronization State Machine & Task information
         :param mib_db: (MibDbApi) MIB Database reference
+        :param support_classes: (dict) State machines and tasks for this ONU
         """
         self.log = structlog.get_logger(device_id=device_id)
 
@@ -62,9 +62,12 @@ class OnuDeviceEntry(object):
         self._device_id = device_id           # ONU Device ID
         self._runner = TaskRunner(device_id)  # OMCI_CC Task runner
         self._deferred = None
+        self._first_in_sync = False
+        self._support_classes = support_classes
 
         try:
             self._mib_db_in_sync = False
+            mib_synchronizer_info = support_classes.get('mib-synchronizer')
             self.mib_sync = mib_synchronizer_info['state-machine'](self._omci_agent,
                                                                    device_id,
                                                                    mib_synchronizer_info['tasks'],
@@ -73,7 +76,10 @@ class OnuDeviceEntry(object):
             self.log.exception('mib-sync-create-failed', e=e)
             raise
 
-        self._state_machines = [self.mib_sync]
+        self._state_machines = []
+        self._on_start_state_machines = [self.mib_sync]     # Run when 'start()' called
+        self._on_sync_state_machines = []                   # Run after first in_sync event
+
         self._custom_me_map = custom_me_map
         self._me_map = omci_entities.entity_id_to_class_map.copy()
 
@@ -148,8 +154,11 @@ class OnuDeviceEntry(object):
             # Save value
             self._mib_db_in_sync = value
 
-            # Notify any event listeners
+            # Start up other state machines if needed
+            if self._first_in_sync:
+                self.first_in_sync_event()
 
+            # Notify any event listeners
             topic = OnuDeviceEntry.event_bus_topic(self.device_id,
                                                    OnuDeviceEvents.MibDatabaseSyncEvent)
             msg = {
@@ -167,26 +176,29 @@ class OnuDeviceEntry(object):
 
         self._started = True
         self._omci_cc.enabled = True
+        self._first_in_sync = True
         self._runner.start()
 
-        # Start MIB Sync and other state machines. Start 'later' so that any
+        # Start MIB Sync and other state machines that can run before the first
+        # MIB Synchronization event occurs. Start 'later' so that any
         # ONU Device, OMCI DB, OMCI Agent, and others are fully started before
         # performing the start.
 
+        self._state_machines = []
+
         def start_state_machines(machines):
             for sm in machines:
+                self._state_machines.append(sm)
                 sm.start()
 
         self._deferred = reactor.callLater(0, start_state_machines,
-                                           self._state_machines)
+                                           self._on_start_state_machines)
         # Notify any event listeners
         self._publish_device_status_event()
 
     def stop(self):
         """
         Stop the ONU Device Entry state machines
-
-        When the ONU Device Entry is stopped,
         """
         if not self._started:
             return
@@ -199,11 +211,33 @@ class OnuDeviceEntry(object):
         for sm in self._state_machines:
             sm.stop()
 
+        self._state_machines = []
+
         # Stop task runner
         self._runner.stop()
 
         # Notify any event listeners
         self._publish_device_status_event()
+
+    def first_in_sync_event(self):
+        """
+        This event is called on the first MIB synchronization event after
+        OpenOMCI has been started. It is responsible for starting any
+        other state machine and to initiate an ONU Capabilities report
+        """
+        if self._first_in_sync:
+            self._first_in_sync = False
+
+            # TODO: Start up the ONU Capabilities task
+
+            # Start up any other remaining OpenOMCI state machines
+            def start_state_machines(machines):
+                for sm in machines:
+                    self._state_machines.append(sm)
+                    sm.start()
+
+            self._deferred = reactor.callLater(0, start_state_machines,
+                                               self._on_sync_state_machines)
 
     def _publish_device_status_event(self):
         """
@@ -220,6 +254,7 @@ class OnuDeviceEntry(object):
         OMCI state information from the OpenOMCI Framework
         """
         self.stop()
+        self.mib_synchronizer.delete()
 
         # OpenOMCI cleanup
         if self._omci_agent is not None:

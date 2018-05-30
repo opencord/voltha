@@ -36,7 +36,8 @@ OpenOmciAgentDefaults = {
             'mib-reconcile': None        # TODO: post-v1.3.0 (Reconcile out-of-sync MIB DB)
         }
     },
-    # TODO: Alarm-synchronizer is a stretch goal for Voltha 1.3.0
+    # 'onu-capabilities': OnuCapabilitiesTask,
+    #
     # 'alarm-syncronizer': {
     #     'state-machine': AlarmSynchronizer,  # Implements the MIB synchronization state machine
     #     'database': AlarmDb,                 # For any State storage needs
@@ -133,7 +134,8 @@ class OpenOMCIAgent(object):
         # DB shutdown
         self._mib_db.stop()
 
-    def add_device(self, device_id, adapter_agent, custom_me_map=None):
+    def add_device(self, device_id, adapter_agent, custom_me_map=None,
+                   support_classes=OpenOmciAgentDefaults):
         """
         Add a new ONU to be managed.
 
@@ -147,6 +149,7 @@ class OpenOMCIAgent(object):
         :param device_id: (str) Device ID of ONU to add
         :param adapter_agent: (AdapterAgent) Adapter agent for ONU
         :param custom_me_map: (dict) Additional/updated ME to add to class map
+        :param support_classes: (dict) State machines and tasks for this ONU
 
         :return: (OnuDeviceEntry) The ONU device
         """
@@ -156,7 +159,7 @@ class OpenOMCIAgent(object):
 
         if device is None:
             device = OnuDeviceEntry(self, device_id, adapter_agent, custom_me_map,
-                                    self._mib_synchronizer_info, self._mib_db)
+                                    self._mib_db, support_classes)
 
             self._devices[device_id] = device
 
