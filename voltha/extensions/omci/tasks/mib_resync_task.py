@@ -60,7 +60,8 @@ class MibResyncTask(Task):
         super(MibResyncTask, self).__init__(MibResyncTask.name,
                                             omci_agent,
                                             device_id,
-                                            priority=MibResyncTask.task_priority)
+                                            priority=MibResyncTask.task_priority,
+                                            exclusive=False)
         self._local_deferred = None
         self._device = omci_agent.get_device(device_id)
         self._db_active = MibDbVolatileDict(omci_agent)
@@ -360,8 +361,13 @@ class MibResyncTask(Task):
             # will only show up it the OpenOMCI (OLT-side) database if it changed and
             # an AVC Notification was sourced by the ONU
             # TODO: These could be calculated once at ONU startup (device add)
-            ro_attrs = {attr.field.name for attr in me_map[cls_id].attributes
-                        if attr.access == ro_set}
+            if cls_id in me_map:
+                ro_attrs = {attr.field.name for attr in me_map[cls_id].attributes
+                            if attr.access == ro_set}
+            else:
+                # Here if partially defined ME (not defined in ME Map)
+                from voltha.extensions.omci.omci_cc import UNKNOWN_CLASS_ATTRIBUTE_KEY
+                ro_attrs = {UNKNOWN_CLASS_ATTRIBUTE_KEY}
 
             # Get set of common instance IDs
             inst_ids = {inst_id for inst_id, _ in olt_cls.items()

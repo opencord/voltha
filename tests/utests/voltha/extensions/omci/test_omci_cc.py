@@ -20,6 +20,7 @@ from mock.mock_olt_handler import MockOltHandler
 from mock.mock_onu import MockOnu
 from voltha.extensions.omci.omci_defs import *
 from voltha.extensions.omci.omci_frame import *
+from voltha.extensions.omci.omci_cc import UNKNOWN_CLASS_ATTRIBUTE_KEY
 
 DEFAULT_OLT_DEVICE_ID = 'default_olt_mock'
 DEFAULT_ONU_DEVICE_ID = 'default_onu_mock'
@@ -29,6 +30,15 @@ DEFAULT_ONU_SN = 'TEST00000001'
 
 OP = EntityOperations
 RC = ReasonCodes
+
+
+def chunk(indexable, chunk_size):
+    for i in range(0, len(indexable), chunk_size):
+        yield indexable[i:i + chunk_size]
+
+
+def hex2raw(hex_string):
+    return ''.join(chr(int(byte, 16)) for byte in chunk(hex_string, 2))
 
 
 class TestOmciCc(TestCase):
@@ -114,6 +124,7 @@ class TestOmciCc(TestCase):
             'rx_avc_overflow': omci_cc.rx_avc_overflow,
             'rx_onu_discards': omci_cc.rx_onu_discards,
             'rx_timeouts': omci_cc.rx_timeouts,
+            'rx_unknown_me': omci_cc.rx_unknown_me,
             'tx_errors': omci_cc.tx_errors,
             'consecutive_errors': omci_cc.consecutive_errors,
             'reply_min': omci_cc.reply_min,
@@ -145,6 +156,7 @@ class TestOmciCc(TestCase):
         self.assertEqual(omci_cc.rx_alarm_overflow, 0)
         self.assertEqual(omci_cc.rx_avc_overflow, 0)
         self.assertEqual(omci_cc.rx_onu_discards, 0)
+        self.assertEqual(omci_cc.rx_unknown_me, 0)
         self.assertEqual(omci_cc.rx_timeouts, 0)
         self.assertEqual(omci_cc.tx_errors, 0)
         self.assertEqual(omci_cc.consecutive_errors, 0)
@@ -177,6 +189,27 @@ class TestOmciCc(TestCase):
         self.assertFalse(omci_cc.enabled)
         self.assertIsNone(omci_cc._proxy_address)
 
+    def test_rx_discard_if_disabled(self):
+        # ME without a known decoder
+        self.setup_one_of_each()
+
+        omci_cc = self.onu_handler.omci_cc
+        omci_cc.enabled = False
+        snapshot = self._snapshot_stats()
+
+        msg = '00fc2e0a00020000ff780000e00000010000000c' \
+              '0000000000000000000000000000000000000000' \
+              '00000028105a86ef'
+
+        omci_cc.receive_message(hex2raw(msg))
+
+        # Note: No counter increments
+        self.assertEqual(omci_cc.rx_frames, snapshot['rx_frames'])
+        self.assertEqual(omci_cc.rx_unknown_me, snapshot['rx_unknown_me'])
+        self.assertEqual(omci_cc.rx_unknown_tid, snapshot['rx_unknown_tid'])
+        self.assertEqual(omci_cc.rx_onu_frames, snapshot['rx_onu_frames'])
+        self.assertEqual(omci_cc.rx_unknown_tid, snapshot['rx_unknown_tid'])
+
     def test_message_send_get(self):
         # Various tests of sending an OMCI message and it either
         # getting a response or send catching some errors of
@@ -202,6 +235,7 @@ class TestOmciCc(TestCase):
         # d.addCallback(self._check_stats, snapshot, 'rx_alarm_overflow', snapshot['rx_alarm_overflow'])
         # d.addCallback(self._check_stats, snapshot, 'rx_avc_overflow', snapshot['rx_avc_overflow'])
         # d.addCallback(self._check_stats, snapshot, 'rx_onu_discards', snapshot['rx_onu_discards'])
+        # d.addCallback(self._check_stats, snapshot, 'rx_unknown_me', snapshot['rx_unknown_me'])
         # d.addCallback(self._check_stats, snapshot, 'rx_timeouts', snapshot['rx_timeouts'])
         # d.addCallback(self._check_stats, snapshot, 'tx_errors', snapshot['tx_errors'])
         # d.addCallback(self._check_value_equal, 'consecutive_errors', 0, omci_cc.consecutive_errors)
@@ -233,6 +267,7 @@ class TestOmciCc(TestCase):
         # d.addCallback(self._check_stats, snapshot, 'rx_alarm_overflow', snapshot['rx_alarm_overflow'])
         # d.addCallback(self._check_stats, snapshot, 'rx_avc_overflow', snapshot['rx_avc_overflow'])
         # d.addCallback(self._check_stats, snapshot, 'rx_onu_discards', snapshot['rx_onu_discards'])
+        # d.addCallback(self._check_stats, snapshot, 'rx_unknown_me', snapshot['rx_unknown_me'])
         # d.addCallback(self._check_stats, snapshot, 'rx_timeouts', snapshot['rx_timeouts'])
         # d.addCallback(self._check_stats, snapshot, 'tx_errors', snapshot['tx_errors'])
         # d.addCallback(self._check_value_equal, 'consecutive_errors', 0, omci_cc.consecutive_errors)
@@ -271,6 +306,7 @@ class TestOmciCc(TestCase):
         # d.addCallback(self._check_stats, snapshot, 'rx_alarm_overflow', snapshot['rx_alarm_overflow'])
         # d.addCallback(self._check_stats, snapshot, 'rx_avc_overflow', snapshot['rx_avc_overflow'])
         # d.addCallback(self._check_stats, snapshot, 'rx_onu_discards', snapshot['rx_onu_discards'])
+        # d.addCallback(self._check_stats, snapshot, 'rx_unknown_me', snapshot['rx_unknown_me'])
         # d.addCallback(self._check_stats, snapshot, 'rx_timeouts', snapshot['rx_timeouts'])
         # d.addCallback(self._check_stats, snapshot, 'tx_errors', snapshot['tx_errors'])
         # d.addCallback(self._check_value_equal, 'consecutive_errors', 0, omci_cc.consecutive_errors)
@@ -302,6 +338,7 @@ class TestOmciCc(TestCase):
         # d.addCallback(self._check_stats, snapshot, 'rx_alarm_overflow', snapshot['rx_alarm_overflow'])
         # d.addCallback(self._check_stats, snapshot, 'rx_avc_overflow', snapshot['rx_avc_overflow'])
         # d.addCallback(self._check_stats, snapshot, 'rx_onu_discards', snapshot['rx_onu_discards'])
+        # d.addCallback(self._check_stats, snapshot, 'rx_unknown_me', snapshot['rx_unknown_me'])
         # d.addCallback(self._check_stats, snapshot, 'rx_timeouts', snapshot['rx_timeouts'])
         # d.addCallback(self._check_stats, snapshot, 'tx_errors', snapshot['tx_errors'])
         # d.addCallback(self._check_value_equal, 'consecutive_errors', 0, omci_cc.consecutive_errors)
@@ -330,6 +367,7 @@ class TestOmciCc(TestCase):
         d.addCallback(self._check_stats, snapshot, 'rx_alarm_overflow', snapshot['rx_alarm_overflow'])
         d.addCallback(self._check_stats, snapshot, 'rx_avc_overflow', snapshot['rx_avc_overflow'])
         d.addCallback(self._check_stats, snapshot, 'rx_onu_discards', snapshot['rx_onu_discards'])
+        d.addCallback(self._check_stats, snapshot, 'rx_unknown_me', snapshot['rx_unknown_me'])
         d.addCallback(self._check_stats, snapshot, 'rx_timeouts', snapshot['rx_timeouts'])
         d.addCallback(self._check_stats, snapshot, 'tx_errors', snapshot['tx_errors'])
         d.addCallback(self._check_value_equal, 'consecutive_errors', 0, omci_cc.consecutive_errors)
@@ -359,6 +397,7 @@ class TestOmciCc(TestCase):
         d.addCallback(self._check_stats, snapshot, 'rx_alarm_overflow', snapshot['rx_alarm_overflow'])
         d.addCallback(self._check_stats, snapshot, 'rx_avc_overflow', snapshot['rx_avc_overflow'])
         d.addCallback(self._check_stats, snapshot, 'rx_onu_discards', snapshot['rx_onu_discards'])
+        d.addCallback(self._check_stats, snapshot, 'rx_unknown_me', snapshot['rx_unknown_me'])
         d.addCallback(self._check_stats, snapshot, 'rx_timeouts', snapshot['rx_timeouts'])
         d.addCallback(self._check_stats, snapshot, 'tx_errors', snapshot['tx_errors'])
         d.addCallback(self._check_value_equal, 'consecutive_errors', 0, omci_cc.consecutive_errors)
@@ -388,6 +427,7 @@ class TestOmciCc(TestCase):
         # d.addCallback(self._check_stats, snapshot, 'rx_alarm_overflow', snapshot['rx_alarm_overflow'])
         # d.addCallback(self._check_stats, snapshot, 'rx_avc_overflow', snapshot['rx_avc_overflow'])
         # d.addCallback(self._check_stats, snapshot, 'rx_onu_discards', snapshot['rx_onu_discards'])
+        # d.addCallback(self._check_stats, snapshot, 'rx_unknown_me', snapshot['rx_unknown_me'])
         # d.addCallback(self._check_stats, snapshot, 'rx_timeouts', snapshot['rx_timeouts'])
         # d.addCallback(self._check_stats, snapshot, 'tx_errors', snapshot['tx_errors'])
         # d.addCallback(self._check_value_equal, 'consecutive_errors', 0, omci_cc.consecutive_errors)
@@ -413,6 +453,7 @@ class TestOmciCc(TestCase):
         d.addCallback(self._check_stats, snapshot, 'rx_alarm_overflow', snapshot['rx_alarm_overflow'])
         d.addCallback(self._check_stats, snapshot, 'rx_avc_overflow', snapshot['rx_avc_overflow'])
         d.addCallback(self._check_stats, snapshot, 'rx_onu_discards', snapshot['rx_onu_discards'])
+        d.addCallback(self._check_stats, snapshot, 'rx_unknown_me', snapshot['rx_unknown_me'])
         d.addCallback(self._check_stats, snapshot, 'rx_timeouts', snapshot['rx_timeouts'])
         d.addCallback(self._check_stats, snapshot, 'tx_errors', snapshot['tx_errors'])
         d.addCallback(self._check_value_equal, 'consecutive_errors', 0, omci_cc.consecutive_errors)
@@ -506,6 +547,68 @@ class TestOmciCc(TestCase):
         # todo: Send a good frame
         # todo: Test zero consecutive errors
         # d.addCallback(self._check_value_equal, 'consecutive_errors', 0, omci_cc.consecutive_errors)
+
+    def test_rx_unknown_me(self):
+        # ME without a known decoder
+        self.setup_one_of_each()
+
+        omci_cc = self.onu_handler.omci_cc
+        omci_cc.enabled = True
+        snapshot = self._snapshot_stats()
+
+        # This is the ID ------+
+        #                      v
+        msg = '00fc2e0a00020000ff780000e00000010000000c' \
+              '0000000000000000000000000000000000000000' \
+              '00000028'
+
+        omci_cc.receive_message(hex2raw(msg))
+
+        # Note: After successful frame decode, a lookup of the corresponding request by
+        #       TID is performed. None should be found, so we should see the Rx Unknown TID
+        #       increment.
+        self.assertEqual(omci_cc.rx_frames, snapshot['rx_frames'])
+        self.assertEqual(omci_cc.rx_unknown_me, snapshot['rx_unknown_me'] + 1)
+        self.assertEqual(omci_cc.rx_unknown_tid, snapshot['rx_unknown_tid'] + 1)
+        self.assertEqual(omci_cc.rx_onu_frames, snapshot['rx_onu_frames'])
+        self.assertEqual(omci_cc.consecutive_errors, 0)
+
+    def test_rx_decode_unknown_me(self):
+        # ME without a known decoder
+        self.setup_one_of_each()
+
+        omci_cc = self.onu_handler.omci_cc
+        omci_cc.enabled = True
+        snapshot = self._snapshot_stats()
+
+        # This is a MIB Upload Next Response. Where we would probably first see an
+        # unknown Class ID
+        #
+        # This is the ID ------+
+        #                      v
+        msg = '00fc2e0a00020000ff780001e000'
+        blob = '00010000000c0000000000000000000000000000000000000000'
+        msg += blob + '00000028'
+
+        # Dig into the internal method so we can get the returned frame
+        frame = omci_cc._decode_unknown_me(hex2raw(msg))
+
+        self.assertEqual(frame.fields['transaction_id'], 0x00fc)
+        self.assertEqual(frame.fields['message_type'], 0x2e)
+
+        omci_fields = frame.fields['omci_message'].fields
+
+        self.assertEqual(omci_fields['entity_class'], 0x0002)
+        self.assertEqual(omci_fields['entity_id'], 0x00)
+        self.assertEqual(omci_fields['object_entity_class'], 0x0ff78)
+        self.assertEqual(omci_fields['object_entity_id'], 0x01)
+        self.assertEqual(omci_fields['object_attributes_mask'], 0xe000)
+
+        data_fields = omci_fields['object_data']
+
+        decoded_blob = data_fields.get(UNKNOWN_CLASS_ATTRIBUTE_KEY)
+        self.assertIsNotNone(decoded_blob)
+        self.assertEqual(decoded_blob, blob)
 
     def test_flush(self):
         # Test flush of autonomous ONU queues
