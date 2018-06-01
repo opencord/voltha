@@ -223,11 +223,13 @@ class IAdapterInterface(Interface):
 
     def update_flows_incrementally(device, flow_changes, group_changes):
         """
-        [This mode is not supported yet.]
+        Called after a flow table update, but only if the device supports
+        non-bulk mode, which is expressed by the 'accepts_add_remove_flow_updates'
+        capability attribute of the device type.
         :param device: A Voltha.Device object.
-        :param flow_changes:
-        :param group_changes:
-        :return:
+        :param flow_changes: An openflow_v13.FlowChanges object
+        :param group_changes: An openflow_v13.FlowGroupChanges object
+        :return: (Deferred or None)
         """
 
     def update_pm_config(device, pm_configs):

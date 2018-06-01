@@ -24,10 +24,12 @@ from twisted.internet.defer import inlineCallbacks, returnValue
 
 from voltha.core.config.config_proxy import CallbackType
 from voltha.protos.common_pb2 import AdminState, OperStatus, ConnectStatus, \
-                                     OperationResp
+    OperationResp
 from voltha.protos.device_pb2 import ImageDownload
 from voltha.registry import registry
-from voltha.protos.openflow_13_pb2 import Flows, FlowGroups
+from voltha.protos.openflow_13_pb2 import Flows, FlowGroups, FlowChanges, \
+    FlowGroupChanges
+
 
 class InvalidStateTransition(Exception): pass
 
@@ -58,6 +60,9 @@ class DeviceAgent(object):
             CallbackType.POST_UPDATE, self._process_update)
 
         self.flows_proxy.register_callback(
+            CallbackType.PRE_UPDATE, self._pre_process_flows)
+
+        self.flows_proxy.register_callback(
             CallbackType.POST_UPDATE, self._flow_table_updated)
         self.groups_proxy.register_callback(
             CallbackType.POST_UPDATE, self._group_table_updated)
@@ -70,6 +75,7 @@ class DeviceAgent(object):
             '/device_types/{}'.format(initial_data.type)).get()
 
         self.adapter_agent = None
+        self.flow_changes = None
         self.log = structlog.get_logger(device_id=initial_data.id)
 
     @inlineCallbacks
@@ -111,7 +117,8 @@ class DeviceAgent(object):
     def register_image_download(self, request):
         try:
             self.log.debug('register-image-download', request=request)
-            path = '/devices/{}/image_downloads/{}'.format(request.id, request.name)
+            path = '/devices/{}/image_downloads/{}'.format(request.id,
+                                                           request.name)
             self.img_dnld_proxies[request.name] = self.core.get_proxy(path)
             self.img_dnld_proxies[request.name].register_callback(
                 CallbackType.POST_UPDATE, self._update_image)
@@ -119,7 +126,7 @@ class DeviceAgent(object):
             request.state = ImageDownload.DOWNLOAD_REQUESTED
             self.img_dnld_proxies[request.name].update('/', request)
         except Exception as e:
-                self.log.exception(e.message)
+            self.log.exception(e.message)
 
     def activate_image_update(self, request):
         try:
@@ -127,7 +134,7 @@ class DeviceAgent(object):
             request.image_state = ImageDownload.IMAGE_ACTIVATE
             self.img_dnld_proxies[request.name].update('/', request)
         except Exception as e:
-                self.log.exception(e.message)
+            self.log.exception(e.message)
 
     def revert_image_update(self, request):
         try:
@@ -135,7 +142,7 @@ class DeviceAgent(object):
             request.image_state = ImageDownload.IMAGE_REVERT
             self.img_dnld_proxies[request.name].update('/', request)
         except Exception as e:
-                self.log.exception(e.message)
+            self.log.exception(e.message)
 
     @inlineCallbacks
     def _download_image(self, device, img_dnld):
@@ -148,7 +155,7 @@ class DeviceAgent(object):
     def get_image_download_status(self, request):
         try:
             self.log.debug('get-image-download-status',
-                    request=request)
+                           request=request)
             device = self.proxy.get('/')
             self.adapter_agent.get_image_download_status(device, request)
         except Exception as e:
@@ -157,7 +164,7 @@ class DeviceAgent(object):
     def cancel_image_download(self, img_dnld):
         try:
             self.log.debug('cancel-image-download',
-                    img_dnld=img_dnld)
+                           img_dnld=img_dnld)
             device = self.proxy.get('/')
             self.adapter_agent.cancel_image_download(device, img_dnld)
         except Exception as e:
@@ -166,22 +173,22 @@ class DeviceAgent(object):
     def update_device_image_download(self, img_dnld):
         try:
             self.log.debug('update-device-image-download',
-                    img_dnld=img_dnld)
-            self.proxy.update('/image_downloads/{}'\
-                    .format(img_dnld.name), img_dnld)
+                           img_dnld=img_dnld)
+            self.proxy.update('/image_downloads/{}' \
+                              .format(img_dnld.name), img_dnld)
         except Exception as e:
             self.log.exception(e.message)
 
     def unregister_device_image_download(self, name):
         try:
             self.log.debug('unregister-device-image-download',
-                            name=name)
+                           name=name)
             self.self_proxies[name].unregister_callback(
                 CallbackType.POST_ADD, self._download_image)
             self.self_proxies[name].unregister_callback(
                 CallbackType.POST_UPDATE, self._process_image)
         except Exception as e:
-                self.log.exception(e.message)
+            self.log.exception(e.message)
 
     @inlineCallbacks
     def _update_image(self, img_dnld):
@@ -193,12 +200,13 @@ class DeviceAgent(object):
                 yield self._download_image(device, img_dnld)
             if img_dnld.image_state == ImageDownload.IMAGE_ACTIVATE:
                 device = self.proxy.get('/')
-                yield self.adapter_agent.activate_image_update(device, img_dnld)
+                yield self.adapter_agent.activate_image_update(device,
+                                                               img_dnld)
             elif img_dnld.image_state == ImageDownload.IMAGE_REVERT:
                 device = self.proxy.get('/')
                 yield self.adapter_agent.revert_image_update(device, img_dnld)
         except Exception as e:
-                self.log.exception(e.message)
+            self.log.exception(e.message)
 
     @inlineCallbacks
     def self_test(self, device, dry_run=False):
@@ -232,8 +240,8 @@ class DeviceAgent(object):
     @inlineCallbacks
     def reconcile_existing_device(self, device, dry_run=False):
         self.log.debug('reconcile-existing-device',
-                      device=device,
-                      dry_run=False)
+                       device=device,
+                       dry_run=False)
         if not dry_run:
             yield self.adapter_agent.reconcile_device(device)
 
@@ -278,7 +286,7 @@ class DeviceAgent(object):
     def _process_state_transitions(self, device, dry_run=False):
 
         old_admin_state = getattr(self.last_data, 'admin_state',
-                                   AdminState.UNKNOWN)
+                                  AdminState.UNKNOWN)
         new_admin_state = device.admin_state
         self.log.debug('device-admin-states', old_state=old_admin_state,
                        new_state=new_admin_state, dry_run=dry_run)
@@ -309,14 +317,14 @@ class DeviceAgent(object):
         self.last_data = device  # so that we don't propagate back
         self.proxy.update('/', device)
         if device.admin_state == AdminState.ENABLED and \
-           device.oper_status == OperStatus.ACTIVE and \
-           device.connect_status == ConnectStatus.REACHABLE:
+                device.oper_status == OperStatus.ACTIVE and \
+                device.connect_status == ConnectStatus.REACHABLE:
             self.log.info('replay-create-interfaces ', device=device.id)
             self.core.xpon_agent.replay_interface(device.id)
             # if device accepts bulk flow update, lets just call that
             if self.device_type.accepts_bulk_flow_update:
                 flows = self.flows_proxy.get('/')  # gather flows
-                groups = self.groups_proxy.get('/') # gather flow groups
+                groups = self.groups_proxy.get('/')  # gather flow groups
                 self.log.info('replay-flows ', device=device.id)
                 yield self.adapter_agent.update_flows_bulk(
                     device=device,
@@ -324,14 +332,14 @@ class DeviceAgent(object):
                     groups=groups)
 
     def update_device_pm_config(self, device_pm_config, init=False):
-        self.callback_data = init# so that we don't push init data
+        self.callback_data = init  # so that we don't push init data
         self.pm_config_proxy.update('/', device_pm_config)
 
     def _propagate_change(self, device, dry_run=False):
         self.log.debug('propagate-change', device=device, dry_run=dry_run)
         if device != self.last_data:
             self.log.warn('Not-implemented-default-to-noop')
-            #raise NotImplementedError()
+            # raise NotImplementedError()
         else:
             self.log.debug('no-op')
 
@@ -397,7 +405,7 @@ class DeviceAgent(object):
 
     ## <======================= PM CONFIG UPDATE HANDLING ====================
 
-    #@inlineCallbacks
+    # @inlineCallbacks
     def _pm_config_updated(self, pm_configs):
         self.log.debug('pm-config-updated', pm_configs=pm_configs,
                        callback_data=self.callback_data)
@@ -408,24 +416,82 @@ class DeviceAgent(object):
 
     ## <======================= FLOW TABLE UPDATE HANDLING ====================
 
+    def _pre_process_flows(self, flows):
+        """
+        This method is invoked before a device flow table data model is
+        updated. If the device supports accepts_add_remove_flow_updates then it
+        pre-processes the desired flows against what currently
+        exist on the device to figure out which flows to delete and which
+        ones to add. The resulting data is stored locally and the flow table is
+        updated during the post-processing phase, i.e. via the POST_UPDATE
+        callback
+        :param flows: Desired flows
+        :return: None
+        """
+        if self.device_type.accepts_add_remove_flow_updates:
+            self.current_flows = self.flows_proxy.get('/')
+            self.log.debug('pre-processing-flows',
+                           logical_device_id=self.last_data.id,
+                           desired_flows=flows,
+                           existing_flows=self.current_flows)
+
+            if self.flow_changes is None:
+                self.flow_changes = FlowChanges()
+            else:
+                del self.flow_changes.to_add.items[:]
+                del self.flow_changes.to_remove.items[:]
+
+            current_flow_ids = set(f.id for f in self.current_flows.items)
+            desired_flow_ids = set(f.id for f in flows.items)
+
+            ids_to_add = desired_flow_ids.difference(current_flow_ids)
+            ids_to_del = current_flow_ids.difference(desired_flow_ids)
+
+            for f in flows.items:
+                if f.id in ids_to_add:
+                    self.flow_changes.to_add.items.extend([f])
+
+            for f in self.current_flows.items:
+                if f.id in ids_to_del:
+                    self.flow_changes.to_remove.items.extend([f])
+
+            self.log.debug('pre-processed-flows',
+                           logical_device_id=self.last_data.id,
+                           flow_changes=self.flow_changes)
+        else:
+            self.log.debug('no-pre-processing-required')
+
     @inlineCallbacks
     def _flow_table_updated(self, flows):
         self.log.debug('flow-table-updated',
-                  logical_device_id=self.last_data.id, flows=flows)
+                       logical_device_id=self.last_data.id, flows=flows)
+
+        # if device accepts non-bulk flow update, lets just call that first
+        if self.device_type.accepts_add_remove_flow_updates:
+            if (len(self.flow_changes.to_remove.items) == 0) and (len(
+                    self.flow_changes.to_add.items) == 0):
+                self.log.debug('no-flow-update-required',
+                               logical_device_id=self.last_data.id)
+            else:
+                try:
+                    yield self.adapter_agent.update_flows_incrementally(
+                        device=self.last_data,
+                        flow_changes=self.flow_changes,
+                        group_changes=FlowGroupChanges()
+                    )
+                except Exception as e:
+                    self.log.exception("Failure-updating-flows", e=e)
 
         # if device accepts bulk flow update, lets just call that
-        if self.device_type.accepts_bulk_flow_update:
-            groups = self.groups_proxy.get('/') # gather flow groups
+        elif self.device_type.accepts_bulk_flow_update:
+            self.log.debug('invoking bulk')
+            groups = self.groups_proxy.get('/')  # gather flow groups
             yield self.adapter_agent.update_flows_bulk(
                 device=self.last_data,
                 flows=flows,
                 groups=groups)
             # add ability to notify called when an flow update completes
             # see https://jira.opencord.org/browse/CORD-839
-
-        elif self.device_type.accepts_add_remove_flow_updates:
-            raise NotImplementedError()
-
         else:
             raise NotImplementedError()
 
@@ -434,8 +500,8 @@ class DeviceAgent(object):
     @inlineCallbacks
     def _group_table_updated(self, groups):
         self.log.debug('group-table-updated',
-                  logical_device_id=self.last_data.id,
-                  flow_groups=groups)
+                       logical_device_id=self.last_data.id,
+                       flow_groups=groups)
 
         # if device accepts bulk flow update, lets just call that
         if self.device_type.accepts_bulk_flow_update:

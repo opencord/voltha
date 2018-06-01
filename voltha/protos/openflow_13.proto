@@ -2270,6 +2270,16 @@ message FlowGroups {
     repeated ofp_group_entry items = 1;
 }
 
+message FlowChanges {
+    Flows to_add = 1;
+    Flows to_remove = 2;
+}
+
+message FlowGroupChanges {
+    FlowGroups to_add = 1;
+    FlowGroups to_remove = 2;
+}
+
 message PacketIn {
     string id = 1;  // LogicalDevice.id
     ofp_packet_in packet_in = 2;

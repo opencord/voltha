@@ -212,8 +212,7 @@ class AdapterAgent(object):
         return self.adapter.update_flows_bulk(device, flows, groups)
 
     def update_flows_incrementally(self, device, flow_changes, group_changes):
-        return self.update_flows_incrementally(
-            device, flow_changes, group_changes)
+        return self.adapter.update_flows_incrementally(device, flow_changes, group_changes)
 
     def suppress_alarm(self, filter):
         return self.adapter.suppress_alarm(filter)
