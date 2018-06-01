@@ -51,7 +51,7 @@ from voltha.protos.ponsim_pb2 import FlowTable, PonSimFrame
 from voltha.registry import registry
 
 from voltha.protos.bbf_fiber_base_pb2 import \
-    ChannelgroupConfig, ChannelpartitionConfig, ChannelpairConfig,\
+    ChannelgroupConfig, ChannelpartitionConfig, ChannelpairConfig, \
     ChannelterminationConfig, OntaniConfig, VOntaniConfig, VEnetConfig
 from voltha.protos.bbf_fiber_traffic_descriptor_profile_body_pb2 import \
     TrafficDescriptorProfileData
@@ -161,6 +161,7 @@ class AdapterPmMetrics:
                  device_id=self.device.id)
         self.lc.stop()
 
+
 class AdapterAlarms:
     def __init__(self, adapter, device):
         self.adapter = adapter
@@ -195,6 +196,7 @@ class AdapterAlarms:
         except Exception as e:
             log.exception('failed-to-send-alarm', e=e)
 
+
 class PonSimOltAdapter(OltAdapter):
     def __init__(self, adapter_agent, config):
         super(PonSimOltAdapter, self).__init__(adapter_agent=adapter_agent,
@@ -203,7 +205,9 @@ class PonSimOltAdapter(OltAdapter):
                                                name='ponsim_olt',
                                                vendor='Voltha project',
                                                version='0.4',
-                                               device_type='ponsim_olt')
+                                               device_type='ponsim_olt',
+                                               accepts_bulk_flow_update=True,
+                                               accepts_add_remove_flow_updates=False)
 
     def update_pm_config(self, device, pm_config):
         log.info("adapter-update-pm-config", device=device,
@@ -292,6 +296,7 @@ class PonSimOltAdapter(OltAdapter):
             self.devices_handlers[device.id].remove_multicast_distribution_set(
                 data)
 
+
 class PonSimOltHandler(object):
     xpon_ponsim_olt_itfs = {
         'create_interface': {
@@ -339,7 +344,7 @@ class PonSimOltHandler(object):
         'remove_multicast_distribution_set': {
             'method_name': 'RemoveMulticastDistributionSet',
             'log': 'remove-multicast-distribution-set-data'},
-                            }
+    }
 
     def __init__(self, adapter, device_id):
         self.adapter = adapter
@@ -367,23 +372,28 @@ class PonSimOltHandler(object):
 
             # read in certificate
             try:
-               with open('/voltha/pki/voltha-CA.pem') as f:
-                  trusted_certs = f.read()
+                with open('/voltha/pki/voltha-CA.pem') as f:
+                    trusted_certs = f.read()
 
-               with open('/voltha/pki/voltha.crt') as f:
-                  client_cert = f.read()
+                with open('/voltha/pki/voltha.crt') as f:
+                    client_cert = f.read()
 
-               with open('/voltha/pki/voltha.key') as f:
-                  client_key = f.read()
+                with open('/voltha/pki/voltha.key') as f:
+                    client_key = f.read()
             except Exception as e:
-               log.error('failed-to-read-cert-keys', reason=e)
+                log.error('failed-to-read-cert-keys', reason=e)
 
             # create credentials
-            credentials = grpc.ssl_channel_credentials( root_certificates=trusted_certs, private_key=client_key, certificate_chain=client_cert)
+            credentials = grpc.ssl_channel_credentials(
+                root_certificates=trusted_certs, private_key=client_key,
+                certificate_chain=client_cert)
 
             # create channel using ssl credentials
-            my_server_host_override_string = "ABCD" # Server's CN Name, Ugly but no other Choice.
-            self.channel = grpc.secure_channel(device.host_and_port, credentials, options=(('grpc.ssl_target_name_override', my_server_host_override_string,),))
+            my_server_host_override_string = "ABCD"  # Server's CN Name, Ugly but no other Choice.
+            self.channel = grpc.secure_channel(device.host_and_port,
+                                               credentials, options=((
+                                                                         'grpc.ssl_target_name_override',
+                                                                         my_server_host_override_string,),))
 
         return self.channel
 
@@ -460,17 +470,18 @@ class PonSimOltHandler(object):
             desc=ofp_desc(
                 hw_desc='simualted pon',
                 sw_desc='simualted pon',
-                serial_num=uuid4().hex,
+                # serial_num=uuid4().hex,
+                serial_num="9b7cfd85441b407c87ee3261df7d4818",
                 dp_desc='n/a'
             ),
             switch_features=ofp_switch_features(
                 n_buffers=256,  # TODO fake for now
                 n_tables=2,  # TODO ditto
                 capabilities=(  # TODO and ditto
-                    OFPC_FLOW_STATS
-                    | OFPC_TABLE_STATS
-                    | OFPC_PORT_STATS
-                    | OFPC_GROUP_STATS
+                        OFPC_FLOW_STATS
+                        | OFPC_TABLE_STATS
+                        | OFPC_PORT_STATS
+                        | OFPC_GROUP_STATS
                 )
             ),
             root_device_id=device.id
@@ -607,8 +618,8 @@ class PonSimOltHandler(object):
                 cvid = inner_shim.vlan
                 logical_port = cvid
                 popped_frame = (
-                    Ether(src=pkt.src, dst=pkt.dst, type=inner_shim.type) /
-                    inner_shim.payload
+                        Ether(src=pkt.src, dst=pkt.dst, type=inner_shim.type) /
+                        inner_shim.payload
                 )
                 kw = dict(
                     logical_device_id=self.logical_device_id,
@@ -635,11 +646,12 @@ class PonSimOltHandler(object):
 
         try:
             for frame in self.frames:
-                self.log.info('received-grpc-frame', frame_len=len(frame.payload))
+                self.log.info('received-grpc-frame',
+                              frame_len=len(frame.payload))
                 self._rcv_frame(frame.payload)
 
         except _Rendezvous, e:
-            log.warn('grpc-connection-lost',message=e.message)
+            log.warn('grpc-connection-lost', message=e.message)
 
         self.log.info('stopped-receiving-grpc-frames')
 
@@ -656,6 +668,18 @@ class PonSimOltHandler(object):
             flows=flows
         ))
         self.log.info('success')
+
+    def remove_from_flow_table(self, flows):
+        self.log.debug('remove-from-flow-table', flows=flows)
+        # TODO: Update PONSIM code to accept incremental flow changes
+        # Once completed, the accepts_add_remove_flow_updates for this
+        # device type can be set to True
+
+    def add_to_flow_table(self, flows):
+        self.log.debug('add-to-flow-table', flows=flows)
+        # TODO: Update PONSIM code to accept incremental flow changes
+        # Once completed, the accepts_add_remove_flow_updates for this
+        # device type can be set to True
 
     def update_pm_config(self, device, pm_config):
         log.info("handler-update-pm-config", device=device,
@@ -675,10 +699,10 @@ class PonSimOltHandler(object):
                       msg=hexify(msg))
         pkt = Ether(msg)
         out_pkt = (
-            Ether(src=pkt.src, dst=pkt.dst) /
-            Dot1Q(vlan=4000) /
-            Dot1Q(vlan=egress_port, type=pkt.type) /
-            pkt.payload
+                Ether(src=pkt.src, dst=pkt.dst) /
+                Dot1Q(vlan=4000) /
+                Dot1Q(vlan=egress_port, type=pkt.type) /
+                pkt.payload
         )
 
         if self.ponsim_comm == 'grpc':
@@ -689,7 +713,6 @@ class PonSimOltHandler(object):
         else:
             # send over frameio
             self.io_port.send(str(out_pkt))
-
 
     @inlineCallbacks
     def reboot(self):
@@ -818,10 +841,10 @@ class PonSimOltHandler(object):
                 n_buffers=256,  # TODO fake for now
                 n_tables=2,  # TODO ditto
                 capabilities=(  # TODO and ditto
-                    OFPC_FLOW_STATS
-                    | OFPC_TABLE_STATS
-                    | OFPC_PORT_STATS
-                    | OFPC_GROUP_STATS
+                        OFPC_FLOW_STATS
+                        | OFPC_TABLE_STATS
+                        | OFPC_PORT_STATS
+                        | OFPC_GROUP_STATS
                 )
             ),
             root_device_id=device.id
@@ -928,7 +951,6 @@ class PonSimOltHandler(object):
     def stop_kpi_collection(self):
         self.pm_metrics.stop_collector()
 
-
     def get_interface_config(self, data):
         interfaceConfig = InterfaceConfig()
         if isinstance(data, ChannelgroupConfig):
@@ -965,7 +987,7 @@ class PonSimOltHandler(object):
         if interfaceConfig is not None:
             self.log.info(
                 'forwarding-{}-request-to-olt-for-interface-type'
-                .format(self.xpon_ponsim_olt_itfs[method_name]['log']),
+                    .format(self.xpon_ponsim_olt_itfs[method_name]['log']),
                 interface_type=type(data))
             stub = ponsim_pb2.XPonSimStub(self.get_channel())
             _method = getattr(
@@ -981,64 +1003,64 @@ class PonSimOltHandler(object):
             self.log.info('success')
 
     def create_interface(self, data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_olt_interface(_method_name, data);
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_olt_interface(_method_name, data);
 
     def update_interface(self, data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_olt_interface(_method_name, data);
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_olt_interface(_method_name, data);
 
     def remove_interface(self, data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_olt_interface(_method_name, data);
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_olt_interface(_method_name, data);
 
     def create_tcont(self, tcont_data, traffic_descriptor_data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_olt_interface(_method_name, tcont_data,
-                                      traffic_descriptor_data);
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_olt_interface(_method_name, tcont_data,
+                                       traffic_descriptor_data);
 
     def update_tcont(self, tcont_data, traffic_descriptor_data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_olt_interface(_method_name, tcont_data,
-                                      traffic_descriptor_data);
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_olt_interface(_method_name, tcont_data,
+                                       traffic_descriptor_data);
 
     def remove_tcont(self, tcont_data, traffic_descriptor_data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_olt_interface(_method_name, tcont_data,
-                                      traffic_descriptor_data);
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_olt_interface(_method_name, tcont_data,
+                                       traffic_descriptor_data);
 
     def create_gemport(self, data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_olt_interface(_method_name, data);
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_olt_interface(_method_name, data);
 
     def update_gemport(self, data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_olt_interface(_method_name, data);
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_olt_interface(_method_name, data);
 
     def remove_gemport(self, data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_olt_interface(_method_name, data);
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_olt_interface(_method_name, data);
 
     def create_multicast_gemport(self, data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_olt_interface(_method_name, data);
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_olt_interface(_method_name, data);
 
     def update_multicast_gemport(self, data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_olt_interface(_method_name, data);
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_olt_interface(_method_name, data);
 
     def remove_multicast_gemport(self, data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_olt_interface(_method_name, data);
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_olt_interface(_method_name, data);
 
     def create_multicast_distribution_set(self, data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_olt_interface(_method_name, data);
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_olt_interface(_method_name, data);
 
     def update_multicast_distribution_set(self, data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_olt_interface(_method_name, data);
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_olt_interface(_method_name, data);
 
     def remove_multicast_distribution_set(self, data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_olt_interface(_method_name, data);
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_olt_interface(_method_name, data);

@@ -35,7 +35,10 @@ log = structlog.get_logger()
 
 @implementer(IAdapterInterface)
 class IAdapter(object):
-    def __init__(self, adapter_agent, config, device_handler_class, name, vendor, version, device_type, vendor_id):
+    def __init__(self, adapter_agent, config, device_handler_class, name,
+                 vendor, version, device_type, vendor_id,
+                 accepts_bulk_flow_update=True,
+                 accepts_add_remove_flow_updates=False):
         log.debug('Initializing adapter: {} {} {}'.format(vendor, name, version))
         self.adapter_agent = adapter_agent
         self.config = config
@@ -45,7 +48,8 @@ class IAdapter(object):
                 id=device_type,
                 vendor_id=vendor_id,
                 adapter=name,
-                accepts_bulk_flow_update=True
+                accepts_bulk_flow_update=accepts_bulk_flow_update,
+                accepts_add_remove_flow_updates=accepts_add_remove_flow_updates
             )
         ]
         self.descriptor = Adapter(
@@ -138,7 +142,20 @@ class IAdapter(object):
         return handler.update_flow_table(flows.items)
 
     def update_flows_incrementally(self, device, flow_changes, group_changes):
-        raise NotImplementedError()
+        log.info('incremental-flow-update', device_id=device.id,
+                 flows=flow_changes, groups=group_changes)
+        # For now, there is no support for group changes
+        assert len(group_changes.to_add.items) == 0
+        assert len(group_changes.to_remove.items) == 0
+
+        handler = self.devices_handlers[device.id]
+        # Remove flows
+        if len(flow_changes.to_remove.items) != 0:
+            handler.remove_from_flow_table(flow_changes.to_remove.items)
+
+        # Add flows
+        if len(flow_changes.to_add.items) != 0:
+            handler.add_to_flow_table(flow_changes.to_add.items)
 
     def update_pm_config(self, device, pm_config):
         log.info("adapter-update-pm-config", device=device,
@@ -245,15 +262,20 @@ OLT Adapter base class
 
 
 class OltAdapter(IAdapter):
-    def __init__(self, adapter_agent, config, device_handler_class, name, vendor, version, device_type):
-        super(OltAdapter, self).__init__(adapter_agent,
-                                         config,
-                                         device_handler_class,
-                                         name,
-                                         vendor,
-                                         version,
-                                         device_type,
-                                         None)
+    def __init__(self, adapter_agent, config, device_handler_class, name,
+                 vendor, version, device_type,
+                 accepts_bulk_flow_update=True,
+                 accepts_add_remove_flow_updates=False):
+        super(OltAdapter, self).__init__(adapter_agent=adapter_agent,
+                                         config=config,
+                                         device_handler_class=device_handler_class,
+                                         name=name,
+                                         vendor=vendor,
+                                         version=version,
+                                         device_type=device_type,
+                                         vendor_id=None,
+                                         accepts_bulk_flow_update=accepts_bulk_flow_update,
+                                         accepts_add_remove_flow_updates=accepts_add_remove_flow_updates)
         self.logical_device_id_to_root_device_id = dict()
 
     def reconcile_device(self, device):
@@ -297,15 +319,20 @@ ONU Adapter base class
 
 
 class OnuAdapter(IAdapter):
-    def __init__(self, adapter_agent, config, device_handler_class, name, vendor, version, device_type, vendor_id):
-        super(OnuAdapter, self).__init__(adapter_agent,
-                                         config,
-                                         device_handler_class,
-                                         name,
-                                         vendor,
-                                         version,
-                                         device_type,
-                                         vendor_id)
+    def __init__(self, adapter_agent, config, device_handler_class, name,
+                 vendor, version, device_type, vendor_id, accepts_bulk_flow_update=True,
+                 accepts_add_remove_flow_updates=False):
+        super(OnuAdapter, self).__init__(adapter_agent=adapter_agent,
+                                         config=config,
+                                         device_handler_class=device_handler_class,
+                                         name=name,
+                                         vendor=vendor,
+                                         version=version,
+                                         device_type=device_type,
+                                         vendor_id=vendor_id,
+                                         accepts_bulk_flow_update=accepts_bulk_flow_update,
+                                         accepts_add_remove_flow_updates=accepts_add_remove_flow_updates
+                                         )
 
     def reconcile_device(self, device):
         self.devices_handlers[device.id] = self.device_handler_class(self, device.id)

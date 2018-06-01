@@ -79,20 +79,23 @@ xpon_ponsim_onu_itfs = {
         'log': 'update-multicast-distribution-set-data'},
     'remove_multicast_distribution_set': {
         'log': 'remove-multicast-distribution-set-data'},
-                        }
+}
+
 
 class PonSimOnuAdapter(OnuAdapter):
     def __init__(self, adapter_agent, config):
-        #DeviceType of ONU should be same as VENDOR ID of ONU Serial Number as specified by standard
-        #requires for identifying correct adapter or ranged ONU
+        # DeviceType of ONU should be same as VENDOR ID of ONU Serial Number as specified by standard
+        # requires for identifying correct adapter or ranged ONU
         super(PonSimOnuAdapter, self).__init__(adapter_agent=adapter_agent,
                                                config=config,
-                                               device_handler_class = PonSimOnuHandler,
+                                               device_handler_class=PonSimOnuHandler,
                                                name='ponsim_onu',
                                                vendor='Voltha project',
                                                version='0.4',
                                                device_type='ponsim_onu',
-                                               vendor_id='PSMO')
+                                               vendor_id='PSMO',
+                                               accepts_bulk_flow_update=True,
+                                               accepts_add_remove_flow_updates=False)
 
     def xpon_ponsim_onu_adapter_interface(self, method_name, device, data,
                                           data2=None):
@@ -108,67 +111,71 @@ class PonSimOnuAdapter(OnuAdapter):
                     _method(data)
 
     def create_interface(self, device, data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_onu_adapter_interface(_method_name, device, data)
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_onu_adapter_interface(_method_name, device, data)
 
     def update_interface(self, device, data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_onu_adapter_interface(_method_name, device, data)
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_onu_adapter_interface(_method_name, device, data)
 
     def remove_interface(self, device, data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_onu_adapter_interface(_method_name, device, data)
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_onu_adapter_interface(_method_name, device, data)
 
     def create_tcont(self, device, tcont_data, traffic_descriptor_data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_onu_adapter_interface(_method_name, device, tcont_data,
-                                              traffic_descriptor_data)
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_onu_adapter_interface(_method_name, device,
+                                               tcont_data,
+                                               traffic_descriptor_data)
 
     def update_tcont(self, device, tcont_data, traffic_descriptor_data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_onu_adapter_interface(_method_name, device, tcont_data,
-                                              traffic_descriptor_data)
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_onu_adapter_interface(_method_name, device,
+                                               tcont_data,
+                                               traffic_descriptor_data)
 
     def remove_tcont(self, device, tcont_data, traffic_descriptor_data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_onu_adapter_interface(_method_name, device, tcont_data,
-                                              traffic_descriptor_data)
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_onu_adapter_interface(_method_name, device,
+                                               tcont_data,
+                                               traffic_descriptor_data)
 
     def create_gemport(self, device, data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_onu_adapter_interface(_method_name, device, data)
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_onu_adapter_interface(_method_name, device, data)
 
     def update_gemport(self, device, data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_onu_adapter_interface(_method_name, device, data)
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_onu_adapter_interface(_method_name, device, data)
 
     def remove_gemport(self, device, data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_onu_adapter_interface(_method_name, device, data)
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_onu_adapter_interface(_method_name, device, data)
 
     def create_multicast_gemport(self, device, data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_onu_adapter_interface(_method_name, device, data)
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_onu_adapter_interface(_method_name, device, data)
 
     def update_multicast_gemport(self, device, data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_onu_adapter_interface(_method_name, device, data)
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_onu_adapter_interface(_method_name, device, data)
 
     def remove_multicast_gemport(self, device, data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_onu_adapter_interface(_method_name, device, data)
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_onu_adapter_interface(_method_name, device, data)
 
     def create_multicast_distribution_set(self, device, data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_onu_adapter_interface(_method_name, device, data)
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_onu_adapter_interface(_method_name, device, data)
 
     def update_multicast_distribution_set(self, device, data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_onu_adapter_interface(_method_name, device, data)
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_onu_adapter_interface(_method_name, device, data)
 
     def remove_multicast_distribution_set(self, device, data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_onu_adapter_interface(_method_name, device, data)
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_onu_adapter_interface(_method_name, device, data)
+
 
 class PonSimOnuHandler(object):
     def __init__(self, adapter, device_id):
@@ -311,6 +318,18 @@ class PonSimOnuHandler(object):
         self.adapter_agent.send_proxied_message(self.proxy_address, msg)
 
         yield self.incoming_messages.get()
+
+    def remove_from_flow_table(self, flows):
+        self.log.debug('remove-from-flow-table', flows=flows)
+        # TODO: Update PONSIM code to accept incremental flow changes.
+        # Once completed, the accepts_add_remove_flow_updates for this
+        # device type can be set to True
+
+    def add_to_flow_table(self, flows):
+        self.log.debug('add-to-flow-table', flows=flows)
+        # TODO: Update PONSIM code to accept incremental flow changes
+        # Once completed, the accepts_add_remove_flow_updates for this
+        # device type can be set to True
 
     @inlineCallbacks
     def reboot(self):
@@ -493,7 +512,7 @@ class PonSimOnuHandler(object):
             return None
         return interfaceConfig
 
-    def xpon_ponsim_onu_interface (self, method_name, data, data2=None):
+    def xpon_ponsim_onu_interface(self, method_name, data, data2=None):
         interfaceConfig = self.get_interface_config(data)
         if interfaceConfig is not None:
             self.log.info('forwarding-{}-request-to-onu-for-interface-type'
@@ -503,64 +522,64 @@ class PonSimOnuHandler(object):
                 self.log.info(interface_type=type(data2))
 
     def create_interface(self, data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_onu_interface(_method_name, data)
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_onu_interface(_method_name, data)
 
     def update_interface(self, data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_onu_interface(_method_name, data)
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_onu_interface(_method_name, data)
 
     def remove_interface(self, data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_onu_interface(_method_name, data)
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_onu_interface(_method_name, data)
 
     def create_tcont(self, tcont_data, traffic_descriptor_data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_onu_interface(_method_name, tcont_data,
-                                      traffic_descriptor_data)
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_onu_interface(_method_name, tcont_data,
+                                       traffic_descriptor_data)
 
     def update_tcont(self, tcont_data, traffic_descriptor_data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_onu_interface(_method_name, tcont_data,
-                                      traffic_descriptor_data)
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_onu_interface(_method_name, tcont_data,
+                                       traffic_descriptor_data)
 
     def remove_tcont(self, tcont_data, traffic_descriptor_data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_onu_interface(_method_name, tcont_data,
-                                      traffic_descriptor_data)
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_onu_interface(_method_name, tcont_data,
+                                       traffic_descriptor_data)
 
     def create_gemport(self, data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_onu_interface(_method_name, data)
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_onu_interface(_method_name, data)
 
     def update_gemport(self, data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_onu_interface(_method_name, data)
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_onu_interface(_method_name, data)
 
     def remove_gemport(self, data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_onu_interface(_method_name, data)
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_onu_interface(_method_name, data)
 
     def create_multicast_gemport(self, data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_onu_interface(_method_name, data)
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_onu_interface(_method_name, data)
 
     def update_multicast_gemport(self, data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_onu_interface(_method_name, data)
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_onu_interface(_method_name, data)
 
     def remove_multicast_gemport(self, data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_onu_interface(_method_name, data)
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_onu_interface(_method_name, data)
 
     def create_multicast_distribution_set(self, data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_onu_interface(_method_name, data)
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_onu_interface(_method_name, data)
 
     def update_multicast_distribution_set(self, data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_onu_interface(_method_name, data)
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_onu_interface(_method_name, data)
 
     def remove_multicast_distribution_set(self, data):
-       _method_name = sys._getframe().f_code.co_name
-       self.xpon_ponsim_onu_interface(_method_name, data)
+        _method_name = sys._getframe().f_code.co_name
+        self.xpon_ponsim_onu_interface(_method_name, data)
