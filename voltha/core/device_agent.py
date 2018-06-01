@@ -305,6 +305,7 @@ class DeviceAgent(object):
 
     @inlineCallbacks
     def update_device(self, device):
+        self.log.debug('updating-device', device=device.id)
         self.last_data = device  # so that we don't propagate back
         self.proxy.update('/', device)
         if device.admin_state == AdminState.ENABLED and \

@@ -64,18 +64,22 @@ class OpenoltDevice(object):
         self.adapter_agent = kwargs['adapter_agent']
         self.device_num = kwargs['device_num']
         device = kwargs['device']
+        is_reconciliation = kwargs.get('reconciliation', False)
         self.device_id = device.id
         self.host_and_port = device.host_and_port
         self.log = structlog.get_logger(id=self.device_id, ip=self.host_and_port)
         self.nni_oper_state = dict() #intf_id -> oper_state
         self.proxy = registry('core').get_proxy('/')
 
-        # Update device
-        device.root = True
-        device.serial_number = self.host_and_port # FIXME
-        device.connect_status = ConnectStatus.REACHABLE
-        device.oper_status = OperStatus.ACTIVATING
-        self.adapter_agent.update_device(device)
+        # Device already set in the event of reconciliation
+        if not is_reconciliation:
+            # It is a new device
+            # Update device
+            device.root = True
+            device.serial_number = self.host_and_port # FIXME
+            device.connect_status = ConnectStatus.REACHABLE
+            device.oper_status = OperStatus.ACTIVATING
+            self.adapter_agent.update_device(device)
 
         # Initialize the OLT state machine
         self.machine = Machine(model=self, states=OpenoltDevice.states,
@@ -102,6 +106,9 @@ class OpenoltDevice(object):
         self.heartbeat_miss = 0
         self.heartbeat_signature = None
         self.heartbeat_thread.start()
+
+        self.log.debug('openolt-device-created', device_id=self.device_id)
+
 
     def process_indications(self):
 
