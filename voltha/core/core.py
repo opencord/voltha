@@ -133,13 +133,13 @@ class VolthaCore(object):
             # handling the ONU should be present before the ONU reconciliation
             # occurs
             for device in devices:
-                if device.type.endswith("_onu"):
+                if device.type.endswith("onu"):
                     yield self._handle_reconcile_existing_device(
                         device=device, reconcile=False)
 
             # Then reconcile the OLT devices
             for device in devices:
-                if device.type.endswith("_olt"):
+                if device.type.endswith("olt"):
                     yield self._handle_reconcile_existing_device(
                         device=device, reconcile=True)
 
