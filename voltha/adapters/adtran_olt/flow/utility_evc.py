@@ -82,10 +82,6 @@ class UtilityEVC(EVC):
             return None
 
     @property
-    def flow_entry(self):
-        return self._flow
-
-    @property
     def downstream_flows(self):
         return frozenset(self._downstream_flows)
 

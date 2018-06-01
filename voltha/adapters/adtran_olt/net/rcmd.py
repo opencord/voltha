@@ -68,7 +68,8 @@ class RCmd(object):
 
         def connectionLost(self, reason):
             log.debug('connection-lost')
-            self.finished.callback(None)
+            if not self.finished.called:
+                self.finished.callback(reason)
 
     class PermissiveKnownHosts(KnownHostsFile):
         def verifyHostKey(self, ui, hostname, ip, key):

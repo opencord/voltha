@@ -528,51 +528,49 @@ class EVCMap(object):
         try:
             del self._flows[flow.flow_id]
 
-            if not flow.handler.exception_gems:  # ! FIXED_ONU
-                # Remove any ACLs
+            # Remove any ACLs
+            acl_name = ACL.flow_to_name(flow)
+            acl = None
 
-                acl_name = ACL.flow_to_name(flow)
-                acl = None
+            # if not yet installed just remove it from list
+            if acl_name in self._new_acls:
+                del self._new_acls[acl_name]
+            else:
+                acl = self._existing_acls[acl_name]
+            if acl is not None:
+                # Remove ACL from EVC-MAP entry
 
-                # if not yet installed just remove it from list
-                if acl_name in self._new_acls:
-                    del self._new_acls[acl_name]
-                else:
-                    acl = self._existing_acls[acl_name]
-                if acl is not None:
-                    # Remove ACL from EVC-MAP entry
+                try:
+                    map_xml = self._ingress_remove_acl_xml(self._gem_ids_and_vid, acl)
+                    log.debug('remove', xml=map_xml, name=acl.name)
+                    results = yield self._handler.netconf_client.edit_config(map_xml)
+                    if results.ok:
+                        del self._existing_acls[acl.name]
 
-                    try:
-                        map_xml = self._ingress_remove_acl_xml(self._gem_ids_and_vid, acl)
-                        log.debug('remove', xml=map_xml, name=acl.name)
-                        results = yield self._handler.netconf_client.edit_config(map_xml)
-                        if results.ok:
-                            del self._existing_acls[acl.name]
+                    # Scan EVC to see if it needs to move back to the Utility
+                    # or Untagged EVC from a user data EVC
+                    if self._evc and not self._evc.service_evc and\
+                        len(self._flows) > 0 and\
+                        all(f.is_acl_flow for f in self._flows.itervalues()):
 
-                        # Scan EVC to see if it needs to move back to the Utility
-                        # or Untagged EVC from a user data EVC
-                        if self._evc and not self._evc.service_evc and\
-                            len(self._flows) > 0 and\
-                            all(f.is_acl_flow for f in self._flows.itervalues()):
+                        self._evc.remove_evc_map(self)
+                        first_flow = self._flows.itervalues().next()
+                        self._evc = first_flow.get_utility_evc(None, True)
+                        self._evc.add_evc_map(self)
+                        log.debug('moved-acl-flows-to-utility-evc', newevcname=self._evc.name)
 
-                            self._evc.remove_evc_map(self)
-                            first_flow = self._flows.itervalues().next()
-                            self._evc = first_flow.get_utility_evc(None, True)
-                            self._evc.add_evc_map(self)
-                            log.debug('moved-acl-flows-to-utility-evc', newevcname=self._evc.name)
+                        self._needs_update = True
+                        self._evc.schedule_install()
 
-                            self._needs_update = True
-                            self._evc.schedule_install()
+                except Exception as e:
+                    log.exception('acl-remove-from-evc', e=e)
 
-                    except Exception as e:
-                        log.exception('acl-remove-from-evc', e=e)
+                # Remove ACL itself
+                try:
+                    yield acl.remove()
 
-                    # Remove ACL itself
-                    try:
-                        yield acl.remove()
-
-                    except Exception as e:
-                        log.exception('acl-remove', e=e)
+                except Exception as e:
+                    log.exception('acl-remove', e=e)
 
         except Exception as e:
             log.exception('remove-failed', e=e)
@@ -648,15 +646,10 @@ class EVCMap(object):
 
             if pon_port is not None:
                 self._pon_id = pon_port.pon_id
-                exception_gems = self._needs_acl_support and flow.handler.exception_gems  # FIXED_ONU
                 untagged_gem = flow.eth_type == FlowEntry.EtherType.EAPOL and\
                     flow.handler.untagged_vlan != flow.handler.utility_vlan
                 self._gem_ids_and_vid = pon_port.gem_ids(flow.logical_port, untagged_gem,
-                                                         exception_gems,   # FIXED_ONU
                                                          flow.is_multicast_flow)
-                # FIXED_ONU
-                if exception_gems and self._eth_type != FlowEntry.EtherType.EAPOL:
-                    self._gem_ids_and_vid = dict()
 
     def _decode(self, evc):
         from evc import EVC
@@ -710,15 +703,15 @@ class EVCMap(object):
         evc.switching_method = EVC.SwitchingMethod.DOUBLE_TAGGED  # \
         #     if self._c_tag is not None else EVC.SwitchingMethod.SINGLE_TAGGED
 
-        if not flow.handler.exception_gems:  # ! FIXED_ONU
-            try:
-                acl = ACL.create(flow)
-                if acl.name not in self._new_acls:
-                    self._new_acls[acl.name] = acl
+        try:
+            acl = ACL.create(flow)
+            if acl.name not in self._new_acls:
+                self._new_acls[acl.name] = acl
 
-            except Exception as e:
-                log.exception('ACL-decoding', e=e)
-                return False
+        except Exception as e:
+            log.exception('ACL-decoding', e=e)
+            return False
+
         return True
 
     # Bulk operations

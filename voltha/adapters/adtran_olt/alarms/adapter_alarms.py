@@ -72,7 +72,7 @@ class AdapterAlarms:
             alarm_event = self.adapter.adapter_agent.create_alarm(
                 id=alarm_data.get('id', 'voltha.{}.{}.olt'.format(self.adapter.name,
                                                                   self.device_id)),
-                resource_id=self.device_id,
+                resource_id=str(alarm_data.get('resource_id', self.device_id)),
                 description="{}.{} - {}".format(self.adapter.name, self.device_id,
                                                 alarm_data.get('description')),
                 type=alarm_data.get('type'),
@@ -91,17 +91,20 @@ class AdapterAlarms:
 class AlarmBase(object):
     def __init__(self, handler, object_type, alarm,
                  alarm_category,
+                 resource_id=None,
                  alarm_type=AlarmEventType.EQUIPMENT,
                  alarm_severity=AlarmEventSeverity.CRITICAL):
+
         self._handler = handler
         self._object_type = object_type
         self._alarm = alarm
         self._alarm_category = alarm_category
         self._alarm_type = alarm_type
         self._alarm_severity = alarm_severity
+        self._resource_id = resource_id
 
     def get_alarm_data(self, status):
-        return {
+        data = {
             'ts': arrow.utcnow().timestamp,
             'description': self._handler.alarms.format_description(self._object_type,
                                                                    self._alarm,
@@ -112,6 +115,9 @@ class AlarmBase(object):
             'severity': self._alarm_severity,
             'state': AlarmEventState.RAISED if status else AlarmEventState.CLEARED
         }
+        if self._resource_id is not None:
+            data['resource_id'] = self._resource_id
+        return data
 
     def get_context_data(self):
         return {}   # You should override this if needed

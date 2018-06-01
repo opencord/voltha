@@ -85,10 +85,6 @@ class UntaggedEVC(EVC):
             return None
 
     @property
-    def flow_entry(self):
-        return self._flow
-
-    @property
     def downstream_flows(self):
         return frozenset(self._downstream_flows)
 
@@ -112,7 +108,6 @@ class UntaggedEVC(EVC):
 
         if evc_table is None:
             return defer.succeed('NOP')
-
 
         # Remove flow reference
         if self._flow.flow_id in self._downstream_flows:
@@ -147,7 +142,6 @@ class UntaggedEVC(EVC):
 
         except Exception as e:
             log.exception('removal', e=e)
-
 
     def reflow(self, reflow_maps=True):
         pass    # TODO: Implement or use base class?

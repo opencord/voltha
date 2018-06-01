@@ -16,13 +16,11 @@ Adtran generic VOLTHA device handler
 """
 import argparse
 import datetime
-import pprint
 import shlex
 import time
 
 import arrow
 import structlog
-import json
 from twisted.internet import reactor, defer
 from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.python.failure import Failure
@@ -31,22 +29,15 @@ from voltha.adapters.adtran_olt.net.adtran_netconf import AdtranNetconfClient
 from voltha.adapters.adtran_olt.net.adtran_rest import AdtranRestClient
 from voltha.protos import third_party
 from voltha.protos.common_pb2 import OperStatus, AdminState, ConnectStatus
-from voltha.protos.device_pb2 import Image
 from voltha.protos.logical_device_pb2 import LogicalDevice
 from voltha.protos.openflow_13_pb2 import ofp_desc, ofp_switch_features, OFPC_PORT_STATS, \
     OFPC_GROUP_STATS, OFPC_TABLE_STATS, OFPC_FLOW_STATS
-from voltha.registry import registry
 from alarms.adapter_alarms import AdapterAlarms
-from common.frameio.frameio import BpfProgramFilter
 from pki.olt_pm_metrics import OltPmMetrics
 from common.utils.asleep import asleep
-from scapy.layers.l2 import Ether, Dot1Q
-from scapy.layers.inet import Raw
 
 _ = third_party
 
-DEFAULT_PACKET_IN_VLAN = 4000
-DEFAULT_POC_3_MULTICAST_VLAN = 4050
 DEFAULT_MULTICAST_VLAN = 4000
 DEFAULT_UTILITY_VLAN = 4094
 DEFAULT_UNTAGGED_VLAN = DEFAULT_UTILITY_VLAN    # if RG does not send priority tagged frames
@@ -59,8 +50,6 @@ _DEFAULT_RESTCONF_PORT = 8081
 _DEFAULT_NETCONF_USERNAME = ""
 _DEFAULT_NETCONF_PASSWORD = ""
 _DEFAULT_NETCONF_PORT = 830
-
-FIXED_ONU = False  # TODO: Deprecate this.  Enhanced ONU support
 
 
 class AdtranDeviceHandler(object):
@@ -108,20 +97,15 @@ class AdtranDeviceHandler(object):
         self.adapter_agent = adapter.adapter_agent
         self.device_id = device_id
         self.log = structlog.get_logger(device_id=device_id)
-        self.startup = None  # Startup/reboot defeered
+        self.startup = None  # Startup/reboot deferred
         self.channel = None  # Proxy messaging channel with 'send' method
-        self.io_port = None
         self.logical_device_id = None
-        self.interface = registry('main').get_args().interface
         self.pm_metrics = None
         self.alarms = None
-        self.packet_in_vlan = DEFAULT_PACKET_IN_VLAN
         self.multicast_vlans = [DEFAULT_MULTICAST_VLAN]
         self.untagged_vlan = DEFAULT_UNTAGGED_VLAN
         self.utility_vlan = DEFAULT_UTILITY_VLAN
         self.default_mac_addr = '00:13:95:00:00:00'
-        self._is_inband_frame = None                    # TODO: Deprecate after PIO available
-        self.exception_gems = FIXED_ONU
         self._rest_support = None
 
         # Northbound and Southbound ports
@@ -169,7 +153,6 @@ class AdtranDeviceHandler(object):
 
         # Installed flows
         self._evcs = {}  # Flow ID/name -> FlowEntry
- 
 
     def _delete_logical_device(self):
         ldi, self.logical_device_id = self.logical_device_id, None
@@ -189,7 +172,6 @@ class AdtranDeviceHandler(object):
         if ldi in self.adapter.logical_device_id_to_root_device_id:
             del self.adapter.logical_device_id_to_root_device_id[ldi]
 
-
     def __del__(self):
         # Kill any startup or heartbeat defers
 
@@ -201,8 +183,6 @@ class AdtranDeviceHandler(object):
 
         if h is not None and not h.called:
             h.cancel()
-
-        self._deactivate_io_port()
 
         # Remove the logical device
         self._delete_logical_device()
@@ -282,20 +262,14 @@ class AdtranDeviceHandler(object):
                             help='VLAN for Untagged Frames from ONUs'),
         parser.add_argument('--utility_vlan', '-B', action='store',
                             default='{}'.format(DEFAULT_UTILITY_VLAN),
-                            help='VLAN for Untagged Frames from ONUs'),
-        parser.add_argument('--no_exception_gems', '-X', action='store_true', default=True,
-                            help='Native OpenFlow Packet-In/Out support')
+                            help='VLAN for Untagged Frames from ONUs')
+        parser.add_argument('--deprecated_option', '-X', action='store',
+                            default='not-used', help='Deprecated command')
         try:
             args = parser.parse_args(shlex.split(device.extra_args))
 
-            self.exception_gems = not args.no_exception_gems
-            if self.exception_gems:
-                self._is_inband_frame = BpfProgramFilter('(ether[14:2] & 0xfff) = 0x{:03x}'.
-                                                         format(self.packet_in_vlan))
-                self.multicast_vlans = [DEFAULT_POC_3_MULTICAST_VLAN]
-            else:
-                # May have multiple multicast VLANs
-                self.multicast_vlans = [int(vid.strip()) for vid in args.multicast_vlan.split(',')]
+            # May have multiple multicast VLANs
+            self.multicast_vlans = [int(vid.strip()) for vid in args.multicast_vlan.split(',')]
 
             self.netconf_username = args.nc_username
             self.netconf_password = args.nc_password
@@ -544,9 +518,6 @@ class AdtranDeviceHandler(object):
                 device.reason = ''
                 self.adapter_agent.update_device(device)
                 self.logical_device_id = ld_initialized.id
-
-                # finally, open the frameio port to receive in-band packet_in messages
-                self._activate_io_port()
 
                 # Start collecting stats from the device after a brief pause
                 reactor.callLater(10, self.start_kpi_collection, device.id)
@@ -862,9 +833,6 @@ class AdtranDeviceHandler(object):
         # Get the latest device reference
         device = self.adapter_agent.get_device(self.device_id)
 
-        # Deactivate in-band packets
-        self._deactivate_io_port()
-
         # Drop registration for ONU detection
         # self.adapter_agent.unregister_for_onu_detect_state(self.device.id)
 
@@ -1007,9 +975,6 @@ class AdtranDeviceHandler(object):
 
         # TODO:
         # 1) Restart health check / pings
-
-        # Activate in-band packets
-        self._activate_io_port()
 
         self.log.info('re-enabled', device_id=device.id)
 
@@ -1241,45 +1206,6 @@ class AdtranDeviceHandler(object):
         self._rest_client = None
 
         self.log.info('deleted', device_id=self.device_id)
-
-    def _activate_io_port(self):
-        if self.packet_in_vlan != 0 and self._is_inband_frame is not None and self.io_port is None:
-            self.log.info('registering-frameio')
-            self.io_port = registry('frameio').open_port(
-                self.interface, self._rcv_io, self._is_inband_frame)
-        else:
-            self.io_port = None
-
-    def _deactivate_io_port(self):
-        io, self.io_port = self.io_port, None
-
-        if io is not None:
-            registry('frameio').close_port(io)
-
-    def _rcv_io(self, port, frame):
-        self.log.debug('received', iface_name=port.iface_name, frame_len=len(frame))
-
-        pkt = Ether(frame)
-        if pkt.haslayer(Dot1Q):
-            outer_shim = pkt.getlayer(Dot1Q)
-
-            if isinstance(outer_shim.payload, Dot1Q):
-                inner_shim = outer_shim.payload
-                cvid = inner_shim.vlan
-                logical_port = cvid
-                popped_frame = (Ether(src=pkt.src, dst=pkt.dst, type=inner_shim.type) /
-                                inner_shim.payload)
-                kw = dict(
-                    logical_device_id=self.logical_device_id,
-                    logical_port_no=logical_port,
-                )
-                self.log.info('sending-packet-in', **kw)
-                self.adapter_agent.send_packet_in(
-                    packet=str(popped_frame), **kw)
-
-            elif pkt.haslayer(Raw):
-                raw_data = json.loads(pkt.getlayer(Raw).load)
-                self.alarms.send_alarm(self, raw_data)
 
     def packet_out(self, egress_port, msg):
         raise NotImplementedError('Overload in a derived class')

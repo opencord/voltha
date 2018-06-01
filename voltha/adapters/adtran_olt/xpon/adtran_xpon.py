@@ -147,6 +147,7 @@ class AdtranXPON(object):
                 'enabled': interface.enabled,
                 'onu-id': inst_data.onu_id,
                 'expected-serial-number': inst_data.expected_serial_number,
+                'expected-registration-id': inst_data.expected_registration_id,
                 'preferred-channel-pair': inst_data.preferred_chanpair,
                 'channel-partition': inst_data.parent_ref,
                 'upstream-channel-speed': inst_data.upstream_channel_speed,

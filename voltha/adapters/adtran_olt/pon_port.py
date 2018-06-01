@@ -25,8 +25,13 @@ from net.adtran_rest import RestInvalidResponseCode
 from codec.olt_config import OltConfig
 from onu import Onu
 from alarms.onu_los_alarm import OnuLosAlarm
-from voltha.protos.common_pb2 import OperStatus, AdminState
+from voltha.protos.common_pb2 import AdminState
 from voltha.protos.device_pb2 import Port
+
+try:
+    from alarms.onu_discovery_alarm2 import OnuDiscoveryAlarm
+except ImportError:
+    from alarms.onu_discovery_alarm import OnuDiscoveryAlarm
 
 
 class PonPort(AdtnPort):
@@ -418,10 +423,6 @@ class PonPort(AdtnPort):
         Set the PON Port to a known good state on initial port startup.  Actual
         PON 'Start' is done elsewhere
         """
-        #if self.state != AdtnPort.State.INITIAL:
-        #    self.log.error('reset-ignored', state=self.state)
-        #    returnValue('Ignored')
-
         initial_port_state = AdminState.DISABLED
         self.log.info('reset', initial_state=initial_port_state)
 
@@ -468,7 +469,7 @@ class PonPort(AdtnPort):
 
         returnValue('Reset complete')
 
-    def gem_ids(self, logical_port, untagged_gem, exception_gems, multicast_gems):  # FIXED_ONU
+    def gem_ids(self, logical_port, untagged_gem, multicast_gems=False):
         """
         Get all GEM Port IDs used on a given PON
 
@@ -476,7 +477,6 @@ class PonPort(AdtnPort):
                           on PON, if Multicast, VID for Multicast, or None for all
                           Multicast GEMPorts
         :param untagged_gem: (boolean) Select from special purpose untagged GEM Port
-        :param exception_gems: (boolean) Select from special purpose ACL GEM Port
         :param multicast_gems: (boolean) Select from available Multicast GEM Ports
         :return: (dict) data_gem -> key -> onu-id, value -> tuple(sorted list of GEM Port IDs, onu_vid)
                         mcast_gem-> key -> mcast-vid, value -> GEM Port IDs
@@ -492,7 +492,7 @@ class PonPort(AdtnPort):
         else:
             for onu_id, onu in self._onu_by_id.iteritems():
                 if logical_port is None or logical_port == onu.logical_port:
-                    gem_ids[onu_id] = (onu.gem_ids(untagged_gem, exception_gems),
+                    gem_ids[onu_id] = (onu.gem_ids(untagged_gem),
                                        onu.onu_vid if not untagged_gem
                                        else self.olt.untagged_vlan)
         return gem_ids
@@ -710,6 +710,7 @@ class PonPort(AdtnPort):
                 onu.equalization_delay = onu_status.equalization_delay
                 onu.equalization_delay = onu_status.equalization_delay
                 onu.fiber_length = onu_status.fiber_length
+                onu.password = onu_status.reported_password
 
     def _update_gem_status(self, gems):
         for gem_id, gem_status in gems.iteritems():
@@ -779,15 +780,15 @@ class PonPort(AdtnPort):
                         vont_info = next(info for _, info in gpon_info['vont-anis'].items()
                                          if info.get('expected-serial-number') == serial_number)
 
-                        ont_info = next(info for _, info in gpon_info['ont-anis'].items()
-                                        if info.get('name') == vont_info['name'])
+                        # ont_info = next(info for _, info in gpon_info['ont-anis'].items()
+                        #                 if info.get('name') == vont_info['name'])
 
                         vont_ani = vont_info['data']
                         onu_id = vont_info['onu-id']
                         enabled = vont_info['enabled']
                         channel_speed = vont_info['upstream-channel-speed']
-                        xpon_name = ont_info['name']
-                        upstream_fec_enabled = ont_info.get('upstream-fec', False)
+                        xpon_name = vont_info['name']
+                        upstream_fec_enabled = True   # TODO: ont_info.get('upstream-fec', False)
 
                         tconts = {key: val for key, val in gpon_info['tconts'].iteritems()
                                   if val.vont_ani == vont_info['name']}
@@ -850,7 +851,6 @@ class PonPort(AdtnPort):
         onu_info = self._get_onu_info(serial_number)
 
         if onu_info is None:
-            from alarms.onu_discovery_alarm import OnuDiscoveryAlarm
             self.log.info('onu-lookup-failure', serial_number=serial_number_64)
             OnuDiscoveryAlarm(self.olt, self.pon_id, serial_number).raise_alarm()
             returnValue('new-onu')

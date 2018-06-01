@@ -19,9 +19,10 @@ class OnuDiscoveryAlarm(AlarmBase):
     def __init__(self, handler, pon_id, serial_number):
         super(OnuDiscoveryAlarm, self).__init__(handler, 'ONU Discovery',
                                                 alarm='Discovery',
-                                                alarm_category=AlarmEventCategory.ONT,
-                                                alarm_type=AlarmEventType.COMMUNICATION,
-                                                alarm_severity=AlarmEventSeverity.MAJOR)
+                                                alarm_category=AlarmEventCategory.PON,
+                                                resource_id=pon_id,
+                                                alarm_type=AlarmEventType.EQUIPMENT,
+                                                alarm_severity=AlarmEventSeverity.CRITICAL)
         self._pon_id = pon_id
         self._serial_number = serial_number
 

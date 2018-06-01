@@ -51,7 +51,7 @@ class AdtranOltAdapter(object):
         self.descriptor = Adapter(
             id=self.name,
             vendor='Adtran, Inc.',
-            version='0.14',
+            version='0.15',
             config=AdapterConfig(log_level=LogLevel.INFO)
         )
         log.debug('adtran_olt.__init__', adapter_agent=adapter_agent)
@@ -345,8 +345,8 @@ class AdtranOltAdapter(object):
         :param groups: An  openflow_v13.Flows object
         :return: (Deferred or None)
         """
-        log.info('bulk-flow-update', device_id=device.id, flows=flows,
-                 groups=groups, num_flows=len(flows.items))
+        log.debug('bulk-flow-update', device_id=device.id, flows=flows,
+                  groups=groups, num_flows=len(flows.items))
         assert len(groups.items) == 0, "Cannot yet deal with groups"
 
         handler = self.devices_handlers.get(device.id)
@@ -556,7 +556,7 @@ class AdtranOltAdapter(object):
         :param data: gemport data object
         :return: None
         """
-        log.info('create-gemport', data=data)
+        log.debug('create-gemport', data=data)
         handler = self.devices_handlers.get(device.id)
         if handler is not None:
             handler.xpon_create(data)

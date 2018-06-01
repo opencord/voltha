@@ -310,9 +310,6 @@ class FlowEntry(object):
                 if flow.signature in sig_map_map:
                     # Found an explicity matching existing EVC-MAP. Add flow to this EVC-MAP
                     flow.evc_map = sig_map_map[flow.signature].add_flow(flow, downstream_flow.evc)
-                elif flow.handler.exception_gems:       # FIXED_ONU
-                    # Create a new MAP
-                    flow.evc_map = EVCMap.create_ingress_map(flow, downstream_flow.evc)
                 else:
                     # May need to create a MAP or search for an existing ACL/user EVC-Map
                     upstream_flow_table = _existing_upstream_flow_entries[flow.device_id]
@@ -338,7 +335,7 @@ class FlowEntry(object):
         return UtilityEVC.create(self, use_default_vlan_id)
 
     @property
-    def _needs_acl_support(self):    # FIXED_ONU- maybe
+    def _needs_acl_support(self):
         if self.ipv4_dst is not None:  # In case MCAST downstream has ACL on it
             return False
 
@@ -364,41 +361,40 @@ class FlowEntry(object):
                                                                FlowEntry.FlowDirection.OTHER)
 
             # Modify flow entry for newer utility/untagged VLAN support
-            if not self.handler.exception_gems:         # ! FIXED_ONU
-                # New Packet In/Out support
-                if self._flow_direction == FlowEntry.FlowDirection.DOWNSTREAM and\
-                   self.vlan_id in (FlowEntry.LEGACY_CONTROL_VLAN,
-                                    self.handler.untagged_vlan):
-                    # May be for to controller flow downstream (no ethType) or multicast (ethType = IP)
-                    if self.eth_type is None or self._needs_acl_support:
-                        self._is_multicast = False
-                        self._is_acl_flow = True
-                        if self.inner_vid is not None:
-                            logical_port, subscriber_vlan, untagged_vlan = \
-                                self._handler.get_onu_port_and_vlans(self)
-                            self.inner_vid = subscriber_vlan
-                            self.vlan_id = self.handler.utility_vlan
-                        else:
-                            self.vlan_id = self.handler.untagged_vlan
-                elif self._flow_direction == FlowEntry.FlowDirection.UPSTREAM:
-                    try:
-                        # TODO: Need to support flow retry if the ONU is not yet activated   !!!!
-                        # Get the correct logical port and subscriber VLAN for this UNI
-                        self._logical_port, self.vlan_id, untagged_vlan = \
+            # New Packet In/Out support
+            if self._flow_direction == FlowEntry.FlowDirection.DOWNSTREAM and\
+               self.vlan_id in (FlowEntry.LEGACY_CONTROL_VLAN,
+                                self.handler.untagged_vlan):
+                # May be for to controller flow downstream (no ethType) or multicast (ethType = IP)
+                if self.eth_type is None or self._needs_acl_support:
+                    self._is_multicast = False
+                    self._is_acl_flow = True
+                    if self.inner_vid is not None:
+                        logical_port, subscriber_vlan, untagged_vlan = \
                             self._handler.get_onu_port_and_vlans(self)
+                        self.inner_vid = subscriber_vlan
+                        self.vlan_id = self.handler.utility_vlan
+                    else:
+                        self.vlan_id = self.handler.untagged_vlan
+            elif self._flow_direction == FlowEntry.FlowDirection.UPSTREAM:
+                try:
+                    # TODO: Need to support flow retry if the ONU is not yet activated   !!!!
+                    # Get the correct logical port and subscriber VLAN for this UNI
+                    self._logical_port, self.vlan_id, untagged_vlan = \
+                        self._handler.get_onu_port_and_vlans(self)
 
-                        if self._needs_acl_support:
-                            self._is_acl_flow = True
-                            if self.eth_type == FlowEntry.EtherType.EAPOL and \
-                                    self.handler.untagged_vlan != self.handler.utility_vlan:
-                                self.vlan_id = None
-                                self.push_vlan_id[0] = self.handler.untagged_vlan
-                            else:
-                                self.push_vlan_id[0] = self.handler.utility_vlan
+                    if self._needs_acl_support:
+                        self._is_acl_flow = True
+                        if self.eth_type == FlowEntry.EtherType.EAPOL and \
+                                self.handler.untagged_vlan != self.handler.utility_vlan:
+                            self.vlan_id = None
+                            self.push_vlan_id[0] = self.handler.untagged_vlan
+                        else:
+                            self.push_vlan_id[0] = self.handler.utility_vlan
 
-                    except Exception as e:
-                        # TODO: Need to support flow retry if the ONU is not yet activated   !!!!
-                        log.exception('tag-fixup', e=e)
+                except Exception as e:
+                    # TODO: Need to support flow retry if the ONU is not yet activated   !!!!
+                    log.exception('tag-fixup', e=e)
 
         # Create a signature that will help locate related flow entries on a device.
         # These are not exact, just ones that may be put together to make an EVC. The
@@ -699,7 +695,6 @@ class FlowEntry(object):
         if device_id in _existing_upstream_flow_entries:
             del _existing_upstream_flow_entries[device_id]
 
-
     @staticmethod
     def get_packetout_info(device_id, logical_port):
         """
@@ -726,12 +721,11 @@ class FlowEntry(object):
                 if len(gem_ids_and_vid) > 0:
                     for onu_id, gem_ids_with_vid in gem_ids_and_vid.iteritems():
                         log.debug('get-packetout-info', onu_id=onu_id, 
-                                   gem_ids_with_vid=gem_ids_with_vid)
+                                  gem_ids_with_vid=gem_ids_with_vid)
                         if len(gem_ids_with_vid) > 0:
                             gem_ids = gem_ids_with_vid[0]
                             ctag = gem_ids_with_vid[1]
                             gem_id = gem_ids[0]     # TODO: always grab fist in list
                             return flow_entry.in_port, ctag, Onu.gem_id_to_gvid(gem_id), \
                                    evc_map.get_evcmap_name(onu_id, gem_id)
-        return  None, None, None, None
-
+        return None, None, None, None

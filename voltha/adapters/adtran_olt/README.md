@@ -15,6 +15,7 @@ entering two dashes '_--_'.  The full syntax to use is.
 |  -z   | --zmq_port       | 5656    | ZeroMQ OMCI Proxy Port |
 |  -M   | --multicast_vlan | 4000    | Multicast VLANs (comma-delimeted) |
 |  -v   | --untagged_vlan  | 4092    | VLAN wrapper for untagged ONU frames |
+|  -Z   | --pio_port       | 5657    | PIO Service ZeroMQ Port |
 
 For example, if your Adtran OLT is address 10.17.174.193 with the default TCP ports and
 NETCONF credentials of admin/admin and REST credentials of ADMIN/ADMIN, the command line
@@ -28,8 +29,9 @@ or
     preprovision_olt -t adtran_olt -i 10.17.174.193 -- --nc_username admin --nc_password admin --rc_username ADMIN --rc_password ADMIN
 ```
 
-Currently the Adtran Device Adapter will enable all PON ports on startup and attempt to activate any discovered ONUs.
-This behaviour will change once PON Management is fully supported.
+Currently the Adtran Device Adapter supports xPON provisioning and to enable PON ports, or activate ONUs, you
+must use the appropriate commands. In the VOLTHA v2.0 release (Q4 2018?), the xPON provisioning will be removed
+from VOLTHA and replaced with Technology Profiles.
 
 ## REST Based Pre-Provisioning
 In addition to CLI provisioning, the Adtran OLT Device Adapter can also be provisioned though the
@@ -38,9 +40,9 @@ VOLTHA Northbound REST API.
 ```bash
 VOLTHA_IP=localhost
 OLT_IP=10.17.174.228
-REST_PORT=`docker inspect compose_chameleon_1 | jq -r '.[0].NetworkSettings.Ports["8881/tcp"][0].HostPort'`
+REST_PORT=`curl -s http://localhost:8500/v1/catalog/service/voltha-envoy-8443 | jq -r '.[0].ServicePort'`
     
-curl -k -s -X POST https://${VOLTHA_IP}:${REST_PORT}/api/v1/local/devices \
+curl -k -s -X POST https://${VOLTHA_IP}:${REST_PORT}/api/v1/devices \
  --header 'Content-Type: application/json' --header 'Accept: application/json' \
  -d "{\"type\": \"adtran_olt\",\"ipv4_address\": \"${OLT_IP}\",\"extra_args\": \"-u admin -p admin -U ADMIN -P ADMIN\"}" \
 | jq '.' | tee /tmp/adtn-olt.json
@@ -48,10 +50,8 @@ curl -k -s -X POST https://${VOLTHA_IP}:${REST_PORT}/api/v1/local/devices \
 This will not only pre-provision the OLT, but it will also return the created VOLTHA Device ID for use other commands.
 The output is also shown on the console as well:
 
-```bash
-REST_PORT=`docker inspect compose_chameleon_1 | jq -r '.[0].NetworkSettings.Ports["8881/tcp"][0].HostPort'`
-    
-curl -k -s -X POST https://${VOLTHA_IP}:${REST_PORT}/api/v1/local/devices \
+```bash    
+curl -k -s -X POST https://${VOLTHA_IP}:${REST_PORT}/api/v1/devices \
   --header 'Content-Type: application/json' --header 'Accept: application/json' \
   -d "{\"type\": \"adtran_olt\",\"ipv4_address\": \"${OLT_IP}\",\"extra_args\": \"-u admin -p admin -U ADMIN -P ADMIN\"}" \
 | jq '.' | tee /tmp/adtn-olt.json
@@ -86,19 +86,19 @@ DEVICE_ID=$(jq .id /tmp/adtn-olt.json | sed 's/"//g')
 curl -k -s -X POST https://${VOLTHA_IP}:${REST_PORT}/api/v1/local/devices/${DEVICE_ID}/enable
 ```
 ### Other REST APIs
-A full list of URLs supported by VOLTHA can be obtained from the swagger API pointing
-your favorite Internet Browser at: **https://${VOLTHA_IP}:${REST_PORT}/#**
-
 To list out any devices, you can use the following command:
 
 ```bash
-curl -k -s  https://${VOLTHA_IP}:${REST_PORT}/api/v1/local/devices | json_pp
+curl -k -s  https://${VOLTHA_IP}:${REST_PORT}/api/v1/devices | json_pp
+```
+
+Other API endpoints (beyond the /v1/ field above) can be listed with the following command
+
+```bash
+curl -k -s https://${VOLTHA_IP}:${REST_PORT}/api/v1 | json_pp
 ```
 
 # Tested OLT Device Driver versions
 
-The minimum version number of for the OLT software is: *_11971320F1-ML-2287_*
-The specific PON-Agent version number is: _*ngpon2_agent-4.0.37-1.545.702565*_
+The minimum version number of for the OLT software is: *_11971320F1-ML-3309_* or later
 
-At this time, the version numbers above are also the latest ones tested. Work on validating
-newer releases is currently underway.

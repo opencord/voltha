@@ -83,8 +83,8 @@ class OltState(object):
 
         @staticmethod
         def decode(pon_list):
-            log.info('Decoding PON List:{}{}'.format(os.linesep,
-                                                     pprint.PrettyPrinter().pformat(pon_list)))
+            # log.debug('Decoding PON List:{}{}'.format(os.linesep,
+            #                                           pprint.PrettyPrinter().pformat(pon_list)))
             pons = {}
             for pon_data in pon_list:
                 pon = OltState.Pon(pon_data)
@@ -197,8 +197,8 @@ class OltState(object):
 
             @staticmethod
             def decode(onu_list):
-                log.debug('onus:{}{}'.format(os.linesep,
-                                             pprint.PrettyPrinter().pformat(onu_list)))
+                # log.debug('onus:{}{}'.format(os.linesep,
+                #                              pprint.PrettyPrinter().pformat(onu_list)))
                 onus = {}
                 for onu_data in onu_list:
                     onu = OltState.Pon.Onu(onu_data)
@@ -237,7 +237,6 @@ class OltState(object):
                 """Distance to ONU"""
                 return self._packet.get('fiber-length', 0)
 
-
         class Gem(object):
             """
             Provides decode of onu list for a PON port
@@ -254,8 +253,8 @@ class OltState(object):
 
             @staticmethod
             def decode(gem_list):
-                log.debug('gems:{}{}'.format(os.linesep,
-                                             pprint.PrettyPrinter().pformat(gem_list)))
+                # log.debug('gems:{}{}'.format(os.linesep,
+                #                              pprint.PrettyPrinter().pformat(gem_list)))
                 gems = {}
                 for gem_data in gem_list:
                     gem = OltState.Pon.Gem(gem_data)

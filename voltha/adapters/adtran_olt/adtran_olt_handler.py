@@ -14,7 +14,6 @@
 
 import datetime
 import random
-import json
 import xmltodict
 
 from twisted.internet import reactor
@@ -687,7 +686,7 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         :param msg: actual message
         :return: None        """
 
-        if self.pio_port is not None or self.io_port is not None:
+        if self.pio_port is not None:
             from scapy.layers.l2 import Ether, Dot1Q
             from scapy.layers.inet import UDP
             from common.frameio.frameio import hexify
@@ -708,16 +707,7 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
                 msg = ''.join(bytes)
                 pkt = Ether(msg)
 
-            if self.io_port is not None:
-                out_pkt = (
-                    Ether(src=pkt.src, dst=pkt.dst) /
-                    Dot1Q(vlan=self.packet_in_vlan) /
-                    Dot1Q(vlan=egress_port, type=pkt.type) /
-                    pkt.payload
-                )
-                self.io_port.send(str(out_pkt))
-
-            elif self._pio_agent is not None:
+            if self._pio_agent is not None:
                 port, ctag, vlan_id, evcmapname = FlowEntry.get_packetout_info(self.device_id, egress_port)
                 exceptiontype = None
                 if pkt.type == FlowEntry.EtherType.EAPOL:
@@ -942,7 +932,7 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
             else:
                 self.log.debug('pon-invalid-or-disabled', pon_id=pon_id)
 
-    def get_onu_vid(self, onu_id):  # TODO: Deprecate this with packet-in/out support
+    def get_onu_vid(self, onu_id):  # TODO: Deprecate this when packet-in/out is supportted and UNI ports on the OLT
         if ATT_NETWORK:
             return (onu_id * 120) + 2
 
@@ -1017,10 +1007,6 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
             return None, None, None
 
         if flow_entry.flow_direction == FlowEntry.FlowDirection.UPSTREAM:
-            if self.exception_gems:             # FIXED_ONU
-                ingress_port = vid
-                return ingress_port, vid, vid   # TODO: Needs work
-
             # Upstream ACLs will have VID=Logical_port until VOL-460 is addressed
             # but User data flows have the correct VID / C-Tag.
             if flow_entry.is_acl_flow:
@@ -1150,7 +1136,9 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
 
         self._update_download_status(request, download)
 
-        if request.state != ImageDownload.DOWNLOAD_STARTED:
+        if request.state not in [ImageDownload.DOWNLOAD_STARTED,
+                                 ImageDownload.DOWNLOAD_SUCCEEDED,
+                                 ImageDownload.DOWNLOAD_FAILED]:
             # restore admin state to enabled
             device.admin_state = AdminState.ENABLED
             self.adapter_agent.update_device(device)
@@ -1420,7 +1408,8 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
     def on_vont_ani_modify(self, vont_ani, update, diffs):
         valid_keys = ['enabled',
                       'expected-serial-number',
-                      'upstream-channel-speed'
+                      'upstream-channel-speed',
+                      'expected-registration-id',
                       ]  # Modify of these keys supported
 
         invalid_key = next((key for key in diffs.keys() if key not in valid_keys), None)
@@ -1441,6 +1430,9 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
             elif k == 'upstream-channel-speed':
                 for onu in onus:
                     onu.upstream_channel_speed = update[k]
+            elif k == 'expected-registration-id':
+                for onu in onus:
+                    onu.password = update[k].encode('base64')
         return update
 
     def on_vont_ani_delete(self, vont_ani):

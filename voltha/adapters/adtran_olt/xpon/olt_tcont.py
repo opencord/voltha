@@ -56,7 +56,7 @@ class OltTCont(TCont):
         # For TCONT, only leaf is the key. So only post needed
         try:
             results = yield session.request('POST', uri, data=data, name=name,
-                                            suppress_error=True)
+                                            suppress_error=False)
         except:
             results = None
 

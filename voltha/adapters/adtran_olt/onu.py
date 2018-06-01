@@ -74,6 +74,7 @@ class Onu(object):
         self._expedite_count = 0
         self._resync_flows = False
         self._sync_deferred = None     # For sync of ONT config to hardware
+        self._password = None
 
         if onu_info['venet'] is not None:
             port_no, subscriber_vlan, self.untagged_vlan = Onu.decode_venet(onu_info['venet'],
@@ -193,6 +194,30 @@ class Onu(object):
         assert isinstance(value, (int,float)), 'upstream speed is a numeric value'
         if self._upstream_channel_speed != value:
             self._upstream_channel_speed = value
+
+    @property
+    def password(self):
+        """
+        Get password.  Base 64 format
+        """
+        return self._password
+
+    @password.setter
+    def password(self, value):
+        """
+        Set the password
+        :param value: (str) base 64 encoded value
+        """
+        if self._password is None and value is not None:
+            self._password = value
+            # reg_id = value.decode('base64')
+            reg_id = (value.decode('base64')).rstrip('\00').lstrip('\00')
+            # Must remove any non-printable characters
+            reg_id = ''.join([i if ord(i) < 127 and ord(i) > 31 else '_' for i in reg_id])
+            # Generate alarm here for regID
+            from alarms.onu_active_alarm import OnuActiveAlarm
+            self.log.info('onu-Active-Alarm', serial_number=self._serial_number_string)
+            OnuActiveAlarm(self._olt, self._pon_id, self._serial_number_string, reg_id).raise_alarm()
 
     @property
     def enabled(self):
@@ -380,8 +405,6 @@ class Onu(object):
 
         for _, gem_port in gem_ports.items():
             try:
-                gem_port.pon_id = self.pon_id
-                gem_port.onu_id = self.onu_id if self.onu_id is not None else -1
                 yield self.add_gem_port(gem_port, reflow=reflow)
 
             except Exception as e:
@@ -747,6 +770,7 @@ class Onu(object):
                                                        self._pon_id,
                                                        self._onu_id)
         except RestInvalidResponseCode as e:
+            results = None
             if e.code != 404:
                 self.log.exception('tcont-delete', e=e)
 
@@ -759,19 +783,15 @@ class Onu(object):
     def gem_port(self, gem_id):
         return self._gem_ports.get(gem_id)
 
-    def gem_ids(self, untagged_gem, exception_gems):  # FIXED_ONU
+    def gem_ids(self, untagged_gem):
         """Get all GEM Port IDs used by this ONU"""
-        if exception_gems:
+        if untagged_gem:
             gem_ids = sorted([gem_id for gem_id, gem in self._gem_ports.items()
-                             if gem.exception and not gem.multicast])
-            return gem_ids
-        elif untagged_gem:
-            gem_ids = sorted([gem_id for gem_id, gem in self._gem_ports.items()
-                             if gem.untagged and not gem.exception and not gem.multicast])
+                             if gem.untagged and not gem.multicast])
             return gem_ids
         else:
             return sorted([gem_id for gem_id, gem in self._gem_ports.items()
-                          if not gem.multicast and not gem.exception and not gem.untagged])
+                          if not gem.multicast and not gem.untagged])
 
     @inlineCallbacks
     def add_gem_port(self, gem_port, reflow=False):
@@ -788,6 +808,8 @@ class Onu(object):
         if not reflow and gem_port.gem_id in self._gem_ports:
             returnValue('nop')
 
+        gem_port.pon_id = self.pon_id
+        gem_port.onu_id = self.onu_id if self.onu_id is not None else -1
         self.log.info('add', gem_port=gem_port, reflow=reflow)
         self._gem_ports[gem_port.gem_id] = gem_port
 

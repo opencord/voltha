@@ -211,7 +211,7 @@ class OltPmMetrics(AdapterPmMetrics):
                     port_metrics['pon.{}.onu.{}'.format(port.pon_id, onu.onu_id)] = \
                         self.collect_onu_metrics(onu)
                     for gem in onu.gem_ports:
-                        if gem.multicast or gem.exception:
+                        if gem.multicast:
                             continue
 
                         port_metrics['pon.{}.onu.{}.gem.{}'.format(port.pon_id,

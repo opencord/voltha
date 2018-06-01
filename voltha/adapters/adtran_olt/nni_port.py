@@ -94,7 +94,7 @@ class NniPort(AdtnPort):
         :return: VOLTHA Port object
         """
         self.log.debug('get-port-status-update', port=self._port_no,
-            label=self._label)
+                       label=self._label)
         if self._port is None:
             self._port = Port(port_no=self._port_no,
                               label=self._label,
@@ -106,7 +106,7 @@ class NniPort(AdtnPort):
            self._port.oper_status != self._oper_status:
 
             self.log.debug('get-port-status-update', admin_state=self._admin_state,
-                oper_status = self._oper_status)
+                           oper_status = self._oper_status)
             self._port.admin_state = self._admin_state
             self._port.oper_status = self._oper_status
 
@@ -129,7 +129,7 @@ class NniPort(AdtnPort):
     def _update_adapter_agent(self):
         # adapter_agent add_port also does an update of port status
         self.log.debug('update-adapter-agent', admin_state=self._admin_state,
-            oper_status=self._oper_status)
+                       oper_status=self._oper_status)
         self.adapter_agent.add_port(self.olt.device_id, self.get_port())
 
     def get_logical_port(self):
@@ -260,7 +260,7 @@ class NniPort(AdtnPort):
     def sync_hardware(self):
         if self.state == AdtnPort.State.RUNNING or self.state == AdtnPort.State.STOPPED:
             def read_config(results):
-                self.log.debug('read-config', results=results)
+                #self.log.debug('read-config', results=results)
                 try:
                     result_dict = xmltodict.parse(results.data_xml)
                     interfaces = result_dict['data']['interfaces']
@@ -320,7 +320,7 @@ class NniPort(AdtnPort):
     def _update_statistics(self):
         if self.state == AdtnPort.State.RUNNING:
             def read_state(results):
-                self.log.debug('read-state', results=results)
+                # self.log.debug('read-state', results=results)
                 try:
                     result_dict = xmltodict.parse(results.data_xml)
                     entry = result_dict['data']['interfaces-state']['interface']
