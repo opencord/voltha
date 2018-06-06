@@ -20,7 +20,6 @@ from voltha.extensions.omci.state_machines.mib_sync import MibSynchronizer
 from voltha.extensions.omci.tasks.mib_upload import MibUploadTask
 from voltha.extensions.omci.tasks.get_mds_task import GetMdsTask
 from voltha.extensions.omci.tasks.mib_resync_task import MibResyncTask
-
 from voltha.extensions.omci.onu_device_entry import OnuDeviceEntry
 
 OpenOmciAgentDefaults = {
@@ -68,14 +67,15 @@ class OpenOMCIAgent(object):
         self._started = False
         self._devices = dict()        # device-id -> DeviceEntry
 
-        # MIB Synchronization
+        # OMCI related databases are on a per-agent basis. State machines and tasks
+        # are per ONU Vendore
+        #
+        # MIB Synchronization Database
         self._mib_db = None
-        self._mib_synchronizer_info = support_classes['mib-synchronizer']
-        self._mib_database_cls = self._mib_synchronizer_info['database']
+        self._mib_database_cls = support_classes['mib-synchronizer']['database']
 
-        # Alarm Synchronization  # TODO: Stretch goal for VOLTHA v1.3.0
+        # Alarm Synchronization Database # TODO: Stretch goal for VOLTHA v1.3.0
         # self._alarm_db = None
-        # self._alarm_synchronizer_info = support_classes['alarm-synchronizer']
         # self._alarm_database_cls = self._alarm_synchronizer_info['database']
 
     @property

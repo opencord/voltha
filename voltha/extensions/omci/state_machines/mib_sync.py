@@ -18,16 +18,17 @@ from datetime import datetime, timedelta
 from transitions import Machine
 from twisted.internet import reactor
 from voltha.extensions.omci.omci_frame import OmciFrame
-from voltha.extensions.omci.omci_defs import EntityOperations, ReasonCodes
+from voltha.extensions.omci.omci_defs import EntityOperations, ReasonCodes, \
+    AttributeAccess
 from voltha.extensions.omci.omci_cc import OmciCCRxEvents, OMCI_CC, TX_REQUEST_KEY, \
     RX_RESPONSE_KEY
 from voltha.extensions.omci.omci_entities import OntData
 from common.event_bus import EventBusClient
 
-
 RxEvent = OmciCCRxEvents
 OP = EntityOperations
 RC = ReasonCodes
+AA = AttributeAccess
 
 
 class MibSynchronizer(object):
@@ -661,10 +662,51 @@ class MibSynchronizer(object):
                     if created:
                         self.increment_mib_data_sync()
 
+                    # If the ME contains set-by-create or writeable values that were
+                    # not specified in the create command, the ONU will have
+                    # initialized those fields
+
+                    if class_id in self._device.me_map:
+                        sbc_w_set = {attr.field.name for attr in self._device.me_map[class_id].attributes
+                                     if (AA.SBC in attr.access or AA.W in attr.access)
+                                     and attr.field.name != 'managed_entity_id'}
+
+                        missing = sbc_w_set - {k for k in attributes.iterkeys()}
+
+                        if len(missing):
+                            # Request the missing attributes
+                            self.update_sbc_w_items(class_id, entity_id, missing)
+
             except KeyError as e:
                 pass            # NOP
+
             except Exception as e:
                 self.log.exception('create', e=e)
+
+    def update_sbc_w_items(self, class_id, entity_id, missing_attributes):
+        """
+        Perform a get-request for Set-By-Create (SBC) or writable (w) attributes
+        that were not specified in the original Create request.
+
+        :param class_id: (int) Class ID
+        :param entity_id: (int) Instance ID
+        :param missing_attributes: (set) Missing SBC or Writable attribute
+        """
+        if len(missing_attributes) and class_id in self._device.me_map:
+            from voltha.extensions.omci.tasks.omci_get_request import OmciGetRequest
+
+            def success(results):
+                self._database.set(self._device_id, class_id, entity_id, results.attributes)
+
+            def failure(reason):
+                self.log.warn('update-sbc-w-failed', reason=reason, class_id=class_id,
+                              entity_id=entity_id, attributes=missing_attributes)
+
+            d = self._device.task_runner.queue_task(OmciGetRequest(self._agent, self._device_id,
+                                                                   self._device.me_map[class_id],
+                                                                   entity_id, missing_attributes,
+                                                                   allow_failure=True))
+            d.addCallbacks(success, failure)
 
     def on_delete_response(self, _topic, msg):
         """
@@ -740,8 +782,10 @@ class MibSynchronizer(object):
                     attributes = {k: v for k, v in omci_msg['data'].items()}
 
                     # Save to the database
-                    self._database.set(self._device_id, class_id, entity_id, attributes)
-                    self.increment_mib_data_sync()
+                    modified = self._database.set(self._device_id, class_id, entity_id, attributes)
+
+                    if modified:
+                        self.increment_mib_data_sync()
 
             except KeyError as e:
                 pass            # NOP
@@ -773,10 +817,14 @@ class MibSynchronizer(object):
 
         :return: (dict) The value(s) requested. If class/inst/attribute is
                         not found, an empty dictionary is returned
-        :raises DatabaseStateError: If the database is not enabled
+        :raises DatabaseStateError: If the database is not enabled or does not exist
         """
+        from voltha.extensions.omci.database.mib_db_api import DatabaseStateError
+
         self.log.debug('query', class_id=class_id,
                        instance_id=instance_id, attributes=attributes)
+        if self._database is None:
+            raise DatabaseStateError('Database does not yet exist')
 
         return self._database.query(self._device_id, class_id=class_id,
                                     instance_id=instance_id,

@@ -16,6 +16,13 @@
 from task import Task
 from twisted.internet.defer import inlineCallbacks, TimeoutError, failure, AlreadyCalledError
 from twisted.internet import reactor
+from voltha.extensions.omci.omci_defs import ReasonCodes
+
+
+class MibUploadFailure(Exception):
+    """
+    This error is raised by default when the upload fails
+    """
 
 
 class MibUploadTask(Task):
@@ -73,6 +80,10 @@ class MibUploadTask(Task):
         self.cancel_deferred()
         super(MibUploadTask, self).stop()
 
+    def stop_if_not_running(self):
+        if not self.running:
+            raise MibUploadFailure('Upload Task was cancelled')
+
     @inlineCallbacks
     def perform_mib_upload(self):
         """
@@ -88,43 +99,49 @@ class MibUploadTask(Task):
 
             #########################################
             # MIB Reset
-            yield device.omci_cc.send_mib_reset()
+            results = yield device.omci_cc.send_mib_reset()
+            self.stop_if_not_running()
+
+            status = results.fields['omci_message'].fields['success_code']
+            if status != ReasonCodes.Success.value:
+                raise MibUploadFailure('MIB Reset request failed with status code: {}'.
+                                       format(status))
 
             ########################################
             # Begin MIB Upload
             results = yield device.omci_cc.send_mib_upload()
+            self.stop_if_not_running()
             number_of_commands = results.fields['omci_message'].fields['number_of_commands']
-            failed = False
 
             for seq_no in xrange(number_of_commands):
                 if not device.active or not device.omci_cc.enabled:
-                    self.deferred.errback(failure.Failure(
-                        GeneratorExit('OMCI and/or ONU is not active')))
-                    return
+                    raise MibUploadFailure('OMCI and/or ONU is not active')
 
                 for retry in range(0, 3):
                     try:
-                        self.log.debug('mib-upload-next-request', seq_no=seq_no, retry=retry, number_of_commands=number_of_commands)
+                        self.log.debug('mib-upload-next-request', seq_no=seq_no,
+                                       retry=retry,
+                                       number_of_commands=number_of_commands)
                         yield device.omci_cc.send_mib_upload_next(seq_no)
-                        self.log.debug('mib-upload-next-success', seq_no=seq_no, number_of_commands=number_of_commands)
-                        failed = False
+                        self.stop_if_not_running()
+                        self.log.debug('mib-upload-next-success', seq_no=seq_no,
+                                       number_of_commands=number_of_commands)
                         break
 
                     except TimeoutError as e:
                         from common.utils.asleep import asleep
                         self.log.warn('mib-upload-timeout', e=e, seq_no=seq_no,
                                       number_of_commands=number_of_commands)
-                        failed = True
-                        if retry < 2:
-                            yield asleep(0.3)
+                        if retry >= 2:
+                            raise MibUploadFailure('Upload timeout failure on req {} of {}'.
+                                                   format(seq_no + 1, number_of_commands))
+                        yield asleep(0.3)
+                        self.stop_if_not_running()
 
-            if not failed:
-                # Successful if here
-                self.log.info('mib-synchronized')
-                self.deferred.callback('success, loaded {} ME Instances'.
-                                       format(number_of_commands))
-            else:
-                self.deferred.errback(failure.Failure(e))
+            # Successful if here
+            self.log.info('mib-synchronized')
+            self.deferred.callback('success, loaded {} ME Instances'.
+                                   format(number_of_commands))
 
         except TimeoutError as e:
             self.log.warn('mib-upload-timeout-on-reset', e=e, seq_no=seq_no,

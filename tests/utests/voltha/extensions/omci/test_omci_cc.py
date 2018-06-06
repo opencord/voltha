@@ -110,8 +110,10 @@ class TestOmciCc(TestCase):
                                                                 expected)
         return results
 
-    def _default_errback(self, _failure):
-        assert False
+    def _default_errback(self, failure):
+        from twisted.internet.defer import TimeoutError
+        assert isinstance(failure.type, type(TimeoutError))
+        return None
 
     def _snapshot_stats(self):
         omci_cc = self.onu_handler.omci_cc

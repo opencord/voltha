@@ -14,8 +14,8 @@
 # limitations under the License.
 #
 from task import Task
-from twisted.internet.defer import inlineCallbacks, TimeoutError, failure
 from twisted.internet import reactor
+from twisted.internet.defer import inlineCallbacks, TimeoutError, failure
 from voltha.extensions.omci.omci_me import OntDataFrame
 from voltha.extensions.omci.omci_defs import ReasonCodes as RC
 

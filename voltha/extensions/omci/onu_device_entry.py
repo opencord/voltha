@@ -63,23 +63,33 @@ class OnuDeviceEntry(object):
         self._runner = TaskRunner(device_id)  # OMCI_CC Task runner
         self._deferred = None
         self._first_in_sync = False
+
+        # OMCI related databases are on a per-agent basis. State machines and tasks
+        # are per ONU Vendor
+        #
         self._support_classes = support_classes
 
         try:
+            # MIB Synchronization state machine
             self._mib_db_in_sync = False
             mib_synchronizer_info = support_classes.get('mib-synchronizer')
-            self.mib_sync = mib_synchronizer_info['state-machine'](self._omci_agent,
-                                                                   device_id,
-                                                                   mib_synchronizer_info['tasks'],
-                                                                   mib_db)
+            self._mib_sync_sm = mib_synchronizer_info['state-machine'](self._omci_agent,
+                                                                       device_id,
+                                                                       mib_synchronizer_info['tasks'],
+                                                                       mib_db)
         except Exception as e:
             self.log.exception('mib-sync-create-failed', e=e)
             raise
 
-        self._state_machines = []
-        self._on_start_state_machines = [self.mib_sync]     # Run when 'start()' called
-        self._on_sync_state_machines = []                   # Run after first in_sync event
+        # Put state machines in the order you wish to start them
 
+        self._state_machines = []
+        self._on_start_state_machines = [       # Run when 'start()' called
+            self._mib_sync_sm,
+        ]
+        self._on_sync_state_machines = [        # Run after first in_sync event
+
+        ]
         self._custom_me_map = custom_me_map
         self._me_map = omci_entities.entity_id_to_class_map.copy()
 
@@ -117,7 +127,11 @@ class OnuDeviceEntry(object):
 
     @property
     def mib_synchronizer(self):
-        return self.mib_sync
+        """
+        Reference to the OpenOMCI MIB Synchronization state machine for this ONU
+        """
+        return self._mib_sync_sm
+
 
     @property
     def active(self):

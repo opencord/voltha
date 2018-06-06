@@ -574,8 +574,9 @@ class ExtendedVlanTaggingOperationConfigurationData(EntityClass):
         ECA(StrFixedLenField("received_frame_vlan_tagging_operation_table",
                              VlanTaggingOperation, 16), {AA.R, AA.W}),
         ECA(ShortField("associated_me_pointer", None), {AA.R, AA.W, AA.SBC}),
-        ECA(StrFixedLenField("dscp_to_p_bit_mapping", None, length=24),
-            {AA.R, AA.W}),  # TODO: Would a custom 3-bit group bitfield work better?
+        ECA(FieldListField("dscp_to_p_bit_mapping", None,
+                           BitField('',  0, size=3), count_from=lambda _: 64),
+            {AA.R, AA.W}),
     ]
     mandatory_operations = {OP.Create, OP.Delete, OP.Set, OP.Get, OP.GetNext}
     optional_operations = {OP.SetTable}
