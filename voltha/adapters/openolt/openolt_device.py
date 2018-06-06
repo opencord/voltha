@@ -68,7 +68,6 @@ class OpenoltDevice(object):
         self.device_id = device.id
         self.host_and_port = device.host_and_port
         self.log = structlog.get_logger(id=self.device_id, ip=self.host_and_port)
-        self.nni_oper_state = dict() #intf_id -> oper_state
         self.proxy = registry('core').get_proxy('/')
 
         # Device already set in the event of reconciliation
@@ -177,6 +176,9 @@ class OpenoltDevice(object):
             )
             ld_initialized = self.adapter_agent.create_logical_device(ld, dpid=dpid)
             self.logical_device_id = ld_initialized.id
+        else:
+            # logical device already exists
+            self.logical_device_id = device.parent_id
 
         # Update phys OF device
         device.parent_id = self.logical_device_id
@@ -260,14 +262,11 @@ class OpenoltDevice(object):
             if intf_oper_indication.intf_id != 0:
                 return
 
-            if intf_oper_indication.intf_id not in self.nni_oper_state:
-                self.nni_oper_state[intf_oper_indication.intf_id] = oper_state
-                port_no, label = self.add_port(intf_oper_indication.intf_id, Port.ETHERNET_NNI, oper_state)
-                self.log.debug("int_oper_indication", port_no=port_no, label=label)
-                self.add_logical_port(port_no, intf_oper_indication.intf_id) # FIXME - add oper_state
-            elif intf_oper_indication.intf_id != self.nni_oper_state:
-                # FIXME - handle subsequent NNI oper state change
-                pass
+            # add_(logical_)port update the port if it exists
+            port_no, label = self.add_port(intf_oper_indication.intf_id, Port.ETHERNET_NNI, oper_state)
+            self.log.debug("int_oper_indication", port_no=port_no, label=label)
+            self.add_logical_port(port_no, intf_oper_indication.intf_id, oper_state)
+
 
         elif intf_oper_indication.type == "pon":
             # FIXME - handle PON oper state change
@@ -659,7 +658,7 @@ class OpenoltDevice(object):
             else:
                 return "uni-{}".format(port_no)
 
-    def add_logical_port(self, port_no, intf_id):
+    def add_logical_port(self, port_no, intf_id, oper_state):
         self.log.info('adding-logical-port', port_no=port_no)
 
         label = self.port_name(port_no, Port.ETHERNET_NNI)
@@ -668,9 +667,14 @@ class OpenoltDevice(object):
         curr_speed = OFPPF_1GB_FD
         max_speed = OFPPF_1GB_FD
 
+        if oper_state == OperStatus.ACTIVE:
+            of_oper_state = OFPPS_LIVE
+        else:
+            of_oper_state = OFPPS_LINK_DOWN
+
         ofp = ofp_port(port_no=port_no,
                 hw_addr=mac_str_to_tuple('00:00:00:00:00:%02x' % port_no),
-                name=label, config=0, state=OFPPS_LIVE, curr=cap,
+                name=label, config=0, state=of_oper_state, curr=cap,
                 advertised=cap, peer=cap, curr_speed=curr_speed,
                 max_speed=max_speed)
 
