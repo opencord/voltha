@@ -48,8 +48,6 @@ class SimpleTask(Task):
         self._success = success
         self._value = value
         self._local_deferred = None
-        self._running = False
-
 
     def cancel_deferred(self):
         super(SimpleTask, self).cancel_deferred()
@@ -81,8 +79,6 @@ class SimpleTask(Task):
         Get the 'mib_data_sync' attribute of the ONU
         """
         try:
-            running = True
-
             if self._delay > 0:
                 yield asleep(self._delay)
 
@@ -90,8 +86,6 @@ class SimpleTask(Task):
                 self.deferred.callback(self._value)
 
             self.deferred.errback(failure.Failure(self._value))
-            running = False
 
         except Exception as e:
-            running = False
             self.deferred.errback(failure.Failure(e))

@@ -55,12 +55,15 @@ class Task(object):
         self.name = name
         self.device_id = device_id
         self.omci_agent = omci_agent
+        self._running = False
         self._exclusive = exclusive
+        # TODO: Should we watch for a cancel on the task's deferred as well?
         self._deferred = defer.Deferred()       # Fires upon completion
         self._priority = priority
 
     def __str__(self):
-        return 'Task: {}, ID:{}'.format(self.name, self.task_id)
+        return 'Task: {}, ID:{}, Priority: {}, Exclusive: {}'.format(
+            self.name, self.task_id, self.priority, self.exclusive)
 
     @property
     def priority(self):
@@ -78,6 +81,15 @@ class Task(object):
     def deferred(self):
         return self._deferred
 
+    @property
+    def running(self):
+        # Is the Task running?
+        #
+        # Can be useful for tasks that use inline callbacks to detect
+        # if the task has been canceled.
+        #
+        return self._running
+
     def cancel_deferred(self):
         d, self._deferred = self._deferred, None
         try:
@@ -93,12 +105,13 @@ class Task(object):
         self.log.debug('starting')
         assert self._deferred is not None and not self._deferred.called, \
             'Cannot re-use the same task'
+        self._running = True
 
     def stop(self):
         """
         Stop task synchronization
         """
         self.log.debug('stopping')
+        self._running = False
         self.cancel_deferred()
         self.omci_agent = None      # Should only start/stop once
-

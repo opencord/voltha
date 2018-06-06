@@ -108,7 +108,9 @@ class TaskRunner(object):
         Search for next task to run, if one can
         :return:
         """
-        self.log.debug('run-next', active=self._active, pending=len(self._pending_queue))
+        self.log.debug('run-next', active=self._active,
+                       num_running=len(self._running_queue),
+                       num_pending=len(self._pending_queue))
 
         if self._active and len(self._pending_queue) > 0:
             # Cannot run a new task if a running one needs the OMCI_CC exclusively
@@ -135,7 +137,10 @@ class TaskRunner(object):
                         if len(queue) == 0:
                             del self._pending_queue[highest_priority]
 
-                        self.log.debug('starting-task', task=str(next_task))
+                        self.log.debug('starting-task', task=str(next_task),
+                                       running=len(self._running_queue),
+                                       pending=len(self._pending_queue))
+
                         self._running_queue[next_task.task_id] = next_task
                         reactor.callLater(0, next_task.start)
 
@@ -153,7 +158,9 @@ class TaskRunner(object):
         :param task: (Task) The task that succeeded
         :return: deferred results
         """
-        self.log.debug('task-success', task_id=task.task_id)
+        self.log.debug('task-success', task_id=str(task),
+                       running=len(self._running_queue),
+                       pending=len(self._pending_queue))
         try:
             assert task is not None and task.task_id in self._running_queue,\
                 'Task not found in running queue'
@@ -162,7 +169,7 @@ class TaskRunner(object):
             del self._running_queue[task.task_id]
 
         except Exception as e:
-            self.log.exception('task-error', e=e)
+            self.log.exception('task-error', task=str(task), e=e)
 
         finally:
             reactor.callLater(0, self._run_next_task)
@@ -176,14 +183,15 @@ class TaskRunner(object):
         :param task: (Task) The task that failed
         :return: (Failure) Failure results
         """
+        self.log.debug('task-failure', task_id=str(task),
+                       running=len(self._running_queue),
+                       pending=len(self._pending_queue))
         try:
             assert task is not None and task.task_id in self._running_queue,\
                 'Task not found in running queue'
 
             self._failed_tasks += 1
             del self._running_queue[task.task_id]
-
-            reactor.callLater(0, self._run_next_task)
 
         except Exception as e:
             # Check the pending queue
@@ -197,7 +205,7 @@ class TaskRunner(object):
                         del self._pending_queue[task.priority]
                     return failure
 
-            self.log.exception('task-error', e=e)
+            self.log.exception('task-error', task=str(task), e=e)
             raise
 
         finally:
@@ -212,7 +220,9 @@ class TaskRunner(object):
         :param task: (Task) task to run
         :return: (deferred) Deferred that will fire on task completion
         """
-        self.log.debug('queue-task', active=self._active, task=str(task))
+        self.log.debug('queue-task', active=self._active, task=str(task),
+                       running=len(self._running_queue),
+                       pending=len(self._pending_queue))
 
         if task.priority not in self._pending_queue:
             self._pending_queue[task.priority] = []
@@ -235,7 +245,11 @@ class TaskRunner(object):
         task = self._running_queue.get(task_id, None)
 
         if task is not None:
-            task.stop()
+            try:
+                task.stop()
+            except Exception as e:
+                self.log.exception('stop-error', task=str(task), e=e)
+
             reactor.callLater(0, self._run_next_task)
 
         else:
@@ -243,6 +257,9 @@ class TaskRunner(object):
                 task = next((t for t in tasks if t.task_id == task_id), None)
 
                 if task is not None:
-                    task.deferred.cancel()
+                    try:
+                        task.deferred.cancel()
+                    except Exception as e:
+                        self.log.exception('cancel-error', task=str(task), e=e)
                     return
 

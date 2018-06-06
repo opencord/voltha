@@ -31,6 +31,10 @@ class MibDownloadException(Exception):
     pass
 
 
+class MibResyncException(Exception):
+    pass
+
+
 class MibResyncTask(Task):
     """
     OpenOMCI MIB resynchronization Task
@@ -97,6 +101,10 @@ class MibResyncTask(Task):
         self._db_active.stop()
         self._db_active = None
         super(MibResyncTask, self).stop()
+
+    def stop_if_not_running(self):
+        if not self.running:
+            raise MibResyncException('Resync Task was cancelled')
 
     @inlineCallbacks
     def perform_mib_resync(self):
@@ -169,6 +177,7 @@ class MibResyncTask(Task):
                 # Send MIB Upload so ONU snapshots its MIB
                 try:
                     number_of_commands = yield self.send_mib_upload()
+                    self.stop_if_not_running()
 
                     if number_of_commands is None:
                         if retries >= max_tries:
@@ -181,6 +190,7 @@ class MibResyncTask(Task):
                         raise
 
                     yield asleep(MibResyncTask.db_copy_retry_delay)
+                    self.stop_if_not_running()
                     continue
 
                 # Get a snapshot of the local MIB database
@@ -209,6 +219,7 @@ class MibResyncTask(Task):
         # Begin MIB Upload
         try:
             results = yield self._device.omci_cc.send_mib_upload()
+            self.stop_if_not_running()
             number_of_commands = results.fields['omci_message'].fields['number_of_commands']
 
             if number_of_commands is None or number_of_commands <= 0:
@@ -232,6 +243,7 @@ class MibResyncTask(Task):
             for retries in xrange(0, max_tries):
                 try:
                     response = yield self._device.omci_cc.send_mib_upload_next(seq_no)
+                    self.stop_if_not_running()
 
                     omci_msg = response.fields['omci_message'].fields
                     class_id = omci_msg['object_entity_class']

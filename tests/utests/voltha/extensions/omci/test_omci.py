@@ -1141,5 +1141,22 @@ class TestSelectMessageGeneration(TestCase):
         )
         self.assertGeneratedFrameEquals(frame, ref)
 
+    def test_omci_entity_ids(self):
+        from voltha.extensions.omci.omci_entities import entity_classes
+
+        # For Entity Classes that have a Managed Entity ID with Set-By-Create
+        # access, verify that the attribute name matches 'managed_entity_id'
+        #
+        # This is critical for the MIB Synchronizer state machine as it needs
+        # to backfill Set-By-Create attributes when it sees a Create response
+        # but it needs to ignore the 'managed_entity_id' attribute (by name).
+
+        for entity in entity_classes:
+            mei_attr = entity.attributes[0]
+            self.assertIsNotNone(mei_attr)
+            self.assertTrue(AA.SBC not in mei_attr.access or
+                            mei_attr.field.name == 'managed_entity_id')
+
+
 if __name__ == '__main__':
     main()
