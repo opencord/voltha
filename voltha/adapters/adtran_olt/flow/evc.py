@@ -209,7 +209,7 @@ class EVC(object):
         Get all EVC Maps that reference this EVC
         :return: list of EVCMap
         """
-        return list(self._evc_maps.values())
+        return list(self._evc_maps.values()) if self._evc_maps is not None else []
 
     @property
     def evc_map_names(self):
@@ -217,11 +217,12 @@ class EVC(object):
         Get all EVC Map names that reference this EVC
         :return: list of EVCMap names
         """
-        return list(self._evc_maps.keys())
+        return list(self._evc_maps.keys()) if self._evc_maps is not None else []
 
     def add_evc_map(self, evc_map):
-        if self._evc_maps is not None:
-            self._evc_maps[evc_map.name] = evc_map
+        if self._evc_maps is None:
+            self._evc_maps = {}
+        self._evc_maps[evc_map.name] = evc_map
 
     def remove_evc_map(self, evc_map):
         if self._evc_maps is not None and evc_map.name in self._evc_maps:

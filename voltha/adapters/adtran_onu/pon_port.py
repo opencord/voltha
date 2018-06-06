@@ -58,7 +58,8 @@ class PonPort(object):
 
         self._onu_omci_device = handler.omci_agent.add_device(handler.device_id,
                                                               handler.adapter_agent,
-                                                              onu_custom_me_entities())
+                                                              onu_custom_me_entities(),
+                                                              support_classes=handler.adapter.adtran_omci)
         # TODO: Add stats, alarm reference, ...
 
     def __str__(self):
@@ -97,6 +98,8 @@ class PonPort(object):
         self._admin_state = AdminState.DISABLED
         self._oper_status = OperStatus.UNKNOWN
         self._update_adapter_agent()
+
+        self._dev_info_loaded = False
         # TODO: stop h/w sync
         pass
 
@@ -495,13 +498,12 @@ class PonPort(object):
                 #            -
                 # TODO: All p-bits currently go to the one and only GEMPORT ID for now
 
-                gem_entity_ids = []
-                for gem_port in self._gem_ports.itervalues():
-                    gem_entity_ids.append(gem_port.entity_id)
+                gem_entity_ids = [gem_port.entity_id for _, gem_port in self._gem_ports.items()] \
+                    if len(self._gem_ports) else [OmciNullPointer]
 
                 frame = Ieee8021pMapperServiceProfileFrame(
-                    ieee_mapper_service_profile_entity_id,      # 802.1p mapper Service Mapper Profile ID
-                    interwork_tp_pointers=gem_entity_ids  # Interworking TP IDs  BP: oldvalue self.gemid
+                    ieee_mapper_service_profile_entity_id,   # 802.1p mapper Service Mapper Profile ID
+                    interwork_tp_pointers=gem_entity_ids     # Interworking TP IDs  BP: oldvalue self.gemid
                 ).set()
                 results = yield omci.send(frame)
 
@@ -811,7 +813,7 @@ class PonPort(object):
                     in_sync = msg[IN_SYNC_KEY]
 
                     if in_sync:
-                        # Only call this once as well
+                        # Only call this once as well (after PON enable)
                         bus = self._onu_omci_device.event_bus
                         bus.unsubscribe(self._in_sync_subscription)
                         self._in_sync_subscription = None

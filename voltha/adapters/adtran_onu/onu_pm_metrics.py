@@ -32,6 +32,7 @@ class OnuPmMetrics(AdapterPmMetrics):
             ('rx_alarm_overflow', PmConfig.COUNTER),    # Autonomous ONU generated alarm message overflows
             ('rx_avc_overflow', PmConfig.COUNTER),      # Autonomous ONU generated AVC message overflows
             ('rx_onu_discards', PmConfig.COUNTER),      # Autonomous ONU message unknown type discards
+            ('rx_unknown_me', PmConfig.COUNTER),        # Managed Entities without a decode definition
             ('rx_timeouts', PmConfig.COUNTER),
             ('consecutive_errors', PmConfig.COUNTER),
             ('reply_min', PmConfig.GUAGE),      # Milliseconds

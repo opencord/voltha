@@ -15,7 +15,7 @@
 
 import structlog
 from voltha.adapters.adtran_olt.xpon.gem_port import GemPort
-from twisted.internet.defer import inlineCallbacks, returnValue, succeed
+from twisted.internet.defer import inlineCallbacks, returnValue
 from voltha.extensions.omci.omci_me import GemPortNetworkCtpFrame, GemInterworkingTpFrame
 
 
@@ -31,7 +31,6 @@ class OnuGemPort(GemPort):
                  traffic_class=None,
                  intf_ref=None,
                  untagged=False,
-                 exception=False,  # FIXED_ONU
                  name=None,
                  handler=None,
                  is_mock=False):
@@ -43,7 +42,6 @@ class OnuGemPort(GemPort):
                                          traffic_class=traffic_class,
                                          intf_ref=intf_ref,
                                          untagged=untagged,
-                                         exception=exception,
                                          name=name,
                                          handler=handler)
         self._is_mock = is_mock

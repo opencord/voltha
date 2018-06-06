@@ -231,7 +231,7 @@ class EVCMap(object):
         # self._udp_src = None
         return xml
 
-    def _ingress_install_xml(self, onu_s_gem_ids_and_vid, acl_list):
+    def _ingress_install_xml(self, onu_s_gem_ids_and_vid, acl_list, create):
         from ..onu import Onu
 
         if len(acl_list):
@@ -247,7 +247,7 @@ class EVCMap(object):
                 else onu_or_vlan_id
 
             for gem_id in gem_ids_and_vid[0]:
-                xml += '<evc-map>'
+                xml += '<evc-map{}>'.format('' if not create else ' xc:operation="create"')
                 xml += '<name>{}.{}.{}</name>'.format(self.name, ident, gem_id)
                 xml += '<ce-vlan-id>{}</ce-vlan-id>'.format(Onu.gem_id_to_gvid(gem_id))
 
@@ -326,12 +326,12 @@ class EVCMap(object):
             if not self._installed or self._needs_update:
                 try:
                     self._cancel_deferred()
-                    map_xml = self._ingress_install_xml(self._gem_ids_and_vid, work_acls.values()) \
+                    map_xml = self._ingress_install_xml(self._gem_ids_and_vid, work_acls.values(),
+                                                        not self._installed) \
                         if self._is_ingress_map else self._egress_install_xml()
 
                     log.debug('install', xml=map_xml, name=self.name)
                     results = yield self._handler.netconf_client.edit_config(map_xml)
-                    was_installed = self._installed
                     self._installed = results.ok
                     self._needs_update = results.ok
                     self.status = '' if results.ok else results.error
@@ -466,6 +466,7 @@ class EVCMap(object):
 
         log.debug('find-matching-ingress-flow', logical_port=flow.logical_port, flow=flow.output)
         candidate_flows = [f for f in upstream_flow_table.itervalues() if
+                           f.in_port == flow.in_port and
                            f.logical_port == flow.logical_port and
                            f.output == flow.output and
                            f.evc_map is not None]        # This weeds out this flow

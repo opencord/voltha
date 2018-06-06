@@ -22,13 +22,15 @@ import binascii
 from voltha.adapters.iadapter import OnuAdapter
 from voltha.protos import third_party
 from adtran_onu_handler import AdtranOnuHandler
+from voltha.extensions.omci.openomci_agent import OpenOMCIAgent, OpenOmciAgentDefaults
+from voltha.extensions.omci.database.mib_db_dict import MibDbVolatileDict
 from twisted.internet import reactor
+from copy import deepcopy
 
 _ = third_party
 
 
 class AdtranOnuAdapter(OnuAdapter):
-
     def __init__(self, adapter_agent, config):
         self.log = structlog.get_logger()
         super(AdtranOnuAdapter, self).__init__(adapter_agent=adapter_agent,
@@ -36,9 +38,31 @@ class AdtranOnuAdapter(OnuAdapter):
                                                device_handler_class=AdtranOnuHandler,
                                                name='adtran_onu',
                                                vendor='Adtran, Inc.',
-                                               version='0.7',
+                                               version='0.9',
                                                device_type='adtran_onu',
                                                vendor_id='ADTN')
+        # Customize OpenOMCI for Adtran ONUs
+        self.adtran_omci = deepcopy(OpenOmciAgentDefaults)
+
+        # TODO: Continue to customize adtran_omci here as needed
+
+        self._omci_agent = OpenOMCIAgent(self.adapter_agent.core,
+                                         support_classes=self.adtran_omci)
+
+    @property
+    def omci_agent(self):
+        return self._omci_agent
+
+    def start(self):
+        super(AdtranOnuAdapter, self).start()
+        self._omci_agent.start()
+
+    def stop(self):
+        omci, self._omci_agent = self._omci_agent, None
+        if omci is not None:
+            omci.stop()
+
+        super(AdtranOnuAdapter, self).stop()
 
     def suppress_alarm(self, filter):
         raise NotImplementedError()

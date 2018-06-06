@@ -293,7 +293,7 @@ class PonPort(AdtnPort):
         Update the port status and state in the core
         """
         self.log.debug('update-adapter-agent', admin_state=self._admin_state,
-            oper_status=self._oper_status)
+                       oper_status=self._oper_status)
 
         # because the core does not provide methods for updating admin
         # and oper status per port, we need to copy any existing port
@@ -305,7 +305,7 @@ class PonPort(AdtnPort):
 
             # copy current Port info
             if agent_port is not None:
-                self._port = agent_port;
+                self._port = agent_port
 
         # set new states
         self._port.admin_state = self._admin_state
@@ -836,8 +836,8 @@ class PonPort(AdtnPort):
             # Hold off ONU activation until at least one GEM Port is defined.
             self.log.debug('onu-info', gem_ports=gem_ports)
 
-            return onu_info
-            # return onu_info if len(gem_ports) > 0 else None
+            # return onu_info
+            return onu_info if len(gem_ports) > 0 and venet is not None else None
 
         except Exception as e:
             self.log.exception('get-onu-info', e=e)

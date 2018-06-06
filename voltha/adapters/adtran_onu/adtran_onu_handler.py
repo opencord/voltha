@@ -32,9 +32,7 @@ from twisted.internet.defer import returnValue
 
 from voltha.protos import third_party
 from voltha.protos.common_pb2 import OperStatus, ConnectStatus
-from voltha.protos.device_pb2 import Image
 from common.utils.indexpool import IndexPool
-from voltha.extensions.omci.openomci_agent import OpenOMCIAgent
 from voltha.extensions.omci.omci_me import *
 
 _ = third_party
@@ -66,11 +64,6 @@ class AdtranOnuHandler(AdtranXPON):
 
         self._deferred = None
         self._event_deferred = None
-
-        # TODO: Remove next two lines if/when OpenOMCI is in the core or a container
-        #       in order to support multiple ONUs per instance
-        self._omci_agent = OpenOMCIAgent(self.adapter_agent.core)
-        self._omci_agent.start()
 
         self._port_number_pool = IndexPool(_MAXIMUM_PORT, 1)
 
@@ -135,7 +128,7 @@ class AdtranOnuHandler(AdtranXPON):
 
     @property
     def omci_agent(self):
-        return self._omci_agent
+        return self.adapter.omci_agent
 
     @property
     def omci(self):
@@ -589,6 +582,9 @@ class AdtranOnuHandler(AdtranXPON):
         device.reason = 'reboot in progress'
         self.adapter_agent.update_device(device)
 
+        # Disable OpenOMCI
+        self.pon_port.enabled = False
+
         self._deferred = reactor.callLater(_ONU_REBOOT_MIN,
                                            self._finish_reboot,
                                            previous_oper_status,
@@ -609,6 +605,10 @@ class AdtranOnuHandler(AdtranXPON):
         # real OLT the operational state should be the state the device is
         # after a reboot.
         # Get the latest device reference
+
+        # Restart OpenOMCI
+        self.pon_port.enabled = True
+
         device = self.adapter_agent.get_device(self.device_id)
 
         device.oper_status = previous_oper_status
@@ -782,9 +782,8 @@ class AdtranOnuHandler(AdtranXPON):
         self._pon.delete()
 
         # OpenOMCI cleanup
-        if self._omci_agent is not None:
-            self._omci_agent.remove_device(self.device_id, cleanup=True)
-            self._omci_agent = None
+        if self.omci_agent is not None:
+            self.omci_agent.remove_device(self.device_id, cleanup=True)
 
     def _check_for_mock_config(self, data):
         # Check for MOCK configuration
