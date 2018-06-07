@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9d05c8e6_68c39d11",
+        "filename": "voltha/extensions/omci/omci_me.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 715,
+      "author": {
+        "id": 1000438
+      },
+      "writtenOn": "2018-06-07T18:38:59Z",
+      "side": 1,
+      "message": "Would it make sense here to have a field that gives the data type instead of users of the object having to do isinstance()?",
+      "revId": "281558639f3346babe5481da7a22a4d0ca75c4bd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
