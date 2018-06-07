@@ -602,28 +602,49 @@ class OpenoltDevice(object):
         self.log.info('packet out', egress_port=egress_port,
                 packet=str(pkt).encode("HEX"))
 
-        if pkt.haslayer(Dot1Q):
-            outer_shim = pkt.getlayer(Dot1Q)
-            if isinstance(outer_shim.payload, Dot1Q):
-                #If double tag, remove the outer tag
-                payload = (
-                    Ether(src=pkt.src, dst=pkt.dst, type=outer_shim.type) /
-                    outer_shim.payload
-                )
+
+        # Find port type
+        egress_port_type = self.port_type(egress_port)
+
+        if egress_port_type == Port.ETHERNET_UNI:
+
+            if pkt.haslayer(Dot1Q):
+                outer_shim = pkt.getlayer(Dot1Q)
+                if isinstance(outer_shim.payload, Dot1Q):
+                    # If double tag, remove the outer tag
+                    payload = (
+                        Ether(src=pkt.src, dst=pkt.dst, type=outer_shim.type) /
+                        outer_shim.payload
+                    )
+                else:
+                    payload = pkt
             else:
                 payload = pkt
+
+            send_pkt = binascii.unhexlify(str(payload).encode("HEX"))
+
+            self.log.info('sending-packet-to-ONU', egress_port=egress_port,
+                          intf_id=platform.intf_id_from_pon_port_no(egress_port),
+                          onu_id=platform.onu_id_from_port_num(egress_port),
+                        packet=str(payload).encode("HEX"))
+
+            onu_pkt = openolt_pb2.OnuPacket(intf_id=platform.intf_id_from_pon_port_no(egress_port),
+                    onu_id=platform.onu_id_from_port_num(egress_port), pkt=send_pkt)
+
+            self.stub.OnuPacketOut(onu_pkt)
+
+        elif egress_port_type == Port.ETHERNET_NNI:
+            self.log.info('sending-packet-to-uplink', egress_port=egress_port, packet=str(pkt).encode("HEX"))
+
+            send_pkt = binascii.unhexlify(str(pkt).encode("HEX"))
+
+            uplink_pkt = openolt_pb2.UplinkPacket(intf_id=platform.intf_id_from_nni_port_num(egress_port), pkt=send_pkt)
+
+            self.stub.UplinkPacketOut(uplink_pkt)
+
         else:
-            payload = pkt
-
-        self.log.info('sending-packet-to-device', egress_port=egress_port,
-                packet=str(payload).encode("HEX"))
-
-        send_pkt = binascii.unhexlify(str(payload).encode("HEX"))
-
-        onu_pkt = openolt_pb2.OnuPacket(intf_id=platform.intf_id_from_pon_port_no(egress_port),
-                onu_id=platform.onu_id_from_port_num(egress_port), pkt=send_pkt)
-
-        self.stub.OnuPacketOut(onu_pkt)
+            self.log.warn('Packet-out-to-this-interface-type-not-implemented', egress_port=egress_port,
+                          port_type=egress_port_type)
 
     def send_proxied_message(self, proxy_address, msg):
         omci = openolt_pb2.OmciMsg(intf_id=proxy_address.channel_id, # intf_id
@@ -657,6 +678,15 @@ class OpenoltDevice(object):
                 return serial_number
             else:
                 return "uni-{}".format(port_no)
+
+
+    def port_type(self, port_no):
+        ports = self.adapter_agent.get_ports(self.device_id)
+        for port in ports:
+            if port.port_no == port_no:
+                return port.type
+        return None
+
 
     def add_logical_port(self, port_no, intf_id, oper_state):
         self.log.info('adding-logical-port', port_no=port_no)
