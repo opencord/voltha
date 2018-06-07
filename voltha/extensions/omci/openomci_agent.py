@@ -21,6 +21,8 @@ from voltha.extensions.omci.tasks.mib_upload import MibUploadTask
 from voltha.extensions.omci.tasks.get_mds_task import GetMdsTask
 from voltha.extensions.omci.tasks.mib_resync_task import MibResyncTask
 from voltha.extensions.omci.onu_device_entry import OnuDeviceEntry
+from voltha.extensions.omci.state_machines.omci_onu_capabilities import OnuOmciCapabilities
+from voltha.extensions.omci.tasks.onu_capabilities_task import OnuCapabilitiesTask
 
 OpenOmciAgentDefaults = {
     'mib-synchronizer': {
@@ -35,8 +37,12 @@ OpenOmciAgentDefaults = {
             'mib-reconcile': None        # TODO: post-v1.3.0 (Reconcile out-of-sync MIB DB)
         }
     },
-    # 'onu-capabilities': OnuCapabilitiesTask,
-    #
+    'omci-capabilities': {
+        'state-machine': OnuOmciCapabilities,        # Implements OMCI capabilities state mach9ine
+        'tasks': {
+            'get-capabilities': OnuCapabilitiesTask  # Get supported ME and Commands
+        }
+    }
     # 'alarm-syncronizer': {
     #     'state-machine': AlarmSynchronizer,  # Implements the MIB synchronization state machine
     #     'database': AlarmDb,                 # For any State storage needs

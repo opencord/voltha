@@ -20,6 +20,7 @@ import voltha.extensions.omci.omci_entities as omci_entities
 from voltha.extensions.omci.omci_cc import OMCI_CC
 from common.event_bus import EventBusClient
 from voltha.extensions.omci.tasks.task_runner import TaskRunner
+from voltha.extensions.omci.onu_configuration import OnuConfiguration
 
 from twisted.internet import reactor
 from enum import IntEnum
@@ -36,6 +37,8 @@ class OnuDeviceEvents(IntEnum):
     # Events of interest to Device Adapters and OpenOMCI State Machines
     DeviceStatusEvent = 0       # OnuDeviceEntry running status changed
     MibDatabaseSyncEvent = 1    # MIB database sync changed
+    OmciCapabilitiesEvent = 2   # OMCI ME and message type capabilities
+
     # TODO: Add other events here as needed
 
 
@@ -68,6 +71,7 @@ class OnuDeviceEntry(object):
         # are per ONU Vendor
         #
         self._support_classes = support_classes
+        self._configuration = None
 
         try:
             # MIB Synchronization state machine
@@ -77,6 +81,11 @@ class OnuDeviceEntry(object):
                                                                        device_id,
                                                                        mib_synchronizer_info['tasks'],
                                                                        mib_db)
+            # ONU OMCI Capabilities state machine
+            capabilities_info = support_classes.get('omci-capabilities')
+            self._capabilities_sm = capabilities_info['state-machine'](self._omci_agent,
+                                                                       device_id,
+                                                                       capabilities_info['tasks'])
         except Exception as e:
             self.log.exception('mib-sync-create-failed', e=e)
             raise
@@ -86,6 +95,7 @@ class OnuDeviceEntry(object):
         self._state_machines = []
         self._on_start_state_machines = [       # Run when 'start()' called
             self._mib_sync_sm,
+            self._capabilities_sm,
         ]
         self._on_sync_state_machines = [        # Run after first in_sync event
 
@@ -132,6 +142,12 @@ class OnuDeviceEntry(object):
         """
         return self._mib_sync_sm
 
+    @property
+    def omci_capabilities(self):
+        """
+        Reference to the OpenOMCI OMCI Capabilities state machine for this ONU
+        """
+        return self._capabilities_sm
 
     @property
     def active(self):
@@ -181,6 +197,16 @@ class OnuDeviceEntry(object):
             }
             self.event_bus.publish(topic=topic, msg=msg)
 
+    @property
+    def configuration(self):
+        """
+        Get the OMCI Configuration object for this ONU.  This is a class that provides some
+        common database access functions for ONU capabilities and read-only configuration values.
+
+        :return: (OnuConfiguration)
+        """
+        return self._configuration
+
     def start(self):
         """
         Start the ONU Device Entry state machines
@@ -192,6 +218,7 @@ class OnuDeviceEntry(object):
         self._omci_cc.enabled = True
         self._first_in_sync = True
         self._runner.start()
+        self._configuration = OnuConfiguration(self._omci_agent, self._device_id)
 
         # Start MIB Sync and other state machines that can run before the first
         # MIB Synchronization event occurs. Start 'later' so that any
@@ -242,7 +269,8 @@ class OnuDeviceEntry(object):
         if self._first_in_sync:
             self._first_in_sync = False
 
-            # TODO: Start up the ONU Capabilities task
+            # Start up the ONU Capabilities task
+            self._configuration.reset()
 
             # Start up any other remaining OpenOMCI state machines
             def start_state_machines(machines):
@@ -261,6 +289,14 @@ class OnuDeviceEntry(object):
                                                OnuDeviceEvents.DeviceStatusEvent)
         msg = {ACTIVE_KEY: self._started}
         self.event_bus.publish(topic=topic, msg=msg)
+
+    def publish_omci_capabilities_event(self):
+        """
+        Publish the ONU Device start/start status.
+        """
+        topic = OnuDeviceEntry.event_bus_topic(self.device_id,
+                                               OnuDeviceEvents.OmciCapabilitiesEvent)
+        self.event_bus.publish(topic=topic, msg=None)
 
     def delete(self):
         """

@@ -1023,6 +1023,31 @@ class VirtualEthernetInterfacePt(EntityClass):
     notifications = {OP.AttributeValueChange, OP.AlarmNotification}
 
 
+class Omci(EntityClass):
+    class_id = 287
+    attributes = [
+        ECA(ShortField("managed_entity_id", None), {AA.R},
+            range_check=lambda x: x == 0),
+
+        # TODO: Can this be expressed better in SCAPY, probably not?
+        # On the initial, Get request for either the me_type or message_type
+        # attributes, you will receive a 4 octet value (big endian) that is
+        # the number of octets to 'get-next' to fully load the desired
+        # attribute.  For a basic OMCI formatted message, that will be 29
+        # octets per get-request.
+        #
+        # For the me_type_table, these are 16-bit values (ME Class IDs)
+        #
+        # For the message_type_table, these are 8-bit values (Actions)
+
+        ECA(FieldListField("me_type_table", None, ByteField('', 0),
+                           count_from=lambda _: 29), {AA.R}),
+        ECA(FieldListField("message_type_table", None, ByteField('', 0),
+                           count_from=lambda _: 29), {AA.R}),
+    ]
+    mandatory_operations = {OP.Get, OP.GetNext}
+
+
 class EnhSecurityControl(EntityClass):
     class_id = 332
     attributes = [

@@ -350,3 +350,28 @@ class OmciRebootResponse(OmciMessage):
         ShortField("entity_id", 0),
         ByteField("success_code", 0)
     ]
+
+
+class OmciGetNext(OmciMessage):
+    name = "OmciGetNext"
+    message_id = 0x5A
+    fields_desc = [
+        ShortField("entity_class", None),
+        ShortField("entity_id", 0),
+        ShortField("attributes_mask", None),
+        ShortField("command_sequence_number", None)
+    ]
+
+
+class OmciGetNextResponse(OmciMessage):
+    name = "OmciGetNextResponse"
+    message_id = 0x3A
+    fields_desc = [
+        ShortField("entity_class", None),
+        ShortField("entity_id", 0),
+        ByteField("success_code", 0),
+        ShortField("attributes_mask", None),
+        ConditionalField(OmciMaskedData("data"),
+                         lambda pkt: pkt.success_code == 0)
+    ]
+

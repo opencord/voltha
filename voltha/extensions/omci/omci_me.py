@@ -693,3 +693,41 @@ class OntDataFrame(MEFrame):
             data = {'mib_data_sync'}    # Make Get's happy
 
         super(OntDataFrame, self).__init__(OntData, 0, data)
+
+
+class OmciFrame(MEFrame):
+    """
+    This managed entity describes the ONU's general level of support for OMCI managed
+    entities and messages. This ME is not included in a MIB upload.
+    """
+    def __init__(self, me_type_table=None, message_type_table=None):
+        """
+        For 'get' request, set the type of table count you wish by
+        setting either me_me_type_table or message_type_table to
+        a boolean 'True' value
+
+        For 'get-next' requests, set the sequence number for the
+        table you wish to retrieve by setting either me_me_type_table or message_type_table to
+        a integer value.
+        """
+        if not isinstance(me_type_table, (bool, int, type(None))):
+            raise TypeError('Parameters must be a boolean or integer')
+
+        if not isinstance(message_type_table, (bool, int, type(None))):
+            raise TypeError('Parameters must be a boolean or integer')
+
+        if me_type_table is not None:
+            if isinstance(me_type_table, bool):
+                data = {'me_type_table'}
+            else:
+                data = {'me_type_table': me_type_table}
+
+        elif message_type_table is not None:
+            if isinstance('message_type_table', bool):
+                data = {'message_type_table'}
+            else:
+                data = {'message_type_table': message_type_table}
+        else:
+            raise NotImplemented('Unknown request')
+
+        super(OmciFrame, self).__init__(Omci, 0, data)

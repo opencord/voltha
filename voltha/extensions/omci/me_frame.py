@@ -289,3 +289,28 @@ class MEFrame(object):
                 entity_id=getattr(self, 'entity_id'),
                 command_sequence_number=data['mib_data_sync']
             ))
+
+    def get_next(self):
+        """
+        Create a Get Next request frame for this ME
+        :return: (OmciFrame) OMCI Frame
+        """
+        assert hasattr(self, 'data'), 'data required for Get Next actions'
+        data = getattr(self, 'data')
+        MEFrame.check_type(data, dict)
+        assert len(data) == 1, 'Only one attribute should be specified'
+
+        mask_set = data.keys() if isinstance(data, dict) else data
+
+        self._check_operation(OP.GetNext)
+        self._check_attributes(mask_set, AA.Readable)
+
+        return OmciFrame(
+            transaction_id=None,
+            message_type=OmciGetNext.message_id,
+            omci_message=OmciGetNext(
+                entity_class=getattr(self.entity_class, 'class_id'),
+                entity_id=getattr(self, 'entity_id'),
+                attributes_mask=self.entity_class.mask_for(*mask_set),
+                command_sequence_number=data.values()[0]
+            ))
