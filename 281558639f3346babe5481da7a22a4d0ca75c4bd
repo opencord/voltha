@@ -16,6 +16,24 @@
       "revId": "281558639f3346babe5481da7a22a4d0ca75c4bd",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3a6ff858_5582bb12",
+        "filename": "voltha/extensions/omci/omci_me.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 715,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-06-07T19:16:41Z",
+      "side": 1,
+      "message": "I\u0027m not sure.  I was trying to figure out a way to best handle how a \u0027get\u0027 and \u0027get-next\u0027 message type could be decode but keep most parameters to the initializer to reference either common attributes, or a \u0027data\u0027 dictionary with all the information already set.\n\nI might be able to change it so that you always just provide an integer.  Then for a \u0027get\u0027, it would just encode the attribute-mask/name.  For a \u0027get-next\u0027, it would encode the attribute-mask and the value in the payload.  The actual encoding and what to pick/place is in the ME_Frame class.\n\nI would probably still check the type (int or None)",
+      "parentUuid": "9d05c8e6_68c39d11",
+      "revId": "281558639f3346babe5481da7a22a4d0ca75c4bd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
