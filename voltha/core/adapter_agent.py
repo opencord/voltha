@@ -418,10 +418,13 @@ class AdapterAgent(object):
         self._make_up_to_date('/devices/{}/ports'.format(device_id),
                               port.port_no, port)
 
-    def get_ports(self, device_id, port_type):
+    def get_ports(self, device_id, port_type=None):
         # assert Port.PortType.DESCRIPTOR.values_by_name[port_type]
         ports = self.root_proxy.get('/devices/{}/ports'.format(device_id))
-        return [p for p in ports if p.type == port_type]
+        if port_type is None:
+            return ports
+        else:
+            return [p for p in ports if p.type == port_type]
 
     def delete_port(self, device_id, port):
         assert isinstance(port, Port)

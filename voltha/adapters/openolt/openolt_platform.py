@@ -120,9 +120,12 @@ def intf_id_from_pon_port_no(port_no):
 
 def intf_id_to_port_no(intf_id, intf_type):
     if intf_type is Port.ETHERNET_NNI:
-        # FIXME - Remove hardcoded '129'
-        return intf_id + 129
+        # FIXME - Remove hardcoded '128'
+        return intf_id + 128
     elif intf_type is Port.PON_OLT:
         return 0x2<<28 | intf_id
     else:
         raise Exception('Invalid port type')
+
+def intf_id_from_nni_port_num(port_num):
+    return port_num - 128
