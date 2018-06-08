@@ -321,29 +321,16 @@ class OpenoltDevice(object):
 
     def onu_indication(self, onu_indication):
         self.log.debug("onu-indication", intf_id=onu_indication.intf_id,
-                onu_id=onu_indication.onu_id, serial_number=onu_indication.serial_number,
-                    oper_state=onu_indication.oper_state, admin_state=onu_indication.admin_state)
+                onu_id=onu_indication.onu_id, oper_state=onu_indication.oper_state,
+                admin_state=onu_indication.admin_state)
 
-        serial_number_str = self.stringify_serial_number(onu_indication.serial_number)
+        onu_device = self.adapter_agent.get_child_device(
+            self.device_id,
+            onu_id=onu_indication.onu_id)
 
-        if serial_number_str == '000000000000':
-            self.log.debug('serial-number-was-not-provided-or-default-serial-number-provided-identifying-onu-by-onu_id')
-            #FIXME: if multiple PON ports onu_id is not a sufficient key
-            onu_device = self.adapter_agent.get_child_device(
-                self.device_id,
-                onu_id=onu_indication.onu_id)
-        else :
-            onu_device = self.adapter_agent.get_child_device(
-                self.device_id,
-                serial_number=serial_number_str)
-
-        self.log.debug('onu-device', olt_device_id=self.device_id, device=onu_device)
-
-        # FIXME - handle serial_number mismatch
-        # assert key is not None
-        # assert onu_device is not None
         if onu_device is None:
-            self.log.warn('onu-device-is-none-invalid-message')
+            self.log.error('invalid-onu-indication', intf_id=onu_indication.intf_id,
+                    onu_id=onu_indication.onu_id)
             return
 
         if onu_device.connect_status != ConnectStatus.REACHABLE:
