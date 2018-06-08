@@ -23,8 +23,10 @@ from voltha.adapters.iadapter import OnuAdapter
 from voltha.protos import third_party
 from adtran_onu_handler import AdtranOnuHandler
 from voltha.extensions.omci.openomci_agent import OpenOMCIAgent, OpenOmciAgentDefaults
-from voltha.extensions.omci.database.mib_db_dict import MibDbVolatileDict
 from twisted.internet import reactor
+from omci.adtn_capabilities_task import AdtnCapabilitiesTask
+from omci.adtn_get_mds_task import AdtnGetMdsTask
+from omci.adtn_mib_sync import AdtnMibSynchronizer
 from copy import deepcopy
 
 _ = third_party
@@ -38,11 +40,16 @@ class AdtranOnuAdapter(OnuAdapter):
                                                device_handler_class=AdtranOnuHandler,
                                                name='adtran_onu',
                                                vendor='Adtran, Inc.',
-                                               version='0.9',
+                                               version='0.10',
                                                device_type='adtran_onu',
                                                vendor_id='ADTN')
         # Customize OpenOMCI for Adtran ONUs
         self.adtran_omci = deepcopy(OpenOmciAgentDefaults)
+
+        self.adtran_omci['mib-synchronizer']['state-machine'] = AdtnMibSynchronizer
+        self.adtran_omci['mib-synchronizer']['tasks']['get-mds'] = AdtnGetMdsTask
+        self.adtran_omci['mib-synchronizer']['tasks']['mib-audit'] = AdtnGetMdsTask
+        self.adtran_omci['omci-capabilities']['tasks']['get-capabilities'] = AdtnCapabilitiesTask
 
         # TODO: Continue to customize adtran_omci here as needed
 

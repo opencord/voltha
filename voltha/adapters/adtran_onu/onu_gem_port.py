@@ -98,7 +98,10 @@ class OnuGemPort(GemPort):
                     port_id=self.gem_id,
                     tcont_id=tcont_entity_id,
                     direction=direction,
-                    upstream_tm=0x8000         # TM ID, 32768 unique ID set in TD set  TODO: Parameterize
+                    upstream_tm=0x8000      # TM ID, 32768 unique ID set in TD set  TODO: Parameterize
+                                            # This is Priority Queue ME with this entity ID
+                                            # and the ME's related port value is 0x01.00.0007
+                                            # which is  slot=0x01, tcont# = 0x00, priority= 0x0007
             ).create()
             results = yield omci.send(frame)
 

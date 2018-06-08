@@ -21,6 +21,7 @@ from voltha.adapters.adtran_olt.xpon.adtran_xpon import AdtranXPON
 from pon_port import PonPort
 from uni_port import UniPort
 from heartbeat import HeartBeat
+from omci.omci import OMCI
 
 from voltha.adapters.adtran_olt.alarms.adapter_alarms import AdapterAlarms
 from onu_pm_metrics import OnuPmMetrics
@@ -57,6 +58,9 @@ class AdtranOnuHandler(AdtranXPON):
         self.alarms = None
         self._mgmt_gemport_aes = False
         self._upstream_channel_speed = 0
+
+        self._openomci = OMCI(self, adapter.omci_agent)
+        self._in_sync_subscription = None
 
         self._unis = dict()         # Port # -> UniPort
         self._pon = None
@@ -127,14 +131,8 @@ class AdtranOnuHandler(AdtranXPON):
         return self._olt_created    # ONU was created with deprecated 'child_device_detected' call
 
     @property
-    def omci_agent(self):
-        return self.adapter.omci_agent
-
-    @property
-    def omci(self):
-        # TODO: Decrement access to Communications channel at this point?  What about current PM stuff?
-        _onu_omci_device = self._pon.onu_omci_device
-        return _onu_omci_device.omci_cc if _onu_omci_device is not None else None
+    def openomci(self):
+        return self._openomci
 
     @property
     def heartbeat(self):
@@ -175,6 +173,10 @@ class AdtranOnuHandler(AdtranXPON):
         # Register for adapter messages
         self.adapter_agent.register_for_inter_adapter_messages()
 
+        # OpenOMCI Startup
+        self._subscribe_to_events()
+        self._openomci.enabled = True
+
         # Port startup
         if self._pon is not None:
             self._pon.enabled = True
@@ -199,8 +201,8 @@ class AdtranOnuHandler(AdtranXPON):
         self._heartbeat.stop()
 
         # OMCI Communications
-        # if self._onu_omci_device is not None:
-        #     self._onu_omci_device.stop()
+        self._unsubscribe_to_events()
+        self._openomci.enabled = False
 
         # Port shutdown
         for port in self.uni_ports:
@@ -215,8 +217,9 @@ class AdtranOnuHandler(AdtranXPON):
                 _ = yield queue.get()
 
     def receive_message(self, msg):
-        if self.omci is not None and self.enabled:
-            self.omci.receive_message(msg)
+        if self.enabled:
+            # TODO: Have OpenOMCI actually receive the messages
+            self.openomci.receive_message(msg)
 
     def activate(self, device):
         self.log.info('activating')
@@ -372,7 +375,7 @@ class AdtranOnuHandler(AdtranXPON):
         def is_upstream(port):
             return not is_downstream(port)
 
-        omci = self.omci
+        omci = self.openomci.omci_cc
 
         for flow in flows:
             _type = None
@@ -565,7 +568,7 @@ class AdtranOnuHandler(AdtranXPON):
                 # MIB Reset - For ADTRAN ONU, we do not get a response
                 #             back (because we are rebooting)
                 pass
-                yield self.omci.send_reboot(timeout=0.1)
+                yield self.openomci.omci_cc.send_reboot(timeout=0.1)
 
             except TimeoutError:
                 # This is expected
@@ -652,9 +655,8 @@ class AdtranOnuHandler(AdtranXPON):
         parent_device = self.adapter_agent.get_device(device.parent_id)
         assert parent_device
 
-
         for uni in self.uni_ports:
-            #port_id = 'uni-{}'.format(uni.port_number)
+            # port_id = 'uni-{}'.format(uni.port_number)
             port_id = uni.port_id_name()
 
             try:
@@ -782,8 +784,7 @@ class AdtranOnuHandler(AdtranXPON):
         self._pon.delete()
 
         # OpenOMCI cleanup
-        if self.omci_agent is not None:
-            self.omci_agent.remove_device(self.device_id, cleanup=True)
+        self._openomci.delete()
 
     def _check_for_mock_config(self, data):
         # Check for MOCK configuration
@@ -1185,3 +1186,51 @@ class AdtranOnuHandler(AdtranXPON):
         # Handle next event (self._event_deferred is None if we got stopped)
 
         self._event_deferred = reactor.callLater(0, self.handle_onu_events)
+
+    def _subscribe_to_events(self):
+        from voltha.extensions.omci.onu_device_entry import OnuDeviceEvents, \
+            OnuDeviceEntry
+
+        # OMCI MIB Database sync status
+        bus = self.openomci.onu_omci_device.event_bus
+        topic = OnuDeviceEntry.event_bus_topic(self.device_id,
+                                               OnuDeviceEvents.MibDatabaseSyncEvent)
+        self._in_sync_subscription = bus.subscribe(topic, self.in_sync_handler)
+
+    def _unsubscribe_to_events(self):
+        insync, self._in_sync_subscription = self._in_sync_subscription, None
+
+        if insync is not None:
+            bus = self.openomci.onu_omci_device.event_bus
+            bus.unsubscribe(insync)
+
+    def in_sync_handler(self, _topic, msg):
+        # Create UNI Ports on first In-Sync event
+
+        if self._in_sync_subscription is not None:
+            try:
+                from voltha.extensions.omci.onu_device_entry import IN_SYNC_KEY
+
+                if msg[IN_SYNC_KEY]:
+                    # Do not proceed if we have not got our vENET information yet.
+
+                    if len(self.uni_ports) > 0:
+                        # Drop subscription....
+                        insync, self._in_sync_subscription = self._in_sync_subscription, None
+
+                        if insync is not None:
+                            bus = self.openomci.onu_omci_device.event_bus
+                            bus.unsubscribe(insync)
+
+                        # Set up UNI Ports. The UNI ports are currently created when the xPON
+                        # vENET information is created. Once xPON is removed, we need to create
+                        # them from the information provided from the MIB upload UNI-G and other
+                        # UNI related MEs.
+
+                        for uni in self.uni_ports:
+                            uni.add_logical_port(None, None)
+                    else:
+                        self._deferred = reactor.callLater(5, self.in_sync_handler, _topic, msg)
+
+            except Exception as e:
+                self.log.exception('in-sync', e=e)

@@ -100,7 +100,7 @@ class HeartBeat(object):
     def check_pulse(self):
         if self.enabled:
             try:
-                self._defer = self._handler.omci.send(OntGFrame(self.check_item).get())
+                self._defer = self._handler.openomci.omci_cc.send(OntGFrame(self.check_item).get())
                 self._defer.addCallbacks(self._heartbeat_success, self._heartbeat_fail)
 
             except Exception as e:

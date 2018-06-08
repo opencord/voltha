@@ -128,7 +128,7 @@ class OnuPmMetrics(AdapterPmMetrics):
 
     def collect_port_metrics(self):
         metrics = dict()
-        metrics['omci'] = self.collect_metrics(self.handler.omci,
+        metrics['omci'] = self.collect_metrics(self.handler.openomci.omci_cc,
                                                self.omci_pm_names,
                                                self.omci_metrics_config)
 
