@@ -25,10 +25,34 @@ from zope.interface import implementer
 import voltha.core.flow_decomposer as fd
 
 from voltha.adapters.interface import IAdapterInterface
+from voltha.adapters.microsemi_olt.DeviceManager import mac_str_to_tuple
+from voltha.adapters.microsemi_olt.PAS5211 import PAS5211GetOnuAllocs, PAS5211GetOnuAllocsResponse, PAS5211GetSnInfo, \
+    PAS5211GetSnInfoResponse, PAS5211GetOnusRange, PAS5211GetOnusRangeResponse, PAS5211MsgSetOnuOmciPortId, \
+    PAS5211MsgSetOnuOmciPortIdResponse, PAS5211MsgSetOnuAllocId, PAS5211MsgSetOnuAllocIdResponse, \
+    PAS5211SetSVlanAtConfig, PAS5211SetSVlanAtConfigResponse, PAS5211SetVlanDownConfig, \
+    PAS5211SetVlanDownConfigResponse, PAS5211SetDownVlanHandl, PAS5211SetDownVlanHandlResponse, \
+    PAS5211SetUplinkVlanHandl, PAS5211SetDownstreamPolicingConfigResponse, PAS5211SetDownstreamPolicingConfig, \
+    PAS5211SetPortIdPolicingConfig, PAS5211UnsetPortIdPolicingConfig, \
+    PAS5211MsgSendDbaAlgorithmMsg, PAS5211MsgSendDbaAlgorithmMsgResponse, \
+    PAS5211SetUpstreamPolicingConfigResponse, PAS5211SetUpstreamPolicingConfig, \
+    PAS5211MsgSetPortIdConfig, PAS5211MsgSetPortIdConfigResponse, \
+    PAS5211MsgGetOnuIdByPortId, PAS5211MsgGetOnuIdByPortIdResponse, \
+    PAS5211SetVlanUplinkConfiguration, PAS5211SetVlanUplinkConfigurationResponse, PAS5211SetUplinkVlanHandlResponse, PAS5211SetVlanGenConfig, PAS5211SetVlanGenConfigResponse, \
+    PAS5211GetPortIdDownstreamPolicingConfig, PAS5211GetPortIdDownstreamPolicingConfigResponse, PAS5211RemoveDownstreamPolicingConfig, \
+    PAS5211MsgHeader, PAS5211UnsetPortIdPolicingConfigResponse, PAS5211RemoveDownstreamPolicingConfigResponse, \
+    PAS5211SetPortIdPolicingConfigResponse
+from voltha.adapters.microsemi_olt.PAS5211_constants import OMCI_GEM_IWTP_IW_OPT_8021P_MAPPER, PON_FALSE, \
+    PON_1_TO_1_VLAN_MODE, PON_TRUE, PON_VLAN_UNUSED_TAG, PON_VLAN_UNUSED_PRIORITY, PON_VLAN_REPLACE_PRIORITY, \
+    PON_OUTPUT_VLAN_PRIO_HANDLE_INCOMING_VLAN, PON_VLAN_UNCHANGED_PRIORITY, PON_OUTPUT_VLAN_PRIO_HANDLE_DONT_CHANGE, \
+    PON_OUTPUT_VLAN_PRIO_HANDLE_DL_VLAN_TABLE, PON_DL_VLAN_SVLAN_REMOVE, PON_DL_VLAN_CVLAN_NO_CHANGE, \
+    PON_VLAN_DEST_DATAPATH, GEM_DIR_BIDIRECT, OMCI_MAC_BRIDGE_PCD_LANFCS_FORWARDED, \
+    OMCI_MAC_BRIDGE_PCD_ENCAP_METHOD_LLC, OMCI_8021P_MSP_UNMARKED_FRAME_TAG_FRAME, OMCI_8021P_MSP_TP_TYPE_NULL, \
+    OMCI_EX_VLAN_TAG_OCD_ASSOCIATION_TYPE_PPTP_ETH_UNI, OMCI_EX_VLAN_TAG_OCD_DS_MODE_US_INVERSE, PMC_UPSTREAM_PORT, \
+    PON_DISABLE, PON_VLAN_CHANGE_TAG, PON_VLAN_DONT_CHANGE_TAG, PON_PORT_TYPE_GEM, PON_PORT_DESTINATION_CNI0, PON_ENABLE, SLA_gr_bw_gros, PYTHAGORAS_UPDATE_AID_SLA, \
+    SLA_gr_bw_gros, SLA_be_bw_gros, SLA_gr_bw_fine, SLA_be_bw_fine, PYTHAGORAS_DBA_DATA_COS, PYTHAGORAS_DBA_STATUS_REPORT_NSR, \
+    PMC_OFAL_NO_POLICY, UPSTREAM, DOWNSTREAM
 
 from voltha.extensions.omci.omci_frame import OmciFrame
-from voltha.extensions.omci.omci_entities import Ieee8021pMapperServiceProfile
-
 from voltha.protos import third_party
 from voltha.protos.adapter_pb2 import Adapter
 from voltha.protos.adapter_pb2 import AdapterConfig
@@ -36,23 +60,15 @@ from voltha.protos.common_pb2 import LogLevel, ConnectStatus, AdminState, OperSt
 from voltha.protos.device_pb2 import DeviceType, DeviceTypes, Port
 from voltha.protos.health_pb2 import HealthStatus
 from voltha.protos.logical_device_pb2 import LogicalPort
-from voltha.protos.openflow_13_pb2 import OFPPF_10GB_FD, OFPPF_FIBER, ofp_port, OFPPS_LIVE, OFPXMC_OPENFLOW_BASIC
+from voltha.protos.openflow_13_pb2 import OFPPF_1GB_FD, OFPPF_FIBER, ofp_port, OFPPS_LIVE, OFPXMC_OPENFLOW_BASIC
 
 from voltha.extensions.omci.omci_messages import OmciGet, OmciGetResponse, OmciCreate, OmciMibResetResponse, OmciSet, \
     OmciSetResponse, OmciCreateResponse, OmciMibReset, OmciDelete, OmciDeleteResponse
-
-from voltha.adapters.microsemi_olt.PAS5211_comm import PAS5211Communication
+from adapters.microsemi_olt.OMCIProxy import OMCIProxy
+from voltha.adapters.microsemi_olt.APIProxy import APIProxy
 from voltha.registry import registry
 from voltha.extensions.omci.omci_entities import VlanTaggingOperation
 from voltha.protos.openflow_13_pb2 import Flows, FlowGroups
-
-from common.frameio.frameio import hexify
-
-from tlgs_constants import OMCI_GEM_IWTP_IW_OPT_8021P_MAPPER, PON_FALSE, \
-    GEM_DIR_BIDIRECT, OMCI_MAC_BRIDGE_PCD_LANFCS_FORWARDED, \
-    OMCI_MAC_BRIDGE_PCD_ENCAP_METHOD_LLC, OMCI_8021P_MSP_UNMARKED_FRAME_TAG_FRAME, OMCI_8021P_MSP_TP_TYPE_NULL, \
-    OMCI_EX_VLAN_TAG_OCD_ASSOCIATION_TYPE_PPTP_ETH_UNI, OMCI_EX_VLAN_TAG_OCD_DS_MODE_US_INVERSE, PMC_UPSTREAM_PORT, \
-    SLA_gr_bw_gros, SLA_be_bw_gros, SLA_gr_bw_fine, SLA_be_bw_fine, PORT_NUMBER
 
 import Queue
 from struct import pack, unpack
@@ -72,12 +88,13 @@ OMCI_EX_VLAN_TAG_OCD_TREAT_PRIO_COPY_FROM_INNER = 4096
 OMCI_EX_VLAN_TAG_OCD_TREAT_TPID_DE_COPY_FROM_INNER = 0
 OMCI_EX_VLAN_TAG_OCD_TREAT_TPID_EQ_8100 = 4
 
+MAX_FLOW_EVENT_RETRIES = 5
+
 def sequence_generator(init):
     num = init
     while True:
         yield num
         num += 1
-
 
 @implementer(IAdapterInterface)
 class TlgsOnuAdapter(object):
@@ -109,7 +126,6 @@ class TlgsOnuAdapter(object):
         #self.trangen = sequence_generator(1)
 
         # As of broadcom_onu.py
-        # [channel_id] and [onu_id] -> BrcmOnuHandler()
         self.device_handlers = dict()
         # register for adapter messages
         self.adapter_agent.register_for_inter_adapter_messages()
@@ -181,9 +197,11 @@ class TlgsOnuAdapter(object):
         if device.proxy_address.channel_id not in self.device_handlers:
             self.device_handlers[device.proxy_address.channel_id] = dict()
 
-        self.device_handlers[device.proxy_address.channel_id] = TlgsOnuHandler(self, device.id)
+        self.device_handlers[device.proxy_address.channel_id][
+            device.proxy_address.onu_id] = TlgsOnuHandler(self, device.id)
 
-        reactor.callLater(1, self.device_handlers[device.proxy_address.channel_id].activate, device)
+        reactor.callLater(1, self.device_handlers[device.proxy_address.channel_id][
+                          device.proxy_address.onu_id].activate, device)
 
         return device
 
@@ -195,13 +213,20 @@ class TlgsOnuAdapter(object):
 
     def disable_device(self, device):
         log.debug('disable-device', device=device.id)
-        reactor.callLater(0, self.device_handlers[device.proxy_address.channel_id].deactivate, device)
+
+        reactor.callLater(0, self.device_handlers[device.proxy_address.channel_id][
+            device.proxy_address.onu_id].deactivate, device)
+        #raise NotImplementedError()
 
     def reenable_device(self, device):
         raise NotImplementedError()
 
     def reboot_device(self, device):
-        raise NotImplementedError()
+        log.debug('reboot-device', device=device.id)
+
+        reactor.callLater(0, self.device_handlers[device.proxy_address.channel_id][
+            device.proxy_address.onu_id].reboot, device)
+        # raise NotImplementedError()
 
     def download_image(self, device, request):
         raise NotImplementedError()
@@ -219,12 +244,16 @@ class TlgsOnuAdapter(object):
         raise NotImplementedError()
 
     def self_test_device(self, device):
+        """
+        This is called to Self a device based on a NBI call.
+        :param device: A Voltha.Device object.
+        :return: Will return result of self test
+        """
         log.debug('self-test-device', device=device.id)
         raise NotImplementedError()
 
     def delete_device(self, device):
         log.debug('delete-device', device_id=device.id)
-        raise NotImplementedError()
 
     def get_device_details(self, device):
         raise NotImplementedError()
@@ -232,7 +261,7 @@ class TlgsOnuAdapter(object):
     def deactivate(self, device):
         try:
             handler = self.device_handlers[
-                device.proxy_address.channel_id]
+                device.proxy_address.channel_id][device.proxy_address.onu_id]
             return handler.deactivate(device)
         except Exception as e:
             log.exception('failed-to-deactivate-onu', e=e)
@@ -241,6 +270,7 @@ class TlgsOnuAdapter(object):
     def update_pm_config(self, device, pm_configs):
         raise NotImplementedError()
 
+    # @inlineCallbacks
     def update_flows_bulk(self, device, flows, groups):
         log.debug('onu-bulk-flow-update', device_id=device.id,
             flows=flows, groups=groups)
@@ -248,7 +278,7 @@ class TlgsOnuAdapter(object):
         try:
             assert len(groups.items) == 0
             handler = self.device_handlers[
-                device.proxy_address.channel_id]
+                device.proxy_address.channel_id][device.proxy_address.onu_id]
             handler.update_flow_table(device, flows.items)
         except Exception as e:
             log.exception('failed-to-update-flow-table', e=e)
@@ -261,17 +291,16 @@ class TlgsOnuAdapter(object):
         log.debug("send-proxied-message in TLGS ONU")
 
     def receive_proxied_message(self, proxy_address, msg):
-        log.debug('receive-proxied-message', msg=hexify(msg))
+        log.debug('receive-proxied-message')
+        # mgs - > onu_id
+        if PAS5211MsgHeader in msg:
+            if msg['PAS5211MsgHeader'].onu_id != -1:
+                handler = self.device_handlers[
+                    proxy_address.channel_id][msg.onu_id]
+                handler.receive_message(msg)
 
-        handler = self.device_handlers[
-            proxy_address.channel_id]
-
-        omci = OmciFrame(msg)
-        if omci is not None:
-            if omci.message_type in (16, 17):
-                return
-
-        handler.receive_message(msg)
+        # for onu, handler in self.device_handlers[proxy_address.channel_id].iteritems():
+        #     handler.receive_message(msg)
 
     def receive_packet_out(self, logical_device_id, egress_port_no, msg):
         log.debug('packet-out', logical_device_id=logical_device_id,
@@ -309,6 +338,7 @@ class TlgsOnuHandler(object):
         self.adapter_agent = adapter.adapter_agent
         self.device_id = device_id
         self.log = structlog.get_logger(device_id=device_id)
+        #self.incoming_messages = Queue.Queue()
         self.incoming_messages = DeferredQueue()
         self.event_messages = Queue.Queue()
         self.proxy_address = None
@@ -317,7 +347,7 @@ class TlgsOnuHandler(object):
         self.port_id = None
         self.alloc_id = None
         self.cvlan_id = None
-        self.subsvlan_id = 0
+        self.subsvlan_id = None
         self.bandwidth = None
         self.flows_lock = 0
         self.flows = None
@@ -325,112 +355,120 @@ class TlgsOnuHandler(object):
         self.flow_queue = DeferredQueue()
 
     def receive_message(self, msg):
-        log.debug("receive-message")
+        log.debug("receive-message",msg=msg.show(dump=True))
         self.incoming_messages.put(msg)
 
-    @inlineCallbacks
     def activate(self, device):
         log.debug('activate-onu-handler', device=device)
         try:
+
             # register for proxied messages right away
             self.proxy_address = device.proxy_address
             self.adapter_agent.register_for_proxied_messages(device.proxy_address)
 
-            response = yield self.create_common_omci_config(device)
+            # First we verify that we got parent reference and proxy info
+            assert device.parent_id
+            assert device.proxy_address.device_id
+            # == 0 # We want to activate multiple ONT's
+            assert device.proxy_address.channel_id is not None
+            # to get onu_id = device.proxy_address.onu_id
 
-            if response:
-                # First we verify that we got parent reference and proxy info
-                assert device.parent_id
-                assert device.proxy_address.device_id
-                # == 0 # We want to activate multiple ONT's
-                assert device.proxy_address.channel_id is not None
-                # to get onu_id = device.proxy_address.onu_id
+            # From PMC code:
+            self.port_id = 1000 + 16 * device.proxy_address.onu_id
+            self.alloc_id = self.port_id
 
-                # From PMC code:
-                self.port_id = 1000 + 16 * device.proxy_address.onu_id
-                self.alloc_id = self.port_id
+            # we are going to use the proxy_address.channel_id as unique number
+            # and name for the virtual ports, as this is guaranteed to be unique
+            # in the context of the OLT port, so it is also unique in the context
+            # of the logical device
 
-                device.model = 'GPON ONU'
-                device.hardware_version = 'tbd'
-                device.firmware_version = 'tbd'
+            device.model = 'GPON ONU'
+            device.hardware_version = 'tbd'
+            device.firmware_version = 'tbd'
 
-                device.connect_status = ConnectStatus.REACHABLE
+            device.connect_status = ConnectStatus.REACHABLE
 
-                uni_port = Port(port_no=1,
-                                label="{} ONU".format('TLGS'),
-                                type=Port.ETHERNET_UNI,
-                                admin_state=AdminState.ENABLED,
-                                oper_status=OperStatus.ACTIVE
-                                )
-
-                self.adapter_agent.add_port(device.id, uni_port)
-
-                log.debug('add-onu-port')
-
-                pon_port = Port(
-                                port_no=2,
-                                label='PON port',
-                                type=Port.PON_ONU,
-                                admin_state=AdminState.ENABLED,
-                                oper_status=OperStatus.ACTIVE,
-                                peers=[
-                                    Port.PeerPort(
-                                        device_id=device.parent_id,
-                                        port_no=device.parent_port_no
-                                    )
-                                ]
+            uni_port = Port(port_no=1,
+                            label="{} ONU".format('TLGS'),
+                            type=Port.ETHERNET_UNI,
+                            admin_state=AdminState.ENABLED,
+                            oper_status=OperStatus.ACTIVE
                             )
 
-                self.adapter_agent.add_port(device.id, pon_port)
+            self.adapter_agent.add_port(device.id, uni_port)
 
-                log.debug('add-onu-port')
+            log.debug('add-onu-port')
 
-                # obtain logical device id
-                parent_device = self.adapter_agent.get_device(device.parent_id)
-                logical_device_id = parent_device.parent_id
-                assert logical_device_id
-                port_no = device.proxy_address.channel_id
-                cap = OFPPF_10GB_FD | OFPPF_FIBER
+            pon_port = Port(
+                            port_no=2,
+                            label='PON port',
+                            type=Port.PON_ONU,
+                            admin_state=AdminState.ENABLED,
+                            oper_status=OperStatus.ACTIVE,
+                            peers=[
+                                Port.PeerPort(
+                                    device_id=device.parent_id,
+                                    port_no=device.parent_port_no
+                                )
+                            ]
+                        )
 
-                self.adapter_agent.add_logical_port(logical_device_id, LogicalPort(
-                    id=str(port_no),
-                    ofp_port=ofp_port(
-                        port_no=port_no,
-                        hw_addr=mac_str_to_tuple(device.mac_address),
-                        name='uni-{}'.format(port_no),
-                        config=0,
-                        state=OFPPS_LIVE,
-                        curr=cap,
-                        advertised=cap,
-                        peer=cap,
-                        curr_speed=OFPPF_10GB_FD,
-                        max_speed=OFPPF_10GB_FD
-                    ),
-                    device_id=device.id,
-                    device_port_no=uni_port.port_no
-                ))
+            self.adapter_agent.add_port(device.id, pon_port)
 
-                log.debug('add-onu-logical-port')
+            log.debug('add-onu-port')
 
-                # Input logical port from ONT
-                self.port_no = port_no
+            # obtain logical device id
+            parent_device = self.adapter_agent.get_device(device.parent_id)
+            logical_device_id = parent_device.parent_id
+            assert logical_device_id
+            port_no = (device.proxy_address.channel_id * 32) + \
+                (device.proxy_address.onu_id + 1)
+            cap = OFPPF_1GB_FD | OFPPF_FIBER
 
-                # Finally update to "ACTIVE"
-                device = self.adapter_agent.get_device(device.id)
-                # In broadcom_onu.py this state is DISCOVERED
-                device.oper_status = OperStatus.ACTIVE
-                self.adapter_agent.update_device(device)
+            self.adapter_agent.add_logical_port(logical_device_id, LogicalPort(
+                id=str(port_no),
+                ofp_port=ofp_port(
+                    port_no=port_no,
+                    hw_addr=mac_str_to_tuple(device.serial_number)[2:8],
+                    # name='uni-{}'.format(port_no),
+                    name=device.serial_number[0:6],
+                    config=0,
+                    state=OFPPS_LIVE,
+                    curr=cap,
+                    advertised=cap,
+                    peer=cap,
+                    curr_speed=OFPPF_1GB_FD,
+                    max_speed=OFPPF_1GB_FD
+                ),
+                device_id=device.id,
+                device_port_no=uni_port.port_no
+            ))
 
-                log.info('Device activated', device=device)
+            log.debug('add-onu-logical-port')
 
-                reactor.callLater(0, self.wait_for_flow_events, device)
+            # Input logical port from ONT
+            self.port_no = port_no
 
-            else:
-                raise Exception('Exception during onu activation')
+            # Finally update to "ACTIVE"
+            device = self.adapter_agent.get_device(device.id)
+            # In broadcom_onu.py this state is DISCOVERED
+            device.oper_status = OperStatus.ACTIVE
+            self.adapter_agent.update_device(device)
+
+            log.info('activate-onu-end', device=device)
+
+            # # Just in case, pull for existing flows...
+            # flows = self.adapter_agent.root_proxy.get('/devices/{}/flows'.format(device.id))
+
+            # log.debug('flows-got-from-deviceid', flows=flows.items)
+            # reactor.callLater(0, self.update_flow_table, device, flows.items)
+
+            # Listening thread (we wait 5 secs to start reading from queue)
+            reactor.callLater(0, self.wait_for_flow_events, device)
 
         except Exception as e:
             log.exception('activate-failed', e=e)
-            raise Exception('Exception during onu activation')
+            # raise Exception('Exception during onu activation')
 
     @inlineCallbacks
     def wait_for_flow_events(self, device):
@@ -451,62 +489,91 @@ class TlgsOnuHandler(object):
                 log.debug("Event handled flow successfully")
             else:
                 log.debug("Error handling flow event")
+                # if event['retries'] < MAX_FLOW_EVENT_RETRIES:
+                #     # Failed install events are turned into reinstall...
+                #     if event['action'] == 'install':
+                #         event['action'] = 'reinstall'
+                #     event['retries'] += 1
+                #     log.debug("Flow event retry")
+                #     self.flow_queue.put(event)
+                # else:
+                #     log.debug("Max retries done for flow event handling.", event=event)
+                #     # If we were trying to install a flow, we remove it...
+                #     if event['action'] !=  'remove':
+                #         event['action'] = 'remove'
+                #         event['retries'] = 0
+                #         self.flow_queue.put(event)
 
         except Exception as e:
             log.exception('wait-for-flow-events-exception', e=e)
 
         reactor.callLater(0, self.wait_for_flow_events, device)
 
+    def reboot(self, device):
+        log.debug('onu-reboot-start', device=device)
+
+        if self.cvlan_id is not None and self.subsvlan_id is not None:
+            flow_event = {'action': 'reinstall', 'cvlan': self.cvlan_id,
+                    'subsvlan': self.subsvlan_id, 'retries': 0}
+            self.flow_queue.put(flow_event)
+            log.debug('onu-reinstall-event-created')
+        else:
+            log.debug('onu-reboot-ignored')
+
+        log.debug('onu-reboot-end', device=device)
+
     def deactivate(self, device):
-        log.debug('deactivate', device=device)
-        # Check parent reference and proxy info exists
-        assert device.parent_id
-        assert device.proxy_address.device_id
+        try:
+            log.debug('deactivate-onu', device=device)
+            # Check parent reference and proxy info exists
+            assert device.parent_id
+            assert device.proxy_address.device_id
 
-        # unregister from proxy messages
-        self.adapter_agent.unregister_for_proxied_messages(device.proxy_address)
-        self.proxy_address = None
+            # unregister from proxy messages
+            self.adapter_agent.unregister_for_proxied_messages(device.proxy_address)
+            self.proxy_address = None
 
-        # Delete references to ports
-        onu_port = self.adapter_agent.get_ports(device.id, Port.ETHERNET_UNI)[0]
-        self.adapter_agent.delete_port_reference_from_parent(device.id, onu_port)
+            # Delete references to ports, if any
 
-        pon_port = self.adapter_agent.get_ports(device.id, Port.PON_ONU)[0]
-        self.adapter_agent.delete_port_reference_from_parent(device.id, pon_port)
+            if self.adapter_agent.get_ports(device.id, Port.ETHERNET_UNI):
+                onu_port = self.adapter_agent.get_ports(device.id, Port.ETHERNET_UNI)[0]
+                self.adapter_agent.delete_port_reference_from_parent(device.id, onu_port)
 
-        # Delete device and logical ports
-        parent_device = self.adapter_agent.get_device(device.parent_id)
-        logical_device_id = parent_device.parent_id
-        # logical_device = self.adapter_agent.get_logical_device(logical_device_id)
-        # self.adapter_agent.delete_logical_device(logical_device)
+            if  self.adapter_agent.get_ports(device.id, Port.PON_ONU):
+                pon_port = self.adapter_agent.get_ports(device.id, Port.PON_ONU)[0]
+                self.adapter_agent.delete_port_reference_from_parent(device.id, pon_port)
 
-        logical_port = self.adapter_agent.get_logical_port(logical_device_id, self.port_no)
-        self.adapter_agent.delete_logical_port(logical_device_id, logical_port)
+            # Delete device and logical ports
+            parent_device = self.adapter_agent.get_device(device.parent_id)
+            logical_device_id = parent_device.parent_id
+            # logical_device = self.adapter_agent.get_logical_device(logical_device_id)
+            # self.adapter_agent.delete_logical_device(logical_device)
 
-        device = self.adapter_agent.get_device(device.id)
-        self.adapter_agent.update_child_device_state(device, connect_status=ConnectStatus.UNREACHABLE)
+            if logical_device_id:
+                logical_port = self.adapter_agent.get_logical_port(logical_device_id, self.port_no)
+                if logical_port:
+                    self.adapter_agent.delete_logical_port(logical_device_id, logical_port)
 
-        device = self.adapter_agent.get_device(device.id)
-        self.adapter_agent.update_child_device_state(device, oper_status=OperStatus.FAILED)
-        # device.connect_status = ConnectStatus.UNREACHABLE
-        # self.adapter_agent.update_device(device)
+            # Finally delete device
+            self.adapter_agent.delete_child_device(
+                parent_device_id=device.proxy_address.device_id,
+                child_device_id=device.id)
 
-        # Finally delete device
-        self.adapter_agent.delete_child_device(
-            parent_device_id=device.proxy_address.device_id,
-            child_device_id=device.id)
+            log.debug('deactivate-onu-end')
 
-        log.debug('deactivate ended')
+        except Exception as e:
+            log.exception('deactivate-failed', e=e)
+            # raise Exception('Exception during onu deactivation')
 
     # @inlineCallbacks
     def update_flow_table(self, device, flows):
         cvlan_found = None
         subsvlan_found = 0
 
-        log.debug('onu-update-flow-table', device_id=device.id, flows=flows)
-        port_no = device.proxy_address.channel_id
-        log.debug('Checking {} flows for port:{}'.format(len(flows), port_no))
 
+        log.debug('onu-update-flow-table', device_id=device.id, flows=flows)
+        port_no = (device.proxy_address.channel_id * 32) + (device.proxy_address.onu_id + 1)
+        log.debug('Checking {} flows for port:{}'.format(len(flows), port_no))
         try:
 
             for flow in flows:
@@ -521,19 +588,17 @@ class TlgsOnuHandler(object):
                                         cvlan_found = action.set_field.field.ofb_field.vlan_vid & 0xfff
                                         log.debug('CVLAN found:{}'.format(cvlan_found))
 
-
             if cvlan_found:
                 if cvlan_found != self.cvlan_id:
                     if self.cvlan_id:
-
                         log.debug('Reinstall flow triggered')
                         flow_event = {'action': 'reinstall', 'cvlan': cvlan_found,
-                                'subsvlan': subsvlan_found}
+                                'subsvlan': subsvlan_found, 'retries': 0}
                         self.flow_queue.put(flow_event)
                     else:
                         log.debug('Flows installation triggered')
                         flow_event = {'action': 'install', 'cvlan': cvlan_found,
-                                'subsvlan': subsvlan_found}
+                                'subsvlan': subsvlan_found, 'retries': 0}
                         self.flow_queue.put(flow_event)
                 else:
                     log.debug('Flows already installed')
@@ -541,7 +606,7 @@ class TlgsOnuHandler(object):
                 if self.cvlan_id:
                     log.debug('Flows deinstallation triggered')
                     flow_event = {'action': 'remove', 'cvlan': self.cvlan_id,
-                                'subsvlan': self.subsvlan_id}
+                                'subsvlan': self.subsvlan_id, 'retries': 0}
                     self.flow_queue.put(flow_event)
                 else:
                     log.debug('Incomplete flow')
@@ -570,7 +635,6 @@ class TlgsOnuHandler(object):
                 response = yield self.install_flows_sequence(device, cvlan_id, subsvlan_id)
                 returnValue(response)
             returnValue(False)
-
         except Exception as e:
             log.exception('failed-to-launch-reinstall-flow', e=e)
 
@@ -585,20 +649,19 @@ class TlgsOnuHandler(object):
             log.exception('failed-to-launch-install-flow', e=e)
 
     @inlineCallbacks
-    def wait_for_omci_response(self):
+    def wait_for_response(self):
         log.debug('wait-for-response')
         response = yield self.incoming_messages.get()
-        log.debug("unqueued-message", msg=hexify(response))
-        returnValue(OmciFrame(response))
+        log.debug("unqueued-message",msg=response.show(dump=True))
+        returnValue(response)
 
+
+    # PMC_OFAL.c line:2554
     @inlineCallbacks
-    def create_common_omci_config(self, device):
-        log.debug('create-common-omci-config')
-
-        alloc_id = 0x408 + device.proxy_address.onu_id
+    def create_data_flow_omci_config(self, device, cvlan_id, subsvlan_id):
 
         self.OMCI_ont_data_mib_reset(device)
-        response = yield self.wait_for_omci_response()
+        response = yield self.wait_for_response()
 
         if OmciMibResetResponse not in response:
             log.error("Failed to perform a MIB reset for {}".format(
@@ -606,8 +669,8 @@ class TlgsOnuHandler(object):
             returnValue(False)
         log.debug("[RESPONSE] OMCI_ont_data_mib_reset")
 
-        self.OMCI_tcont_set(device, alloc_id)
-        response = yield self.wait_for_omci_response()
+        self.OMCI_tcont_set(device)
+        response = yield self.wait_for_response()
         if OmciSetResponse not in response:
             log.error("Failed to set alloc id for {}".format(
                 device.proxy_address))
@@ -615,7 +678,7 @@ class TlgsOnuHandler(object):
         log.debug("[RESPONSE] OMCI_tcont_set")
 
         self.pmc_omci_mac_bridge_sp_me_create(device)
-        response = yield self.wait_for_omci_response()
+        response = yield self.wait_for_response()
         if OmciCreateResponse not in response:
             log.error("Failed to set parameter on {}".format(
                 device.proxy_address))
@@ -623,70 +686,65 @@ class TlgsOnuHandler(object):
         log.debug("[RESPONSE] OMCI_mac_bridge_sp_me_create")
 
         self.pmc_omci_mac_bridge_pcd_me_create(device)
-        response = yield self.wait_for_omci_response()
+        response = yield self.wait_for_response()
         if OmciCreateResponse not in response:
             log.error("Failed to set info for {}".format(device.proxy_address))
             returnValue(False)
         log.debug("[RESPONSE] OMCI_mac_bridge_pcd_me_create")
 
-        for port in range(1, PORT_NUMBER+1):
-            self.pmc_omci_mac_bridge_pcd_me_allocate(device, port)
-            response = yield self.wait_for_omci_response()
-            if OmciCreateResponse not in response:
-                log.error("Failed to create mac bridge pcd on {}".format(
-                    device.proxy_address))
-                returnValue(False)
-            log.debug("[RESPONSE] OMCI_mac_bridge_pcd_me_allocate")
+        self.pmc_omci_evto_create(device)
+        response = yield self.wait_for_response()
+        if OmciCreateResponse not in response:
+            log.error("Failed to set association info for {}".format(
+                device.proxy_address))
+            returnValue(False)
+        log.debug("[RESPONSE] OMCI_evto_create")
 
-        returnValue(True)
+        self.pmc_omci_evto_set(device)
+        response = yield self.wait_for_response()
+        if OmciSetResponse not in response:
+            log.error("Failed to set association tpid info for {}".format(
+                device.proxy_address))
+            returnValue(False)
+        log.debug("[RESPONSE] OMCI_evto_set")
 
-    @inlineCallbacks
-    def create_data_flow_omci_config(self, device, cvlan_id, subsvlan_id):
-
+        # Reuse create_default_data_flow_omci_config (confirmed from logs)
         self.pmc_omci_8021p_msp_me_allocate(device)
-        response = yield self.wait_for_omci_response()
+        response = yield self.wait_for_response()
         if OmciCreateResponse not in response:
             log.error("Failed to create 8021p msp on {}".format(
                 device.proxy_address))
             if response is not None:
-                log.error("Response received: {}".format(response.summary())) 
+                log.error("Response received: {}".format(response.summary()))
             returnValue(False)
         log.debug("[RESPONSE] OMCI_8021p_msp_me_allocate")
 
+        # Reuse create_default_data_flow_omci_config?
+        self.pmc_omci_mac_bridge_pcd_me_allocate(device)
+        response = yield self.wait_for_response()
+        if OmciCreateResponse not in response:
+            log.error("Failed to create mac bridge pcd on {}".format(
+                device.proxy_address))
+            returnValue(False)
+        log.debug("[RESPONSE] OMCI_mac_bridge_pcd_me_allocate")
+
+        response = yield self.send_set_extended_vlan_tagging_operation_vlan_configuration_data(
+            device, cvlan_id, subsvlan_id)
+
+        if not response:
+            returnValue(False)
+        log.debug("[RESPONSE] OMCI_send_set_extended_vlan_tagging")
+
         self.send_create_vlan_tagging_filter_data(device, cvlan_id)
-        response = yield self.wait_for_omci_response()
+        response = yield self.wait_for_response()
         if OmciCreateResponse not in response:
             log.error("Failed to set vlan tagging filter in {}".format(
                 device.proxy_address))
             returnValue(False)
         log.debug("[RESPONSE] OMCI_send_create_vlan_tagging_filter_data")
 
-        for port in range(1, PORT_NUMBER+1):
-            self.pmc_omci_evto_create(device, port)
-            response = yield self.wait_for_omci_response()
-            if OmciCreateResponse not in response:
-                log.error("Failed to set association info for {}".format(
-                    device.proxy_address))
-                returnValue(False)
-            log.debug("[RESPONSE] OMCI_evto_create")
-
-            self.pmc_omci_evto_set(device, port)
-            response = yield self.wait_for_omci_response()
-            if OmciSetResponse not in response:
-                log.error("Failed to set association tpid info for {}".format(
-                    device.proxy_address))
-                returnValue(False)
-            log.debug("[RESPONSE] OMCI_evto_set")
-
-            response = yield self.send_set_extended_vlan_tagging_operation_vlan_configuration_data(
-            device, cvlan_id, subsvlan_id, port)
-
-            if not response:
-                returnValue(False)
-            log.debug("[RESPONSE] OMCI_send_set_extended_vlan_tagging")
-
         self.pmc_omci_gem_nctp_me_allocate(device)
-        response = yield self.wait_for_omci_response()
+        response = yield self.wait_for_response()
         if OmciCreateResponse not in response:
             log.error("Failed to Create gem nctp on {}".format(
                 device.proxy_address))
@@ -694,7 +752,7 @@ class TlgsOnuHandler(object):
         log.debug("[RESPONSE] OMCI_gem_nctp_me_allocate")
 
         self.pmc_omci_gem_iwtp_me_allocate(device)
-        response = yield self.wait_for_omci_response()
+        response = yield self.wait_for_response()
         if OmciCreateResponse not in response:
             log.error("Failed to Create gem iwtp on {}".format(
                 device.proxy_address))
@@ -702,7 +760,8 @@ class TlgsOnuHandler(object):
         log.debug("[RESPONSE] OMCI_gem_iwtp_me_allocate")
 
         self.pmc_omci_8021p_msp_me_assign(device)
-        response = yield self.wait_for_omci_response()
+
+        response = yield self.wait_for_response()
         if OmciSetResponse not in response:
             log.error("Failed to assign sp {}".format(
                 device.proxy_address))
@@ -711,31 +770,32 @@ class TlgsOnuHandler(object):
 
         returnValue(True)
 
+    # PMC_OFAL.c line:3065
     @inlineCallbacks
     def delete_data_flow_omci_config(self, device):
-        for port in range(1, PORT_NUMBER+1):
-            self.pmc_omci_evto_deallocate(device, port)
-            response = yield self.wait_for_omci_response()
-            if OmciDeleteResponse not in response:
-                log.error(
-                    "Failed to deallocate evt for {}".format(device.proxy_address))
-                if response is not None:
-                    log.error("Response received: {}".format(response.summary()))
-                returnValue(False)
-            log.debug("[RESPONSE] pmc_omci_evto_deallocate", device=device)
+
+        self.pmc_omci_evto_deallocate(device)
+        response = yield self.wait_for_response()
+        if OmciDeleteResponse not in response:
+            log.error(
+                "Failed to deallocate evt for {}".format(device.proxy_address))
+            if response is not None:
+                log.error("Response received: {}".format(response.summary()))
+            returnValue(False)
+        log.debug("[RESPONSE] pmc_omci_evto_deallocate", device=device)
 
         self.pmc_omci_gem_iwtp_me_deallocate(device)
-        response = yield self.wait_for_omci_response()
+        response = yield self.wait_for_response()
         if OmciDeleteResponse not in response:
             log.error(
                 "Failed to deallocate iwtp for {}".format(device.proxy_address))
             if response is not None:
-                log.error("Response received: {}".format(response.summary())) 
+                log.error("Response received: {}".format(response.summary()))
             returnValue(False)
         log.debug("[RESPONSE] pmc_omci_gem_iwtp_me_deallocate", device=device)
 
         self.pmc_omci_gem_nctp_me_deallocate(device)
-        response = yield self.wait_for_omci_response()
+        response = yield self.wait_for_response()
         if OmciDeleteResponse not in response:
             log.error(
                 "Failed to deallocate nctp for {}".format(device.proxy_address))
@@ -743,15 +803,23 @@ class TlgsOnuHandler(object):
         log.debug("[RESPONSE] pmc_omci_gem_nctp_me_deallocate", device=device)
 
         self.pmc_omci_vlan_tagging_filter_me_deallocate(device)
-        response = yield self.wait_for_omci_response()
+        response = yield self.wait_for_response()
         if OmciDeleteResponse not in response:
             log.error(
                 "Failed to deallocate vlan tagging for {}".format(device.proxy_address))
             returnValue(False)
         log.debug("[RESPONSE] pmc_omci_vlan_tagging_filter_me_deallocate", device=device)
 
+        self.pmc_omci_mac_bridge_pcd_me_deallocate(device)
+        response = yield self.wait_for_response()
+        if OmciDeleteResponse not in response:
+            log.error(
+                "Failed to deallocate bridge pcd for {}".format(device.proxy_address))
+            returnValue(False)
+        log.debug("[RESPONSE] pmc_omci_mac_bridge_pcd_me_deallocate", device=device)
+
         self.pmc_omci_8021p_msp_me_deallocate(device)
-        response = yield self.wait_for_omci_response()
+        response = yield self.wait_for_response()
         if OmciDeleteResponse not in response:
             log.error(
                 "Failed to deallocate msp for {}".format(device.proxy_address))
@@ -760,7 +828,9 @@ class TlgsOnuHandler(object):
 
         returnValue(True)
 
-    """ -   -   -   -   -   -   -   create_common_omci_config   -   -   -   -   -   -   - """
+
+    """ -   -   -   -   -   -   -     create_data_flow_omci_config      -   -   -   -   -   -   - """
+
 
     def OMCI_ont_data_mib_reset(self, device):
         # DO things to the ONU
@@ -780,11 +850,11 @@ class TlgsOnuHandler(object):
         frame = OmciFrame(transaction_id=self.trangen.next(),
                           message_type=OmciMibReset.message_id,
                           omci_message=msg)
-        _frame = hexify(str(frame))
-        self.adapter_agent.send_proxied_message(device.proxy_address, _frame)
+
+        self.adapter_agent.send_proxied_message(device.proxy_address, frame)
         log.debug("[SENT] OMCI_ont_data_mib_reset")
 
-    def OMCI_tcont_set(self, device, alloc_id):
+    def OMCI_tcont_set(self, device):
         # | ###[ OmciFrame ]###
         # | transaction_id = 2
         # | message_type = 72
@@ -806,13 +876,12 @@ class TlgsOnuHandler(object):
         # TODO: maskdata
         msg = OmciSet(entity_class=262, entity_id=32769, attributes_mask=32768,
                       data=dict(
-                          alloc_id=alloc_id
+                          alloc_id=self.alloc_id
                       ))
         frame = OmciFrame(transaction_id=self.trangen.next(),
                           message_type=OmciSet.message_id,
                           omci_message=msg)
-        _frame = hexify(str(frame))
-        self.adapter_agent.send_proxied_message(device.proxy_address, _frame)
+        self.adapter_agent.send_proxied_message(device.proxy_address, frame)
         log.debug("[SENT] OMCI_tcont_set")
 
     def pmc_omci_mac_bridge_sp_me_create(self, device):
@@ -859,8 +928,7 @@ class TlgsOnuHandler(object):
         frame = OmciFrame(transaction_id=self.trangen.next(),
                           message_type=OmciCreate.message_id,
                           omci_message=msg)
-        _frame = hexify(str(frame))
-        self.adapter_agent.send_proxied_message(device.proxy_address, _frame)
+        self.adapter_agent.send_proxied_message(device.proxy_address, frame)
         log.debug("[SENT] pmc_omci_mac_bridge_sp_me_create")
 
     def pmc_omci_mac_bridge_pcd_me_create(self, device):
@@ -883,11 +951,11 @@ class TlgsOnuHandler(object):
 
         msg = OmciCreate(entity_class=47, entity_id=0,
                          data=dict(
-                             tp_pointer=1,
+                             tp_pointer=257,
                              encapsulation_methods=OMCI_MAC_BRIDGE_PCD_ENCAP_METHOD_LLC,
                              port_num=0,
                              port_priority=10,
-                             tp_type=3,
+                             tp_type=1,
                              port_path_cost=100,
                              port_spanning_tree_in=PON_FALSE,
                              lan_fcs_ind=OMCI_MAC_BRIDGE_PCD_LANFCS_FORWARDED,
@@ -897,11 +965,11 @@ class TlgsOnuHandler(object):
         frame = OmciFrame(transaction_id=self.trangen.next(),
                           message_type=OmciCreate.message_id,
                           omci_message=msg)
-        _frame = hexify(str(frame))
-        self.adapter_agent.send_proxied_message(device.proxy_address, _frame)
+
+        self.adapter_agent.send_proxied_message(device.proxy_address, frame)
         log.debug("[SENT] pmc_omci_mac_bridge_pcd_me_create")
 
-    def pmc_omci_evto_create(self, device, port):
+    def pmc_omci_evto_create(self, device):
         # |###[ OmciFrame ]###
         # |  transaction_id= 5
         # |  message_type= 68
@@ -914,20 +982,20 @@ class TlgsOnuHandler(object):
         # |  omci_trailer= 40
 
         # Found in method: pmc_omci_evto_create from: PMC_OFAL.c
-        msg = OmciCreate(entity_class=171, entity_id=port,
+        msg = OmciCreate(entity_class=171, entity_id=0,
                          data=dict(
                              association_type=OMCI_EX_VLAN_TAG_OCD_ASSOCIATION_TYPE_PPTP_ETH_UNI,
-                             associated_me_pointer=0x100+port
+                             associated_me_pointer=257
                          ))
 
         frame = OmciFrame(transaction_id=self.trangen.next(),
                           message_type=OmciCreate.message_id,
                           omci_message=msg)
-        _frame = hexify(str(frame))
-        self.adapter_agent.send_proxied_message(device.proxy_address, _frame)
+
+        self.adapter_agent.send_proxied_message(device.proxy_address, frame)
         log.debug("[SENT] pmc_omci_evto_create")
 
-    def pmc_omci_evto_set(self, device, port):
+    def pmc_omci_evto_set(self, device):
         # |###[ OmciFrame ]###
         # |  transaction_id= 6
         # |  message_type= 72
@@ -941,25 +1009,23 @@ class TlgsOnuHandler(object):
         # |  omci_trailer= 40
 
         # Found in method: pmc_omci_evto_set from: PMC_OFAL.c
-        msg = OmciSet(entity_class=171, entity_id=port, attributes_mask=47616,
+        msg = OmciSet(entity_class=171, entity_id=0, attributes_mask=47616,
                       data=dict(
                           association_type=OMCI_EX_VLAN_TAG_OCD_ASSOCIATION_TYPE_PPTP_ETH_UNI,
-                          input_tpid=0x8100,
-                          associated_me_pointer=0x100+port,
+                          input_tpid=33024,
+                          associated_me_pointer=257,
                           downstream_mode=OMCI_EX_VLAN_TAG_OCD_DS_MODE_US_INVERSE,
-                          output_tpid=0x8100
+                          output_tpid=33024
                       ))
 
         frame = OmciFrame(transaction_id=self.trangen.next(),
                           message_type=OmciSet.message_id,
                           omci_message=msg)
-        _frame = hexify(str(frame))
-        self.adapter_agent.send_proxied_message(device.proxy_address, _frame)
+
+        self.adapter_agent.send_proxied_message(device.proxy_address, frame)
         log.debug("[SENT] pmc_omci_evto_set")
 
-    """ -   -   -   -   -   -   -     END create_common_omci_config     -   -   -   -   -   -   - """
 
-    """ -   -   -   -   -   -   create_default_data_flow_omci_config    -   -   -   -   -   -   - """
 
     def pmc_omci_8021p_msp_me_allocate(self, device):
         # |###[ OmciFrame ]###
@@ -997,11 +1063,11 @@ class TlgsOnuHandler(object):
         frame = OmciFrame(transaction_id=self.trangen.next(),
                           message_type=OmciCreate.message_id,
                           omci_message=msg)
-        _frame = hexify(str(frame))
-        self.adapter_agent.send_proxied_message(device.proxy_address, _frame)
+
+        self.adapter_agent.send_proxied_message(device.proxy_address, frame)
         log.debug("[SENT] pmc_omci_8021p_msp_me_allocate")
 
-    def pmc_omci_mac_bridge_pcd_me_allocate(self, device, port):
+    def pmc_omci_mac_bridge_pcd_me_allocate(self, device):
         # |###[ OmciFrame ]###
         # |  transaction_id= 8
         # |  message_type= 68
@@ -1017,13 +1083,13 @@ class TlgsOnuHandler(object):
         # Params
         #   - port_path_cost: The cost contribution of the port to the path cost towards the spanning tree root bridge
         #   - bridge_id_pointer: MAC bridge controlling the port
-        msg = OmciCreate(entity_class=47, entity_id=port,
+        msg = OmciCreate(entity_class=47, entity_id=1,
                          data=dict(
-                             tp_pointer=0x100 + port,
+                             tp_pointer=1,
                              encapsulation_methods=OMCI_MAC_BRIDGE_PCD_ENCAP_METHOD_LLC,
-                             port_num=port,
+                             port_num=1,
                              port_priority=10,
-                             tp_type=1,
+                             tp_type=3,
                              port_path_cost=100,
                              port_spanning_tree_in=PON_FALSE,
                              lan_fcs_ind=OMCI_MAC_BRIDGE_PCD_LANFCS_FORWARDED,
@@ -1033,8 +1099,8 @@ class TlgsOnuHandler(object):
         frame = OmciFrame(transaction_id=self.trangen.next(),
                           message_type=OmciCreate.message_id,
                           omci_message=msg)
-        _frame = hexify(str(frame))
-        self.adapter_agent.send_proxied_message(device.proxy_address, _frame)
+
+        self.adapter_agent.send_proxied_message(device.proxy_address, frame)
         log.debug("[SENT] pmc_omci_mac_bridge_pcd_me_allocate")
 
     def pmc_omci_gem_nctp_me_allocate(self, device):
@@ -1056,7 +1122,7 @@ class TlgsOnuHandler(object):
                              direction=GEM_DIR_BIDIRECT,
                              tcont_pointer=32769,
                              traffic_descriptor_profile_pointer=0,
-                             traffic_management_pointer_upstream=4,  # 4 for default
+                             traffic_management_pointer_upstream=4,  # 4 for feault
                              # Same as GEM port
                              # port_id=(1000 + device.proxy_address.onu_id)
                              port_id = self.port_id
@@ -1065,8 +1131,8 @@ class TlgsOnuHandler(object):
         frame = OmciFrame(transaction_id=self.trangen.next(),
                           message_type=OmciCreate.message_id,
                           omci_message=msg)
-        _frame = hexify(str(frame))
-        self.adapter_agent.send_proxied_message(device.proxy_address, _frame)
+
+        self.adapter_agent.send_proxied_message(device.proxy_address, frame)
         log.debug("[SENT] pmc_omci_gem_nctp_me_allocate")
 
     def pmc_omci_gem_iwtp_me_allocate(self, device):
@@ -1100,16 +1166,57 @@ class TlgsOnuHandler(object):
         frame = OmciFrame(transaction_id=self.trangen.next(),
                           message_type=OmciCreate.message_id,
                           omci_message=msg)
-        _frame = hexify(str(frame))
-        self.adapter_agent.send_proxied_message(device.proxy_address, _frame)
+
+        self.adapter_agent.send_proxied_message(device.proxy_address, frame)
         log.debug("[SENT] pmc_omci_gem_iwtp_me_allocate")
 
-    """ -   -   -   -   -   -    END create_default_data_flow_omci_config   -   -   -   -   -   - """
 
-    """ -   -   -   -   -   -   -     create_data_flow_omci_config      -   -   -   -   -   -   - """
+
+    def send_create_extended_vlan_tagging_operation_configuration_data(self, device):
+
+        msg = OmciCreate(entity_class=171,
+                         entity_id=0,
+                         data=dict(
+                             association_type=2,
+                             associated_me_pointer=257
+                         ))
+
+        frame = OmciFrame(transaction_id=self.trangen.next(),
+                          message_type=OmciCreate.message_id,
+                          omci_message=msg)
+
+        self.adapter_agent.send_proxied_message(device.proxy_address, frame)
+        log.debug(
+            "[SENT] create_extended_vlan_tagging_operation_configuration_data")
+
+    # self.send_set_extended_vlan_tagging_operation_tpid_configuration_data(0x202, 0x8100, 0x8100)
+    def send_set_extended_vlan_tagging_operation_tpid_configuration_data(self, device):
+
+        data = dict(
+            association_type=2,
+            input_tpid=33024,
+            associated_me_pointer=257,
+            downstream_mode=OMCI_EX_VLAN_TAG_OCD_DS_MODE_US_INVERSE,
+            output_tpid=33024,
+        )
+
+        msg = OmciSet(entity_class=171,
+                      entity_id=0,
+                      attributes_mask=47616,  # 1024 in broadcom but 47616 observed from PMC
+                      data=data
+                      )
+
+        frame = OmciFrame(
+            transaction_id=self.trangen.next(),
+            message_type=OmciSet.message_id,
+            omci_message=msg
+        )
+        self.adapter_agent.send_proxied_message(device.proxy_address, frame)
+        log.debug(
+            "[SENT] set_extended_vlan_tagging_operation_tpid_configuration_data")
 
     @inlineCallbacks
-    def send_set_extended_vlan_tagging_operation_vlan_configuration_data(self, device, cvlan_id, subs_vlan, port):
+    def send_set_extended_vlan_tagging_operation_vlan_configuration_data(self, device, cvlan_id, subs_vlan):
         # ###[ PAS5211MsgSendFrame ]###
         #            length    = 44
         #            port_type = 0
@@ -1128,6 +1235,10 @@ class TlgsOnuHandler(object):
         #             |   |  data      = {'received_frame_vlan_tagging_operation_table': '\xf8\x00\x00\x00\x00\x00@\x00@\x0f\x00\x04\x00\x00\x00\x0c'}
         #             |  omci_trailer= 40
 
+        # TODO  Check filter_inner_priority value
+        """vlan_oper_table_entry.filter_configuration.filter_inner_tagging.vlan_priority = filter_inner_vlan_pcp;
+            vlan_oper_table_entry.filter_configuration.filter_inner_tagging.vlan_vid = filter_inner_vlan_id;
+        """
         self.send_vlan_tagging_operation_msg(device,
             VlanTaggingOperation(
                 filter_outer_priority=OMCI_EX_VLAN_TAG_OCD_FILTER_PRIO_NO_TAG,
@@ -1147,8 +1258,9 @@ class TlgsOnuHandler(object):
                 treatment_inner_priority=0,
                 treatment_inner_vid=cvlan_id,
                 treatment_inner_tpid_de=OMCI_EX_VLAN_TAG_OCD_TREAT_TPID_EQ_8100
-            ), port)
-        response = yield self.wait_for_omci_response()
+            )
+            )
+        response = yield self.wait_for_response()
 
         log.debug(
             "[SENT] send_set_extended_vlan_tagging_operation_vlan_configuration_data")
@@ -1180,12 +1292,13 @@ class TlgsOnuHandler(object):
                 treatment_inner_priority=OMCI_EX_VLAN_TAG_OCD_TREAT_PRIO_NONE,
                 treatment_inner_vid=OMCI_EX_VLAN_TAG_OCD_TREAT_PRIO_COPY_FROM_INNER,
                 treatment_inner_tpid_de=OMCI_EX_VLAN_TAG_OCD_TREAT_TPID_DE_COPY_FROM_INNER
-            ), port)
+            )
+            )
 
         log.debug(
             "[SENT] send_set_extended_vlan_tagging_operation_vlan_configuration_data")
 
-        response = yield self.wait_for_omci_response()
+        response = yield self.wait_for_response()
         if OmciSetResponse not in response:
             log.error("Failed to set vlan extended table entry {}".format(
                 device.proxy_address))
@@ -1213,12 +1326,13 @@ class TlgsOnuHandler(object):
                 treatment_inner_priority=OMCI_EX_VLAN_TAG_OCD_TREAT_PRIO_NONE,
                 treatment_inner_vid=OMCI_EX_VLAN_TAG_OCD_TREAT_PRIO_COPY_FROM_INNER,
                 treatment_inner_tpid_de=OMCI_EX_VLAN_TAG_OCD_TREAT_TPID_DE_COPY_FROM_INNER
-            ), port)
+            )
+            )
 
         log.debug(
             "[SENT] send_set_extended_vlan_tagging_operation_vlan_configuration_data")
 
-        response = yield self.wait_for_omci_response()
+        response = yield self.wait_for_response()
         if OmciSetResponse not in response:
             log.error("Failed to set vlan extended table entry {}".format(
                 device.proxy_address))
@@ -1246,22 +1360,25 @@ class TlgsOnuHandler(object):
                 treatment_inner_priority=OMCI_EX_VLAN_TAG_OCD_TREAT_PRIO_NONE,
                 treatment_inner_vid=OMCI_EX_VLAN_TAG_OCD_TREAT_PRIO_COPY_FROM_INNER,
                 treatment_inner_tpid_de=OMCI_EX_VLAN_TAG_OCD_TREAT_TPID_DE_COPY_FROM_INNER
-            ), port)
+            )
+            )
 
         log.debug(
             "[SENT] send_set_extended_vlan_tagging_operation_vlan_configuration_data")
 
-        response = yield self.wait_for_omci_response()
+        response = yield self.wait_for_response()
         if OmciSetResponse not in response:
             log.error("Failed to set vlan extended table entry {}".format(
                 device.proxy_address))
             returnValue(False)
+
         log.debug(
             "[RESPONSE] send_set_extended_vlan_tagging_operation_vlan_configuration_data")
 
         returnValue(True)
 
-    def send_vlan_tagging_operation_msg(self, device, vlan_tagging_operation_table, port):
+
+    def send_vlan_tagging_operation_msg(self, device, vlan_tagging_operation_table):
 
         data = dict(
             received_frame_vlan_tagging_operation_table=vlan_tagging_operation_table
@@ -1269,7 +1386,7 @@ class TlgsOnuHandler(object):
 
         msg = OmciSet(
             entity_class=171,
-            entity_id=port,
+            entity_id=0,
             attributes_mask=1024,
             data=data
         )
@@ -1279,8 +1396,8 @@ class TlgsOnuHandler(object):
             message_type=OmciSet.message_id,
             omci_message=msg
         )
-        _frame = hexify(str(frame))
-        self.adapter_agent.send_proxied_message(device.proxy_address, _frame)
+
+        self.adapter_agent.send_proxied_message(device.proxy_address, frame)
         log.debug("[SENT] create_vlan_tagging_filter_data")
 
     def send_create_vlan_tagging_filter_data(self, device, cvlan_id):
@@ -1318,9 +1435,90 @@ class TlgsOnuHandler(object):
             message_type=OmciCreate.message_id,
             omci_message=msg
         )
-        _frame = hexify(str(frame))
-        self.adapter_agent.send_proxied_message(device.proxy_address, _frame)
+
+        self.adapter_agent.send_proxied_message(device.proxy_address, frame)
         log.debug("[SENT] create_vlan_tagging_filter_data")
+
+    def pmc_ofal_remove_default_onu_flow_omci(self, device):  # TODO
+        # ###[ PAS5211Dot3 ]###
+        #     dst = 00:0
+        #     c: d5:00: 04:10
+        #     src = 02:00: d3:77: 47:49
+        #     len = 74
+        # ###[ PAS5211FrameHeader ]###
+        #     part = 1
+        #     total_parts = 1
+        #     size = 68
+        #     magic_number = 0x1234abcd
+        # ###[ PAS5211MsgHeader ]###
+        #     sequence_number = 201
+        #     opcode = 0x302a
+        #     event_type = 0
+        #     channel_id = 1
+        #     onu_id = 0
+        #     onu_session_id = 1
+        # ###[ PAS5211MsgSendFrame ]###
+        #     length = 44
+        #     port_type = 0
+        #     port_id = 0
+        #     management_frame = 1
+        #     \frame \
+        #      |  ###[ OmciFrame ]###
+        #         | transaction_id = 44
+        #         | message_type = 70
+        #         | omci = 10
+        #         |   \omci_message \
+        #              | |  ###[ OmciDelete ]###
+        #         | | entity_class = 47
+        #         | | entity_id = 1
+        #     | omci_trailer = 40
+        log.debug("[SENT] pmc_ofal_remove_default_onu_flow_omci")
+        pass
+
+    def pmc_omci_evto_vlan_oper_table_entry_assign(self, device):  # TODO
+
+        # /* Fill the set message */
+        # entity.entity_class    = OMCI_ENT_EX_VLAN_TAGGING_OPER_CONFIG_DATA;
+        # entity.entity_instance = entity_instance;
+        # set_req_msg.attr_mask  = attributes_mask;
+
+        # typedef struct OMCI_ex_vlan_tagging_operation_config_me_set_t
+        # {
+        #     INT8U             association_type;    /* Association type  ,R,W,C  (ASSOCIATION_TYPE_)*/
+        #     INT16U            input_tpid;         /* Input TPID value   ,R,W (16 bit value)*/
+        #     INT16U            output_tpid;        /* Output TPID value  ,R,W (16 bit value)*/
+        #     INT8U             downstream_mode;    /* downstream mode    ,R,W (OCD_DS_MODE_)*/
+        #
+        #     OMCI_ex_vlan_tag_op_table_entry_t       /* Operation entry    ,R,W (16 bytes)    */
+        #                         operations_entry;
+        #
+        #     OMCI_instance_id_t    associated_me_ptr;
+        #
+        #     INT8U               dscp2pbit_mapping[OMCI_EX_VLAN_TAG_ATTR_DSCP2PBIT_MAPPING_SIZE];/*dscp-to-pbit mapping ,R,W (24 bytes)*/
+        #
+        # } OMCI_ex_vlan_tagging_operation_config_me_set_t;
+
+        # attibute_mask = 0
+        # # attibute_mask |= ( (INT16U)1 << ((OMCI_ATTR_MAX-1)-(OMCI_EX_VLAN_TAG_OCD_ATTR_RX_FRAME_OP_TABLE)))
+        # msg = OmciSet(entity_class=OMCI_ENT_EX_VLAN_TAGGING_OPER_CONFIG_DATA, entity_id=0, attributes_mask=attibute_mask,
+        #               data=dict(
+        #                   association_type=,
+        #                   input_tpid=,
+        #                   output_tpid=,
+        #                   downstream_mode=,
+        #                   associated_me_pointer=,
+        #                   dscp2pbit_mapping=
+        #               ))
+
+        # frame = OmciFrame(transaction_id=self.trangen.next(),
+        #                   message_type=OmciSet.message_id,
+        #                   omci_message=msg)
+
+        # self.adapter_agent.send_proxied_message(device.proxy_address, frame)
+
+        # TODO: Sends up to three OMCI Set messages
+        log.debug("[SENT] pmc_omci_evto_vlan_oper_table_entry_assign")
+        pass
 
     @inlineCallbacks
     def pmc_omci_vlan_tagging_filter_me_allocate(self, device):  # TODO
@@ -1377,8 +1575,7 @@ class TlgsOnuHandler(object):
             message_type=OmciSet.message_id,
             omci_message=msg
         )
-        _frame = hexify(str(frame))
-        self.adapter_agent.send_proxied_message(device.proxy_address, _frame)
+        self.adapter_agent.send_proxied_message(device.proxy_address, frame)
 
         log.debug("[SENT] pmc_omci_8021p_msp_me_assign")
 
@@ -1423,8 +1620,8 @@ class TlgsOnuHandler(object):
         frame = OmciFrame(transaction_id=self.trangen.next(),
                           message_type=OmciDelete.message_id,
                           omci_message=msg)
-        _frame = hexify(str(frame))
-        self.adapter_agent.send_proxied_message(device.proxy_address, _frame)
+
+        self.adapter_agent.send_proxied_message(device.proxy_address, frame)
         log.debug("[SENT] pmc_omci_gem_iwtp_me_deallocate")
 
     def pmc_omci_gem_nctp_me_deallocate(self, device):
@@ -1442,8 +1639,8 @@ class TlgsOnuHandler(object):
         frame = OmciFrame(transaction_id=self.trangen.next(),
                           message_type=OmciDelete.message_id,
                           omci_message=msg)
-        _frame = hexify(str(frame))
-        self.adapter_agent.send_proxied_message(device.proxy_address, _frame)
+
+        self.adapter_agent.send_proxied_message(device.proxy_address, frame)
         log.debug("[SENT] pmc_omci_gem_nctp_me_allocate")
 
     def pmc_omci_vlan_tagging_filter_me_deallocate(self, device):
@@ -1461,8 +1658,8 @@ class TlgsOnuHandler(object):
         frame = OmciFrame(transaction_id=self.trangen.next(),
                           message_type=OmciDelete.message_id,
                           omci_message=msg)
-        _frame = hexify(str(frame))
-        self.adapter_agent.send_proxied_message(device.proxy_address, _frame)
+
+        self.adapter_agent.send_proxied_message(device.proxy_address, frame)
         log.debug("[SENT] pmc_omci_vlan_tagging_filter_me_deallocate")
 
 
@@ -1481,8 +1678,8 @@ class TlgsOnuHandler(object):
         frame = OmciFrame(transaction_id=self.trangen.next(),
                           message_type=OmciDelete.message_id,
                           omci_message=msg)
-        _frame = hexify(str(frame))
-        self.adapter_agent.send_proxied_message(device.proxy_address, _frame)
+
+        self.adapter_agent.send_proxied_message(device.proxy_address, frame)
         log.debug("[SENT] pmc_omci_mac_bridge_pcd_me_deallocate")
 
 
@@ -1502,23 +1699,25 @@ class TlgsOnuHandler(object):
         frame = OmciFrame(transaction_id=self.trangen.next(),
                           message_type=OmciDelete.message_id,
                           omci_message=msg)
-        _frame = hexify(str(frame))
-        self.adapter_agent.send_proxied_message(device.proxy_address, _frame)
+
+        self.adapter_agent.send_proxied_message(device.proxy_address, frame)
         log.debug("[SENT] pmc_omci_8021p_msp_me_deallocate")
 
-    def pmc_omci_evto_deallocate(self, device, port):
+    def pmc_omci_evto_deallocate(self, device):
 
-        msg = OmciDelete(entity_class=171, entity_id=port)
+        msg = OmciDelete(entity_class=171, entity_id=1)
 
         frame = OmciFrame(transaction_id=self.trangen.next(),
                           message_type=OmciDelete.message_id,
                           omci_message=msg)
-        _frame = hexify(str(frame))
-        self.adapter_agent.send_proxied_message(device.proxy_address, _frame)
+        self.adapter_agent.send_proxied_message(device.proxy_address, frame)
         log.debug("[SENT] pmc_omci_evto_deallocate")
+
 
 
     """ -   -   -   -   -   -   -   END delete_data_flow_omci_config   -   -   -   -   -   -   - """
 
-def mac_str_to_tuple(mac):
-    return tuple(int(d, 16) for d in mac.split(':'))
+
+
+
+
