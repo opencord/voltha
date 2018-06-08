@@ -36,11 +36,15 @@ import sys, gc
 
 log = structlog.get_logger()
 
+MAX_RETRIES = 10
+
 
 class OMCIProxy(BaseOltAutomaton):
 
     proxy_address = None
     msg = None
+    retries = 0
+    to_send = None
 
     def parse_args(self, debug=0, store=0, **kwargs):
         self.adaptor_agent = kwargs.pop('adapter_agent')
@@ -48,7 +52,7 @@ class OMCIProxy(BaseOltAutomaton):
         self.msg = kwargs.pop('msg')
 
         BaseOltAutomaton.parse_args(self, debug=debug, store=store, **kwargs)
-    
+
     def restart(self, *args, **kargs):
         self.msg = kargs.pop('msg')
         super(OMCIProxy, self).restart()
@@ -60,7 +64,7 @@ class OMCIProxy(BaseOltAutomaton):
 
         if not self.proxy_address.channel_id:
             self.proxy_address.channel_id = 0
-        
+
         if not self.proxy_address.onu_id:
             self.proxy_address.onu_id = 0
 
@@ -72,6 +76,8 @@ class OMCIProxy(BaseOltAutomaton):
                         if OmciFrame in pkt:
                             if pkt[OmciFrame].message_type not in (16, 17):
                                 return True
+                            else:
+                                log.debug('OmciAlarmNotification Received')
                         # # SendFrameResponse corresponding to OMCI PAS request
                         elif PAS5211MsgSendFrameResponse in pkt:
                             return True
@@ -121,8 +127,8 @@ class OMCIProxy(BaseOltAutomaton):
         log.debug('send-omci-msg', proxy_address=self.proxy_address)
         send_frame = PAS5211MsgSendFrame(port_type=PON_PORT_PON, port_id=self.proxy_address.onu_id,
                                          management_frame=PON_TRUE, frame=self.msg)
-        to_send = self.px(send_frame)
-        self.send(to_send)
+        self.to_send = self.px(send_frame)
+        self.send(self.to_send)
         raise self.wait_send_response()
 
     # Transitions from wait_send_response
@@ -130,8 +136,13 @@ class OMCIProxy(BaseOltAutomaton):
     def timeout_wait_send_response(self):
         log.debug('omci-proxy-timeout')
         # Send back empty packet...
-        self.adaptor_agent.receive_proxied_message(self.proxy_address, dict())
-        raise self.error("No ack for OMCI for {}".format(self.proxy_address))
+        if self.retries < MAX_RETRIES:
+            self.retries += 1
+            self.send(self.to_send)
+            raise self.wait_send_response()
+        else:
+            self.adaptor_agent.receive_proxied_message(self.proxy_address, dict())
+            raise self.error("No ack for OMCI for {}".format(self.proxy_address))
 
     @ATMT.receive_condition(wait_send_response)
     def wait_for_send_response(self, pkt):
@@ -143,8 +154,13 @@ class OMCIProxy(BaseOltAutomaton):
     def timeout_wait_event(self):
         log.debug('omci-proxy-timeout')
         # Send back empty packet...
-        self.adaptor_agent.receive_proxied_message(self.proxy_address, dict())
-        raise self.error("No OMCI event for {}".format(self.proxy_address))
+        if self.retries < MAX_RETRIES:
+            self.retries += 1
+            self.send(self.to_send)
+            raise self.wait_send_response()
+        else:
+            self.adaptor_agent.receive_proxied_message(self.proxy_address, dict())
+            raise self.error("No ack for OMCI for {}".format(self.proxy_address))
 
     @ATMT.receive_condition(wait_event)
     def wait_for_event(self, pkt):

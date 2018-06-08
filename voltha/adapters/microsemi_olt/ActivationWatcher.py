@@ -30,6 +30,7 @@ from voltha.adapters.microsemi_olt.PAS5211 import PAS5211EventOnuActivation, PAS
     PAS5211MsgSetPortIdConfigResponse, PAS5211MsgGetOnuIdByPortId, PAS5211MsgGetOnuIdByPortIdResponse, \
     PAS5211SetVlanUplinkConfiguration, PAS5211SetVlanUplinkConfigurationResponse, PAS5211MsgSetOnuAllocIdResponse, \
     PAS5211MsgHeader, PAS5211MsgGetOltVersionResponse, PAS5211EventOnuDeactivation, PAS5211EventAlarmNotification
+
     #PAS5211EventAlarmNotification, PAS5211EventOnuDeactivation
 from voltha.adapters.microsemi_olt.PAS5211_constants import PON_ACTIVATION_AUTH_AUTO, PON_ENABLE, PON_PORT_PON, \
     PON_LOGICAL_OBJECT_TYPE_ALLOC_ID, PON_LOGICAL_OBJECT_TYPE_ONU_ID_BY_ALLOC_ID, PON_TRUE, \
@@ -39,10 +40,16 @@ from voltha.adapters.microsemi_olt.PAS5211_constants import PON_ACTIVATION_AUTH_
     PON_FALSE, PON_DISABLE, PON_ALARM_LOS, PASCOMM_RETRIES, \
     PON_ALARM_LOSI, PON_ALARM_DOWI, PON_ALARM_LOFI, PON_ALARM_RDII, PON_ALARM_LOAMI, PON_ALARM_LCDGI, \
     PON_ALARM_LOAI, PON_ALARM_SDI, PON_ALARM_SFI, PON_ALARM_PEE, PON_ALARM_DGI, PON_ALARM_LOKI, PON_ALARM_TIWI, \
-    PON_ALARM_TIA, PON_ALARM_AUTH_FAILED_IN_REGISTRATION_ID_MODE, PON_ALARM_SUFI
+    PON_ALARM_TIA, PON_ALARM_AUTH_FAILED_IN_REGISTRATION_ID_MODE, PON_ALARM_SUFI,\
+    PON_DOWNSTREAM_PLOAM_MESSAGE_ENCRYPTED_PORT_ID, PON_DOWNSTREAM_PLOAM_MESSAGE_ASSIGN_ALLOC_ID, \
+    PON_DOWNSTREAM_PLOAM_MESSAGE_CONFIGURE_PORT_ID, PON_DOWNSTREAM_PLOAM_MESSAGE_BER_INTERVAL, \
+    PON_DOWNSTREAM_PLOAM_MESSAGE_KEY_SWITCHING, PON_ALARM_SDI_RAISE, PON_ALARM_SDI_CLEAR, \
+    PON_ALARM_RAISE, PON_ALARM_CLEAR
+
 from voltha.extensions.omci.omci_entities import CircuitPack
 from voltha.extensions.omci.omci_frame import OmciFrame
-from voltha.extensions.omci.omci_messages import OmciGet, OmciGetResponse
+from voltha.extensions.omci.omci_messages import OmciGet, OmciGetResponse, OmciAlarmNotification
+
 
 from twisted.internet import reactor
 
@@ -52,8 +59,7 @@ from voltha.protos.events_pb2 import AlarmEvent, AlarmEventType, \
 log = structlog.get_logger()
 _verbose = False
 
-ALLOC_ID = 1000
-
+MAX_RETRIES = 10
 
 def alloc_id(onu_id):
     for i in range(0, PMC_OFAL_MAX_BI_DIRECTIONAL_FLOW_PER_ONU):
@@ -76,6 +82,7 @@ class ActivationManager(BaseOltAutomaton):
     alloc_id = None
     vendor = None
     olt_adapter = None
+    retries = 0
 
     def parse_args(self, debug=0, store=0,**kwargs):
         self.onu_id = kwargs.pop('onu_id')
@@ -101,7 +108,7 @@ class ActivationManager(BaseOltAutomaton):
 
         if not super(ActivationManager, self).master_filter(pkt):
             return False
-    
+
 
         if OmciFrame in pkt:
             if pkt[OmciFrame].message_type in (16, 17):
@@ -111,7 +118,7 @@ class ActivationManager(BaseOltAutomaton):
             if PAS5211MsgHeader in pkt:
                 if pkt[PAS5211MsgHeader].channel_id == self.channel_id:
                     return True
-        
+
         return False
 
     def create_default_data_flow_olt_config(self):
@@ -173,7 +180,7 @@ class ActivationManager(BaseOltAutomaton):
         log.debug("activation-manager-end")
         self.activation_watcher.next_activation()
 
-    
+
     @ATMT.state(error=1)
     def error(self, msg):
         log.error(msg)
@@ -191,7 +198,7 @@ class ActivationManager(BaseOltAutomaton):
         try:
             log.info("Activated {} ONT, channel_id={}, onu_id={}, session_id={}, serial={} ".format(
                 self.vendor, self.channel_id, self.onu_id, self.onu_session_id, hexstring(self.serial_number)))
-            
+
             parent_port = self.channel_id * 32 + (self.onu_id + 1)
             self.olt_adapter.add_onu_info(parent_port, self.onu_id, self.onu_session_id)
 
@@ -205,8 +212,8 @@ class ActivationManager(BaseOltAutomaton):
             )
 
         except Exception as e:
-            log.exception('failed', e=e)
-            raise e
+            log.exception('detect-onu-failed', e=e)
+            # raise e
 
     """
     Transitions
@@ -223,8 +230,12 @@ class ActivationManager(BaseOltAutomaton):
     # Transitions from wait_get_auth_mode
     @ATMT.timeout(wait_get_auth_mode, 3)
     def timeout_get_auth_mode(self):
-        raise self.error('Could not get auth mode for OLT {}; dropping activation event for {}'
-            .format(self.target, hexstring(self.serial_number)))
+        if self.retries < MAX_RETRIES:
+            self.retries += 1
+            self.send_get_activation_auth_mode()
+        else:
+            raise self.error('Could not get auth mode for OLT {}; dropping activation event for {}'
+                .format(self.target, hexstring(self.serial_number)))
 
     @ATMT.receive_condition(wait_get_auth_mode)
     def wait_for_get_auth_mode(self, pkt):
@@ -253,8 +264,12 @@ class ActivationManager(BaseOltAutomaton):
     # Transitions from wait_omci_port_id
     @ATMT.timeout(wait_omci_port_id, 3)
     def timeout_omci_port_id(self):
-        raise self.error('Could not set omci port id for OLT {}; dropping activation event for {}'
-            .format(self.target, hexstring(self.serial_number)))
+        if self.retries < MAX_RETRIES:
+            self.retries += 1
+            self.send_omci_port_id()
+        else:
+            raise self.error('Could not set omci port id for OLT {}; dropping activation event for {}'
+                .format(self.target, hexstring(self.serial_number)))
 
     @ATMT.receive_condition(wait_omci_port_id)
     def wait_for_omci_port_id(self, pkt):
@@ -287,7 +302,11 @@ class ActivationManager(BaseOltAutomaton):
     # Transitions from wait_send_frame
     @ATMT.timeout(wait_send_frame, 3)
     def timeout_send_frame(self):
-        raise self.error('Could not send omci to OLT {}; dropping activation event for {}'
+        if self.retries < MAX_RETRIES:
+            self.retries += 1
+            self.send_omci_identity_frame()
+        else:
+            raise self.error('Could not send omci to OLT {}; dropping activation event for {}'
                          .format(self.target, hexstring(self.serial_number)))
 
     @ATMT.receive_condition(wait_send_frame)
@@ -300,8 +319,12 @@ class ActivationManager(BaseOltAutomaton):
     # Transitions from wait_omci_get
     @ATMT.timeout(wait_omci_get, 3)
     def timeout_omci_get(self):
-        raise self.error('Did not receive omci get event from OLT {}; dropping activation event for {}'
-            .format(self.target, hexstring(self.serial_number)))
+        if self.retries < MAX_RETRIES:
+            self.retries += 1
+            self.send_omci_identity_frame()
+        else:
+            raise self.error('Did not receive omci get event from OLT {}; dropping activation event for {}'
+                .format(self.target, hexstring(self.serial_number)))
 
     @ATMT.receive_condition(wait_omci_get)
     def wait_for_omci_get(self, pkt):
@@ -321,8 +344,15 @@ class ActivationManager(BaseOltAutomaton):
     # Transitions from wait_logical_object_status
     @ATMT.timeout(wait_logical_object_status, 3)
     def timeout_logical_object_status(self):
-        raise self.error('Did not receive info about alloc id status for {}; dropping activation event for {}'
-            .format(self.target, hexstring(self.serial_number)))
+        if self.retries < MAX_RETRIES:
+            self.retries += 1
+            l_obj_status = PAS5211MsgGetLogicalObjectStatus(
+                type=PON_LOGICAL_OBJECT_TYPE_ALLOC_ID,
+                value=self.allocId)
+            self.send(self.p(l_obj_status, channel_id=self.channel_id))
+        else:
+            raise self.error('Did not receive info about alloc id status for {}; dropping activation event for {}'
+                .format(self.target, hexstring(self.serial_number)))
 
     @ATMT.receive_condition(wait_logical_object_status)
     def wait_for_logical_object_status(self, pkt):
@@ -369,7 +399,15 @@ class ActivationManager(BaseOltAutomaton):
     # Transitions from wait_set_alloc_id
     @ATMT.timeout(wait_set_alloc_id, 3)
     def timeout_set_alloc_id(self):
-        raise self.error('Was not able to set alloc id for {}; dropping activation event for {}'
+        if self.retries < MAX_RETRIES:
+            self.retries += 1
+            set_alloc_id = PAS5211MsgSetOnuAllocId(
+                    alloc_id=self.allocId,
+                    allocate=PON_ENABLE
+                )
+            self.send(self.px(set_alloc_id))
+        else:
+            raise self.error('Was not able to set alloc id for {}; dropping activation event for {}'
                          .format(self.target, hexstring(self.serial_number)))
 
     @ATMT.receive_condition(wait_set_alloc_id)
@@ -384,7 +422,12 @@ class ActivationManager(BaseOltAutomaton):
     # PMC_OFAL.c 2062)
     @ATMT.timeout(wait_dba_mode, 3)
     def timeout_wait_dba_mode(self):
-        raise self.error('Did not get DBA mode for {}; dropping activation event for {}'
+        if self.retries < MAX_RETRIES:
+            self.retries += 1
+            self.send(self.p(PAS5211MsgGetDbaMode(),
+                             channel_id=self.channel_id))
+        else:
+            raise self.error('Did not get DBA mode for {}; dropping activation event for {}'
                          .format(self.target, hexstring(self.serial_number)))
 
     @ATMT.receive_condition(wait_dba_mode)
@@ -397,7 +440,7 @@ class ActivationManager(BaseOltAutomaton):
             self.detect_onu()
             raise self.end()
 
-   
+
 class ActivationWatcher(BaseOltAutomaton):
     """
         Master filter: Do not allow PAS5211MsgGetOltVersionResponse
@@ -418,6 +461,9 @@ class ActivationWatcher(BaseOltAutomaton):
             return True
 
         elif PAS5211EventAlarmNotification in pkt:
+            return True
+
+        elif OmciAlarmNotification in pkt:
             return True
 
         return False
@@ -454,14 +500,14 @@ class ActivationWatcher(BaseOltAutomaton):
         log.debug("deactivate-onu")
         msg_header = pkt[PAS5211MsgHeader]
         try:
-            log.debug("Deactivating ONT, channel_id={}, onu_id={}, session_id={},".format(
+            log.debug("Deactivating ONT, channel_id={}, onu_id={}, session_id={}".format(
                 msg_header.channel_id, msg_header.onu_id, msg_header.onu_session_id))
 
             self.device.deactivate_onu(channel_id=msg_header.channel_id,
                                        onu_id=msg_header.onu_id,
                                        onu_session_id=msg_header.onu_session_id)
 
-            log.debug("Deactivated ONT, channel_id={}, onu_id={}, session_id={} ".format(
+            log.debug("Deactivated ONT, channel_id={}, onu_id={}, session_id={}".format(
                 msg_header.channel_id, msg_header.onu_id, msg_header.onu_session_id))
         except Exception as e:
             log.exception('deactivate-onu failed', e=e)
@@ -472,7 +518,11 @@ class ActivationWatcher(BaseOltAutomaton):
 
     @ATMT.state(initial=1)
     def wait_onu_activation_event(self):
-        pass
+        log.debug('activation-watcher-start')
+
+    @ATMT.state(final=1)
+    def end(self):
+        log.debug('activation-watcher-end')
 
     """
     Transitions
@@ -494,17 +544,21 @@ class ActivationWatcher(BaseOltAutomaton):
             self.deactivate_onu(pkt)
 
         elif PAS5211EventAlarmNotification in pkt:
-            log.debug('PAS5211EventAlarmNotification Received')
             msg = pkt[PAS5211EventAlarmNotification]
-            log.debug('alarm:info - code: {} '.format(msg.code))
-            log.debug(' alarm:info - parameter1: {}'.format(msg.parameter1))
-            log.debug(' alarm:info - parameter2 {}'.format(msg.parameter2))
-            log.debug(' alarm:info - parameter3 {}'.format(msg.parameter3))
-            log.debug(' alarm:info - parameter4 {}'.format(msg.parameter4))
+            log.debug('PAS5211EventAlarmNotification Received', code=msg.code, parameter1= msg.parameter1, parameter2= msg.parameter2,
+                parameter3= msg.parameter3, parameter4= msg.parameter4)
             try:
                 self.process_alarm(pkt)
             except Exception as e:
-                log.exception('Error at process_alarm', e=e)
+                log.exception('wait-for-onu-activation-alarm-event-error', e=e)
+
+        elif OmciAlarmNotification in pkt:
+            log.debug('OmciAlarmNotification Received')
+            try:
+                self.process_omci_alarm(pkt)
+            except Exception as e:
+                log.exception('wait-for-onu-activation-omci-alarm-event-error', e=e)
+
         else:
             pass
 
@@ -513,66 +567,126 @@ class ActivationWatcher(BaseOltAutomaton):
 
     #Method to parse alarm and send it to DeviceManager
     def process_alarm(self, pkt):
-        log.debug('[Process_alarm] Starting')
+        log.debug('proccess-alarm-start')
         msg_header = pkt[PAS5211MsgHeader]
         msg = pkt[PAS5211EventAlarmNotification]
         code = msg.code
+
         ctx = {
             'alarm_code': str(code),
-        } 
+        }
 
-        ctx = {}
-
-        #Define common alarm parameters
         alarm = dict(
-            #id=None,
-            resource_id='voltha.olt-onuid('+str(msg_header.onu_id)+')',
-            id='voltha.olt',
-            raised_ts=None,
-            changed_ts=None,
+            id='voltha.{}.{}.olt'.format(self.device.adapter_agent.adapter_name, self.device.device.id),
+            resource_id=self.device.device.id,
             type=AlarmEventType.EQUIPMENT,
-            # category=AlarmEventCategory.OLT,
-            # severity=AlarmEventSeverity.INDETERMINATE,
-            # state=AlarmEventState.RAISED,
+            category=AlarmEventCategory.OLT,
+            severity=AlarmEventSeverity.MAJOR,
             context=ctx
         )
 
-        #Define especific alarm parameters
+        if msg_header.onu_id >= 0:
+            ctx['onu_id'] = str(msg_header.onu_id)
+        if msg_header.channel_id >= 0:
+            ctx['channel_id'] = str(msg_header.channel_id)
+        if msg_header.onu_session_id >= 0:
+            ctx['onu_session_id'] = str(msg_header.onu_session_id)
+
         if code == PON_ALARM_LOS:
             alarm['description'] = 'Loss of signal: OLT does not receive transmissions in the upstream'
+            alarm['state'] = msg.parameter2
         elif code == PON_ALARM_LOSI:
             alarm['description'] = 'Loss of signal for ONUi: no signal from the ONU when expected'
+            alarm['state'] = msg.parameter2
         elif code == PON_ALARM_DOWI:
             alarm['description'] = 'Loss of signal for ONUi: no signal from the ONU when expected'
+            alarm['state'] = msg.parameter2
         elif code == PON_ALARM_LOFI:
             alarm['description'] = 'Loss of frame of ONUi: no valid optical signal is received from the ONU'
+            alarm['state'] = msg.parameter2
         elif code == PON_ALARM_RDII:
             alarm['description'] = 'Remote Defect Indication of ONUi: OLT transmissions is received with defect at the ONUi'
+            alarm['state'] = msg.parameter2
         elif code == PON_ALARM_LOAMI:
             alarm['description'] = 'Loss of PLOAM for ONUi: 3 messages of ONU are missing after OLT sends PLOAMu request'
+            alarm['state'] = msg.parameter2
         elif code == PON_ALARM_LCDGI:
             alarm['description'] = 'Loss of GEM channel delineation: GEM fragment delineation of ONUi is lost'
+            alarm['state'] = msg.parameter2
         elif code == PON_ALARM_LOAI:
             alarm['description'] = 'Loss of acknowledge with ONUi: OLT does not receive ack from ONUi'
+            if msg.parameter1 in (PON_DOWNSTREAM_PLOAM_MESSAGE_ENCRYPTED_PORT_ID, PON_DOWNSTREAM_PLOAM_MESSAGE_ASSIGN_ALLOC_ID,
+                        PON_DOWNSTREAM_PLOAM_MESSAGE_CONFIGURE_PORT_ID, PON_DOWNSTREAM_PLOAM_MESSAGE_BER_INTERVAL,
+                        PON_DOWNSTREAM_PLOAM_MESSAGE_KEY_SWITCHING):
+                ctx['downstream_ploam_message_id'] = str(msg.parameter1)
+                alarm['state'] = PON_ALARM_RAISE
+            else:
+                log.error('Error, ignored OLT Alarm {} from OLT device {} because Invalid PLOAM message id in OLT device'.format(code, self.device))
+                return
         elif code == PON_ALARM_SDI:
             alarm['description'] = 'Signal Degraded of ONUi: raised when the upstream BER of ONUi goes below certain level'
+            if msg.parameter1 in (PON_ALARM_SDI_RAISE, PON_ALARM_SDI_CLEAR):
+                ctx['onu_id'] = str(msg_header.onu_id)
+                ctx['parameter'] = str(msg.parameter1)
+                alarm['state'] = PON_ALARM_RAISE
+            else:
+                log.error('Error, ignored OLT Alarm {} from OLT device {} because Invalid parameter of alarm SDI'.format(code, self.device))
+                return
         elif code == PON_ALARM_SFI:
             alarm['description'] = 'Signal Fail of ONUi: raised when the upstream of ONUi becomes greater than some level'
+            alarm['state'] = msg.parameter1
         elif code == PON_ALARM_PEE:
             alarm['description'] = 'Physical Equipment Error of ONUi: raised when the OLT receives a PEE message from the ONU'
+            alarm['state'] = msg.parameter2
         elif code == PON_ALARM_DGI:
             alarm['description'] = 'Dying Gasp of ONUi: raised when the OLT receives DG message from ONUi'
+            alarm['state'] = msg.parameter2
         elif code == PON_ALARM_LOKI:
             alarm['description'] = 'Loss of key synch with ONUi: Key transmission from ONU fails 3 times'
+            alarm['state'] = msg.parameter2
         elif code == PON_ALARM_TIWI:
             alarm['description'] = 'Transmission interference warning: raised when the drift of ONU transmissions exceeds specified threshold'
+            alarm['state'] = msg.parameter2
         elif code == PON_ALARM_TIA:
             alarm['description'] = 'Transmission Interference Alarm: an ONU turns on its laser at another ONUs time'
+            alarm['state'] = msg.parameter2
         else:
-            log.error('Error, unsupported OLT Alarm {} received from OLT device'.format(code, self.device))
-            alarm['description'] = ''
+            log.error('Error, unsupported OLT Alarm {} received from OLT device {}'.format(code, self.device))
+            return
 
-        log.debug('[Process_alarm] Send alarm to DeviceManager')
-        log.warn('Alarm: '+alarm['description']+' from '+alarm['id'])
+        log.warn('Alarm', alarm=alarm)
+        self.device.publish_alarm(alarm)
+        log.debug('proccess-alarm-stop')
+
+
+    def process_omci_alarm(self, pkt):
+
+        log.debug('proccess-omci-alarm-start')
+        msg_header = pkt[PAS5211MsgHeader]
+        msg_omci_alarm = pkt[OmciAlarmNotification]
+
+        ctx = {
+            'entity_class': str(msg_omci_alarm.entity_class),
+            'entity_id': str(msg_omci_alarm.entity_id),
+            'alarm_bit_map': str(msg_omci_alarm.alarm_bit_map),
+            'alarm_sequence_number': str(msg_omci_alarm.alarm_sequence_number)
+        }
+
+        if msg_header.onu_id >= 0:
+            ctx['onu_id'] = str(msg_header.onu_id)
+        if msg_header.channel_id >= 0:
+            ctx['channel_id'] = str(msg_header.channel_id)
+        if msg_header.onu_session_id >= 0:
+            ctx['onu_session_id'] = str(msg_header.onu_session_id)
+
+        alarm = dict(
+            id='voltha.{}.{}.ont'.format(self.device.adapter_agent.adapter_name, self.device.device.id),
+            resource_id=self.device.device.id,
+            type=AlarmEventType.EQUIPMENT,
+            category=AlarmEventCategory.OLT,
+            context=ctx
+        )
 
         self.device.publish_alarm(alarm)
+        log.warn('Alarm', alarm=alarm)
+        log.debug('proccess-alarm-stop')
