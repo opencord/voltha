@@ -101,12 +101,12 @@ class APIProxy(BaseOltAutomaton):
     """
 
     def px(self, pkt):
-        
+
         if not self.proxy_address.channel_id:
             self.proxy_address.channel_id = 0
 
-        return self.p(pkt, channel_id=self.proxy_address.channel_id, 
-            onu_id=self.proxy_address.onu_id, 
+        return self.p(pkt, channel_id=self.proxy_address.channel_id,
+            onu_id=self.proxy_address.onu_id,
             onu_session_id=self.proxy_address.onu_session_id)
 
     """
@@ -134,7 +134,7 @@ class APIProxy(BaseOltAutomaton):
             log.debug("adaptor-rcv", adaptor=self.adaptor_agent)
             self.adaptor_agent.receive_proxied_message(self.proxy_address, pkt['PAS5211MsgHeader'])
             raise self.end()
- 
+
     def __del__(self):
         log.debug("APIProxy deleted")
         super(APIProxy, self).__del__()

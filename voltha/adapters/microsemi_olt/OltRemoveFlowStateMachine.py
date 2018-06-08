@@ -40,7 +40,7 @@ from voltha.adapters.microsemi_olt.PAS5211 import PAS5211GetOnuAllocs, PAS5211Ge
     PAS5211SetVlanUplinkConfiguration, PAS5211SetVlanUplinkConfigurationResponse, PAS5211SetUplinkVlanHandlResponse, PAS5211SetVlanGenConfig, PAS5211SetVlanGenConfigResponse, \
     PAS5211GetPortIdDownstreamPolicingConfig, PAS5211GetPortIdDownstreamPolicingConfigResponse, PAS5211RemoveDownstreamPolicingConfig, \
     PAS5211MsgHeader, PAS5211UnsetPortIdPolicingConfigResponse, PAS5211RemoveDownstreamPolicingConfigResponse, \
-    PAS5211SetPortIdPolicingConfigResponse
+    PAS5211SetPortIdPolicingConfigResponse, PAS5211EventAlarmNotification
 from voltha.adapters.microsemi_olt.PAS5211_constants import OMCI_GEM_IWTP_IW_OPT_8021P_MAPPER, PON_FALSE, \
     PON_1_TO_1_VLAN_MODE, PON_TRUE, PON_VLAN_UNUSED_TAG, PON_VLAN_UNUSED_PRIORITY, PON_VLAN_REPLACE_PRIORITY, \
     PON_OUTPUT_VLAN_PRIO_HANDLE_INCOMING_VLAN, PON_VLAN_UNCHANGED_PRIORITY, PON_OUTPUT_VLAN_PRIO_HANDLE_DONT_CHANGE, \
@@ -51,9 +51,11 @@ from voltha.adapters.microsemi_olt.PAS5211_constants import OMCI_GEM_IWTP_IW_OPT
     PON_DISABLE, PON_VLAN_CHANGE_TAG, PON_VLAN_DONT_CHANGE_TAG, PON_PORT_TYPE_GEM, PON_PORT_DESTINATION_CNI0, PON_ENABLE, SLA_gr_bw_gros, PYTHAGORAS_UPDATE_AID_SLA, \
     SLA_gr_bw_gros, SLA_be_bw_gros, SLA_gr_bw_fine, SLA_be_bw_fine, PYTHAGORAS_DBA_DATA_COS, PYTHAGORAS_DBA_STATUS_REPORT_NSR, \
     PMC_OFAL_NO_POLICY, UPSTREAM, DOWNSTREAM
-    
+
 log = structlog.get_logger()
 
+MAX_RETRIES = 10
+TIMEOUT = 5
 
 class OltRemoveFlowStateMachine(BaseOltAutomaton):
 
@@ -63,9 +65,10 @@ class OltRemoveFlowStateMachine(BaseOltAutomaton):
     onu_session_id = None
     alloc_id = None
     policy_id = None
+    retries = 0
 
     def parse_args(self, debug=0, store=0, **kwargs):
-        
+
         self.onu_id = kwargs.pop('onu_id')
         self.channel_id = kwargs.pop('channel_id')
         self.port_id = kwargs.pop('port_id')
@@ -81,13 +84,13 @@ class OltRemoveFlowStateMachine(BaseOltAutomaton):
             return False
 
         if PAS5211MsgHeader in pkt:
-            if PAS5211MsgGetOltVersionResponse not in pkt:
-                if pkt[PAS5211MsgHeader].channel_id == self.channel_id:
-                    if pkt[PAS5211MsgHeader].onu_id == self.onu_id:
-                        if OmciFrame not in pkt:
-                            if PAS5211MsgSendFrameResponse not in pkt:
-                                return True
-
+            if PAS5211EventAlarmNotification not in pkt:
+                if PAS5211MsgGetOltVersionResponse not in pkt:
+                    if pkt[PAS5211MsgHeader].channel_id == self.channel_id:
+                        if pkt[PAS5211MsgHeader].onu_id == self.onu_id:
+                            if OmciFrame not in pkt:
+                                if PAS5211MsgSendFrameResponse not in pkt:
+                                    return True
         return False
 
     """
@@ -102,7 +105,7 @@ class OltRemoveFlowStateMachine(BaseOltAutomaton):
     @ATMT.state()
     def wait_set_port_id_configuration_response(self):
         pass
-    
+
     @ATMT.state()
     def wait_get_onu_id_by_port_id_response(self):
         pass
@@ -128,8 +131,8 @@ class OltRemoveFlowStateMachine(BaseOltAutomaton):
     """
 
     def px(self, pkt):
-        return self.p(pkt, channel_id=self.channel_id, 
-            onu_id=self.onu_id, 
+        return self.p(pkt, channel_id=self.channel_id,
+            onu_id=self.onu_id,
             onu_session_id=self.onu_session_id)
 
     """
@@ -141,11 +144,13 @@ class OltRemoveFlowStateMachine(BaseOltAutomaton):
         self.send_get_onu_id_by_port_id(self.device.device, self.port_id)
         raise self.wait_get_onu_id_by_port_id_response()
 
-
-    @ATMT.timeout(wait_get_onu_id_by_port_id_response, 10)
     def timeout_wait_get_onu_id_by_port_id_response(self):
         #log.debug('api-proxy-timeout')
-        raise self.error("Timeout for message PAS5211MsgGetOnuIdByPortIdResponse")
+        if self.retries < MAX_RETRIES:
+            self.retries += 1
+            self.send_get_onu_id_by_port_id(self.device.device, self.port_id)
+        else:
+            raise self.error("Timeout for message PAS5211MsgGetOnuIdByPortIdResponse")
 
     @ATMT.receive_condition(wait_get_onu_id_by_port_id_response)
     def wait_for_get_onu_id_by_port_id_response(self, pkt):
@@ -157,30 +162,38 @@ class OltRemoveFlowStateMachine(BaseOltAutomaton):
         else:
             log.debug('Unexpected pkt {}'.format(pkt.summary()))
 
-    @ATMT.timeout(wait_unset_port_id_downlink_policing_response, 10)
+    @ATMT.timeout(wait_unset_port_id_downlink_policing_response, TIMEOUT)
     def timeout_wait_unset_port_id_downlink_policing_response(self):
         #log.debug('api-proxy-timeout')
-        raise self.error("Timeout for message PAS5211UnsetPortIdPolicingConfigResponse")
+        if self.retries < MAX_RETRIES:
+            self.retries += 1
+            self.send_unset_port_id_downlink_policing(self.device.device, 1, self.port_id)
+        else:
+            raise self.error("Timeout for message PAS5211UnsetPortIdPolicingConfigResponse")
 
     @ATMT.receive_condition(wait_unset_port_id_downlink_policing_response)
     def wait_for_unset_port_id_downlink_policing_response(self, pkt):
         #log.debug('api-proxy-response')
-        if PAS5211UnsetPortIdPolicingConfigResponse in pkt: 
+        if PAS5211UnsetPortIdPolicingConfigResponse in pkt:
             log.debug('[RESPONSE] PAS5211UnsetPortIdPolicingConfigResponse')
             self.send_set_port_id_configuration(self.device.device, PON_DISABLE, self.port_id, self.alloc_id)
             raise self.wait_set_port_id_configuration_response()
         else:
             log.debug('Unexpected pkt {}'.format(pkt.summary()))
 
-    @ATMT.timeout(wait_set_port_id_configuration_response, 10)
+    @ATMT.timeout(wait_set_port_id_configuration_response, TIMEOUT)
     def timeout_wait_set_port_id_configuration_response(self):
         #log.debug('api-proxy-timeout')
-        raise self.error("Timeout for message PAS5211MsgSetPortIdConfigResponse")
+        if self.retries < MAX_RETRIES:
+            self.retries += 1
+            self.send_set_port_id_configuration(self.device.device, PON_DISABLE, self.port_id, self.alloc_id)
+        else:
+            raise self.error("Timeout for message PAS5211MsgSetPortIdConfigResponse")
 
     @ATMT.receive_condition(wait_set_port_id_configuration_response)
     def wait_for_set_port_id_configuration_response(self, pkt):
         #log.debug('api-proxy-response')
-        if PAS5211MsgSetPortIdConfigResponse in pkt: 
+        if PAS5211MsgSetPortIdConfigResponse in pkt:
             log.debug('[RESPONSE] PAS5211MsgSetPortIdConfigResponse')
             self.end()
         else:

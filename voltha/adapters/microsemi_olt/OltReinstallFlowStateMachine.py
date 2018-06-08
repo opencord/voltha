@@ -54,12 +54,13 @@ from voltha.adapters.microsemi_olt.PAS5211_constants import OMCI_GEM_IWTP_IW_OPT
     PON_DISABLE, PON_VLAN_CHANGE_TAG, PON_VLAN_DONT_CHANGE_TAG, PON_PORT_TYPE_GEM, PON_PORT_DESTINATION_CNI0, PON_ENABLE, SLA_gr_bw_gros, PYTHAGORAS_UPDATE_AID_SLA, \
     SLA_gr_bw_gros, SLA_be_bw_gros, SLA_gr_bw_fine, SLA_be_bw_fine, PYTHAGORAS_DBA_DATA_COS, PYTHAGORAS_DBA_STATUS_REPORT_NSR, \
     PMC_OFAL_NO_POLICY, UPSTREAM, DOWNSTREAM
-    
+
 log = structlog.get_logger()
 
+TIMEOUT = 5
 
-class OltReinstallFlowStateMachine(OltInstallFlowStateMachine):
-        
+class OltReinstallFlowStateMachine(OltRemoveFlowStateMachine):
+
     @ATMT.state()
     def wait_set_port_id_configuration_response(self):
         pass
@@ -67,12 +68,12 @@ class OltReinstallFlowStateMachine(OltInstallFlowStateMachine):
     @ATMT.receive_condition(wait_set_port_id_configuration_response)
     def wait_for_set_port_id_configuration_response(self, pkt):
         #log.debug('api-proxy-response')
-        if PAS5211MsgSetPortIdConfigResponse in pkt: 
+        if PAS5211MsgSetPortIdConfigResponse in pkt:
             log.debug('[RESPONSE] PAS5211MsgSetPortIdConfigResponse')
             olt = OltInstallFlowStateMachine(iface=self.iface, comm=self.comm,
                     target=self.target, device=self.device, onu_id=self.onu_id,
                     channel_id=self.channel_id, port_id=self.port_id, onu_session_id=self.onu_session_id,
-                    alloc_id=self.alloc_id, svlan_id= self.svlan_id, cvlan_id=self.cvlan_id)    
+                    alloc_id=self.alloc_id, svlan_id= self.svlan_id, cvlan_id=self.cvlan_id)
             olt.runbg()
         else:
             log.debug('Unexpected pkt {}'.format(pkt.summary()))

@@ -23,6 +23,9 @@ from voltha.protos.logical_device_pb2 import LogicalDevice, LogicalPort
 from voltha.protos.openflow_13_pb2 import ofp_desc, ofp_switch_features, OFPC_FLOW_STATS, OFPC_TABLE_STATS, \
     OFPC_PORT_STATS, OFPC_GROUP_STATS, ofp_port, OFPPS_LIVE, OFPPF_10GB_FD, OFPPF_FIBER
 
+from twisted.internet import reactor
+
+
 log = structlog.get_logger()
 
 
@@ -85,6 +88,7 @@ class DeviceManager(object):
         # that will correspond to the NNI port
         ld = LogicalDevice(
             desc=ofp_desc(
+                mfr_desc=self.device.vendor,
                 hw_desc=self.device.hardware_version,
                 sw_desc=self.device.firmware_version,
                 serial_num=uuid4().hex,
@@ -102,8 +106,21 @@ class DeviceManager(object):
             ),
             root_device_id=self.device.id
         )
-
         self.logical_device = self.adapter_agent.create_logical_device(ld, dpid=self.device.mac_address)
+
+    def delete_logical_device(self):
+        try:
+            log.debug('delete-logical-device')
+            self.adapter_agent.delete_logical_device(self.logical_device)
+        except Exception as e:
+            log.exception('delete-logical-device-failed', e=e)
+
+    def remove_all_logical_ports(self):
+        try:
+            log.debug('remove-logical-ports')
+            self.adapter_agent.remove_all_logical_ports(self.logical_device)
+        except Exception as e:
+            log.exception('delete-logical-device-failed', e=e)
 
     def add_upstream_port(self, port):
         nni_port = Port(
@@ -116,7 +133,7 @@ class DeviceManager(object):
         self.adapter_agent.add_port(self.device.id, nni_port)
 
     def add_logical_upstream_port(self, port):
-    
+
         cap = OFPPF_10GB_FD | OFPPF_FIBER
 
         self.adapter_agent.add_logical_port(self.logical_device.id, LogicalPort(
@@ -167,9 +184,22 @@ class DeviceManager(object):
                      serial_number=None,
                      onu_session_id=None,
                      channel_id=None):
-        log.debug('onu-detected') 
+        log.debug('onu-detected')
         try:
-            self.adapter_agent.child_device_detected(
+            # self.adapter_agent.child_device_detected(
+            #     parent_device_id=self.device.id,
+            #     parent_port_no=parent_port_no,
+            #     child_device_type=child_device_type,
+            #     serial_number=serial_number,
+            #     proxy_address=Device.ProxyAddress(
+            #         device_id=self.device.id,
+            #         channel_id=channel_id,  # happens to be the channel id as well
+            #         onu_id=onu_id,
+            #         onu_session_id=onu_session_id
+            #     ),
+            #     admin_state=AdminState.ENABLED,
+            #     vlan=0)
+            reactor.callLater(0, self.adapter_agent.child_device_detected,
                 parent_device_id=self.device.id,
                 parent_port_no=parent_port_no,
                 child_device_type=child_device_type,
@@ -182,9 +212,33 @@ class DeviceManager(object):
                 ),
                 admin_state=AdminState.ENABLED,
                 vlan=0)
+
         except Exception as e:
-            log.exception('onu-detected-failed', e=e) 
+            log.exception('onu-detected-failed', e=e)
             raise e
+
+    def update_child_devices_state(self, oper_status=None,
+                                   connect_status=None,
+                                   admin_state=None):
+        try:
+            # self.adapter_agent.update_child_devices_state(self.device.id,
+            #                                         oper_status=oper_status,
+            #                                         connect_status=connect_status,
+            #                                         admin_state=admin_state)
+            reactor.callLater(0, self.adapter_agent.update_child_devices_state,
+                                                    self.device.id,
+                                                    oper_status=oper_status,
+                                                    connect_status=connect_status,
+                                                    admin_state=admin_state)
+        except Exception:
+            log.debug("Child ONUs from {} could not be updated".format(self.device.id))
+
+    def delete_all_child_devices(self):
+        try:
+            # self.adapter_agent.delete_all_child_devices(self.device.id)
+            reactor.callLater(0, self.adapter_agent.delete_all_child_devices, self.device.id)
+        except Exception:
+            log.debug("Child ONUs from {} cannot be removed".format(self.device.id))
 
     def deactivate_onu(self, onu_id=None, channel_id=None, onu_session_id=None):
         try:
@@ -194,11 +248,15 @@ class DeviceManager(object):
                 onu_id=onu_id,
                 onu_session_id=onu_session_id
             ))
+            # self.adapter_agent.delete_child_device(self.device.id, child_device)
             if child_device:
-                # self.adapter_agent.update_child_device_state(child_device, admin_state=AdminState.DISABLED)
-                child_device.admin_state=AdminState.DISABLED
-                self.adapter_agent.update_device(child_device)
-        except KeyError:
+                child_device.admin_state = AdminState.DISABLED
+                # self.adapter_agent._make_up_to_date('/devices', child_device.id, child_device)
+                reactor.callLater(0, self.adapter_agent._make_up_to_date,
+                    '/devices', child_device.id, child_device)
+                #child_device.admin_state=AdminState.DISABLED
+                #self.adapter_agent.update_device(child_device)
+        except Exception:
             log.debug("ONU {} cannot be deactivated".format(onu_id))
 
     def activate(self):
@@ -209,15 +267,16 @@ class DeviceManager(object):
 
 
     def publish_alarm(self, alarm):
+        log.debug("publish-alarm-start")
         new_alarm = self.adapter_agent.create_alarm(
-            # id = alarm["id"],
-            resource_id = alarm["resource_id"],
-            description = alarm["description"],
-            type = alarm["type"],
-            # category = alarm["category"],
-            # severity = alarm["severity"],
-            # state = alarm["state"],
-            context = alarm["context"]
+            id = alarm.get("id"),
+            resource_id = alarm.get("resource_id"),
+            description = alarm.get("description"),
+            type = alarm.get("type"),
+            category = alarm.get("category"),
+            severity = alarm.get("severity"),
+            state = alarm.get("state"),
+            context = alarm.get("context")
         )
         self.adapter_agent.submit_alarm(self.device.id, new_alarm)
-        log.debug("[publish_alarm]")
+        log.debug("publish-alarm-stop")

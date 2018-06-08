@@ -59,7 +59,7 @@ class OltStateMachine(BaseOltAutomaton):
         if OmciFrame in pkt:
             log.debug("OMCI-message-type: {}".format(pkt[OmciFrame].message_type))
             return False
-        
+
         if PAS5211Event in pkt:
             return False
 
@@ -224,7 +224,7 @@ class OltStateMachine(BaseOltAutomaton):
             self.device.update_device_info_from_pkt(pkt)
             raise self.got_olt_version()
         else:
-            log.error("Got garbage packet {}".format(pkt))
+            log.error("Got garbage packet: {}".format(pkt.summary()))
             raise self.error()
 
     # Transitions from got_olt_version
@@ -549,7 +549,7 @@ class KeepAlive(BaseOltAutomaton):
     @ATMT.state(error=1)
     def error(self):
         raise self.end()
-    
+
     @ATMT.state(final=1)
     def end(self):
         log.debug('init-keepalive-end')

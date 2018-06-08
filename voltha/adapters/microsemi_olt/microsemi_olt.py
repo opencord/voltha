@@ -25,7 +25,7 @@ from voltha.adapters.microsemi_olt.APIProxy import APIProxy
 from voltha.adapters.microsemi_olt.ActivationWatcher import ActivationWatcher
 from voltha.adapters.microsemi_olt.DeviceManager import DeviceManager
 from voltha.adapters.microsemi_olt.OMCIProxy import OMCIProxy
-from voltha.adapters.microsemi_olt.OltStateMachine import OltStateMachine 
+from voltha.adapters.microsemi_olt.OltStateMachine import OltStateMachine
 from voltha.adapters.microsemi_olt.OltInstallFlowStateMachine import OltInstallFlowStateMachine
 from voltha.adapters.microsemi_olt.OltRemoveFlowStateMachine import OltRemoveFlowStateMachine
 from voltha.adapters.microsemi_olt.OltReinstallFlowStateMachine import OltReinstallFlowStateMachine
@@ -74,6 +74,8 @@ from voltha.adapters.microsemi_olt.PAS5211_constants import OMCI_GEM_IWTP_IW_OPT
 
 from twisted.internet import reactor
 from twisted.internet.defer import DeferredQueue, inlineCallbacks, returnValue
+from voltha.protos.common_pb2 import OperStatus, AdminState, ConnectStatus
+
 
 log = structlog.get_logger()
 _ = third_party
@@ -148,7 +150,9 @@ class RubyAdapter(object):
         raise NotImplementedError()
 
     def reboot_device(self, device):
-        raise NotImplementedError()
+        log.debug('reboot-device', device=device)
+        device_handler = self.device_handlers[device.id]
+        reactor.callLater(0, device_handler.reboot_device, device)
 
     def create_tcont(self, device, tcont_data, traffic_descriptor_data):
         raise NotImplementedError()
@@ -287,6 +291,7 @@ class RubyAdapterHandler(object):
         self.ports = dict()
         self.last_iteration_ports = []
         self.interface = registry('main').get_args().interface
+        self.flow_queue = DeferredQueue()
 
     def stop(self):
         log.debug('stopping')
@@ -296,19 +301,46 @@ class RubyAdapterHandler(object):
 
     def activate(self, device):
         log.debug('activate-device', device=device)
+        self.last_iteration_ports = []
         self.device = device
         self.device_manager = DeviceManager(device, self.adaptor_agent)
         self.target = device.mac_address
         self.comm = PAS5211Communication(dst_mac=self.target, iface=self.interface)
 
-        olt = OltStateMachine(iface=self.interface, comm=self.comm,
+        self.olt = OltStateMachine(iface=self.interface, comm=self.comm,
                               target=self.target, device=self.device_manager)
-        activation = ActivationWatcher(iface=self.interface, comm=self.comm,
+        self.activation = ActivationWatcher(iface=self.interface, comm=self.comm,
                                 target=self.target, device=self.device_manager, olt_adapter=self)
-        olt.runbg()
-        activation.runbg()
 
-        self.olt = olt
+        reactor.callLater(0, self.wait_for_flow_events, device)
+
+        self.olt.runbg()
+        self.activation.runbg()
+
+    def reboot_device(self, device):
+        try:
+            log.debug('reboot-device', device=device)
+            # Stop ONUS ...
+            self.device_manager.update_child_devices_state(admin_state=AdminState.DISABLED)
+            # ... and then delete them!
+            self.device_manager.delete_all_child_devices
+            # Wait 10s to reboot OLT
+            reactor.callLater(10, self.reboot_olt, device)
+        except Exception as e:
+            log.exception('reboot-olt-exception', e=e)
+
+    def reboot_olt(self, device):
+        try:
+            # Stop OLT...
+            self.device_manager.delete_logical_device()
+            self.olt.stop()
+            self.activation.stop()
+            # ... and start again! ONUS will activate from events got from OLT
+            self.last_iteration_ports = []
+            self.ports.clear()
+            self.activate(device)
+        except Exception as e:
+            log.exception('reboot-olt-exception', e=e)
 
     def abandon_device(self, device):
         self._abandon(self.target)
@@ -369,29 +401,31 @@ class RubyAdapterHandler(object):
         return bandwidth
 
     def get_downlink_bandwidth(self, cvlan_id, svlan_id, port, flows):
-        bandwidth = None
-        for flow in flows:
-            _in_port = fd.get_in_port(flow)
-            if _in_port == PMC_UPSTREAM_PORT:
-                log.debug('downlink-bandwidth-port-match')
-                if flow.table_id == 1:
-                    metadata = fd.get_metadata(flow)
-                    if metadata:
-                        if metadata == port:
-                            vlan = self.get_vlan(flow) & 0xfff
-                            if vlan == cvlan_id:
-                                bandwidth = fd.get_metadata(flow)
-                                log.debug('Bandwidth found:{}'.format(bandwidth))
-        return bandwidth
+        return None
 
     def update_flow_table(self, device, flows):
+        try:
+            self.flow_queue.put({'flows':flows})
+        except Exception as e:
+            log.debug('flow-enqueue-exception', e=e)
+
+    @inlineCallbacks
+    def wait_for_flow_events(self, device):
+        log.debug('wait-for-flow-events', device=device)
+
+        event = yield self.flow_queue.get()
+        flows = event.get('flows')
+
         try:
             cvlan_id = None
             svlan_id = None
 
-            log.debug('olt-update-flow-table', device_id=device.id, flows=flows)
-            # Look for in ports mentioned in flows received ...
+            log.debug('wait-for-flow-events-flow', device=device)
+
+            # Look for ports mentioned in flows received ...
             port_list = self.get_port_list(flows.items)
+
+            log.debug("list-ports", port_list=port_list)
 
             new_ports = set(port_list)-set(self.last_iteration_ports)
             log.debug("new-ports", new_ports=new_ports)
@@ -418,7 +452,10 @@ class RubyAdapterHandler(object):
 
                     downlink_bandwidth = self.get_downlink_bandwidth(cvlan_id, svlan_id, port, flows.items)
                     if downlink_bandwidth == None:
-                        downlink_bandwidth = SLA_be_bw_gros
+                        if uplink_bandwidth == None:
+                            downlink_bandwidth = SLA_be_bw_gros
+                        else:
+                            downlink_bandwidth = uplink_bandwidth
 
                     onu_id = self.ports[port]['onu_id']
                     onu_session_id = self.ports[port]['onu_session_id']
@@ -450,7 +487,10 @@ class RubyAdapterHandler(object):
 
                 else:
                     # Finally, it is an incomplete port, so we remove from port list
-                    port_list.remove(port)
+                    try:
+                        port_list.remove(port)
+                    except Exception as e:
+                        log.debug('remove-non-existing-port', e=e)
 
             # For those ports without flows, uninstall them
             for port in disconnected_ports:
@@ -462,15 +502,18 @@ class RubyAdapterHandler(object):
                 channel_id= port / 32
 
                 if self.ports[port].get('cvlan') and self.ports[port].get('svlan'):
-                    self.uninstall_flows_sequence(device, onu_id, port_id, alloc_id, onu_session_id, 
+                    self.uninstall_flows_sequence(device, onu_id, port_id, alloc_id, onu_session_id,
                         channel_id)
                     self.ports[port]['svlan'] = None
                     self.ports[port]['cvlan'] = None
 
             self.last_iteration_ports = port_list
+            log.debug('last-iteration-ports', ports=self.last_iteration_ports)
 
         except Exception as e:
             log.exception('failed-to-olt-update-flow-table', e=e)
+
+        reactor.callLater(0, self.wait_for_flow_events, device)
 
     def get_vlan(self, flow):
         for field in fd.get_ofb_fields(flow):
