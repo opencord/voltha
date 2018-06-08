@@ -47,6 +47,9 @@ MAX_HEARTBEAT_MISS = 3
 HEARTBEAT_PERIOD = 1
 GRPC_TIMEOUT = 5
 
+OnuKey = collections.namedtuple('OnuKey', ['intf_id', 'onu_id'])
+OnuRec = collections.namedtuple('OnuRec', ['serial_number'])
+
 """
 OpenoltDevice represents an OLT.
 """
@@ -68,6 +71,7 @@ class OpenoltDevice(object):
         self.device_id = device.id
         self.host_and_port = device.host_and_port
         self.log = structlog.get_logger(id=self.device_id, ip=self.host_and_port)
+        self.onus = {} # OnuKey -> OnuRec
         self.proxy = registry('core').get_proxy('/')
 
         # Device already set in the event of reconciliation
@@ -290,6 +294,8 @@ class OpenoltDevice(object):
                         onu_id, serial_number)
                 self.log.info("activate-onu", intf_id=intf_id, onu_id=onu_id,
                         serial_number=serial_number_str)
+                self.onus[OnuKey(intf_id=intf_id, onu_id=onu_id)] \
+                        = OnuRec(serial_number=serial_number)
                 onu = openolt_pb2.Onu(intf_id=intf_id, onu_id=onu_id,serial_number=serial_number)
                 self.stub.ActivateOnu(onu)
             except Exception as e:
@@ -320,30 +326,18 @@ class OpenoltDevice(object):
                 self.log.warn('unexpected state', onu_id=onu_id, onu_device_oper_state=onu_device.oper_status)
 
     def onu_indication(self, onu_indication):
-        self.log.debug("onu-indication", intf_id=onu_indication.intf_id,
-                onu_id=onu_indication.onu_id, serial_number=onu_indication.serial_number,
-                    oper_state=onu_indication.oper_state, admin_state=onu_indication.admin_state)
+        self.log.debug("onu indication", intf_id=onu_indication.intf_id,
+                onu_id=onu_indication.onu_id, oper_state=onu_indication.oper_state,
+                admin_state=onu_indication.admin_state)
 
-        serial_number_str = self.stringify_serial_number(onu_indication.serial_number)
+        onu_device = self.adapter_agent.get_child_device(
+            self.device_id,
+            parent_port_no=platform.intf_id_to_port_no(onu_indication.intf_id, Port.PON_OLT),
+            onu_id=onu_indication.onu_id)
 
-        if serial_number_str == '000000000000':
-            self.log.debug('serial-number-was-not-provided-or-default-serial-number-provided-identifying-onu-by-onu_id')
-            #FIXME: if multiple PON ports onu_id is not a sufficient key
-            onu_device = self.adapter_agent.get_child_device(
-                self.device_id,
-                onu_id=onu_indication.onu_id)
-        else :
-            onu_device = self.adapter_agent.get_child_device(
-                self.device_id,
-                serial_number=serial_number_str)
-
-        self.log.debug('onu-device', olt_device_id=self.device_id, device=onu_device)
-
-        # FIXME - handle serial_number mismatch
-        # assert key is not None
-        # assert onu_device is not None
         if onu_device is None:
-            self.log.warn('onu-device-is-none-invalid-message')
+            self.log.error('onu not found', intf_id=onu_indication.intf_id,
+                    onu_id=onu_indication.onu_id)
             return
 
         if onu_device.connect_status != ConnectStatus.REACHABLE:
@@ -363,7 +357,7 @@ class OpenoltDevice(object):
                           received_onu_id=onu_indication.onu_id)
 
         uni_no = platform.mk_uni_port_num(onu_indication.intf_id, onu_indication.onu_id)
-        uni_name = self.port_name(uni_no, Port.ETHERNET_UNI, serial_number=serial_number_str)
+        uni_name = self.port_name(uni_no, Port.ETHERNET_UNI, serial_number=onu_device.serial_number)
 
         self.log.debug('port-number-ready', uni_no=uni_no, uni_name=uni_name)
 
