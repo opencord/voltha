@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ec3c0d07_9d4b6aaf",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 642,
+      "author": {
+        "id": 1000436
+      },
+      "writtenOn": "2018-06-08T13:51:25Z",
+      "side": 1,
+      "message": "We need to get the nni port numbering sorted out (128 vs 129).  Here and openolt_platform.py reference offsetting by 129.  Probably need a function there similar to intf_id_from_pon_port_no to wrap this up in one place",
+      "revId": "1788808fab86c1d81d0c3d0fa5da8a32fe5efea0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
