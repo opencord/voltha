@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "4ceb8a95_7fe9c2f1",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 329,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-06-11T14:27:25Z",
+      "side": 0,
+      "message": "I agree that the 00000000... has to go. And replacing it with empty string. It was a bad idea on my part",
+      "revId": "e931359024dee8b0039d4199562ecd9fea8fd7db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}

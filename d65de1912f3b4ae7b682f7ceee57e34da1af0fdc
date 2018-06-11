@@ -1,0 +1,44 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "00abf167_bb353d9e",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 74,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-06-11T14:27:25Z",
+      "side": 1,
+      "message": "Adding back those keys in the adapter will make us regress on HA. We should use the device objects from the data store",
+      "revId": "d65de1912f3b4ae7b682f7ceee57e34da1af0fdc",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "569f6e47_6a628b95",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 339,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-06-11T14:27:25Z",
+      "side": 1,
+      "message": "This function needs to be updated to take into account the onu_id and the PON port it is on. Otherwise we have collision when using multiple PON ports",
+      "range": {
+        "startLine": 337,
+        "startChar": 6,
+        "endLine": 339,
+        "endChar": 41
+      },
+      "revId": "d65de1912f3b4ae7b682f7ceee57e34da1af0fdc",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
