@@ -704,7 +704,7 @@ class LocalHandler(VolthaLocalServiceServicer):
         try:
             path = '/devices/{}'.format(request.id)
             device = self.root.get(path)
-            assert device.admin_state == AdminState.DISABLED, \
+            assert device.admin_state == AdminState.DISABLED or device.admin_state == AdminState.PREPROVISIONED, \
                 'Device to delete cannot be ' \
                 'in admin state \'{}\''.format(device.admin_state)
             assert not device.type.endswith("_onu"), \
