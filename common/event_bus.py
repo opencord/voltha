@@ -91,6 +91,7 @@ class EventBus(object):
         :param msg: Arbitrary python data as message
         :return: None
         """
+        from copy import copy
 
         def passes(msg, predicate):
             try:
@@ -105,7 +106,8 @@ class EventBus(object):
         subscribers.extend(s for s in self.subscriptions.get(None, [])
                            if s.topic.match(topic))
 
-        for candidate in subscribers:
+        # iterate over a shallow-copy of subscribers
+        for candidate in copy(subscribers):
             predicate = candidate.predicate
             if predicate is None or passes(msg, predicate):
                 try:

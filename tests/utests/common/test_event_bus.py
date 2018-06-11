@@ -195,3 +195,26 @@ class TestEventBus(TestCase):
             msg = yield queue.get()
             self.assertEqual(msg, i)
         self.assertEqual(len(queue.pending), 0)
+
+    def test_subscribers_that_unsubscribe_when_called(self):
+        # VOL-943 bug fix check
+        ebc = EventBusClient(EventBus())
+
+        class UnsubscribeWhenCalled(object):
+            def __init__(self):
+                self.subscription = ebc.subscribe('news', self.unsubscribe)
+                self.called = False
+
+            def unsubscribe(self, _topic, _msg):
+                self.called = True
+                ebc.unsubscribe(self.subscription)
+
+        ebc1 = UnsubscribeWhenCalled()
+        ebc2 = UnsubscribeWhenCalled()
+        ebc3 = UnsubscribeWhenCalled()
+
+        ebc.publish('news', 'msg1')
+
+        self.assertTrue(ebc1.called)
+        self.assertTrue(ebc2.called)
+        self.assertTrue(ebc3.called)
