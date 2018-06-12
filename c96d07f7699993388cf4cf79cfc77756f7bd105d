@@ -1,0 +1,44 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "0ecb2efd_d27a16f7",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 325,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-06-12T21:44:00Z",
+      "side": 1,
+      "message": "Leaving the serial number in the debug log is probably good for development (if provided)",
+      "revId": "c96d07f7699993388cf4cf79cfc77756f7bd105d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1ea7a3f4_76823952",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 330,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-06-12T21:44:00Z",
+      "side": 1,
+      "message": "I think leaving the option to match on serial number would be good. I know BAL 2.6 does not provide the field but some other implementation (even BAL 2.8 for example) might. I could be either serial number if not empty string or onu_id + parent_port_no",
+      "range": {
+        "startLine": 327,
+        "startChar": 8,
+        "endLine": 330,
+        "endChar": 41
+      },
+      "revId": "c96d07f7699993388cf4cf79cfc77756f7bd105d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
