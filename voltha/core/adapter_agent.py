@@ -287,8 +287,10 @@ class AdapterAgent(object):
         :return: Child Device Object or None
         """
         # Get all arguments to be used for comparison
-        # Note that for now we are only matching on the ONU ID & SERIAL NUMBER
+        # Note that for now we are only matching on the
+        # PON Interface Id (parent_port_no), ONU ID & SERIAL NUMBER
         # Other matching fields can be added as required in the future
+        parent_port_no = kwargs.pop('parent_port_no', None)
         onu_id = kwargs.pop('onu_id', None)
         serial_number = kwargs.pop('serial_number', None)
         if onu_id is None and serial_number is None: return None
@@ -309,7 +311,13 @@ class AdapterAgent(object):
             found_onu_id = False
             if onu_id is not None:
                 if device.proxy_address.onu_id == onu_id:
-                    found_onu_id = True
+                    # Does the ONU ID belong to the right PON port?
+                    # (ONU IDs are not unique across PON ports)
+                    if parent_port_no is not None:
+                        if device.parent_port_no ==  parent_port_no:
+                            found_onu_id = True
+                    else:
+                        found_onu_id = True
 
             # Does this child device match the passed in SERIAL NUMBER?
             found_serial_number = False
