@@ -213,7 +213,7 @@ class VolthaCli(Cmd):
         device_id = line.strip() or self.default_device_id
         if not device_id:
             raise Exception('<device-id> parameter needed')
-        if device_id not in self.get_devices():
+        if device_id not in self.device_ids():
             self.poutput( self.colorize('Error: ', 'red') +
                             'There is no such device')
             raise Exception('<device-id> is not a valid one')
@@ -225,7 +225,7 @@ class VolthaCli(Cmd):
         logical_device_id = line.strip() or self.default_logical_device_id
         if not logical_device_id:
             raise Exception('<logical-device-id> parameter needed')
-        if logical_device_id not in self.get_logical_devices():
+        if logical_device_id not in self.logical_device_ids():
             self.poutput( self.colorize('Error: ', 'red') +
                             'There is no such device')
             raise Exception('<logical-device-id> is not a valid one')
