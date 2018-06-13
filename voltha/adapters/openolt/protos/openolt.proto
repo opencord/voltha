@@ -72,6 +72,8 @@ message Indication {
         OnuIndication onu_ind = 5;
         OmciIndication omci_ind = 6;
         PacketIndication pkt_ind = 7;
+        PortStatistics port_stats = 8;
+        FlowStatistics flow_stats = 9;
     }
 }
 
@@ -191,6 +193,34 @@ message Flow {
 message SerialNumber {
     bytes vendor_id = 1;
     bytes vendor_specific = 2;
+}
+
+message PortStatistics {
+    fixed32 intf_id = 1;
+    fixed64 rx_bytes = 2;
+    fixed64 rx_packets = 3;
+    fixed64 rx_ucast_packets = 4;
+    fixed64 rx_mcast_packets = 5;
+    fixed64 rx_bcast_packets = 6;
+    fixed64 rx_error_packets = 7;
+    fixed64 tx_bytes = 8;
+    fixed64 tx_packets = 9;
+    fixed64 tx_ucast_packets = 10;
+    fixed64 tx_mcast_packets = 11;
+    fixed64 tx_bcast_packets = 12;
+    fixed64 tx_error_packets = 13;
+    fixed64 rx_crc_errors = 14;
+    fixed64 bip_errors = 15;
+    fixed32 timestamp = 16;
+}
+
+message FlowStatistics {
+    fixed32 flow_id = 1;
+    fixed64 rx_bytes = 2;
+    fixed64 rx_packets = 3;
+    fixed64 tx_bytes = 8;
+    fixed64 tx_packets = 9;
+    fixed32 timestamp = 16;
 }
 
 message Empty {}

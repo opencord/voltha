@@ -149,6 +149,14 @@ class OpenoltDevice(object):
                     reactor.callFromThread(self.omci_indication, ind.omci_ind)
                 elif ind.HasField('pkt_ind'):
                     reactor.callFromThread(self.packet_indication, ind.pkt_ind)
+                elif ind.HasField('port_stats'):
+                    reactor.callFromThread(self.port_statistics_indication,
+                                           ind.port_stats)
+                elif ind.HasField('flow_stats'):
+                    reactor.callFromThread(self.flow_statistics_indication,
+                                           ind.flow_stats)
+                else:
+                    self.log.warn('unknown indication type')
 
         self.log.debug('stopping-indications-thread', device_id=self.device_id)
 
@@ -654,6 +662,16 @@ class OpenoltDevice(object):
             time.sleep(HEARTBEAT_PERIOD)
 
         self.log.debug('stopping-heartbeat-thread', device_id=self.device_id)
+
+    def port_statistics_indication(self, port_stats):
+        # TODO: send to kafka
+        # TODO : update ONOS counters
+        self.log.info('port-stats-collected', stats=port_stats)
+
+    def flow_statistics_indication(self, flow_stats):
+        # TODO: send to kafka
+        # TODO : update ONOS counters
+        self.log.info('flow-stats-collected', stats=flow_stats)
 
     def packet_out(self, egress_port, msg):
         pkt = Ether(msg)
