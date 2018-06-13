@@ -92,40 +92,50 @@ PON OLT (OF) port number
 
 """
 
+
 def mk_uni_port_num(intf_id, onu_id):
     return intf_id << 11 | onu_id << 4
 
+
 def mk_alloc_id(onu_id, idx=0):
     # FIXME - driver should do prefixing 1 << 10 as it is Maple specific
-    #return 1<<10 | onu_id<<6 | idx
-    return 1023 + onu_id # FIXME
+    # return 1<<10 | onu_id<<6 | idx
+    return 1023 + onu_id  # FIXME
+
 
 def mk_gemport_id(onu_id, idx=0):
-    return 1<<10 | onu_id<<3 | idx
+    return 1 << 10 | onu_id << 3 | idx
+
 
 def onu_id_from_gemport_id(gemport_id):
-    return (gemport_id & ~(1<<10)) >> 3
+    return (gemport_id & ~(1 << 10)) >> 3
+
 
 def mk_flow_id(intf_id, onu_id, idx):
-    return intf_id<<11 | onu_id<<4  | idx
+    return intf_id << 11 | onu_id << 4 | idx
+
 
 def onu_id_from_port_num(port_num):
     return (port_num >> 4) & 0x7F
 
+
 def intf_id_from_uni_port_num(port_num):
     return (port_num >> 11) & 0xF
 
+
 def intf_id_from_pon_port_no(port_no):
     return port_no & 0xF
+
 
 def intf_id_to_port_no(intf_id, intf_type):
     if intf_type is Port.ETHERNET_NNI:
         # FIXME - Remove hardcoded '128'
         return intf_id + 128
     elif intf_type is Port.PON_OLT:
-        return 0x2<<28 | intf_id
+        return 0x2 << 28 | intf_id
     else:
         raise Exception('Invalid port type')
+
 
 def intf_id_from_nni_port_num(port_num):
     return port_num - 128

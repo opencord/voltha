@@ -17,9 +17,8 @@
 """
 Openolt adapter.
 """
-import structlog
-from twisted.internet import reactor, defer
 from zope.interface import implementer
+import structlog
 
 from openolt_device import OpenoltDevice
 from voltha.adapters.interface import IAdapterInterface
@@ -28,11 +27,11 @@ from voltha.protos.adapter_pb2 import Adapter
 from voltha.protos.adapter_pb2 import AdapterConfig
 from voltha.protos.common_pb2 import LogLevel
 from voltha.protos.device_pb2 import DeviceType, DeviceTypes
-from voltha.protos.health_pb2 import HealthStatus
 from voltha.registry import registry
 
 _ = third_party
 log = structlog.get_logger()
+
 
 @implementer(IAdapterInterface)
 class OpenoltAdapter(object):
@@ -72,7 +71,8 @@ class OpenoltAdapter(object):
         return self.descriptor
 
     def device_types(self):
-        log.debug('get device_types', interface=self.interface, items=self.supported_device_types)
+        log.debug('get device_types', interface=self.interface,
+                  items=self.supported_device_types)
         return DeviceTypes(items=self.supported_device_types)
 
     def health(self):
@@ -80,7 +80,8 @@ class OpenoltAdapter(object):
         raise NotImplementedError()
 
     def change_master_state(self, master):
-        log.debug('change_master_state', interface=self.interface, master=master)
+        log.debug('change_master_state', interface=self.interface,
+                  master=master)
         raise NotImplementedError()
 
     def adopt_device(self, device):
@@ -109,10 +110,12 @@ class OpenoltAdapter(object):
         }
         try:
             reconciled_device = OpenoltDevice(**kwargs)
-            log.debug('reconciled-device-recreated', device_id=reconciled_device.device_id)
+            log.debug('reconciled-device-recreated',
+                      device_id=reconciled_device.device_id)
             self.devices[device.id] = reconciled_device
         except Exception as e:
-            log.error('Failed to reconcile OpenOLT device', error=e, exception_type=type(e).__name__)
+            log.error('Failed to reconcile OpenOLT device', error=e,
+                      exception_type=type(e).__name__)
             del self.devices[device.id]
             raise
         else:
@@ -161,7 +164,7 @@ class OpenoltAdapter(object):
         raise NotImplementedError()
 
     def self_test_device(self, device):
-        #from voltha.protos.voltha_pb2 import SelfTestResponse
+        # from voltha.protos.voltha_pb2 import SelfTestResponse
         raise NotImplementedError()
 
     def delete_device(self, device):
@@ -182,8 +185,8 @@ class OpenoltAdapter(object):
         return handler.update_flow_table(flows.items)
 
     def update_flows_incrementally(self, device, flow_changes, group_changes):
-        log.debug('update_flows_incrementally', device=device, flow_changes=flow_changes,
-                  group_changes=group_changes)
+        log.debug('update_flows_incrementally', device=device,
+                  flow_changes=flow_changes, group_changes=group_changes)
         raise NotImplementedError()
 
     def update_pm_config(self, device, pm_configs):
@@ -196,12 +199,14 @@ class OpenoltAdapter(object):
         handler.send_proxied_message(proxy_address, msg)
 
     def receive_proxied_message(self, proxy_address, msg):
-        log.debug('receive_proxied_message', proxy_address=proxy_address, msg=msg)
+        log.debug('receive_proxied_message', proxy_address=proxy_address,
+                  msg=msg)
         raise NotImplementedError()
 
     def receive_packet_out(self, logical_device_id, egress_port_no, msg):
         log.debug('packet-out', logical_device_id=logical_device_id,
                   egress_port_no=egress_port_no, msg_len=len(msg))
+
         def ldi_to_di(ldi):
             di = self.logical_device_id_to_root_device_id.get(ldi)
             if di is None:
@@ -240,7 +245,8 @@ class OpenoltAdapter(object):
         raise NotImplementedError()
 
     def receive_onu_detect_state(self, proxy_address, state):
-        log.debug('receive-onu-detect-state', proxy_address=proxy_address, state=state)
+        log.debug('receive-onu-detect-state', proxy_address=proxy_address,
+                  state=state)
         raise NotImplementedError()
 
     def create_tcont(self, device, tcont_data, traffic_descriptor_data):
