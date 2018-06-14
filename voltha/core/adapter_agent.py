@@ -287,11 +287,22 @@ class AdapterAgent(object):
         :return: Child Device Object or None
         """
         # Get all arguments to be used for comparison
-        # Note that for now we are only matching on the ONU ID & SERIAL NUMBER
+        # Note that for now we are only matching on the ONU ID,
+        # SERIAL NUMBER and PON_PORT
         # Other matching fields can be added as required in the future
         onu_id = kwargs.pop('onu_id', None)
         serial_number = kwargs.pop('serial_number', None)
+        pon_port = kwargs.pop('pon_port', None)
         if onu_id is None and serial_number is None: return None
+
+        # if serial_number is not available, but onu_id is available,
+        # then onu_id should be accompanied by pon_port.
+        # onu_id can repeat accross pon_ports, and hence is not a
+        # unique identifier.
+        if serial_number is None and onu_id is not None and \
+           pon_port is None:
+            self.log.error('onu-id-should-be-accompanied-by-pon-port')
+            return None
 
         # Get all devices
         devices = self.root_proxy.get('/devices')
@@ -305,20 +316,35 @@ class AdapterAgent(object):
             found = True
             device = self.get_device(child_id)
 
-            # Does this child device match the passed in ONU ID?
             found_onu_id = False
+            found_pon_port = False
+            # Does this child device match the passed ONU ID?
             if onu_id is not None:
                 if device.proxy_address.onu_id == onu_id:
                     found_onu_id = True
+                    # Does this child device match the passed
+                    # PON_PORT?
+                    if pon_port is not None:
+                        if device.proxy_address.channel_id == \
+                           pon_port:
+                            found_pon_port = True
 
-            # Does this child device match the passed in SERIAL NUMBER?
+            # Does this child device match the passed SERIAL NUMBER?
             found_serial_number = False
             if serial_number is not None:
                 if device.serial_number == serial_number:
                     found_serial_number = True
-            # Match ONU ID and SERIAL NUMBER
-            if onu_id is not None and serial_number is not None:
-                found = found_onu_id & found_serial_number
+
+            # Match ONU ID, SERIAL NUMBER and CHANNEL TERMINATION
+            if onu_id is not None and serial_number is not None \
+               and pon_port is not None:
+                found = found_onu_id & found_serial_number & \
+                        found_pon_port
+
+            # Match ONU ID and PON_PORT
+            elif onu_id is not None and pon_port is not None:
+                found = found_onu_id & found_pon_port
+
             # Otherwise ONU ID or SERIAL NUMBER
             else:
                 found = found_onu_id | found_serial_number
