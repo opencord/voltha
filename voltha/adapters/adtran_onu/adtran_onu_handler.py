@@ -939,7 +939,7 @@ class AdtranOnuHandler(AdtranXPON):
             # If the PON has already synchronized, add the logical port now
             # since we know we have been activated
 
-            if self._pon is not None and self._pon.connected:
+            if self._pon is not None and self.openomci.connected:
                 uni_port.add_logical_port(ofp_port_no, subscriber_vlan=subscriber_vlan)
 
         # TODO: Next is just for debugging to see what this call returns after

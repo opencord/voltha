@@ -39,6 +39,7 @@ class UniPort(object):
         self._logical_port_number = None        # Set at time of logical port creation
         self._subscriber_vlan = subscriber_vlan
         self._untagged_vlan = untagged_vlan
+        self._entity_id = None                  # TODO: Use port number from UNI-G entity ID
 
         self._admin_state = AdminState.ENABLED
         self._oper_status = OperStatus.ACTIVE
@@ -107,6 +108,18 @@ class UniPort(object):
         :return: (int) port number
         """
         return self._port_number
+
+    @property
+    def entity_id(self):
+        """
+        OMCI UNI_G entity ID for port
+        """
+        return self._entity_id
+
+    @entity_id.setter
+    def entity_id(self, value):
+        assert self._entity_id is None, 'Cannot reset the Entity ID'
+        self._entity_id = value
 
     @property
     def subscriber_vlan(self):
