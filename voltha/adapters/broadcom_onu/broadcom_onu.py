@@ -63,7 +63,7 @@ class BroadcomOnuAdapter(object):
     supported_device_types = [
         DeviceType(
             id=name,
-            vendor_ids=['BRCM', 'ALPH'],
+            vendor_ids=['BRCM', 'TWSH', 'ALPH'],
             adapter=name,
             accepts_bulk_flow_update=True
         )
@@ -75,7 +75,7 @@ class BroadcomOnuAdapter(object):
         self.descriptor = Adapter(
             id=self.name,
             vendor='Voltha project',
-            version='0.45',
+            version='0.46',
             config=AdapterConfig(log_level=LogLevel.INFO)
         )
         self.devices_handlers = dict()  # device_id -> BroadcomOnuHandler()
@@ -347,6 +347,8 @@ class BroadcomOnuHandler(object):
 
             else:
                 device = self.adapter_agent.get_device(self.device_id)
+                self.disable_ports(device)
+                device.connect_status = ConnectStatus.UNREACHABLE
                 device.oper_status = OperStatus.FAILED
                 self.adapter_agent.update_device(device)
 
@@ -379,6 +381,18 @@ class BroadcomOnuHandler(object):
                 device.oper_status = OperStatus.FAILED
                 self.adapter_agent.update_device(device)
 
+        elif event_msg['event'] == 'olt-disabled':
+            self.adapter_agent.disable_all_ports(self.device_id)
+            device = self.adapter_agent.get_device(self.device_id)
+            device.connect_status = ConnectStatus.UNREACHABLE
+            self.adapter_agent.update_device(device)
+
+        elif event_msg['event'] == 'olt-enabled':
+            self.adapter_agent.enable_all_ports(self.device_id)
+            device = self.adapter_agent.get_device(self.device_id)
+            device.connect_status = ConnectStatus.REACHABLE
+            self.adapter_agent.update_device(device)
+
         elif event_msg['event'] == 'create-tcont':
             tcont = TcontsConfigData()
             tcont.alloc_id = event_msg['event_data']['alloc_id']
@@ -393,15 +407,6 @@ class BroadcomOnuHandler(object):
             gem_port = GemportsConfigData()
             gem_port.gemport_id = event_msg['event_data']['gemport_id']
             self.create_gemport(gem_port)
-        elif event_msg['event'] == 'olt-disabled':
-            device = self.adapter_agent.get_device(self.device_id)
-            device.connect_status = ConnectStatus.UNREACHABLE
-            self.adapter_agent.update_device(device)
-
-        elif event_msg['event'] == 'olt-enabled':
-            device = self.adapter_agent.get_device(self.device_id)
-            device.connect_status = ConnectStatus.REACHABLE
-            self.adapter_agent.update_device(device)
 
         # Handle next event
         reactor.callLater(0, self.handle_onu_events)
@@ -470,13 +475,16 @@ class BroadcomOnuHandler(object):
         self.log.info('reconciling-broadcom-onu-device-ends')
 
     def update_logical_port(self, logical_device_id, port_id, state):
-        self.log.info('updating-logical-port', logical_port_id=port_id,
-                      logical_device_id=logical_device_id, state=state)
-        logical_port = self.adapter_agent.get_logical_port(logical_device_id,
-                                                           port_id)
-        logical_port.ofp_port.state = state
-        self.adapter_agent.update_logical_port(logical_device_id,
-                                               logical_port)
+        try:
+            self.log.info('updating-logical-port', logical_port_id=port_id,
+                          logical_device_id=logical_device_id, state=state)
+            logical_port = self.adapter_agent.get_logical_port(logical_device_id,
+                                                               port_id)
+            logical_port.ofp_port.state = state
+            self.adapter_agent.update_logical_port(logical_device_id,
+                                                   logical_port)
+        except Exception as e:
+            self.log.exception("exception-updating-port",e=e)
 
     def delete(self, device):
         self.log.info('delete-onu')
@@ -1410,13 +1418,10 @@ class BroadcomOnuHandler(object):
             yield self.wait_for_response()
 
 
-
-
-
-           # Set AR - ExtendedVlanTaggingOperationConfigData
+            # Set AR - ExtendedVlanTaggingOperationConfigData
             #          514 - RxVlanTaggingOperationTable - add VLAN <cvid> to priority tagged pkts - c-vid
-            #self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_single_tag(0x202, 8, 0, 0, 1, 8, cvid)
-            #yield self.wait_for_response()
+            # self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_single_tag(0x200 + port_id, 8, 0, 0, 1, 8, cvid)
+            # yield self.wait_for_response()
 
             # Set AR - ExtendedVlanTaggingOperationConfigData
             #          514 - RxVlanTaggingOperationTable - add VLAN <cvid> to untagged pkts - c-vid
@@ -1528,19 +1533,10 @@ class BroadcomOnuHandler(object):
         self.adapter_agent.delete_logical_port_by_id(parent_logical_device_id,
                                                      'uni-{}'.format(port_no))
 
-    @inlineCallbacks
     def delete_v_ont_ani(self, data):
         self.log.info('deleting-v_ont_ani')
 
         device = self.adapter_agent.get_device(self.device_id)
-        # construct message
-        # MIB Reset - OntData - 0
-        if device.connect_status != ConnectStatus.REACHABLE:
-            self.log.error('device-unreachable')
-            returnValue(None)
-
-        self.send_mib_reset()
-        yield self.wait_for_response()
         self.proxy_address = device.proxy_address
         self.adapter_agent.unregister_for_proxied_messages(device.proxy_address)
 
@@ -1550,6 +1546,22 @@ class BroadcomOnuHandler(object):
                 if port.label == 'PON port':
                     self.adapter_agent.delete_port(self.device_id, port)
                     break
+
+        # construct message
+        # MIB Reset - OntData - 0
+        if device.connect_status != ConnectStatus.REACHABLE:
+            self.log.error('device-unreachable')
+            return
+
+        self.send_mib_reset()
+
+        # It is observed that the device is already deleted before the response
+        # is received. So, there is no point waiting for response.
+        # Also, currently there is no response validation or timeout.
+        # Until we move to the OpenOMCI framework, it is ok to ignore this
+        # response for now.
+
+        # yield self.wait_for_response()
 
     def create_interface(self, data):
         if isinstance(data, VEnetConfig):
@@ -1586,6 +1598,8 @@ class BroadcomOnuHandler(object):
 
             pon_port.peers[0].device_id = onu_device.parent_id
             pon_port.peers[0].port_no = parent_port_num
+            pon_port.admin_state = AdminState.ENABLED
+            pon_port.oper_status = OperStatus.ACTIVE
             self.adapter_agent.add_port_reference_to_parent(self.device_id,
                                                             pon_port)
         else:
@@ -1655,7 +1669,7 @@ class BroadcomOnuHandler(object):
         device = self.adapter_agent.get_device(self.device_id)
         if device.connect_status != ConnectStatus.REACHABLE:
             self.log.error('device-unreachable')
-            returnValue(None)
+            return
 
         self.send_set_8021p_mapper_service_profile(0x8001,
                                                   0xFFFF)
@@ -1688,7 +1702,7 @@ class BroadcomOnuHandler(object):
         device = self.adapter_agent.get_device(self.device_id)
         if device.connect_status != ConnectStatus.REACHABLE:
             self.log.error('device-unreachable')
-            returnValue(None)
+            return
 
         self.send_set_tcont(0x8001, 0xFFFF)
         yield self.wait_for_response()
@@ -1700,21 +1714,10 @@ class BroadcomOnuHandler(object):
     def disable(self, device):
         try:
             self.log.info('sending-admin-state-lock-towards-device', device=device)
-
             self.send_set_admin_state(0x0000, ADMIN_STATE_LOCK)
             yield self.wait_for_response()
-            device = self.adapter_agent.get_device(device.id)
             # Disable all ports on that device
-            self.adapter_agent.disable_all_ports(self.device_id)
-            parent_device = self.adapter_agent.get_device(device.parent_id)
-            logical_device_id = parent_device.parent_id
-            assert logical_device_id
-            # Mark OF PORT STATE DOWN
-            ports = self.adapter_agent.get_ports(device.id, Port.ETHERNET_UNI)
-            for port in ports:
-                state = OFPPS_LINK_DOWN
-                port_id = 'uni-{}'.format(port.port_no)
-                self.update_logical_port(logical_device_id, port_id, state)
+            self.disable_ports(device)
             device.oper_status = OperStatus.UNKNOWN
             device.connect_status = ConnectStatus.UNREACHABLE
             self.adapter_agent.update_device(device)
@@ -1727,18 +1730,7 @@ class BroadcomOnuHandler(object):
             self.log.info('sending-admin-state-unlock-towards-device', device=device)
             self.send_set_admin_state(0x0000, ADMIN_STATE_UNLOCK)
             yield self.wait_for_response()
-            device = self.adapter_agent.get_device(device.id)
-            # Re-enable the ports on that device
-            self.adapter_agent.enable_all_ports(device.id)
-            parent_device = self.adapter_agent.get_device(device.parent_id)
-            logical_device_id = parent_device.parent_id
-            assert logical_device_id
-            # Mark OF PORT STATE UP
-            ports = self.adapter_agent.get_ports(device.id, Port.ETHERNET_UNI)
-            for port in ports:
-                state = OFPPS_LIVE
-                port_id = 'uni-{}'.format(port.port_no)
-                self.update_logical_port(logical_device_id, port_id, state)
+            self.enable_ports(device)
             device.oper_status = OperStatus.ACTIVE
             device.connect_status = ConnectStatus.REACHABLE
             self.adapter_agent.update_device(device)
@@ -1751,52 +1743,56 @@ class BroadcomOnuHandler(object):
         device = self.adapter_agent.get_device(self.device_id)
         if device.connect_status != ConnectStatus.REACHABLE:
             self.log.error("device-unreacable")
-            returnValue(None)
+            return
 
-        self.send_reboot()
-        response = yield self.wait_for_response()
-        if response is not None:
-            omci_response = response.getfieldval("omci_message")
-            success_code = omci_response.getfieldval("success_code")
-            if success_code == 0:
-                self.log.info("reboot-command-processed-successfully")
-                # Update the device connection and operation status
-                device = self.adapter_agent.get_device(self.device_id)
-                device.connect_status = ConnectStatus.UNREACHABLE
-                device.oper_status = OperStatus.DISCOVERED
-                self.adapter_agent.update_device(device)
-                self.disable_ports(device)
+        try:
+            self.send_reboot()
+            response = yield self.wait_for_response()
+            if response is not None:
+                omci_response = response.getfieldval("omci_message")
+                success_code = omci_response.getfieldval("success_code")
+                if success_code == 0:
+                    self.log.info("reboot-command-processed-successfully")
+                    # Update the device connection and operation status
+                    device = self.adapter_agent.get_device(self.device_id)
+                    device.connect_status = ConnectStatus.UNREACHABLE
+                    device.oper_status = OperStatus.DISCOVERED
+                    self.adapter_agent.update_device(device)
+                    self.disable_ports(device)
+                else:
+                    self.log.info("reboot-failed", success_code=success_code)
             else:
-                self.log.info("reboot-failed", success_code=success_code)
-        else:
-            self.log.info("error-in-processing-reboot-response")
+                self.log.info("error-in-processing-reboot-response")
+        except Exception as e:
+            self.log.info('wait-for-response-exception', exc=str(e))
 
-    def disable_ports(self, onu_device):
+    def disable_ports(self, device):
         self.log.info('disable-ports', device_id=self.device_id)
 
         # Disable all ports on that device
         self.adapter_agent.disable_all_ports(self.device_id)
 
-        parent_device = self.adapter_agent.get_device(onu_device.parent_id)
+        parent_device = self.adapter_agent.get_device(device.parent_id)
         assert parent_device
         logical_device_id = parent_device.parent_id
         assert logical_device_id
-        ports = self.adapter_agent.get_ports(onu_device.id, Port.ETHERNET_UNI)
+        ports = self.adapter_agent.get_ports(device.id, Port.ETHERNET_UNI)
         for port in ports:
             port_id = 'uni-{}'.format(port.port_no)
             self.update_logical_port(logical_device_id, port_id, OFPPS_LINK_DOWN)
 
-    def enable_ports(self, onu_device):
+    def enable_ports(self, device):
         self.log.info('enable-ports', device_id=self.device_id)
 
-        # Disable all ports on that device
+        # Enable all ports on that device
         self.adapter_agent.enable_all_ports(self.device_id)
 
-        parent_device = self.adapter_agent.get_device(onu_device.parent_id)
+        parent_device = self.adapter_agent.get_device(device.parent_id)
         assert parent_device
         logical_device_id = parent_device.parent_id
         assert logical_device_id
-        ports = self.adapter_agent.get_ports(onu_device.id, Port.ETHERNET_UNI)
+        ports = self.adapter_agent.get_ports(device.id, Port.ETHERNET_UNI)
         for port in ports:
             port_id = 'uni-{}'.format(port.port_no)
             self.update_logical_port(logical_device_id, port_id, OFPPS_LIVE)
+
