@@ -15,6 +15,8 @@
 #
 
 from twisted.internet.defer import inlineCallbacks, returnValue
+from twisted.internet import reactor
+
 from voltha.adapters.asfvolt16_olt.protos import bal_pb2, \
     bal_model_types_pb2, bal_model_ids_pb2, bal_indications_pb2, asfvolt_pb2
 from voltha.adapters.asfvolt16_olt.grpc_client import GrpcClient
@@ -25,12 +27,11 @@ from common.utils.asleep import asleep
 import time
 import os
 
-"""
-ASFVOLT Adapter port is 60001
-"""
+# ASFVOLT Adapter port is 60001
 ADAPTER_PORT = 60001
 
 GRPC_TIMEOUT = 5
+GRPC_HEARTBEAT_TIMEOUT = 2
 
 
 class Bal(object):
@@ -39,6 +40,7 @@ class Bal(object):
         self.grpc_client = GrpcClient(self.log)
         self.stub = None
         self.ind_stub = None
+        self.asfvolt_stub = None
         self.device_id = None
         self.olt = olt
         self.interval = 0.05
@@ -56,7 +58,7 @@ class Bal(object):
         # Right now Bi-Directional GRPC support is not there in grpc-c.
         # This code may be needed when bidirectional supported added
         # in GRPC-C
-        if is_init == True:
+        if is_init is True:
             init = bal_pb2.BalInit()
             try:
                 os.environ["SERVICE_HOST_IP"]
@@ -69,7 +71,7 @@ class Bal(object):
             ip_port.append(str(adapter_ip))
             ip_port.append(":")
             ip_port.append(str(ADAPTER_PORT))
-            init.voltha_adapter_ip_port ="".join(ip_port)
+            init.voltha_adapter_ip_port = "".join(ip_port)
             self.log.info('Adapter-port-IP', init.voltha_adapter_ip_port)
             self.log.info('connecting-olt', host_and_port=host_and_port,
                           init_details=init)
@@ -223,8 +225,9 @@ class Bal(object):
         yield self.stub.BalCfgSet(obj, timeout=GRPC_TIMEOUT)
 
     @inlineCallbacks
-    def add_flow(self, onu_id, intf_id, flow_id, gem_port,
-                 classifier_info, is_downstream,
+    def add_flow(self, onu_id=None, intf_id=None, network_int_id=None,
+                 flow_id=None, gem_port=None,
+                 classifier_info=None, is_downstream=False,
                  action_info=None, sched_id=None):
         try:
             obj = bal_pb2.BalCfg()
@@ -243,11 +246,19 @@ class Bal(object):
                     bal_model_types_pb2.BAL_FLOW_TYPE_DOWNSTREAM
 
             obj.flow.data.admin_state = bal_model_types_pb2.BAL_STATE_UP
-            obj.flow.data.access_int_id = intf_id
-            # obj.flow.data.network_int_id = intf_id
-            obj.flow.data.sub_term_id = onu_id
-            obj.flow.data.svc_port_id = gem_port
+            if intf_id is not None:
+                obj.flow.data.access_int_id = intf_id
+            if network_int_id is not None:
+                obj.flow.data.network_int_id = network_int_id
+            if onu_id:
+                obj.flow.data.sub_term_id = onu_id
+            if gem_port:
+                obj.flow.data.svc_port_id = gem_port
             obj.flow.data.classifier.presence_mask = 0
+
+            if classifier_info is None:
+                classifier_info = dict()
+
             if 'eth_type' in classifier_info:
                 obj.flow.data.classifier.ether_type = \
                     classifier_info['eth_type']
@@ -309,6 +320,9 @@ class Bal(object):
                 obj.flow.data.classifier.presence_mask |= \
                     bal_model_types_pb2.BAL_CLASSIFIER_ID_PKT_TAG_TYPE
 
+            # Action field is not mandatory in Downstream
+            # If the packet matches the classifiers, the packet is put
+            # on the gem port specified.
             if action_info is not None:
                 obj.flow.data.action.presence_mask = 0
                 obj.flow.data.action.cmds_bitmask = 0
@@ -334,8 +348,9 @@ class Bal(object):
                     obj.flow.data.action.presence_mask |= \
                         bal_model_types_pb2.BAL_ACTION_ID_CMDS_BITMASK
                 else:
-                    self.log.info('Invalid-action-field')
+                    self.log.info('invalid-action',action_info=action_info)
                     return
+
             self.log.info('adding-flow-to-OLT-Device',
                           flow_details=obj)
             yield self.stub.BalCfgSet(obj, timeout=GRPC_TIMEOUT)
@@ -508,7 +523,8 @@ class Bal(object):
         try:
             obj = bal_pb2.BalHeartbeat()
             obj.device_id = device_id
-            rebootStatus = yield self.stub.BalApiHeartbeat(obj, timeout=GRPC_TIMEOUT)
+            rebootStatus = yield self.stub.BalApiHeartbeat(
+                                 obj, timeout=GRPC_HEARTBEAT_TIMEOUT)
             self.log.info('OLT-HeartBeat-Response-Received-from',
                           device=device_id, rebootStatus=rebootStatus)
             returnValue(rebootStatus)
@@ -553,10 +569,12 @@ class Bal(object):
                 obj.device_id = str(device_id)
                 bal_ind = self.ind_stub.BalGetIndFromDevice(obj, timeout=GRPC_TIMEOUT)
                 if bal_ind.ind_present == True:
-                    self.log.info('Indication-received',
-                                  device=device_id, bal_ind=bal_ind)
+                    # self.log.info('Indication-received',
+                    #               device=device_id, bal_ind=bal_ind)
                     self.ind_obj.handle_indication_from_bal(bal_ind, self.olt)
-                time.sleep(self.interval)
             except Exception as e:
                 self.log.info('Failed-to-get-indication-info', exc=str(e))
+            finally:
+                time.sleep(self.interval)
+
         self.log.debug('stop-indication-receive-thread')
