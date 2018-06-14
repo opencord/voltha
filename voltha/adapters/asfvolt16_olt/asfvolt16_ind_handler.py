@@ -304,6 +304,8 @@ class Asfvolt16IndHandler(object):
         ind_info = dict()
         ind_info['_object_type'] = 'packet_in_indication'
         ind_info['_sub_group_type'] = 'omci_message'
+        ind_info['intf_id'] = \
+        indication.balOmciResp.key.packet_send_dest.itu_omci_channel.intf_id
         packet_data = indication.balOmciResp.key.packet_send_dest
         ind_info['onu_id'] = packet_data.itu_omci_channel.sub_term_id
         ind_info['packet'] = indication.balOmciResp.data.pkt
