@@ -29,7 +29,10 @@ from voltha.protos.common_pb2 import OperStatus, AdminState, ConnectStatus
 from voltha.protos.logical_device_pb2 import LogicalDevice
 from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, \
     OFPPS_LINK_DOWN, OFPPF_1GB_FD, OFPC_GROUP_STATS, OFPC_PORT_STATS, \
-    OFPC_TABLE_STATS, OFPC_FLOW_STATS, ofp_switch_features, ofp_port
+    OFPC_TABLE_STATS, OFPC_FLOW_STATS, ofp_switch_features, ofp_port, \
+    ofp_port_stats
+from voltha.protos.events_pb2 import KpiEvent, MetricValuePairs
+from voltha.protos.events_pb2 import KpiEventType
 from voltha.protos.logical_device_pb2 import LogicalPort
 from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.registry import registry
@@ -664,14 +667,102 @@ class OpenoltDevice(object):
         self.log.debug('stopping-heartbeat-thread', device_id=self.device_id)
 
     def port_statistics_indication(self, port_stats):
-        # TODO: send to kafka
-        # TODO : update ONOS counters
         self.log.info('port-stats-collected', stats=port_stats)
+        self.ports_statistics_kpis(port_stats)
+        #FIXME : only the first uplink is a logical port
+        if port_stats.intf_id == 128:
+            # ONOS update
+            self.update_logical_port_stats(port_stats)
+        # FIXME: Discard other uplinks, they do not exist as an object
+        if port_stats.intf_id in [129, 130, 131]:
+            self.log.debug('those uplinks are not created')
+            return
+        # update port object stats
+        port = self.adapter_agent.get_port(self.device_id,
+            port_no=port_stats.intf_id)
+
+        port.rx_packets = port_stats.rx_packets
+        port.rx_bytes = port_stats.rx_bytes
+        port.rx_errors = port_stats.rx_error_packets
+        port.tx_packets = port_stats.tx_packets
+        port.tx_bytes = port_stats.tx_bytes
+        port.tx_errors = port_stats.tx_error_packets
+
+        # Add port does an update if port exists
+        self.adapter_agent.add_port(self.device_id, port)
 
     def flow_statistics_indication(self, flow_stats):
-        # TODO: send to kafka
-        # TODO : update ONOS counters
         self.log.info('flow-stats-collected', stats=flow_stats)
+        # TODO: send to kafka ?
+        # UNTESTED : the openolt driver does not yet provide flow stats
+        self.adapter_agent.update_flow_stats(self.logical_device_id,
+            flow_id=flow_stats.flow_id, packet_count=flow_stats.tx_packets,
+            byte_count=flow_stats.tx_bytes)
+
+    def ports_statistics_kpis(self, port_stats):
+        pm_data = {}
+        pm_data["rx_bytes"] = port_stats.rx_bytes
+        pm_data["rx_packets"] = port_stats.rx_packets
+        pm_data["rx_ucast_packets"] = port_stats.rx_ucast_packets
+        pm_data["rx_mcast_packets"] = port_stats.rx_mcast_packets
+        pm_data["rx_bcast_packets"] = port_stats.rx_bcast_packets
+        pm_data["rx_error_packets"] = port_stats.rx_error_packets
+        pm_data["tx_bytes"] = port_stats.tx_bytes
+        pm_data["tx_packets"] = port_stats.tx_packets
+        pm_data["tx_ucast_packets"] = port_stats.tx_ucast_packets
+        pm_data["tx_mcast_packets"] = port_stats.tx_mcast_packets
+        pm_data["tx_bcast_packets"] = port_stats.tx_bcast_packets
+        pm_data["tx_error_packets"] = port_stats.tx_error_packets
+        pm_data["rx_crc_errors"] = port_stats.rx_crc_errors
+        pm_data["bip_errors"] = port_stats.bip_errors
+
+
+        prefix = 'voltha.openolt.{}'.format(self.device_id)
+        # FIXME
+        if port_stats.intf_id < 132:
+            prefixes = {
+                prefix + '{}.nni'.format(port_stats.intf_id): MetricValuePairs(
+                    metrics=pm_data)
+            }
+        else:
+            prefixes = {
+                prefix + '.pon.{}'.format(platform.intf_id_from_pon_port_no(
+                    port_stats.intf_id)): MetricValuePairs(
+                    metrics=pm_data)
+            }
+
+        kpi_event = KpiEvent(
+            type=KpiEventType.slice,
+            ts=port_stats.timestamp,
+            prefixes=prefixes)
+        self.adapter_agent.submit_kpis(kpi_event)
+
+    def update_logical_port_stats(self, port_stats):
+        # FIXME
+        label = 'nni-{}'.format(port_stats.intf_id)
+        logical_port = self.adapter_agent.get_logical_port(
+            self.logical_device_id, label)
+
+        if logical_port is None:
+            self.log.error('logical-port-is-None',
+                logical_device_id=self.logical_device_id, label=label,
+                port_stats=port_stats)
+            return
+
+        self.log.debug('before', port=logical_port)
+
+        logical_port.ofp_port_stats.rx_packets = port_stats.rx_packets
+        logical_port.ofp_port_stats.rx_bytes = port_stats.rx_bytes
+        logical_port.ofp_port_stats.tx_packets = port_stats.tx_packets
+        logical_port.ofp_port_stats.tx_bytes = port_stats.tx_bytes
+        logical_port.ofp_port_stats.rx_errors = port_stats.rx_error_packets
+        logical_port.ofp_port_stats.tx_errors = port_stats.tx_error_packets
+        logical_port.ofp_port_stats.rx_crc_err = port_stats.rx_crc_errors
+
+        self.log.debug('after', port=logical_port)
+
+        self.adapter_agent.update_logical_port(self.logical_device_id,
+                                               logical_port)
 
     def packet_out(self, egress_port, msg):
         pkt = Ether(msg)
@@ -791,9 +882,12 @@ class OpenoltDevice(object):
             advertised=cap, peer=cap, curr_speed=curr_speed,
             max_speed=max_speed)
 
+        ofp_stats = ofp_port_stats(port_no=port_no)
+
         logical_port = LogicalPort(
             id=label, ofp_port=ofp, device_id=self.device_id,
-            device_port_no=port_no, root_port=True)
+            device_port_no=port_no, root_port=True,
+            ofp_port_stats=ofp_stats)
 
         self.adapter_agent.add_logical_port(self.logical_device_id,
                                             logical_port)

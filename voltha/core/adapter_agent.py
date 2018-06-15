@@ -434,6 +434,13 @@ class AdapterAgent(object):
         else:
             return [p for p in ports if p.type == port_type]
 
+    def get_port(self, device_id, port_no=None, label=None):
+        ports = self.root_proxy.get('/devices/{}/ports'.format(device_id))
+        for p in ports:
+            if p.label == label or p.port_no == port_no:
+                return p
+        return None
+
     def delete_port(self, device_id, port):
         assert isinstance(port, Port)
         # for referential integrity, add/augment references
@@ -900,6 +907,28 @@ class AdapterAgent(object):
         except Exception as e:
             self.log.exception('failed-kpi-submission',
                                type=type(kpi_event_msg))
+
+
+    # # ~~~~~~~~~~~~~~~~~~~~~~~~~~ Handle flow stats ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def update_flow_stats(self, logical_device_id, flow_id, packet_count=0,
+                          byte_count=0):
+        flows = self.root_proxy.get(
+            'logical_devices/{}/flows'.format(logical_device_id))
+        flow_to_update = None
+        for flow in flows:
+            if flow.id == flow_id:
+                flow_to_update = flow
+                flow_to_update.packet_count = packet_count
+                flow_to_update.byte_count = byte_count
+                break
+        if flow_to_update is not None:
+            self._make_up_to_date(
+                'logical_devices/{}/flows'.format(logical_device_id),
+                flow_to_update.id, flow_to_update)
+        else:
+            self.log.warn('flow-to-update-not-found', logical_device_id=
+                logical_device_id, flow_id=flow_id)
 
     # ~~~~~~~~~~~~~~~~~~~ Handle alarm submissions ~~~~~~~~~~~~~~~~~~~~~
 
