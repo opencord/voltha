@@ -16,6 +16,75 @@
       "revId": "d4d00d89faf6a1ba9b50a0631fb976edd48e0e86",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f4aae731_2efd5430",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 1618,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-06-15T17:25:02Z",
+      "side": 1,
+      "message": "Redundant from 1615,\nAlso make you have rebased since it was previsouly removed and I doubt you reintegrated it on purpose",
+      "range": {
+        "startLine": 1618,
+        "startChar": 12,
+        "endLine": 1618,
+        "endChar": 34
+      },
+      "revId": "d4d00d89faf6a1ba9b50a0631fb976edd48e0e86",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "cf6f4530_8a81062c",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 1783,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-06-15T17:25:02Z",
+      "side": 1,
+      "message": "This does not propagate to the logical ports. In the disable function the logical port were set in Down state, and you replaced it with this function",
+      "range": {
+        "startLine": 1770,
+        "startChar": 4,
+        "endLine": 1783,
+        "endChar": 81
+      },
+      "revId": "d4d00d89faf6a1ba9b50a0631fb976edd48e0e86",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ac9e57d2_004bb6e5",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 1785,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-06-15T17:25:02Z",
+      "side": 1,
+      "message": "Same thing about propagating to the logical ports",
+      "range": {
+        "startLine": 1785,
+        "startChar": 4,
+        "endLine": 1785,
+        "endChar": 35
+      },
+      "revId": "d4d00d89faf6a1ba9b50a0631fb976edd48e0e86",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
