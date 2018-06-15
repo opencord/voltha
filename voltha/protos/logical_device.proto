@@ -22,6 +22,7 @@ message LogicalPort {
     string device_id = 3;
     uint32 device_port_no = 4;
     bool root_port = 5;
+    openflow_13.ofp_port_stats ofp_port_stats = 6;
 }
 
 message LogicalPorts {
