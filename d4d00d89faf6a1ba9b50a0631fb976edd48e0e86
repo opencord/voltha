@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "00ca20ef_c460610e",
+        "filename": "voltha/adapters/asfvolt16_olt/bal.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 574,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2018-06-15T14:21:05Z",
+      "side": 1,
+      "message": "Are there any reason to call the function \"handle_indication_from_bal\" from main thread?",
+      "revId": "d4d00d89faf6a1ba9b50a0631fb976edd48e0e86",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
