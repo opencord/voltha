@@ -249,10 +249,16 @@ class OpenFlowProtocolHandler(object):
     def handle_meter_features_request(self, req):
         self.cxn.send(ofp.message.bad_request_error_msg())
 
+    @inlineCallbacks
     def handle_port_stats_request(self, req):
-        port_stats = []  # see https://jira.opencord.org/browse/CORD-825
-        self.cxn.send(ofp.message.port_stats_reply(
-            xid=req.xid,entries=port_stats))
+        try:
+            ports = yield self.rpc.list_ports(self.device_id)
+            port_stats = [to_loxi(p.ofp_port_stats) for p in ports]
+            of_message = ofp.message.port_stats_reply(
+                xid=req.xid,entries=port_stats)
+            self.cxn.send(of_message)
+        except:
+            log.exception('failed-port_stats-request', req=req)
 
     @inlineCallbacks
     def handle_port_desc_request(self, req):
