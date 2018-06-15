@@ -58,6 +58,8 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
                 '/logical_devices/{}'.format(logical_device.id))
 
             self.flows_proxy.register_callback(
+                CallbackType.PRE_UPDATE, self._pre_process_flows)
+            self.flows_proxy.register_callback(
                 CallbackType.POST_UPDATE, self._flow_table_updated)
             self.groups_proxy.register_callback(
                 CallbackType.POST_UPDATE, self._group_table_updated)
@@ -76,6 +78,8 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             self.log = structlog.get_logger(logical_device_id=logical_device.id)
 
             self._routes = None
+            self._no_flow_changes_required = False
+
         except Exception, e:
             self.log.exception('init-error', e=e)
 
@@ -523,22 +527,55 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
 
     # ~~~~~~~~~~~~~~~~~~~~~ FLOW TABLE UPDATE HANDLING ~~~~~~~~~~~~~~~~~~~~~~~~
 
+    def _pre_process_flows(self, flows):
+        """
+        This method is invoked before a device flow table data model is
+        updated. The resulting data is stored locally and the flow table is
+        updated during the post-processing phase, i.e. via the POST_UPDATE
+        callback
+        :param flows: Desired flows
+        :return: None
+        """
+        current_flows = self.flows_proxy.get('/')
+        self.log.debug('pre-processing-flows',
+                       logical_device_id=self.logical_device_id,
+                       desired_flows=flows,
+                       existing_flows=current_flows)
+
+        current_flow_ids = set(f.id for f in current_flows.items)
+        desired_flow_ids = set(f.id for f in flows.items)
+
+        ids_to_add = desired_flow_ids.difference(current_flow_ids)
+        ids_to_del = current_flow_ids.difference(desired_flow_ids)
+
+        if len(ids_to_add) + len(ids_to_del) == 0:
+            # No changes of flows, just stats are changing
+            self._no_flow_changes_required = True
+        else:
+            self._no_flow_changes_required = False
+
+
     def _flow_table_updated(self, flows):
         self.log.debug('flow-table-updated',
                   logical_device_id=self.logical_device_id, flows=flows)
 
-        # TODO we have to evolve this into a policy-based, event based pattern
-        # This is a raw implementation of the specific use-case with certain
-        # built-in assumptions, and not yet device vendor specific. The policy-
-        # based refinement will be introduced that later.
+        if self._no_flow_changes_required:
+            # Stats changes, no need to process further
+            self.log.debug('flow-stats-update')
+        else:
 
-        groups = self.groups_proxy.get('/').items
-        device_rules_map = self.decompose_rules(flows.items, groups)
-        for device_id, (flows, groups) in device_rules_map.iteritems():
-            self.root_proxy.update('/devices/{}/flows'.format(device_id),
-                                   Flows(items=flows.values()))
-            self.root_proxy.update('/devices/{}/flow_groups'.format(device_id),
-                                   FlowGroups(items=groups.values()))
+            # TODO we have to evolve this into a policy-based, event based pattern
+            # This is a raw implementation of the specific use-case with certain
+            # built-in assumptions, and not yet device vendor specific. The policy-
+            # based refinement will be introduced that later.
+
+            groups = self.groups_proxy.get('/').items
+            device_rules_map = self.decompose_rules(flows.items, groups)
+            for device_id, (flows, groups) in device_rules_map.iteritems():
+                self.root_proxy.update('/devices/{}/flows'.format(device_id),
+                                       Flows(items=flows.values()))
+                self.root_proxy.update('/devices/{}/flow_groups'.format(device_id),
+                                       FlowGroups(items=groups.values()))
 
     # ~~~~~~~~~~~~~~~~~~~~ GROUP TABLE UPDATE HANDLING ~~~~~~~~~~~~~~~~~~~~~~~~
 

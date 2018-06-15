@@ -200,6 +200,13 @@ message Port {
     }
     repeated PeerPort peers = 8;
 
+    fixed64 rx_packets = 9;
+    fixed64 rx_bytes = 10;
+    fixed64 rx_errors = 11;
+    fixed64 tx_packets = 12;
+    fixed64 tx_bytes = 13;
+    fixed64 tx_errors = 14;
+
 }
 
 message Ports {
