@@ -61,6 +61,10 @@ def ofp_port_status_to_loxi_port_status(pb):
         desc=ofp_port_to_loxi_port_desc(pb.desc)
     )
 
+def ofp_port_stats_to_loxi_port_stats(pb):
+    kw = pb2dict(pb)
+    return of13.port_stats_entry(**kw)
+
 def make_loxi_field(oxm_field):
     assert oxm_field['oxm_class'] == pb2.OFPXMC_OPENFLOW_BASIC
     ofb_field = oxm_field['ofb_field']
@@ -225,7 +229,8 @@ to_loxi_converters = {
     'ofp_group_desc': ofp_group_desc_to_loxi_group_desc,
     'ofp_bucket_counter': ofp_bucket_counter_to_loxy_bucket_counter,
     'ofp_bucket': ofp_bucket_to_loxi_bucket,
-    'ofp_action': make_loxi_action
+    'ofp_action': make_loxi_action,
+    'ofp_port_stats': ofp_port_stats_to_loxi_port_stats
 }
 
 

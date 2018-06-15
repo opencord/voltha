@@ -222,3 +222,10 @@ class GrpcClient(object):
         res = yield threads.deferToThread(
             self.local_stub.ListLogicalDeviceFlowGroups, req)
         returnValue(res.items)
+
+    @inlineCallbacks
+    def list_ports(self, device_id):
+        req = ID(id=device_id)
+        res = yield threads.deferToThread(
+            self.local_stub.ListLogicalDevicePorts, req)
+        returnValue(res.items)
