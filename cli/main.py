@@ -349,7 +349,14 @@ class VolthaCli(Cmd):
                 self.poutput('waiting for device to be enabled...')
                 sleep(.5)
         except Exception as  e:
-            self.poutput('Error enabling {}.  Error:{}'.format(device_id, e))
+            self.poutput( self.colorize('Error ', 'red') +
+                         'enabling {}.'.format(device_id))
+            already_enabled_str="StatusCode.INVALID_ARGUMENT, Device to enable cannot be in admin state '3'"
+            if "StatusCode.NOT_FOUND" in str(e):
+                self.poutput("Device not found. You may want to pre-provision the device first using the pre-provision-olt command.")
+            elif already_enabled_str in str(e):
+                self.poutput("Device is already enabled")
+
 
     complete_activate_olt = complete_device
 
