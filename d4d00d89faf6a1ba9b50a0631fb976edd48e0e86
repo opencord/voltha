@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "eb473da6_af50f5f6",
+        "filename": "voltha/adapters/asfvolt16_olt/bal.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 574,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-06-16T05:03:59Z",
+      "side": 1,
+      "message": "This may be unnecessary. I see that indication handler again does a callLater and that schedules it to execute on reactor thread. So, I will remove this.",
+      "parentUuid": "00ca20ef_c460610e",
+      "revId": "d4d00d89faf6a1ba9b50a0631fb976edd48e0e86",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "f4aae731_2efd5430",
         "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
         "patchSetId": 5
@@ -30,6 +48,30 @@
       "writtenOn": "2018-06-15T17:25:02Z",
       "side": 1,
       "message": "Redundant from 1615,\nAlso make you have rebased since it was previsouly removed and I doubt you reintegrated it on purpose",
+      "range": {
+        "startLine": 1618,
+        "startChar": 12,
+        "endLine": 1618,
+        "endChar": 34
+      },
+      "revId": "d4d00d89faf6a1ba9b50a0631fb976edd48e0e86",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d48c069a_30a9f09f",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 1618,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-06-16T05:03:59Z",
+      "side": 1,
+      "message": "Ok. I will fix this.",
+      "parentUuid": "f4aae731_2efd5430",
       "range": {
         "startLine": 1618,
         "startChar": 12,
@@ -65,6 +107,30 @@
     },
     {
       "key": {
+        "uuid": "aa52ff4f_14f4b228",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 1783,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-06-16T05:03:59Z",
+      "side": 1,
+      "message": "Sorry, it is not clear to me. The lines 1781-1783 in the new version of the file disable logical ports as well.",
+      "parentUuid": "cf6f4530_8a81062c",
+      "range": {
+        "startLine": 1770,
+        "startChar": 4,
+        "endLine": 1783,
+        "endChar": 81
+      },
+      "revId": "d4d00d89faf6a1ba9b50a0631fb976edd48e0e86",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ac9e57d2_004bb6e5",
         "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
         "patchSetId": 5
@@ -76,6 +142,30 @@
       "writtenOn": "2018-06-15T17:25:02Z",
       "side": 1,
       "message": "Same thing about propagating to the logical ports",
+      "range": {
+        "startLine": 1785,
+        "startChar": 4,
+        "endLine": 1785,
+        "endChar": 35
+      },
+      "revId": "d4d00d89faf6a1ba9b50a0631fb976edd48e0e86",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "77893901_7f3ab2b5",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 1785,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-06-16T05:03:59Z",
+      "side": 1,
+      "message": "Sorry, it is not clear to me. The lines 1796-1798 in the new version of the file disable logical ports as well.",
+      "parentUuid": "ac9e57d2_004bb6e5",
       "range": {
         "startLine": 1785,
         "startChar": 4,
