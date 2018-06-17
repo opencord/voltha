@@ -131,6 +131,30 @@
     },
     {
       "key": {
+        "uuid": "8dc3b22b_bcc4d604",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 1783,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-06-17T23:46:46Z",
+      "side": 1,
+      "message": "My bad, I don\u0027t know how I missed that",
+      "parentUuid": "aa52ff4f_14f4b228",
+      "range": {
+        "startLine": 1770,
+        "startChar": 4,
+        "endLine": 1783,
+        "endChar": 81
+      },
+      "revId": "d4d00d89faf6a1ba9b50a0631fb976edd48e0e86",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ac9e57d2_004bb6e5",
         "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
         "patchSetId": 5
@@ -166,6 +190,30 @@
       "side": 1,
       "message": "Sorry, it is not clear to me. The lines 1796-1798 in the new version of the file disable logical ports as well.",
       "parentUuid": "ac9e57d2_004bb6e5",
+      "range": {
+        "startLine": 1785,
+        "startChar": 4,
+        "endLine": 1785,
+        "endChar": 35
+      },
+      "revId": "d4d00d89faf6a1ba9b50a0631fb976edd48e0e86",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "53eb1cfe_9d85af8d",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 1785,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-06-17T23:46:46Z",
+      "side": 1,
+      "message": "same",
+      "parentUuid": "77893901_7f3ab2b5",
       "range": {
         "startLine": 1785,
         "startChar": 4,
