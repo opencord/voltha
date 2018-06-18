@@ -52,6 +52,24 @@
       "revId": "ba00b4ed96bc254a608a5e629cde4ffcc5abd920",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "c68372a8_a02d8de6",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 914,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-06-18T15:57:14Z",
+      "side": 1,
+      "message": "I think updating the stats in the flow object in Voltha datastore and by extension in ONOS is a good think. It can be pushed to Kafka in addition but updating the stats in ONOS would add value.\nI have not tried to retrieve the stats in ONOS because the Openolt driver currently does not send flow stats (I have a bug I am working on), however I have also implemented it for port statistics and it works",
+      "parentUuid": "44e3a41d_c8d44f00",
+      "revId": "ba00b4ed96bc254a608a5e629cde4ffcc5abd920",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
