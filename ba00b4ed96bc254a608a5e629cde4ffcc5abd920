@@ -16,6 +16,24 @@
       "revId": "ba00b4ed96bc254a608a5e629cde4ffcc5abd920",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5e947360_9c7349ac",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 914,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-06-18T14:45:55Z",
+      "side": 1,
+      "message": "Kafka is the primary channel for exporting stats. However, support for stats over openflow seems reasonable as well.",
+      "parentUuid": "4ad9f1b5_4666ed30",
+      "revId": "ba00b4ed96bc254a608a5e629cde4ffcc5abd920",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
