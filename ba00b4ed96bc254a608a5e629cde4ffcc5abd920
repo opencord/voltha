@@ -88,6 +88,24 @@
       "revId": "ba00b4ed96bc254a608a5e629cde4ffcc5abd920",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "4c0116b2_278996f8",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 914,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-06-18T19:18:56Z",
+      "side": 1,
+      "message": "How can I prevent the callback to be executed ?",
+      "parentUuid": "10791135_303a6712",
+      "revId": "ba00b4ed96bc254a608a5e629cde4ffcc5abd920",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
