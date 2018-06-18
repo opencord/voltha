@@ -70,6 +70,24 @@
       "revId": "ba00b4ed96bc254a608a5e629cde4ffcc5abd920",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "10791135_303a6712",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 914,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-06-18T18:55:16Z",
+      "side": 1,
+      "message": "The question remains:  Do you need the callback to be triggered?  If the aim is only to store the stats inside the object then there should also some code that would be required to prevent the callback to be executed fully (i.e. decomposing flows).",
+      "parentUuid": "c68372a8_a02d8de6",
+      "revId": "ba00b4ed96bc254a608a5e629cde4ffcc5abd920",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
