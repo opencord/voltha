@@ -949,6 +949,13 @@ service VolthaGlobalService {
             post: "/api/v1/devices/{id}/self_test"
         };
     }
+
+    // OpenOMCI MIB information
+    rpc GetMibDeviceData(ID) returns(omci.MibDeviceData) {
+        option (google.api.http) = {
+            get: "/api/v1/openomci/{id}/mib"
+        };
+    }
 }
 
 /*
@@ -1677,4 +1684,11 @@ service VolthaLocalService {
     }
 
     rpc Subscribe(OfAgentSubscriber) returns (OfAgentSubscriber) {}
+
+    // OpenOMCI MIB information
+    rpc GetMibDeviceData(ID) returns(omci.MibDeviceData) {
+        option (google.api.http) = {
+            get: "/api/v1/openomci/{id}/mib"
+        };
+    }
 }

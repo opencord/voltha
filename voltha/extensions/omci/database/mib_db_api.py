@@ -30,6 +30,8 @@ DEVICE_ID_KEY = 'device_id'
 CLASS_ID_KEY = 'class_id'
 INSTANCE_ID_KEY = 'instance_id'
 ATTRIBUTES_KEY = 'attributes'
+ME_KEY = 'managed_entities'
+MSG_TYPE_KEY = 'message_types'
 
 
 class DatabaseStateError(Exception):
@@ -221,5 +223,23 @@ class MibDbApi(object):
 
         :param device_id: (str) ONU Device ID
         :return: (int) The Value or None if not found
+        """
+        raise NotImplementedError('Implement this in your derive class')
+
+    def update_supported_managed_entities(self, device_id, managed_entities):
+        """
+        Update the supported OMCI Managed Entities for this device
+
+        :param device_id: (str) ONU Device ID
+        :param managed_entities: (set) Managed Entity class IDs
+        """
+        raise NotImplementedError('Implement this in your derive class')
+
+    def update_supported_message_types(self, device_id, msg_types):
+        """
+        Update the supported OMCI Managed Entities for this device
+
+        :param device_id: (str) ONU Device ID
+        :param msg_types: (set) Message Type values (ints)
         """
         raise NotImplementedError('Implement this in your derive class')

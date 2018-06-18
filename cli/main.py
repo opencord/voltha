@@ -30,6 +30,7 @@ from simplejson import dumps
 
 from cli.device import DeviceCli
 from cli.xpon import XponCli
+from cli.omci import OmciCli
 from cli.alarm_filters import AlarmFiltersCli
 from cli.logical_device import LogicalDeviceCli
 from cli.table import print_pb_list_as_table
@@ -277,6 +278,15 @@ class VolthaCli(Cmd):
         sub = XponCli(self.get_channel, device_id)
         sub.cmdloop()
 
+    def do_omci(self, line):
+        """omci <device_ID> - Enter OMCI level command mode"""
+
+        device_id = line.strip() or self.default_device_id
+        if not device_id:
+            raise Exception('<device-id> parameter needed')
+        sub = OmciCli(device_id, self.get_stub)
+        sub.cmdloop()
+
     def do_pdb(self, line):
         """Launch PDB debug prompt in CLI (for CLI development)"""
         from pdb import set_trace
@@ -348,7 +358,7 @@ class VolthaCli(Cmd):
                     break
                 self.poutput('waiting for device to be enabled...')
                 sleep(.5)
-        except Exception as  e:
+        except Exception as e:
             self.poutput('Error enabling {}.  Error:{}'.format(device_id, e))
 
     complete_activate_olt = complete_device

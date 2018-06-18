@@ -31,6 +31,8 @@ RC = ReasonCodes
 ACTIVE_KEY = 'active'
 IN_SYNC_KEY = 'in-sync'
 LAST_IN_SYNC_KEY = 'last-in-sync-time'
+SUPPORTED_MESSAGE_ENTITY_KEY = 'managed-entities'
+SUPPORTED_MESSAGE_TYPES_KEY = 'message-type'
 
 
 class OnuDeviceEvents(IntEnum):
@@ -296,7 +298,11 @@ class OnuDeviceEntry(object):
         """
         topic = OnuDeviceEntry.event_bus_topic(self.device_id,
                                                OnuDeviceEvents.OmciCapabilitiesEvent)
-        self.event_bus.publish(topic=topic, msg=None)
+        msg = {
+            SUPPORTED_MESSAGE_ENTITY_KEY: self.omci_capabilities.supported_managed_entities,
+            SUPPORTED_MESSAGE_TYPES_KEY: self.omci_capabilities.supported_message_types
+        }
+        self.event_bus.publish(topic=topic, msg=msg)
 
     def delete(self):
         """

@@ -82,7 +82,9 @@ class MibDbVolatileDict(MibDbApi):
             CREATED_KEY: now,
             LAST_SYNC_KEY: None,
             MDS_KEY: 0,
-            VERSION_KEY: MibDbVolatileDict.CURRENT_VERSION
+            VERSION_KEY: MibDbVolatileDict.CURRENT_VERSION,
+            ME_KEY: dict(),
+            MSG_TYPE_KEY: set()
         }
 
     def remove(self, device_id):
@@ -125,7 +127,9 @@ class MibDbVolatileDict(MibDbApi):
             CREATED_KEY: device_db[CREATED_KEY],
             LAST_SYNC_KEY: device_db[LAST_SYNC_KEY],
             MDS_KEY: 0,
-            VERSION_KEY: MibDbVolatileDict.CURRENT_VERSION
+            VERSION_KEY: MibDbVolatileDict.CURRENT_VERSION,
+            ME_KEY: device_db[ME_KEY],
+            MSG_TYPE_KEY: device_db[MSG_TYPE_KEY]
         }
 
     def save_mib_data_sync(self, device_id, value):
@@ -430,3 +434,47 @@ class MibDbVolatileDict(MibDbApi):
 
         except Exception as e:
             pass
+
+    def update_supported_managed_entities(self, device_id, managed_entities):
+        """
+        Update the supported OMCI Managed Entities for this device
+
+        :param device_id: (str) ONU Device ID
+        :param managed_entities: (set) Managed Entity class IDs
+        """
+        now = datetime.utcnow()
+        try:
+            device_db = self._data[device_id]
+
+            entities = {class_id: self._managed_entity_to_name(device_id, class_id)
+                        for class_id in managed_entities}
+
+            device_db[ME_KEY] = entities
+            self._modified = now
+
+        except Exception as e:
+            self.log.error('set-me-failure', e=e)
+            raise
+
+    def _managed_entity_to_name(self, device_id, class_id):
+        me_map = self._omci_agent.get_device(device_id).me_map
+        entity = me_map.get(class_id)
+
+        return entity.__name__ if entity is not None else 'UnknownManagedEntity'
+
+    def update_supported_message_types(self, device_id, msg_types):
+        """
+        Update the supported OMCI Managed Entities for this device
+
+        :param device_id: (str) ONU Device ID
+        :param msg_types: (set) Message Type values (ints)
+        """
+        now = datetime.utcnow()
+        try:
+            msg_type_set = {msg_type.value for msg_type in msg_types}
+            self._data[device_id][MSG_TYPE_KEY] = msg_type_set
+            self._modified = now
+
+        except Exception as e:
+            self.log.error('set-me-failure', e=e)
+            raise

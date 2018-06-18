@@ -43,6 +43,15 @@ message MibClassData {
     [(voltha.child_node) = {key: "instance_id"}];
 }
 
+message ManagedEntity {
+    uint32 class_id  = 1 [(voltha.access) = READ_ONLY];
+    string name      = 2 [(voltha.access) = READ_ONLY];
+}
+
+message MessageType {
+    uint32 message_type = 1 [(voltha.access) = READ_ONLY];
+}
+
 message MibDeviceData {
     string device_id        = 1 [(voltha.access) = READ_ONLY];
     string created          = 2;
@@ -52,4 +61,8 @@ message MibDeviceData {
 
     repeated MibClassData classes = 6
     [(voltha.child_node) = {key: "class_id"}];
+
+    repeated ManagedEntity managed_entities = 7;
+    repeated MessageType message_types = 8;
 }
+

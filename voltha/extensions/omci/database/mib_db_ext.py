@@ -15,7 +15,7 @@
 #
 from mib_db_api import *
 from voltha.protos.omci_mib_db_pb2 import MibInstanceData, MibClassData, \
-    MibDeviceData, MibAttributeData
+    MibDeviceData, MibAttributeData, MessageType, ManagedEntity
 from voltha.extensions.omci.omci_entities import *
 from scapy.fields import StrField, FieldListField
 
@@ -838,9 +838,77 @@ class MibDbExternal(MibDbApi):
             CREATED_KEY: self._string_to_time(val.created),
             LAST_SYNC_KEY: self._string_to_time(val.last_sync_time),
             MDS_KEY: val.mib_data_sync,
-            VERSION_KEY: val.version
+            VERSION_KEY: val.version,
+            ME_KEY: dict(),
+            MSG_TYPE_KEY: set()
         }
         for class_data in val.classes:
             data[class_data.class_id] = self._class_to_dict(val.device_id,
                                                             class_data)
+        for managed_entity in val.managed_entities:
+            data[ME_KEY][managed_entity.class_id] = managed_entity.name
+
+        for msg_type in val.message_types:
+            data[MSG_TYPE_KEY].add(msg_type.message_type)
+
         return data
+
+    def _managed_entity_to_name(self, device_id, class_id):
+        me_map = self._omci_agent.get_device(device_id).me_map
+        entity = me_map.get(class_id)
+
+        return entity.__name__ if entity is not None else 'UnknownManagedEntity'
+
+    def update_supported_managed_entities(self, device_id, managed_entities):
+        """
+        Update the supported OMCI Managed Entities for this device
+        :param device_id: (str) ONU Device ID
+        :param managed_entities: (set) Managed Entity class IDs
+        """
+        try:
+            me_list = [ManagedEntity(class_id=class_id,
+                                     name=self._managed_entity_to_name(device_id,
+                                                                       class_id))
+                       for class_id in managed_entities]
+
+            device_proxy = self._device_proxy(device_id)
+            data = device_proxy.get(depth=0)
+
+            now = datetime.utcnow()
+            data.managed_entities.extend(me_list)
+
+            # Update
+            self._root_proxy.update(MibDbExternal.DEVICE_PATH.format(device_id),
+                                    data)
+            self._modified = now
+            self.log.debug('save-me-list-complete', device_id=device_id)
+
+        except Exception as e:
+            self.log.exception('add-me-failure', e=e, me_list=managed_entities)
+            raise
+
+    def update_supported_message_types(self, device_id, msg_types):
+        """
+        Update the supported OMCI Managed Entities for this device
+        :param device_id: (str) ONU Device ID
+        :param msg_types: (set) Message Type values (ints)
+        """
+        try:
+            msg_type_list = [MessageType(message_type=msg_type.value)
+                             for msg_type in msg_types]
+
+            device_proxy = self._device_proxy(device_id)
+            data = device_proxy.get(depth=0)
+
+            now = datetime.utcnow()
+            data.message_types.extend(msg_type_list)
+
+            # Update
+            self._root_proxy.update(MibDbExternal.DEVICE_PATH.format(device_id),
+                                    data)
+            self._modified = now
+            self.log.debug('save-msg-types-complete', device_id=device_id)
+
+        except Exception as e:
+            self.log.exception('add-msg-types-failure', e=e, msg_types=msg_types)
+            raise
