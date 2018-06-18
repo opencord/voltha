@@ -22,10 +22,13 @@ from voltha.extensions.omci.omci_defs import EntityOperations, ReasonCodes, \
     AttributeAccess
 from voltha.extensions.omci.omci_cc import OmciCCRxEvents, OMCI_CC, TX_REQUEST_KEY, \
     RX_RESPONSE_KEY
+from voltha.extensions.omci.onu_device_entry import OnuDeviceEvents, OnuDeviceEntry, \
+    SUPPORTED_MESSAGE_ENTITY_KEY, SUPPORTED_MESSAGE_TYPES_KEY
 from voltha.extensions.omci.omci_entities import OntData
 from common.event_bus import EventBusClient
 
 RxEvent = OmciCCRxEvents
+DevEvent = OnuDeviceEvents
 OP = EntityOperations
 RC = ReasonCodes
 AA = AttributeAccess
@@ -121,24 +124,31 @@ class MibSynchronizer(object):
         self._attr_diffs = None
 
         self._event_bus = EventBusClient()
-        self._subscriptions = {               # RxEvent.enum -> Subscription Object
+        self._omci_cc_subscriptions = {               # RxEvent.enum -> Subscription Object
             RxEvent.MIB_Reset: None,
             RxEvent.AVC_Notification: None,
             RxEvent.MIB_Upload: None,
             RxEvent.MIB_Upload_Next: None,
             RxEvent.Create: None,
             RxEvent.Delete: None,
-            RxEvent.Set: None
+            RxEvent.Set: None,
         }
-        self._sub_mapping = {
+        self._omci_cc_sub_mapping = {
             RxEvent.MIB_Reset: self.on_mib_reset_response,
             RxEvent.AVC_Notification: self.on_avc_notification,
             RxEvent.MIB_Upload: self.on_mib_upload_response,
             RxEvent.MIB_Upload_Next: self.on_mib_upload_next_response,
             RxEvent.Create: self.on_create_response,
             RxEvent.Delete: self.on_delete_response,
-            RxEvent.Set: self.on_set_response
+            RxEvent.Set: self.on_set_response,
         }
+        self._onu_dev_subscriptions = {               # DevEvent.enum -> Subscription Object
+            DevEvent.OmciCapabilitiesEvent: None
+        }
+        self._onu_dev_sub_mapping = {
+            DevEvent.OmciCapabilitiesEvent: self.on_capabilities_event
+        }
+
         # Statistics and attributes
         # TODO: add any others if it will support problem diagnosis
 
@@ -147,7 +157,8 @@ class MibSynchronizer(object):
                                transitions=transitions,
                                initial=initial_state,
                                queued=True,
-                               name='{}'.format(self.__class__.__name__))
+                               name='{}-{}'.format(self.__class__.__name__,
+                                                   device_id))
 
     def _cancel_deferred(self):
         d1, self._deferred = self._deferred, None
@@ -223,10 +234,15 @@ class MibSynchronizer(object):
             task.stop()
 
         # Drop Response and Autonomous notification subscriptions
-        for event, sub in self._subscriptions.iteritems():
+        for event, sub in self._omci_cc_subscriptions.iteritems():
             if sub is not None:
-                self._subscriptions[event] = None
+                self._omci_cc_subscriptions[event] = None
                 self._device.omci_cc.event_bus.unsubscribe(sub)
+
+        for event, sub in self._onu_dev_subscriptions.iteritems():
+            if sub is not None:
+                self._onu_dev_subscriptions[event] = None
+                self._device.event_bus.unsubscribe(sub)
 
         # TODO: Stop and remove any currently running or scheduled tasks
         # TODO: Anything else?
@@ -262,15 +278,27 @@ class MibSynchronizer(object):
 
         # Set up Response and Autonomous notification subscriptions
         try:
-            for event, sub in self._sub_mapping.iteritems():
-                if self._subscriptions[event] is None:
-                    self._subscriptions[event] = \
+            for event, sub in self._omci_cc_sub_mapping.iteritems():
+                if self._omci_cc_subscriptions[event] is None:
+                    self._omci_cc_subscriptions[event] = \
                         self._device.omci_cc.event_bus.subscribe(
                             topic=OMCI_CC.event_bus_topic(self._device_id, event),
                             callback=sub)
 
         except Exception as e:
-            self.log.exception('subscription-setup', e=e)
+            self.log.exception('omci-cc-subscription-setup', e=e)
+
+        # Set up ONU device subscriptions
+        try:
+            for event, sub in self._onu_dev_sub_mapping.iteritems():
+                if self._onu_dev_subscriptions[event] is None:
+                    self._onu_dev_subscriptions[event] = \
+                        self._device.event_bus.subscribe(
+                                topic=OnuDeviceEntry.event_bus_topic(self._device_id, event),
+                                callback=sub)
+
+        except Exception as e:
+            self.log.exception('dev-subscription-setup', e=e)
 
         # Determine if this ONU has ever synchronized
         if self.is_new_onu:
@@ -465,6 +493,10 @@ class MibSynchronizer(object):
                 #       MDS value if different. Also remember that setting the MDS on
                 #       the ONU to 'n' is a set command and it will be 'n+1' after the
                 #       set.
+                #
+                # TODO: Also look into attributes covered by AVC and treat appropriately
+                #       since may have missed the AVC
+
                 self._deferred = reactor.callLater(0, self.success)
             else:
                 self._deferred = reactor.callLater(0, self.diffs_found)
@@ -493,7 +525,7 @@ class MibSynchronizer(object):
             response = msg[RX_RESPONSE_KEY]
 
             # Check if expected in current mib_sync state
-            if self.state != 'uploading' or self._subscriptions[RxEvent.MIB_Reset] is None:
+            if self.state != 'uploading' or self._omci_cc_subscriptions[RxEvent.MIB_Reset] is None:
                 self.log.error('rx-in-invalid-state', state=self.state)
 
             else:
@@ -525,7 +557,7 @@ class MibSynchronizer(object):
         """
         self.log.debug('on-avc-notification', state=self.state)
 
-        if self._subscriptions[RxEvent.AVC_Notification]:
+        if self._omci_cc_subscriptions[RxEvent.AVC_Notification]:
             try:
                 notification = msg[RX_RESPONSE_KEY]
 
@@ -568,7 +600,7 @@ class MibSynchronizer(object):
         """
         self.log.debug('on-mib-upload-next-response', state=self.state)
 
-        if self._subscriptions[RxEvent.MIB_Upload]:
+        if self._omci_cc_subscriptions[RxEvent.MIB_Upload]:
             # Check if expected in current mib_sync state
             if self.state == 'resynchronizing':
                 # The resync task handles this
@@ -587,7 +619,7 @@ class MibSynchronizer(object):
         """
         self.log.debug('on-mib-upload-next-response', state=self.state)
 
-        if self._subscriptions[RxEvent.MIB_Upload_Next]:
+        if self._omci_cc_subscriptions[RxEvent.MIB_Upload_Next]:
             try:
                 if self.state == 'resynchronizing':
                     # The resync task handles this
@@ -632,7 +664,7 @@ class MibSynchronizer(object):
         """
         self.log.debug('on-create-response', state=self.state)
 
-        if self._subscriptions[RxEvent.Create]:
+        if self._omci_cc_subscriptions[RxEvent.Create]:
             if self.state in ['disabled', 'uploading']:
                 self.log.error('rx-in-invalid-state', state=self.state)
                 return
@@ -717,7 +749,7 @@ class MibSynchronizer(object):
         """
         self.log.debug('on-delete-response', state=self.state)
 
-        if self._subscriptions[RxEvent.Delete]:
+        if self._omci_cc_subscriptions[RxEvent.Delete]:
             if self.state in ['disabled', 'uploading']:
                 self.log.error('rx-in-invalid-state', state=self.state)
                 return
@@ -758,7 +790,7 @@ class MibSynchronizer(object):
         """
         self.log.debug('on-set-response', state=self.state)
 
-        if self._subscriptions[RxEvent.Set]:
+        if self._omci_cc_subscriptions[RxEvent.Set]:
             if self.state in ['disabled', 'uploading']:
                 self.log.error('rx-in-invalid-state', state=self.state)
             try:
@@ -791,6 +823,16 @@ class MibSynchronizer(object):
                 pass            # NOP
             except Exception as e:
                 self.log.exception('set', e=e)
+    def on_capabilities_event(self, _topic, msg):
+        """
+        Process a OMCI capabilties event
+        :param _topic: (str) OnuDeviceEntry Capabilities event
+        :param msg: (dict) Message Entities & Message Types supported
+        """
+        self._database.update_supported_managed_entities(self.device_id,
+                                                         msg[SUPPORTED_MESSAGE_ENTITY_KEY])
+        self._database.update_supported_message_types(self.device_id,
+                                                      msg[SUPPORTED_MESSAGE_TYPES_KEY])
 
     def _status_to_text(self, success_code):
         return {

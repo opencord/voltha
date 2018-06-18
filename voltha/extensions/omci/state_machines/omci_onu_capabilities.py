@@ -84,7 +84,8 @@ class OnuOmciCapabilities(object):
                                transitions=transitions,
                                initial=initial_state,
                                queued=True,
-                               name='{}'.format(self.__class__.__name__))
+                               name='{}-{}'.format(self.__class__.__name__,
+                                                   device_id))
 
     def _cancel_deferred(self):
         d1, self._deferred = self._deferred, None
