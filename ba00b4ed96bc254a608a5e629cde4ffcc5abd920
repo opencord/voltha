@@ -106,6 +106,24 @@
       "revId": "ba00b4ed96bc254a608a5e629cde4ffcc5abd920",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f93e2e25_2ff9b1f8",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 914,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-06-18T19:59:37Z",
+      "side": 1,
+      "message": "You can\u0027t prevent the callback from being executed.   What you will need to do if figure out in the callback whether it was a stats change and ignore it",
+      "parentUuid": "4c0116b2_278996f8",
+      "revId": "ba00b4ed96bc254a608a5e629cde4ffcc5abd920",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
