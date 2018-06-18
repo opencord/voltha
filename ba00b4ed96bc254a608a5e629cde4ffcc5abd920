@@ -34,6 +34,24 @@
       "revId": "ba00b4ed96bc254a608a5e629cde4ffcc5abd920",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "44e3a41d_c8d44f00",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 914,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-06-18T14:53:12Z",
+      "side": 1,
+      "message": "Do you need this callback to be triggered?   Did you try to retrieve these stats from ONOS?",
+      "parentUuid": "5e947360_9c7349ac",
+      "revId": "ba00b4ed96bc254a608a5e629cde4ffcc5abd920",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
