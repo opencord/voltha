@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "2369ffa8_567c07d4",
+        "filename": "voltha/core/logical_device_agent.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 551,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-06-18T21:15:33Z",
+      "side": 1,
+      "message": "Since you are only verifying whether there are flows to be added or deleted then it\u0027s better to use a variable like \"no_flow_changes_required\" instead of \"flow_changes_is_stats\" as later there could be other non-stats changes that could trigger a no-op.",
+      "revId": "588a4441e9bfd8b53cb456ac13feba890caa2662",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
