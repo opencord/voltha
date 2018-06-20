@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "bb9f87f8_8e06e2ff",
+        "filename": "voltha/core/device_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 431,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-06-20T21:08:43Z",
+      "side": 0,
+      "message": "Why removing this check?   This function is only applicable to non-bulk flow updates.    There is no point in running the bulk-flow updates for this function.",
+      "revId": "69abce89b7682e98ecb4ebf39278a30af1c51e2c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
