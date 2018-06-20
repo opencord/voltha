@@ -116,6 +116,10 @@ class OpenoltDevice(object):
         self.heartbeat_signature = None
         self.heartbeat_thread.start()
 
+        if is_reconciliation:
+            # Put state machine in state up
+            reactor.callLater(0.5, self.olt_up, reconciliation=True)
+
         self.log.debug('openolt-device-created', device_id=self.device_id)
 
     def process_indications(self):
@@ -171,7 +175,9 @@ class OpenoltDevice(object):
 
     def olt_indication_up(self, event):
         olt_indication = event.kwargs.get('ind', None)
-        self.log.debug("olt indication", olt_ind=olt_indication)
+        is_reconciliation = event.kwargs.get('reconciliation', False)
+        self.log.debug("olt indication", olt_ind=olt_indication,
+            reconciliation=is_reconciliation)
 
         device = self.adapter_agent.get_device(self.device_id)
 
@@ -200,6 +206,9 @@ class OpenoltDevice(object):
         else:
             # logical device already exists
             self.logical_device_id = device.parent_id
+            if is_reconciliation:
+                self.adapter_agent.reconcile_logical_device(
+                    self.logical_device_id)
 
         # Update phys OF device
         device.parent_id = self.logical_device_id
@@ -606,6 +615,8 @@ class OpenoltDevice(object):
 
         # block till gRPC connection is complete
         self.channel_ready_future.result()
+        # Sleep to make sure everything is set properly
+        time.sleep(1)
 
         while self.heartbeat_thread_active:
 
