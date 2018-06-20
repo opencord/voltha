@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "07b28e0f_7485be6b",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 121,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-06-20T22:44:00Z",
+      "side": 1,
+      "message": "Whats the reasoning behind delay of 0.5s?",
+      "revId": "015c036f0269c90335342f505e2d2cb786436bb1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9674fbf3_1079dd2d",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 619,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-06-20T22:44:00Z",
+      "side": 1,
+      "message": "Can we avoid this sleep? They usually end up causing more trouble later?",
+      "revId": "015c036f0269c90335342f505e2d2cb786436bb1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
