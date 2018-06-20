@@ -102,7 +102,7 @@ class OpenoltDevice(object):
         self.channel_ready_future = grpc.channel_ready_future(self.channel)
         self.stub = openolt_pb2_grpc.OpenoltStub(self.channel)
 
-        self.flow_mgr = OpenOltFlowMgr(self.log, self.stub)
+        self.flow_mgr = OpenOltFlowMgr(self.log, self.stub, self.device_id)
 
         # Indications thread plcaholder (started by heartbeat thread)
         self.indications_thread = None

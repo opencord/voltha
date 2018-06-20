@@ -18,11 +18,17 @@ from voltha.protos.openflow_13_pb2 import OFPXMC_OPENFLOW_BASIC
 import voltha.core.flow_decomposer as fd
 import openolt_platform as platform
 from voltha.adapters.openolt.protos import openolt_pb2
+from voltha.registry import registry
 
 HSIA_FLOW_INDEX = 0  # FIXME
 DHCP_FLOW_INDEX = 1  # FIXME
 EAPOL_FLOW_INDEX = 2  # FIXME
 EAPOL_DOWNLINK_FLOW_INDEX = 3  # FIXME
+EAPOL_DOWNLINK_SECONDARY_FLOW_INDEX = 4  # FIXME
+EAPOL_UPLINK_SECONDARY_FLOW_INDEX = 5  # FIXME
+
+
+EAP_ETH_TYPE = 0x888e
 
 # FIXME - see also BRDCM_DEFAULT_VLAN in broadcom_onu.py
 DEFAULT_MGMT_VLAN = 4091
@@ -30,9 +36,12 @@ DEFAULT_MGMT_VLAN = 4091
 
 class OpenOltFlowMgr(object):
 
-    def __init__(self, log, stub):
+    def __init__(self, log, stub, device_id):
         self.log = log
         self.stub = stub
+        self.device_id = device_id
+        self.flow_proxy = registry('core').get_proxy(
+            '/devices/{}/flows'.format(self.device_id))
 
     def add_flow(self, flow, is_down_stream):
         self.log.debug('add flow', flow=flow, is_down_stream=is_down_stream)
@@ -150,9 +159,10 @@ class OpenOltFlowMgr(object):
                                classifier=classifier,
                                action=action)
         elif 'eth_type' in classifier:
-            if classifier['eth_type'] == 0x888e:
+            if classifier['eth_type'] == EAP_ETH_TYPE:
                 self.log.debug('eapol flow add')
-                self.add_eapol_flow(intf_id, onu_id, classifier, action)
+                self.add_eapol_flow(intf_id, onu_id)
+
         elif 'push_vlan' in action:
             self.add_data_flow(intf_id, onu_id, classifier, action)
         else:
@@ -179,6 +189,14 @@ class OpenOltFlowMgr(object):
         self.add_hsia_flow(intf_id, onu_id, uplink_classifier, uplink_action,
                            downlink_classifier, downlink_action,
                            HSIA_FLOW_INDEX)
+
+        # Secondary EAP on the subscriber vlan
+
+        if self.is_eap_enabled(intf_id, onu_id):
+            self.add_eapol_flow(intf_id, onu_id,
+                uplink_eapol_id=EAPOL_UPLINK_SECONDARY_FLOW_INDEX,
+                downlink_eapol_id=EAPOL_DOWNLINK_SECONDARY_FLOW_INDEX,
+                vlan_id=uplink_classifier['vlan_vid'])
 
     def add_hsia_flow(self, intf_id, onu_id, uplink_classifier, uplink_action,
                       downlink_classifier, downlink_action, hsia_id):
@@ -230,25 +248,43 @@ class OpenOltFlowMgr(object):
 
         self.stub.FlowAdd(upstream_flow)
 
-    def add_eapol_flow(self, intf_id, onu_id, uplink_classifier, uplink_action,
+    def add_eapol_flow(self, intf_id, onu_id,
                        uplink_eapol_id=EAPOL_FLOW_INDEX,
                        downlink_eapol_id=EAPOL_DOWNLINK_FLOW_INDEX,
                        vlan_id=DEFAULT_MGMT_VLAN):
 
-        self.log.debug('add eapol flow', classifier=uplink_classifier,
-                       action=uplink_action)
+        # self.log.debug('add eapol flow pre-process',
+        #                classifier=uplink_classifier)
+        #                #action=uplink_action)
 
-        downlink_classifier = dict(uplink_classifier)
-        downlink_action = dict(uplink_action)
+        downlink_classifier = {}
+        downlink_classifier['eth_type'] = EAP_ETH_TYPE
+        downlink_classifier['pkt_tag_type'] = 'single_tag'
+        downlink_classifier['vlan_vid'] = vlan_id
 
-        gemport_id = platform.mk_gemport_id(onu_id)
-        uplink_flow_id = platform.mk_flow_id(intf_id, onu_id, uplink_eapol_id)
+        downlink_action = {}
+        downlink_action['push_vlan'] = True
+        downlink_action['vlan_vid'] = vlan_id
 
-        # Add Upstream EAPOL Flow.
+        uplink_classifier = {}
+        uplink_classifier['eth_type'] = EAP_ETH_TYPE
         uplink_classifier['pkt_tag_type'] = 'single_tag'
         uplink_classifier['vlan_vid'] = vlan_id
-        uplink_action.clear()
+
+        uplink_action = {}
         uplink_action['trap_to_host'] = True
+
+        gemport_id = platform.mk_gemport_id(onu_id)
+
+
+        self.log.debug('add eapol flow',
+            uplink_classifier=uplink_classifier,
+            uplink_action=uplink_action,
+            downlink_classifier=downlink_classifier,
+            downlink_action=downlink_action)
+        # Add Upstream EAPOL Flow.
+
+        uplink_flow_id = platform.mk_flow_id(intf_id, onu_id, uplink_eapol_id)
 
         upstream_flow = openolt_pb2.Flow(
             onu_id=onu_id, flow_id=uplink_flow_id, flow_type="upstream",
@@ -261,8 +297,6 @@ class OpenOltFlowMgr(object):
         # Add Downstream EAPOL Flow.
         downlink_flow_id = platform.mk_flow_id(intf_id, onu_id,
                                                downlink_eapol_id)
-        downlink_classifier['pkt_tag_type'] = 'single_tag'
-        downlink_classifier['vlan_vid'] = vlan_id
 
         downstream_flow = openolt_pb2.Flow(
             onu_id=onu_id, flow_id=downlink_flow_id, flow_type="downstream",
@@ -271,6 +305,9 @@ class OpenOltFlowMgr(object):
             action=self.mk_action(downlink_action))
 
         self.stub.FlowAdd(downstream_flow)
+
+        self.log.debug('eap flows', upstream_flow=upstream_flow,
+                       downstream_flow=downstream_flow)
 
     def mk_classifier(self, classifier_info):
 
@@ -321,3 +358,27 @@ class OpenOltFlowMgr(object):
             self.log.info('Invalid-action-field')
             return
         return action
+
+    def is_eap_enabled(self, intf_id, onu_id):
+        flows = self.flow_proxy.get('/').items
+
+        for flow in flows:
+            eap_flow = False
+            eap_intf_id = None
+            eap_onu_id = None
+            for field in fd.get_ofb_fields(flow):
+                if field.type == fd.ETH_TYPE:
+                    if field.eth_type == EAP_ETH_TYPE:
+                        eap_flow = True
+                if field.type == fd.IN_PORT:
+                    eap_intf_id = platform.intf_id_from_uni_port_num(field.port)
+                    eap_onu_id = platform.onu_id_from_port_num(field.port)
+
+            if eap_flow:
+                self.log.debug('eap flow detected', onu_id=onu_id,
+                               intf_id=intf_id, eap_intf_id=eap_intf_id,
+                               eap_onu_id=eap_onu_id)
+            if eap_flow and intf_id == eap_intf_id and onu_id == eap_onu_id:
+                return True
+
+        return False
