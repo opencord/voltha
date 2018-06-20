@@ -23,6 +23,9 @@ HSIA_FLOW_INDEX = 0  # FIXME
 DHCP_FLOW_INDEX = 1  # FIXME
 EAPOL_FLOW_INDEX = 2  # FIXME
 EAPOL_DOWNLINK_FLOW_INDEX = 3  # FIXME
+EAPOL_DOWNLINK_SECONDARY_FLOW_INDEX = 4  # FIXME
+EAPOL_UPLINK_SECONDARY_FLOW_INDEX = 5  # FIXME
+
 
 # FIXME - see also BRDCM_DEFAULT_VLAN in broadcom_onu.py
 DEFAULT_MGMT_VLAN = 4091
@@ -152,7 +155,8 @@ class OpenOltFlowMgr(object):
         elif 'eth_type' in classifier:
             if classifier['eth_type'] == 0x888e:
                 self.log.debug('eapol flow add')
-                self.add_eapol_flow(intf_id, onu_id, classifier, action)
+                self.add_eapol_flow(intf_id, onu_id)
+
         elif 'push_vlan' in action:
             self.add_data_flow(intf_id, onu_id, classifier, action)
         else:
@@ -179,6 +183,14 @@ class OpenOltFlowMgr(object):
         self.add_hsia_flow(intf_id, onu_id, uplink_classifier, uplink_action,
                            downlink_classifier, downlink_action,
                            HSIA_FLOW_INDEX)
+
+        # Secondary EAP on the subscriber vlan
+
+
+        self.add_eapol_flow(intf_id, onu_id,
+            uplink_eapol_id=EAPOL_UPLINK_SECONDARY_FLOW_INDEX,
+            downlink_eapol_id=EAPOL_DOWNLINK_SECONDARY_FLOW_INDEX,
+            vlan_id=uplink_classifier['vlan_vid'])
 
     def add_hsia_flow(self, intf_id, onu_id, uplink_classifier, uplink_action,
                       downlink_classifier, downlink_action, hsia_id):
@@ -230,25 +242,43 @@ class OpenOltFlowMgr(object):
 
         self.stub.FlowAdd(upstream_flow)
 
-    def add_eapol_flow(self, intf_id, onu_id, uplink_classifier, uplink_action,
+    def add_eapol_flow(self, intf_id, onu_id,
                        uplink_eapol_id=EAPOL_FLOW_INDEX,
                        downlink_eapol_id=EAPOL_DOWNLINK_FLOW_INDEX,
                        vlan_id=DEFAULT_MGMT_VLAN):
 
-        self.log.debug('add eapol flow', classifier=uplink_classifier,
-                       action=uplink_action)
+        # self.log.debug('add eapol flow pre-process',
+        #                classifier=uplink_classifier)
+        #                #action=uplink_action)
 
-        downlink_classifier = dict(uplink_classifier)
-        downlink_action = dict(uplink_action)
+        downlink_classifier = {}
+        downlink_classifier['eth_type'] = 0x888e
+        downlink_classifier['pkt_tag_type'] = 'single_tag'
+        downlink_classifier['vlan_vid'] = vlan_id
 
-        gemport_id = platform.mk_gemport_id(onu_id)
-        uplink_flow_id = platform.mk_flow_id(intf_id, onu_id, uplink_eapol_id)
+        downlink_action = {}
+        downlink_action['push_vlan'] = True
+        downlink_action['vlan_vid'] = vlan_id
 
-        # Add Upstream EAPOL Flow.
+        uplink_classifier = {}
+        uplink_classifier['eth_type'] = 0x888e
         uplink_classifier['pkt_tag_type'] = 'single_tag'
         uplink_classifier['vlan_vid'] = vlan_id
-        uplink_action.clear()
+
+        uplink_action = {}
         uplink_action['trap_to_host'] = True
+
+        gemport_id = platform.mk_gemport_id(onu_id)
+
+
+        self.log.debug('add eapol flow',
+            uplink_classifier=uplink_classifier,
+            uplink_action=uplink_action,
+            downlink_classifier=downlink_classifier,
+            downlink_action=downlink_action)
+        # Add Upstream EAPOL Flow.
+
+        uplink_flow_id = platform.mk_flow_id(intf_id, onu_id, uplink_eapol_id)
 
         upstream_flow = openolt_pb2.Flow(
             onu_id=onu_id, flow_id=uplink_flow_id, flow_type="upstream",
@@ -261,8 +291,6 @@ class OpenOltFlowMgr(object):
         # Add Downstream EAPOL Flow.
         downlink_flow_id = platform.mk_flow_id(intf_id, onu_id,
                                                downlink_eapol_id)
-        downlink_classifier['pkt_tag_type'] = 'single_tag'
-        downlink_classifier['vlan_vid'] = vlan_id
 
         downstream_flow = openolt_pb2.Flow(
             onu_id=onu_id, flow_id=downlink_flow_id, flow_type="downstream",
@@ -271,6 +299,9 @@ class OpenOltFlowMgr(object):
             action=self.mk_action(downlink_action))
 
         self.stub.FlowAdd(downstream_flow)
+
+        self.log.debug('eap flows', upstream_flow=upstream_flow,
+                       downstream_flow=downstream_flow)
 
     def mk_classifier(self, classifier_info):
 
