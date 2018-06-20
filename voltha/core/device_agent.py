@@ -428,38 +428,36 @@ class DeviceAgent(object):
         :param flows: Desired flows
         :return: None
         """
-        if self.device_type.accepts_add_remove_flow_updates:
-            self.current_flows = self.flows_proxy.get('/')
-            self.log.debug('pre-processing-flows',
-                           logical_device_id=self.last_data.id,
-                           desired_flows=flows,
-                           existing_flows=self.current_flows)
+        self.current_flows = self.flows_proxy.get('/')
+        self.log.debug('pre-processing-flows',
+                       logical_device_id=self.last_data.id,
+                       desired_flows=flows,
+                       existing_flows=self.current_flows)
 
-            if self.flow_changes is None:
-                self.flow_changes = FlowChanges()
-            else:
-                del self.flow_changes.to_add.items[:]
-                del self.flow_changes.to_remove.items[:]
-
-            current_flow_ids = set(f.id for f in self.current_flows.items)
-            desired_flow_ids = set(f.id for f in flows.items)
-
-            ids_to_add = desired_flow_ids.difference(current_flow_ids)
-            ids_to_del = current_flow_ids.difference(desired_flow_ids)
-
-            for f in flows.items:
-                if f.id in ids_to_add:
-                    self.flow_changes.to_add.items.extend([f])
-
-            for f in self.current_flows.items:
-                if f.id in ids_to_del:
-                    self.flow_changes.to_remove.items.extend([f])
-
-            self.log.debug('pre-processed-flows',
-                           logical_device_id=self.last_data.id,
-                           flow_changes=self.flow_changes)
+        if self.flow_changes is None:
+            self.flow_changes = FlowChanges()
         else:
-            self.log.debug('no-pre-processing-required')
+            del self.flow_changes.to_add.items[:]
+            del self.flow_changes.to_remove.items[:]
+
+        current_flow_ids = set(f.id for f in self.current_flows.items)
+        desired_flow_ids = set(f.id for f in flows.items)
+
+        ids_to_add = desired_flow_ids.difference(current_flow_ids)
+        ids_to_del = current_flow_ids.difference(desired_flow_ids)
+
+        for f in flows.items:
+            if f.id in ids_to_add:
+                self.flow_changes.to_add.items.extend([f])
+
+        for f in self.current_flows.items:
+            if f.id in ids_to_del:
+                self.flow_changes.to_remove.items.extend([f])
+
+        self.log.debug('pre-processed-flows',
+                       logical_device_id=self.last_data.id,
+                       flow_changes=self.flow_changes)
+
 
     @inlineCallbacks
     def _flow_table_updated(self, flows):
