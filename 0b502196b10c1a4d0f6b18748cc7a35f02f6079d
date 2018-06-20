@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "be3be2e5_b4060d3d",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 190,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-06-20T22:58:50Z",
+      "side": 1,
+      "message": "eapol flow will be added even when eapol is not being used. This may be OK for AT\u0026T use case but not all service providers use eapol.",
+      "revId": "0b502196b10c1a4d0f6b18748cc7a35f02f6079d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
