@@ -690,6 +690,10 @@ class OpenoltDevice(object):
         port = self.adapter_agent.get_port(self.device_id,
             port_no=port_stats.intf_id)
 
+        if port is None:
+            self.log.warn('port associated with this stats does not exist')
+            return 
+
         port.rx_packets = port_stats.rx_packets
         port.rx_bytes = port_stats.rx_bytes
         port.rx_errors = port_stats.rx_error_packets
