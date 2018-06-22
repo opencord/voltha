@@ -97,6 +97,35 @@ class OpenoltDevice(object):
         self.machine.add_transition(trigger='olt_ind_loss', source='up',
                                     dest='down')
 
+        # If logical device does not exist create it
+        if len(device.parent_id) == 0:
+
+            dpid = '00:00:' + self.ip_hex(self.host_and_port.split(":")[0])
+
+            # Create logical OF device
+            ld = LogicalDevice(
+                root_device_id=self.device_id,
+                switch_features=ofp_switch_features(
+                    n_buffers=256,  # TODO fake for now
+                    n_tables=2,  # TODO ditto
+                    capabilities=(  # TODO and ditto
+                        OFPC_FLOW_STATS
+                        | OFPC_TABLE_STATS
+                        | OFPC_PORT_STATS
+                        | OFPC_GROUP_STATS
+                    )
+                )
+            )
+            ld_init = self.adapter_agent.create_logical_device(ld,
+                                                               dpid=dpid)
+            self.logical_device_id = ld_init.id
+        else:
+            # logical device already exists
+            self.logical_device_id = device.parent_id
+            if is_reconciliation:
+                self.adapter_agent.reconcile_logical_device(
+                    self.logical_device_id)
+
         # Initialize gRPC
         self.channel = grpc.insecure_channel(self.host_and_port)
         self.channel_ready_future = grpc.channel_ready_future(self.channel)
@@ -180,35 +209,6 @@ class OpenoltDevice(object):
             reconciliation=is_reconciliation)
 
         device = self.adapter_agent.get_device(self.device_id)
-
-        # If logical device does not exist create it
-        if len(device.parent_id) == 0:
-
-            dpid = '00:00:' + self.ip_hex(self.host_and_port.split(":")[0])
-
-            # Create logical OF device
-            ld = LogicalDevice(
-                root_device_id=self.device_id,
-                switch_features=ofp_switch_features(
-                    n_buffers=256,  # TODO fake for now
-                    n_tables=2,  # TODO ditto
-                    capabilities=(  # TODO and ditto
-                        OFPC_FLOW_STATS
-                        | OFPC_TABLE_STATS
-                        | OFPC_PORT_STATS
-                        | OFPC_GROUP_STATS
-                    )
-                )
-            )
-            ld_init = self.adapter_agent.create_logical_device(ld,
-                                                               dpid=dpid)
-            self.logical_device_id = ld_init.id
-        else:
-            # logical device already exists
-            self.logical_device_id = device.parent_id
-            if is_reconciliation:
-                self.adapter_agent.reconcile_logical_device(
-                    self.logical_device_id)
 
         # Update phys OF device
         device.parent_id = self.logical_device_id
@@ -380,12 +380,16 @@ class OpenoltDevice(object):
                        serial_number=onu_indication.serial_number,
                        oper_state=onu_indication.oper_state,
                        admin_state=onu_indication.admin_state)
-
-        if onu_indication.serial_number:
+        try:
+            serial_number_str = self.stringify_serial_number(
+                onu_indication.serial_number)
+        except:
+            serial_number_str = None
+            
+        if serial_number_str is not None:
             onu_device = self.adapter_agent.get_child_device(
                     self.device_id,
-                    serial_number=self.stringify_serial_number(
-                            onu_indication.serial_number))
+                    serial_number=serial_number_str)
         else:
             onu_device = self.adapter_agent.get_child_device(
                     self.device_id,
