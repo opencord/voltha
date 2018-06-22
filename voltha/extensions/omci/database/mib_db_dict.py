@@ -255,10 +255,26 @@ class MibDbVolatileDict(MibDbApi):
 
             changed = False
 
+            me_map = self._omci_agent.get_device(device_id).me_map
+            entity = me_map.get(class_id)
+
             for attribute, value in attributes.items():
                 assert isinstance(attribute, basestring)
                 assert value is not None, "Attribute '{}' value cannot be 'None'".\
                     format(attribute)
+
+                if entity is not None and isinstance(value, basestring):
+                    from scapy.fields import StrFixedLenField
+                    attr_index = entity.attribute_name_to_index_map[attribute]
+                    eca = entity.attributes[attr_index]
+                    field = eca.field
+
+                    if isinstance(field, StrFixedLenField):
+                        from scapy.base_classes import Packet_metaclass
+                        if isinstance(field.default, Packet_metaclass) \
+                                and hasattr(field.default, 'json_from_value'):
+                            # Value/hex of Packet Class to string
+                            value = field.default.json_from_value(value)
 
                 # Complex packet types may have an attribute encoded as an object, this
                 # can be check by seeing if there is a to_json() conversion callable

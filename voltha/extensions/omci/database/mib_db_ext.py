@@ -111,9 +111,15 @@ class MibDbExternal(MibDbApi):
                 field = StrFixedLenField(UNKNOWN_CLASS_ATTRIBUTE_KEY, None, 24)
 
             if isinstance(field, StrFixedLenField):
-                #  For StrFixedLenField, value is an str already (or possibly JSON encoded object)
+                from scapy.base_classes import Packet_metaclass
+                #  For StrFixedLenField, value is a str already (or possibly JSON encoded)
                 if hasattr(value, 'to_json'):
+                    # Packet Class to string
                     str_value = value.to_json()
+                elif isinstance(field.default, Packet_metaclass) \
+                        and hasattr(field.default, 'json_from_value'):
+                    # Value/hex of Packet Class to string
+                    str_value = field.default.json_from_value(value)
                 else:
                     str_value = str(value)
 
@@ -225,6 +231,7 @@ class MibDbExternal(MibDbApi):
         now = datetime.utcnow()
         found = False
         root_proxy = self._core.get_proxy('/')
+
         data = MibDeviceData(device_id=device_id,
                              created=self._time_to_string(now),
                              last_sync_time='',
@@ -647,8 +654,13 @@ class MibDbExternal(MibDbApi):
                 new_attributes = []
 
                 for k, v in attributes.items():
-                    str_value = self._attribute_to_string(device_id, class_id, k, v)
-                    new_attributes.append(MibAttributeData(name=k, value=str_value))
+                    try:
+                        str_value = self._attribute_to_string(device_id, class_id, k, v)
+                        new_attributes.append(MibAttributeData(name=k, value=str_value))
+
+                    except Exception as e:
+                        self.log.exception('save-error', e=e, class_id=class_id,
+                                           attr=k, value_type=type(v))
 
                     if k not in exist_attr_indexes or \
                             inst_data.attributes[exist_attr_indexes[k]].value != str_value:
@@ -666,7 +678,6 @@ class MibDbExternal(MibDbApi):
 
                 self.log.debug('set-complete', device_id=device_id, class_id=class_id,
                                entity_id=instance_id, attributes=attributes, modified=modified)
-
                 return modified
 
             except KeyError:

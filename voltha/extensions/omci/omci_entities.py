@@ -17,6 +17,7 @@ import inspect
 
 import sys
 from binascii import hexlify
+from bitstring import BitArray
 import json
 from scapy.fields import ByteField, ShortField, MACField, BitField, IPField
 from scapy.fields import IntField, StrFixedLenField, LongField, FieldListField
@@ -557,6 +558,31 @@ class VlanTaggingOperation(Packet):
 
     def to_json(self):
         return json.dumps(self.fields, separators=(',', ':'))
+
+    @staticmethod
+    def json_from_value(value):
+        bits = BitArray(hex=hexlify(value))
+        temp = VlanTaggingOperation(
+            filter_outer_priority=bits[0:4].uint,         # 4  <-size
+            filter_outer_vid=bits[4:17].uint,             # 13
+            filter_outer_tpid_de=bits[17:20].uint,        # 3
+                                                          # pad 12
+            filter_inner_priority=bits[32:36].uint,       # 4
+            filter_inner_vid=bits[36:49].uint,            # 13
+            filter_inner_tpid_de=bits[49:52].uint,        # 3
+                                                          # pad 8
+            filter_ether_type=bits[60:64].uint,           # 4
+            treatment_tags_to_remove=bits[64:66].uint,    # 2
+                                                          # pad 10
+            treatment_outer_priority=bits[76:80].uint,    # 4
+            treatment_outer_vid=bits[80:93].uint,         # 13
+            treatment_outer_tpid_de=bits[93:96].uint,     # 3
+                                                          # pad 12
+            treatment_inner_priority=bits[108:112].uint,  # 4
+            treatment_inner_vid=bits[112:125].uint,       # 13
+            treatment_inner_tpid_de=bits[125:128].uint,   # 3
+        )
+        return json.dumps(temp.fields, separators=(',', ':'))
 
 
 class ExtendedVlanTaggingOperationConfigurationData(EntityClass):
