@@ -91,7 +91,7 @@ class OnuOmciCapabilities(object):
         d1, self._deferred = self._deferred, None
         d2, self._task_deferred = self._task_deferred, None
 
-        for d in [d1, d1]:
+        for d in [d1, d2]:
             try:
                 if d is not None and not d.called:
                     d.cancel()
