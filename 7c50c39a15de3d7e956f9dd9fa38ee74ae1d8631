@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c0a5b70d_2a6e6d60",
+        "filename": "tests/atests/common/auto_test.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 42,
+      "author": {
+        "id": 1000444
+      },
+      "writtenOn": "2018-06-22T19:33:19Z",
+      "side": 1,
+      "message": "Should we keep commented out code?",
+      "revId": "7c50c39a15de3d7e956f9dd9fa38ee74ae1d8631",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "631241c9_aa8b8bc3",
+        "filename": "tests/atests/common/run_robot.sh",
+        "patchSetId": 1
+      },
+      "lineNbr": 4,
+      "author": {
+        "id": 1000444
+      },
+      "writtenOn": "2018-06-22T19:33:19Z",
+      "side": 1,
+      "message": "Might want to use a different directory.",
+      "revId": "7c50c39a15de3d7e956f9dd9fa38ee74ae1d8631",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "a821f9f3_72a8c209",
+        "filename": "tests/atests/common/voltha.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 1000444
+      },
+      "writtenOn": "2018-06-22T19:33:19Z",
+      "side": 1,
+      "message": "Could we add more comments throughout the code to explain what the code is doing and why we need it?",
+      "revId": "7c50c39a15de3d7e956f9dd9fa38ee74ae1d8631",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
