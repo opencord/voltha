@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "f85e53ee_7af1bb35",
+        "filename": "cli/main.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 355,
+      "author": {
+        "id": 1000005
+      },
+      "writtenOn": "2018-06-26T01:18:21Z",
+      "side": 1,
+      "message": "It\u0027s a little brittle to be parsing strings from error messages. It might be better to make a \u0027GetDevice\u0027 call before the \u0027EnableDevice\u0027 call to check the device exists and is in the right state.",
+      "revId": "5a22854efb07e797046abb1f86aab8cdff85f300",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
