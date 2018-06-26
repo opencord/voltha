@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1f8cfc2d_98e766f7",
+        "filename": "cli/main.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 378,
+      "author": {
+        "id": 1000005
+      },
+      "writtenOn": "2018-06-26T01:08:53Z",
+      "side": 1,
+      "message": "Did you want this to go in the \u0027enable\u0027 command rather than the \u0027reboot\u0027 command?",
+      "revId": "f9516fa5b73f199e3690203065438c71431d9206",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
