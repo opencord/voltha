@@ -808,12 +808,12 @@ class OpenoltDevice(object):
 
             self.log.info(
                 'sending-packet-to-ONU', egress_port=egress_port,
-                intf_id=platform.intf_id_from_pon_port_no(egress_port),
+                intf_id=platform.intf_id_from_uni_port_num(egress_port),
                 onu_id=platform.onu_id_from_port_num(egress_port),
                 packet=str(payload).encode("HEX"))
 
             onu_pkt = openolt_pb2.OnuPacket(
-                intf_id=platform.intf_id_from_pon_port_no(egress_port),
+                intf_id=platform.intf_id_from_uni_port_num(egress_port),
                 onu_id=platform.onu_id_from_port_num(egress_port),
                 pkt=send_pkt)
 
@@ -951,7 +951,7 @@ class OpenoltDevice(object):
 
     def update_flow_table(self, flows):
         device = self.adapter_agent.get_device(self.device_id)
-        self.log.debug('update flow table')
+        self.log.debug('update flow table', number_of_flows=len(flows))
         in_port = None
 
         for flow in flows:
