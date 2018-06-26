@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "44874bf2_8a463fb3",
+        "filename": "tests/atests/common/auto_test.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 42,
+      "author": {
+        "id": 1000437
+      },
+      "writtenOn": "2018-06-26T17:42:17Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "c0a5b70d_2a6e6d60",
+      "revId": "7c50c39a15de3d7e956f9dd9fa38ee74ae1d8631",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "631241c9_aa8b8bc3",
         "filename": "tests/atests/common/run_robot.sh",
         "patchSetId": 1
@@ -36,6 +54,24 @@
     },
     {
       "key": {
+        "uuid": "c03f32da_99425223",
+        "filename": "tests/atests/common/run_robot.sh",
+        "patchSetId": 1
+      },
+      "lineNbr": 4,
+      "author": {
+        "id": 1000437
+      },
+      "writtenOn": "2018-06-26T17:42:17Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "631241c9_aa8b8bc3",
+      "revId": "7c50c39a15de3d7e956f9dd9fa38ee74ae1d8631",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "a821f9f3_72a8c209",
         "filename": "tests/atests/common/voltha.py",
         "patchSetId": 1
@@ -47,6 +83,24 @@
       "writtenOn": "2018-06-22T19:33:19Z",
       "side": 1,
       "message": "Could we add more comments throughout the code to explain what the code is doing and why we need it?",
+      "revId": "7c50c39a15de3d7e956f9dd9fa38ee74ae1d8631",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "47f506fe_dadaaf71",
+        "filename": "tests/atests/common/voltha.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 1000437
+      },
+      "writtenOn": "2018-06-26T17:42:17Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "a821f9f3_72a8c209",
       "revId": "7c50c39a15de3d7e956f9dd9fa38ee74ae1d8631",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
