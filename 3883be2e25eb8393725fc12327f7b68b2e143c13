@@ -69,6 +69,24 @@
       "revId": "3883be2e25eb8393725fc12327f7b68b2e143c13",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b0a7eb5a_75f28761",
+        "filename": "tests/atests/common/voltha.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 1000119
+      },
+      "writtenOn": "2018-06-27T20:31:15Z",
+      "side": 1,
+      "message": "ponsim/v2 runs on k8s",
+      "parentUuid": "b6623711_4aa315f3",
+      "revId": "3883be2e25eb8393725fc12327f7b68b2e143c13",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
