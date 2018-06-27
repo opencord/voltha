@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1c613080_ba1e08a4",
+        "filename": "tests/atests/common/preprovisioning.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1000005
+      },
+      "writtenOn": "2018-06-27T20:11:42Z",
+      "side": 1,
+      "message": "What\u0027s the reason to drive VOLTHA using the CLI rather than using the REST API?",
+      "revId": "3883be2e25eb8393725fc12327f7b68b2e143c13",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "2f860d80_a059e9ed",
+        "filename": "tests/atests/common/voltha.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 1000005
+      },
+      "writtenOn": "2018-06-27T20:11:42Z",
+      "side": 1,
+      "message": "I\u0027d recommend we run VOLTHA using k8s rather than the older docker-compose way of running things. Using k8s will allow us to control things using REST APIs on k8s, rather than driving docker-compose through CLI.",
+      "revId": "3883be2e25eb8393725fc12327f7b68b2e143c13",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
