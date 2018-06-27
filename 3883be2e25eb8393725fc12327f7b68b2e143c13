@@ -123,6 +123,24 @@
       "revId": "3883be2e25eb8393725fc12327f7b68b2e143c13",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "24fcf996_346e99fc",
+        "filename": "tests/atests/common/voltha.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 1000196
+      },
+      "writtenOn": "2018-06-27T21:48:50Z",
+      "side": 1,
+      "message": "Yes, the single-host voltha environment currently supports k8s in addition to docker-compose; please take a look at the \"Single-node Kubernetes\" section in BUILD.md.",
+      "parentUuid": "4d0826d4_a3c91fab",
+      "revId": "3883be2e25eb8393725fc12327f7b68b2e143c13",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
