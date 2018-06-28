@@ -424,7 +424,12 @@ class VolthaCli(Cmd):
                                                           device.admin_state,
                                                           device.oper_status))
         except Exception as e:
-            self.poutput('Error disabling {}.  Error:{}'.format(device_id, e))
+            self.poutput( self.colorize('Error ', 'red') +
+                         'disabling {}.'.format(device_id))
+            already_disabled_str="StatusCode.INVALID_ARGUMENT, Device to disable cannot be in admin state '2'"
+            if already_disabled_str in str(e):
+                self.poutput("Device is already disabled")
+
 
     def do_test(self, line):
         """Enter test mode, which makes a bunch on new commands available"""
