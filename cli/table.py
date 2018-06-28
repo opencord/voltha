@@ -89,7 +89,8 @@ class TablePrinter(object):
 
 
 def print_pb_list_as_table(header, items, fields_to_omit=None,
-                           printfn=_printfn, dividers=10, show_nulls=False):
+                           printfn=_printfn, dividers=10, show_nulls=False,
+                           presfns={}):
     from cli.utils import pb2dict
 
     t = TablePrinter()
@@ -105,8 +106,9 @@ def print_pb_list_as_table(header, items, fields_to_omit=None,
                 add(_row, value, fname + '.',
                     100 * (number + field.number))
             else:
+                presentationfn = presfns[fname] if fname in presfns else lambda x: x
                 t.add_cell(_row, number + field.number, fname,
-                           pd_dict.get(field.name))
+                           presentationfn(pd_dict.get(field.name)))
 
         def add(_row, pb, prefix='', number=0):
             d = pb2dict(pb)
