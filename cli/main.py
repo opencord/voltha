@@ -206,8 +206,11 @@ class VolthaCli(Cmd):
             'desc.serial_number',
             'switch_features.capabilities'
         }
+        presfns = {
+            'datapath_id': lambda x: "{0:0{1}x}".format(int(x), 16)
+        }
         print_pb_list_as_table('Logical devices:', res.items, omit_fields,
-                               self.poutput)
+                               self.poutput, presfns=presfns)
 
     def do_device(self, line):
         """Enter device level command mode"""
