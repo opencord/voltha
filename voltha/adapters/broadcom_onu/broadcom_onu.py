@@ -36,7 +36,8 @@ from voltha.protos.device_pb2 import DeviceType, DeviceTypes, Port, Image
 from voltha.protos.health_pb2 import HealthStatus
 from voltha.protos.logical_device_pb2 import LogicalPort
 from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, OFPPF_1GB_FD, OFPPS_LINK_DOWN
-from voltha.protos.openflow_13_pb2 import OFPXMC_OPENFLOW_BASIC, ofp_port
+from voltha.protos.openflow_13_pb2 import OFPXMC_OPENFLOW_BASIC, ofp_port, \
+    ofp_port_stats
 from voltha.protos.bbf_fiber_base_pb2 import VEnetConfig, VOntaniConfig
 from voltha.protos.bbf_fiber_traffic_descriptor_profile_body_pb2 import \
     TrafficDescriptorProfileData
@@ -1507,6 +1508,9 @@ class BroadcomOnuHandler(object):
                     peer=cap,
                     curr_speed=OFPPF_1GB_FD,
                     max_speed=OFPPF_1GB_FD
+                ),
+                ofp_port_stats=ofp_port_stats(
+                    port_no=port_no
                 ),
                 device_id=device.id,
                 device_port_no=uni_port.port_no
