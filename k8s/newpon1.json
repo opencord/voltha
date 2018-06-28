@@ -1,0 +1,16 @@
+cat <<EOF >> /etc/cni/net.d/30-pon1.conf
+{
+    "name": "pon1",
+    "type": "bridge",
+    "bridge": "pon1",
+    "isGateway": true,
+    "ipMask": true,
+    "ipam": {
+      "type": "host-local",
+      "subnet": "10.23.0.0/16",
+      "routes": [
+        { "dst": "0.0.0.0/0" }
+      ]
+   }
+}
+EOF
