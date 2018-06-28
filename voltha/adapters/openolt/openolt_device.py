@@ -43,7 +43,7 @@ from voltha.protos.bbf_fiber_base_pb2 import VEnetConfig
 import voltha.core.flow_decomposer as fd
 
 import openolt_platform as platform
-from openolt_flow_mgr import OpenOltFlowMgr
+from openolt_flow_mgr import OpenOltFlowMgr, DEFAULT_MGMT_VLAN
 
 MAX_HEARTBEAT_MISS = 3
 HEARTBEAT_PERIOD = 1
@@ -494,7 +494,7 @@ class OpenoltDevice(object):
                 # FIXME: that's definitely cheating
                 if onu_device.adapter == 'broadcom_onu':
                     onu_adapter_agent.adapter.devices_handlers[onu_device.id] \
-                            .message_exchange()
+                            .message_exchange(cvid=DEFAULT_MGMT_VLAN)
                     self.log.debug('broadcom-message-exchange-started')
 
             # tcont creation (onu)

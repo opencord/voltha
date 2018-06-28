@@ -1359,12 +1359,11 @@ class BroadcomOnuHandler(object):
             self.log.info('wait-for-response-exception', exc=str(e))
 
     @inlineCallbacks
-    def message_exchange(self):
+    def message_exchange(self, cvid=BRDCM_DEFAULT_VLAN):
         # reset incoming message queue
         while self.incoming_messages.pending:
             _ = yield self.incoming_messages.get()
 
-        cvid = BRDCM_DEFAULT_VLAN
 
         # construct message
         # MIB Reset - OntData - 0
