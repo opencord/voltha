@@ -529,7 +529,7 @@ class PonSimOltHandler(object):
                     channel_id=vlan_id
                 ),
                 admin_state=AdminState.ENABLED,
-                vlan=vlan_id
+                # vlan=vlan_id
             )
 
         if self.ponsim_comm == 'grpc':
@@ -663,6 +663,7 @@ class PonSimOltHandler(object):
     def update_flow_table(self, flows):
         stub = ponsim_pb2.PonSimStub(self.get_channel())
         self.log.info('pushing-olt-flow-table')
+        self.log.debug('update-flow-table', flows=flows)
         stub.UpdateFlowTable(FlowTable(
             port=0,
             flows=flows

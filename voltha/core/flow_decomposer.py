@@ -593,12 +593,15 @@ class FlowDecomposer(object):
                         priority=flow.priority,
                         cookie=flow.cookie,
                         match_fields=[
-                            in_port(ingress_hop.ingress_port.port_no)
+                            in_port(ingress_hop.ingress_port.port_no),
+                            vlan_vid(0)
                         ] + [
                             field for field in get_ofb_fields(flow)
-                            if field.type not in (IN_PORT,)
+                            if field.type not in (IN_PORT, VLAN_VID) 
                         ],
                         actions=[
+                            push_vlan(0x8100)
+                        ] + [
                             action for action in get_actions(flow)
                         ] + [
                             output(ingress_hop.egress_port.port_no)
@@ -606,7 +609,7 @@ class FlowDecomposer(object):
                     ))
 
                 else:
-                    assert out_port_no is not None
+=                    assert out_port_no is not None
                     fl_lst, _ = device_rules.setdefault(
                         egress_hop.device.id, ([], []))
                     fl_lst.append(mk_flow_stat(
@@ -749,7 +752,7 @@ class FlowDecomposer(object):
                                 output(egress_hop.egress_port.port_no)
                             ]
                         ))
-
+                         
         return device_rules
 
     # ~~~~~~~~~~~~ methods expected to be provided by derived class ~~~~~~~~~~~

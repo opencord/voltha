@@ -209,6 +209,7 @@ class AdapterAgent(object):
         return self.adapter.get_device_details(device)
 
     def update_flows_bulk(self, device, flows, groups):
+        self.log.info('update_flows_bulk', flows=flows)
         return self.adapter.update_flows_bulk(device, flows, groups)
 
     def update_flows_incrementally(self, device, flow_changes, group_changes):

@@ -4,6 +4,9 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"strconv"
+	"strings"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
@@ -13,8 +16,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	"strconv"
-	"strings"
 )
 
 // TODO: Cleanup GRPC security config
@@ -174,6 +175,7 @@ func (handler *PonSimHandler) UpdateFlowTable(
 			} else {
 				common.Logger().WithFields(logrus.Fields{
 					"handler": handler,
+					"flows":   table.Flows,
 				}).Debug("Updated OLT flows")
 			}
 
@@ -181,6 +183,7 @@ func (handler *PonSimHandler) UpdateFlowTable(
 			common.Logger().WithFields(logrus.Fields{
 				"handler": handler,
 				"port":    table.Port,
+				"flows":   table.Flows,
 			}).Debug("Updating ONU flows")
 
 			if child, ok := (handler.device).(*core.PonSimOltDevice).GetOnus()[table.Port]; ok {
@@ -232,6 +235,7 @@ func (handler *PonSimHandler) UpdateFlowTable(
 		} else {
 			common.Logger().WithFields(logrus.Fields{
 				"handler": handler,
+				"flows":   table.Flows,
 			}).Debug("Updated ONU flows")
 		}
 	} else {

@@ -1,0 +1,3 @@
+{
+    "python.pythonPath": "${workspaceFolder}/venv-darwin/bin/python"
+}

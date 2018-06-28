@@ -2,14 +2,15 @@ package core
 
 import (
 	"context"
+	"net"
+	"sort"
+
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
 	"github.com/opencord/voltha/ponsim/v2/common"
 	"github.com/opencord/voltha/protos/go/openflow_13"
 	"github.com/sirupsen/logrus"
-	"net"
-	"sort"
 )
 
 // TODO: Pass-in the certificate information as a structure parameter
@@ -243,7 +244,7 @@ func (o *PonSimDevice) InstallFlows(
 	}).Debug("Installing flows")
 
 	o.flows = flows
-	sort.Sort(common.SortByPriority(o.flows))
+	sort.Sort(sort.Reverse(common.SortByPriority(o.flows)))
 
 	common.Logger().WithFields(logrus.Fields{
 		"device": o,
