@@ -1,0 +1,96 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c0c97e27_9831f16e",
+        "filename": "ponsim/v2/core/ponsim_device.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 247,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-06-28T16:42:00Z",
+      "side": 1,
+      "message": "It is sorted twice and reversed once, can it be sorted just once then reversed ?",
+      "range": {
+        "startLine": 247,
+        "startChar": 1,
+        "endLine": 247,
+        "endChar": 56
+      },
+      "revId": "b76f1c43bf0e2b97d7131c41059364ffe754f7cf",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b9364f60_8ef037a6",
+        "filename": "voltha/adapters/ponsim_olt/ponsim_olt.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 666,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-06-28T16:42:00Z",
+      "side": 1,
+      "message": "Can be combined in one log message",
+      "range": {
+        "startLine": 665,
+        "startChar": 8,
+        "endLine": 666,
+        "endChar": 56
+      },
+      "revId": "b76f1c43bf0e2b97d7131c41059364ffe754f7cf",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da4b6482_f038f276",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 603,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-06-28T16:42:00Z",
+      "side": 1,
+      "message": "What is the reason behind that ?\nWhat happens if a different vlan_vid is part of get_ofb_fields(flows) ? Does it override it ?",
+      "range": {
+        "startLine": 597,
+        "startChar": 18,
+        "endLine": 603,
+        "endChar": 45
+      },
+      "revId": "b76f1c43bf0e2b97d7131c41059364ffe754f7cf",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "005b728f_7a0adef6",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 612,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-06-28T16:42:00Z",
+      "side": 1,
+      "message": "Is this a typo ?",
+      "range": {
+        "startLine": 612,
+        "startChar": 0,
+        "endLine": 612,
+        "endChar": 1
+      },
+      "revId": "b76f1c43bf0e2b97d7131c41059364ffe754f7cf",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
