@@ -190,7 +190,7 @@ class VolthaCli(Cmd):
             'hardware_version',
             'images',
             'firmware_version',
-            'serial_number'
+            'vendor_id'
         }
         print_pb_list_as_table('Devices:', devices, omit_fields, self.poutput)
 
