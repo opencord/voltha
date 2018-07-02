@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "08513d1d_84fba550",
+        "filename": "cli/main.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 364,
+      "author": {
+        "id": 1000005
+      },
+      "writtenOn": "2018-07-02T15:54:21Z",
+      "side": 1,
+      "message": "It\u0027s quite brittle to be parsing text out of error messages. I\u0027d recommend instead first doing a GetDevice request to see if the device is present before doing the EnableDevice call.",
+      "revId": "3674571563a6284126a0fa16ee276fb7f5745df2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
