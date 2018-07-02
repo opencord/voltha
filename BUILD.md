@@ -299,6 +299,7 @@ Or, you can just wipe out your whole Vagrant instance:
 exit # from vagrant box back to your native environmnet
 vagrant destroy -f
 ```
+
 ### Single-node Kubernetes
 
 To run voltha in a Kubernetes environment, the "voltha" development machine can be configured as a Kubernetes master running in a single-node cluster.
@@ -344,6 +345,7 @@ To deploy the monitoring components (Note the file paths):
 kubectl apply -f k8s/grafana.yml
 kubectl apply -f k8s/stats.yml
 ```
+
 #### Single-node Kubernetes with Etcd KV store
 
 Deploy the base components:
@@ -392,6 +394,7 @@ can be a bit more challenging.
 * Python 2.7
 * virtualenv
 * brew (or macports if you prefer)
+* protoc
 
 ### Installing Voltha dependencies
 
