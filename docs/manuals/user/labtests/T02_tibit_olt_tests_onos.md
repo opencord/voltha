@@ -81,7 +81,7 @@ devices
 this will output the following
 
 ```
-id=of:0000000000000001, available=true, role=MASTER, type=SWITCH, mfr=cord porject, hw=simualted pon, sw=simualted pon, serial=46da01fd646d4bb08140fc09b1bc4926, driver=pmc-olt, channelId=172.25.0.1:35866, managementAddress=172.25.0.1, name=of:0000000000000001, protocol=OF_13
+id=of:0000000000000001, available=true, role=MASTER, type=SWITCH, mfr=cord porject, hw=simualted pon, sw=simualted pon, serial=46da01fd646d4bb08140fc09b1bc4926, driver=voltha, channelId=172.25.0.1:35866, managementAddress=172.25.0.1, name=of:0000000000000001, protocol=OF_13
 ```
 
 next let's have a look at the ports that onos sees. Remember that ONOS sees the PON system as a logical device so ONU are represented as ports to ONOS. So let's see the ports in ONOS.
@@ -93,7 +93,7 @@ ports
 which returns the following
 
 ```
-id=of:0000000000000001, available=true, role=MASTER, type=SWITCH, mfr=cord porject, hw=simualted pon, sw=simualted pon, serial=46da01fd646d4bb08140fc09b1bc4926, driver=pmc-olt, channelId=172.25.0.1:35866, managementAddress=172.25.0.1, name=of:0000000000000001, protocol=OF_13
+id=of:0000000000000001, available=true, role=MASTER, type=SWITCH, mfr=cord porject, hw=simualted pon, sw=simualted pon, serial=46da01fd646d4bb08140fc09b1bc4926, driver=voltha, channelId=172.25.0.1:35866, managementAddress=172.25.0.1, name=of:0000000000000001, protocol=OF_13
   port=0, state=enabled, type=fiber, speed=0 , portName=nni, portMac=00:00:00:00:00:00
   port=128, state=enabled, type=fiber, speed=0 , portName=uni-128, portMac=00:00:00:00:00:80
   port=129, state=enabled, type=fiber, speed=0 , portName=uni-129, portMac=00:00:00:00:00:81
