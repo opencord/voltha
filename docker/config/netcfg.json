@@ -33,7 +33,7 @@
   "devices": {
     "of:0001aabbccddeeff": {
       "basic": {
-        "driver": "pmc-olt"
+        "driver": "voltha"
       },
       "accessDevice": {
         "uplink": "0",
@@ -42,7 +42,7 @@
     },
     "of:0001000000000002": {
       "basic": {
-        "driver": "pmc-olt"
+        "driver": "voltha"
       },
       "accessDevice": {
         "uplink": "0",
@@ -51,7 +51,7 @@
     },
     "of:0001000000000003": {
       "basic": {
-        "driver": "pmc-olt"
+        "driver": "voltha"
       },
       "accessDevice": {
         "uplink": "0",
@@ -60,7 +60,7 @@
     },
     "of:0001000000000004": {
       "basic": {
-        "driver": "pmc-olt"
+        "driver": "voltha"
       },
       "accessDevice": {
         "uplink": "0",
@@ -69,7 +69,7 @@
     },
     "of:0001000000000005": {
       "basic": {
-        "driver": "pmc-olt"
+        "driver": "voltha"
       },
       "accessDevice": {
         "uplink": "0",
@@ -78,7 +78,7 @@
     },
     "of:0001000000000006": {
       "basic": {
-        "driver": "pmc-olt"
+        "driver": "voltha"
       },
       "accessDevice": {
         "uplink": "0",

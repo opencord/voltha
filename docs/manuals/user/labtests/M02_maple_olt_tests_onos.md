@@ -75,7 +75,7 @@ devices
 this will output the following
 
 ```
-id=of:0000000000000001, available=true, role=MASTER, type=SWITCH, mfr=cord porject, hw=n/a, sw=logical device for Maple-based PON, serial=82126dceaa0b47f9ace655efcf7e97b4, driver=pmc-olt, channelId=172.25.0.1:57746, managementAddress=172.25.0.1, name=of:0000000000000001, protocol=OF_13
+id=of:0000000000000001, available=true, role=MASTER, type=SWITCH, mfr=cord porject, hw=n/a, sw=logical device for Maple-based PON, serial=82126dceaa0b47f9ace655efcf7e97b4, driver=voltha, channelId=172.25.0.1:57746, managementAddress=172.25.0.1, name=of:0000000000000001, protocol=OF_13
 ```
 
 next let's have a look at the ports that onos sees. Remember that ONOS sees the PON system as a logical device so ONU are represented as ports to ONOS. So let's see the ports in ONOS.
@@ -87,7 +87,7 @@ ports
 which returns the following
 
 ```
-id=of:0000000000000001, available=true, role=MASTER, type=SWITCH, mfr=cord porject, hw=n/a, sw=logical device for Maple-based PON, serial=82126dceaa0b47f9ace655efcf7e97b4, driver=pmc-olt, channelId=172.25.0.1:57746, managementAddress=172.25.0.1, name=of:0000000000000001, protocol=OF_13
+id=of:0000000000000001, available=true, role=MASTER, type=SWITCH, mfr=cord porject, hw=n/a, sw=logical device for Maple-based PON, serial=82126dceaa0b47f9ace655efcf7e97b4, driver=voltha, channelId=172.25.0.1:57746, managementAddress=172.25.0.1, name=of:0000000000000001, protocol=OF_13
   port=0, state=enabled, type=fiber, speed=0 , portName=nni, portMac=00:00:00:00:00:81
   port=1025, state=enabled, type=fiber, speed=0 , portName=uni-1025, portMac=00:00:00:00:04:01
 ```
