@@ -69,6 +69,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
                 CallbackType.POST_REMOVE, self._port_removed)
 
             self.port_proxy = {}
+            self.port_status_has_changed = {}
 
             self.event_bus = EventBusClient()
             self.packet_in_subscription = self.event_bus.subscribe(
@@ -603,6 +604,9 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         self.port_proxy[port.id] = self.core.get_proxy(
             '/logical_devices/{}/ports/{}'.format(self.logical_device_id,
                                                   port.id))
+        self.port_status_has_changed[port.id] = True
+        self.port_proxy[port.id].register_callback(
+            CallbackType.PRE_UPDATE, self._pre_port_changed)
         self.port_proxy[port.id].register_callback(
             CallbackType.POST_UPDATE, self._port_changed)
 
@@ -623,6 +627,9 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         self.port_proxy[port.id] = self.core.get_proxy(
             '/logical_devices/{}/ports/{}'.format(self.logical_device_id,
                                                   port.id))
+        self.port_status_has_changed[port.id] = True
+        self.port_proxy[port.id].register_callback(
+            CallbackType.PRE_UPDATE, self._pre_port_changed)
         self.port_proxy[port.id].register_callback(
             CallbackType.POST_UPDATE, self._port_changed)
 
@@ -633,8 +640,12 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
 
         # Remove the proxy references
         self.port_proxy[port.id].unregister_callback(
+            CallbackType.PRE_UPDATE, self._pre_port_changed)
+        self.port_proxy[port.id].unregister_callback(
             CallbackType.POST_UPDATE, self._port_changed)
         del self.port_proxy[port.id]
+        del self.port_status_has_changed[port.id]
+
 
         self.local_handler.send_port_change_event(
             device_id=self.logical_device_id,
@@ -644,16 +655,24 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             )
         )
 
+    def _pre_port_changed(self, port):
+        old_port = self.port_proxy[port.id].get('/')
+        if old_port.ofp_port != port.ofp_port:
+            self.port_status_has_changed[port.id] = True
+        else :
+            self.port_status_has_changed[port.id] = False
+
     def _port_changed(self, port):
         self.log.debug('port-changed', port=port)
-        assert isinstance(port, LogicalPort)
-        self.local_handler.send_port_change_event(
-            device_id=self.logical_device_id,
-            port_status=ofp.ofp_port_status(
-                reason=ofp.OFPPR_MODIFY,
-                desc=port.ofp_port
+        if self.port_status_has_changed[port.id]:
+            assert isinstance(port, LogicalPort)
+            self.local_handler.send_port_change_event(
+                device_id=self.logical_device_id,
+                port_status=ofp.ofp_port_status(
+                    reason=ofp.OFPPR_MODIFY,
+                    desc=port.ofp_port
+                )
             )
-        )
 
     def _port_list_updated(self, _):
         # invalidate the graph and the route table
