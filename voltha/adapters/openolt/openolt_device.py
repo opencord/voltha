@@ -957,6 +957,10 @@ class OpenoltDevice(object):
                 hex(ord(vendor_specific[3]) & 0x0f)[2:]])
 
     def update_flow_table(self, flows):
+        if self.is_down():
+            self.log.info('OLT is down, ignore update flow table')
+            return
+
         device = self.adapter_agent.get_device(self.device_id)
         self.log.debug('update flow table', number_of_flows=len(flows))
         in_port = None
