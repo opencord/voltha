@@ -191,6 +191,8 @@ class OpenoltDevice(object):
                 elif ind.HasField('flow_stats'):
                     reactor.callFromThread(self.flow_statistics_indication,
                                            ind.flow_stats)
+                elif ind.HasField('alarm_ind'):
+                    self.log.info('alarm indication not handled')
                 else:
                     self.log.warn('unknown indication type')
 

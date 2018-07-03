@@ -60,6 +60,7 @@ service Openolt {
         };
     }
 
+
     rpc EnableIndication(Empty) returns (stream Indication) {}
 }
 
@@ -74,6 +75,14 @@ message Indication {
         PacketIndication pkt_ind = 7;
         PortStatistics port_stats = 8;
         FlowStatistics flow_stats = 9;
+        AlarmIndication alarm_ind= 10;
+    }
+}
+
+message AlarmIndication {
+    oneof data {
+        LosIndication los_ind = 1;
+        DyingGaspIndication dying_gasp_ind = 2;
     }
 }
 
@@ -221,6 +230,17 @@ message FlowStatistics {
     fixed64 tx_bytes = 8;
     fixed64 tx_packets = 9;
     fixed32 timestamp = 16;
+}
+
+message LosIndication {
+    fixed32 intf_id = 1;
+    string status = 2;
+}
+
+message DyingGaspIndication {
+    fixed32 intf_id = 1;
+    fixed32 onu_id = 2;
+    string status = 3;
 }
 
 message Empty {}
