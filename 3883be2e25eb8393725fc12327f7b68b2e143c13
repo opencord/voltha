@@ -55,6 +55,24 @@
     },
     {
       "key": {
+        "uuid": "50f298b2_6fa7c6a6",
+        "filename": "tests/atests/common/preprovisioning.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1000451
+      },
+      "writtenOn": "2018-07-03T13:29:26Z",
+      "side": 1,
+      "message": "Hi Jonathan, the idea is to test end-to-end including cli. It is just like testing an application including web interface. One can decide to test the server API only but it is better to test with the webinterface in that example. In our case, end users will see and use the cli, so if we can test it, we can detect broken CLI commands",
+      "parentUuid": "1c613080_ba1e08a4",
+      "revId": "3883be2e25eb8393725fc12327f7b68b2e143c13",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "2f860d80_a059e9ed",
         "filename": "tests/atests/common/voltha.py",
         "patchSetId": 2
