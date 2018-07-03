@@ -44,6 +44,7 @@ import voltha.core.flow_decomposer as fd
 
 import openolt_platform as platform
 from openolt_flow_mgr import OpenOltFlowMgr, DEFAULT_MGMT_VLAN
+from openolt_alarms import OpenOltAlarmMgr
 
 MAX_HEARTBEAT_MISS = 3
 HEARTBEAT_PERIOD = 1
@@ -132,6 +133,7 @@ class OpenoltDevice(object):
         self.stub = openolt_pb2_grpc.OpenoltStub(self.channel)
 
         self.flow_mgr = OpenOltFlowMgr(self.log, self.stub, self.device_id)
+        self.alarm_mgr = OpenOltAlarmMgr(self.log)
 
         # Indications thread plcaholder (started by heartbeat thread)
         self.indications_thread = None
@@ -192,7 +194,8 @@ class OpenoltDevice(object):
                     reactor.callFromThread(self.flow_statistics_indication,
                                            ind.flow_stats)
                 elif ind.HasField('alarm_ind'):
-                    self.log.info('alarm indication not handled')
+                    reactor.callFromThread(self.alarm_mgr.process_alarms,
+                                           ind.alarm_ind)
                 else:
                     self.log.warn('unknown indication type')
 

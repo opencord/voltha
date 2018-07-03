@@ -83,6 +83,15 @@ message AlarmIndication {
     oneof data {
         LosIndication los_ind = 1;
         DyingGaspIndication dying_gasp_ind = 2;
+        OnuAlarmIndication onu_alarm_ind = 3;
+        OnuStartupFailureIndication onu_startup_fail_ind = 4;
+        OnuSignalDegradeIndication onu_signal_degrade_ind = 5;
+        OnuDriftOfWindowIndication onu_drift_of_window_ind = 6;
+        OnuLossOfOmciChannelIndication onu_loss_omci_ind = 7;
+        OnuSignalsFailureIndication onu_signals_fail_ind = 8;
+        OnuTransmissionInterferenceWarning onu_tiwi_ind = 9;
+        OnuActivationFailureIndication onu_activation_fail_ind = 10;
+        OnuProcessingErrorIndication onu_processing_error_ind = 11;
     }
 }
 
@@ -242,5 +251,66 @@ message DyingGaspIndication {
     fixed32 onu_id = 2;
     string status = 3;
 }
+
+message OnuAlarmIndication {
+    fixed32 intf_id = 1;
+    fixed32 onu_id = 2;
+    string los_status = 3;
+    string lob_status = 4;
+    string lopc_miss_status = 5;
+    string lopc_mic_error_status = 6;
+}
+
+message OnuStartupFailureIndication {
+    fixed32 intf_id = 1;
+    fixed32 onu_id = 2;
+    string status = 3;
+}
+
+message OnuSignalDegradeIndication {
+    fixed32 intf_id = 1;
+    fixed32 onu_id = 2;
+    string status = 3;
+    fixed32 inverse_bit_error_rate = 4;
+}
+
+message OnuDriftOfWindowIndication {
+    fixed32 intf_id = 1;
+    fixed32 onu_id = 2;
+    string status = 3;
+    fixed32 drift = 4;
+    fixed32 new_eqd = 5;
+}
+
+message OnuLossOfOmciChannelIndication {
+    fixed32 intf_id = 1;
+    fixed32 onu_id = 2;
+    string status = 3;
+}
+
+message OnuSignalsFailureIndication {
+    fixed32 intf_id = 1;
+    fixed32 onu_id = 2;
+    string status = 3;
+    fixed32 inverse_bit_error_rate = 4;
+}
+
+message OnuTransmissionInterferenceWarning {
+    fixed32 intf_id = 1;
+    fixed32 onu_id = 2;
+    string status = 3;
+    fixed32 drift = 4;
+}
+
+message OnuActivationFailureIndication {
+    fixed32 intf_id = 1;
+    fixed32 onu_id = 2;
+}
+
+message OnuProcessingErrorIndication {
+    fixed32 intf_id = 1;
+    fixed32 onu_id = 2;
+}
+
 
 message Empty {}
