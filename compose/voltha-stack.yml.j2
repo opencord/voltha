@@ -36,15 +36,16 @@
 #                 `data/users` configuration files can be found. Defaults
 #                 to `/var/local`.
 # DOCKER_HOST_IP -
-# ZK_TAG        - The tag that should be used when referencing the ZooKeeper
-#                 docker image. Defaults to `latest`.
-# KAFKA_TAG     - The tag that should be used when referencing the Kafka
-#                 docker image. Default to `1.0.0`.
-# CONSUL_TAG    - The tag that should be used when referencing the Consul
-#                 docker image. Defaults to `0.9.2`.
-# RADIUS_TAG    - The tag that should be used when referencing the FreeRADIUS
-#                 docker image. Defaults to `latest`.
-version: "3"
+
+# ZK_TAG      - The tag that should be used when referencing the ZooKeeper
+#               docker image. Defaults to `3.4.11`.
+# KAFKA_TAG   - The tag that should be used when referencing the Kafka
+#               docker image. Default to `1.0.0`.
+# CONSUL_TAG  - The tag that should be used when referencing the Consul
+#               docker image. Defaults to `0.9.2`.
+# RADIUS_TAG  - The tag that should be used when referencing the FreeRADIUS
+#               docker image. Defaults to `latest`.
+version: "3.2"
 
 services:
   zk1:

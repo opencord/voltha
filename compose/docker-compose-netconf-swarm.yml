@@ -10,7 +10,7 @@
 #     docker stack deploy -c docker-compose-netconf-swarm.yml netconf
 #
 
-version: "3"
+version: "3.2"
 services:
   netconf:
     image: "${REGISTRY}${REPOSITORY}voltha-netconf:${TAG:-latest}"

@@ -5,7 +5,7 @@
 #     docker stack deploy -c docker-compose-registry.yml registry
 #
 
-version: "3"
+version: "3.2"
 services:
   registry:
     image: "${REGISTRY}registry:${REGISTRY_TAG:-2}"

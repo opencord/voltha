@@ -1,4 +1,4 @@
-version: '2'
+version: "3.2"
 services:
   database_data:
     image: "${REGISTRY}tianon/true:${TRUE_TAG:-latest}"

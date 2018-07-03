@@ -13,7 +13,7 @@
 #
 ###########################################################################################
 
-version: '3'
+version: "3.2"
 services:
     zk1:
         image: "${REGISTRY}wurstmeister/zookeeper:${ZK_TAG:-latest}"
