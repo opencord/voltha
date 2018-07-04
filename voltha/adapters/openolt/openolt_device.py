@@ -22,7 +22,7 @@ import time
 from twisted.internet import reactor
 from scapy.layers.l2 import Ether, Dot1Q
 import binascii
-from transitions import Machine
+from transitions import Machine, State
 
 from voltha.protos.device_pb2 import Port, Device
 from voltha.protos.common_pb2 import OperStatus, AdminState, ConnectStatus
@@ -49,20 +49,47 @@ MAX_HEARTBEAT_MISS = 3
 HEARTBEAT_PERIOD = 1
 GRPC_TIMEOUT = 5
 
+
 """
-OpenoltDevice represents an OLT.
+Openolt device state machine
+
+    null ----> init ------> connected -----> oper_up
+                | ^          ^   |           |   ^
+                | |          |   |           |   |
+                | +----+     |   |           v   |
+                |      |     |   +---------> oper_down
+                |      |     |                  |
+                |      |     v                  |
+                +-> disconnected <--------------+
 """
 
 
 class OpenoltDevice(object):
 
-    states = ['up', 'down']
+    states = [
+        State(name='state_null'),
+        State(name='state_init', on_enter='do_state_init'),
+        State(name='connected', on_enter='olt_connected'),
+        State(name='up',            on_enter='olt_indication_up'),
+        State(name='down',          on_enter='olt_indication_down'),
+        State(name='disconnected',  on_enter='olt_indication_down')]
+
     transitions = [
-            {'trigger': 'olt_up', 'source': 'down', 'dest': 'up',
-             'before': 'olt_indication_up'},
-            {'trigger': 'olt_down', 'source': 'up', 'dest': 'down',
-             'before': 'olt_indication_down'}
-    ]
+        {'trigger': 'trigger_init',
+         'source': 'state_null',
+         'dest': 'state_init'},
+        {'trigger': 'trigger_connect',
+         'source': 'state_init',
+         'dest': 'connected'},
+        {'trigger': 'trigger_olt_up',
+         'source': ['connected', 'down'],
+         'dest': 'up'},
+        {'trigger': 'trigger_olt_down',
+         'source': ['up', 'connected'],
+         'dest': 'down'},
+        {'trigger': 'trigger_olt_disconnect',
+         'source': ['state_init', 'connected', 'oper_down'],
+         'dest': 'disconnected'}]
 
     def __init__(self, **kwargs):
         super(OpenoltDevice, self).__init__()
@@ -86,16 +113,6 @@ class OpenoltDevice(object):
             device.connect_status = ConnectStatus.REACHABLE
             device.oper_status = OperStatus.ACTIVATING
             self.adapter_agent.update_device(device)
-
-        # Initialize the OLT state machine
-        self.machine = Machine(model=self, states=OpenoltDevice.states,
-                               transitions=OpenoltDevice.transitions,
-                               send_event=True, initial='down',
-                               ignore_invalid_triggers=True)
-        self.machine.add_transition(trigger='olt_ind_up', source='down',
-                                    dest='up')
-        self.machine.add_transition(trigger='olt_ind_loss', source='up',
-                                    dest='down')
 
         # If logical device does not exist create it
         if len(device.parent_id) == 0:
@@ -126,45 +143,58 @@ class OpenoltDevice(object):
                 self.adapter_agent.reconcile_logical_device(
                     self.logical_device_id)
 
+        # Initialize the OLT state machine
+        self.machine = Machine(model=self, states=OpenoltDevice.states,
+                               transitions=OpenoltDevice.transitions,
+                               send_event=True, initial='state_null')
+        self.trigger_init()
+
+    def do_state_init(self, event):
         # Initialize gRPC
         self.channel = grpc.insecure_channel(self.host_and_port)
         self.channel_ready_future = grpc.channel_ready_future(self.channel)
-        self.stub = openolt_pb2_grpc.OpenoltStub(self.channel)
 
-        self.flow_mgr = OpenOltFlowMgr(self.log, self.stub, self.device_id)
+        # Start indications thread
+        self.indications_thread_handle = threading.Thread(
+            target=self.indications_thread)
+        self.indications_thread_handle.daemon = True
+        self.indications_thread_handle.start()
+        # FIXME - Move to oper_up state without connecting to OLT?
 
-        # Indications thread plcaholder (started by heartbeat thread)
-        self.indications_thread = None
-        self.indications_thread_active = False
-
-        # Start heartbeat thread
-        self.heartbeat_thread = threading.Thread(target=self.heartbeat)
-        self.heartbeat_thread.setDaemon(True)
-        self.heartbeat_thread_active = True
-        self.heartbeat_miss = 0
-        self.heartbeat_signature = None
-        self.heartbeat_thread.start()
-
+        '''
         if is_reconciliation:
             # Put state machine in state up
-            reactor.callFromThread(self.olt_up, reconciliation=True)
+            reactor.callFromThread(self.trigger_olt_up, reconciliation=True)
+        '''
 
         self.log.debug('openolt-device-created', device_id=self.device_id)
 
-    def process_indications(self):
-
+    def indications_thread(self):
         self.log.debug('starting-indications-thread')
+        while True:
+            self.log.debug('connecting to olt', device_id=self.device_id)
+            self.channel_ready_future.result()  # blocking call
+            self.log.debug('connected to olt', device_id=self.device_id)
+            self.trigger_connect()
+            self.process_indications()
 
+    def olt_connected(self, event):
+        self.stub = openolt_pb2_grpc.OpenoltStub(self.channel)
+        self.flow_mgr = OpenOltFlowMgr(self.log, self.stub, self.device_id)
         self.indications = self.stub.EnableIndication(openolt_pb2.Empty())
 
-        while self.indications_thread_active:
+    def process_indications(self):
+        while True:
             try:
                 # get the next indication from olt
                 ind = next(self.indications)
             except Exception as e:
-                self.log.warn('GRPC-connection-lost-stoping-indication-thread',
-                              error=e)
-                self.indications_thread_active = False
+                self.log.warn('gRPC connection lost', error=e)
+                reactor.callFromThread(
+                        self.trigger_olt_down,
+                        oper_state=OperStatus.UNKNOWN,
+                        connect_state=ConnectStatus.UNREACHABLE)
+                break
             else:
                 self.log.debug("rx indication", indication=ind)
 
@@ -196,19 +226,17 @@ class OpenoltDevice(object):
                 else:
                     self.log.warn('unknown indication type')
 
-        self.log.debug('stopping-indications-thread', device_id=self.device_id)
-
     def olt_indication(self, olt_indication):
         if olt_indication.oper_state == "up":
-            self.olt_up(ind=olt_indication)
+            self.trigger_olt_up(ind=olt_indication)
         elif olt_indication.oper_state == "down":
-            self.olt_down(ind=olt_indication)
+            self.trigger_olt_down(ind=olt_indication)
 
     def olt_indication_up(self, event):
         olt_indication = event.kwargs.get('ind', None)
         is_reconciliation = event.kwargs.get('reconciliation', False)
         self.log.debug("olt indication", olt_ind=olt_indication,
-            reconciliation=is_reconciliation)
+                       reconciliation=is_reconciliation)
 
         device = self.adapter_agent.get_device(self.device_id)
 
@@ -387,7 +415,7 @@ class OpenoltDevice(object):
                 onu_indication.serial_number)
         except:
             serial_number_str = None
-            
+
         if serial_number_str is not None:
             onu_device = self.adapter_agent.get_child_device(
                     self.device_id,
@@ -619,9 +647,6 @@ class OpenoltDevice(object):
 
     def heartbeat(self):
 
-        # block till gRPC connection is complete
-        self.channel_ready_future.result()
-
         while self.heartbeat_thread_active:
 
             try:
@@ -637,7 +662,7 @@ class OpenoltDevice(object):
                     # Using reactor to synchronize update
                     # flagging it as unreachable and in unknow state
                     reactor.callFromThread(
-                        self.olt_down,
+                        self.trigger_olt_down,
                         oper_state=OperStatus.UNKNOWN,
                         connect_state=ConnectStatus.UNREACHABLE)
 
@@ -684,7 +709,7 @@ class OpenoltDevice(object):
     def port_statistics_indication(self, port_stats):
         self.log.info('port-stats-collected', stats=port_stats)
         self.ports_statistics_kpis(port_stats)
-        #FIXME : only the first uplink is a logical port
+        # FIXME : only the first uplink is a logical port
         if port_stats.intf_id == 128:
             # ONOS update
             self.update_logical_port_stats(port_stats)
@@ -694,11 +719,11 @@ class OpenoltDevice(object):
             return
         # update port object stats
         port = self.adapter_agent.get_port(self.device_id,
-            port_no=port_stats.intf_id)
+                                           port_no=port_stats.intf_id)
 
         if port is None:
             self.log.warn('port associated with this stats does not exist')
-            return 
+            return
 
         port.rx_packets = port_stats.rx_packets
         port.rx_bytes = port_stats.rx_bytes
@@ -714,8 +739,10 @@ class OpenoltDevice(object):
         self.log.info('flow-stats-collected', stats=flow_stats)
         # TODO: send to kafka ?
         # UNTESTED : the openolt driver does not yet provide flow stats
-        self.adapter_agent.update_flow_stats(self.logical_device_id,
-            flow_id=flow_stats.flow_id, packet_count=flow_stats.tx_packets,
+        self.adapter_agent.update_flow_stats(
+            self.logical_device_id,
+            flow_id=flow_stats.flow_id,
+            packet_count=flow_stats.tx_packets,
             byte_count=flow_stats.tx_bytes)
 
     def ports_statistics_kpis(self, port_stats):
@@ -734,7 +761,6 @@ class OpenoltDevice(object):
         pm_data["tx_error_packets"] = port_stats.tx_error_packets
         pm_data["rx_crc_errors"] = port_stats.rx_crc_errors
         pm_data["bip_errors"] = port_stats.bip_errors
-
 
         prefix = 'voltha.openolt.{}'.format(self.device_id)
         # FIXME
@@ -769,8 +795,9 @@ class OpenoltDevice(object):
 
         if logical_port is None:
             self.log.error('logical-port-is-None',
-                logical_device_id=self.logical_device_id, label=label,
-                port_stats=port_stats)
+                           logical_device_id=self.logical_device_id,
+                           label=label,
+                           port_stats=port_stats)
             return
 
         self.log.debug('before', port=logical_port)
@@ -1016,17 +1043,15 @@ class OpenoltDevice(object):
         # but we are not doing that presently
 
         # Bring OLT down
-        self.olt_down(oper_state=OperStatus.UNKNOWN,
-                      admin_state=AdminState.DISABLED,
-                      connect_state=ConnectStatus.UNREACHABLE)
+        self.trigger_olt_down(oper_state=OperStatus.UNKNOWN,
+                              admin_state=AdminState.DISABLED,
+                              connect_state=ConnectStatus.UNREACHABLE)
 
     def delete(self):
         self.log.info('delete-olt', device_id=self.device_id)
 
         # Stop the grpc communication threads
         self.log.info('stopping-grpc-threads', device_id=self.device_id)
-        self.indications_thread_active = False
-        self.heartbeat_thread_active = False
 
         # Close the grpc channel
         # self.log.info('unsubscribing-grpc-channel', device_id=self.device_id)
@@ -1038,7 +1063,7 @@ class OpenoltDevice(object):
         self.log.info('reenable-olt', device_id=self.device_id)
 
         # Bring up OLT
-        self.olt_up()
+        self.trigger_olt_up()
 
         # Enable all child devices
         self.log.info('enabling-child-devices', device_id=self.device_id)
