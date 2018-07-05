@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "2e47b233_0257175b",
+        "filename": "voltha/core/device_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 498,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-07-05T17:58:21Z",
+      "side": 1,
+      "message": "You forgot to change it this time ^^, other than that it is good",
+      "range": {
+        "startLine": 498,
+        "startChar": 21,
+        "endLine": 498,
+        "endChar": 26
+      },
+      "revId": "5ed480cc02a93b590e36bdf3f40080b6a5942cdc",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
