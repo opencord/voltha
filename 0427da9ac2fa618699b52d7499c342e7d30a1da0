@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "7e06e4c8_d1a10f96",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 254,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-07-05T17:31:32Z",
+      "side": 1,
+      "message": "still working on this. process_indications() breaks when the gRPC connection is lost (line 266)",
+      "parentUuid": "de69f406_98212073",
+      "range": {
+        "startLine": 254,
+        "startChar": 8,
+        "endLine": 254,
+        "endChar": 19
+      },
+      "revId": "0427da9ac2fa618699b52d7499c342e7d30a1da0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a1c710e_52e1ffd0",
         "filename": "voltha/adapters/openolt/openolt_device.py",
         "patchSetId": 2
@@ -36,6 +60,30 @@
       "writtenOn": "2018-07-05T14:15:07Z",
       "side": 1,
       "message": "If we do this we cannot kill this thread gracefully. Maybe have a variable that is integrated in the state machine",
+      "range": {
+        "startLine": 262,
+        "startChar": 8,
+        "endLine": 262,
+        "endChar": 19
+      },
+      "revId": "0427da9ac2fa618699b52d7499c342e7d30a1da0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "25dc7e8c_dab0e4b7",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 262,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-07-05T17:31:32Z",
+      "side": 1,
+      "message": "agree",
+      "parentUuid": "9a1c710e_52e1ffd0",
       "range": {
         "startLine": 262,
         "startChar": 8,
