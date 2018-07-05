@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "17b87016_536e269f",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 1
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 1000450
+      },
+      "writtenOn": "2018-07-05T17:42:52Z",
+      "side": 1,
+      "message": "Understood, thank you!",
+      "parentUuid": "926f0073_83b9753c",
+      "range": {
+        "startLine": 7,
+        "startChar": 0,
+        "endLine": 7,
+        "endChar": 18
+      },
+      "revId": "759e8884140416aaaf43a55325797fa452cab9a2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "05296d4a_937c5171",
         "filename": "ponsim/v2/core/ponsim_olt.go",
         "patchSetId": 1
