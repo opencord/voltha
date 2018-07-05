@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "de69f406_98212073",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 254,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-07-05T14:15:07Z",
+      "side": 1,
+      "message": "This loop will not be used because self.process_indications() is an infinite loop",
+      "range": {
+        "startLine": 254,
+        "startChar": 8,
+        "endLine": 254,
+        "endChar": 19
+      },
+      "revId": "0427da9ac2fa618699b52d7499c342e7d30a1da0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a1c710e_52e1ffd0",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 262,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-07-05T14:15:07Z",
+      "side": 1,
+      "message": "If we do this we cannot kill this thread gracefully. Maybe have a variable that is integrated in the state machine",
+      "range": {
+        "startLine": 262,
+        "startChar": 8,
+        "endLine": 262,
+        "endChar": 19
+      },
+      "revId": "0427da9ac2fa618699b52d7499c342e7d30a1da0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
