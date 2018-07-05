@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "05296d4a_937c5171",
+        "filename": "ponsim/v2/core/ponsim_olt.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000005
+      },
+      "writtenOn": "2018-07-05T16:16:49Z",
+      "side": 1,
+      "message": "I think you want to remove this file from the patch - it\u0027s not related to the ticket you\u0027re addressing right now.",
+      "revId": "759e8884140416aaaf43a55325797fa452cab9a2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
