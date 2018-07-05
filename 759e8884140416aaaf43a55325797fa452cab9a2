@@ -2,6 +2,29 @@
   "comments": [
     {
       "key": {
+        "uuid": "926f0073_83b9753c",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 1
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-07-05T16:28:51Z",
+      "side": 1,
+      "message": "The standard is to start the commit message with VOL-1075",
+      "range": {
+        "startLine": 7,
+        "startChar": 0,
+        "endLine": 7,
+        "endChar": 18
+      },
+      "revId": "759e8884140416aaaf43a55325797fa452cab9a2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "05296d4a_937c5171",
         "filename": "ponsim/v2/core/ponsim_olt.go",
         "patchSetId": 1
@@ -13,6 +36,29 @@
       "writtenOn": "2018-07-05T16:16:49Z",
       "side": 1,
       "message": "I think you want to remove this file from the patch - it\u0027s not related to the ticket you\u0027re addressing right now.",
+      "revId": "759e8884140416aaaf43a55325797fa452cab9a2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "0ace9123_6c83b844",
+        "filename": "voltha/core/device_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 498,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-07-05T16:28:51Z",
+      "side": 1,
+      "message": "Maybe raise the level of logging ?",
+      "range": {
+        "startLine": 498,
+        "startChar": 12,
+        "endLine": 498,
+        "endChar": 40
+      },
       "revId": "759e8884140416aaaf43a55325797fa452cab9a2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
