@@ -3,6 +3,10 @@ package core
 import (
 	"context"
 	"crypto/tls"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/google/gopacket"
 	"github.com/opencord/voltha/ponsim/v2/common"
@@ -11,9 +15,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials"
-	"strconv"
-	"strings"
-	"time"
 )
 
 // TODO: Pass-in the certificate information as a structure parameter
@@ -119,8 +120,11 @@ func (o *PonSimOltDevice) Start(ctx context.Context) {
 
 	o.outgoing = make(chan []byte, 1)
 
-	// Add INGRESS operation
+	// Uncomment line below to add INGRESS operation
 	o.AddLink(2, 0, o.forwardToLAN())
+
+	// Add Data-Plane Forwarding operation
+	// o.AddLink(2, 0, o.forwardToWAN())
 
 	// Start PM counter logging
 	o.counterLoop = common.NewIntervalHandler(90, o.Counter.LogCounts)
