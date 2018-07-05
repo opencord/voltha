@@ -461,39 +461,41 @@ class DeviceAgent(object):
 
     @inlineCallbacks
     def _flow_table_updated(self, flows):
-        self.log.debug('flow-table-updated',
-                       logical_device_id=self.last_data.id, flows=flows)
-
-        if (len(self.flow_changes.to_remove.items) == 0) and (len(
-                self.flow_changes.to_add.items) == 0):
-            self.log.debug('no-flow-update-required',
-                           logical_device_id=self.last_data.id)
-        else:
-
-            # if device accepts non-bulk flow update, lets just call that first
-            if self.device_type.accepts_add_remove_flow_updates:
-
-                try:
-                    yield self.adapter_agent.update_flows_incrementally(
-                        device=self.last_data,
-                        flow_changes=self.flow_changes,
-                        group_changes=FlowGroupChanges()
-                    )
-                except Exception as e:
-                    self.log.exception("Failure-updating-flows", e=e)
-
-            # if device accepts bulk flow update, lets just call that
-            elif self.device_type.accepts_bulk_flow_update:
-                self.log.debug('invoking bulk')
-                groups = self.groups_proxy.get('/')  # gather flow groups
-                yield self.adapter_agent.update_flows_bulk(
-                    device=self.last_data,
-                    flows=flows,
-                    groups=groups)
-                # add ability to notify called when an flow update completes
-                # see https://jira.opencord.org/browse/CORD-839
+        try:
+            self.log.debug('flow-table-updated',
+                        logical_device_id=self.last_data.id, flows=flows)
+            if self.flow_changes is not None and (len(self.flow_changes.to_remove.items) == 0) and (len(
+                    self.flow_changes.to_add.items) == 0):
+                self.log.debug('no-flow-update-required',
+                            logical_device_id=self.last_data.id)
             else:
-                raise NotImplementedError()
+
+                # if device accepts non-bulk flow update, lets just call that first
+                if self.device_type.accepts_add_remove_flow_updates:
+
+                    try:
+                        yield self.adapter_agent.update_flows_incrementally(
+                            device=self.last_data,
+                            flow_changes=self.flow_changes,
+                            group_changes=FlowGroupChanges()
+                        )
+                    except Exception as e:
+                        self.log.exception("Failure-updating-flows", e=e)
+
+                # if device accepts bulk flow update, lets just call that
+                elif self.device_type.accepts_bulk_flow_update:
+                    self.log.debug('invoking bulk')
+                    groups = self.groups_proxy.get('/')  # gather flow groups
+                    yield self.adapter_agent.update_flows_bulk(
+                        device=self.last_data,
+                        flows=flows,
+                        groups=groups)
+                    # add ability to notify called when an flow update completes
+                    # see https://jira.opencord.org/browse/CORD-839
+                else:
+                    raise NotImplementedError()
+        except Exception as e:
+            self.log.error('error', e=e)
 
     ## <======================= GROUP TABLE UPDATE HANDLING ===================
 
