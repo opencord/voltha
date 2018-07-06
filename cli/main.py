@@ -322,7 +322,7 @@ class VolthaCli(Cmd):
         elif opts.ip_address:
             kw['ipv4_address'] = opts.ip_address
         elif opts.mac_address:
-            kw['mac_address'] = opts.mac_address
+            kw['mac_address'] = opts.mac_address.lower()
         else:
             raise Exception('Either IP address or Mac Address is needed')
         # Pass any extra arguments past '--' to the device as custom arguments
