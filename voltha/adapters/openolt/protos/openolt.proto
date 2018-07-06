@@ -60,6 +60,19 @@ service Openolt {
         };
     }
 
+    rpc EnablePonIf(Interface) returns (Empty) {
+        option (google.api.http) = {
+            post: "/v1/EnablePonIf"
+            body: "*"
+        };
+    }
+
+    rpc DisablePonIf(Interface) returns (Empty) {
+        option (google.api.http) = {
+            post: "/v1/DisablePonIf"
+            body: "*"
+        };
+    }
 
     rpc EnableIndication(Empty) returns (stream Indication) {}
 }
@@ -134,6 +147,10 @@ message PacketIndication {
     fixed32 gemport_id = 2;
     fixed32 flow_id = 3;
     bytes pkt = 4;
+}
+
+message Interface {
+    fixed32 intf_id = 1;
 }
 
 message Heartbeat {
