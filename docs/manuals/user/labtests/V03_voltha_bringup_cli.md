@@ -1,26 +1,25 @@
-## V3 - Connect to Voltha via its CLI
+# V3 - Connect to Voltha via its CLI
 
-### Test Objective
+## Test Objective
 
 * Verify Voltha CLI is available
-* Provide an introduction to the CLI, since it is used in many of the other
-  testcases
+* Provide an introduction to the CLI, since it is used in many of the other testcases
 
-### Test Configuration
+## Test Configuration
 
 * Voltha ensemble is instantiated (V1)
 
-### Test Procedure
+## Test Procedure
 
 Start the Voltha CLI:
 
-```
+```shell
 cd $VOLTHA_BASE
 ./cli/main.py -L
 ```
 
 You should see it launched:
-```
+```shell
          _ _   _            ___ _    ___
 __ _____| | |_| |_  __ _   / __| |  |_ _|
 \ V / _ \ |  _| ' \/ _` | | (__| |__ | |
@@ -29,18 +28,17 @@ __ _____| | |_| |_  __ _   / __| |  |_ _|
 (voltha)
 ```
 
-This places the user into normal mode, signified by the ```(voltha)``` prompt.
+This places the user into normal mode, signified by the *(voltha)* prompt.
 
 To check connectivity to Voltha and to check if Voltha is "healthy", run:
 
-```
+```shell
 health
 ```
 
 The expected output is:
 
-```
-(voltha) health
+```json
 {
     "state": "HEALTHY"
 }
@@ -48,14 +46,13 @@ The expected output is:
 
 To list all Voltha adapters, type:
 
-```
+```shell
 adapters
 ```
 
 This should show the loaded adapters:
 
-```
-(voltha) adapters
+```shell
 Adapters:
 +---------------+---------------------------+---------+------------------+
 |            id |                    vendor | version | config.log_level |
@@ -72,15 +69,15 @@ Adapters:
 ```
 
 There are many more commands available in the CLI. To list all commands
-in ```voltha``` mode, type:
+in *voltha* mode, type:
 
-```
+```shell
 help
 ```
 
 This will show the available commands:
 
-```
+```shell
 (voltha) help
 
 Documented commands (type help <topic>):
@@ -96,21 +93,19 @@ Undocumented commands:
 EOF  eof  exit  help  quit
 ```
 
-### Brief Reference of Frequently Used CLI Commands
+## Brief Reference of Frequently Used CLI Commands
 
-*Please note at this point in the test sequence there are no OLTs/ONUs,
-hence the output of these commands will in fact show empty tables; some commands
-are not even available.*
+* Please note at this point in the test sequence there are no OLTs/ONUs, hence the output of these commands will in fact show empty tables; some commands are not even available.
 
 To list all logical devices:
 
-```
+```shell
 logical_devices
 ```
 
 *Example* output:
 
-```
+```shell
 (voltha) logical_devices
 Logical devices:
 +----+-------------+----------------+----------------------------------+---------------------------+--------------------------+
@@ -122,13 +117,13 @@ Logical devices:
 
 To list all physical devices:
 
-```
+```shell
 devices
 ```
 
 *Example* output:
 
-```
+```shell
 (voltha) devices
 Devices:
 +--------------+---------------+------+--------------+------+-------------------+-------------+-------------+----------------+----------------+-------------------------+--------------------------+
@@ -144,26 +139,26 @@ Devices:
 
 To pre-provision an OLT of a certain type (e.g., maple with given IP address):
 
-```
+```shell
 preprovision_olt -t maple_olt -i 10.11.12.13
 ```
 
 *Example* output:
 
-```
+```shell
 (voltha) preprovision_olt -t maple_olt -i 10.11.12.13
 success (device id = 5a324e1c3996)
 ```
 
 To activate the last pre-provisioned OLT:
 
-```
+```shell
 enable
 ```
 
 *Example* output:
 
-```
+```shell
 (voltha) enable
 activating 5a324e1c3996
 waiting for device to be activated...
@@ -172,13 +167,13 @@ success (logical device id = 1)
 
 To activate an OLT given by its ID:
 
-```
+```shell
 enable <ID>
 ```
 
 *Example* output:
 
-```
+```shell
 (voltha) enable
 activating 5a324e1c3996
 waiting for device to be activated...
@@ -187,30 +182,30 @@ success (logical device id = 1)
 
 To enter into a logical device context/mode:
 
-```
+```shell
 logical_device <logical-device-ID>
 ```
 
 *Example* output:
 
-```
+```shell
 (voltha) logical_device 1
 (logical device 1)
 ```
 
-This will change the prompt to ```(logical device <ID>)```.
+This will change the prompt to (logical device ```<ID>```).
 
 Subcommands of logical device mode:
 
 To show more info:
 
-```
+```shell
 show
 ```
 
 *Example* output:
 
-```
+```shell
 (logical device 1) show
 Logical device 1
 +------------------------------+----------------------------------+
@@ -234,13 +229,13 @@ Logical device 1
 
 To list all ports of the logical device:
 
-```
+```shell
 ports
 ```
 
 *Example* output:
 
-```
+```shell
 (logical device 1) ports
 Logical device ports:
 +-----+--------------+----------------+-----------+------------------+----------------------+---------------+----------------+---------------+---------------------+
@@ -256,13 +251,13 @@ Logical device ports:
 
 To list all flows defined:
 
-```
+```shell
 flows
 ```
 
 *Example* output:
 
-```
+```shell
 (logical device 1) flows
 Logical Device 1 (type: n/a)
 Flows (11):
@@ -286,26 +281,26 @@ Flows (11):
 
 To exit logical device mode:
 
-```
+```shell
 exit
 ```
 
 *Example* output:
 
-```
+```shell
 (logical device 1) exit
 (voltha)
 ```
 
 To enter into a device context/mode:
 
-```
+```shell
 device <device-ID>
 ```
 
 *Example* output:
 
-```
+```shell
 (voltha) device 5a324e1c3996
 (device 5a324e1c3996)
 ```
@@ -314,13 +309,13 @@ Subcommands of device mode:
 
 To show device info:
 
-```
+```shell
 show
 ```
 
 *Example* output:
 
-```
+```shell
 (device 5a324e1c3996) show
 Device 5a324e1c3996
 +------------------+----------------------------------+
@@ -352,7 +347,7 @@ ports
 
 *Example* output:
 
-```
+```shell
 (device 45de16e1c63b) ports
 Device ports:
 +---------+--------------------------+--------------+-------------+-------------+--------------+------------------------------------------------+
@@ -365,13 +360,13 @@ Device ports:
 
 To show all flows defined on device:
 
-```
+```shell
 flows
 ```
 
 *Example* output:
 
-```
+```shell
 (device 5a324e1c3996) flows
 Device 5a324e1c3996 (type: simulated_olt)
 Flows (7):
@@ -390,7 +385,7 @@ Flows (7):
 
 To exit device mode:
 
-```
+```shell
 exit
 ```
 
@@ -398,7 +393,7 @@ There is a "test" mode that allows installing various pre-manufactured flows, an
 
 To enter "test" mode from normal CLI mode:
 
-```
+```shell
 test
 ```
 
@@ -406,31 +401,31 @@ In test mode all commands that are available in normal mode are still available,
 
 To install just the EAPOL upstream forwarding flow:
 
-```
+```shell
 install_eapol_flow [<logical-device-ID>]
 ```
 
 To install all controller bound forwarding flows:
 
-```
+```shell
 install_all_controller_bound_flows  [<logical-device-ID>]
 ```
 
 To install all flows relevant in our use-case (upstream forwarding rules, unicast data flows, and a few multicast flows):
 
-```
+```shell
 install_all_sample_flows  [<logical-device-ID>]
 ```
 
 To remove all flows from a logical device:
 
-```
+```shell
 delete_all_flows  [<logical-device-ID>]
 ```
 
 Here is a sample CLI command sequence that preprovisions and activates an OLT, then downloads all sample flows and check the flows installed on the OLT device:
 
-```
+```shell
 test
 preprovision_olt -t maple_olt -i 10.11.12.13
 enable
@@ -441,7 +436,7 @@ flows
 exit
 ```
 
-### Pass/Fail Criteria
+## Pass/Fail Criteria
 
 * CLI should start
 * Health should show "HEALTHY"

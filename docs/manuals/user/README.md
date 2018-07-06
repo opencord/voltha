@@ -28,4 +28,3 @@ While we are still at the early phase of development, you can check out the BUIL
 ## How can you help?
 
 Contributions, small and large, are welcome. Minor contributions and bug fixes are always welcome in form of pull requests. For larger work, the best is to check in with the existing developers to see where help is most needed and to make sure your solution is compatible with the general philosophy of Voltha.
-

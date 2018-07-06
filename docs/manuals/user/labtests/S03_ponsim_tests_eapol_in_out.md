@@ -1,9 +1,9 @@
-## S3 - Test EAPOL In/Out Forwarding with OLT-OFTEST
+# S3 - Test EAPOL In/Out Forwarding with OLT-OFTEST
 
-### Test Objective
+## Test Objective
 
-### Test Configuration
+## Test Configuration
 
-### Test Procedure
+## Test Procedure
 
-### Pass/Fail Criteria
+## Pass/Fail Criteria
