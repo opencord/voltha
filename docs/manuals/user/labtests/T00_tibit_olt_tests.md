@@ -8,4 +8,4 @@ POD.
 * [T3 - Verify EAPOL RG Authentication](T03_tibit_olt_eapol_auth.md)
 * [T4 - Verify DHCP Lookup](T04_tibit_verify_dhcp.md)
 * [T5 - Verify Unicast Access](T05_tibit_tests_unicast.md)
-* [T6 - Verify IGMP Handling](T06_tibit_tests_multicast.md)	
+* [T6 - Verify IGMP Handling](T06_tibit_tests_multicast.md)

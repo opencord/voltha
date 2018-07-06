@@ -4,11 +4,11 @@
 
 Steps:
 
-### Bring up dev host and install prerequisites
+## Bring up dev host and install prerequisites
 
 Assuming a fresh Vagrant machine:
 
-```
+```shell
 cd ~/voltha  # whatever location your Voltha repo dir is
 rm -fr venv-linux  # to make sure we don't have residues
 vagrant destroy -f  # ditto
@@ -22,11 +22,11 @@ git clone git://github.com/mininet/mininet
 pip install pypcap
 ```
 
-### Build Voltha proto derivatives and start Voltha
+## Build Voltha proto derivatives and start Voltha
 
 On the above Vagrant box:
 
-```
+```shell
 cd /voltha
 . env.sh
 make protos
@@ -38,7 +38,7 @@ For development purposes, it is better to run voltha, chameleon and ofagent in t
 
 Open three terminals on the Vagrant host. In terminal one, start voltha:
 
-```
+```shell
 cd /voltha
 . env.sh
 ./voltha/main.py --kafka=@kafka
@@ -46,7 +46,7 @@ cd /voltha
 
 In the second terminal, start chameleon:
 
-```
+```shell
 cd /voltha
 . env.sh
 ./chameleon/main.py
@@ -54,7 +54,7 @@ cd /voltha
 
 In the third terminal, start ofagent:
 
-```
+```shell
 cd /voltha
 . env.sh
 ./ofagent/main.py
@@ -64,25 +64,25 @@ Open a fourth terminal and run some sanity checks:
 
 To see we can reach Voltha via REST:
 
-```
+```shell
 curl -s http://localhost:8881/health | jq '.'
 ```
 
 and
 
-```
+```shell
 curl -s -H 'Get-Depth: 2' http://localhost:8881/api/v1/local | jq '.'
 ```
 
 To verify we have exactly one logical device (this is important for olt-oftest, which assumes this):
 
-```
+```shell
 curl -s http://localhost:8881/api/v1/local/logical_devices | jq '.items'
 ```
 
 Check in the output that there is one entry in the logical device list, along these lines:
 
-```
+```json
 [
   {
     "datapath_id": "1",
@@ -110,32 +110,31 @@ Check in the output that there is one entry in the logical device list, along th
 
 To verify that the above logical device has all three logical ports, run this:
 
-```
+```shell
 curl -s http://localhost:8881/api/v1/local/logical_devices/simulated1/ports | jq '.items'
 ```
 
-This shall have three entries, one OLT NNI port and two ONU (UNI) ports. Make note of the corresponding
-```of_port.port_no``` numbers. They shall be as follows:
+This shall have three entries, one OLT NNI port and two ONU (UNI) ports. Make note of the corresponding *of_port.port_no* numbers. They shall be as follows:
 
-* For OLT port (```id=olt1```): ```ofp_port.port_no=129```
-* For ONU1 port (```id=onu1```): ```ofp_port.port_no=1```
-* For ONU2 port (```id=onu2```): ```ofp_port.port_no=2```
+* For OLT port (*id=olt1*): *ofp_port.port_no=129*
+* For ONU1 port (*id=onu1*): *ofp_port.port_no=1*
+* For ONU2 port (*id=onu2*): *ofp_port.port_no=2*
 
 If they are different, you will need to adjust olt-oftest input arguments accordingly.
 
 Finally, check the flow and flow_group tables of the logical device; they should both be empty at this point:
 
 
-```
+```shell
 curl -s http://localhost:8881/api/v1/local/logical_devices/simulated1/flows | jq '.items'
 curl -s http://localhost:8881/api/v1/local/logical_devices/simulated1/flow_groups | jq '.items'
 ```
 
-### Create fake interfaces needed by olt-oftest
+## Create fake interfaces needed by olt-oftest
 
 Despite that we will run olt-oftest with "fake_dataplane" mode, meaning that it will not attempt to send/receive dataplane traffic, it still wants to be able to open its usual dataplane interfaces. We will make it happy by creating a few veth interfaces:
 
-```
+```shell
 sudo ip link add type veth
 sudo ip link add type veth
 sudo ip link add type veth
@@ -146,9 +145,9 @@ sudo ifconfig veth4 up
 sudo ifconfig veth6 up
 ```
 
-### Start olt-oftest in fake_dataplane mode
+## Start olt-oftest in fake_dataplane mode
 
-```
+```shell
 cd /voltha
 sudo -s
 export PYTHONPATH=/voltha/voltha/adapters/tibit_olt:/voltha/mininet
@@ -161,5 +160,3 @@ export PYTHONPATH=/voltha/voltha/adapters/tibit_olt:/voltha/mininet
 ```
 
 The above shall finish with OK (showing seven (7) or more tests completed).
-
-

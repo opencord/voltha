@@ -1,20 +1,20 @@
-## S6 - Test IGMP and multicast (Video) streams
+# S6 - Test IGMP and multicast (Video) streams
 
-### Test Objective
+## Test Objective
 
 Verify that VOLTHA punts IGMP packets to ONOS and that ONOS provisions the right multicast rules
 
-### Test Configuration
+## Test Configuration
 
 * VOLTHA ensemble up and running.
 * PONSIM configured with an OLT with multiple ONUs
 * An authenticated RG
 
-### Test Procedure
+## Test Procedure
 
 At this point ONOS should show the following rules:
 
-```
+```shell
 deviceId=of:0000000000000001, flowRuleCount=7
     ADDED, bytes=0, packets=0, table=0, priority=10000, selector=[IN_PORT:128, ETH_TYPE:ipv4, IP_PROTO:2], treatment=[immediate=[OUTPUT:CONTROLLER]]
     ADDED, bytes=0, packets=0, table=0, priority=1000, selector=[IN_PORT:128, ETH_TYPE:eapol], treatment=[immediate=[OUTPUT:CONTROLLER]]
@@ -27,13 +27,13 @@ deviceId=of:0000000000000001, flowRuleCount=7
 
 So now let's send an IGMP packet from the RG up the ONU. To do this run the following in the RG container.
 
-```
+```shell
 igmp.py -j -i pon1_128 -m 229.0.0.1
 ```
 
 this will return
 
-```
+```shell
 .
 Sent 1 packets.
 ```
@@ -42,13 +42,13 @@ which indicates that one igmp packet has been sent.
 
 Let us now check the state in ONOS, starting with the group information. Run the following in the ONOS prompt.
 
-```
+```shell
 groups
 ```
 
 which returns
 
-```
+```shell
 deviceId=of:0000000000000001, groupCount=1
    id=0x1, state=ADDED, type=ALL, bytes=0, packets=0, appId=org.onosproject.cordmcast
    id=0x1, bucket=1, bytes=0, packets=0, actions=[VLAN_POP:unknown, OUTPUT:128]
@@ -58,13 +58,13 @@ This shows that the a group was installed that forward packets to the ONU which 
 
 For a group to be useful a flow must point to this group. So let's check in ONOS whether a flow exists.
 
-```
+```shell
 flows -s
 ```
 
 and find a flow which looks like
 
-```
+```shell
 ADDED, bytes=0, packets=0, table=0, priority=500, selector=[IN_PORT:0, ETH_TYPE:ipv4, VLAN_VID:140, IPV4_DST:229.0.0.1/32], treatment=[immediate=[GROUP:0x1]]
 ```
 
@@ -72,14 +72,14 @@ This indicates that a multicast traffic with destination ip 229.0.0.1 should be 
 
 Now let's check whether we find this state in the logical device in VOLTHA. Let's run the following in the VOLTHA CLI.
 
-```
+```shell
 logical_device
 flows
 ```
 
 which will return
 
-```
+```shell
 Logical Device 1 (type: n/a)
 Flows (10):
 +----------+----------+-----------+---------+----------+----------+----------+-----------+---------+---------+----------+--------------+----------+-----------+-------+------------+------------+
@@ -102,13 +102,13 @@ and we can see a rule with 229.0.0.1 which point to group 1.
 
 Let's now look at the physical device level. Still in the Voltha CLI run the following.
 
-```
+```shell
 devices
 ```
 
 this returns
 
-```
+```shell
 Devices:
 +--------------+------------+------+--------------+------+-------------+-------------+----------------+----------------+------------------+-------------------------+--------------------------+
 |           id |       type | root |    parent_id | vlan | admin_state | oper_status | connect_status | parent_port_no |    host_and_port | proxy_address.device_id | proxy_address.channel_id |
@@ -122,14 +122,14 @@ Devices:
 
 Identify the ONU which sent the IGMP packet (128) and copy its device id (56a6fc8b859f in this case). Next run the following in the Voltha CLI.
 
-```
+```shell
 device 56a6fc8b859f
 flows
 ```
 
 which returns
 
-```
+```shell
 Device 56a6fc8b859f (type: ponsim_onu)
 Flows (6):
 +----------+----------+-----------+---------+----------+----------+-----------+--------------+----------+-----------+--------+
@@ -148,7 +148,7 @@ And we can see that 229.0.0.1 outputs the packet to the right port.
 
 Let us now try this out for real with a real packet. Let's first build a multicast frame and send it down the nni port, we can do this with scapy.
 
-```
+```shell
 sudo scapy
 mc = Ether(src="00:00:00:00:00:01")/Dot1Q(vlan=140)/IP(dst="229.0.0.1", proto=17)
 sendp(mc, iface="pon1_0")
@@ -156,13 +156,13 @@ sendp(mc, iface="pon1_0")
 
 Meanwhile run tcpdump in the RG container:
 
-```
+```shell
 tcpdump -nei pon1_128
 ```
 
 in he RG container while tcpdump'ing we should see the following output.
 
-```
+```shell
 tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
 listening on pon1_128, link-type EN10MB (Ethernet), capture size 262144 bytes
 08:09:43.004776 00:00:00:00:00:01 > 01:00:5e:00:00:01, ethertype IPv4 (0x0800), length 34: 10.0.2.15 > 229.0.0.1: [|udp]
@@ -170,7 +170,7 @@ listening on pon1_128, link-type EN10MB (Ethernet), capture size 262144 bytes
 
 Woohoo!
 
-### Pass/Fail Criteria
+## Pass/Fail Criteria
 
 * Flows and groups installed in ONOS
 * Flows and groups installed in Voltha

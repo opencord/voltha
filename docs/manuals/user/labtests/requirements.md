@@ -2,8 +2,7 @@
 
 ## Test PODs
 
-A Test POD suitable for testing Voltha and Voltha-assisted PON networks usually
-contain at least the following hardware components:
+A Test POD suitable for testing Voltha and Voltha-assisted PON networks usually contains at least the following hardware components:
 
 * One or more disaggregated OLT devices
 * One or more ONU/ONT devices per OLT
@@ -20,6 +19,4 @@ contain at least the following hardware components:
 ## Supported Specific Test PODs
 
 At this early phase, test PODs are being defined and developed by a select set
-of commercial vendors who are members of the Voltha project. Once the PODs are stable
-enough, their details will be described here.  Until then, please contact your
-(preferred) vendor for test POD specifications, BOMs, and other details.
+of commercial vendors who are members of the Voltha project. Once the PODs are stable enough, their details will be described here.  Until then, please contact your (preferred) vendor for test POD specifications, BOMs, and other details.

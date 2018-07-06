@@ -1,3 +1,3 @@
-## P2 - Voltha's Netconf API and Yang Definitions
+# P2 - Voltha's Netconf API and Yang Definitions
 
 [Khen to fill with content]

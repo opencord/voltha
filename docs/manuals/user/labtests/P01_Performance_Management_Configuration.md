@@ -1,21 +1,22 @@
-## P01 - Performance Management Configuration
+# P01 - Performance management configuration
 
-### Test Objective
+## Test objective
 
-To demonstrate the ability to configure performance management using the `simulated-olt`.
+To demonstrate the ability to configure performance management using the *simulated-olt*.
 
-- Demonstrate the ability to change the frequency with which the stats are sampled and posted to kafka
-- Demonstrate the ability to selectively disable and enable specific stats
-- Demonstrate how the stats can be queried.
+* Demonstrate the ability to change the frequency with which the stats are sampled and posted to kafka
+* Demonstrate the ability to selectively disable and enable specific stats
+* Demonstrate how the stats can be queried.
 
-### Test Configuration
+## Test configuration
 
-- The Voltha enseble is running per the deployment instructions.
+* The Voltha enseble is running per the deployment instructions.
 
-### Test procedure
+## Test procedure
 
 Start the voltha cli and add the simulated OLT.
-```
+
+```shell
  ./cli/main.py -L
          _ _   _            ___ _    ___
 __ _____| | |_| |_  __ _   / __| |  |_ _|
@@ -24,18 +25,22 @@ __ _____| | |_| |_  __ _   / __| |  |_ _|
 (to exit type quit or hit Ctrl-D)
 (voltha)
 ```
+
 Ensure that voltha is operating correctly:
-```
+
+```shell
 health
+```
+
+```json
 {
     "state": "HEALTHY"
 }
-(voltha)
 ```
 
 Preprovision and enable the simulated OLT
 
-```
+```shell
 (voltha) preprovision_olt
 success (device id = eecd8f5327bc)
 (voltha) enable
@@ -48,17 +53,15 @@ success (logical device id = 1)
 The device Id will be different from the device id shown above.
 
 In a different window, verify that the simulated stats are now being posted to the Kafak bus. First determine the port hosting the kafka broker:
-```
-docker inspect compose_kafka_1 | jq -r '.[0].NetworkSettings.Ports["9092/tcp"][0]["HostPort"]'
-```
 
-```
+```shell
+$ docker inspect compose_kafka_1 | jq -r '.[0].NetworkSettings.Ports["9092/tcp"][0]["HostPort"]'
 32778
 ```
 
 Using this port, query the kafka broker for topics
 
-```
+```shell
 kafkacat -b localhost:32778 -L
 Metadata for all topics (from broker -1: localhost:32778/bootstrap):
  1 brokers:
@@ -75,11 +78,12 @@ Metadata for all topics (from broker -1: localhost:32778/bootstrap):
 ```
 
 The topic of interest for this test is the voltha.kpis topic. So now query the topic to ensure that the simulated OLT is generating stats.
-```
+
+```shell
 kafkacat -b localhost:32778 -C -o -1 -c 1 -t voltha.kpis | jq '.prefixes'
 ```
 
-```
+```json
 {
   "voltha.simulated_olt.eecd8f5327bc.pon": {
     "metrics": {
@@ -133,46 +137,45 @@ kafkacat -b localhost:32778 -C -o -1 -c 1 -t voltha.kpis | jq '.prefixes'
   }
 }
 ```
+
 Once the generation of simulated statistics has been confirmed we validate how often the stats are being posted to kafka prior to the next step which is to change the frequency with which the stats are bing sampled. The following command will establish the sampling interval.
 
-```
+```shell
 avg=0;last=0;for i in `kafkacat -b localhost:32778 -C -o -10 -c 10 -t voltha.kpis | grep 'simulated_olt' | jq -r '.ts'`; do if [ $last -eq 0 ]; then last=$i; else if [ $avg -eq 0 ]; then avg=`expr $i - $last`; else avg=`expr \( $avg + $i - $last \) \/ 2`; fi; last=$i; fi; done; echo $avg; unset avg; unset last
 ```
-```
+
+```shell
 15
 ```
+
 The default set by the simulated OLT is to pretend to sample metrics every 15 seconds and publish them to kafka. This can be changed by using the performance monitoring configuration functionality. Swithch back to the window running the voltha cli and enter device command mode for the simulated OLT.
 
-```
+```shell
 (voltha) devices
-```
 
-```
-Devices:
 +--------------+---------------+-------------------+-------------+-------------+----------------+
 |           id |          type |       mac_address | admin_state | oper_status | connect_status |
 +--------------+---------------+-------------------+-------------+-------------+----------------+
 | eecd8f5327bc | simulated_olt | 00:0c:e2:31:40:00 |     ENABLED |      ACTIVE |      REACHABLE |
 +--------------+---------------+-------------------+-------------+-------------+----------------+
-(voltha)
 ```
 
 Using the value in the id column, enter device command mode for the device
-```
+```shell
 (voltha) device eecd8f5327bc
 ```
 
-```
+```shell
 (device eecd8f5327bc)
 ```
 
 Now display the current performance management configuration of the device. Your device id will be different than the one used throughout these examples.
 
-```
+```shell
 (device eecd8f5327bc) perf_config
 ```
 
-```
+```shell
 PM Config:
 +---------------+-------+
 |         field | value |
@@ -181,6 +184,7 @@ PM Config:
 |       grouped | False |
 | freq_override | False |
 +---------------+-------+
+
 Supported metrics:
 +--------------+---------+---------+
 |         name | enabled |    type |
@@ -209,14 +213,13 @@ Supported metrics:
 
 As shown, the default_freq which is the sampling frequency is set to 150 10^ths^ of a second. View the help to determine how to change that.
 
-```
+```shell
 (device eecd8f5327bc) help perf_config
 ```
 
-```
-perfo_config [show | set | commit | reset] [-f <default frequency>] [-e <metric/group
-            name>] [-d <metric/group name>] [-o <metric/group name> <override
-            frequency>]
+```shell
+perfo_config [show | set | commit | reset] [-f <default frequency>] [-e <metric/group name>] [-d <metric/group name>] [-o <metric/group name> <override frequency>]
+
 Changes made by set are held locally until a commit or reset command is issued.
 A commit command will write the configuration to the device and it takes effect
 immediately. The reset command will undo any changes sinc the start of the
@@ -229,22 +232,22 @@ individual metrics.
 
 As shown in the help using set with the -f option will change the default_freq so lets set that to 5 seconds or 50 10^ths^ of a second.
 
-```
+```shell
 (device eecd8f5327bc) perf_config set -f 50
 ```
 
-```
+```shell
 Success
 (device eecd8f5327bc)
 ```
 
 Lets verify that the chnages have indeed been saved to the edit buffer.
 
-```
+```shell
 (device eecd8f5327bc) perf_config show
 ```
 
-```
+```shell
 PM Config:
 +---------------+-------+
 |         field | value |
@@ -253,6 +256,7 @@ PM Config:
 |       grouped | False |
 | freq_override | False |
 +---------------+-------+
+
 Supported metrics:
 +--------------+---------+---------+
 |         name | enabled |    type |
@@ -281,11 +285,11 @@ Supported metrics:
 
 The default_freq is now set to 5o 10^ths^ of a second. This change has not been applied yet. In order to apply the change, it must be committed. Lets do that now.
 
-```
+```shell
 (device eecd8f5327bc) perf_config commit
 ```
 
-```
+```shell
 PM Config:
 +---------------+-------+
 |         field | value |
@@ -294,6 +298,7 @@ PM Config:
 |       grouped | False |
 | freq_override | False |
 +---------------+-------+
+
 Supported metrics:
 +--------------+---------+---------+
 |         name | enabled |    type |
@@ -322,33 +327,28 @@ Supported metrics:
 
 Now after waiting 30 seconds or so to ensure we don't average in any older sampling intervals let's go back to a linux window and check and see how often the metrics are being sampled.
 
-```
-voltha$ avg=0;last=0;for i in `kafkacat -b localhost:32778 -C -o -10 -c 10 -t voltha.kpis | grep 'simulated_olt' | jq -r '.ts'`; do if [ $last -eq 0 ]; then last=$i; else if [ $avg -eq 0 ]; then avg=`expr $i - $last`; else avg=`expr \( $avg + $i - $last \) \/ 2`; fi; last=$i; fi; done; echo $avg; unset avg; unset last
-```
-
-```
-5
-voltha$
+```shell
+voltha$ avg=0;last=0;for i in `kafkacat -b localhost:32778 -C -o -10 -c 10 -t voltha.kpis | grep 'simulated_olt' | jq -r '.ts'`; do if [ $last -eq 0 ]; then last=$i; else if [ $avg -eq 0 ]; then avg=`expr $i - $last`; else avg=`expr \( $avg + $i - $last \) \/ 2`; fi; last=$i; fi; done; echo $avg; unset avg; unset last 5
 ```
 
 The change has taken effect and the metrics are now being sampled every 5 seconds. Now lets show how certain metrics can be disabled from the kafka output. Lets say that we no longer want to see any jumbo frame counters. Go back to the voltha cli window and get the help for the `perf_config` command again. Looking at the command using set with the -d options disables metrics and using the set command with -e options enables metrics. To disable both rx and tx metrics for 1519_9k issue the following command in the voltha cli.
 
-```
+```shell
 (device eecd8f5327bc) perf_config set -d rx_1519_9k -d tx_1519_9k
 ```
 
-```
+```shell
 Success
 (device eecd8f5327bc)
 ```
 
 Now view the configuration to validate that the requested changes have been applied to the edit buffer.
 
-```
+```shell
 (device eecd8f5327bc) perf_config show
 ```
 
-```
+```shell
 PM Config:
 +---------------+-------+
 |         field | value |
@@ -357,6 +357,7 @@ PM Config:
 |       grouped | False |
 | freq_override | False |
 +---------------+-------+
+
 Supported metrics:
 +--------------+---------+---------+
 |         name | enabled |    type |
@@ -385,11 +386,11 @@ Supported metrics:
 
 The changes are there as expected. Now commit them using the commit command.
 
-```
+```shell
 (device eecd8f5327bc) perf_config commit
 ```
 
-```
+```shell
 PM Config:
 +---------------+-------+
 |         field | value |
@@ -398,6 +399,7 @@ PM Config:
 |       grouped | False |
 | freq_override | False |
 +---------------+-------+
+
 Supported metrics:
 +--------------+---------+---------+
 |         name | enabled |    type |
@@ -426,11 +428,11 @@ Supported metrics:
 
 Now lets validate that the metrics that have been set to false will no longer be published to kafka. Moving back to the Linux window use the following command:
 
-```
+```shell
 voltha$ kafkacat -b localhost:32778 -C -o -1 -c 1 -t voltha.kpis | jq '.prefixes'
 ```
 
-```
+```json
 {
   "voltha.simulated_olt.eecd8f5327bc.pon": {
     "metrics": {
@@ -483,5 +485,5 @@ voltha$ kafkacat -b localhost:32778 -C -o -1 -c 1 -t voltha.kpis | jq '.prefixes
 
 As expected both rx_1519_9k and tx_1519_9k are no longer being reported for any interface on the device.
 
-
 This concludes this section of the test plan.
+

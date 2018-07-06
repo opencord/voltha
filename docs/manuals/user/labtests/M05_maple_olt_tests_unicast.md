@@ -1,33 +1,33 @@
-## M5 - Verify unicast traffic flow
+# M5 - Verify unicast traffic flow
 
-### Test Objective
+## Test Objective
 
 * Purpose of this test is to verify that unicast traffic flows through the system
-  * Correct Maple PON environment
-  * Logical device visible in VOLTHA cli
+    * Correct Maple PON environment
+    * Logical device visible in VOLTHA cli
 
-### Test Configuration
+## Test Configuration
 
 * VOLTHA ensemble running as per [deployment instructions](V01_voltha_bringup_deploy.md).
 * Maple OLT and ONUs registered as ACTIVE in VOLTHA
 
-### Test Procedure
+## Test Procedure
 
 Execute the following command from the RG side
 
-```
+```shell
 ping -I eno1 1.2.3.4
 ```
 
 Meanwhile tcpdump on the VOLTHA server.
 
-```
+```shell
 sudo tcpdump -nei eno2
 ```
 
 which will output
 
-```
+```shell
 tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
 listening on pon1_0, link-type EN10MB (Ethernet), capture size 262144 bytes
 13:53:44.328260 06:0c:49:94:35:7e > ff:ff:ff:ff:ff:ff, ethertype 802.1Q (0x8100), length 50: vlan 1025, p 0, ethertype 802.1Q, vlan 1025, p 0, ethertype ARP, Request who-has 1.2.3.4 tell 10.1.11.63, length 28
@@ -38,6 +38,6 @@ listening on pon1_0, link-type EN10MB (Ethernet), capture size 262144 bytes
 13:53:49.322517 06:0c:49:94:35:7e > ff:ff:ff:ff:ff:ff, ethertype 802.1Q (0x8100), length 50: vlan 1025, p 0, ethertype 802.1Q, vlan 1025, p 0, ethertype ARP, Request who-has 1.2.3.4 tell 10.1.11.63, length 28
 ```
 
-### Pass/Fail Criteria
+## Pass/Fail Criteria
 
 Ping completes successfully
