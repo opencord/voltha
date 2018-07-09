@@ -476,8 +476,12 @@ ifneq ($(VOLTHA_BUILD),docker)
 utest-with-coverage: venv protos
 	@ echo "Executing all unit tests and producing coverage results"
 	. ${VENVDIR}/bin/activate && \
-        for d in $$(find ./tests/utests -type d|sort -nr); do echo $$d:; \
-	nosetests --with-xcoverage --with-xunit --cover-package=voltha,common,ofagent $$d; done
+	  for d in $$(find ./tests/utests -type d|sort -nr); do \
+	    echo $$d:; \
+	    nosetests --with-xcoverage --xcoverage-file="$$d/coverage.xml" \
+                --with-xunit --xunit-file="$$d/nosetests.xml" \
+                --cover-package=voltha,common,ofagent $$d; \
+	  done
 else
 utest-with-coverage: protos test_runner
 	@echo "Executing all unit tests and producing coverage results"
@@ -490,10 +494,12 @@ utest-with-coverage: protos test_runner
 		--rm --net=host -v /var/run/docker.sock:/var/run/docker.sock \
 		${REGISTRY}${REPSOITORY}voltha-test_runner:${TAG} \
 		bash -c \
-		'for d in $$(find ./tests/utests -type d|sort -nr); do \
-			echo $$d:; \
-			nosetests --with-xcoverage --with-xunit --cover-package=voltha,common,ofagent $$d; \
-		done'
+	  'for d in $$(find ./tests/utests -type d|sort -nr); do \
+	    echo $$d:; \
+	    nosetests --with-xcoverage --xcoverage-file="$$d/coverage.xml" \
+                --with-xunit --xunit-file="$$d/nosetests.xml" \
+                --cover-package=voltha,common,ofagent $$d; \
+	  done'
 endif
 
 ifneq ($(VOLTHA_BUILD),docker)
