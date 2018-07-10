@@ -172,7 +172,8 @@ class OpenoltDevice(object):
 
         self.stub = openolt_pb2_grpc.OpenoltStub(self.channel)
         self.flow_mgr = OpenOltFlowMgr(self.log, self.stub, self.device_id)
-        self.alarm_mgr = OpenOltAlarmMgr(self.log)
+        self.alarm_mgr = OpenOltAlarmMgr(self.log, self.adapter_agent, self.device_id,
+                                         self.logical_device_id)
         self.stats_mgr = OpenOltStatisticsMgr(self, self.log)
 
     def do_state_up(self, event):
