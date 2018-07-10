@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "53a1f577_596b2b7f",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 11
+      },
+      "lineNbr": 901,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-07-10T22:06:41Z",
+      "side": 1,
+      "message": "Maybe that is what prevent the eap flows to be reapplied after reboot ?? \nMaybe update_flow_table happens before the state is up ??\nWill check the log tomorrow",
+      "range": {
+        "startLine": 899,
+        "startChar": 7,
+        "endLine": 901,
+        "endChar": 18
+      },
+      "revId": "3c406b0d7601f47793ab9a3e2e9b01e366c8ef61",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
