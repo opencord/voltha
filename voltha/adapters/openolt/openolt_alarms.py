@@ -14,17 +14,38 @@
 # limitations under the License.
 #
 
+import arrow
+from voltha.protos.events_pb2 import AlarmEventType, \
+    AlarmEventSeverity, AlarmEventState, AlarmEventCategory
+import voltha.adapters.openolt.openolt_platform as platform
+from voltha.protos.device_pb2 import Port
+from voltha.adapters.openolt.alarms.adapter_alarms import AdapterAlarms
+from voltha.adapters.openolt.alarms.olt_los_alarm import OltLosAlarm
+from voltha.adapters.openolt.alarms.onu_dying_gasp_alarm import OnuDyingGaspAlarm
 
 
 class OpenOltAlarmMgr(object):
-    def __init__(self, log):
+    def __init__(self, log, adapter_agent, device_id, logical_device_id):
+        """
+        20180711 -  Addition of adapter_agent and device_id
+            to facilitate alarm processing and kafka posting
+        :param log:
+        :param adapter_agent:
+        :param device_id:
+        """
         self.log = log
+        self.adapter_agent = adapter_agent
+        self.device_id = device_id
+        self.logical_device_id = logical_device_id
+        try:
+            self.alarms = AdapterAlarms(self.adapter_agent, self.device_id, self.logical_device_id)
+        except Exception as initerr:
+            self.log.exception("alarmhandler-init-error", errmsg=initerr.message)
+            raise Exception(initerr)
 
     def process_alarms(self, alarm_ind):
-        self.log.debug('alarm indication', alarm=alarm_ind)
-
         try:
-
+            self.log.debug('alarm-indication', alarm=alarm_ind, device_id=self.device_id)
             if alarm_ind.HasField('los_ind'):
                 self.los_indication(alarm_ind.los_ind)
             elif alarm_ind.HasField('dying_gasp_ind'):
@@ -62,15 +83,54 @@ class OpenOltAlarmMgr(object):
                            alarm=alarm_ind)
 
     def los_indication(self, los_ind):
-        self.log.debug('los indication received', los_ind=los_ind)
+
         try:
-            self.log.info('los indication', intf_id=los_ind.intf_id,
-                          status=los_ind.status)
+            self.log.debug('los indication received', los_ind=los_ind,
+                           int_id=los_ind.intf_id, status=los_ind.status)
+
+            try:
+
+                if (los_ind.status == 1 or los_ind.status == "on"):
+                    OltLosAlarm(self.alarms, alarm_indication=los_ind).raise_alarm()
+                else:
+                    OltLosAlarm(self.alarms, alarm_indication=los_ind).clear_alarm()
+            except Exception as alarm_err:
+                self.log.error('los-indication', errmsg=alarm_err.message)
+
         except Exception as e:
-            self.log.error('error parsing los indication', error=e)
+            self.log.error('los-indication', errmsg=e.message)
 
     def dying_gasp_indication(self, dying_gasp_ind):
-        self.log.info('not implemented yet')
+        try:
+            alarm_dgi = dying_gasp_ind
+            onu_id = alarm_dgi.onu_id
+            self.log.debug('openolt-alarmindication-dispatch-dying-gasp', int_id=alarm_dgi.intf_id,
+                           onu_id=alarm_dgi.onu_id, status=alarm_dgi.status)
+            try:
+                """
+                Get the ONU ID.  This isw necessary since the dirvers are 
+                not passing the id.  They are using a placeholder
+                """
+                onu_device_id = "place_holder"
+                try:
+                    ind_onu_id = dying_gasp_ind.onu_id
+                    onu_device = self.adapter_agent.get_child_device(
+                        self.device_id,
+                        parent_port_no=platform.intf_id_to_port_no(
+                            dying_gasp_ind.intf_id, Port.PON_OLT),
+                        onu_id=dying_gasp_ind.onu_id)
+                    onu_device_id = onu_device.id
+                except Exception as inner:
+                    self.log.exception('dying-gasp-indication-resolve_onu-id', errmsg=inner.message)
+                if (dying_gasp_ind.status == 1 or dying_gasp_ind.status == "on"):
+                    OnuDyingGaspAlarm(self.alarms, dying_gasp_ind, onu_device_id).raise_alarm()
+                else:
+                    OnuDyingGaspAlarm(self.alarms, dying_gasp_ind, onu_device_id).clear_alarm()
+            except Exception as alarm_err:
+                self.log.exception('dying-gasp-indication', errmsg=alarm_err.message)
+
+        except Exception as e:
+            self.log.error('dying_gasp_indication', error=e)
 
     def onu_alarm_indication(self, onu_alarm_ind):
         self.log.info('not implemented yet')

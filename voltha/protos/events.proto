@@ -75,6 +75,7 @@ message AlarmEventCategory {
         PON = 0;
         OLT = 1;
         ONT = 2;
+        ONU = 3;
     }
 }
 
@@ -137,4 +138,7 @@ message AlarmEvent {
 
     // Key/Value storage for extra information that may give context to the alarm
     map<string, string> context = 11;
+
+    // logical device id
+    string logical_device_id = 12;
 }

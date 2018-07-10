@@ -908,7 +908,6 @@ class AdapterAgent(object):
             self.log.exception('failed-kpi-submission',
                                type=type(kpi_event_msg))
 
-
     # # ~~~~~~~~~~~~~~~~~~~~~~~~~~ Handle flow stats ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def update_flow_stats(self, logical_device_id, flow_id, packet_count=0,
@@ -927,8 +926,8 @@ class AdapterAgent(object):
                 'logical_devices/{}/flows'.format(logical_device_id),
                 flow_to_update.id, flow_to_update)
         else:
-            self.log.warn('flow-to-update-not-found', logical_device_id=
-                logical_device_id, flow_id=flow_id)
+            self.log.warn('flow-to-update-not-found',
+                          logical_device_id=logical_device_id, flow_id=flow_id)
 
     # ~~~~~~~~~~~~~~~~~~~ Handle alarm submissions ~~~~~~~~~~~~~~~~~~~~~
 
@@ -938,10 +937,11 @@ class AdapterAgent(object):
                      category=AlarmEventCategory.PON,
                      severity=AlarmEventSeverity.MINOR,
                      state=AlarmEventState.RAISED,
-                     context=None):
+                     context=None,
+                     logical_device_id=None):
 
         # Construct the ID if it is not provided
-        if id == None:
+        if id is None:
             id = 'voltha.{}.{}'.format(self.adapter_name, resource_id)
 
         return AlarmEvent(
@@ -955,7 +955,8 @@ class AdapterAgent(object):
             reported_ts=arrow.utcnow().timestamp,
             raised_ts=raised_ts,
             changed_ts=changed_ts,
-            context=context
+            context=context,
+            logical_device_id=logical_device_id
         )
 
     def filter_alarm(self, device_id, alarm_event):
