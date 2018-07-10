@@ -14,17 +14,29 @@
 # limitations under the License.
 #
 
+import arrow
+from voltha.protos.events_pb2 import AlarmEventType, \
+    AlarmEventSeverity, AlarmEventState, AlarmEventCategory
+import openolt_platform
 
 
 class OpenOltAlarmMgr(object):
-    def __init__(self, log):
+    def __init__(self, log, adapter_agent, device_id, logical_device_id):
+        """
+        20180711 -  Addition of adapter_agent and device_id
+            to facilitate alarm processing and kafka posting
+        :param log:
+        :param adapter_agent:
+        :param device_id:
+        """
         self.log = log
+        self.adapter_agent = adapter_agent
+        self.device_id = device_id
+        self.logical_device_id = logical_device_id
 
     def process_alarms(self, alarm_ind):
-        self.log.debug('alarm indication', alarm=alarm_ind)
-
         try:
-
+            self.log.debug('alarm-indication', alarm=alarm_ind, device_id=self.device_id)
             if alarm_ind.HasField('los_ind'):
                 self.los_indication(alarm_ind.los_ind)
             elif alarm_ind.HasField('dying_gasp_ind'):
@@ -62,15 +74,53 @@ class OpenOltAlarmMgr(object):
                            alarm=alarm_ind)
 
     def los_indication(self, los_ind):
-        self.log.debug('los indication received', los_ind=los_ind)
+
         try:
-            self.log.info('los indication', intf_id=los_ind.intf_id,
-                          status=los_ind.status)
+            self.log.debug('los indication received', los_ind=los_ind,
+                           int_id=los_ind.intf_id, status=los_ind.status)
+            # self.olt_los_alarm(self.device_id, los_ind.intf_id,
+            #                    los_ind.status)
+
+            # =====================================
+            ifacelos_data = {}
+            ifacelos_data["los_status"] = los_ind.status.__str__()
+            ifacelos_data["olt_id"] = self.device_id.__str__()
+
+            self.log.info('olt-iface-los-alarm-call-handle')
+            self.handle_alarms(self.device_id, "OLT",
+                               los_ind.intf_id,
+                               "loss_of_signal", los_ind.status, "high",
+                               alarm_data=ifacelos_data,
+                               alarm_event_category=AlarmEventCategory.OLT)
         except Exception as e:
-            self.log.error('error parsing los indication', error=e)
+            self.log.error('error los indication', error=e)
 
     def dying_gasp_indication(self, dying_gasp_ind):
-        self.log.info('not implemented yet')
+        try:
+            alarm_dgi = dying_gasp_ind
+            onu_id = alarm_dgi.onu_id
+            self.log.debug('openolt-alarmindication-dispatch-dying-gasp', int_id=alarm_dgi.intf_id,
+                           onu_id=alarm_dgi.onu_id, status=alarm_dgi.status)
+            # Build the acompanying data field for subscriber onu dying gasp
+            subonudgi_data = {}
+            subonudgi_data["dgi_status"] = alarm_dgi.status.__str__()
+            subonudgi_data["onu_id"] = onu_id.__str__()
+            ind_info = dict()
+            ind_info['_object_type'] = 'subscriber_onu_indication'
+            ind_info['_sub_group_type'] = 'dying_gasp_indication'
+
+            """
+            Note:  The alarm_data structure must be of a compatible structure for the alarm event type
+                    if it is not and error will be generated that is less than intuitive
+            """
+            self.handle_alarms(self.device_id, "ONU",
+                               alarm_dgi.intf_id,
+                               "subscriber_onu_dying_gasp", alarm_dgi.status, "medium",
+                               alarm_data=subonudgi_data,
+                               alarm_event_category=AlarmEventCategory.ONU)
+
+        except Exception as e:
+            self.log.error('dying_gasp_indication', error=e)
 
     def onu_alarm_indication(self, onu_alarm_ind):
         self.log.info('not implemented yet')
@@ -98,3 +148,60 @@ class OpenOltAlarmMgr(object):
 
     def onu_processing_error_indication(self, onu_processing_error_ind):
         self.log.info('not implemented yet')
+
+    def handle_alarms(self, _device_id, category, intf_id, alarm,
+                      status, priority, alarm_event_category=AlarmEventCategory.OLT,
+                      alarm_data=None):
+        """
+        The primary alarm dispatcher.
+        The alarms get set up in the above methods that in turn
+        send to these methods
+        """
+        try:
+            self.log.info('handle-alarms-received-alarm-msg',
+                          category=category,
+                          resource_id=intf_id,
+                          alarm=alarm,
+                          status=status,
+                          priority=priority,
+                          alarm_data=alarm_data,
+                          logical_device_id=self.logical_device_id)
+
+            id = 'voltha.{}.{}.{}'.format("open_olt",
+                                          _device_id, category)
+            description = '{} Alarm - {} - {}'.format(category.upper(),
+                                                      alarm.upper(),
+                                                      'Raised' if status == 'on' else 'Cleared')
+            if priority == 'low':
+                severity = AlarmEventSeverity.MINOR
+            elif priority == 'medium':
+                severity = AlarmEventSeverity.MAJOR
+            elif priority == 'high':
+                severity = AlarmEventSeverity.CRITICAL
+            else:
+                severity = AlarmEventSeverity.INDETERMINATE
+            ts = arrow.utcnow().timestamp
+            self.log.info('handle-alarms-submitting')
+            try:
+                alarm_event = self.adapter_agent.create_alarm(
+                    id=id,
+                    resource_id=str(intf_id),
+                    type=AlarmEventType.EQUIPMENT,
+                    category=alarm_event_category,
+                    severity=severity,
+                    state=AlarmEventState.RAISED if status == 'on' else AlarmEventState.CLEARED,
+                    description=description,
+                    context=alarm_data,
+                    raised_ts=ts,
+                    logical_device_id=self.logical_device_id)
+                self.adapter_agent.submit_alarm(_device_id, alarm_event)
+                self.log.info('handle-alarms-submitted')
+            except Exception as createErr:
+                self.log.exception("handle-alarms-submitted", errmsg=createErr.message)
+
+        except Exception as e:
+            self.log.exception('handle-alarms-failed-to-submit-alarm', errmsg=e.message)
+
+        """
+        TODO :   Handle any opeations associated with the alarm originatine type
+        """
