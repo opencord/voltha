@@ -1,0 +1,165 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "e6ddf56a_c8795fd6",
+        "filename": "voltha/adapters/openolt/openolt_alarms.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 74,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-07-11T19:44:24Z",
+      "side": 1,
+      "message": "Clean some of the logging",
+      "range": {
+        "startLine": 74,
+        "startChar": 8,
+        "endLine": 74,
+        "endChar": 66
+      },
+      "revId": "73c5986cdcc41b9b30111344c058384e0324312d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "89d42015_93d2b2db",
+        "filename": "voltha/adapters/openolt/openolt_alarms.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 79,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-07-11T19:44:24Z",
+      "side": 1,
+      "message": "Please consolidate los_indication and olt_los_alarm into one",
+      "range": {
+        "startLine": 73,
+        "startChar": 8,
+        "endLine": 79,
+        "endChar": 30
+      },
+      "revId": "73c5986cdcc41b9b30111344c058384e0324312d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "316b09e1_73f2b76f",
+        "filename": "voltha/adapters/openolt/openolt_alarms.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 93,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-07-11T19:44:24Z",
+      "side": 1,
+      "message": "Please consolidate dying_gasp_indication and olt_subs_term_dgi_alarm into one",
+      "range": {
+        "startLine": 87,
+        "startChar": 8,
+        "endLine": 93,
+        "endChar": 40
+      },
+      "revId": "73c5986cdcc41b9b30111344c058384e0324312d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "50c9c9fa_655c2e2b",
+        "filename": "voltha/adapters/openolt/openolt_alarms.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 170,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-07-11T19:44:24Z",
+      "side": 1,
+      "message": "This comment is too long, try to conform to PEP8 (72 characters for comments, 79 for code lines)",
+      "range": {
+        "startLine": 170,
+        "startChar": 94,
+        "endLine": 170,
+        "endChar": 110
+      },
+      "revId": "73c5986cdcc41b9b30111344c058384e0324312d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "58635b1b_39c58fed",
+        "filename": "voltha/adapters/openolt/openolt_alarms.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 267,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-07-11T19:44:24Z",
+      "side": 1,
+      "message": "It may be an NNI event and not a PON event",
+      "range": {
+        "startLine": 267,
+        "startChar": 20,
+        "endLine": 267,
+        "endChar": 52
+      },
+      "revId": "73c5986cdcc41b9b30111344c058384e0324312d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "caab2417_63ac1225",
+        "filename": "voltha/adapters/openolt/openolt_alarms.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 269,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-07-11T19:44:24Z",
+      "side": 1,
+      "message": "status coming from the drivers is currently on/off",
+      "range": {
+        "startLine": 269,
+        "startChar": 52,
+        "endLine": 269,
+        "endChar": 70
+      },
+      "revId": "73c5986cdcc41b9b30111344c058384e0324312d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "8d8126ab_3886d0ce",
+        "filename": "voltha/adapters/openolt/openolt_alarms.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 281,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-07-11T19:44:24Z",
+      "side": 1,
+      "message": "This is not defined",
+      "range": {
+        "startLine": 281,
+        "startChar": 11,
+        "endLine": 281,
+        "endChar": 17
+      },
+      "revId": "73c5986cdcc41b9b30111344c058384e0324312d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
