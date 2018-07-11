@@ -22,7 +22,7 @@ def read(fname):
 
 setup(
     name = 'voltha',
-    version = '1.4.0',
+    version = '2.0.0-dev',
     author = 'Open Networking Foundation, et al',
     author_email = 'info@opennetworking.org',
     description = ('Virtual Optical Line Terminal (OLT) Hardware Abstraction'),
