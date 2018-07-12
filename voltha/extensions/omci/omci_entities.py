@@ -31,7 +31,7 @@ from voltha.extensions.omci.omci_defs import bitpos_from_mask
 class EntityClassAttribute(object):
 
     def __init__(self, fld, access=set(), optional=False, range_check=None,
-                 avc=False, deprecated=False):
+                 avc=False, tca=False, counter=False, deprecated=False):
         """
         Initialize an Attribute for a Managed Entity Class
 
@@ -40,6 +40,9 @@ class EntityClassAttribute(object):
         :param optional: (boolean) If true, attribute is option, else mandatory
         :param range_check: (callable) None, Lambda, or Function to validate value
         :param avc: (boolean) If true, an AVC notification can occur for the attribute
+        :param tca: (boolean) If true, a threshold crossing alert alarm notification can occur
+                              for the attribute
+        :param counter: (boolean) If true, this attribute is a PM counter
         :param deprecated: (boolean) If true, this attribute is deprecated and
                            only 'read' operations (if-any) performed.
         """
@@ -48,6 +51,8 @@ class EntityClassAttribute(object):
         self._optional = optional
         self._range_check = range_check
         self._avc = avc
+        self._tca = tca
+        self._counter = counter
         self._deprecated = deprecated
 
     @property
@@ -61,6 +66,10 @@ class EntityClassAttribute(object):
     @property
     def optional(self):
         return self._optional
+
+    @property
+    def is_counter(self):
+        return self._counter
 
     @property
     def range_check(self):
@@ -1107,6 +1116,249 @@ class EnhSecurityControl(EntityClass):
     ]
     mandatory_operations = {OP.Set, OP.Get, OP.GetNext}
     notifications = {OP.AttributeValueChange}
+
+
+class EthernetPMMonitoringHistoryData(EntityClass):
+    class_id = 24
+    attributes = [
+        ECA(ShortField("managed_entity_id", None), {AA.R, AA.SBC}),
+        ECA(ByteField("interval_end_time", None), {AA.R}),
+        ECA(ShortField("threshold_data_1_2_id", None), {AA.R, AA.W, AA.SBC}),
+        ECA(IntField("fcs_errors", None), {AA.R}, tca=True, counter=True),
+        ECA(IntField("excessive_collision_counter", None), {AA.R}, tca=True, counter=True),
+        ECA(IntField("late_collision_counter", None), {AA.R}, tca=True, counter=True),
+        ECA(IntField("frames_too_long", None), {AA.R}, tca=True, counter=True),
+        ECA(IntField("buffer_overflows_on_rx", None), {AA.R}, tca=True, counter=True),
+        ECA(IntField("buffer_overflows_on_tx", None), {AA.R}, tca=True, counter=True),
+        ECA(IntField("single_collision_frame_counter", None), {AA.R}, tca=True, counter=True),
+        ECA(IntField("multiple_collisions_frame_counter", None), {AA.R}, tca=True, counter=True),
+        ECA(IntField("sqe_counter", None), {AA.R}, tca=True, counter=True),
+        ECA(IntField("deferred_tx_counter", None), {AA.R}, tca=True, counter=True),
+        ECA(IntField("internal_mac_tx_error_counter", None), {AA.R}, tca=True, counter=True),
+        ECA(IntField("carrier_sense_error_counter", None), {AA.R}, tca=True, counter=True),
+        ECA(IntField("alignment_error_counter", None), {AA.R}, tca=True, counter=True),
+        ECA(IntField("internal_mac_rx_error_counter", None), {AA.R}, tca=True, counter=True)
+    ]
+    mandatory_operations = {OP.Create, OP.Delete, OP.Get, OP.Set, OP.GetCurrentData}
+    notifications = {OP.AlarmNotification}
+
+
+class FecPerformanceMonitoringHistoryData(EntityClass):
+    class_id = 312
+    attributes = [
+        ECA(ShortField("managed_entity_id", None), {AA.R, AA.SBC}),
+        ECA(ByteField("interval_end_time", None), {AA.R}),
+        ECA(ShortField("threshold_data_1_2_id", None), {AA.R, AA.W, AA.SBC}),
+        ECA(IntField("corrected_bytes", None), {AA.R}, tca=True, counter=True),
+        ECA(IntField("corrected_code_words", None), {AA.R}, tca=True, counter=True),
+        ECA(IntField("uncorrectable_code_words", None), {AA.R}, tca=True, counter=True),
+        ECA(IntField("total_code_words", None), {AA.R}, counter=True),
+        ECA(ShortField("fec_seconds", None), {AA.R}, tca=True, counter=True)
+    ]
+    mandatory_operations = {OP.Create, OP.Delete, OP.Get, OP.Set, OP.GetCurrentData}
+    notifications = {OP.AlarmNotification}
+
+
+class EthernetFrameDownstreamPerformanceMonitoringHistoryData(EntityClass):
+    class_id = 321
+    attributes = [
+        ECA(ShortField("managed_entity_id", None), {AA.R, AA.SBC}),
+        ECA(ByteField("interval_end_time", None), {AA.R}),
+        ECA(ShortField("threshold_data_1_2_id", None), {AA.R, AA.W, AA.SBC}),
+        ECA(IntField("drop_events", None), {AA.R}, tca=True, counter=True),
+        ECA(IntField("octets", None), {AA.R}, counter=True),
+        ECA(IntField("packets", None), {AA.R}, counter=True),
+        ECA(IntField("broadcast_packets", None), {AA.R}, counter=True),
+        ECA(IntField("multicast_packets", None), {AA.R}, counter=True),
+        ECA(IntField("crc_errored_packets", None), {AA.R}, tca=True, counter=True),
+        ECA(IntField("undersize_packets", None), {AA.R}, tca=True, counter=True),
+        ECA(IntField("oversize_packets", None), {AA.R}, tca=True, counter=True),
+        ECA(IntField("64_octets", None), {AA.R}, counter=True),
+        ECA(IntField("65_to_127_octets", None), {AA.R}, counter=True),
+        ECA(IntField("128_to_255_octets", None), {AA.R}, counter=True),
+        ECA(IntField("256_to_511_octets", None), {AA.R}, counter=True),
+        ECA(IntField("512_to_1023_octets", None), {AA.R}, counter=True),
+        ECA(IntField("1024_to_1518_octets", None), {AA.R}, counter=True)
+    ]
+    mandatory_operations = {OP.Create, OP.Delete, OP.Get, OP.Set, OP.GetCurrentData}
+    notifications = {OP.AlarmNotification}
+
+
+class EthernetFrameUpstreamPerformanceMonitoringHistoryData(EntityClass):
+    class_id = 322
+    attributes = [
+        ECA(ShortField("managed_entity_id", None), {AA.R, AA.SBC}),
+        ECA(ByteField("interval_end_time", None), {AA.R}),
+        ECA(ShortField("threshold_data_1_2_id", None), {AA.R, AA.W, AA.SBC}),
+        ECA(IntField("drop_events", None), {AA.R}, tca=True, counter=True),
+        ECA(IntField("octets", None), {AA.R}, counter=True),
+        ECA(IntField("packets", None), {AA.R}, counter=True),
+        ECA(IntField("broadcast_packets", None), {AA.R}, counter=True),
+        ECA(IntField("multicast_packets", None), {AA.R}, counter=True),
+        ECA(IntField("crc_errored_packets", None), {AA.R}, tca=True, counter=True),
+        ECA(IntField("undersize_packets", None), {AA.R}, tca=True, counter=True),
+        ECA(IntField("oversize_packets", None), {AA.R}, tca=True, counter=True),
+        ECA(IntField("64_octets", None), {AA.R}, counter=True),
+        ECA(IntField("65_to_127_octets", None), {AA.R}, counter=True),
+        ECA(IntField("128_to_255_octets", None), {AA.R}, counter=True),
+        ECA(IntField("256_to_511_octets", None), {AA.R}, counter=True),
+        ECA(IntField("512_to_1023_octets", None), {AA.R}, counter=True),
+        ECA(IntField("1024_to_1518_octets", None), {AA.R}, counter=True)
+    ]
+    mandatory_operations = {OP.Create, OP.Delete, OP.Get, OP.Set, OP.GetCurrentData}
+    notifications = {OP.AlarmNotification}
+
+
+class EthernetFrameExtendedPerformanceMonitoring(EntityClass):
+    class_id = 334
+
+    attributes = [
+        ECA(ShortField("managed_entity_id", None), {AA.R, AA.SBC}),
+        ECA(ByteField("interval_end_time", None), {AA.R}),
+        # 2-octet field -> Threshold data 1/2 ID
+        # 2-octet field -> Parent ME Class
+        # 2-octet field -> Parent ME Instance
+        # 2-octet field -> Accumulation disable
+        # 2-octet field -> TCA Disable
+        # 2-octet field -> Control fields bitmap
+        # 2-octet field -> TCI
+        # 2-octet field -> Reserved
+        ECA(FieldListField("control_block", None, ShortField('', 0),
+                           count_from=lambda _: 8), {AA.R, AA.W, AA.SBC}),
+        ECA(IntField("drop_events", None), {AA.R}, tca=True, counter=True),
+        ECA(IntField("octets", None), {AA.R}, counter=True),
+        ECA(IntField("packets", None), {AA.R}, counter=True),
+        ECA(IntField("broadcast_packets", None), {AA.R}, counter=True),
+        ECA(IntField("multicast_packets", None), {AA.R}, counter=True),
+        ECA(IntField("crc_errored_packets", None), {AA.R}, tca=True, counter=True),
+        ECA(IntField("undersize_packets", None), {AA.R}, tca=True, counter=True),
+        ECA(IntField("oversize_packets", None), {AA.R}, tca=True, counter=True),
+        ECA(IntField("64_octets", None), {AA.R}, counter=True),
+        ECA(IntField("65_to_127_octets", None), {AA.R}, counter=True),
+        ECA(IntField("128_to_255_octets", None), {AA.R}, counter=True),
+        ECA(IntField("256_to_511_octets", None), {AA.R}, counter=True),
+        ECA(IntField("512_to_1023_octets", None), {AA.R}, counter=True),
+        ECA(IntField("1024_to_1518_octets", None), {AA.R}, counter=True)
+    ]
+    mandatory_operations = {OP.Create, OP.Delete, OP.Get, OP.Set}
+    optional_operations = {OP.GetCurrentData}
+    notifications = {OP.AlarmNotification}
+
+
+class EthernetFrameExtendedPerformanceMonitoring64Bit(EntityClass):
+    class_id = 426
+
+    attributes = [
+        ECA(ShortField("managed_entity_id", None), {AA.R, AA.SBC}),
+        ECA(ByteField("interval_end_time", None), {AA.R}),
+        # 2-octet field -> Threshold data 1/2 ID
+        # 2-octet field -> Parent ME Class
+        # 2-octet field -> Parent ME Instance
+        # 2-octet field -> Accumulation disable
+        # 2-octet field -> TCA Disable
+        # 2-octet field -> Control fields bitmap
+        # 2-octet field -> TCI
+        # 2-octet field -> Reserved
+        ECA(FieldListField("control_block", None, ShortField('', 0),
+                           count_from=lambda _: 8), {AA.R, AA.W, AA.SBC}),
+        ECA(LongField("drop_events", None), {AA.R}, tca=True, counter=True),
+        ECA(LongField("octets", None), {AA.R}, counter=True),
+        ECA(LongField("packets", None), {AA.R}, counter=True),
+        ECA(LongField("broadcast_packets", None), {AA.R}, counter=True),
+        ECA(LongField("multicast_packets", None), {AA.R}, counter=True),
+        ECA(LongField("crc_errored_packets", None), {AA.R}, tca=True, counter=True),
+        ECA(LongField("undersize_packets", None), {AA.R}, tca=True, counter=True),
+        ECA(LongField("oversize_packets", None), {AA.R}, tca=True, counter=True),
+        ECA(LongField("64_octets", None), {AA.R}, counter=True),
+        ECA(LongField("65_to_127_octets", None), {AA.R}, counter=True),
+        ECA(LongField("128_to_255_octets", None), {AA.R}, counter=True),
+        ECA(LongField("256_to_511_octets", None), {AA.R}, counter=True),
+        ECA(LongField("512_to_1023_octets", None), {AA.R}, counter=True),
+        ECA(LongField("1024_to_1518_octets", None), {AA.R}, counter=True)
+    ]
+    mandatory_operations = {OP.Create, OP.Delete, OP.Get, OP.Set}
+    optional_operations = {OP.GetCurrentData}
+    notifications = {OP.AlarmNotification}
+
+
+class GemPortNetworkCtpMonitoringHistoryData(EntityClass):
+    class_id = 341
+    attributes = [
+        ECA(ShortField("managed_entity_id", None), {AA.R, AA.SBC}),
+        ECA(ByteField("interval_end_time", None), {AA.R}),
+        ECA(ShortField("threshold_data_1_2_id", None), {AA.R, AA.W, AA.SBC}),
+        ECA(IntField("transmitted_gem_frames", None), {AA.R}, counter=True),
+        ECA(IntField("received_gem_frames", None), {AA.R}, counter=True),
+        ECA(LongField("received_payload_bytes", None), {AA.R}, counter=True),
+        ECA(LongField("transmitted_payload_bytes", None), {AA.R}, counter=True),
+        ECA(IntField("encryption_key_errors", None), {AA.R}, tca=True, counter=True)
+    ]
+    mandatory_operations = {OP.Create, OP.Delete, OP.Get, OP.Set, OP.GetCurrentData}
+    notifications = {OP.AlarmNotification}
+
+
+class XgPonTcPerformanceMonitoringHistoryData(EntityClass):
+    class_id = 344
+    attributes = [
+        ECA(ShortField("managed_entity_id", None), {AA.R, AA.SBC}),
+        ECA(ByteField("interval_end_time", None), {AA.R}),
+        ECA(ShortField("threshold_data_1_2_id", None), {AA.R, AA.W, AA.SBC}),
+        ECA(IntField("psbd_hec_error_count", None), {AA.R}, tca=True, counter=True),
+        ECA(IntField("xgtc_hec_error_count", None), {AA.R}, tca=True, counter=True),
+        ECA(IntField("unknown_profile_count", None), {AA.R}, tca=True, counter=True),
+        ECA(IntField("transmitted_xgem_frames", None), {AA.R}, counter=True),
+        ECA(IntField("fragment_xgem_frames", None), {AA.R}, counter=True),
+        ECA(IntField("xgem_hec_lost_words_count", None), {AA.R}, tca=True, counter=True),
+        ECA(IntField("xgem_key_errors", None), {AA.R}, tca=True, counter=True),
+        ECA(IntField("xgem_hec_error_count", None), {AA.R}, tca=True, counter=True)
+    ]
+    mandatory_operations = {OP.Create, OP.Delete, OP.Get, OP.Set}
+    optional_operations = {OP.GetCurrentData}
+    notifications = {OP.AlarmNotification}
+
+
+class XgPonDownstreamPerformanceMonitoringHistoryData(EntityClass):
+    class_id = 345
+    attributes = [
+        ECA(ShortField("managed_entity_id", None), {AA.R, AA.SBC}),
+        ECA(ByteField("interval_end_time", None), {AA.R},),
+        ECA(ShortField("threshold_data_1_2_id", None), {AA.R, AA.W, AA.SBC}),
+        ECA(IntField("ploam_mic_error_count", None), {AA.R}, tca=True, counter=True),
+        ECA(IntField("downstream_ploam_messages_count", None), {AA.R}, counter=True),
+        ECA(IntField("profile_messages_received", None), {AA.R}, counter=True),
+        ECA(IntField("ranging_time_messages_received", None), {AA.R}, counter=True),
+        ECA(IntField("deactivate_onu_id_messages_received", None), {AA.R}, counter=True),
+        ECA(IntField("disable_serial_number_messages_received", None), {AA.R}, counter=True),
+        ECA(IntField("request_registration_messages_receeved", None), {AA.R}, counter=True),
+        ECA(IntField("assign_alloc_id_messages_received", None), {AA.R}, counter=True),
+        ECA(IntField("key_control_messages_received", None), {AA.R}, counter=True),
+        ECA(IntField("sleep_allow_messages_received", None), {AA.R}, counter=True),
+        ECA(IntField("baseline_omci_messages_received_count", None), {AA.R}, counter=True),
+        ECA(IntField("extended_omci_messages_received_count", None), {AA.R}, counter=True),
+        ECA(IntField("assign_onu_id_messages_received", None), {AA.R}, counter=True),
+        ECA(IntField("omci_mic_error_count", None), {AA.R}, tca=True, counter=True),
+    ]
+    mandatory_operations = {OP.Create, OP.Delete, OP.Get, OP.Set}
+    optional_operations = {OP.GetCurrentData}
+    notifications = {OP.AlarmNotification}
+
+
+class XgPonUpstreamPerformanceMonitoringHistoryData(EntityClass):
+    class_id = 346
+    attributes = [
+        ECA(ShortField("managed_entity_id", None), {AA.R, AA.SBC}),
+        ECA(ByteField("interval_end_time", None), {AA.R}),
+        ECA(ShortField("threshold_data_1_2_id", None), {AA.R, AA.W, AA.SBC}),
+        ECA(IntField("upstream_ploam_message_count", None), {AA.R}, counter=True),
+        ECA(IntField("serial_number_onu_message_count", None), {AA.R}, counter=True),
+        ECA(IntField("registration_message_count", None), {AA.R}, counter=True),
+        ECA(IntField("key_report_message_count", None), {AA.R}, counter=True),
+        ECA(IntField("acknowledge_message_count", None), {AA.R}, counter=True),
+        ECA(IntField("sleep_request_message_count", None), {AA.R}, counter=True),
+    ]
+    mandatory_operations = {OP.Create, OP.Delete, OP.Get, OP.Set}
+    optional_operations = {OP.GetCurrentData}
+
 
 # entity class lookup table from entity_class values
 entity_classes_name_map = dict(

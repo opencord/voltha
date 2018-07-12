@@ -20,9 +20,14 @@ from voltha.extensions.omci.state_machines.mib_sync import MibSynchronizer
 from voltha.extensions.omci.tasks.mib_upload import MibUploadTask
 from voltha.extensions.omci.tasks.get_mds_task import GetMdsTask
 from voltha.extensions.omci.tasks.mib_resync_task import MibResyncTask
+from voltha.extensions.omci.tasks.sync_time_task import SyncTimeTask
+from voltha.extensions.omci.tasks.interval_data_task import IntervalDataTask
 from voltha.extensions.omci.onu_device_entry import OnuDeviceEntry
 from voltha.extensions.omci.state_machines.omci_onu_capabilities import OnuOmciCapabilities
 from voltha.extensions.omci.tasks.onu_capabilities_task import OnuCapabilitiesTask
+from voltha.extensions.omci.state_machines.performance_intervals import PerformanceIntervals
+from voltha.extensions.omci.tasks.omci_create_pm_task import OmciCreatePMRequest
+from voltha.extensions.omci.tasks.omci_delete_pm_task import OmciDeletePMRequest
 
 OpenOmciAgentDefaults = {
     'mib-synchronizer': {
@@ -38,13 +43,22 @@ OpenOmciAgentDefaults = {
         }
     },
     'omci-capabilities': {
-        'state-machine': OnuOmciCapabilities,        # Implements OMCI capabilities state mach9ine
+        'state-machine': OnuOmciCapabilities,   # Implements OMCI capabilities state machine
         'tasks': {
             'get-capabilities': OnuCapabilitiesTask  # Get supported ME and Commands
         }
+    },
+    'performance-intervals': {
+        'state-machine': PerformanceIntervals,  # Implements PM Intervals State machine
+        'tasks': {
+            'sync-time': SyncTimeTask,
+            'collect-data': IntervalDataTask,
+            'create-pm': OmciCreatePMRequest,
+            'delete-pm': OmciDeletePMRequest,
+        },
     }
     # 'alarm-syncronizer': {
-    #     'state-machine': AlarmSynchronizer,  # Implements the MIB synchronization state machine
+    #     'state-machine': AlarmSynchronizer,  # Implements the Alarm sync state machine
     #     'database': AlarmDb,                 # For any State storage needs
     #     'tasks': {
     #         'task-1': needToWrite,
@@ -133,7 +147,6 @@ class OpenOMCIAgent(object):
         self._started = False
 
         # ONUs OMCI shutdown
-
         for device in self._devices.itervalues():
             device.stop()
 

@@ -123,7 +123,7 @@ class OMCI_CC(object):
         :return: (str) Topic string
         """
         assert event in OmciCCRxEvents, \
-            'Event {} is not an OMCI-CC Rx Event'.format(event.Name)
+            'Event {} is not an OMCI-CC Rx Event'.format(event.name)
 
         return 'omci-rx:{}:{}'.format(device_id, event.name)
 

@@ -138,6 +138,17 @@ class OnuConfiguration(object):
         return ontg[ATTRIBUTES_KEY].get('version')
 
     @property
+    def serial_number(self):
+        """
+        The serial number is unique for each ONU
+        """
+        ontg = self._get_capability('_ont_g', OntG.class_id, 0)
+        if ontg is None or ATTRIBUTES_KEY not in ontg:
+            return None
+
+        return ontg[ATTRIBUTES_KEY].get('serial_number')
+
+    @property
     def traffic_management_option(self):
         """
         This attribute identifies the upstream traffic management function
