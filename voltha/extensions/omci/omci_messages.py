@@ -375,3 +375,54 @@ class OmciGetNextResponse(OmciMessage):
                          lambda pkt: pkt.success_code == 0)
     ]
 
+
+class OmciSynchronizeTime(OmciMessage):
+    name = "OmciSynchronizeTime"
+    message_id = 0x58
+    fields_desc = [
+        ShortField("entity_class", 256),  # OntG
+        ShortField("entity_id", 0),
+        ShortField("year", 0),       # eg) 2018
+        ByteField("month", 0),       # 1..12
+        ByteField("day", 0),         # 1..31
+        ByteField("hour", 0),        # 0..23
+        ByteField("minute", 0),      # 0..59
+        ByteField("second", 0)       # 0..59
+    ]
+
+
+class OmciSynchronizeTimeResponse(OmciMessage):
+    name = "OmciSynchronizeTimeResponse"
+    message_id = 0x38
+    fields_desc = [
+        ShortField("entity_class", 256),  # OntG
+        ShortField("entity_id", 0),
+        ByteField("success_code", 0),
+        ConditionalField(ShortField("success_info", None),
+                         lambda pkt: pkt.success_code == 0)
+    ]
+
+
+class OmciGetCurrentData(OmciMessage):
+    name = "OmciGetCurrentData"
+    message_id = 0x5C
+    fields_desc = [
+        ShortField("entity_class", None),
+        ShortField("entity_id", 0),
+        ShortField("attributes_mask", None),
+    ]
+
+
+class OmciGetCurrentDataResponse(OmciMessage):
+    name = "OmciGetCurrentDataResponse"
+    message_id = 0x3C
+    fields_desc = [
+        ShortField("entity_class", None),
+        ShortField("entity_id", 0),
+        ByteField("success_code", 0),
+        ShortField("attributes_mask", None),
+        ShortField("unsupported_attributes_mask", None),
+        ShortField("failed_attributes_mask", None),
+        ConditionalField(
+            OmciMaskedData("data"), lambda pkt: pkt.success_code == 0)
+    ]

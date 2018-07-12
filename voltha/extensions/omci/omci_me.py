@@ -731,3 +731,186 @@ class OmciFrame(MEFrame):
             raise NotImplemented('Unknown request')
 
         super(OmciFrame, self).__init__(Omci, 0, data)
+
+
+class EthernetPMMonitoringHistoryDataFrame(MEFrame):
+    """
+    This managed entity collects some of the performance monitoring data for a physical
+    Ethernet interface
+    """
+    def __init__(self, entity_id, attributes):
+        """
+        :param entity_id: (int) This attribute uniquely identifies each instance of
+                                this managed entity. Through an identical ID, this
+                                 managed entity is implicitly linked to an instance
+                                 of the physical path termination point Ethernet UNI
+
+        :param attributes: (basestring, list, set, dict) attributes. For gets
+                           a string, list, or set can be provided. For set
+                           operations, a dictionary should be provided, for
+                           deletes None may be specified.
+        """
+        super(EthernetPMMonitoringHistoryDataFrame, self).__init__(
+            EthernetPMMonitoringHistoryData,
+            entity_id,
+            MEFrame._attr_to_data(attributes))
+
+
+class FecPerformanceMonitoringHistoryDataFrame(MEFrame):
+    """
+    This managed entity collects performance monitoring data associated with PON
+    downstream FEC counters.
+    """
+    def __init__(self, entity_id, attributes):
+        """
+        :param entity_id: (int) This attribute uniquely identifies each instance of
+                                this managed entity. Through an identical ID, this
+                                managed entity is implicitly linked to an instance of
+                                the ANI-G
+
+        :param attributes: (basestring, list, set, dict) attributes. For gets
+                           a string, list, or set can be provided. For set
+                           operations, a dictionary should be provided, for
+                           deletes None may be specified.
+        """
+        super(FecPerformanceMonitoringHistoryDataFrame, self).__init__(
+            FecPerformanceMonitoringHistoryData,
+            entity_id,
+            MEFrame._attr_to_data(attributes))
+
+
+class EthernetFrameDownstreamPerformanceMonitoringHistoryDataFrame(MEFrame):
+    """
+    This managed entity collects performance monitoring data associated with downstream
+    Ethernet frame delivery. It is based on the Etherstats group of [IETF RFC 2819].
+    """
+    def __init__(self, entity_id, attributes):
+        """
+        :param entity_id: (int) This attribute uniquely identifies each instance of
+                                this managed entity. Through an identical ID, this
+                                managed entity is implicitly linked to an instance of
+                                a MAC bridge port configuration data
+
+        :param attributes: (basestring, list, set, dict) attributes. For gets
+                           a string, list, or set can be provided. For set
+                           operations, a dictionary should be provided, for
+                           deletes None may be specified.
+        """
+        super(EthernetFrameDownstreamPerformanceMonitoringHistoryDataFrame, self).__init__(
+            EthernetFrameDownstreamPerformanceMonitoringHistoryData,
+            entity_id,
+            MEFrame._attr_to_data(attributes))
+
+
+class EthernetFrameUpstreamPerformanceMonitoringHistoryDataFrame(MEFrame):
+    """
+    This managed entity collects performance monitoring data associated with upstream
+    Ethernet frame delivery. It is based on the Etherstats group of [IETF RFC 2819].
+    """
+    def __init__(self, entity_id, attributes):
+        """
+        :param entity_id: (int) This attribute uniquely identifies each instance of
+                                this managed entity. Through an identical ID, this
+                                managed entity is implicitly linked to an instance of
+                                a MAC bridge port configuration data
+
+        :param attributes: (basestring, list, set, dict) attributes. For gets
+                           a string, list, or set can be provided. For set
+                           operations, a dictionary should be provided, for
+                           deletes None may be specified.
+        """
+        super(EthernetFrameUpstreamPerformanceMonitoringHistoryDataFrame, self).__init__(
+            EthernetFrameUpstreamPerformanceMonitoringHistoryData,
+            entity_id,
+            MEFrame._attr_to_data(attributes))
+
+
+class GemPortNetworkCtpMonitoringHistoryDataFrame(MEFrame):
+    """
+    This managed entity collects GEM frame performance monitoring data associated
+    with a GEM port network CTP
+    """
+    def __init__(self, entity_id, attributes):
+        """
+        :param entity_id: (int) This attribute uniquely identifies each instance of
+                                this managed entity. Through an identical ID, this
+                                managed entity is implicitly linked to an instance
+                                of the GEM port network CTP.
+
+        :param attributes: (basestring, list, set, dict) attributes. For gets
+                           a string, list, or set can be provided. For set
+                           operations, a dictionary should be provided, for
+                           deletes None may be specified.
+        """
+        super(GemPortNetworkCtpMonitoringHistoryDataFrame, self).__init__(
+            GemPortNetworkCtpMonitoringHistoryData,
+            entity_id,
+            MEFrame._attr_to_data(attributes))
+
+
+class XgPonTcPerformanceMonitoringHistoryDataFrame(MEFrame):
+    """
+    This managed entity collects performance monitoring data associated with
+    the XG-PON transmission convergence layer, as defined in [ITU-T G.987.3]
+    """
+    def __init__(self, entity_id, attributes):
+        """
+        :param entity_id: (int) This attribute uniquely identifies each instance of
+                                this managed entity. Through an identical ID, this
+                                managed entity is implicitly linked to an instance of
+                                the ANI-G.
+
+        :param attributes: (basestring, list, set, dict) attributes. For gets
+                           a string, list, or set can be provided. For set
+                           operations, a dictionary should be provided, for
+                           deletes None may be specified.
+        """
+        super(XgPonTcPerformanceMonitoringHistoryDataFrame, self).__init__(
+            XgPonTcPerformanceMonitoringHistoryData, entity_id,
+            MEFrame._attr_to_data(attributes))
+
+
+class XgPonDownstreamPerformanceMonitoringHistoryDataFrame(MEFrame):
+    """
+    This managed entity collects performance monitoring data associated with
+    the XG-PON ined in [ITU-T G.987.3]
+    """
+    def __init__(self, entity_id, attributes):
+        """
+        :param entity_id: (int) This attribute uniquely identifies each instance of
+                                this managed entity. Through an identical ID, this
+                                managed entity is implicitly linked to an instance of
+                                the ANI-G.
+
+        :param attributes: (basestring, list, set, dict) attributes. For gets
+                           a string, list, or set can be provided. For set
+                           operations, a dictionary should be provided, for
+                           deletes None may be specified.
+        """
+        super(XgPonDownstreamPerformanceMonitoringHistoryDataFrame, self).__init__(
+            XgPonDownstreamPerformanceMonitoringHistoryData,
+            entity_id,
+            MEFrame._attr_to_data(attributes))
+
+
+class XgPonUpstreamPerformanceMonitoringHistoryDataFrame(MEFrame):
+    """
+    This managed entity collects performance monitoring data associated with
+    the XG-PON transmission convergence layer, as defined in [ITU-T G.987.3]
+    """
+    def __init__(self, entity_id, attributes):
+        """
+        :param entity_id: (int) TThis attribute uniquely identifies each instance of
+                                this managed entity. Through an identical ID, this
+                                managed entity is implicitly linked to an instance of
+                                the ANI-G.
+
+        :param attributes: (basestring, list, set, dict) attributes. For gets
+                           a string, list, or set can be provided. For set
+                           operations, a dictionary should be provided, for
+                           deletes None may be specified.
+        """
+        super(XgPonUpstreamPerformanceMonitoringHistoryDataFrame, self).__init__(
+            XgPonUpstreamPerformanceMonitoringHistoryData,
+            entity_id,
+            MEFrame._attr_to_data(attributes))
