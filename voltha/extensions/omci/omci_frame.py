@@ -25,7 +25,9 @@ from voltha.extensions.omci.omci_messages import OmciCreate, OmciDelete, \
     OmciMibUploadNext, OmciMibUploadResponse, OmciMibUpload, \
     OmciGetAllAlarmsNextResponse, OmciAttributeValueChange, \
     OmciTestResult, OmciAlarmNotification, \
-    OmciReboot, OmciRebootResponse, OmciGetNext, OmciGetNextResponse
+    OmciReboot, OmciRebootResponse, OmciGetNext, OmciGetNextResponse, \
+    OmciSynchronizeTime, OmciSynchronizeTimeResponse, OmciGetCurrentData, \
+    OmciGetCurrentDataResponse
 from voltha.extensions.omci.omci_messages import OmciCreateResponse
 
 
@@ -120,6 +122,20 @@ class OmciFrame(Packet):
         ConditionalField(FixedLenField(
             PacketField("omci_message", None, OmciGetNextResponse), align=36),
             lambda pkt: pkt.message_type == OmciGetNextResponse.message_id),
+
+        ConditionalField(FixedLenField(
+            PacketField("omci_message", None, OmciSynchronizeTime), align=36),
+            lambda pkt: pkt.message_type == OmciSynchronizeTime.message_id),
+        ConditionalField(FixedLenField(
+            PacketField("omci_message", None, OmciSynchronizeTimeResponse), align=36),
+            lambda pkt: pkt.message_type == OmciSynchronizeTimeResponse.message_id),
+
+        ConditionalField(FixedLenField(
+            PacketField("omci_message", None, OmciGetCurrentData), align=36),
+            lambda pkt: pkt.message_type == OmciGetCurrentData.message_id),
+        ConditionalField(FixedLenField(
+            PacketField("omci_message", None, OmciGetCurrentDataResponse), align=36),
+            lambda pkt: pkt.message_type == OmciGetCurrentDataResponse.message_id),
 
         # TODO add entries for remaining OMCI message types
 

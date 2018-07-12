@@ -88,8 +88,12 @@ class OnuDeviceEntry(object):
             self._capabilities_sm = capabilities_info['state-machine'](self._omci_agent,
                                                                        device_id,
                                                                        capabilities_info['tasks'])
+            # ONU Performance Monitoring Intervals state machine
+            interval_info = support_classes.get('performance-intervals')
+            self._pm_intervals_sm = interval_info['state-machine'](self._omci_agent, device_id,
+                                                                   interval_info['tasks'])
         except Exception as e:
-            self.log.exception('mib-sync-create-failed', e=e)
+            self.log.exception('state-machine-create-failed', e=e)
             raise
 
         # Put state machines in the order you wish to start them
@@ -100,7 +104,7 @@ class OnuDeviceEntry(object):
             self._capabilities_sm,
         ]
         self._on_sync_state_machines = [        # Run after first in_sync event
-
+            self._pm_intervals_sm
         ]
         self._custom_me_map = custom_me_map
         self._me_map = omci_entities.entity_id_to_class_map.copy()
@@ -122,7 +126,7 @@ class OnuDeviceEntry(object):
         :return: (str) Topic string
         """
         assert event in OnuDeviceEvents, \
-            'Event {} is not an ONU Device Event'.format(event.Name)
+            'Event {} is not an ONU Device Event'.format(event.name)
         return 'omci-device:{}:{}'.format(device_id, event.name)
 
     @property
@@ -150,6 +154,13 @@ class OnuDeviceEntry(object):
         Reference to the OpenOMCI OMCI Capabilities state machine for this ONU
         """
         return self._capabilities_sm
+
+    @property
+    def pm_intervals_state_machine(self):
+        """
+        Reference to the OpenOMCI PM Intervals state machine for this ONU
+        """
+        return self._pm_intervals_sm
 
     @property
     def active(self):
@@ -278,7 +289,7 @@ class OnuDeviceEntry(object):
             def start_state_machines(machines):
                 for sm in machines:
                     self._state_machines.append(sm)
-                    sm.start()
+                    reactor.callLater(0, sm.start)
 
             self._deferred = reactor.callLater(0, start_state_machines,
                                                self._on_sync_state_machines)

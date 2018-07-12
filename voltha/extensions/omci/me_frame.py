@@ -314,3 +314,26 @@ class MEFrame(object):
                 attributes_mask=self.entity_class.mask_for(*mask_set),
                 command_sequence_number=data.values()[0]
             ))
+
+    def synchronize_time(self, time=None):
+        """
+        Create a Synchronize Time request from for this ME
+        :param time: (DateTime) Time to set to. If none, use UTC
+        :return: (OmciFrame) OMCI Frame
+        """
+        from datetime import datetime
+        self._check_operation(OP.SynchronizeTime)
+        dt = time or datetime.utcnow()
+
+        return OmciFrame(
+            transaction_id=None,
+            message_type=OmciSynchronizeTime.message_id,
+            omci_message=OmciSynchronizeTime(
+                    entity_class=getattr(self.entity_class, 'class_id'),
+                    entity_id=getattr(self, 'entity_id'),
+                    year=dt.year,
+                    month=dt.month,
+                    hour=dt.hour,
+                    minute=dt.minute,
+                    second=dt.second,
+            ))
