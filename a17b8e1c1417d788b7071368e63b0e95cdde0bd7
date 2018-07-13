@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "9480935b_c6f2d932",
+        "filename": "voltha/adapters/asfvolt16_olt/bal.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 363,
+      "author": {
+        "id": 1000099
+      },
+      "writtenOn": "2018-07-13T17:32:08Z",
+      "side": 1,
+      "message": "The Bal.py should contains the methods related to BAL apis. Can we rename this function to deactivate_flow rather than deactivate_eapol_flow. In that way this function will not be tied to type of flow and can be used to deactivate the other types of flows too.",
+      "revId": "a17b8e1c1417d788b7071368e63b0e95cdde0bd7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "caa59e06_ac72e370",
         "filename": "voltha/adapters/asfvolt16_olt/bal.py",
         "patchSetId": 1
