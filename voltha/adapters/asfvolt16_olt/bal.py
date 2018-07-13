@@ -348,7 +348,7 @@ class Bal(object):
                     obj.flow.data.action.presence_mask |= \
                         bal_model_types_pb2.BAL_ACTION_ID_CMDS_BITMASK
                 else:
-                    self.log.info('invalid-action',action_info=action_info)
+                    self.log.info('invalid-action', action_info=action_info)
                     return
 
             self.log.info('adding-flow-to-OLT-Device',
@@ -359,8 +359,16 @@ class Bal(object):
                           flow_id, onu_id, exc=str(e))
         return
 
+    # Note: Bal_2.4 version expects expects all the classifier and action
+    # in deactivate flow that was used during flow activation.
     @inlineCallbacks
-    def delete_flow(self, onu_id, intf_id, flow_id, is_downstream):
+    def deactivate_eapol_flow(self, flow_id, is_downstream,
+                              onu_id=None,
+                              intf_id=None,
+                              network_int_id=None,
+                              gemport_id=None,
+                              stag=None,
+                              sched_id=None):
         try:
             obj = bal_pb2.BalCfg()
             # Fill Header details
@@ -369,23 +377,65 @@ class Bal(object):
             # Fill Access Terminal Details
             # To-DO flow ID need to be retrieved from flow details
             obj.flow.key.flow_id = flow_id
-            if is_downstream is False:
-                obj.flow.key.flow_type = \
-                    bal_model_types_pb2.BAL_FLOW_TYPE_UPSTREAM
-            else:
+            obj.flow.data.admin_state = bal_model_types_pb2.BAL_STATE_DOWN
+            if intf_id is not None:
+                obj.flow.data.access_int_id = intf_id
+            if network_int_id is not None:
+                obj.flow.data.network_int_id = network_int_id
+            if onu_id is not None:
+                obj.flow.data.sub_term_id = onu_id
+            if gemport_id is not None:
+                obj.flow.data.svc_port_id = gemport_id
+
+            if is_downstream is True:
                 obj.flow.key.flow_type = \
                     bal_model_types_pb2.BAL_FLOW_TYPE_DOWNSTREAM
+            else:
+                obj.flow.key.flow_type = \
+                    bal_model_types_pb2.BAL_FLOW_TYPE_UPSTREAM
 
-            obj.flow.data.admin_state = bal_model_types_pb2.BAL_STATE_DOWN
-            obj.flow.data.access_int_id = intf_id
-            # obj.flow.data.network_int_id = intf_id
-            obj.flow.data.sub_term_id = onu_id
-            self.log.info('deleting-flows-from-OLT-Device',
+            obj.flow.data.classifier.pkt_tag_type = \
+                bal_model_types_pb2.BAL_PKT_TAG_TYPE_SINGLE_TAG
+            obj.flow.data.classifier.presence_mask |= \
+                bal_model_types_pb2.BAL_CLASSIFIER_ID_PKT_TAG_TYPE
+            obj.flow.data.classifier.o_vid = stag
+            obj.flow.data.classifier.presence_mask |= \
+                bal_model_types_pb2.BAL_CLASSIFIER_ID_O_VID
+            obj.flow.data.action.cmds_bitmask |= \
+                bal_model_types_pb2.BAL_ACTION_CMD_ID_TRAP_TO_HOST
+            obj.flow.data.action.presence_mask |= \
+                bal_model_types_pb2.BAL_ACTION_ID_CMDS_BITMASK
+            if sched_id is not None:
+                obj.flow.data.dba_tm_sched_id = sched_id
+
+            self.log.info('deactivating-eapol-flows-from-OLT-Device',
                           flow_details=obj)
             yield self.stub.BalCfgSet(obj, timeout=GRPC_TIMEOUT)
         except Exception as e:
-            self.log.info('delete_flow-exception',
-                          flow_id, onu_id, exc=str(e))
+            self.log.exception('deactivate-eapol-flow-exception',
+                               flow_id, onu_id, exc=str(e))
+        return
+
+    @inlineCallbacks
+    def delete_flow(self, flow_id, is_downstream):
+        try:
+            obj = bal_pb2.BalKey()
+            # Fill Header details
+            obj.hdr.obj_type = bal_model_ids_pb2.BAL_OBJ_ID_FLOW
+            obj.flow_key.flow_id = flow_id
+            if is_downstream is False:
+                obj.flow_key.flow_type = \
+                    bal_model_types_pb2.BAL_FLOW_TYPE_UPSTREAM
+            else:
+                obj.flow_key.flow_type = \
+                    bal_model_types_pb2.BAL_FLOW_TYPE_DOWNSTREAM
+
+            self.log.info('deleting-flows-from-OLT-Device',
+                          flow_details=obj)
+            resp = yield self.stub.BalCfgClear(obj, timeout=GRPC_TIMEOUT)
+        except Exception as e:
+            self.log.exception('delete_flow-exception',
+                          flow_id, e=e)
         return
 
     @inlineCallbacks
