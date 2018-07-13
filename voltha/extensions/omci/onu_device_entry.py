@@ -79,19 +79,25 @@ class OnuDeviceEntry(object):
             # MIB Synchronization state machine
             self._mib_db_in_sync = False
             mib_synchronizer_info = support_classes.get('mib-synchronizer')
+            advertise = mib_synchronizer_info['advertise-events']
             self._mib_sync_sm = mib_synchronizer_info['state-machine'](self._omci_agent,
                                                                        device_id,
                                                                        mib_synchronizer_info['tasks'],
-                                                                       mib_db)
+                                                                       mib_db,
+                                                                       advertise_events=advertise)
             # ONU OMCI Capabilities state machine
             capabilities_info = support_classes.get('omci-capabilities')
+            advertise = capabilities_info['advertise-events']
             self._capabilities_sm = capabilities_info['state-machine'](self._omci_agent,
                                                                        device_id,
-                                                                       capabilities_info['tasks'])
+                                                                       capabilities_info['tasks'],
+                                                                       advertise_events=advertise)
             # ONU Performance Monitoring Intervals state machine
             interval_info = support_classes.get('performance-intervals')
+            advertise = interval_info['advertise-events']
             self._pm_intervals_sm = interval_info['state-machine'](self._omci_agent, device_id,
-                                                                   interval_info['tasks'])
+                                                                   interval_info['tasks'],
+                                                                   advertise_events=advertise)
         except Exception as e:
             self.log.exception('state-machine-create-failed', e=e)
             raise
