@@ -86,4 +86,7 @@ kafka-proxy:
             'kpis':
                 kafka_topic: 'voltha.kpis'
                 filters:     [null]
+            'openomci-events':
+                kafka_topic: 'voltha.events'
+                filters:     [null]
 
