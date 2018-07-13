@@ -22,6 +22,30 @@
       "revId": "a17b8e1c1417d788b7071368e63b0e95cdde0bd7",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "555385ca_1546744d",
+        "filename": "voltha/adapters/asfvolt16_olt/bal.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 407,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-07-13T15:48:45Z",
+      "side": 1,
+      "message": "Good question. It is issue with Bal2.4 (I don\u0027t know if it is resolved with Bal2.6). If we do not provide the same set of classifier and action during deactivate that was provided during creation, the flow doesn\u0027t deactivate properly. So, we pass down the entire information.",
+      "parentUuid": "caa59e06_ac72e370",
+      "range": {
+        "startLine": 395,
+        "startChar": 11,
+        "endLine": 407,
+        "endChar": 56
+      },
+      "revId": "a17b8e1c1417d788b7071368e63b0e95cdde0bd7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
