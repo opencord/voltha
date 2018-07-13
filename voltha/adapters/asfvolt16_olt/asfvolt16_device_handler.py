@@ -1860,7 +1860,9 @@ class Asfvolt16Handler(OltDeviceHandler):
                                     ASFVOLT_DOWNLINK_EAPOL_ID,
                                     ASFVOLT16_DEFAULT_VLAN)
         elif 'push_vlan' in action:
-            #self.del_flow(v_enet, ASFVOLT_EAPOL_ID, ASFVOLT_DOWNLINK_EAPOL_ID)
+            yield self.del_eapol_flow(v_enet, ASFVOLT_EAPOL_ID,
+                                ASFVOLT_DOWNLINK_EAPOL_ID,
+                                ASFVOLT16_DEFAULT_VLAN)
             yield self.prepare_and_add_eapol_flow(classifier, action, v_enet,
                                            ASFVOLT_EAPOL_ID_DATA_VLAN,
                                            ASFVOLT_DOWNLINK_EAPOL_ID_DATA_VLAN)
@@ -2231,12 +2233,112 @@ class Asfvolt16Handler(OltDeviceHandler):
 
     @inlineCallbacks
     def del_all_flow(self, v_enet):
+        # Currently this got called whenever we delete a gemport, but
+        # del_flow will not work properly as suffcient parameters are not
+        # present for deleting a flow.
+        # Deleting a flow is of two steps process.
+        # 1. Deactivate the flow, making ADMIN_STATE Down
+        # 2. Deleting the flow, making BalCfgClear
+        # Need to implement deactivate flow, before deleting a flow
+        # for HSIA, DHCP and other flow types.
+        # For EAPOL it's implemented, check del_eapol_flow method
         yield self.del_flow(v_enet, ASFVOLT_HSIA_ID, ASFVOLT_HSIA_ID)
         yield self.del_flow(v_enet, ASFVOLT_DHCP_TAGGED_ID,
                       ASFVOLT_DOWNLINK_DHCP_TAGGED_ID)
         yield self.del_flow(v_enet, ASFVOLT_EAPOL_ID_DATA_VLAN,
                       ASFVOLT_DOWNLINK_EAPOL_ID_DATA_VLAN)
-        yield self.del_flow(v_enet, ASFVOLT_EAPOL_ID, ASFVOLT_DOWNLINK_EAPOL_ID)
+
+    @inlineCallbacks
+    def del_eapol_flow(self, v_enet, uplink_id, downlink_id, vlan_id):
+        # To-Do For a time being hard code the traffic class value.
+        # Need to know how to get the traffic class info from flows.
+        v_ont_ani = self.get_v_ont_ani(name=v_enet.v_enet.data.v_ontani_ref)
+        if v_ont_ani is None:
+            self.log.info('Failed-to-get-v_ont_ani',
+                          v_ont_ani=v_enet.v_enet.data.v_ontani_ref)
+            return
+        gem_port = self.get_gem_port_info(v_enet, traffic_class=2)
+        if gem_port is None:
+            self.log.info('Failed-to-get-gemport',)
+            # To-Do: If Gemport not found, then flow failure indication
+            # should be sent to controller. For now, not sure how to
+            # send that to controller. so store the flows in v_enet
+            # and add it when gem port is created
+            #self.store_flows(uplink_classifier, uplink_action,
+            #                 v_enet, traffic_class=2)
+            return
+        pon_port = self._get_pon_port_from_pref_chanpair_ref(
+            v_ont_ani.v_ont_ani.data.preferred_chanpair)
+        onu_device = self.adapter_agent.get_child_device(
+            self.device_id, onu_id=v_ont_ani.v_ont_ani.data.onu_id,
+            parent_port_no=pon_port)
+        if onu_device is None:
+            self.log.info('Failed-to-get-onu-device',
+                          onu_id=v_ont_ani.v_ont_ani.data.onu_id)
+            return
+        downlink_flow_id = self.get_flow_id(onu_device.proxy_address.onu_id,
+                                            onu_device.proxy_address.channel_id,
+                                            downlink_id)
+        is_down_stream = True
+        try:
+            self.log.info('Deleting-Downstream-flow',
+                          flow_id=downlink_flow_id)
+
+            yield self.bal.deactivate_eapol_flow(downlink_flow_id, is_down_stream,
+                                                 onu_id=onu_device.proxy_address.onu_id,
+                                                 intf_id=onu_device.proxy_address.channel_id,
+                                                 network_int_id=self.nni_intf_id,
+                                                 gemport_id=gem_port.gemport_id,
+                                                 stag=vlan_id)
+            # While deletion of one flow is in progress,
+            # we cannot delete an another flow. Right now use sleep
+            # of 0.1 sec, assuming that deletion of flow is successful.
+            yield asleep(0.1)
+
+            self.log.info('deleting-Downstream-eapol-flow',
+                          flow_id=downlink_flow_id)
+            yield self.bal.delete_flow(downlink_flow_id, is_down_stream)
+            yield asleep(0.1)
+        except Exception as e:
+            self.log.exception('failed-to-delete-downstream-flow', e=e,
+                               flow_id=downlink_flow_id,
+                               onu_id=onu_device.proxy_address.onu_id,
+                               intf_id=onu_device.proxy_address.channel_id)
+
+        uplink_flow_id = self.get_flow_id(onu_device.proxy_address.onu_id,
+                                          onu_device.proxy_address.channel_id,
+                                          uplink_id)
+
+        tcont = self.get_tcont_info(v_ont_ani, name=gem_port.tcont_ref)
+        if tcont is None:
+            self.log.info('Failed-to-get-tcont-info',
+                          tcont=gem_port.tcont_ref)
+            return
+        try:
+            is_down_stream = False
+            self.log.info('deactivating-Upstream-flow',
+                          flow_id=uplink_flow_id)
+            yield self.bal.deactivate_eapol_flow(uplink_flow_id, is_down_stream,
+                                                 onu_id=onu_device.proxy_address.onu_id,
+                                                 intf_id=onu_device.proxy_address.channel_id,
+                                                 network_int_id=self.nni_intf_id,
+                                                 gemport_id=gem_port.gemport_id,
+                                                 stag=vlan_id,
+                                                 sched_id=tcont.alloc_id)
+            # While deletion of one flow is in progress,
+            # we cannot delete an another flow. Right now use sleep
+            # of 0.1 sec, assuming that deletion of flow is successful.
+            yield asleep(0.1)
+
+            self.log.info('deleting-Upstream-eapol-flow',
+                          flow_id=uplink_flow_id)
+            yield self.bal.delete_flow(uplink_flow_id, is_down_stream)
+            yield asleep(0.1)
+        except Exception as e:
+            self.log.exception('failed-to-delete-Upstream-flow', e=e,
+                               flow_id=uplink_flow_id,
+                               onu_id=onu_device.proxy_address.onu_id,
+                               intf_id=onu_device.proxy_address.channel_id)
 
     @inlineCallbacks
     def del_flow(self, v_enet, uplink_id, downlink_id):
@@ -2264,10 +2366,9 @@ class Asfvolt16Handler(OltDeviceHandler):
         try:
             self.log.info('Deleting-Downstream-flow',
                           flow_id=downlink_flow_id)
-
-            yield self.bal.delete_flow(onu_device.proxy_address.onu_id,
-                              onu_device.proxy_address.channel_id,
-                              downlink_flow_id, is_down_stream)
+            # Need to implement deactivate HSIA flow ,currently only
+            # Delete is called, so hsia flow deletion will not work properly
+            yield self.bal.delete_flow(downlink_flow_id, is_down_stream)
             # While deletion of one flow is in progress,
             # we cannot delete an another flow. Right now use sleep
             # of 0.1 sec, assuming that deletion of flow is successful.
@@ -2285,9 +2386,10 @@ class Asfvolt16Handler(OltDeviceHandler):
             is_down_stream = False
             self.log.info('deleting-Upstream-flow',
                           flow_id=uplink_flow_id)
-            yield self.bal.delete_flow(onu_device.proxy_address.onu_id,
-                              onu_device.proxy_address.channel_id,
-                              uplink_flow_id, is_down_stream)
+            # Need to implement deactivate HSIA flow ,currently only
+            # Delete is called, so hsia flow deletion will not work properly
+
+            yield self.bal.delete_flow(uplink_flow_id, is_down_stream)
             # While deletion of one flow is in progress,
             # we cannot delete an another flow. Right now use sleep
             # of 0.1 sec, assuming that deletion of flow is successful.
