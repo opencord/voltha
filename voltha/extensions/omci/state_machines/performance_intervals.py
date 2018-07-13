@@ -19,6 +19,7 @@ from datetime import datetime, timedelta
 from random import uniform, shuffle
 from twisted.internet import reactor
 from common.utils.indexpool import IndexPool
+from voltha.protos.omci_mib_db_pb2 import OpenOmciEventType
 from voltha.extensions.omci.omci_defs import EntityOperations, ReasonCodes
 from voltha.extensions.omci.omci_cc import OmciCCRxEvents, OMCI_CC, TX_REQUEST_KEY, \
     RX_RESPONSE_KEY
@@ -83,6 +84,7 @@ class PerformanceIntervals(object):
     DEFAULT_COLLECT_ATTEMPTS = 3     # Maximum number of collection fetch attempts
 
     def __init__(self, agent, device_id, tasks,
+                 advertise_events=False,
                  states=DEFAULT_STATES,
                  transitions=DEFAULT_TRANSITIONS,
                  initial_state='disabled',
@@ -96,6 +98,7 @@ class PerformanceIntervals(object):
         :param agent: (OpenOmciAgent) Agent
         :param device_id: (str) ONU Device ID
         :param tasks: (dict) Tasks to run
+        :param advertise_events: (bool) Advertise events on OpenOMCI Event Bus
         :param states: (list) List of valid states
         :param transitions: (dict) Dictionary of triggers and state changes
         :param initial_state: (str) Initial state machine state
@@ -119,6 +122,7 @@ class PerformanceIntervals(object):
         self._get_interval_task = tasks['collect-data']
         self._create_pm_task = tasks['create-pm']
         self._delete_pm_task = tasks['delete-pm']
+        self._advertise_events = advertise_events
 
         self._omci_cc_subscriptions = {               # RxEvent.enum -> Subscription Object
             RxEvent.MIB_Reset: None,
@@ -192,10 +196,30 @@ class PerformanceIntervals(object):
     def device_id(self):
         return self._device_id
 
+    @property
+    def advertise_events(self):
+        return self._advertise_events
+
+    @advertise_events.setter
+    def advertise_events(self, value):
+        if not isinstance(value, bool):
+            raise TypeError('Advertise event is a boolean')
+        self._advertise_events = value
+
+    def advertise(self, event, info):
+        """Advertise an event on the OpenOMCI event bus"""
+        if self._advertise_events:
+            self._agent.advertise(event,
+                                  {
+                                      'state-machine': self.machine.name,
+                                      'info': info,
+                                      'time': str(datetime.utcnow()),
+                                      'next': str(self._next_interval)
+                                  })
+
     def _me_is_supported(self, class_id):
         """
         Check to see if ONU supports this ME
-
         :param class_id: (int) ME Class ID
         :return: (bool) If ME is supported
         """
@@ -212,7 +236,7 @@ class PerformanceIntervals(object):
         case already in the Idle state.
 
         :param pm_class_id: (int) ME Class ID (1..0xFFFE)
-        :param pm_entity_id: (int) Instancec ID (1..0xFFFE)
+        :param pm_entity_id: (int) Instance ID (1..0xFFFE)
         :param cid: (int) Class ID of entity monitored, may be None
         :param eid: (int) Instance ID of entity monitored, may be None
         :param upstream: (bool): Flag indicating if PM is for upstream traffic
@@ -274,6 +298,7 @@ class PerformanceIntervals(object):
         """
         State machine is being stopped
         """
+        self.advertise(OpenOmciEventType.state_change, self.state)
         self._cancel_deferred()
         self._cancel_tasks()
         self._next_interval = None
@@ -301,6 +326,8 @@ class PerformanceIntervals(object):
 
     def on_enter_starting(self):
         """ Add the PON/ANI and UNI PM intervals"""
+        self.advertise(OpenOmciEventType.state_change, self.state)
+
         self._device = self._agent.get_device(self._device_id)
         self._cancel_deferred()
 
@@ -365,6 +392,7 @@ class PerformanceIntervals(object):
         """
         State machine has just transitioned to the synchronize_time state
         """
+        self.advertise(OpenOmciEventType.state_change, self.state)
         self._cancel_deferred()
 
         def success(results):
@@ -391,6 +419,7 @@ class PerformanceIntervals(object):
         In this state, any added PM MEs that need to be created will be.
         TODO: some non-interval PM stats (if there are any) are collected here
         """
+        self.advertise(OpenOmciEventType.state_change, self.state)
         self._cancel_deferred()
 
         if len(self._del_pm_me) and self._delete_me_deferred is None:
@@ -408,6 +437,7 @@ class PerformanceIntervals(object):
         """
         State machine has just transitioned to the create_pm_me state
         """
+        self.advertise(OpenOmciEventType.state_change, self.state)
         self._cancel_deferred()
         self._cancel_tasks()
         mes, self._add_pm_me = self._add_pm_me, dict()
@@ -439,6 +469,7 @@ class PerformanceIntervals(object):
         """
         State machine has just transitioned to the delete_pm_me state
         """
+        self.advertise(OpenOmciEventType.state_change, self.state)
         self._cancel_deferred()
         self._cancel_tasks()
 
@@ -474,6 +505,7 @@ class PerformanceIntervals(object):
             reactor.callLater(0, self.success)
             return
 
+        self.advertise(OpenOmciEventType.state_change, self.state)
         self._cancel_deferred()
         self._cancel_tasks()
         keys = self._pm_me_collect_retries.keys()

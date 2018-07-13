@@ -26,6 +26,7 @@ from voltha.extensions.omci.onu_device_entry import OnuDeviceEvents, OnuDeviceEn
     SUPPORTED_MESSAGE_ENTITY_KEY, SUPPORTED_MESSAGE_TYPES_KEY
 from voltha.extensions.omci.omci_entities import OntData
 from common.event_bus import EventBusClient
+from voltha.protos.omci_mib_db_pb2 import OpenOmciEventType
 
 RxEvent = OmciCCRxEvents
 DevEvent = OnuDeviceEvents
@@ -73,7 +74,9 @@ class MibSynchronizer(object):
     DEFAULT_AUDIT_DELAY = 15       # Periodic tick to audit the MIB Data Sync
     DEFAULT_RESYNC_DELAY = 300     # Periodically force a resync
 
-    def __init__(self, agent, device_id, mib_sync_tasks, db, states=DEFAULT_STATES,
+    def __init__(self, agent, device_id, mib_sync_tasks, db,
+                 advertise_events=False,
+                 states=DEFAULT_STATES,
                  transitions=DEFAULT_TRANSITIONS,
                  initial_state='disabled',
                  timeout_delay=DEFAULT_TIMEOUT_RETRY,
@@ -85,6 +88,7 @@ class MibSynchronizer(object):
         :param agent: (OpenOmciAgent) Agent
         :param device_id: (str) ONU Device ID
         :param db: (MibDbVolatileDict) MIB Database
+        :param advertise_events: (bool) Advertise events on OpenOMCI Event Bus
         :param mib_sync_tasks: (dict) Tasks to run
         :param states: (list) List of valid states
         :param transitions: (dict) Dictionary of triggers and state changes
@@ -111,9 +115,10 @@ class MibSynchronizer(object):
         self._get_mds_task = mib_sync_tasks['get-mds']
         self._audit_task = mib_sync_tasks['mib-audit']
         self._resync_task = mib_sync_tasks['mib-resync']
+        self._advertise_events = advertise_events
 
         self._deferred = None
-        self._current_task = None   # TODO: Support multiple running tasks after v.1.3.0 release
+        self._current_task = None  # TODO: Support multiple running tasks after v.2.0 release
         self._task_deferred = None
         self._mib_data_sync = 0
         self._last_mib_db_sync_value = None
@@ -219,11 +224,31 @@ class MibSynchronizer(object):
         """
         return self.last_mib_db_sync is None
 
+    @property
+    def advertise_events(self):
+        return self._advertise_events
+
+    @advertise_events.setter
+    def advertise_events(self, value):
+        if not isinstance(value, bool):
+            raise TypeError('Advertise event is a boolean')
+        self._advertise_events = value
+
+    def advertise(self, event, info):
+        """Advertise an event on the OpenOMCI event bus"""
+        if self._advertise_events:
+            self._agent.advertise(event,
+                                  {
+                                      'state-machine': self.machine.name,
+                                      'info': info,
+                                      'time': str(datetime.utcnow())
+                                  })
+
     def on_enter_disabled(self):
         """
         State machine is being stopped
         """
-        self.log.debug('state-transition')
+        self.advertise(OpenOmciEventType.state_change, self.state)
 
         self._cancel_deferred()
         if self._device is not None:
@@ -271,7 +296,7 @@ class MibSynchronizer(object):
         Determine ONU status and start MIB Synchronization tasks
         """
         self._device = self._agent.get_device(self._device_id)
-        self.log.debug('state-transition', new_onu=self.is_new_onu)
+        self.advertise(OpenOmciEventType.state_change, self.state)
 
         # Make sure root of external MIB Database exists
         self._seed_database()
@@ -313,8 +338,10 @@ class MibSynchronizer(object):
         """
         Begin full MIB data sync, starting with a MIB RESET
         """
+        self.advertise(OpenOmciEventType.state_change, self.state)
+
         def success(results):
-            self.log.debug('mib-upload-success: {}'.format(results))
+            self.log.debug('mib-upload-success', results=results)
             self._current_task = None
             self._deferred = reactor.callLater(0, self.success)
 
@@ -334,10 +361,12 @@ class MibSynchronizer(object):
         Create a simple task to fetch the MIB Data Sync value and
         determine if the ONU value matches what is in the MIB database
         """
+        self.advertise(OpenOmciEventType.state_change, self.state)
+
         self._mib_data_sync = self._database.get_mib_data_sync(self._device_id) or 0
 
         def success(onu_mds_value):
-            self.log.debug('examine-mds-success: {}'.format(onu_mds_value))
+            self.log.debug('examine-mds-success', mds_value=onu_mds_value)
             self._current_task = None
 
             # Examine MDS value
@@ -361,7 +390,7 @@ class MibSynchronizer(object):
         """
         Schedule a tick to occur to in the future to request an audit
         """
-        self.log.debug('state-transition', audit_delay=self._audit_delay)
+        self.advertise(OpenOmciEventType.state_change, self.state)
         self.last_mib_db_sync = datetime.utcnow()
         self._device.mib_db_in_sync = True
 
@@ -383,7 +412,7 @@ class MibSynchronizer(object):
 
         Schedule a tick to occur to in the future to request an audit
         """
-        self.log.debug('state-transition', audit_delay=self._audit_delay)
+        self.advertise(OpenOmciEventType.state_change, self.state)
         self._device.mib_db_in_sync = False
 
         if all(diff is None for diff in [self._on_olt_only_diffs,
@@ -441,13 +470,13 @@ class MibSynchronizer(object):
         next_resync = self.last_mib_db_sync + timedelta(seconds=self._resync_delay)\
             if self.last_mib_db_sync is not None else datetime.utcnow()
 
-        self.log.debug('state-transition', next_resync=next_resync)
+        self.advertise(OpenOmciEventType.state_change, self.state)
 
         if datetime.utcnow() >= next_resync:
             self._deferred = reactor.callLater(0, self.force_resync)
         else:
             def success(onu_mds_value):
-                self.log.debug('get-mds-success: {}'.format(onu_mds_value))
+                self.log.debug('get-mds-success', mds_value=onu_mds_value)
                 self._current_task = None
 
                 # Examine MDS value
@@ -472,8 +501,10 @@ class MibSynchronizer(object):
 
         First calculate any differences
         """
+        self.advertise(OpenOmciEventType.state_change, self.state)
+
         def success(results):
-            self.log.debug('resync-success: {}'.format(results))
+            self.log.debug('resync-success', results=results)
 
             on_olt_only = results.get('on-olt-only')
             on_onu_only = results.get('on-onu-only')

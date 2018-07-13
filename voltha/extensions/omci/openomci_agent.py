@@ -34,6 +34,7 @@ OpenOmciAgentDefaults = {
         'state-machine': MibSynchronizer,  # Implements the MIB synchronization state machine
         # 'database': MibDbVolatileDict,     # Implements volatile ME MIB database
         'database': MibDbExternal,         # Implements persistent ME MIB database
+        'advertise-events': True,          # Advertise events on OpenOMCI event bus
         'tasks': {
             'mib-upload': MibUploadTask,
             'get-mds': GetMdsTask,
@@ -44,12 +45,14 @@ OpenOmciAgentDefaults = {
     },
     'omci-capabilities': {
         'state-machine': OnuOmciCapabilities,   # Implements OMCI capabilities state machine
+        'advertise-events': False,              # Advertise events on OpenOMCI event bus
         'tasks': {
             'get-capabilities': OnuCapabilitiesTask  # Get supported ME and Commands
         }
     },
     'performance-intervals': {
         'state-machine': PerformanceIntervals,  # Implements PM Intervals State machine
+        'advertise-events': False,              # Advertise events on OpenOMCI event bus
         'tasks': {
             'sync-time': SyncTimeTask,
             'collect-data': IntervalDataTask,
@@ -85,7 +88,8 @@ class OpenOMCIAgent(object):
         self.log = structlog.get_logger()
         self._core = core
         self._started = False
-        self._devices = dict()        # device-id -> DeviceEntry
+        self._devices = dict()       # device-id -> DeviceEntry
+        self._event_bus = None
 
         # OMCI related databases are on a per-agent basis. State machines and tasks
         # are per ONU Vendore
@@ -145,6 +149,7 @@ class OpenOMCIAgent(object):
 
         self.log.debug('stop')
         self._started = False
+        self._event_bus = None
 
         # ONUs OMCI shutdown
         for device in self._devices.itervalues():
@@ -152,6 +157,27 @@ class OpenOMCIAgent(object):
 
         # DB shutdown
         self._mib_db.stop()
+
+    def mk_event_bus(self):
+        """ Get the event bus for OpenOMCI"""
+        if self._event_bus is None:
+            from voltha.extensions.omci.openomci_event_bus import OpenOmciEventBus
+            self._event_bus = OpenOmciEventBus()
+
+        return self._event_bus
+
+    def advertise(self, event_type, data):
+        """
+        Advertise an OpenOMCU event on the kafka bus
+        :param event_type: (int) Event Type (enumberation from OpenOMCI protobuf definitions)
+        :param data: (Message, dict, ...) Associated data (will be convert to a string)
+        """
+        if self._started:
+            try:
+                self.mk_event_bus().advertise(event_type, data)
+
+            except Exception as e:
+                self.log.exception('advertise-failure', e=e)
 
     def add_device(self, device_id, adapter_agent, custom_me_map=None,
                    support_classes=OpenOmciAgentDefaults):

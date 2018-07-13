@@ -66,3 +66,14 @@ message MibDeviceData {
     repeated MessageType message_types = 8;
 }
 
+message OpenOmciEventType {
+    enum OpenOmciEventType {
+        state_change = 0; // A state machine has transitioned to a new state
+    }
+}
+
+message OpenOmciEvent {
+    OpenOmciEventType.OpenOmciEventType type = 1;
+
+    string data = 2; // associated data, in json format
+}
