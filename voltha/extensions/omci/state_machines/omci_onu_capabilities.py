@@ -17,6 +17,7 @@ import structlog
 from transitions import Machine
 from twisted.internet import reactor
 from voltha.extensions.omci.onu_device_entry import OnuDeviceEntry, OnuDeviceEvents, IN_SYNC_KEY
+from voltha.protos.omci_mib_db_pb2 import OpenOmciEventType
 
 
 class OnuOmciCapabilities(object):
@@ -40,6 +41,7 @@ class OnuOmciCapabilities(object):
     DEFAULT_RETRY = 10      # Seconds to delay after task failure/timeout/poll
 
     def __init__(self, agent, device_id, tasks,
+                 advertise_events=False,
                  states=DEFAULT_STATES,
                  transitions=DEFAULT_TRANSITIONS,
                  initial_state='disabled',
@@ -50,6 +52,7 @@ class OnuOmciCapabilities(object):
         :param agent: (OpenOmciAgent) Agent
         :param device_id: (str) ONU Device ID
         :param tasks: (dict) Tasks to run
+        :param advertise_events: (bool) Advertise events on OpenOMCI Event Bus
         :param states: (list) List of valid states
         :param transitions: (dict) Dictionary of triggers and state changes
         :param initial_state: (str) Initial state machine state
@@ -63,6 +66,7 @@ class OnuOmciCapabilities(object):
         self._timeout_delay = timeout_delay
 
         self._get_capabilities_task = tasks['get-capabilities']
+        self._advertise_events = advertise_events
 
         self._deferred = None
         self._current_task = None
@@ -136,11 +140,33 @@ class OnuOmciCapabilities(object):
         """
         return self._supported_msg_types if len(self._supported_msg_types) else None
 
+    @property
+    def advertise_events(self):
+        return self._advertise_events
+
+    @advertise_events.setter
+    def advertise_events(self, value):
+        if not isinstance(value, bool):
+            raise TypeError('Advertise event is a boolean')
+        self._advertise_events = value
+
+    def advertise(self, event, info):
+        """Advertise an event on the OpenOMCI event bus"""
+        from datetime import datetime
+
+        if self._advertise_events:
+            self._agent.advertise(event,
+                                  {
+                                      'state-machine': self.machine.name,
+                                      'info': info,
+                                      'time': str(datetime.utcnow())
+                                  })
+
     def on_enter_disabled(self):
         """
         State machine is being stopped
         """
-        self.log.debug('state-transition')
+        self.advertise(OpenOmciEventType.state_change, self.state)
         self._cancel_deferred()
         self._cancel_tasks()
 
@@ -158,7 +184,7 @@ class OnuOmciCapabilities(object):
         State machine has just started or the MIB database has transitioned
         to an out-of-synchronization state
         """
-        self.log.debug('state-transition')
+        self.advertise(OpenOmciEventType.state_change, self.state)
         self._cancel_deferred()
         self._device = self._agent.get_device(self._device_id)
 
@@ -190,11 +216,11 @@ class OnuOmciCapabilities(object):
         """
         State machine has just transitioned to an in-synchronization state
         """
-        self.log.debug('state-transition')
+        self.advertise(OpenOmciEventType.state_change, self.state)
         self._cancel_deferred()
 
         def success(results):
-            self.log.debug('capabilities-success: {}'.format(results))
+            self.log.debug('capabilities-success', results=results)
             self._supported_entities = self._current_task.supported_managed_entities
             self._supported_msg_types = self._current_task.supported_message_types
             self._current_task = None
@@ -217,7 +243,7 @@ class OnuOmciCapabilities(object):
         Notify any subscribers for a capabilities event and wait until
         stopped or ONU MIB database goes out of sync
         """
-        self.log.debug('state-transition')
+        self.advertise(OpenOmciEventType.state_change, self.state)
         self._cancel_deferred()
         self._device.publish_omci_capabilities_event()
 
