@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "caa59e06_ac72e370",
+        "filename": "voltha/adapters/asfvolt16_olt/bal.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 407,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-07-13T15:34:03Z",
+      "side": 1,
+      "message": "Do you really need to recreate the classifier and action ? Isn\u0027t the flow_id enough to change the admin state ? (The same way you are deleting the flows)",
+      "range": {
+        "startLine": 395,
+        "startChar": 11,
+        "endLine": 407,
+        "endChar": 56
+      },
+      "revId": "a17b8e1c1417d788b7071368e63b0e95cdde0bd7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
