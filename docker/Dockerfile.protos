@@ -40,6 +40,11 @@ COPY docker/config/Makefile.protos /protos/openolt/Makefile.protos
 WORKDIR /protos/openolt
 RUN make -f Makefile.protos build
 
+COPY voltha/adapters/cig_olt/protos/*.proto /protos/cig_olt/
+COPY voltha/adapters/cig_olt/protos/Makefile.protos /protos/cig_olt/Makefile.protos
+WORKDIR /protos/cig_olt
+RUN make -f Makefile.protos build
+
 # Copy the files to a scrach based container to minimize its size
 FROM ${REGISTRY}scratch
 COPY --from=builder /protos/ /protos/

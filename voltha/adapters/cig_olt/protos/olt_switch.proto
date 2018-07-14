@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+//import "voltha/openflow_13.proto";
+import "openflow_13.proto";
+
+//olt swtich msg type from 3001 to 3999
+enum OltSwitchMsgType
+{
+    OLT_SWITCH_MSG_INVALID = 0;
+	  OLT_SWITCH_UPDATE_FLOW_TABLE = 3001;
+	  OLT_SWITCH_CONFIGURE_PORT = 3002;
+	  OLT_SWITCH_PORT_STATUS_EVENT = 3003;
+	  OLT_SWITCH_GET_PORT_PM_REQ = 3004;
+	  OLT_SWITCH_GET_PORT_PM_ACK = 3005;
+}
+
+// MSG: OLT_SWITCH_UPDATE_FLOW_TABLE
+message OltSwitchFlowTable 
+{
+    repeated openflow_13.ofp_flow_stats flows = 1;
+}
+
+// MSG: OLT_SWITCH_CONFIGURE_PORT
+message OltSwitchConfigurePort 
+{
+    openflow_13.ofp_port_mod port = 1; //Modify behavior of the physical port
+}
+
+// MSG: OLT_SWITCH_PORT_STATUS_EVENT
+message OltSwitchPortStatusEvent 
+{
+    openflow_13.ofp_port_status port_status = 1; 
+}
+
+// MSG: OLT_SWITCH_GET_PORT_PM_REQ
+message OltSwitchGetPortPmReq 
+{
+    openflow_13.ofp_port_stats_request port_no = 1; 
+}
+
+// MSG: OLT_SWITCH_GET_PORT_PM_ACK
+message OltSwitchGetPortPmAck 
+{
+    openflow_13.ofp_port_stats port_stats = 1; 
+}

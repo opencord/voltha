@@ -1,0 +1,172 @@
+syntax = "proto3";
+
+package cig_olt;
+
+
+enum OltAppId
+{
+	  OLT_APPID_OLTD = 0;
+	  OLT_APPID_SWITCHD = 1;
+	  OLT_APPID_VOLTHA = 2;
+	  OLT_APPID_POND = 3;
+	  OLT_APPID_PROCD = 4;
+	  OLT_APPID_ONLPD = 5;
+}
+
+message OltMsgCommonHdr
+{
+	  uint32 type = 1;
+	  OltAppId src_appId = 2;
+	  uint32 sync = 3;  //0:aync, 1:sync
+}
+
+//olt common msg type from 1 to 999
+enum OltCommonMsgType
+{
+    OLT_COMMON_MSG_INVALID = 0;
+    OLT_COMMON_HEART_BEAT_REQ = 1;
+    OLT_COMMON_HEART_BEAT_ACK = 2;
+    OLT_COMMON_PM_METRICS_REQ = 3;
+    OLT_COMMON_PM_METRICS_ACK = 4;
+    OLT_COMMON_ALARM_EVENT = 5;
+}
+
+/*
+ * Identify to the area of the system impacted by the alarm
+ */
+enum OltAlarmEventType 
+{
+    COMMUNICATION = 0;
+    ENVIRONMENT = 1;
+    EQUIPMENT = 2;
+    SERVICE = 3;
+    PROCESSING = 4;
+    SECURITY = 5;
+}
+
+/*
+ * Identify to the functional category originating the alarm
+ */
+enum OltAlarmEventCategory 
+{
+    PON = 0;
+    ETH = 1;
+    MISC = 2;
+}
+
+/*
+ * Active state of the alarm
+ */
+enum OltAlarmEventState 
+{
+    RAISED = 0;
+    CLEARED = 1;
+}
+
+/*
+ * Identify the overall impact of the alarm on the system
+ */
+enum OltAlarmEventSeverity 
+{
+    INDETERMINATE = 0;
+    WARNING = 1;
+    MINOR = 2;
+    MAJOR = 3;
+    CRITICAL = 4;
+}
+
+/*
+* ON_ALARM_SOFTWARE_ERROR = 0
+* PON_ALARM_LOS = 1
+* PON_ALARM_LOSI = 2
+* PON_ALARM_DOWI = 3
+* PON_ALARM_LOFI = 4
+* PON_ALARM_RDII = 5
+* PON_ALARM_LOAMI = 6
+* PON_ALARM_LCDGI = 7
+* PON_ALARM_LOAI = 8
+* PON_ALARM_SDI = 9
+* PON_ALARM_SFI = 10
+* PON_ALARM_PEE = 11
+* PON_ALARM_DGI = 12
+* PON_ALARM_LOKI = 13
+* PON_ALARM_TIWI = 14
+* PON_ALARM_TIA = 15
+* PON_ALARM_VIRTUAL_SCOPE_ONU_LASER_ALWAYS_ON = 16
+* PON_ALARM_VIRTUAL_SCOPE_ONU_SIGNAL_DEGRADATION = 17
+* PON_ALARM_VIRTUAL_SCOPE_ONU_EOL = 18
+* PON_ALARM_VIRTUAL_SCOPE_ONU_EOL_DATABASE_IS_FULL = 19
+* PON_ALARM_AUTH_FAILED_IN_REGISTRATION_ID_MODE = 20
+* PON_ALARM_SUFI = 21
+*/
+
+/*
+ * MSG: OLT_COMMON_ALARM_EVENT
+ */
+message OltCommonAlarmEvent 
+{
+    // Unique ID for this alarm.
+    string id = 1;
+
+    // Refers to the area of the system impacted by the alarm
+    OltAlarmEventType type = 2;
+
+    // Refers to functional category of the alarm
+    OltAlarmEventCategory category = 3;
+
+    // Current active state of the alarm
+    OltAlarmEventState state = 4;
+
+    // Overall impact of the alarm on the system
+    OltAlarmEventSeverity severity = 5;
+
+    // Timestamp at which the alarm was first raised
+    float raised_ts = 6;
+
+    // Timestamp at which the alarm was reported
+    float reported_ts = 7;
+
+    // Timestamp at which the alarm has changed since it was raised
+    float changed_ts = 8;
+
+    // Identifier of the originating resource of the alarm
+    string resource_id = 9;
+
+    // Textual explanation of the alarm
+    string description = 10;
+
+    // Key/Value storage for extra information that may give context to the alarm
+    //map<string, string> context = 11;
+}
+
+message PacketCounter 
+{
+    string name = 1;
+    int64 value = 2;
+}
+
+message PortMetrics 
+{
+    string port_name = 1;
+    repeated PacketCounter packets = 2;
+}
+
+message OltCommonPmMetrics 
+{
+    repeated PortMetrics metrics = 1;
+}
+
+enum OltLogLevel 
+{
+    LOG_LEVEL_DEBUG = 0;
+    LOG_LEVEL_INFO = 1;
+    LOG_LEVEL_WARNING = 2;
+    LOG_LEVEL_ERROR = 3;
+    LOG_LEVEL_CRITICAL = 4;
+}
+
+// MSG: OLT_COMMON_HEART_BEAT_REQ/OLT_COMMON_HEART_BEAT_ACK
+message OltCommonHeartBeat {
+    uint32 seq_no = 1;
+    bool is_active = 2;     //1: ACTIVE 0:INACTIVE
+}

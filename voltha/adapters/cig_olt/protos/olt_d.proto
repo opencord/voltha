@@ -1,0 +1,227 @@
+
+syntax = "proto3";
+
+package cig_olt;
+
+//import "google/protobuf/empty.proto";
+import "bbf_fiber_types.proto";
+
+//oltD msg type from 1001 to 1999
+enum OltDMsgType
+{
+    OLT_D_MSG_INVALID = 0;
+    OLT_D_ACTIVATE_OLT = 1001;
+    OLT_D_DEACTIVATE_OLT = 1002;
+    OLT_D_REBOOT_OLT = 1003;
+    OLT_D_GET_OLT_INFO_REQ = 1004;
+    OLT_D_GET_OLT_INFO_ACK = 1005;
+    OLT_D_ADD_ONU = 1006;
+    OLT_D_UPDATE_ONU = 1007;
+    OLT_D_DELETE_ONU = 1008;
+    OLT_D_PACKET_IN = 1009;
+    OLT_D_PACKET_OUT = 1010;
+    OLT_D_IMAGE_CFG = 1011;
+    OLT_D_IMAGE_STATUS_REQ = 1012;
+    OLT_D_IMAGE_STATUS_ACK = 1013;
+    OLT_D_IMAGE_EVENT = 1014;
+}
+
+enum OltPonPortType {
+    OLT_PON_PORT_TYPE_GPON = 0;              //1.25-2.5
+    OLT_PON_PORT_TYPE_XGPON = 1;             //2.5-10
+    OLT_PON_PORT_TYPE_XGSPON = 2;            //10-10
+    OLT_PON_PORT_TYPE_NGPON2 = 3;            //40-40
+}
+
+enum OltNniPortType {
+    OLT_NNI_PORT_TYPE_10G = 0;
+    OLT_NNI_PORT_TYPE_25G = 1;
+    OLT_NNI_PORT_TYPE_40G = 2;
+    OLT_NNI_PORT_TYPE_100G = 3;
+}
+
+message PonPortInfo {
+    int32 port_no = 1;  //value: 1,2,3...
+    OltPonPortType port_type = 2;
+}
+message NniPortInfo {
+    int32 port_no = 1;    //value: 1,2,3...
+    OltNniPortType port_type = 2;
+    string mac_address = 3;
+}
+
+enum OltState
+{
+      OLT_STATE_INVALID = 0;
+      OLT_STATE_INACTIVE = 1;
+      OLT_STATE_ACTIVE = 2;
+}
+enum OltWorkMode
+{
+      OLT_MODE_CONFIG = 0;
+      OLT_MODE_AUTO = 1;
+}
+
+// Describes instance of software image on the device
+message OltImage {
+    string name = 1;                // software patch name
+    string version = 2;             // version of software
+    string hash = 3;                // md5 hash
+    string install_datetime = 4;    // combined date and time expressed in UTC.
+                                    // use ISO 8601 format for date and time
+
+    // The active software image is one that is currently loaded and executing
+    // in the ONU or circuit pack. Under normal operation, one software image
+    // is always active while the other is inactive. Under no circumstances are
+    // both software images allowed to be active at the same time
+    bool is_active = 5;             // True if the image is active
+
+    // The committed software image is loaded and executed upon reboot of the
+    // ONU and/or circuit pack. During normal operation, one software image is
+    // always committed, while the other is uncommitted.
+    bool is_committed = 6;          // True if the image is committed
+
+    // A software image is valid if it has been verified to be an executable
+    // code image. The verification mechanism is not subject to standardization;
+    // however, it should include at least a data integrity (e.g., CRC) check of
+    // the entire code image.
+    bool is_valid = 7;              // True if the image is valid
+}
+
+// List of software on the device
+message OltImages {
+    repeated OltImage image = 1;
+}
+
+// MSG: OLT_D_GET_OLT_INFO_ACK
+message OltDGetOltInfoAck {
+    OltState olt_state = 1;
+    string vendor = 2;
+    string model = 3;
+    string hardware_version = 4;
+    string firmware_version = 5;
+    string software_version = 6;
+    string serial_number = 7;
+    OltImages images = 8;
+    
+    // Device contact MAC address (format: "xx:xx:xx:xx:xx:xx")
+    string mac_address = 9;
+
+    // Device contact IPv4 address (format: "a.b.c.d" or can use hostname too)
+    string ipv4_address = 10;
+
+    // Device contact IPv6 address using the canonical string form
+    // ("xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx")
+    string ipv6_address = 11;
+    OltWorkMode work_mode = 12;
+        
+    repeated NniPortInfo nni_port = 13;
+    repeated PonPortInfo pon_port = 14;
+}
+// MSG: OLT_D_ADD_ONU
+message OltDAddOnu {
+    uint32 pon_port = 1; // 1~24
+	  uint32 onu_id = 2; // 0~255
+	  string sn = 3;
+	  string registration_id = 4;
+	  bool fec_upstream = 5;
+	  bbf_fiber_types.AuthMethodType authentication_method = 6; 
+}
+// MSG: OLT_D_UPDATE_ONU
+message OltDUpdateOnu {
+    uint32 pon_port = 1; // 1~24
+	  uint32 onu_id = 2; // 0~255
+	  string sn = 3;
+	  string registration_id = 4;
+	  bool fec_upstream = 5;
+	  bbf_fiber_types.AuthMethodType authentication_method = 6; 
+}
+//MSG: OLT_D_PACKET_IN, OLT_D_PACKET_OUT
+message OltDEthPacket
+{
+	uint32 pkt_len = 1;
+	bytes pkt_buf = 2;
+}
+// MSG: OLT_D_DELETE_ONU
+message OltDDeleteOnu {
+    uint32 pon_port = 1; // 1~24
+	  uint32 onu_id = 2; // 0~255
+	  string sn = 3;
+}
+enum OltImageCfgCmd {
+    IMAGE_CMD_UNKNOWN = 0;
+    IMAGE_CMD_DOWNLOAD = 1;
+    IMAGE_CMD_CANCEL = 2;
+    IMAGE_CMD_ACTIVETE = 3;
+    IMAGE_CMD_REVERT = 4;
+}
+
+enum OltImageDownloadState {
+    DOWNLOAD_UNKNOWN = 0;
+    DOWNLOAD_SUCCEEDED = 1;
+    DOWNLOAD_REQUESTED = 2;
+    DOWNLOAD_STARTED = 3;
+    DOWNLOAD_FAILED = 4;
+    DOWNLOAD_UNSUPPORTED = 5;
+}
+enum OltImageActivateState {
+    IMAGE_UNKNOWN = 0;
+    IMAGE_INACTIVE = 1;
+    IMAGE_ACTIVATE = 2;
+    IMAGE_ACTIVE = 3;
+    IMAGE_REVERT = 4;
+}
+enum OltImageDownloadFailureReason {
+    NO_ERROR = 0;
+    INVALID_URL = 1;
+    DEVICE_BUSY = 2;
+    INSUFFICIENT_SPACE = 3;
+    UNKNOWN_ERROR = 4;
+}
+
+// MSG: OLT_D_IMAGE_DOWNLOAD
+message OltDImageCfg {
+    string name = 1;
+    OltImageCfgCmd cmd = 2;	//1: download 2:cancel 3:activate 4:revert
+    string url = 3; 
+    uint32 crc = 4;
+    string version = 5;
+}
+
+//OLT_D_IMAGE_EVENT
+message OltDImageEvent {
+    string name = 1;
+    uint32 type = 2;	//1: download 2:cancel 3:activate 4:revert
+    // Download state
+    OltImageDownloadState state = 3;
+    // Download failure reason
+    OltImageDownloadFailureReason reason= 4;
+    // Image activation state
+    OltImageActivateState image_state = 5;
+    // Additional info
+    string additional_info = 6;
+
+}
+
+
+//OLT_D_IMAGE_STATUS_REQ
+message OltDImageStatusReq {
+    string name = 1;
+}
+
+//OLT_D_IMAGE_STATUS_ACK
+message OltDImageStatusAck {
+    string name = 1;
+    // Download state
+    OltImageDownloadState state = 2;
+    // Bytes downloaded
+    uint32 downloaded_bytes = 3;
+    // Download failure reason
+    OltImageDownloadFailureReason reason= 4;
+    // Image activation state
+    OltImageActivateState image_state = 5;
+    // Additional info
+    string additional_info = 6;
+}
+
+
