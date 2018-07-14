@@ -1,0 +1,185 @@
+syntax = "proto3";
+
+import "bbf_fiber_types.proto";
+
+//olt pon msg type from 2001 to 2999
+enum OltPonMsgType
+{
+    OLT_PON_MSG_TYPE_INVALID = 0;
+	OLT_PON_ACTIVATE_PON = 2001;
+	OLT_PON_DEACTIVATE_PON = 2002;
+    OLT_PON_CONFIGURE_PON = 2003;
+	OLT_PON_GET_PON_INFO_REQ = 2004;
+	OLT_PON_GET_PON_INFO_ACK = 2005;
+	OLT_PON_ADD_TCONT = 2006;
+	OLT_PON_UPDATE_TCONT = 2007;
+	OLT_PON_DELETE_TCONT = 2008;
+	OLT_PON_CONFIGURE_SERVICE = 2009;
+	OLT_PON_ACTIVATE_ONU = 2010;
+	OLT_PON_DEACTIVATE_ONU = 2011;
+	OLT_PON_ENABLE_ONU = 2012;
+	OLT_PON_DISABLE_ONU = 2013;
+	OLT_PON_GET_ONU_INFO_REQ = 2014;
+	OLT_PON_GET_ONU_INFO_ACK = 2015;
+	OLT_PON_SEND_OMCI = 2016;
+	OLT_PON_ONU_RANGING_EVENT = 2017;
+	OLT_PON_GET_PHY_PM_REQ = 2018;
+	OLT_PON_GET_PHY_PM_ACK = 2019;
+	OLT_PON_GET_XGEM_PM_REQ = 2020;
+	OLT_PON_GET_XGEM_PM_ACK = 2021;
+	OLT_PON_GET_PLOAM_PM_REQ = 2022;
+	OLT_PON_GET_PLOAM_PM_ACK = 2023;
+	OLT_PON_GET_OMCI_PM_REQ = 2024;
+	OLT_PON_GET_OMCI_PM_ACK = 2025;
+	OLT_PON_GET_ETH_PM_REQ = 2026;
+	OLT_PON_GET_ETH_PM_ACK = 2027;
+	OLT_PON_ONU_ACTIVATE_COMPLETE = 2028;
+	OLT_PON_ADD_GEMPORT = 2029;
+	OLT_PON_UPDATE_GEMPORT = 2030;
+	OLT_PON_DELETE_GEMPORT = 2031;
+}
+
+// MSG: OLT_PON_ACTIVATE_PON | OLT_PON_DEACTIVATE_PON
+message OltPonPort
+{
+	  uint32 pon_port = 1;
+}
+
+// MSG: OLT_PON_CONFIGURE_PON
+message OltPonConfigurePon
+{
+	uint32 pon_port = 1; // 0~3
+    uint32 pon_id = 2; // 32-bit
+    string pon_tag = 3; // 8-byte
+    uint32 closest_ont_distance = 4; // km
+    uint32 differential_fiber_distance = 5; // km
+    bool fec_downstream = 6;
+    bool aes_downstream = 7;
+    bool aes_upstream = 8;
+    uint32 pon_profile = 9; // 0/1/2/3. (0: 256 x 32, 1: 128 x 64, 2: 64 x 128, 3: 32 x 256)
+    uint32 bwmap_cycle = 10; // 8/16/32 (default 8)
+    uint32 discover_period = 11; // default: 10s
+}
+
+// MSG: OLT_PON_ADD_TCONT
+message OltPonAddTcont
+{
+	  uint32 pon_port = 1; // 0~3
+	  uint32 onu_id = 2; // 0~255
+	  uint32 alloc_id = 3; 
+	  uint32 fixed_bandwidth = 4; // kbps
+	  uint32 assured_bandwidth = 5; // kbps
+	  uint32 maximum_bandwidth = 6; // kbps
+}
+
+// MSG: OLT_PON_UPDATE_TCONT
+message OltPonUpdateTcont
+{
+	  uint32 pon_port = 1; // 0~3
+	  uint32 alloc_id = 2; 
+	  uint32 fixed_bandwidth = 3; // kbps
+	  uint32 assured_bandwidth = 4; // kbps
+	  uint32 maximum_bandwidth = 5; // kbps
+}
+
+// MSG: OLT_PON_DELETE_TCONT
+message OltPonDeleteTcont
+{
+	  uint32 pon_port = 1; // 0~3
+	  uint32 alloc_id = 2; 
+}
+
+// MSG: OLT_PON_CONFIGURE_SERVICE
+message OltPonConfigureService
+{
+	  uint32 pon_port = 1; // 0~3
+	  uint32 onu_id = 2; // 0~255
+	  uint32 direction = 3; // 0: downstream, 1: upstream
+	  uint32 gem_port = 4;
+	  uint32 flow_id = 5;
+	  uint32 priority = 6;
+	  uint32 action = 7;
+}
+
+// MSG: OLT_PON_ACTIVATE_ONU
+message OltPonActivateOnu
+{
+	  uint32 pon_port = 1; // 0~3
+	  uint32 onu_id = 2; // 0~255
+	  string sn = 3;
+	  string registration_id = 4;
+	  bool fec_upstream = 5;
+	  bbf_fiber_types.AuthMethodType authentication_method = 6;
+}
+
+// MSG: OLT_PON_DEACTIVATE_ONU
+message OltPonDeactivateOnu
+{
+	  uint32 pon_port = 1; // 0~3
+	  uint32 onu_id = 2; // 0~255
+	  string sn = 3;
+}
+
+// MSG: OLT_PON_ENABLE_ONU | OLT_PON_DISABLE_ONU
+message OltPonEnableOnu
+{
+	  uint32 pon_port = 1; // 0~3
+	  string sn = 2;
+}
+
+// MSG: OLT_PON_SEND_OMCI
+message OltPonSendOmci
+{
+    uint32 pon_slot = 1;
+	  uint32 pon_port = 2; // 0~3
+	  uint32 onu_id = 3; // 0~255
+	  string omci_content = 4;
+}
+
+// MSG: OLT_PON_ONU_RANGING_EVENT
+message OltPonOnuRangingEvent
+{
+    uint32 pon_slot = 1;
+	  uint32 pon_port = 2; // 0~3
+	  uint32 onu_id = 3; // 0~255
+	  string sn = 4;
+    uint32 ranging_state = 5; // 0: ranging down; 1: ranging up
+	  uint32 eqd = 6;
+	  uint32 distance = 7;
+}   
+// MSG: OLT_PON_ONU_ACTIVATE_COMPLETE
+message OltPonOnuActivateComplete {
+    uint32 pon_port = 1; // 1~24
+    uint32 pon_slot = 2;
+	uint32 onu_id = 3; // 0~255
+	uint32 result = 4; //0~1
+}
+
+// MSG: OLT_PON_GET_XGEM_PM_REQ
+message OltPonXGemPMReq
+{
+    uint32 pon_slot = 1; 
+    uint32 pon_port = 2;
+}
+ 
+// MSG: OLT_PON_GET_XGEM_PM_ACK
+message OltPonXGemPMAck 
+{
+    uint32 pon_slot = 1; 
+    uint32 pon_port = 2;
+    uint64 tx_gem_frames = 3; 
+    uint64 rx_gem_frames = 4; 
+    uint64 tx_nolfbit_count = 5;
+    uint64 hec_err_count = 6;
+    uint64 frame_lost_count = 7;
+    uint64 key_err_count = 8;
+}
+
+message OltPonGemport
+{
+	uint32 uni_logic_port = 1;
+	uint32 vlan = 2; //pit+vlanId
+	uint32 gemport_id = 3;
+	uint32 onu_id = 4;
+	uint32 pon_port = 5;
+}
