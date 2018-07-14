@@ -32,6 +32,7 @@ COPY --from=protos /protos/voltha /work/voltha/protos
 COPY --from=protos /protos/google/api /work/voltha/protos/third_party/google/api
 
 COPY --from=protos /protos/asfvolt16_olt /work/voltha/adapters/asfvolt16_olt/protos
+COPY --from=protos /protos/cig_olt /work/voltha/protos
 
 COPY --from=protos /protos/voltha /work/ofagent/protos
 COPY --from=protos /protos/google/api /work/ofagent/protos/third_party/google/api
