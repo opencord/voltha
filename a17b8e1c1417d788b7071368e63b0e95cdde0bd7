@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "4b5d843c_be571011",
+        "filename": "voltha/adapters/asfvolt16_olt/bal.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 363,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-07-16T04:13:08Z",
+      "side": 1,
+      "message": "This function is a special case where actions and matches are very specific to eapol flow. This patch was specifically addressed for deleting the eapol flow with tag 4000 after hsia flows are received. As mentioned in comments in asfvotl16_device_handler, hsia flow deactivation scenarios are not addressed and it requires more elaborate changes in the whole adapter code and is not of immediate priority. When that is addressed, this function could be made generic.",
+      "parentUuid": "9480935b_c6f2d932",
+      "revId": "a17b8e1c1417d788b7071368e63b0e95cdde0bd7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "caa59e06_ac72e370",
         "filename": "voltha/adapters/asfvolt16_olt/bal.py",
         "patchSetId": 1
