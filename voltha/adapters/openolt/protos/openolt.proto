@@ -223,6 +223,7 @@ message Flow {
     fixed32 gemport_id = 6;
     Classifier classifier = 7;
     Action action = 8;
+    fixed32 priority = 9;
 }
 
 message SerialNumber {

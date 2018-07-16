@@ -814,9 +814,16 @@ class OpenoltDevice(object):
             for flow in flows:
                 try:
                     self.flow_mgr.add_flow(flow, is_down_stream)
-                except Exception as e:
-                    self.log.exception('failed-to-install-flow', e=e,
+                except grpc.RpcError as grpc_e:
+                    if grpc_e.code() == grpc.StatusCode.ALREADY_EXISTS:
+                        self.log.warn('flow already exists', e=grpc_e,
                                        flow=flow)
+                    else:
+                        self.log.error('failed to add flow', flow=flow,
+                                       e=grpc_e)
+                except Exception as e:
+                    self.log.error('failed to add flow', flow=flow, e=e)
+
 
     # There has to be a better way to do this
     def ip_hex(self, ip):
