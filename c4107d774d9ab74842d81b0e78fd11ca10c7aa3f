@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a4b48817_affb953b",
+        "filename": "voltha/adapters/openolt/openolt_alarms.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 136,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-07-16T18:12:12Z",
+      "side": 1,
+      "message": "We do not need this anymore. The publish inter adapter agent is deprecated and not used in openolt",
+      "range": {
+        "startLine": 121,
+        "startChar": 12,
+        "endLine": 136,
+        "endChar": 86
+      },
+      "revId": "c4107d774d9ab74842d81b0e78fd11ca10c7aa3f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
