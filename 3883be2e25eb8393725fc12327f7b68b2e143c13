@@ -73,6 +73,24 @@
     },
     {
       "key": {
+        "uuid": "ab156d15_a28ee3a4",
+        "filename": "tests/atests/common/preprovisioning.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1000451
+      },
+      "writtenOn": "2018-07-16T19:30:04Z",
+      "side": 1,
+      "message": "Hi David, \nThe python code is the implementation of Robot Test framework plugins and the actual test case will be written in Robot script which in turn call these python plugins.\n\nWe will restructure the code and show case to you when we finish with the restructuring.\n\nFor the question why we call CLI in the test, the answer is in the answer for the same comment from Jonathan.",
+      "parentUuid": "b830f9ce_de4d39ab",
+      "revId": "3883be2e25eb8393725fc12327f7b68b2e143c13",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "2f860d80_a059e9ed",
         "filename": "tests/atests/common/voltha.py",
         "patchSetId": 2
@@ -156,6 +174,24 @@
       "side": 1,
       "message": "Yes, the single-host voltha environment currently supports k8s in addition to docker-compose; please take a look at the \"Single-node Kubernetes\" section in BUILD.md.",
       "parentUuid": "4d0826d4_a3c91fab",
+      "revId": "3883be2e25eb8393725fc12327f7b68b2e143c13",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b8afa248_4f7df860",
+        "filename": "tests/atests/common/voltha.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 1000451
+      },
+      "writtenOn": "2018-07-16T19:30:04Z",
+      "side": 1,
+      "message": "We will consider to switch to k8s and may have a new pull request!",
+      "parentUuid": "24fcf996_346e99fc",
       "revId": "3883be2e25eb8393725fc12327f7b68b2e143c13",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
