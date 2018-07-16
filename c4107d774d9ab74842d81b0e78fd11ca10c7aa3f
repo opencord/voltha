@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "0e0f5176_72fc23ba",
+        "filename": "voltha/adapters/openolt/openolt_alarms.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 116,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-07-16T21:50:15Z",
+      "side": 1,
+      "message": "device_id is that of the OLT but the device originating the alarm is \"ONU\"?",
+      "revId": "c4107d774d9ab74842d81b0e78fd11ca10c7aa3f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "a4b48817_affb953b",
         "filename": "voltha/adapters/openolt/openolt_alarms.py",
         "patchSetId": 3
@@ -19,6 +36,23 @@
         "endLine": 136,
         "endChar": 86
       },
+      "revId": "c4107d774d9ab74842d81b0e78fd11ca10c7aa3f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "36bd0e30_abe9ce2d",
+        "filename": "voltha/adapters/openolt/openolt_alarms.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 169,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-07-16T21:50:15Z",
+      "side": 1,
+      "message": "General comment - the alarm schema should be defined. Especially for the context field but also for other fields like id, description,",
       "revId": "c4107d774d9ab74842d81b0e78fd11ca10c7aa3f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
