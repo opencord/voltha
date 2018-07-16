@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6363a647_6ca573e0",
+        "filename": "voltha/protos/omci_mib_db.proto",
+        "patchSetId": 4
+      },
+      "lineNbr": 78,
+      "author": {
+        "id": 1000456
+      },
+      "writtenOn": "2018-07-16T16:34:02Z",
+      "side": 1,
+      "message": "One more space needed",
+      "range": {
+        "startLine": 78,
+        "startChar": 3,
+        "endLine": 78,
+        "endChar": 9
+      },
+      "revId": "ca62c36e99162cf4ec4b373e1de29810453b75ed",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
