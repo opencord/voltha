@@ -75,6 +75,8 @@ service Openolt {
     }
 
     rpc EnableIndication(Empty) returns (stream Indication) {}
+
+    rpc CreateDSRateProfiles(RateProfiles) returns (Empty) {}
 }
 
 message Indication {
@@ -330,5 +332,15 @@ message OnuProcessingErrorIndication {
     fixed32 onu_id = 2;
 }
 
+message RateProfiles {
+    repeated RateProfile profile = 1;
+}
+
+message RateProfile {
+    fixed32 id = 1;
+    fixed32 cir = 2;        // Kbps
+    fixed32 pir = 3;        // Kbps
+    fixed32 burst = 4;      // Kbps
+}
 
 message Empty {}
