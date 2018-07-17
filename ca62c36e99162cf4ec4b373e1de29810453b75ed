@@ -22,6 +22,30 @@
       "revId": "ca62c36e99162cf4ec4b373e1de29810453b75ed",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ccb2961c_bb933afb",
+        "filename": "voltha/protos/omci_mib_db.proto",
+        "patchSetId": 4
+      },
+      "lineNbr": 78,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-07-17T14:22:28Z",
+      "side": 1,
+      "message": "Will fix this afternoon when I get in (currently at home).  Thanks for catching this.",
+      "parentUuid": "6363a647_6ca573e0",
+      "range": {
+        "startLine": 78,
+        "startChar": 3,
+        "endLine": 78,
+        "endChar": 9
+      },
+      "revId": "ca62c36e99162cf4ec4b373e1de29810453b75ed",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
