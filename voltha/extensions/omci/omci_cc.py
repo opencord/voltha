@@ -648,6 +648,8 @@ class OMCI_CC(object):
     def send_reboot(self, timeout=DEFAULT_OMCI_TIMEOUT):
         """
         Send an ONU Device reboot request (ONU-G ME).
+
+        NOTICE: This method is being deprecated and replaced with a tasks to preform this function
         """
         self.log.debug('send-mib-reboot')
 

@@ -21,6 +21,9 @@ from voltha.extensions.omci.omci_cc import OMCI_CC
 from common.event_bus import EventBusClient
 from voltha.extensions.omci.tasks.task_runner import TaskRunner
 from voltha.extensions.omci.onu_configuration import OnuConfiguration
+from voltha.extensions.omci.tasks.reboot_task import OmciRebootRequest, RebootFlags
+from voltha.extensions.omci.tasks.omci_modify_request import OmciModifyRequest
+from voltha.extensions.omci.omci_me import OntGFrame
 
 from twisted.internet import reactor
 from enum import IntEnum
@@ -291,6 +294,14 @@ class OnuDeviceEntry(object):
             # Start up the ONU Capabilities task
             self._configuration.reset()
 
+            # Insure that the ONU-G Administrative lock is disabled
+            def failure(reason):
+                self.log.error('disable-admin-state-lock', reason=reason)
+
+            frame = OntGFrame(attributes={'administrative_state': 0}).set()
+            task = OmciModifyRequest(self._omci_agent, self.device_id, frame)
+            self.task_runner.queue_task(task).addErrback(failure)
+
             # Start up any other remaining OpenOMCI state machines
             def start_state_machines(machines):
                 for sm in machines:
@@ -379,3 +390,20 @@ class OnuDeviceEntry(object):
                                                 attributes=attribute)
 
         return entry[attribute] if attribute in entry else None
+
+    def reboot(self,
+               flags=RebootFlags.Reboot_Unconditionally,
+               timeout=OmciRebootRequest.DEFAULT_PRIORITY):
+        """
+        Request a reboot of the ONU
+
+        :param flags: (RebootFlags) Reboot condition
+        :param timeout: (int) Reboot task priority
+        :return: (deferred) Fires upon completion or error
+        """
+        assert self.active, 'This device is not active'
+
+        return self.task_runner.queue_task(OmciRebootRequest(self._omci_agent,
+                                                             self.device_id,
+                                                             flags=flags,
+                                                             timeout=timeout))

@@ -88,7 +88,7 @@ class OmciGetRequest(Task):
 
     def stop_if_not_running(self):
         if not self.running:
-            raise MibResyncException('Get Request Task was cancelled')
+            raise GetException('Get Request Task was cancelled')
 
     @property
     def attributes(self):
