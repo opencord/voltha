@@ -105,6 +105,30 @@
       "revId": "a17b8e1c1417d788b7071368e63b0e95cdde0bd7",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d5d30b54_d358557e",
+        "filename": "voltha/adapters/asfvolt16_olt/bal.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 407,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-07-17T10:31:02Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "26839419_c6631c2d",
+      "range": {
+        "startLine": 395,
+        "startChar": 11,
+        "endLine": 407,
+        "endChar": 56
+      },
+      "revId": "a17b8e1c1417d788b7071368e63b0e95cdde0bd7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
