@@ -33,6 +33,8 @@ class Task(object):
     Failure object.
     """
     DEFAULT_PRIORITY = 128
+    MIN_PRIORITY = 0
+    MAX_PRIORITY = 255
     _next_task_id = 0
 
     def __init__(self, name, omci_agent, device_id, priority=DEFAULT_PRIORITY,
@@ -46,7 +48,8 @@ class Task(object):
         :param exclusive: (bool) If True, this task needs exclusive access to the
                                  OMCI Communications channel when it runs
         """
-        assert 0 <= priority <= 255, 'Priority should be 0..255'
+        assert Task.MIN_PRIORITY <= priority <= Task.MAX_PRIORITY, \
+            'Priority should be {}..{}'.format(Task.MIN_PRIORITY, Task.MAX_PRIORITY)
 
         Task._next_task_id += 1
         self._task_id = Task._next_task_id

@@ -222,19 +222,21 @@ class MEFrame(object):
                 attributes_mask=self.entity_class.mask_for(*mask_set)
             ))
 
-    def reboot(self):
+    def reboot(self, reboot_code=0):
         """
         Create a Reboot request from for this ME
         :return: (OmciFrame) OMCI Frame
         """
         self._check_operation(OP.Reboot)
+        assert 0 <= reboot_code <= 2, 'Reboot code must be 0..2'
 
         return OmciFrame(
             transaction_id=None,
             message_type=OmciReboot.message_id,
             omci_message=OmciReboot(
                 entity_class=getattr(self.entity_class, 'class_id'),
-                entity_id=getattr(self, 'entity_id')
+                entity_id=getattr(self, 'entity_id'),
+                reboot_code=reboot_code
             ))
 
     def mib_reset(self):
