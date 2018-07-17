@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 
+from common.utils.asleep import asleep
 from voltha.protos.openflow_13_pb2 import OFPXMC_OPENFLOW_BASIC
 import voltha.core.flow_decomposer as fd
 import openolt_platform as platform
@@ -22,6 +23,7 @@ from voltha.registry import registry
 
 HSIA_FLOW_INDEX = 0  # FIXME
 DHCP_FLOW_INDEX = 1  # FIXME
+DHCP_DOWNLINK_FLOW_INDEX = 6  # FIXME
 EAPOL_FLOW_INDEX = 2  # FIXME
 EAPOL_DOWNLINK_FLOW_INDEX = 3  # FIXME
 EAPOL_DOWNLINK_SECONDARY_FLOW_INDEX = 4  # FIXME
@@ -234,7 +236,8 @@ class OpenOltFlowMgr(object):
 
     def add_dhcp_trap(self, intf_id, onu_id, priority, classifier, action):
 
-        self.log.debug('add dhcp trap', classifier=classifier, action=action)
+        self.log.debug('add dhcp upstream trap', classifier=classifier,
+                       action=action)
 
         action.clear()
         action['trap_to_host'] = True
@@ -246,11 +249,34 @@ class OpenOltFlowMgr(object):
 
         upstream_flow = openolt_pb2.Flow(
             onu_id=onu_id, flow_id=flow_id, flow_type="upstream",
-            access_intf_id=intf_id, gemport_id=gemport_id, priority=priority,
-            classifier=self.mk_classifier(classifier),
+            access_intf_id=intf_id, network_intf_id=0, gemport_id=gemport_id,
+            priority=priority, classifier=self.mk_classifier(classifier),
             action=self.mk_action(action))
 
         self.stub.FlowAdd(upstream_flow)
+
+        # FIXME - Fix OpenOLT handling of downstream flows instead
+        #         of duplicating the downstream flow from the upstream
+        #         flow.
+        # FIXME - ONOS should send explicit upstream and downstream
+        #         exact dhcp trap flow.
+        classifier['udp_src'] = 67
+        classifier['udp_dst'] = 68
+        classifier['pkt_tag_type'] = 'double_tag'
+        action.pop('push_vlan', None)
+
+        flow_id = platform.mk_flow_id(intf_id, onu_id,
+                                      DHCP_DOWNLINK_FLOW_INDEX)
+
+        downstream_flow = openolt_pb2.Flow(
+            onu_id=onu_id, flow_id=flow_id, flow_type="downstream",
+            access_intf_id=intf_id, network_intf_id=0, gemport_id=gemport_id,
+            priority=priority, classifier=self.mk_classifier(classifier),
+            action=self.mk_action(action))
+
+        self.log.debug('add dhcp downstream trap', access_intf_id=intf_id,
+                       onu_id=onu_id, flow_id=flow_id)
+        self.stub.FlowAdd(downstream_flow)
 
     def add_eapol_flow(self, intf_id, onu_id, priority,
                        uplink_eapol_id=EAPOL_FLOW_INDEX,
