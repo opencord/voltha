@@ -21,7 +21,7 @@ import grpc
 import structlog
 from twisted.internet import reactor
 from scapy.layers.l2 import Ether, Dot1Q
-from transitions import Machine, State
+from transitions import Machine
 
 from voltha.protos.device_pb2 import Port, Device
 from voltha.protos.common_pb2 import OperStatus, AdminState, ConnectStatus
@@ -44,6 +44,8 @@ import voltha.adapters.openolt.openolt_platform as platform
 from voltha.adapters.openolt.openolt_flow_mgr import OpenOltFlowMgr, \
         DEFAULT_MGMT_VLAN
 from voltha.adapters.openolt.openolt_alarms import OpenOltAlarmMgr
+from voltha.adapters.openolt.openolt_rate_profile import \
+    downstream_rate_profile
 
 
 class OpenoltDevice(object):
@@ -172,6 +174,15 @@ class OpenoltDevice(object):
         self.alarm_mgr = OpenOltAlarmMgr(self.log)
         self.stats_mgr = OpenOltStatisticsMgr(self, self.log)
 
+        rate_profile = openolt_pb2.RateProfile(
+            id=downstream_rate_profile[0].id,
+            cir=downstream_rate_profile[0].cir,
+            pir=downstream_rate_profile[0].pir,
+            burst=downstream_rate_profile[0].burst)
+        self.stub.AddRateProfile(rate_profile)
+
+        self.indications = self.stub.EnableIndication(openolt_pb2.Empty())
+
     def do_state_up(self, event):
         device = self.adapter_agent.get_device(self.device_id)
 
@@ -228,13 +239,10 @@ class OpenoltDevice(object):
         self.adapter_agent.update_device(device)
 
     def indications_thread(self):
-        self.log.debug('starting-indications-thread')
         self.log.debug('connecting to olt', device_id=self.device_id)
         self.channel_ready_future.result()  # blocking call
-        self.log.debug('connected to olt', device_id=self.device_id)
         self.go_state_connected()
-
-        self.indications = self.stub.EnableIndication(openolt_pb2.Empty())
+        self.log.debug('connected to olt', device_id=self.device_id)
 
         while True:
             try:
@@ -620,7 +628,6 @@ class OpenoltDevice(object):
                   logical_port_no=logical_port_num)
         self.adapter_agent.send_packet_in(packet=str(pkt), **kw)
 
-
     def packet_out(self, egress_port, msg):
         pkt = Ether(msg)
         self.log.info('packet out', egress_port=egress_port,
@@ -817,15 +824,13 @@ class OpenoltDevice(object):
                 except grpc.RpcError as grpc_e:
                     if grpc_e.code() == grpc.StatusCode.ALREADY_EXISTS:
                         self.log.warn('flow already exists', e=grpc_e,
-                                       flow=flow)
+                                      flow=flow)
                     else:
                         self.log.error('failed to add flow', flow=flow,
                                        e=grpc_e)
                 except Exception as e:
                     self.log.error('failed to add flow', flow=flow, e=e)
 
-
-    # There has to be a better way to do this
     def ip_hex(self, ip):
         octets = ip.split(".")
         hex_ip = []
