@@ -22,6 +22,7 @@ from voltha.registry import registry
 
 HSIA_FLOW_INDEX = 0  # FIXME
 DHCP_FLOW_INDEX = 1  # FIXME
+DHCP_DOWNLINK_FLOW_INDEX = 6  # FIXME
 EAPOL_FLOW_INDEX = 2  # FIXME
 EAPOL_DOWNLINK_FLOW_INDEX = 3  # FIXME
 EAPOL_DOWNLINK_SECONDARY_FLOW_INDEX = 4  # FIXME
@@ -251,6 +252,24 @@ class OpenOltFlowMgr(object):
             action=self.mk_action(action))
 
         self.stub.FlowAdd(upstream_flow)
+
+        # FIXME, XXX
+        classifier['udp_src'] = 67
+        classifier['udp_dst'] = 68
+        classifier['pkt_tag_type'] = 'double_tag'
+        classifier['vlan_vid'] = action['vlan_vid']
+        action.pop('push_vlan')
+
+        flow_id = platform.mk_flow_id(intf_id, onu_id,
+                                      DHCP_DOWNLINK_FLOW_INDEX)
+
+        downstream_flow = openolt_pb2.Flow(
+            onu_id=onu_id, flow_id=flow_id, flow_type="downstream",
+            network_intf_id=0, gemport_id=gemport_id, priority=priority,
+            classifier=self.mk_classifier(classifier),
+            action=self.mk_action(action))
+
+        self.stub.FlowAdd(downstream_flow)
 
     def add_eapol_flow(self, intf_id, onu_id, priority,
                        uplink_eapol_id=EAPOL_FLOW_INDEX,
