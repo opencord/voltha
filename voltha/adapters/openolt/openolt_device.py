@@ -29,7 +29,7 @@ from voltha.protos.logical_device_pb2 import LogicalDevice
 from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, \
     OFPPS_LINK_DOWN, OFPPF_1GB_FD, OFPC_GROUP_STATS, OFPC_PORT_STATS, \
     OFPC_TABLE_STATS, OFPC_FLOW_STATS, ofp_switch_features, ofp_port, \
-    ofp_port_stats
+    ofp_port_stats, ofp_desc
 from voltha.protos.logical_device_pb2 import LogicalPort
 from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.registry import registry
@@ -124,6 +124,9 @@ class OpenoltDevice(object):
                         | OFPC_PORT_STATS
                         | OFPC_GROUP_STATS
                     )
+                ),
+                desc=ofp_desc(
+                    serial_num=device.serial_number
                 )
             )
             ld_init = self.adapter_agent.create_logical_device(ld,
