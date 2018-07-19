@@ -32,6 +32,7 @@ class PonPort(object):
         self._deferred = None
         self._port = None
         self._port_number = port_no
+        self._entity_id = None                  # ANI entity ID
         self._next_entity_id = PonPort.MIN_GEM_ENTITY_ID
 
         self._admin_state = AdminState.ENABLED
@@ -96,6 +97,18 @@ class PonPort(object):
     @property
     def port_number(self):
             return self._port_number
+
+    @property
+    def entity_id(self):
+        """
+        OMCI ANI_G entity ID for port
+        """
+        return self._entity_id
+
+    @entity_id.setter
+    def entity_id(self, value):
+        assert self._entity_id is None, 'Cannot reset the Entity ID'
+        self._entity_id = value
 
     @property
     def next_gem_entity_id(self):

@@ -98,8 +98,6 @@ class OMCI(object):
         self._bridge_initialized = False
         self._in_sync_reached = False
 
-        # TODO: stop h/w sync
-
     def _cancel_deferred(self):
         d1, self._deferred = self._deferred, None
         d2, self._resync_deferred = self._resync_deferred, None
@@ -185,6 +183,12 @@ class OMCI(object):
             assert uni_ports == len(self._handler.uni_ports), \
                 'Expected {} UNI port(s), got {}'.format(len(self._handler.uni_ports), uni_ports)
 
+            # serial_number = omci_dev.configuration.serial_number
+            # self.log.info('serial-number', serial_number=serial_number)
+
+            # Save entity_id of PON ports
+            self._handler.pon_ports[0].entity_id = ani_g.keys()[0]
+
             # Save entity_id for UNI ports
             uni_entity_ids = uni_g.keys()
             uni_entity_ids.sort()
@@ -253,7 +257,7 @@ class OMCI(object):
         bus = self._onu_omci_device.event_bus
         topic = OnuDeviceEntry.event_bus_topic(self._handler.device_id,
                                                OnuDeviceEvents.OmciCapabilitiesEvent)
-        self._capabilities_subscription = bus.subscribe(topic, self.capabilties_handler)
+        self._capabilities_subscription = bus.subscribe(topic, self.capabilities_handler)
 
         # OMCI-CC Connectivity Events (for reachability/heartbeat)
 
@@ -298,7 +302,7 @@ class OMCI(object):
             except Exception as e:
                 self.log.exception('in-sync', e=e)
 
-    def capabilties_handler(self, _topic, _msg):
+    def capabilities_handler(self, _topic, _msg):
         """
         This event occurs after an ONU reaches the In-Sync state and the OMCI ME has
         been queried for supported ME and message types.
@@ -311,13 +315,12 @@ class OMCI(object):
 
             def success(_results):
                 self._mib_download_task = None
-                pass   # TODO.  What's next...
 
             def failure(_reason):
                 self._mib_download_task = None
                 # TODO: Handle failure, retry for now?
                 self._mib_download_deferred = reactor.callLater(_STARTUP_RETRY_WAIT,
-                                                                self.capabilties_handler)
+                                                                self.capabilities_handler)
             self._mib_download_task = AdtnMibDownloadTask(self.omci_agent, self._handler)
             self._mib_download_deferred = self._onu_omci_device.task_runner.queue_task(self._mib_download_task)
             self._mib_download_deferred.addCallbacks(success, failure)

@@ -40,7 +40,7 @@ class AdtranOnuAdapter(OnuAdapter):
                                                device_handler_class=AdtranOnuHandler,
                                                name='adtran_onu',
                                                vendor='Adtran, Inc.',
-                                               version='0.10',
+                                               version='0.11',
                                                device_type='adtran_onu',
                                                vendor_id='ADTN')
         # Customize OpenOMCI for Adtran ONUs

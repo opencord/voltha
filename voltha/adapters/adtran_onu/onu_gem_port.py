@@ -32,8 +32,7 @@ class OnuGemPort(GemPort):
                  intf_ref=None,
                  untagged=False,
                  name=None,
-                 handler=None,
-                 is_mock=False):
+                 handler=None):
         super(OnuGemPort, self).__init__(gem_id, alloc_id,
                                          encryption=encryption,
                                          omci_transport=omci_transport,
@@ -44,7 +43,6 @@ class OnuGemPort(GemPort):
                                          untagged=untagged,
                                          name=name,
                                          handler=handler)
-        self._is_mock = is_mock
         self._entity_id = entity_id
         self.log = structlog.get_logger(device_id=handler.device_id, gem_id=gem_id)
 
@@ -64,8 +62,7 @@ class OnuGemPort(GemPort):
             self._encryption = value
 
     @staticmethod
-    def create(handler, gem_port, entity_id, is_mock=False):
-
+    def create(handler, gem_port, entity_id):
         return OnuGemPort(gem_port['gemport-id'],
                           None,
                           entity_id,
@@ -74,8 +71,7 @@ class OnuGemPort(GemPort):
                           name=gem_port['name'],
                           traffic_class=gem_port['traffic-class'],
                           handler=handler,
-                          untagged='untagged' in gem_port['name'].lower(),
-                          is_mock=is_mock)
+                          untagged='untagged' in gem_port['name'].lower())
 
     @inlineCallbacks
     def add_to_hardware(self, omci,
@@ -86,9 +82,6 @@ class OnuGemPort(GemPort):
                        tcont_entity_id=tcont_entity_id,
                        ieee_mapper_service_profile_entity_id=ieee_mapper_service_profile_entity_id,
                        gal_enet_profile_entity_id=gal_enet_profile_entity_id)
-        if self._is_mock:
-            returnValue('mock')
-
         try:
             direction = "downstream" if self.multicast else "bi-directional"
             assert not self.multicast, 'MCAST is not supported yet'
@@ -138,9 +131,6 @@ class OnuGemPort(GemPort):
     @inlineCallbacks
     def remove_from_hardware(self, omci):
         self.log.debug('remove-from-hardware',  gem_id=self.gem_id)
-        if self._is_mock:
-            returnValue('mock')
-
         try:
             frame = GemInterworkingTpFrame(self.entity_id).delete()
             results = yield omci.send(frame)

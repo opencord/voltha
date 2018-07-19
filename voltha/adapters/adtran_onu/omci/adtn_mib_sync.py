@@ -22,7 +22,8 @@ class AdtnMibSynchronizer(MibSynchronizer):
     """
     ADTN_RESYNC_DELAY = 60     # Periodically force a resync
 
-    def __init__(self, agent, device_id, mib_sync_tasks, db):
+    def __init__(self, agent, device_id, mib_sync_tasks, db,
+                 advertise_events=False):
         """
         Class initialization
 
@@ -30,8 +31,10 @@ class AdtnMibSynchronizer(MibSynchronizer):
         :param device_id: (str) ONU Device ID
         :param db: (MibDbVolatileDict) MIB Database
         :param mib_sync_tasks: (dict) Tasks to run
+        :param advertise_events: (bool) Advertise events on OpenOMCI Event Bus
         """
         super(AdtnMibSynchronizer, self).__init__(agent, device_id, mib_sync_tasks, db,
+                                                  advertise_events=advertise_events,
                                                   # states=MibSynchronizer.DEFAULT_STATES,
                                                   # transitions=MibSynchronizer.DEFAULT_TRANSITIONS,
                                                   # initial_state='disabled',

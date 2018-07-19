@@ -24,13 +24,11 @@ class OnuTrafficDescriptor(TrafficDescriptor):
     def __init__(self, fixed, assured, maximum,
                  additional=TrafficDescriptor.AdditionalBwEligibility.DEFAULT,
                  best_effort=None,
-                 name=None,
-                 is_mock=False):
+                 name=None):
         super(OnuTrafficDescriptor, self).__init__(fixed, assured, maximum,
                                                    additional=additional,
                                                    best_effort=best_effort,
                                                    name=name)
-        self._is_mock = is_mock
 
     @staticmethod
     def create(traffic_disc):
@@ -55,9 +53,6 @@ class OnuTrafficDescriptor(TrafficDescriptor):
 
     @inlineCallbacks
     def add_to_hardware(self, omci):
-
-        if self._is_mock:
-            returnValue('mock')
 
         results = succeed('TODO: Implement me')
         # from ..adtran_olt_handler import AdtranOltHandler

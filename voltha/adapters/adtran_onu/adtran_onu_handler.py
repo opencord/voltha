@@ -37,8 +37,8 @@ from common.utils.indexpool import IndexPool
 from voltha.extensions.omci.omci_me import *
 
 _ = third_party
-_MAXIMUM_PORT = 128          # PON and UNI ports
-_ONU_REBOOT_MIN = 60
+_MAXIMUM_PORT = 128       # PON and UNI ports
+_ONU_REBOOT_MIN = 90      # IBONT 602 takes about 3 minutes
 _ONU_REBOOT_RETRY = 10
 
 
@@ -72,7 +72,6 @@ class AdtranOnuHandler(AdtranXPON):
         self._port_number_pool = IndexPool(_MAXIMUM_PORT, 1)
 
         self._olt_created = False   # True if deprecated method of OLT creating DA is used
-        self._is_mock = False
 
     def __str__(self):
         return "AdtranOnuHandler: {}".format(self.device_id)
@@ -123,10 +122,6 @@ class AdtranOnuHandler(AdtranXPON):
             # TODO: Anything else
 
     @property
-    def is_mock(self):
-        return self._is_mock        # Not pointing to real hardware
-
-    @property
     def olt_created(self):
         return self._olt_created    # ONU was created with deprecated 'child_device_detected' call
 
@@ -153,6 +148,10 @@ class AdtranOnuHandler(AdtranXPON):
     @property
     def pon_port(self):
         return self._pon
+
+    @property
+    def pon_ports(self):
+        return [self._pon]
 
     @property
     def _next_port_number(self):
@@ -559,24 +558,14 @@ class AdtranOnuHandler(AdtranXPON):
         self.adapter_agent.update_device(device)
 
         # TODO: send alert and clear alert after the reboot
+        try:
+            ######################################################
+            # MIB Reset
+            yield self.openomci.onu_omci_device.reboot(timeout=1)
 
-        if not self.is_mock:
-            from twisted.internet.defer import TimeoutError
-
-            try:
-                ######################################################
-                # MIB Reset - For ADTRAN ONU, we do not get a response
-                #             back (because we are rebooting)
-                pass
-                yield self.openomci.omci_cc.send_reboot(timeout=0.1)
-
-            except TimeoutError:
-                # This is expected
-                returnValue('reboot-in-progress')
-
-            except Exception as e:
-                self.log.exception('send-reboot', e=e)
-                raise
+        except Exception as e:
+            self.log.exception('send-reboot', e=e)
+            raise
 
         # Reboot in progress. A reboot may take up to 3 min 30 seconds
         # Go ahead and pause less than that and start to look
@@ -586,8 +575,7 @@ class AdtranOnuHandler(AdtranXPON):
         self.adapter_agent.update_device(device)
 
         # Disable OpenOMCI
-        self.pon_port.enabled = False
-
+        self.omci.enabled = False
         self._deferred = reactor.callLater(_ONU_REBOOT_MIN,
                                            self._finish_reboot,
                                            previous_oper_status,
@@ -597,20 +585,9 @@ class AdtranOnuHandler(AdtranXPON):
     @inlineCallbacks
     def _finish_reboot(self, previous_oper_status, previous_conn_status,
                        reregister):
-        from common.utils.asleep import asleep
-
-        if not self.is_mock:
-            # TODO: Do a simple poll and call this again if we timeout
-            # _ONU_REBOOT_RETRY
-            yield asleep(180)       # 3 minutes ...
-
-        # Change the operational status back to its previous state.  With a
-        # real OLT the operational state should be the state the device is
-        # after a reboot.
-        # Get the latest device reference
 
         # Restart OpenOMCI
-        self.pon_port.enabled = True
+        self.omci.enabled = True
 
         device = self.adapter_agent.get_device(self.device_id)
 
@@ -786,12 +763,6 @@ class AdtranOnuHandler(AdtranXPON):
         # OpenOMCI cleanup
         self._openomci.delete()
 
-    def _check_for_mock_config(self, data):
-        # Check for MOCK configuration
-        description = data.get('description')
-        if description is not None and 'mock' in description.lower():
-            self._is_mock = True
-
     def on_ont_ani_create(self, ont_ani):
         """
         A new ONT-ani is being created. You can override this method to
@@ -803,8 +774,6 @@ class AdtranOnuHandler(AdtranXPON):
         :return: (dict) Updated ONT-ani dictionary, None if item should be deleted
         """
         self.log.info('ont-ani-create', ont_ani=ont_ani)
-
-        self._check_for_mock_config(ont_ani)
         self.enabled = ont_ani['enabled']
 
         return ont_ani   # Implement in your OLT, if needed
@@ -853,8 +822,6 @@ class AdtranOnuHandler(AdtranXPON):
 
     def on_vont_ani_create(self, vont_ani):
         self.log.info('vont-ani-create', vont_ani=vont_ani)
-
-        self._check_for_mock_config(vont_ani)
         # TODO: look up PON port and update 'upstream-channel-speed'
         return vont_ani   # Implement in your OLT, if needed
 
@@ -878,8 +845,6 @@ class AdtranOnuHandler(AdtranXPON):
 
     def on_venet_create(self, venet):
         self.log.info('venet-create', venet=venet)
-
-        self._check_for_mock_config(venet)
 
         # TODO: This first set is copied over from BroadCOM ONU. For testing, actual work
         #       is the last 7 lines.  The 'test' code below assumes we have not registered
@@ -996,8 +961,7 @@ class AdtranOnuHandler(AdtranXPON):
 
         td = self.traffic_descriptors.get(tcont.get('td-ref'))
         traffic_descriptor = td['object'] if td is not None else None
-        tcont['object'] = OnuTCont.create(self, tcont, traffic_descriptor,
-                                          is_mock=self.is_mock)
+        tcont['object'] = OnuTCont.create(self, tcont, traffic_descriptor)
 
         if self._pon is not None:
             self._pon.add_tcont(tcont['object'])
@@ -1079,8 +1043,7 @@ class AdtranOnuHandler(AdtranXPON):
         assert self._pon is not None, 'No PON port'
 
         gem_port['object'] = OnuGemPort.create(self, gem_port,
-                                               self._pon.next_gem_entity_id,
-                                               is_mock=self.is_mock)
+                                               self._pon.next_gem_entity_id)
         self._pon.add_gem_port(gem_port['object'])
         return gem_port
 

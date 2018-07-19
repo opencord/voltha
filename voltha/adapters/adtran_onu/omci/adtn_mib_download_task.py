@@ -407,7 +407,7 @@ class AdtnMibDownloadTask(Task):
             #  EntityID was created prior to this call. This is a set
             #
             #  References:
-            #            - Gem Interwork TPs are set here
+            #            - Gem Interworking TPs are set here
             #
             # TODO: All p-bits currently go to the one and only GEMPORT ID for now
             gem_ports = self._handler.pon_port.gem_ports

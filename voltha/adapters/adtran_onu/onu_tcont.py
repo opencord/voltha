@@ -24,12 +24,10 @@ class OnuTCont(TCont):
     """
     Adtran ONU specific implementation
     """
-    def __init__(self, handler, alloc_id, traffic_descriptor,
-                 name=None, vont_ani=None, is_mock=False):
+    def __init__(self, handler, alloc_id, traffic_descriptor, name=None, vont_ani=None):
         super(OnuTCont, self).__init__(alloc_id, traffic_descriptor,
                                        name=name, vont_ani=vont_ani)
         self._handler = handler
-        self._is_mock = is_mock
         self._entity_id = None
         self.log = structlog.get_logger(device_id=handler.device_id, alloc_id=alloc_id)
 
@@ -38,7 +36,7 @@ class OnuTCont(TCont):
         return self._entity_id
 
     @staticmethod
-    def create(handler, tcont, td, is_mock=False):
+    def create(handler, tcont, td):
         assert isinstance(tcont, dict), 'TCONT should be a dictionary'
         assert isinstance(td, TrafficDescriptor), 'Invalid Traffic Descriptor data type'
 
@@ -46,16 +44,13 @@ class OnuTCont(TCont):
                         tcont['alloc-id'],
                         td,
                         name=tcont['name'],
-                        vont_ani=tcont['vont-ani'],
-                        is_mock=is_mock)
+                        vont_ani=tcont['vont-ani'])
 
     @inlineCallbacks
     def add_to_hardware(self, omci, tcont_entity_id):
         self.log.debug('add-to-hardware', tcont_entity_id=tcont_entity_id)
 
         self._entity_id = tcont_entity_id
-        if self._is_mock:
-            returnValue('mock')
 
         try:
             frame = TcontFrame(self.entity_id, self.alloc_id).set()
@@ -77,8 +72,6 @@ class OnuTCont(TCont):
     @inlineCallbacks
     def remove_from_hardware(self, omci):
         self.log.debug('remove-from-hardware', tcont_entity_id=self.entity_id)
-        if self._is_mock:
-            returnValue('mock')
 
         # Release tcont by setting alloc_id=0xFFFF
         try:
