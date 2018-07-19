@@ -47,6 +47,8 @@ from voltha.protos.bbf_fiber_gemport_body_pb2 import GemportsConfigData
 from common.frameio.frameio import hexify
 from voltha.extensions.omci.omci import *
 
+from voltha.registry import registry
+
 _ = third_party
 log = structlog.get_logger()
 
@@ -164,12 +166,15 @@ class BroadcomOnuAdapter(object):
         raise NotImplementedError()
 
     def delete_device(self, device):
-        log.info('delete-device', device_id=device.id)
+        log.info('delete-device', device_id=device.id, device_handlers=self.devices_handlers)
         if device.id in self.devices_handlers:
             handler = self.devices_handlers[device.id]
             if handler is not None:
+                log.debug('calling-handler-delete', handler=handler)
                 handler.delete(device)
-            del self.devices_handlers[device.id]
+                del self.devices_handlers[device.id]
+        else:
+            log.warn('device-not-found-in-handlers', device=device, device_handlers=self.devices_handlers)
         return
 
     def get_device_details(self, device):
@@ -320,6 +325,10 @@ class BroadcomOnuHandler(object):
         self.event_messages = DeferredQueue()
         self.proxy_address = None
         self.tx_id = 0
+
+        # Proxy for api calls
+        self.core = registry('core')
+        self.proxy = self.core.get_proxy('/')
 
         # Need to query ONU for number of supported uni ports
         # For now, temporarily set number of ports to 1 - port #2
@@ -487,10 +496,20 @@ class BroadcomOnuHandler(object):
         except Exception as e:
             self.log.exception("exception-updating-port",e=e)
 
+    @inlineCallbacks
     def delete(self, device):
-        self.log.info('delete-onu')
-        # The device is already deleted in delete_v_ont_ani(). No more
-        # handling needed here
+        self.log.info('delete-onu', device=device)
+
+        parent_device = self.adapter_agent.get_device(device.parent_id)
+        if parent_device.type == 'openolt':
+            parent_adapter = registry('adapter_loader').get_agent(parent_device.adapter).adapter
+            self.log.info('parent-adapter-delete-onu', onu_device=device,
+                          parent_device=parent_device,
+                          parent_adapter=parent_adapter)
+            try:
+                parent_adapter.delete_child_device(parent_device.id, device)
+            except AttributeError:
+                self.log.debug('parent-device-delete-child-not-implemented')
 
     @inlineCallbacks
     def update_flow_table(self, device, flows):
@@ -1724,6 +1743,18 @@ class BroadcomOnuHandler(object):
             device.oper_status = OperStatus.UNKNOWN
             device.connect_status = ConnectStatus.UNREACHABLE
             self.adapter_agent.update_device(device)
+            # Disable in parent device (OLT)
+            parent_device = self.adapter_agent.get_device(device.parent_id)
+
+            if parent_device.type == 'openolt':
+                parent_adapter = registry('adapter_loader').get_agent(parent_device.adapter).adapter
+                self.log.info('parent-adapter-disable-onu', onu_device=device,
+                              parent_device=parent_device,
+                              parent_adapter=parent_adapter)
+                try:
+                    parent_adapter.disable_child_device(parent_device.id, device)
+                except AttributeError:
+                    self.log.debug('parent-device-disable-child-not-implemented')
         except Exception as e:
             log.exception('exception-in-onu-disable', exception=e)
 
