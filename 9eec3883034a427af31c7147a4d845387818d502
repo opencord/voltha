@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "17f8d4fa_3c603ba4",
+        "filename": "voltha/extensions/alarms/adapter_alarms.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 92,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-07-19T21:18:51Z",
+      "side": 1,
+      "message": "Why not just use dict(context_data) ?\nIs the goal just to get a copy ?",
+      "range": {
+        "startLine": 88,
+        "startChar": 12,
+        "endLine": 92,
+        "endChar": 53
+      },
+      "revId": "9eec3883034a427af31c7147a4d845387818d502",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
