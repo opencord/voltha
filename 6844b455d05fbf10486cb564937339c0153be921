@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "15d642b6_7cfb9dcb",
+        "filename": "voltha/adapters/openolt/alarms/adapter_alarms.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 61,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-07-19T18:40:15Z",
+      "side": 1,
+      "message": "See line 74",
+      "range": {
+        "startLine": 57,
+        "startChar": 11,
+        "endLine": 61,
+        "endChar": 53
+      },
+      "revId": "6844b455d05fbf10486cb564937339c0153be921",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f088cab0_d7b8dbcd",
+        "filename": "voltha/adapters/openolt/alarms/adapter_alarms.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 74,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-07-19T18:40:15Z",
+      "side": 1,
+      "message": "Can be replaced with dict(context_data) to create a copy",
+      "range": {
+        "startLine": 74,
+        "startChar": 24,
+        "endLine": 74,
+        "endChar": 39
+      },
+      "revId": "6844b455d05fbf10486cb564937339c0153be921",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fb4dd666_e2705bfc",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 820,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-07-19T18:40:15Z",
+      "side": 1,
+      "message": "You are missing a rebase, just take what is in red",
+      "range": {
+        "startLine": 818,
+        "startChar": 15,
+        "endLine": 820,
+        "endChar": 49
+      },
+      "revId": "6844b455d05fbf10486cb564937339c0153be921",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
