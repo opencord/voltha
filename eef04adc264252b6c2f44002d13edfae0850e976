@@ -16,6 +16,24 @@
       "revId": "eef04adc264252b6c2f44002d13edfae0850e976",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "2f065315_bbbad49b",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 520,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-07-20T03:15:09Z",
+      "side": 1,
+      "message": "Type above. I meant it will break ASFvOLT16 adapter working with Broadcom onu",
+      "parentUuid": "e1c8d626_17267db3",
+      "revId": "eef04adc264252b6c2f44002d13edfae0850e976",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
