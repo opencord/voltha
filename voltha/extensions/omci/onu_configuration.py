@@ -124,6 +124,7 @@ class OnuConfiguration(object):
             '_cardholder': None,
             '_circuit_pack': None,
             '_software': None,
+            '_pptp': None
         }
 
     @property
@@ -451,5 +452,36 @@ class OnuConfiguration(object):
                     results[inst] = {
                         'entity-id':               inst,
                         'management-capability':   inst_data[ATTRIBUTES_KEY].get('management_capability', 0)
+                    }
+        return results if len(results) else None
+
+    @property
+    def pptp_entities(self):
+        """
+        Returns discovered PPTP Ethernet entities.  TODO more detail here
+        """
+        pptp = self._get_capability('_pptp', PptpEthernetUni.class_id)
+        results = dict()
+
+        if pptp is not None:
+            for inst, inst_data in pptp.items():
+                if isinstance(inst, int):
+                    results[inst] = {
+                        'entity-id':                inst,
+                        'expected-type':            inst_data[ATTRIBUTES_KEY].get('expected_type', 0),
+                        'sensed-type':              inst_data[ATTRIBUTES_KEY].get('sensed_type', 0),
+                        'autodetection-config':     inst_data[ATTRIBUTES_KEY].get('autodetection_config', 0),
+                        'ethernet-loopback-config': inst_data[ATTRIBUTES_KEY].get('ethernet_loopback_config', 0),
+                        'administrative-state':     inst_data[ATTRIBUTES_KEY].get('administrative_state', 0),
+                        'operational-state':        inst_data[ATTRIBUTES_KEY].get('operational_state', 0),
+                        'config-ind':               inst_data[ATTRIBUTES_KEY].get('config_ind', 0),
+                        'max-frame-size':           inst_data[ATTRIBUTES_KEY].get('max_frame_size', 0),
+                        'dte-dce-ind':              inst_data[ATTRIBUTES_KEY].get('dte_dce_ind', 0),
+                        'pause-time':               inst_data[ATTRIBUTES_KEY].get('pause_time', 0),
+                        'bridged-ip-ind':           inst_data[ATTRIBUTES_KEY].get('bridged_ip_ind', 0),
+                        'arc':                      inst_data[ATTRIBUTES_KEY].get('arc', 0),
+                        'arc-interval':             inst_data[ATTRIBUTES_KEY].get('arc_interval', 0),
+                        'pppoe-filter':             inst_data[ATTRIBUTES_KEY].get('ppoe_filter', 0),
+                        'power-control':            inst_data[ATTRIBUTES_KEY].get('power_control', 0)
                     }
         return results if len(results) else None

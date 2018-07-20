@@ -503,59 +503,84 @@ class OpenoltDevice(object):
 
             # Prepare onu configuration
 
-            # onu initialization, base configuration (bridge setup ...)
-            def onu_initialization():
+            ## If we are using the old/current broadcom adapter otherwise use the openomci adapter
+            if onu_device.adapter == 'broadcom_onu':
+                self.log.debug('using-broadcom_onu')
 
-                # FIXME: that's definitely cheating
-                if onu_device.adapter == 'broadcom_onu':
+                # onu initialization, base configuration (bridge setup ...)
+                def onu_initialization():
+
                     onu_adapter_agent.adapter.devices_handlers[onu_device.id] \
-                            .message_exchange(cvid=DEFAULT_MGMT_VLAN)
+                                     .message_exchange(cvid=DEFAULT_MGMT_VLAN)
                     self.log.debug('broadcom-message-exchange-started')
 
-            # tcont creation (onu)
-            tcont = TcontsConfigData()
-            tcont.alloc_id = platform.mk_alloc_id(onu_indication.onu_id)
+                # tcont creation (onu)
+                tcont = TcontsConfigData()
+                tcont.alloc_id = platform.mk_alloc_id(onu_indication.onu_id)
 
-            # gem port creation
-            gem_port = GemportsConfigData()
-            gem_port.gemport_id = platform.mk_gemport_id(onu_indication.onu_id)
+                # gem port creation
+                gem_port = GemportsConfigData()
+                gem_port.gemport_id = platform.mk_gemport_id(onu_indication.onu_id)
 
-            # ports creation/update
-            def port_config():
+                # ports creation/update
+                def port_config():
 
-                # "v_enet" creation (olt)
+                    # "v_enet" creation (olt)
 
-                # add_port update port when it exists
-                self.adapter_agent.add_port(
-                    self.device_id,
-                    Port(
-                        port_no=uni_no,
-                        label=uni_name,
-                        type=Port.ETHERNET_UNI,
-                        admin_state=AdminState.ENABLED,
-                        oper_status=OperStatus.ACTIVE))
+                    # add_port update port when it exists
+                    self.adapter_agent.add_port(
+                        self.device_id,
+                        Port(
+                            port_no=uni_no,
+                            label=uni_name,
+                            type=Port.ETHERNET_UNI,
+                            admin_state=AdminState.ENABLED,
+                            oper_status=OperStatus.ACTIVE))
 
-                # v_enet creation (onu)
+                    # v_enet creation (onu)
 
-                venet = VEnetConfig(name=uni_name)
-                venet.interface.name = uni_name
-                onu_adapter_agent.create_interface(onu_device, venet)
+                    venet = VEnetConfig(name=uni_name)
+                    venet.interface.name = uni_name
+                    onu_adapter_agent.create_interface(onu_device, venet)
 
-            # ONU device status update in the datastore
-            def onu_update_oper_status():
-                onu_device.oper_status = OperStatus.ACTIVE
-                onu_device.connect_status = ConnectStatus.REACHABLE
-                self.adapter_agent.update_device(onu_device)
+                # ONU device status update in the datastore
+                def onu_update_oper_status():
+                    onu_device.oper_status = OperStatus.ACTIVE
+                    onu_device.connect_status = ConnectStatus.REACHABLE
+                    self.adapter_agent.update_device(onu_device)
 
-            # FIXME : the asynchronicity has to be taken care of properly
-            onu_initialization()
-            reactor.callLater(10, onu_adapter_agent.create_tcont,
-                              device=onu_device, tcont_data=tcont,
-                              traffic_descriptor_data=None)
-            reactor.callLater(11, onu_adapter_agent.create_gemport, onu_device,
-                              gem_port)
-            reactor.callLater(12, port_config)
-            reactor.callLater(12, onu_update_oper_status)
+                # FIXME : the asynchronicity has to be taken care of properly
+                onu_initialization()
+                reactor.callLater(10, onu_adapter_agent.create_tcont,
+                                  device=onu_device, tcont_data=tcont,
+                                  traffic_descriptor_data=None)
+                reactor.callLater(11, onu_adapter_agent.create_gemport, onu_device,
+                                  gem_port)
+                reactor.callLater(12, port_config)
+                reactor.callLater(12, onu_update_oper_status)
+
+            elif onu_device.adapter == 'brcm_openomci_onu':
+                self.log.debug('using-brcm_openomci_onu')
+
+                # tcont creation (onu)
+                tcont = TcontsConfigData()
+                tcont.alloc_id = platform.mk_alloc_id(onu_indication.onu_id)
+
+                # gem port creation
+                gem_port = GemportsConfigData()
+                gem_port.gemport_id = platform.mk_gemport_id(onu_indication.onu_id)
+                gem_port.tcont_ref = str(tcont.alloc_id)
+
+                self.log.info('inject-tcont-gem-data-onu-handler', onu_indication=onu_indication,
+                              tcont=tcont, gem_port=gem_port)
+
+                onu_adapter_agent.create_interface(onu_device, onu_indication)
+                onu_adapter_agent.create_tcont(onu_device, tcont, traffic_descriptor_data=None)
+                onu_adapter_agent.create_gemport(onu_device, gem_port)
+
+            else:
+                self.log.warn('unsupported-openolt-onu-adapter')
+
 
         else:
             self.log.warn('Not-implemented-or-invalid-value-of-oper-state',
