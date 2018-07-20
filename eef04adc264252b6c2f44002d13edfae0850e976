@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "e1c8d626_17267db3",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 520,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-07-20T03:11:05Z",
+      "side": 1,
+      "message": "The general philosophy for inter-adapter communication in voltha is to use inter-adapter channels. That way the adapters can register for for certain events from peers and process it if needed. This direct API call on the parent adapter may work between OpenOlt and Broadcom ONU, but will break Edgecore working with BroadCom ONU.",
+      "revId": "eef04adc264252b6c2f44002d13edfae0850e976",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
