@@ -69,6 +69,29 @@
       "revId": "9eec3883034a427af31c7147a4d845387818d502",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "2890e88b_d4301f5c",
+        "filename": "voltha/extensions/alarms/onu/onu_discovery_alarm.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1000453
+      },
+      "writtenOn": "2018-07-20T17:15:08Z",
+      "side": 1,
+      "message": "Should this be critical?    ONUs will show a lot of activity where they will go on and off line.",
+      "range": {
+        "startLine": 25,
+        "startChar": 2,
+        "endLine": 26,
+        "endChar": 2
+      },
+      "revId": "9eec3883034a427af31c7147a4d845387818d502",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
