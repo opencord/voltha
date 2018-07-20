@@ -164,6 +164,30 @@
       "revId": "9eec3883034a427af31c7147a4d845387818d502",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "edab6444_0a056d34",
+        "filename": "voltha/extensions/alarms/onu/onu_discovery_alarm.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-07-20T20:19:18Z",
+      "side": 1,
+      "message": "I agree with Mike that the default should be lower. CRITICAL will likely be reserved to the loss of multiple customers (losing a PON port, an OLT ...)",
+      "parentUuid": "08431fcf_e6468b7c",
+      "range": {
+        "startLine": 25,
+        "startChar": 2,
+        "endLine": 26,
+        "endChar": 2
+      },
+      "revId": "9eec3883034a427af31c7147a4d845387818d502",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
