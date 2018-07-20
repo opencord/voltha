@@ -22,6 +22,30 @@
       "revId": "9eec3883034a427af31c7147a4d845387818d502",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "8cdc6a80_bdfa6784",
+        "filename": "voltha/extensions/alarms/adapter_alarms.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 92,
+      "author": {
+        "id": 1000453
+      },
+      "writtenOn": "2018-07-20T16:03:26Z",
+      "side": 1,
+      "message": "Passing the dict without converting all the values to strings will cause an exception in the adapter_agent.create_alarm.   The adapter_agent.create alarm expects a dictionary of strings.  Passing an integer or other object type as a value in the dict without converting to a string will fail.    If we want to make this less error prone the conversion to a dict of strings could be done in the adapter_agent , with error checking if the context does not contain a dict.",
+      "parentUuid": "17f8d4fa_3c603ba4",
+      "range": {
+        "startLine": 88,
+        "startChar": 12,
+        "endLine": 92,
+        "endChar": 53
+      },
+      "revId": "9eec3883034a427af31c7147a4d845387818d502",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
