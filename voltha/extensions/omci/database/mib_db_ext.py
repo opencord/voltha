@@ -546,11 +546,25 @@ class MibDbExternal(MibDbApi):
                        instance_id=instance_id, attributes=attributes)
 
         now = self._time_to_string(datetime.utcnow())
-        attrs = [MibAttributeData(name=k,
-                                  value=self._attribute_to_string(device_id,
-                                                                  class_id,
-                                                                  k,
-                                                                  v)) for k, v in attributes.items()]
+#        attrs = [MibAttributeData(name=k,
+#                                  value=self._attribute_to_string(device_id,
+#                                                                  class_id,
+#                                                                  k,
+#                                                                  v)) for k, v in attributes.items()]
+        attrs = []
+        for k, v in attributes.items():
+            self.log.debug("New class items", k, v)
+            if k == 'serial_number':
+                vendor_id = str(v[0:4])
+                vendor_specific = v[4:]
+                vendor_specific = str(vendor_specific.encode('hex'))
+                str_value=vendor_id+vendor_specific
+                self.log.debug("Fix hex in serial_number: {} ".format(str_value))
+                attrs.append(MibAttributeData(name=k, value=str_value))
+            else:
+                str_value = self._attribute_to_string(device_id, class_id, k, v)
+                attrs.append(MibAttributeData(name=k, value=str_value))
+
         class_data = MibClassData(class_id=class_id,
                                   instances=[MibInstanceData(instance_id=instance_id,
                                                              created=now,
@@ -578,11 +592,25 @@ class MibDbExternal(MibDbApi):
                        instance_id=instance_id, attributes=attributes)
 
         now = self._time_to_string(datetime.utcnow())
-        attrs = [MibAttributeData(name=k,
-                                  value=self._attribute_to_string(device_id,
-                                                                  class_id,
-                                                                  k,
-                                                                  v)) for k, v in attributes.items()]
+#        attrs = [MibAttributeData(name=k,
+#                                  value=self._attribute_to_string(device_id,
+#                                                                  class_id,
+#                                                                  k,
+#                                                                  v)) for k, v in attributes.items()]
+        attrs = []
+        for k, v in attributes.items():
+            self.log.debug("New instance items", k, v)
+            if k == 'serial_number':
+                vendor_id = str(v[0:4])
+                vendor_specific = v[4:]
+                vendor_specific = str(vendor_specific.encode('hex'))
+                str_value=vendor_id+vendor_specific
+                self.log.debug("Fix hex in serial_number: {} ".format(str_value))
+                attrs.append(MibAttributeData(name=k, value=str_value))
+            else:
+                str_value = self._attribute_to_string(device_id, class_id, k, v)
+                attrs.append(MibAttributeData(name=k, value=str_value))
+
         instance_data = MibInstanceData(instance_id=instance_id,
                                         created=now,
                                         modified=now,
@@ -633,6 +661,7 @@ class MibDbExternal(MibDbApi):
             dev_proxy = self._device_proxy(device_id)
 
             try:
+                self.log.debug("Getting class id {}", MibDbExternal.CLASS_PATH.format(class_id))
                 class_data = dev_proxy.get(MibDbExternal.CLASS_PATH.format(class_id), deep=True)
 
                 inst_data = next((inst for inst in class_data.instances
@@ -654,6 +683,7 @@ class MibDbExternal(MibDbApi):
                 new_attributes = []
 
                 for k, v in attributes.items():
+                    self.log.debug("Attributes items", k, v)
                     try:
                         str_value = self._attribute_to_string(device_id, class_id, k, v)
                         new_attributes.append(MibAttributeData(name=k, value=str_value))
@@ -682,6 +712,7 @@ class MibDbExternal(MibDbApi):
 
             except KeyError:
                 # Here if the class-id does not yet exist in the database
+                self.log.warn("Key Not Found, adding...", class_id)
                 return self._add_new_class(device_id, class_id, instance_id,
                                            attributes)
         except Exception as e:
