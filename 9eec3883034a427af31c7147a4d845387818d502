@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "1691307a_5b73c757",
+        "filename": "voltha/extensions/alarms/README.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-07-20T17:40:48Z",
+      "side": 1,
+      "message": "Yes, but it needs to be defined in the protobuf file and you had made that change in your OpenOLT submission.  If I tried to change it as well, the first review merge would cause the next merge to have a merge conflict and a rebase needed.\n\nSince I know we need to add more alarm defs here, I was going to add it after your openolt merge was accepted",
+      "parentUuid": "88829d5e_814b926f",
+      "range": {
+        "startLine": 46,
+        "startChar": 0,
+        "endLine": 46,
+        "endChar": 0
+      },
+      "revId": "9eec3883034a427af31c7147a4d845387818d502",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "17f8d4fa_3c603ba4",
         "filename": "voltha/extensions/alarms/adapter_alarms.py",
         "patchSetId": 1
@@ -72,6 +96,30 @@
     },
     {
       "key": {
+        "uuid": "32040198_f8cedd63",
+        "filename": "voltha/extensions/alarms/adapter_alarms.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 92,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-07-20T17:40:48Z",
+      "side": 1,
+      "message": "I believe this is why I did it this way (or could have cut\u0026pasted it that way from the original sample I worked on)",
+      "parentUuid": "8cdc6a80_bdfa6784",
+      "range": {
+        "startLine": 88,
+        "startChar": 12,
+        "endLine": 92,
+        "endChar": 53
+      },
+      "revId": "9eec3883034a427af31c7147a4d845387818d502",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "2890e88b_d4301f5c",
         "filename": "voltha/extensions/alarms/onu/onu_discovery_alarm.py",
         "patchSetId": 1
@@ -83,6 +131,30 @@
       "writtenOn": "2018-07-20T17:15:08Z",
       "side": 1,
       "message": "Should this be critical?    ONUs will show a lot of activity where they will go on and off line.",
+      "range": {
+        "startLine": 25,
+        "startChar": 2,
+        "endLine": 26,
+        "endChar": 2
+      },
+      "revId": "9eec3883034a427af31c7147a4d845387818d502",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "08431fcf_e6468b7c",
+        "filename": "voltha/extensions/alarms/onu/onu_discovery_alarm.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-07-20T17:40:48Z",
+      "side": 1,
+      "message": "It may depend on the operator\u0027s preference.  This is something we need to have defined for us by the SEBA folks for each and every alarm anyway.\n\nIn the long run, we may have one or more that will differ by operator and will need a mechanism to alter a specific alarm severity.",
+      "parentUuid": "2890e88b_d4301f5c",
       "range": {
         "startLine": 25,
         "startChar": 2,
