@@ -2,6 +2,29 @@
   "comments": [
     {
       "key": {
+        "uuid": "88829d5e_814b926f",
+        "filename": "voltha/extensions/alarms/README.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1000453
+      },
+      "writtenOn": "2018-07-20T17:04:59Z",
+      "side": 1,
+      "message": "Do we need to add logical_device_id?  That will mean adding to the voltha/protos/events.proto",
+      "range": {
+        "startLine": 46,
+        "startChar": 0,
+        "endLine": 46,
+        "endChar": 0
+      },
+      "revId": "9eec3883034a427af31c7147a4d845387818d502",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "17f8d4fa_3c603ba4",
         "filename": "voltha/extensions/alarms/adapter_alarms.py",
         "patchSetId": 1
