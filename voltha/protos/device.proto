@@ -30,6 +30,7 @@ message DeviceType {
 
     bool accepts_bulk_flow_update = 3;
     bool accepts_add_remove_flow_updates = 4;
+    bool accepts_direct_logical_flows_update = 7;
 
 }
 
