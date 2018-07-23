@@ -56,6 +56,23 @@
       "revId": "2814b64d72a1bb0263ffc12850f33b3114c80bb8",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "bd09bbdb_a567a831",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_get_mds_task.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 20,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-07-23T15:22:08Z",
+      "side": 1,
+      "message": "You can probably use the base class method of this.  If you can set _omci_managed to True and test it and it works, then you can omit this task and use the default one.  Also, if it works, you can probably use the default implementation of the MIB Sync state machine.\n\nThe ADTRAN ONU that I am currently working with is a business class unit and is primarily netconf managed. The developers for some reason decided not to support the MDS value and always reports zero.  So what I did to customize the MDS step is to always return what OpenOMCI thinks the value should be and then increase the forced MIB sync step to catch any differences.\n\nA new unit (model) I have does support this MDS value, but I\u0027m holding of working on it in order to get PM running and help Jason and Lin on the Alarms and Download sections of code.  When I do, I will be able to detect after pulling down the model number and that is where I will set the _omci_managed flag.  If you have similar issues with BroadCom based ONUs, then keep this and we can do fine tuning in a later sprint.",
+      "revId": "2814b64d72a1bb0263ffc12850f33b3114c80bb8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
