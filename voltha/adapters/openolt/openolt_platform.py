@@ -139,3 +139,24 @@ def intf_id_to_port_no(intf_id, intf_type):
 
 def intf_id_from_nni_port_num(port_num):
     return port_num - 128
+
+def extract_access_from_flow(in_port, out_port):
+    if is_upstream(in_port, out_port):
+        return (intf_id_from_uni_port_num(in_port), onu_id_from_port_num(
+            in_port))
+    else:
+        return (intf_id_from_uni_port_num(out_port), onu_id_from_port_num(
+            out_port))
+
+def is_upstream(in_port, out_port):
+    #FIXME
+    if out_port in [128, 129, 130, 131, 0xfffd, 0xfffffffd]:
+        return True
+    # if in_port not in [128, 129, 130, 131]:
+    #     return True
+
+    return False
+
+def is_downstream(in_port, out_port):
+    return not is_upstream(in_port, out_port)
+

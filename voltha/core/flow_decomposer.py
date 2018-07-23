@@ -335,6 +335,22 @@ def get_group(flow):
 def has_group(flow):
     return get_group(flow) is not None
 
+def mk_oxm_fields(match_fields):
+    oxm_fields=[
+        ofp.ofp_oxm_field(
+            oxm_class=ofp.OFPXMC_OPENFLOW_BASIC,
+            ofb_field=field
+        ) for field in match_fields
+        ]
+
+    return oxm_fields
+
+def mk_instructions_from_actions(actions):
+    instructions_action = ofp.ofp_instruction_actions()
+    instructions_action.actions.extend(actions)
+    instruction = ofp.ofp_instruction(type=ofp.OFPIT_APPLY_ACTIONS,
+                                      actions=instructions_action)
+    return [instruction]
 
 def mk_simple_flow_mod(match_fields, actions, command=ofp.OFPFC_ADD,
                        next_table_id=None, **kw):
