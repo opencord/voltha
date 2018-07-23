@@ -1,0 +1,61 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9c1b9073_9a844e44",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_capabilities_task.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 53,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-07-23T15:12:07Z",
+      "side": 1,
+      "message": "For the broadcom adapters, you may not need this method.  The Adtran ONU that I am currently using does not support the OMCI ME, so this is why I have it overloaded for my adapter.\n\nFor the T\u0026W, it does support the OMCI ME but only the get-supported-ME request.   Getting the supported message types returns a value with the right size, but the data contents are garbage.  I have not file a report with T\u0026W yet.\n\nSo for this, method, you may want to delete it if your ONU\u0027s work well.",
+      "range": {
+        "startLine": 53,
+        "startChar": 39,
+        "endLine": 53,
+        "endChar": 41
+      },
+      "revId": "2814b64d72a1bb0263ffc12850f33b3114c80bb8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "8b19aeea_8a183430",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_capabilities_task.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 79,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-07-23T15:12:07Z",
+      "side": 1,
+      "message": "As mentioned above, the T\u0026W sends garbage back from this, so you may want to change the \u0027self._omci_managed\u0027 below to be.\n\nif vendor_id !\u003d TWSW:\n    return super(BcrmCapabilitiesTask, self).supported_message_types)",
+      "revId": "2814b64d72a1bb0263ffc12850f33b3114c80bb8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "6a1c569b_e26120b3",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_capabilities_task.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 135,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-07-23T15:12:07Z",
+      "side": 1,
+      "message": "I am betting most broadcom ONUs can handle the default implementation for this method. I would suggest omitting this and seeing if it works as expected.\n\nThe T\u0026W however fails on the support_message_types portion, or at least the ones I have do.  So you may want to create your own \u0027get_supported_message_types\u0027 method and do the expected OMCI ME sequence if not T\u0026W. If T\u0026W, just returnValue the set of messages in the EntityOperations above. That is what the T\u0026W supports",
+      "revId": "2814b64d72a1bb0263ffc12850f33b3114c80bb8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
