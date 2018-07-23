@@ -23,6 +23,7 @@ import structlog
 
 from common.event_bus import EventBusClient
 from common.frameio.frameio import hexify
+from voltha.registry import registry
 from voltha.core.config.config_proxy import CallbackType
 from voltha.core.device_graph import DeviceGraph
 from voltha.core.flow_decomposer import FlowDecomposer, \
@@ -80,6 +81,10 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
 
             self._routes = None
             self._no_flow_changes_required = False
+            self._flows_ids_to_add = []
+            self._flows_ids_to_remove = []
+
+
 
         except Exception, e:
             self.log.exception('init-error', e=e)
@@ -546,10 +551,10 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         current_flow_ids = set(f.id for f in current_flows.items)
         desired_flow_ids = set(f.id for f in flows.items)
 
-        ids_to_add = desired_flow_ids.difference(current_flow_ids)
-        ids_to_del = current_flow_ids.difference(desired_flow_ids)
+        self._flows_ids_to_add = desired_flow_ids.difference(current_flow_ids)
+        self._flows_ids_to_remove = current_flow_ids.difference(desired_flow_ids)
 
-        if len(ids_to_add) + len(ids_to_del) == 0:
+        if len(self._flows_ids_to_add) + len(self._flows_ids_to_remove) == 0:
             # No changes of flows, just stats are changing
             self._no_flow_changes_required = True
         else:
@@ -565,18 +570,58 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             self.log.debug('flow-stats-update')
         else:
 
+            groups = self.groups_proxy.get('/').items
+
             # TODO we have to evolve this into a policy-based, event based pattern
             # This is a raw implementation of the specific use-case with certain
             # built-in assumptions, and not yet device vendor specific. The policy-
             # based refinement will be introduced that later.
 
-            groups = self.groups_proxy.get('/').items
+            voltha_device_id = self.self_proxy.get('/').root_device_id
+            device_adapter_type = self.root_proxy.get('/devices/{}'.format(
+                voltha_device_id)).adapter
+
+            self.log.debug('adapter type found',
+                           adapter=device_adapter_type,
+                           logical_device=self.logical_device_id,
+                           device_id=voltha_device_id)
+
+            # Temporary bypass for openolt
+
+            if device_adapter_type == 'openolt':
+                #give the logical flows directly to the adapter
+                self.log.debug('it is an openolt logical flow bypass')
+                device_adapter_agent = registry(
+                    'adapter_loader').get_agent(device_adapter_type).adapter
+                self.log.debug('adapter agent found',
+                               adapter_agent=device_adapter_agent)
+
+                flows_to_add = []
+                flows_to_remove = []
+                for f in flows.items:
+                    if f.id in self._flows_ids_to_add:
+                        flows_to_add.append(f)
+                    if f.id in self._flows_ids_to_remove:
+                        flows_to_remove.append(f)
+
+                try:
+                    device_adapter_agent.update_logical_flows(
+                        voltha_device_id, flows_to_add, flows_to_remove, groups)
+                except Exception as e:
+                    self.log.error('logical flows bypass error', error=e,
+                                   flows=flows)
+
+
             device_rules_map = self.decompose_rules(flows.items, groups)
             for device_id, (flows, groups) in device_rules_map.iteritems():
-                self.root_proxy.update('/devices/{}/flows'.format(device_id),
-                                       Flows(items=flows.values()))
-                self.root_proxy.update('/devices/{}/flow_groups'.format(device_id),
-                                       FlowGroups(items=groups.values()))
+                if device_adapter_type == 'openolt' and device_id == \
+                        voltha_device_id:
+                    pass
+                else:
+                    self.root_proxy.update('/devices/{}/flows'.format(device_id),
+                                           Flows(items=flows.values()))
+                    self.root_proxy.update('/devices/{}/flow_groups'.format(device_id),
+                                           FlowGroups(items=groups.values()))
 
     # ~~~~~~~~~~~~~~~~~~~~ GROUP TABLE UPDATE HANDLING ~~~~~~~~~~~~~~~~~~~~~~~~
 
