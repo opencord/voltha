@@ -34,6 +34,24 @@
       "revId": "eef04adc264252b6c2f44002d13edfae0850e976",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "71a2482b_7a08a3a5",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 520,
+      "author": {
+        "id": 1000443
+      },
+      "writtenOn": "2018-07-23T19:24:58Z",
+      "side": 1,
+      "message": "Hi Girish. This is a temporary fixed until the adapter code is refactored. The try, catch should prevent it from breaking if the parent adapter doesn\u0027t contain a delete_child_device method. But I will add an if statement to check if it\u0027s an openolt device.",
+      "parentUuid": "2f065315_bbbad49b",
+      "revId": "eef04adc264252b6c2f44002d13edfae0850e976",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
