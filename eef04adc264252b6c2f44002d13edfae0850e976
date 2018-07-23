@@ -52,6 +52,42 @@
       "revId": "eef04adc264252b6c2f44002d13edfae0850e976",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b4032489_b762253c",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 520,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-07-23T19:49:39Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "2f065315_bbbad49b",
+      "revId": "eef04adc264252b6c2f44002d13edfae0850e976",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9f1437fc_95f557ff",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 520,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-07-23T19:49:39Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "e1c8d626_17267db3",
+      "revId": "eef04adc264252b6c2f44002d13edfae0850e976",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
