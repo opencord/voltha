@@ -17,7 +17,10 @@ package core
 
 import (
 	"context"
-	"crypto/tls"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/google/gopacket"
 	"github.com/opencord/voltha/ponsim/v2/common"
@@ -25,10 +28,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
-	"google.golang.org/grpc/credentials"
-	"strconv"
-	"strings"
-	"time"
 )
 
 // TODO: Pass-in the certificate information as a structure parameter
@@ -191,18 +190,11 @@ func (o *PonSimOltDevice) ConnectToRemoteOnu(onu *OnuRegistree) error {
 		"host":   host,
 	}).Debug("Formatting host address")
 
-	// TODO: make it secure
-	ta := credentials.NewTLS(&tls.Config{
-		//Certificates:       []tls.Certificate{peerCert},
-		//RootCAs:            caCertPool,
-		InsecureSkipVerify: true,
-	})
-
 	// GRPC communication needs to be secured
 	if onu.Conn, err = grpc.DialContext(
 		context.Background(),
 		host,
-		grpc.WithTransportCredentials(ta),
+		grpc.WithInsecure(),
 	); err != nil {
 		common.Logger().WithFields(logrus.Fields{
 			"device": o,

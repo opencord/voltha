@@ -17,8 +17,10 @@ package nbi
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
+	"strconv"
+	"strings"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
@@ -27,13 +29,7 @@ import (
 	"github.com/opencord/voltha/protos/go/voltha"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	"strconv"
-	"strings"
 )
-
-// TODO: Cleanup GRPC security config
-// TODO: Pass-in the certificate information as a structure parameter
 
 type PonSimHandler struct {
 	device core.PonSimInterface
@@ -199,10 +195,6 @@ func (handler *PonSimHandler) UpdateFlowTable(
 			}).Debug("Updating ONU flows")
 
 			if child, ok := (handler.device).(*core.PonSimOltDevice).GetOnus()[table.Port]; ok {
-				// TODO: make it secure
-				ta := credentials.NewTLS(&tls.Config{
-					InsecureSkipVerify: true,
-				})
 
 				host := strings.Join([]string{
 					child.Device.Address,
@@ -211,7 +203,7 @@ func (handler *PonSimHandler) UpdateFlowTable(
 
 				conn, err := grpc.Dial(
 					host,
-					grpc.WithTransportCredentials(ta),
+					grpc.WithInsecure(),
 				)
 				if err != nil {
 					common.Logger().WithFields(logrus.Fields{
@@ -289,15 +281,11 @@ func (handler *PonSimHandler) GetStats(
 		// Loop through each onus to get stats from those as well?
 		// send grpc request to each onu
 		for _, child := range (handler.device).(*core.PonSimOltDevice).GetOnus() {
-			// TODO: make it secure
-			ta := credentials.NewTLS(&tls.Config{
-				InsecureSkipVerify: true,
-			})
 
 			host := strings.Join([]string{child.Device.Address, strconv.Itoa(int(child.Device.Port))}, ":")
 			conn, err := grpc.Dial(
 				host,
-				grpc.WithTransportCredentials(ta),
+				grpc.WithInsecure(),
 			)
 			if err != nil {
 				common.Logger().WithFields(logrus.Fields{

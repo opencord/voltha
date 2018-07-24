@@ -17,7 +17,11 @@ package core
 
 import (
 	"context"
-	"crypto/tls"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/google/gopacket"
 	"github.com/google/uuid"
@@ -25,11 +29,6 @@ import (
 	"github.com/opencord/voltha/protos/go/ponsim"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	"strconv"
-	"strings"
-	"sync"
-	"time"
 )
 
 // TODO: Cleanup GRPC security config
@@ -376,16 +375,8 @@ func (o *PonSimOnuDevice) ConnectToRemoteOlt() {
 		strconv.Itoa(int(o.ParentPort)),
 	}, ":")
 
-	// TODO: make it secure
-	// GRPC communication needs to be secured
-	ta := credentials.NewTLS(&tls.Config{
-		//Certificates:       []tls.Certificate{peerCert},
-		//RootCAs:            caCertPool,
-		InsecureSkipVerify: true,
-	})
-
 	if o.Conn, err = grpc.DialContext(
-		context.Background(), host, grpc.WithTransportCredentials(ta), grpc.WithBlock(),
+		context.Background(), host, grpc.WithInsecure(), grpc.WithBlock(),
 	); err != nil {
 		common.Logger().WithFields(logrus.Fields{
 			"device": o,

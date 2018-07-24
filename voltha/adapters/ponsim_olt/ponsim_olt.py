@@ -370,30 +370,7 @@ class PonSimOltHandler(object):
         if self.channel is None:
             device = self.adapter_agent.get_device(self.device_id)
 
-            # read in certificate
-            try:
-                with open('/voltha/pki/voltha-CA.pem') as f:
-                    trusted_certs = f.read()
-
-                with open('/voltha/pki/voltha.crt') as f:
-                    client_cert = f.read()
-
-                with open('/voltha/pki/voltha.key') as f:
-                    client_key = f.read()
-            except Exception as e:
-                log.error('failed-to-read-cert-keys', reason=e)
-
-            # create credentials
-            credentials = grpc.ssl_channel_credentials(
-                root_certificates=trusted_certs, private_key=client_key,
-                certificate_chain=client_cert)
-
-            # create channel using ssl credentials
-            my_server_host_override_string = "ABCD"  # Server's CN Name, Ugly but no other Choice.
-            self.channel = grpc.secure_channel(device.host_and_port,
-                                               credentials, options=((
-                                                                         'grpc.ssl_target_name_override',
-                                                                         my_server_host_override_string,),))
+            self.channel = grpc.insecure_channel(device.host_and_port)
 
         return self.channel
 
