@@ -390,10 +390,10 @@ class PonSimOltHandler(object):
 
             # create channel using ssl credentials
             my_server_host_override_string = "ABCD"  # Server's CN Name, Ugly but no other Choice.
-            self.channel = grpc.secure_channel(device.host_and_port,
-                                               credentials, options=((
-                                                                         'grpc.ssl_target_name_override',
-                                                                         my_server_host_override_string,),))
+            self.channel = grpc.insecure_channel(device.host_and_port,
+                                                options=((
+                                                            'grpc.ssl_target_name_override',
+                                                            my_server_host_override_string,),))
 
         return self.channel
 
