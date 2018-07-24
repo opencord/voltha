@@ -34,6 +34,24 @@
       "revId": "1fb0e5c24ea3fff8c11b3973255bcaeb374f01d2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "cf447bcc_70adead4",
+        "filename": "voltha/core/logical_device_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 591,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-07-24T23:37:02Z",
+      "side": 1,
+      "message": "Nick, I suggest doing something similar to accepts_bulk_flow_update. Add a field accepts_logical_flow in DeviceType. OpenOLT adapter sets this to true. Other adapters will not set this field and so the default will be false for them. Then you are not doing the check specifically for openolt adapter here. I think this is a more general approach.",
+      "parentUuid": "7fa29b8e_d01b89db",
+      "revId": "1fb0e5c24ea3fff8c11b3973255bcaeb374f01d2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
