@@ -16,6 +16,24 @@
       "revId": "1fb0e5c24ea3fff8c11b3973255bcaeb374f01d2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7fa29b8e_d01b89db",
+        "filename": "voltha/core/logical_device_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 591,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-07-24T20:53:06Z",
+      "side": 1,
+      "message": "For the other adapters the logical flows are decomposed (line 614) and modified and then added to the voltha flows (lines 621 - 624). Then The addition of those flows triggers a callback that pushes thoses flows to the adapters.\n\nIn openolt I implemented a bypass to work directly on the logical flows and then add to the voltha flows something that is closer to the reality.\n\nThe other adapters do not work directly off of the logical flows and therefore it is openolt specific (at least for now). I have suggested to change that in the new voltha core",
+      "parentUuid": "4b460860_87ab5c10",
+      "revId": "1fb0e5c24ea3fff8c11b3973255bcaeb374f01d2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
