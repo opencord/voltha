@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "4b460860_87ab5c10",
+        "filename": "voltha/core/logical_device_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 591,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-07-24T20:44:52Z",
+      "side": 1,
+      "message": "Why is this specific to openolt?",
+      "revId": "1fb0e5c24ea3fff8c11b3973255bcaeb374f01d2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
