@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "29a0512a_fd597aac",
+        "filename": "voltha/core/logical_device_agent.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 628,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-07-25T18:15:57Z",
+      "side": 1,
+      "message": "This indicates that all the logical device flows will be sent as-is to the OLT.   However, for ONU the flows will be decomposed and then sent to the ONU.   Is this the intent?",
+      "revId": "2f41a4bf0eeb46422bb3a3a8a25009909a7610af",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
