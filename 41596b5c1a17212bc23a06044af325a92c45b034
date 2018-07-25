@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5bfacc99_5dc9c55f",
+        "filename": "voltha/extensions/pki/README.md",
+        "patchSetId": 3
+      },
+      "lineNbr": 100,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2018-07-25T18:49:15Z",
+      "side": 1,
+      "message": "is this a list or a map?\nin the json example below it\u0027s a map",
+      "range": {
+        "startLine": 100,
+        "startChar": 0,
+        "endLine": 100,
+        "endChar": 17
+      },
+      "revId": "41596b5c1a17212bc23a06044af325a92c45b034",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
