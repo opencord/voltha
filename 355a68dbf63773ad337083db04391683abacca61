@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "f3666412_f2b6af13",
+        "filename": "cli/main.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 325,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2018-07-25T21:37:29Z",
+      "side": 1,
+      "message": "curious why this matters?",
+      "revId": "355a68dbf63773ad337083db04391683abacca61",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
