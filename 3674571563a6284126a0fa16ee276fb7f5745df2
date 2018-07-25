@@ -16,6 +16,24 @@
       "revId": "3674571563a6284126a0fa16ee276fb7f5745df2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "99db0f3e_ca5acce7",
+        "filename": "cli/main.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 364,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2018-07-25T21:35:52Z",
+      "side": 1,
+      "message": "+1, in fact, I don\u0027t think this should be merged until a move away from parsing text error messages. Is the function being called throwing explicit exceptions, so that instead of catch just Exception the code can catch a NotFoundException or an AlreadyEnabledException. The argument could be made that this would be a better solution.\n\nIt could also be argued that neither Not Found or Already Enabled are true exceptions as those are expected results and in that case the called method should not exception, but return known results that indicate the state.",
+      "parentUuid": "08513d1d_84fba550",
+      "revId": "3674571563a6284126a0fa16ee276fb7f5745df2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
