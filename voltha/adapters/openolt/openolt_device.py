@@ -21,7 +21,7 @@ import grpc
 import structlog
 from twisted.internet import reactor
 from scapy.layers.l2 import Ether, Dot1Q
-from transitions import Machine, State
+from transitions import Machine
 
 from voltha.protos.device_pb2 import Port, Device
 from voltha.protos.common_pb2 import OperStatus, AdminState, ConnectStatus
@@ -44,6 +44,7 @@ import voltha.adapters.openolt.openolt_platform as platform
 from voltha.adapters.openolt.openolt_flow_mgr import OpenOltFlowMgr, \
         DEFAULT_MGMT_VLAN
 from voltha.adapters.openolt.openolt_alarms import OpenOltAlarmMgr
+from voltha.adapters.openolt.openolt_bw import OpenOltBW
 
 
 class OpenoltDevice(object):
@@ -172,9 +173,11 @@ class OpenoltDevice(object):
 
         self.stub = openolt_pb2_grpc.OpenoltStub(self.channel)
         self.flow_mgr = OpenOltFlowMgr(self.log, self.stub, self.device_id)
-        self.alarm_mgr = OpenOltAlarmMgr(self.log, self.adapter_agent, self.device_id,
+        self.alarm_mgr = OpenOltAlarmMgr(self.log, self.adapter_agent,
+                                         self.device_id,
                                          self.logical_device_id)
         self.stats_mgr = OpenOltStatisticsMgr(self, self.log)
+        self.bw_mgr = OpenOltBW(self.log, self.proxy)
 
     def do_state_up(self, event):
         device = self.adapter_agent.get_device(self.device_id)
@@ -338,6 +341,10 @@ class OpenoltDevice(object):
         self.log.debug("onu discovery indication", intf_id=intf_id,
                        serial_number=serial_number_str)
 
+        pir = self.bw_mgr.pir(serial_number_str)
+        self.log.debug("peak information rate", serial_number=serial_number,
+                       pir=pir)
+
         onu_device = self.adapter_agent.get_child_device(
             self.device_id,
             serial_number=serial_number_str)
@@ -352,7 +359,7 @@ class OpenoltDevice(object):
                 self.log.info("activate-onu", intf_id=intf_id, onu_id=onu_id,
                               serial_number=serial_number_str)
                 onu = openolt_pb2.Onu(intf_id=intf_id, onu_id=onu_id,
-                                      serial_number=serial_number)
+                                      serial_number=serial_number, pir=pir)
                 self.stub.ActivateOnu(onu)
             except Exception as e:
                 self.log.exception('onu-activation-failed', e=e)
@@ -383,7 +390,7 @@ class OpenoltDevice(object):
                 self.adapter_agent.update_device(onu_device)
 
                 onu = openolt_pb2.Onu(intf_id=intf_id, onu_id=onu_id,
-                                      serial_number=serial_number)
+                                      serial_number=serial_number, pir=pir)
                 self.stub.ActivateOnu(onu)
             else:
                 self.log.warn('unexpected state', onu_id=onu_id,
@@ -649,7 +656,6 @@ class OpenoltDevice(object):
                   logical_port_no=logical_port_num)
         self.adapter_agent.send_packet_in(packet=str(pkt), **kw)
 
-
     def packet_out(self, egress_port, msg):
         pkt = Ether(msg)
         self.log.info('packet out', egress_port=egress_port,
@@ -846,15 +852,13 @@ class OpenoltDevice(object):
                 except grpc.RpcError as grpc_e:
                     if grpc_e.code() == grpc.StatusCode.ALREADY_EXISTS:
                         self.log.warn('flow already exists', e=grpc_e,
-                                       flow=flow)
+                                      flow=flow)
                     else:
                         self.log.error('failed to add flow', flow=flow,
                                        e=grpc_e)
                 except Exception as e:
                     self.log.error('failed to add flow', flow=flow, e=e)
 
-
-    # There has to be a better way to do this
     def ip_hex(self, ip):
         octets = ip.split(".")
         hex_ip = []
@@ -918,8 +922,10 @@ class OpenoltDevice(object):
                        onu_device=child_device,
                        onu_serial_number=child_device.serial_number)
         vendor_id = child_device.vendor_id.encode('hex')
-        vendor_specific = child_device.serial_number.replace(child_device.vendor_id,'').encode('hex')
-        serial_number = openolt_pb2.SerialNumber(vendor_id=vendor_id, vendor_specific=vendor_specific)
+        vendor_specific = child_device.serial_number.replace(
+            child_device.vendor_id, '').encode('hex')
+        serial_number = openolt_pb2.SerialNumber(
+            vendor_id=vendor_id, vendor_specific=vendor_specific)
         onu = openolt_pb2.Onu(intf_id=child_device.proxy_address.channel_id,
                               onu_id=child_device.proxy_address.onu_id,
                               serial_number=serial_number)
@@ -931,8 +937,10 @@ class OpenoltDevice(object):
                        onu_device=child_device,
                        onu_serial_number=child_device.serial_number)
         vendor_id = child_device.vendor_id.encode('hex')
-        vendor_specific = child_device.serial_number.replace(child_device.vendor_id,'').encode('hex')
-        serial_number = openolt_pb2.SerialNumber(vendor_id=vendor_id, vendor_specific=vendor_specific)
+        vendor_specific = child_device.serial_number.replace(
+            child_device.vendor_id, '').encode('hex')
+        serial_number = openolt_pb2.SerialNumber(
+            vendor_id=vendor_id, vendor_specific=vendor_specific)
         onu = openolt_pb2.Onu(intf_id=child_device.proxy_address.channel_id,
                               onu_id=child_device.proxy_address.onu_id,
                               serial_number=serial_number)
