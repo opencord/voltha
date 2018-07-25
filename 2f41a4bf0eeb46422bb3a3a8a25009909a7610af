@@ -16,6 +16,24 @@
       "revId": "2f41a4bf0eeb46422bb3a3a8a25009909a7610af",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "82178140_68af4a18",
+        "filename": "voltha/core/logical_device_agent.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 628,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-07-25T18:33:31Z",
+      "side": 1,
+      "message": "It is the intent for now. The openolt adapter can deal with the logical flows directly the onu adapter currently cannot",
+      "parentUuid": "29a0512a_fd597aac",
+      "revId": "2f41a4bf0eeb46422bb3a3a8a25009909a7610af",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
