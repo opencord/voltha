@@ -510,7 +510,8 @@ class OpenoltDevice(object):
 
             # Prepare onu configuration
 
-            ## If we are using the old/current broadcom adapter otherwise use the openomci adapter
+            # If we are using the old/current broadcom adapter otherwise
+            # use the openomci adapter
             if onu_device.adapter == 'broadcom_onu':
                 self.log.debug('using-broadcom_onu')
 
@@ -527,7 +528,8 @@ class OpenoltDevice(object):
 
                 # gem port creation
                 gem_port = GemportsConfigData()
-                gem_port.gemport_id = platform.mk_gemport_id(onu_indication.onu_id)
+                gem_port.gemport_id = platform.mk_gemport_id(
+                    onu_indication.onu_id)
 
                 # ports creation/update
                 def port_config():
@@ -561,8 +563,8 @@ class OpenoltDevice(object):
                 reactor.callLater(10, onu_adapter_agent.create_tcont,
                                   device=onu_device, tcont_data=tcont,
                                   traffic_descriptor_data=None)
-                reactor.callLater(11, onu_adapter_agent.create_gemport, onu_device,
-                                  gem_port)
+                reactor.callLater(11, onu_adapter_agent.create_gemport,
+                                  onu_device, gem_port)
                 reactor.callLater(12, port_config)
                 reactor.callLater(12, onu_update_oper_status)
 
@@ -575,19 +577,21 @@ class OpenoltDevice(object):
 
                 # gem port creation
                 gem_port = GemportsConfigData()
-                gem_port.gemport_id = platform.mk_gemport_id(onu_indication.onu_id)
+                gem_port.gemport_id = platform.mk_gemport_id(
+                    onu_indication.onu_id)
                 gem_port.tcont_ref = str(tcont.alloc_id)
 
-                self.log.info('inject-tcont-gem-data-onu-handler', onu_indication=onu_indication,
-                              tcont=tcont, gem_port=gem_port)
+                self.log.info('inject-tcont-gem-data-onu-handler',
+                              onu_indication=onu_indication, tcont=tcont,
+                              gem_port=gem_port)
 
                 onu_adapter_agent.create_interface(onu_device, onu_indication)
-                onu_adapter_agent.create_tcont(onu_device, tcont, traffic_descriptor_data=None)
+                onu_adapter_agent.create_tcont(onu_device, tcont,
+                                               traffic_descriptor_data=None)
                 onu_adapter_agent.create_gemport(onu_device, gem_port)
 
             else:
                 self.log.warn('unsupported-openolt-onu-adapter')
-
 
         else:
             self.log.warn('Not-implemented-or-invalid-value-of-oper-state',
@@ -825,6 +829,10 @@ class OpenoltDevice(object):
                 hex(ord(vendor_specific[3]) & 0x0f)[2:]])
 
     def update_flow_table(self, flows):
+        if not self.is_state_up() and not self.is_state_connected():
+            self.log.info('OLT is down, ignore update flow table')
+            return
+
         device = self.adapter_agent.get_device(self.device_id)
         self.log.debug('update flow table', number_of_flows=len(flows))
         in_port = None
