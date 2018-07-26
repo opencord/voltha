@@ -43,6 +43,7 @@ class OnuDeviceEvents(IntEnum):
     DeviceStatusEvent = 0       # OnuDeviceEntry running status changed
     MibDatabaseSyncEvent = 1    # MIB database sync changed
     OmciCapabilitiesEvent = 2   # OMCI ME and message type capabilities
+    AlarmDatabaseSyncEvent = 3  # Alarm database sync changed
 
     # TODO: Add other events here as needed
 
@@ -101,6 +102,16 @@ class OnuDeviceEntry(object):
             self._pm_intervals_sm = interval_info['state-machine'](self._omci_agent, device_id,
                                                                    interval_info['tasks'],
                                                                    advertise_events=advertise)
+
+            # ONU ALARM Synchronization state machine
+            self._alarm_db_in_sync = False
+            alarm_synchronizer_info = support_classes.get('alarm-syncronizer')
+            advertise = alarm_synchronizer_info['advertise-events']
+            self._alarm_sync_sm = alarm_synchronizer_info['state-machine'](self._omci_agent,
+                                                                           device_id,
+                                                                           alarm_synchronizer_info['tasks'],
+                                                                           mib_db,
+                                                                           advertise_events=advertise)
         except Exception as e:
             self.log.exception('state-machine-create-failed', e=e)
             raise
@@ -111,6 +122,7 @@ class OnuDeviceEntry(object):
         self._on_start_state_machines = [       # Run when 'start()' called
             self._mib_sync_sm,
             self._capabilities_sm,
+            self._alarm_sync_sm,
         ]
         self._on_sync_state_machines = [        # Run after first in_sync event
             self._pm_intervals_sm
@@ -172,6 +184,13 @@ class OnuDeviceEntry(object):
         return self._pm_intervals_sm
 
     @property
+    def alarm_synchronizer(self):
+        """
+        Reference to the OpenOMCI Alarm Synchronization state machine for this ONU
+        """
+        return self._alarm_sync_sm
+
+    @property
     def active(self):
         """
         Is the ONU device currently active/running
@@ -216,6 +235,29 @@ class OnuDeviceEntry(object):
             msg = {
                 IN_SYNC_KEY: self._mib_db_in_sync,
                 LAST_IN_SYNC_KEY: self.mib_synchronizer.last_mib_db_sync
+            }
+            self.event_bus.publish(topic=topic, msg=msg)
+
+    @property
+    def alarm_db_in_sync(self):
+        return self._alarm_db_in_sync
+
+    @alarm_db_in_sync.setter
+    def alarm_db_in_sync(self, value):
+        if self._alarm_db_in_sync != value:
+            # Save value
+            self._alarm_db_in_sync = value
+
+            # Start up other state machines if needed
+            if self._first_in_sync:
+                self.first_in_sync_event()
+
+            # Notify any event listeners
+            topic = OnuDeviceEntry.event_bus_topic(self.device_id,
+                                                   OnuDeviceEvents.AlarmDatabaseSyncEvent)
+            msg = {
+                IN_SYNC_KEY: self._alarm_db_in_sync,
+                LAST_IN_SYNC_KEY: self.alarm_synchronizer.last_alarm_sync_time
             }
             self.event_bus.publish(topic=topic, msg=msg)
 

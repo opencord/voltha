@@ -53,7 +53,9 @@ class OmciCCRxEvents(IntEnum):
     Alarm_Notification = 6,
     Test_Result = 7,
     MIB_Reset = 8,
-    Connectivity = 9
+    Connectivity = 9,
+    Get_ALARM_Get = 10,
+    Get_ALARM_Get_Next = 11
 
 
 # abbreviations
@@ -71,6 +73,9 @@ class OMCI_CC(object):
         OmciCreateResponse.message_id: RxEvent.Create,
         OmciDeleteResponse.message_id: RxEvent.Delete,
         OmciSetResponse.message_id: RxEvent.Set,
+        OmciGetAllAlarmsResponse.message_id: RxEvent.Get_ALARM_Get,
+        OmciGetAllAlarmsNextResponse.message_id: RxEvent.Get_ALARM_Get_Next
+
     }
 
     def __init__(self, adapter_agent, device_id, me_map=None,
@@ -654,4 +659,16 @@ class OMCI_CC(object):
         self.log.debug('send-mib-reboot')
 
         frame = OntGFrame().reboot()
+        return self.send(frame, timeout)
+
+    def send_get_all_alarm(self, alarm_retrival_mode=0, timeout=DEFAULT_OMCI_TIMEOUT):
+        self.log.debug('send_get_alarm')
+
+        frame = OntDataFrame().get_all_alarm(alarm_retrival_mode)
+        return self.send(frame, timeout)
+
+    def send_get_all_alarm_next(self, seq_no, timeout=DEFAULT_OMCI_TIMEOUT):
+        self.log.debug('send_get_alarm_next')
+
+        frame = OntDataFrame().get_all_alarm_next(seq_no)
         return self.send(frame, timeout)

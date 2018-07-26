@@ -151,12 +151,19 @@ class OpenoltDevice(object):
         self.channel = grpc.insecure_channel(self.host_and_port)
         self.channel_ready_future = grpc.channel_ready_future(self.channel)
 
-        # Start indications thread
-        self.indications_thread_handle = threading.Thread(
-            target=self.indications_thread)
-        self.indications_thread_handle.daemon = True
-        self.indications_thread_handle.start()
-
+        # Catch RuntimeError exception
+        try:
+            # Start indications thread
+            self.indications_thread_handle = threading.Thread(
+                target=self.indications_thread)
+            # Old getter/setter API for daemon; use it directly as a 
+            # property instead. The Jinkins error will happon on the reason of
+            # Exception in thread Thread-1 (most likely raised # during 
+            # interpreter shutdown)
+            self.indications_thread_handle.setDaemon(True)
+            self.indications_thread_handle.start()
+        except Exception as e: 
+            self.log.exception('do_state_init failed', e=e)
         '''
         # FIXME - Move to oper_up state without connecting to OLT?
         if is_reconciliation:

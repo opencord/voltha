@@ -138,5 +138,6 @@ def tmp_cls_loader(module_name, cls_name):
         bbf_fiber_tcont_body_pb2, bbf_fiber_gemport_body_pb2, \
         bbf_fiber_multicast_gemport_body_pb2, \
         bbf_fiber_multicast_distribution_set_body_pb2, \
-        omci_mib_db_pb2
+        omci_mib_db_pb2, \
+        omci_alarm_db_pb2
     return getattr(locals()[module_name], cls_name)

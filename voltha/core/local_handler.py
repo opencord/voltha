@@ -37,6 +37,7 @@ from voltha.protos.common_pb2 import OperationResp
 from voltha.protos.bbf_fiber_base_pb2 import AllMulticastDistributionSetData, AllMulticastGemportsConfigData
 from voltha.registry import registry
 from voltha.protos.omci_mib_db_pb2 import MibDeviceData
+from voltha.protos.omci_alarm_db_pb2 import AlarmDeviceData
 from requests.api import request
 from common.utils.asleep import asleep
 
@@ -1355,3 +1356,23 @@ class LocalHandler(VolthaLocalServiceServicer):
             context.set_code(StatusCode.NOT_FOUND)
             return MibDeviceData()
 
+    @twisted_async
+    def GetAlarmDeviceData(self, request, context):
+        log.info('grpc-request', request=request)
+
+        depth = int(dict(context.invocation_metadata()).get('get-depth', -1))
+
+        if '/' in request.id:
+            context.set_details(
+                'Malformed device id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return AlarmDeviceData()
+
+        try:
+            return self.root.get('/omci_alarms/' + request.id, depth=depth)
+
+        except KeyError:
+            context.set_details(
+                'OMCI ALARM for Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return AlarmDeviceData()
