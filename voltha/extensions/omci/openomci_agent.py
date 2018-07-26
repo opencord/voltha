@@ -21,6 +21,11 @@ from voltha.extensions.omci.tasks.mib_upload import MibUploadTask
 from voltha.extensions.omci.tasks.get_mds_task import GetMdsTask
 from voltha.extensions.omci.tasks.mib_resync_task import MibResyncTask
 from voltha.extensions.omci.tasks.sync_time_task import SyncTimeTask
+from voltha.extensions.omci.state_machines.Alarm_sync import AlarmSynchronizer
+from voltha.extensions.omci.tasks.alarm_sync_data import  AlarmSyncDataTask
+from voltha.extensions.omci.tasks.alarm_check_task import AlarmDataTask
+from voltha.extensions.omci.tasks.alarm_resync_task import AlarmResyncTask
+from voltha.extensions.omci.database.alarm_db_ext import AlarmDbExternal
 from voltha.extensions.omci.tasks.interval_data_task import IntervalDataTask
 from voltha.extensions.omci.onu_device_entry import OnuDeviceEntry
 from voltha.extensions.omci.state_machines.omci_onu_capabilities import OnuOmciCapabilities
@@ -59,15 +64,18 @@ OpenOmciAgentDefaults = {
             'create-pm': OmciCreatePMRequest,
             'delete-pm': OmciDeletePMRequest,
         },
-    }
-    # 'alarm-syncronizer': {
-    #     'state-machine': AlarmSynchronizer,  # Implements the Alarm sync state machine
-    #     'database': AlarmDb,                 # For any State storage needs
-    #     'tasks': {
-    #         'task-1': needToWrite,
-    #         'task-2': needToWrite,
-    #     }
-    # }
+    },
+     'alarm-syncronizer': {
+         'state-machine': AlarmSynchronizer,    # Implements the Alarm sync state machine
+         'database': AlarmDbExternal,           # For any State storage needs
+         'advertise-events': True,             # Advertise events on OpenOMCI event bus
+         'tasks': {
+             'alarm-sync': AlarmSyncDataTask,
+             'alarm-check': AlarmDataTask,
+             'alarm-resync': AlarmResyncTask,
+             'alarm-audit': AlarmDataTask
+         }
+     }
 }
 
 
@@ -99,8 +107,8 @@ class OpenOMCIAgent(object):
         self._mib_database_cls = support_classes['mib-synchronizer']['database']
 
         # Alarm Synchronization Database # TODO: Stretch goal for VOLTHA v1.3.0
-        # self._alarm_db = None
-        # self._alarm_database_cls = self._alarm_synchronizer_info['database']
+        self._alarm_db = None
+        self._alarm_database_cls = support_classes['alarm-syncronizer']['database']
 
     @property
     def core(self):
@@ -129,10 +137,13 @@ class OpenOMCIAgent(object):
                 self._mib_db = self._mib_database_cls(self)
 
             # TODO Alarm DB
+            if self._alarm_db is None:
+                self._alarm_db = self._alarm_database_cls(self)
 
             # Start/restore databases
 
             self._mib_db.start()
+            self._alarm_db.start()
 
             for device in self._devices.itervalues():
                 device.start()
@@ -157,6 +168,7 @@ class OpenOMCIAgent(object):
 
         # DB shutdown
         self._mib_db.stop()
+        self._alarm_db.stop()
 
     def mk_event_bus(self):
         """ Get the event bus for OpenOMCI"""

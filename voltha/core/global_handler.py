@@ -1759,3 +1759,21 @@ class GlobalHandler(VolthaGlobalServiceServicer):
         else:
             log.debug('grpc-success-response', response=response)
             returnValue(response)
+
+    @twisted_async
+    @inlineCallbacks
+    def GetAlarmDeviceData(self, request, context):
+        log.info('grpc-request', request=request)
+        response = yield self.dispatcher.dispatch('GetAlarmDeviceData',
+                                                  request,
+                                                  context,
+                                                  id=request.id)
+        log.debug('grpc-response', response=response)
+        if isinstance(response, DispatchError):
+            log.warn('grpc-error-response', error=response.error_code)
+            context.set_details('Device \'{}\' error'.format(request.id))
+            context.set_code(response.error_code)
+            returnValue(AlarmDeviceData())
+        else:
+            log.debug('grpc-success-response', response=response)
+            returnValue(response)

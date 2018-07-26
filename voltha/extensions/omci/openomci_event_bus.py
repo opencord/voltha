@@ -18,6 +18,7 @@ from google.protobuf.message import Message
 from simplejson import dumps
 from common.event_bus import EventBusClient
 from voltha.protos.omci_mib_db_pb2 import OpenOmciEvent
+from voltha.protos.omci_alarm_db_pb2 import AlarmOpenOmciEvent
 from common.utils.json_format import MessageToDict
 
 
@@ -43,8 +44,11 @@ class OpenOmciEventBus(object):
         else:
             msg = str(data)
 
-        event = OpenOmciEvent(
-            type=event_type,
-            data=msg
+        event_func = AlarmOpenOmciEvent if 'AlarmSynchronizer' in msg \
+                                  else OpenOmciEvent
+        event = event_func(
+                type=event_type,
+                data=msg
         )
+
         self._event_bus_client.publish(self._topic, event)

@@ -339,3 +339,35 @@ class MEFrame(object):
                     minute=dt.minute,
                     second=dt.second,
             ))
+
+    def get_all_alarm(self, alarm_retrieval_mode):
+        """
+        Create a Alarm request from for this ME
+        :return: (OmciFrame) OMCI Frame
+        """
+        self._check_operation(OP.GetAllAlarms)
+
+        return OmciFrame(
+            transaction_id=None,
+            message_type=OmciGetAllAlarms.message_id,
+            omci_message=OmciGetAllAlarms(
+                entity_class=getattr(self.entity_class, 'class_id'),
+                entity_id=getattr(self, 'entity_id'),
+                alarm_retrieval_mode=self._entity_id.mask_for(alarm_retrieval_mode)
+            ))
+
+    def get_all_alarm_next(self, command_sequence_number):
+        """
+        Create a Alarm request from for this ME
+        :return: (OmciFrame) OMCI Frame
+        """
+        self._check_operation(OP.GetAllAlarmsNext)
+
+        return OmciFrame(
+            transaction_id=None,
+            message_type=OmciGetAllAlarmsNext.message_id,
+            omci_message=OmciGetAllAlarmsNext(
+                entity_class=getattr(self.entity_class, 'class_id'),
+                entity_id=getattr(self, 'entity_id'),
+                command_sequence_number=command_sequence_number
+            ))
