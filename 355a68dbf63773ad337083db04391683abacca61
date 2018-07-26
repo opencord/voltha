@@ -16,6 +16,24 @@
       "revId": "355a68dbf63773ad337083db04391683abacca61",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "310c80ae_55f0543c",
+        "filename": "cli/main.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 325,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2018-07-26T12:17:59Z",
+      "side": 1,
+      "message": "David, right now the system doesn\u0027t recognize as valid (well, it does but then the provisioning of the device goes nowhere..) MAC addresses the ones that are input upper case. With this change both lower and upper case mac addresses should be equivalent",
+      "parentUuid": "f3666412_f2b6af13",
+      "revId": "355a68dbf63773ad337083db04391683abacca61",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
