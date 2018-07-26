@@ -140,6 +140,10 @@ message VolthaInstance {
     repeated
         omci.MibDeviceData omci_mibs = 28
         [(child_node) = {key: "device_id"}];
+
+    repeated
+        omci.AlarmDeviceData omci_alarms = 29
+        [(child_node) = {key: "device_id"}];
 }
 
 message VolthaInstances {
@@ -202,6 +206,10 @@ message Voltha {
 
     repeated
         omci.MibDeviceData omci_mib_database = 28
+        [(child_node) = {key: "device_id"}];
+
+    repeated
+        omci.AlarmDeviceData omci_alarm_database = 29
         [(child_node) = {key: "device_id"}];
 }
 
@@ -956,6 +964,13 @@ service VolthaGlobalService {
             get: "/api/v1/openomci/{id}/mib"
         };
     }
+
+    // OpenOMCI ALARM information
+    rpc GetAlarmDeviceData(ID) returns(omci.AlarmDeviceData) {
+        option (google.api.http) = {
+            get: "/api/v1/openomci/{id}/alarm"
+        };
+    }
 }
 
 /*
@@ -1689,6 +1704,13 @@ service VolthaLocalService {
     rpc GetMibDeviceData(ID) returns(omci.MibDeviceData) {
         option (google.api.http) = {
             get: "/api/v1/openomci/{id}/mib"
+        };
+    }
+
+    // OpenOMCI ALARM information
+    rpc GetAlarmDeviceData(ID) returns(omci.AlarmDeviceData) {
+        option (google.api.http) = {
+            get: "/api/v1/openomci/{id}/alarm"
         };
     }
 }
