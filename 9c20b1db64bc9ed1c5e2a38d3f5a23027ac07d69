@@ -1,0 +1,129 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1afa6595_319445c8",
+        "filename": "voltha/extensions/omci/state_machines/Alarm_sync.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 98,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-07-26T19:33:46Z",
+      "side": 1,
+      "message": "perhaps a better name for this function besides on_create_response since it is a \u0027get_alarm\u0027 handler",
+      "revId": "9c20b1db64bc9ed1c5e2a38d3f5a23027ac07d69",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "73afd524_c200012b",
+        "filename": "voltha/extensions/omci/state_machines/Alarm_sync.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 279,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-07-26T19:33:46Z",
+      "side": 1,
+      "message": "Until you have an in-sync state that you transition to, you may want to add a hard-coded 15 second wait here instead of 0 seconds.\n\nWhen you enter this state, you immediately schedule the alarm-check-task which will, after doing and OMCI sequence, immediately send out a success.  That might result in a very tight loop and tie up the CPU.",
+      "range": {
+        "startLine": 279,
+        "startChar": 52,
+        "endLine": 279,
+        "endChar": 53
+      },
+      "revId": "9c20b1db64bc9ed1c5e2a38d3f5a23027ac07d69",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7b2d92f1_2e6aeee9",
+        "filename": "voltha/extensions/omci/state_machines/Alarm_sync.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 281,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-07-26T19:33:46Z",
+      "side": 1,
+      "message": "I do not see a mismatch trigger in your transitions table. you might want to add one to transition back to this same state after a 15 second delay.\n\nThen when you get to the Audit/resync story, you can point it to the auditing state.",
+      "revId": "9c20b1db64bc9ed1c5e2a38d3f5a23027ac07d69",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3a134d34_22c37286",
+        "filename": "voltha/extensions/omci/state_machines/Alarm_sync.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 318,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-07-26T19:33:46Z",
+      "side": 1,
+      "message": "In the omci_messages.py file, the \u0027alarm_bit_map\u0027 is listed as a fixed length string.  We may want to change that to a FieldListField type.   There are examples of that in the omci_entities.py file.  It will probably allow for cleaner looking code once you start to process the alarms.\n\nYou can do that after this review so you do not have to send another change set for this one.  So far things look great.",
+      "revId": "9c20b1db64bc9ed1c5e2a38d3f5a23027ac07d69",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1520d1af_a3925d20",
+        "filename": "voltha/extensions/omci/state_machines/Alarm_sync.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 348,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-07-26T19:33:46Z",
+      "side": 1,
+      "message": "wrong event check here.  Should be RxEvent.Get_ALARM_Get\n\nAlso, Do you even need to process the  Get_All_Alarms  topic in the state machine since it just returns the number of \u0027get-alarm-next\u0027s you need?\n\nI\u0027m thinking that you are using this to set the last-sync time in the database, but this actually happens at the beginning of the alarm synchronization, not at the end.  You may want to and an in-sync state and transition to that state after the alarm upload is complete.  Then set the last-sync time on entry to that state.",
+      "revId": "9c20b1db64bc9ed1c5e2a38d3f5a23027ac07d69",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ef39444a_63f271b8",
+        "filename": "voltha/extensions/omci/tasks/alarm_check_task.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 82,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-07-26T19:33:46Z",
+      "side": 1,
+      "message": "Might want to fix the comment here",
+      "revId": "9c20b1db64bc9ed1c5e2a38d3f5a23027ac07d69",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "999cf3d9_c8083cb9",
+        "filename": "voltha/extensions/omci/tasks/alarm_check_task.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 93,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-07-26T19:33:46Z",
+      "side": 1,
+      "message": "this might be better named alarm_sequence_number.  When I first looked at it, I got confused and thought that you might be doing a new alarm upload.",
+      "revId": "9c20b1db64bc9ed1c5e2a38d3f5a23027ac07d69",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
