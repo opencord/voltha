@@ -116,6 +116,30 @@
       "revId": "0c2120a8b2791f37e6a0ad3f57957fcc83089973",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d9e851a2_55a7fdf3",
+        "filename": "voltha/extensions/alarms/olt/olt_los_alarm.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 20,
+      "author": {
+        "id": 1000453
+      },
+      "writtenOn": "2018-07-27T20:18:59Z",
+      "side": 1,
+      "message": "We should leave the OltLosAlarm in place, but I will remove the onu_id reference and upload.  There is a correct OnuLosAlarm under the alarms/onu",
+      "parentUuid": "ede5f51c_72ee0316",
+      "range": {
+        "startLine": 20,
+        "startChar": 33,
+        "endLine": 20,
+        "endChar": 41
+      },
+      "revId": "0c2120a8b2791f37e6a0ad3f57957fcc83089973",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
