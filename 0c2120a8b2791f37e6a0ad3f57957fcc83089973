@@ -68,6 +68,30 @@
       "revId": "0c2120a8b2791f37e6a0ad3f57957fcc83089973",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "0c1e884d_fca3d09a",
+        "filename": "voltha/extensions/alarms/olt/olt_los_alarm.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 20,
+      "author": {
+        "id": 1000453
+      },
+      "writtenOn": "2018-07-27T19:55:56Z",
+      "side": 1,
+      "message": "I agree with this but this was part of original code posts by Chip.  So I suggest we wait fro him to comment",
+      "parentUuid": "3284bd21_d597cbca",
+      "range": {
+        "startLine": 20,
+        "startChar": 33,
+        "endLine": 20,
+        "endChar": 41
+      },
+      "revId": "0c2120a8b2791f37e6a0ad3f57957fcc83089973",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
