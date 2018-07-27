@@ -1497,7 +1497,7 @@ class BroadcomOnuHandler(object):
             port_no = parent_port_num
         else:
             uni = self.uni_ports[0]
-            port_no = device.proxy_address.channel_id + uni    
+            port_no = device.proxy_address.channel_id + uni
             # register physical ports
         uni_port = Port(
             port_no=uni,
@@ -1743,6 +1743,7 @@ class BroadcomOnuHandler(object):
             device.oper_status = OperStatus.UNKNOWN
             device.connect_status = ConnectStatus.UNREACHABLE
             self.adapter_agent.update_device(device)
+            '''
             # Disable in parent device (OLT)
             parent_device = self.adapter_agent.get_device(device.parent_id)
 
@@ -1755,6 +1756,7 @@ class BroadcomOnuHandler(object):
                     parent_adapter.disable_child_device(parent_device.id, device)
                 except AttributeError:
                     self.log.debug('parent-device-disable-child-not-implemented')
+            '''
         except Exception as e:
             log.exception('exception-in-onu-disable', exception=e)
 
