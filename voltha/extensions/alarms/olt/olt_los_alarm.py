@@ -18,7 +18,7 @@ from voltha.extensions.alarms.adapter_alarms import AlarmBase
 
 class OltLosAlarm(AlarmBase):
     def __init__(self, alarm_mgr, onu_id, intf_id):
-        super(OltLosAlarm, self).__init__(alarm_mgr, 'olt LOS',
+        super(OltLosAlarm, self).__init__(alarm_mgr, object_type='olt LOS',
                                           alarm='LOS',
                                           alarm_category=AlarmEventCategory.OLT,
                                           alarm_type=AlarmEventType.COMMUNICATION,
