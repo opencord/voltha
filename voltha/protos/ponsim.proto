@@ -13,9 +13,14 @@ import "bbf_fiber_multicast_gemport_body.proto";
 import "bbf_fiber_tcont_body.proto";
 import "bbf_fiber_traffic_descriptor_profile_body.proto";
 
+message PonSimOnuDeviceInfo {
+    int32 uni_port = 1;
+    string serial_number = 2;
+}
+
 message PonSimDeviceInfo {
     int32 nni_port = 1;
-    repeated int32 uni_ports = 2;
+    repeated PonSimOnuDeviceInfo onus = 2;
 }
 
 message FlowTable {

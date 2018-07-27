@@ -49,6 +49,7 @@ const (
 	default_parent_port    = 50060
 	default_vcore_endpoint = "vcore"
 	default_fluentd_host   = ""
+	default_serial_number  = "PSMO12345678"
 
 	default_snapshot_len = 65535
 	default_promiscuous  = false
@@ -82,6 +83,7 @@ var (
 	parent_port    int    = default_parent_port
 	vcore_endpoint string = default_vcore_endpoint
 	fluentd_host   string = default_fluentd_host
+	serial_number  string = default_serial_number
 
 	snapshot_len int32 = default_snapshot_len
 	promiscuous  bool  = default_promiscuous
@@ -157,6 +159,9 @@ func parseArgs() {
 
 	help = fmt.Sprintf("Fluentd host address")
 	flag.StringVar(&fluentd_host, "fluentd", default_fluentd_host, help)
+
+	help = fmt.Sprintf("Serial number of ONU device")
+	flag.StringVar(&serial_number, "serial_number", default_serial_number, help)
 
 	flag.Parse()
 }
@@ -274,6 +279,7 @@ func main() {
 		device = core.NewPonSimOnuDevice(pon)
 		device.(*core.PonSimOnuDevice).ParentAddress = parent_addr
 		device.(*core.PonSimOnuDevice).ParentPort = int32(parent_port)
+		device.(*core.PonSimOnuDevice).SerialNumber = serial_number
 
 	default:
 		log.Println("Unknown device type")

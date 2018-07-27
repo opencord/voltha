@@ -128,25 +128,28 @@ func (handler *PonSimHandler) GetDeviceInfo(
 		"handler": handler,
 	}).Info("Getting device information")
 
-	var out *voltha.PonSimDeviceInfo
+	out := &voltha.PonSimDeviceInfo{}
 
 	// Check which device type we're currently handling
 	if _, ok := (handler.device).(*core.PonSimOltDevice); ok {
 		common.Logger().WithFields(logrus.Fields{
 			"handler": handler,
 		}).Debug("Handling OLT device")
-		keys := make([]int32, 0, len((handler.device).(*core.PonSimOltDevice).GetOnus()))
-		for k := range (handler.device).(*core.PonSimOltDevice).GetOnus() {
-			keys = append(keys, k)
+		onus := (handler.device).(*core.PonSimOltDevice).GetOnus()
+		for k := range onus {
+			out.Onus = append(
+				out.Onus,
+				&voltha.PonSimOnuDeviceInfo {
+					UniPort: k,
+					SerialNumber: onus[k].Device.SerialNumber,
+				},
+			)
 		}
-		out = &voltha.PonSimDeviceInfo{NniPort: 0, UniPorts: []int32(keys)}
-
+		out.NniPort = 0
 	} else {
 		common.Logger().WithFields(logrus.Fields{
 			"handler": handler,
 		}).Debug("Handling ONU/OTHER device")
-
-		out = &voltha.PonSimDeviceInfo{}
 	}
 
 	common.Logger().WithFields(logrus.Fields{
