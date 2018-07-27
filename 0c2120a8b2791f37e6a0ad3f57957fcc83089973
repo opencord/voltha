@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "cf399adf_cd42cbad",
+        "filename": "voltha/adapters/openolt/openolt_alarms.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 221,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-07-27T19:43:40Z",
+      "side": 1,
+      "message": "Change this to onu_id, it is the commonly used term, onu_intf_id is confusing in my opinion",
+      "range": {
+        "startLine": 221,
+        "startChar": 29,
+        "endLine": 221,
+        "endChar": 40
+      },
+      "revId": "0c2120a8b2791f37e6a0ad3f57957fcc83089973",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "59cfe0f0_5ff9cb1b",
+        "filename": "voltha/adapters/openolt/openolt_alarms.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 237,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-07-27T19:43:40Z",
+      "side": 1,
+      "message": "same",
+      "range": {
+        "startLine": 237,
+        "startChar": 23,
+        "endLine": 237,
+        "endChar": 34
+      },
+      "revId": "0c2120a8b2791f37e6a0ad3f57957fcc83089973",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3284bd21_d597cbca",
+        "filename": "voltha/extensions/alarms/olt/olt_los_alarm.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 20,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-07-27T19:43:40Z",
+      "side": 1,
+      "message": "The onu id is not relevant in an OLT LOS alarm\n\nAn interface type PON/NNI may be, and that might inform the alarm_category",
+      "range": {
+        "startLine": 20,
+        "startChar": 33,
+        "endLine": 20,
+        "endChar": 41
+      },
+      "revId": "0c2120a8b2791f37e6a0ad3f57957fcc83089973",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
