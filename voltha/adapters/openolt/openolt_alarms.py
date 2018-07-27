@@ -15,13 +15,18 @@
 #
 
 import arrow
-from voltha.protos.events_pb2 import AlarmEventType, \
-    AlarmEventSeverity, AlarmEventState, AlarmEventCategory
 import voltha.adapters.openolt.openolt_platform as platform
-from voltha.protos.device_pb2 import Port
-from voltha.adapters.openolt.alarms.adapter_alarms import AdapterAlarms
-from voltha.adapters.openolt.alarms.olt_los_alarm import OltLosAlarm
-from voltha.adapters.openolt.alarms.onu_dying_gasp_alarm import OnuDyingGaspAlarm
+# from voltha.protos.device_pb2 import Port
+from voltha.extensions.alarms.adapter_alarms import AdapterAlarms
+from voltha.extensions.alarms.olt.olt_los_alarm import OltLosAlarm
+from voltha.extensions.alarms.onu.onu_dying_gasp_alarm import OnuDyingGaspAlarm
+from voltha.extensions.alarms.onu.onu_los_alarm import OnuLosAlarm
+from voltha.extensions.alarms.onu.onu_lopc_miss_alarm import OnuLopcMissAlarm
+from voltha.extensions.alarms.onu.onu_lopc_mic_error_alarm import OnuLopcMicErrorAlarm
+from voltha.extensions.alarms.onu.onu_lob_alarm import OnuLobAlarm
+
+import protos.openolt_pb2 as openolt_pb2
+import voltha.protos.device_pb2 as device_pb2
 
 
 class OpenOltAlarmMgr(object):
@@ -76,7 +81,7 @@ class OpenOltAlarmMgr(object):
                 self.onu_processing_error_indication(
                     alarm_ind.onu_processing_error_ind)
             else:
-                self.log.warn('unknow alarm type', alarm=alarm_ind)
+                self.log.warn('unknown alarm type', alarm=alarm_ind)
 
         except Exception as e:
             self.log.error('sorting of alarm went wrong', error=e,
@@ -87,16 +92,14 @@ class OpenOltAlarmMgr(object):
         try:
             self.log.debug('los indication received', los_ind=los_ind,
                            int_id=los_ind.intf_id, status=los_ind.status)
-
             try:
-
-                if (los_ind.status == 1 or los_ind.status == "on"):
-                    OltLosAlarm(self.alarms, alarm_indication=los_ind).raise_alarm()
+                port_type_name = platform.intf_id_to_port_type_name(los_ind.intf_id)
+                if los_ind.status == 1 or los_ind.status == "on":
+                    OltLosAlarm(self.alarms, intf_id=los_ind.intf_id, port_type_name=port_type_name).raise_alarm()
                 else:
-                    OltLosAlarm(self.alarms, alarm_indication=los_ind).clear_alarm()
+                    OltLosAlarm(self.alarms, intf_id=los_ind.intf_id, port_type_name=port_type_name).clear_alarm()
             except Exception as alarm_err:
                 self.log.error('los-indication', errmsg=alarm_err.message)
-
         except Exception as e:
             self.log.error('los-indication', errmsg=e.message)
 
@@ -108,24 +111,22 @@ class OpenOltAlarmMgr(object):
                            onu_id=alarm_dgi.onu_id, status=alarm_dgi.status)
             try:
                 """
-                Get the ONU ID.  This isw necessary since the dirvers are 
-                not passing the id.  They are using a placeholder
+                Get the specific onu device information for the onu generating the alarm.
+                Extract the id.   In the future extract the serial number as well
                 """
-                onu_device_id = "place_holder"
-                try:
-                    ind_onu_id = dying_gasp_ind.onu_id
-                    onu_device = self.adapter_agent.get_child_device(
-                        self.device_id,
-                        parent_port_no=platform.intf_id_to_port_no(
-                            dying_gasp_ind.intf_id, Port.PON_OLT),
-                        onu_id=dying_gasp_ind.onu_id)
+                onu_device_id = "unresolved"
+                onu_serial_number = "unresolved"
+                onu_device = self.resolve_onu_id(onu_id, port_intf_id=alarm_dgi.intf_id)
+                if onu_device != None:
                     onu_device_id = onu_device.id
-                except Exception as inner:
-                    self.log.exception('dying-gasp-indication-resolve_onu-id', errmsg=inner.message)
-                if (dying_gasp_ind.status == 1 or dying_gasp_ind.status == "on"):
-                    OnuDyingGaspAlarm(self.alarms, dying_gasp_ind, onu_device_id).raise_alarm()
+                    onu_serial_number = onu_device.serial_number
+
+                if dying_gasp_ind.status == 1 or dying_gasp_ind.status == "on":
+                    OnuDyingGaspAlarm(self.alarms, dying_gasp_ind.intf_id,
+                                      onu_device_id).raise_alarm()
                 else:
-                    OnuDyingGaspAlarm(self.alarms, dying_gasp_ind, onu_device_id).clear_alarm()
+                    OnuDyingGaspAlarm(self.alarms, dying_gasp_ind.intf_id,
+                                      onu_device_id).clear_alarm()
             except Exception as alarm_err:
                 self.log.exception('dying-gasp-indication', errmsg=alarm_err.message)
 
@@ -133,7 +134,75 @@ class OpenOltAlarmMgr(object):
             self.log.error('dying_gasp_indication', error=e)
 
     def onu_alarm_indication(self, onu_alarm_ind):
-        self.log.info('not implemented yet')
+        """
+        LOB = Los of burst
+        LOPC = Loss of PLOAM miss channel
+
+        :param onu_alarm_ind:  Alarm indication which currently contains
+            onu_id:
+            los_status:
+            lob_status:
+            lopc_miss_status:
+            lopc_mic_error_status:
+        :return:
+        """
+        self.log.info('onu-alarm-indication')
+
+        try:
+            self.log.debug('onu alarm indication received', los_status=onu_alarm_ind.los_status,
+                           onu_intf_id=onu_alarm_ind.onu_id,
+                           lob_status=onu_alarm_ind.lob_status,
+                           lopc_miss_status=onu_alarm_ind.lopc_miss_status,
+                           lopc_mic_error_status=onu_alarm_ind.lopc_mic_error_status,
+                           intf_id=onu_alarm_ind.intf_id
+                           )
+
+            try:
+                """
+                    Get the specific onu device information for the onu generating the alarm.
+                    Extract the id.   In the future extract the serial number as well
+                """
+                onu_device_id = "unresolved"
+                serial_number = "unresolved"
+                onu_device = self.resolve_onu_id(onu_alarm_ind.onu_id,  port_intf_id=onu_alarm_ind.intf_id)
+                if onu_device != None:
+                    onu_device_id = onu_device.id
+                    serial_number = onu_device.serial_number
+
+                if onu_alarm_ind.los_status == 1 or onu_alarm_ind.los_status == "on":
+                    OnuLosAlarm(self.alarms, onu_id=onu_device_id, intf_id=onu_alarm_ind.intf_id).raise_alarm()
+                    # remove the discovered flag
+                    self.alarm_suppress['onu_disc_raised'].remove(serial_number)
+                elif onu_alarm_ind.los_status == 0 or onu_alarm_ind.los_status == "off":
+                    OnuLosAlarm(self.alarms, onu_id=onu_device_id, intf_id=onu_alarm_ind.intf_id).clear_alarm()
+                else:     # No Change
+                    pass
+
+                if onu_alarm_ind.lopc_miss_status == 1 or onu_alarm_ind.lopc_miss_status == "on":
+                    OnuLopcMissAlarm(self.alarms, onu_id=onu_device_id, intf_id=onu_alarm_ind.intf_id).raise_alarm()
+                elif (onu_alarm_ind.lopc_miss_status == 0 or onu_alarm_ind.lopc_miss_status == "off"):
+                    OnuLopcMissAlarm(self.alarms, onu_id=onu_device_id, intf_id=onu_alarm_ind.intf_id).clear_alarm()
+                else:     # No Change
+                    pass
+
+                if onu_alarm_ind.lopc_mic_error_status == 1 or onu_alarm_ind.lopc_mic_error_status == "on":
+                    OnuLopcMicErrorAlarm(self.alarms, onu_id=onu_device_id, intf_id=onu_alarm_ind.intf_id).raise_alarm()
+                elif onu_alarm_ind.lopc_mic_error_status == 0 or onu_alarm_ind.lopc_mic_error_status == "off":
+                    OnuLopcMicErrorAlarm(self.alarms, onu_id=onu_device_id, intf_id=onu_alarm_ind.intf_id).clear_alarm()
+                else:     # No Change
+                    pass
+
+                if onu_alarm_ind.lob_status == 1 or onu_alarm_ind.lob_status == "on":
+                    OnuLobAlarm(self.alarms, onu_id=onu_device_id, intf_id=onu_alarm_ind.intf_id).raise_alarm()
+                elif onu_alarm_ind.lob_status == 0 or onu_alarm_ind.lob_status == "off":
+                    OnuLobAlarm(self.alarms, onu_id=onu_device_id, intf_id=onu_alarm_ind.intf_id).clear_alarm()
+                else:     # No Change
+                    pass
+            except Exception as alarm_err:
+                self.log.error('onu-alarm-indication', errmsg=alarm_err.message)
+
+        except Exception as e:
+            self.log.error('onu-alarm-indication', errmsg=e.message)
 
     def onu_startup_failure_indication(self, onu_startup_fail_ind):
         self.log.info('not implemented yet')
@@ -158,3 +227,29 @@ class OpenOltAlarmMgr(object):
 
     def onu_processing_error_indication(self, onu_processing_error_ind):
         self.log.info('not implemented yet')
+
+    def resolve_onu_id(self, onu_id, port_intf_id):
+        """
+        Resolve the onu_device from the intf_id value and port. Uses the adapter agent to
+        resolve this..
+
+        Returns None if not found. Caller will have to test for None and act accordingly.
+        :param onu_id:
+        :param port_intf_id:
+        :return:
+        """
+
+        try:
+            onu_device = None
+            onu_device = self.adapter_agent.get_child_device(
+                self.device_id,
+                parent_port_no=platform.intf_id_to_port_no(
+                    port_intf_id, device_pb2.Port.PON_OLT),
+                onu_id=onu_id)
+            onu_device_id = onu_device.id
+        except Exception as inner:
+            self.log.exception('resolve-onu-id', errmsg=inner.message)
+
+        return onu_device
+
+
