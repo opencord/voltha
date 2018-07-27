@@ -209,6 +209,7 @@ class PonSimOnuHandler(object):
         device.root = True
         device.vendor = 'ponsim'
         device.model = 'n/a'
+        device.serial_number = "PONSIM"
         device.connect_status = ConnectStatus.REACHABLE
         self.adapter_agent.update_device(device)
 
