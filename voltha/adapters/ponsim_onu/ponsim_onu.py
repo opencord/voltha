@@ -20,6 +20,7 @@ Fully simulated OLT/ONU adapter.
 
 import sys
 import structlog
+import random
 from twisted.internet.defer import DeferredQueue, inlineCallbacks
 from common.utils.asleep import asleep
 
@@ -209,6 +210,7 @@ class PonSimOnuHandler(object):
         device.root = True
         device.vendor = 'ponsim'
         device.model = 'n/a'
+        device.serial_number = "PONSIM" + str(random.randint(10000,99999))
         device.connect_status = ConnectStatus.REACHABLE
         self.adapter_agent.update_device(device)
 
