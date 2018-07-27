@@ -18,11 +18,11 @@ from voltha.extensions.alarms.adapter_alarms import AlarmBase
 
 class OnuDyingGaspAlarm(AlarmBase):
     def __init__(self, alarm_mgr, onu_id, intf_id):
-        super(OnuDyingGaspAlarm, self).__init__(alarm_mgr, 'onu DYING_GASP',
+        super(OnuDyingGaspAlarm, self).__init__(alarm_mgr, object_type='onu DYING_GASP',
                                                 alarm='DYING_GASP',
                                                 alarm_category=AlarmEventCategory.ONU,
                                                 alarm_type=AlarmEventType.COMMUNICATION,
-                                                alarm_severity=AlarmEventSeverity.MINOR)
+                                                alarm_severity=AlarmEventSeverity.MAJOR)
         self._onu_id = onu_id
         self._intf_id = intf_id
 
