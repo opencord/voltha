@@ -43,6 +43,7 @@ type PonSimOnuDevice struct {
 	ParentAddress string
 	ParentPort    int32
 	AssignedPort  int32
+	SerialNumber  string
 	Conn          *grpc.ClientConn
 
 	oltClient ponsim.PonSimCommonClient
@@ -214,6 +215,7 @@ func (o *PonSimOnuDevice) Register(ctx context.Context) error {
 				Id:      uuid.New().String(),
 				Address: common.GetInterfaceIP(o.InternalIf),
 				Port:    o.Port,
+				SerialNumber: o.SerialNumber,
 			}
 			common.Logger().Printf("Request details %+v\n", rreq)
 

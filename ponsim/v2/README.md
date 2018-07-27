@@ -50,6 +50,8 @@ Usage of ./ponsim:
     	Enable promiscuous mode on network interfaces
   -quiet
     	Suppress debug and info logs
+  -serial_number string
+      Serial number of ONU device (default "PSMO12345678")
   -vcore_endpoint string
     	Voltha core endpoint address (default "vcore")
   -verbose
