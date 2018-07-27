@@ -48,6 +48,7 @@ func (h *PonSimOltHandler) Register(
 		PonSimDevice: core.PonSimDevice{
 			Address: request.Address, Port: request.Port, //GrpcSecurity: h.olt.GrpcSecurity,
 		}}
+	onu.SerialNumber = request.SerialNumber
 
 	if assignedPort, err := h.olt.AddOnu(onu); assignedPort == -1 || err != nil {
 		return &ponsim.RegistrationReply{
