@@ -92,6 +92,30 @@
       "revId": "0c2120a8b2791f37e6a0ad3f57957fcc83089973",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ede5f51c_72ee0316",
+        "filename": "voltha/extensions/alarms/olt/olt_los_alarm.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 20,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-07-27T20:12:27Z",
+      "side": 1,
+      "message": "I think the confusion is mainly in the names.  In my original code, I had named the class OltLosAlarm since the OLT generated it.  So this is the same as the OnuLosAlarm.  \n\nIf you do not call this, I can create a review next week to change it the class in our device adapter and delete this class completely.\n\nOr you can delete this now and I will just fix it on my side next week whenever I can get a code check window.  I\u0027m happy either way.",
+      "parentUuid": "0c1e884d_fca3d09a",
+      "range": {
+        "startLine": 20,
+        "startChar": 33,
+        "endLine": 20,
+        "endChar": 41
+      },
+      "revId": "0c2120a8b2791f37e6a0ad3f57957fcc83089973",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
