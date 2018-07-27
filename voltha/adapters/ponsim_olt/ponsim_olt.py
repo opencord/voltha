@@ -390,10 +390,10 @@ class PonSimOltHandler(object):
 
             # create channel using ssl credentials
             my_server_host_override_string = "ABCD"  # Server's CN Name, Ugly but no other Choice.
-            self.channel = grpc.secure_channel(device.host_and_port,
-                                               credentials, options=((
-                                                                         'grpc.ssl_target_name_override',
-                                                                         my_server_host_override_string,),))
+            self.channel = grpc.insecure_channel(device.host_and_port,
+                                               options=((
+                                                                'grpc.ssl_target_name_override',
+                                                                my_server_host_override_string,),))
 
         return self.channel
 
@@ -517,9 +517,9 @@ class PonSimOltHandler(object):
         self.adapter_agent.update_device(device)
         self.logical_device_id = ld_initialized.id
 
-        # register ONUS per uni port
-        for port_no in info.uni_ports:
-            vlan_id = port_no
+        # register ONUS
+        for onu in info.onus:
+            vlan_id = onu.uni_port
             self.adapter_agent.child_device_detected(
                 parent_device_id=device.id,
                 parent_port_no=1,
@@ -529,7 +529,8 @@ class PonSimOltHandler(object):
                     channel_id=vlan_id
                 ),
                 admin_state=AdminState.ENABLED,
-                vlan=vlan_id
+                vlan=vlan_id,
+                serial_number=onu.serial_number
             )
 
         if self.ponsim_comm == 'grpc':

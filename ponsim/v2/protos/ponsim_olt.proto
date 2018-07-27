@@ -12,6 +12,7 @@ message RegistrationRequest {
     string id = 1;
     string address = 2;
     int32 port = 3;
+    string serial_number = 4;
 }
 
 message RegistrationReply {
