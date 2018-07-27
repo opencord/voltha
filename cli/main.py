@@ -339,10 +339,18 @@ class VolthaCli(Cmd):
         pre-provisioned device.
         """
         device_id = line or self.default_device_id
-        self.poutput('enabling {}'.format(device_id))
+        if device_id not in self.device_ids():
+            self.poutput('Error: There is no such preprovisioned device')
+            return
+
         try:
             stub = self.get_stub()
+            device = stub.GetDevice(voltha_pb2.ID(id=device_id))
+            if device.admin_state == voltha_pb2.AdminState.ENABLED:
+                self.poutput('Error: Device is already enabled')
+                return
             stub.EnableDevice(voltha_pb2.ID(id=device_id))
+            self.poutput('enabling {}'.format(device_id))
 
             while True:
                 device = stub.GetDevice(voltha_pb2.ID(id=device_id))
