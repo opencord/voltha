@@ -15,6 +15,7 @@
 #
 
 from voltha.protos.device_pb2 import Port
+import voltha.protos.device_pb2 as dev_pb2
 
 """
 Encoding of identifiers
@@ -139,3 +140,25 @@ def intf_id_to_port_no(intf_id, intf_type):
 
 def intf_id_from_nni_port_num(port_num):
     return port_num - 128
+
+def intf_id_to_intf_type(intf_id):
+
+    if (2 << 28 ^ intf_id) < 16:
+        return Port.PON_OLT
+    elif  128 <= intf_id <= 132:
+        return Port.ETHERNET_NNI
+    else:
+        raise Exception('Invalid intf_id value')
+
+def intf_id_to_port_type_name(intf_id):
+    try:
+        return  port_type_name_by_port_index(intf_id_to_intf_type(intf_id))
+    except Exception as err:
+        raise Exception(err)
+
+def port_type_name_by_port_index(port_index):
+    try:
+        return dev_pb2._PORT_PORTTYPE.values_by_number[port_index].name
+    except Exception as err:
+        raise Exception(err)
+

@@ -17,7 +17,7 @@ from voltha.extensions.alarms.adapter_alarms import AlarmBase
 
 class OnuDiscoveryAlarm(AlarmBase):
     def __init__(self, alarm_mgr, pon_id, serial_number):
-        super(OnuDiscoveryAlarm, self).__init__(alarm_mgr, 'ONU Discovery',
+        super(OnuDiscoveryAlarm, self).__init__(alarm_mgr, object_type='ONU Discovery',
                                                 alarm='Discovery',
                                                 alarm_category=AlarmEventCategory.PON,
                                                 resource_id=pon_id,

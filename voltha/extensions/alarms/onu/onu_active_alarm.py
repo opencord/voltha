@@ -19,7 +19,7 @@ from voltha.protos.events_pb2 import AlarmEventType, AlarmEventSeverity, AlarmEv
 class OnuActiveAlarm(AlarmBase):
     def __init__(self, alarm_mgr, device_id, pon_id, onu_serial_number,
                  reg_id, olt_serial_number, ipv4_address=None):
-        super(OnuActiveAlarm, self).__init__(alarm_mgr, 'ONU',
+        super(OnuActiveAlarm, self).__init__(alarm_mgr, object_type='ONU',
                                              alarm='ONU_ACTIVATED',
                                              alarm_category=AlarmEventCategory.PON,
                                              resource_id=pon_id,
