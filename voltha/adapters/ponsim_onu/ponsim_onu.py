@@ -209,6 +209,7 @@ class PonSimOnuHandler(object):
         device.root = True
         device.vendor = 'ponsim'
         device.model = 'n/a'
+        device.serial_number = 'PONSIM'
         device.connect_status = ConnectStatus.REACHABLE
         self.adapter_agent.update_device(device)
 
@@ -243,11 +244,11 @@ class PonSimOnuHandler(object):
         port_no = device.proxy_address.channel_id
         cap = OFPPF_1GB_FD | OFPPF_FIBER
         self.adapter_agent.add_logical_port(logical_device_id, LogicalPort(
-            id='uni-{}'.format(port_no),
+            id='PONSIM',
             ofp_port=ofp_port(
                 port_no=port_no,
                 hw_addr=mac_str_to_tuple('00:00:00:00:00:%02x' % port_no),
-                name='uni-{}'.format(port_no),
+                name='PONSIM',
                 config=0,
                 state=OFPPS_LIVE,
                 curr=cap,
@@ -387,7 +388,7 @@ class PonSimOnuHandler(object):
         logical_device_id = parent_device.parent_id
         assert logical_device_id
         port_no = device.proxy_address.channel_id
-        port_id = 'uni-{}'.format(port_no)
+        port_id = 'PONSIM'
         try:
             port = self.adapter_agent.get_logical_port(logical_device_id,
                                                        port_id)
@@ -453,11 +454,11 @@ class PonSimOnuHandler(object):
             port_no = device.proxy_address.channel_id
             cap = OFPPF_1GB_FD | OFPPF_FIBER
             self.adapter_agent.add_logical_port(logical_device_id, LogicalPort(
-                id='uni-{}'.format(port_no),
+                id='PONSIM',
                 ofp_port=ofp_port(
                     port_no=port_no,
                     hw_addr=mac_str_to_tuple('00:00:00:00:00:%02x' % port_no),
-                    name='uni-{}'.format(port_no),
+                    name='PONSIM',
                     config=0,
                     state=OFPPS_LIVE,
                     curr=cap,
