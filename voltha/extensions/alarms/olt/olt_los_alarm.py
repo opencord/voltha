@@ -17,17 +17,13 @@ from voltha.extensions.alarms.adapter_alarms import AlarmBase
 
 
 class OltLosAlarm(AlarmBase):
-    def __init__(self, alarm_mgr, onu_id, intf_id):
-        super(OltLosAlarm, self).__init__(alarm_mgr, 'olt LOS',
+    def __init__(self, alarm_mgr, intf_id):
+        super(OltLosAlarm, self).__init__(alarm_mgr, object_type='olt LOS',
                                           alarm='LOS',
                                           alarm_category=AlarmEventCategory.OLT,
                                           alarm_type=AlarmEventType.COMMUNICATION,
                                           alarm_severity=AlarmEventSeverity.MAJOR)
         self._intf_id = intf_id
-        self._onu_id = onu_id
 
     def get_context_data(self):
-        return {
-            'onu-id': self._onu_id,
-            'olt-intf-id:': self._intf_id
-        }
+        return {'olt-intf-id:': self._intf_id}
