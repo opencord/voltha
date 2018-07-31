@@ -16,6 +16,24 @@
       "revId": "bc84090199f52832351a215fb85cf1dc1970d825",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1bd79293_23510dd2",
+        "filename": "voltha/adapters/ponsim_onu/ponsim_onu.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 212,
+      "author": {
+        "id": 1000010
+      },
+      "writtenOn": "2018-07-31T21:03:02Z",
+      "side": 1,
+      "message": "Can you elaborate a bit on what you have in mind?",
+      "parentUuid": "40cda494_f4654564",
+      "revId": "bc84090199f52832351a215fb85cf1dc1970d825",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
