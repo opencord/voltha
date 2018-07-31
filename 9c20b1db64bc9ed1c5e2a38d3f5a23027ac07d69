@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "fb208ecc_5879ee27",
+        "filename": "voltha/extensions/omci/state_machines/Alarm_sync.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 98,
+      "author": {
+        "id": 1000417
+      },
+      "writtenOn": "2018-07-31T02:24:07Z",
+      "side": 1,
+      "message": "OK. I renamed on_create_response to on_alarm_update_response , on_create_next_response to on_alarm_update_next_response.",
+      "parentUuid": "1afa6595_319445c8",
+      "revId": "9c20b1db64bc9ed1c5e2a38d3f5a23027ac07d69",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "73afd524_c200012b",
         "filename": "voltha/extensions/omci/state_machines/Alarm_sync.py",
         "patchSetId": 1
@@ -42,6 +60,30 @@
     },
     {
       "key": {
+        "uuid": "2c097b46_3463b564",
+        "filename": "voltha/extensions/omci/state_machines/Alarm_sync.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 279,
+      "author": {
+        "id": 1000417
+      },
+      "writtenOn": "2018-07-31T02:24:07Z",
+      "side": 1,
+      "message": "Yes, thanks. added 15 seconds delay.",
+      "parentUuid": "73afd524_c200012b",
+      "range": {
+        "startLine": 279,
+        "startChar": 52,
+        "endLine": 279,
+        "endChar": 53
+      },
+      "revId": "9c20b1db64bc9ed1c5e2a38d3f5a23027ac07d69",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7b2d92f1_2e6aeee9",
         "filename": "voltha/extensions/omci/state_machines/Alarm_sync.py",
         "patchSetId": 1
@@ -53,6 +95,24 @@
       "writtenOn": "2018-07-26T19:33:46Z",
       "side": 1,
       "message": "I do not see a mismatch trigger in your transitions table. you might want to add one to transition back to this same state after a 15 second delay.\n\nThen when you get to the Audit/resync story, you can point it to the auditing state.",
+      "revId": "9c20b1db64bc9ed1c5e2a38d3f5a23027ac07d69",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f2031be4_e502d433",
+        "filename": "voltha/extensions/omci/state_machines/Alarm_sync.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 281,
+      "author": {
+        "id": 1000417
+      },
+      "writtenOn": "2018-07-31T02:24:07Z",
+      "side": 1,
+      "message": "I will add a transition for that. It is re-synchronization task. When syncing_alarm does not get success, the trigger is mismatch. The state will happen.  \n        {\u0027trigger\u0027: \u0027timeout\u0027, \u0027source\u0027: \u0027resynchronizing\u0027, \u0027dest\u0027: \u0027starting\u0027},\n        {\u0027trigger\u0027: \u0027success\u0027, \u0027source\u0027: \u0027resynchronizing\u0027, \u0027dest\u0027: \u0027syncing_alarm\u0027},",
+      "parentUuid": "7b2d92f1_2e6aeee9",
       "revId": "9c20b1db64bc9ed1c5e2a38d3f5a23027ac07d69",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -110,6 +170,24 @@
     },
     {
       "key": {
+        "uuid": "091c4eea_06bf58e5",
+        "filename": "voltha/extensions/omci/tasks/alarm_check_task.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 82,
+      "author": {
+        "id": 1000417
+      },
+      "writtenOn": "2018-07-31T02:24:07Z",
+      "side": 1,
+      "message": "Sync the current alarm sequence number",
+      "parentUuid": "ef39444a_63f271b8",
+      "revId": "9c20b1db64bc9ed1c5e2a38d3f5a23027ac07d69",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "999cf3d9_c8083cb9",
         "filename": "voltha/extensions/omci/tasks/alarm_check_task.py",
         "patchSetId": 1
@@ -121,6 +199,24 @@
       "writtenOn": "2018-07-26T19:33:46Z",
       "side": 1,
       "message": "this might be better named alarm_sequence_number.  When I first looked at it, I got confused and thought that you might be doing a new alarm upload.",
+      "revId": "9c20b1db64bc9ed1c5e2a38d3f5a23027ac07d69",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d21c9695_89e747db",
+        "filename": "voltha/extensions/omci/tasks/alarm_check_task.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 93,
+      "author": {
+        "id": 1000417
+      },
+      "writtenOn": "2018-07-31T02:24:07Z",
+      "side": 1,
+      "message": "ok, renamed to alarm_sequence_number",
+      "parentUuid": "999cf3d9_c8083cb9",
       "revId": "9c20b1db64bc9ed1c5e2a38d3f5a23027ac07d69",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
