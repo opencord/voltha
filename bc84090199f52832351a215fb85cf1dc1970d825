@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "40cda494_f4654564",
+        "filename": "voltha/adapters/ponsim_onu/ponsim_onu.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 212,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-07-31T01:33:10Z",
+      "side": 1,
+      "message": "It\u0027s better to update the ponsim proto file to include a serial number and then configure the serial number via the ponsim yml file.",
+      "revId": "bc84090199f52832351a215fb85cf1dc1970d825",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
