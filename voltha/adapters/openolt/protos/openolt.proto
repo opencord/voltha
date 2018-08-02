@@ -18,6 +18,20 @@ import "google/api/annotations.proto";
 
 service Openolt {
 
+    rpc DisableOlt(Empty) returns (Empty) {
+        option (google.api.http) = {
+          post: "/v1/Disable"
+          body: "*"
+        };
+    }
+
+    rpc ReenableOlt(Empty) returns (Empty) {
+        option (google.api.http) = {
+          post: "/v1/Reenable"
+          body: "*"
+        };
+    }
+
     rpc ActivateOnu(Onu) returns (Empty) {
         option (google.api.http) = {
           post: "/v1/EnableOnu"

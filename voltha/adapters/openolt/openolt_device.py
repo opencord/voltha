@@ -883,17 +883,18 @@ class OpenoltDevice(object):
                             serial_number.vendor_specific)])
 
     def disable(self):
-        self.log.info('sending-deactivate-olt-message',
+        self.log.debug('sending-deactivate-olt-message',
                       device_id=self.device_id)
 
-        # Send grpc call
-        # self.stub.DeactivateOlt(openolt_pb2.Empty())
+        try:
+            # Send grpc call
+            self.stub.DisableOlt(openolt_pb2.Empty())
+            # The resulting indication will bring the OLT down
+            # self.go_state_down()
+            self.log.info('openolt device disabled')
+        except Exception as e:
+            self.log.error('Failure to disable openolt device', error=e)
 
-        # Soft deactivate. Turning down hardware should remove flows,
-        # but we are not doing that presently
-
-        # Bring OLT down
-        self.go_state_down()
 
     def delete(self):
         self.log.info('delete-olt', device_id=self.device_id)
@@ -908,21 +909,28 @@ class OpenoltDevice(object):
         self.log.info('successfully-deleted-olt', device_id=self.device_id)
 
     def reenable(self):
-        self.log.info('reenable-olt', device_id=self.device_id)
+        self.log.debug('reenabling-olt', device_id=self.device_id)
 
-        # Bring up OLT
-        self.go_state_up()
+        try:
+            self.stub.ReenableOlt(openolt_pb2.Empty())
+            # The resulting indication will bring up  the OLT
+            # self.go_state_up()
 
-        # Enable all child devices
-        self.log.info('enabling-child-devices', device_id=self.device_id)
-        self.log.info('enabling-child-devices', olt_device_id=self.device_id)
-        self.adapter_agent.update_child_devices_state(
-            parent_device_id=self.device_id,
-            admin_state=AdminState.ENABLED)
+            # We can't enable all child devices, what if they had been
+            # individually disabled before ? For the same reason we can't
+            # disable them all on disable of the olt
 
-        # Set all ports to enabled
-        self.log.info('enabling-all-ports', device_id=self.device_id)
-        self.adapter_agent.enable_all_ports(self.device_id)
+            # self.log.info('enabling-child-devices', olt_device_id=self.device_id)
+            # self.adapter_agent.update_child_devices_state(
+            #     parent_device_id=self.device_id,
+            #     admin_state=AdminState.ENABLED)
+            #  Set all ports to enabled
+            self.log.info('enabling-all-ports', device_id=self.device_id)
+            self.adapter_agent.enable_all_ports(self.device_id)
+            self.log.info('openolt device reenabled')
+        except Exception as e:
+            self.log.error('Failure to reenable openolt device', error=e)
+
 
     def disable_child_device(self, child_device):
         self.log.debug('sending-disable-onu',
