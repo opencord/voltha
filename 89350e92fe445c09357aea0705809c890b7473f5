@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "67f4c56f_7bf6d67f",
+        "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 676,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-08-02T20:19:58Z",
+      "side": 1,
+      "message": "You might want to look at the Adtran ONU DA  (adtran_onu_handler.py, ~line 544) for an example of the reboot task.  Just ignore the comment, it says MIB Reset, should be ONU REBOOT\n\nI added it after the checkin of the reboot task.  The only error that you probably would get an error is that you request a reboot before the ONU is activated (you ONU has not been added to the OpenOMCIAgent as a device.\n\nWith reboots via OMCI on ONUs, it is a bit tricky and is sometimes you do not get an OMCI response back after requesting a reboot. So you cannot trust a timeout.  Some ONUs always send it back, some never send it back, and for others it could be just a race condition if it gets out.\n\nSo in other words, don\u0027t trust that you will get a response that you can test the success_code of.",
+      "revId": "89350e92fe445c09357aea0705809c890b7473f5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "d62787c0_116877a9",
         "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu_handler.py",
         "patchSetId": 1
