@@ -22,6 +22,30 @@
       "revId": "71eb07ec16a9c98d90f177404be587a436e8e7aa",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "98ad9df5_3db4381c",
+        "filename": "voltha/extensions/alarms/olt/olt_los_alarm.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 23,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-08-02T20:08:53Z",
+      "side": 1,
+      "message": "Isn\u0027t the intf_id the port number on the OLT device?  If so, then that can be looked up in the device model.",
+      "parentUuid": "0f407308_9a04f435",
+      "range": {
+        "startLine": 20,
+        "startChar": 41,
+        "endLine": 23,
+        "endChar": 80
+      },
+      "revId": "71eb07ec16a9c98d90f177404be587a436e8e7aa",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
