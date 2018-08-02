@@ -164,9 +164,11 @@ class OpenoltDevice(object):
             reactor.callFromThread(self.go_state_up, reconciliation=True)
         '''
 
-        self.log.debug('openolt-device-created', device_id=self.device_id)
+        self.log.info('openolt-device-created', device_id=self.device_id)
 
     def do_state_connected(self, event):
+        self.log.debug("do_state_connected")
+
         device = self.adapter_agent.get_device(self.device_id)
         device.connect_status = ConnectStatus.REACHABLE
         self.adapter_agent.update_device(device)
@@ -180,6 +182,8 @@ class OpenoltDevice(object):
         self.bw_mgr = OpenOltBW(self.log, self.proxy)
 
     def do_state_up(self, event):
+        self.log.debug("do_state_up")
+
         device = self.adapter_agent.get_device(self.device_id)
 
         # Update phys OF device
@@ -238,7 +242,7 @@ class OpenoltDevice(object):
         self.log.debug('starting-indications-thread')
         self.log.debug('connecting to olt', device_id=self.device_id)
         self.channel_ready_future.result()  # blocking call
-        self.log.debug('connected to olt', device_id=self.device_id)
+        self.log.info('connected to olt', device_id=self.device_id)
         self.go_state_connected()
 
         self.indications = self.stub.EnableIndication(openolt_pb2.Empty())
@@ -438,7 +442,8 @@ class OpenoltDevice(object):
 
         if onu_device.proxy_address.onu_id != onu_indication.onu_id:
             # FIXME - handle onu id mismatch
-            self.log.warn('ONU-id-mismatch',
+            self.log.warn('ONU-id-mismatch, can happen if both voltha and '
+                          'the olt rebooted',
                           expected_onu_id=onu_device.proxy_address.onu_id,
                           received_onu_id=onu_indication.onu_id)
 
@@ -591,7 +596,7 @@ class OpenoltDevice(object):
                 onu_adapter_agent.create_gemport(onu_device, gem_port)
 
             else:
-                self.log.warn('unsupported-openolt-onu-adapter')
+                self.log.error('unsupported-openolt-onu-adapter')
 
         else:
             self.log.warn('Not-implemented-or-invalid-value-of-oper-state',
@@ -685,7 +690,7 @@ class OpenoltDevice(object):
 
             send_pkt = binascii.unhexlify(str(payload).encode("HEX"))
 
-            self.log.info(
+            self.log.debug(
                 'sending-packet-to-ONU', egress_port=egress_port,
                 intf_id=platform.intf_id_from_uni_port_num(egress_port),
                 onu_id=platform.onu_id_from_port_num(egress_port),
@@ -699,7 +704,7 @@ class OpenoltDevice(object):
             self.stub.OnuPacketOut(onu_pkt)
 
         elif egress_port_type == Port.ETHERNET_NNI:
-            self.log.info('sending-packet-to-uplink', egress_port=egress_port,
+            self.log.debug('sending-packet-to-uplink', egress_port=egress_port,
                           packet=str(pkt).encode("HEX"))
 
             send_pkt = binascii.unhexlify(str(pkt).encode("HEX"))
@@ -729,7 +734,7 @@ class OpenoltDevice(object):
                                             channel_id=intf_id, onu_id=onu_id,
                                             onu_session_id=onu_id)
 
-        self.log.info("Adding ONU", proxy_address=proxy_address)
+        self.log.debug("Adding ONU", proxy_address=proxy_address)
 
         serial_number_str = self.stringify_serial_number(serial_number)
 
@@ -793,7 +798,7 @@ class OpenoltDevice(object):
 
         label = self.port_name(port_no, port_type, intf_id)
 
-        self.log.info('adding-port', port_no=port_no, label=label,
+        self.log.debug('adding-port', port_no=port_no, label=label,
                       port_type=port_type)
 
         port = Port(port_no=port_no, label=label, type=port_type,
@@ -835,7 +840,6 @@ class OpenoltDevice(object):
 
         device = self.adapter_agent.get_device(self.device_id)
         self.log.debug('update flow table', number_of_flows=len(flows))
-        in_port = None
 
         for flow in flows:
             is_down_stream = None
@@ -847,12 +851,12 @@ class OpenoltDevice(object):
 
             for port in ports:
                 if (port.port_no == in_port):
-                    self.log.info('downstream-flow')
+                    self.log.debug('downstream-flow', in_port=in_port)
                     is_down_stream = True
                     break
             if is_down_stream is None:
                 is_down_stream = False
-                self.log.info('upstream-flow')
+                self.log.debug('upstream-flow', in_port=in_port)
 
             for flow in flows:
                 try:
@@ -897,39 +901,23 @@ class OpenoltDevice(object):
 
 
     def delete(self):
-        self.log.info('delete-olt', device_id=self.device_id)
+        self.log.info('delete-olt - Not implemented yet',
+                      device_id=self.device_id)
 
-        # Stop the grpc communication threads
-        self.log.info('stopping-grpc-threads', device_id=self.device_id)
-
-        # Close the grpc channel
-        # self.log.info('unsubscribing-grpc-channel', device_id=self.device_id)
-        # self.channel.unsubscribe()
-
-        self.log.info('successfully-deleted-olt', device_id=self.device_id)
 
     def reenable(self):
         self.log.debug('reenabling-olt', device_id=self.device_id)
 
         try:
             self.stub.ReenableOlt(openolt_pb2.Empty())
-            # The resulting indication will bring up  the OLT
-            # self.go_state_up()
 
-            # We can't enable all child devices, what if they had been
-            # individually disabled before ? For the same reason we can't
-            # disable them all on disable of the olt
-
-            # self.log.info('enabling-child-devices', olt_device_id=self.device_id)
-            # self.adapter_agent.update_child_devices_state(
-            #     parent_device_id=self.device_id,
-            #     admin_state=AdminState.ENABLED)
-            #  Set all ports to enabled
             self.log.info('enabling-all-ports', device_id=self.device_id)
             self.adapter_agent.enable_all_ports(self.device_id)
-            self.log.info('openolt device reenabled')
         except Exception as e:
             self.log.error('Failure to reenable openolt device', error=e)
+        else:
+            self.log.info('openolt device reenabled')
+
 
 
     def disable_child_device(self, child_device):

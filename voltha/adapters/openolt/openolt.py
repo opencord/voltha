@@ -145,27 +145,32 @@ class OpenoltAdapter(object):
         handler.reboot()
 
     def download_image(self, device, request):
-        log.info('image_download', device=device, request=request)
+        log.info('image_download - Not implemented yet', device=device,
+                 request=request)
         raise NotImplementedError()
 
     def get_image_download_status(self, device, request):
-        log.info('get_image_download', device=device, request=request)
+        log.info('get_image_download - Not implemented yet', device=device,
+                 request=request)
         raise NotImplementedError()
 
     def cancel_image_download(self, device, request):
-        log.info('cancel_image_download', device=device)
+        log.info('cancel_image_download - Not implemented yet', device=device)
         raise NotImplementedError()
 
     def activate_image_update(self, device, request):
-        log.info('activate_image_update', device=device, request=request)
+        log.info('activate_image_update - Not implemented yet',
+                 device=device, request=request)
         raise NotImplementedError()
 
     def revert_image_update(self, device, request):
-        log.info('revert_image_update', device=device, request=request)
+        log.info('revert_image_update - Not implemented yet',
+                 device=device, request=request)
         raise NotImplementedError()
 
     def self_test_device(self, device):
         # from voltha.protos.voltha_pb2 import SelfTestResponse
+        log.info('Not implemented yet')
         raise NotImplementedError()
 
     def delete_device(self, device):
@@ -180,7 +185,9 @@ class OpenoltAdapter(object):
 
     def update_flows_bulk(self, device, flows, groups):
         log.info('bulk-flow-update', device_id=device.id,
-                 flows=flows, groups=groups)
+                 number_of_flows=len(flows.items), number_of_groups=len(
+                groups.items))
+        log.debug('flows and grousp details', flows=flows, groups=groups)
         assert len(groups.items) == 0, "Cannot yet deal with groups"
         handler = self.devices[device.id]
         return handler.update_flow_table(flows.items)
@@ -188,10 +195,13 @@ class OpenoltAdapter(object):
     def update_flows_incrementally(self, device, flow_changes, group_changes):
         log.debug('update_flows_incrementally', device=device,
                   flow_changes=flow_changes, group_changes=group_changes)
+        log.info('This device does not allow this, therefore it is Not '
+                 'implemented')
         raise NotImplementedError()
 
     def update_pm_config(self, device, pm_configs):
-        log.debug('update_pm_config', device=device, pm_configs=pm_configs)
+        log.info('update_pm_config - Not implemented yet', device=device,
+                  pm_configs=pm_configs)
         raise NotImplementedError()
 
     def send_proxied_message(self, proxy_address, msg):
@@ -200,7 +210,8 @@ class OpenoltAdapter(object):
         handler.send_proxied_message(proxy_address, msg)
 
     def receive_proxied_message(self, proxy_address, msg):
-        log.debug('receive_proxied_message', proxy_address=proxy_address,
+        log.debug('receive_proxied_message - Not implemented',
+                  proxy_address=proxy_address,
                   msg=msg)
         raise NotImplementedError()
 
@@ -221,92 +232,110 @@ class OpenoltAdapter(object):
         handler.packet_out(egress_port_no, msg)
 
     def receive_inter_adapter_message(self, msg):
-        log.info('rx_inter_adapter_msg')
+        log.info('rx_inter_adapter_msg - Not implemented')
         raise NotImplementedError()
 
     def suppress_alarm(self, filter):
-        log.info('suppress_alarm', filter=filter)
+        log.info('suppress_alarm - Not implemented yet', filter=filter)
         raise NotImplementedError()
 
     def unsuppress_alarm(self, filter):
-        log.info('unsuppress_alarm', filter=filter)
+        log.info('unsuppress_alarm - Not implemented yet', filter=filter)
         raise NotImplementedError()
 
     # PON Mgnt APIs #
     def create_interface(self, device, data):
-        log.debug('create-interface', data=data)
+        log.debug('create-interface - Not implemented - We do not use this',
+                  data=data)
         raise NotImplementedError()
 
     def update_interface(self, device, data):
-        log.debug('update-interface', data=data)
+        log.debug('update-interface - Not implemented - We do not use this',
+                  data=data)
         raise NotImplementedError()
 
     def remove_interface(self, device, data):
-        log.debug('remove-interface', data=data)
+        log.debug('remove-interface - Not implemented - We do not use this',
+                  data=data)
         raise NotImplementedError()
 
     def receive_onu_detect_state(self, proxy_address, state):
-        log.debug('receive-onu-detect-state', proxy_address=proxy_address,
+        log.debug('receive-onu-detect-state - Not implemented - We do not '
+                  'use this', proxy_address=proxy_address,
                   state=state)
         raise NotImplementedError()
 
     def create_tcont(self, device, tcont_data, traffic_descriptor_data):
-        log.info('create-tcont', tcont_data=tcont_data,
+        log.info('create-tcont - Not implemented - We do not use this',
+                 tcont_data=tcont_data,
                  traffic_descriptor_data=traffic_descriptor_data)
         raise NotImplementedError()
 
     def update_tcont(self, device, tcont_data, traffic_descriptor_data):
-        log.info('update-tcont', tcont_data=tcont_data,
+        log.info('update-tcont - Not implemented - We do not use this',
+                 tcont_data=tcont_data,
                  traffic_descriptor_data=traffic_descriptor_data)
         raise NotImplementedError()
 
     def remove_tcont(self, device, tcont_data, traffic_descriptor_data):
-        log.info('remove-tcont', tcont_data=tcont_data,
+        log.info('remove-tcont - Not implemented - We do not use this',
+                 tcont_data=tcont_data,
                  traffic_descriptor_data=traffic_descriptor_data)
         raise NotImplementedError()
 
     def create_gemport(self, device, data):
-        log.info('create-gemport', data=data)
+        log.info('create-gemport - Not implemented - We do not use this',
+                 data=data)
         raise NotImplementedError()
 
     def update_gemport(self, device, data):
-        log.info('update-gemport', data=data)
+        log.info('update-gemport - Not implemented - We do not use this',
+                 data=data)
         raise NotImplementedError()
 
     def remove_gemport(self, device, data):
-        log.info('remove-gemport', data=data)
+        log.info('remove-gemport - Not implemented - We do not use this',
+                 data=data)
         raise NotImplementedError()
 
     def create_multicast_gemport(self, device, data):
-        log.info('create-mcast-gemport', data=data)
+        log.info('create-mcast-gemport  - Not implemented - We do not use '
+                 'this', data=data)
         raise NotImplementedError()
 
     def update_multicast_gemport(self, device, data):
-        log.info('update-mcast-gemport', data=data)
+        log.info('update-mcast-gemport - Not implemented - We do not use '
+                 'this', data=data)
         raise NotImplementedError()
 
     def remove_multicast_gemport(self, device, data):
-        log.info('remove-mcast-gemport', data=data)
+        log.info('remove-mcast-gemport - Not implemented - We do not use '
+                 'this', data=data)
         raise NotImplementedError()
 
     def create_multicast_distribution_set(self, device, data):
-        log.info('create-mcast-distribution-set', data=data)
+        log.info('create-mcast-distribution-set - Not implemented - We do '
+                 'not use this', data=data)
         raise NotImplementedError()
 
     def update_multicast_distribution_set(self, device, data):
-        log.info('update-mcast-distribution-set', data=data)
+        log.info('update-mcast-distribution-set - Not implemented - We do '
+                 'not use this', data=data)
         raise NotImplementedError()
 
     def remove_multicast_distribution_set(self, device, data):
-        log.info('remove-mcast-distribution-set', data=data)
+        log.info('remove-mcast-distribution-set - Not implemented - We do '
+                 'not use this', data=data)
         raise NotImplementedError()
 
     def disable_child_device(self, parent_device_id, child_device):
-        log.info('disable-child_device', parent_device_id=parent_device_id, child_device=child_device)
+        log.info('disable-child_device', parent_device_id=parent_device_id,
+                 child_device=child_device)
         handler = self.devices[parent_device_id]
         handler.disable_child_device(child_device)
 
     def delete_child_device(self, parent_device_id, child_device):
-        log.info('delete-child_device', parent_device_id=parent_device_id, child_device=child_device)
+        log.info('delete-child_device', parent_device_id=parent_device_id,
+                 child_device=child_device)
         handler = self.devices[parent_device_id]
         handler.delete_child_device(child_device)

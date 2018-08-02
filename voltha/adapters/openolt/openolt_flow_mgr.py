@@ -380,7 +380,7 @@ class OpenOltFlowMgr(object):
         elif 'trap_to_host' in action_info:
             action.cmd.trap_to_host = True
         else:
-            self.log.info('Invalid-action-field')
+            self.log.info('Invalid-action-field', action_info=action_info)
             return
         return action
 

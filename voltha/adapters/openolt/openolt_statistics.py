@@ -60,9 +60,10 @@ class OpenOltStatisticsMgr(object):
         # TODO: send to kafka ?
         # FIXME: etcd problem, do not update objects for now
         # # UNTESTED : the openolt driver does not yet provide flow stats
-        # self.device.adapter_agent.update_flow_stats(self.device.logical_device_id,
-        #     flow_id=flow_stats.flow_id, packet_count=flow_stats.tx_packets,
-        #     byte_count=flow_stats.tx_bytes)
+        # self.device.adapter_agent.update_flow_stats(
+        #       self.device.logical_device_id,
+        #       flow_id=flow_stats.flow_id, packet_count=flow_stats.tx_packets,
+        #       byte_count=flow_stats.tx_bytes)
 
     def ports_statistics_kpis(self, port_stats):
         pm_data = {}

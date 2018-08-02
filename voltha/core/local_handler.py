@@ -115,32 +115,32 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def GetVolthaInstance(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
         depth = int(dict(context.invocation_metadata()).get('get-depth', 0))
         res = self.root.get('/', depth=depth)
         return res
 
     @twisted_async
     def GetHealth(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
         return self.root.get('/health')
 
     @twisted_async
     def ListAdapters(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
         items = self.root.get('/adapters')
         sorted_items = sorted(items, key=lambda i: i.id)
         return Adapters(items=sorted_items)
 
     @twisted_async
     def ListLogicalDevices(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
         items = self.root.get('/logical_devices')
         return LogicalDevices(items=items)
 
     @twisted_async
     def GetLogicalDevice(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
 
         depth = int(dict(context.invocation_metadata()).get('get-depth', 0))
 
@@ -160,7 +160,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def ListLogicalDevicePorts(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
 
         if '/' in request.id:
             context.set_details(
@@ -180,7 +180,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def GetLogicalDevicePort(self, request, context):
-        log.info('grpc-request', requst=request)
+        log.debug('grpc-request', requst=request)
 
         if '/' in request.id:
             context.set_details(
@@ -199,7 +199,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def ListLogicalDeviceFlows(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
 
         if '/' in request.id:
             context.set_details(
@@ -219,7 +219,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def EnableLogicalDevicePort(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
 
         if '/' in request.id:
             context.set_details(
@@ -239,7 +239,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def DisableLogicalDevicePort(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
 
         if '/' in request.id:
             context.set_details(
@@ -259,7 +259,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def UpdateLogicalDeviceFlowTable(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
 
         if '/' in request.id:
             context.set_details(
@@ -279,7 +279,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def ListLogicalDeviceFlowGroups(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
 
         if '/' in request.id:
             context.set_details(
@@ -299,7 +299,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def UpdateLogicalDeviceFlowGroupTable(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
 
         if '/' in request.id:
             context.set_details(
@@ -319,13 +319,13 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def ListDevices(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
         items = self.root.get('/devices')
         return Devices(items=items)
 
     @twisted_async
     def GetDevice(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
 
         depth = int(dict(context.invocation_metadata()).get('get-depth', 0))
 
@@ -345,7 +345,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def CreateDevice(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
 
         known_device_types = dict(
             (dt.id, dt) for dt in self.root.get('/device_types'))
@@ -401,7 +401,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def EnableDevice(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
 
         if '/' in request.id:
             context.set_details(
@@ -432,7 +432,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def DisableDevice(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
 
         if '/' in request.id:
             context.set_details(
@@ -464,7 +464,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def RebootDevice(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
 
         if '/' in request.id:
             context.set_details(
@@ -490,7 +490,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def DownloadImage(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
 
         if '/' in request.id:
             context.set_details(
@@ -531,7 +531,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def GetImageDownloadStatus(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
 
         if '/' in request.id:
             context.set_details(
@@ -567,7 +567,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def GetImageDownload(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
 
         if '/' in request.id:
             context.set_details(
@@ -590,7 +590,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def ListImageDownloads(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
 
         if '/' in request.id:
             context.set_details(
@@ -613,7 +613,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def CancelImageDownload(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
 
         if '/' in request.id:
             context.set_details(
@@ -640,7 +640,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def ActivateImageUpdate(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
 
         if '/' in request.id:
             context.set_details(
@@ -667,7 +667,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def RevertImageUpdate(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
 
         if '/' in request.id:
             context.set_details(
@@ -694,7 +694,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def DeleteDevice(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
 
         if '/' in request.id:
             context.set_details(
@@ -727,7 +727,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def ListDevicePorts(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
 
         if '/' in request.id:
             context.set_details(
@@ -746,7 +746,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def ListDevicePmConfigs(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
 
         if '/' in request.id:
             context.set_details(
@@ -789,7 +789,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def ListDeviceFlows(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
 
         if '/' in request.id:
             context.set_details(
@@ -808,7 +808,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def ListDeviceFlowGroups(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
 
         if '/' in request.id:
             context.set_details(
@@ -828,14 +828,14 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def ListDeviceTypes(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
         items = self.root.get('/device_types')
         sorted_items = sorted(items, key=lambda i: i.id)
         return DeviceTypes(items=sorted_items)
 
     @twisted_async
     def GetDeviceType(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
 
         depth = int(dict(context.invocation_metadata()).get('get-depth', 0))
 
@@ -855,14 +855,14 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def ListDeviceGroups(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
         # TODO is this mapped to tree or taken from coordinator?
         items = self.root.get('/device_groups')
         return DeviceGroups(items=items)
 
     @twisted_async
     def GetDeviceGroup(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
 
         depth = int(dict(context.invocation_metadata()).get('get-depth', 0))
 
@@ -1185,7 +1185,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def CreateAlarmFilter(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
 
         try:
             assert isinstance(request, AlarmFilter)
@@ -1224,7 +1224,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def GetImages(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
 
         if '/' in request.id:
             context.set_details(
@@ -1244,7 +1244,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def SelfTest(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
 
         if '/' in request.id:
             context.set_details(
@@ -1296,7 +1296,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def Subscribe(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
 
         # Check if an ofagent subscriber is assigned
         if self.subscriber is None:
@@ -1336,7 +1336,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def GetMibDeviceData(self, request, context):
-        log.info('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
 
         depth = int(dict(context.invocation_metadata()).get('get-depth', -1))
 
