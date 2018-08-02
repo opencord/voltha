@@ -118,6 +118,7 @@ class BroadcomOnuAdapter(object):
         reactor.callLater(0, self.devices_handlers[device.id].reconcile, device)
 
     def abandon_device(self, device):
+        log.info('abadon-device - Not implemented')
         raise NotImplementedError()
 
     def disable_device(self, device):
@@ -162,7 +163,7 @@ class BroadcomOnuAdapter(object):
         :param device: A Voltha.Device object.
         :return: Will return result of self test
         """
-        log.info('self-test-device', device=device.id)
+        log.info('self-test-device - Not implemented', device=device.id)
         raise NotImplementedError()
 
     def delete_device(self, device):
@@ -196,10 +197,10 @@ class BroadcomOnuAdapter(object):
         raise NotImplementedError()
 
     def send_proxied_message(self, proxy_address, msg):
-        log.info('send-proxied-message', proxy_address=proxy_address, msg=msg)
+        log.debug('send-proxied-message', proxy_address=proxy_address, msg=msg)
 
     def receive_proxied_message(self, proxy_address, msg):
-        log.info('receive-proxied-message', proxy_address=proxy_address,
+        log.debug('receive-proxied-message', proxy_address=proxy_address,
                  device_id=proxy_address.device_id, msg=hexify(msg))
         # Device_id from the proxy_address is the olt device id. We need to
         # get the onu device id using the port number in the proxy_address
@@ -214,7 +215,7 @@ class BroadcomOnuAdapter(object):
                  egress_port_no=egress_port_no, msg_len=len(msg))
 
     def receive_inter_adapter_message(self, msg):
-        log.info('receive_inter_adapter_message', msg=msg)
+        log.debug('receive_inter_adapter_message', msg=msg)
         proxy_address = msg['proxy_address']
         assert proxy_address is not None
         # Device_id from the proxy_address is the olt device id. We need to
@@ -228,21 +229,21 @@ class BroadcomOnuAdapter(object):
             log.error("device-not-found")
 
     def create_interface(self, device, data):
-        log.info('create-interface', device_id=device.id)
+        log.debug('create-interface', device_id=device.id)
         if device.id in self.devices_handlers:
             handler = self.devices_handlers[device.id]
             if handler is not None:
                 handler.create_interface(data)
 
     def update_interface(self, device, data):
-        log.info('update-interface', device_id=device.id)
+        log.debug('update-interface', device_id=device.id)
         if device.id in self.devices_handlers:
             handler = self.devices_handlers[device.id]
             if handler is not None:
                 handler.update_interface(data)
 
     def remove_interface(self, device, data):
-        log.info('remove-interface', device_id=device.id)
+        log.debug('remove-interface', device_id=device.id)
         if device.id in self.devices_handlers:
             handler = self.devices_handlers[device.id]
             if handler is not None:
@@ -252,7 +253,7 @@ class BroadcomOnuAdapter(object):
         raise NotImplementedError()
 
     def create_tcont(self, device, tcont_data, traffic_descriptor_data):
-        log.info('create-tcont', device_id=device.id)
+        log.debug('create-tcont', device_id=device.id)
         if device.id in self.devices_handlers:
             handler = self.devices_handlers[device.id]
             if handler is not None:
@@ -262,14 +263,14 @@ class BroadcomOnuAdapter(object):
         raise NotImplementedError()
 
     def remove_tcont(self, device, tcont_data, traffic_descriptor_data):
-        log.info('remove-tcont', device_id=device.id)
+        log.debug('remove-tcont', device_id=device.id)
         if device.id in self.devices_handlers:
             handler = self.devices_handlers[device.id]
             if handler is not None:
                 handler.remove_tcont(tcont_data, traffic_descriptor_data)
 
     def create_gemport(self, device, data):
-        log.info('create-gemport', device_id=device.id)
+        log.debug('create-gemport', device_id=device.id)
         if device.id in self.devices_handlers:
             handler = self.devices_handlers[device.id]
             if handler is not None:
@@ -279,14 +280,14 @@ class BroadcomOnuAdapter(object):
         raise NotImplementedError()
 
     def remove_gemport(self, device, data):
-        log.info('remove-gemport', device_id=device.id)
+        log.debug('remove-gemport', device_id=device.id)
         if device.id in self.devices_handlers:
             handler = self.devices_handlers[device.id]
             if handler is not None:
                 handler.remove_gemport(data)
 
     def create_multicast_gemport(self, device, data):
-        log.info('create-multicast-gemport', device_id=device.id)
+        log.debug('create-multicast-gemport', device_id=device.id)
         if device.id in self.devices_handlers:
             handler = self.devices_handlers[device.id]
             if handler is not None:
@@ -466,10 +467,12 @@ class BroadcomOnuHandler(object):
         device = self.adapter_agent.get_device(device.id)
         device.oper_status = OperStatus.DISCOVERED
         self.adapter_agent.update_device(device)
+        self.log.info('activated')
+
 
     def reconcile(self, device):
 
-        self.log.info('reconciling-broadcom-onu-device-starts')
+        self.log.debug('reconciling-broadcom-onu-device-starts')
 
         # first we verify that we got parent reference and proxy info
         assert device.parent_id
@@ -486,7 +489,7 @@ class BroadcomOnuHandler(object):
 
     def update_logical_port(self, logical_device_id, port_id, state):
         try:
-            self.log.info('updating-logical-port', logical_port_id=port_id,
+            self.log.debug('updating-logical-port', logical_port_id=port_id,
                           logical_device_id=logical_device_id, state=state)
             logical_port = self.adapter_agent.get_logical_port(logical_device_id,
                                                                port_id)
@@ -503,7 +506,7 @@ class BroadcomOnuHandler(object):
         parent_device = self.adapter_agent.get_device(device.parent_id)
         if parent_device.type == 'openolt':
             parent_adapter = registry('adapter_loader').get_agent(parent_device.adapter).adapter
-            self.log.info('parent-adapter-delete-onu', onu_device=device,
+            self.log.debug('parent-adapter-delete-onu', onu_device=device,
                           parent_device=parent_device,
                           parent_adapter=parent_adapter)
             try:
@@ -538,70 +541,70 @@ class BroadcomOnuHandler(object):
             _push_tpid = None
             _field = None
             _set_vlan_vid = None
-            self.log.info('bulk-flow-update', device_id=device.id, flow=flow)
+            self.log.debug('bulk-flow-update', device_id=device.id, flow=flow)
             try:
                 _in_port = fd.get_in_port(flow)
                 assert _in_port is not None
 
                 if is_downstream(_in_port):
-                    self.log.info('downstream-flow')
+                    self.log.debug('downstream-flow')
                 elif is_upstream(_in_port):
-                    self.log.info('upstream-flow')
+                    self.log.debug('upstream-flow')
                 else:
                     raise Exception('port should be 1 or 2 by our convention')
 
                 _out_port = fd.get_out_port(flow)  # may be None
-                self.log.info('out-port', out_port=_out_port)
+                self.log.debug('out-port', out_port=_out_port)
 
                 for field in fd.get_ofb_fields(flow):
                     if field.type == fd.ETH_TYPE:
                         _type = field.eth_type
-                        self.log.info('field-type-eth-type',
+                        self.log.debug('field-type-eth-type',
                                       eth_type=_type)
 
                     elif field.type == fd.IP_PROTO:
                         _proto = field.ip_proto
-                        self.log.info('field-type-ip-proto',
+                        self.log.debug('field-type-ip-proto',
                                       ip_proto=_proto)
 
                     elif field.type == fd.IN_PORT:
                         _port = field.port
-                        self.log.info('field-type-in-port',
+                        self.log.debug('field-type-in-port',
                                       in_port=_port)
 
                     elif field.type == fd.VLAN_VID:
                         _vlan_vid = field.vlan_vid & 0xfff
-                        self.log.info('field-type-vlan-vid',
+                        self.log.debug('field-type-vlan-vid',
                                       vlan=_vlan_vid)
 
                     elif field.type == fd.VLAN_PCP:
                         _vlan_pcp = field.vlan_pcp
-                        self.log.info('field-type-vlan-pcp',
+                        self.log.debug('field-type-vlan-pcp',
                                       pcp=_vlan_pcp)
 
                     elif field.type == fd.UDP_DST:
                         _udp_dst = field.udp_dst
-                        self.log.info('field-type-udp-dst',
+                        self.log.debug('field-type-udp-dst',
                                       udp_dst=_udp_dst)
 
                     elif field.type == fd.UDP_SRC:
                         _udp_src = field.udp_src
-                        self.log.info('field-type-udp-src',
+                        self.log.debug('field-type-udp-src',
                                       udp_src=_udp_src)
 
                     elif field.type == fd.IPV4_DST:
                         _ipv4_dst = field.ipv4_dst
-                        self.log.info('field-type-ipv4-dst',
+                        self.log.debug('field-type-ipv4-dst',
                                       ipv4_dst=_ipv4_dst)
 
                     elif field.type == fd.IPV4_SRC:
                         _ipv4_src = field.ipv4_src
-                        self.log.info('field-type-ipv4-src',
+                        self.log.debug('field-type-ipv4-src',
                                       ipv4_dst=_ipv4_src)
 
                     elif field.type == fd.METADATA:
                         _metadata = field.table_metadata
-                        self.log.info('field-type-metadata',
+                        self.log.debug('field-type-metadata',
                                       metadata=_metadata)
 
                     else:
@@ -612,16 +615,16 @@ class BroadcomOnuHandler(object):
 
                     if action.type == fd.OUTPUT:
                         _output = action.output.port
-                        self.log.info('action-type-output',
+                        self.log.debug('action-type-output',
                                       output=_output, in_port=_in_port)
 
                     elif action.type == fd.POP_VLAN:
-                        self.log.info('action-type-pop-vlan',
+                        self.log.debug('action-type-pop-vlan',
                                       in_port=_in_port)
 
                     elif action.type == fd.PUSH_VLAN:
                         _push_tpid = action.push.ethertype
-                        self.log.info('action-type-push-vlan',
+                        self.log.debug('action-type-push-vlan',
                                  push_tpid=_push_tpid, in_port=_in_port)
                         if action.push.ethertype != 0x8100:
                             self.log.error('unhandled-tpid',
@@ -631,11 +634,11 @@ class BroadcomOnuHandler(object):
                         _field = action.set_field.field.ofb_field
                         assert (action.set_field.field.oxm_class ==
                                 OFPXMC_OPENFLOW_BASIC)
-                        self.log.info('action-type-set-field',
+                        self.log.debug('action-type-set-field',
                                       field=_field, in_port=_in_port)
                         if _field.type == fd.VLAN_VID:
                             _set_vlan_vid = _field.vlan_vid & 0xfff
-                            self.log.info('set-field-type-valn-vid', _set_vlan_vid)
+                            self.log.debug('set-field-type-valn-vid', _set_vlan_vid)
                         else:
                             self.log.error('unsupported-action-set-field-type',
                                            field_type=_field.type)
@@ -690,12 +693,12 @@ class BroadcomOnuHandler(object):
 
     def send_omci_message(self, frame):
         _frame = hexify(str(frame))
-        self.log.info('send-omci-message-%s' % _frame)
+        self.log.debug('send-omci-message-%s' % _frame)
         device = self.adapter_agent.get_device(self.device_id)
         try:
             self.adapter_agent.send_proxied_message(device.proxy_address, _frame)
         except Exception as e:
-            self.log.info('send-omci-message-exception', exc=str(e))
+            self.log.warn('send-omci-message-exception', exc=str(e))
 
     def send_get_circuit_pack(self, entity_id=0):
         frame = OmciFrame(
@@ -1367,10 +1370,10 @@ class BroadcomOnuHandler(object):
 
     @inlineCallbacks
     def wait_for_response(self):
-        self.log.info('wait-for-response')
+        self.log.debug('wait-for-response')
         try:
             response = yield self.incoming_messages.get()
-            self.log.info('got-response')
+            self.log.debug('got-response')
             resp = OmciFrame(response)
             resp.show()
             returnValue(resp)
@@ -1537,7 +1540,7 @@ class BroadcomOnuHandler(object):
 
     def del_uni_port(self, device, parent_logical_device_id,
                      name, parent_port_num=None):
-        self.log.info('del-uni-port', device_id=device.id,
+        self.log.debug('del-uni-port', device_id=device.id,
                       logical_device_id=parent_logical_device_id,
                       name=name)
         if parent_port_num is not None:
@@ -1655,7 +1658,7 @@ class BroadcomOnuHandler(object):
 
     @inlineCallbacks
     def create_gemport(self, data):
-        self.log.info('create-gemport')
+        self.log.debug('create-gemport')
         gem_port = GemportsConfigData()
         gem_port.CopyFrom(data)
         if gem_port.tcont_ref is None:
@@ -1685,7 +1688,7 @@ class BroadcomOnuHandler(object):
 
     @inlineCallbacks
     def remove_gemport(self, data):
-        self.log.info('remove-gemport')
+        self.log.debug('remove-gemport')
         gem_port = GemportsConfigData()
         gem_port.CopyFrom(data)
         device = self.adapter_agent.get_device(self.device_id)
@@ -1708,7 +1711,7 @@ class BroadcomOnuHandler(object):
 
     @inlineCallbacks
     def create_tcont(self, tcont_data, traffic_descriptor_data):
-        self.log.info('create-tcont')
+        self.log.debug('create-tcont')
         tcont = TcontsConfigData()
         tcont.CopyFrom(tcont_data)
         if tcont.interface_reference is not None:
@@ -1720,7 +1723,7 @@ class BroadcomOnuHandler(object):
 
     @inlineCallbacks
     def remove_tcont(self, tcont_data, traffic_descriptor_data):
-        self.log.info('remove-tcont')
+        self.log.debug('remove-tcont')
         device = self.adapter_agent.get_device(self.device_id)
         if device.connect_status != ConnectStatus.REACHABLE:
             self.log.error('device-unreachable')
@@ -1730,7 +1733,7 @@ class BroadcomOnuHandler(object):
         yield self.wait_for_response()
 
     def create_multicast_gemport(self, data):
-        self.log.info('Send relevant OMCI message')
+        self.log.info('Send relevant OMCI message - Not implemented yet')
 
     @inlineCallbacks
     def disable(self, device):
@@ -1788,7 +1791,7 @@ class BroadcomOnuHandler(object):
                 omci_response = response.getfieldval("omci_message")
                 success_code = omci_response.getfieldval("success_code")
                 if success_code == 0:
-                    self.log.info("reboot-command-processed-successfully")
+                    self.log.debug("reboot-command-processed-successfully")
                     # Update the device connection and operation status
                     device = self.adapter_agent.get_device(self.device_id)
                     device.connect_status = ConnectStatus.UNREACHABLE
@@ -1796,11 +1799,11 @@ class BroadcomOnuHandler(object):
                     self.adapter_agent.update_device(device)
                     self.disable_ports(device)
                 else:
-                    self.log.info("reboot-failed", success_code=success_code)
+                    self.log.error("reboot-failed", success_code=success_code)
             else:
-                self.log.info("error-in-processing-reboot-response")
+                self.log.error("error-in-processing-reboot-response")
         except Exception as e:
-            self.log.info('wait-for-response-exception', exc=str(e))
+            self.log.error('wait-for-response-exception', exc=str(e))
 
     def disable_ports(self, device):
         self.log.info('disable-ports', device_id=self.device_id)

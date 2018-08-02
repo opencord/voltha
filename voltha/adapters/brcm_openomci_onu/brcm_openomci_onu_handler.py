@@ -245,7 +245,7 @@ class BrcmOpenomciOnuHandler(object):
 
     def delete(self, device):
         self.log.debug('function-entry', device=device)
-        self.log.info('delete-onu')
+        self.log.info('delete-onu - Not implemented yet')
         # The device is already deleted in delete_v_ont_ani(). No more
         # handling needed here
 
@@ -277,70 +277,70 @@ class BrcmOpenomciOnuHandler(object):
             _push_tpid = None
             _field = None
             _set_vlan_vid = None
-            self.log.info('bulk-flow-update', device_id=device.id, flow=flow)
+            self.log.debug('bulk-flow-update', device_id=device.id, flow=flow)
             try:
                 _in_port = fd.get_in_port(flow)
                 assert _in_port is not None
 
                 if is_downstream(_in_port):
-                    self.log.info('downstream-flow')
+                    self.log.debug('downstream-flow')
                 elif is_upstream(_in_port):
-                    self.log.info('upstream-flow')
+                    self.log.debug('upstream-flow')
                 else:
                     raise Exception('port should be 1 or 2 by our convention')
 
                 _out_port = fd.get_out_port(flow)  # may be None
-                self.log.info('out-port', out_port=_out_port)
+                self.log.debug('out-port', out_port=_out_port)
 
                 for field in fd.get_ofb_fields(flow):
                     if field.type == fd.ETH_TYPE:
                         _type = field.eth_type
-                        self.log.info('field-type-eth-type',
+                        self.log.debug('field-type-eth-type',
                                       eth_type=_type)
 
                     elif field.type == fd.IP_PROTO:
                         _proto = field.ip_proto
-                        self.log.info('field-type-ip-proto',
+                        self.log.debug('field-type-ip-proto',
                                       ip_proto=_proto)
 
                     elif field.type == fd.IN_PORT:
                         _port = field.port
-                        self.log.info('field-type-in-port',
+                        self.log.debug('field-type-in-port',
                                       in_port=_port)
 
                     elif field.type == fd.VLAN_VID:
                         _vlan_vid = field.vlan_vid & 0xfff
-                        self.log.info('field-type-vlan-vid',
+                        self.log.debug('field-type-vlan-vid',
                                       vlan=_vlan_vid)
 
                     elif field.type == fd.VLAN_PCP:
                         _vlan_pcp = field.vlan_pcp
-                        self.log.info('field-type-vlan-pcp',
+                        self.log.debug('field-type-vlan-pcp',
                                       pcp=_vlan_pcp)
 
                     elif field.type == fd.UDP_DST:
                         _udp_dst = field.udp_dst
-                        self.log.info('field-type-udp-dst',
+                        self.log.debug('field-type-udp-dst',
                                       udp_dst=_udp_dst)
 
                     elif field.type == fd.UDP_SRC:
                         _udp_src = field.udp_src
-                        self.log.info('field-type-udp-src',
+                        self.log.debug('field-type-udp-src',
                                       udp_src=_udp_src)
 
                     elif field.type == fd.IPV4_DST:
                         _ipv4_dst = field.ipv4_dst
-                        self.log.info('field-type-ipv4-dst',
+                        self.log.debug('field-type-ipv4-dst',
                                       ipv4_dst=_ipv4_dst)
 
                     elif field.type == fd.IPV4_SRC:
                         _ipv4_src = field.ipv4_src
-                        self.log.info('field-type-ipv4-src',
+                        self.log.debug('field-type-ipv4-src',
                                       ipv4_dst=_ipv4_src)
 
                     elif field.type == fd.METADATA:
                         _metadata = field.table_metadata
-                        self.log.info('field-type-metadata',
+                        self.log.debug('field-type-metadata',
                                       metadata=_metadata)
 
                     else:
@@ -351,16 +351,16 @@ class BrcmOpenomciOnuHandler(object):
 
                     if action.type == fd.OUTPUT:
                         _output = action.output.port
-                        self.log.info('action-type-output',
+                        self.log.debug('action-type-output',
                                       output=_output, in_port=_in_port)
 
                     elif action.type == fd.POP_VLAN:
-                        self.log.info('action-type-pop-vlan',
+                        self.log.debug('action-type-pop-vlan',
                                       in_port=_in_port)
 
                     elif action.type == fd.PUSH_VLAN:
                         _push_tpid = action.push.ethertype
-                        self.log.info('action-type-push-vlan',
+                        self.log.debug('action-type-push-vlan',
                                  push_tpid=_push_tpid, in_port=_in_port)
                         if action.push.ethertype != 0x8100:
                             self.log.error('unhandled-tpid',
@@ -370,11 +370,11 @@ class BrcmOpenomciOnuHandler(object):
                         _field = action.set_field.field.ofb_field
                         assert (action.set_field.field.oxm_class ==
                                 OFPXMC_OPENFLOW_BASIC)
-                        self.log.info('action-type-set-field',
+                        self.log.debug('action-type-set-field',
                                       field=_field, in_port=_in_port)
                         if _field.type == fd.VLAN_VID:
                             _set_vlan_vid = _field.vlan_vid & 0xfff
-                            self.log.info('set-field-type-valn-vid', _set_vlan_vid)
+                            self.log.debug('set-field-type-valn-vid', _set_vlan_vid)
                         else:
                             self.log.error('unsupported-action-set-field-type',
                                            field_type=_field.type)
@@ -521,8 +521,7 @@ class BrcmOpenomciOnuHandler(object):
             self.log.info('not-handled-yet')
 
     def create_gemport(self, data):
-        self.log.debug('function-entry', data=data)
-        self.log.info('create-gemport')
+        self.log.debug('create-gemport', data=data)
         gem_portdata = GemportsConfigData()
         gem_portdata.CopyFrom(data)
 
@@ -545,8 +544,7 @@ class BrcmOpenomciOnuHandler(object):
 
     @inlineCallbacks
     def remove_gemport(self, data):
-        self.log.debug('function-entry', data=data)
-        self.log.info('remove-gemport')
+        self.log.debug('remove-gemport', data=data)
         gem_port = GemportsConfigData()
         gem_port.CopyFrom(data)
         device = self.adapter_agent.get_device(self.device_id)
@@ -559,8 +557,7 @@ class BrcmOpenomciOnuHandler(object):
 
 
     def create_tcont(self, tcont_data, traffic_descriptor_data):
-        self.log.debug('function-entry', tcont_data=tcont_data, traffic_descriptor_data=traffic_descriptor_data)
-        self.log.info('create-tcont')
+        self.log.debug('create-tcont', tcont_data=tcont_data, traffic_descriptor_data=traffic_descriptor_data)
         tcontdata = TcontsConfigData()
         tcontdata.CopyFrom(tcont_data)
 
@@ -589,12 +586,11 @@ class BrcmOpenomciOnuHandler(object):
         if tcontdata.interface_reference is not None:
             self.log.debug('tcont', tcont=tcont.alloc_id)
         else:
-            self.log.info('recevied-null-tcont-data', tcont=tcont.alloc_id)
+            self.log.info('received-null-tcont-data', tcont=tcont.alloc_id)
 
     @inlineCallbacks
     def remove_tcont(self, tcont_data, traffic_descriptor_data):
-        self.log.debug('function-entry', tcont_data=tcont_data, traffic_descriptor_data=traffic_descriptor_data)
-        self.log.info('remove-tcont')
+        self.log.debug('remove-tcont', tcont_data=tcont_data, traffic_descriptor_data=traffic_descriptor_data)
         device = self.adapter_agent.get_device(self.device_id)
         if device.connect_status != ConnectStatus.REACHABLE:
             self.log.error('device-unreachable')
@@ -671,7 +667,6 @@ class BrcmOpenomciOnuHandler(object):
 
     @inlineCallbacks
     def reboot(self):
-        self.log.debug('function-entry')
         self.log.info('reboot-device')
         device = self.adapter_agent.get_device(self.device_id)
         if device.connect_status != ConnectStatus.REACHABLE:
@@ -685,7 +680,7 @@ class BrcmOpenomciOnuHandler(object):
             omci_response = response.getfieldval("omci_message")
             success_code = omci_response.getfieldval("success_code")
             if success_code == 0:
-                self.log.info("reboot-command-processed-successfully")
+                self.log.debug("reboot-command-processed-successfully")
                 # Update the device connection and operation status
                 device = self.adapter_agent.get_device(self.device_id)
                 device.connect_status = ConnectStatus.UNREACHABLE
@@ -693,13 +688,13 @@ class BrcmOpenomciOnuHandler(object):
                 self.adapter_agent.update_device(device)
                 self.disable_ports(device)
             else:
-                self.log.info("reboot-failed", success_code=success_code)
+                self.log.error("reboot-failed", success_code=success_code)
         else:
-            self.log.info("error-in-processing-reboot-response")
+            self.log.error("error-in-processing-reboot-response")
 
     def disable_ports(self, onu_device):
-        self.log.debug('function-entry', onu_device=onu_device)
-        self.log.info('disable-ports', device_id=self.device_id)
+        self.log.info('disable-ports', device_id=self.device_id,
+                   onu_device=onu_device)
 
         # Disable all ports on that device
         self.adapter_agent.disable_all_ports(self.device_id)
@@ -715,8 +710,7 @@ class BrcmOpenomciOnuHandler(object):
             self.update_logical_port(logical_device_id, port_id, OFPPS_LINK_DOWN)
 
     def enable_ports(self, onu_device):
-        self.log.debug('function-entry', onu_device=onu_device)
-        self.log.info('enable-ports', device_id=self.device_id)
+        self.log.info('enable-ports', device_id=self.device_id, onu_device=onu_device)
 
         # Disable all ports on that device
         self.adapter_agent.enable_all_ports(self.device_id)
@@ -903,13 +897,11 @@ class BrcmOpenomciOnuHandler(object):
                 self._in_sync_reached = True
 
                 def success(_results):
-                    self.log.debug('function-entry', _results=_results)
-                    self.log.info('mib-download-success')
+                    self.log.info('mib-download-success', _results=_results)
                     self._mib_download_task = None
 
                 def failure(_reason):
-                    self.log.debug('function-entry', _reason=_reason)
-                    self.log.info('mib-download-failure')
+                    self.log.info('mib-download-failure', _reason=_reason)
                     self._deferred = reactor.callLater(10, self._mib_download_task)
 
                 self._mib_download_task = BrcmMibDownloadTask(self.omci_agent, self)
