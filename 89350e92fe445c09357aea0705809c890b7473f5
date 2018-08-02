@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "118b9b98_eaf2ad39",
+        "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 691,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-08-02T19:26:08Z",
+      "side": 1,
+      "message": "We can make it an error",
+      "parentUuid": "08738fc0_79aba147",
+      "revId": "89350e92fe445c09357aea0705809c890b7473f5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b679da24_69f36eec",
         "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu_handler.py",
         "patchSetId": 1
@@ -142,6 +160,30 @@
     },
     {
       "key": {
+        "uuid": "9e5bfb0d_81ed628b",
+        "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 697,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-08-02T19:26:08Z",
+      "side": 1,
+      "message": "That\u0027s a mistake, I meant info",
+      "parentUuid": "50d06326_174919ba",
+      "range": {
+        "startLine": 697,
+        "startChar": 17,
+        "endLine": 697,
+        "endChar": 21
+      },
+      "revId": "89350e92fe445c09357aea0705809c890b7473f5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1449fd02_02b5fb0d",
         "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
         "patchSetId": 1
@@ -170,6 +212,24 @@
       "writtenOn": "2018-08-02T18:43:54Z",
       "side": 1,
       "message": "warn or system error?",
+      "revId": "89350e92fe445c09357aea0705809c890b7473f5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "c3478542_40558cfe",
+        "filename": "voltha/adapters/broadcom_onu/broadcom_onu.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1804,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-08-02T19:26:08Z",
+      "side": 1,
+      "message": "Let\u0027s make it an error",
+      "parentUuid": "dcb55f03_694049ae",
       "revId": "89350e92fe445c09357aea0705809c890b7473f5",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
