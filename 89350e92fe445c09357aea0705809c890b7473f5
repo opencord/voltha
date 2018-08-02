@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "08738fc0_79aba147",
+        "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 691,
+      "author": {
+        "id": 1000436
+      },
+      "writtenOn": "2018-08-02T18:55:16Z",
+      "side": 1,
+      "message": "Id love to find out.  And having a log message is a great way to see.  Otherwise everything may proceed silently and we have a log that tells us nothing.  More logging is better than not enough, especially for oddball cases.",
+      "parentUuid": "d62787c0_116877a9",
+      "revId": "89350e92fe445c09357aea0705809c890b7473f5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b679da24_69f36eec",
         "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu_handler.py",
         "patchSetId": 1
@@ -36,6 +54,24 @@
     },
     {
       "key": {
+        "uuid": "d9445ea7_a48a005f",
+        "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 693,
+      "author": {
+        "id": 1000436
+      },
+      "writtenOn": "2018-08-02T18:55:16Z",
+      "side": 1,
+      "message": "Still worth logging.",
+      "parentUuid": "b679da24_69f36eec",
+      "revId": "89350e92fe445c09357aea0705809c890b7473f5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5055ff69_511abafb",
         "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu_handler.py",
         "patchSetId": 1
@@ -47,6 +83,30 @@
       "writtenOn": "2018-08-02T18:43:54Z",
       "side": 1,
       "message": "In some places the `function-entry` was removed (a good thing), but not here. Should we be consistent and remove function entry everywhere?",
+      "range": {
+        "startLine": 696,
+        "startChar": 0,
+        "endLine": 696,
+        "endChar": 63
+      },
+      "revId": "89350e92fe445c09357aea0705809c890b7473f5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "199155cb_2ee90643",
+        "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 696,
+      "author": {
+        "id": 1000436
+      },
+      "writtenOn": "2018-08-02T18:55:16Z",
+      "side": 1,
+      "message": "Im fine with that as long as there is some way in debug to granularity trace execution.  In production, were we will see the real crazy errors, we wont have the luxury of attaching a debugger and this may be our only visibility.",
+      "parentUuid": "5055ff69_511abafb",
       "range": {
         "startLine": 696,
         "startChar": 0,
