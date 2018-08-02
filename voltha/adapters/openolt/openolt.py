@@ -141,7 +141,8 @@ class OpenoltAdapter(object):
 
     def reboot_device(self, device):
         log.info('reboot_device', device=device)
-        raise NotImplementedError()
+        handler = self.devices[device.id]
+        handler.reboot()
 
     def download_image(self, device, request):
         log.info('image_download', device=device, request=request)

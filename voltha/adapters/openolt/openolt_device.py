@@ -953,3 +953,13 @@ class OpenoltDevice(object):
                               onu_id=child_device.proxy_address.onu_id,
                               serial_number=serial_number)
         self.stub.DeleteOnu(onu)
+
+    def reboot(self):
+        self.log.debug('rebooting openolt device', device_id = self.device_id)
+        try:
+            self.stub.Reboot(openolt_pb2.Empty())
+        except Exception as e:
+            self.log.error('something went wrong with the reboot', error=e)
+        else:
+            self.log.info('device rebooted')
+

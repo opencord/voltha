@@ -88,6 +88,13 @@ service Openolt {
         };
     }
 
+    rpc Reboot(Empty) returns (Empty) {
+         option (google.api.http) = {
+            post: "/v1/Reboot"
+            body: "*"
+        };
+    }
+
     rpc EnableIndication(Empty) returns (stream Indication) {}
 }
 
