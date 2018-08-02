@@ -90,6 +90,24 @@
     },
     {
       "key": {
+        "uuid": "dc0b17ff_a72c281f",
+        "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 693,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2018-08-02T19:40:18Z",
+      "side": 1,
+      "message": "Agree it is worth logging? The question becomes should it be logged as an error and does it put the application in an unstable state.",
+      "parentUuid": "d9445ea7_a48a005f",
+      "revId": "89350e92fe445c09357aea0705809c890b7473f5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5055ff69_511abafb",
         "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu_handler.py",
         "patchSetId": 1
