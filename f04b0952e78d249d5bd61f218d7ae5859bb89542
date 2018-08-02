@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "e581e026_165543a1",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 838,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2018-08-02T18:43:54Z",
+      "side": 0,
+      "message": "more than a log change, but agree it is meaningless statement in context",
+      "revId": "f04b0952e78d249d5bd61f218d7ae5859bb89542",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
