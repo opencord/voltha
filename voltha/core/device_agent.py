@@ -80,7 +80,7 @@ class DeviceAgent(object):
 
     @inlineCallbacks
     def start(self, device=None, reconcile=False):
-        self.log.info('starting', device=device)
+        self.log.debug('starting', device=device)
         self._set_adapter_agent()
         if device:
             # Starting from an existing data, so set the last_data

@@ -30,7 +30,7 @@ class OpenOltBW(object):
             bw = self.proxy.get(
                 '/traffic_descriptor_profiles/{}'.format(serial_number))
         except KeyError:
-            self.log.info('bandwidth not configured',
+            self.log.debug('bandwidth not configured',
                           serial_number=serial_number)
             try:
                 bw = self.proxy.get('/traffic_descriptor_profiles/{}' \

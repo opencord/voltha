@@ -170,7 +170,7 @@ class BrcmOpenomciOnuAdapter(object):
         :param device: A Voltha.Device object.
         :return: Will return result of self test
         """
-        log.info('self-test-device', device=device.id)
+        log.info('self-test-device - Not implemented yet', device=device.id)
         raise NotImplementedError()
 
     def delete_device(self, device):
@@ -201,10 +201,10 @@ class BrcmOpenomciOnuAdapter(object):
         raise NotImplementedError()
 
     def send_proxied_message(self, proxy_address, msg):
-        log.info('send-proxied-message', proxy_address=proxy_address, msg=msg)
+        log.debug('send-proxied-message', proxy_address=proxy_address, msg=msg)
 
     def receive_proxied_message(self, proxy_address, msg):
-        log.info('receive-proxied-message', proxy_address=proxy_address,
+        log.debug('receive-proxied-message', proxy_address=proxy_address,
                  device_id=proxy_address.device_id, msg=hexify(msg))
         # Device_id from the proxy_address is the olt device id. We need to
         # get the onu device id using the port number in the proxy_address
@@ -219,7 +219,7 @@ class BrcmOpenomciOnuAdapter(object):
                  egress_port_no=egress_port_no, msg_len=len(msg))
 
     def receive_inter_adapter_message(self, msg):
-        log.info('receive_inter_adapter_message', msg=msg)
+        log.debug('receive_inter_adapter_message', msg=msg)
         proxy_address = msg['proxy_address']
         assert proxy_address is not None
         # Device_id from the proxy_address is the olt device id. We need to
@@ -233,21 +233,21 @@ class BrcmOpenomciOnuAdapter(object):
             log.error("device-not-found")
 
     def create_interface(self, device, data):
-        log.info('create-interface', device_id=device.id)
+        log.debug('create-interface', device_id=device.id)
         if device.id in self.devices_handlers:
             handler = self.devices_handlers[device.id]
             if handler is not None:
                 handler.create_interface(data)
 
     def update_interface(self, device, data):
-        log.info('update-interface', device_id=device.id)
+        log.debug('update-interface', device_id=device.id)
         if device.id in self.devices_handlers:
             handler = self.devices_handlers[device.id]
             if handler is not None:
                 handler.update_interface(data)
 
     def remove_interface(self, device, data):
-        log.info('remove-interface', device_id=device.id)
+        log.debug('remove-interface', device_id=device.id)
         if device.id in self.devices_handlers:
             handler = self.devices_handlers[device.id]
             if handler is not None:
@@ -257,7 +257,7 @@ class BrcmOpenomciOnuAdapter(object):
         raise NotImplementedError()
 
     def create_tcont(self, device, tcont_data, traffic_descriptor_data):
-        log.info('create-tcont', device_id=device.id)
+        log.debug('create-tcont', device_id=device.id)
         if device.id in self.devices_handlers:
             handler = self.devices_handlers[device.id]
             if handler is not None:
@@ -267,14 +267,14 @@ class BrcmOpenomciOnuAdapter(object):
         raise NotImplementedError()
 
     def remove_tcont(self, device, tcont_data, traffic_descriptor_data):
-        log.info('remove-tcont', device_id=device.id)
+        log.debug('remove-tcont', device_id=device.id)
         if device.id in self.devices_handlers:
             handler = self.devices_handlers[device.id]
             if handler is not None:
                 handler.remove_tcont(tcont_data, traffic_descriptor_data)
 
     def create_gemport(self, device, data):
-        log.info('create-gemport', device_id=device.id)
+        log.debug('create-gemport', device_id=device.id)
         if device.id in self.devices_handlers:
             handler = self.devices_handlers[device.id]
             if handler is not None:
@@ -284,14 +284,14 @@ class BrcmOpenomciOnuAdapter(object):
         raise NotImplementedError()
 
     def remove_gemport(self, device, data):
-        log.info('remove-gemport', device_id=device.id)
+        log.debug('remove-gemport', device_id=device.id)
         if device.id in self.devices_handlers:
             handler = self.devices_handlers[device.id]
             if handler is not None:
                 handler.remove_gemport(data)
 
     def create_multicast_gemport(self, device, data):
-        log.info('create-multicast-gemport', device_id=device.id)
+        log.debug('create-multicast-gemport', device_id=device.id)
         if device.id in self.devices_handlers:
             handler = self.devices_handlers[device.id]
             if handler is not None:

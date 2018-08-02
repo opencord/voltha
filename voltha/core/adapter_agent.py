@@ -508,7 +508,7 @@ class AdapterAgent(object):
         :return: None
         """
         assert isinstance(port, Port)
-        self.log.info('delete-port-reference', device_id=device_id, port=port)
+        self.log.debug('delete-port-reference', device_id=device_id, port=port)
         self._del_peer_reference(device_id, port)
 
         # update child port details
@@ -523,7 +523,7 @@ class AdapterAgent(object):
         :return: None
         """
         assert isinstance(port, Port)
-        self.log.info('add-port-reference', device_id=device_id, port=port)
+        self.log.debug('add-port-reference', device_id=device_id, port=port)
         self._add_peer_reference(device_id, port)
         # update child port details
         self._make_up_to_date('/devices/{}/ports'.format(device_id),
