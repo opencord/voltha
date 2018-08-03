@@ -45,6 +45,7 @@ class AdapterPmMetrics(object):
         self.freq_override = grouped and freq_override
         self.lc = None
         self.prefix = 'voltha.{}.{}'.format(self.name, self.device_id)
+        self.pm_group_metrics = dict()      # name -> PmGroupConfig
 
     def update(self, pm_config):
         # TODO: Move any common steps into base class
@@ -74,7 +75,7 @@ class AdapterPmMetrics(object):
         if self.lc is not None and self.default_freq > 0:
             self.lc.stop()
 
-    def collect_metrics(self, group, names, config):
+    def collect_group_metrics(self, group, names, config):
         """
         Collect the metrics for a specific PM group.
 
@@ -95,14 +96,35 @@ class AdapterPmMetrics(object):
         for (metric, t) in names:
             if config[metric].enabled and hasattr(group, metric):
                 metrics[metric] = getattr(group, metric)
+
         return metrics
 
-    def collect_group_metrics(self, metrics=None):
+    def collect_metrics(self, metrics=None):
+        """
+        Collect metrics for this adapter.
+
+        This method is called for each adapter at a fixed frequency. The adapter type
+        (OLT, ONU, ..) should provide a derived class where this method iterates
+        through all metrics and collects them up in a dictionary with the group/metric
+        name as the key, and the metric values as the contents.
+
+        For a group, the values are a map where   metric_name -> metric_value
+        For and individual metric, the values are the metric value
+
+        TODO: Currently all group metrics are collected on a single timer tick. This needs to be fixed.
+
+        :param metrics: (dict) Existing map to add collected metrics to.  This is
+                               provided to allow derived classes to call into further
+                               encapsulated classes
+
+        :return: (dict) metrics - see description above
+        """
         raise NotImplementedError('Your derived class should override this method')
 
     def collect_and_publish_metrics(self):
+        """ Request collection of all enabled metrics and publish them """
         try:
-            metrics = self.collect_group_metrics()
+            metrics = self.collect_metrics()
             self.publish_metrics(metrics)
 
         except Exception as e:
@@ -112,24 +134,27 @@ class AdapterPmMetrics(object):
         """
         Publish the metrics during a collection
 
-        :param metrics: (dict) Metrics to publish
+        :param metrics: (dict) Metrics to publish. If empty, no metrics will be published
         """
-        import arrow
-        from voltha.protos.events_pb2 import KpiEvent, KpiEventType, MetricValuePairs
+        self.log.debug('publish-metrics', metrics=metrics)
 
-        try:
-            ts = arrow.utcnow().timestamp
-            kpi_event = KpiEvent(
-                type=KpiEventType.slice,
-                ts=ts,
-                prefixes={
-                    self.prefix + '.{}'.format(k): MetricValuePairs(metrics=metrics[k])
-                    for k in metrics.keys()}
-            )
-            self.adapter_agent.submit_kpis(kpi_event)
+        if len(metrics):
+            import arrow
+            from voltha.protos.events_pb2 import KpiEvent, KpiEventType, MetricValuePairs
 
-        except Exception as e:
-            self.log.exception('failed-to-submit-kpis', e=e)
+            try:
+                ts = arrow.utcnow().timestamp
+                kpi_event = KpiEvent(
+                    type=KpiEventType.slice,
+                    ts=ts,
+                    prefixes={
+                        self.prefix + '.{}'.format(k): MetricValuePairs(metrics=metrics[k])
+                        for k in metrics.keys()}
+                )
+                self.adapter_agent.submit_kpis(kpi_event)
+
+            except Exception as e:
+                self.log.exception('failed-to-submit-kpis', e=e)
 
     # TODO: Need to support on-demand counter update if provided by the PM 'group'.
     #       Currently we expect PM data to be periodically polled by a separate

@@ -18,6 +18,12 @@ from voltha.extensions.pki.onu.onu_pm_interval_metrics import OnuPmIntervalMetri
 
 
 class OnuOmciPmMetrics(AdapterPmMetrics):
+    """ ONU OMCI related metrics """
+
+    # Metric default settings
+    DEFAULT_OMCI_CC_ENABLED = False
+    DEFAULT_OMCI_CC_FREQUENCY = 1200        # 1/10ths of a second
+
     def __init__(self, adapter_agent, device_id,
                  grouped=False, freq_override=False, **kwargs):
         """
@@ -41,9 +47,7 @@ class OnuOmciPmMetrics(AdapterPmMetrics):
                                                **kwargs)
         self._omci_cc = kwargs.pop('omci-cc', None)
 
-        # PM Config Types are COUNTER, GUAGE, and STATE  # Note: GAUGE is misspelled in device.proto
         self.omci_pm_names = {
-            ('enabled', PmConfig.STATE),
             ('tx_frames', PmConfig.COUNTER),
             ('tx_errors', PmConfig.COUNTER),
             ('rx_frames', PmConfig.COUNTER),
@@ -65,7 +69,6 @@ class OnuOmciPmMetrics(AdapterPmMetrics):
         self.openomci_interval_pm = OnuPmIntervalMetrics(adapter_agent, device_id)
 
     def update(self, pm_config):
-        # TODO: Test both 'group' and 'non-group' functionality
         # TODO: Test frequency override capability for a particular group
         if self.default_freq != pm_config.default_freq:
             # Update the callback to the new frequency.
@@ -74,14 +77,10 @@ class OnuOmciPmMetrics(AdapterPmMetrics):
             self.lc.start(interval=self.default_freq / 10)
 
         if pm_config.grouped:
-            for m in pm_config.groups:
-                # TODO: Need to support individual group enable/disable
-                pass
-                # self.pm_group_metrics[m.group_name].config.enabled = m.enabled
-                # if m.enabled is True:,
-                #     self.enable_pm_collection(m.group_name, remote)
-                # else:
-                #     self.disable_pm_collection(m.group_name, remote)
+            for group in pm_config.groups:
+                group_config = self.pm_group_metrics.get(group.group_name)
+                if group_config is not None:
+                    group_config.enabled = group.enabled
         else:
             for m in pm_config.metrics:
                 self.omci_metrics_config[m.name].enabled = m.enabled
@@ -93,9 +92,10 @@ class OnuOmciPmMetrics(AdapterPmMetrics):
 
         if self._omci_cc is not None:
             if self.grouped:
-                pm_omci_stats = PmGroupConfig(group_name='OMCI',
-                                              group_freq=self.default_freq,
-                                              enabled=True)
+                pm_omci_stats = PmGroupConfig(group_name='OMCI-CC',
+                                              group_freq=OnuOmciPmMetrics.DEFAULT_OMCI_CC_FREQUENCY,
+                                              enabled=OnuOmciPmMetrics.DEFAULT_OMCI_CC_ENABLED)
+                self.pm_group_metrics[pm_omci_stats.group_name] = pm_omci_stats
             else:
                 pm_omci_stats = pm_config
 
@@ -115,7 +115,26 @@ class OnuOmciPmMetrics(AdapterPmMetrics):
 
         return self.openomci_interval_pm.make_proto(pm_config)
 
-    def collect_device_metrics(self, metrics=None):
+    def collect_metrics(self, metrics=None):
+        """
+        Collect metrics for this adapter.
+
+        This method is callfor each adapter at a fixed frequency. The adapter type
+        (OLT, ONU, ..) should provide a derived class where this method iterates
+        through all metrics and collects them up in a dictionary with the group/metric
+        name as the key, and the metric values as the contents.
+
+        For a group, the values are a map where   metric_name -> metric_value
+        For and individual metric, the values are the metric value
+
+        TODO: Currently all group metrics are collected on a single timer tick. This needs to be fixed.
+
+        :param metrics: (dict) Existing map to add collected metrics to.  This is
+                               provided to allow derived classes to call into further
+                               encapsulated classes
+
+        :return: (dict) metrics - see description above
+        """
         # TODO: Currently PM collection is done for all metrics/groups on a single timer
         if metrics is None:
             metrics = dict()
@@ -123,7 +142,8 @@ class OnuOmciPmMetrics(AdapterPmMetrics):
         # Note: Interval PM is collection done autonomously, not through this method
 
         if self._omci_cc is not None:
-            metrics['omci-cc'] = self.collect_metrics(self._omci_cc,
-                                                      self.omci_pm_names,
-                                                      self.omci_metrics_config)
+            if self.pm_group_metrics['OMCI-CC'].enabled:
+                metrics['OMCI-CC'] = self.collect_group_metrics(self._omci_cc,
+                                                                self.omci_pm_names,
+                                                                self.omci_metrics_config)
         return metrics

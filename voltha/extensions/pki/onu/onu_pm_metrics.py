@@ -21,10 +21,15 @@ class OnuPmMetrics(AdapterPmMetrics):
     """
     Shared ONU Device Adapter PM Metrics Manager
 
-    This class specifically addresses ONU genernal PM (health, ...) area
+    This class specifically addresses ONU general PM (health, ...) area
     specific PM (OMCI, PON, UNI) is supported in encapsulated classes accessible
     from this object
     """
+
+    # Metric default settings
+    DEFAULT_HEARTBEAT_ENABLED = False
+    DEFAULT_HEARTBEAT_FREQUENCY = 1200  # 1/10ths of a second
+
     def __init__(self, adapter_agent, device_id, grouped=False, freq_override=False, **kwargs):
         """
         Initializer for shared ONU Device Adapter PM metrics
@@ -52,7 +57,6 @@ class OnuPmMetrics(AdapterPmMetrics):
         #       there is not yet a common 'heartbeat' object
         #
         self.health_pm_names = {
-            ('enabled', PmConfig.STATE),
             ('alarm_active', PmConfig.STATE),
             ('heartbeat_count', PmConfig.COUNTER),
             ('heartbeat_miss', PmConfig.COUNTER),
@@ -70,26 +74,26 @@ class OnuPmMetrics(AdapterPmMetrics):
                                         freq_override=freq_override, **kwargs)
 
     def update(self, pm_config):
-        # TODO: Test both 'group' and 'non-group' functionality
-        # TODO: Test frequency override capability for a particular group
-        if self.default_freq != pm_config.default_freq:
-            # Update the callback to the new frequency.
-            self.default_freq = pm_config.default_freq
-            self.lc.stop()
-            self.lc.start(interval=self.default_freq / 10)
+        try:
+            # TODO: Test frequency override capability for a particular group
+            if self.default_freq != pm_config.default_freq:
+                # Update the callback to the new frequency.
+                self.default_freq = pm_config.default_freq
+                self.lc.stop()
+                self.lc.start(interval=self.default_freq / 10)
 
-        if pm_config.grouped:
-            for m in pm_config.groups:
-                # TODO: Need to support individual group enable/disable
-                pass
-                # self.pm_group_metrics[m.group_name].config.enabled = m.enabled
-                # if m.enabled is True:,
-                #     self.enable_pm_collection(m.group_name, remote)
-                # else:
-                #     self.disable_pm_collection(m.group_name, remote)
-        else:
-            for m in pm_config.metrics:
-                self.health_metrics_config[m.name].enabled = m.enabled
+            if pm_config.grouped:
+                for group in pm_config.groups:
+                    group_config = self.pm_group_metrics.get(group.group_name)
+                    if group_config is not None:
+                        group_config.enabled = group.enabled
+            else:
+                for m in pm_config.metrics:
+                    self.health_metrics_config[m.name].enabled = m.enabled
+
+        except Exception as e:
+            self.log.exception('update-failure', e=e)
+            raise
 
         self.omci_pm.update(pm_config)
 
@@ -104,8 +108,9 @@ class OnuPmMetrics(AdapterPmMetrics):
         if self._heartbeat is not None:
             if self.grouped:
                 pm_health_stats = PmGroupConfig(group_name='Heartbeat',
-                                                group_freq=self.default_freq,
-                                                enabled=True)
+                                                group_freq=OnuPmMetrics.DEFAULT_HEARTBEAT_FREQUENCY,
+                                                enabled=OnuPmMetrics.DEFAULT_HEARTBEAT_ENABLED)
+                self.pm_group_metrics[pm_health_stats.group_name] = pm_health_stats
             else:
                 pm_health_stats = pm_config
 
@@ -128,7 +133,12 @@ class OnuPmMetrics(AdapterPmMetrics):
         pm_config = self.omci_pm.make_proto(pm_config)
         return pm_config
 
-    def collect_group_metrics(self, metrics=None):
+    def collect_metrics(self, metrics=None):
+        """
+        Collect metrics
+        :param metrics:
+        :return:
+        """
         # TODO: Currently PM collection is done for all metrics/groups on a single timer
         if metrics is None:
             metrics = dict()
@@ -138,7 +148,7 @@ class OnuPmMetrics(AdapterPmMetrics):
         #     metrics['heartbeat'] = self.collect_metrics(self._heartbeat,
         #                                                 self.health_pm_names,
         #                                                 self.health_metrics_config)
-        self.omci_pm.collect_device_metrics(metrics=metrics)
+        self.omci_pm.collect_metrics(metrics=metrics)
         # TODO Add PON Port PM
         # TODO Add UNI Port PM
         return metrics

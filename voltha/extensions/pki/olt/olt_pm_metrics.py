@@ -123,29 +123,29 @@ class OltPmMetrics(AdapterPmMetrics):
         self._pon_ports = kwargs.pop('pon-ports', None)
 
     def update(self, pm_config):
-        # TODO: Test both 'group' and 'non-group' functionality
-        # TODO: Test frequency override capability for a particular group
-        if self.default_freq != pm_config.default_freq:
-            # Update the callback to the new frequency.
-            self.default_freq = pm_config.default_freq
-            self.lc.stop()
-            self.lc.start(interval=self.default_freq / 10)
+        try:
+            # TODO: Test frequency override capability for a particular group
+            if self.default_freq != pm_config.default_freq:
+                # Update the callback to the new frequency.
+                self.default_freq = pm_config.default_freq
+                self.lc.stop()
+                self.lc.start(interval=self.default_freq / 10)
 
-        if pm_config.grouped:
-            for m in pm_config.groups:
-                # TODO: Need to support individual group enable/disable
-                pass
-                # self.pm_group_metrics[m.group_name].config.enabled = m.enabled
-                # if m.enabled is True:
-                #     self.enable_pm_collection(m.group_name, remote)
-                # else:
-                #     self.disable_pm_collection(m.group_name, remote)
-        else:
-            for m in pm_config.metrics:
-                self.nni_metrics_config[m.name].enabled = m.enabled
-                self.pon_metrics_config[m.name].enabled = m.enabled
-                self.onu_metrics_config[m.name].enabled = m.enabled
-                self.gem_metrics_config[m.name].enabled = m.enabled
+            if pm_config.grouped:
+                for group in pm_config.groups:
+                    group_config = self.pm_group_metrics.get(group.group_name)
+                    if group_config is not None:
+                        group_config.enabled = group.enabled
+            else:
+                for m in pm_config.metrics:
+                    self.nni_metrics_config[m.name].enabled = m.enabled
+                    self.pon_metrics_config[m.name].enabled = m.enabled
+                    self.onu_metrics_config[m.name].enabled = m.enabled
+                    self.gem_metrics_config[m.name].enabled = m.enabled
+
+        except Exception as e:
+            self.log.exception('update-failure', e=e)
+            raise
 
     def make_proto(self, pm_config=None):
         if pm_config is None:
@@ -161,6 +161,8 @@ class OltPmMetrics(AdapterPmMetrics):
                 pm_ether_stats = PmGroupConfig(group_name='Ethernet',
                                                group_freq=self.default_freq,
                                                enabled=True)
+                self.pm_group_metrics[pm_ether_stats.group_name] = pm_ether_stats
+
             else:
                 pm_ether_stats = None
 
@@ -169,22 +171,26 @@ class OltPmMetrics(AdapterPmMetrics):
                                              group_freq=self.default_freq,
                                              enabled=True)
 
-                pm_ont_stats = PmGroupConfig(group_name='ONT',
+                pm_onu_stats = PmGroupConfig(group_name='ONU',
                                              group_freq=self.default_freq,
                                              enabled=True)
 
                 pm_gem_stats = PmGroupConfig(group_name='GEM',
                                              group_freq=self.default_freq,
                                              enabled=True)
+
+                self.pm_group_metrics[pm_pon_stats.group_name] = pm_pon_stats
+                self.pm_group_metrics[pm_onu_stats.group_name] = pm_onu_stats
+                self.pm_group_metrics[pm_gem_stats.group_name] = pm_gem_stats
             else:
                 pm_pon_stats = None
-                pm_ont_stats = None
+                pm_onu_stats = None
                 pm_gem_stats = None
 
         else:
             pm_ether_stats = pm_config if have_nni else None
             pm_pon_stats = pm_config if have_pon else None
-            pm_ont_stats = pm_config if have_pon else None
+            pm_onu_stats = pm_config if have_pon else None
             pm_gem_stats = pm_config if have_pon else None
 
         if have_nni:
@@ -214,7 +220,7 @@ class OltPmMetrics(AdapterPmMetrics):
                     if pm.name in metrics:
                         continue
                     metrics.add(pm.name)
-                pm_ont_stats.metrics.extend([PmConfig(name=pm.name,
+                pm_onu_stats.metrics.extend([PmConfig(name=pm.name,
                                                       type=pm.type,
                                                       enabled=pm.enabled)])
 
@@ -228,57 +234,44 @@ class OltPmMetrics(AdapterPmMetrics):
                                                       type=pm.type,
                                                       enabled=pm.enabled)])
         if self.grouped:
-            pm_groups = [stats for stats in (pm_ether_stats,
-                                             pm_pon_stats,
-                                             pm_ont_stats,
-                                             pm_gem_stats) if stats is not None]
-            pm_config.groups.extend(pm_groups)
+            pm_config.groups.extend([stats for stats in
+                                     self.pm_group_metrics.itervalues()])
 
         return pm_config
 
-    def collect_group_metrics(self, metrics=None):
+    def collect_metrics(self, metrics=None):
         # TODO: Currently PM collection is done for all metrics/groups on a single timer
         if metrics is None:
             metrics = dict()
 
-        for port in self._nni_ports:
-            metrics['nni.{}'.format(port.port_no)] = self.collect_nni_metrics(port)
-
+        if self.pm_group_metrics['Ethernet'].enabled:
+            for port in self._nni_ports:
+                name = 'nni.{}'.format(port.port_no)
+                metrics[name] = self.collect_group_metrics(port,
+                                                           self.nni_pm_names,
+                                                           self.nni_metrics_config)
         for port in self._pon_ports:
-            metrics['pon.{}'.format(port.pon_id)] = self.collect_pon_metrics(port)
-
+            if self.pm_group_metrics['PON'].enabled:
+                name = 'pon.{}'.format(port.pon_id)
+                metrics[name] = self.collect_group_metrics(port,
+                                                           self.pon_pm_names,
+                                                           self.pon_metrics_config)
             for onu_id in port.onu_ids:
                 onu = port.onu(onu_id)
                 if onu is not None:
-                    metrics['pon.{}.onu.{}'.format(port.pon_id, onu.onu_id)] = \
-                        self.collect_onu_metrics(onu)
-                    for gem in onu.gem_ports:
-                        if gem.multicast:
-                            continue
-
-                        metrics['pon.{}.onu.{}.gem.{}'.format(port.pon_id,
-                                                              onu.onu_id,
-                                                              gem.gem_id)] = \
-                            self.collect_gem_metrics(gem)
-            # TODO: Do any multicast GEM PORT metrics here...
+                    if self.pm_group_metrics['ONU'].enabled:
+                        name = 'pon.{}.onu.{}'.format(port.pon_id, onu.onu_id)
+                        metrics[name] = self.collect_group_metrics(onu,
+                                                                   self.onu_pm_names,
+                                                                   self.onu_metrics_config)
+                    if self.pm_group_metrics['GEM'].enabled:
+                        for gem in onu.gem_ports:
+                            if not gem.multicast:
+                                name = 'pon.{}.onu.{}.gem.{}'.format(port.pon_id,
+                                                                     onu.onu_id,
+                                                                     gem.gem_id)
+                                metrics[name] = self.collect_group_metrics(onu,
+                                                                           self.gem_pm_names,
+                                                                           self.gem_metrics_config)
+                            # TODO: Do any multicast GEM PORT metrics here...
         return metrics
-
-    def collect_nni_metrics(self, nni_port):
-        stats = {metric: getattr(nni_port, metric) for (metric, t) in self.nni_pm_names}
-        return {metric: value for metric, value in stats.iteritems()
-                if self.nni_metrics_config[metric].enabled}
-
-    def collect_pon_metrics(self, pon_port):
-        stats = {metric: getattr(pon_port, metric) for (metric, t) in self.pon_pm_names}
-        return {metric: value for metric, value in stats.iteritems()
-                if self.pon_metrics_config[metric].enabled}
-
-    def collect_onu_metrics(self, onu):
-        stats = {metric: getattr(onu, metric) for (metric, t) in self.onu_pm_names}
-        return {metric: value for metric, value in stats.iteritems()
-                if self.onu_metrics_config[metric].enabled}
-
-    def collect_gem_metrics(self, gem):
-        stats = {metric: getattr(gem, metric) for (metric, t) in self.gem_pm_names}
-        return {metric: value for metric, value in stats.iteritems()
-                if self.gem_metrics_config[metric].enabled}

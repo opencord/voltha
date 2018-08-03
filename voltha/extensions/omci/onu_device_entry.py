@@ -72,6 +72,7 @@ class OnuDeviceEntry(object):
         self._runner = TaskRunner(device_id)  # OMCI_CC Task runner
         self._deferred = None
         self._first_in_sync = False
+        self._first_capabilities = False
 
         # OMCI related databases are on a per-agent basis. State machines and tasks
         # are per ONU Vendor
@@ -125,6 +126,8 @@ class OnuDeviceEntry(object):
             self._alarm_sync_sm,
         ]
         self._on_sync_state_machines = [        # Run after first in_sync event
+        ]
+        self._on_capabilities_state_machines = [  # Run after first capabilities events
             self._pm_intervals_sm
         ]
         self._custom_me_map = custom_me_map
@@ -182,6 +185,15 @@ class OnuDeviceEntry(object):
         Reference to the OpenOMCI PM Intervals state machine for this ONU
         """
         return self._pm_intervals_sm
+
+    def set_pm_config(self, pm_config):
+        """
+        Set PM interval configuration
+
+        :param pm_config: (OnuPmIntervalMetrics) PM Interval configuration
+        :return:
+        """
+        self._pm_intervals_sm.set_pm_config(pm_config)
 
     @property
     def alarm_synchronizer(self):
@@ -281,6 +293,7 @@ class OnuDeviceEntry(object):
         self._started = True
         self._omci_cc.enabled = True
         self._first_in_sync = True
+        self._first_capabilities = True
         self._runner.start()
         self._configuration = OnuConfiguration(self._omci_agent, self._device_id)
 
@@ -353,6 +366,25 @@ class OnuDeviceEntry(object):
             self._deferred = reactor.callLater(0, start_state_machines,
                                                self._on_sync_state_machines)
 
+    def first_in_capabilities_event(self):
+        """
+        This event is called on the first capabilities event after
+        OpenOMCI has been started. It is responsible for starting any
+        other state machine. These are often state machines that have tasks
+        that are dependent upon knowing if various MEs are supported
+        """
+        if self._first_capabilities:
+            self._first_capabilities = False
+
+            # Start up any other remaining OpenOMCI state machines
+            def start_state_machines(machines):
+                for sm in machines:
+                    self._state_machines.append(sm)
+                    reactor.callLater(0, sm.start)
+
+            self._deferred = reactor.callLater(0, start_state_machines,
+                                               self._on_capabilities_state_machines)
+
     def _publish_device_status_event(self):
         """
         Publish the ONU Device start/start status.
@@ -366,6 +398,9 @@ class OnuDeviceEntry(object):
         """
         Publish the ONU Device start/start status.
         """
+        if self.first_in_capabilities_event:
+            self.first_in_capabilities_event()
+
         topic = OnuDeviceEntry.event_bus_topic(self.device_id,
                                                OnuDeviceEvents.OmciCapabilitiesEvent)
         msg = {

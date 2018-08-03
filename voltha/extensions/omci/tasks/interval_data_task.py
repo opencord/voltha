@@ -112,19 +112,19 @@ class IntervalDataTask(Task):
         attr_names = self._counter_attributes.keys()
 
         final_results = {
-            'class-id': self._class_id,
-            'entity-id': self._entity_id,
-            'me-name': self._entity.__name__,   # Mostly for debugging...
-            'interval-utc-time': None,
+            'class_id': self._class_id,
+            'entity_id': self._entity_id,
+            'me_name': self._entity.__name__,   # Mostly for debugging...
+            'interval_utc_time': None,
             # Counters added here as they are retrieved
         }
         last_end_time = None
 
         while len(attr_names) > 0:
             # Get as many attributes that will fit. Always include the 1 octet
-            # Interval End Time Attribute
+            # Interval End Time Attribute and 2 octets for the Entity ID
 
-            remaining_payload = self._max_payload - 1
+            remaining_payload = self._max_payload - 3
             attributes = list()
             for name in attr_names:
                 if self._counter_attributes[name] > remaining_payload:
@@ -145,6 +145,8 @@ class IntervalDataTask(Task):
                     attributes_mask=self._entity.mask_for(*attributes)
                 )
             )
+            self.log.debug('interval-get-request', class_id=self._class_id,
+                           entity_id=self._entity_id)
             try:
                 results = yield device.omci_cc.send(frame)
 
@@ -157,28 +159,27 @@ class IntervalDataTask(Task):
                                end_time=end_time)
 
                 if status != ReasonCodes.Success:
-                    raise IntervalDataTaskFailure('Unexpected Response Status: {}'.
-                                                  format(status))
-
+                    raise IntervalDataTaskFailure('Unexpected Response Status: {}, Class ID: {}'.
+                                                  format(status, self._class_id))
                 if last_end_time is None:
                     last_end_time = end_time
 
                 elif end_time != last_end_time:
                     msg = 'Interval End Time Changed during retrieval from {} to {}'\
                         .format(last_end_time, end_time)
-                    self.log.info('interval-roll-over', msg=msg)
+                    self.log.info('interval-roll-over', msg=msg, class_id=self._class_id)
                     raise IntervalDataTaskFailure(msg)
 
-                final_results['interval-utc-time'] = datetime.utcnow()
+                final_results['interval_utc_time'] = datetime.utcnow()
                 for attribute in attributes:
                     final_results[attribute] = omci_msg['data'].get(attribute)
 
             except TimeoutError as e:
-                self.log.warn('interval-get-timeout', e=e)
+                self.log.warn('interval-get-timeout', e=e, class_id=self._class_id)
                 self.deferred.errback(failure.Failure(e))
 
             except Exception as e:
-                self.log.exception('interval-get-failure', e=e)
+                self.log.exception('interval-get-failure', e=e, class_id=self._class_id)
                 self.deferred.errback(failure.Failure(e))
 
         # Successful if here

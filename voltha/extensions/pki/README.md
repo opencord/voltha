@@ -97,7 +97,7 @@ of the following key-value pairs.
 | :-:      | :----- | :---- |
 | type     | string | "slice" or "ts". A "slice" is a set of path/metric data for the same time-stamp. A "ts" is a time-series: array of data for same metric |
 | ts       | float  | UTC time-stamp of data in slice mode (seconds since the epoch of January 1, 1970) |
-| prefixes | map    | One or more prefix_name - value pairs as described below |
+| prefixes | list   | One or more prefixes.  A prefix is a key-value pair described below |
 
 **NOTE**: The timestamp is currently retrieved as a whole value. It is also possible to easily get
 the floating timestamp which contains the fractional seconds since epoch. **Is this of use**?
@@ -208,20 +208,15 @@ file in the _onu/_ subdirectory.
 This initial code is only a preliminary sample. The following tasks need to be
 added to the VOLTHA JIRA or performed in the SEBA group:
     
-- Get a list from SEBA/VOLTHA on required metrics. 
-
-- Provide example JSON output and verify that it meets SEBA's requirements
+- Get a list from SEBA/VOLTHA on required metrics.
 
 - Get feedback from other OLT/ONU developers on any needed changes
 
-- Test PM group enable/disable
-
 - Allow PM groups to have different collection times
-
-- Solicit VOLTHA/SEBA if support for disabling of individual items in a PM group would be useful
 
 - Support calling a 'get-data' method before collect the metrics.  Currently metrics are collected
   in a device adapter independent way and the PM just updates what the attributes happen to have.
 
-- TODO: Probably a few more.  Look through code for more 'TODO' Notes
+- For statistics groups that have more than one instance, do we need to be able to
+  enable/disable specific instances? Major refactor of code if so (database work, ...)
 
