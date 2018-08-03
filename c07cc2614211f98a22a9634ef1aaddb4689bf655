@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1ab665d0_7e417481",
+        "filename": "voltha/core/global_handler.py",
+        "patchSetId": 9
+      },
+      "lineNbr": 48,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-08-03T19:14:22Z",
+      "side": 1,
+      "message": "You need to add an import of your AlarmDeviceData object here.  It is referenced at line 1776.\n\nfrom voltha.protos.omci_alarm_db_pb2 import AlarmDeviceData\n-----------------------------------------------------------\nI have an outstanding bug to add a reference to MibDeviceData here that I have not checked in.  I plan to check that in next week.",
+      "revId": "c07cc2614211f98a22a9634ef1aaddb4689bf655",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
