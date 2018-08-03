@@ -46,6 +46,30 @@
       "revId": "71eb07ec16a9c98d90f177404be587a436e8e7aa",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "23305669_2846e2cd",
+        "filename": "voltha/extensions/alarms/olt/olt_los_alarm.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 23,
+      "author": {
+        "id": 1000453
+      },
+      "writtenOn": "2018-08-03T11:38:17Z",
+      "side": 1,
+      "message": "The issue here is that an ONU dying gasp triggers two OLT_LOS indications.  One generated from the NNI and another from the PON port.  In that case it will be useful to show which type is generating the alarm.   I am adding to context the olt-port-type-name in the OltLosAlarm class.",
+      "parentUuid": "98ad9df5_3db4381c",
+      "range": {
+        "startLine": 20,
+        "startChar": 41,
+        "endLine": 23,
+        "endChar": 80
+      },
+      "revId": "71eb07ec16a9c98d90f177404be587a436e8e7aa",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
