@@ -33,12 +33,24 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
     result of receipt of OMCI get responses on various PM History MEs.  They are
     also always managed as a group with a fixed frequency of 15 minutes.
     """
+    ME_ID_INFO = {
+        EthernetFrameUpstreamPerformanceMonitoringHistoryData.class_id: 'Ethernet Bridge Port History',
+        EthernetFrameDownstreamPerformanceMonitoringHistoryData.class_id: 'Ethernet Bridge Port History',
+        EthernetFrameExtendedPerformanceMonitoring.class_id: 'Ethernet Bridge Port History',
+        EthernetFrameExtendedPerformanceMonitoring64Bit.class_id: 'Ethernet Bridge Port History',
+        EthernetPMMonitoringHistoryData.class_id: 'Ethernet UNI History',
+        FecPerformanceMonitoringHistoryData.class_id: 'FEC History',
+        GemPortNetworkCtpMonitoringHistoryData.class_id: 'GEM Port History',
+        XgPonTcPerformanceMonitoringHistoryData.class_id: 'xgPON TC History',
+        XgPonDownstreamPerformanceMonitoringHistoryData.class_id: 'xgPON Downstream History',
+        XgPonUpstreamPerformanceMonitoringHistoryData.class_id: 'xgPON Upstream History'
+    }
+
     def __init__(self, adapter_agent, device_id, **kwargs):
         super(OnuPmIntervalMetrics, self).__init__(adapter_agent, device_id,
                                                    grouped=True, freq_override=False,
                                                    **kwargs)
         ethernet_bridge_history = {
-            ('enabled', PmConfig.STATE),
             ('class_id', PmConfig.GUAGE),
             ('entity_id', PmConfig.GUAGE),
             ("interval_end_time", PmConfig.GUAGE),
@@ -61,7 +73,6 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
                                                 for (m, t) in ethernet_bridge_history}
 
         ethernet_uni_history = {   # Ethernet History Data (Class ID 24)
-            ('enabled', PmConfig.STATE),
             ('class_id', PmConfig.GUAGE),
             ('entity_id', PmConfig.GUAGE),
             ("interval_end_time", PmConfig.GUAGE),
@@ -84,7 +95,6 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
                                              for (m, t) in ethernet_uni_history}
 
         fec_history = {   # FEC History Data (Class ID 312)
-            ('enabled', PmConfig.STATE),
             ('class_id', PmConfig.GUAGE),
             ('entity_id', PmConfig.GUAGE),
             ("interval_end_time", PmConfig.GUAGE),
@@ -98,7 +108,6 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
                                     for (m, t) in fec_history}
 
         gem_port_history = {  # GEM Port Network CTP History Data (Class ID 341)
-            ('enabled', PmConfig.STATE),
             ('class_id', PmConfig.GUAGE),
             ('entity_id', PmConfig.GUAGE),
             ("interval_end_time", PmConfig.GUAGE),
@@ -112,7 +121,6 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
                                          for (m, t) in gem_port_history}
 
         xgpon_tc_history = {  # XgPon TC History Data (Class ID 344)
-            ('enabled', PmConfig.STATE),
             ('class_id', PmConfig.GUAGE),
             ('entity_id', PmConfig.GUAGE),
             ("interval_end_time", PmConfig.GUAGE),
@@ -129,7 +137,6 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
                                          for (m, t) in xgpon_tc_history}
 
         xgpon_downstream_history = {  # XgPon Downstream History Data (Class ID 345)
-            ('enabled', PmConfig.STATE),
             ('class_id', PmConfig.GUAGE),
             ('entity_id', PmConfig.GUAGE),
             ("interval_end_time", PmConfig.GUAGE),
@@ -152,7 +159,6 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
                                                  for (m, t) in xgpon_downstream_history}
 
         xgpon_upstream_history = {  # XgPon Upstream History Data (Class ID 346)
-            ('enabled', PmConfig.STATE),
             ('class_id', PmConfig.GUAGE),
             ('entity_id', PmConfig.GUAGE),
             ("interval_end_time", PmConfig.GUAGE),
@@ -187,14 +193,18 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
 
         :param pm_config:
         """
-        for m in pm_config.groups:
-            # TODO: Need to support individual group enable/disable
-            pass
-            # self.pm_group_metrics[m.group_name].config.enabled = m.enabled
-            # if m.enabled is True:,
-            #     self.enable_pm_collection(m.group_name, remote)
-            # else:
-            #     self.disable_pm_collection(m.group_name, remote)
+        self.log.debug('update')
+
+        try:
+            for group in pm_config.groups:
+                group_config = self.pm_group_metrics.get(group.group_name)
+                if group_config is not None and group_config.enabled != group.enabled:
+                    group_config.enabled = group.enabled
+                    # TODO: For OMCI PM Metrics, tie this into add/remove of the PM Interval ME itself
+
+        except Exception as e:
+            self.log.exception('update-failure', e=e)
+            raise
 
     def make_proto(self, pm_config=None):
         """
@@ -210,9 +220,10 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
         """
         assert pm_config is not None
 
-        pm_ethernet_bridge_history = PmGroupConfig(group_name='Ethernet Bridge Port History',
+        pm_ethernet_bridge_history = PmGroupConfig(group_name=OnuPmIntervalMetrics.ME_ID_INFO[EthernetFrameUpstreamPerformanceMonitoringHistoryData.class_id],
                                                    group_freq=0,
                                                    enabled=True)
+        self.pm_group_metrics[pm_ethernet_bridge_history.group_name] = pm_ethernet_bridge_history
 
         for m in sorted(self._ethernet_bridge_history_config):
             pm = self._ethernet_bridge_history_config[m]
@@ -220,9 +231,10 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
                                                                 type=pm.type,
                                                                 enabled=pm.enabled)])
 
-        pm_ethernet_uni_history = PmGroupConfig(group_name='Ethernet UNI History',
+        pm_ethernet_uni_history = PmGroupConfig(group_name=OnuPmIntervalMetrics.ME_ID_INFO[EthernetPMMonitoringHistoryData.class_id],
                                                 group_freq=0,
                                                 enabled=True)
+        self.pm_group_metrics[pm_ethernet_uni_history.group_name] = pm_ethernet_uni_history
 
         for m in sorted(self._ethernet_uni_history_config):
             pm = self._ethernet_uni_history_config[m]
@@ -230,9 +242,10 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
                                                              type=pm.type,
                                                              enabled=pm.enabled)])
 
-        pm_fec_history = PmGroupConfig(group_name='Upstream Ethernet History',
+        pm_fec_history = PmGroupConfig(group_name=OnuPmIntervalMetrics.ME_ID_INFO[FecPerformanceMonitoringHistoryData.class_id],
                                        group_freq=0,
                                        enabled=True)
+        self.pm_group_metrics[pm_fec_history.group_name] = pm_fec_history
 
         for m in sorted(self._fec_history_config):
             pm = self._fec_history_config[m]
@@ -240,9 +253,10 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
                                                     type=pm.type,
                                                     enabled=pm.enabled)])
 
-        pm_gem_port_history = PmGroupConfig(group_name='GEM Port History',
+        pm_gem_port_history = PmGroupConfig(group_name=OnuPmIntervalMetrics.ME_ID_INFO[GemPortNetworkCtpMonitoringHistoryData.class_id],
                                             group_freq=0,
                                             enabled=True)
+        self.pm_group_metrics[pm_gem_port_history.group_name] = pm_gem_port_history
 
         for m in sorted(self._gem_port_history_config):
             pm = self._gem_port_history_config[m]
@@ -250,9 +264,10 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
                                                          type=pm.type,
                                                          enabled=pm.enabled)])
 
-        pm_xgpon_tc_history = PmGroupConfig(group_name='xgPON TC History',
+        pm_xgpon_tc_history = PmGroupConfig(group_name=OnuPmIntervalMetrics.ME_ID_INFO[XgPonTcPerformanceMonitoringHistoryData.class_id],
                                             group_freq=0,
                                             enabled=True)
+        self.pm_group_metrics[pm_xgpon_tc_history.group_name] = pm_xgpon_tc_history
 
         for m in sorted(self._xgpon_tc_history_config):
             pm = self._xgpon_tc_history_config[m]
@@ -260,9 +275,10 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
                                                          type=pm.type,
                                                          enabled=pm.enabled)])
 
-        pm_xgpon_downstream_history = PmGroupConfig(group_name='xgPON Downstream History',
+        pm_xgpon_downstream_history = PmGroupConfig(group_name=OnuPmIntervalMetrics.ME_ID_INFO[XgPonDownstreamPerformanceMonitoringHistoryData.class_id],
                                                     group_freq=0,
                                                     enabled=True)
+        self.pm_group_metrics[pm_xgpon_downstream_history.group_name] = pm_xgpon_downstream_history
 
         for m in sorted(self._xgpon_downstream_history_config):
             pm = self._xgpon_downstream_history_config[m]
@@ -270,9 +286,10 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
                                                                  type=pm.type,
                                                                  enabled=pm.enabled)])
 
-        pm_xgpon_upstream_history = PmGroupConfig(group_name='xgPON Upstream History',
+        pm_xgpon_upstream_history = PmGroupConfig(group_name=OnuPmIntervalMetrics.ME_ID_INFO[XgPonUpstreamPerformanceMonitoringHistoryData.class_id],
                                                   group_freq=0,
                                                   enabled=True)
+        self.pm_group_metrics[pm_xgpon_upstream_history.group_name] = pm_xgpon_upstream_history
 
         for m in sorted(self._xgpon_upstream_history_config):
             pm = self._xgpon_upstream_history_config[m]
@@ -280,14 +297,8 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
                                                                type=pm.type,
                                                                enabled=pm.enabled)])
 
-        pm_config.groups.extend([pm_ethernet_bridge_history,
-                                 pm_ethernet_uni_history,
-                                 pm_fec_history,
-                                 pm_gem_port_history,
-                                 pm_xgpon_tc_history,
-                                 pm_xgpon_downstream_history,
-                                 pm_xgpon_upstream_history
-                                 ])
+        pm_config.groups.extend([stats for stats in self.pm_group_metrics.itervalues()])
+
         return pm_config
 
     def publish_metrics(self, interval_data):
@@ -305,14 +316,18 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
 
         :return: (dict) Key/Value of metric data
         """
+        self.log.debug('publish-metrics', metrics=interval_data)
+
         try:
             import arrow
             from voltha.protos.events_pb2 import KpiEvent, KpiEventType, MetricValuePairs
             # Locate config
 
-            config = self._configs.get(interval_data['class_id'])
+            class_id = interval_data['class_id']
+            config = self._configs.get(class_id)
+            group = self.pm_group_metrics.get(OnuPmIntervalMetrics.ME_ID_INFO.get(class_id, ''))
 
-            if config is not None and config['enabled'].enabled:
+            if config is not None and group is not None and group.enabled:
                 # Extract only the metrics we need to publish
                 config_keys = config.keys()
                 metrics = {

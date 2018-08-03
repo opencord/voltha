@@ -113,6 +113,7 @@ class PerformanceIntervals(object):
         self._agent = agent
         self._device_id = device_id
         self._device = None
+        self._pm_config = None
         self._timeout_delay = timeout_delay
         self._tick_delay = tick_delay
         self._interval_skew = interval_skew
@@ -161,6 +162,7 @@ class PerformanceIntervals(object):
                                transitions=transitions,
                                initial=initial_state,
                                queued=True,
+                               ignore_invalid_triggers=True,
                                name='{}-{}'.format(self.__class__.__name__,
                                                    device_id))
 
@@ -216,6 +218,15 @@ class PerformanceIntervals(object):
                                       'time': str(datetime.utcnow()),
                                       'next': str(self._next_interval)
                                   })
+
+    def set_pm_config(self, pm_config):
+        """
+        Set PM interval configuration
+
+        :param pm_config: (OnuPmIntervalMetrics) PM Interval configuration
+        :return:
+        """
+        self._pm_config = pm_config
 
     def _me_is_supported(self, class_id):
         """
@@ -395,8 +406,8 @@ class PerformanceIntervals(object):
         self.advertise(OpenOmciEventType.state_change, self.state)
         self._cancel_deferred()
 
-        def success(results):
-            self.log.debug('sync-time-success: {}'.format(results))
+        def success(_results):
+            self.log.debug('sync-time-success')
             self._current_task = None
             self._deferred = reactor.callLater(0, self.success)
             # Calculate next interval time
@@ -443,7 +454,7 @@ class PerformanceIntervals(object):
         mes, self._add_pm_me = self._add_pm_me, dict()
 
         def success(results):
-            self.log.debug('create-me-success: {}'.format(results))
+            self.log.debug('create-me-success', results=results)
 
             # Check if already here. The create request could have received
             # an already-exists status code which we consider successful
@@ -476,7 +487,7 @@ class PerformanceIntervals(object):
         mes, self._del_pm_me = self._del_pm_me, set()
 
         def success(results):
-            self.log.debug('delete-me-success: {}'.format(results))
+            self.log.debug('delete-me-success', results=results)
             self._current_task = None
             for me in mes:
                 self._pm_me_collect_retries.pop(me)
@@ -518,7 +529,9 @@ class PerformanceIntervals(object):
             # Collect the data ?
             if self._pm_me_collect_retries[key] > 0:
                 def success(results):
-                    self.log.info('collect-success', results=results)
+                    self.log.info('collect-success', results=results,
+                                  class_id=results.get('class_id'),
+                                  entity_id=results.get('entity_id'))
                     self._current_task = None
                     self._pm_me_collect_retries[key] = 0
                     self._deferred = reactor.callLater(0, self.success)
@@ -605,8 +618,11 @@ class PerformanceIntervals(object):
         :param results: (dict) PM results
         """
         self.log.debug('collect-publish', results=results)
-        pass  # TODO: Publish it here
-        pass  # TODO: Save off last time interval fetched to persistent storage
+
+        if self._pm_config is not None:
+            self._pm_config.publish_metrics(results)
+
+        pass  # TODO: Save off last time interval fetched to persistent storage?
 
     def on_mib_reset_response(self, _topic, msg):
         """

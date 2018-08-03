@@ -262,3 +262,7 @@ All counters are 2 bytes wide.
 | key_report_message_count        | This attribute counts key_report PLOAM messages transmitted. |
 | acknowledge_message_count       | This attribute counts acknowledge PLOAM messages transmitted. It includes all forms of acknowledgement, including those transmitted in response to a PLOAM grant when the ONU has nothing to send. |
 | sleep_request_message_count     | This attribute counts sleep_request PLOAM messages transmitted. |
+
+# Remaining Work Items
+
+- The enable/disable of a PM group (CLI/NBI) should control whether or not a PM interval is collected

@@ -77,7 +77,6 @@ class OmciCreatePMRequest(Task):
     @inlineCallbacks
     def perform_create(self):
         """ Perform the create requests """
-        self.log.info('perform-create')
 
         try:
             for pm, me in self._me_dict.items():
@@ -86,6 +85,7 @@ class OmciCreatePMRequest(Task):
                 me_class_id = me[0]
                 me_entity_id = me[1]
                 upstream = me[2]
+                self.log.debug('create-pm-me', class_id=pm_class_id, entity_id=pm_entity_id)
 
                 if me_class_id == 0:
                     # Typical/common PM interval format
@@ -111,7 +111,6 @@ class OmciCreatePMRequest(Task):
                         bitmap,        # Control fields bitmap
                         0,             # TCI
                         0              # Reserved
-
                     ]}
                     frame = OmciFrame(
                         transaction_id=None,  # OMCI-CC will set
