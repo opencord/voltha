@@ -202,8 +202,8 @@ class AdapterAgent(object):
     def delete_device(self, device):
         # Remove all child devices
         self.delete_all_child_devices(device.id)
-
-        return self.adapter.delete_device(device)
+        # Removing device
+        self.adapter.delete_device(device)
 
     def get_device_details(self, device):
         return self.adapter.get_device_details(device)
