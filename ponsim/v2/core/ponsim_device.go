@@ -111,7 +111,9 @@ func (o *PonSimDevice) Forward(
 		forwarded := 0
 		links := o.links[int(egressPort)]
 
-		o.Counter.CountTxFrame(int(egressPort), len(common.GetEthernetLayer(egressFrame).Payload))
+		if int(egressPort) <= 2 && int(egressPort) > 0 {
+			o.Counter.CountTxFrame(int(egressPort), len(common.GetEthernetLayer(egressFrame).Payload))
+		}
 
 		for _, link := range links {
 			forwarded += 1
