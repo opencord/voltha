@@ -178,6 +178,7 @@ class OpenoltAdapter(object):
         handler = self.devices[device.id]
         handler.delete()
         del self.devices[device.id]
+        return device
 
     def get_device_details(self, device):
         log.debug('get_device_details', device=device)
