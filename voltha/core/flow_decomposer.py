@@ -540,6 +540,9 @@ class FlowDecomposer(object):
             fl_lst, _ = device_rules.setdefault(
                 egress_hop.device.id, ([], []))
 
+            onu_fl_lst, _ = device_rules.setdefault(
+                ingress_hop.device.id, ([], []))
+
             # in_port_no is None for wildcard input case, do not include
             # upstream port for 4000 flow in input
             if in_port_no is None:
@@ -576,6 +579,22 @@ class FlowDecomposer(object):
                         pop_vlan(),
                         output(egress_hop.ingress_port.port_no)]
                 ))
+            onu_fl_lst.append(mk_flow_stat(        # Onu upstream flow
+                priority=flow.priority + 1000,
+                cookie=flow.cookie,
+                match_fields= [
+                    in_port(ingress_hop.ingress_port.port_no),
+                    vlan_vid(0)
+                ] + [
+                    field for field in get_ofb_fields(flow)
+                    if field.type not in (IN_PORT, VLAN_VID)
+                ],
+                actions=[
+                    push_vlan(0x8100),
+                    set_field(vlan_vid(ofp.OFPVID_PRESENT | input_port)),
+                    output(ingress_hop.egress_port.port_no)
+                ]
+            ))
         else:
             # NOT A CONTROLLER-BOUND FLOW
             if is_upstream():
@@ -768,4 +787,3 @@ class FlowDecomposer(object):
 
     def flow_delete(self, mod):
         raise NotImplementedError('derived class must provide')
-        
