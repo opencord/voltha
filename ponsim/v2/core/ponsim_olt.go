@@ -24,6 +24,7 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/google/gopacket"
 	"github.com/opencord/voltha/ponsim/v2/common"
+	"github.com/opencord/voltha/protos/go/openflow_13"
 	"github.com/opencord/voltha/protos/go/ponsim"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -122,6 +123,33 @@ func (o *PonSimOltDevice) forwardToLAN() func(int, gopacket.Packet) {
 }
 
 /*
+forwardToNNI defines function to forward a packet to the NNI interface
+*/
+func (o *PonSimOltDevice) forwardToNNI() func(int, gopacket.Packet) {
+	return func(port int, frame gopacket.Packet) {
+		var err error
+		common.Logger().WithFields(logrus.Fields{
+			"device": o,
+			"port":   port,
+			"frame":  frame,
+		}).Debug("Forwarding packet to NNI")
+		if err = o.egressHandler.WritePacketData(frame.Data()); err != nil {
+			common.Logger().WithFields(logrus.Fields{
+				"device": o,
+				"port":   port,
+				"frame":  frame,
+			}).Fatal("Problem while forwarding packet to NNI")
+		} else {
+			common.Logger().WithFields(logrus.Fields{
+				"device": o,
+				"port":   port,
+				"frame":  frame,
+			}).Debug("Forwarded packet to NNI")
+		}
+	}
+}
+
+/*
 Start performs setup operations for an OLT device
 */
 func (o *PonSimOltDevice) Start(ctx context.Context) {
@@ -134,7 +162,10 @@ func (o *PonSimOltDevice) Start(ctx context.Context) {
 	o.outgoing = make(chan []byte, 1)
 
 	// Add INGRESS operation
-	o.AddLink(2, 0, o.forwardToLAN())
+	o.AddLink(int(openflow_13.OfpPortNo_OFPP_CONTROLLER), 0, o.forwardToLAN())
+
+	// Add Data-Plane Forwarding operation
+	o.AddLink(2, 0, o.forwardToNNI())
 
 	// Start PM counter logging
 	o.counterLoop = common.NewIntervalHandler(90, o.Counter.LogCounts)
@@ -344,6 +375,10 @@ func (o *PonSimOltDevice) AddOnu(onu *PonSimOnuDevice) (int32, error) {
 			o.GetOnus()[portNum] = registree
 
 			o.AddLink(1, int(portNum), o.forwardToONU(portNum))
+			common.Logger().WithFields(logrus.Fields{
+				"port": portNum,
+				"onu":  onu,
+			}).Info("Connected ONU")
 			go o.MonitorOnu(ctx, portNum)
 			go o.Listen(ctx, portNum)
 		}

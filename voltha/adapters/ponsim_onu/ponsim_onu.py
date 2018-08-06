@@ -206,7 +206,7 @@ class PonSimOnuHandler(object):
         self.adapter_agent.register_for_proxied_messages(device.proxy_address)
 
         # populate device info
-        device.root = True
+        device.root = False
         device.vendor = 'ponsim'
         device.model = 'n/a'
         device.connect_status = ConnectStatus.REACHABLE
