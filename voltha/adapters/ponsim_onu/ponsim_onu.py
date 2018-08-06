@@ -206,7 +206,7 @@ class PonSimOnuHandler(object):
         self.adapter_agent.register_for_proxied_messages(device.proxy_address)
 
         # populate device info
-        device.root = True
+        device.root = False
         device.vendor = 'ponsim'
         device.model = 'n/a'
         device.connect_status = ConnectStatus.REACHABLE
@@ -243,11 +243,11 @@ class PonSimOnuHandler(object):
         port_no = device.proxy_address.channel_id
         cap = OFPPF_1GB_FD | OFPPF_FIBER
         self.adapter_agent.add_logical_port(logical_device_id, LogicalPort(
-            id='uni-{}'.format(port_no),
+            id=device.serial_number,
             ofp_port=ofp_port(
                 port_no=port_no,
                 hw_addr=mac_str_to_tuple('00:00:00:00:00:%02x' % port_no),
-                name='uni-{}'.format(port_no),
+                name=device.serial_number,
                 config=0,
                 state=OFPPS_LIVE,
                 curr=cap,
