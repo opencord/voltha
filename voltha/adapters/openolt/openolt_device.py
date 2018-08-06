@@ -912,8 +912,20 @@ class OpenoltDevice(object):
 
 
     def delete(self):
-        self.log.info('delete-olt - Not implemented yet',
-                      device_id=self.device_id)
+        self.log.info('deleting-olt', device_id=self.device_id,
+                      logical_device_id=self.logical_device_id)
+
+        try:
+            # Rebooting to reset the state
+            self.reboot()
+            # Removing logical device
+            self.proxy.remove('/logical_devices/{}'.
+                              format(self.logical_device_id))
+        except Exception as e:
+            self.log.error('Failure to delete openolt device', error=e)
+            raise e
+        else:
+            self.log.info('successfully-deleted-olt', device_id=self.device_id)
 
 
     def reenable(self):
