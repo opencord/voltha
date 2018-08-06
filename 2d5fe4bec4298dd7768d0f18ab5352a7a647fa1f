@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "603af4ed_b4e71760",
+        "filename": "voltha/core/global_handler.py",
+        "patchSetId": 10
+      },
+      "lineNbr": 1776,
+      "author": {
+        "id": 1000417
+      },
+      "writtenOn": "2018-08-06T17:12:05Z",
+      "side": 1,
+      "message": "Yes, Lost that one in last update",
+      "parentUuid": "6c4533a2_30ae0822",
+      "revId": "2d5fe4bec4298dd7768d0f18ab5352a7a647fa1f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "f9e7f8ee_efd7939a",
         "filename": "voltha/extensions/omci/omci_cc.py",
         "patchSetId": 10
@@ -30,6 +48,24 @@
       "writtenOn": "2018-08-06T13:51:26Z",
       "side": 1,
       "message": "You can delete this line  (AVC change: RxEvent.Alarm_Notification).    The autonomous messages are serviced in the  _receive_onu_message()  method which returns after it is called (see line 350).  So you never reach the bottom of the receive_message method where it services other message types.",
+      "revId": "2d5fe4bec4298dd7768d0f18ab5352a7a647fa1f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "873be593_966a28f8",
+        "filename": "voltha/extensions/omci/omci_cc.py",
+        "patchSetId": 10
+      },
+      "lineNbr": 78,
+      "author": {
+        "id": 1000417
+      },
+      "writtenOn": "2018-08-06T17:12:05Z",
+      "side": 1,
+      "message": "Agree, The Instant ID is 0, it would return the __receive_onu_message. That is happen on the Alarm Notification and AVC.",
+      "parentUuid": "f9e7f8ee_efd7939a",
       "revId": "2d5fe4bec4298dd7768d0f18ab5352a7a647fa1f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "401e8e34_62614ad1",
+        "filename": "voltha/extensions/omci/state_machines/Alarm_sync.py",
+        "patchSetId": 10
+      },
+      "lineNbr": 37,
+      "author": {
+        "id": 1000417
+      },
+      "writtenOn": "2018-08-06T17:12:05Z",
+      "side": 1,
+      "message": "Yes, need to update",
+      "parentUuid": "fa52c257_2ba585ae",
+      "revId": "2d5fe4bec4298dd7768d0f18ab5352a7a647fa1f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "4f8e4401_8a310c98",
         "filename": "voltha/extensions/omci/state_machines/Alarm_sync.py",
         "patchSetId": 10
@@ -64,6 +118,24 @@
       "writtenOn": "2018-08-06T13:51:26Z",
       "side": 1,
       "message": "What is this state currently used for?   In the MIB Synchronizer, we use it to update autonomously updated MEs and we save it to the database.\n\nDo you need it to watch for changes to ME\u0027s that have an \u0027arc\u0027 attribute?  I could see that since you may want to clear off an alarm if it was raised.  I\u0027ve typically seen AVCs generated for ARC changes when a MIB_RESET or a PON resync occurs.\n\nIf it is to handle ARC changes, I would just replace some of the text from 599-612 with a TODO statement stating that AVC decode of ARC attributes changes need to be implemented.  I would do the implementation in another story.",
+      "revId": "2d5fe4bec4298dd7768d0f18ab5352a7a647fa1f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b60927e6_e577c6c4",
+        "filename": "voltha/extensions/omci/state_machines/Alarm_sync.py",
+        "patchSetId": 10
+      },
+      "lineNbr": 590,
+      "author": {
+        "id": 1000417
+      },
+      "writtenOn": "2018-08-06T17:12:05Z",
+      "side": 1,
+      "message": "Agree, I will remove the alarm notification and AVC functions. That would be another story and changes.",
+      "parentUuid": "4f8e4401_8a310c98",
       "revId": "2d5fe4bec4298dd7768d0f18ab5352a7a647fa1f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
