@@ -19,13 +19,14 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/opencord/voltha/ponsim/v2/common"
-	"github.com/opencord/voltha/ponsim/v2/core"
-	"github.com/opencord/voltha/ponsim/v2/grpc"
 	"log"
 	"os"
 	"os/signal"
 	"path"
+
+	"github.com/opencord/voltha/ponsim/v2/common"
+	"github.com/opencord/voltha/ponsim/v2/core"
+	"github.com/opencord/voltha/ponsim/v2/grpc"
 )
 
 // TODO: Cleanup logs
@@ -202,7 +203,7 @@ type PonSimService struct {
 func (s *PonSimService) Start(ctx context.Context) {
 	// GRPC server needs to be secure.
 	// Otherwise communication between adapter and simulator does not occur
-	s.server = grpc.NewGrpcServer(s.device.GetAddress(), s.device.GetPort(), certs, true)
+	s.server = grpc.NewGrpcServer(s.device.GetAddress(), s.device.GetPort(), certs, false)
 
 	// Add GRPC services
 	s.server.AddCommonService(s.device)

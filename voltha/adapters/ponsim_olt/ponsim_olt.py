@@ -21,6 +21,7 @@ import sys
 from uuid import uuid4
 
 import arrow
+import voltha.core.flow_decomposer as fd
 import grpc
 import json
 import structlog
@@ -36,6 +37,7 @@ from twisted.internet.task import LoopingCall
 from voltha.adapters.iadapter import OltAdapter
 from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.protos import third_party
+from voltha.protos import openflow_13_pb2 as ofp
 from voltha.protos import ponsim_pb2
 from voltha.protos.common_pb2 import OperStatus, ConnectStatus, AdminState
 from voltha.protos.device_pb2 import Port, Device, PmConfig, PmConfigs
@@ -390,10 +392,10 @@ class PonSimOltHandler(object):
 
             # create channel using ssl credentials
             my_server_host_override_string = "ABCD"  # Server's CN Name, Ugly but no other Choice.
-            self.channel = grpc.secure_channel(device.host_and_port,
-                                               credentials, options=((
-                                                                         'grpc.ssl_target_name_override',
-                                                                         my_server_host_override_string,),))
+            self.channel = grpc.insecure_channel(device.host_and_port,
+                                                 options=((
+                                                                'grpc.ssl_target_name_override',
+                                                                my_server_host_override_string,),))
 
         return self.channel
 
@@ -446,7 +448,7 @@ class PonSimOltHandler(object):
 
         # Setup alarm handler
         self.alarms = AdapterAlarms(self.adapter, device)
-
+        # Might need to change the code around here to add a new port?
         nni_port = Port(
             port_no=2,
             label='NNI facing Ethernet port',
@@ -529,7 +531,7 @@ class PonSimOltHandler(object):
                     channel_id=vlan_id
                 ),
                 admin_state=AdminState.ENABLED,
-                vlan=vlan_id
+                #vlan=vlan_id
             )
 
         if self.ponsim_comm == 'grpc':
@@ -659,10 +661,37 @@ class PonSimOltHandler(object):
         self.log.info('received-io-frame', iface_name=port.iface_name,
                       frame_len=len(frame))
         self._rcv_frame(frame)
-
+    
+    # Need to change this so that the adapter looks into the flows, deciding 
+    # which ones are destined for the controller, and change the output port on
+    # those flows to point to the controller port 
+    #
+    # QUESTIONS:
+    # - Where is update_flow_table being called?
+    # - what type are flows? an array of flows? (YES)
     def update_flow_table(self, flows):
         stub = ponsim_pb2.PonSimStub(self.get_channel())
         self.log.info('pushing-olt-flow-table')
+        for flow in flows:
+            classifier_info = {}
+            for field in fd.get_ofb_fields(flow):
+                if field.type == fd.ETH_TYPE:
+                    classifier_info['eth_type'] = field.eth_type
+                    self.log.debug('field-type-eth-type',
+                                eth_type=classifier_info['eth_type'])
+                elif field.type == fd.IP_PROTO:
+                    classifier_info['ip_proto'] = field.ip_proto
+                    self.log.debug('field-type-ip-proto',
+                                ip_proto=classifier_info['ip_proto'])
+            if ('ip_proto' in classifier_info and (
+                classifier_info['ip_proto'] == 17 or 
+                classifier_info['ip_proto'] == 2)) or (
+                      'eth_type' in classifier_info and 
+                      classifier_info['eth_type'] == 0x888e):
+                for action in fd.get_actions(flow):
+                    if action.type == ofp.OFPAT_OUTPUT:
+                        action.output.port = 4294967293
+            self.log.info('out_port', out_port=fd.get_out_port(flow))
         stub.UpdateFlowTable(FlowTable(
             port=0,
             flows=flows

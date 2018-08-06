@@ -17,7 +17,10 @@ package core
 
 import (
 	"context"
-	"crypto/tls"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/google/gopacket"
 	"github.com/opencord/voltha/ponsim/v2/common"
@@ -25,10 +28,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
-	"google.golang.org/grpc/credentials"
-	"strconv"
-	"strings"
-	"time"
 )
 
 // TODO: Pass-in the certificate information as a structure parameter
@@ -123,6 +122,33 @@ func (o *PonSimOltDevice) forwardToLAN() func(int, gopacket.Packet) {
 }
 
 /*
++forwardToWAN defines a EGRESS function to forward a packet to the world
++*/
+func (o *PonSimOltDevice) forwardToWAN() func(int, gopacket.Packet) {
+	return func(port int, frame gopacket.Packet) {
+		var err error
+		common.Logger().WithFields(logrus.Fields{
+			"device": o,
+			"port":   port,
+			"frame":  frame,
+		}).Debug("Forwarding packet to world")
+		if err = o.ingressHandler.WritePacketData(frame.Data()); err != nil {
+			common.Logger().WithFields(logrus.Fields{
+				"device": o,
+				"port":   port,
+				"frame":  frame,
+			}).Fatal("Problem while forwarding packet to world")
+		} else {
+			common.Logger().WithFields(logrus.Fields{
+				"device": o,
+				"port":   port,
+				"frame":  frame,
+			}).Debug("Forwarded packet to world")
+		}
+	}
+}
+
+/*
 Start performs setup operations for an OLT device
 */
 func (o *PonSimOltDevice) Start(ctx context.Context) {
@@ -135,7 +161,10 @@ func (o *PonSimOltDevice) Start(ctx context.Context) {
 	o.outgoing = make(chan []byte, 1)
 
 	// Add INGRESS operation
-	o.AddLink(2, 0, o.forwardToLAN())
+	o.AddLink(4294967293, 0, o.forwardToLAN())
+
+	// Add Data-Plane Forwarding operation
+	o.AddLink(2, 0, o.forwardToWAN())
 
 	// Start PM counter logging
 	o.counterLoop = common.NewIntervalHandler(90, o.Counter.LogCounts)
@@ -192,17 +221,17 @@ func (o *PonSimOltDevice) ConnectToRemoteOnu(onu *OnuRegistree) error {
 	}).Debug("Formatting host address")
 
 	// TODO: make it secure
-	ta := credentials.NewTLS(&tls.Config{
-		//Certificates:       []tls.Certificate{peerCert},
-		//RootCAs:            caCertPool,
-		InsecureSkipVerify: true,
-	})
+	// ta := credentials.NewTLS(&tls.Config{
+	// 	//Certificates:       []tls.Certificate{peerCert},
+	// 	//RootCAs:            caCertPool,
+	// 	InsecureSkipVerify: true,
+	// })
 
 	// GRPC communication needs to be secured
 	if onu.Conn, err = grpc.DialContext(
 		context.Background(),
 		host,
-		grpc.WithTransportCredentials(ta),
+		grpc.WithInsecure(),
 	); err != nil {
 		common.Logger().WithFields(logrus.Fields{
 			"device": o,
@@ -352,6 +381,10 @@ func (o *PonSimOltDevice) AddOnu(onu *PonSimOnuDevice) (int32, error) {
 			o.GetOnus()[portNum] = registree
 
 			o.AddLink(1, int(portNum), o.forwardToONU(portNum))
+			common.Logger().WithFields(logrus.Fields{
+				"port": portNum,
+				"onu":  onu,
+			}).Info("Connected ONU")
 			go o.MonitorOnu(ctx, portNum)
 			go o.Listen(ctx, portNum)
 		}
