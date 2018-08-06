@@ -17,6 +17,11 @@ package core
 
 import (
 	"context"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/google/gopacket"
 	"github.com/google/uuid"
@@ -24,11 +29,6 @@ import (
 	"github.com/opencord/voltha/protos/go/ponsim"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	"strconv"
-	"strings"
-	"sync"
-	"time"
 )
 
 /*

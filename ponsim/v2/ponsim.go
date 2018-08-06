@@ -29,6 +29,10 @@ import (
 	"os"
 	"os/signal"
 	"path"
+
+	"github.com/opencord/voltha/ponsim/v2/common"
+	"github.com/opencord/voltha/ponsim/v2/core"
+	"github.com/opencord/voltha/ponsim/v2/grpc"
 )
 
 // TODO: Cleanup logs
