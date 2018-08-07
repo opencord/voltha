@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "92700138_b9158444",
+        "filename": "voltha/extensions/omci/state_machines/mib_sync.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 514,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-08-07T19:49:42Z",
+      "side": 1,
+      "message": "these three checks should be    \u0027is not None\u0027  and not \u0027 !\u003d None\u0027.\n\nOptionally, the if check below could be simpler as:\n\n on_olt_only if on_olt_only and len(on_olt_only) else None",
+      "revId": "a5bf15ac1008a08beddc8f301777e70af6d24902",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
