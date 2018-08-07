@@ -416,10 +416,17 @@ class VolthaCli(Cmd):
         Disable a device. ID of the device needs to be provided
         """
         device_id = line
-        self.poutput('disabling {}'.format(device_id))
+        if device_id not in self.device_ids():
+            self.poutput('Error: There is no such device')
+            return
         try:
             stub = self.get_stub()
+            device = stub.GetDevice(voltha_pb2.ID(id=device_id))
+            if device.admin_state == voltha_pb2.AdminState.DISABLED:
+                self.poutput('Error: Device is already disabled')
+                return
             stub.DisableDevice(voltha_pb2.ID(id=device_id))
+            self.poutput('disabling {}'.format(device_id))
 
             # Do device query and verify that the device admin status is
             # DISABLED and Operational Status is unknown
