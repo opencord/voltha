@@ -57,7 +57,7 @@ class OMCI(object):
 
         self._onu_omci_device = omci_agent.add_device(handler.device_id,
                                                       handler.adapter_agent,
-                                                      onu_custom_me_entities(),
+                                                      custom_me_map=onu_custom_me_entities(),
                                                       support_classes=handler.adapter.adtran_omci)
 
     def __str__(self):
@@ -151,6 +151,15 @@ class OMCI(object):
     def onu_omci_device(self):
         return self._onu_omci_device
 
+    def set_pm_config(self, pm_config):
+        """
+        Set PM interval configuration
+
+        :param pm_config: (OnuPmIntervalMetrics) PM Interval configuration
+        :return:
+        """
+        self.onu_omci_device.set_pm_config(pm_config)
+
     def _mib_in_sync(self):
         """
         This method is ran whenever the ONU MIB database is in-sync. This is often after
@@ -233,7 +242,7 @@ class OMCI(object):
 
         except Exception as e:
             self.log.exception('device-info-load', e=e)
-            self._deferred = reactor.callLater(_STARTUP_RETRY_WAIT, self._mib_in_sync())
+            self._deferred = reactor.callLater(_STARTUP_RETRY_WAIT, self._mib_in_sync)
 
     def gem_or_tcont_added(self):
         if self._in_sync_reached:
