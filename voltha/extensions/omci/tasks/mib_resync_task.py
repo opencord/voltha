@@ -184,8 +184,8 @@ class MibResyncTask(Task):
                             db_copy = None
                             break
 
-                except TimeoutError as e:
-                    self.log.warn('timeout', e=e)
+                except (TimeoutError, ValueError) as e:
+                    self.log.warn('timeout-or-value-error', e=e)
                     if retries >= max_tries:
                         raise
 
@@ -195,6 +195,8 @@ class MibResyncTask(Task):
 
                 # Get a snapshot of the local MIB database
                 db_copy = self._device.query_mib()
+                # if we made it this far, no need to keep trying
+                break
 
         except Exception as e:
             self.log.exception('mib-resync', e=e)
