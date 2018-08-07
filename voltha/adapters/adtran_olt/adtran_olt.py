@@ -41,7 +41,8 @@ class AdtranOltAdapter(object):
         DeviceType(
             id=name,
             adapter=name,
-            accepts_bulk_flow_update=True
+            accepts_bulk_flow_update=True,
+            accepts_add_remove_flow_updates=False       # TODO: Support flow-mods
         )
     ]
 
@@ -50,8 +51,8 @@ class AdtranOltAdapter(object):
         self.config = config
         self.descriptor = Adapter(
             id=self.name,
-            vendor='Adtran, Inc.',
-            version='0.16',
+            vendor='Adtran Inc.',
+            version='0.17',
             config=AdapterConfig(log_level=LogLevel.INFO)
         )
         log.debug('adtran_olt.__init__', adapter_agent=adapter_agent)

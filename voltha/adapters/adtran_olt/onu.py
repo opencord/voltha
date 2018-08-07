@@ -215,9 +215,13 @@ class Onu(object):
             # Must remove any non-printable characters
             reg_id = ''.join([i if ord(i) < 127 and ord(i) > 31 else '_' for i in reg_id])
             # Generate alarm here for regID
-            from alarms.onu_active_alarm import OnuActiveAlarm
+            from voltha.extensions.alarms.onu.onu_active_alarm import OnuActiveAlarm
             self.log.info('onu-Active-Alarm', serial_number=self._serial_number_string)
-            OnuActiveAlarm(self._olt, self._pon_id, self._serial_number_string, reg_id).raise_alarm()
+            device = self._olt.adapter_agent.get_device(self._olt.device_id)
+
+            OnuActiveAlarm(self._olt.alarms, self._olt.device_id, self._pon_id,
+                           self._serial_number_string, reg_id, device.serial_number,
+                           ipv4_address=device.ipv4_address).raise_alarm()
 
     @property
     def enabled(self):

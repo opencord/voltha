@@ -225,8 +225,9 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
             command = "ip -o link | grep eth0 | sed -n -e 's/^.*ether //p' | awk '{ print $1 }'"
             rcmd = RCmd(self.ip_address, self.netconf_username, self.netconf_password,
                         command)
-            self.default_mac_addr = yield rcmd.execute()
-            self.log.info("mac-addr", mac_addr=self.default_mac_addr)
+            address = yield rcmd.execute()
+            self.mac_address = address.replace('\n', '')
+            self.log.info("mac-addr", mac_addr=self.mac_address)
 
         except Exception as e:
             log.exception('mac-address', e=e)

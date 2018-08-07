@@ -22,6 +22,10 @@ from voltha.protos.common_pb2 import AdminState
 
 log = structlog.get_logger()
 
+# TODO: Following two would be good provisionable parameters
+DEFAULT_AUTO_AGE_MINUTES = 10
+DEFAULT_MAX_JOB_RUN_SECONDS = 3600 * 4     # Some OLT files are 250MB+
+
 
 class Download(object):
     """Class to wrap an image download"""
@@ -55,6 +59,9 @@ class Download(object):
         # Download job info
         self._download_job_name = None
 
+        self._age_out_period = DEFAULT_AUTO_AGE_MINUTES
+        self._max_execution = DEFAULT_MAX_JOB_RUN_SECONDS
+
     def __str__(self):
         return "ImageDownload: {}".format(self.name)
 
@@ -64,8 +71,8 @@ class Download(object):
         Create and start a new image download
 
         :param handler: (AdtranDeviceHandler) Device download is for
-        :param done_deferred: (Deferred) deferred to fire on completion
         :param request: (ImageDownload) Request
+        :param supported_protocols: (list) download methods allowed (http, tftp, ...)
         """
         download = Download(handler, request, supported_protocols)
         download._deferred = reactor.callLater(0, download.start_download)
@@ -238,27 +245,37 @@ class Download(object):
 
     @property
     def download_job_xml(self):
-        filepath = os.path.split(self._path)
-
+        # TODO: May want to support notifications
+        # TODO: Not sure about this name for the entity
+        entity = 'main 0'
         xml = """
               <maintenance-jobs xmlns="http://www.adtran.com/ns/yang/adtran-maintenance-jobs" xmlns:adtn-phys-sw-mnt="http://www.adtran.com/ns/yang/adtran-physical-software-maintenance">
                 <maintenance-job>
                   <name>{}</name>
                   <enabled>true</enabled>
                   <notify-enabled>false</notify-enabled>
-                  <no-execution-time-limit/>
+                  <maximum-execution-time>{}</maximum-execution-time>
                   <run-once>true</run-once>
                   <adtn-phys-sw-mnt:download-software>
+                    <adtn-phys-sw-mnt:physical-entity>{}</adtn-phys-sw-mnt:physical-entity>
+                    <adtn-phys-sw-mnt:software-name>software</adtn-phys-sw-mnt:software-name>
                     <adtn-phys-sw-mnt:remote-file>
                       <adtn-phys-sw-mnt:file-server-profile>{}</adtn-phys-sw-mnt:file-server-profile>
-                      <adtn-phys-sw-mnt:filepath>{}</adtn-phys-sw-mnt:filepath>
                       <adtn-phys-sw-mnt:filename>{}</adtn-phys-sw-mnt:filename>
+        """.format(self._download_job_name, self._max_execution, entity,
+                   self._server_profile_name, self._name)
+
+        if self._path is not None:
+            xml += """
+                          <adtn-phys-sw-mnt:filepath>{}</adtn-phys-sw-mnt:filepath>
+                """.format(self._path)
+
+        xml += """
                     </adtn-phys-sw-mnt:remote-file>
                   </adtn-phys-sw-mnt:download-software>
                 </maintenance-job>
               </maintenance-jobs>
-        """.format(self._download_job_name, self._server_profile_name,
-                   filepath[0], filepath[1])
+        """
         return xml
 
     @property
@@ -277,25 +294,25 @@ class Download(object):
     @property
     def delete_server_profile_xml(self):
         xml = """
-        <file-servers operation="delete" xmlns="http://www.adtran.com/ns/yang/adtran-file-servers">
-          <profiles>
+        <file-servers xmlns="http://www.adtran.com/ns/yang/adtran-file-servers">
+          <profiles operation="delete">
             <profile>
               <name>{}</name>
             </profile>
            </profiles>
         </file-servers>
-        """.format(self._name)
+        """.format(self._server_profile_name)
         return xml
 
     @property
     def delete_download_job_xml(self):
         xml = """
-        <maintenance-jobs operation="delete" xmlns="http://www.adtran.com/ns/yang/adtran-maintenance-jobs">
-          <maintenance-job>
+        <maintenance-jobs xmlns="http://www.adtran.com/ns/yang/adtran-maintenance-jobs">
+          <maintenance-job operation="delete">>
             <name>{}</name>
           </maintenance-job>
         </maintenance-jobs>
-        """.format(self._name)
+        """.format(self._download_job_name)
         return xml
 
     @inlineCallbacks
@@ -352,7 +369,6 @@ class Download(object):
         self._download_state = ImageDownload.DOWNLOAD_FAILED
 
         # Cleanup NETCONF
-
         reactor.callLater(0, self._cleanup_download_job, 20)
         reactor.callLater(0, self._cleanup_server_profile, 20)
         # TODO: Do we signal any completion due to failure?
@@ -375,7 +391,6 @@ class Download(object):
             device.admin_state = AdminState.ENABLED
             self._handler.adapter_agent.update_device(device)
 
-    @inlineCallbacks
     def cancel_download(self, request):
         log.info('cancel-sw-download', name=self.name)
 
@@ -466,7 +481,7 @@ class Download(object):
             'invalid-software': ImageDownload.DOWNLOAD_FAILED,            # successfully downloaded the required software but the software was determined to be invalid
             'software-storage-failed': ImageDownload.INSUFFICIENT_SPACE,  # successfully downloaded the required software but was unable to successfully stored it to memory
         }.get(state.lower(), None)
-        log.info('download-state', result=result, state=state, name=self.name)
+        log.info('download-software-state', result=result, state=state, name=self.name)
         assert result is not None, 'Invalid state'
         return result
 
@@ -484,6 +499,26 @@ class Download(object):
             'software-committed': ImageDownload.IMAGE_ACTIVATE,        # successfully committed the required software. The job terminated successfully
             'commit-software-failed': ImageDownload.IMAGE_INACTIVE,    # unsuccessfully attempted to commit the required software revision
         }.get(state.lower(), None)
-        log.info('download-state', result=result, state=state, name=self.name)
+        log.info('download-activate-state', result=result, state=state, name=self.name)
         assert result is not None, 'Invalid state'
         return result
+
+    @staticmethod
+    def clear_all(client):
+        """
+        Remove all file server profiles and download jobs
+        :param client: (ncclient) NETCONF Client to use
+        """
+        from twisted.internet import defer
+        del_fs_xml = """
+            <file-servers xmlns="http://www.adtran.com/ns/yang/adtran-file-servers">
+              <profiles operation="delete"/>
+            </file-servers>
+            """
+        del_job_xml = """
+            <maintenance-jobs operation="delete" xmlns="http://www.adtran.com/ns/yang/adtran-maintenance-jobs"/>
+            """
+        dl = [client.edit_config(del_fs_xml),
+              client.edit_config(del_job_xml)]
+
+        return defer.gatherResults(dl, consumeErrors=True)

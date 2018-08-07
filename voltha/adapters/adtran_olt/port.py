@@ -12,21 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
-import random
-
 import structlog
 from enum import Enum
-from twisted.internet import reactor, defer
+from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, returnValue, succeed
 
-from adtran_olt_handler import AdtranOltHandler
-from net.adtran_rest import RestInvalidResponseCode
-from codec.olt_config import OltConfig
-from onu import Onu
-from alarms.onu_los_alarm import OnuLosAlarm
 from voltha.protos.common_pb2 import OperStatus, AdminState
-from voltha.protos.device_pb2 import Port
 
 
 class AdtnPort(object):
