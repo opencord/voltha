@@ -212,9 +212,9 @@ class UniPort(object):
         if self._logical_port_number is not None:
             # delete old logical port if it exists
             try:
-                port = self.adapter_agent.get_logical_port(self._handler.logical_device_id,
-                                                           self.port_id_name())
-                self.adapter_agent.delete_logical_port(self._handler.logical_device_id, port)
+                port = self._handler.adapter_agent.get_logical_port(self._handler.logical_device_id,
+                                                                    self.port_id_name())
+                self._handler.adapter_agent.delete_logical_port(self._handler.logical_device_id, port)
 
             except Exception as e:
                 # assume this exception was because logical port does not already exist

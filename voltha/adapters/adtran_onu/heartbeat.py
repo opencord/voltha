@@ -149,7 +149,7 @@ class HeartBeat(object):
         device = self._handler.adapter_agent.get_device(self._device_id)
 
         try:
-            from ..adtran_olt.alarms.heartbeat_alarm import HeartbeatAlarm
+            from voltha.extensions.alarms.heartbeat_alarm import HeartbeatAlarm
 
             if self._heartbeat_miss >= self.heartbeat_failed_limit:
                 if device.connect_status == ConnectStatus.REACHABLE:
@@ -158,7 +158,7 @@ class HeartBeat(object):
                     device.oper_status = OperStatus.FAILED
                     device.reason = self.heartbeat_last_reason
                     self._handler.adapter_agent.update_device(device)
-                    HeartbeatAlarm(self._handler, 'onu', self._heartbeat_miss).raise_alarm()
+                    HeartbeatAlarm(self._handler.alarms, 'onu', self._heartbeat_miss).raise_alarm()
                     self._alarm_active = True
                     self.on_heartbeat_alarm(True)
             else:
@@ -168,7 +168,7 @@ class HeartBeat(object):
                     device.oper_status = OperStatus.ACTIVE
                     device.reason = ''
                     self._handler.adapter_agent.update_device(device)
-                    HeartbeatAlarm(self._handler, 'onu').clear_alarm()
+                    HeartbeatAlarm(self._handler.alarms, 'onu').clear_alarm()
 
                     self._alarm_active = False
                     self._alarms_raised_count += 1

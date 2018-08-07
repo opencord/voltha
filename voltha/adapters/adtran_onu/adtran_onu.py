@@ -39,10 +39,11 @@ class AdtranOnuAdapter(OnuAdapter):
                                                config=config,
                                                device_handler_class=AdtranOnuHandler,
                                                name='adtran_onu',
-                                               vendor='Adtran, Inc.',
-                                               version='0.11',
+                                               vendor='Adtran Inc.',
+                                               version='0.12',
                                                device_type='adtran_onu',
-                                               vendor_id='ADTN')
+                                               vendor_id='ADTN',
+                                               accepts_add_remove_flow_updates=False),  # TODO: Support flow-mods
         # Customize OpenOMCI for Adtran ONUs
         self.adtran_omci = deepcopy(OpenOmciAgentDefaults)
 

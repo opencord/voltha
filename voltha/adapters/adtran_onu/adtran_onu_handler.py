@@ -15,7 +15,6 @@
 #
 
 import arrow
-import structlog
 
 from voltha.adapters.adtran_olt.xpon.adtran_xpon import AdtranXPON
 from pon_port import PonPort
@@ -23,8 +22,8 @@ from uni_port import UniPort
 from heartbeat import HeartBeat
 from omci.omci import OMCI
 
-from voltha.adapters.adtran_olt.alarms.adapter_alarms import AdapterAlarms
-from onu_pm_metrics import OnuPmMetrics
+from voltha.extensions.alarms.adapter_alarms import AdapterAlarms
+from voltha.extensions.pki.onu.onu_pm_metrics import OnuPmMetrics
 
 from uuid import uuid4
 from twisted.internet import reactor
@@ -223,74 +222,85 @@ class AdtranOnuHandler(AdtranXPON):
     def activate(self, device):
         self.log.info('activating')
 
-        # first we verify that we got parent reference and proxy info
-        assert device.parent_id, 'Invalid Parent ID'
-        assert device.proxy_address.device_id, 'Invalid Device ID'
+        try:
+            # first we verify that we got parent reference and proxy info
+            assert device.parent_id, 'Invalid Parent ID'
+            assert device.proxy_address.device_id, 'Invalid Device ID'
 
-        if device.vlan:
-            # vlan non-zero if created via legacy method (not xPON). Also
-            # Set a random serial number since not xPON based
-            self._olt_created = True
+            if device.vlan:
+                # vlan non-zero if created via legacy method (not xPON).
+                self._olt_created = True
 
-        # register for proxied messages right away
-        self.proxy_address = device.proxy_address
-        self.adapter_agent.register_for_proxied_messages(device.proxy_address)
+            # register for proxied messages right away
+            self.proxy_address = device.proxy_address
+            self.adapter_agent.register_for_proxied_messages(device.proxy_address)
 
-        # initialize device info
-        device.root = True
-        device.vendor = 'Adtran Inc.'
-        device.model = 'n/a'
-        device.hardware_version = 'n/a'
-        device.firmware_version = 'n/a'
-        device.reason = ''
-        device.connect_status = ConnectStatus.UNKNOWN
+            # initialize device info
+            device.root = True
+            device.vendor = 'Adtran Inc.'
+            device.model = 'n/a'
+            device.hardware_version = 'n/a'
+            device.firmware_version = 'n/a'
+            device.reason = ''
+            device.connect_status = ConnectStatus.UNKNOWN
 
-        ############################################################################
-        # Setup PM configuration for this device
+            # Register physical ports.  Should have at least one of each
+            self._pon = PonPort.create(self, self._next_port_number)
+            self.adapter_agent.add_port(device.id, self._pon.get_port())
 
-        self.pm_metrics = OnuPmMetrics(self, device, grouped=True, freq_override=False)
-        pm_config = self.pm_metrics.make_proto()
-        self.log.info("initial-pm-config", pm_config=pm_config)
-        self.adapter_agent.update_device_pm_config(pm_config, init=True)
+            if self._olt_created:
+                # vlan non-zero if created via legacy method (not xPON). Also
+                # Set a random serial number since not xPON based
 
-        ############################################################################
-        # Setup Alarm handler
+                uni_port = UniPort.create(self, self._next_port_number, device.vlan,
+                                          'deprecated', device.vlan, None)
+                self._unis[uni_port.port_number] = uni_port
+                self.adapter_agent.add_port(device.id, uni_port.get_port())
 
-        self.alarms = AdapterAlarms(self.adapter, device.id)
+                device.serial_number = uuid4().hex
+                uni_port.add_logical_port(device.vlan, subscriber_vlan=device.vlan)
 
-        # reference of uni_port is required when re-enabling the device if
-        # it was disabled previously
-        # Need to query ONU for number of supported uni ports
-        # For now, temporarily set number of ports to 1 - port #2
+                # Start things up for this ONU Handler.
+                self.enabled = True
 
-        parent_device = self.adapter_agent.get_device(device.parent_id)
-        self.logical_device_id = parent_device.parent_id
-        assert self.logical_device_id, 'Invalid logical device ID'
+            ############################################################################
+            # Setup PM configuration for this device
+            # Pass in ONU specific options
+            kwargs = {
+                'heartbeat': self.heartbeat,
+                'omci-cc': self.openomci.omci_cc
+            }
+            self.pm_metrics = OnuPmMetrics(self.adapter_agent, self.device_id,
+                                           grouped=True, freq_override=False,
+                                           **kwargs)
+            pm_config = self.pm_metrics.make_proto()
+            self.openomci.set_pm_config(self.pm_metrics.omci_pm.openomci_interval_pm)
+            self.log.info("initial-pm-config", pm_config=pm_config)
+            self.adapter_agent.update_device_pm_config(pm_config, init=True)
 
-        # Register physical ports.  Should have at least one of each
+            # reference of uni_port is required when re-enabling the device if
+            # it was disabled previously
+            # Need to query ONU for number of supported uni ports
+            # For now, temporarily set number of ports to 1 - port #2
+            parent_device = self.adapter_agent.get_device(device.parent_id)
+            self.logical_device_id = parent_device.parent_id
+            assert self.logical_device_id, 'Invalid logical device ID'
+            self.adapter_agent.update_device(device)
 
-        self._pon = PonPort.create(self, self._next_port_number)
-        self.adapter_agent.add_port(device.id, self._pon.get_port())
+            ############################################################################
+            # Setup Alarm handler
+            self.alarms = AdapterAlarms(self.adapter_agent, device.id, self.logical_device_id)
 
-        if self._olt_created:
-            # vlan non-zero if created via legacy method (not xPON). Also
-            # Set a random serial number since not xPON based
+            ############################################################################
+            # Start collecting stats from the device after a brief pause
+            reactor.callLater(30, self.pm_metrics.start_collector)
 
-            uni_port = UniPort.create(self, self._next_port_number, device.vlan,
-                                      'deprecated', device.vlan, None)
-            self._unis[uni_port.port_number] = uni_port
-            self.adapter_agent.add_port(device.id, uni_port.get_port())
-
-            device.serial_number = uuid4().hex
-            uni_port.add_logical_port(device.vlan, subscriber_vlan=device.vlan)
-
-            # Start things up for this ONU Handler.
-            self.enabled = True
-
-        # Start collecting stats from the device after a brief pause
-        reactor.callLater(30, self.start_kpi_collection, device.id)
-
-        self.adapter_agent.update_device(device)
+        except Exception as e:
+            self.log.exception('activate-failure', e=e)
+            device.reason = 'Failed to activate: {}'.format(e.message)
+            device.connect_status = ConnectStatus.UNREACHABLE
+            device.oper_status = OperStatus.FAILED
+            self.adapter_agent.update_device(device)
 
     def reconcile(self, device):
         self.log.info('reconciling-ONU-device-starts')
@@ -328,34 +338,6 @@ class AdtranOnuHandler(AdtranXPON):
         # TODO: This has not been tested
         self.log.info('update_pm_config', pm_config=pm_config)
         self.pm_metrics.update(pm_config)
-
-    def start_kpi_collection(self, device_id):
-        # TODO: This has not been tested
-        def _collect(device_id, prefix):
-            from voltha.protos.events_pb2 import KpiEvent, KpiEventType, MetricValuePairs
-
-            if self.enabled:
-                try:
-                    # Step 1: gather metrics from device
-                    port_metrics = self.pm_metrics.collect_port_metrics()
-
-                    # Step 2: prepare the KpiEvent for submission
-                    # we can time-stamp them here or could use time derived from OLT
-                    ts = arrow.utcnow().timestamp
-                    kpi_event = KpiEvent(
-                        type=KpiEventType.slice,
-                        ts=ts,
-                        prefixes={
-                            prefix + '.{}'.format(k): MetricValuePairs(metrics=port_metrics[k])
-                            for k in port_metrics.keys()}
-                    )
-                    # Step 3: submit
-                    self.adapter_agent.submit_kpis(kpi_event)
-
-                except Exception as e:
-                    self.log.exception('failed-to-submit-kpis', e=e)
-
-        self.pm_metrics.start_collector(_collect)
 
     @inlineCallbacks
     def update_flow_table(self, device, flows):
