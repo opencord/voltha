@@ -16,6 +16,24 @@
       "revId": "a5bf15ac1008a08beddc8f301777e70af6d24902",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3c1906ab_a09e49ed",
+        "filename": "voltha/extensions/omci/state_machines/mib_sync.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 514,
+      "author": {
+        "id": 1000436
+      },
+      "writtenOn": "2018-08-07T20:05:31Z",
+      "side": 1,
+      "message": "Ok ill change.",
+      "parentUuid": "92700138_b9158444",
+      "revId": "a5bf15ac1008a08beddc8f301777e70af6d24902",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
