@@ -511,9 +511,12 @@ class MibSynchronizer(object):
             attr_diffs = results.get('attr-diffs')
 
             self._current_task = None
-            self._on_olt_only_diffs = on_olt_only if len(on_olt_only) else None
-            self._on_onu_only_diffs = on_onu_only if len(on_onu_only) else None
-            self._attr_diffs = attr_diffs if len(attr_diffs) else None
+            if on_olt_only != None:
+                self._on_olt_only_diffs = on_olt_only if len(on_olt_only) else None
+            if on_onu_only != None:
+                self._on_onu_only_diffs = on_onu_only if len(on_onu_only) else None
+            if attr_diffs != None:
+                self._attr_diffs = attr_diffs if len(attr_diffs) else None
 
             if all(diff is None for diff in [self._on_olt_only_diffs,
                                              self._on_onu_only_diffs,
