@@ -169,13 +169,13 @@ class OnuGemPort(object):
             direction = "downstream" if self.multicast else "bi-directional"
             assert not self.multicast, 'MCAST is not supported yet'
 
-            ## TODO: magic numbers here
+            # TODO: magic numbers here
             msg = GemPortNetworkCtpFrame(
                     self.entity_id,          # same entity id as GEM port
                     port_id=self.gem_id,
                     tcont_id=tcont_entity_id,
                     direction=direction,
-                    ## TODO: This points to the Priority Queue ME. Class #277.  Use whats discovered in relation to tcont
+                    # TODO: This points to the Priority Queue ME. Class #277.  Use whats discovered in relation to tcont
                     upstream_tm=0x8001
                     #upstream_tm=0x100
             )
@@ -189,7 +189,7 @@ class OnuGemPort(object):
             raise
 
         try:
-            ## TODO: magic numbers here
+            # TODO: magic numbers here
             msg = GemInterworkingTpFrame(
                 self.entity_id,          # same entity id as GEM port
                 gem_port_network_ctp_pointer=self.entity_id,

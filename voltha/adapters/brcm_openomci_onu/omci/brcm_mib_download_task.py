@@ -181,19 +181,18 @@ class BrcmMibDownloadTask(Task):
         device = self._handler.adapter_agent.get_device(self.device_id)
 
         def resources_available():
-            return (device.vlan > 0 and
-                    len(self._handler.uni_ports) > 0 and
+            return (len(self._handler.uni_ports) > 0 and
                     len(self._handler.pon_port.tconts) and
                     len(self._handler.pon_port.gem_ports))
 
         if self._handler.enabled and resources_available():
-            device.reason = 'Performing OMCI Download'
+            device.reason = 'performing-initial-mib-download'
             self._handler.adapter_agent.update_device(device)
 
             try:
                 # Lock the UNI ports to prevent any alarms during initial configuration
                 # of the ONU
-                yield self.enable_uni(self._uni_port, False)
+                yield self.enable_uni(self._uni_port, True)
 
                 # Provision the initial bridge configuration
                 yield self.perform_initial_bridge_setup()
@@ -210,16 +209,18 @@ class BrcmMibDownloadTask(Task):
                                                   self._uni_port.port_id_name(), OFPPS_LIVE)
                 device = self._handler.adapter_agent.get_device(self.device_id)
 
-                device.reason = 'Initial MIB Downloaded'
+                device.reason = 'initial-mib-downloaded'
                 self._handler.adapter_agent.update_device(device)
-                ## TODO: flows should update here...  how?
+                self.deferred.callback('initial-download-success')
 
             except TimeoutError as e:
                 self.deferred.errback(failure.Failure(e))
 
         else:
-            # TODO: Provide better error reason, what was missing...
-            e = MibResourcesFailure('Required resources are not available')
+            e = MibResourcesFailure('Required resources are not available',
+                                    tconts=len(self._handler.pon_port.tconts),
+                                    gems=len(self._handler.pon_port.gem_ports),
+                                    unis=len(self._handler.uni_ports))
             self.deferred.errback(failure.Failure(e))
 
     @inlineCallbacks
@@ -228,7 +229,7 @@ class BrcmMibDownloadTask(Task):
 
         omci_cc = self._onu_device.omci_cc
         frame = None
-        ## TODO: too many magic numbers
+        # TODO: too many magic numbers
 
         try:
             ########################################################################################
@@ -489,7 +490,7 @@ class BrcmMibDownloadTask(Task):
             #
 
             # TODO: do this for all uni/ports...
-            ## TODO: magic.  static variable for assoc_type
+            # TODO: magic.  static variable for assoc_type
             attributes = dict(
                 association_type=2,                                 # Assoc Type, PPTP Ethernet UNI
                 associated_me_pointer=self._ethernet_uni_entity_id  # Assoc ME, PPTP Entity Id
@@ -510,7 +511,7 @@ class BrcmMibDownloadTask(Task):
             # Specifies the TPIDs in use and that operations in the downstream direction are
             # inverse to the operations in the upstream direction
 
-            ## TODO: magic.  static variable for downstream_mode
+            # TODO: magic.  static variable for downstream_mode
             attributes = dict(
                 input_tpid=self._input_tpid,    # input TPID
                 output_tpid=self._output_tpid,  # output TPID

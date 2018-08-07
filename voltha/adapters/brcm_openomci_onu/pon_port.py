@@ -52,15 +52,6 @@ class PonPort(object):
         log.debug('function-entry')
         port = PonPort(handler, port_no)
 
-        device = handler.adapter_agent.get_device(handler.device_id)
-
-        port._port = Port(port_no=port.port_number,
-                              label='PON port',
-                              type=Port.PON_ONU,
-                              admin_state=port._admin_state,
-                              oper_status=port._oper_status,
-                              peers=[])
-
         return port
 
     def _start(self):
@@ -146,15 +137,13 @@ class PonPort(object):
         :return: VOLTHA Port object
         """
         self.log.debug('function-entry')
-        if self._port is None:
-            device = self._handler.adapter_agent.get_device(self._handler.device_id)
 
-            self._port = Port(port_no=self.port_number,
-                              label='PON port',
-                              type=Port.PON_ONU,
-                              admin_state=self._admin_state,
-                              oper_status=self._oper_status,
-                              peers=[])
+        self._port = Port(port_no=self.port_number,
+                          label='PON port',
+                          type=Port.PON_ONU,
+                          admin_state=self._admin_state,
+                          oper_status=self._oper_status,
+                          peers=[])
         return self._port
 
     def _update_adapter_agent(self):

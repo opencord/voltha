@@ -23,7 +23,9 @@ class BrcmMibSynchronizer(MibSynchronizer):
     OpenOMCI MIB Synchronizer state machine for Broadcom ONUs
     """
     # broadcom takes a while to sync.  going too often causes errors
-    BRCM_RESYNC_DELAY = 300     # Periodically force a resync
+    BRCM_RESYNC_DELAY = 300 # Periodically force a resync
+    BRCM_TIMEOUT_RETRY = 60
+    BRCM_AUDIT_DELAY = 0   # disable audit as if its out of sync nothing can fix it anyway
 
     def __init__(self, agent, device_id, mib_sync_tasks, db,
                  advertise_events=False):
@@ -44,8 +46,8 @@ class BrcmMibSynchronizer(MibSynchronizer):
                                                   # states=MibSynchronizer.DEFAULT_STATES,
                                                   # transitions=MibSynchronizer.DEFAULT_TRANSITIONS,
                                                   # initial_state='disabled',
-                                                  # timeout_delay=MibSynchronizer.DEFAULT_TIMEOUT_RETRY,
-                                                  # audit_delay=MibSynchronizer.DEFAULT_AUDIT_DELAY,
+                                                  timeout_delay=BrcmMibSynchronizer.BRCM_TIMEOUT_RETRY,
+                                                  audit_delay=BrcmMibSynchronizer.BRCM_AUDIT_DELAY,
                                                   resync_delay=BrcmMibSynchronizer.BRCM_RESYNC_DELAY)
         self._omci_managed = False      # TODO: Look up model number/check handler
 
@@ -56,15 +58,10 @@ class BrcmMibSynchronizer(MibSynchronizer):
         """
         self.log.debug('function-entry')
 
-        # Is this a model that supports full OMCI management. If so, use standard
-        # forced resync delay
+        # TODO: currently the audit/resync state machine cannot reconcile and re-add differences causing
+        # it to loop forever
+        self.log.info('audit-resync-not-supported')
 
-        if not self._omci_managed and self._check_if_mib_data_sync_supported():
-            self._omci_managed = True
-            # Revert to standard timeouts
-            self._resync_delay = MibSynchronizer.DEFAULT_RESYNC_DELAY
+        if self._omci_managed:
+            super(BrcmMibSynchronizer, self).on_enter_auditing()
 
-        super(BrcmMibSynchronizer, self).on_enter_auditing()
-
-    def _check_if_mib_data_sync_supported(self):
-        return False    # TODO: Look up to see if we are/check handler

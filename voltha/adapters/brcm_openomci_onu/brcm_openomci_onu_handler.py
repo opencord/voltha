@@ -171,48 +171,40 @@ class BrcmOpenomciOnuHandler(object):
         self.proxy_address = device.proxy_address
         self.adapter_agent.register_for_proxied_messages(device.proxy_address)
 
+        if self.enabled is not True:
+            self.log.info('activating-new-onu')
+            # populate what we know.  rest comes later after mib sync
+            device.root = True
+            device.vendor = 'Broadcom'
+            device.connect_status = ConnectStatus.REACHABLE
+            self.adapter_agent.update_device(device)
 
-        # populate device info
-        device.root = True
-        device.vendor = 'Broadcom'
-        device.model = 'n/a'
-        device.hardware_version = 'to be filled'
-        device.firmware_version = 'to be filled'
-        device.images.image.extend([
-                                        Image(version="to be filled")
-                                       ])
-        device.connect_status = ConnectStatus.REACHABLE
-        self.adapter_agent.update_device(device)
+            self._pon = PonPort.create(self, self._pon_port_number)
+            self.adapter_agent.add_port(device.id, self._pon.get_port())
 
-        self._pon = PonPort.create(self, self._pon_port_number)
-        self.adapter_agent.add_port(device.id, self._pon.get_port())
+            self.log.debug('added-pon-port-to-agent', pon=self._pon)
 
-        self.log.debug('added-pon-port-to-agent', pon=self._pon)
+            parent_device = self.adapter_agent.get_device(device.parent_id)
+            self.logical_device_id = parent_device.parent_id
 
-        parent_device = self.adapter_agent.get_device(device.parent_id)
-        self.logical_device_id = parent_device.parent_id
+            device = self.adapter_agent.get_device(device.id)
+            device.oper_status = OperStatus.DISCOVERED
+            self.adapter_agent.update_device(device)
 
-        device = self.adapter_agent.get_device(device.id)
-        device.oper_status = OperStatus.DISCOVERED
-        self.adapter_agent.update_device(device)
+            self.log.debug('set-device-discovered')
 
-        self.log.debug('set-device-discovered')
+            # Create and start the OpenOMCI ONU Device Entry for this ONU
+            self._onu_omci_device = self.omci_agent.add_device(self.device_id,
+                                                               self.adapter_agent,
+                                                               support_classes=self.adapter.broadcom_omci)
+            # Port startup
+            if self._pon is not None:
+                self._pon.enabled = True
 
-        # Create and start the OpenOMCI ONU Device Entry for this ONU
-        self._onu_omci_device = self.omci_agent.add_device(self.device_id,
-                                                           self.adapter_agent,
-                                                           support_classes=self.adapter.broadcom_omci)
-        # Subscriber to events of interest in OpenOMCI
-        self._subscribe_to_events()
+            self.enabled = True
+        else:
+            self.log.info('onu-already-activated')
 
-        # Port startup
-        if self._pon is not None:
-            self._pon.enabled = True
-
-        self.enabled = True
-
-        self.log.debug('starting-openomci-engine')
-        reactor.callLater(5, self._onu_omci_device.start)
 
     def reconcile(self, device):
         self.log.debug('function-entry', device=device)
@@ -387,8 +379,8 @@ class BrcmOpenomciOnuHandler(object):
                 #
                 if _vlan_vid == 0 and _set_vlan_vid != None and _set_vlan_vid != 0:
 
-                    ## TODO: find a better place for all of this
-                    ## TODO: make this a member of the onu gem port or the uni port
+                    # TODO: find a better place for all of this
+                    # TODO: make this a member of the onu gem port or the uni port
                     _mac_bridge_service_profile_entity_id = 0x201
                     _mac_bridge_port_ani_entity_id = 0x2102   # TODO: can we just use the entity id from the anis list?
 
@@ -494,40 +486,47 @@ class BrcmOpenomciOnuHandler(object):
         self.log.debug('function-entry', data=data)
         self._onu_indication = data
 
+        onu_device = self.adapter_agent.get_device(self.device_id)
+
+        if onu_device.oper_status == OperStatus.DISCOVERED and data.oper_state == 'up':
+            if self._dev_info_loaded == True:
+                self.log.debug('reenabling-openomci-statemachine')
+                reactor.callLater(0, self.reenable(onu_device))
+            else:
+                self.log.debug('starting-openomci-statemachine')
+                self._subscribe_to_events()
+                reactor.callLater(1, self._onu_omci_device.start)
+
     def update_interface(self, data):
         self.log.debug('function-entry', data=data)
-        self.log.info('Not-Implemented-yet')
-        return
+
+        onu_device = self.adapter_agent.get_device(self.device_id)
+
+        if onu_device.oper_status == OperStatus.DISCOVERED and data.oper_state == 'down':
+            self.log.debug('stopping-openomci-statemachine')
+            reactor.callLater(0, self.disable(onu_device))
+        else:
+            self.log.debug('not-changing-openomci-statemachine')
 
     def remove_interface(self, data):
         self.log.debug('function-entry', data=data)
-        if isinstance(data, VEnetConfig):
-            onu_device = self.adapter_agent.get_device(self.device_id)
-            ports = self.adapter_agent.get_ports(onu_device.parent_id, Port.ETHERNET_UNI)
-            parent_port_num = None
-            for port in ports:
-                if port.label == data.interface.name:
-                    parent_port_num = port.port_no
-                    break
 
-            parent_device = self.adapter_agent.get_device(onu_device.parent_id)
-            logical_device_id = parent_device.parent_id
-            assert logical_device_id
-            ## TODO: call remove UniPort method
-            #self.del_uni_port(onu_device, logical_device_id,
-            #                  data.name, parent_port_num)
-            ## TODO: call remove PonPort method
-            #self.delete_v_ont_ani(data)
-            self.log.info('not-handled-yet')
+        onu_device = self.adapter_agent.get_device(self.device_id)
+
+        self.log.debug('stopping-openomci-statemachine')
+        reactor.callLater(0, self._onu_omci_device.stop)
+
+        # TODO: im sure there is more to do here
+
 
     def create_gemport(self, data):
         self.log.debug('create-gemport', data=data)
         gem_portdata = GemportsConfigData()
         gem_portdata.CopyFrom(data)
 
-        ## TODO: fill in what i have.  This needs to be provided from the OLT
-        ## currently its hardcoded/static
-        gemdict = {}
+        # TODO: fill in what i have.  This needs to be provided from the OLT
+        # currently its hardcoded/static
+        gemdict = dict()
         gemdict['gemport-id'] = gem_portdata.gemport_id
         gemdict['encryption'] = gem_portdata.aes_indicator
         gemdict['tcont-ref'] = int(gem_portdata.tcont_ref)
@@ -561,15 +560,15 @@ class BrcmOpenomciOnuHandler(object):
         tcontdata = TcontsConfigData()
         tcontdata.CopyFrom(tcont_data)
 
-        ## TODO: fill in what i have.  This needs to be provided from the OLT
-        ## currently its hardcoded/static
-        tcontdict = {}
+        # TODO: fill in what i have.  This needs to be provided from the OLT
+        # currently its hardcoded/static
+        tcontdict = dict()
         tcontdict['alloc-id'] = tcontdata.alloc_id
         tcontdict['name'] = tcontdata.name
         tcontdict['vont-ani'] = tcontdata.interface_reference
 
-        ## TODO: Not sure what to do with any of this...
-        tddata = {}
+        # TODO: Not sure what to do with any of this...
+        tddata = dict()
         tddata['name'] = 'not-sure-td-profile'
         tddata['fixed-bandwidth'] = "not-sure-fixed"
         tddata['assured-bandwidth'] = "not-sure-assured"
@@ -596,13 +595,13 @@ class BrcmOpenomciOnuHandler(object):
             self.log.error('device-unreachable')
             returnValue(None)
 
-        #TODO: Create some omci task that encompases this what intended
+        # TODO: Create some omci task that encompases this what intended
 
 
     def create_multicast_gemport(self, data):
         self.log.debug('function-entry', data=data)
 
-        ## TODO: create objects and populate for later omci calls
+        # TODO: create objects and populate for later omci calls
 
 
     @inlineCallbacks
@@ -614,7 +613,7 @@ class BrcmOpenomciOnuHandler(object):
             #TODO: Create uni lock/unlock omci task
 
             # Stop up OpenOMCI state machines for this device
-            self._onu_omci_device.stop()
+            reactor.callLater(0, self._onu_omci_device.stop)
 
             device = self.adapter_agent.get_device(device.id)
             # Disable all ports on that device
@@ -642,7 +641,8 @@ class BrcmOpenomciOnuHandler(object):
             self.log.info('sending-admin-state-unlock-towards-device', device=device)
 
             # Start up OpenOMCI state machines for this device
-            self._onu_omci_device.start()
+            self._subscribe_to_events()
+            reactor.callLater(1, self._onu_omci_device.start)
 
             #TODO: Create uni lock/unlock omci task
 
@@ -652,13 +652,6 @@ class BrcmOpenomciOnuHandler(object):
             parent_device = self.adapter_agent.get_device(device.parent_id)
             logical_device_id = parent_device.parent_id
             assert logical_device_id
-            # Mark OF PORT STATE UP
-            ports = self.adapter_agent.get_ports(device.id, Port.ETHERNET_UNI)
-            for port in ports:
-                state = OFPPS_LIVE
-                port_id = 'uni-{}'.format(port.port_no)
-                # TODO: move to UniPort
-                self.update_logical_port(logical_device_id, port_id, state)
             device.oper_status = OperStatus.ACTIVE
             device.connect_status = ConnectStatus.REACHABLE
             self.adapter_agent.update_device(device)
@@ -774,32 +767,25 @@ class BrcmOpenomciOnuHandler(object):
 
     def _mib_in_sync(self):
         self.log.debug('function-entry')
-        if not self._dev_info_loaded:
-            # Here if in sync. But verify first
 
-            omci = self._onu_omci_device
-            in_sync = omci.mib_db_in_sync
-            self.log.info('mib-in-sync', in_sync=in_sync, already_loaded=self._dev_info_loaded)
+        omci = self._onu_omci_device
+        in_sync = omci.mib_db_in_sync
+
+        if not self._dev_info_loaded:
+            self.log.info('loading-device-data-from-mib', in_sync=in_sync, already_loaded=self._dev_info_loaded)
 
             device = self.adapter_agent.get_device(self.device_id)
             device.oper_status = OperStatus.ACTIVE
             device.connect_status = ConnectStatus.REACHABLE
-            device.reason = 'MIB Synchronization complete'
-            device.vlan = BRDCM_DEFAULT_VLAN
-            # this is done below.  why do it twice?
-            #self.adapter_agent.update_device(device)
+            device.reason = 'discovery-mibsync-complete'
 
             omci_dev = self._onu_omci_device
             config = omci_dev.configuration
 
-            ## TODO: run this sooner somehow...
+            # TODO: run this sooner somehow...
             # In Sync, we can register logical ports now. Ideally this could occur on
             # the first time we received a successful (no timeout) OMCI Rx response.
             try:
-                ## TODO: this comes back None.. why?
-                vendor = omci.query_mib_single_attribute(OntG.class_id, 0, 'vendor_id')
-                self.log.debug("queryied vendor_id", vendor=vendor)
-
                 parent_device = self.adapter_agent.get_device(device.parent_id)
 
                 parent_adapter_agent = registry('adapter_loader').get_agent(parent_device.adapter)
@@ -821,7 +807,7 @@ class BrcmOpenomciOnuHandler(object):
 
                     entity_id = key
 
-                    ##TODO: This knowledge is locked away in openolt.  and it assumes one onu equals one uni...
+                    # TODO: This knowledge is locked away in openolt.  and it assumes one onu equals one uni...
                     uni_no_start = platform.mk_uni_port_num(self._onu_indication.intf_id,
                                                             self._onu_indication.onu_id)
 
@@ -841,11 +827,12 @@ class BrcmOpenomciOnuHandler(object):
 
                     self.log.debug("created-uni-port", uni=uni_port)
 
-                    self._unis[uni_port.port_number] = uni_port
                     self.adapter_agent.add_port(device.id, uni_port.get_port())
                     parent_adapter_agent.add_port(device.parent_id, uni_port.get_port())
 
-                    ## TODO: this should be in the PonPortclass
+                    self._unis[uni_port.port_number] = uni_port
+
+                    # TODO: this should be in the PonPortclass
                     pon_port = self._pon.get_port()
                     self.adapter_agent.delete_port_reference_from_parent(self.device_id,
                                                                          pon_port)
@@ -858,7 +845,7 @@ class BrcmOpenomciOnuHandler(object):
                     self.adapter_agent.add_port_reference_to_parent(self.device_id,
                                                                     pon_port)
 
-                    #TODO: only one uni/pptp for now. flow bug in openolt
+                    # TODO: only one uni/pptp for now. flow bug in openolt
                     break
 
                 self._total_tcont_count = ani_g.get('total-tcont-count')
@@ -866,51 +853,32 @@ class BrcmOpenomciOnuHandler(object):
                 self._omcc_version = config.omcc_version or OMCCVersion.Unknown
                 self.log.debug("set-total-tcont-count", tcont_count=self._total_tcont_count)
 
-                # TODO: figure out what this is for
-                host_info = omci_dev.query_mib(IpHostConfigData.class_id)
-                mgmt_mac_address = next((host_info[inst].get('attributes').get('mac_address')
-                                         for inst in host_info
-                                         if isinstance(inst, int)), 'unknown')
-                device.mac_address = str(mgmt_mac_address)
-                device.model = str(config.version or 'unknown').rstrip('\0')
-
-                equipment_id = config.equipment_id or " unknown    unknown "
-                eqpt_boot_version = str(equipment_id).rstrip('\0')
-                boot_version = eqpt_boot_version[12:]
-
-                images = [Image(name='boot-code',
-                                version=boot_version.rstrip('\0'),
-                                is_active=False,
-                                is_committed=True,
-                                is_valid=True,
-                                install_datetime='Not Available',
-                                hash='Not Available')] + \
-                         config.software_images
-
-                del (device.images.image[:])  # Clear previous entries
-                device.images.image.extend(images)
-
                 # Save our device information
+                self._dev_info_loaded = True
                 self.adapter_agent.update_device(device)
-
-                # Start MIB download
-                self._in_sync_reached = True
-
-                def success(_results):
-                    self.log.info('mib-download-success', _results=_results)
-                    self._mib_download_task = None
-
-                def failure(_reason):
-                    self.log.info('mib-download-failure', _reason=_reason)
-                    self._deferred = reactor.callLater(10, self._mib_download_task)
-
-                self._mib_download_task = BrcmMibDownloadTask(self.omci_agent, self)
-                self._mib_download_deferred = self._onu_omci_device.task_runner.queue_task(self._mib_download_task)
-                self._mib_download_deferred.addCallbacks(success, failure)
 
             except Exception as e:
                 self.log.exception('device-info-load', e=e)
                 self._deferred = reactor.callLater(_STARTUP_RETRY_WAIT, self._mib_in_sync)
+
+        else:
+            self.log.info('device-info-already-loaded', in_sync=in_sync, already_loaded=self._dev_info_loaded)
+
+        def success(_results):
+            self.log.info('mib-download-success', _results=_results)
+            self._mib_download_task = None
+
+        def failure(_reason):
+            self.log.info('mib-download-failure', _reason=_reason)
+            # TODO: test this.  also verify i can add this task this way
+            self._mib_download_task = BrcmMibDownloadTask(self.omci_agent, self)
+            self._deferred = self._onu_omci_device.task_runner.queue_task(self._mib_download_task)
+
+        self.log.info('downloading-initial-mib-configuration')
+        self._mib_download_task = BrcmMibDownloadTask(self.omci_agent, self)
+        self._deferred = self._onu_omci_device.task_runner.queue_task(self._mib_download_task)
+        self._deferred.addCallbacks(success, failure)
+
 
 
     def check_status_and_state(self, results, operation=''):

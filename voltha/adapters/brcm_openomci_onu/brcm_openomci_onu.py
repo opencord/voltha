@@ -73,8 +73,8 @@ class BrcmOpenomciOnuAdapter(object):
         self.broadcom_omci = deepcopy(OpenOmciAgentDefaults)
 
         self.broadcom_omci['mib-synchronizer']['state-machine'] = BrcmMibSynchronizer
-        self.broadcom_omci['mib-synchronizer']['tasks']['get-mds'] = BrcmGetMdsTask
-        self.broadcom_omci['mib-synchronizer']['tasks']['mib-audit'] = BrcmGetMdsTask
+        #self.broadcom_omci['mib-synchronizer']['tasks']['get-mds'] = BrcmGetMdsTask
+        #self.broadcom_omci['mib-synchronizer']['tasks']['mib-audit'] = BrcmGetMdsTask
         self.broadcom_omci['omci-capabilities']['tasks']['get-capabilities'] = BrcmCapabilitiesTask
 
         self._omci_agent = OpenOMCIAgent(self.adapter_agent.core,

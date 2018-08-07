@@ -57,6 +57,7 @@ class UniPort(object):
         log = structlog.get_logger(device_id=handler.device_id, name=name)
         log.debug('function-entry')
         port = UniPort(handler, name, port_no, ofp_port_no, subscriber_vlan, untagged_vlan)
+
         return port
 
     def _start(self):
@@ -195,12 +196,11 @@ class UniPort(object):
         """
         self.log.debug('function-entry')
 
-        if self._port is None:
-            self._port = Port(port_no=self.port_number,
-                              label='Ethernet port',
-                              type=Port.ETHERNET_UNI,
-                              admin_state=self._admin_state,
-                              oper_status=self._oper_status)
+        self._port = Port(port_no=self.port_number,
+                          label=self.port_id_name(),
+                          type=Port.ETHERNET_UNI,
+                          admin_state=self._admin_state,
+                          oper_status=self._oper_status)
         return self._port
 
     def port_id_name(self):

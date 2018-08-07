@@ -490,6 +490,13 @@ class OpenoltDevice(object):
 
         self.log.debug('admin-state-dealt-with')
 
+        onu_adapter_agent = \
+            registry('adapter_loader').get_agent(onu_device.adapter)
+        if onu_adapter_agent is None:
+            self.log.error('onu_adapter_agent-could-not-be-retrieved',
+                           onu_device=onu_device)
+            return
+
         # Operating state
         if onu_indication.oper_state == 'down':
             # Move to discovered state
@@ -502,6 +509,10 @@ class OpenoltDevice(object):
             self.onu_ports_down(onu_device, uni_no, uni_name,
                                 OperStatus.DISCOVERED)
 
+            if onu_device.adapter == 'brcm_openomci_onu':
+                self.log.debug('using-brcm_openomci_onu')
+                onu_adapter_agent.update_interface(onu_device, onu_indication)
+
         elif onu_indication.oper_state == 'up':
 
             if onu_device.oper_status != OperStatus.DISCOVERED:
@@ -513,15 +524,8 @@ class OpenoltDevice(object):
                 return
 
             # Device was in Discovered state, setting it to active
-            onu_adapter_agent = \
-                registry('adapter_loader').get_agent(onu_device.adapter)
-            if onu_adapter_agent is None:
-                self.log.error('onu_adapter_agent-could-not-be-retrieved',
-                               onu_device=onu_device)
-                return
 
             # Prepare onu configuration
-
             # If we are using the old/current broadcom adapter otherwise
             # use the openomci adapter
             if onu_device.adapter == 'broadcom_onu':
@@ -597,10 +601,10 @@ class OpenoltDevice(object):
                               onu_indication=onu_indication, tcont=tcont,
                               gem_port=gem_port)
 
-                onu_adapter_agent.create_interface(onu_device, onu_indication)
                 onu_adapter_agent.create_tcont(onu_device, tcont,
                                                traffic_descriptor_data=None)
                 onu_adapter_agent.create_gemport(onu_device, gem_port)
+                onu_adapter_agent.create_interface(onu_device, onu_indication)
 
             else:
                 self.log.error('unsupported-openolt-onu-adapter')
