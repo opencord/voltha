@@ -736,7 +736,7 @@ class EVCMap(object):
           </evc-maps>
         </filter>
         """
-        log.info('query', xml=get_xml, regex=regex_)
+        log.debug('query', xml=get_xml, regex=regex_)
 
         def request_failed(results, operation):
             log.error('{}-failed'.format(operation), results=results)

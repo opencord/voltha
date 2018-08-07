@@ -32,8 +32,8 @@ from voltha.protos.common_pb2 import OperStatus, AdminState, ConnectStatus
 from voltha.protos.logical_device_pb2 import LogicalDevice
 from voltha.protos.openflow_13_pb2 import ofp_desc, ofp_switch_features, OFPC_PORT_STATS, \
     OFPC_GROUP_STATS, OFPC_TABLE_STATS, OFPC_FLOW_STATS
-from alarms.adapter_alarms import AdapterAlarms
-from pki.olt_pm_metrics import OltPmMetrics
+from voltha.extensions.alarms.adapter_alarms import AdapterAlarms
+from voltha.extensions.pki.olt.olt_pm_metrics import OltPmMetrics
 from common.utils.asleep import asleep
 
 _ = third_party
@@ -105,7 +105,7 @@ class AdtranDeviceHandler(object):
         self.multicast_vlans = [DEFAULT_MULTICAST_VLAN]
         self.untagged_vlan = DEFAULT_UNTAGGED_VLAN
         self.utility_vlan = DEFAULT_UTILITY_VLAN
-        self.default_mac_addr = '00:13:95:00:00:00'
+        self.mac_address = '00:13:95:00:00:00'
         self._rest_support = None
 
         # Northbound and Southbound ports
@@ -450,22 +450,21 @@ class AdtranDeviceHandler(object):
                     device.reason = 'Setting up PM configuration'
                     self.adapter_agent.update_device(device)
 
-                    self.pm_metrics = OltPmMetrics(self, device, grouped=True, freq_override=False)
+                    kwargs = {
+                        'nni-ports': self.northbound_ports.values(),
+                        'pon-ports': self.southbound_ports.values()
+                    }
+                    self.pm_metrics = OltPmMetrics(self.adapter_agent, self.device_id,
+                                                   grouped=True, freq_override=False,
+                                                   **kwargs)
+
                     pm_config = self.pm_metrics.make_proto()
-                    self.log.info("initial-pm-config", pm_config=pm_config)
+                    self.log.debug("initial-pm-config", pm_config=pm_config)
                     self.adapter_agent.update_device_pm_config(pm_config, init=True)
 
                 except Exception as e:
                     self.log.exception('pm-setup', e=e)
                     self.activate_failed(device, e.message)
-
-                ############################################################################
-                # Setup Alarm handler
-
-                device.reason = 'Setting up Adapter Alarms'
-                self.adapter_agent.update_device(device)
-
-                self.alarms = AdapterAlarms(self.adapter, device.id)
 
                 ############################################################################
                 # Set the ports in a known good initial state
@@ -494,6 +493,14 @@ class AdtranDeviceHandler(object):
                     self.activate_failed(device, e.message)
 
                 ############################################################################
+                # Setup Alarm handler
+
+                device.reason = 'Setting up Adapter Alarms'
+                self.adapter_agent.update_device(device)
+
+                self.alarms = AdapterAlarms(self.adapter_agent, device.id, ld_initialized.id)
+
+                ############################################################################
                 # Register for ONU detection
                 # self.adapter_agent.register_for_onu_detect_state(device.id)
 
@@ -520,7 +527,7 @@ class AdtranDeviceHandler(object):
                 self.logical_device_id = ld_initialized.id
 
                 # Start collecting stats from the device after a brief pause
-                reactor.callLater(10, self.start_kpi_collection, device.id)
+                reactor.callLater(10, self.pm_metrics.start_collector)
 
                 # Signal completion
                 self.log.info('activated')
@@ -651,7 +658,7 @@ class AdtranDeviceHandler(object):
             root_device_id=device.id)
 
         ld_initialized = self.adapter_agent.create_logical_device(ld,
-                                                                  dpid=self.default_mac_addr)
+                                                                  dpid=self.mac_address)
         return ld_initialized
 
     @inlineCallbacks
@@ -698,6 +705,9 @@ class AdtranDeviceHandler(object):
 
             from flow.flow_entry import FlowEntry
             FlowEntry.clear_all(device.id)
+
+            from download import Download
+            Download.clear_all(self.netconf_client)
 
         # Start/stop the interfaces as needed. These are deferred calls
 
@@ -1215,33 +1225,6 @@ class AdtranDeviceHandler(object):
         self.log.info('update_pm_config', pm_config=pm_config)
         self.pm_metrics.update(pm_config)
 
-    def start_kpi_collection(self, device_id):
-        # TODO: This has not been tested
-        def _collect(device_id, prefix):
-            from voltha.protos.events_pb2 import KpiEvent, KpiEventType, MetricValuePairs
-
-            try:
-                # Step 1: gather metrics from device
-                port_metrics = self.pm_metrics.collect_port_metrics()
-
-                # Step 2: prepare the KpiEvent for submission
-                # we can time-stamp them here or could use time derived from OLT
-                ts = arrow.utcnow().timestamp
-                kpi_event = KpiEvent(
-                    type=KpiEventType.slice,
-                    ts=ts,
-                    prefixes={
-                        prefix + '.{}'.format(k): MetricValuePairs(metrics=port_metrics[k])
-                        for k in port_metrics.keys()}
-                )
-                # Step 3: submit
-                self.adapter_agent.submit_kpis(kpi_event)
-
-            except Exception as e:
-                self.log.exception('failed-to-submit-kpis', e=e)
-
-        self.pm_metrics.start_collector(_collect)
-
     @inlineCallbacks
     def get_device_info(self, device):
         """
@@ -1285,7 +1268,7 @@ class AdtranDeviceHandler(object):
         device = self.adapter_agent.get_device(self.device_id)
 
         try:
-            from alarms.heartbeat_alarm import HeartbeatAlarm
+            from voltha.extensions.alarms.heartbeat_alarm import HeartbeatAlarm
 
             if self.heartbeat_miss >= self.heartbeat_failed_limit:
                 if device.connect_status == ConnectStatus.REACHABLE:
@@ -1294,7 +1277,7 @@ class AdtranDeviceHandler(object):
                     device.oper_status = OperStatus.FAILED
                     device.reason = self.heartbeat_last_reason
                     self.adapter_agent.update_device(device)
-                    HeartbeatAlarm(self, 'olt', self.heartbeat_miss).raise_alarm()
+                    HeartbeatAlarm(self.alarms, 'olt', self.heartbeat_miss).raise_alarm()
                     self.on_heatbeat_alarm(True)
             else:
                 # Update device states
@@ -1303,7 +1286,7 @@ class AdtranDeviceHandler(object):
                     device.oper_status = OperStatus.ACTIVE
                     device.reason = ''
                     self.adapter_agent.update_device(device)
-                    HeartbeatAlarm(self, 'olt').clear_alarm()
+                    HeartbeatAlarm(self.alarms, 'olt').clear_alarm()
                     self.on_heatbeat_alarm(False)
 
                 if self.netconf_client is None or not self.netconf_client.connected:

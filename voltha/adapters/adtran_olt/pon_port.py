@@ -18,20 +18,20 @@ import random
 import structlog
 from port import AdtnPort
 from twisted.internet import reactor, defer
-from twisted.internet.defer import inlineCallbacks, returnValue, succeed
+from twisted.internet.defer import inlineCallbacks, returnValue
 
 from adtran_olt_handler import AdtranOltHandler
 from net.adtran_rest import RestInvalidResponseCode
 from codec.olt_config import OltConfig
 from onu import Onu
-from alarms.onu_los_alarm import OnuLosAlarm
+from voltha.extensions.alarms.onu.onu_los_alarm import OnuLosAlarm
 from voltha.protos.common_pb2 import AdminState
 from voltha.protos.device_pb2 import Port
 
 try:
-    from alarms.onu_discovery_alarm2 import OnuDiscoveryAlarm
+    from voltha.extensions.alarms.onu.onu_discovery_alarm import OnuDiscoveryAlarm
 except ImportError:
-    from alarms.onu_discovery_alarm import OnuDiscoveryAlarm
+    from voltha.extensions.alarms.onu.onu_discovery_alarm import OnuDiscoveryAlarm
 
 
 class PonPort(AdtnPort):
@@ -736,11 +736,11 @@ class PonPort(AdtnPort):
 
         for onu_id in cleared_alarms:
             self._active_los_alarms.remove(onu_id)
-            OnuLosAlarm(self.olt, onu_id).clear_alarm()
+            OnuLosAlarm(self.olt.alarms, onu_id).clear_alarm()
 
         for onu_id in new_alarms:
             self._active_los_alarms.add(onu_id)
-            OnuLosAlarm(self.olt, onu_id).raise_alarm()
+            OnuLosAlarm(self.olt.alarms, onu_id).raise_alarm()
             self.delete_onu(onu_id)
 
     def _process_status_onu_discovered_list(self, discovered_onus):
@@ -851,8 +851,9 @@ class PonPort(AdtnPort):
         onu_info = self._get_onu_info(serial_number)
 
         if onu_info is None:
-            self.log.info('onu-lookup-failure', serial_number=serial_number_64)
-            OnuDiscoveryAlarm(self.olt, self.pon_id, serial_number).raise_alarm()
+            self.log.info('onu-lookup-failure', serial_number=serial_number,
+                          serial_number_64=serial_number_64)
+            OnuDiscoveryAlarm(self.olt.alarms, self.pon_id, serial_number).raise_alarm()
             returnValue('new-onu')
 
         if serial_number_64 not in status.onus or onu_info['onu-id'] in self._active_los_alarms:
@@ -866,7 +867,7 @@ class PonPort(AdtnPort):
             elif (serial_number_64 in self._onus and onu_id not in self._onu_by_id) or \
                     (serial_number_64 not in self._onus and onu_id in self._onu_by_id):
                 # May be here due to unmanaged power-cycle on OLT or fiber bounced for a
-                # previously activated ONU. Drop it and add bac on next discovery cycle
+                # previously activated ONU. Drop it and add back on next discovery cycle
                 self.delete_onu(onu_id)
 
             elif len(self._onus) >= self.MAX_ONUS_SUPPORTED:
