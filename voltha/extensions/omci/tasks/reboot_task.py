@@ -45,10 +45,12 @@ class OmciRebootRequest(Task):
     """
     task_priority = Task.MAX_PRIORITY
     name = "ONU OMCI Reboot Task"
+    # adopt the global default
+    DEFAULT_REBOOT_TIMEOUT = DEFAULT_OMCI_TIMEOUT
 
     def __init__(self, omci_agent, device_id,
                  flags=RebootFlags.Reboot_Unconditionally,
-                 timeout=DEFAULT_OMCI_TIMEOUT):
+                 timeout=DEFAULT_REBOOT_TIMEOUT):
         """
         Class initialization
 

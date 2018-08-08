@@ -177,6 +177,7 @@ class BrcmOpenomciOnuHandler(object):
             device.root = True
             device.vendor = 'Broadcom'
             device.connect_status = ConnectStatus.REACHABLE
+            device.oper_status = OperStatus.DISCOVERED
             self.adapter_agent.update_device(device)
 
             self._pon = PonPort.create(self, self._pon_port_number)
@@ -187,8 +188,6 @@ class BrcmOpenomciOnuHandler(object):
             parent_device = self.adapter_agent.get_device(device.parent_id)
             self.logical_device_id = parent_device.parent_id
 
-            device = self.adapter_agent.get_device(device.id)
-            device.oper_status = OperStatus.DISCOVERED
             self.adapter_agent.update_device(device)
 
             self.log.debug('set-device-discovered')
@@ -235,11 +234,20 @@ class BrcmOpenomciOnuHandler(object):
         except Exception as e:
             self.log.exception("exception-updating-port",e=e)
 
+    @inlineCallbacks
     def delete(self, device):
-        self.log.debug('function-entry', device=device)
-        self.log.info('delete-onu - Not implemented yet')
-        # The device is already deleted in delete_v_ont_ani(). No more
-        # handling needed here
+        self.log.info('delete-onu', device=device)
+
+        parent_device = self.adapter_agent.get_device(device.parent_id)
+        if parent_device.type == 'openolt':
+            parent_adapter = registry('adapter_loader').get_agent(parent_device.adapter).adapter
+            self.log.debug('parent-adapter-delete-onu', onu_device=device,
+                          parent_device=parent_device,
+                          parent_adapter=parent_adapter)
+            try:
+                parent_adapter.delete_child_device(parent_device.id, device)
+            except AttributeError:
+                self.log.debug('parent-device-delete-child-not-implemented')
 
     @inlineCallbacks
     def update_flow_table(self, device, flows):
@@ -486,25 +494,22 @@ class BrcmOpenomciOnuHandler(object):
         self.log.debug('function-entry', data=data)
         self._onu_indication = data
 
-        onu_device = self.adapter_agent.get_device(self.device_id)
-
-        if onu_device.oper_status == OperStatus.DISCOVERED and data.oper_state == 'up':
-            if self._dev_info_loaded == True:
-                self.log.debug('reenabling-openomci-statemachine')
-                reactor.callLater(0, self.reenable(onu_device))
-            else:
-                self.log.debug('starting-openomci-statemachine')
-                self._subscribe_to_events()
-                reactor.callLater(1, self._onu_omci_device.start)
+        self.log.debug('starting-openomci-statemachine')
+        self._subscribe_to_events()
+        reactor.callLater(1, self._onu_omci_device.start)
 
     def update_interface(self, data):
         self.log.debug('function-entry', data=data)
 
         onu_device = self.adapter_agent.get_device(self.device_id)
 
-        if onu_device.oper_status == OperStatus.DISCOVERED and data.oper_state == 'down':
+        if data.oper_state == 'down':
             self.log.debug('stopping-openomci-statemachine')
-            reactor.callLater(0, self.disable(onu_device))
+            reactor.callLater(0, self._onu_omci_device.stop)
+            self.disable_ports(onu_device)
+            onu_device.connect_status = ConnectStatus.UNREACHABLE
+            onu_device.oper_status = OperStatus.DISCOVERED
+            self.adapter_agent.update_device(onu_device)
         else:
             self.log.debug('not-changing-openomci-statemachine')
 
@@ -515,6 +520,7 @@ class BrcmOpenomciOnuHandler(object):
 
         self.log.debug('stopping-openomci-statemachine')
         reactor.callLater(0, self._onu_omci_device.stop)
+        self.disable_ports(onu_device)
 
         # TODO: im sure there is more to do here
 
@@ -608,29 +614,36 @@ class BrcmOpenomciOnuHandler(object):
     def disable(self, device):
         self.log.debug('function-entry', device=device)
         try:
-            self.log.info('sending-admin-state-lock-towards-device', device=device)
+            self.log.info('sending-uni-lock-towards-device', device=device)
+            # lock all unis
+            for key, value in self._unis.iteritems():
+                msg = PptpEthernetUniFrame(value.entity_id,
+                                           attributes=dict(administrative_state=1))
+                frame = msg.set()
+                self.log.debug('openomci-msg', msg=msg)
+                results = yield self.omci_cc.send(frame)
+                self.check_status_and_state(results, 'set-pptp-ethernet-uni-lock')
 
-            #TODO: Create uni lock/unlock omci task
-
-            # Stop up OpenOMCI state machines for this device
+            self.log.debug('stopping-openomci-statemachine')
             reactor.callLater(0, self._onu_omci_device.stop)
-
-            device = self.adapter_agent.get_device(device.id)
-            # Disable all ports on that device
-            self.adapter_agent.disable_all_ports(self.device_id)
-            parent_device = self.adapter_agent.get_device(device.parent_id)
-            logical_device_id = parent_device.parent_id
-            assert logical_device_id
-            # Mark OF PORT STATE DOWN
-            ports = self.adapter_agent.get_ports(device.id, Port.ETHERNET_UNI)
-            for port in ports:
-                state = OFPPS_LINK_DOWN
-                port_id = 'uni-{}'.format(port.port_no)
-                # TODO: move to UniPort
-                self.update_logical_port(logical_device_id, port_id, state)
+            self.disable_ports(device)
             device.oper_status = OperStatus.UNKNOWN
             device.connect_status = ConnectStatus.UNREACHABLE
             self.adapter_agent.update_device(device)
+            '''
+            # Disable in parent device (OLT)
+            parent_device = self.adapter_agent.get_device(device.parent_id)
+
+            if parent_device.type == 'openolt':
+                parent_adapter = registry('adapter_loader').get_agent(parent_device.adapter).adapter
+                self.log.info('parent-adapter-disable-onu', onu_device=device,
+                              parent_device=parent_device,
+                              parent_adapter=parent_adapter)
+                try:
+                    parent_adapter.disable_child_device(parent_device.id, device)
+                except AttributeError:
+                    self.log.debug('parent-device-disable-child-not-implemented')
+            '''
         except Exception as e:
             log.exception('exception-in-onu-disable', exception=e)
 
@@ -638,23 +651,11 @@ class BrcmOpenomciOnuHandler(object):
     def reenable(self, device):
         self.log.debug('function-entry', device=device)
         try:
-            self.log.info('sending-admin-state-unlock-towards-device', device=device)
-
             # Start up OpenOMCI state machines for this device
+            # this will ultimately resync mib and unlock unis on successful redownloading the mib
+            self.log.debug('restarting-openomci-statemachine')
             self._subscribe_to_events()
             reactor.callLater(1, self._onu_omci_device.start)
-
-            #TODO: Create uni lock/unlock omci task
-
-            device = self.adapter_agent.get_device(device.id)
-            # Re-enable the ports on that device
-            self.adapter_agent.enable_all_ports(device.id)
-            parent_device = self.adapter_agent.get_device(device.parent_id)
-            logical_device_id = parent_device.parent_id
-            assert logical_device_id
-            device.oper_status = OperStatus.ACTIVE
-            device.connect_status = ConnectStatus.REACHABLE
-            self.adapter_agent.update_device(device)
         except Exception as e:
             log.exception('exception-in-onu-reenable', exception=e)
 
@@ -666,24 +667,18 @@ class BrcmOpenomciOnuHandler(object):
             self.log.error("device-unreacable")
             returnValue(None)
 
-        #TODO: Create reboot omci task
+        def success(_results):
+            self.log.info('reboot-success', _results=_results)
+            self.disable_ports(device)
+            device.connect_status = ConnectStatus.UNREACHABLE
+            device.oper_status = OperStatus.DISCOVERED
+            self.adapter_agent.update_device(device)
 
-        response = None
-        if response is not None:
-            omci_response = response.getfieldval("omci_message")
-            success_code = omci_response.getfieldval("success_code")
-            if success_code == 0:
-                self.log.debug("reboot-command-processed-successfully")
-                # Update the device connection and operation status
-                device = self.adapter_agent.get_device(self.device_id)
-                device.connect_status = ConnectStatus.UNREACHABLE
-                device.oper_status = OperStatus.DISCOVERED
-                self.adapter_agent.update_device(device)
-                self.disable_ports(device)
-            else:
-                self.log.error("reboot-failed", success_code=success_code)
-        else:
-            self.log.error("error-in-processing-reboot-response")
+        def failure(_reason):
+            self.log.info('reboot-failure', _reason=_reason)
+
+        self._deferred = self._onu_omci_device.reboot()
+        self._deferred.addCallbacks(success, failure)
 
     def disable_ports(self, onu_device):
         self.log.info('disable-ports', device_id=self.device_id,
@@ -771,13 +766,12 @@ class BrcmOpenomciOnuHandler(object):
         omci = self._onu_omci_device
         in_sync = omci.mib_db_in_sync
 
+        device = self.adapter_agent.get_device(self.device_id)
+        device.reason = 'discovery-mibsync-complete'
+        self.adapter_agent.update_device(device)
+
         if not self._dev_info_loaded:
             self.log.info('loading-device-data-from-mib', in_sync=in_sync, already_loaded=self._dev_info_loaded)
-
-            device = self.adapter_agent.get_device(self.device_id)
-            device.oper_status = OperStatus.ACTIVE
-            device.connect_status = ConnectStatus.REACHABLE
-            device.reason = 'discovery-mibsync-complete'
 
             omci_dev = self._onu_omci_device
             config = omci_dev.configuration
@@ -866,6 +860,12 @@ class BrcmOpenomciOnuHandler(object):
 
         def success(_results):
             self.log.info('mib-download-success', _results=_results)
+            device = self.adapter_agent.get_device(self.device_id)
+            device.reason = 'initial-mib-downloaded'
+            device.oper_status = OperStatus.ACTIVE
+            device.connect_status = ConnectStatus.REACHABLE
+            self.enable_ports(device)
+            self.adapter_agent.update_device(device)
             self._mib_download_task = None
 
         def failure(_reason):

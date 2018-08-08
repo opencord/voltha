@@ -33,6 +33,7 @@ from voltha.protos.health_pb2 import HealthStatus
 from common.frameio.frameio import hexify
 from voltha.extensions.omci.openomci_agent import OpenOMCIAgent, OpenOmciAgentDefaults
 from voltha.extensions.omci.omci_me import *
+from voltha.extensions.omci.database.mib_db_dict import MibDbVolatileDict
 from omci.brcm_capabilities_task import BrcmCapabilitiesTask
 from omci.brcm_get_mds_task import BrcmGetMdsTask
 from omci.brcm_mib_sync import BrcmMibSynchronizer
@@ -73,6 +74,7 @@ class BrcmOpenomciOnuAdapter(object):
         self.broadcom_omci = deepcopy(OpenOmciAgentDefaults)
 
         self.broadcom_omci['mib-synchronizer']['state-machine'] = BrcmMibSynchronizer
+        self.broadcom_omci['mib-synchronizer']['database'] = MibDbVolatileDict
         #self.broadcom_omci['mib-synchronizer']['tasks']['get-mds'] = BrcmGetMdsTask
         #self.broadcom_omci['mib-synchronizer']['tasks']['mib-audit'] = BrcmGetMdsTask
         self.broadcom_omci['omci-capabilities']['tasks']['get-capabilities'] = BrcmCapabilitiesTask
