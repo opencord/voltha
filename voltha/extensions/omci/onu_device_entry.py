@@ -470,7 +470,7 @@ class OnuDeviceEntry(object):
 
     def reboot(self,
                flags=RebootFlags.Reboot_Unconditionally,
-               timeout=OmciRebootRequest.DEFAULT_PRIORITY):
+               timeout=OmciRebootRequest.DEFAULT_REBOOT_TIMEOUT):
         """
         Request a reboot of the ONU
 
