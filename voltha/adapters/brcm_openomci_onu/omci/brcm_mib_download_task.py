@@ -15,7 +15,6 @@
 
 import structlog
 from common.frameio.frameio import hexify
-from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPS_LINK_DOWN
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, returnValue, TimeoutError, failure
 from voltha.extensions.omci.omci_me import *
@@ -203,14 +202,6 @@ class BrcmMibDownloadTask(Task):
                 # And re-enable the UNIs if needed
                 yield self.enable_uni(self._uni_port, False)
 
-                # If here, we are done.  Set the openflow port live
-                # TODO: move to UniPort
-                self._handler.update_logical_port(self._handler.logical_device_id,
-                                                  self._uni_port.port_id_name(), OFPPS_LIVE)
-                device = self._handler.adapter_agent.get_device(self.device_id)
-
-                device.reason = 'initial-mib-downloaded'
-                self._handler.adapter_agent.update_device(device)
                 self.deferred.callback('initial-download-success')
 
             except TimeoutError as e:
