@@ -182,7 +182,8 @@ class OpenoltDevice(object):
         self.adapter_agent.update_device(device)
 
         self.stub = openolt_pb2_grpc.OpenoltStub(self.channel)
-        self.flow_mgr = OpenOltFlowMgr(self.log, self.stub, self.device_id)
+        self.flow_mgr = OpenOltFlowMgr(self.log, self.stub, self.device_id,
+                                       self.logical_device_id)
         self.alarm_mgr = OpenOltAlarmMgr(self.log, self.adapter_agent,
                                          self.device_id,
                                          self.logical_device_id)
@@ -843,43 +844,40 @@ class OpenoltDevice(object):
                 hex(ord(vendor_specific[3]) & 0x0f)[2:]])
 
     def update_flow_table(self, flows):
-        if not self.is_state_up() and not self.is_state_connected():
-            self.log.info('OLT is down, ignore update flow table')
-            return
+        self.log.debug('No updates here now, all is done in logical flows '
+                       'update')
 
-        device = self.adapter_agent.get_device(self.device_id)
-        self.log.debug('update flow table', number_of_flows=len(flows))
 
-        for flow in flows:
-            is_down_stream = None
-            in_port = fd.get_in_port(flow)
-            assert in_port is not None
-            # Right now there is only one NNI port. Get the NNI PORT and
-            # compare with IN_PUT port number. Need to find better way.
-            ports = self.adapter_agent.get_ports(device.id, Port.ETHERNET_NNI)
+    def update_logical_flows(self, flows_to_add, flows_to_remove,
+                             device_rules_map):
 
-            for port in ports:
-                if (port.port_no == in_port):
-                    self.log.debug('downstream-flow', in_port=in_port)
-                    is_down_stream = True
-                    break
-            if is_down_stream is None:
-                is_down_stream = False
-                self.log.debug('upstream-flow', in_port=in_port)
+        self.log.debug('logical flows update', flows_to_add=flows_to_add,
+            flows_to_remove=flows_to_remove)
 
-            for flow in flows:
-                try:
-                    self.flow_mgr.add_flow(flow, is_down_stream)
-                except grpc.RpcError as grpc_e:
-                    if grpc_e.code() == grpc.StatusCode.ALREADY_EXISTS:
-                        self.log.warn('flow already exists', e=grpc_e,
-                                      flow=flow)
-                    else:
-                        self.log.error('failed to add flow', flow=flow,
-                                       e=grpc_e)
-                except Exception as e:
-                    self.log.error('failed to add flow', flow=flow, e=e)
+        for flow in flows_to_add:
 
+            try:
+                self.flow_mgr.add_flow(flow)
+            except grpc.RpcError as grpc_e:
+                if grpc_e.code() == grpc.StatusCode.ALREADY_EXISTS:
+                    self.log.warn('flow already exists', e=grpc_e,
+                                   flow=flow)
+                else:
+                    self.log.error('failed to add flow', flow=flow,
+                                   grpc_error=grpc_e)
+            except Exception as e:
+                self.log.error('failed to add flow', flow=flow, e=e)
+
+        self.flow_mgr.update_children_flows(device_rules_map)
+
+        for flow in flows_to_remove:
+
+            try:
+                self.flow_mgr.remove_flow(flow)
+            except Exception as e:
+                self.log.error('failed to remove flow', flow=flow, e=e)
+
+    # There has to be a better way to do this
     def ip_hex(self, ip):
         octets = ip.split(".")
         hex_ip = []

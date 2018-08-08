@@ -23,6 +23,7 @@ import structlog
 
 from common.event_bus import EventBusClient
 from common.frameio.frameio import hexify
+from voltha.registry import registry
 from voltha.core.config.config_proxy import CallbackType
 from voltha.core.device_graph import DeviceGraph
 from voltha.core.flow_decomposer import FlowDecomposer, \
@@ -80,6 +81,30 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
 
             self._routes = None
             self._no_flow_changes_required = False
+            self._flows_ids_to_add = []
+            self._flows_ids_to_remove = []
+            self._flows_to_remove = []
+
+            self.accepts_direct_logical_flows = False
+            self.device_id = self.self_proxy.get('/').root_device_id
+            device_adapter_type = self.root_proxy.get('/devices/{}'.format(
+                self.device_id)).adapter
+            device_type = self.root_proxy.get('/device_types/{}'.format(
+                device_adapter_type))
+
+            if device_type is not None:
+                self.accepts_direct_logical_flows = \
+                    device_type.accepts_direct_logical_flows_update
+
+            if self.accepts_direct_logical_flows:
+
+                self.device_adapter_agent = registry(
+                    'adapter_loader').get_agent(device_adapter_type).adapter
+
+                self.log.debug('this device accepts direct logical flows',
+                               device_adapter_type=device_adapter_type)
+
+
 
         except Exception, e:
             self.log.exception('init-error', e=e)
@@ -546,14 +571,23 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         current_flow_ids = set(f.id for f in current_flows.items)
         desired_flow_ids = set(f.id for f in flows.items)
 
-        ids_to_add = desired_flow_ids.difference(current_flow_ids)
-        ids_to_del = current_flow_ids.difference(desired_flow_ids)
+        self._flows_ids_to_add = desired_flow_ids.difference(current_flow_ids)
+        self._flows_ids_to_remove = current_flow_ids.difference(desired_flow_ids)
+        self._flows_to_remove = []
+        for f in current_flows.items:
+            if f.id in self._flows_ids_to_remove:
+                self._flows_to_remove.append(f)
 
-        if len(ids_to_add) + len(ids_to_del) == 0:
+        if len(self._flows_ids_to_add) + len(self._flows_ids_to_remove) == 0:
             # No changes of flows, just stats are changing
             self._no_flow_changes_required = True
         else:
             self._no_flow_changes_required = False
+
+        self.log.debug('flows-preprocess-output', current_flows=len(
+            current_flow_ids), new_flows=len(desired_flow_ids),
+                      adding_flows=len(self._flows_ids_to_add),
+                      removing_flows=len(self._flows_ids_to_remove))
 
 
     def _flow_table_updated(self, flows):
@@ -565,18 +599,51 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             self.log.debug('flow-stats-update')
         else:
 
+            groups = self.groups_proxy.get('/').items
+            device_rules_map = self.decompose_rules(flows.items, groups)
+
             # TODO we have to evolve this into a policy-based, event based pattern
             # This is a raw implementation of the specific use-case with certain
             # built-in assumptions, and not yet device vendor specific. The policy-
             # based refinement will be introduced that later.
 
-            groups = self.groups_proxy.get('/').items
-            device_rules_map = self.decompose_rules(flows.items, groups)
-            for device_id, (flows, groups) in device_rules_map.iteritems():
-                self.root_proxy.update('/devices/{}/flows'.format(device_id),
-                                       Flows(items=flows.values()))
-                self.root_proxy.update('/devices/{}/flow_groups'.format(device_id),
-                                       FlowGroups(items=groups.values()))
+
+            # Temporary bypass for openolt
+
+            if self.accepts_direct_logical_flows:
+                #give the logical flows directly to the adapter
+                self.log.debug('it is an direct logical flow bypass')
+                if self.device_adapter_agent is None:
+                    self.log.error('No device adapter agent',
+                                   device_id=self.device_id,
+                                   logical_device_id = self.logical_device_id)
+                    return
+
+                flows_to_add = []
+                for f in flows.items:
+                    if f.id in self._flows_ids_to_add:
+                        flows_to_add.append(f)
+
+
+                self.log.debug('flows to remove',
+                               flows_to_remove=self._flows_to_remove,
+                               flows_ids=self._flows_ids_to_remove)
+
+                try:
+                    self.device_adapter_agent.update_logical_flows(
+                        self.device_id, flows_to_add, self._flows_to_remove,
+                        groups, device_rules_map)
+                except Exception as e:
+                    self.log.error('logical flows bypass error', error=e,
+                                   flows=flows)
+            else:
+
+                for device_id, (flows, groups) in device_rules_map.iteritems():
+
+                    self.root_proxy.update('/devices/{}/flows'.format(device_id),
+                                           Flows(items=flows.values()))
+                    self.root_proxy.update('/devices/{}/flow_groups'.format(device_id),
+                                           FlowGroups(items=groups.values()))
 
     # ~~~~~~~~~~~~~~~~~~~~ GROUP TABLE UPDATE HANDLING ~~~~~~~~~~~~~~~~~~~~~~~~
 
