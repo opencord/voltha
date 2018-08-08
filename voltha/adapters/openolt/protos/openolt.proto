@@ -81,6 +81,13 @@ service Openolt {
         };
     }
 
+    rpc FlowRemove(Flow) returns (Empty) {
+        option (google.api.http) = {
+          post: "/v1/FlowRemove"
+          body: "*"
+        };
+    }
+
     rpc HeartbeatCheck(Empty) returns (Heartbeat) {
         option (google.api.http) = {
           post: "/v1/HeartbeatCheck"
