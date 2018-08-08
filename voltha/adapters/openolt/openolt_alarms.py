@@ -25,6 +25,12 @@ from voltha.extensions.alarms.onu.onu_lopc_miss_alarm import OnuLopcMissAlarm
 from voltha.extensions.alarms.onu.onu_lopc_mic_error_alarm import OnuLopcMicErrorAlarm
 from voltha.extensions.alarms.onu.onu_lob_alarm import OnuLobAlarm
 
+from voltha.extensions.alarms.onu.onu_startup_alarm import OnuStartupAlarm
+from voltha.extensions.alarms.onu.onu_signal_degrade_alarm import OnuSignalDegradeAlarm
+from voltha.extensions.alarms.onu.onu_signal_fail_alarm import OnuSignalFailAlarm
+from voltha.extensions.alarms.onu.onu_window_drift_alarm import OnuWindowDriftAlarm
+from voltha.extensions.alarms.onu.onu_activation_fail_alarm import OnuActivationFailAlarm
+
 import protos.openolt_pb2 as openolt_pb2
 import voltha.protos.device_pb2 as device_pb2
 
@@ -42,6 +48,14 @@ class OpenOltAlarmMgr(object):
         self.adapter_agent = adapter_agent
         self.device_id = device_id
         self.logical_device_id = logical_device_id
+        """
+        The following is added to reduce the continual posting of OLT LOS alarming
+        to Kafka.   Set enable_alarm_suppress = true to enable  otherwise the
+        current openolt bal will send continuous olt los alarm cleared messages
+        ONU disc raised counter is place holder for a future addition
+        """
+        self.enable_alarm_suppress = True
+        self.alarm_suppress = {"olt_los_clear": 0, "onu_disc_raised": []}  # Keep count of alarms to limit.
         try:
             self.alarms = AdapterAlarms(self.adapter_agent, self.device_id, self.logical_device_id)
         except Exception as initerr:
@@ -95,9 +109,17 @@ class OpenOltAlarmMgr(object):
             try:
                 port_type_name = platform.intf_id_to_port_type_name(los_ind.intf_id)
                 if los_ind.status == 1 or los_ind.status == "on":
+                    # Zero out the suppression counter on OLT_LOS raise
+                    self.alarm_suppress['olt_los_clear'] = 0
                     OltLosAlarm(self.alarms, intf_id=los_ind.intf_id, port_type_name=port_type_name).raise_alarm()
                 else:
-                    OltLosAlarm(self.alarms, intf_id=los_ind.intf_id, port_type_name=port_type_name).clear_alarm()
+                    """ 
+                        Check if there has been more that one los clear following a previous los
+                    """
+                    if self.alarm_suppress['olt_los_clear'] == 0 and self.enable_alarm_suppress:
+                        OltLosAlarm(self.alarms, intf_id=los_ind.intf_id, port_type_name=port_type_name).clear_alarm()
+                        self.alarm_suppress['olt_los_clear'] += 1
+
             except Exception as alarm_err:
                 self.log.error('los-indication', errmsg=alarm_err.message)
         except Exception as e:
@@ -171,8 +193,6 @@ class OpenOltAlarmMgr(object):
 
                 if onu_alarm_ind.los_status == 1 or onu_alarm_ind.los_status == "on":
                     OnuLosAlarm(self.alarms, onu_id=onu_device_id, intf_id=onu_alarm_ind.intf_id).raise_alarm()
-                    # remove the discovered flag
-                    self.alarm_suppress['onu_disc_raised'].remove(serial_number)
                 elif onu_alarm_ind.los_status == 0 or onu_alarm_ind.los_status == "off":
                     OnuLosAlarm(self.alarms, onu_id=onu_device_id, intf_id=onu_alarm_ind.intf_id).clear_alarm()
                 else:     # No Change
@@ -199,34 +219,221 @@ class OpenOltAlarmMgr(object):
                 else:     # No Change
                     pass
             except Exception as alarm_err:
-                self.log.error('onu-alarm-indication', errmsg=alarm_err.message)
+                self.log.exception('onu-alarm-indication', errmsg=alarm_err.message)
 
         except Exception as e:
-            self.log.error('onu-alarm-indication', errmsg=e.message)
+            self.log.exception('onu-alarm-indication', errmsg=e.message)
 
     def onu_startup_failure_indication(self, onu_startup_fail_ind):
-        self.log.info('not implemented yet')
+        """
+        Current protobuf indicator:
+        message OnuStartupFailureIndication {
+                fixed32 intf_id = 1;
+                fixed32 onu_id = 2;
+                string status = 3;
+            }
+
+        :param onu_startup_fail_ind:
+        :return:
+        """
+        try:
+            ind = onu_startup_fail_ind
+            label = "onu-startup-failure-indication"
+            self.log.debug(label + " received", onu_startup_fail_ind=ind, int_id=ind.intf_id, onu_id=ind.onu_id, status=ind.status)
+            try:
+                if ind.status == 1 or ind.status == "on":
+                    OnuStartupAlarm(self.alarms, intf_id=ind.intf_id,onu_id=ind.onu_id).raise_alarm()
+                else:
+                    OnuStartupAlarm(self.alarms, intf_id=ind.intf_id, onu_id=ind.onu_id).clear_alarm()
+            except Exception as alarm_err:
+                self.log.exception(label, errmsg=alarm_err.message)
+
+        except Exception as e:
+            self.log.exception(label, errmsg=e.message)
 
     def onu_signal_degrade_indication(self, onu_signal_degrade_ind):
-        self.log.info('not implemented yet')
+        """
+        Current protobuf indicator:
+        OnuSignalDegradeIndication {
+            fixed32 intf_id = 1;
+            fixed32 onu_id = 2;
+            string status = 3;
+            fixed32 inverse_bit_error_rate = 4;
+        }
+        :param onu_signal_degrade_ind:
+        :return:
+        """
+        try:
+            ind = onu_signal_degrade_ind
+            label = "onu-signal-degrade-indication"
+            self.log.debug(label + ' received',
+                           onu_startup_fail_ind=ind,
+                           int_id=ind.intf_id,
+                           onu_id=ind.onu_id,
+                           inverse_bit_error_rate=ind.inverse_bit_error_rate,
+                           status=ind.status)
+            try:
+                if ind.status == 1 or ind.status == "on":
+                    OnuSignalDegradeAlarm(self.alarms, intf_id=ind.intf_id, onu_id=ind.onu_id,
+                                          inverse_bit_error_rate=ind.inverse_bit_error_rate).raise_alarm()
+                else:
+                    OnuSignalDegradeAlarm(self.alarms, intf_id=ind.intf_id, onu_id=ind.onu_id,
+                                          inverse_bit_error_rate=ind.inverse_bit_error_rate).clear_alarm()
+            except Exception as alarm_err:
+                self.log.exception(label, errmsg=alarm_err.message)
+
+        except Exception as e:
+            self.log.exception(label, errmsg=e.message)
 
     def onu_drift_of_window_indication(self, onu_drift_of_window_ind):
-        self.log.info('not implemented yet')
+        """
+        Current protobuf indicator:
+        OnuDriftOfWindowIndication {
+            fixed32 intf_id = 1;
+            fixed32 onu_id = 2;
+            string status = 3;
+            fixed32 drift = 4;
+            fixed32 new_eqd = 5;
+        }
+
+        :param onu_drift_of_window_ind:
+        :return:
+        """
+        try:
+            ind = onu_drift_of_window_ind
+            label = "onu-window-drift-indication"
+
+            onu_device_id, onu_serial_number = self.resolve_onudev_id_onudev_serialnum(
+                self.resolve_onu_id(ind.onu_id, port_intf_id=ind.intf_id))
+
+            self.log.debug(label + ' received',
+                           onu_drift_of_window_ind=ind,
+                           int_id=ind.intf_id,
+                           onu_id=ind.onu_id,
+                           onu_device_id=onu_device_id,
+                           drift=ind.drift,
+                           new_eqd=ind.new_eqd,
+                           status=ind.status)
+            try:
+                if ind.status == 1 or ind.status == "on":
+                    OnuWindowDriftAlarm(self.alarms, intf_id=ind.intf_id,
+                           onu_id=onu_device_id,
+                           drift=ind.drift,
+                           new_eqd=ind.new_eqd).raise_alarm()
+                else:
+                    OnuWindowDriftAlarm(self.alarms, intf_id=ind.intf_id,
+                           onu_id=onu_device_id,
+                           drift=ind.drift,
+                           new_eqd=ind.new_eqd).clear_alarm()
+            except Exception as alarm_err:
+                self.log.exception(label, errmsg=alarm_err.message)
+
+        except Exception as e:
+            self.log.exception(label, errmsg=e.message)
 
     def onu_loss_omci_indication(self, onu_loss_omci_ind):
         self.log.info('not implemented yet')
 
     def onu_signals_failure_indication(self, onu_signals_fail_ind):
-        self.log.info('not implemented yet')
+        """
+        Current protobuf indicator:
+        OnuSignalsFailureIndication {
+            fixed32 intf_id = 1;
+            fixed32 onu_id = 2;
+            string status = 3;
+            fixed32 inverse_bit_error_rate = 4;
+        }
+
+        :param onu_signals_fail_ind:
+        :return:
+        """
+        try:
+            ind = onu_signals_fail_ind
+            label = "onu-signal-failure-indication"
+
+            onu_device_id, onu_serial_number = self.resolve_onudev_id_onudev_serialnum(
+                self.resolve_onu_id(ind.onu_id, port_intf_id=ind.intf_id))
+
+            self.log.debug(label + ' received',
+                           onu_startup_fail_ind=ind,
+                           int_id=ind.intf_id,
+                           onu_id=ind.onu_id,
+                           onu_device_id=onu_device_id,
+                           onu_serial_number=onu_serial_number,
+                           inverse_bit_error_rate=ind.inverse_bit_error_rate,
+                           status=ind.status)
+            try:
+                if ind.status == 1 or ind.status == "on":
+                    OnuSignalFailAlarm(self.alarms, intf_id=ind.intf_id,
+                           onu_id=onu_device_id,
+                           inverse_bit_error_rate=ind.inverse_bit_error_rate).raise_alarm()
+                else:
+                    OnuSignalFailAlarm(self.alarms, intf_id=ind.intf_id,
+                           onu_id=onu_device_id,
+                           inverse_bit_error_rate=ind.inverse_bit_error_rate).clear_alarm()
+            except Exception as alarm_err:
+                self.log.exception(label, errmsg=alarm_err.message)
+
+        except Exception as e:
+            self.log.exception(label, errmsg=e.message)
+
 
     def onu_transmission_interference_warning(self, onu_tiwi_ind):
         self.log.info('not implemented yet')
 
     def onu_activation_failure_indication(self, onu_activation_fail_ind):
-        self.log.info('not implemented yet')
+        """
+
+        No status is currently passed with this alarm. Consequently it will always just raise
+        :param onu_activation_fail_ind:
+        :return:
+        """
+        try:
+            ind = onu_activation_fail_ind
+            label = "onu-activation-failure-indication"
+
+            onu_device_id, onu_serial_number = self.resolve_onudev_id_onudev_serialnum(
+                self.resolve_onu_id(ind.onu_id, port_intf_id=ind.intf_id))
+
+            self.log.debug(label + ' received',
+                           onu_startup_fail_ind=ind,
+                           int_id=ind.intf_id,
+                           onu_id=ind.onu_id,
+                           onu_device_id=onu_device_id,
+                           onu_serial_number=onu_serial_number)
+            try:
+
+                OnuActivationFailAlarm(self.alarms, intf_id=ind.intf_id,
+                       onu_id=onu_device_id).raise_alarm()
+            except Exception as alarm_err:
+                self.log.exception(label, errmsg=alarm_err.message)
+
+        except Exception as e:
+            self.log.exception(label, errmsg=e.message)
 
     def onu_processing_error_indication(self, onu_processing_error_ind):
         self.log.info('not implemented yet')
+
+    """
+    Helper Methods
+    """
+
+    def resolve_onudev_id_onudev_serialnum(self,onu_device):
+        """
+        Convenience wrapper to resolve device_id and serial number
+        :param onu_device:
+        :return: tuple: onu_device_id, onu_serial_number
+        """
+        try:
+            onu_device_id = "unresolved"
+            onu_serial_number = "unresolved"
+            if onu_device != None:
+                onu_device_id = onu_device.id
+                onu_serial_number = onu_device.serial_number
+        except Exception as err:
+            self.log.exception("openolt-alarms-resolve-onudev-id  ", errmsg=err.message)
+            raise Exception(err)
+        return onu_device_id, onu_serial_number
 
     def resolve_onu_id(self, onu_id, port_intf_id):
         """
@@ -251,5 +458,4 @@ class OpenOltAlarmMgr(object):
             self.log.exception('resolve-onu-id', errmsg=inner.message)
 
         return onu_device
-
 
