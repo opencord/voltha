@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "27dd6448_920a8b9b",
+        "filename": "voltha/extensions/omci/state_machines/image_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 131,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-08-09T19:24:15Z",
+      "side": 1,
+      "message": "For each on_enter_\u003c\u003e state method, you might want to support and \u0027advertise\u0027 method that reports the state change to the kafka  voltha.events  topic.\n\nThe function call is:\n\n\n   self.advertise(OpenOmciEventType.state_change, self.state)\n\nand you can copy over the \u0027advertise\u0027 method from one of the other state machine files.  See line 237 of mib_sync.py",
+      "revId": "1a680ff3d30ead58155e001e0b40a42de92e5798",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "0645601e_319dff8a",
+        "filename": "voltha/extensions/omci/tasks/file_download_task.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-08-09T19:24:15Z",
+      "side": 1,
+      "message": "May want to see if the file by the same name already exists and perhaps call the errback with an appropriate exception",
+      "revId": "1a680ff3d30ead58155e001e0b40a42de92e5798",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "e63bfce1_8ec46ae4",
+        "filename": "voltha/extensions/omci/tasks/file_download_task.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 48,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-08-09T19:24:15Z",
+      "side": 1,
+      "message": "On download failure (except file exists), do we need to clean up any file fragment that may have gotten downloaded?",
+      "revId": "1a680ff3d30ead58155e001e0b40a42de92e5798",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
