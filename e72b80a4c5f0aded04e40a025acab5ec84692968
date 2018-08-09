@@ -1,0 +1,44 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "06cf9db3_fc8478f1",
+        "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 77,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-08-09T19:13:06Z",
+      "side": 1,
+      "message": "Do you want this change?   It is good for testing but once we want to support HA (or the reconcile method) you might want to change it back to the default persistent database",
+      "revId": "e72b80a4c5f0aded04e40a025acab5ec84692968",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "91e90e08_c608768a",
+        "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 621,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-08-09T19:13:06Z",
+      "side": 1,
+      "message": "You should not call directly into the OMCI_CC from an ONU, it is better to use a task.\n\nIn the tasks subdirectory, there is am OmciModifyRequest task.  It takes a frame object and when you queue it to run, it will return a deferred that will fire (callback / errback) as appropriate.  So in the callback, do your callLater to stop and disable_ports call.\n\nI updated the OpenOMCI Framework documentation on the WIKI with all the utility Tasks and more detailed information on the OpenOMCI internals.",
+      "range": {
+        "startLine": 620,
+        "startChar": 59,
+        "endLine": 621,
+        "endChar": 83
+      },
+      "revId": "e72b80a4c5f0aded04e40a025acab5ec84692968",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
