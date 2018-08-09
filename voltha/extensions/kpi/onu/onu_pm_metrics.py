@@ -13,8 +13,8 @@
 # limitations under the License.
 
 from voltha.protos.device_pb2 import PmConfig, PmConfigs, PmGroupConfig
-from voltha.extensions.pki.adapter_pm_metrics import AdapterPmMetrics
-from voltha.extensions.pki.onu.onu_omci_pm import OnuOmciPmMetrics
+from voltha.extensions.kpi.adapter_pm_metrics import AdapterPmMetrics
+from voltha.extensions.kpi.onu.onu_omci_pm import OnuOmciPmMetrics
 
 
 class OnuPmMetrics(AdapterPmMetrics):

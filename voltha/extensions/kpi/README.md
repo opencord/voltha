@@ -1,10 +1,10 @@
-# VOLTHA Performance Monitoring/PKI Library
+# VOLTHA Performance Monitoring/KPI Library
 
 This directory provides a common library for the creation of Performance Monitoring groups
-within VOLTHA and should be used to insure that PKI information from different adapters use
+within VOLTHA and should be used to insure that KPI information from different adapters use
 the same format
 
-## PKI Manager Creation
+## KPI Manager Creation
 
 Currently, each device adapter is required to follow the following steps to create and
 register PM Metric manager. This is typically performed in the device handler's
@@ -84,12 +84,12 @@ with OpenOMCI
     reactor.callLater(30, self.pm_metrics.start_collector)
 ```
 
-# Basic PKI Format
+# Basic KPI Format
 
 **TODO**: This needs to be defined by the community with assistance from the _SEBA_
 developers.
 
-The PKI information is published on the kafka bus under the _voltha.kpi_ topic. For 
+The KPI information is published on the kafka bus under the _voltha.kpi_ topic. For 
 VOLTHA PM information, the kafka key is empty and the value is a JSON message composed
 of the following key-value pairs.
 
@@ -106,8 +106,8 @@ For group PM information, the key composed of a string with the following format
 ```
     voltha.<device-adapter>.<device-id>.<group>[.<group-id>]
 ```
-Here is an JSON **example** of a current PKI published on the kafka bus under the 
-_voltha.pki_ topic. In this case, the _device-adapter_ is the **adtran_olt**, the _device-id_ is
+Here is an JSON **example** of a current KPI published on the kafka bus under the 
+_voltha.kpi_ topic. In this case, the _device-adapter_ is the **adtran_olt**, the _device-id_ is
 the value **0001c4397d43bc51**, the _group_ is **nni** port statistics, and the _group-id_ is the
 port number is **1**.
 

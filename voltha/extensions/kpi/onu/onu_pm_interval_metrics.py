@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from voltha.protos.device_pb2 import PmConfig, PmGroupConfig
-from voltha.extensions.pki.adapter_pm_metrics import AdapterPmMetrics
+from voltha.extensions.kpi.adapter_pm_metrics import AdapterPmMetrics
 from voltha.extensions.omci.omci_entities import \
     EthernetFrameUpstreamPerformanceMonitoringHistoryData, \
     EthernetFrameDownstreamPerformanceMonitoringHistoryData, \
