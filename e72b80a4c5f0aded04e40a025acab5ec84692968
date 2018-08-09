@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "07514409_612fe0f5",
+        "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 77,
+      "author": {
+        "id": 1000436
+      },
+      "writtenOn": "2018-08-09T19:51:37Z",
+      "side": 1,
+      "message": "For now yes.  The difference in recovery time is 60+ seconds.  And given (for now) i force a start machine restart anytime we lose connectivity there really isnt any value in it persisting.  Once resync works, ill go back.",
+      "parentUuid": "06cf9db3_fc8478f1",
+      "revId": "e72b80a4c5f0aded04e40a025acab5ec84692968",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "91e90e08_c608768a",
         "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu_handler.py",
         "patchSetId": 1
@@ -30,6 +48,30 @@
       "writtenOn": "2018-08-09T19:13:06Z",
       "side": 1,
       "message": "You should not call directly into the OMCI_CC from an ONU, it is better to use a task.\n\nIn the tasks subdirectory, there is am OmciModifyRequest task.  It takes a frame object and when you queue it to run, it will return a deferred that will fire (callback / errback) as appropriate.  So in the callback, do your callLater to stop and disable_ports call.\n\nI updated the OpenOMCI Framework documentation on the WIKI with all the utility Tasks and more detailed information on the OpenOMCI internals.",
+      "range": {
+        "startLine": 620,
+        "startChar": 59,
+        "endLine": 621,
+        "endChar": 83
+      },
+      "revId": "e72b80a4c5f0aded04e40a025acab5ec84692968",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "46e36466_32bf016a",
+        "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 621,
+      "author": {
+        "id": 1000436
+      },
+      "writtenOn": "2018-08-09T19:51:37Z",
+      "side": 1,
+      "message": "Cool i didn\u0027t see this.  Ill use it.",
+      "parentUuid": "91e90e08_c608768a",
       "range": {
         "startLine": 620,
         "startChar": 59,
