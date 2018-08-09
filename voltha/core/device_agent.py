@@ -19,6 +19,7 @@ A device agent is instantiated for each Device and plays an important role
 between the Device object and its adapter.
 """
 import structlog
+from copy import deepcopy
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, returnValue
 
@@ -474,9 +475,10 @@ class DeviceAgent(object):
                 if self.device_type.accepts_add_remove_flow_updates:
 
                     try:
+                        flow_changes = deepcopy(self.flow_changes)
                         yield self.adapter_agent.update_flows_incrementally(
                             device=self.last_data,
-                            flow_changes=self.flow_changes,
+                            flow_changes=flow_changes,
                             group_changes=FlowGroupChanges()
                         )
                     except Exception as e:
