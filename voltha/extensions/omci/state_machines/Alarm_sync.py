@@ -81,7 +81,7 @@ class AlarmSynchronizer(object):
 
         :param agent: (OpenOmciAgent) Agent
         :param device_id: (str) ONU Device ID
-        :param db: (MibDbVolatileDict) MIB/Alarm Database
+        :param db: (MibDbApi) MIB/Alarm Database
         :param advertise_events: (bool) Advertise events on OpenOMCI Event Bus
         :param alarm_sync_tasks: (dict) Tasks to run
         :param states: (list) List of valid states
@@ -176,10 +176,11 @@ class AlarmSynchronizer(object):
         return self._last_alarm_sequence_value
 
     @last_alarm_sequence.setter
-    def last_alarm_seuence(self, value):
-        self._last_alarm_sequence_value = value
-        if self._database is not None:
-            self._database.save_alarm_last_sync(self.device_id, value)
+    def last_alarm_sequence(self, value):
+        if self._last_alarm_sequence_value != value:
+            self._last_alarm_sequence_value = value
+            if self._database is not None:
+                self._database.save_alarm_last_sync(self.device_id, value)
 
     @property
     def last_alarm_sync_time(self):
@@ -251,7 +252,7 @@ class AlarmSynchronizer(object):
                 except KeyError:
                     # Device already is in database
                     self.log.debug('seed-db-exist', device_id=self._device_id)
-                    self.last_alarm_sequence = \
+                    self._last_alarm_sequence_value = \
                         self._database.get_alarm_last_sync(self._device_id)
 
                 self._device_in_db = True
@@ -284,9 +285,9 @@ class AlarmSynchronizer(object):
         except Exception as e:
             self.log.exception('dev-subscription-setup', e=e)
 
+        # Determine if this ONU has ever synchronized
         if self.is_updated_alarm:
             self._deferred = reactor.callLater(0, self.update_alarm)
-        # Determine if this ONU has ever synchronized
         else:
             self._deferred = reactor.callLater(0, self.sync_alarm)
 
@@ -300,8 +301,7 @@ class AlarmSynchronizer(object):
             self.log.debug('alarm-update-success', results='the sequence_number is {}'.
                                                            format(results))
             self._current_task = None
-            # The new ONU is up, save the first updated alarm sequence number
-            self.last_alarm_sequence = results
+            # The new ONU is up
             self._deferred = reactor.callLater(0, self.success)
 
         def failure(reason):
@@ -319,8 +319,6 @@ class AlarmSynchronizer(object):
         Create a simple task to fetch the Alarm value
         """
         self.advertise(AlarmOpenOmciEventType.state_change, self.state)
-
-        self.last_alarm_sequence = self._database.get_alarm_last_sync(self._device_id) or 0
 
         def success(sequence):
             self.log.debug('sync-alarm-success', sequence_value=sequence)
@@ -347,8 +345,10 @@ class AlarmSynchronizer(object):
         Schedule a tick to occur to in the future to request an audit
         """
         self.advertise(AlarmOpenOmciEventType.state_change, self.state)
-        self.last_alarm_sync_time = datetime.utcnow()
-        self._device.alarm_db_in_sync = True
+
+        if not self._device.alarm_db_in_sync:
+            self.last_alarm_sync_time = datetime.utcnow()
+            self._device.alarm_db_in_sync = True
 
         if self._audit_delay > 0:
             self._deferred = reactor.callLater(self._audit_delay, self.audit_alarm)
@@ -463,7 +463,7 @@ class AlarmSynchronizer(object):
 
     def on_alarm_update_next_response(self, _topic, msg):
         """
-        Process a Alarm update Next response
+        Process a Get All Alarm Next response
 
         :param _topic: (str) OMCI-RX topic
         :param msg: (dict) Dictionary with 'rx-response' and 'tx-request' (if any)
@@ -507,7 +507,7 @@ class AlarmSynchronizer(object):
 
     def on_alarm_update_response(self, _topic, msg):
         """
-        Process a Set response
+        Process a Get All Alarms response
 
         :param _topic: (str) OMCI-RX topic
         :param msg: (dict) Dictionary with 'rx-response' and 'tx-request' (if any)
@@ -523,22 +523,16 @@ class AlarmSynchronizer(object):
                 omci_msg = response.fields['omci_message'].fields
                 class_id = omci_msg['entity_class']
                 entity_id = omci_msg['entity_id']
-                number_of_commands = omci_msg.fields['number_of_commands']
+                number_of_commands = omci_msg['number_of_commands']
 
-
-                self.last_alarm_sequence = number_of_commands
+                # ONU will reset its last alarm sequence number to 0 on receipt of the
+                # Get All Alarms request
+                self.last_alarm_sequence = 0
 
                 self.log.info('received alarm response',
                               class_id=class_id,
                               instance_id=entity_id,
                               number_of_commands=number_of_commands)
 
-                if class_id == OntData.class_id:
-                    return
-
-                # Save to the database
-                self._database.set(self._device_id, class_id, entity_id, number_of_commands)
-
-
-            except KeyError:
-                pass  # NOP
+            except Exception as e:
+                self.log.exception('upload-alarm-failure', e=e)

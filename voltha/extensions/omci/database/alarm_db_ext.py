@@ -233,9 +233,9 @@ class AlarmDbExternal(MibDbApi):
         root_proxy = self._core.get_proxy('/')
 
         data = AlarmDeviceData(device_id=device_id,
-                             created=self._time_to_string(now),
-                             version=AlarmDbExternal.CURRENT_VERSION,
-                             last_alarm_sequence=0)
+                               created=self._time_to_string(now),
+                               version=AlarmDbExternal.CURRENT_VERSION,
+                               last_alarm_sequence=0)
         try:
             dev_proxy = self._device_proxy(device_id)
             found = True
@@ -408,7 +408,7 @@ class AlarmDbExternal(MibDbApi):
             data.last_sync_time = self._time_to_string(value)
 
             # Update
-            self._root_proxy.update(MibDbExternal.DEVICE_PATH.format(device_id),
+            self._root_proxy.update(AlarmDbExternal.DEVICE_PATH.format(device_id),
                                     data)
             self._modified = now
             self.log.debug('save-sync-time-complete', device_id=device_id)
@@ -440,17 +440,16 @@ class AlarmDbExternal(MibDbApi):
 
     def save_alarm_last_sync(self, device_id, value):
         """
-        Save the Last Sync time to the database in an easy location to access
+        Save the Last Alarm Sequence value to the database in an easy location to access
 
         :param device_id: (str) ONU Device ID
-        :param value: (DateTime) Value to save
+        :param value: (int) Value to save
         """
         self.log.debug('save-last-sync', device_id=device_id, seq=str(value))
 
         try:
-            if not isinstance(value, datetime):
-                raise TypeError('Expected a datetime object, got {}'.
-                                format(type(datetime)))
+            if not isinstance(value, int):
+                raise TypeError('Expected a integer, got {}'.format(type(value)))
 
             device_proxy = self._device_proxy(device_id)
             data = device_proxy.get(depth=0)

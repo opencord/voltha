@@ -346,6 +346,7 @@ class MEFrame(object):
         :return: (OmciFrame) OMCI Frame
         """
         self._check_operation(OP.GetAllAlarms)
+        assert 0 <= alarm_retrieval_mode <= 1, 'Alarm retrieval mode must be 0..1'
 
         return OmciFrame(
             transaction_id=None,
@@ -353,7 +354,7 @@ class MEFrame(object):
             omci_message=OmciGetAllAlarms(
                 entity_class=getattr(self.entity_class, 'class_id'),
                 entity_id=getattr(self, 'entity_id'),
-                alarm_retrieval_mode=self._entity_id.mask_for(alarm_retrieval_mode)
+                alarm_retrieval_mode=alarm_retrieval_mode
             ))
 
     def get_all_alarm_next(self, command_sequence_number):

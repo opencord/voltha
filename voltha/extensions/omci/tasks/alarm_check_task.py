@@ -41,10 +41,10 @@ class AlarmDataTask(Task):
         :param entity_id: (int) ME entity ID
         """
         super(AlarmDataTask, self).__init__(AlarmDataTask.name,
-                                               omci_agent,
-                                               device_id,
-                                               priority=AlarmDataTask.task_priority,
-                                               exclusive=False)
+                                            omci_agent,
+                                            device_id,
+                                            priority=AlarmDataTask.task_priority,
+                                            exclusive=False)
         self._local_deferred = None
         self._class_id = class_id
         self._entity_id = entity_id

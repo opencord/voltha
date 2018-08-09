@@ -40,10 +40,10 @@ class AlarmSyncDataTask(Task):
         :param device_id: (str) ONU Device ID
         """
         super(AlarmSyncDataTask, self).__init__(AlarmSyncDataTask.name,
-                                           omci_agent,
-                                           device_id,
-                                           priority=AlarmSyncDataTask.task_priority,
-                                           exclusive=False)
+                                                omci_agent,
+                                                device_id,
+                                                priority=AlarmSyncDataTask.task_priority,
+                                                exclusive=False)
         self._local_deferred = None
 
     def cancel_deferred(self):
@@ -88,8 +88,8 @@ class AlarmSyncDataTask(Task):
 
             #########################################
             # ONU Data (ME #2)
-            # alarm_retrival_mode=1, time=DEFAULT_OMCI_TIMEOUT
-            results = yield device.omci_cc.send_get_all_alarm(alarm_retrival_mode=1)
+            # alarm_retrieval_mode=1, time=DEFAULT_OMCI_TIMEOUT
+            results = yield device.omci_cc.send_get_all_alarm(alarm_retrieval_mode=1)
             self.stop_if_not_running()
             command_sequence_number = results.fields['omci_message'].fields['number_of_commands']
 
@@ -114,7 +114,7 @@ class AlarmSyncDataTask(Task):
                                       command_sequence_number=command_sequence_number)
                         if retry >= 2:
                             raise AlarmSyncDataFailure('Alarm timeout failure on req {} of {}'.
-                                                   format(seq_no + 1, command_sequence_number))
+                                                       format(seq_no + 1, command_sequence_number))
                         yield asleep(0.3)
                         self.stop_if_not_running()
 

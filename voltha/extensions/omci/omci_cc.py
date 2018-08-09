@@ -1,5 +1,5 @@
 #
-# Copyright 2017 the original author or authors.
+# Copyright 2017-present Open Networking Foundation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -75,7 +75,6 @@ class OMCI_CC(object):
         OmciSetResponse.message_id: RxEvent.Set,
         OmciGetAllAlarmsResponse.message_id: RxEvent.Get_ALARM_Get,
         OmciGetAllAlarmsNextResponse.message_id: RxEvent.Get_ALARM_Get_Next
-
     }
 
     def __init__(self, adapter_agent, device_id, me_map=None,
@@ -661,10 +660,10 @@ class OMCI_CC(object):
         frame = OntGFrame().reboot()
         return self.send(frame, timeout)
 
-    def send_get_all_alarm(self, alarm_retrival_mode=0, timeout=DEFAULT_OMCI_TIMEOUT):
+    def send_get_all_alarm(self, alarm_retrieval_mode=0, timeout=DEFAULT_OMCI_TIMEOUT):
         self.log.debug('send_get_alarm')
 
-        frame = OntDataFrame().get_all_alarm(alarm_retrival_mode)
+        frame = OntDataFrame().get_all_alarm(alarm_retrieval_mode)
         return self.send(frame, timeout)
 
     def send_get_all_alarm_next(self, seq_no, timeout=DEFAULT_OMCI_TIMEOUT):
