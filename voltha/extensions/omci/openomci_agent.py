@@ -65,17 +65,17 @@ OpenOmciAgentDefaults = {
             'delete-pm': OmciDeletePMRequest,
         },
     },
-     'alarm-syncronizer': {
-         'state-machine': AlarmSynchronizer,    # Implements the Alarm sync state machine
-         'database': AlarmDbExternal,           # For any State storage needs
-         'advertise-events': True,             # Advertise events on OpenOMCI event bus
-         'tasks': {
-             'alarm-sync': AlarmSyncDataTask,
-             'alarm-check': AlarmDataTask,
-             'alarm-resync': AlarmResyncTask,
-             'alarm-audit': AlarmDataTask
-         }
-     }
+    'alarm-synchronizer': {
+        'state-machine': AlarmSynchronizer,    # Implements the Alarm sync state machine
+        'database': AlarmDbExternal,           # For any State storage needs
+        'advertise-events': True,              # Advertise events on OpenOMCI event bus
+        'tasks': {
+            'alarm-sync': AlarmSyncDataTask,
+            'alarm-check': AlarmDataTask,
+            'alarm-resync': AlarmResyncTask,
+            'alarm-audit': AlarmDataTask
+        }
+    }
 }
 
 
@@ -106,9 +106,9 @@ class OpenOMCIAgent(object):
         self._mib_db = None
         self._mib_database_cls = support_classes['mib-synchronizer']['database']
 
-        # Alarm Synchronization Database # TODO: Stretch goal for VOLTHA v1.3.0
+        # Alarm Synchronization Database
         self._alarm_db = None
-        self._alarm_database_cls = support_classes['alarm-syncronizer']['database']
+        self._alarm_database_cls = support_classes['alarm-synchronizer']['database']
 
     @property
     def core(self):
@@ -136,7 +136,6 @@ class OpenOMCIAgent(object):
             if self._mib_db is None:
                 self._mib_db = self._mib_database_cls(self)
 
-            # TODO Alarm DB
             if self._alarm_db is None:
                 self._alarm_db = self._alarm_database_cls(self)
 
@@ -216,7 +215,7 @@ class OpenOMCIAgent(object):
 
         if device is None:
             device = OnuDeviceEntry(self, device_id, adapter_agent, custom_me_map,
-                                    self._mib_db, support_classes)
+                                    self._mib_db, self._alarm_db, support_classes)
 
             self._devices[device_id] = device
 

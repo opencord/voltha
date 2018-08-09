@@ -53,7 +53,7 @@ class OnuDeviceEntry(object):
     An ONU Device entry in the MIB
     """
     def __init__(self, omci_agent, device_id, adapter_agent, custom_me_map,
-                 mib_db, support_classes):
+                 mib_db, alarm_db, support_classes):
         """
         Class initializer
 
@@ -62,6 +62,7 @@ class OnuDeviceEntry(object):
         :param adapter_agent: (AdapterAgent) Adapter agent for ONU
         :param custom_me_map: (dict) Additional/updated ME to add to class map
         :param mib_db: (MibDbApi) MIB Database reference
+        :param alarm_db: (MibDbApi) Alarm Table/Database reference
         :param support_classes: (dict) State machines and tasks for this ONU
         """
         self.log = structlog.get_logger(device_id=device_id)
@@ -106,12 +107,12 @@ class OnuDeviceEntry(object):
 
             # ONU ALARM Synchronization state machine
             self._alarm_db_in_sync = False
-            alarm_synchronizer_info = support_classes.get('alarm-syncronizer')
+            alarm_synchronizer_info = support_classes.get('alarm-synchronizer')
             advertise = alarm_synchronizer_info['advertise-events']
             self._alarm_sync_sm = alarm_synchronizer_info['state-machine'](self._omci_agent,
                                                                            device_id,
                                                                            alarm_synchronizer_info['tasks'],
-                                                                           mib_db,
+                                                                           alarm_db,
                                                                            advertise_events=advertise)
         except Exception as e:
             self.log.exception('state-machine-create-failed', e=e)
@@ -191,7 +192,6 @@ class OnuDeviceEntry(object):
         Set PM interval configuration
 
         :param pm_config: (OnuPmIntervalMetrics) PM Interval configuration
-        :return:
         """
         self._pm_intervals_sm.set_pm_config(pm_config)
 
