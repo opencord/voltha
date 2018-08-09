@@ -45,6 +45,7 @@ from voltha.adapters.openolt.openolt_flow_mgr import OpenOltFlowMgr, \
         DEFAULT_MGMT_VLAN
 from voltha.adapters.openolt.openolt_alarms import OpenOltAlarmMgr
 from voltha.adapters.openolt.openolt_bw import OpenOltBW
+from voltha.extensions.alarms.onu.onu_discovery_alarm import OnuDiscoveryAlarm
 
 
 class OpenoltDevice(object):
@@ -351,6 +352,13 @@ class OpenoltDevice(object):
 
         self.log.debug("onu discovery indication", intf_id=intf_id,
                        serial_number=serial_number_str)
+
+        # Post ONU Discover alarm  20180809_0805
+        try:
+            OnuDiscoveryAlarm(self.alarm_mgr.alarms, pon_id=intf_id, serial_number=serial_number_str).raise_alarm()
+        except Exception as disc_alarm_error:
+            self.log.exception("onu-discovery-alarm-error", errmsg=disc_alarm_error.message)
+            # continue for now.
 
         pir = self.bw_mgr.pir(serial_number_str)
         self.log.debug("peak information rate", serial_number=serial_number,
