@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from voltha.protos.device_pb2 import PmConfig, PmConfigs, PmGroupConfig
-from voltha.extensions.pki.adapter_pm_metrics import AdapterPmMetrics
-from voltha.extensions.pki.onu.onu_pm_interval_metrics import OnuPmIntervalMetrics
+from voltha.protos.device_pb2 import PmConfig, PmGroupConfig
+from voltha.extensions.kpi.adapter_pm_metrics import AdapterPmMetrics
+from voltha.extensions.kpi.onu.onu_pm_interval_metrics import OnuPmIntervalMetrics
 
 
 class OnuOmciPmMetrics(AdapterPmMetrics):
