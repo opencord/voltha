@@ -202,7 +202,8 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
                                                               is_active=(rev_type == 'running-revision'),
                                                               is_committed=True,
                                                               is_valid=True,
-                                                              install_datetime='Not Available')
+                                                              install_datetime='Not Available',
+                                                              hash='Not Available')
                                                 device['software-images'].append(image)
 
         except Exception as e:
@@ -267,12 +268,12 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         for port in results.itervalues():
             port_no = port.get('port_no')
             assert port_no, 'Port number not found'
-            assert port_no not in self.northbound_ports, \
-                'Port number {} already in northbound ports'.format(port_no)
 
-            self.log.info('processing-nni', port_no=port_no, name=port['port_no'])
-            self.northbound_ports[port_no] = NniPort(self, **port) if not self.is_virtual_olt \
-                else MockNniPort(self, **port)
+            # May already exist if device was not fully reachable when first enabled
+            if port_no not in self.northbound_ports:
+                self.log.info('processing-nni', port_no=port_no, name=port['port_no'])
+                self.northbound_ports[port_no] = NniPort(self, **port) if not self.is_virtual_olt \
+                    else MockNniPort(self, **port)
 
             if len(self.northbound_ports) >= self.max_nni_ports: # TODO: For now, limit number of NNI ports to make debugging easier
                 break
@@ -362,14 +363,14 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         for pon in results.itervalues():
             pon_id = pon.get('pon-id')
             assert pon_id is not None, 'PON ID not found'
-            assert pon_id not in self.southbound_ports, \
-                'PON ID {} already in southbound ports'.format(pon_id)
             if pon['ifIndex'] is None:
                 pon['port_no'] = self._pon_id_to_port_number(pon_id)
             else:
                 pass        # Need to adjust ONU numbering !!!!
 
-            self.southbound_ports[pon_id] = PonPort(self, **pon)
+            # May already exist if device was not fully reachable when first enabled
+            if pon_id not in self.southbound_ports:
+                self.southbound_ports[pon_id] = PonPort(self, **pon)
 
         self.num_southbound_ports = len(self.southbound_ports)
 
@@ -541,15 +542,19 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
     def reenable(self, done_deferred=None):
         super(AdtranOltHandler, self).reenable(done_deferred=done_deferred)
 
-        self.ready_network_access()
-        self._zmq_startup()
+        # Only do the re-enable if we fully came up on the very first enable attempt.
+        # If we had not, the base class will have initiated the 'activate' for us
 
-        # Register for adapter messages
-        self.adapter_agent.register_for_inter_adapter_messages()
-
-        self.status_poll = reactor.callLater(1, self.poll_for_status)
+        if self._initial_enable_complete:
+            self._zmq_startup()
+            self.adapter_agent.register_for_inter_adapter_messages()
+            self.status_poll = reactor.callLater(1, self.poll_for_status)
 
     def reboot(self):
+        if not self._initial_enable_complete:
+            # Never contacted the device on the initial startup, do 'activate' steps instead
+            return
+
         self._cancel_deferred()
 
         # Drop registration for adapter messages
@@ -1081,6 +1086,10 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         log.info('image_download', request=request)
 
         try:
+            if not self._initial_enable_complete:
+                # Never contacted the device on the initial startup, do 'activate' steps instead
+                raise Exception('Device has not finished initial activation')
+
             if request.name in self._downloads:
                 raise Exception("Download request with name '{}' already exists".
                                 format(request.name))
@@ -1106,7 +1115,8 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         except Exception as e:
             self.log.exception('create', e=e)
 
-            request.reason = ImageDownload.UNKNOWN_ERROR
+            request.reason = ImageDownload.UNKNOWN_ERROR if self._initial_enable_complete\
+                else ImageDownload.DEVICE_BUSY
             request.state = ImageDownload.DOWNLOAD_FAILED
             if not request.additional_info:
                 request.additional_info = e.message

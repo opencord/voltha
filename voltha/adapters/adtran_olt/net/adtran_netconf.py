@@ -99,7 +99,7 @@ class AdtranNetconfClient(object):
 
         except SSHError as e:
             # Log and rethrow exception so any errBack is called
-            log.exception('SSHError-during-connect', e=e)
+            log.warn('SSHError-during-connect', e=e)
             raise e
 
         except Exception as e:
