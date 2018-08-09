@@ -217,10 +217,17 @@ class AdtranDeviceHandler(object):
         from net.pon_zmq import DEFAULT_PON_AGENT_TCP_PORT
         from net.pio_zmq import DEFAULT_PIO_TCP_PORT
 
-        if not device.ipv4_address:
-            self.activate_failed(device, 'No ip_address field provided')
+        if device.ipv4_address:
+            self.ip_address = device.ipv4_address
 
-        self.ip_address = device.ipv4_address
+        elif device.host_and_port:
+            host_and_port = device.host_and_port.split(":")
+            self.ip_address = host_and_port[0]
+            self.netconf_port = int(host_and_port[1])
+            self.adapter_agent.update_device(device)
+
+        else:
+            self.activate_failed(device, 'No IP_address field provided')
 
         #############################################################
         # Now optional parameters

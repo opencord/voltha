@@ -29,6 +29,19 @@ or
     preprovision_olt -t adtran_olt -i 10.17.174.193 -- --nc_username admin --nc_password admin --rc_username ADMIN --rc_password ADMIN
 ```
 
+In addition to specifying the Adtran OLT by a single IP address, the host & port provisioning option
+is also supported. This allows you to configure the address of the Adtran OLT with the same command line
+option as the OpenOLT device adapter. For the port number, just specify the netconf port (default 830)
+as in:
+
+```bash
+    preprovision_olt -t adtran_olt -H 10.17.174.193:830
+```
+or
+```bash
+    preprovision_olt -t adtran_olt --host_and_port 10.17.174.193:830
+```
+
 Currently the Adtran Device Adapter supports xPON provisioning and to enable PON ports, or activate ONUs, you
 must use the appropriate commands. In the VOLTHA v2.0 release (Q4 2018?), the xPON provisioning will be removed
 from VOLTHA and replaced with Technology Profiles.
@@ -78,6 +91,9 @@ curl -k -s -X POST https://${VOLTHA_IP}:${REST_PORT}/api/v1/devices \
   "firmware_version": ""
 }
 ```
+Besides specifying the "ipv4_address" leaf, you can alternatively use the "host_and_port" leaf to
+provide the IP Host address and the NetCONF port as in "10.17.174.228:830"
+
 ## Enabling the Pre-Provisioned OLT
 To enable the OLT, you need the retrieve the OLT Device ID and issue a POST request to the proper URL as in:
 ```bash
