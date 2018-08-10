@@ -13,12 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import os
 import structlog
 from datetime import datetime, timedelta
 from transitions import Machine
 from twisted.internet import reactor, defer
 from common.event_bus import EventBusClient
 from voltha.protos.voltha_pb2 import ImageDownload
+from voltha.protos.omci_mib_db_pb2 import OpenOmciEventType
 
 class ImageDownloadeSTM(object):
     DEFAULT_STATES = ['disabled', 'downloading', 'validating', 'done']
@@ -35,7 +37,8 @@ class ImageDownloadeSTM(object):
                      states=DEFAULT_STATES,
                      transitions=DEFAULT_TRANSITIONS,
                      initial_state='disabled',
-                     timeout_delay=DEFAULT_TIMEOUT_RETRY):
+                     timeout_delay=DEFAULT_TIMEOUT_RETRY,
+                     advertise_events=True):
         self.log = structlog.get_logger(device_id=dev_id)
         self._agent = omci_agent
         self._imgdw = ImageDownload()
@@ -52,6 +55,7 @@ class ImageDownloadeSTM(object):
         self._task_deferred = None
         self._ret_deferred  = None
         self._timeout_deferred = None
+        self._advertise_events = advertise_events
 
         self.machine = Machine(model=self, states=states,
                                transitions=transitions,
@@ -66,11 +70,22 @@ class ImageDownloadeSTM(object):
     def download_state(self):
         return self._imgdw.state
 
+    def advertise(self, event, info):
+        """Advertise an event on the OpenOMCI event bus"""
+        if self._advertise_events:
+            self._agent.advertise(event,
+                                  {
+                                      'state-machine': self.machine.name,
+                                      'info': info,
+                                      'time': str(datetime.utcnow())
+                                  })
+
     def reset(self):
         """
         Reset all the state machine to intial state
         It is used to clear failed result in last downloading
         """
+        self.log.debug('reset download: ', self._imgdw)
         if self._current_task is not None:
             self._current_task.stop()
             
@@ -128,9 +143,16 @@ class ImageDownloadeSTM(object):
             
         
     def on_enter_disabled(self):
+        self.advertise(OpenOmciEventType.state_change, self.state)
+        #
+        # remove local file fragments if download failed
+        file_path = self._imgdw.local_dir + '/' + self._imgdw.name
+        if self._imgdw.state != ImageDownload.DOWNLOAD_SUCCEEDED and os.path.exists(file_path):
+            os.remove(file_path)            
         self._imgdw.state == ImageDownload.DOWNLOAD_UNKNOWN
 
     def on_enter_downloading(self):
+        self.advertise(OpenOmciEventType.state_change, self.state)
         def success(results):
             self.log.debug('image-download-success', results=results)
             self._imgdw.state = ImageDownload.DOWNLOAD_SUCCEEDED
@@ -154,9 +176,11 @@ class ImageDownloadeSTM(object):
             self._timeout_deferred = reactor.callLater(self._timeout_delay, self.timeout)
 
     def on_enter_validating(self):
+        self.advertise(OpenOmciEventType.state_change, self.state)
         self.validate_success()
 
     def on_enter_done(self):
+        self.advertise(OpenOmciEventType.state_change, self.state)
         self._cancel_deferred()
         
         if self._imgdw.state == ImageDownload.DOWNLOAD_SUCCEEDED:
@@ -204,7 +228,7 @@ class ImageAgent(object):
             self._images[name] = ImageDownloadeSTM(self._omci_agent, self._device_id, name, 
                                                    local_dir, remote_url, self._download_task,
                                                    timeout_delay=timeout_delay)
-        elif self._images[name].download_state == ImageDownload.DOWNLOAD_FAILED:
+        elif self._images[name].download_state != ImageDownload.DOWNLOAD_SUCCEEDED:
             self._images[name].reset()
             
         d = self._images[name].get_file()
