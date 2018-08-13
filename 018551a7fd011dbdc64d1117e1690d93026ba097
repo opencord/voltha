@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1f9b832f_2ec67c72",
+        "filename": "cli/main.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 429,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2018-08-13T07:35:29Z",
+      "side": 1,
+      "message": "Is the reply used for REST APIs or other interfaces as well. This seems to me very specific to the CLI only..",
+      "range": {
+        "startLine": 419,
+        "startChar": 8,
+        "endLine": 429,
+        "endChar": 58
+      },
+      "revId": "018551a7fd011dbdc64d1117e1690d93026ba097",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
