@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "7ed8580c_46faf1dc",
+        "filename": "voltha/extensions/omci/state_machines/Alarm_sync.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 304,
+      "author": {
+        "id": 1000417
+      },
+      "writtenOn": "2018-08-13T11:21:00Z",
+      "side": 0,
+      "message": "Do we need to save the alarm sequence number at ONU first discovery?",
+      "revId": "150aee9241accd04dbd15b7c028e80c1b640b0e9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "beec857c_02584007",
+        "filename": "voltha/extensions/omci/state_machines/Alarm_sync.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 529,
+      "author": {
+        "id": 1000417
+      },
+      "writtenOn": "2018-08-13T11:21:00Z",
+      "side": 0,
+      "message": "Shall we check the number_of_commands status then to reset the last alarm sequence?",
+      "revId": "150aee9241accd04dbd15b7c028e80c1b640b0e9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
