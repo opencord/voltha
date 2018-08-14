@@ -24,6 +24,7 @@ from voltha.extensions.omci.onu_configuration import OnuConfiguration
 from voltha.extensions.omci.tasks.reboot_task import OmciRebootRequest, RebootFlags
 from voltha.extensions.omci.tasks.omci_modify_request import OmciModifyRequest
 from voltha.extensions.omci.omci_me import OntGFrame
+from voltha.extensions.omci.state_machines.image_agent import ImageAgent
 
 from twisted.internet import reactor
 from enum import IntEnum
@@ -114,6 +115,15 @@ class OnuDeviceEntry(object):
                                                                            alarm_synchronizer_info['tasks'],
                                                                            alarm_db,
                                                                            advertise_events=advertise)
+            # State machine of downloading image file from server
+            downloader_info = support_classes.get('image_downloader')
+            advertise = downloader_info['advertise-event']
+            # self._img_download_sm = downloader_info['state-machine'](self._omci_agent, device_id, 
+            #                                                       downloader_info['tasks'],
+            #                                                       advertise_events=advertise)
+            self._image_agent = ImageAgent(self._omci_agent, device_id, downloader_info['state-machine'],
+                                                                   downloader_info['tasks'],
+                                                                   advertise_events=advertise)
         except Exception as e:
             self.log.exception('state-machine-create-failed', e=e)
             raise
@@ -484,3 +494,15 @@ class OnuDeviceEntry(object):
                                                              self.device_id,
                                                              flags=flags,
                                                              timeout=timeout))
+
+    def get_imagefile(self, local_name, local_dir, remote_url=None):
+        """
+        Return a Deferred that will be triggered if the file is locally availabe or downloaded sucessfully
+        """
+        self.log.info('start download from {}'.format(remote_url))
+
+        # for debug purpose, start runner here to queue downloading task
+        # self._runner.start()
+
+        return self._image_agent.get_image(local_name, local_dir, remote_url)
+                                                             

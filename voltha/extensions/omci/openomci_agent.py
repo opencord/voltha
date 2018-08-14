@@ -33,6 +33,8 @@ from voltha.extensions.omci.tasks.onu_capabilities_task import OnuCapabilitiesTa
 from voltha.extensions.omci.state_machines.performance_intervals import PerformanceIntervals
 from voltha.extensions.omci.tasks.omci_create_pm_task import OmciCreatePMRequest
 from voltha.extensions.omci.tasks.omci_delete_pm_task import OmciDeletePMRequest
+from voltha.extensions.omci.state_machines.image_agent import ImageDownloadeSTM
+from voltha.extensions.omci.tasks.file_download_task import FileDownloadTask
 
 OpenOmciAgentDefaults = {
     'mib-synchronizer': {
@@ -66,14 +68,21 @@ OpenOmciAgentDefaults = {
         },
     },
     'alarm-synchronizer': {
-        'state-machine': AlarmSynchronizer,    # Implements the Alarm sync state machine
-        'database': AlarmDbExternal,           # For any State storage needs
-        'advertise-events': True,              # Advertise events on OpenOMCI event bus
+         'state-machine': AlarmSynchronizer,    # Implements the Alarm sync state machine
+         'database': AlarmDbExternal,           # For any State storage needs
+         'advertise-events': True,             # Advertise events on OpenOMCI event bus
+         'tasks': {
+             'alarm-sync': AlarmSyncDataTask,
+             'alarm-check': AlarmDataTask,
+             'alarm-resync': AlarmResyncTask,
+             'alarm-audit': AlarmDataTask
+         }
+     },
+    'image_downloader': {
+        'state-machine': ImageDownloadeSTM,
+        'advertise-event': True,
         'tasks': {
-            'alarm-sync': AlarmSyncDataTask,
-            'alarm-check': AlarmDataTask,
-            'alarm-resync': AlarmResyncTask,
-            'alarm-audit': AlarmDataTask
+            'download-file': FileDownloadTask,
         }
     }
 }
