@@ -477,20 +477,10 @@ class OpenoltDevice(object):
                 # Forcing the oper state change code to execute
                 onu_indication.oper_state = 'down'
 
-            if onu_device.admin_state != AdminState.DISABLED:
-                onu_device.admin_state = AdminState.DISABLED
-                self.adapter_agent.update(onu_device)
-                self.log.debug('putting-onu-in-disabled-state',
-                               onu_serial_number=onu_device.serial_number)
-
             # Port and logical port update is taken care of by oper state block
 
         elif onu_indication.admin_state == 'up':
-            if onu_device.admin_state != AdminState.ENABLED:
-                onu_device.admin_state = AdminState.ENABLED
-                self.adapter_agent.update(onu_device)
-                self.log.debug('putting-onu-in-enabled-state',
-                               onu_serial_number=onu_device.serial_number)
+            pass
 
         else:
             self.log.warn('Invalid-or-not-implemented-admin-state',
