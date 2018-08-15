@@ -818,6 +818,29 @@ class OpenoltDevice(object):
 
         return port_no, label
 
+    def delete_logical_port(self, child_device_id):
+        logical_ports = self.proxy.get('/logical_devices/{}/ports'.format(
+            self.logical_device_id))
+        for logical_port in logical_ports:
+            if logical_port.device_id == child_device_id:
+                self.log.debug('delete-logical-port',
+                               onu_device_id=child_device_id,
+                               logical_port=logical_port)
+                self.adapter_agent.delete_logical_port(
+                    self.logical_device_id, logical_port)
+                return
+    def delete_port(self, child_serial_number):
+        ports = self.proxy.get('/devices/{}/ports'.format(
+            self.device_id))
+        for port in ports:
+            if port.label == child_serial_number:
+                self.log.debug('delete-port',
+                               onu_serial_number=child_serial_number,
+                               port=port)
+                self.adapter_agent.delete_port(self.device_id, port)
+                return
+
+
     def new_onu_id(self, intf_id):
         onu_id = None
         onu_devices = self.adapter_agent.get_child_devices(self.device_id)
@@ -959,6 +982,19 @@ class OpenoltDevice(object):
                        olt_device_id=self.device_id,
                        onu_device=child_device,
                        onu_serial_number=child_device.serial_number)
+        try:
+            self.adapter_agent.delete_child_device(self.device_id,
+                                               child_device.id, child_device)
+        except Exception as e:
+            self.log.error('adapter_agent error', error=e)
+        try:
+            self.delete_logical_port(child_device.id)
+        except Exception as e:
+            self.log.error('logical_port delete error', error=e)
+        try:
+            self.delete_port(child_device.serial_number)
+        except Exception as e:
+            self.log.error('port delete error', error=e)
         vendor_id = child_device.vendor_id.encode('hex')
         vendor_specific = child_device.serial_number.replace(
             child_device.vendor_id, '').encode('hex')
