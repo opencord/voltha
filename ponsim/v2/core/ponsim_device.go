@@ -17,6 +17,7 @@ package core
 
 import (
 	"context"
+	"crypto/tls"
 	"net"
 	"sort"
 
@@ -27,9 +28,6 @@ import (
 	"github.com/opencord/voltha/protos/go/openflow_13"
 	"github.com/sirupsen/logrus"
 )
-
-// TODO: Pass-in the certificate information as a structure parameter
-// TODO: Add certification information
 
 type PonSimDevice struct {
 	Name        string               `json:name`
@@ -42,8 +40,7 @@ type PonSimDevice struct {
 	AlarmsOn    bool                 `json:alarm_on`
 	AlarmsFreq  int                  `json:alarm_freq`
 	Counter     *PonSimMetricCounter `json:counter`
-
-	//*grpc.GrpcSecurity
+	TLSConfig   *tls.Config          `json:tls-config`
 
 	flows          []*openflow_13.OfpFlowStats `json:-`
 	ingressHandler *pcap.Handle                `json:-`
