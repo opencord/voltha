@@ -82,6 +82,12 @@ class ConfigRoot(ConfigNode):
 
         try:
             self._merge_txbranch(txid)
+            log.debug('branches of this node', branches=self._branches.keys())
+            # Remove transaction branch if default is there
+            if None in self._branches:
+                self.del_txbranch(txid)
+                del self._branches[txid]
+
         finally:
             self.execute_deferred_callbacks()
 
