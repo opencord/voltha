@@ -17,11 +17,14 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"flag"
 	"fmt"
 	"github.com/opencord/voltha/ponsim/v2/common"
 	"github.com/opencord/voltha/ponsim/v2/core"
 	"github.com/opencord/voltha/ponsim/v2/grpc"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/signal"
@@ -52,14 +55,13 @@ const (
 	default_snapshot_len = 65535
 	default_promiscuous  = false
 
-	default_voltha_key  = "pki/voltha.key"
-	default_voltha_cert = "pki/voltha.crt"
+	default_ponsim_key  = "pki/ponsim_olt.key"
+	default_ponsim_cert = "pki/ponsim_olt.crt"
 	default_voltha_ca   = "pki/voltha-CA.pem"
 )
 
 var (
 	voltha_base = os.Getenv("VOLTHA_BASE")
-	certs       *grpc.GrpcSecurity
 
 	name           string = default_name + "_" + device_type
 	grpc_port      int    = default_grpc_port
@@ -74,8 +76,8 @@ var (
 	quiet          bool   = default_quiet
 	verbose        bool   = default_verbose
 	no_banner      bool   = default_no_banner
-	voltha_key     string = default_voltha_key
-	voltha_cert    string = default_voltha_cert
+	ponsim_key     string = default_ponsim_key
+	ponsim_cert    string = default_ponsim_cert
 	voltha_ca      string = default_voltha_ca
 	parent_addr    string = default_parent_addr
 	parent_port    int    = default_parent_port
@@ -196,13 +198,14 @@ func printOnuBanner() {
 */
 type PonSimService struct {
 	device core.PonSimInterface
+	certs  *tls.Config
 	server *grpc.GrpcServer
 }
 
 func (s *PonSimService) Start(ctx context.Context) {
 	// GRPC server needs to be secure.
 	// Otherwise communication between adapter and simulator does not occur
-	s.server = grpc.NewGrpcServer(s.device.GetAddress(), s.device.GetPort(), certs, true)
+	s.server = grpc.NewGrpcServer(s.device.GetAddress(), s.device.GetPort(), s.certs, true)
 
 	// Add GRPC services
 	s.server.AddCommonService(s.device)
@@ -235,16 +238,51 @@ func (s *PonSimService) Stop(ctx context.Context) {
 	s.server.Stop()
 }
 
+func LoadTLSCerts(ca_path string, cert_path string, key_path string) *tls.Config {
+
+	// Load the CA Cert
+	CAFile, err := ioutil.ReadFile(ca_path)
+	if err != nil {
+		log.Fatalln("Could not read CA file %q: %v", ca_path, err)
+	}
+
+	CAPool := x509.NewCertPool()
+	if !CAPool.AppendCertsFromPEM(CAFile) {
+		log.Fatalln("Invalid CA read from file %q: %v", ca_path, err)
+	}
+
+	ServerCert, err := tls.LoadX509KeyPair(cert_path, key_path)
+	if err != nil {
+		log.Fatalln("Could not read keypair from files - cert: %q, key: %q, %v", cert_path, key_path, err)
+	}
+
+	// FIXME: Should use different certs across the OLT/ONU
+	return &tls.Config{
+		RootCAs:      CAPool,
+		Certificates: []tls.Certificate{ServerCert},
+
+		// FIXME: Generate certs with correct server names in DNS
+		InsecureSkipVerify: true,
+	}
+}
+
 func main() {
 	var device core.PonSimInterface
 
-	// Init based on type of device
-	// Construct OLT/ONU object and pass it down
-	certs = &grpc.GrpcSecurity{
-		CertFile: path.Join(voltha_base, voltha_cert),
-		KeyFile:  path.Join(voltha_base, voltha_key),
-		CaFile:   path.Join(voltha_base, voltha_ca),
+	switch device_type {
+	case core.OLT.String():
+		ponsim_key = "pki/ponsim_olt.key"
+		ponsim_cert = "pki/ponsim_olt.crt"
+	case core.ONU.String():
+		ponsim_key = "pki/ponsim_onu.key"
+		ponsim_cert = "pki/ponsim_onu.crt"
+	default:
+		log.Println("Unknown device type")
 	}
+
+	certs := LoadTLSCerts(path.Join(voltha_base, voltha_ca),
+		path.Join(voltha_base, ponsim_cert),
+		path.Join(voltha_base, ponsim_key))
 
 	// Initialize device with common parameters
 	pon := core.PonSimDevice{
@@ -258,9 +296,7 @@ func main() {
 		AlarmsOn:    alarm_sim,
 		AlarmsFreq:  alarm_freq,
 		Counter:     core.NewPonSimMetricCounter(name),
-
-		// TODO: pass certificates
-		//GrpcSecurity: certs,
+		TLSConfig:   certs,
 	}
 
 	switch device_type {
@@ -278,7 +314,10 @@ func main() {
 		log.Println("Unknown device type")
 	}
 
-	ps := PonSimService{device: device}
+	ps := PonSimService{
+		device: device,
+		certs:  certs,
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
