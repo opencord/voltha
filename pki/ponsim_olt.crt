@@ -1,0 +1,92 @@
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number: 4100 (0x1004)
+    Signature Algorithm: sha256WithRSAEncryption
+        Issuer: C=US, ST=California, L=Menlo Park, O=ONF, OU=Testing Only, CN=VOLTHA Test Root CA
+        Validity
+            Not Before: Aug 16 18:18:38 2018 GMT
+            Not After : Aug 17 18:18:38 2019 GMT
+        Subject: C=US, ST=California, L=Menlo Park, O=ONF, OU=Testing Only, CN=VOLTHA Server
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+                Public-Key: (2048 bit)
+                Modulus:
+                    00:b0:18:45:4b:26:5a:6a:59:89:ee:f2:ab:6e:38:
+                    f4:76:97:aa:fa:c6:31:8a:62:fb:1b:01:40:2a:c8:
+                    e8:ed:31:08:37:eb:e8:93:e2:96:ed:13:7c:a9:6e:
+                    24:7c:26:2c:1b:7a:e1:71:11:90:24:d3:1d:b1:0b:
+                    31:2a:ae:ba:c6:69:ea:54:3d:db:44:ae:28:8a:8a:
+                    09:23:bc:aa:0e:ad:1b:9c:e4:87:b7:3b:b1:57:18:
+                    65:2c:0f:fd:c8:d5:64:62:ba:13:16:07:39:b2:01:
+                    f1:42:cd:d0:99:1a:c3:f4:87:a7:7c:3a:16:f8:48:
+                    fe:f7:bf:5f:9a:f5:39:a9:de:bf:6d:4b:e9:50:8b:
+                    f9:ba:a4:a6:6e:bc:cc:c1:fa:58:27:06:24:40:1d:
+                    90:ab:e7:9e:7d:81:45:73:a8:c6:79:fb:38:3a:22:
+                    29:f5:1b:cb:63:7b:51:87:20:a6:d0:3d:98:5e:ee:
+                    93:57:c0:1d:20:8e:6f:0f:02:30:02:88:53:dd:e9:
+                    f6:d1:06:8f:12:9d:0a:85:c2:88:10:45:0d:0a:d5:
+                    be:3e:78:19:14:04:1b:65:4d:b9:83:21:d2:3b:20:
+                    c2:cf:6e:b6:69:36:c1:1a:6d:2a:3f:75:4b:b3:4e:
+                    4a:5c:35:0e:b6:7d:cd:9e:4e:2c:c4:83:ed:c8:4e:
+                    83:41
+                Exponent: 65537 (0x10001)
+        X509v3 extensions:
+            X509v3 Subject Key Identifier: 
+                04:5F:CF:95:7F:52:CB:10:0B:1A:01:50:43:92:06:ED:3F:DA:FD:6B
+            X509v3 Authority Key Identifier: 
+                keyid:0B:B5:49:B5:FA:C6:17:0D:E6:66:61:A5:A3:F7:DB:D3:5F:C9:6A:2D
+                DirName:/C=US/ST=California/L=Menlo Park/O=ONF/OU=Testing Only/CN=VOLTHA Test Root CA
+                serial:B0:8F:34:75:5E:86:AB:5B
+
+            X509v3 Basic Constraints: 
+                CA:FALSE
+            X509v3 Key Usage: critical
+                Digital Signature, Key Encipherment
+            X509v3 Extended Key Usage: 
+                TLS Web Server Authentication
+            X509v3 Subject Alternative Name: 
+                DNS:olt3
+    Signature Algorithm: sha256WithRSAEncryption
+         5d:44:0e:39:49:f0:9a:f7:a9:c1:36:e0:c2:19:a3:b9:0e:9e:
+         f7:2a:6e:ba:33:26:7f:5f:b1:3a:cc:e5:3a:3a:cd:62:51:50:
+         9b:ab:84:ca:64:e6:ef:cc:98:f4:d0:03:00:d5:56:19:66:2b:
+         5c:b9:f3:0c:67:6e:08:d2:79:1c:3a:7c:b9:9e:4d:2c:7d:65:
+         b1:7d:ae:cd:5f:43:b9:fb:b3:f5:5b:77:64:91:c4:2a:a9:a2:
+         18:0f:17:86:29:32:a4:86:7e:0f:9c:d1:53:69:f7:4e:3d:49:
+         33:6b:a4:c6:39:4a:d5:f0:96:b9:ad:d3:31:50:30:d9:88:b3:
+         1a:9d:45:09:b5:39:00:49:c4:34:f6:cc:20:a4:63:4b:66:f8:
+         9a:b3:55:5b:66:dc:d0:cc:80:3c:e5:8a:39:b8:fe:35:3d:19:
+         e7:19:d0:7f:75:be:27:3e:97:ac:58:e1:0a:4c:5a:8c:dd:24:
+         ea:e8:ab:17:cb:f7:20:ac:c2:e4:31:88:0a:cd:1f:b2:b8:06:
+         8e:fc:34:bf:2c:50:f5:98:16:bd:28:a3:d1:47:d9:07:ac:c7:
+         fb:70:b6:27:9d:80:17:0a:45:c9:9a:da:eb:ae:22:7c:a3:79:
+         ae:de:55:43:dd:22:b8:bd:01:c8:bc:8d:42:36:c8:5a:74:99:
+         bd:a1:20:ce
+-----BEGIN CERTIFICATE-----
+MIIEfzCCA2egAwIBAgICEAQwDQYJKoZIhvcNAQELBQAwejELMAkGA1UEBhMCVVMx
+EzARBgNVBAgMCkNhbGlmb3JuaWExEzARBgNVBAcMCk1lbmxvIFBhcmsxDDAKBgNV
+BAoMA09ORjEVMBMGA1UECwwMVGVzdGluZyBPbmx5MRwwGgYDVQQDDBNWT0xUSEEg
+VGVzdCBSb290IENBMB4XDTE4MDgxNjE4MTgzOFoXDTE5MDgxNzE4MTgzOFowdDEL
+MAkGA1UEBhMCVVMxEzARBgNVBAgMCkNhbGlmb3JuaWExEzARBgNVBAcMCk1lbmxv
+IFBhcmsxDDAKBgNVBAoMA09ORjEVMBMGA1UECwwMVGVzdGluZyBPbmx5MRYwFAYD
+VQQDDA1WT0xUSEEgU2VydmVyMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKC
+AQEAsBhFSyZaalmJ7vKrbjj0dpeq+sYximL7GwFAKsjo7TEIN+vok+KW7RN8qW4k
+fCYsG3rhcRGQJNMdsQsxKq66xmnqVD3bRK4oiooJI7yqDq0bnOSHtzuxVxhlLA/9
+yNVkYroTFgc5sgHxQs3QmRrD9IenfDoW+Ej+979fmvU5qd6/bUvpUIv5uqSmbrzM
+wfpYJwYkQB2Qq+eefYFFc6jGefs4OiIp9RvLY3tRhyCm0D2YXu6TV8AdII5vDwIw
+AohT3en20QaPEp0KhcKIEEUNCtW+PngZFAQbZU25gyHSOyDCz262aTbBGm0qP3VL
+s05KXDUOtn3Nnk4sxIPtyE6DQQIDAQABo4IBEzCCAQ8wHQYDVR0OBBYEFARfz5V/
+UssQCxoBUEOSBu0/2v1rMIGsBgNVHSMEgaQwgaGAFAu1SbX6xhcN5mZhpaP329Nf
+yWotoX6kfDB6MQswCQYDVQQGEwJVUzETMBEGA1UECAwKQ2FsaWZvcm5pYTETMBEG
+A1UEBwwKTWVubG8gUGFyazEMMAoGA1UECgwDT05GMRUwEwYDVQQLDAxUZXN0aW5n
+IE9ubHkxHDAaBgNVBAMME1ZPTFRIQSBUZXN0IFJvb3QgQ0GCCQCwjzR1XoarWzAJ
+BgNVHRMEAjAAMA4GA1UdDwEB/wQEAwIFoDATBgNVHSUEDDAKBggrBgEFBQcDATAP
+BgNVHREECDAGggRvbHQzMA0GCSqGSIb3DQEBCwUAA4IBAQBdRA45SfCa96nBNuDC
+GaO5Dp73Km66MyZ/X7E6zOU6Os1iUVCbq4TKZObvzJj00AMA1VYZZitcufMMZ24I
+0nkcOny5nk0sfWWxfa7NX0O5+7P1W3dkkcQqqaIYDxeGKTKkhn4PnNFTafdOPUkz
+a6TGOUrV8Ja5rdMxUDDZiLManUUJtTkAScQ09swgpGNLZvias1VbZtzQzIA85Yo5
+uP41PRnnGdB/db4nPpesWOEKTFqM3STq6KsXy/cgrMLkMYgKzR+yuAaO/DS/LFD1
+mBa9KKPRR9kHrMf7cLYnnYAXCkXJmtrrriJ8o3mu3lVD3SK4vQHIvI1CNshadJm9
+oSDO
+-----END CERTIFICATE-----

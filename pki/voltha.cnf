@@ -78,12 +78,27 @@ authorityKeyIdentifier = keyid:always,issuer
 basicConstraints = critical, CA:TRUE
 keyUsage = critical, digitalSignature, cRLSign, keyCertSign
 
-[ server_cert ]
-# Extensions for server certificates (`man x509v3_config`).
+# Extensions for certificates (`man x509v3_config`).
+[ voltha ]
 subjectKeyIdentifier = hash
 authorityKeyIdentifier = keyid,issuer:always
 basicConstraints = CA:FALSE
 keyUsage = critical, digitalSignature, keyEncipherment
 extendedKeyUsage = serverAuth
-subjectAltName = 'DNS:voltha.dns'
+subjectAltName = 'DNS:voltha'
 
+[ ponsim_olt ]
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid,issuer:always
+basicConstraints = CA:FALSE
+keyUsage = critical, digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
+subjectAltName = 'DNS:olt, DNS:olt0, DNS:olt1, DNS:olt2, DNS:olt3'
+
+[ ponsim_onu ]
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid,issuer:always
+basicConstraints = CA:FALSE
+keyUsage = critical, digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
+subjectAltName = 'DNS:onu, DNS:onu0, DNS:onu1, DNS:onu2, DNS:onu3'

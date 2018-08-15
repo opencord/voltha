@@ -22,7 +22,6 @@ SHELL = bash -eu -o pipefail
 KEY_SIZE ?= 2048
 EXPIRATION_DAYS ?= 366
 
-
 # utility/validation targets
 
 help:
@@ -42,6 +41,8 @@ printcsr: voltha.csr
 
 printcrt: voltha.crt
 	openssl x509 -in voltha.crt -text -noout
+
+all_certs: voltha.crt ponsim_olt.crt ponsim_onu.crt
 
 clean:
 	rm -rf root_ca voltha-CA.pem voltha.key voltha.csr voltha.crt
@@ -73,25 +74,26 @@ voltha-CA.pem: voltha.cnf root_ca/private/ca_key.pem
 	  -subj "/C=US/ST=California/L=Menlo Park/O=ONF/OU=Testing Only/CN=VOLTHA Test Root CA" \
 	  -out voltha-CA.pem
 
-# server cert creation
+# cert creation
+.PRECIOUS: %.key %.csr # don't delete intermediate files
 
-voltha.key:
-	@echo "## Creating server private key: voltha.key"
-	openssl genrsa -out voltha.key $(KEY_SIZE)
+%.key:
+	@echo "## Creating server private key: $@"
+	openssl genrsa -out $@ $(KEY_SIZE)
 
-voltha.csr: voltha.cnf voltha.key
-	@echo "## Creating signing request voltha.csr from voltha.key"
+%.csr: %.key voltha.cnf
+	@echo "## Creating signing request $@ from $<"
 	openssl req -config voltha.cnf \
-	  -new -sha256 -key voltha.key \
+	  -new -sha256 -key $< \
 	  -subj "/C=US/ST=California/L=Menlo Park/O=ONF/OU=Testing Only/CN=VOLTHA Server" \
-	  -out voltha.csr
+	  -out $@
 
-voltha.crt: voltha-CA.pem voltha.cnf voltha.key voltha.csr
+%.crt: %.csr voltha-CA.pem voltha.cnf
 	@echo "## Signing voltha.csr to create signed public key: voltha.crt"
 	openssl ca -config voltha.cnf \
 	  -batch -days $(EXPIRATION_DAYS) -md sha256 \
 	  -passin file:root_ca/private/ca_root_phrase \
-	  -extensions server_cert \
-	  -in voltha.csr \
-	  -out voltha.crt
+	  -extensions $* \
+	  -in $< \
+	  -out $@
 

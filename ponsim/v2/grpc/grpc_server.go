@@ -17,8 +17,8 @@ package grpc
 
 import (
 	"net"
-
 	"context"
+	"crypto/tls"
 	"github.com/opencord/voltha/ponsim/v2/common"
 	"github.com/opencord/voltha/ponsim/v2/core"
 	"github.com/opencord/voltha/ponsim/v2/grpc/nbi"
@@ -39,7 +39,7 @@ type GrpcServer struct {
 	secure   bool
 	services []func(*grpc.Server)
 
-	*GrpcSecurity
+  TLSConfig *tls.Config
 }
 
 /*
@@ -48,14 +48,14 @@ Instantiate a GRPC server data structure
 func NewGrpcServer(
 	address string,
 	port int32,
-	certs *GrpcSecurity,
+	certs *tls.Config,
 	secure bool,
 ) *GrpcServer {
 	server := &GrpcServer{
 		address:      address,
 		port:         port,
 		secure:       secure,
-		GrpcSecurity: certs,
+		TLSConfig:    certs,
 	}
 	return server
 }
@@ -75,10 +75,7 @@ func (s *GrpcServer) Start(ctx context.Context) {
 	}
 
 	if s.secure {
-		creds, err := credentials.NewServerTLSFromFile(s.CertFile, s.KeyFile)
-		if err != nil {
-			common.Logger().Fatalf("could not load TLS keys: %s", err)
-		}
+		creds := credentials.NewTLS(s.TLSConfig)
 		s.gs = grpc.NewServer(grpc.Creds(creds))
 
 	} else {

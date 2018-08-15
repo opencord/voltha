@@ -383,17 +383,15 @@ class PonSimOltHandler(object):
             except Exception as e:
                 log.error('failed-to-read-cert-keys', reason=e)
 
-            # create credentials
+            # create SSL credentials
             credentials = grpc.ssl_channel_credentials(
-                root_certificates=trusted_certs, private_key=client_key,
+                root_certificates=trusted_certs,
+                private_key=client_key,
                 certificate_chain=client_cert)
 
             # create channel using ssl credentials
-            my_server_host_override_string = "ABCD"  # Server's CN Name, Ugly but no other Choice.
             self.channel = grpc.secure_channel(device.host_and_port,
-                                               credentials, options=((
-                                                                         'grpc.ssl_target_name_override',
-                                                                         my_server_host_override_string,),))
+                                               credentials)
 
         return self.channel
 
@@ -427,8 +425,17 @@ class PonSimOltHandler(object):
             self.adapter_agent.update_device(device)
             return
 
-        stub = ponsim_pb2.PonSimStub(self.get_channel())
-        info = stub.GetDeviceInfo(Empty())
+        try:
+            stub = ponsim_pb2.PonSimStub(self.get_channel())
+            info = stub.GetDeviceInfo(Empty())
+
+        except grpc.RpcError as rpc_error:
+            rpc_error_code = rpc_error.code()
+            rpc_error_details = rpc_error.details()
+            log.error("GRPC Error - code: %s, details: %s" %
+                      (rpc_error_code, rpc_error_details))
+            return
+
         log.info('got-info', info=info)
 
         device.root = True
