@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "44e46d23_109a8224",
+        "filename": "common/kvstore/etcd_client.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 43,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-08-15T02:45:44Z",
+      "side": 1,
+      "message": "Would it be possible to have these methods move to the parent class (appears to be the same as the consul client)?",
+      "revId": "7f44f946a23bee40aafacf462861a78210a20ace",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "15921d8c_4dab626a",
+        "filename": "common/kvstore/etcd_client.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 106,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-08-15T02:45:44Z",
+      "side": 1,
+      "message": "Would it be possible to have these methods move to the parent class (appears to be the same as the consul client)? The methods being invoked will then be specific for each client type.\n\nIf it is possible then it could be done in a separate task to improve it.",
+      "revId": "7f44f946a23bee40aafacf462861a78210a20ace",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
