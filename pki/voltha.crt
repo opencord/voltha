@@ -5,39 +5,39 @@ Certificate:
     Signature Algorithm: sha256WithRSAEncryption
         Issuer: C=US, ST=California, L=Menlo Park, O=ONF, OU=Testing Only, CN=VOLTHA Test Root CA
         Validity
-            Not Before: Jul 10 18:40:05 2018 GMT
-            Not After : Jul 11 18:40:05 2019 GMT
-        Subject: C=US, ST=California, L=Menlo Park, O=ONF, OU=Testing Only, CN=VOLTHA Server
+            Not Before: Aug 17 02:25:09 2018 GMT
+            Not After : Aug 18 02:25:09 2019 GMT
+        Subject: C=US, ST=California, L=Menlo Park, O=ONF, OU=Testing Only, CN=voltha
         Subject Public Key Info:
             Public Key Algorithm: rsaEncryption
                 Public-Key: (2048 bit)
                 Modulus:
-                    00:c6:90:b9:38:0e:d5:38:bd:20:54:8f:82:56:2b:
-                    54:da:16:6f:a2:84:63:99:f8:4b:8c:24:be:c6:17:
-                    ee:ce:b1:e4:27:4c:4f:e0:7b:b9:1c:0c:a7:9d:45:
-                    37:39:1d:b0:41:fb:96:49:f4:02:1c:66:87:3a:87:
-                    e6:59:fc:9d:4d:fb:73:74:50:8a:39:25:5c:7e:8f:
-                    b4:de:3e:d5:10:5e:91:53:da:6a:3e:57:db:18:d8:
-                    da:c6:33:90:ee:0a:6d:4d:e2:e9:cb:1b:21:c8:59:
-                    3e:e6:b2:bd:ee:d2:95:70:f7:0e:98:4e:bc:04:6b:
-                    5b:4f:63:0b:25:d8:0e:4f:10:f8:30:92:19:a8:1b:
-                    a1:3a:be:51:73:24:bc:0f:f0:4c:26:8f:df:2a:a8:
-                    cc:d8:38:7e:ad:d0:f5:cc:e9:e9:76:d8:3e:ff:55:
-                    94:23:69:74:8f:d2:00:51:c5:d6:56:61:09:0f:5e:
-                    70:4c:5f:5e:d6:a4:47:58:ff:73:40:c5:5e:e0:14:
-                    73:6c:8b:4d:54:e2:fc:d7:94:60:64:9b:db:2a:d6:
-                    38:a0:d3:ae:2e:47:d3:74:3c:0f:c0:fe:c6:af:af:
-                    a0:08:1f:20:a8:3a:a7:74:58:af:94:35:66:4b:7c:
-                    97:26:1b:03:23:0f:3d:0a:9d:ea:9b:06:d4:96:ca:
-                    5c:4d
+                    00:cd:ee:83:e0:10:af:df:d0:ec:c9:50:52:93:d0:
+                    49:c1:2b:6e:cc:25:bb:17:b5:2d:f2:5a:80:ce:b4:
+                    65:fc:78:2a:0e:38:0f:3a:6b:4d:5a:61:a4:16:3c:
+                    4a:36:5b:bb:29:e8:17:1f:fd:eb:67:b2:c1:9e:5f:
+                    a6:a3:2d:a8:d7:3e:a1:c3:41:34:ff:1c:86:0c:23:
+                    a0:e0:8f:cc:3f:ec:5d:b6:25:e1:03:33:15:02:ab:
+                    e2:16:49:e2:b7:91:4a:0a:b6:cb:98:b9:f5:b8:a6:
+                    d7:1b:2e:c5:db:d8:9e:6f:bb:6d:78:20:82:f3:0b:
+                    80:5e:6f:8a:1b:cf:37:aa:f4:e8:79:86:a2:74:08:
+                    0e:ae:f2:d9:20:af:18:ee:ee:41:64:55:85:24:eb:
+                    8b:39:fe:16:af:55:91:f7:6d:ce:97:b3:7e:ce:e8:
+                    a3:27:6d:3c:f8:31:61:d7:01:ae:56:4d:2a:fa:f8:
+                    26:cc:4c:7f:87:90:b6:4a:de:3a:c8:06:d6:61:87:
+                    28:8b:8b:2f:c8:83:3a:d3:33:bd:27:56:b6:14:ff:
+                    e0:88:fa:6e:33:e1:fb:83:9e:dd:6a:e8:bf:80:d9:
+                    f0:7f:1b:8d:c8:2f:1f:d8:d6:fe:df:29:81:4a:33:
+                    73:94:05:0a:36:3f:04:b4:1b:73:31:7a:7e:5e:61:
+                    70:e5
                 Exponent: 65537 (0x10001)
         X509v3 extensions:
             X509v3 Subject Key Identifier: 
-                F9:71:CB:9B:DC:B0:AB:C3:70:04:1B:9E:63:D0:21:01:CE:35:FF:19
+                CF:1E:F9:24:A9:2A:A4:AB:47:4D:A4:F1:25:BA:3D:CF:23:F2:8A:4C
             X509v3 Authority Key Identifier: 
-                keyid:16:CD:18:6C:03:79:6E:99:9B:3F:6D:17:F4:21:1A:21:31:06:6A:67
+                keyid:FD:2E:46:16:67:F0:49:A4:2D:D4:0A:D4:91:CC:74:BC:31:EC:64:F7
                 DirName:/C=US/ST=California/L=Menlo Park/O=ONF/OU=Testing Only/CN=VOLTHA Test Root CA
-                serial:FA:77:FC:75:21:4F:37:06
+                serial:DC:44:59:45:E2:8A:5F:5E
 
             X509v3 Basic Constraints: 
                 CA:FALSE
@@ -46,47 +46,46 @@ Certificate:
             X509v3 Extended Key Usage: 
                 TLS Web Server Authentication
             X509v3 Subject Alternative Name: 
-                DNS:voltha.dns
+                DNS:voltha
     Signature Algorithm: sha256WithRSAEncryption
-         12:3e:b8:73:d1:ab:77:ec:7a:b0:d8:8e:94:8e:3c:fd:ff:b0:
-         25:bf:e8:51:d7:b9:ae:55:03:28:cb:a2:9b:fb:86:9c:35:55:
-         2b:c8:0c:c6:a9:b4:41:a3:12:d3:26:c9:33:93:4a:a1:7c:ad:
-         06:eb:d5:d0:a4:63:e1:ad:7f:76:d7:7b:2b:44:ab:43:2b:26:
-         84:a2:d6:5d:68:fc:bb:1b:15:3e:63:32:34:e8:1a:a4:d9:81:
-         4b:28:17:e8:f7:1d:3a:d5:cb:37:87:77:04:3f:96:6d:17:e6:
-         1e:90:0e:a8:6c:01:58:84:d4:1a:b4:9f:51:79:9c:03:23:1b:
-         b6:97:0c:28:a4:af:67:0b:da:b2:fa:6e:41:49:00:8a:36:11:
-         f8:80:50:61:03:c3:b5:df:f7:e5:ea:4b:9c:3f:68:68:e0:f8:
-         78:f1:1d:ff:0b:23:45:2a:d6:19:a8:f6:b9:19:25:e0:46:ce:
-         8b:56:ca:e5:da:2a:35:65:b8:e2:8d:6d:46:1e:9f:f3:4b:4d:
-         7a:c0:f5:48:71:42:f6:95:f9:e5:c9:61:8f:7a:96:63:88:64:
-         68:55:3e:d6:c6:c0:e2:cd:c9:03:93:87:4e:6f:c4:b4:fb:c3:
-         c4:ec:93:ad:88:28:17:fc:77:b8:a2:99:f6:26:ca:6f:36:2d:
-         26:4f:d3:44
+         e4:de:32:12:d0:a3:db:90:97:7f:2d:fa:2b:79:56:ad:4a:8e:
+         9e:a7:6f:88:a4:3a:ac:4e:f7:7a:0e:80:5d:e9:cf:ff:4b:62:
+         e7:cd:dd:dc:07:8e:5c:b3:e0:42:c6:49:91:27:5a:22:2b:8b:
+         9a:d1:a5:1a:e1:30:28:10:8d:b7:0c:4a:20:2b:5b:ea:5a:6f:
+         2e:da:4a:97:d7:0b:6e:90:b3:ba:e9:44:cc:88:58:dd:35:62:
+         46:3c:87:27:2d:13:2b:60:6e:70:ed:af:f2:bc:d2:73:91:fd:
+         04:f3:b7:c1:ae:78:ef:a6:03:fb:5d:ca:3c:5c:4f:ca:d5:db:
+         83:dd:b1:2f:91:f8:e5:3b:69:8b:e3:c1:99:ac:39:7f:d0:b0:
+         e6:57:d0:5b:0e:38:9e:c7:13:79:81:32:dd:e1:67:af:23:f8:
+         9b:8e:be:43:34:01:bc:a0:f5:7a:c5:98:06:a8:09:b7:ab:45:
+         c8:e0:a1:fe:f4:ef:b5:98:ea:56:d1:15:7e:de:f4:f5:56:05:
+         bd:d0:e9:97:26:fe:af:ce:05:57:cd:55:f1:ef:a6:04:ee:bc:
+         e8:14:cc:97:7c:f9:4a:ce:c7:60:2f:80:2d:4e:e2:92:cf:89:
+         a3:87:da:ec:db:09:55:e3:68:e1:c9:30:40:d6:9c:09:a3:98:
+         ac:92:f9:d9
 -----BEGIN CERTIFICATE-----
-MIIEhTCCA22gAwIBAgICEAAwDQYJKoZIhvcNAQELBQAwejELMAkGA1UEBhMCVVMx
+MIIEejCCA2KgAwIBAgICEAAwDQYJKoZIhvcNAQELBQAwejELMAkGA1UEBhMCVVMx
 EzARBgNVBAgMCkNhbGlmb3JuaWExEzARBgNVBAcMCk1lbmxvIFBhcmsxDDAKBgNV
 BAoMA09ORjEVMBMGA1UECwwMVGVzdGluZyBPbmx5MRwwGgYDVQQDDBNWT0xUSEEg
-VGVzdCBSb290IENBMB4XDTE4MDcxMDE4NDAwNVoXDTE5MDcxMTE4NDAwNVowdDEL
+VGVzdCBSb290IENBMB4XDTE4MDgxNzAyMjUwOVoXDTE5MDgxODAyMjUwOVowbTEL
 MAkGA1UEBhMCVVMxEzARBgNVBAgMCkNhbGlmb3JuaWExEzARBgNVBAcMCk1lbmxv
-IFBhcmsxDDAKBgNVBAoMA09ORjEVMBMGA1UECwwMVGVzdGluZyBPbmx5MRYwFAYD
-VQQDDA1WT0xUSEEgU2VydmVyMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKC
-AQEAxpC5OA7VOL0gVI+CVitU2hZvooRjmfhLjCS+xhfuzrHkJ0xP4Hu5HAynnUU3
-OR2wQfuWSfQCHGaHOofmWfydTftzdFCKOSVcfo+03j7VEF6RU9pqPlfbGNjaxjOQ
-7gptTeLpyxshyFk+5rK97tKVcPcOmE68BGtbT2MLJdgOTxD4MJIZqBuhOr5RcyS8
-D/BMJo/fKqjM2Dh+rdD1zOnpdtg+/1WUI2l0j9IAUcXWVmEJD15wTF9e1qRHWP9z
-QMVe4BRzbItNVOL815RgZJvbKtY4oNOuLkfTdDwPwP7Gr6+gCB8gqDqndFivlDVm
-S3yXJhsDIw89Cp3qmwbUlspcTQIDAQABo4IBGTCCARUwHQYDVR0OBBYEFPlxy5vc
-sKvDcAQbnmPQIQHONf8ZMIGsBgNVHSMEgaQwgaGAFBbNGGwDeW6Zmz9tF/QhGiEx
-BmpnoX6kfDB6MQswCQYDVQQGEwJVUzETMBEGA1UECAwKQ2FsaWZvcm5pYTETMBEG
-A1UEBwwKTWVubG8gUGFyazEMMAoGA1UECgwDT05GMRUwEwYDVQQLDAxUZXN0aW5n
-IE9ubHkxHDAaBgNVBAMME1ZPTFRIQSBUZXN0IFJvb3QgQ0GCCQD6d/x1IU83BjAJ
-BgNVHRMEAjAAMA4GA1UdDwEB/wQEAwIFoDATBgNVHSUEDDAKBggrBgEFBQcDATAV
-BgNVHREEDjAMggp2b2x0aGEuZG5zMA0GCSqGSIb3DQEBCwUAA4IBAQASPrhz0at3
-7Hqw2I6Ujjz9/7Alv+hR17muVQMoy6Kb+4acNVUryAzGqbRBoxLTJskzk0qhfK0G
-69XQpGPhrX9213srRKtDKyaEotZdaPy7GxU+YzI06Bqk2YFLKBfo9x061cs3h3cE
-P5ZtF+YekA6obAFYhNQatJ9ReZwDIxu2lwwopK9nC9qy+m5BSQCKNhH4gFBhA8O1
-3/fl6kucP2ho4Ph48R3/CyNFKtYZqPa5GSXgRs6LVsrl2io1ZbjijW1GHp/zS016
-wPVIcUL2lfnlyWGPepZjiGRoVT7WxsDizckDk4dOb8S0+8PE7JOtiCgX/He4opn2
-JspvNi0mT9NE
+IFBhcmsxDDAKBgNVBAoMA09ORjEVMBMGA1UECwwMVGVzdGluZyBPbmx5MQ8wDQYD
+VQQDDAZ2b2x0aGEwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDN7oPg
+EK/f0OzJUFKT0EnBK27MJbsXtS3yWoDOtGX8eCoOOA86a01aYaQWPEo2W7sp6Bcf
+/etnssGeX6ajLajXPqHDQTT/HIYMI6Dgj8w/7F22JeEDMxUCq+IWSeK3kUoKtsuY
+ufW4ptcbLsXb2J5vu214IILzC4Beb4obzzeq9Oh5hqJ0CA6u8tkgrxju7kFkVYUk
+64s5/havVZH3bc6Xs37O6KMnbTz4MWHXAa5WTSr6+CbMTH+HkLZK3jrIBtZhhyiL
+iy/IgzrTM70nVrYU/+CI+m4z4fuDnt1q6L+A2fB/G43ILx/Y1v7fKYFKM3OUBQo2
+PwS0G3Mxen5eYXDlAgMBAAGjggEVMIIBETAdBgNVHQ4EFgQUzx75JKkqpKtHTaTx
+Jbo9zyPyikwwgawGA1UdIwSBpDCBoYAU/S5GFmfwSaQt1ArUkcx0vDHsZPehfqR8
+MHoxCzAJBgNVBAYTAlVTMRMwEQYDVQQIDApDYWxpZm9ybmlhMRMwEQYDVQQHDApN
+ZW5sbyBQYXJrMQwwCgYDVQQKDANPTkYxFTATBgNVBAsMDFRlc3RpbmcgT25seTEc
+MBoGA1UEAwwTVk9MVEhBIFRlc3QgUm9vdCBDQYIJANxEWUXiil9eMAkGA1UdEwQC
+MAAwDgYDVR0PAQH/BAQDAgWgMBMGA1UdJQQMMAoGCCsGAQUFBwMBMBEGA1UdEQQK
+MAiCBnZvbHRoYTANBgkqhkiG9w0BAQsFAAOCAQEA5N4yEtCj25CXfy36K3lWrUqO
+nqdviKQ6rE73eg6AXenP/0ti583d3AeOXLPgQsZJkSdaIiuLmtGlGuEwKBCNtwxK
+ICtb6lpvLtpKl9cLbpCzuulEzIhY3TViRjyHJy0TK2BucO2v8rzSc5H9BPO3wa54
+76YD+13KPFxPytXbg92xL5H45Ttpi+PBmaw5f9Cw5lfQWw44nscTeYEy3eFnryP4
+m46+QzQBvKD1esWYBqgJt6tFyOCh/vTvtZjqVtEVft709VYFvdDplyb+r84FV81V
+8e+mBO686BTMl3z5Ss7HYC+ALU7iks+Jo4fa7NsJVeNo4ckwQNacCaOYrJL52Q==
 -----END CERTIFICATE-----

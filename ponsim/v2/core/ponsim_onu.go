@@ -17,7 +17,6 @@ package core
 
 import (
 	"context"
-	"crypto/tls"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/google/gopacket"
 	"github.com/google/uuid"
@@ -31,9 +30,6 @@ import (
 	"sync"
 	"time"
 )
-
-// TODO: Cleanup GRPC security config
-// TODO: Pass-in the certificate information as a structure parameter
 
 /*
 PonSimOnuDevice is the structure responsible for the handling of an ONU device
@@ -376,16 +372,13 @@ func (o *PonSimOnuDevice) ConnectToRemoteOlt() {
 		strconv.Itoa(int(o.ParentPort)),
 	}, ":")
 
-	// TODO: make it secure
-	// GRPC communication needs to be secured
-	ta := credentials.NewTLS(&tls.Config{
-		//Certificates:       []tls.Certificate{peerCert},
-		//RootCAs:            caCertPool,
-		InsecureSkipVerify: true,
-	})
+	ta := credentials.NewTLS(o.TLSConfig)
 
 	if o.Conn, err = grpc.DialContext(
-		context.Background(), host, grpc.WithTransportCredentials(ta), grpc.WithBlock(),
+		context.Background(),
+		host,
+		grpc.WithTransportCredentials(ta),
+		grpc.WithBlock(),
 	); err != nil {
 		common.Logger().WithFields(logrus.Fields{
 			"device": o,
