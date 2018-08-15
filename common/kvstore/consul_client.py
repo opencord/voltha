@@ -1,4 +1,4 @@
-# Copyright 2017-present Open Networking Foundation
+# Copyright 2018-present Open Networking Foundation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,47 +28,6 @@ class ConsulClient(KVClient):
         KVClient.__init__(self, kv_host, kv_port)
         self.session_id = None
         self.client = Consul(kv_host, kv_port)
-        self.watcher = None
-
-    @inlineCallbacks
-    def get(self, key, timeout=DEFAULT_TIMEOUT):
-        result = yield self._op_with_retry('GET', key, None, timeout)
-        returnValue(result)
-
-    @inlineCallbacks
-    def list(self, key, timeout=DEFAULT_TIMEOUT):
-        result = yield self._op_with_retry('LIST', key, None, timeout)
-        returnValue(result)
-
-    @inlineCallbacks
-    def put(self, key, value, timeout=DEFAULT_TIMEOUT):
-        _, err = yield self._op_with_retry('PUT', key, value, timeout)
-        returnValue(err)
-
-    @inlineCallbacks
-    def delete(self, key, timeout=DEFAULT_TIMEOUT):
-        _, err = yield self._op_with_retry('DELETE', key, None, timeout)
-        returnValue(err)
-
-    @inlineCallbacks
-    def reserve(self, key, value, ttl, timeout=DEFAULT_TIMEOUT):
-        result = yield self._op_with_retry('RESERVE', key, value, timeout, ttl=ttl)
-        returnValue(result)
-
-    @inlineCallbacks
-    def renew_reservation(self, key, timeout=DEFAULT_TIMEOUT):
-        result, err = yield self._op_with_retry('RENEW', key, None, timeout)
-        returnValue(err)
-
-    @inlineCallbacks
-    def release_reservation(self, key, timeout=DEFAULT_TIMEOUT):
-        result, err = yield self._op_with_retry('RELEASE', key, None, timeout)
-        returnValue(err)
-
-    @inlineCallbacks
-    def release_all_reservations(self, timeout=DEFAULT_TIMEOUT):
-        result, err = yield self._op_with_retry('RELEASE-ALL', None, None, timeout)
-        returnValue(err)
 
     def watch(self, key, key_change_callback, timeout=DEFAULT_TIMEOUT):
         self._retriggering_watch(key, key_change_callback, timeout)
