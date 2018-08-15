@@ -385,15 +385,15 @@ class PonSimOltHandler(object):
 
             # create credentials
             credentials = grpc.ssl_channel_credentials(
-                root_certificates=trusted_certs, private_key=client_key,
+                root_certificates=trusted_certs,
+                private_key=client_key,
                 certificate_chain=client_cert)
 
             # create channel using ssl credentials
-            my_server_host_override_string = "ABCD"  # Server's CN Name, Ugly but no other Choice.
+            channel_options =[('grpc.ssl_target_name_override', 'VOLTHA Server'),]
+
             self.channel = grpc.secure_channel(device.host_and_port,
-                                               credentials, options=((
-                                                                         'grpc.ssl_target_name_override',
-                                                                         my_server_host_override_string,),))
+                                               credentials, channel_options)
 
         return self.channel
 
