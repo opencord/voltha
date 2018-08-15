@@ -409,12 +409,17 @@ class AdapterAgent(object):
     def _del_peer_reference(self, device_id, port):
         me_as_peer = Port.PeerPort(device_id=device_id, port_no=port.port_no)
         for peer in port.peers:
-            peer_port_path = '/devices/{}/ports/{}'.format(
-                peer.device_id, peer.port_no)
-            peer_port = self.root_proxy.get(peer_port_path)
-            if me_as_peer in peer_port.peers:
-                peer_port.peers.remove(me_as_peer)
-            self.root_proxy.update(peer_port_path, peer_port)
+            try:
+                peer_port_path = '/devices/{}/ports/{}'.format(
+                    peer.device_id, peer.port_no)
+                peer_port = self.root_proxy.get(peer_port_path)
+                if me_as_peer in peer_port.peers:
+                    peer_port.peers.remove(me_as_peer)
+                self.root_proxy.update(peer_port_path, peer_port)
+            except Exception:
+                # if the device on the other side was already remove
+                # the key cannot be found under /devices/<device_id>
+                pass
 
     def add_port(self, device_id, port):
         assert isinstance(port, Port)
@@ -820,9 +825,12 @@ class AdapterAgent(object):
             self._make_up_to_date(
                 '/devices', device.id, device)
 
-    def delete_child_device(self, parent_device_id, child_device_id):
-        onu_device = self.root_proxy.get('/devices/{}'.format(child_device_id))
+    def delete_child_device(self, parent_device_id, child_device_id,
+                            onu_device=None):
+        if onu_device is None:
+            onu_device = self.root_proxy.get('/devices/{}'.format(child_device_id))
         if onu_device is not None:
+            assert isinstance(onu_device, Device)
             if onu_device.parent_id == parent_device_id:
                 self.log.debug('deleting-child-device',
                                parent_device_id=parent_device_id,
@@ -831,7 +839,10 @@ class AdapterAgent(object):
                     onu_device.proxy_address)
                 self.event_bus.unsubscribe(self._tx_event_subscriptions[topic])
                 del self._tx_event_subscriptions[topic]
-                self._remove_node('/devices', child_device_id)
+                try:
+                    self._remove_node('/devices', child_device_id)
+                except Exception:
+                    pass
 
     def _gen_rx_proxy_address_topic(self, proxy_address):
         """Generate unique topic name specific to this proxy address for rx"""
