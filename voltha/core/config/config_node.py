@@ -303,6 +303,17 @@ class ConfigNode(object):
         # data already saved in the db (with that hash) to be erased
         if rev.hash not in branch._revs:
             branch._revs[rev.hash] = rev
+            # Removing old revs (only keep latest)
+            old_revs_hash = []
+            for hash in branch._revs:
+                if hash != rev.hash:
+                    old_revs_hash.append(hash)
+            for hash in old_revs_hash:
+                try:
+                    del branch._revs[hash]
+                    log.debug('removing rev from branch', rev_hash=hash)
+                except Exception as e:
+                    log.error('delete rev error', error=e)
 
         if not branch._latest or rev.hash != branch._latest.hash:
             branch._latest = rev
