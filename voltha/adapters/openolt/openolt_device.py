@@ -356,9 +356,11 @@ class OpenoltDevice(object):
 
         # Post ONU Discover alarm  20180809_0805
         try:
-            OnuDiscoveryAlarm(self.alarm_mgr.alarms, pon_id=intf_id, serial_number=serial_number_str).raise_alarm()
+            OnuDiscoveryAlarm(self.alarm_mgr.alarms, pon_id=intf_id,
+                              serial_number=serial_number_str).raise_alarm()
         except Exception as disc_alarm_error:
-            self.log.exception("onu-discovery-alarm-error", errmsg=disc_alarm_error.message)
+            self.log.exception("onu-discovery-alarm-error",
+                               errmsg=disc_alarm_error.message)
             # continue for now.
 
         pir = self.bw_mgr.pir(serial_number_str)
@@ -539,11 +541,13 @@ class OpenoltDevice(object):
 
                 # tcont creation (onu)
                 tcont = TcontsConfigData()
-                tcont.alloc_id = platform.mk_alloc_id(onu_indication.onu_id)
+                tcont.alloc_id = platform.mk_alloc_id(
+                    onu_indication.intf_id, onu_indication.onu_id)
 
                 # gem port creation
                 gem_port = GemportsConfigData()
                 gem_port.gemport_id = platform.mk_gemport_id(
+                    onu_indication.intf_id,
                     onu_indication.onu_id)
 
                 # ports creation/update
@@ -588,11 +592,13 @@ class OpenoltDevice(object):
 
                 # tcont creation (onu)
                 tcont = TcontsConfigData()
-                tcont.alloc_id = platform.mk_alloc_id(onu_indication.onu_id)
+                tcont.alloc_id = platform.mk_alloc_id(
+                    onu_indication.intf_id, onu_indication.onu_id)
 
                 # gem port creation
                 gem_port = GemportsConfigData()
                 gem_port.gemport_id = platform.mk_gemport_id(
+                    onu_indication.intf_id,
                     onu_indication.onu_id)
                 gem_port.tcont_ref = str(tcont.alloc_id)
 
@@ -842,18 +848,17 @@ class OpenoltDevice(object):
 
 
     def new_onu_id(self, intf_id):
-        onu_id = None
         onu_devices = self.adapter_agent.get_child_devices(self.device_id)
-        for i in range(1, 512):
-            id_not_taken = True
-            for child_device in onu_devices:
-                if child_device.proxy_address.onu_id == i:
-                    id_not_taken = False
-                    break
-            if id_not_taken:
-                onu_id = i
-                break
-        return onu_id
+        pon_onu_ids = [onu_device.proxy_address.onu_id for onu_device in
+                              onu_devices if
+                           onu_device.proxy_address.channel_id == intf_id]
+        for i in range(1, platform.MAX_ONUS_PER_PON):
+            if i not in pon_onu_ids:
+                return i
+
+        self.log.error('All available onu_ids taken on this pon',
+                       intf_id=intf_id, ids_taken=platform.MAX_ONUS_PER_PON)
+        return None
 
     def stringify_vendor_specific(self, vendor_specific):
         return ''.join(str(i) for i in [

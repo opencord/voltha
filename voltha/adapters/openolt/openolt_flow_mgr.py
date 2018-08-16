@@ -268,7 +268,7 @@ class OpenOltFlowMgr(object):
     def add_hsia_flow(self, intf_id, onu_id, classifier, action,
                       direction, hsia_id, logical_flow):
 
-        gemport_id = platform.mk_gemport_id(onu_id)
+        gemport_id = platform.mk_gemport_id(intf_id, onu_id)
         flow_id = platform.mk_flow_id(intf_id, onu_id, hsia_id)
 
         flow = openolt_pb2.Flow(
@@ -290,7 +290,7 @@ class OpenOltFlowMgr(object):
         classifier['pkt_tag_type'] = 'single_tag'
         classifier.pop('vlan_vid', None)
 
-        gemport_id = platform.mk_gemport_id(onu_id)
+        gemport_id = platform.mk_gemport_id(intf_id, onu_id)
         flow_id = platform.mk_flow_id(intf_id, onu_id, DHCP_FLOW_INDEX)
 
         upstream_flow = openolt_pb2.Flow(
@@ -351,7 +351,7 @@ class OpenOltFlowMgr(object):
         uplink_action = {}
         uplink_action['trap_to_host'] = True
 
-        gemport_id = platform.mk_gemport_id(onu_id)
+        gemport_id = platform.mk_gemport_id(intf_id, onu_id)
 
         # Add Upstream EAPOL Flow.
 
