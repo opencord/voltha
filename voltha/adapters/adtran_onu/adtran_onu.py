@@ -40,7 +40,7 @@ class AdtranOnuAdapter(OnuAdapter):
                                                device_handler_class=AdtranOnuHandler,
                                                name='adtran_onu',
                                                vendor='Adtran Inc.',
-                                               version='0.12',
+                                               version='0.13',
                                                device_type='adtran_onu',
                                                vendor_id='ADTN',
                                                accepts_add_remove_flow_updates=False),  # TODO: Support flow-mods

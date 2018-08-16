@@ -23,7 +23,7 @@ from heartbeat import HeartBeat
 from omci.omci import OMCI
 
 from voltha.extensions.alarms.adapter_alarms import AdapterAlarms
-from voltha.extensions.pki.onu.onu_pm_metrics import OnuPmMetrics
+from voltha.extensions.kpi.onu.onu_pm_metrics import OnuPmMetrics
 
 from uuid import uuid4
 from twisted.internet import reactor
@@ -263,6 +263,15 @@ class AdtranOnuHandler(AdtranXPON):
                 # Start things up for this ONU Handler.
                 self.enabled = True
 
+            # reference of uni_port is required when re-enabling the device if
+            # it was disabled previously
+            # Need to query ONU for number of supported uni ports
+            # For now, temporarily set number of ports to 1 - port #2
+            parent_device = self.adapter_agent.get_device(device.parent_id)
+            self.logical_device_id = parent_device.parent_id
+            assert self.logical_device_id, 'Invalid logical device ID'
+            self.adapter_agent.update_device(device)
+
             ############################################################################
             # Setup PM configuration for this device
             # Pass in ONU specific options
@@ -277,15 +286,6 @@ class AdtranOnuHandler(AdtranXPON):
             self.openomci.set_pm_config(self.pm_metrics.omci_pm.openomci_interval_pm)
             self.log.info("initial-pm-config", pm_config=pm_config)
             self.adapter_agent.update_device_pm_config(pm_config, init=True)
-
-            # reference of uni_port is required when re-enabling the device if
-            # it was disabled previously
-            # Need to query ONU for number of supported uni ports
-            # For now, temporarily set number of ports to 1 - port #2
-            parent_device = self.adapter_agent.get_device(device.parent_id)
-            self.logical_device_id = parent_device.parent_id
-            assert self.logical_device_id, 'Invalid logical device ID'
-            self.adapter_agent.update_device(device)
 
             ############################################################################
             # Setup Alarm handler
