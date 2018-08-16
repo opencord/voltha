@@ -492,6 +492,8 @@ class BrcmOpenomciOnuHandler(object):
         self.tx_id += 1
         return self.tx_id
 
+    # TODO: Actually conform to or create a proper interface.
+    # this and the other functions called from the olt arent very clear.
     def create_interface(self, data):
         self.log.debug('function-entry', data=data)
         self._onu_indication = data
@@ -625,6 +627,7 @@ class BrcmOpenomciOnuHandler(object):
                 self.disable_ports(device)
                 device.oper_status = OperStatus.UNKNOWN
                 device.connect_status = ConnectStatus.UNREACHABLE
+                device.reason = "openomci-admin-lock"
                 self.adapter_agent.update_device(device)
 
             # lock all the unis
@@ -859,28 +862,30 @@ class BrcmOpenomciOnuHandler(object):
         else:
             self.log.info('device-info-already-loaded', in_sync=in_sync, already_loaded=self._dev_info_loaded)
 
-        def success(_results):
-            self.log.info('mib-download-success', _results=_results)
-            device = self.adapter_agent.get_device(self.device_id)
-            device.reason = 'initial-mib-downloaded'
-            device.oper_status = OperStatus.ACTIVE
-            device.connect_status = ConnectStatus.REACHABLE
-            self.enable_ports(device)
-            self.adapter_agent.update_device(device)
-            self._mib_download_task = None
+        if device.admin_state == AdminState.ENABLED:
+            def success(_results):
+                self.log.info('mib-download-success', _results=_results)
+                device = self.adapter_agent.get_device(self.device_id)
+                device.reason = 'initial-mib-downloaded'
+                device.oper_status = OperStatus.ACTIVE
+                device.connect_status = ConnectStatus.REACHABLE
+                self.enable_ports(device)
+                self.adapter_agent.update_device(device)
+                self._mib_download_task = None
 
-        def failure(_reason):
-            self.log.info('mib-download-failure', _reason=_reason)
-            # TODO: test this.  also verify i can add this task this way
+            def failure(_reason):
+                self.log.info('mib-download-failure', _reason=_reason)
+                # TODO: test this.  also verify i can add this task this way
+                self._mib_download_task = BrcmMibDownloadTask(self.omci_agent, self)
+                self._deferred = self._onu_omci_device.task_runner.queue_task(self._mib_download_task)
+
+            self.log.info('downloading-initial-mib-configuration')
             self._mib_download_task = BrcmMibDownloadTask(self.omci_agent, self)
             self._deferred = self._onu_omci_device.task_runner.queue_task(self._mib_download_task)
-
-        self.log.info('downloading-initial-mib-configuration')
-        self._mib_download_task = BrcmMibDownloadTask(self.omci_agent, self)
-        self._deferred = self._onu_omci_device.task_runner.queue_task(self._mib_download_task)
-        self._deferred.addCallbacks(success, failure)
-
-
+            self._deferred.addCallbacks(success, failure)
+        else:
+            self.log.info('admin-down-disabling')
+            self.disable(device)
 
     def check_status_and_state(self, results, operation=''):
         self.log.debug('function-entry')

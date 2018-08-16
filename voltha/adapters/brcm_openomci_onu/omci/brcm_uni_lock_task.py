@@ -17,6 +17,7 @@ from voltha.extensions.omci.tasks.task import Task
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, failure, returnValue
 from voltha.extensions.omci.omci_defs import ReasonCodes, EntityOperations
+from voltha.extensions.omci.omci_me import OntGFrame
 from voltha.extensions.omci.omci_me import PptpEthernetUniFrame
 
 RC = ReasonCodes
@@ -84,6 +85,22 @@ class BrcmUniLockTask(Task):
 
         try:
             state = 1 if self._lock else 0
+
+            # lock the whole ont and all the pptp.  some onu dont causing odd behavior.
+            msg = OntGFrame(attributes={'administrative_state': state})
+            frame = msg.set()
+            self.log.debug('openomci-msg', msg=msg)
+            results = yield self._device.omci_cc.send(frame)
+            self.stop_if_not_running()
+
+            status = results.fields['omci_message'].fields['success_code']
+            self.log.info('response-status', status=status)
+
+            # Success?
+            if status in (RC.Success.value, RC.InstanceExists):
+                self.log.debug('set-lock-ontg', lock=self._lock)
+            else:
+                self.log.warn('cannot-set-lock-ontg', lock=self._lock)
 
             pptp = self._config.pptp_entities
 
