@@ -16,6 +16,24 @@
       "revId": "dd31628c54d49ea906f19182a7f64d1464352070",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "afd55dfe_83005a39",
+        "filename": "voltha/core/adapter_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 832,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-08-16T13:44:39Z",
+      "side": 1,
+      "message": "fair point",
+      "parentUuid": "b7ed85f7_068add92",
+      "revId": "dd31628c54d49ea906f19182a7f64d1464352070",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
