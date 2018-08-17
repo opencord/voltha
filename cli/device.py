@@ -30,12 +30,12 @@ _ = third_party
 from voltha.protos import voltha_pb2, common_pb2
 import sys
 import json
-from voltha.protos.device_pb2 import PmConfigs, PmConfig, PmGroupConfig
 from google.protobuf.json_format import MessageToDict
 
 # Since proto3 won't send fields that are set to 0/false/"" any object that
 # might have those values set in them needs to be replicated here such that the
 # fields can be adequately
+
 
 class DeviceCli(Cmd):
 
@@ -158,7 +158,7 @@ commit: commits any changes made which applies them to the device.
 
 Changes made by set are held locally until a commit or reset command is issued.
 A commit command will write the configuration to the device and it takes effect
-immediately. The reset command will undo any changes sinc the start of the
+immediately. The reset command will undo any changes since the start of the
 device session.
 
 If grouped is true then the -d, -e and -o commands refer to groups and not
@@ -173,11 +173,10 @@ individual metrics.
                     default=None),
         make_option('-d', '--disable', action='append', dest='disable',
                     default=None),
-        make_option('-o', '--overried', action='append', dest='override',
+        make_option('-o', '--override', action='append', dest='override',
                     nargs=2, default=None, type='string'),
     ])
     def do_perf_config(self, line, opts):
-        #print(line)
         """Show and set the performance monitoring configuration of the device"""
 
         device = self.get_device(depth=-1)
@@ -186,7 +185,7 @@ individual metrics.
 
         # Ensure that a valid sub-command was provided
         if line.strip() not in {"set", "show", "commit", "reset", ""}:
-                self.poutput(self.colorize('Error: ', 'red') + \
+                self.poutput(self.colorize('Error: ', 'red') +
                              self.colorize(self.colorize(line.strip(), 'blue'),
                                            'bold') + ' is not recognized')
                 return
@@ -195,13 +194,21 @@ individual metrics.
         if line.strip() == "show" or line.strip() == "":
             if opts.default_freq or opts.enable or opts.disable:
                 self.poutput(opts.disable)
-                self.poutput(self.colorize('Error: ', 'red') + 'use ' + \
+                self.poutput(self.colorize('Error: ', 'red') + 'use ' +
                              self.colorize(self.colorize('"set"', 'blue'),
                                            'bold') + ' to change settings')
                 return
 
-        if line.strip() == "set": # Set the supplied values
-            # The defualt frequency
+        if line.strip() == "set":  # Set the supplied values
+            metric_list = set()
+            if opts.enable is not None:
+                metric_list |= {metric for metric in opts.enable}
+            if opts.disable is not None:
+                metric_list |= {metric for metric in opts.disable}
+            if opts.override is not None:
+                metric_list |= {metric for metric, _ in opts.override}
+
+            # The default frequency
             if opts.default_freq:
                 self.pm_config_last.default_freq = opts.default_freq
                 self.pm_config_dirty = True
@@ -213,24 +220,28 @@ individual metrics.
                         if g.group_name in opts.enable:
                             g.enabled = True
                             self.pm_config_dirty = True
+                            metric_list.discard(g.group_name)
                 for g in self.pm_config_last.groups:
                     if opts.disable:
                         if g.group_name in opts.disable:
                             g.enabled = False
                             self.pm_config_dirty = True
+                            metric_list.discard(g.group_name)
             else:
                 for m in self.pm_config_last.metrics:
                     if opts.enable:
                         if m.name in opts.enable:
                             m.enabled = True
                             self.pm_config_dirty = True
+                            metric_list.discard(m.name)
                 for m in self.pm_config_last.metrics:
                     if opts.disable:
                         if m.name in opts.disable:
                             m.enabled = False
                             self.pm_config_dirty = True
+                            metric_list.discard(m.name)
 
-            #Frequency overrides.
+            # Frequency overrides.
             if opts.override:
                 if self.pm_config_last.freq_override:
                     oo = dict()
@@ -243,12 +254,13 @@ individual metrics.
                                     g.group_freq = int(oo[g.group_name])
                                 except ValueError:
                                     self.poutput(self.colorize('Warning: ',
-                                                               'yellow') + \
-                                                 self.colorize(oo[m.name],
-                                                               'blue') +\
+                                                               'yellow') +
+                                                 self.colorize(oo[g.group_name],
+                                                               'blue') +
                                                  " is not an integer... ignored")
                                 del oo[g.group_name]
                                 self.pm_config_dirty = True
+                                metric_list.discard(g.group_name)
                     else:
                         for m in self.pm_config_last.metrics:
                             if m.name in oo:
@@ -256,12 +268,13 @@ individual metrics.
                                     m.sample_freq = int(oo[m.name])
                                 except ValueError:
                                     self.poutput(self.colorize('Warning: ',
-                                                               'yellow') + \
+                                                               'yellow') +
                                                  self.colorize(oo[m.name],
-                                                               'blue') +\
+                                                               'blue') +
                                                  " is not an integer... ignored")
                                 del oo[m.name]
                                 self.pm_config_dirty = True
+                                metric_list.discard(m.name)
 
                     # If there's anything left the input was typoed
                     if self.pm_config_last.grouped:
@@ -269,20 +282,29 @@ individual metrics.
                     else:
                         field = 'metric'
                     for o in oo:
-                        self.poutput(self.colorize('Warning: ', 'yellow') + \
-                                     'the parameter' + ' ' + \
-                                     self.colorize(o, 'blue') + ' is not ' + \
+                        self.poutput(self.colorize('Warning: ', 'yellow') +
+                                     'the parameter' + ' ' +
+                                     self.colorize(o, 'blue') + ' is not ' +
                                      'a ' + field + ' name... ignored')
                     if oo:
                         return
 
-                else: # Frequency overrides not enabled
-                    self.poutput(self.colorize('Error: ', 'red') + \
-                                 'Individual overrides are only ' + \
-                                 'supported if ' + \
-                                 self.colorize('freq_override', 'blue') + \
+                else:  # Frequency overrides not enabled
+                    self.poutput(self.colorize('Error: ', 'red') +
+                                 'Individual overrides are only ' +
+                                 'supported if ' +
+                                 self.colorize('freq_override', 'blue') +
                                  ' is set to ' + self.colorize('True', 'blue'))
                     return
+
+            if len(metric_list):
+                metric_name_list = ", ".join(str(metric) for metric in metric_list)
+                self.poutput(self.colorize('Error: ', 'red') +
+                             'Metric/Metric Group{} '.format('s' if len(metric_list) > 1 else '') +
+                             self.colorize(metric_name_list, 'blue') +
+                             ' {} not found'.format('were' if len(metric_list) > 1 else 'was'))
+                return
+
             self.poutput("Success")
             return
 
@@ -291,10 +313,10 @@ individual metrics.
             stub.UpdateDevicePmConfigs(self.pm_config_last)
             self.pm_config_last = self.get_device(depth=-1).pm_configs
             self.pm_config_dirty = False
+
         elif line.strip() == "reset" and self.pm_config_dirty:
             self.pm_config_last = self.get_device(depth=-1).pm_configs
             self.pm_config_dirty = False
-
 
         omit_fields = {'groups', 'metrics', 'id'}
         print_pb_as_table('PM Config:', self.pm_config_last, omit_fields,
@@ -324,7 +346,6 @@ individual metrics.
             print_pb_list_as_table('Supported metrics:', self.pm_config_last.metrics,
                                    omit_fields, self.poutput, dividers=100,
                                    show_nulls=True)
-
 
     def do_flows(self, line):
         """Show flow table for device"""
