@@ -31,7 +31,7 @@ from twisted.internet.task import LoopingCall
 from zope.interface import implementer
 
 from common.event_bus import EventBusClient
-from voltha.protos.events_pb2 import KpiEvent, KpiEventType, MetricValuePairs
+from voltha.protos.events_pb2 import KpiEvent2, KpiEventType, MetricInformation, MetricMetaData
 from voltha.registry import IComponent, registry
 
 log = structlog.get_logger()
@@ -63,7 +63,7 @@ class Diagnostics(object):
 
     def run_periodic_checks(self):
 
-        ts = arrow.utcnow().timestamp
+        ts = arrow.utcnow().float_timestamp
 
         def deferreds():
             return len(gc.get_referrers(Deferred))
@@ -74,17 +74,17 @@ class Diagnostics(object):
                 rss /= 1024
             return rss
 
-        kpi_event = KpiEvent(
+        kpi_event = KpiEvent2(
             type=KpiEventType.slice,
             ts=ts,
-            prefixes={
-                'voltha.internal.{}'.format(self.instance_id):
-                    MetricValuePairs(metrics={
-                        'deferreds': deferreds(),
-                        'rss-mb': rss_mb(),
-                    })
-            }
-        )
-
+            slice_data=[
+                MetricInformation(metadata=MetricMetaData(title='voltha.internal',
+                                                          ts=ts,
+                                                          context={'instance_id': self.instance_id}),
+                                  metrics={'deferreds': deferreds(),
+                                           'rss-mb': rss_mb()}
+                                  )
+                ])
         self.event_bus.publish('kpis', kpi_event)
         log.debug('periodic-check', ts=ts)
+

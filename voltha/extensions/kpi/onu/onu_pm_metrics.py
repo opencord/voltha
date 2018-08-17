@@ -30,26 +30,28 @@ class OnuPmMetrics(AdapterPmMetrics):
     DEFAULT_HEARTBEAT_ENABLED = False
     DEFAULT_HEARTBEAT_FREQUENCY = 1200  # 1/10ths of a second
 
-    def __init__(self, adapter_agent, device_id, grouped=False, freq_override=False, **kwargs):
+    def __init__(self, adapter_agent, device_id, logical_device_id,
+                 grouped=False, freq_override=False, **kwargs):
         """
         Initializer for shared ONU Device Adapter PM metrics
 
         :param adapter_agent: (AdapterAgent) Adapter agent for the device
         :param device_id: (str) Device ID
+        :param logical_device_id: (str) VOLTHA Logical Device ID
         :param grouped: (bool) Flag indicating if statistics are managed as a group
         :param freq_override: (bool) Flag indicating if frequency collection can be specified
                                      on a per group basis
         :param kwargs: (dict) Device Adapter specific values. For an ONU Device adapter, the
                               expected key-value pairs are listed below. If not provided, the
-                              associated PM statistics are not gathered:
+                              associated PMv statistics are not gathered:
 
                               'heartbeat': Reference to the a class that provides an ONU heartbeat
-                                           statistics.   TODO: This needs to be standardized
+                                           statistics.   TODO: This should be standardized across adapters
         """
-        super(OnuPmMetrics, self).__init__(adapter_agent, device_id,
-                                           grouped=grouped, freq_override=freq_override, **kwargs)
+        super(OnuPmMetrics, self).__init__(adapter_agent, device_id, logical_device_id,
+                                           grouped=grouped, freq_override=freq_override,
+                                           **kwargs)
 
-        #
         # The following HeartBeat PM is only an example. We may want to have a common heartbeat
         # object for OLT and ONU DAs that work the same.  If so, it could also provide PM information
         #
@@ -70,8 +72,9 @@ class OnuPmMetrics(AdapterPmMetrics):
         self.health_metrics_config = {m: PmConfig(name=m, type=t, enabled=True)
                                       for (m, t) in self.health_pm_names}
 
-        self.omci_pm = OnuOmciPmMetrics(adapter_agent, device_id, grouped=grouped,
-                                        freq_override=freq_override, **kwargs)
+        self.omci_pm = OnuOmciPmMetrics(adapter_agent, device_id, logical_device_id,
+                                        grouped=grouped, freq_override=freq_override,
+                                        **kwargs)
 
     def update(self, pm_config):
         try:
@@ -133,22 +136,34 @@ class OnuPmMetrics(AdapterPmMetrics):
         pm_config = self.omci_pm.make_proto(pm_config)
         return pm_config
 
-    def collect_metrics(self, metrics=None):
+    def collect_metrics(self, data=None):
         """
-        Collect metrics
-        :param metrics:
-        :return:
+        Collect metrics for this adapter.
+
+        The data collected (or passed in) is a list of pairs/tuples.  Each
+        pair is composed of a MetricMetaData metadata-portion and list of MetricValuePairs
+        that contains a single individual metric or list of metrics if this is a
+        group metric.
+
+        This method is called for each adapter at a fixed frequency.
+        TODO: Currently all group metrics are collected on a single timer tick.
+              This needs to be fixed as independent group or instance collection is
+              desirable.
+
+        :param data: (list) Existing list of collected metrics (MetricInformation).
+                            This is provided to allow derived classes to call into
+                            further encapsulated classes.
+
+        :return: (list) metadata and metrics pairs - see description above
         """
-        # TODO: Currently PM collection is done for all metrics/groups on a single timer
-        if metrics is None:
-            metrics = dict()
+        if data is None:
+            data = list()
 
         # TODO: Heartbeat stats disabled since it is not a common item on all ONUs (or OLTs)
         # if self._heartbeat is not None:
-        #     metrics['heartbeat'] = self.collect_metrics(self._heartbeat,
-        #                                                 self.health_pm_names,
-        #                                                 self.health_metrics_config)
-        self.omci_pm.collect_metrics(metrics=metrics)
+        #     data.extend(self.collect_metrics(self._heartbeat, self.health_pm_names,
+        #                                      self.health_metrics_config))
+        data.extend(self.omci_pm.collect_metrics(data=data))
         # TODO Add PON Port PM
         # TODO Add UNI Port PM
-        return metrics
+        return data

@@ -35,7 +35,7 @@ from voltha.core.flow_decomposer import OUTPUT
 from voltha.protos.device_pb2 import Device, Port, PmConfigs
 from voltha.protos.events_pb2 import AlarmEvent, AlarmEventType, \
     AlarmEventSeverity, AlarmEventState, AlarmEventCategory
-from voltha.protos.events_pb2 import KpiEvent
+from voltha.protos.events_pb2 import KpiEvent, KpiEvent2
 from voltha.protos.voltha_pb2 import DeviceGroup, LogicalDevice, \
     LogicalPort, AdminState, OperStatus, AlarmFilterRuleKey
 from voltha.registry import registry
@@ -913,7 +913,7 @@ class AdapterAgent(object):
 
     def submit_kpis(self, kpi_event_msg):
         try:
-            assert isinstance(kpi_event_msg, KpiEvent)
+            assert isinstance(kpi_event_msg, (KpiEvent, KpiEvent2))
             self.event_bus.publish('kpis', kpi_event_msg)
         except Exception as e:
             self.log.exception('failed-kpi-submission',
