@@ -661,7 +661,9 @@ class OpenoltDevice(object):
                        onu_id=omci_indication.onu_id)
 
         onu_device = self.adapter_agent.get_child_device(
-            self.device_id, onu_id=omci_indication.onu_id)
+            self.device_id, onu_id=omci_indication.onu_id,
+            parent_port_no=platform.intf_id_to_port_no(
+                            omci_indication.intf_id, Port.PON_OLT),)
 
         self.adapter_agent.receive_proxied_message(onu_device.proxy_address,
                                                    omci_indication.pkt)
@@ -737,6 +739,16 @@ class OpenoltDevice(object):
                           port_type=egress_port_type)
 
     def send_proxied_message(self, proxy_address, msg):
+        onu_device = self.adapter_agent.get_child_device(self.device_id,
+                onu_id=proxy_address.onu_id,
+                parent_port_no=platform.intf_id_to_port_no(
+                    proxy_address.channel_id, Port.PON_OLT))
+        if onu_device.connect_status != ConnectStatus.REACHABLE:
+            self.log.debug('ONU is not reachable, cannot send OMCI',
+                           serial_number=onu_device.serial_number,
+                           intf_id=onu_device.proxy_address.channel_id,
+                           onu_id=onu_device.proxy_address.onu_id)
+            return
         omci = openolt_pb2.OmciMsg(intf_id=proxy_address.channel_id,
                                    onu_id=proxy_address.onu_id, pkt=str(msg))
         self.stub.OmciMsgOut(omci)
@@ -878,6 +890,12 @@ class OpenoltDevice(object):
 
     def update_logical_flows(self, flows_to_add, flows_to_remove,
                              device_rules_map):
+        if not self.is_state_up():
+            self.log.info('The OLT is not up, we cannot update flows',
+                          flows_to_add=[f.id for f in flows_to_add],
+                          flows_to_remove=[f.id for f in flows_to_remove])
+            return
+
 
         self.log.debug('logical flows update', flows_to_add=flows_to_add,
             flows_to_remove=flows_to_remove)

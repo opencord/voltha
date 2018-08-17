@@ -15,6 +15,7 @@
 #
 import copy
 from twisted.internet import reactor
+import grpc
 
 from voltha.protos.openflow_13_pb2 import OFPXMC_OPENFLOW_BASIC, \
     ofp_flow_stats, ofp_match, OFPMT_OXM, Flows, FlowGroups, OFPXMT_OFB_IN_PORT
@@ -176,7 +177,15 @@ class OpenOltFlowMgr(object):
         for f in device_flows_to_remove:
             (id, direction) = self.decode_stored_id(f.id)
             flow_to_remove = openolt_pb2.Flow(flow_id=id, flow_type=direction)
-            self.stub.FlowRemove(flow_to_remove)
+            try:
+                self.stub.FlowRemove(flow_to_remove)
+            except grpc.RpcError as grpc_e:
+                if grpc_e.code() == grpc.StatusCode.NOT_FOUND:
+                    self.log.debug('This flow does not exist on the switch, '
+                                   'normal after an OLT reboot', flow=flow_to_remove)
+                else:
+                    raise grpc_e
+
             self.log.debug('flow removed from device', flow=f,
                            flow_key=flow_to_remove)
 
