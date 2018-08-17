@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import arrow
 from voltha.protos.device_pb2 import PmConfig, PmGroupConfig
+from voltha.protos.events_pb2 import KpiEvent2, MetricInformation, MetricMetaData, KpiEventType
 from voltha.extensions.kpi.adapter_pm_metrics import AdapterPmMetrics
 from voltha.extensions.omci.omci_entities import \
     EthernetFrameUpstreamPerformanceMonitoringHistoryData, \
@@ -34,26 +36,27 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
     also always managed as a group with a fixed frequency of 15 minutes.
     """
     ME_ID_INFO = {
-        EthernetFrameUpstreamPerformanceMonitoringHistoryData.class_id: 'Ethernet Bridge Port History',
-        EthernetFrameDownstreamPerformanceMonitoringHistoryData.class_id: 'Ethernet Bridge Port History',
-        EthernetFrameExtendedPerformanceMonitoring.class_id: 'Ethernet Bridge Port History',
-        EthernetFrameExtendedPerformanceMonitoring64Bit.class_id: 'Ethernet Bridge Port History',
-        EthernetPMMonitoringHistoryData.class_id: 'Ethernet UNI History',
-        FecPerformanceMonitoringHistoryData.class_id: 'FEC History',
-        GemPortNetworkCtpMonitoringHistoryData.class_id: 'GEM Port History',
-        XgPonTcPerformanceMonitoringHistoryData.class_id: 'xgPON TC History',
-        XgPonDownstreamPerformanceMonitoringHistoryData.class_id: 'xgPON Downstream History',
-        XgPonUpstreamPerformanceMonitoringHistoryData.class_id: 'xgPON Upstream History'
+        EthernetFrameUpstreamPerformanceMonitoringHistoryData.class_id: 'Ethernet_Bridge_Port_History',
+        EthernetFrameDownstreamPerformanceMonitoringHistoryData.class_id: 'Ethernet_Bridge_Port_History',
+        EthernetFrameExtendedPerformanceMonitoring.class_id: 'Ethernet_Bridge_Port_History',
+        EthernetFrameExtendedPerformanceMonitoring64Bit.class_id: 'Ethernet_Bridge_Port_History',
+        EthernetPMMonitoringHistoryData.class_id: 'Ethernet_UNI_History',
+        FecPerformanceMonitoringHistoryData.class_id: 'FEC_History',
+        GemPortNetworkCtpMonitoringHistoryData.class_id: 'GEM_Port_History',
+        XgPonTcPerformanceMonitoringHistoryData.class_id: 'xgPON_TC_History',
+        XgPonDownstreamPerformanceMonitoringHistoryData.class_id: 'xgPON_Downstream_History',
+        XgPonUpstreamPerformanceMonitoringHistoryData.class_id: 'xgPON_Upstream_History'
     }
 
-    def __init__(self, adapter_agent, device_id, **kwargs):
-        super(OnuPmIntervalMetrics, self).__init__(adapter_agent, device_id,
+    def __init__(self, adapter_agent, device_id, logical_device_id, **kwargs):
+        super(OnuPmIntervalMetrics, self).__init__(adapter_agent, device_id, logical_device_id,
                                                    grouped=True, freq_override=False,
                                                    **kwargs)
         ethernet_bridge_history = {
-            ('class_id', PmConfig.GUAGE),
-            ('entity_id', PmConfig.GUAGE),
-            ("interval_end_time", PmConfig.GUAGE),
+            ('class_id', PmConfig.CONTEXT),
+            ('entity_id', PmConfig.CONTEXT),
+            ("interval_end_time", PmConfig.CONTEXT),
+
             ("drop_events", PmConfig.COUNTER),
             ("octets", PmConfig.COUNTER),
             ("packets", PmConfig.COUNTER),
@@ -73,9 +76,10 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
                                                 for (m, t) in ethernet_bridge_history}
 
         ethernet_uni_history = {   # Ethernet History Data (Class ID 24)
-            ('class_id', PmConfig.GUAGE),
-            ('entity_id', PmConfig.GUAGE),
-            ("interval_end_time", PmConfig.GUAGE),
+            ('class_id', PmConfig.CONTEXT),
+            ('entity_id', PmConfig.CONTEXT),
+            ("interval_end_time", PmConfig.CONTEXT),
+
             ("fcs_errors", PmConfig.COUNTER),
             ("excessive_collision_counter", PmConfig.COUNTER),
             ("late_collision_counter", PmConfig.COUNTER),
@@ -95,9 +99,10 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
                                              for (m, t) in ethernet_uni_history}
 
         fec_history = {   # FEC History Data (Class ID 312)
-            ('class_id', PmConfig.GUAGE),
-            ('entity_id', PmConfig.GUAGE),
-            ("interval_end_time", PmConfig.GUAGE),
+            ('class_id', PmConfig.CONTEXT),
+            ('entity_id', PmConfig.CONTEXT),
+            ("interval_end_time", PmConfig.CONTEXT),
+
             ("corrected_bytes", PmConfig.COUNTER),
             ("corrected_code_words", PmConfig.COUNTER),
             ("uncorrectable_code_words", PmConfig.COUNTER),
@@ -108,9 +113,10 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
                                     for (m, t) in fec_history}
 
         gem_port_history = {  # GEM Port Network CTP History Data (Class ID 341)
-            ('class_id', PmConfig.GUAGE),
-            ('entity_id', PmConfig.GUAGE),
-            ("interval_end_time", PmConfig.GUAGE),
+            ('class_id', PmConfig.CONTEXT),
+            ('entity_id', PmConfig.CONTEXT),
+            ("interval_end_time", PmConfig.CONTEXT),
+
             ("transmitted_gem_frames", PmConfig.COUNTER),
             ("received_gem_frames", PmConfig.COUNTER),
             ("received_payload_bytes", PmConfig.COUNTER),
@@ -121,9 +127,10 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
                                          for (m, t) in gem_port_history}
 
         xgpon_tc_history = {  # XgPon TC History Data (Class ID 344)
-            ('class_id', PmConfig.GUAGE),
-            ('entity_id', PmConfig.GUAGE),
-            ("interval_end_time", PmConfig.GUAGE),
+            ('class_id', PmConfig.CONTEXT),
+            ('entity_id', PmConfig.CONTEXT),
+            ("interval_end_time", PmConfig.CONTEXT),
+
             ("psbd_hec_error_count", PmConfig.COUNTER),
             ("xgtc_hec_error_count", PmConfig.COUNTER),
             ("unknown_profile_count", PmConfig.COUNTER),
@@ -137,9 +144,10 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
                                          for (m, t) in xgpon_tc_history}
 
         xgpon_downstream_history = {  # XgPon Downstream History Data (Class ID 345)
-            ('class_id', PmConfig.GUAGE),
-            ('entity_id', PmConfig.GUAGE),
-            ("interval_end_time", PmConfig.GUAGE),
+            ('class_id', PmConfig.CONTEXT),
+            ('entity_id', PmConfig.CONTEXT),
+            ("interval_end_time", PmConfig.CONTEXT),
+
             ("ploam_mic_error_count", PmConfig.COUNTER),
             ("downstream_ploam_messages_count", PmConfig.COUNTER),
             ("profile_messages_received", PmConfig.COUNTER),
@@ -159,9 +167,10 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
                                                  for (m, t) in xgpon_downstream_history}
 
         xgpon_upstream_history = {  # XgPon Upstream History Data (Class ID 346)
-            ('class_id', PmConfig.GUAGE),
-            ('entity_id', PmConfig.GUAGE),
-            ("interval_end_time", PmConfig.GUAGE),
+            ('class_id', PmConfig.CONTEXT),
+            ('entity_id', PmConfig.CONTEXT),
+            ("interval_end_time", PmConfig.CONTEXT),
+
             ("upstream_ploam_message_count", PmConfig.COUNTER),
             ("serial_number_onu_message_count", PmConfig.COUNTER),
             ("registration_message_count", PmConfig.COUNTER),
@@ -319,31 +328,42 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
         self.log.debug('publish-metrics', metrics=interval_data)
 
         try:
-            import arrow
-            from voltha.protos.events_pb2 import KpiEvent, KpiEventType, MetricValuePairs
             # Locate config
-
+            now = arrow.utcnow()
             class_id = interval_data['class_id']
             config = self._configs.get(class_id)
             group = self.pm_group_metrics.get(OnuPmIntervalMetrics.ME_ID_INFO.get(class_id, ''))
 
             if config is not None and group is not None and group.enabled:
                 # Extract only the metrics we need to publish
-                config_keys = config.keys()
-                metrics = {
-                    interval_data['me_name']: {k: v
-                                               for k, v in interval_data.items()
-                                               if k in config_keys and v is not None}
+                metrics = dict()
+                context = {
+                    'interval_start_time': str(now.replace(minute=int(now.minute / 15) * 15,
+                                                           second=0,
+                                                           microsecond=0).timestamp)
                 }
-                # Prepare the KpiEvent for submission
-                kpi_event = KpiEvent(
-                    type=KpiEventType.slice,
-                    ts=arrow.get(interval_data['interval_utc_time']).timestamp,
-                    prefixes={
-                        self.prefix + '.{}'.format(k): MetricValuePairs(metrics=metrics[k])
-                        for k in metrics.keys()}
-                )
-                self.adapter_agent.submit_kpis(kpi_event)
+                for metric, config_item in config.items():
+                    if config_item.type == PmConfig.CONTEXT and metric in interval_data:
+                        context[metric] = str(interval_data[metric])
+
+                    elif (config_item.type in (PmConfig.COUNTER, PmConfig.GAUGE, PmConfig.STATE) and
+                          metric in interval_data and
+                          config_item.enabled):
+                        metrics[metric] = interval_data[metric]
+
+                if len(metrics):
+                    metadata = MetricMetaData(title=group.group_name,
+                                              ts=now.float_timestamp,
+                                              logical_device_id=self.logical_device_id,
+                                              serial_no=self.serial_number,
+                                              device_id=self.device_id,
+                                              context=context)
+                    slice_data = [MetricInformation(metadata=metadata, metrics=metrics)]
+
+                    kpi_event = KpiEvent2(type=KpiEventType.slice,
+                                          ts=now.float_timestamp,
+                                          slice_data=slice_data)
+                    self.adapter_agent.submit_kpis(kpi_event)
 
         except Exception as e:
             self.log.exception('failed-to-submit-kpis', e=e)

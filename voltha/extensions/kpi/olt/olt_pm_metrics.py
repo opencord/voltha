@@ -20,17 +20,18 @@ class OltPmMetrics(AdapterPmMetrics):
     """
     Shared OL Device Adapter PM Metrics Manager
 
-    This class specifically addresses ONU genernal PM (health, ...) area
+    This class specifically addresses ONU general PM (health, ...) area
     specific PM (OMCI, PON, UNI) is supported in encapsulated classes accessible
     from this object
     """
-    def __init__(self, adapter_agent, device_id, grouped=False, freq_override=False,
-                 **kwargs):
+    def __init__(self, adapter_agent, device_id, logical_device_id,
+                 grouped=False, freq_override=False, **kwargs):
         """
         Initializer for shared ONU Device Adapter PM metrics
 
         :param adapter_agent: (AdapterAgent) Adapter agent for the device
         :param device_id: (str) Device ID
+        :param logical_device_id: (str) VOLTHA Logical Device ID
         :param grouped: (bool) Flag indicating if statistics are managed as a group
         :param freq_override: (bool) Flag indicating if frequency collection can be specified
                                      on a per group basis
@@ -41,70 +42,63 @@ class OltPmMetrics(AdapterPmMetrics):
                               'nni-ports': List of objects that provide NNI (northbound) port statistics
                               'pon-ports': List of objects that provide PON port statistics
         """
-        super(OltPmMetrics, self).__init__(adapter_agent, device_id,
+        super(OltPmMetrics, self).__init__(adapter_agent, device_id, logical_device_id,
                                            grouped=grouped, freq_override=freq_override,
                                            **kwargs)
 
-        # PM Config Types are COUNTER, GUAGE, and STATE     # GAUGE is misspelled device.proto
+        # PM Config Types are COUNTER, GAUGE, and STATE
         self.nni_pm_names = {
+            ('intf_id', PmConfig.CONTEXT),      # Physical device interface ID/Port number
+
             ('admin_state', PmConfig.STATE),
             ('oper_status', PmConfig.STATE),
-            ('port_no', PmConfig.GUAGE),  # Device and logical_device port numbers same
-            ('rx_packets', PmConfig.COUNTER),
+
             ('rx_bytes', PmConfig.COUNTER),
-            ('rx_dropped', PmConfig.COUNTER),
-            ('rx_errors', PmConfig.COUNTER),
-            ('rx_bcast', PmConfig.COUNTER),
-            ('rx_mcast', PmConfig.COUNTER),
-            ('tx_packets', PmConfig.COUNTER),
+            ('rx_packets', PmConfig.COUNTER),
+            ('rx_ucast_packets', PmConfig.COUNTER),
+            ('rx_mcast_packets', PmConfig.COUNTER),
+            ('rx_bcast_packets', PmConfig.COUNTER),
+            ('rx_error_packets', PmConfig.COUNTER),
+
             ('tx_bytes', PmConfig.COUNTER),
-            ('tx_dropped', PmConfig.COUNTER),
-            ('tx_bcast', PmConfig.COUNTER),
-            ('tx_mcast', PmConfig.COUNTER),
-            #
-            # Commented out are from spec. May not be supported or implemented yet
-            # ('rx_64', PmConfig.COUNTER),
-            # ('rx_65_127', PmConfig.COUNTER),
-            # ('rx_128_255', PmConfig.COUNTER),
-            # ('rx_256_511', PmConfig.COUNTER),
-            # ('rx_512_1023', PmConfig.COUNTER),
-            # ('rx_1024_1518', PmConfig.COUNTER),
-            # ('rx_frame_err', PmConfig.COUNTER),
-            # ('rx_over_err', PmConfig.COUNTER),
-            # ('rx_crc_err', PmConfig.COUNTER),
-            # ('rx_64', PmConfig.COUNTER),
-            # ('tx_65_127', PmConfig.COUNTER),
-            # ('tx_128_255', PmConfig.COUNTER),
-            # ('tx_256_511', PmConfig.COUNTER),
-            # ('tx_512_1023', PmConfig.COUNTER),
-            # ('tx_1024_1518', PmConfig.COUNTER),
-            # ('collisions', PmConfig.COUNTER),
+            ('tx_packets', PmConfig.COUNTER),
+            ('tx_ucast_packets', PmConfig.COUNTER),
+            ('tx_mcast_packets', PmConfig.COUNTER),
+            ('tx_bcast_packets', PmConfig.COUNTER),
+            ('tx_error_packets', PmConfig.COUNTER),
+            ('rx_crc_errors', PmConfig.COUNTER),
+            ('bip_errors', PmConfig.COUNTER),
         }
         self.pon_pm_names = {
+            ('intf_id', PmConfig.CONTEXT),        # Physical device port number (PON)
+            ('pon_id', PmConfig.CONTEXT),         # PON ID (0..n)
+
             ('admin_state', PmConfig.STATE),
             ('oper_status', PmConfig.STATE),
-            ('port_no', PmConfig.GUAGE),        # Physical device port number
-            ('pon_id', PmConfig.GUAGE),
             ('rx_packets', PmConfig.COUNTER),
             ('rx_bytes', PmConfig.COUNTER),
             ('tx_packets', PmConfig.COUNTER),
             ('tx_bytes', PmConfig.COUNTER),
             ('tx_bip_errors', PmConfig.COUNTER),
-            ('in_service_onus', PmConfig.GUAGE),
-            ('closest_onu_distance', PmConfig.GUAGE)
+            ('in_service_onus', PmConfig.GAUGE),
+            ('closest_onu_distance', PmConfig.GAUGE)
         }
         self.onu_pm_names = {
-            ('pon_id', PmConfig.GUAGE),
-            ('onu_id', PmConfig.GUAGE),
-            ('fiber_length', PmConfig.GUAGE),
-            ('equalization_delay', PmConfig.GUAGE),
-            ('rssi', PmConfig.GUAGE),            #
+            ('intf_id', PmConfig.CONTEXT),        # Physical device port number (PON)
+            ('pon_id', PmConfig.CONTEXT),
+            ('onu_id', PmConfig.CONTEXT),
+
+            ('fiber_length', PmConfig.GAUGE),
+            ('equalization_delay', PmConfig.GAUGE),
+            ('rssi', PmConfig.GAUGE),
         }
         self.gem_pm_names = {
-            ('pon_id', PmConfig.GUAGE),
-            ('onu_id', PmConfig.GUAGE),
-            ('gem_id', PmConfig.GUAGE),
-            ('alloc_id', PmConfig.GUAGE),
+            ('intf_id', PmConfig.CONTEXT),        # Physical device port number (PON)
+            ('pon_id', PmConfig.CONTEXT),
+            ('onu_id', PmConfig.CONTEXT),
+            ('gem_id', PmConfig.CONTEXT),
+
+            ('alloc_id', PmConfig.GAUGE),
             ('rx_packets', PmConfig.COUNTER),
             ('rx_bytes', PmConfig.COUNTER),
             ('tx_packets', PmConfig.COUNTER),
@@ -239,39 +233,71 @@ class OltPmMetrics(AdapterPmMetrics):
 
         return pm_config
 
-    def collect_metrics(self, metrics=None):
-        # TODO: Currently PM collection is done for all metrics/groups on a single timer
-        if metrics is None:
-            metrics = dict()
+    def collect_metrics(self, data=None):
+        """
+        Collect metrics for this adapter.
 
-        if self.pm_group_metrics['Ethernet'].enabled:
+        The data collected (or passed in) is a list of pairs/tuples.  Each
+        pair is composed of a MetricMetaData metadata-portion and list of MetricValuePairs
+        that contains a single individual metric or list of metrics if this is a
+        group metric.
+
+        This method is called for each adapter at a fixed frequency.
+        TODO: Currently all group metrics are collected on a single timer tick.
+              This needs to be fixed as independent group or instance collection is
+              desirable.
+
+        :param data: (list) Existing list of collected metrics (MetricInformation).
+                            This is provided to allow derived classes to call into
+                            further encapsulated classes.
+
+        :return: (list) metadata and metrics pairs - see description above
+        """
+        if data is None:
+            data = list()
+
+        group_name = 'Ethernet'
+        if self.pm_group_metrics[group_name].enabled:
             for port in self._nni_ports:
-                name = 'nni.{}'.format(port.port_no)
-                metrics[name] = self.collect_group_metrics(port,
-                                                           self.nni_pm_names,
-                                                           self.nni_metrics_config)
+                group_data = self.collect_group_metrics(group_name,
+                                                        port,
+                                                        self.nni_pm_names,
+                                                        self.nni_metrics_config)
+                if group_data is not None:
+                    data.append(group_data)
+
         for port in self._pon_ports:
-            if self.pm_group_metrics['PON'].enabled:
-                name = 'pon.{}'.format(port.pon_id)
-                metrics[name] = self.collect_group_metrics(port,
-                                                           self.pon_pm_names,
-                                                           self.pon_metrics_config)
+            group_name = 'PON'
+            if self.pm_group_metrics[group_name].enabled:
+                group_data = self.collect_group_metrics(group_name,
+                                                        port,
+                                                        self.pon_pm_names,
+                                                        self.pon_metrics_config)
+                if group_data is not None:
+                    data.append(group_data)
+
             for onu_id in port.onu_ids:
                 onu = port.onu(onu_id)
                 if onu is not None:
-                    if self.pm_group_metrics['ONU'].enabled:
-                        name = 'pon.{}.onu.{}'.format(port.pon_id, onu.onu_id)
-                        metrics[name] = self.collect_group_metrics(onu,
-                                                                   self.onu_pm_names,
-                                                                   self.onu_metrics_config)
-                    if self.pm_group_metrics['GEM'].enabled:
+                    group_name = 'ONU'
+                    if self.pm_group_metrics[group_name].enabled:
+                        group_data = self.collect_group_metrics(group_name,
+                                                                onu,
+                                                                self.onu_pm_names,
+                                                                self.onu_metrics_config)
+                        if group_data is not None:
+                            data.append(group_data)
+
+                    group_name = 'GEM'
+                    if self.pm_group_metrics[group_name].enabled:
                         for gem in onu.gem_ports:
                             if not gem.multicast:
-                                name = 'pon.{}.onu.{}.gem.{}'.format(port.pon_id,
-                                                                     onu.onu_id,
-                                                                     gem.gem_id)
-                                metrics[name] = self.collect_group_metrics(onu,
-                                                                           self.gem_pm_names,
-                                                                           self.gem_metrics_config)
+                                group_data = self.collect_group_metrics(group_name,
+                                                                        onu,
+                                                                        self.gem_pm_names,
+                                                                        self.gem_metrics_config)
+                                if group_data is not None:
+                                    data.append(group_data)
+
                             # TODO: Do any multicast GEM PORT metrics here...
-        return metrics
+        return data

@@ -41,15 +41,16 @@ state machine synchronizes the ONU's time at
 ## Common Elements for All Reported MEs
 
 In addition to counter elements (attributes) reported in each ME, every reported 
-historical interval report the following Elements.  All widths are reported below
-in bytes.
+historical interval report the following Elements as context values in the KPI
+Event metadata field.  Each value is reported as a _string_ per the Protobuf structure 
+but are actually integer/floats.
 
-| Label             | Width | Description |
-| ----------------: | :---: | :---------- |
-| class_id          | 2     | The ME Class ID of the PM Interval ME |
-| entity_id         | 2     | The OMCI Entity Instance of the particular PM Interval ME |
-| interval_end_time | 2     | Identifies the most recently finished 15 minute. This attribute is set to zero when a synchronize time request is performed by OpenOMCI.  This counter rolls over from 255 to 0 upon saturation. 
-
+| Label               | Type         | Description |
+| ------------------: | :----------: | :---------- |
+| class_id            | int, 16-bits | The ME Class ID of the PM Interval ME |
+| entity_id           | int, 16-bits | The OMCI Entity Instance of the particular PM Interval ME |
+| interval_end_time   | int, 8-bits  | Identifies the most recently finished 15 minute. This attribute is set to zero when a synchronize time request is performed by OpenOMCI.  This counter rolls over from 255 to 0 upon saturation. | 
+| interval_start_time | int, 64-bits | The UTC timestamp (seconds since epoch) rounded down to the start time of the specific interval |
 
 ## Ethernet Frame Performance Monitoring MEs
 
@@ -68,12 +69,12 @@ appropriate Upstream or DownStream Monitoring ME will be used.
 The table below describes the four Ethernet Frame Performance Monitoring MEs and provides their
 counter width (in bytes) and ME Class ID.
 
-| ME Name                                                     | Class ID | Width |
-| ----------------------------------------------------------: | :------: | :---: |
-| Ethernet Frame Extended Performance Monitoring64Bit         |   426    |  8    |
-| Ethernet Frame Extended Performance Monitoring              |   334    |  8    |
-| Ethernet Frame Upstream Performance MonitoringHistoryData   |   322    |  8    |
-| Ethernet Frame Downstream Performance MonitoringHistoryData |   321    |  8    |
+| ME Name                                                     | Class ID | Counter Width |
+| ----------------------------------------------------------: | :------: | :---:   |
+| Ethernet Frame Extended Performance Monitoring64Bit         |   426    |  64-bit |
+| Ethernet Frame Extended Performance Monitoring              |   334    |  32-bit |
+| Ethernet Frame Upstream Performance MonitoringHistoryData   |   322    |  32-bit |
+| Ethernet Frame Downstream Performance MonitoringHistoryData |   321    |  32-bit |
 
 ### Counter Information
 
@@ -111,7 +112,7 @@ An instance of this managed entity is associated with an instance of the physica
 termination point Ethernet UNI.                 
 
 ### Attributes
-All counters are 2 bytes wide.
+All counters are 32-bits wide.
 
 | Attribute Name      | Description |
 | ------------------: | :-----------|
@@ -144,13 +145,13 @@ An instance of this managed entity is associated with an instance of the ANI-G m
 
 ### Attributes
 
-| Attribute Name           | Width | Description |
-| -----------------------: | :---: | :-----------|
-| corrected_bytes          |   4   | This attribute counts the number of bytes that were corrected by the FEC function. |
-| corrected_code_words     |   4   | This attribute counts the code words that were corrected by the FEC function. |
-| uncorrectable_code_words |   4   | This attribute counts errored code words that could not be corrected by the FEC function. |
-| total_code_words         |   4   | This attribute counts the total received code words. |
-| fec_seconds              |   2   | This attribute counts seconds during which there was a forward error correction anomaly. |
+| Attribute Name           | Counter Width | Description |
+| -----------------------: | :-----: | :-----------|
+| corrected_bytes          | 32-bits | This attribute counts the number of bytes that were corrected by the FEC function. |
+| corrected_code_words     | 32-bits | This attribute counts the code words that were corrected by the FEC function. |
+| uncorrectable_code_words | 32-bits | This attribute counts errored code words that could not be corrected by the FEC function. |
+| total_code_words         | 32-bits | This attribute counts the total received code words. |
+| fec_seconds              | 16-bits | This attribute counts seconds during which there was a forward error correction anomaly. |
 
 
 ## GEM Port Network CTP Monitoring History Data (Class ID 341)
@@ -173,13 +174,13 @@ managed entity.
 
 ### Attributes
 
-| Attribute Name            | Width | Description |
-| ------------------------: | :---: | :-----------|
-| transmitted_gem_frames    |   4   | This attribute counts GEM frames transmitted on the monitored GEM port. |
-| received_gem_frames       |   4   | This attribute counts GEM frames received correctly on the monitored GEM port. A correctly received GEM frame is one that does not contain uncorrectable errors and has a valid HEC. |
-| received_payload_bytes    |   8   | This attribute counts user payload bytes received on the monitored GEM port. |
-| transmitted_payload_bytes |   8   | This attribute counts user payload bytes transmitted on the monitored GEM port. |
-| encryption_key_errors     |   4   | This attribute is defined in ITU-T G.987 systems only. It counts GEM frames with erroneous encryption key indexes. If the GEM port is not encrypted, this attribute counts any frame with a key index not equal to 0. If the GEM port is encrypted, this attribute counts any frame whose key index specifies a key that is not known to the ONU. |
+| Attribute Name            | Counter Width | Description |
+| ------------------------: | :-----: | :-----------|
+| transmitted_gem_frames    | 32-bits | This attribute counts GEM frames transmitted on the monitored GEM port. |
+| received_gem_frames       | 32-bits | This attribute counts GEM frames received correctly on the monitored GEM port. A correctly received GEM frame is one that does not contain uncorrectable errors and has a valid HEC. |
+| received_payload_bytes    | 64-bits | This attribute counts user payload bytes received on the monitored GEM port. |
+| transmitted_payload_bytes | 64-bits | This attribute counts user payload bytes transmitted on the monitored GEM port. |
+| encryption_key_errors     | 32-bits | This attribute is defined in ITU-T G.987 systems only. It counts GEM frames with erroneous encryption key indexes. If the GEM port is not encrypted, this attribute counts any frame with a key index not equal to 0. If the GEM port is encrypted, this attribute counts any frame whose key index specifies a key that is not known to the ONU. |
 
 Note 3: GEM PM ignores idle GEM frames.
 
@@ -196,10 +197,10 @@ An instance of this managed entity is associated with an ANI-G.
 
 ### Attributes
 
-All counters are 2 bytes wide.
+All counters are 32-bits wide.
 
-| Attribute Name      | Description |
-| ------------------: | :-----------|
+| Attribute Name            | Description |
+| ------------------------: | :-----------|
 | psbd_hec_error_count      | This attribute counts HEC errors in any of the fields of the downstream physical sync block. |
 | xgtc_hec_error_count      | This attribute counts HEC errors detected in the XGTC header. |
 | unknown_profile_count     | This attribute counts the number of grants received whose specified profile was not known to the ONU. |
@@ -221,10 +222,10 @@ An instance of this managed entity is associated with an ANI-G.
 
 ### Attributes
      
-All counters are 2 bytes wide.
+All counters are 32-bits wide.
 
-| Attribute Name      | Description |
-| ------------------: | :-----------|
+| Attribute Name                          | Description |
+| --------------------------------------: | :-----------|
 | ploam_mic_error_count                   | This attribute counts MIC errors detected in downstream PLOAM messages, either directed to this ONU or broadcast to all ONUs. |
 | downstream_ploam_messages_count         | This attribute counts PLOAM messages received, either directed to this ONU or broadcast to all ONUs. |
 | profile_messages_received               | This attribute counts the number of profile messages received, either directed to this ONU or broadcast to all ONUs. |
@@ -252,10 +253,10 @@ An instance of this managed entity is associated with an ANI-G.
 
 ### Attributes
 
-All counters are 2 bytes wide.
+All counters are 32-bits wide.
 
-| Attribute Name      | Description |
-| ------------------: | :-----------|
+| Attribute Name                  | Description |
+| ------------------------------: | :-----------|
 | upstream_ploam_message_count    | This attribute counts PLOAM messages transmitted upstream, excluding acknowledge messages. |
 | serial_number_onu_message_count | This attribute counts Serial_number_ONU PLOAM messages transmitted. |
 | registration_message_count      | This attribute counts registration PLOAM messages transmitted. |
@@ -265,4 +266,4 @@ All counters are 2 bytes wide.
 
 # Remaining Work Items
 
-- The enable/disable of a PM group (CLI/NBI) should control whether or not a PM interval is collected
+- The enable/disable of a PM group (CLI/NBI) should control whether or not a PM interval ME is created and collected.

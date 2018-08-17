@@ -41,9 +41,10 @@ message DeviceTypes {
 
 message PmConfig {
     enum PmType {
-    	COUNTER = 0;
-	GUAGE = 1;
-	STATE = 2;
+        COUNTER = 0;
+        GAUGE = 1;
+        STATE = 2;
+        CONTEXT = 3;
     }
     string name = 1;
     PmType type = 2;

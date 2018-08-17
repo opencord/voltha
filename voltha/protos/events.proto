@@ -30,6 +30,29 @@ message KpiEventType {
 }
 
 /*
+ * Struct to convey a dictionary of metric metadata.
+ */
+message MetricMetaData {
+    string title = 1;   // Metric group or individual metric name
+    double ts = 2;      // UTC time-stamp of data (seconds since epoch) of
+                        // when the metric or metric group was collected.
+                        // If this is a 15-min historical group, it is the
+                        // time of the collection and reporting, not the
+                        // start or end of the 15-min group interval.
+
+    string logical_device_id = 3; // The logical device ID of the VOLTHA
+                                  // (equivalent to the DPID that ONOS has
+                                  // for the VOLTHA device without the
+                                  //  'of:' prefix
+    string serial_no = 4;         // The OLT, ONU, ... device serial number
+    string device_id = 5;         // The OLT, ONU, ... physical device ID
+
+    map<string, string> context = 6; // Name value pairs that provide additional
+                                     // context information on the metrics being
+                                     // reported.
+}
+
+/*
  * Struct to convey a dictionary of metric->value pairs. Typically used in
  * pure shared-timestamp or shared-timestamp + shared object prefix situations.
  */
@@ -40,7 +63,20 @@ message MetricValuePairs {
 
 }
 
+/*
+ * Struct to group metadata for a metric (or group of metrics) with the key-value
+ * pairs of collected metrics
+ */
+message MetricInformation {
+    MetricMetaData metadata = 1;
+    map<string, float> metrics = 2;
+}
 
+/*
+ * Legacy KPI Event structured.  In mid-August, the KPI event format was updated
+ *                               to a more easily parsable format. See VOL-1140
+ *                               for more information.
+ */
 message KpiEvent {
 
     KpiEventType.KpiEventType type = 1;
@@ -51,6 +87,17 @@ message KpiEvent {
 
     map<string, MetricValuePairs> prefixes = 3;
 
+}
+
+message KpiEvent2 {
+    // Type of KPI Event
+    KpiEventType.KpiEventType type = 1;
+
+    // Fields used when for slice:
+    double ts = 2;  // UTC time-stamp of data in slice mode (seconds since epoch)
+                    // of the time this entire KpiEvent was published to the kafka bus
+
+    repeated MetricInformation slice_data = 3;
 }
 
 /*
