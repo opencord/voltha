@@ -24,6 +24,7 @@ class TestFlowDecomposer(FlowHelpers, FlowDecomposer):
 
     def setUp(self):
         self.logical_device_id = 'pon'
+        self._nni_logical_port_no = None
 
     # methods needed by FlowDecomposer; faking real lookups
 
