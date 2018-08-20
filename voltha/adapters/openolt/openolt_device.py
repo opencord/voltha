@@ -363,10 +363,6 @@ class OpenoltDevice(object):
                                errmsg=disc_alarm_error.message)
             # continue for now.
 
-        pir = self.bw_mgr.pir(serial_number_str)
-        self.log.debug("peak information rate", serial_number=serial_number,
-                       pir=pir)
-
         onu_device = self.adapter_agent.get_child_device(
             self.device_id,
             serial_number=serial_number_str)
@@ -378,11 +374,8 @@ class OpenoltDevice(object):
                     intf_id,
                     platform.intf_id_to_port_no(intf_id, Port.PON_OLT),
                     onu_id, serial_number)
-                self.log.info("activate-onu", intf_id=intf_id, onu_id=onu_id,
-                              serial_number=serial_number_str)
-                onu = openolt_pb2.Onu(intf_id=intf_id, onu_id=onu_id,
-                                      serial_number=serial_number, pir=pir)
-                self.stub.ActivateOnu(onu)
+                self.activate_onu(intf_id, onu_id, serial_number,
+                                  serial_number_str)
             except Exception as e:
                 self.log.exception('onu-activation-failed', e=e)
 
@@ -405,15 +398,17 @@ class OpenoltDevice(object):
                               state=onu_device.oper_status)
             elif onu_device.oper_status == OperStatus.UNKNOWN:
                 self.log.info("onu in unknown state, recovering from olt \
-                              reboot, activate onu", intf_id=intf_id,
+                              reboot probably, activate onu", intf_id=intf_id,
                               onu_id=onu_id, serial_number=serial_number_str)
 
                 onu_device.oper_status = OperStatus.DISCOVERED
                 self.adapter_agent.update_device(onu_device)
-
-                onu = openolt_pb2.Onu(intf_id=intf_id, onu_id=onu_id,
-                                      serial_number=serial_number, pir=pir)
-                self.stub.ActivateOnu(onu)
+                try:
+                    self.activate_onu(intf_id, onu_id, serial_number,
+                                  serial_number_str)
+                except Exception as e:
+                    self.log.error('onu-activation-error',
+                                   serial_number=serial_number_str, error=e)
             else:
                 self.log.warn('unexpected state', onu_id=onu_id,
                               onu_device_oper_state=onu_device.oper_status)
@@ -872,16 +867,6 @@ class OpenoltDevice(object):
                        intf_id=intf_id, ids_taken=platform.MAX_ONUS_PER_PON)
         return None
 
-    def stringify_vendor_specific(self, vendor_specific):
-        return ''.join(str(i) for i in [
-                hex(ord(vendor_specific[0]) >> 4 & 0x0f)[2:],
-                hex(ord(vendor_specific[0]) & 0x0f)[2:],
-                hex(ord(vendor_specific[1]) >> 4 & 0x0f)[2:],
-                hex(ord(vendor_specific[1]) & 0x0f)[2:],
-                hex(ord(vendor_specific[2]) >> 4 & 0x0f)[2:],
-                hex(ord(vendor_specific[2]) & 0x0f)[2:],
-                hex(ord(vendor_specific[3]) >> 4 & 0x0f)[2:],
-                hex(ord(vendor_specific[3]) & 0x0f)[2:]])
 
     def update_flow_table(self, flows):
         self.log.debug('No updates here now, all is done in logical flows '
@@ -934,10 +919,28 @@ class OpenoltDevice(object):
             hex_ip.append(octet_hex)
         return ":".join(hex_ip)
 
+    def stringify_vendor_specific(self, vendor_specific):
+        return ''.join(str(i) for i in [
+            hex(ord(vendor_specific[0]) >> 4 & 0x0f)[2:],
+            hex(ord(vendor_specific[0]) & 0x0f)[2:],
+            hex(ord(vendor_specific[1]) >> 4 & 0x0f)[2:],
+            hex(ord(vendor_specific[1]) & 0x0f)[2:],
+            hex(ord(vendor_specific[2]) >> 4 & 0x0f)[2:],
+            hex(ord(vendor_specific[2]) & 0x0f)[2:],
+            hex(ord(vendor_specific[3]) >> 4 & 0x0f)[2:],
+            hex(ord(vendor_specific[3]) & 0x0f)[2:]])
+
+
     def stringify_serial_number(self, serial_number):
         return ''.join([serial_number.vendor_id,
                         self.stringify_vendor_specific(
                             serial_number.vendor_specific)])
+
+    def destringify_serial_number(self, serial_number_str):
+        serial_number = openolt_pb2.SerialNumber(
+            vendor_id=serial_number_str[:4].encode('utf-8'),
+            vendor_specific=binascii.unhexlify(serial_number_str[4:]))
+        return serial_number
 
     def disable(self):
         self.log.debug('sending-deactivate-olt-message',
@@ -983,22 +986,17 @@ class OpenoltDevice(object):
         else:
             self.log.info('openolt device reenabled')
 
+    def activate_onu(self, intf_id, onu_id, serial_number,
+                     serial_number_str):
+        pir = self.bw_mgr.pir(serial_number_str)
+        self.log.debug("activating-onu", intf_id=intf_id, onu_id=onu_id,
+                      serial_number_str=serial_number_str,
+                      serial_number=serial_number, pir=pir)
+        onu = openolt_pb2.Onu(intf_id=intf_id, onu_id=onu_id,
+                              serial_number=serial_number, pir=pir)
+        self.stub.ActivateOnu(onu)
+        self.log.info('onu-activated', serial_number=serial_number_str)
 
-
-    def disable_child_device(self, child_device):
-        self.log.debug('sending-disable-onu',
-                       olt_device_id=self.device_id,
-                       onu_device=child_device,
-                       onu_serial_number=child_device.serial_number)
-        vendor_id = child_device.vendor_id.encode('hex')
-        vendor_specific = child_device.serial_number.replace(
-            child_device.vendor_id, '').encode('hex')
-        serial_number = openolt_pb2.SerialNumber(
-            vendor_id=vendor_id, vendor_specific=vendor_specific)
-        onu = openolt_pb2.Onu(intf_id=child_device.proxy_address.channel_id,
-                              onu_id=child_device.proxy_address.onu_id,
-                              serial_number=serial_number)
-        self.stub.DeactivateOnu(onu)
 
     def delete_child_device(self, child_device):
         self.log.debug('sending-deactivate-onu',
@@ -1018,11 +1016,7 @@ class OpenoltDevice(object):
             self.delete_port(child_device.serial_number)
         except Exception as e:
             self.log.error('port delete error', error=e)
-        vendor_id = child_device.vendor_id.encode('hex')
-        vendor_specific = child_device.serial_number.replace(
-            child_device.vendor_id, '').encode('hex')
-        serial_number = openolt_pb2.SerialNumber(
-            vendor_id=vendor_id, vendor_specific=vendor_specific)
+        serial_number = self.destringify_serial_number(child_device.serial_number)
         onu = openolt_pb2.Onu(intf_id=child_device.proxy_address.channel_id,
                               onu_id=child_device.proxy_address.onu_id,
                               serial_number=serial_number)
