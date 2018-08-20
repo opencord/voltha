@@ -634,20 +634,6 @@ class BrcmOpenomciOnuHandler(object):
             task = BrcmUniLockTask(self.omci_agent, self.device_id, lock=True)
             self._deferred = self._onu_omci_device.task_runner.queue_task(task)
             self._deferred.addCallbacks(stop_anyway, stop_anyway)
-            '''
-            # Disable in parent device (OLT)
-            parent_device = self.adapter_agent.get_device(device.parent_id)
-
-            if parent_device.type == 'openolt':
-                parent_adapter = registry('adapter_loader').get_agent(parent_device.adapter).adapter
-                self.log.info('parent-adapter-disable-onu', onu_device=device,
-                              parent_device=parent_device,
-                              parent_adapter=parent_adapter)
-                try:
-                    parent_adapter.disable_child_device(parent_device.id, device)
-                except AttributeError:
-                    self.log.debug('parent-device-disable-child-not-implemented')
-            '''
         except Exception as e:
             log.exception('exception-in-onu-disable', exception=e)
 
