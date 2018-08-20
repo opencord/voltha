@@ -626,7 +626,6 @@ class BrcmOpenomciOnuHandler(object):
                 reactor.callLater(0, self._onu_omci_device.stop)
                 self.disable_ports(device)
                 device.oper_status = OperStatus.UNKNOWN
-                device.connect_status = ConnectStatus.UNREACHABLE
                 device.reason = "openomci-admin-lock"
                 self.adapter_agent.update_device(device)
 
