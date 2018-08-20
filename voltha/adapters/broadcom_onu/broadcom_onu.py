@@ -1744,7 +1744,6 @@ class BroadcomOnuHandler(object):
             # Disable all ports on that device
             self.disable_ports(device)
             device.oper_status = OperStatus.UNKNOWN
-            device.connect_status = ConnectStatus.UNREACHABLE
             self.adapter_agent.update_device(device)
         except Exception as e:
             log.exception('exception-in-onu-disable', exception=e)
