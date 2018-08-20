@@ -541,7 +541,7 @@ class FlowDecomposer(object):
             return not is_downstream()
 
         if out_port_no is not None and \
-                        (out_port_no & 0x7fffffff) == ofp.OFPP_CONTROLLER:
+                (out_port_no & 0x7fffffff) == ofp.OFPP_CONTROLLER:
 
             # UPSTREAM CONTROLLER-BOUND FLOW
 
@@ -556,64 +556,66 @@ class FlowDecomposer(object):
             fl_lst, _ = device_rules.setdefault(
                 egress_hop.device.id, ([], []))
 
-            # in_port_no is None for wildcard input case, do not include
-            # upstream port for 4000 flow in input
-            if in_port_no is None:
-                in_ports = self.get_wildcard_input_ports(exclude_port=
-                                                         egress_hop.egress_port.port_no)
-            else:
-                in_ports = [in_port_no]
+            log.info('trap-flow', in_port_no=in_port_no,
+                     nni=self._nni_logical_port_no)
 
-            for input_port in in_ports:
-                fl_lst.append(mk_flow_stat(        # Upstream flow
+            if in_port_no == self._nni_logical_port_no:
+                log.info('trap-nni')
+                # Trap flow for NNI port
+                fl_lst.append(mk_flow_stat(
                     priority=flow.priority,
                     cookie=flow.cookie,
                     match_fields=[
-                        in_port(egress_hop.ingress_port.port_no),
-                        vlan_vid(ofp.OFPVID_PRESENT | input_port)
+                        in_port(egress_hop.egress_port.port_no)
                     ] + [
                         field for field in get_ofb_fields(flow)
-                        if field.type not in (IN_PORT, VLAN_VID)
+                        if field.type not in (IN_PORT,)
                     ],
                     actions=[
-                        push_vlan(0x8100),
-                        set_field(vlan_vid(ofp.OFPVID_PRESENT | 4000)),
-                        output(egress_hop.egress_port.port_no)]
-                ))
-                fl_lst.append(mk_flow_stat(            # Downstream flow
-                    priority=flow.priority,
-                    match_fields=[
-                        in_port(egress_hop.egress_port.port_no),
-                        vlan_vid(ofp.OFPVID_PRESENT | 4000),
-                        vlan_pcp(0),
-                        metadata(input_port)
-                    ],
-                    actions=[
-                        pop_vlan(),
-                        output(egress_hop.ingress_port.port_no)]
-                ))
-
-            if in_port_no is not None:
-                # Only handle the non-wildcard case on the ONU
-                onu_fl_lst, _ = device_rules.setdefault(
-                    ingress_hop.device.id, ([], []))
-
-                onu_fl_lst.append(mk_flow_stat(        # Onu upstream flow
-                    priority=flow.priority + 1000,
-                    cookie=flow.cookie,
-                    match_fields= [
-                        in_port(ingress_hop.ingress_port.port_no),
-                        vlan_vid(0)
-                    ] + [
-                        field for field in get_ofb_fields(flow)
-                        if field.type not in (IN_PORT, VLAN_VID)
-                    ],
-                    actions=[
-                        push_vlan(0x8100),
-                        set_field(vlan_vid(ofp.OFPVID_PRESENT | input_port)),
-                        output(ingress_hop.egress_port.port_no)
+                        action for action in get_actions(flow)
                     ]
                 ))
+
+            else:
+                log.info('trap-uni')
+                # Trap flow for UNI port
+
+                # in_port_no is None for wildcard input case, do not include
+                # upstream port for 4000 flow in input
+                if in_port_no is None:
+                    in_ports = self.get_wildcard_input_ports(exclude_port=
+                                                             egress_hop.egress_port.port_no)
+                else:
+                    in_ports = [in_port_no]
+
+                for input_port in in_ports:
+                    fl_lst.append(mk_flow_stat(        # Upstream flow
+                        priority=flow.priority,
+                        cookie=flow.cookie,
+                        match_fields=[
+                            in_port(egress_hop.ingress_port.port_no),
+                            vlan_vid(ofp.OFPVID_PRESENT | input_port)
+                        ] + [
+                            field for field in get_ofb_fields(flow)
+                            if field.type not in (IN_PORT, VLAN_VID)
+                        ],
+                        actions=[
+                            push_vlan(0x8100),
+                            set_field(vlan_vid(ofp.OFPVID_PRESENT | 4000)),
+                            output(egress_hop.egress_port.port_no)]
+                    ))
+                    fl_lst.append(mk_flow_stat(            # Downstream flow
+                        priority=flow.priority,
+                        match_fields=[
+                            in_port(egress_hop.egress_port.port_no),
+                            vlan_vid(ofp.OFPVID_PRESENT | 4000),
+                            vlan_pcp(0),
+                            metadata(input_port)
+                        ],
+                        actions=[
+                            pop_vlan(),
+                            output(egress_hop.ingress_port.port_no)]
+                    ))
         else:
             # NOT A CONTROLLER-BOUND FLOW
             if is_upstream():
