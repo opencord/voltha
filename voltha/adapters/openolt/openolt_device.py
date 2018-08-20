@@ -441,9 +441,7 @@ class OpenoltDevice(object):
                            onu_id=onu_indication.onu_id)
             return
 
-        if onu_device.connect_status != ConnectStatus.REACHABLE:
-            onu_device.connect_status = ConnectStatus.REACHABLE
-            self.adapter_agent.update_device(onu_device)
+
 
         if platform.intf_id_from_pon_port_no(onu_device.parent_port_no) \
            != onu_indication.intf_id:
@@ -510,6 +508,10 @@ class OpenoltDevice(object):
                 onu_adapter_agent.update_interface(onu_device, onu_indication)
 
         elif onu_indication.oper_state == 'up':
+
+            if onu_device.connect_status != ConnectStatus.REACHABLE:
+                onu_device.connect_status = ConnectStatus.REACHABLE
+                self.adapter_agent.update_device(onu_device)
 
             if onu_device.oper_status != OperStatus.DISCOVERED:
                 self.log.debug("ignore onu indication",
