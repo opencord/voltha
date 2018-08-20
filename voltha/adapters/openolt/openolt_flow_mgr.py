@@ -27,9 +27,11 @@ EAPOL_FLOW_INDEX = 2  # FIXME
 EAPOL_DOWNLINK_FLOW_INDEX = 3  # FIXME
 EAPOL_DOWNLINK_SECONDARY_FLOW_INDEX = 4  # FIXME
 EAPOL_UPLINK_SECONDARY_FLOW_INDEX = 5  # FIXME
+LLDP_FLOW_INDEX = 7 # FIXME
 
 
 EAP_ETH_TYPE = 0x888e
+LLDP_ETH_TYPE = 0x88cc
 
 # FIXME - see also BRDCM_DEFAULT_VLAN in broadcom_onu.py
 DEFAULT_MGMT_VLAN = 4091
@@ -166,6 +168,10 @@ class OpenOltFlowMgr(object):
             if classifier['eth_type'] == EAP_ETH_TYPE:
                 self.log.debug('eapol flow add')
                 self.add_eapol_flow(intf_id, onu_id, priority)
+            if classifier['eth_type'] == LLDP_ETH_TYPE:
+                self.log.debug('lldp flow add')
+                self.add_lldp_flow(intf_id, onu_id, priority, classifier,
+                                    action)
 
         elif 'push_vlan' in action:
             self.add_data_flow(intf_id, onu_id, priority, classifier, action)
@@ -333,6 +339,28 @@ class OpenOltFlowMgr(object):
 
         self.log.debug('eap flows', upstream_flow=upstream_flow,
                        downstream_flow=downstream_flow)
+
+    def add_lldp_flow(self, intf_id, onu_id, priority, classifier, action):
+
+        self.log.debug('add lldp downstream trap', classifier=classifier,
+                       action=action)
+
+        action.clear()
+        action['trap_to_host'] = True
+        classifier['pkt_tag_type'] = 'untagged'
+
+        gemport_id = platform.mk_gemport_id(onu_id)
+        flow_id = platform.mk_flow_id(intf_id, onu_id, LLDP_FLOW_INDEX)
+
+        downstream_flow = openolt_pb2.Flow(
+            onu_id=onu_id, flow_id=flow_id, flow_type="downstream",
+            access_intf_id=3, network_intf_id=0, gemport_id=gemport_id,
+            priority=priority, classifier=self.mk_classifier(classifier),
+            action=self.mk_action(action))
+
+        self.log.debug('add lldp downstream trap', access_intf_id=intf_id,
+                       onu_id=onu_id, flow_id=flow_id)
+        self.stub.FlowAdd(downstream_flow)
 
     def mk_classifier(self, classifier_info):
 
