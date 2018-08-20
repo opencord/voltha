@@ -833,8 +833,20 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
 
     def get_route(self, ingress_port_no, egress_port_no):
         self._assure_cached_tables_up_to_date()
+        self.log.info('getting-route', eg_port=egress_port_no, in_port=ingress_port_no,
+                nni_port=self._nni_logical_port_no)
         if egress_port_no is not None and \
                         (egress_port_no & 0x7fffffff) == ofp.OFPP_CONTROLLER:
+            self.log.info('controller-flow', eg_port=egress_port_no, in_port=ingress_port_no,
+                    nni_port=self._nni_logical_port_no)
+            if ingress_port_no == self._nni_logical_port_no:
+                self.log.info('returning half route')
+                # This is a trap on the NNI Port
+                # Return a 'half' route to make the flow decomp logic happy
+                for (ingress, egress), route in self._routes.iteritems():
+                    if egress == self._nni_logical_port_no:
+                        return [None, route[1]]
+                raise Exception('not a single upstream route')
             # treat it as if the output port is the NNI of the OLT
             egress_port_no = self._nni_logical_port_no
 
