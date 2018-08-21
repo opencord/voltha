@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d0702743_d6feff54",
+        "filename": "ponsim/v2/ponsim.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 274,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-08-21T13:53:52Z",
+      "side": 1,
+      "message": "Would be better if those were passed in as params.  Can be done in a separate Jira.",
+      "revId": "6d1fbebba5773ba53676a46351b307b93c65c715",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
