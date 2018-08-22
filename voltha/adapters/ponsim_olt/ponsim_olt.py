@@ -427,7 +427,7 @@ class PonSimOltHandler(object):
         self.alarms = AdapterAlarms(self.adapter, device)
 
         nni_port = Port(
-            port_no=2,
+            port_no=info.nni_port,
             label='NNI facing Ethernet port',
             type=Port.ETHERNET_NNI,
             admin_state=AdminState.ENABLED,
@@ -450,7 +450,7 @@ class PonSimOltHandler(object):
                 hw_desc='simualted pon',
                 sw_desc='simualted pon',
                 # serial_num=uuid4().hex,
-                serial_num="9b7cfd85441b407c87ee3261df7d4818",
+                serial_num=device.serial_number,
                 dp_desc='n/a'
             ),
             switch_features=ofp_switch_features(
@@ -703,17 +703,22 @@ class PonSimOltHandler(object):
         self.log.info('sending-packet-out', egress_port=egress_port,
                       msg=hexify(msg))
         pkt = Ether(msg)
-        out_pkt = (
-                Ether(src=pkt.src, dst=pkt.dst) /
-                Dot1Q(vlan=4000) /
-                Dot1Q(vlan=egress_port, type=pkt.type) /
-                pkt.payload
-        )
+        out_pkt = pkt
+        if egress_port != self.nni_port.port_no:
+            # don't do the vlan manipulation for the NNI port, vlans are already correct
+            out_pkt = (
+                    Ether(src=pkt.src, dst=pkt.dst) /
+                    Dot1Q(vlan=egress_port, type=pkt.type) /
+                    pkt.payload
+            )
+
+        # TODO need better way of mapping logical ports to PON ports
+        out_port = self.nni_port.port_no if egress_port == self.nni_port.port_no else 1
 
         if self.ponsim_comm == 'grpc':
             # send over grpc stream
             stub = ponsim_pb2.PonSimStub(self.get_channel())
-            frame = PonSimFrame(id=self.device_id, payload=str(out_pkt))
+            frame = PonSimFrame(id=self.device_id, payload=str(out_pkt), out_port=out_port)
             stub.SendFrame(frame)
         else:
             # send over frameio

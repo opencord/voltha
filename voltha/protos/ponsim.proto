@@ -31,6 +31,7 @@ message FlowTable {
 message PonSimFrame {
     string id = 1;
     bytes payload = 2;
+    int32 out_port = 3;
 }
 
 message PonSimPacketCounter {

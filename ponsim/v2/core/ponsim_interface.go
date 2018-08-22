@@ -30,4 +30,6 @@ type PonSimInterface interface {
 	GetPort() int32
 
 	Forward(context.Context, int, gopacket.Packet) error
+
+	SendOut(int, gopacket.Packet)
 }
