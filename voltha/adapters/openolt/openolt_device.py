@@ -493,6 +493,11 @@ class OpenoltDevice(object):
 
         # Operating state
         if onu_indication.oper_state == 'down':
+
+            if onu_device.connect_status != ConnectStatus.UNREACHABLE:
+                onu_device.connect_status = ConnectStatus.UNREACHABLE
+                self.adapter_agent.update_device(onu_device)
+
             # Move to discovered state
             self.log.debug('onu-oper-state-is-down')
 
