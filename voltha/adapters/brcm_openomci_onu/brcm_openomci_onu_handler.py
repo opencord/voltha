@@ -504,10 +504,11 @@ class BrcmOpenomciOnuHandler(object):
 
     def update_interface(self, data):
         self.log.debug('function-entry', data=data)
+        oper_state = data.get('oper_state', None)
 
         onu_device = self.adapter_agent.get_device(self.device_id)
 
-        if data.oper_state == 'down':
+        if oper_state == 'down':
             self.log.debug('stopping-openomci-statemachine')
             reactor.callLater(0, self._onu_omci_device.stop)
             self.disable_ports(onu_device)
