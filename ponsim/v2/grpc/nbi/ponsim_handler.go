@@ -52,10 +52,11 @@ func (handler *PonSimHandler) SendFrame(ctx context.Context, data *voltha.PonSim
 
 	common.Logger().WithFields(logrus.Fields{
 		"handler": handler,
+		"out_port": int(data.OutPort),
 		"frame":   frame.Dump(),
 	}).Info("Constructed frame")
 
-	handler.device.Forward(context.Background(), 2, frame)
+	handler.device.SendOut(int(data.OutPort), frame)
 
 	out := new(empty.Empty)
 	return out, nil
@@ -139,7 +140,7 @@ func (handler *PonSimHandler) GetDeviceInfo(
 		for k := range (handler.device).(*core.PonSimOltDevice).GetOnus() {
 			keys = append(keys, k)
 		}
-		out = &voltha.PonSimDeviceInfo{NniPort: 0, UniPorts: []int32(keys)}
+		out = &voltha.PonSimDeviceInfo{NniPort: 2, UniPorts: []int32(keys)}
 
 	} else {
 		common.Logger().WithFields(logrus.Fields{

@@ -108,40 +108,55 @@ func (o *PonSimDevice) Forward(
 	o.Counter.CountRxFrame(port, len(common.GetEthernetLayer(frame).Payload))
 
 	if egressPort, egressFrame := o.processFrame(ctx, port, frame); egressFrame != nil {
-		forwarded := 0
-		links := o.links[int(egressPort)]
-
-		if int(egressPort) <= 2 && int(egressPort) > 0 {
-			o.Counter.CountTxFrame(int(egressPort), len(common.GetEthernetLayer(egressFrame).Payload))
-		}
-
-		for _, link := range links {
-			forwarded += 1
-
-			common.Logger().WithFields(logrus.Fields{
-				"device":      o,
-				"egressPort":  port,
-				"egressFrame": egressFrame,
-			}).Debug("Forwarding packet to link")
-
-			link.(func(int, gopacket.Packet))(int(egressPort), egressFrame)
-		}
-		if forwarded == 0 {
-			common.Logger().WithFields(logrus.Fields{
-				"device": o,
-				"port":   port,
-				"frame":  frame,
-			}).Warn("Nothing was forwarded")
-		}
+		o.SendOut(int(egressPort), egressFrame)
 	} else {
 		common.Logger().WithFields(logrus.Fields{
 			"device": o,
-			"port":   egressPort,
+			"port":   int(egressPort),
 			"frame":  egressFrame,
 		}).Error("Failed to properly process frame")
 	}
 
 	return err
+}
+
+/*
+SendOut send a given frame out the given port
+*/
+func (o *PonSimDevice) SendOut(
+	egressPort int,
+	egressFrame gopacket.Packet,
+) {
+	common.Logger().WithFields(logrus.Fields{
+		"egressPort":  egressPort,
+		"egressFrame": egressFrame,
+	}).Debug("Sending packet out port")
+
+	forwarded := 0
+	links := o.links[egressPort]
+
+	if egressPort <= 2 && egressPort > 0 {
+		o.Counter.CountTxFrame(egressPort, len(common.GetEthernetLayer(egressFrame).Payload))
+	}
+
+	for _, link := range links {
+		forwarded++
+
+		common.Logger().WithFields(logrus.Fields{
+			"device":      o,
+			"egressPort":  egressPort,
+			"egressFrame": egressFrame,
+		}).Debug("Forwarding packet to link")
+
+		link.(func(int, gopacket.Packet))(egressPort, egressFrame)
+	}
+	if forwarded == 0 {
+		common.Logger().WithFields(logrus.Fields{
+			"device": o,
+			"egressPort":   egressPort,
+			"egressFrame":  egressFrame,
+		}).Warn("Nothing was forwarded")
+	}
 }
 
 /*
