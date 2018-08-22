@@ -216,6 +216,15 @@ class OpenoltDevice(object):
             uni_name = self.port_name(uni_no, Port.ETHERNET_UNI,
                                       serial_number=onu_device.serial_number)
 
+
+            if onu_device.adapter == 'brcm_openomci_onu':
+                self.log.debug('using-brcm_openomci_onu, update_interface '
+                               'down')
+                onu_adapter_agent = \
+                    registry('adapter_loader').get_agent(onu_device.adapter)
+                onu_adapter_agent.update_interface(onu_device,
+                                                   {'oper_state' :'down'})
+
             self.onu_ports_down(onu_device, uni_no, uni_name, oper_state)
         # Children devices
         self.adapter_agent.update_child_devices_state(
@@ -510,7 +519,8 @@ class OpenoltDevice(object):
 
             if onu_device.adapter == 'brcm_openomci_onu':
                 self.log.debug('using-brcm_openomci_onu')
-                onu_adapter_agent.update_interface(onu_device, onu_indication)
+                onu_adapter_agent.update_interface(onu_device,
+                                               {'oper_state':'down'})
 
         elif onu_indication.oper_state == 'up':
 
