@@ -16,6 +16,8 @@
 
 """
 Broadcom OpenOMCI OLT/ONU adapter.
+
+This adapter does NOT support XPON
 """
 
 from twisted.internet import reactor, task
@@ -52,7 +54,7 @@ class BrcmOpenomciOnuAdapter(object):
     supported_device_types = [
         DeviceType(
             id=name,
-            vendor_ids=['OPEN', 'ALCL'],
+            vendor_ids=['OPEN', 'ALCL', 'BRCM', 'TWSH', 'ALPH', 'ISKT'],
             adapter=name,
             accepts_bulk_flow_update=True
         )
