@@ -162,6 +162,7 @@ class BrcmOpenomciOnuHandler(object):
         if self.omci_cc is not None:
             self.omci_cc.receive_message(msg)
 
+    # Called once when the adapter creates the device/onu instance
     def activate(self, device):
         self.log.debug('function-entry', device=device)
 
@@ -182,31 +183,16 @@ class BrcmOpenomciOnuHandler(object):
             device.oper_status = OperStatus.DISCOVERED
             self.adapter_agent.update_device(device)
 
-            self._pon = PonPort.create(self, self._pon_port_number)
-            self.adapter_agent.add_port(device.id, self._pon.get_port())
-
-            self.log.debug('added-pon-port-to-agent', pon=self._pon)
-
-            parent_device = self.adapter_agent.get_device(device.parent_id)
-            self.logical_device_id = parent_device.parent_id
-
-            self.adapter_agent.update_device(device)
-
             self.log.debug('set-device-discovered')
 
-            # Create and start the OpenOMCI ONU Device Entry for this ONU
-            self._onu_omci_device = self.omci_agent.add_device(self.device_id,
-                                                               self.adapter_agent,
-                                                               support_classes=self.adapter.broadcom_omci)
-            # Port startup
-            if self._pon is not None:
-                self._pon.enabled = True
+            self._init_pon_state(device)
 
             self.enabled = True
         else:
             self.log.info('onu-already-activated')
 
 
+    # Called once when the adapter needs to re-create device.  usually on vcore restart
     def reconcile(self, device):
         self.log.debug('function-entry', device=device)
 
@@ -218,10 +204,44 @@ class BrcmOpenomciOnuHandler(object):
         self.proxy_address = device.proxy_address
         self.adapter_agent.register_for_proxied_messages(device.proxy_address)
 
-        # TODO: Query ONU current status after reconcile and update.
-        #       To be addressed in future commits.
+        if self.enabled is not True:
+            self.log.info('reconciling-broadcom-onu-device')
 
-        self.log.info('reconciling-broadcom-onu-device-ends')
+            self._init_pon_state(device)
+
+            # need to restart state machines on vcore restart.  there is no indication to do it for us.
+            self._onu_omci_device.start()
+
+            # TODO: this is probably a bit heavy handed
+            # Force a reboot for now.  We need indications to reflow to reassign tconts and gems given vcore went away
+            # This may not be necessary when mib resync actually works
+            reactor.callLater(1, self.reboot)
+
+            self.enabled = True
+        else:
+            self.log.info('onu-already-activated')
+
+
+    def _init_pon_state(self, device):
+        self.log.debug('function-entry', device=device)
+
+        self._pon = PonPort.create(self, self._pon_port_number)
+        self.adapter_agent.add_port(device.id, self._pon.get_port())
+
+        self.log.debug('added-pon-port-to-agent', pon=self._pon)
+
+        parent_device = self.adapter_agent.get_device(device.parent_id)
+        self.logical_device_id = parent_device.parent_id
+
+        self.adapter_agent.update_device(device)
+
+        # Create and start the OpenOMCI ONU Device Entry for this ONU
+        self._onu_omci_device = self.omci_agent.add_device(self.device_id,
+                                                           self.adapter_agent,
+                                                           support_classes=self.adapter.broadcom_omci)
+        # Port startup
+        if self._pon is not None:
+            self._pon.enabled = True
 
     # TODO: move to UniPort
     def update_logical_port(self, logical_device_id, port_id, state):
@@ -251,6 +271,8 @@ class BrcmOpenomciOnuHandler(object):
             except AttributeError:
                 self.log.debug('parent-device-delete-child-not-implemented')
 
+    # Calling this assumes the onu is active/ready and had at least an initial mib downloaded.   This gets called from
+    # flow decomposition that ultimately comes from onos
     @inlineCallbacks
     def update_flow_table(self, device, flows):
         self.log.debug('function-entry', device=device, flows=flows)
@@ -394,6 +416,7 @@ class BrcmOpenomciOnuHandler(object):
                     _mac_bridge_service_profile_entity_id = 0x201
                     _mac_bridge_port_ani_entity_id = 0x2102   # TODO: can we just use the entity id from the anis list?
 
+                    # TODO: Move this to a task
                     # Delete bridge ani side vlan filter
                     msg = VlanTaggingFilterDataFrame(_mac_bridge_port_ani_entity_id)
                     frame = msg.delete()
@@ -401,6 +424,7 @@ class BrcmOpenomciOnuHandler(object):
                     results = yield self.omci_cc.send(frame)
                     self.check_status_and_state(results, 'flow-delete-vlan-tagging-filter-data')
 
+                    # TODO: Move this to a task
                     # Re-Create bridge ani side vlan filter
                     msg = VlanTaggingFilterDataFrame(
                         _mac_bridge_port_ani_entity_id,  # Entity ID
@@ -439,6 +463,7 @@ class BrcmOpenomciOnuHandler(object):
                             treatment_inner_tpid_de=4
                         )
                     )
+                    # TODO: Move this to a task
                     msg = ExtendedVlanTaggingOperationConfigurationDataFrame(
                         _mac_bridge_service_profile_entity_id,  # Bridge Entity ID
                         attributes=attributes  # See above
@@ -474,6 +499,7 @@ class BrcmOpenomciOnuHandler(object):
                             treatment_inner_tpid_de=4,  # set TPID
                         )
                     )
+                    # TODO: Move this to a task
                     msg = ExtendedVlanTaggingOperationConfigurationDataFrame(
                         _mac_bridge_service_profile_entity_id,  # Bridge Entity ID
                         attributes=attributes  # See above
@@ -494,6 +520,7 @@ class BrcmOpenomciOnuHandler(object):
 
     # TODO: Actually conform to or create a proper interface.
     # this and the other functions called from the olt arent very clear.
+    # Called each time there is an onu "up" indication from the olt handler
     def create_interface(self, data):
         self.log.debug('function-entry', data=data)
         self._onu_indication = data
@@ -502,6 +529,8 @@ class BrcmOpenomciOnuHandler(object):
         self._subscribe_to_events()
         reactor.callLater(1, self._onu_omci_device.start)
 
+    # Currently called each time there is an onu "down" indication from the olt handler
+    # TODO: possibly other reasons to "update" from the olt?
     def update_interface(self, data):
         self.log.debug('function-entry', data=data)
         oper_state = data.get('oper_state', None)
@@ -518,6 +547,7 @@ class BrcmOpenomciOnuHandler(object):
         else:
             self.log.debug('not-changing-openomci-statemachine')
 
+    # Not currently called by olt or anything else
     def remove_interface(self, data):
         self.log.debug('function-entry', data=data)
 
@@ -529,7 +559,7 @@ class BrcmOpenomciOnuHandler(object):
 
         # TODO: im sure there is more to do here
 
-
+    # Called when there is an olt up indication, providing the gem port id chosen by the olt handler
     def create_gemport(self, data):
         self.log.debug('create-gemport', data=data)
         gem_portdata = GemportsConfigData()
@@ -552,6 +582,7 @@ class BrcmOpenomciOnuHandler(object):
         self.log.debug('pon-add-gemport', gem_port=gem_port)
 
 
+    # Not currently called.  Would be called presumably from the olt handler
     @inlineCallbacks
     def remove_gemport(self, data):
         self.log.debug('remove-gemport', data=data)
@@ -564,8 +595,7 @@ class BrcmOpenomciOnuHandler(object):
 
         #TODO: Create a remove task that encompasses this
 
-
-
+    # Called when there is an olt up indication, providing the tcont id chosen by the olt handler
     def create_tcont(self, tcont_data, traffic_descriptor_data):
         self.log.debug('create-tcont', tcont_data=tcont_data, traffic_descriptor_data=traffic_descriptor_data)
         tcontdata = TcontsConfigData()
@@ -598,6 +628,7 @@ class BrcmOpenomciOnuHandler(object):
         else:
             self.log.info('received-null-tcont-data', tcont=tcont.alloc_id)
 
+    # Not currently called.  Would be called presumably from the olt handler
     @inlineCallbacks
     def remove_tcont(self, tcont_data, traffic_descriptor_data):
         self.log.debug('remove-tcont', tcont_data=tcont_data, traffic_descriptor_data=traffic_descriptor_data)
@@ -608,12 +639,11 @@ class BrcmOpenomciOnuHandler(object):
 
         # TODO: Create some omci task that encompases this what intended
 
-
+    # Not currently called.  Would be called presumably from the olt handler
     def create_multicast_gemport(self, data):
         self.log.debug('function-entry', data=data)
 
         # TODO: create objects and populate for later omci calls
-
 
     @inlineCallbacks
     def disable(self, device):
@@ -654,7 +684,7 @@ class BrcmOpenomciOnuHandler(object):
         self.log.info('reboot-device')
         device = self.adapter_agent.get_device(self.device_id)
         if device.connect_status != ConnectStatus.REACHABLE:
-            self.log.error("device-unreacable")
+            self.log.error("device-unreachable")
             returnValue(None)
 
         def success(_results):
@@ -704,6 +734,8 @@ class BrcmOpenomciOnuHandler(object):
             self.update_logical_port(logical_device_id, port_id, OFPPS_LIVE)
 
 
+    # Called just before openomci state machine is started.  These listen for events from selected state machines,
+    # most importantly, mib in sync.  Which ultimately leads to downloading the mib
     def _subscribe_to_events(self):
         self.log.debug('function-entry')
 
@@ -726,6 +758,7 @@ class BrcmOpenomciOnuHandler(object):
             bus.unsubscribe(self._in_sync_subscription)
             self._in_sync_subscription = None
 
+    # Called when the mib is in sync
     def in_sync_handler(self, _topic, msg):
         self.log.debug('function-entry', _topic=_topic, msg=msg)
         if self._in_sync_subscription is not None:
@@ -750,6 +783,9 @@ class BrcmOpenomciOnuHandler(object):
         if self._capabilities_subscription is not None:
             self.log.debug('capabilities-handler-done')
 
+    # Mib is in sync, we can now query what we learned and actually start pushing ME (download) to the ONU.
+    # Currently uses a basic mib download task that create a bridge with a single gem port and uni, only allowing EAP
+    # Implement your own MibDownloadTask if you wish to setup something different by default
     def _mib_in_sync(self):
         self.log.debug('function-entry')
 
@@ -766,7 +802,7 @@ class BrcmOpenomciOnuHandler(object):
             omci_dev = self._onu_omci_device
             config = omci_dev.configuration
 
-            # TODO: run this sooner somehow...
+            # TODO: run this sooner somehow. shouldnt have to wait for mib sync to push an initial download
             # In Sync, we can register logical ports now. Ideally this could occur on
             # the first time we received a successful (no timeout) OMCI Rx response.
             try:
@@ -780,6 +816,8 @@ class BrcmOpenomciOnuHandler(object):
                 uni_g = config.uni_g_entities
                 pptp = config.pptp_entities
 
+                # Currently logging the ani and uni for information purposes.   Actually act on the pptp as its ME ID
+                # is the most correct one to use in later tasks.
                 for key, value in ani_g.iteritems():
                     self.log.debug("discovered-ani", key=key, value=value)
 
@@ -865,6 +903,8 @@ class BrcmOpenomciOnuHandler(object):
                 self._mib_download_task = BrcmMibDownloadTask(self.omci_agent, self)
                 self._deferred = self._onu_omci_device.task_runner.queue_task(self._mib_download_task)
 
+            # Download an initial mib that creates simple bridge that can pass EAP.  On success (above) finally set
+            # the device to active/reachable.   This then opens up the handler to openflow pushes from outside
             self.log.info('downloading-initial-mib-configuration')
             self._mib_download_task = BrcmMibDownloadTask(self.omci_agent, self)
             self._deferred = self._onu_omci_device.task_runner.queue_task(self._mib_download_task)
