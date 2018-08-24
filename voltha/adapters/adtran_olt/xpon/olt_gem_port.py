@@ -48,6 +48,7 @@ class OltGemPort(GemPort):
                                          name=name,
                                          handler=handler)
         self._is_mock = is_mock
+        self._timestamp = None
 
     @staticmethod
     def create(handler, gem_port):
@@ -67,6 +68,14 @@ class OltGemPort(GemPort):
                           handler=handler,
                           multicast=mcast,
                           untagged=untagged)
+
+    @property
+    def timestamp(self):
+        return self._timestamp
+
+    @timestamp.setter
+    def timestamp(self, value):
+        self._timestamp = value
 
     @property
     def encryption(self):

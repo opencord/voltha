@@ -15,11 +15,12 @@
 #
 
 import random
+import arrow
 
 import structlog
 import xmltodict
 from port import AdtnPort
-from twisted.internet import reactor, defer
+from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, returnValue, succeed, fail
 from twisted.python.failure import Failure
 from voltha.core.logical_device_agent import mac_str_to_tuple
@@ -51,7 +52,6 @@ class NniPort(AdtnPort):
         self._stats_deferred = None
 
         # Local cache of NNI configuration
-
         self._ianatype = '<type xmlns:ianaift="urn:ietf:params:xml:ns:yang:iana-if-type">ianaift:ethernetCsmacd</type>'
 
         # And optional parameters
@@ -75,12 +75,14 @@ class NniPort(AdtnPort):
 
         # Statistics
         self.rx_dropped = 0
-        self.rx_errors = 0
-        self.rx_bcast = 0
-        self.rx_mcast = 0
+        self.rx_error_packets = 0
+        self.rx_ucast_packets = 0
+        self.rx_bcast_packets = 0
+        self.rx_mcast_packets = 0
         self.tx_dropped = 0
-        self.tx_bcast = 0
-        self.tx_mcast = 0
+        self.rx_ucast_packets = 0
+        self.tx_bcast_packets = 0
+        self.tx_mcast_packets = 0
 
     def __str__(self):
         return "NniPort-{}: Admin: {}, Oper: {}, parent: {}".format(self._port_no,
@@ -106,7 +108,7 @@ class NniPort(AdtnPort):
            self._port.oper_status != self._oper_status:
 
             self.log.debug('get-port-status-update', admin_state=self._admin_state,
-                           oper_status = self._oper_status)
+                           oper_status=self._oper_status)
             self._port.admin_state = self._admin_state
             self._port.oper_status = self._oper_status
 
@@ -194,9 +196,9 @@ class NniPort(AdtnPort):
         Set the NNI Port to a known good state on initial port startup.  Actual
         NNI 'Start' is done elsewhere
         """
-        #if self.state != AdtnPort.State.INITIAL:
-        #    self.log.error('reset-ignored', state=self.state)
-        #    returnValue('Ignored')
+        # if self.state != AdtnPort.State.INITIAL:
+        #     self.log.error('reset-ignored', state=self.state)
+        #     returnValue('Ignored')
 
         self.log.info('resetting', label=self._label)
 
@@ -296,26 +298,29 @@ class NniPort(AdtnPort):
             self.sync_deferred.addBoth(reschedule)
 
     def _decode_nni_statistics(self, entry):
-        admin_status = entry.get('admin-status')
-        oper_status = entry.get('oper-status')
-        admin_status = entry.get('admin-status')
-        phys_address = entry.get('phys-address')
+        # admin_status = entry.get('admin-status')
+        # oper_status = entry.get('oper-status')
+        # admin_status = entry.get('admin-status')
+        # phys_address = entry.get('phys-address')
 
         stats = entry.get('statistics')
         if stats is not None:
+            self.timestamp = arrow.utcnow().float_timestamp
             self.rx_bytes = int(stats.get('in-octets', 0))
-            self.rx_dropped = int(stats.get('in-discards', 0))
-            self.rx_errors = int(stats.get('in-errors', 0))
-            self.rx_bcast = int(stats.get('in-broadcast-pkts', 0))
-            self.rx_mcast = int(stats.get('in-multicast-pkts', 0))
+            self.rx_ucast_packets = int(stats.get('in-unicast-pkts', 0))
+            self.rx_bcast_packets = int(stats.get('in-broadcast-pkts', 0))
+            self.rx_mcast_packets = int(stats.get('in-multicast-pkts', 0))
+            self.rx_error_packets = int(stats.get('in-errors', 0)) + int(stats.get('in-discards', 0))
 
             self.tx_bytes = int(stats.get('out-octets', 0))
-            self.tx_bcast = int(stats.get('out-broadcast-pkts', 0))
-            self.tx_mcast = int(stats.get('out-multicast-pkts', 0))
-            self.tx_dropped = int(stats.get('out-discards', 0)) + int(stats.get('out-errors', 0))
+            self.tx_ucast_packets = int(stats.get('out-unicast-pkts', 0))
+            self.tx_bcast_packets = int(stats.get('out-broadcast-pkts', 0))
+            self.tx_mcasy_packets = int(stats.get('out-multicast-pkts', 0))
+            self.tx_error_packets = int(stats.get('out-errors', 0)) + int(stats.get('out-discards', 0))
 
-            self.rx_packets = int(stats.get('in-unicast-pkts', 0)) + self.rx_mcast + self.rx_bcast
-            self.tx_packets = int(stats.get('out-unicast-pkts', 0)) + self.tx_mcast + self.tx_bcast
+            self.rx_packets = self.rx_ucast_packets + self.rx_mcast_packets + self.rx_bcast_packets
+            self.tx_packets = self.tx_ucast_packets + self.tx_mcast_packets + self.tx_bcast_packets
+            # No support for rx_crc_errors or bip_errors
 
     def _update_statistics(self):
         if self.state == AdtnPort.State.RUNNING:

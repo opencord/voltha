@@ -193,19 +193,25 @@ class FlowEntry(object):
             downstream_sig_table = _existing_downstream_flow_entries[flow_entry.device_id]
             upstream_flow_table = _existing_upstream_flow_entries[flow_entry.device_id]
 
+            log.debug('flow-entry-decoded', flow=flow_entry, signature=flow_entry.signature,
+                      downstream_signature=flow_entry.downstream_signature)
+
             if flow_entry.flow_direction == FlowEntry.FlowDirection.UPSTREAM and\
                     flow_entry.flow_id in upstream_flow_table:
+                log.debug('flow-entry-upstream-exists', flow=flow_entry)
                 return flow_entry, None
 
             if flow_entry.flow_direction == FlowEntry.FlowDirection.DOWNSTREAM and\
                     flow_entry.signature in downstream_sig_table and\
                     flow_entry.flow_id in downstream_sig_table[flow_entry.signature]:
+                log.debug('flow-entry-upstream-exists', flow=flow_entry)
                 return flow_entry, None
 
             # Look for any matching flows in the other direction that might help make an EVC
             # and then save it off in the device specific flow table
             # TODO: For now, only support for E-LINE services between NNI and UNI
 
+            log.debug('flow-entry-search-for-match', flow=flow_entry)
             downstream_flow = None
             upstream_flows = None
             downstream_sig = None
@@ -249,6 +255,9 @@ class FlowEntry(object):
                                   if _flow.downstream_signature == downstream_flow.signature]
                 if len(upstream_flows) == 0 and not downstream_flow.is_multicast_flow:
                     upstream_flows = None
+
+            log.debug('flow-entry-search-results', flow=flow_entry, downstream_flow=downstream_flow,
+                      upstream_flows=upstream_flows)
 
             # Compute EVC and and maps
             evc = FlowEntry._create_evc_and_maps(evc, downstream_flow, upstream_flows)
