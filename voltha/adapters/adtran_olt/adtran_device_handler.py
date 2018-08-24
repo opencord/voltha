@@ -475,8 +475,8 @@ class AdtranDeviceHandler(object):
                             'pon-ports': self.southbound_ports.values()
                         }
                         self.pm_metrics = OltPmMetrics(self.adapter_agent, self.device_id,
-                                                       grouped=True, freq_override=False,
-                                                       **kwargs)
+                                                       ld_initialized.id, grouped=True,
+                                                       freq_override=False, **kwargs)
 
                         pm_config = self.pm_metrics.make_proto()
                         self.log.debug("initial-pm-config", pm_config=pm_config)
@@ -788,7 +788,6 @@ class AdtranDeviceHandler(object):
     def enumerate_northbound_ports(self, device):
         """
         Enumerate all northbound ports of a device. You should override
-        this method in your derived class as necessary. Should you encounter
         a non-recoverable error, throw an appropriate exception.
 
         :param device: A voltha.Device object, with possible device-type

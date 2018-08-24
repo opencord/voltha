@@ -14,6 +14,7 @@
 
 import json
 import random
+import arrow
 
 import structlog
 from port import AdtnPort
@@ -643,14 +644,15 @@ class PonPort(AdtnPort):
             reactor.callLater(0, self.add_onu, serial_number, status)
 
         # PON Statistics
-        self._process_statistics(status)
+        timestamp = arrow.utcnow().float_timestamp
+        self._process_statistics(status, timestamp)
 
         # Process ONU info. Note that newly added ONUs will not be processed
         # until the next pass
-        self._update_onu_status(status.onus)
+        self._update_onu_status(status.onus, timestamp)
 
         # Process GEM Port information
-        self._update_gem_status(status.gems)
+        self._update_gem_status(status.gems, timestamp)
 
     def _handle_discovered_onu(self, child_device, ind_info):
         pon_id = ind_info['_pon_id']
@@ -691,14 +693,15 @@ class PonPort(AdtnPort):
             self.log.info('Invalid-ONU-event', olt_id=olt_id,
                           pon_ni=ind_info['_pon_id'], onu_data=ind_info)
 
-    def _process_statistics(self, status):
+    def _process_statistics(self, status, timestamp):
+        self.timestamp = timestamp
         self.rx_packets = status.rx_packets
         self.rx_bytes = status.rx_bytes
         self.tx_packets = status.tx_packets
         self.tx_bytes = status.tx_bytes
         self.tx_bip_errors = status.tx_bip_errors
 
-    def _update_onu_status(self, onus):
+    def _update_onu_status(self, onus, timestamp):
         """
         Process ONU status for this PON
         :param onus: (dict) onu_id: ONU State
@@ -706,18 +709,20 @@ class PonPort(AdtnPort):
         for onu_id, onu_status in onus.iteritems():
             if onu_id in self._onu_by_id:
                 onu = self._onu_by_id[onu_id]
+                onu.timestamp = timestamp
                 onu.rssi = onu_status.rssi
                 onu.equalization_delay = onu_status.equalization_delay
                 onu.equalization_delay = onu_status.equalization_delay
                 onu.fiber_length = onu_status.fiber_length
                 onu.password = onu_status.reported_password
 
-    def _update_gem_status(self, gems):
+    def _update_gem_status(self, gems, timestamp):
         for gem_id, gem_status in gems.iteritems():
             onu = self._onu_by_id.get(gem_status.onu_id)
             if onu is not None:
                 gem_port = onu.gem_port(gem_status.gem_id)
                 if gem_port is not None:
+                    gem_port.timestamp = timestamp
                     gem_port.rx_packets = gem_status.rx_packets
                     gem_port.rx_bytes = gem_status.rx_bytes
                     gem_port.tx_packets = gem_status.tx_packets

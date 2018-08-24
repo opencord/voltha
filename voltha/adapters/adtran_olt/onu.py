@@ -75,6 +75,7 @@ class Onu(object):
         self._resync_flows = False
         self._sync_deferred = None     # For sync of ONT config to hardware
         self._password = None
+        self._timestamp = None
 
         if onu_info['venet'] is not None:
             port_no, subscriber_vlan, self.untagged_vlan = Onu.decode_venet(onu_info['venet'],
@@ -147,6 +148,10 @@ class Onu(object):
     @property
     def pon(self):
         return self.olt.southbound_ports[self._pon_id]
+
+    @property
+    def intf_id(self):
+        return self.pon.intf_id
 
     @property
     def pon_id(self):
@@ -313,6 +318,14 @@ class Onu(object):
     @property
     def serial_number(self):
         return self._serial_number_string
+
+    @property
+    def timestamp(self):
+        return self._timestamp
+
+    @timestamp.setter
+    def timestamp(self, value):
+        self._timestamp = value
 
     @property
     def rssi(self):
@@ -814,6 +827,8 @@ class Onu(object):
 
         gem_port.pon_id = self.pon_id
         gem_port.onu_id = self.onu_id if self.onu_id is not None else -1
+        gem_port.intf_id = self.intf_id
+
         self.log.info('add', gem_port=gem_port, reflow=reflow)
         self._gem_ports[gem_port.gem_id] = gem_port
 

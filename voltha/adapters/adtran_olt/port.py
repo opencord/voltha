@@ -63,6 +63,7 @@ class AdtnPort(object):
         self.rx_bytes = 0
         self.tx_packets = 0
         self.tx_bytes = 0
+        self.timestamp = 0
 
     def __del__(self):
         self.stop()
@@ -77,6 +78,10 @@ class AdtnPort(object):
     @property
     def port_no(self):
         return self._port_no
+
+    @property
+    def intf_id(self):
+        return self.port_no
 
     @property
     def name(self):
@@ -216,6 +221,7 @@ class AdtnPort(object):
             yield self.deferred
 
         except Exception as e:
+            self.log.exception('stop-failed', e=e)
             raise
 
         returnValue('Stopped')

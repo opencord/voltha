@@ -44,6 +44,7 @@ class GemPort(object):
         #       from hardware methods
         self._pon_id = None
         self._onu_id = None
+        self._intf_id = None
 
         # Statistics
         self.rx_packets = 0
@@ -73,6 +74,15 @@ class GemPort(object):
     def onu_id(self, onu_id):
         assert self._onu_id is None or self._onu_id == onu_id, 'ONU-ID can only be set once'
         self._onu_id = onu_id
+
+    @property
+    def intf_id(self):
+        return self._intf_id
+
+    @intf_id.setter
+    def intf_id(self, intf_id):
+        assert self._intf_id is None or self._intf_id == intf_id, 'Port Number can only be set once'
+        self._intf_id = intf_id
 
     @property
     def alloc_id(self):
