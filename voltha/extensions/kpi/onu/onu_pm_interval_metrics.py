@@ -47,6 +47,13 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
         XgPonDownstreamPerformanceMonitoringHistoryData.class_id: 'xgPON_Downstream_History',
         XgPonUpstreamPerformanceMonitoringHistoryData.class_id: 'xgPON_Upstream_History'
     }
+    ETHERNET_BRIDGE_HISTORY_ENABLED = True
+    ETHERNET_UNI_HISTORY_ENABLED = True
+    FEC_HISTORY_ENABLED = True
+    GEM_PORT_HISTORY_ENABLED = False
+    TRANS_CONV_HISTORY_ENABLED = False
+    XGPON_DOWNSTREAM_HISTORY = False
+    XGPON_UPSTREAM_HISTORY = False
 
     def __init__(self, adapter_agent, device_id, logical_device_id, **kwargs):
         super(OnuPmIntervalMetrics, self).__init__(adapter_agent, device_id, logical_device_id,
@@ -205,11 +212,15 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
         self.log.debug('update')
 
         try:
-            for group in pm_config.groups:
-                group_config = self.pm_group_metrics.get(group.group_name)
-                if group_config is not None and group_config.enabled != group.enabled:
-                    group_config.enabled = group.enabled
-                    # TODO: For OMCI PM Metrics, tie this into add/remove of the PM Interval ME itself
+            if pm_config.grouped:
+                for group in pm_config.groups:
+                    group_config = self.pm_group_metrics.get(group.group_name)
+                    if group_config is not None and group_config.enabled != group.enabled:
+                        group_config.enabled = group.enabled
+                        # TODO: For OMCI PM Metrics, tie this into add/remove of the PM Interval ME itself
+            else:
+                msg = 'There are on independent OMCI Interval metrics, only group metrics at this time'
+                raise NotImplemented(msg)
 
         except Exception as e:
             self.log.exception('update-failure', e=e)
@@ -218,11 +229,11 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
     def make_proto(self, pm_config=None):
         """
         From the PM Configurations defined in this class's initializer, create
-        the PMConfigs protobuf message that defines our PM configuation and
+        the PMConfigs protobuf message that defines our PM configuration and
         data.
 
         All ONU PM Interval metrics are grouped metrics that are generated autonmouslly
-        from the OpenOMCI Performace Intervals state machine.
+        from the OpenOMCI Performance Intervals state machine.
 
         :param pm_config (PMConfigs) PM Configuration message to add OpenOMCI config items too
         :return: (PmConfigs) PM Configuration Protobuf message
@@ -231,7 +242,7 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
 
         pm_ethernet_bridge_history = PmGroupConfig(group_name=OnuPmIntervalMetrics.ME_ID_INFO[EthernetFrameUpstreamPerformanceMonitoringHistoryData.class_id],
                                                    group_freq=0,
-                                                   enabled=True)
+                                                   enabled=OnuPmIntervalMetrics.ETHERNET_BRIDGE_HISTORY_ENABLED)
         self.pm_group_metrics[pm_ethernet_bridge_history.group_name] = pm_ethernet_bridge_history
 
         for m in sorted(self._ethernet_bridge_history_config):
@@ -242,7 +253,7 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
 
         pm_ethernet_uni_history = PmGroupConfig(group_name=OnuPmIntervalMetrics.ME_ID_INFO[EthernetPMMonitoringHistoryData.class_id],
                                                 group_freq=0,
-                                                enabled=True)
+                                                enabled=OnuPmIntervalMetrics.ETHERNET_UNI_HISTORY_ENABLED)
         self.pm_group_metrics[pm_ethernet_uni_history.group_name] = pm_ethernet_uni_history
 
         for m in sorted(self._ethernet_uni_history_config):
@@ -253,7 +264,7 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
 
         pm_fec_history = PmGroupConfig(group_name=OnuPmIntervalMetrics.ME_ID_INFO[FecPerformanceMonitoringHistoryData.class_id],
                                        group_freq=0,
-                                       enabled=True)
+                                       enabled=OnuPmIntervalMetrics.FEC_HISTORY_ENABLED)
         self.pm_group_metrics[pm_fec_history.group_name] = pm_fec_history
 
         for m in sorted(self._fec_history_config):
@@ -264,7 +275,7 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
 
         pm_gem_port_history = PmGroupConfig(group_name=OnuPmIntervalMetrics.ME_ID_INFO[GemPortNetworkCtpMonitoringHistoryData.class_id],
                                             group_freq=0,
-                                            enabled=True)
+                                            enabled=OnuPmIntervalMetrics.GEM_PORT_HISTORY_ENABLED)
         self.pm_group_metrics[pm_gem_port_history.group_name] = pm_gem_port_history
 
         for m in sorted(self._gem_port_history_config):
@@ -275,7 +286,7 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
 
         pm_xgpon_tc_history = PmGroupConfig(group_name=OnuPmIntervalMetrics.ME_ID_INFO[XgPonTcPerformanceMonitoringHistoryData.class_id],
                                             group_freq=0,
-                                            enabled=True)
+                                            enabled=OnuPmIntervalMetrics.TRANS_CONV_HISTORY_ENABLED)
         self.pm_group_metrics[pm_xgpon_tc_history.group_name] = pm_xgpon_tc_history
 
         for m in sorted(self._xgpon_tc_history_config):
@@ -286,7 +297,7 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
 
         pm_xgpon_downstream_history = PmGroupConfig(group_name=OnuPmIntervalMetrics.ME_ID_INFO[XgPonDownstreamPerformanceMonitoringHistoryData.class_id],
                                                     group_freq=0,
-                                                    enabled=True)
+                                                    enabled=OnuPmIntervalMetrics.XGPON_DOWNSTREAM_HISTORY)
         self.pm_group_metrics[pm_xgpon_downstream_history.group_name] = pm_xgpon_downstream_history
 
         for m in sorted(self._xgpon_downstream_history_config):
@@ -297,7 +308,7 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
 
         pm_xgpon_upstream_history = PmGroupConfig(group_name=OnuPmIntervalMetrics.ME_ID_INFO[XgPonUpstreamPerformanceMonitoringHistoryData.class_id],
                                                   group_freq=0,
-                                                  enabled=True)
+                                                  enabled=OnuPmIntervalMetrics.XGPON_UPSTREAM_HISTORY)
         self.pm_group_metrics[pm_xgpon_upstream_history.group_name] = pm_xgpon_upstream_history
 
         for m in sorted(self._xgpon_upstream_history_config):

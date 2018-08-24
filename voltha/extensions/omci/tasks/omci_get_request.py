@@ -91,6 +91,16 @@ class OmciGetRequest(Task):
             raise GetException('Get Request Task was cancelled')
 
     @property
+    def me_class(self):
+        """The OMCI Managed Entity Class associated with this request"""
+        return self._entity_class
+
+    @property
+    def entity_id(self):
+        """The ME Entity ID associated with this request"""
+        return self._entity_id
+
+    @property
     def attributes(self):
         """
         Return a dictionary of attributes for the request if the Get was

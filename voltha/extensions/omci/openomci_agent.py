@@ -68,15 +68,15 @@ OpenOmciAgentDefaults = {
         },
     },
     'alarm-synchronizer': {
-         'state-machine': AlarmSynchronizer,    # Implements the Alarm sync state machine
-         'database': AlarmDbExternal,           # For any State storage needs
-         'advertise-events': True,             # Advertise events on OpenOMCI event bus
-         'tasks': {
-             'alarm-sync': AlarmSyncDataTask,
-             'alarm-check': AlarmDataTask,
-             'alarm-resync': AlarmResyncTask,
-             'alarm-audit': AlarmDataTask
-         }
+        'state-machine': AlarmSynchronizer,    # Implements the Alarm sync state machine
+        'database': AlarmDbExternal,           # For any State storage needs
+        'advertise-events': True,              # Advertise events on OpenOMCI event bus
+        'tasks': {
+            'alarm-sync': AlarmSyncDataTask,
+            'alarm-check': AlarmDataTask,
+            'alarm-resync': AlarmResyncTask,
+            'alarm-audit': AlarmDataTask
+        }
      },
     'image_downloader': {
         'state-machine': ImageDownloadeSTM,

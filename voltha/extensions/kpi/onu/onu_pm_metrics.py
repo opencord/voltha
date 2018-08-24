@@ -29,6 +29,11 @@ class OnuPmMetrics(AdapterPmMetrics):
     # Metric default settings
     DEFAULT_HEARTBEAT_ENABLED = False
     DEFAULT_HEARTBEAT_FREQUENCY = 1200  # 1/10ths of a second
+    #
+    # Currently only a single KPI metrics collection occurs (individual group
+    # frequency not supported). The next value defines this single frequency until
+    # the KPI shared library supports individual collection.
+    DEFAULT_ONU_COLLECTION_FREQUENCY = 60 * 10      # 1 minute
 
     def __init__(self, adapter_agent, device_id, logical_device_id,
                  grouped=False, freq_override=False, **kwargs):
@@ -91,8 +96,8 @@ class OnuPmMetrics(AdapterPmMetrics):
                     if group_config is not None:
                         group_config.enabled = group.enabled
             else:
-                for m in pm_config.metrics:
-                    self.health_metrics_config[m.name].enabled = m.enabled
+                msg = 'There are no independent ONU metrics, only group metrics at this time'
+                raise NotImplemented(msg)
 
         except Exception as e:
             self.log.exception('update-failure', e=e)
@@ -163,7 +168,4 @@ class OnuPmMetrics(AdapterPmMetrics):
         # if self._heartbeat is not None:
         #     data.extend(self.collect_metrics(self._heartbeat, self.health_pm_names,
         #                                      self.health_metrics_config))
-        data.extend(self.omci_pm.collect_metrics(data=data))
-        # TODO Add PON Port PM
-        # TODO Add UNI Port PM
-        return data
+        return self.omci_pm.collect_metrics(data=data)

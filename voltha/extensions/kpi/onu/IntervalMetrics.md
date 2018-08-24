@@ -52,6 +52,11 @@ but are actually integer/floats.
 | interval_end_time   | int, 8-bits  | Identifies the most recently finished 15 minute. This attribute is set to zero when a synchronize time request is performed by OpenOMCI.  This counter rolls over from 255 to 0 upon saturation. | 
 | interval_start_time | int, 64-bits | The UTC timestamp (seconds since epoch) rounded down to the start time of the specific interval |
 
+# Supported 15-Minute Historical Performance Monitoring MEs
+
+The following 15-minute historical performance monitoring MEs currently supported are detailed
+in the sections below
+
 ## Ethernet Frame Performance Monitoring MEs
 
 The OMCI Ethernet PM supported by OpenOMCI includes 4 possible MEs.  These MEs are attached to
@@ -75,6 +80,10 @@ counter width (in bytes) and ME Class ID.
 | Ethernet Frame Extended Performance Monitoring              |   334    |  32-bit |
 | Ethernet Frame Upstream Performance MonitoringHistoryData   |   322    |  32-bit |
 | Ethernet Frame Downstream Performance MonitoringHistoryData |   321    |  32-bit |
+
+**Metric Group Name**: Ethernet_Bridge_Port_History  
+**Default Collection**: True  
+**Default Interval**:  15 minutes & aligned to wall-clock. Read-Only
 
 ### Counter Information
 
@@ -101,6 +110,10 @@ Each of the Ethernet Frame PM MEs contain the following counters
 
 This managed entity collects some of the performance monitoring data for a physical
 Ethernet interface. Instances of this managed entity are created and deleted by the OLT.
+
+**Metric Group Name**: Ethernet_UNI_History  
+**Default Collection**: True  
+**Default Interval**:  15 minutes & aligned to wall-clock. Read-Only
 
 ### Application
 
@@ -136,6 +149,10 @@ All counters are 32-bits wide.
 This managed entity collects performance monitoring data associated with PON downstream FEC
 counters. Instances of this managed entity are created and deleted by the OLT.
 
+**Metric Group Name**: FEC_History  
+**Default Collection**: True  
+**Default Interval**:  15 minutes & aligned to wall-clock. Read-Only
+
 ### Application
 This managed entity collects performance monitoring data associated with PON downstream FEC
 counters.
@@ -167,6 +184,10 @@ including the port ID. For this reason, there is no impaired or discarded frame 
 Note 2: This managed entity replaces the GEM port performance history data managed entity and
 is preferred for new implementations.
 
+**Metric Group Name**: GEM_Port_History  
+**Default Collection**: False  
+**Default Interval**:  15 minutes & aligned to wall-clock. Read-Only
+
 ### Relationships
 
 An instance of this managed entity is associated with an instance of the GEM port network CTP
@@ -192,6 +213,10 @@ a fragment of a user frame.
 This managed entity collects performance monitoring data associated with the XG-PON
 transmission convergence layer, as defined in ITU-T G.987.3.
 
+**Metric Group Name**: xgPON_TC_History  
+**Default Collection**: False  
+**Default Interval**:  15 minutes & aligned to wall-clock. Read-Only
+
 ### Relationships
 An instance of this managed entity is associated with an ANI-G.
 
@@ -215,6 +240,10 @@ All counters are 32-bits wide.
 This managed entity collects performance monitoring data associated with the XG-PON
 transmission convergence layer, as defined in ITU-T G.987.3. It collects counters associated with
 downstream PLOAM and OMCI messages.
+
+**Metric Group Name**: xgPON_Downstream_History  
+**Default Collection**: False  
+**Default Interval**:  15 minutes & aligned to wall-clock. Read-Only
 
 ### Relationships
 
@@ -246,6 +275,10 @@ All counters are 32-bits wide.
 This managed entity collects performance monitoring data associated with the XG-PON
 transmission convergence layer, as defined in ITU-T G.987.3. It counts upstream PLOAM
 messages transmitted by the ONU.
+
+**Metric Group Name**: xgPON_Upstream_History  
+**Default Collection**: False  
+**Default Interval**:  15 minutes & aligned to wall-clock. Read-Only
 
 ###Relationships
 

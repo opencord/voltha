@@ -316,7 +316,7 @@ class PptpEthernetUni(EntityClass):
         ECA(ByteField("expected_type", 0), {AA.R, AA.W},
             range_check=lambda x: 0 <= x <= 254),
         ECA(ByteField("sensed_type", 0), {AA.R}, optional=True, avc=True),
-        # TODO: For sensed_type AVC, see not in AT&T OMCI Specification, V3.0, page 123
+        # TODO: For sensed_type AVC, see note in AT&T OMCI Specification, V3.0, page 123
         ECA(ByteField("autodetection_config", 0), {AA.R, AA.W},
             range_check=lambda x: x in [0, 1, 2, 3, 4, 5,
                                         0x10, 0x11, 0x12, 0x13, 0x14,
@@ -1329,7 +1329,7 @@ class XgPonDownstreamPerformanceMonitoringHistoryData(EntityClass):
         ECA(IntField("ranging_time_messages_received", None), {AA.R}, counter=True),
         ECA(IntField("deactivate_onu_id_messages_received", None), {AA.R}, counter=True),
         ECA(IntField("disable_serial_number_messages_received", None), {AA.R}, counter=True),
-        ECA(IntField("request_registration_messages_receeved", None), {AA.R}, counter=True),
+        ECA(IntField("request_registration_messages_received", None), {AA.R}, counter=True),
         ECA(IntField("assign_alloc_id_messages_received", None), {AA.R}, counter=True),
         ECA(IntField("key_control_messages_received", None), {AA.R}, counter=True),
         ECA(IntField("sleep_allow_messages_received", None), {AA.R}, counter=True),
