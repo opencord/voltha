@@ -13,9 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
-import arrow
-
 from voltha.adapters.adtran_olt.xpon.adtran_xpon import AdtranXPON
 from pon_port import PonPort
 from uni_port import UniPort
@@ -24,6 +21,7 @@ from omci.omci import OMCI
 
 from voltha.extensions.alarms.adapter_alarms import AdapterAlarms
 from voltha.extensions.kpi.onu.onu_pm_metrics import OnuPmMetrics
+from voltha.extensions.kpi.onu.onu_omci_pm import OnuOmciPmMetrics
 
 from uuid import uuid4
 from twisted.internet import reactor
@@ -276,12 +274,13 @@ class AdtranOnuHandler(AdtranXPON):
             # Setup PM configuration for this device
             # Pass in ONU specific options
             kwargs = {
+                OnuPmMetrics.DEFAULT_FREQUENCY_KEY: OnuPmMetrics.DEFAULT_ONU_COLLECTION_FREQUENCY,
                 'heartbeat': self.heartbeat,
-                'omci-cc': self.openomci.omci_cc
+                OnuOmciPmMetrics.OMCI_DEV_KEY: self.openomci.onu_omci_device
             }
             self.pm_metrics = OnuPmMetrics(self.adapter_agent, self.device_id,
-                                           grouped=True, freq_override=False,
-                                           **kwargs)
+                                           self.logical_device_id, grouped=True,
+                                           freq_override=False, **kwargs)
             pm_config = self.pm_metrics.make_proto()
             self.openomci.set_pm_config(self.pm_metrics.omci_pm.openomci_interval_pm)
             self.log.info("initial-pm-config", pm_config=pm_config)
