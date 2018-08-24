@@ -5,7 +5,10 @@ within VOLTHA and should be used to insure that KPI information from different a
 the same format.
 
 The original KpiEvent protobuf message is still supported for adapters that wish to use theprevious format but device adapter developers are encouraged to support the new format and
-make use of this shared library.
+make use of this shared library. 
+
+**Also**, please read the **Remaining Work Item** sections of each README.md file. Some additional
+work items as well as existing/related JIRA items are highlighted in this section. 
 
 ## KPI Manager Creation
 
@@ -267,6 +270,17 @@ added to the VOLTHA JIRA or performed in the SEBA group:
 
 - Support calling a 'get-data' method before collect the metrics.  Currently metrics are collected
   in a device adapter independent way and the PM just updates what the attributes happen to have.
+  This would provide an asynchronous request and upon successful completion, the KPI metric/group
+  would be published on the Kafka bus.
+
+- [VOL-931](https://jira.opencord.org/browse/VOL-931) Support for retrieval of PM measurements
+  on-demaind. Would be best implemented after the previous async (get-data) work item.
 
 - For statistics groups that have more than one instance, do we need to be able to
   enable/disable specific instances? Major refactor of code if so (database work, ...)
+
+- [VOL-930](https://jira.opencord.org/browse/VOL-930) PM Collection Format. This format may
+  fit better with the time-series KPI collection as it requests ability for start/stop times.
+  It could possibly be done at a higher layer but the intent may be to have a greater number
+  of samples on a specific metric instance for a defined period of time. Need clarification
+  from the JIRA author.

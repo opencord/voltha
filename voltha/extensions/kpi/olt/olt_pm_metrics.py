@@ -131,11 +131,8 @@ class OltPmMetrics(AdapterPmMetrics):
                     if group_config is not None:
                         group_config.enabled = group.enabled
             else:
-                for m in pm_config.metrics:
-                    self.nni_metrics_config[m.name].enabled = m.enabled
-                    self.pon_metrics_config[m.name].enabled = m.enabled
-                    self.onu_metrics_config[m.name].enabled = m.enabled
-                    self.gem_metrics_config[m.name].enabled = m.enabled
+                msg = 'There are no independent OLT metrics, only group metrics at this time'
+                raise NotImplemented(msg)
 
         except Exception as e:
             self.log.exception('update-failure', e=e)

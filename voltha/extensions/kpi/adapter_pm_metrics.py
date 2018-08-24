@@ -15,6 +15,8 @@
 import structlog
 import arrow
 from twisted.internet.task import LoopingCall
+from voltha.protos.events_pb2 import KpiEvent2, KpiEventType, MetricInformation, MetricMetaData
+from voltha.protos.device_pb2 import PmConfig
 
 
 class AdapterPmMetrics(object):
@@ -25,6 +27,16 @@ class AdapterPmMetrics(object):
     and this base class is primarily used to provide a consistent interface to configure,
     start, and stop statistics collection.
     """
+    DEFAULT_FREQUENCY_KEY = 'default-collection-frequency'
+    DEFAULT_COLLECTION_FREQUENCY = 15 * 10      # 1/10ths of a second
+
+    # If the collection object has a property of the following name, it will be used
+    # to retrieve the UTC Collection Timestamp (UTC seconds since epoch). If the collection
+    # object does not support this attribute, the current time will be used. If the attribute
+    # is supported, but returns None, this signals that no metrics are currently available
+    # for collection.
+    TIMESTAMP_ATTRIBUTE = 'timestamp'
+
     def __init__(self, adapter_agent, device_id, logical_device_id,
                  grouped=False, freq_override=False, **kwargs):
         """
@@ -47,7 +59,8 @@ class AdapterPmMetrics(object):
         device = self.adapter_agent.get_device(self.device_id)
         self.serial_number = device.serial_number
 
-        self.default_freq = 150
+        self.default_freq = kwargs.get(AdapterPmMetrics.DEFAULT_FREQUENCY_KEY,
+                                       AdapterPmMetrics.DEFAULT_COLLECTION_FREQUENCY)
         self.grouped = grouped
         self.freq_override = grouped and freq_override
         self.lc = None
@@ -98,8 +111,6 @@ class AdapterPmMetrics(object):
 
         :return: (MetricInformation) collected metrics
         """
-        from voltha.protos.device_pb2 import PmConfig
-        from voltha.protos.events_pb2 import MetricInformation, MetricMetaData
         assert ' ' not in group_name,  'Spaces are not allowed in metric titles, use an underscore'
 
         if group is None:
@@ -107,7 +118,13 @@ class AdapterPmMetrics(object):
 
         metrics = dict()
         context = dict()
-        now = arrow.utcnow().float_timestamp
+
+        now = getattr(group, AdapterPmMetrics.TIMESTAMP_ATTRIBUTE) \
+            if hasattr(group, AdapterPmMetrics.TIMESTAMP_ATTRIBUTE) \
+            else arrow.utcnow().float_timestamp
+
+        if now is None:
+            return None     # No metrics available at this time for collection
 
         for (metric, t) in names:
             if config[metric].type == PmConfig.CONTEXT and hasattr(group, metric):
@@ -177,8 +194,6 @@ class AdapterPmMetrics(object):
         :param data: (list) Existing list of collected metrics (MetricInformation)
                             to convert to a KPIEvent and publish
         """
-        from voltha.protos.events_pb2 import KpiEvent2, KpiEventType
-
         self.log.debug('publish-metrics', data=data)
 
         if len(data):

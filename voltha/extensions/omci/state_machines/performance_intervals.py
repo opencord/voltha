@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 import structlog
+import arrow
 from transitions import Machine
 from datetime import datetime, timedelta
 from random import uniform, shuffle
@@ -24,6 +25,7 @@ from voltha.extensions.omci.omci_defs import EntityOperations, ReasonCodes
 from voltha.extensions.omci.omci_cc import OmciCCRxEvents, OMCI_CC, TX_REQUEST_KEY, \
     RX_RESPONSE_KEY
 from voltha.extensions.omci.database.mib_db_api import ATTRIBUTES_KEY
+from voltha.extensions.omci.tasks.omci_get_request import OmciGetRequest
 from voltha.extensions.omci.omci_entities import MacBridgePortConfigurationData
 from voltha.extensions.omci.omci_entities import EthernetPMMonitoringHistoryData, \
     FecPerformanceMonitoringHistoryData, \
@@ -33,7 +35,7 @@ from voltha.extensions.omci.omci_entities import EthernetPMMonitoringHistoryData
     EthernetFrameUpstreamPerformanceMonitoringHistoryData, \
     EthernetFrameDownstreamPerformanceMonitoringHistoryData, \
     EthernetFrameExtendedPerformanceMonitoring, \
-    EthernetFrameExtendedPerformanceMonitoring64Bit
+    EthernetFrameExtendedPerformanceMonitoring64Bit, AniG
 
 
 RxEvent = OmciCCRxEvents
@@ -79,7 +81,7 @@ class PerformanceIntervals(object):
         {'trigger': 'reboot', 'source': '*', 'dest': 'rebooted'},
     ]
     DEFAULT_RETRY = 10               # Seconds to delay after task failure/timeout/poll
-    DEFAULT_TICK_DELAY = 5           # Seconds between checks for collection tick
+    DEFAULT_TICK_DELAY = 15          # Seconds between checks for collection tick
     DEFAULT_INTERVAL_SKEW = 10 * 60  # Seconds to skew past interval boundary
     DEFAULT_COLLECT_ATTEMPTS = 3     # Maximum number of collection fetch attempts
 
@@ -153,6 +155,15 @@ class PerformanceIntervals(object):
         self._pm_me_collect_retries = dict()
         self._add_pm_me = dict()        # (pm cid, pm eid) -> (me cid, me eid, upstream)
         self._del_pm_me = set()
+
+        # Pollable PM items
+        # Note that some items the KPI extracts are not listed below. These are the
+        # administrative states, operational states, and sensed ethernet type. The values
+        # in the MIB database should be accurate for these items.
+
+        self._ani_g_items = ["optical_signal_level", "transmit_optical_level"]
+        self._next_poll_time = datetime.utcnow()
+        self._poll_interval = 60                    # TODO: Fixed at once a minute
 
         # Statistics and attributes
         # TODO: add any others if it will support problem diagnosis
@@ -439,10 +450,37 @@ class PerformanceIntervals(object):
         elif len(self._add_pm_me) and self._add_me_deferred is None:
             self._add_me_deferred = reactor.callLater(0, self.add_me)
 
-        else:
-            # TODO: Compute a better mechanism than just polling here, perhaps based on
-            #       the next time to fetch data for 'any' interval
-            self._deferred = reactor.callLater(self._tick_delay, self.tick)
+        elif datetime.utcnow() >= self._next_poll_time:
+            def success(results):
+                self._device.timestamp = arrow.utcnow().float_timestamp
+                self._device.mib_synchronizer.mib_set(results.me_class.class_id,
+                                                      results.entity_id,
+                                                      results.attributes)
+                self._next_poll_time = datetime.utcnow() + timedelta(seconds=self._poll_interval)
+
+            def failure(reason):
+                self.log.info('poll-failure', reason=reason)
+                self._device.timestamp = None
+                return None
+
+            # Scan all ANI-G ports
+            ani_g_entities = self._device.configuration.ani_g_entities
+            ani_g_entities_ids = ani_g_entities.keys() if ani_g_entities is not None else None
+
+            if ani_g_entities_ids is not None and len(ani_g_entities_ids):
+                for entity_id in ani_g_entities_ids:
+                    task = OmciGetRequest(self._agent, self.device_id,
+                                          AniG, entity_id,
+                                          self._ani_g_items, allow_failure=True)
+                    self._task_deferred = self._device.task_runner.queue_task(task)
+                    self._task_deferred.addCallbacks(success, failure)
+            else:
+                self.log.warn('poll-pm-no-anis')
+                self._next_poll_time = datetime.utcnow() + timedelta(seconds=self._poll_interval)
+
+        # TODO: Compute a better mechanism than just polling here, perhaps based on
+        #       the next time to fetch data for 'any' interval
+        self._deferred = reactor.callLater(self._tick_delay, self.tick)
 
     def on_enter_create_pm_me(self):
         """
@@ -583,8 +621,8 @@ class PerformanceIntervals(object):
 
         # NOTE: For debugging, uncomment next section to perform collection
         #       right after initial code startup/mib-sync
-        # if self._next_interval is None:
-        #     return now     # Do it now  (just for debugging purposes)
+        if self._next_interval is None:
+            return now     # Do it now  (just for debugging purposes)
 
         # Skew the next time up to the maximum specified
         # TODO: May want to skew in a shorter range and select the minute

@@ -75,6 +75,7 @@ class OnuDeviceEntry(object):
         self._deferred = None
         self._first_in_sync = False
         self._first_capabilities = False
+        self._timestamp = None
 
         # OMCI related databases are on a per-agent basis. State machines and tasks
         # are per ONU Vendor
@@ -204,6 +205,15 @@ class OnuDeviceEntry(object):
         :param pm_config: (OnuPmIntervalMetrics) PM Interval configuration
         """
         self._pm_intervals_sm.set_pm_config(pm_config)
+
+    @property
+    def timestamp(self):
+        """Pollable Metrics last collected timestamp"""
+        return self._timestamp
+
+    @timestamp.setter
+    def timestamp(self, value):
+        self._timestamp = value
 
     @property
     def alarm_synchronizer(self):
@@ -497,7 +507,8 @@ class OnuDeviceEntry(object):
 
     def get_imagefile(self, local_name, local_dir, remote_url=None):
         """
-        Return a Deferred that will be triggered if the file is locally availabe or downloaded sucessfully
+        Return a Deferred that will be triggered if the file is locally available
+        or downloaded successfully
         """
         self.log.info('start download from {}'.format(remote_url))
 
@@ -505,4 +516,3 @@ class OnuDeviceEntry(object):
         # self._runner.start()
 
         return self._image_agent.get_image(local_name, local_dir, remote_url)
-                                                             
