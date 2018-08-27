@@ -16,6 +16,7 @@
 import copy
 from twisted.internet import reactor
 import grpc
+from twisted.internet.defer import inlineCallbacks, returnValue
 
 from voltha.protos.openflow_13_pb2 import OFPXMC_OPENFLOW_BASIC, \
     ofp_flow_stats, OFPMT_OXM, Flows, FlowGroups, OFPXMT_OFB_IN_PORT, \
@@ -23,6 +24,7 @@ from voltha.protos.openflow_13_pb2 import OFPXMC_OPENFLOW_BASIC, \
 from voltha.protos.device_pb2 import Port
 import voltha.core.flow_decomposer as fd
 import openolt_platform as platform
+from common.pon_resource_manager.resource_manager import  PONResourceManager
 from voltha.adapters.openolt.protos import openolt_pb2
 from voltha.registry import registry
 
@@ -44,7 +46,7 @@ DEFAULT_MGMT_VLAN = 4091
 
 class OpenOltFlowMgr(object):
 
-    def __init__(self, log, stub, device_id, logical_device_id):
+    def __init__(self, log, stub, device_id, logical_device_id, resource_mgr):
         self.log = log
         self.stub = stub
         self.device_id = device_id
@@ -209,6 +211,7 @@ class OpenOltFlowMgr(object):
             self.log.debug('no device flow to remove for this flow (normal '
                            'for multi table flows)', flow=flow)
 
+    @inlineCallbacks
     def divide_and_add_flow(self, intf_id, onu_id, classifier,
                             action, flow):
 
@@ -218,7 +221,7 @@ class OpenOltFlowMgr(object):
         if 'ip_proto' in classifier:
             if classifier['ip_proto'] == 17:
                 self.log.debug('dhcp flow add')
-                self.add_dhcp_trap(intf_id, onu_id, classifier,
+                yield self.add_dhcp_trap(intf_id, onu_id, classifier,
                                    action, flow)
             elif classifier['ip_proto'] == 2:
                 self.log.warn('igmp flow add ignored, not implemented yet')
@@ -229,48 +232,49 @@ class OpenOltFlowMgr(object):
         elif 'eth_type' in classifier:
             if classifier['eth_type'] == EAP_ETH_TYPE:
                 self.log.debug('eapol flow add')
-                self.add_eapol_flow(intf_id, onu_id, flow)
+                yield self.add_eapol_flow(intf_id, onu_id, flow)
                 vlan_id = self.get_subscriber_vlan(fd.get_in_port(flow))
                 if vlan_id is not None:
-                    self.add_eapol_flow(
+                    yield self.add_eapol_flow(
                         intf_id, onu_id, flow,
                         uplink_eapol_id=EAPOL_UPLINK_SECONDARY_FLOW_INDEX,
                         downlink_eapol_id=EAPOL_DOWNLINK_SECONDARY_FLOW_INDEX,
                         vlan_id=vlan_id)
             if classifier['eth_type'] == LLDP_ETH_TYPE:
                 self.log.debug('lldp flow add')
-                self.add_lldp_flow(intf_id, onu_id, flow, classifier,
+                yield self.add_lldp_flow(intf_id, onu_id, flow, classifier,
                                    action)
 
         elif 'push_vlan' in action:
-            self.add_upstream_data_flow(intf_id, onu_id, classifier, action,
-                                        flow)
+            yield self.add_upstream_data_flow(intf_id, onu_id, classifier, action,
+                                      flow)
         elif 'pop_vlan' in action:
-            self.add_downstream_data_flow(intf_id, onu_id, classifier,
+            yield self.add_downstream_data_flow(intf_id, onu_id, classifier,
                                           action, flow)
         else:
             self.log.debug('Invalid-flow-type-to-handle',
                            classifier=classifier,
                            action=action, flow=flow)
 
+    @inlineCallbacks
     def add_upstream_data_flow(self, intf_id, onu_id, uplink_classifier,
                                uplink_action, logical_flow):
 
         uplink_classifier['pkt_tag_type'] = 'single_tag'
 
-        self.add_hsia_flow(intf_id, onu_id, uplink_classifier,
+        yield self.add_hsia_flow(intf_id, onu_id, uplink_classifier,
                            uplink_action, 'upstream', HSIA_FLOW_INDEX,
                            logical_flow)
 
         # Secondary EAP on the subscriber vlan
         (eap_active, eap_logical_flow) = self.is_eap_enabled(intf_id, onu_id)
         if eap_active:
-            self.add_eapol_flow(
-                intf_id, onu_id, eap_logical_flow,
+            yield self.add_eapol_flow(intf_id, onu_id, eap_logical_flow,
                 uplink_eapol_id=EAPOL_UPLINK_SECONDARY_FLOW_INDEX,
                 downlink_eapol_id=EAPOL_DOWNLINK_SECONDARY_FLOW_INDEX,
                 vlan_id=uplink_classifier['vlan_vid'])
 
+    @inlineCallbacks
     def add_downstream_data_flow(self, intf_id, onu_id, downlink_classifier,
                                  downlink_action, flow):
         downlink_classifier['pkt_tag_type'] = 'double_tag'
@@ -278,7 +282,7 @@ class OpenOltFlowMgr(object):
         downlink_action['pop_vlan'] = True
         downlink_action['vlan_vid'] = downlink_classifier['vlan_vid']
 
-        self.add_hsia_flow(intf_id, onu_id, downlink_classifier,
+        yield self.add_hsia_flow(intf_id, onu_id, downlink_classifier,
                            downlink_action, 'downstream', HSIA_FLOW_INDEX,
                            flow)
 
@@ -286,21 +290,31 @@ class OpenOltFlowMgr(object):
     # will take care of handling all the p bits.
     # We need to revisit when mulitple gem port per p bits is needed.
     # Waiting for Technology profile
+    @inlineCallbacks
     def add_hsia_flow(self, intf_id, onu_id, classifier, action,
                       direction, hsia_id, logical_flow):
 
-        gemport_id = platform.mk_gemport_id(intf_id, onu_id)
+        pon_intf_onu_id = (intf_id, onu_id)
+        gemport_id = yield self.resource_mgr.get_gemport_id(
+                          pon_intf_onu_id=pon_intf_onu_id
+                     )
+        alloc_id = yield self.resource_mgr.get_alloc_id(
+                          pon_intf_onu_id=pon_intf_onu_id
+                     )
+
         flow_id = platform.mk_flow_id(intf_id, onu_id, hsia_id)
 
         flow = openolt_pb2.Flow(
                 onu_id=onu_id, flow_id=flow_id, flow_type=direction,
                 access_intf_id=intf_id, gemport_id=gemport_id,
+                alloc_id=alloc_id,
                 priority=logical_flow.priority,
                 classifier=self.mk_classifier(classifier),
                 action=self.mk_action(action))
 
         self.add_flow_to_device(flow, logical_flow)
 
+    @inlineCallbacks
     def add_dhcp_trap(self, intf_id, onu_id, classifier, action, logical_flow):
 
         self.log.debug('add dhcp upstream trap', classifier=classifier,
@@ -311,12 +325,19 @@ class OpenOltFlowMgr(object):
         classifier['pkt_tag_type'] = 'single_tag'
         classifier.pop('vlan_vid', None)
 
-        gemport_id = platform.mk_gemport_id(intf_id, onu_id)
+        pon_intf_onu_id = (intf_id, onu_id)
+        gemport_id = yield self.resource_mgr.get_gemport_id(
+                          pon_intf_onu_id=pon_intf_onu_id
+                     )
+        alloc_id = yield self.resource_mgr.get_alloc_id(
+                          pon_intf_onu_id=pon_intf_onu_id
+                     )
         flow_id = platform.mk_flow_id(intf_id, onu_id, DHCP_FLOW_INDEX)
 
         upstream_flow = openolt_pb2.Flow(
             onu_id=onu_id, flow_id=flow_id, flow_type="upstream",
             access_intf_id=intf_id, gemport_id=gemport_id,
+            alloc_id=alloc_id,
             priority=logical_flow.priority,
             classifier=self.mk_classifier(classifier),
             action=self.mk_action(action))
@@ -349,6 +370,7 @@ class OpenOltFlowMgr(object):
 
         self.add_flow_to_device(downstream_flow, downstream_logical_flow)
 
+    @inlineCallbacks
     def add_eapol_flow(self, intf_id, onu_id, logical_flow,
                        uplink_eapol_id=EAPOL_FLOW_INDEX,
                        downlink_eapol_id=EAPOL_DOWNLINK_FLOW_INDEX,
@@ -364,7 +386,13 @@ class OpenOltFlowMgr(object):
         uplink_action = {}
         uplink_action['trap_to_host'] = True
 
-        gemport_id = platform.mk_gemport_id(intf_id, onu_id)
+        pon_intf_onu_id = (intf_id, onu_id)
+        gemport_id = yield self.resource_mgr.get_gemport_id(
+                          pon_intf_onu_id=pon_intf_onu_id
+                     )
+        alloc_id = yield self.resource_mgr.get_alloc_id(
+                          pon_intf_onu_id=pon_intf_onu_id
+                     )
 
         # Add Upstream EAPOL Flow.
 
@@ -373,6 +401,7 @@ class OpenOltFlowMgr(object):
         upstream_flow = openolt_pb2.Flow(
             onu_id=onu_id, flow_id=uplink_flow_id, flow_type="upstream",
             access_intf_id=intf_id, gemport_id=gemport_id,
+            alloc_id=alloc_id,
             priority=logical_flow.priority,
             classifier=self.mk_classifier(uplink_classifier),
             action=self.mk_action(uplink_action))
@@ -439,6 +468,7 @@ class OpenOltFlowMgr(object):
     def reset_flows(self):
         self.flows_proxy.update('/', Flows())
 
+    @inlineCallbacks
     def add_lldp_flow(self, intf_id, onu_id, logical_flow, classifier, action):
 
         self.log.debug('add lldp downstream trap', classifier=classifier,
@@ -448,12 +478,20 @@ class OpenOltFlowMgr(object):
         action['trap_to_host'] = True
         classifier['pkt_tag_type'] = 'untagged'
 
-        gemport_id = platform.mk_gemport_id(onu_id)
+        pon_intf_onu_id = (intf_id, onu_id)
+        gemport_id = yield self.resource_mgr.get_gemport_id(
+                          pon_intf_onu_id=pon_intf_onu_id
+                     )
+        alloc_id = yield self.resource_mgr.get_alloc_id(
+                          pon_intf_onu_id=pon_intf_onu_id
+                     )
+
         flow_id = platform.mk_flow_id(intf_id, onu_id, LLDP_FLOW_INDEX)
 
         downstream_flow = openolt_pb2.Flow(
             onu_id=onu_id, flow_id=flow_id, flow_type="downstream",
             access_intf_id=3, network_intf_id=0, gemport_id=gemport_id,
+            alloc_id=alloc_id,
             priority=logical_flow.priority,
             classifier=self.mk_classifier(classifier),
             action=self.mk_action(action))
