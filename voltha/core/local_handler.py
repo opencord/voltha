@@ -1375,6 +1375,17 @@ class LocalHandler(VolthaLocalServiceServicer):
             return AlarmDeviceData()
 
     @twisted_async
+    def UpdateLogicalDeviceMeterTable(self, request, context):
+        log.error("logical-device-meter-update-service not implemented yet")
+        return Empty()
+
+    @twisted_async
+    def GetMeterStatsOfLogicalDevice(self, request, context):
+        log.error("meter-stats-acquisition is not implemented yet")
+        return Empty()
+
+
+    @twisted_async
     def SimulateAlarm(self, request, context):
         log.debug('grpc-request', request=request)
 
