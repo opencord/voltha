@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "e3923c10_8272451d",
+        "filename": "cli/main.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 354,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-08-27T21:13:30Z",
+      "side": 1,
+      "message": "Maybe changing the error to \"device is already being enabled\" would be more clear.",
+      "revId": "0dd011b6b6dc18f4f39a9f3839e903ffb0650847",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
