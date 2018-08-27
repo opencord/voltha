@@ -241,6 +241,13 @@ class GrpcClient(object):
         returnValue(res.items)
 
     @inlineCallbacks
+    def list_reachable_logical_devices(self):
+        res = yield threads.deferToThread(
+            self.local_stub.ListReachableLogicalDevices, empty_pb2.Empty(),
+            timeout=self.grpc_timeout)
+        returnValue(res.items)
+
+    @inlineCallbacks
     def subscribe(self, subscriber):
         res = yield threads.deferToThread(
             self.local_stub.Subscribe, subscriber, timeout=self.grpc_timeout)

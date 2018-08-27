@@ -201,14 +201,17 @@ class ConnectionManager(object):
         log.debug('stop-monitor-vcore-grpc-channel')
 
     @inlineCallbacks
-    def get_list_of_logical_devices_from_voltha(self):
+    def get_list_of_reachable_logical_devices_from_voltha(self):
 
         while self.running:
             log.info('retrieve-logical-device-list')
             try:
-                devices = yield self.grpc_client.list_logical_devices()
+                devices = yield \
+                    self.grpc_client.list_reachable_logical_devices()
+
                 for device in devices:
-                    log.info("logical-device-entry", id=device.id, datapath_id=device.datapath_id)
+                    log.info("reachable-logical-device-entry", id=device.id,
+                             datapath_id=device.datapath_id)
 
                 returnValue(devices)
 
@@ -292,10 +295,11 @@ class ConnectionManager(object):
                 if self.channel is not None and self.grpc_client is not None and \
                                 self.subscription is not None:
                     # get current list from Voltha
-                    devices = yield self.get_list_of_logical_devices_from_voltha()
+                    reachable_devices = yield \
+                        self.get_list_of_reachable_logical_devices_from_voltha()
 
                     # update agent list and mapping tables as needed
-                    self.refresh_agent_connections(devices)
+                    self.refresh_agent_connections(reachable_devices)
                 else:
                     log.info('vcore-communication-unavailable')
 
