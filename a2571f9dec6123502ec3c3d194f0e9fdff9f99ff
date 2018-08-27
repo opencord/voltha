@@ -1,0 +1,211 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a9ef1d1_2394950c",
+        "filename": "common/pon_resource_manager/resource_kv_store.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 27,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-08-27T18:02:32Z",
+      "side": 1,
+      "message": "There is already a KvStore class in common/kvstore. Could we use that instead of created another kvstore interaction class.\n\nAlso is the idea of having it interact with the kvstore directly bypassing config_proxy to be ready for 2.0 or is there another reason ?",
+      "range": {
+        "startLine": 27,
+        "startChar": 0,
+        "endLine": 27,
+        "endChar": 30
+      },
+      "revId": "a2571f9dec6123502ec3c3d194f0e9fdff9f99ff",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "98cf8307_6cf4d4d7",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 160,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-08-27T18:02:32Z",
+      "side": 1,
+      "message": "Is there any better way to determine the backend used ?\nIf not I would still put this line in _parse_extra_args_and_init_resource_manager_class directly",
+      "range": {
+        "startLine": 160,
+        "startChar": 8,
+        "endLine": 160,
+        "endChar": 47
+      },
+      "revId": "a2571f9dec6123502ec3c3d194f0e9fdff9f99ff",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ea4643e4_5f8cdd0d",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 165,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-08-27T18:02:32Z",
+      "side": 1,
+      "message": "I think \n\nself.resource_manager \u003d self._parse_extra_args_and_init_resource_manager_class(device)\n\nis clearer",
+      "range": {
+        "startLine": 161,
+        "startChar": 8,
+        "endLine": 165,
+        "endChar": 74
+      },
+      "revId": "a2571f9dec6123502ec3c3d194f0e9fdff9f99ff",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "787d4322_27da7077",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 191,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-08-27T18:02:32Z",
+      "side": 1,
+      "message": "I think this should be in the resource_manager class",
+      "range": {
+        "startLine": 190,
+        "startChar": 0,
+        "endLine": 191,
+        "endChar": 52
+      },
+      "revId": "a2571f9dec6123502ec3c3d194f0e9fdff9f99ff",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "4a8cc682_fce0ff58",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 394,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-08-27T18:02:32Z",
+      "side": 1,
+      "message": "That would be reinitialized regardless if the port comes up or down.\n\nThe resource_manager should probably be initialized just once at creation since we know the number of PON ports",
+      "range": {
+        "startLine": 378,
+        "startChar": 7,
+        "endLine": 394,
+        "endChar": 9
+      },
+      "revId": "a2571f9dec6123502ec3c3d194f0e9fdff9f99ff",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "a9fa2869_ec9b776d",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1117,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-08-27T18:02:32Z",
+      "side": 1,
+      "message": "I think those 2 are reversed",
+      "range": {
+        "startLine": 1117,
+        "startChar": 30,
+        "endLine": 1117,
+        "endChar": 71
+      },
+      "revId": "a2571f9dec6123502ec3c3d194f0e9fdff9f99ff",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f8646d07_455b753a",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1191,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-08-27T18:02:32Z",
+      "side": 1,
+      "message": "I think this should be in the resource_manager class",
+      "range": {
+        "startLine": 1168,
+        "startChar": 3,
+        "endLine": 1191,
+        "endChar": 78
+      },
+      "revId": "a2571f9dec6123502ec3c3d194f0e9fdff9f99ff",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "16906855_9c668555",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1313,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-08-27T18:02:32Z",
+      "side": 1,
+      "message": "I think this should be in the resource_manager class",
+      "range": {
+        "startLine": 1240,
+        "startChar": 4,
+        "endLine": 1313,
+        "endChar": 22
+      },
+      "revId": "a2571f9dec6123502ec3c3d194f0e9fdff9f99ff",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "85b1f33b_db0aaff5",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 60,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-08-27T18:02:32Z",
+      "side": 1,
+      "message": "The name is misleading, it is the openolt_device_handler\n\nAnd passing in the resource_manager at creation of this and moving most of the functions to it will simplify things",
+      "range": {
+        "startLine": 60,
+        "startChar": 7,
+        "endLine": 60,
+        "endChar": 27
+      },
+      "revId": "a2571f9dec6123502ec3c3d194f0e9fdff9f99ff",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
