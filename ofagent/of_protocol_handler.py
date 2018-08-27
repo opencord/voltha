@@ -128,6 +128,29 @@ class OpenFlowProtocolHandler(object):
         elif self.role == ofp.OFPCR_ROLE_SLAVE:
            self.cxn.send(ofp.message.bad_request_error_msg(code=ofp.OFPBRC_IS_SLAVE))
 
+
+    def handle_meter_mod_request(self, req):
+        if self.role == ofp.OFPCR_ROLE_MASTER or self.role == ofp.OFPCR_ROLE_EQUAL:
+            try:
+                grpc_req = to_grpc(req)
+            except Exception, e:
+                log.exception('failed-to-convert-meter-mod-request', e=e)
+            else:
+                return self.rpc.update_meter_mod_table(self.device_id, grpc_req)
+
+        elif self.role == ofp.OFPCR_ROLE_SLAVE:
+            self.cxn.send(ofp.message.bad_request_error_msg(code=ofp.OFPBRC_IS_SLAVE))
+
+    @inlineCallbacks
+    def handle_meter_stats_request(self, req):
+        try:
+            meter_stats = yield self.rpc.get_meter_stats(self.device_id)
+            meter_stats = [to_loxi(m) for m in meter_stats]
+            of_message = ofp.message.meter_stats_reply(xid=req.xid, entries=meter_stats)
+            self.cxn.send(of_message)
+        except Exception, e:
+            log.exception("failed-meter-stats-request", req=req, e=e)
+
     def handle_get_async_request(self, req):
         raise NotImplementedError()
 
@@ -143,10 +166,6 @@ class OpenFlowProtocolHandler(object):
            yield self.rpc.update_group_table(self.device_id, to_grpc(req))
         elif self.role == ofp.OFPCR_ROLE_SLAVE:
            self.cxn.send(ofp.message.bad_request_error_msg(code=ofp.OFPBRC_IS_SLAVE))
-
-
-    def handle_meter_mod_request(self, req):
-        raise NotImplementedError()
 
     def handle_role_request(self, req):
         if req.role == ofp.OFPCR_ROLE_MASTER or req.role == ofp.OFPCR_ROLE_SLAVE:
@@ -237,11 +256,6 @@ class OpenFlowProtocolHandler(object):
 
     def handle_group_features_request(self, req):
         raise NotImplementedError()
-
-    def handle_meter_stats_request(self, req):
-        meter_stats = []  # see https://jira.opencord.org/browse/CORD-825
-        self.cxn.send(ofp.message.meter_stats_reply(
-            xid=req.xid, entries=meter_stats))
 
     def handle_meter_config_request(self, req):
         raise NotImplementedError()

@@ -347,6 +347,23 @@ service VolthaGlobalService {
         };
     }
 
+    // Update meter table for logical device
+    rpc UpdateLogicalDeviceMeterTable(openflow_13.MeterModUpdate)
+            returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/logical_devices/{id}/meters"
+            body: "*"
+        };
+    }
+
+    // Get all meter stats for logical device
+    rpc GetMeterStatsOfLogicalDevice(ID)
+            returns(openflow_13.MeterStatsReply) {
+        option (google.api.http) = {
+            get: "/api/v1/logical_devices/{id}/meters_stats"
+        };
+    }
+
     // List all flow groups of a logical device
     rpc ListLogicalDeviceFlowGroups(ID) returns(openflow_13.FlowGroups) {
         option (google.api.http) = {
@@ -1089,6 +1106,24 @@ service VolthaLocalService {
         option (google.api.http) = {
             post: "/api/v1/local/logical_devices/{id}/flows"
             body: "*"
+        };
+    }
+
+    // Update meter table for logical device
+    rpc UpdateLogicalDeviceMeterTable(openflow_13.MeterModUpdate)
+            returns(google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/logical_devices/{id}/meters"
+            body: "*"
+        };
+    }
+
+
+    // Get all meter stats for logical device
+    rpc GetMeterStatsOfLogicalDevice(ID)
+            returns(openflow_13.MeterStatsReply) {
+        option (google.api.http) = {
+            get: "/api/v1/logical_devices/{id}/meters_stats"
         };
     }
 

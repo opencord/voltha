@@ -40,7 +40,7 @@ class TestOF_Protocol_handler(TestCase):
         req.role = ofp.OFPCR_ROLE_MASTER
         return req
 
-    def test_handle_flow_mod_request_role_salve(self):
+    def test_handle_flow_mod_request_role_slave(self):
         generic_obj = self.gen_generic_obj()
         device = self.gen_device()
         of_proto_handler = OpenFlowProtocolHandler(device.datapath_id, device.id, generic_obj, generic_obj, generic_obj)
@@ -56,6 +56,23 @@ class TestOF_Protocol_handler(TestCase):
         of_proto_handler = OpenFlowProtocolHandler(device.datapath_id, device.id, generic_obj, generic_obj, generic_obj)
         of_proto_handler.role = ofp.OFPCR_ROLE_MASTER
         of_proto_handler.handle_flow_mod_request(generic_obj)
+
+    def test_handle_meter_mod_request_role_slave(self):
+        generic_obj = self.gen_generic_obj()
+        device = self.gen_device()
+        of_proto_handler = OpenFlowProtocolHandler(device.datapath_id, device.id, generic_obj, generic_obj, generic_obj)
+        of_proto_handler.role = ofp.OFPCR_ROLE_SLAVE
+        with self.assertRaises(Exception) as context:
+            of_proto_handler.handle_meter_mod_request(generic_obj)
+        print context.exception
+        self.assertTrue('\'function\' object has no attribute \'send\'' in str(context.exception))
+
+    def test_handle_meter_mod_request_role_master(self):
+        generic_obj = self.gen_generic_obj()
+        device = self.gen_device()
+        of_proto_handler = OpenFlowProtocolHandler(device.datapath_id, device.id, generic_obj, generic_obj, generic_obj)
+        of_proto_handler.role = ofp.OFPCR_ROLE_MASTER
+        of_proto_handler.handle_meter_mod_request(generic_obj)
 
     def test_handle_role_request(self):
         generic_obj = self.gen_generic_obj()

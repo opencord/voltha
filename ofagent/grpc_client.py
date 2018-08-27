@@ -27,7 +27,7 @@ from twisted.internet import reactor
 from twisted.internet import threads
 from twisted.internet.defer import inlineCallbacks, returnValue, DeferredQueue
 
-from protos.voltha_pb2 import ID, VolthaLocalServiceStub, FlowTableUpdate, \
+from protos.voltha_pb2 import ID, VolthaLocalServiceStub, FlowTableUpdate, MeterModUpdate, \
     FlowGroupTableUpdate, PacketOut
 from protos.logical_device_pb2 import LogicalPortId
 from google.protobuf import empty_pb2
@@ -204,6 +204,16 @@ class GrpcClient(object):
         returnValue(res)
 
     @inlineCallbacks
+    def update_meter_mod_table(self, device_id, meter_mod):
+        req = MeterModUpdate(
+            id=device_id,
+            meter_mod=meter_mod
+        )
+        res = yield threads.deferToThread(
+            self.local_stub.UpdateLogicalDeviceMeterTable, req)
+        returnValue(res)
+
+    @inlineCallbacks
     def update_group_table(self, device_id, group_mod):
         req = FlowGroupTableUpdate(
             id=device_id,
@@ -252,3 +262,11 @@ class GrpcClient(object):
         res = yield threads.deferToThread(
             self.local_stub.Subscribe, subscriber, timeout=self.grpc_timeout)
         returnValue(res)
+
+
+    @inlineCallbacks
+    def get_meter_stats(self, device_id):
+        req = ID(id=device_id)
+        res = yield threads.deferToThread(
+            self.local_stub.GetMeterStatsOfLogicalDevice, req)
+        returnValue(res.items)

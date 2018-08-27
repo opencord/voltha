@@ -65,6 +65,10 @@ def ofp_port_stats_to_loxi_port_stats(pb):
     kw = pb2dict(pb)
     return of13.port_stats_entry(**kw)
 
+def ofp_meter_stats_to_loxi_meter_stats(pb):
+    kw = pb2dict(pb)
+    return of13.meter_stats(**kw)
+
 def make_loxi_field(oxm_field):
     assert oxm_field['oxm_class'] == pb2.OFPXMC_OPENFLOW_BASIC
     ofb_field = oxm_field['ofb_field']
@@ -230,7 +234,8 @@ to_loxi_converters = {
     'ofp_bucket_counter': ofp_bucket_counter_to_loxy_bucket_counter,
     'ofp_bucket': ofp_bucket_to_loxi_bucket,
     'ofp_action': make_loxi_action,
-    'ofp_port_stats': ofp_port_stats_to_loxi_port_stats
+    'ofp_port_stats': ofp_port_stats_to_loxi_port_stats,
+    'ofp_meter_stats': ofp_meter_stats_to_loxi_meter_stats
 }
 
 
@@ -249,6 +254,52 @@ def loxi_flow_mod_to_ofp_flow_mod(lo):
         flags=lo.flags,
         match=to_grpc(lo.match),
         instructions=[to_grpc(i) for i in lo.instructions])
+
+def loxi_meter_mod_to_ofp_meter_mod(lo):
+    return pb2.ofp_meter_mod(
+        command=lo.command,
+        flags=lo.flags,
+        meter_id=lo.meter_id,
+        bands=[to_grpc(i) for i in lo.meters])
+
+
+def loxi_meter_band_drop_to_ofp_meter_band_drop(lo):
+    return pb2.ofp_meter_band_header(
+        type=lo.type,
+        rate=lo.rate,
+        burst_size=lo.burst_size)
+
+
+def loxi_meter_band_dscp_remark_to_ofp_meter_band_dscp_remark(lo):
+    return pb2.ofp_meter_band_header(
+        type=lo.type,
+        rate=lo.rate,
+        burst_size=lo.burst_size,
+        dscp_remark=pb2.ofp_meter_band_dscp_remark(prec_level=lo.prec_level))
+
+
+def loxi_meter_band_experimenter_to_ofp_meter_band_experimenter(lo):
+    return pb2.ofp_meter_band_header(
+        type=lo.type,
+        rate=lo.rate,
+        burst_size=lo.burst_size,
+        experimenter=pb2.ofp_meter_band_experimenter(experimenter=lo.experimenter))
+
+
+def loxi_meter_multipart_request_to_ofp_meter_multipart_request(lo):
+    return pb2.ofp_meter_multipart_request(
+        meter_id=lo.meter_id)
+
+
+def loxi_meter_stats_to_ofp_meter_stats(lo):
+    return pb2.ofp_meter_stats(
+        meter_id=lo.meter_id,
+        flow_count=lo.flow_count,
+        packet_in_count =lo.packet_in_count,
+        byte_in_count=lo.byte_in_count,
+        duration_sec=lo.duration_sec,
+        duration_nsec=lo.duration_nsec,
+        band_stats=lo.band_stats)
 
 
 def loxi_group_mod_to_ofp_group_mod(lo):
@@ -405,11 +456,17 @@ to_grpc_converters = {
     of13.message.flow_delete_strict: loxi_flow_mod_to_ofp_flow_mod,
     of13.message.flow_modify: loxi_flow_mod_to_ofp_flow_mod,
     of13.message.flow_modify_strict: loxi_flow_mod_to_ofp_flow_mod,
+    of13.message.meter_mod: loxi_meter_mod_to_ofp_meter_mod,
+    of13.message.meter_stats_request: loxi_meter_stats_to_ofp_meter_stats,
 
     of13.message.group_add: loxi_group_mod_to_ofp_group_mod,
     of13.message.group_delete: loxi_group_mod_to_ofp_group_mod,
     of13.message.group_modify: loxi_group_mod_to_ofp_group_mod,
     of13.message.packet_out: loxi_packet_out_to_ofp_packet_out,
+
+    of13.meter_band.drop: loxi_meter_band_drop_to_ofp_meter_band_drop,
+    of13.meter_band.dscp_remark: loxi_meter_band_dscp_remark_to_ofp_meter_band_dscp_remark,
+    of13.meter_band.experimenter: loxi_meter_band_experimenter_to_ofp_meter_band_experimenter,
 
     of13.common.match_v3: loxi_match_v3_to_ofp_match,
     of13.common.bucket: loxi_bucket_to_ofp_bucket,

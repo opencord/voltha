@@ -1354,36 +1354,29 @@ enum ofp_meter_band_type {
 /* Common header for all meter bands */
 message ofp_meter_band_header {
     ofp_meter_band_type type = 1;   /* One of OFPMBT_*. */
-    uint32              len = 2;    /* Length in bytes of this band. */
-    uint32              rate = 3;   /* Rate for this band. */
-    uint32              burst_size = 4;/* Size of bursts. */
+    uint32              rate = 2;   /* Rate for this band. */
+    uint32              burst_size = 3;/* Size of bursts. */
+    oneof data {
+        ofp_meter_band_drop drop = 4;
+        ofp_meter_band_dscp_remark dscp_remark = 5;
+        ofp_meter_band_experimenter experimenter = 6;
+    }
 };
 
 /* OFPMBT_DROP band - drop packets */
 message ofp_meter_band_drop {
-    uint32        type = 1;   /* OFPMBT_DROP. */
-    uint32        len = 2;   /* Length in bytes of this band. */
-    uint32        rate = 3;   /* Rate for dropping packets. */
-    uint32        burst_size = 4;/* Size of bursts. */
+    //Empty payload
 };
 
 /* OFPMBT_DSCP_REMARK band - Remark DSCP in the IP header */
 message ofp_meter_band_dscp_remark {
-    uint32        type = 1;       /* OFPMBT_DSCP_REMARK. */
-    uint32        len = 2;        /* Length in bytes of this band. */
-    uint32        rate = 3;       /* Rate for remarking packets. */
-    uint32        burst_size = 4; /* Size of bursts. */
-    uint32        prec_level = 5; /* Number of drop precedence level to add. */
+    uint32        prec_level = 1; /* Number of drop precedence level to add. */
 };
 
 /* OFPMBT_EXPERIMENTER band - Experimenter type.
  * The rest of the band is experimenter-defined. */
 message ofp_meter_band_experimenter {
-    ofp_meter_band_type type = 1;        /* One of OFPMBT_*. */
-    uint32              len = 2;         /* Length in bytes of this band. */
-    uint32              rate = 3;        /* Rate for this band. */
-    uint32              burst_size = 4;  /* Size of bursts. */
-    uint32              experimenter = 5;/* Experimenter ID which takes the
+    uint32              experimenter = 1;/* Experimenter ID which takes the
                                             same form as in struct
                                             ofp_experimenter_header. */
 };
@@ -1406,7 +1399,6 @@ enum ofp_meter_flags {
 
 /* Meter configuration. OFPT_METER_MOD. */
 message ofp_meter_mod {
-//    ofp_header   header = 1;
     ofp_meter_mod_command command = 1;       /* One of OFPMC_*. */
     uint32                flags = 2;         /* Bitmap of OFPMF_* flags. */
     uint32                meter_id = 3;      /* Meter instance. */
@@ -2251,6 +2243,15 @@ message ofp_async_config {
 
 
 /* ADDITIONAL VOLTHA SPECIFIC MESSAGE TYPES, AIDING RPC CALLS */
+
+message MeterModUpdate {
+    string id = 1;      // Device.id or LogicalDevice.id
+    ofp_meter_mod meter_mod = 2;
+}
+
+message MeterStatsReply {
+    repeated ofp_meter_stats meter_stats = 1;
+}
 
 message FlowTableUpdate {
     string id = 1;  // Device.id or LogicalDevice.id
