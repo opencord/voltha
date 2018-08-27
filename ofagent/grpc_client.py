@@ -200,6 +200,16 @@ class GrpcClient(object):
         returnValue(res)
 
     @inlineCallbacks
+    def update_meter_mod_table(self, device_id, meter_mod):
+        req = MeterModUpdate(
+            id=device_id,
+            meter_mod=meter_mod
+        )
+        res = yield threads.deferToThread(
+            self.local_stub.UpdateLogicalDeviceMeterTable, req)
+        returnValue(res)
+
+    @inlineCallbacks
     def update_group_table(self, device_id, group_mod):
         req = FlowGroupTableUpdate(
             id=device_id,
@@ -228,4 +238,11 @@ class GrpcClient(object):
         req = ID(id=device_id)
         res = yield threads.deferToThread(
             self.local_stub.ListLogicalDevicePorts, req)
+        returnValue(res.items)
+
+    @inlineCallbacks
+    def get_meter_stats(self, device_id):
+        req = ID(id=device_id)
+        res = yield threads.deferToThread(
+            self.local_stub.GetMeterStatsOfLogicalDevice, req)
         returnValue(res.items)

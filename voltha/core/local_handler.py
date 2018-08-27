@@ -1373,3 +1373,13 @@ class LocalHandler(VolthaLocalServiceServicer):
                 'OMCI ALARM for Device \'{}\' not found'.format(request.id))
             context.set_code(StatusCode.NOT_FOUND)
             return AlarmDeviceData()
+
+    @twisted_async
+    def UpdateLogicalDeviceMeterTable(self, request, context):
+        log.error("logical-device-meter-update-service not implemented yet")
+        return Empty()
+
+    @twisted_async
+    def GetMeterStatsOfLogicalDevice(self, request, context):
+        log.error("meter-stats-acquisition is not implemented yet")
+        return Empty()
