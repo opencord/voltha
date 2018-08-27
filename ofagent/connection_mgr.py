@@ -29,6 +29,7 @@ from grpc._channel import _Rendezvous
 from ofagent.protos import third_party
 from protos import voltha_pb2
 from protos.voltha_pb2 import OfAgentSubscriber
+from protos.common_pb2 import ConnectStatus, ID
 from grpc_client import GrpcClient
 
 from agent import Agent
@@ -222,6 +223,29 @@ class ConnectionManager(object):
             log.info('reconnect', after_delay=self.vcore_retry_interval)
             yield asleep(self.vcore_retry_interval)
 
+    @inlineCallbacks
+    def get_device_from_voltha(self, device_id):
+
+        while self.running:
+            log.info('retrieve-device', device_id =device_id)
+            try:
+                stub = voltha_pb2.VolthaLocalServiceStub(self.channel)
+                device = stub.GetDevice(ID(id=device_id))
+
+                returnValue(device)
+
+            except _Rendezvous, e:
+                log.error('vcore-communication-failure', exception=e,
+                          status=e.code())
+                if e.code() == StatusCode.UNAVAILABLE:
+                    os.system("kill -15 {}".format(os.getpid()))
+
+            except Exception as e:
+                log.exception('device-retrieval-failure', exception=e)
+
+            log.info('reconnect', after_delay=self.vcore_retry_interval)
+            yield asleep(self.vcore_retry_interval)
+
     def refresh_agent_connections(self, devices):
         """
         Based on the new device list, update the following state in the class:
@@ -289,10 +313,20 @@ class ConnectionManager(object):
             try:
                 if self.channel is not None and self.grpc_client is not None:
                     # get current list from Voltha
-                    devices = yield self.get_list_of_logical_devices_from_voltha()
+                    logical_devices = yield \
+                        self.get_list_of_logical_devices_from_voltha()
+
+                    # Filtering out unreachable devices
+                    connected_devices = []
+
+                    for logical_device in logical_devices:
+                        device = yield self.get_device_from_voltha(
+                            logical_device.root_device_id)
+                        if device.connect_status != ConnectStatus.UNREACHABLE:
+                            connected_devices.append(logical_device)
 
                     # update agent list and mapping tables as needed
-                    self.refresh_agent_connections(devices)
+                    self.refresh_agent_connections(connected_devices)
                 else:
                     log.info('vcore-communication-unavailable')
 
