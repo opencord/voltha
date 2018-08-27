@@ -33,7 +33,7 @@ from voltha.protos.voltha_pb2 import \
     DeviceTypes, DeviceGroups, DeviceGroup, AdminState, OperStatus, ChangeEvent, \
     AlarmFilter, AlarmFilters, SelfTestResponse, OfAgentSubscriber
 from voltha.protos.device_pb2 import PmConfigs, Images, ImageDownload, ImageDownloads
-from voltha.protos.common_pb2 import OperationResp
+from voltha.protos.common_pb2 import OperationResp, ConnectStatus
 from voltha.protos.bbf_fiber_base_pb2 import AllMulticastDistributionSetData, AllMulticastGemportsConfigData
 from voltha.registry import registry
 from voltha.protos.omci_mib_db_pb2 import MibDeviceData
@@ -138,6 +138,21 @@ class LocalHandler(VolthaLocalServiceServicer):
         log.debug('grpc-request', request=request)
         items = self.root.get('/logical_devices')
         return LogicalDevices(items=items)
+
+    @twisted_async
+    def ListReachableLogicalDevices(self, request, context):
+        log.debug('grpc-request', request=request)
+        logical_devices = self.root.get('/logical_devices')
+        reachable_logical_devices = []
+
+        for logical_device in logical_devices:
+            device = self.root.get('/devices/{}'.format(
+                logical_device.root_device_id))
+            if device is not None and device.connect_status == \
+                    ConnectStatus.REACHABLE:
+                reachable_logical_devices.append(logical_device)
+
+        return LogicalDevices(items=reachable_logical_devices)
 
     @twisted_async
     def GetLogicalDevice(self, request, context):

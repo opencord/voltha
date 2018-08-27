@@ -284,6 +284,14 @@ service VolthaGlobalService {
         option (voltha.yang_xml_tag).xml_tag = 'logical_devices';
     }
 
+    // List all reachable logical devices managed by the Voltha cluster
+    rpc ListReachableLogicalDevices(google.protobuf.Empty) returns
+    (LogicalDevices) {
+        option (google.api.http) = {
+            get: "/api/v1/reachable_logical_devices"
+        };
+    }
+
     // Get additional information on a given logical device
     rpc GetLogicalDevice(ID) returns(LogicalDevice) {
         option (google.api.http) = {
@@ -1019,6 +1027,14 @@ service VolthaLocalService {
             get: "/api/v1/local/logical_devices"
         };
         option (voltha.yang_xml_tag).xml_tag = 'logical_devices';
+    }
+
+    // List all reachable logical devices managed by this Voltha instance
+    rpc ListReachableLogicalDevices(google.protobuf.Empty) returns
+    (LogicalDevices) {
+        option (google.api.http) = {
+            get: "/api/v1/local/reachable_logical_devices"
+        };
     }
 
     // Get additional information on given logical device

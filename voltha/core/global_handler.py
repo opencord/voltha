@@ -169,6 +169,18 @@ class GlobalHandler(VolthaGlobalServiceServicer):
 
     @twisted_async
     @inlineCallbacks
+    def ListReachableLogicalDevices(self, request, context):
+        log.debug('grpc-request', request=request)
+        response = yield self.dispatcher.dispatch(
+                'ListReachableLogicalDevices',
+                Empty(),
+                context,
+                broadcast=True)
+        log.debug('grpc-response', response=response)
+        returnValue(response)
+
+    @twisted_async
+    @inlineCallbacks
     def GetLogicalDevice(self, request, context):
         log.debug('grpc-request', request=request)
 
