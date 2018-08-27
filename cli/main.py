@@ -350,10 +350,12 @@ class VolthaCli(Cmd):
             stub = self.get_stub()
             device = stub.GetDevice(voltha_pb2.ID(id=device_id))
             if device.admin_state == voltha_pb2.AdminState.ENABLED:
-                self.poutput('Error: Device is already enabled')
-                return
-            stub.EnableDevice(voltha_pb2.ID(id=device_id))
-            self.poutput('enabling {}'.format(device_id))
+                if device.oper_status != voltha_pb2.OperStatus.ACTIVATING:
+                    self.poutput('Error: Device is already enabled')
+                    return
+            else:
+                stub.EnableDevice(voltha_pb2.ID(id=device_id))
+                self.poutput('enabling {}'.format(device_id))
 
             while True:
                 device = stub.GetDevice(voltha_pb2.ID(id=device_id))
