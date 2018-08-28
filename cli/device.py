@@ -374,6 +374,8 @@ individual metrics.
                     help="CRC code to verify with", default=0),
         make_option('-v', '--version', action='store', dest='version',
                     help="Image version", default=0),
+        make_option('-d', '--dir', action='store', dest='dir',
+                    help="local directory"),
     ])
     def do_img_dnld_request(self, line, opts):
         """
@@ -385,6 +387,7 @@ individual metrics.
         self.poutput('url {}'.format(opts.url))
         self.poutput('crc {}'.format(opts.crc))
         self.poutput('version {}'.format(opts.version))
+        self.poutput('local dir {}'.format(opts.dir))
         try:
             device_id = device.id
             if device_id and opts.name and opts.url:
@@ -394,6 +397,8 @@ individual metrics.
             else:
                 self.poutput('Device ID and URL are needed')
                 raise Exception('Device ID and URL are needed')
+            if opts.dir:
+                kw['local_dir'] = opts.dir
         except Exception as e:
             self.poutput('Error request img dnld {}.  Error:{}'.format(device_id, e))
             return

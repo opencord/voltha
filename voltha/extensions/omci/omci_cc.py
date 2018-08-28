@@ -1,5 +1,5 @@
 #
-# Copyright 2017-present Open Networking Foundation
+# Copyright 2017 the original author or authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,17 +21,22 @@ import sys
 import arrow
 from twisted.internet import reactor, defer
 from twisted.internet.defer import DeferredQueue, TimeoutError, CancelledError, failure, fail
-from common.frameio.frameio import hexify
+# from common.frameio.frameio import hexify
 from voltha.extensions.omci.omci import *
-from voltha.extensions.omci.omci_me import OntGFrame, OntDataFrame
+from voltha.extensions.omci.omci_me import OntGFrame, OntDataFrame, SoftwareImageFrame
 from common.event_bus import EventBusClient
 from enum import IntEnum
 from binascii import hexlify
 
+def hexify(buffer):
+    """Return a hexadecimal string encoding of input buffer"""
+    return ''.join('%02x' % ord(c) for c in buffer)
 
 DEFAULT_OMCI_TIMEOUT = 3            # Seconds
 MAX_OMCI_REQUEST_AGE = 60           # Seconds
 MAX_OMCI_TX_ID = 0xFFFF             # 2 Octets max
+DEFAULT_OMCI_DOWNLOAD_SECTION_SIZE = 31            # Bytes
+#DEFAULT_OMCI_DOWNLOAD_WINDOW_SIZE  = 32            # sections
 
 CONNECTED_KEY = 'connected'
 TX_REQUEST_KEY = 'tx-request'
@@ -58,7 +63,6 @@ class OmciCCRxEvents(IntEnum):
 OP = EntityOperations
 RxEvent = OmciCCRxEvents
 
-
 class OMCI_CC(object):
     """ Handle OMCI Communication Channel specifics for Adtran ONUs"""
 
@@ -73,16 +77,27 @@ class OMCI_CC(object):
         OmciGetAllAlarmsNextResponse.message_id: RxEvent.Get_ALARM_Get_Next
     }
 
-    def __init__(self, adapter_agent, device_id, me_map=None):
+    def __init__(self, adapter_agent, device_id, me_map=None,
+                 # alarm_queue_limit=_MAX_INCOMING_ALARM_MESSAGES,
+                 # avc_queue_limit=_MAX_INCOMING_ALARM_MESSAGES,
+                 # test_results_queue_limit=_MAX_INCOMING_TEST_RESULT_MESSAGES,
+                 clock=None):
         self.log = structlog.get_logger(device_id=device_id)
         self._adapter_agent = adapter_agent
         self._device_id = device_id
         self._proxy_address = None
         self._tx_tid = 1
         self._enabled = False
-        self._requests = dict()       # Tx ID -> (timestamp, deferred, tx_frame, timeout)
+        self._requests = dict()       # Tx ID -> (timestamp, deferred, tx_frame, timeout, retry, delayedCall)
+        # self._alarm_queue = DeferredQueue(size=alarm_queue_limit)
+        # self._avc_queue = DeferredQueue(size=avc_queue_limit)
+        # self._test_results_queue = DeferredQueue(size=test_results_queue_limit)
         self._me_map = me_map
-
+        if clock is None:
+            self.reactor = reactor
+        else:
+            self.reactor = clock
+        
         # Statistics
         self._tx_frames = 0
         self._rx_frames = 0
@@ -219,15 +234,32 @@ class OMCI_CC(object):
 
         if msg_type == EntityOperations.AlarmNotification.value:
             topic = OMCI_CC.event_bus_topic(self._device_id, RxEvent.Alarm_Notification)
-            reactor.callLater(0,  self.event_bus.publish, topic, msg)
+            self.reactor.callLater(0,  self.event_bus.publish, topic, msg)
+            # try:
+            #     self._alarm_queue.put((rx_frame, arrow.utcnow().float_timestamp))
+
+            # except QueueOverflow:
+            #     self._rx_alarm_overflow += 1
+            #     self.log.warn('onu-rx-alarm-overflow', cnt=self._rx_alarm_overflow)
 
         elif msg_type == EntityOperations.AttributeValueChange.value:
             topic = OMCI_CC.event_bus_topic(self._device_id, RxEvent.AVC_Notification)
-            reactor.callLater(0,  self.event_bus.publish, topic, msg)
+            self.reactor.callLater(0,  self.event_bus.publish, topic, msg)
+            # try:
+            #     self._alarm_queue.put((rx_frame, arrow.utcnow().float_timestamp))
+
+            # except QueueOverflow:
+            #     self._rx_avc_overflow += 1
+            #     self.log.warn('onu-rx-avc-overflow', cnt=self._rx_avc_overflow)
 
         elif msg_type == EntityOperations.TestResult.value:
             topic = OMCI_CC.event_bus_topic(self._device_id, RxEvent.Test_Result)
-            reactor.callLater(0,  self.event_bus.publish, topic, msg)
+            self.reactor.callLater(0,  self.event_bus.publish, topic, msg)
+            # try:
+            #     self._test_results_queue.put((rx_frame, arrow.utcnow().float_timestamp))
+
+            # except QueueOverflow:
+            #     self.log.warn('onu-rx-test-results-overflow')
 
         else:
             self.log.warn('onu-unsupported-autonomous-message', type=msg_type)
@@ -254,16 +286,16 @@ class OMCI_CC(object):
                 omci_entities.entity_id_to_class_map = self._me_map
 
                 try:
-                    rx_frame = OmciFrame(msg)
+                    rx_frame = msg if isinstance(msg, OmciFrame) else OmciFrame(msg)
                     rx_tid = rx_frame.fields['transaction_id']
-
+                    # tid = 'Recv {:0>4X}'.format(rx_tid)
                     if rx_tid == 0:
                         return self._receive_onu_message(rx_frame)
 
                     # Previously unreachable if this is the very first Rx or we
                     # have been running consecutive errors
                     if self._rx_frames == 0 or self._consecutive_errors != 0:
-                        reactor.callLater(0, self._publish_connectivity_event, True)
+                        self.reactor.callLater(0, self._publish_connectivity_event, True)
 
                     self._rx_frames += 1
                     self._consecutive_errors = 0
@@ -283,7 +315,11 @@ class OMCI_CC(object):
                     omci_entities.entity_id_to_class_map = saved_me_map     # Always restore it.
 
                 try:
-                    (ts, d, tx_frame, _) = self._requests.pop(rx_tid)
+                    # (0: timestamp, 1: defer, 2: frame, 3: timeout, 4: retry, 5: delayedCall)
+                    (ts, d, tx_frame, _, retry, dc) = self._requests.pop(rx_tid)
+                    if dc is not None and not dc.cancelled and not dc.called:
+                        self.log.debug("cancel timeout call")
+                        dc.cancel()
 
                     ts_diff = now - arrow.Arrow.utcfromtimestamp(ts)
                     secs = ts_diff.total_seconds()
@@ -308,10 +344,10 @@ class OMCI_CC(object):
                     return
 
                 # Notify sender of completed request
-                reactor.callLater(0, d.callback, rx_frame)
+                self.reactor.callLater(0, d.callback, rx_frame)
 
                 # Publish Rx event to listeners in a different task
-                reactor.callLater(0, self._publish_rx_frame, tx_frame, rx_frame)
+                self.reactor.callLater(0, self._publish_rx_frame, tx_frame, rx_frame)
 
             except Exception as e:
                 self.log.exception('rx-msg', e=e)
@@ -405,13 +441,18 @@ class OMCI_CC(object):
 
     def flush(self, max_age=0):
         limit = arrow.utcnow().float_timestamp - max_age
-        old = [tid for tid, (ts, _, _, _) in self._requests.iteritems()
+        old = [tid for tid, (ts, _, _, _, _, _) in self._requests.iteritems()
                if ts <= limit]
 
         for tid in old:
-            (_, d, _, _) = self._requests.pop(tid)
+            (_, d, _, _, _, dc) = self._requests.pop(tid)
             if d is not None and not d.called:
                 d.cancel()
+
+            if dc is not None and not dc.called and not dc.cancelled:
+                dc.cancel()
+
+        self._requests = dict()
 
     def _get_tx_tid(self):
         """
@@ -434,20 +475,20 @@ class OMCI_CC(object):
         :param tx_tid: (int) Associated Tx TID
         """
         if tx_tid in self._requests:
-            (_, _, _, timeout) = self._requests.pop(tx_tid)
-        else:
-            timeout = 0
+            (_, _, _, timeout, retry, dc) = self._requests.pop(tx_tid)
+            if dc is not None and not dc.called and not dc.cancelled:
+                dc.cancel()
 
-        if isinstance(value, failure.Failure):
-            value.trap(CancelledError)
-            self._rx_timeouts += 1
-            self._consecutive_errors += 1
+        # if isinstance(value, failure.Failure):
+        #     value.trap(CancelledError)
+        #     self._rx_timeouts += 1
+        #     self._consecutive_errors += 1
 
-            if self._consecutive_errors == 1:
-                reactor.callLater(0, self._publish_connectivity_event, False)
+        #     if self._consecutive_errors == 1:
+        #         reactor.callLater(0, self._publish_connectivity_event, False)
 
-            self.log.info('timeout', tx_id=tx_tid, timeout=timeout)
-            value = failure.Failure(TimeoutError(timeout, "Deferred"))
+        #     self.log.info('timeout', tx_id=tx_tid, timeout=timeout)
+        #     value = failure.Failure(TimeoutError(timeout, "Deferred"))
 
         return value
 
@@ -460,17 +501,33 @@ class OMCI_CC(object):
         """
         # At this point, no additional processing is required
         # Continue with Rx Success callbacks.
+        self.log.info("omci_cc: _request_success")
         return rx_frame
 
-    def send(self, frame, timeout=DEFAULT_OMCI_TIMEOUT):
+    def _request_timeout(self, tx_tid):
+        self.log.debug("_request_timeout", tx_tid=tx_tid)
+        if tx_tid in self._requests:
+            req = self._requests[tx_tid]    # (0: timestamp, 1: defer, 2: frame, 3: timeout, 4: retry, 5: delayedCall)
+            frame   = req[2]
+            timeout = req[3]
+            retry   = req[4]
+            if retry > 0:
+                retry -= 1
+                self.send(frame, timeout, retry)
+            else:
+                d = req[1]
+                d.errback(failure.Failure(TimeoutError(timeout, "Send OMCI TID -{}".format(tx_tid))))
+
+    def send(self, frame, timeout=DEFAULT_OMCI_TIMEOUT, retry=0):
         """
         Send the OMCI Frame to the ONU via the proxy_channel
 
         :param frame: (OMCIFrame) Message to send
-        :param timeout: (int) Rx Timeout. 0=Forever
+        :param timeout: (int) Rx Timeout. 0=No response needed
         :return: (deferred) A deferred that fires when the response frame is received
                             or if an error/timeout occurs
         """
+        self.log.debug("omci_cc.send()")
         self.flush(max_age=MAX_OMCI_REQUEST_AGE)
 
         assert timeout <= MAX_OMCI_REQUEST_AGE, \
@@ -478,7 +535,7 @@ class OMCI_CC(object):
         assert isinstance(frame, OmciFrame), \
             "Invalid frame class '{}'".format(type(frame))
 
-        if not self.enabled or self._proxy_address is None:
+        if not self.enabled:
             # TODO custom exceptions throughout this code would be helpful
             return fail(result=failure.Failure(Exception('OMCI is not enabled')))
 
@@ -492,7 +549,17 @@ class OMCI_CC(object):
             assert tx_tid >= 0, 'Invalid Tx TID: {}'.format(tx_tid)
 
             ts = arrow.utcnow().float_timestamp
-            d = defer.Deferred()
+
+            if tx_tid in self._requests:
+                req     = self._requests[tx_tid]    # (0: timestamp, 1: defer, 2: frame, 3: timeout, 4: retry, 5: delayedCall)
+                d       = req[1]
+                timeout = req[3]
+                dc      = req[5]
+                if dc is not None and not dc.cancelled:  # delayedCall returned from last send
+                   dc.cancel()
+            else:
+                req = None
+                d   = defer.Deferred()
 
             # NOTE: Since we may need to do an independent ME map on a per-ONU basis
             #       save the current value of the entity_id_to_class_map, then
@@ -508,20 +575,21 @@ class OMCI_CC(object):
                 omci_entities.entity_id_to_class_map = saved_me_map
 
             self._tx_frames += 1
-            self._requests[tx_tid] = (ts, d, frame, timeout)
-
-            d.addCallbacks(self._request_success, self._request_failure,
-                           errbackArgs=(tx_tid,))
-
+            
             if timeout > 0:
-                d.addTimeout(timeout, reactor)
+                dc  = self.reactor.callLater(timeout, self._request_timeout, tx_tid)
+                req = self._requests[tx_tid] = (ts, d, frame, timeout, retry, dc)
+                d.addCallbacks(self._request_success, self._request_failure, errbackArgs=(tx_tid,))
+                # d.addTimeout(timeout, reactor)
+            else:
+                self.reactor.callLater(0, d.callback, tx_tid)    # no response needed to trigger the defer; just fire it.
 
         except Exception as e:
             self._tx_errors += 1
             self._consecutive_errors += 1
 
             if self._consecutive_errors == 1:
-                reactor.callLater(0, self._publish_connectivity_event, False)
+                self.reactor.callLater(0, self._publish_connectivity_event, False)
 
             self.log.exception('send-omci', e=e)
             return fail(result=failure.Failure(e))
@@ -574,3 +642,39 @@ class OMCI_CC(object):
 
         frame = OntDataFrame().get_all_alarm_next(seq_no)
         return self.send(frame, timeout)
+
+    def send_start_software_download(self, image_inst_id, image_size, window_size, timeout=DEFAULT_OMCI_TIMEOUT):
+        frame = SoftwareImageFrame(image_inst_id).start_software_download(image_size, window_size-1)
+        return self.send(frame, timeout, 3)
+        
+    def send_download_section(self, image_inst_id, section_num, data, size=DEFAULT_OMCI_DOWNLOAD_SECTION_SIZE, timeout=0):
+        """
+        # timeout=0 indicates no repons needed
+        """
+        self.log.debug("send_download_section", instance_id=image_inst_id, section=section_num, timeout=timeout)
+        if timeout > 0:
+            frame = SoftwareImageFrame(image_inst_id).download_section(True, section_num, data)
+        else:
+            frame = SoftwareImageFrame(image_inst_id).download_section(False, section_num, data)
+        return self.send(frame, timeout)
+        
+        # if timeout > 0:
+        #     self.reactor.callLater(0, self.sim_receive_download_section_resp, 
+        #                            frame.fields["transaction_id"], 
+        #                            frame.fields["omci_message"].fields["section_number"])
+        # return d
+
+    def send_end_software_download(self, image_inst_id, crc32, image_size, timeout=DEFAULT_OMCI_TIMEOUT):
+        frame = SoftwareImageFrame(image_inst_id).end_software_download(crc32, image_size)
+        return self.send(frame, timeout)
+        # self.reactor.callLater(0, self.sim_receive_end_software_download_resp, frame.fields["transaction_id"])
+        # return d
+
+    def send_active_image(self, image_inst_id, flag=0, timeout=DEFAULT_OMCI_TIMEOUT):
+        frame = SoftwareImageFrame(image_inst_id).activate_image(flag)
+        return self.send(frame, timeout)
+
+    def send_commit_image(self, image_inst_id, timeout=DEFAULT_OMCI_TIMEOUT):
+        frame = SoftwareImageFrame(image_inst_id).commit_image()
+        return self.send(frame, timeout)
+
