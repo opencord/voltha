@@ -79,6 +79,10 @@ class AdapterAgent(object):
         self.log = structlog.get_logger(adapter_name=adapter_name)
         self._onu_detect_event_subscriptions = {}
 
+    @property
+    def name(self):
+        return self.adapter_name
+        
     @inlineCallbacks
     def start(self):
         self.log.debug('starting')

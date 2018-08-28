@@ -158,9 +158,10 @@ class DeviceAgent(object):
             self.log.debug('get-image-download-status',
                            request=request)
             device = self.proxy.get('/')
-            self.adapter_agent.get_image_download_status(device, request)
+            return self.adapter_agent.get_image_download_status(device, request)
         except Exception as e:
             self.log.exception(e.message)
+            return None
 
     def cancel_image_download(self, img_dnld):
         try:
@@ -168,6 +169,11 @@ class DeviceAgent(object):
                            img_dnld=img_dnld)
             device = self.proxy.get('/')
             self.adapter_agent.cancel_image_download(device, img_dnld)
+            if device.admin_state == AdminState.DOWNLOADING_IMAGE:
+                device.admin_state = AdminState.ENABLED
+                self.proxy.update('/', device)
+                self.proxy.remove('/image_downloads/{}' \
+                              .format(img_dnld.name), img_dnld)
         except Exception as e:
             self.log.exception(e.message)
 
