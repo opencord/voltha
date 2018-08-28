@@ -53,7 +53,7 @@ class AttributeAccess(Enum):
 
 
 OmciNullPointer = 0xffff
-
+OmciSectionDataSize = 31
 
 class EntityOperations(Enum):
     # keep these numbers match msg_type field per OMCI spec
@@ -95,3 +95,6 @@ class ReasonCodes(IntEnum):
     DeviceBusy = 6,         # Device busy
     InstanceExists = 7,     # Instance Exists
     AttributeFailure = 9,   # Attribute(s) failed or unknown
+
+    OperationCancelled = 255 # Proprietary defined for internal use
+    

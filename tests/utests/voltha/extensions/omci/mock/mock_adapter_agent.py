@@ -13,10 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
+import binascii
+import structlog
+from twisted.internet.defer import Deferred
 from voltha.core.config.config_root import ConfigRoot
 from voltha.protos.voltha_pb2 import VolthaInstance
-
+from voltha.extensions.omci.omci_frame import OmciFrame
 
 class MockProxyAddress(object):
     def __init__(self, device_id, pon_id, onu_id):
@@ -57,10 +59,24 @@ class MockAdapterAgent(object):
     base class so that we can access the _devices map and get either a
     Device to play with (like the real thing) or the associated handler
     """
-    def __init__(self):
+    def __init__(self, d=None):
+        self.log = structlog.get_logger() 
         self._devices = dict()      # device-id -> mock device
         self.core = MockCore()
+        self.deferred = d
 
+    @property
+    def send_omci_defer(self):
+        return self.deferred
+        
+    @send_omci_defer.setter
+    def send_omci_defer(self, value):
+        self.deferred = value
+
+    @property
+    def name(self):
+        return "cig_mock_ont"
+    
     def tearDown(self):
         """Test case cleanup"""
         for device in self._devices.itervalues():
@@ -126,11 +142,17 @@ class MockAdapterAgent(object):
 
     def send_proxied_message(self, proxy_address, msg):
         # Look up ONU handler and forward the message
+        self.log.debug("--> send_proxied_message", message=msg)
+        
+        # if proxy_address is None:
+        if self.deferred is not None:
+            self.deferred.callback(msg)
+        #     return None
 
-        olt_handler = self.get_device(proxy_address.device_id)
+        # olt_handler = self.get_device(proxy_address.device_id)
 
-        if olt_handler is not None:
-            olt_handler.send_proxied_message(proxy_address, msg)
+        # if olt_handler is not None:
+        #    olt_handler.send_proxied_message(proxy_address, msg)
 
     def receive_proxied_message(self, proxy_address, msg):
         # Look up ONU handler and forward the message

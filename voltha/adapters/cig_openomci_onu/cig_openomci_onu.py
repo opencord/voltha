@@ -97,5 +97,36 @@ class CigOpenomciOnuAdapter(BrcmOpenomciOnuAdapter):
     def device_types(self):
         return DeviceTypes(items=self.supported_device_types)
 
+    def __download_image_success(self, image_download):
+        log.debug("__download_image_success")
+
+    def __download_image_fail(self, fail):
+        log.debug("__download_image_fail", failure=fail)
+        
+    # TODO: Add callback to the defer to indicate download status
+    def download_image(self, device, request):
+        log.debug('download_image', device=device, request=request)
+        onu_dev = self._omci_agent.get_device(device.id)
+        d = onu_dev.do_onu_software_download(request)
+        d.addCallbacks(self.__download_image_success, self.__download_image_fail)
+        # return d
+ 
+    def get_image_download_status(self, device, request):
+        log.debug('get_image_download_status', device=device, request=request)
+        onu_dev = self._omci_agent.get_device(device.id)
+        return onu_dev.get_image_download_status(request.name) if onu_dev else None
+        
+    def cancel_image_download(self, device, request):
+        log.debug('cancel_image_download', device=device, request=request)
+        onu_dev = self._omci_agent.get_device(device.id)
+        onu_dev.cancel_onu_software_download(request.name)
+        
+    def activate_image_update(self, device, request):
+        log.debug('activate_image_update', device=device, request=request)
+        onu_dev = self._omci_agent.get_device(device.id)
+        d = onu_dev.do_onu_image_activate(request.name)
+
+    def revert_image_update(self, device, request):
+        log.debug('revert_image_update', device=device, request=request)
 
 
