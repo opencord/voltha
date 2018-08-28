@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "7d468c14_99122464",
+        "filename": "common/pon_resource_manager/resource_kv_store.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 27,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-08-28T08:59:12Z",
+      "side": 1,
+      "message": "Sure, I will check on using the common/kvstore module.\nYes, interacting directly with kvstore is in preparation for v2.0.",
+      "parentUuid": "9a9ef1d1_2394950c",
+      "range": {
+        "startLine": 27,
+        "startChar": 0,
+        "endLine": 27,
+        "endChar": 30
+      },
+      "revId": "a2571f9dec6123502ec3c3d194f0e9fdff9f99ff",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "98cf8307_6cf4d4d7",
         "filename": "voltha/adapters/openolt/openolt_device.py",
         "patchSetId": 1
@@ -269,6 +293,30 @@
       "writtenOn": "2018-08-27T18:02:32Z",
       "side": 1,
       "message": "The name is misleading, it is the openolt_device_handler\n\nAnd passing in the resource_manager at creation of this and moving most of the functions to it will simplify things",
+      "range": {
+        "startLine": 60,
+        "startChar": 7,
+        "endLine": 60,
+        "endChar": 27
+      },
+      "revId": "a2571f9dec6123502ec3c3d194f0e9fdff9f99ff",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "e124b2d9_eb0dbb04",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 60,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-08-28T08:59:12Z",
+      "side": 1,
+      "message": "Ok, I will change to openolt_device_handler.\nI didn\u0027t understand the second part of the comment.",
+      "parentUuid": "85b1f33b_db0aaff5",
       "range": {
         "startLine": 60,
         "startChar": 7,
