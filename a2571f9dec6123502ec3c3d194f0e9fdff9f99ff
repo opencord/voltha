@@ -166,6 +166,30 @@
     },
     {
       "key": {
+        "uuid": "c20819af_bedf40c2",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 191,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-08-28T11:30:06Z",
+      "side": 1,
+      "message": "These are some internal data structures that the adapter needs to maintain for its functioning. PONResourceManager or its derivatives are just there for allocating and de-allocating PON resources. IMHO it should not be overloaded with these additional functionalities.",
+      "parentUuid": "787d4322_27da7077",
+      "range": {
+        "startLine": 190,
+        "startChar": 0,
+        "endLine": 191,
+        "endChar": 52
+      },
+      "revId": "a2571f9dec6123502ec3c3d194f0e9fdff9f99ff",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "4a8cc682_fce0ff58",
         "filename": "voltha/adapters/openolt/openolt_device.py",
         "patchSetId": 1
@@ -177,6 +201,30 @@
       "writtenOn": "2018-08-27T18:02:32Z",
       "side": 1,
       "message": "That would be reinitialized regardless if the port comes up or down.\n\nThe resource_manager should probably be initialized just once at creation since we know the number of PON ports",
+      "range": {
+        "startLine": 378,
+        "startChar": 7,
+        "endLine": 394,
+        "endChar": 9
+      },
+      "revId": "a2571f9dec6123502ec3c3d194f0e9fdff9f99ff",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "41b1992c_5db77100",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 394,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-08-28T11:30:06Z",
+      "side": 1,
+      "message": "This is not a problem. Because, the PONResourceManager internally doesn\u0027t initialize the resource pools if it is already initialized once.",
+      "parentUuid": "4a8cc682_fce0ff58",
       "range": {
         "startLine": 378,
         "startChar": 7,
@@ -259,6 +307,30 @@
     },
     {
       "key": {
+        "uuid": "9c775524_e84e4432",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1191,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-08-28T11:30:06Z",
+      "side": 1,
+      "message": "As I described above, IMHO this should not go into PONResourceManager (or its derivative classes) in order to keep them generic.",
+      "parentUuid": "f8646d07_455b753a",
+      "range": {
+        "startLine": 1168,
+        "startChar": 3,
+        "endLine": 1191,
+        "endChar": 78
+      },
+      "revId": "a2571f9dec6123502ec3c3d194f0e9fdff9f99ff",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "16906855_9c668555",
         "filename": "voltha/adapters/openolt/openolt_device.py",
         "patchSetId": 1
@@ -270,6 +342,30 @@
       "writtenOn": "2018-08-27T18:02:32Z",
       "side": 1,
       "message": "I think this should be in the resource_manager class",
+      "range": {
+        "startLine": 1240,
+        "startChar": 4,
+        "endLine": 1313,
+        "endChar": 22
+      },
+      "revId": "a2571f9dec6123502ec3c3d194f0e9fdff9f99ff",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "53da4237_5056f176",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1313,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-08-28T11:30:06Z",
+      "side": 1,
+      "message": "As I described above, IMHO this should not go into PONResourceManager (or its derivative classes) in order to keep them generic.",
+      "parentUuid": "16906855_9c668555",
       "range": {
         "startLine": 1240,
         "startChar": 4,
