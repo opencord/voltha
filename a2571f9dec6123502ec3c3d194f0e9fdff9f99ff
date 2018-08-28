@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "45dfa0f9_1ee366aa",
+        "filename": "common/pon_resource_manager/resource_kv_store.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 27,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-08-28T14:43:19Z",
+      "side": 1,
+      "message": "Good",
+      "parentUuid": "7d468c14_99122464",
+      "range": {
+        "startLine": 27,
+        "startChar": 0,
+        "endLine": 27,
+        "endChar": 30
+      },
+      "revId": "a2571f9dec6123502ec3c3d194f0e9fdff9f99ff",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "98cf8307_6cf4d4d7",
         "filename": "voltha/adapters/openolt/openolt_device.py",
         "patchSetId": 1
@@ -237,6 +261,30 @@
     },
     {
       "key": {
+        "uuid": "3a906875_bef8d55a",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 394,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-08-28T14:43:19Z",
+      "side": 1,
+      "message": "Why don\u0027t you initialize it once at creation of the Asfvolt16_resource_manager object then ? I think it will be cleaner to put the resource manager related code in the resource manager class",
+      "parentUuid": "41b1992c_5db77100",
+      "range": {
+        "startLine": 378,
+        "startChar": 7,
+        "endLine": 394,
+        "endChar": 9
+      },
+      "revId": "a2571f9dec6123502ec3c3d194f0e9fdff9f99ff",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "a9fa2869_ec9b776d",
         "filename": "voltha/adapters/openolt/openolt_device.py",
         "patchSetId": 1
@@ -284,6 +332,30 @@
     },
     {
       "key": {
+        "uuid": "272b9774_3324e421",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1117,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-08-28T14:43:19Z",
+      "side": 1,
+      "message": "You may be right, since we have always used only one of each and they change names at some places I got confused about which is which",
+      "parentUuid": "ec8c7f8a_4a974d08",
+      "range": {
+        "startLine": 1117,
+        "startChar": 30,
+        "endLine": 1117,
+        "endChar": 71
+      },
+      "revId": "a2571f9dec6123502ec3c3d194f0e9fdff9f99ff",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "f8646d07_455b753a",
         "filename": "voltha/adapters/openolt/openolt_device.py",
         "patchSetId": 1
@@ -319,6 +391,30 @@
       "side": 1,
       "message": "As I described above, IMHO this should not go into PONResourceManager (or its derivative classes) in order to keep them generic.",
       "parentUuid": "f8646d07_455b753a",
+      "range": {
+        "startLine": 1168,
+        "startChar": 3,
+        "endLine": 1191,
+        "endChar": 78
+      },
+      "revId": "a2571f9dec6123502ec3c3d194f0e9fdff9f99ff",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "a5e9f130_a0daf484",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1191,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-08-28T14:43:19Z",
+      "side": 1,
+      "message": "I do not see how that help make them more generic. We have tried to push flows specific things to the flow_mgr, stats specific to the stats_mgr and so one.\n\nMaybe creating a openolt_resource_manager than inherit PONResourceManager and that AsfvoltResourceManager inherit from would solve the problem, consolidating things in one place",
+      "parentUuid": "9c775524_e84e4432",
       "range": {
         "startLine": 1168,
         "startChar": 3,
@@ -413,6 +509,30 @@
       "side": 1,
       "message": "Ok, I will change to openolt_device_handler.\nI didn\u0027t understand the second part of the comment.",
       "parentUuid": "85b1f33b_db0aaff5",
+      "range": {
+        "startLine": 60,
+        "startChar": 7,
+        "endLine": 60,
+        "endChar": 27
+      },
+      "revId": "a2571f9dec6123502ec3c3d194f0e9fdff9f99ff",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ef6db7fe_7efb1b7f",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 60,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-08-28T14:43:19Z",
+      "side": 1,
+      "message": "If things can be accessed from the resource_mgr instead of from the handler (which is a point we disagree on I understand), passing the resource_manager to the flow_mgr object creation would achieve the same effect",
+      "parentUuid": "e124b2d9_eb0dbb04",
       "range": {
         "startLine": 60,
         "startChar": 7,
