@@ -158,9 +158,10 @@ class DeviceAgent(object):
             self.log.debug('get-image-download-status',
                            request=request)
             device = self.proxy.get('/')
-            self.adapter_agent.get_image_download_status(device, request)
+            return self.adapter_agent.get_image_download_status(device, request)
         except Exception as e:
             self.log.exception(e.message)
+            return None
 
     def cancel_image_download(self, img_dnld):
         try:
@@ -168,6 +169,11 @@ class DeviceAgent(object):
                            img_dnld=img_dnld)
             device = self.proxy.get('/')
             self.adapter_agent.cancel_image_download(device, img_dnld)
+            if device.admin_state == AdminState.DOWNLOADING_IMAGE:
+                device.admin_state = AdminState.ENABLED
+                self.proxy.update('/', device)
+                self.proxy.remove('/image_downloads/{}' \
+                              .format(img_dnld.name), img_dnld)
         except Exception as e:
             self.log.exception(e.message)
 
@@ -199,10 +205,14 @@ class DeviceAgent(object):
             if img_dnld.state == ImageDownload.DOWNLOAD_REQUESTED:
                 device = self.proxy.get('/')
                 yield self._download_image(device, img_dnld)
+                # set back to ENABLE to be allowed to activate
+                device.admin_state = AdminState.ENABLED
+                self.proxy.update('/', device)
             if img_dnld.image_state == ImageDownload.IMAGE_ACTIVATE:
                 device = self.proxy.get('/')
-                yield self.adapter_agent.activate_image_update(device,
-                                                               img_dnld)
+                device.admin_state = AdminState.DOWNLOADING_IMAGE
+                self.proxy.update('/', device)
+                yield self.adapter_agent.activate_image_update(device, img_dnld)
             elif img_dnld.image_state == ImageDownload.IMAGE_REVERT:
                 device = self.proxy.get('/')
                 yield self.adapter_agent.revert_image_update(device, img_dnld)
