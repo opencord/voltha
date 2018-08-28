@@ -14,12 +14,12 @@
 # limitations under the License.
 #
 import structlog
-from scapy.fields import ByteField, ThreeBytesField, ConditionalField, Field
+from scapy.fields import ByteField, ThreeBytesField, StrFixedLenField, ConditionalField, IntField, Field
 from scapy.fields import ShortField, BitField
 from scapy.packet import Packet
 
-from voltha.extensions.omci.omci_defs import AttributeAccess
-from  voltha.extensions.omci.omci_fields import OmciTableField
+from voltha.extensions.omci.omci_defs import AttributeAccess, OmciSectionDataSize
+from voltha.extensions.omci.omci_fields import OmciTableField
 import voltha.extensions.omci.omci_entities as omci_entities
 
 
@@ -435,3 +435,117 @@ class OmciGetCurrentDataResponse(OmciMessage):
         ConditionalField(
             OmciMaskedData("data"), lambda pkt: pkt.success_code == 0)
     ]
+
+class OmciStartSoftwareDownload(OmciMessage):
+    name = "OmciStartSoftwareDownload"
+    message_id = 0x53
+    fields_desc = [
+        ShortField("entity_class", 7),  # Always 7 (Software image)
+        ShortField("entity_id", None),
+        ByteField("window_size", 0),
+        IntField("image_size", 0),
+        ByteField("image_number", 1),   # Always only 1 in parallel
+        ShortField("instance_id", None) # should be same as "entity_id"        
+    ]
+
+class OmciStartSoftwareDownloadResponse(OmciMessage):
+    name = "OmciStartSoftwareDownloadResponse"
+    message_id = 0x33
+    fields_desc = [
+        ShortField("entity_class", 7),  # Always 7 (Software image)
+        ShortField("entity_id", None),
+        ByteField("result", 0),
+        ByteField("window_size", 0),
+        ByteField("image_number", 1),   # Always only 1 in parallel
+        ShortField("instance_id", None) # should be same as "entity_id"        
+    ]
+
+class OmciEndSoftwareDownload(OmciMessage):
+    name = "OmciEndSoftwareDownload"
+    message_id = 0x55
+    fields_desc = [
+        ShortField("entity_class", 7),  # Always 7 (Software image)
+        ShortField("entity_id", None),
+        IntField("crc32", 0),
+        IntField("image_size", 0),
+        ByteField("image_number", 1),   # Always only 1 in parallel
+        ShortField("instance_id", None),# should be same as "entity_id"
+    ]
+
+class OmciEndSoftwareDownloadResponse(OmciMessage):
+    name = "OmciEndSoftwareDownload"
+    message_id = 0x35
+    fields_desc = [
+        ShortField("entity_class", 7),  # Always 7 (Software image)
+        ShortField("entity_id", None),
+        ByteField("result", 0),
+        ByteField("image_number", 1),   # Always only 1 in parallel
+        ShortField("instance_id", None),# should be same as "entity_id"
+        ByteField("result0", 0)         # same as result 
+    ]
+
+class OmciDownloadSection(OmciMessage):
+    name = "OmciDownloadSection"
+    message_id = 0x14
+    fields_desc = [
+        ShortField("entity_class", 7),   # Always 7 (Software image)
+        ShortField("entity_id", None),
+        ByteField("section_number", 0),  # Always only 1 in parallel
+        StrFixedLenField("data", 0, length=OmciSectionDataSize) # section data
+    ]
+
+class OmciDownloadSectionLast(OmciMessage):
+    name = "OmciDownloadSection"
+    message_id = 0x54
+    fields_desc = [
+        ShortField("entity_class", 7),   # Always 7 (Software image)
+        ShortField("entity_id", None),
+        ByteField("section_number", 0),  # Always only 1 in parallel
+        StrFixedLenField("data", 0, length=OmciSectionDataSize) # section data
+    ]
+
+class OmciDownloadSectionResponse(OmciMessage):
+    name = "OmciDownloadSectionResponse"
+    message_id = 0x34
+    fields_desc = [
+        ShortField("entity_class", 7),   # Always 7 (Software image)
+        ShortField("entity_id", None),
+        ByteField("result", 0),
+        ByteField("section_number", 0),  # Always only 1 in parallel
+    ]
+
+class OmciActivateImage(OmciMessage):
+    name = "OmciActivateImage"
+    message_id = 0x56
+    fields_desc = [
+        ShortField("entity_class", 7),   # Always 7 (Software image)
+        ShortField("entity_id", None),
+        ByteField("activate_flag", 0)    # Activate image unconditionally
+    ]
+
+class OmciActivateImageResponse(OmciMessage):
+    name = "OmciActivateImageResponse"
+    message_id = 0x36
+    fields_desc = [
+        ShortField("entity_class", 7),   # Always 7 (Software image)
+        ShortField("entity_id", None),
+        ByteField("result", 0)           # Activate image unconditionally
+    ]
+
+class OmciCommitImage(OmciMessage):
+    name = "OmciCommitImage"
+    message_id = 0x57
+    fields_desc = [
+        ShortField("entity_class", 7),   # Always 7 (Software image)
+        ShortField("entity_id", None),
+    ]
+
+class OmciCommitImageResponse(OmciMessage):
+    name = "OmciCommitImageResponse"
+    message_id = 0x37
+    fields_desc = [
+        ShortField("entity_class", 7),   # Always 7 (Software image)
+        ShortField("entity_id", None),
+        ByteField("result", 0)           # Activate image unconditionally
+    ]
+    

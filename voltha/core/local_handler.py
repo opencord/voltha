@@ -563,12 +563,12 @@ class LocalHandler(VolthaLocalServiceServicer):
             agent = self.core.get_device_agent(device.id)
             img_dnld = self.root.get('/devices/{}/image_downloads/{}'.\
                     format(request.id, request.name))
-            agent.get_image_download_status(img_dnld)
-            try:
-                response = self.root.get('/devices/{}/image_downloads/{}'.\
-                        format(request.id, request.name))
-            except Exception as e:
-                log.exception(e.message)
+            response = agent.get_image_download_status(img_dnld)
+            #try:
+            #    response = self.root.get('/devices/{}/image_downloads/{}'.\
+            #            format(request.id, request.name))
+            #except Exception as e:
+            #    log.exception(e.message)
             return response
 
         except KeyError:
@@ -642,11 +642,13 @@ class LocalHandler(VolthaLocalServiceServicer):
             assert isinstance(request, ImageDownload)
             path = '/devices/{}'.format(request.id)
             device = self.root.get(path)
-            assert device.admin_state == AdminState.DOWNLOADING_IMAGE, \
-                'Device to cancel DOWNLOADING_IMAGE cannot be ' \
-                'in admin state \'{}\''.format(device.admin_state)
+            # assert device.admin_state == AdminState.DOWNLOADING_IMAGE, \
+            #     'Device to cancel DOWNLOADING_IMAGE cannot be ' \
+            #     'in admin state \'{}\''.format(device.admin_state)
             agent = self.core.get_device_agent(device.id)
             agent.cancel_image_download(request)
+            self.root.remove('/devices/{}/image_downloads/{}'.format(request.id, request.name))
+            
             return OperationResp(code=OperationResp.OPERATION_SUCCESS)
 
         except KeyError:
@@ -669,9 +671,9 @@ class LocalHandler(VolthaLocalServiceServicer):
             assert isinstance(request, ImageDownload)
             path = '/devices/{}'.format(request.id)
             device = self.root.get(path)
-            assert device.admin_state == AdminState.ENABLED, \
-                'Device to activate image cannot be ' \
-                'in admin state \'{}\''.format(device.admin_state)
+            # assert device.admin_state == AdminState.ENABLED, \
+            #     'Device to activate image cannot be ' \
+            #     'in admin state \'{}\''.format(device.admin_state)
             agent = self.core.get_device_agent(device.id)
             agent.activate_image_update(request)
             return OperationResp(code=OperationResp.OPERATION_SUCCESS)

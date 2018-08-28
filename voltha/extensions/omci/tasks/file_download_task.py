@@ -19,42 +19,90 @@ from twisted.internet import reactor
 from voltha.extensions.omci.omci_defs import ReasonCodes
 import requests
 import os
-
+import time
 
 class FileDownloadTask(Task):
     name = "Image File Download Task"
-
-    def __init__(self, omci_agent, device_id, url, local_path):
-        super(FileDownloadTask, self).__init__(FileDownloadTask.name, omci_agent, device_id,
+    CHUNK_SIZE = 1024
+    
+    def __init__(self, omci_agent, img_dnld, clock= None): #device_id, url, local_path)
+        super(FileDownloadTask, self).__init__(FileDownloadTask.name, omci_agent, img_dnld.id,
                                                exclusive=False,
                                                watchdog_timeout=45)
-        self.url = url
-        self.local_path = local_path
+        # self.url = url
+        # self.local_path = local_path
+        self._image_download = img_dnld
+        self.reactor = clock if clock is not None else reactor
+        self._local_deferred = None
+        # self._request = None
+        # self._file = None
         # self.log.debug('{} running'.format(FileDownloadTask.name))
 
-    def start(self):
-        self.log.debug('{} running'.format(FileDownloadTask.name))
-        # reactor.callLater(1, self.deferred.callback, 'device {} success downloaded {} '.format(self.device_id, self.url))
+    # def __save_data(self):
+    #     chunk = self._request.iter_content(chunk_size=FileDownloadTask.CHUNK_SIZE)
+    #     if len(chunk) == 0:
+    #         self._file.close()
+    #         self.deferred.callback(self._image_download)
+    #     else:
+    #         self._file.write(chunk)
+    #         self._image_download.downloaded_bytes += len(chunk)
+    #         self.reactor.callLater(0, self.__save_data)        
+
+    @inlineCallbacks
+    def perform_download_data(self):
         try:
-            # local_filename = url.split('/')[-1]
-            dir_name = os.path.dirname(self.local_path)
-            if not os.path.exists(dir_name):
-                os.makedirs(dir_name)
-
-            self.strobe_watchdog()
-            r = requests.get(self.url, stream=True)
-
-            with open(self.local_path, 'wb') as f:
-                for chunk in r.iter_content(chunk_size=1024):
+            r = requests.get(self._image_download.url, stream=True)
+            with open(self._image_download.local_dir + '/' + self._image_download.name, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=FileDownloadTask.CHUNK_SIZE):
                     self.strobe_watchdog()
                     if chunk: # filter out keep-alive new chunks
-                        f.write(chunk)
-            self.deferred.callback('device {} success downloaded {} '.format(self.device_id, self.url))
+                        yield f.write(chunk)
+                        self._image_download.file_size += len(chunk)
+                        # yield time.sleep(1)
+            self.deferred.callback(self._image_download)
         except Exception as e:
-            #self.deferred.errback(KeyError('device {} failed downloaded {} '.format(self.device_id, self.url)))
             self.deferred.errback(failure.Failure(e))
+        
+    def start(self):
+        super(FileDownloadTask, self).start()
+        if not os.path.exists(self._image_download.local_dir):
+            os.makedirs(self._image_download.local_dir)
+
+        self.strobe_watchdog()
+        self._image_download.file_size = 0
+        self._local_deferred = self.reactor.callLater(0, self.perform_download_data)
+        # try:
+        #     if not os.path.exists(self._image_download.local_dir):
+        #         os.makedirs(self._image_download.local_dir)
+
+        #     self.strobe_watchdog()
+        #     self._image_download.downloaded_bytes = 0
+        #     self.reactor.callLater(0, self.perform_download_data)
             
-    def stop(self):
-        self.cancel_deferred()
-        super(FileDownloadTask, self).stop()
+            # self._request = requests.get(self._image_download.url, stream=True)
+            # with open(self._image_download.local_dir + '/' + self._image_download.name, 'wb') as f:
+            #     for chunk in r.iter_content(chunk_size=FileDownloadTask.CHUNK_SIZE):
+            #         self.strobe_watchdog()
+            #         if chunk: # filter out keep-alive new chunks
+            #             f.write(chunk)
+            #             self._image_download.downloaded_bytes += len(chunk)
+            
+            # self.deferred.callback(self._image_download)
+        # except Exception as e:
+        #     self.deferred.errback(failure.Failure(e))
+            
+    # def stop(self):
+    #     # self.cancel_deferred()
+    #     super(FileDownloadTask, self).stop()
+
+    def cancel_deferred(self):
+        self.log.debug('FileDownloadTask cancel_deferred')
+        super(FileDownloadTask, self).cancel_deferred()
+
+        d, self._local_deferred = self._local_deferred, None
+        try:
+            if d is not None and not d.called:
+                d.cancel()
+        except:
+            pass
 

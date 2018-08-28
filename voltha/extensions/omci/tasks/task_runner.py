@@ -22,7 +22,7 @@ class TaskRunner(object):
     Control the number of running tasks utilizing the OMCI Communications
     channel (OMCI_CC
     """
-    def __init__(self, device_id):
+    def __init__(self, device_id, clock=None):
         self.log = structlog.get_logger(device_id=device_id)
         self._pending_queue = dict()   # task-priority -> [tasks]
         self._running_queue = dict()   # task-id -> task
@@ -32,6 +32,7 @@ class TaskRunner(object):
         self._failed_tasks = 0
         self._watchdog_timeouts = 0
         self._last_watchdog_failure_task = ''
+        self.reactor = clock if clock is not None else reactor
 
     def __str__(self):
         return 'TaskRunner: Pending: {}, Running:{}'.format(self.pending_tasks,
@@ -153,7 +154,7 @@ class TaskRunner(object):
                                        pending=len(self._pending_queue))
 
                         self._running_queue[next_task.task_id] = next_task
-                        reactor.callLater(0, next_task.start)
+                        self.reactor.callLater(0, next_task.start)
 
                 # Run again if others are waiting
                 if len(self._pending_queue):

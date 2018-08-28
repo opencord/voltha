@@ -267,3 +267,17 @@ class MockOnu(object):
 
         except Exception as e:
             pass
+
+    @property
+    def proxy_address(self, device_id='1'):
+        if self._proxy_address is None:
+            self._proxy_address = Device.ProxyAddress(
+                device_id=device_id,
+                channel_group_id=1,
+                channel_id=1,
+                channel_termination="XGSPON",
+                onu_id=20,
+                onu_session_id=1)
+
+        return self._proxy_address
+

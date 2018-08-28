@@ -15,6 +15,8 @@
 #
 
 import structlog
+from copy import deepcopy
+from voltha.protos.device_pb2 import ImageDownload
 from voltha.extensions.omci.omci_defs import EntityOperations, ReasonCodes
 import voltha.extensions.omci.omci_entities as omci_entities
 from voltha.extensions.omci.omci_cc import OMCI_CC
@@ -26,7 +28,7 @@ from voltha.extensions.omci.tasks.omci_modify_request import OmciModifyRequest
 from voltha.extensions.omci.omci_me import OntGFrame
 from voltha.extensions.omci.state_machines.image_agent import ImageAgent
 
-from twisted.internet import reactor
+from twisted.internet import reactor, defer
 from enum import IntEnum
 
 OP = EntityOperations
@@ -54,7 +56,7 @@ class OnuDeviceEntry(object):
     An ONU Device entry in the MIB
     """
     def __init__(self, omci_agent, device_id, adapter_agent, custom_me_map,
-                 mib_db, alarm_db, support_classes):
+                 mib_db, alarm_db, support_classes, clock=None):
         """
         Class initializer
 
@@ -71,12 +73,19 @@ class OnuDeviceEntry(object):
         self._started = False
         self._omci_agent = omci_agent         # OMCI AdapterAgent
         self._device_id = device_id           # ONU Device ID
-        self._runner = TaskRunner(device_id)  # OMCI_CC Task runner
+        self._adapter_agent = adapter_agent
+        self._runner = TaskRunner(device_id, clock=clock)  # OMCI_CC Task runner
         self._deferred = None
+        # self._img_download_deferred = None    # deferred of image file download from server
+        self._omci_upgrade_deferred = None    # deferred of ONU OMCI upgrading procedure
+        self._omci_activate_deferred = None   # deferred of ONU OMCI Softwre Image Activate
+        self._img_deferred = None             # deferred returned to caller of do_onu_software_download
         self._first_in_sync = False
         self._first_capabilities = False
         self._timestamp = None
-
+        # self._image_download = None  # (voltha_pb2.ImageDownload)
+        self.reactor = clock if clock is not None else reactor
+        
         # OMCI related databases are on a per-agent basis. State machines and tasks
         # are per ONU Vendor
         #
@@ -118,13 +127,20 @@ class OnuDeviceEntry(object):
                                                                            advertise_events=advertise)
             # State machine of downloading image file from server
             downloader_info = support_classes.get('image_downloader')
+            image_upgrader_info = support_classes.get('image_upgrader')
+            # image_activate_info = support_classes.get('image_activator')
             advertise = downloader_info['advertise-event']
             # self._img_download_sm = downloader_info['state-machine'](self._omci_agent, device_id, 
             #                                                       downloader_info['tasks'],
             #                                                       advertise_events=advertise)
-            self._image_agent = ImageAgent(self._omci_agent, device_id, downloader_info['state-machine'],
-                                           downloader_info['tasks'],
-                                           advertise_events=advertise)
+            self._image_agent = ImageAgent(self._omci_agent, device_id, 
+                                           downloader_info['state-machine'], downloader_info['tasks'], 
+                                           image_upgrader_info['state-machine'], image_upgrader_info['tasks'],
+                                           # image_activate_info['state-machine'],
+                                           advertise_events=advertise, clock=clock)
+
+            # self._omci_upgrade_sm = image_upgrader_info['state-machine'](device_id, advertise_events=advertise)
+            
         except Exception as e:
             self.log.exception('state-machine-create-failed', e=e)
             raise
@@ -151,7 +167,7 @@ class OnuDeviceEntry(object):
         self.event_bus = EventBusClient()
 
         # Create OMCI communications channel
-        self._omci_cc = OMCI_CC(adapter_agent, self.device_id, self._me_map)
+        self._omci_cc = OMCI_CC(adapter_agent, self.device_id, self._me_map, clock=clock)
 
     @staticmethod
     def event_bus_topic(device_id, event):
@@ -173,6 +189,10 @@ class OnuDeviceEntry(object):
     def omci_cc(self):
         return self._omci_cc
 
+    @property
+    def adapter_agent(self):
+        return self._adapter_agent
+        
     @property
     def task_runner(self):
         return self._runner
@@ -302,10 +322,19 @@ class OnuDeviceEntry(object):
         """
         return self._configuration
 
+    @property
+    def image_agent(self):
+        return self._image_agent
+
+    # @property
+    # def image_download(self):
+    #     return self._image_download
+        
     def start(self):
         """
         Start the ONU Device Entry state machines
         """
+        self.log.debug('OnuDeviceEntry.start', previous=self._started)
         if self._started:
             return
 
@@ -385,6 +414,10 @@ class OnuDeviceEntry(object):
             self._deferred = reactor.callLater(0, start_state_machines,
                                                self._on_sync_state_machines)
 
+            # if an ongoing upgrading is not accomplished, restart it
+            if self._img_deferred is not None:
+               self._image_agent.onu_bootup() 
+
     def first_in_capabilities_event(self):
         """
         This event is called on the first capabilities event after
@@ -404,6 +437,32 @@ class OnuDeviceEntry(object):
             self._deferred = reactor.callLater(0, start_state_machines,
                                                self._on_capabilities_state_machines)
 
+    # def __on_omci_download_success(self, image_download):
+    #     self.log.debug("__on_omci_download_success", image=image_download)
+    #     self._omci_upgrade_deferred = None
+    #     # self._ret_deferred = None
+    #     self._omci_activate_deferred = self._image_agent.activate_onu_image(image_download.name)
+    #     self._omci_activate_deferred.addCallbacks(self.__on_omci_image_activate_success, 
+    #                                               self.__on_omci_image_activate_fail, errbackArgs=(image_name,))
+    #     return image_name
+        
+    # def __on_omci_download_fail(self, fail, image_name):
+    #     self.log.debug("__on_omci_download_fail", failure=fail, image_name=image_name)
+    #     self.reactor.callLater(0, self._img_deferred.errback, fail)
+    #     self._omci_upgrade_deferred = None
+    #     self._img_deferred = None
+
+    def __on_omci_image_activate_success(self, image_name):
+        self.log.debug("__on_omci_image_activate_success", image_name=image_name)
+        self._omci_activate_deferred = None
+        self._img_deferred.callback(image_name)
+        return image_name
+
+    def __on_omci_image_activate_fail(self, fail, image_name):
+        self.log.debug("__on_omci_image_activate_fail", faile=fail, image_name=image_name)
+        self._omci_activate_deferred = None
+        self._img_deferred.errback(fail)
+    
     def _publish_device_status_event(self):
         """
         Publish the ONU Device start/start status.
@@ -522,14 +581,52 @@ class OnuDeviceEntry(object):
                                                              flags=flags,
                                                              timeout=timeout))
 
-    def get_imagefile(self, local_name, local_dir, remote_url=None):
-        """
-        Return a Deferred that will be triggered if the file is locally available
-        or downloaded successfully
-        """
-        self.log.info('start download from {}'.format(remote_url))
+    # def get_imagefile(self, local_name, local_dir, remote_url=None):
+    #     """
+    #     Return a Deferred that will be triggered if the file is locally available
+    #     or downloaded successfully
+    #     """
+    #     self.log.info('start download from {}'.format(remote_url))
 
-        # for debug purpose, start runner here to queue downloading task
-        # self._runner.start()
+    #     # for debug purpose, start runner here to queue downloading task
+    #     # self._runner.start()
 
-        return self._image_agent.get_image(local_name, local_dir, remote_url)
+    #     return self._image_agent.get_image(self._image_download)
+
+    def do_onu_software_download(self, image_dnld):
+        """
+        image_dnld: (ImageDownload)
+        : Return a Deferred that will be triggered when upgrading results in success or failure
+        """
+        self.log.debug('do_onu_software_download')
+        image_download = deepcopy(image_dnld)
+        # self._img_download_deferred = self._image_agent.get_image(self._image_download)
+        # self._img_download_deferred.addCallbacks(self.__on_download_success, self.__on_download_fail, errbackArgs=(self._image_download,))
+        # self._ret_deferred = defer.Deferred()
+        # return self._ret_deferred
+        return self._image_agent.get_image(image_download)
+
+    # def do_onu_software_switch(self):
+    def do_onu_image_activate(self, image_dnld_name):
+        """
+        Return a Deferred that will be triggered when switching software image results in success or failure
+        """
+        self.log.debug('do_onu_image_activate')
+        if self._img_deferred is None:
+	        self._img_deferred = defer.Deferred()
+	        self._omci_upgrade_deferred = self._image_agent.onu_omci_download(image_dnld_name)
+	        self._omci_upgrade_deferred.addCallbacks(self.__on_omci_image_activate_success, 
+	                                                 self.__on_omci_image_activate_fail, errbackArgs=(image_dnld_name,))
+        return self._img_deferred
+
+    def cancel_onu_software_download(self, image_name):
+        self._image_agent.cancel_download_image(image_name)
+        self._image_agent.cancel_upgrade_onu()
+        if self._img_deferred and not self._img_deferred.called:
+           self._img_deferred.cancel()
+        self._img_deferred = None
+        # self._image_download = None
+
+    def get_image_download_status(self, image_name):
+        return self._image_agent.get_image_status(image_name)
+        

@@ -33,6 +33,7 @@ class MEFrame(object):
         if not 0 <= entity_id <= 0xFFFF:
             raise ValueError('entity_id should be 0..65535')
 
+        self.log = structlog.get_logger()
         self._class = entity_class
         self._entity_id = entity_id
         self.data = data
@@ -372,3 +373,103 @@ class MEFrame(object):
                 entity_id=getattr(self, 'entity_id'),
                 command_sequence_number=command_sequence_number
             ))
+
+    def start_software_download(self, image_size, window_size):
+        """
+        Create Start Software Download message
+        :return: (OmciFrame) OMCI Frame
+        """
+        self.log.debug("--> start_software_download")
+        self._check_operation(OP.StartSoftwareDownload)
+        return OmciFrame(
+	            transaction_id=None,
+	            message_type=OmciStartSoftwareDownload.message_id,
+	            omci_message=OmciStartSoftwareDownload(
+	                entity_class=getattr(self.entity_class, 'class_id'),
+	                entity_id=getattr(self, 'entity_id'),
+	                window_size=window_size,
+	                image_size=image_size,
+	                instance_id=getattr(self, 'entity_id')
+	           ))
+        
+    def end_software_download(self, crc32, image_size):
+        """
+        Create End Software Download message
+        :return: (OmciFrame) OMCI Frame
+        """
+        self._check_operation(OP.EndSoftwareDownload)
+        return OmciFrame(
+	            transaction_id=None,
+	            message_type=OmciEndSoftwareDownload.message_id,
+	            omci_message=OmciEndSoftwareDownload(
+	                entity_class=getattr(self.entity_class, 'class_id'),
+	                entity_id=getattr(self, 'entity_id'),
+	                crc32=crc32,
+	                image_size=image_size,
+	                instance_id=getattr(self, 'entity_id')
+	           ))
+    
+    def download_section(self, is_last_section, section_number, data):
+        """
+        Create Download Section message
+        :is_last_section: (bool) indicate the last section in the window
+        :section_num    : (int)  current section number
+        :data           : (byte) data to be sent in the section
+        :return: (OmciFrame) OMCI Frame
+        """
+        self.log.debug("--> download_section: ", section_number=section_number)
+        
+        self._check_operation(OP.DownloadSection)
+        if is_last_section:
+            return OmciFrame(
+                    transaction_id=None,
+                    message_type=OmciDownloadSectionLast.message_id,
+                    omci_message=OmciDownloadSectionLast(
+                        entity_class=getattr(self.entity_class, 'class_id'),
+                        entity_id=getattr(self, 'entity_id'),
+                        section_number=section_number,
+                        data=data
+                   ))
+        else:
+            return OmciFrame(
+                    transaction_id=None,
+                    message_type=OmciDownloadSection.message_id,
+                    omci_message=OmciDownloadSection(
+                        entity_class=getattr(self.entity_class, 'class_id'),
+                        entity_id=getattr(self, 'entity_id'),
+                        section_number=section_number,
+                        data=data
+                   ))
+
+    def activate_image(self, activate_flag=0):
+        """
+        Activate Image message
+        :activate_flag: 00	Activate image unconditionally
+                        01	Activate image only if no POTS/VoIP calls are in progress
+                        10	Activate image only if no emergency call is in progress
+        :return: (OmciFrame) OMCI Frame
+        """
+        self.log.debug("--> activate_image", entity=self.entity_id, flag=activate_flag)
+        return OmciFrame(
+                transaction_id=None,
+                message_type=OmciActivateImage.message_id,
+                omci_message=OmciActivateImage(
+                    entity_class=getattr(self.entity_class, 'class_id'),
+                    entity_id=getattr(self, 'entity_id'),
+                    activate_flag=activate_flag
+               ))
+
+    def commit_image(self):
+        """
+        Commit Image message
+        :return: (OmciFrame) OMCI Frame
+        """
+        self.log.debug("--> commit_image", entity=self.entity_id)
+        return OmciFrame(
+                transaction_id=None,
+                message_type=OmciCommitImage.message_id,
+                omci_message=OmciCommitImage(
+                    entity_class=getattr(self.entity_class, 'class_id'),
+                    entity_id=getattr(self, 'entity_id'),
+               ))
+    

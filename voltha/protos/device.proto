@@ -119,6 +119,7 @@ message ImageDownload {
         DEVICE_BUSY = 2;
         INSUFFICIENT_SPACE = 3;
         UNKNOWN_ERROR = 4;
+        CANCELLED = 5;
     }
 
     enum ImageActivateState {
@@ -165,6 +166,9 @@ message ImageDownload {
 
     // Image activation state
     ImageActivateState image_state = 12;
+    
+    // Image file size
+    uint32 file_size = 13;
 }
 
 message ImageDownloads {

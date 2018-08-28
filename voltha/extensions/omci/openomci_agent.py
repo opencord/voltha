@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 import structlog
+from twisted.internet import reactor
 from voltha.extensions.omci.database.mib_db_dict import MibDbVolatileDict
 from voltha.extensions.omci.database.mib_db_ext import MibDbExternal
 from voltha.extensions.omci.state_machines.mib_sync import MibSynchronizer
@@ -32,8 +33,9 @@ from voltha.extensions.omci.tasks.onu_capabilities_task import OnuCapabilitiesTa
 from voltha.extensions.omci.state_machines.performance_intervals import PerformanceIntervals
 from voltha.extensions.omci.tasks.omci_create_pm_task import OmciCreatePMRequest
 from voltha.extensions.omci.tasks.omci_delete_pm_task import OmciDeletePMRequest
-from voltha.extensions.omci.state_machines.image_agent import ImageDownloadeSTM
+from voltha.extensions.omci.state_machines.image_agent import ImageDownloadeSTM, OmciSoftwareImageDownloadSTM
 from voltha.extensions.omci.tasks.file_download_task import FileDownloadTask
+from voltha.extensions.omci.tasks.omci_sw_image_upgrade_task import OmciSwImageUpgradeTask
 
 OpenOmciAgentDefaults = {
     'mib-synchronizer': {
@@ -78,9 +80,20 @@ OpenOmciAgentDefaults = {
         'state-machine': ImageDownloadeSTM,
         'advertise-event': True,
         'tasks': {
-            'download-file': FileDownloadTask,
+            'download-file': FileDownloadTask
+        }
+    },
+    'image_upgrader': {
+        'state-machine': OmciSoftwareImageDownloadSTM,
+        'advertise-event': True,
+        'tasks': {
+            'omci_upgrade_task': OmciSwImageUpgradeTask
         }
     }
+    # 'image_activator': {
+    #     'state-machine': OmciSoftwareImageActivateSTM,
+    #     'advertise-event': True,
+    # }
 }
 
 
@@ -91,7 +104,7 @@ class OpenOMCIAgent(object):
     This will become the primary interface into OpenOMCI for ONU Device Adapters
     in VOLTHA v1.3 sprint 3 time frame.
     """
-    def __init__(self, core, support_classes=OpenOmciAgentDefaults):
+    def __init__(self, core, support_classes=OpenOmciAgentDefaults, clock=None):
         """
         Class initializer
 
@@ -100,6 +113,7 @@ class OpenOMCIAgent(object):
         """
         self.log = structlog.get_logger()
         self._core = core
+        self.reactor = clock if clock is not None else reactor
         self._started = False
         self._devices = dict()       # device-id -> DeviceEntry
         self._event_bus = None
@@ -124,6 +138,10 @@ class OpenOMCIAgent(object):
     def database_class(self):
         return self._mib_database_cls
 
+    @property
+    def database(self):
+        return self._mib_db
+        
     def start(self):
         """
         Start OpenOMCI
@@ -131,7 +149,7 @@ class OpenOMCIAgent(object):
         if self._started:
             return
 
-        self.log.debug('start')
+        self.log.debug('OpenOMCIAgent.start')
         self._started = True
 
         try:
@@ -214,13 +232,13 @@ class OpenOMCIAgent(object):
 
         :return: (OnuDeviceEntry) The ONU device
         """
-        self.log.debug('add-device', device_id=device_id)
+        self.log.debug('OpenOMCIAgent.add-device', device_id=device_id)
 
         device = self._devices.get(device_id)
 
         if device is None:
             device = OnuDeviceEntry(self, device_id, adapter_agent, custom_me_map,
-                                    self._mib_db, self._alarm_db, support_classes)
+                                    self._mib_db, self._alarm_db, support_classes, clock=self.reactor)
 
             self._devices[device_id] = device
 
