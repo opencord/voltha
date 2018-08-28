@@ -48,6 +48,30 @@
     },
     {
       "key": {
+        "uuid": "f46e133e_429ce079",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 160,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-08-28T08:46:01Z",
+      "side": 1,
+      "message": "We would want to use the same registry that voltha is configured. \nOk, I will move this part to _parse_extra_args_and_init_resource_manager_class",
+      "parentUuid": "98cf8307_6cf4d4d7",
+      "range": {
+        "startLine": 160,
+        "startChar": 8,
+        "endLine": 160,
+        "endChar": 47
+      },
+      "revId": "a2571f9dec6123502ec3c3d194f0e9fdff9f99ff",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ea4643e4_5f8cdd0d",
         "filename": "voltha/adapters/openolt/openolt_device.py",
         "patchSetId": 1
@@ -59,6 +83,30 @@
       "writtenOn": "2018-08-27T18:02:32Z",
       "side": 1,
       "message": "I think \n\nself.resource_manager \u003d self._parse_extra_args_and_init_resource_manager_class(device)\n\nis clearer",
+      "range": {
+        "startLine": 161,
+        "startChar": 8,
+        "endLine": 165,
+        "endChar": 74
+      },
+      "revId": "a2571f9dec6123502ec3c3d194f0e9fdff9f99ff",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "184c49c1_2e790dbe",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 165,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-08-28T08:46:01Z",
+      "side": 1,
+      "message": "Ok",
+      "parentUuid": "ea4643e4_5f8cdd0d",
       "range": {
         "startLine": 161,
         "startChar": 8,
@@ -128,6 +176,30 @@
       "writtenOn": "2018-08-27T18:02:32Z",
       "side": 1,
       "message": "I think those 2 are reversed",
+      "range": {
+        "startLine": 1117,
+        "startChar": 30,
+        "endLine": 1117,
+        "endChar": 71
+      },
+      "revId": "a2571f9dec6123502ec3c3d194f0e9fdff9f99ff",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ec8c7f8a_4a974d08",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1117,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-08-28T08:46:01Z",
+      "side": 1,
+      "message": "I don\u0027t think so. \nagg_port_id is gemport_id and sched_id is alloc_id",
+      "parentUuid": "a9fa2869_ec9b776d",
       "range": {
         "startLine": 1117,
         "startChar": 30,
