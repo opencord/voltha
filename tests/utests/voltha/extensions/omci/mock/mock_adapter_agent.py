@@ -13,10 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
+import binascii
+from twisted.internet.defer import Deferred
 from voltha.core.config.config_root import ConfigRoot
 from voltha.protos.voltha_pb2 import VolthaInstance
-
+from voltha.extensions.omci.omci_frame import OmciFrame
 
 class MockProxyAddress(object):
     def __init__(self, device_id, pon_id, onu_id):
@@ -57,10 +58,19 @@ class MockAdapterAgent(object):
     base class so that we can access the _devices map and get either a
     Device to play with (like the real thing) or the associated handler
     """
-    def __init__(self):
+    def __init__(self, d=None):
         self._devices = dict()      # device-id -> mock device
         self.core = MockCore()
+        self.deferred = d
 
+    @property
+    def send_omci_defer(self):
+        return self.deferred
+        
+    @send_omci_defer.setter
+    def send_omci_defer(self, value):
+        self.deferred = value
+    
     def tearDown(self):
         """Test case cleanup"""
         for device in self._devices.itervalues():
@@ -126,7 +136,12 @@ class MockAdapterAgent(object):
 
     def send_proxied_message(self, proxy_address, msg):
         # Look up ONU handler and forward the message
-
+        print("-->send_proxied_message: ")
+        print(msg)
+        if proxy_address is None:
+            if self.deferred is not None:
+                self.deferred.callback(msg)
+            return None
         olt_handler = self.get_device(proxy_address.device_id)
 
         if olt_handler is not None:

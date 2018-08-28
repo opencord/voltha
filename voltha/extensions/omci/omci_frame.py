@@ -27,7 +27,12 @@ from voltha.extensions.omci.omci_messages import OmciCreate, OmciDelete, \
     OmciTestResult, OmciAlarmNotification, \
     OmciReboot, OmciRebootResponse, OmciGetNext, OmciGetNextResponse, \
     OmciSynchronizeTime, OmciSynchronizeTimeResponse, OmciGetCurrentData, \
-    OmciGetCurrentDataResponse
+    OmciGetCurrentDataResponse, OmciStartSoftwareDownload, OmciStartSoftwareDownloadResponse, \
+    OmciDownloadSection, OmciDownloadSectionLast, OmciDownloadSectionResponse, \
+    OmciEndSoftwareDownload, OmciEndSoftwareDownloadResponse, \
+    OmciActivateImage, OmciActivateImageResponse, \
+    OmciCommitImage, OmciCommitImageResponse
+
 from voltha.extensions.omci.omci_messages import OmciCreateResponse
 
 
@@ -136,6 +141,42 @@ class OmciFrame(Packet):
         ConditionalField(FixedLenField(
             PacketField("omci_message", None, OmciGetCurrentDataResponse), align=36),
             lambda pkt: pkt.message_type == OmciGetCurrentDataResponse.message_id),
+
+        ConditionalField(FixedLenField(
+            PacketField("omci_message", None, OmciStartSoftwareDownload), align=36),
+            lambda pkt: pkt.message_type == OmciStartSoftwareDownload.message_id),
+        ConditionalField(FixedLenField(
+            PacketField("omci_message", None, OmciStartSoftwareDownloadResponse), align=36),
+            lambda pkt: pkt.message_type == OmciStartSoftwareDownloadResponse.message_id),
+        ConditionalField(FixedLenField(
+            PacketField("omci_message", None, OmciDownloadSection), align=36),
+            lambda pkt: pkt.message_type == OmciDownloadSection.message_id),
+        ConditionalField(FixedLenField(
+            PacketField("omci_message", None, OmciDownloadSectionLast), align=36),
+            lambda pkt: pkt.message_type == OmciDownloadSectionLast.message_id),
+        ConditionalField(FixedLenField(
+            PacketField("omci_message", None, OmciDownloadSectionResponse), align=36),
+            lambda pkt: pkt.message_type == OmciDownloadSectionResponse.message_id),
+        ConditionalField(FixedLenField(
+            PacketField("omci_message", None, OmciEndSoftwareDownload), align=36),
+            lambda pkt: pkt.message_type == OmciEndSoftwareDownload.message_id),
+        ConditionalField(FixedLenField(
+            PacketField("omci_message", None, OmciEndSoftwareDownloadResponse), align=36),
+            lambda pkt: pkt.message_type == OmciEndSoftwareDownloadResponse.message_id),
+
+        ConditionalField(FixedLenField(
+            PacketField("omci_message", None, OmciActivateImage), align=36),
+            lambda pkt: pkt.message_type == OmciActivateImage.message_id),
+        ConditionalField(FixedLenField(
+            PacketField("omci_message", None, OmciActivateImageResponse), align=36),
+            lambda pkt: pkt.message_type == OmciActivateImageResponse.message_id),
+
+        ConditionalField(FixedLenField(
+            PacketField("omci_message", None, OmciCommitImage), align=36),
+            lambda pkt: pkt.message_type == OmciCommitImage.message_id),
+        ConditionalField(FixedLenField(
+            PacketField("omci_message", None, OmciCommitImageResponse), align=36),
+            lambda pkt: pkt.message_type == OmciCommitImageResponse.message_id),
 
         # TODO add entries for remaining OMCI message types
 

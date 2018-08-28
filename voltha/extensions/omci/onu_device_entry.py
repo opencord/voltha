@@ -54,7 +54,7 @@ class OnuDeviceEntry(object):
     An ONU Device entry in the MIB
     """
     def __init__(self, omci_agent, device_id, adapter_agent, custom_me_map,
-                 mib_db, alarm_db, support_classes):
+                 mib_db, alarm_db, support_classes, clock=None):
         """
         Class initializer
 
@@ -118,13 +118,20 @@ class OnuDeviceEntry(object):
                                                                            advertise_events=advertise)
             # State machine of downloading image file from server
             downloader_info = support_classes.get('image_downloader')
+            image_upgrader_info = support_classes.get('image_upgrader')
+            image_activate_info = support_classes.get('image_activator')
             advertise = downloader_info['advertise-event']
             # self._img_download_sm = downloader_info['state-machine'](self._omci_agent, device_id, 
             #                                                       downloader_info['tasks'],
             #                                                       advertise_events=advertise)
             self._image_agent = ImageAgent(self._omci_agent, device_id, downloader_info['state-machine'],
                                                                    downloader_info['tasks'],
-                                                                   advertise_events=advertise)
+                                                                   image_upgrader_info['state-machine'],
+                                                                   image_activate_info['state-machine'],
+                                                                   advertise_events=advertise, clock=clock)
+
+            # self._omci_upgrade_sm = image_upgrader_info['state-machine'](device_id, advertise_events=advertise)
+            
         except Exception as e:
             self.log.exception('state-machine-create-failed', e=e)
             raise
@@ -151,7 +158,7 @@ class OnuDeviceEntry(object):
         self.event_bus = EventBusClient()
 
         # Create OMCI communications channel
-        self._omci_cc = OMCI_CC(adapter_agent, self.device_id, self._me_map)
+        self._omci_cc = OMCI_CC(adapter_agent, self.device_id, self._me_map, clock=clock)
 
     @staticmethod
     def event_bus_topic(device_id, event):
@@ -303,6 +310,10 @@ class OnuDeviceEntry(object):
         """
         return self._configuration
 
+    @property
+    def image_agent(self):
+        return self._image_agent
+        
     def start(self):
         """
         Start the ONU Device Entry state machines
@@ -516,3 +527,16 @@ class OnuDeviceEntry(object):
         # self._runner.start()
 
         return self._image_agent.get_image(local_name, local_dir, remote_url)
+
+    def do_onu_software_download(self, image_file):
+        """
+        Return a Deferred that will be triggered when upgrading results in success or failure
+        """
+        return self._image_agent.upgrade_onu(image_file)
+
+    def do_onu_software_switch(self):
+        """
+        Return a Deferred that will be triggered when switching software image results in success or failure
+        """
+        return self._image_agent.switch_onu_image()
+        

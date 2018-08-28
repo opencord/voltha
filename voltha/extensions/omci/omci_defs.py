@@ -73,7 +73,7 @@ class AttributeAccess(Enum):
 
 
 OmciNullPointer = 0xffff
-
+OmciSectionDataSize = 31
 
 class EntityOperations(Enum):
     # keep these numbers match msg_type field per OMCI spec
