@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "04b3b877_e21fcb73",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 3
+      },
+      "lineNbr": 349,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-08-28T21:45:49Z",
+      "side": 1,
+      "message": "Since meters and meter stats are available for the logical device from the NBI interface, is it possible to also support CLI commands within the \u0027logical_device\u0027 to output this information as well?\n\nIf so, a separate JIRA story to track this would be useful.",
+      "revId": "a81c6c7d89460805071edaed00c456f86bdf101e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
