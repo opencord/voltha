@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "026ca970_83d4f59b",
+        "filename": "voltha/protos/openflow_13.proto",
+        "patchSetId": 3
+      },
+      "lineNbr": 1357,
+      "author": {
+        "id": 1000097
+      },
+      "writtenOn": "2018-08-29T17:14:22Z",
+      "side": 1,
+      "message": "maybe a naive question, but why have we commented out the fields in this file",
+      "revId": "a81c6c7d89460805071edaed00c456f86bdf101e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "04b3b877_e21fcb73",
         "filename": "voltha/protos/voltha.proto",
         "patchSetId": 3
