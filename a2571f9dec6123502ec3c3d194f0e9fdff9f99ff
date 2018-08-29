@@ -427,6 +427,30 @@
     },
     {
       "key": {
+        "uuid": "e9e3484c_f7a3112c",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1191,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-08-29T13:01:39Z",
+      "side": 1,
+      "message": "Ok. Fair enough.. I will look into separating resource manager code from openolt_device.py to a separate file openolt_resource_manager.py",
+      "parentUuid": "a5e9f130_a0daf484",
+      "range": {
+        "startLine": 1168,
+        "startChar": 3,
+        "endLine": 1191,
+        "endChar": 78
+      },
+      "revId": "a2571f9dec6123502ec3c3d194f0e9fdff9f99ff",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "16906855_9c668555",
         "filename": "voltha/adapters/openolt/openolt_device.py",
         "patchSetId": 1
