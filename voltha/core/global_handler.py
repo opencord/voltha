@@ -46,6 +46,7 @@ from voltha.protos.bbf_fiber_multicast_gemport_body_pb2 import \
     MulticastGemportsConfigData
 from voltha.protos.bbf_fiber_multicast_distribution_set_body_pb2 import \
     MulticastDistributionSetData
+from voltha.protos.omci_mib_db_pb2 import MibDeviceData
 from voltha.protos.omci_alarm_db_pb2 import AlarmDeviceData
 
 log = structlog.get_logger()

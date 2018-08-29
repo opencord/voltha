@@ -902,3 +902,20 @@ class MibSynchronizer(object):
         return self._database.query(self._device_id, class_id=class_id,
                                     instance_id=instance_id,
                                     attributes=attributes)
+
+    def mib_set(self, class_id, entity_id, attributes):
+        """
+        Set attributes of an existing ME Class instance
+
+        This method is primarily used by other state machines to save ME specific
+        information to the persistent database. Access by objects external to the
+        OpenOMCI library is discouraged.
+
+        :param class_id: (int) ME Class ID
+        :param entity_id: (int) ME Class entity ID
+        :param attributes: (dict) attribute -> value pairs to set
+        """
+        # It must exist first (but attributes can be new)
+        if isinstance(attributes, dict) and len(attributes) and\
+                self.query_mib(class_id, entity_id) is not None:
+            self._database.set(self._device_id, class_id, entity_id, attributes)

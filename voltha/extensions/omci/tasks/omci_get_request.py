@@ -86,10 +86,6 @@ class OmciGetRequest(Task):
         except:
             pass
 
-    def stop_if_not_running(self):
-        if not self.running:
-            raise GetException('Get Request Task was cancelled')
-
     @property
     def me_class(self):
         """The OMCI Managed Entity Class associated with this request"""
@@ -156,8 +152,8 @@ class OmciGetRequest(Task):
 
         try:
             frame = MEFrame(self._entity_class, self._entity_id, self._attributes).get()
+            self.strobe_watchdog()
             results = yield self._device.omci_cc.send(frame)
-            self.stop_if_not_running()
 
             status = results.fields['omci_message'].fields['success_code']
             self.log.info('perform-get-status', status=status)
@@ -172,6 +168,7 @@ class OmciGetRequest(Task):
                     results_omci['attributes_mask']
 
                 if missing_attr > 0:
+                    self.strobe_watchdog()
                     self._local_deferred = reactor.callLater(0,
                                                              self.perform_get_missing_attributes,
                                                              missing_attr)
@@ -185,6 +182,7 @@ class OmciGetRequest(Task):
                     raise GetException('Get failed with status code: {}'.
                                        format(RC.AttributeFailure.value))
 
+                self.strobe_watchdog()
                 self._local_deferred = reactor.callLater(0,
                                                          self.perform_get_failed_attributes,
                                                          results,
@@ -232,8 +230,8 @@ class OmciGetRequest(Task):
                     )
                 )
                 try:
+                    self.strobe_watchdog()
                     get_results = yield self._device.omci_cc.send(frame)
-                    self.stop_if_not_running()
 
                     get_omci = get_results.fields['omci_message'].fields
                     if get_omci['success_code'] != RC.Success.value:
@@ -266,8 +264,8 @@ class OmciGetRequest(Task):
             try:
                 frame = MEFrame(self._entity_class, self._entity_id, {attr}).get()
 
+                self.strobe_watchdog()
                 results = yield self._device.omci_cc.send(frame)
-                self.stop_if_not_running()
 
                 status = results.fields['omci_message'].fields['success_code']
 

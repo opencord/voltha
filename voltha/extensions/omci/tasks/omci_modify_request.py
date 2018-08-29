@@ -78,10 +78,6 @@ class OmciModifyRequest(Task):
         except:
             pass
 
-    def stop_if_not_running(self):
-        if not self.running:
-            raise ModifyException('Modify Request Task was cancelled')
-
     @property
     def success_code(self):
         """
@@ -124,7 +120,6 @@ class OmciModifyRequest(Task):
         """
         For Set requests, a failure may indicate that one or more attributes
         are not supported by this ONU. This property returns any those unsupported attributes
-        attributes
 
         :return: None if not a set request, otherwise the attribute mask of any illegal
                  parameters
@@ -159,8 +154,8 @@ class OmciModifyRequest(Task):
         self.log.info('perform-request')
 
         try:
+            self.strobe_watchdog()
             self._results = yield self._device.omci_cc.send(self._frame)
-            self.stop_if_not_running()
 
             status = self._results.fields['omci_message'].fields['success_code']
             self.log.info('response-status', status=status)

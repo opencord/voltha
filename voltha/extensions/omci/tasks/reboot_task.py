@@ -94,6 +94,7 @@ class OmciRebootRequest(Task):
 
         try:
             frame = OntGFrame().reboot(reboot_code=self._flags)
+            self.strobe_watchdog()
             results = yield self._device.omci_cc.send(frame, timeout=self._timeout)
 
             status = results.fields['omci_message'].fields['success_code']
@@ -109,7 +110,7 @@ class OmciRebootRequest(Task):
                     raise RebootException(msg)
 
             self.log.info('reboot-success')
-            self.deferred.callback(None)
+            self.deferred.callback(self)
 
         except TimeoutError:
             self.log.info('timeout', msg='Request timeout is not considered an error')

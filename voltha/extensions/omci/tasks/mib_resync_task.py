@@ -53,6 +53,7 @@ class MibResyncTask(Task):
 
     max_mib_upload_next_retries = 3
     mib_upload_next_delay = 10          # Max * delay < 60 seconds
+    watchdog_timeout = 15               # Should be > max delay
 
     def __init__(self, omci_agent, device_id):
         """
@@ -102,10 +103,6 @@ class MibResyncTask(Task):
         self._db_active = None
         super(MibResyncTask, self).stop()
 
-    def stop_if_not_running(self):
-        if not self.running:
-            raise MibResyncException('Resync Task was cancelled')
-
     @inlineCallbacks
     def perform_mib_resync(self):
         """
@@ -138,6 +135,7 @@ class MibResyncTask(Task):
                 number_of_commands = results[1]
 
                 # Start the MIB upload sequence
+                self.strobe_watchdog()
                 commands_retrieved = yield self.upload_mib(number_of_commands)
 
                 if commands_retrieved < number_of_commands:
@@ -176,8 +174,8 @@ class MibResyncTask(Task):
             for retries in xrange(0, max_tries + 1):
                 # Send MIB Upload so ONU snapshots its MIB
                 try:
+                    self.strobe_watchdog()
                     number_of_commands = yield self.send_mib_upload()
-                    self.stop_if_not_running()
 
                     if number_of_commands is None:
                         if retries >= max_tries:
@@ -189,8 +187,8 @@ class MibResyncTask(Task):
                     if retries >= max_tries:
                         raise
 
+                    self.strobe_watchdog()
                     yield asleep(MibResyncTask.db_copy_retry_delay)
-                    self.stop_if_not_running()
                     continue
 
                 # Get a snapshot of the local MIB database
@@ -220,8 +218,9 @@ class MibResyncTask(Task):
         ########################################
         # Begin MIB Upload
         try:
+            self.strobe_watchdog()
             results = yield self._device.omci_cc.send_mib_upload()
-            self.stop_if_not_running()
+
             number_of_commands = results.fields['omci_message'].fields['number_of_commands']
 
             if number_of_commands is None or number_of_commands <= 0:
@@ -244,8 +243,8 @@ class MibResyncTask(Task):
 
             for retries in xrange(0, max_tries):
                 try:
+                    self.strobe_watchdog()
                     response = yield self._device.omci_cc.send_mib_upload_next(seq_no)
-                    self.stop_if_not_running()
 
                     omci_msg = response.fields['omci_message'].fields
                     class_id = omci_msg['object_entity_class']
@@ -269,6 +268,7 @@ class MibResyncTask(Task):
                                   number_of_commands=number_of_commands)
 
                     if retries < max_tries - 1:
+                        self.strobe_watchdog()
                         yield asleep(MibResyncTask.mib_upload_next_delay)
                     else:
                         raise
@@ -287,6 +287,8 @@ class MibResyncTask(Task):
         :param db_active: (dict) ONU's database snapshot
         :return: (dict), (dict), dict()  Differences
         """
+        self.strobe_watchdog()
+
         # Class & Entities only in local copy (OpenOMCI)
         on_olt_only = self.get_lsh_only_dict(db_copy, db_active)
 

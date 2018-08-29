@@ -122,10 +122,6 @@ class OnuCapabilitiesTask(Task):
         self._device = None
         super(OnuCapabilitiesTask, self).stop()
 
-    def stop_if_not_running(self):
-        if not self.running:
-            raise GetCapabilitiesFailure('Get Capabilities Task was cancelled')
-
     @inlineCallbacks
     def perform_get_capabilities(self):
         """
@@ -141,11 +137,11 @@ class OnuCapabilitiesTask(Task):
         self.log.info('perform-get')
 
         try:
+            self.strobe_watchdog()
             self._supported_entities = yield self.get_supported_entities()
-            self.stop_if_not_running()
 
+            self.strobe_watchdog()
             self._supported_msg_types = yield self.get_supported_message_types()
-            self.stop_if_not_running()
 
             self.log.debug('get-success',
                            supported_entities=self.supported_managed_entities,
@@ -164,7 +160,7 @@ class OnuCapabilitiesTask(Task):
         """
         Extract the 4 octet buffer length from the OMCI PDU contents
         """
-        self.log.debug('get-count-buffer', data=data)
+        self.log.debug('get-count-buffer', data=hexlify(data))
         return int(hexlify(data[:4]), 16)
 
     @inlineCallbacks
@@ -175,8 +171,8 @@ class OnuCapabilitiesTask(Task):
         try:
             # Get the number of requests needed
             frame = OmciFrame(me_type_table=True).get()
+            self.strobe_watchdog()
             results = yield self._device.omci_cc.send(frame)
-            self.stop_if_not_running()
 
             omci_msg = results.fields['omci_message']
             status = omci_msg.fields['success_code']
@@ -189,14 +185,14 @@ class OnuCapabilitiesTask(Task):
 
             seq_no = 0
             data_buffer = bytearray(0)
-            self.log.debug('me-type-count', octets=count, data=data)
+            self.log.debug('me-type-count', octets=count, data=hexlify(data))
 
             # Start the loop
             for offset in xrange(0, count, self._pdu_size):
                 frame = OmciFrame(me_type_table=seq_no).get_next()
                 seq_no += 1
+                self.strobe_watchdog()
                 results = yield self._device.omci_cc.send(frame)
-                self.stop_if_not_running()
 
                 omci_msg = results.fields['omci_message']
                 status = omci_msg.fields['success_code']
@@ -230,8 +226,8 @@ class OnuCapabilitiesTask(Task):
         try:
             # Get the number of requests needed
             frame = OmciFrame(message_type_table=True).get()
+            self.strobe_watchdog()
             results = yield self._device.omci_cc.send(frame)
-            self.stop_if_not_running()
 
             omci_msg = results.fields['omci_message']
             status = omci_msg.fields['success_code']
@@ -245,14 +241,14 @@ class OnuCapabilitiesTask(Task):
 
             seq_no = 0
             data_buffer = list()
-            self.log.debug('me-type-count', octets=count, data=data)
+            self.log.debug('me-type-count', octets=count, data=hexlify(data))
 
             # Start the loop
             for offset in xrange(0, count, self._pdu_size):
                 frame = OmciFrame(message_type_table=seq_no).get_next()
                 seq_no += 1
+                self.strobe_watchdog()
                 results = yield self._device.omci_cc.send(frame)
-                self.stop_if_not_running()
 
                 omci_msg = results.fields['omci_message']
                 status = omci_msg.fields['success_code']
