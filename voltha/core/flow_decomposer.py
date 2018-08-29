@@ -454,14 +454,19 @@ def mk_multicast_group_mod(group_id, buckets, command=ofp.OFPGC_ADD):
 def hash_flow_stats(flow):
     """
     Return unique 64-bit integer hash for flow covering the following
-    attributes: 'table_id', 'priority', 'flags', 'cookie', 'match'
+    attributes: 'table_id', 'priority', 'flags', 'cookie', 'match', '_instruction_string'
     """
-    hex = md5('{},{},{},{},{}'.format(
+    _instruction_string = ""
+    for _instruction in flow.instructions:
+        _instruction_string += _instruction.SerializeToString()
+
+    hex = md5('{},{},{},{},{},{}'.format(
         flow.table_id,
         flow.priority,
         flow.flags,
         flow.cookie,
-        flow.match.SerializeToString()
+        flow.match.SerializeToString(),
+        _instruction_string
     )).hexdigest()
     return int(hex[:16], 16)
 
@@ -522,7 +527,9 @@ class RouteHop(object):
             self._egress_port == other._egress_port)
     def __ne__(self, other):
         return not self.__eq__(other)
-
+    def __str__(self):
+        return 'RouteHop device_id {}, ingress_port {}, egress_port {}'.format(
+            self._device.id, self._ingress_port, self._egress_port)
 
 class FlowDecomposer(object):
 
@@ -781,73 +788,85 @@ class FlowDecomposer(object):
 
                     ))
 
-                else:  # multicast case
+                else:
                     grp_id = get_group(flow)
-                    assert grp_id is not None
+                    
+                    if grp_id is not None: # multicast case
 
-                    fl_lst, _ = device_rules.setdefault(
-                        ingress_hop.device.id, ([], []))
-                    fl_lst.append(mk_flow_stat(
-                        priority=flow.priority,
-                        cookie=flow.cookie,
-                        match_fields=[
-                            in_port(ingress_hop.ingress_port.port_no)
-                        ] + [
-                            field for field in get_ofb_fields(flow)
-                            if field.type not in (IN_PORT,)
-                        ],
-                        actions=[
-                            action for action in get_actions(flow)
-                            if action.type not in (GROUP,)
-                        ] + [
-                            pop_vlan(),
-                            output(ingress_hop.egress_port.port_no)
-                        ]
-                    ))
+                        fl_lst_olt, _ = device_rules.setdefault(
+                            ingress_hop.device.id, ([], []))
 
-                    # having no group yet is the same as having a group with
-                    # no buckets
-                    group = group_map.get(grp_id, ofp.ofp_group_entry())
+                        # having no group yet is the same as having a group with
+                        # no buckets
+                        group = group_map.get(grp_id, ofp.ofp_group_entry())
 
-                    for bucket in group.desc.buckets:
-                        found_pop_vlan = False
-                        other_actions = []
-                        for action in bucket.actions:
-                            if action.type == POP_VLAN:
-                                found_pop_vlan = True
-                            elif action.type == OUTPUT:
-                                out_port_no = action.output.port
-                            else:
-                                other_actions.append(action)
-                        # re-run route request to determine egress device and
-                        # ports
-                        route2 = self.get_route(in_port_no, out_port_no)
-                        if route2 is None:
-                            log.error('mc-no-route', in_port_no=in_port_no,
-                                out_port_no=out_port_no, route2=route2,
-                                comment='deleting flow')
-                            self.flow_delete(flow)
-                            continue
+                        for bucket in group.desc.buckets:
+                            found_pop_vlan = False
+                            other_actions = []
+                            for action in bucket.actions:
+                                if action.type == POP_VLAN:
+                                    found_pop_vlan = True
+                                elif action.type == OUTPUT:
+                                    out_port_no = action.output.port
+                                else:
+                                    other_actions.append(action)
+                            # re-run route request to determine egress device and
+                            # ports
+                            route2 = self.get_route(in_port_no, out_port_no)
+                            if not route2 or len(route2) != 2:
+                                log.error('mc-no-route', in_port_no=in_port_no,
+                                    out_port_no=out_port_no, route2=route2,
+                                    comment='deleting flow')
+                                self.flow_delete(flow)
+                                continue
 
-                        assert len(route2) == 2
-                        ingress_hop2, egress_hop = route2
-                        assert ingress_hop.ingress_port == ingress_hop2.ingress_port
+                            ingress_hop2, egress_hop = route2
 
-                        fl_lst, _ = device_rules.setdefault(
-                            egress_hop.device.id, ([], []))
-                        fl_lst.append(mk_flow_stat(
-                            priority=flow.priority,
-                            cookie=flow.cookie,
-                            match_fields=[
-                                in_port(egress_hop.ingress_port.port_no)
-                            ] + [
-                                field for field in get_ofb_fields(flow)
-                                if field.type not in (IN_PORT, VLAN_VID, VLAN_PCP)
-                            ],
-                            actions=other_actions + [
-                                output(egress_hop.egress_port.port_no)
-                            ]
-                        ))
+                            if ingress_hop.ingress_port != ingress_hop2.ingress_port:
+                                log.error('mc-ingress-hop-hop2-mismatch',
+                                    ingress_hop=ingress_hop,
+                                    ingress_hop2=ingress_hop2,
+                                    in_port_no=in_port_no,
+                                    out_port_no=out_port_no,
+                                    comment='ignoring flow')
+                                continue
+
+                            fl_lst_olt.append(mk_flow_stat(
+                                priority=flow.priority,
+                                cookie=flow.cookie,
+                                match_fields=[
+                                    in_port(ingress_hop.ingress_port.port_no)
+                                ] + [
+                                    field for field in get_ofb_fields(flow)
+                                    if field.type not in (IN_PORT,)
+                                ],
+                                actions=[
+                                    action for action in get_actions(flow)
+                                    if action.type not in (GROUP,)
+                                ] + [
+                                    pop_vlan(),
+                                    output(egress_hop.ingress_port.port_no)
+                                ]
+                            ))
+
+                            fl_lst_onu, _ = device_rules.setdefault(
+                                egress_hop.device.id, ([], []))
+                            fl_lst_onu.append(mk_flow_stat(
+                                priority=flow.priority,
+                                cookie=flow.cookie,
+                                match_fields=[
+                                    in_port(egress_hop.ingress_port.port_no)
+                                ] + [
+                                    field for field in get_ofb_fields(flow)
+                                    if field.type not in (IN_PORT, VLAN_VID, VLAN_PCP)
+                                ],
+                                actions=other_actions + [
+                                    output(egress_hop.egress_port.port_no)
+                                ]
+                            ))
+                    else:
+                        raise NotImplementedError('undefined downstream case for flows')
+                        
 
         return device_rules
 
