@@ -65,10 +65,6 @@ class BrcmUniLockTask(Task):
         except:
             pass
 
-    def stop_if_not_running(self):
-        if not self.running:
-            raise BrcmUniLockException('UNI Lock Task was cancelled')
-
     def start(self):
         """
         Start UNI/PPTP Lock/Unlock Task
@@ -91,7 +87,7 @@ class BrcmUniLockTask(Task):
             frame = msg.set()
             self.log.debug('openomci-msg', msg=msg)
             results = yield self._device.omci_cc.send(frame)
-            self.stop_if_not_running()
+            self.strobe_watchdog()
 
             status = results.fields['omci_message'].fields['success_code']
             self.log.info('response-status', status=status)
@@ -106,11 +102,11 @@ class BrcmUniLockTask(Task):
 
             for key, value in pptp.iteritems():
                 msg = PptpEthernetUniFrame(key,
-                                       attributes=dict(administrative_state=state))
+                                           attributes=dict(administrative_state=state))
                 frame = msg.set()
                 self.log.debug('openomci-msg', msg=msg)
                 results = yield self._device.omci_cc.send(frame)
-                self.stop_if_not_running()
+                self.strobe_watchdog()
 
                 status = results.fields['omci_message'].fields['success_code']
                 self.log.info('response-status', status=status)

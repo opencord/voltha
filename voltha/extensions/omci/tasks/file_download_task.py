@@ -20,12 +20,14 @@ from voltha.extensions.omci.omci_defs import ReasonCodes
 import requests
 import os
 
+
 class FileDownloadTask(Task):
-    task_priority = 250
     name = "Image File Download Task"
 
     def __init__(self, omci_agent, device_id, url, local_path):
-        super(FileDownloadTask, self).__init__(FileDownloadTask.name, omci_agent, device_id)
+        super(FileDownloadTask, self).__init__(FileDownloadTask.name, omci_agent, device_id,
+                                               exclusive=False,
+                                               watchdog_timeout=45)
         self.url = url
         self.local_path = local_path
         # self.log.debug('{} running'.format(FileDownloadTask.name))
@@ -38,10 +40,13 @@ class FileDownloadTask(Task):
             dir_name = os.path.dirname(self.local_path)
             if not os.path.exists(dir_name):
                 os.makedirs(dir_name)
-                
+
+            self.strobe_watchdog()
             r = requests.get(self.url, stream=True)
+
             with open(self.local_path, 'wb') as f:
-                for chunk in r.iter_content(chunk_size=1024): 
+                for chunk in r.iter_content(chunk_size=1024):
+                    self.strobe_watchdog()
                     if chunk: # filter out keep-alive new chunks
                         f.write(chunk)
             self.deferred.callback('device {} success downloaded {} '.format(self.device_id, self.url))
@@ -52,4 +57,4 @@ class FileDownloadTask(Task):
     def stop(self):
         self.cancel_deferred()
         super(FileDownloadTask, self).stop()
-        
+

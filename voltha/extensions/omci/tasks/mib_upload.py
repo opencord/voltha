@@ -80,10 +80,6 @@ class MibUploadTask(Task):
         self.cancel_deferred()
         super(MibUploadTask, self).stop()
 
-    def stop_if_not_running(self):
-        if not self.running:
-            raise MibUploadFailure('Upload Task was cancelled')
-
     @inlineCallbacks
     def perform_mib_upload(self):
         """
@@ -99,8 +95,8 @@ class MibUploadTask(Task):
 
             #########################################
             # MIB Reset
+            self.strobe_watchdog()
             results = yield device.omci_cc.send_mib_reset()
-            self.stop_if_not_running()
 
             status = results.fields['omci_message'].fields['success_code']
             if status != ReasonCodes.Success.value:
@@ -109,8 +105,9 @@ class MibUploadTask(Task):
 
             ########################################
             # Begin MIB Upload
+            self.strobe_watchdog()
             results = yield device.omci_cc.send_mib_upload()
-            self.stop_if_not_running()
+
             number_of_commands = results.fields['omci_message'].fields['number_of_commands']
 
             for seq_no in xrange(number_of_commands):
@@ -122,8 +119,9 @@ class MibUploadTask(Task):
                         self.log.debug('mib-upload-next-request', seq_no=seq_no,
                                        retry=retry,
                                        number_of_commands=number_of_commands)
+                        self.strobe_watchdog()
                         yield device.omci_cc.send_mib_upload_next(seq_no)
-                        self.stop_if_not_running()
+
                         self.log.debug('mib-upload-next-success', seq_no=seq_no,
                                        number_of_commands=number_of_commands)
                         break
@@ -135,8 +133,8 @@ class MibUploadTask(Task):
                         if retry >= 2:
                             raise MibUploadFailure('Upload timeout failure on req {} of {}'.
                                                    format(seq_no + 1, number_of_commands))
+                        self.strobe_watchdog()
                         yield asleep(0.3)
-                        self.stop_if_not_running()
 
             # Successful if here
             self.log.info('mib-synchronized')
@@ -158,4 +156,3 @@ class MibUploadTask(Task):
         except Exception as e:
             self.log.exception('mib-upload', e=e)
             self.deferred.errback(failure.Failure(e))
-

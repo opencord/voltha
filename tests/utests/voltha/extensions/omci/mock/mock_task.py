@@ -25,7 +25,8 @@ class SimpleTask(Task):
                  success=True,
                  delay=0,
                  value=None,
-                 priority=Task.DEFAULT_PRIORITY):
+                 priority=Task.DEFAULT_PRIORITY,
+                 watchdog_timeout=Task.DEFAULT_WATCHDOG_SECS):
         """
         Class initialization
 
@@ -35,6 +36,7 @@ class SimpleTask(Task):
         :param success: (bool) True if the task should complete successfully
         :param delay: (int/float) Time it takes the task to complete
         :param priority (int) Priority of the task
+        :param watchdog_timeout (int or float) Watchdog timeout after task start
         :param value: (various) The value (string, int, ...) to return if successful
                                 or an Exception to send to the errBack if 'success'
                                 is False
@@ -43,7 +45,8 @@ class SimpleTask(Task):
                                          omci_agent,
                                          device_id,
                                          exclusive=exclusive,
-                                         priority=priority)
+                                         priority=priority,
+                                         watchdog_timeout=watchdog_timeout)
         self._delay = delay
         self._success = success
         self._value = value

@@ -63,10 +63,6 @@ class OmciDeletePMRequest(Task):
         except:
             pass
 
-    def stop_if_not_running(self):
-        if not self.running:
-            raise DeletePMException('Delete PM ME Task was cancelled')
-
     def start(self):
         """ Start task """
         super(OmciDeletePMRequest, self).start()
@@ -90,8 +86,8 @@ class OmciDeletePMRequest(Task):
                         entity_id=entity_id
                     )
                 )
+                self.strobe_watchdog()
                 results = yield self._device.omci_cc.send(frame)
-                self.stop_if_not_running()
 
                 status = results.fields['omci_message'].fields['success_code']
                 self.log.info('perform-delete-status', status=status)

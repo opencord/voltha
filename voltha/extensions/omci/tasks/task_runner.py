@@ -30,6 +30,8 @@ class TaskRunner(object):
 
         self._successful_tasks = 0
         self._failed_tasks = 0
+        self._watchdog_timeouts = 0
+        self._last_watchdog_failure_task = ''
 
     def __str__(self):
         return 'TaskRunner: Pending: {}, Running:{}'.format(self.pending_tasks,
@@ -63,6 +65,15 @@ class TaskRunner(object):
     @property
     def failed_tasks(self):
         return self._failed_tasks
+
+    @property
+    def watchdog_timeouts(self):
+        return self._watchdog_timeouts
+
+    @property
+    def last_watchdog_failure_task(self):
+        """ Task name of last tasks to fail due to watchdog"""
+        return self._last_watchdog_failure_task
 
     # TODO: add properties for various stats as needed
 
@@ -165,6 +176,7 @@ class TaskRunner(object):
             assert task is not None and task.task_id in self._running_queue,\
                 'Task not found in running queue'
 
+            task.task_cleanup()
             self._successful_tasks += 1
             del self._running_queue[task.task_id]
 
@@ -183,6 +195,8 @@ class TaskRunner(object):
         :param task: (Task) The task that failed
         :return: (Failure) Failure results
         """
+        from voltha.extensions.omci.tasks.task import WatchdogTimeoutFailure
+
         self.log.debug('task-failure', task_id=str(task),
                        running=len(self._running_queue),
                        pending=len(self._pending_queue))
@@ -190,8 +204,13 @@ class TaskRunner(object):
             assert task is not None and task.task_id in self._running_queue,\
                 'Task not found in running queue'
 
+            task.task_cleanup()
             self._failed_tasks += 1
             del self._running_queue[task.task_id]
+
+            if isinstance(failure.value, WatchdogTimeoutFailure):
+                self._watchdog_timeouts += 1
+                self._last_watchdog_failure_task = task.name
 
         except Exception as e:
             # Check the pending queue

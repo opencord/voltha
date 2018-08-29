@@ -83,6 +83,7 @@ class GetMdsTask(Task):
             #########################################
             # Request (MDS supplied value does not matter for a 'get' request)
 
+            self.strobe_watchdog()
             results = yield device.omci_cc.send(OntDataFrame().get())
 
             omci_msg = results.fields['omci_message'].fields

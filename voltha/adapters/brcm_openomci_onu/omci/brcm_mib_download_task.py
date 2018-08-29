@@ -146,9 +146,6 @@ class BrcmMibDownloadTask(Task):
         """
         self.log.debug('function-entry')
 
-        if not self.running:
-            raise MibDownloadFailure('Download Task was cancelled')
-
         omci_msg = results.fields['omci_message'].fields
         status = omci_msg['success_code']
         error_mask = omci_msg.get('parameter_error_attributes_mask', 'n/a')
@@ -159,6 +156,7 @@ class BrcmMibDownloadTask(Task):
                        failed_mask=failed_mask, unsupported_mask=unsupported_mask)
 
         if status == RC.Success:
+            self.strobe_watchdog()
             return True
 
         elif status == RC.InstanceExists:
@@ -191,6 +189,7 @@ class BrcmMibDownloadTask(Task):
             try:
                 # Lock the UNI ports to prevent any alarms during initial configuration
                 # of the ONU
+                self.strobe_watchdog()
                 yield self.enable_uni(self._uni_port, True)
 
                 # Provision the initial bridge configuration

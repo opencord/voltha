@@ -148,6 +148,7 @@ class IntervalDataTask(Task):
             self.log.debug('interval-get-request', class_id=self._class_id,
                            entity_id=self._entity_id)
             try:
+                self.strobe_watchdog()
                 results = yield device.omci_cc.send(frame)
 
                 omci_msg = results.fields['omci_message'].fields
