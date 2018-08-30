@@ -32,7 +32,8 @@ import (
 	"flag"
 	"bufio"
 	consulapi "github.com/hashicorp/consul/api"
-	etcdapi "github.com/coreos/etcd/clientv3"
+//  etcdapi "github.com/coreos/etcd/clientv3"
+	etcdapi "go.etcd.io/etcd/clientv3"
 )
 
 // DATA STRUCTURES
