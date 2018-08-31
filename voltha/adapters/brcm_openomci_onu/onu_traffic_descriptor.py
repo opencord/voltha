@@ -14,7 +14,6 @@
 # limitations under the License.
 
 import structlog
-from voltha.adapters.adtran_olt.xpon.best_effort import BestEffort
 from twisted.internet.defer import inlineCallbacks, returnValue, succeed
 
 
@@ -93,12 +92,8 @@ class OnuTrafficDescriptor(object):
         additional = OnuTrafficDescriptor.from_value(
             traffic_disc['additional-bw-eligibility-indicator'])
 
-        if additional == BEST_EFFORT_SHARING:
-            best_effort = BestEffort(traffic_disc['maximum-bandwidth'],
-                                     traffic_disc['priority'],
-                                     traffic_disc['weight'])
-        else:
-            best_effort = None
+        # TODO: this is all stub code.  Doesnt do anything yet. tech profiles will likely make this clearer
+        best_effort = None
 
         return OnuTrafficDescriptor(traffic_disc['fixed-bandwidth'],
                                     traffic_disc['assured-bandwidth'],

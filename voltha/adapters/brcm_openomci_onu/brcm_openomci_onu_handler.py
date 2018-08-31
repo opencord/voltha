@@ -64,7 +64,7 @@ BRDCM_DEFAULT_VLAN = 4091
 ADMIN_STATE_LOCK = 1
 ADMIN_STATE_UNLOCK = 0
 RESERVED_VLAN_ID = 4095
-_STARTUP_RETRY_WAIT = 5
+_STARTUP_RETRY_WAIT = 20
 _MAXIMUM_PORT = 128          # UNI ports
 
 
@@ -181,6 +181,7 @@ class BrcmOpenomciOnuHandler(object):
             device.vendor = 'Broadcom'
             device.connect_status = ConnectStatus.REACHABLE
             device.oper_status = OperStatus.DISCOVERED
+            device.reason = 'activating-onu'
             self.adapter_agent.update_device(device)
 
             self.log.debug('set-device-discovered')
@@ -211,6 +212,8 @@ class BrcmOpenomciOnuHandler(object):
 
             # need to restart state machines on vcore restart.  there is no indication to do it for us.
             self._onu_omci_device.start()
+            device.reason = "restarting-openomci"
+            self.adapter_agent.update_device(device)
 
             # TODO: this is probably a bit heavy handed
             # Force a reboot for now.  We need indications to reflow to reassign tconts and gems given vcore went away
@@ -515,6 +518,9 @@ class BrcmOpenomciOnuHandler(object):
                     self.check_status_and_state(results,
                                                 'flow-set-ext-vlan-tagging-op-config-data-zero-tagged')
 
+                    device.reason = 'omci-flows-pushed'
+                    # For some reason we cant call update_device here, grpc RepeatedCompositeContainer errors happen, not sure why
+
             except Exception as e:
                 self.log.exception('failed-to-install-flow', e=e, flow=flow)
 
@@ -530,9 +536,13 @@ class BrcmOpenomciOnuHandler(object):
         self.log.debug('function-entry', data=data)
         self._onu_indication = data
 
+        onu_device = self.adapter_agent.get_device(self.device_id)
+
         self.log.debug('starting-openomci-statemachine')
         self._subscribe_to_events()
         reactor.callLater(1, self._onu_omci_device.start)
+        onu_device.reason = "starting-openomci"
+        self.adapter_agent.update_device(onu_device)
 
     # Currently called each time there is an onu "down" indication from the olt handler
     # TODO: possibly other reasons to "update" from the olt?
@@ -546,6 +556,7 @@ class BrcmOpenomciOnuHandler(object):
             self.log.debug('stopping-openomci-statemachine')
             reactor.callLater(0, self._onu_omci_device.stop)
             self.disable_ports(onu_device)
+            onu_device.reason = "stopping-openomci"
             onu_device.connect_status = ConnectStatus.UNREACHABLE
             onu_device.oper_status = OperStatus.DISCOVERED
             self.adapter_agent.update_device(onu_device)
@@ -561,6 +572,8 @@ class BrcmOpenomciOnuHandler(object):
         self.log.debug('stopping-openomci-statemachine')
         reactor.callLater(0, self._onu_omci_device.stop)
         self.disable_ports(onu_device)
+        onu_device.reason = "stopping-openomci"
+        self.adapter_agent.update_device(onu_device)
 
         # TODO: im sure there is more to do here
 
@@ -662,7 +675,7 @@ class BrcmOpenomciOnuHandler(object):
                 reactor.callLater(0, self._onu_omci_device.stop)
                 self.disable_ports(device)
                 device.oper_status = OperStatus.UNKNOWN
-                device.reason = "openomci-admin-lock"
+                device.reason = "omci-admin-lock"
                 self.adapter_agent.update_device(device)
 
             # lock all the unis
@@ -680,6 +693,8 @@ class BrcmOpenomciOnuHandler(object):
             # this will ultimately resync mib and unlock unis on successful redownloading the mib
             self.log.debug('restarting-openomci-statemachine')
             self._subscribe_to_events()
+            device.reason = "restarting-openomci"
+            self.adapter_agent.update_device(device)
             reactor.callLater(1, self._onu_omci_device.start)
         except Exception as e:
             log.exception('exception-in-onu-reenable', exception=e)
@@ -697,6 +712,7 @@ class BrcmOpenomciOnuHandler(object):
             self.disable_ports(device)
             device.connect_status = ConnectStatus.UNREACHABLE
             device.oper_status = OperStatus.DISCOVERED
+            device.reason = "rebooting"
             self.adapter_agent.update_device(device)
 
         def failure(_reason):
@@ -811,15 +827,17 @@ class BrcmOpenomciOnuHandler(object):
             # In Sync, we can register logical ports now. Ideally this could occur on
             # the first time we received a successful (no timeout) OMCI Rx response.
             try:
-                parent_device = self.adapter_agent.get_device(device.parent_id)
-
-                parent_adapter_agent = registry('adapter_loader').get_agent(parent_device.adapter)
-                if parent_adapter_agent is None:
-                    self.log.error('openolt_adapter_agent-could-not-be-retrieved')
 
                 ani_g = config.ani_g_entities
                 uni_g = config.uni_g_entities
                 pptp = config.pptp_entities
+
+                # TODO: there are onu out there that have uni ports available but no pptp.  These all-in-one devices
+                # likely need virtual ethernet interface point ME #329 configured rather than pptp.
+                if ani_g is None or uni_g is None or pptp is None:
+                    device.reason = 'onu-missing-required-elements'
+                    self.adapter_agent.update_device(device)
+                    raise Exception("onu-missing-required-elements")
 
                 # Currently logging the ani and uni for information purposes.   Actually act on the pptp as its ME ID
                 # is the most correct one to use in later tasks.
@@ -831,46 +849,8 @@ class BrcmOpenomciOnuHandler(object):
 
                 for key, value in pptp.iteritems():
                     self.log.debug("discovered-pptp-uni", key=key, value=value)
-
                     entity_id = key
-
-                    # TODO: This knowledge is locked away in openolt.  and it assumes one onu equals one uni...
-                    uni_no_start = platform.mk_uni_port_num(self._onu_indication.intf_id,
-                                                            self._onu_indication.onu_id)
-
-                    working_port = self._next_port_number
-                    uni_no = uni_no_start + working_port
-                    uni_name = "uni-{}".format(uni_no)
-
-                    mac_bridge_port_num = working_port + 1
-
-                    self.log.debug('live-port-number-ready', uni_no=uni_no, uni_name=uni_name)
-
-                    uni_port = UniPort.create(self, uni_name, uni_no, uni_name, device.vlan, device.vlan)
-                    uni_port.entity_id = entity_id
-                    uni_port.enabled = True
-                    uni_port.mac_bridge_port_num = mac_bridge_port_num
-                    uni_port.add_logical_port(uni_port.port_number, subscriber_vlan=device.vlan)
-
-                    self.log.debug("created-uni-port", uni=uni_port)
-
-                    self.adapter_agent.add_port(device.id, uni_port.get_port())
-                    parent_adapter_agent.add_port(device.parent_id, uni_port.get_port())
-
-                    self._unis[uni_port.port_number] = uni_port
-
-                    # TODO: this should be in the PonPortclass
-                    pon_port = self._pon.get_port()
-                    self.adapter_agent.delete_port_reference_from_parent(self.device_id,
-                                                                         pon_port)
-
-                    pon_port.peers.extend([Port.PeerPort(device_id=device.parent_id,
-                                                        port_no=uni_port.port_number)])
-
-                    self._pon._port = pon_port
-
-                    self.adapter_agent.add_port_reference_to_parent(self.device_id,
-                                                                    pon_port)
+                    self._add_uni_port(entity_id)
 
                     # TODO: only one uni/pptp for now. flow bug in openolt
                     break
@@ -880,9 +860,7 @@ class BrcmOpenomciOnuHandler(object):
                 self._omcc_version = config.omcc_version or OMCCVersion.Unknown
                 self.log.debug("set-total-tcont-count", tcont_count=self._total_tcont_count)
 
-                # Save our device information
                 self._dev_info_loaded = True
-                self.adapter_agent.update_device(device)
 
             except Exception as e:
                 self.log.exception('device-info-load', e=e)
@@ -891,32 +869,87 @@ class BrcmOpenomciOnuHandler(object):
         else:
             self.log.info('device-info-already-loaded', in_sync=in_sync, already_loaded=self._dev_info_loaded)
 
-        if device.admin_state == AdminState.ENABLED:
-            def success(_results):
-                self.log.info('mib-download-success', _results=_results)
-                device = self.adapter_agent.get_device(self.device_id)
-                device.reason = 'initial-mib-downloaded'
-                device.oper_status = OperStatus.ACTIVE
-                device.connect_status = ConnectStatus.REACHABLE
-                self.enable_ports(device)
-                self.adapter_agent.update_device(device)
-                self._mib_download_task = None
+        if self._dev_info_loaded:
+            if device.admin_state == AdminState.ENABLED:
+                def success(_results):
+                    self.log.info('mib-download-success', _results=_results)
+                    device = self.adapter_agent.get_device(self.device_id)
+                    device.reason = 'initial-mib-downloaded'
+                    device.oper_status = OperStatus.ACTIVE
+                    device.connect_status = ConnectStatus.REACHABLE
+                    self.enable_ports(device)
+                    self.adapter_agent.update_device(device)
+                    self._mib_download_task = None
 
-            def failure(_reason):
-                self.log.info('mib-download-failure', _reason=_reason)
-                # TODO: test this.  also verify i can add this task this way
+                def failure(_reason):
+                    self.log.info('mib-download-failure', _reason=_reason)
+                    # TODO: test this.  also verify i can add this task this way
+                    self._mib_download_task = BrcmMibDownloadTask(self.omci_agent, self)
+                    self._deferred = self._onu_omci_device.task_runner.queue_task(self._mib_download_task)
+
+                # Download an initial mib that creates simple bridge that can pass EAP.  On success (above) finally set
+                # the device to active/reachable.   This then opens up the handler to openflow pushes from outside
+                self.log.info('downloading-initial-mib-configuration')
                 self._mib_download_task = BrcmMibDownloadTask(self.omci_agent, self)
                 self._deferred = self._onu_omci_device.task_runner.queue_task(self._mib_download_task)
-
-            # Download an initial mib that creates simple bridge that can pass EAP.  On success (above) finally set
-            # the device to active/reachable.   This then opens up the handler to openflow pushes from outside
-            self.log.info('downloading-initial-mib-configuration')
-            self._mib_download_task = BrcmMibDownloadTask(self.omci_agent, self)
-            self._deferred = self._onu_omci_device.task_runner.queue_task(self._mib_download_task)
-            self._deferred.addCallbacks(success, failure)
+                self._deferred.addCallbacks(success, failure)
+            else:
+                self.log.info('admin-down-disabling')
+                self.disable(device)
         else:
-            self.log.info('admin-down-disabling')
-            self.disable(device)
+            self.log.info('device-info-not-loaded-skipping-mib-download')
+
+
+    def _add_uni_port(self, entity_id):
+        self.log.debug('function-entry')
+
+        device = self.adapter_agent.get_device(self.device_id)
+        parent_device = self.adapter_agent.get_device(device.parent_id)
+
+        parent_adapter_agent = registry('adapter_loader').get_agent(parent_device.adapter)
+        if parent_adapter_agent is None:
+            self.log.error('openolt_adapter_agent-could-not-be-retrieved')
+
+        # TODO: This knowledge is locked away in openolt.  and it assumes one onu equals one uni...
+        uni_no_start = platform.mk_uni_port_num(self._onu_indication.intf_id,
+                                                self._onu_indication.onu_id)
+
+        # TODO: Some or parts of this likely need to move to UniPort. especially the format stuff
+        working_port = self._next_port_number
+        uni_no = uni_no_start + working_port
+        uni_name = "uni-{}".format(uni_no)
+
+        mac_bridge_port_num = working_port + 1
+
+        self.log.debug('live-port-number-ready', uni_no=uni_no, uni_name=uni_name)
+
+        uni_port = UniPort.create(self, uni_name, uni_no, uni_name, device.vlan, device.vlan)
+        uni_port.entity_id = entity_id
+        uni_port.enabled = True
+        uni_port.mac_bridge_port_num = mac_bridge_port_num
+        uni_port.add_logical_port(uni_port.port_number, subscriber_vlan=device.vlan)
+
+        self.log.debug("created-uni-port", uni=uni_port)
+
+        self.adapter_agent.add_port(device.id, uni_port.get_port())
+        parent_adapter_agent.add_port(device.parent_id, uni_port.get_port())
+
+        self._unis[uni_port.port_number] = uni_port
+
+        # TODO: this should be in the PonPortclass
+        pon_port = self._pon.get_port()
+        self.adapter_agent.delete_port_reference_from_parent(self.device_id,
+                                                             pon_port)
+
+        pon_port.peers.extend([Port.PeerPort(device_id=device.parent_id,
+                                             port_no=uni_port.port_number)])
+
+        self._pon._port = pon_port
+
+        self.adapter_agent.add_port_reference_to_parent(self.device_id,
+                                                        pon_port)
+        self.adapter_agent.update_device(device)
+
 
     def check_status_and_state(self, results, operation=''):
         self.log.debug('function-entry')
