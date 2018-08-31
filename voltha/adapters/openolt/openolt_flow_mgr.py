@@ -18,7 +18,8 @@ from twisted.internet import reactor
 import grpc
 
 from voltha.protos.openflow_13_pb2 import OFPXMC_OPENFLOW_BASIC, \
-    ofp_flow_stats, ofp_match, OFPMT_OXM, Flows, FlowGroups, OFPXMT_OFB_IN_PORT
+    ofp_flow_stats, ofp_match, OFPMT_OXM, Flows, FlowGroups, \
+    OFPXMT_OFB_IN_PORT, OFPXMT_OFB_VLAN_VID
 import voltha.core.flow_decomposer as fd
 import openolt_platform as platform
 from voltha.adapters.openolt.protos import openolt_pb2
@@ -228,6 +229,12 @@ class OpenOltFlowMgr(object):
             if classifier['eth_type'] == EAP_ETH_TYPE:
                 self.log.debug('eapol flow add')
                 self.add_eapol_flow(intf_id, onu_id, flow)
+                vlan_id = self.get_subscriber_vlan(fd.get_in_port(flow))
+                if vlan_id is not None:
+                    self.add_eapol_flow(intf_id, onu_id, flow,
+                        uplink_eapol_id=EAPOL_UPLINK_SECONDARY_FLOW_INDEX,
+                        downlink_eapol_id=EAPOL_DOWNLINK_SECONDARY_FLOW_INDEX,
+                        vlan_id=vlan_id)
 
         elif 'push_vlan' in action:
             self.add_upstream_data_flow(intf_id, onu_id, classifier, action,
@@ -406,7 +413,21 @@ class OpenOltFlowMgr(object):
 
         self.add_flow_to_device(downstream_flow, downstream_logical_flow)
 
+    def repush_all_different_flows(self):
+        # Check if the device is supposed to have flows, if so add them
+        # Recover static flows after a reboot
+        logical_flows = self.logical_flows_proxy.get('/').items
+        devices_flows = self.flows_proxy.get('/').items
+        logical_flows_ids_provisioned = [f.cookie for f in devices_flows]
+        for logical_flow in logical_flows:
+            try:
+                if logical_flow.id not in logical_flows_ids_provisioned:
+                    self.add_flow(logical_flow)
+            except Exception as e:
+                self.log.debug('Problem readding this flow', error=e)
 
+    def reset_flows(self):
+        self.flows_proxy.update('/', Flows())
 
     def mk_classifier(self, classifier_info):
 
@@ -482,6 +503,25 @@ class OpenOltFlowMgr(object):
                 return (True, flow)
 
         return (False, None)
+
+    def get_subscriber_vlan(self, port):
+        self.log.debug('looking from subscriber flow for port', port=port)
+
+        flows = self.logical_flows_proxy.get('/').items
+        for flow in flows:
+            in_port = fd.get_in_port(flow)
+            out_port = fd.get_out_port(flow)
+            #FIXME
+            if in_port == port and out_port == 128:
+                fields = fd.get_ofb_fields(flow)
+                self.log.debug('subscriber flow found', fields=fields)
+                for field in fields:
+                    if field.type == OFPXMT_OFB_VLAN_VID:
+                        self.log.debug('subscriber vlan found',
+                                       vlan_id=field.vlan_vid)
+                        return field.vlan_vid & 0x0fff
+        self.log.debug('No subscriber flow found', port=port)
+        return None
 
     def add_flow_to_device(self, flow, logical_flow):
         self.log.debug('pushing flow to device', flow=flow)

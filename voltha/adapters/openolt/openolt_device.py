@@ -84,7 +84,8 @@ class OpenoltDevice(object):
          {'trigger': 'go_state_down',
           'source': ['state_up'],
           'dest': 'state_down',
-          'before': 'do_state_down'}]
+          'before': 'do_state_down',
+          'after': 'post_down'}]
 
     def __init__(self, **kwargs):
         super(OpenoltDevice, self).__init__()
@@ -178,8 +179,6 @@ class OpenoltDevice(object):
         self.log.debug("do_state_connected")
 
         device = self.adapter_agent.get_device(self.device_id)
-        device.connect_status = ConnectStatus.REACHABLE
-        self.adapter_agent.update_device(device)
 
         self.stub = openolt_pb2_grpc.OpenoltStub(self.channel)
         self.flow_mgr = OpenOltFlowMgr(self.log, self.stub, self.device_id,
@@ -189,6 +188,12 @@ class OpenoltDevice(object):
                                          self.logical_device_id)
         self.stats_mgr = OpenOltStatisticsMgr(self, self.log)
         self.bw_mgr = OpenOltBW(self.log, self.proxy)
+
+        # TODO: check for uptime and reboot if too long (VOL-1192)
+
+
+        device.connect_status = ConnectStatus.REACHABLE
+        self.adapter_agent.update_device(device)
 
     def do_state_up(self, event):
         self.log.debug("do_state_up")
@@ -254,7 +259,16 @@ class OpenoltDevice(object):
         device.oper_status = oper_state
         device.connect_status = connect_state
 
-        self.adapter_agent.update_device(device)
+        reactor.callLater(2, self.adapter_agent.update_device, device)
+
+    # def post_up(self, event):
+    #     self.log.debug('post-up')
+    #     self.flow_mgr.reseed_flows()
+
+    def post_down(self, event):
+        self.log.debug('post_down')
+        self.flow_mgr.reset_flows()
+
 
     def indications_thread(self):
         self.log.debug('starting-indications-thread')
@@ -898,6 +912,10 @@ class OpenoltDevice(object):
                           flows_to_remove=[f.id for f in flows_to_remove])
             return
 
+        try:
+            self.flow_mgr.update_children_flows(device_rules_map)
+        except Exception as e:
+            self.log.error('Error updating children flows', error=e)
 
         self.log.debug('logical flows update', flows_to_add=flows_to_add,
             flows_to_remove=flows_to_remove)
@@ -916,7 +934,6 @@ class OpenoltDevice(object):
             except Exception as e:
                 self.log.error('failed to add flow', flow=flow, e=e)
 
-        self.flow_mgr.update_children_flows(device_rules_map)
 
         for flow in flows_to_remove:
 
@@ -924,6 +941,8 @@ class OpenoltDevice(object):
                 self.flow_mgr.remove_flow(flow)
             except Exception as e:
                 self.log.error('failed to remove flow', flow=flow, e=e)
+
+        self.flow_mgr.repush_all_different_flows()
 
     # There has to be a better way to do this
     def ip_hex(self, ip):
