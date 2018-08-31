@@ -483,10 +483,35 @@ class OpenOltFlowMgr(object):
 
         return (False, None)
 
-    def add_flow_to_device(self, flow, logical_flow):
-        self.log.debug('pushing flow to device', flow=flow)
-        self.stub.FlowAdd(flow)
-        self.register_flow(logical_flow, flow)
+    def add_flow_to_device(self, flow, logical_flow, repeat=True):
+        self.log.debug('pushing flow to device', flow=flow, repeat=repeat)
+        try:
+            self.stub.FlowAdd(flow)
+        except grpc.RpcError as grpc_e:
+            if grpc_e.code() == grpc.StatusCode.ALREADY_EXISTS:
+                # Flow already exist, do not register it again
+                self.log.info('flow already exists', flow=flow)
+            else:
+                if repeat:
+                    self.log.error('Error trying to add this flow, '
+                                   'removing it and trying again',
+                                   flow=flow, logical_flow=logical_flow,
+                                   error=grpc_e)
+                    try:
+                        self.stub.FlowRemove(flow)
+                    except Exception as e:
+                        self.log.info('Problem removing flow that failed to '
+                                       'be added (very likely situation)',
+                                      flow=flow, error=e)
+                    return self.add_flow_to_device(flow, logical_flow,
+                                                   repeat=False)
+                else:
+                    self.log.error('Error trying to add this flow twice',
+                                   flow=flow, logical_flow=logical_flow,
+                                   error=grpc_e)
+        else:
+            # New flow, register it
+            self.register_flow(logical_flow, flow)
 
     def register_flow(self, logical_flow, device_flow):
         self.log.debug('registering flow in device',
