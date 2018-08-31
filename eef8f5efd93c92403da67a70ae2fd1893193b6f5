@@ -22,6 +22,30 @@
       "revId": "eef8f5efd93c92403da67a70ae2fd1893193b6f5",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "928ccfa9_95278f34",
+        "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 521,
+      "author": {
+        "id": 1000436
+      },
+      "writtenOn": "2018-08-31T17:40:47Z",
+      "side": 1,
+      "message": "how about omci-flows-pushed ?",
+      "parentUuid": "320e99f6_388889cf",
+      "range": {
+        "startLine": 521,
+        "startChar": 37,
+        "endLine": 521,
+        "endChar": 45
+      },
+      "revId": "eef8f5efd93c92403da67a70ae2fd1893193b6f5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
