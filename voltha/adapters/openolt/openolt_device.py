@@ -158,13 +158,13 @@ class OpenoltDevice(object):
             # Start indications thread
             self.indications_thread_handle = threading.Thread(
                 target=self.indications_thread)
-            # Old getter/setter API for daemon; use it directly as a 
+            # Old getter/setter API for daemon; use it directly as a
             # property instead. The Jinkins error will happon on the reason of
-            # Exception in thread Thread-1 (most likely raised # during 
+            # Exception in thread Thread-1 (most likely raised # during
             # interpreter shutdown)
             self.indications_thread_handle.setDaemon(True)
             self.indications_thread_handle.start()
-        except Exception as e: 
+        except Exception as e:
             self.log.exception('do_state_init failed', e=e)
         '''
         # FIXME - Move to oper_up state without connecting to OLT?
@@ -1066,4 +1066,11 @@ class OpenoltDevice(object):
             self.log.error('something went wrong with the reboot', error=e)
         else:
             self.log.info('device rebooted')
+
+    def simulate_alarm(self, alarm):
+        if getattr(self, "alarm_mgr", None) is None:
+            self.go_state_connected()
+
+        self.alarm_mgr.simulate_alarm(alarm)
+
 
