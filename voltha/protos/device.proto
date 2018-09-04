@@ -306,3 +306,7 @@ message Device {
 message Devices {
     repeated Device items = 1;
 }
+
+message SimulateAlarmRequest {
+    string indicator = 1;
+}
