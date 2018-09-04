@@ -101,6 +101,39 @@ class OpenOltAlarmMgr(object):
             self.log.error('sorting of alarm went wrong', error=e,
                            alarm=alarm_ind)
 
+    def simulate_alarm(self, alarm):
+        if alarm.indicator == "los":
+            OltLosAlarm(self.alarms, intf_id=alarm.intf_id, port_type_name=alarm.port_type_name).raise_alarm()
+        elif alarm.indicator == "dying_gasp":
+            OnuDyingGaspAlarm(self.alarms, alarm.intf_id, alarm.onu_device_id).raise_alarm()
+        elif alarm.indicator == "onu_los":
+            OnuLosAlarm(self.alarms, onu_id=alarm.onu_device_id, intf_id=alarm.intf_id).raise_alarm()
+        elif alarm.indicator == "onu_lopc_miss":
+            OnuLopcMissAlarm(self.alarms, onu_id=alarm.onu_device_id, intf_id=alarm.intf_id).raise_alarm()
+        elif alarm.indicator == "onu_lopc_mic":
+            OnuLopcMicErrorAlarm(self.alarms, onu_id=alarm.onu_device_id, intf_id=alarm.intf_id).raise_alarm()
+        elif alarm.indicator == "onu_lob":
+            OnuLobAlarm(self.alarms, onu_id=alarm.onu_device_id, intf_id=alarm.intf_id).raise_alarm()
+        elif alarm.indicator == "onu_startup":
+            OnuStartupAlarm(self.alarms, intf_id=alarm.intf_id, onu_id=alarm.onu_device_id).raise_alarm()
+        elif alarm.indicator == "onu_signal_degrade":
+            OnuSignalDegradeAlarm(self.alarms, intf_id=alarm.intf_id, onu_id=alarm.onu_device_id,
+                                  inverse_bit_error_rate=alarm.inverse_bit_error_rate).raise_alarm()
+        elif alarm.indicator == "onu_drift_of_window":
+            OnuWindowDriftAlarm(self.alarms, intf_id=alarm.intf_id,
+                                onu_id=alarm.onu_device_id,
+                                drift=alarm.drift,
+                                new_eqd=alarm.new_eqd).raise_alarm()
+        elif alarm.indicator == "onu_signal_fail":
+            OnuSignalFailAlarm(self.alarms, intf_id=alarm.intf_id,
+                               onu_id=alarm.onu_device_id,
+                               inverse_bit_error_rate=alarm.inverse_bit_error_rate).raise_alarm()
+        elif alarm.indicator == "onu_activation":
+            OnuActivationFailAlarm(self.alarms, intf_id=alarm.intf_id,
+                                   onu_id=alarm.onu_device_id).raise_alarm()
+        else:
+            self.log.error("Unknown alarm type")
+
     def los_indication(self, los_ind):
 
         try:

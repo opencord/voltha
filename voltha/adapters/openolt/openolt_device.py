@@ -1067,3 +1067,12 @@ class OpenoltDevice(object):
         else:
             self.log.info('device rebooted')
 
+    def simulate_alarm(self, alarm):
+        # There's no self.alarm_mgr until connected
+        alarm_mgr = OpenOltAlarmMgr(self.log, self.adapter_agent,
+                                         self.device_id,
+                                         self.logical_device_id)
+        alarm_mgr.simulate_alarm(alarm)
+#        self.alarm_mgr.simulate_alarm(alarm)
+
+
