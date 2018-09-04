@@ -379,6 +379,14 @@ class DeviceAgent(object):
         if not dry_run:
             yield self.adapter_agent.delete_device(device)
 
+    def simulate_alarm(self, device, alarm):
+        try:
+            self.log.debug('simulate_alarm', alarm=alarm)
+            return self.adapter_agent.simulate_alarm(device, alarm)
+        except Exception as e:
+            self.log.exception(e.message)
+            return OperationResp(code=OperationResp.OPERATION_FAILURE)
+
     admin_state_fsm = {
 
         # Missing entries yield no-op
