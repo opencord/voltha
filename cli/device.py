@@ -511,6 +511,36 @@ individual metrics.
         self.poutput('{}'.format(response))
 
     @options([
+        make_option('-i', '--indicator', action='store', dest='indicator',
+                    help="Indicator"),
+    ])
+    def do_simulate_alarm(self, line, opts):
+        device = self.get_device(depth=-1)
+        device_id = device.id
+        try:
+            if device_id and opts.indicator:
+                kw = dict(id=device_id)
+                kw['indicator'] = opts.indicator
+            else:
+                self.poutput('Indicator name is needed')
+                raise Exception('Indicator name is needed')
+        except Exception as e:
+            self.poutput('Error simulate alarm {}. Error:{}'.format(device_id, e))
+            return
+        response = None
+        try:
+            simulate_alarm = voltha_pb2.SimulateAlarmRequest(**kw)
+            stub = self.get_stub()
+            response = stub.SimulateAlarm(simulate_alarm)
+        except Exception as e:
+            self.poutput('Error simulate alarm {}. Error:{}'.format(kw['id'], e))
+            return
+        name = enum2name(common_pb2.OperationResp,
+                        'OperationReturnCode', response.code)
+        self.poutput('response: {}'.format(name))
+        self.poutput('{}'.format(response))
+
+    @options([
         make_option('-n', '--name', action='store', dest='name',
                     help="Image name"),
         make_option('-s', '--save', action='store', dest='save_config',
