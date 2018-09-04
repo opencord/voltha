@@ -306,3 +306,12 @@ message Device {
 message Devices {
     repeated Device items = 1;
 }
+
+message SimulateAlarmRequest {
+    // Device Identifier
+    string id = 1;
+    string indicator = 2;
+    string intf_id = 3;
+    string port_type_name = 4;
+    string onu_device_id = 5;
+}
