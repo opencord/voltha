@@ -101,6 +101,14 @@ class OpenOltAlarmMgr(object):
             self.log.error('sorting of alarm went wrong', error=e,
                            alarm=alarm_ind)
 
+    def simulate_alarm(self, alarm):
+        if alarm.indicator == "los":
+            OltLosAlarm(self.alarms, intf_id=alarm.intf_id, port_type_name=alarm.port_type_name).raise_alarm()
+        elif alarm.indicator == "dying_gasp":
+            OnuDyingGaspAlarm(self.alarms, intf_id=alarm.intf_id, onu_device_id=alarm.onu_device_id).raise_alarm()
+        else:
+            self.log.error("Unknown alarm type")
+
     def los_indication(self, los_ind):
 
         try:

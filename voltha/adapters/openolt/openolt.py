@@ -26,6 +26,7 @@ from voltha.protos import third_party
 from voltha.protos.adapter_pb2 import Adapter
 from voltha.protos.adapter_pb2 import AdapterConfig
 from voltha.protos.common_pb2 import LogLevel
+from voltha.protos.common_pb2 import OperationResp
 from voltha.protos.device_pb2 import DeviceType, DeviceTypes
 from voltha.registry import registry
 
@@ -352,3 +353,21 @@ class OpenoltAdapter(object):
             log.error('Could not find matching handler',
                       looking_for_device_id =parent_device_id,
                       available_handlers=self.devices.keys())
+
+    def simulate_alarm(self, device, request):
+        log.info('simulate_alarm', device=device, request=request)
+
+        if device.id in self.devices:
+            handler = self.devices[device.id]
+        else:
+            # NOTE: This is almost certainly not right. In particular, it fails after restarting vcore
+            log.info("calling reconcile")
+            self.adopt_device(device)
+            handler = self.devices[device.id]
+
+        log.info('keys %s, other %s' % (self.devices.keys(), self.logical_device_id_to_root_device_id))
+
+        #handler = self.devices[device.id]
+        handler.simulate_alarm(request)
+
+        return OperationResp(code=OperationResp.OPERATION_SUCCESS)
