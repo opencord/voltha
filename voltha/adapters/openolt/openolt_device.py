@@ -1067,3 +1067,15 @@ class OpenoltDevice(object):
         else:
             self.log.info('device rebooted')
 
+    def simulate_alarm(self, alarm):
+        if getattr(self, "alarm_mgr", None):
+            # Use the existing alarm manager if there is one.
+            alarm_mgr = self.alarm_mgr
+        else:
+            # There's no self.alarm_mgr until connected. In that case, create a throwaway alarm manager.
+            alarm_mgr = OpenOltAlarmMgr(self.log, self.adapter_agent,
+                                             self.device_id,
+                                             self.logical_device_id)
+        alarm_mgr.simulate_alarm(alarm)
+
+
