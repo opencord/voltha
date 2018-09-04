@@ -352,3 +352,7 @@ class OpenoltAdapter(object):
             log.error('Could not find matching handler',
                       looking_for_device_id =parent_device_id,
                       available_handlers=self.devices.keys())
+
+    def simulate_alarm(self, device, request):
+        log.info('simulate_alarm', device=device, request=request)
+        return OperationResp(code=OperationResp.OPERATION_SUCCESS)
