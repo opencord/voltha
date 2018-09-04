@@ -1078,3 +1078,6 @@ class OpenoltDevice(object):
                            error=e)
         else:
             self.log.info('statistics requested')
+
+    def simulate_alarm(self, alarm):
+        self.alarm_mgr.simulate_alarm(alarm)
