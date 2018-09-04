@@ -1373,3 +1373,32 @@ class LocalHandler(VolthaLocalServiceServicer):
                 'OMCI ALARM for Device \'{}\' not found'.format(request.id))
             context.set_code(StatusCode.NOT_FOUND)
             return AlarmDeviceData()
+
+    @twisted_async
+    def SimulateAlarm(self, request, context):
+        log.debug('grpc-request', request=request)
+
+        if '/' in request.id:
+            context.set_details(
+                'Malformed device id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            response = OperationResp(code=OperationResp.OPERATION_FAILURE)
+            return response
+
+        try:
+            path = '/devices/{}'.format(request.id)
+            device = self.root.get(path)
+            agent = self.core.get_device_agent(device.id)
+            response = agent.simulate_alarm(device, request)
+            return response
+
+        except KeyError:
+            context.set_details(
+                'Device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            response = OperationResp(code=OperationResp.OPERATION_FAILURE)
+            return response
+        except Exception as e:
+            log.exception(e.message)
+            response = OperationResp(code=OperationResp.OPERATION_FAILURE)
+            return response

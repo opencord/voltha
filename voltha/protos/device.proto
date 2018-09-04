@@ -306,3 +306,21 @@ message Device {
 message Devices {
     repeated Device items = 1;
 }
+
+message SimulateAlarmRequest {
+    enum OperationType {
+        RAISE = 0;
+        CLEAR = 1;
+    }
+    // Device Identifier
+    string id = 1;
+    string indicator = 2;
+    string intf_id = 3;
+    string port_type_name = 4;
+    string onu_device_id = 5;
+    int32 inverse_bit_error_rate = 6;
+    int32 drift = 7;
+    int32 new_eqd = 8;
+    string onu_serial_number = 9;
+    OperationType operation = 10;
+}

@@ -271,6 +271,9 @@ class AdapterAgent(object):
     def remove_multicast_distribution_set(self, device, data):
         return self.adapter.remove_multicast_distribution_set(device, data)
 
+    def simulate_alarm(self, device, request):
+        return self.adapter.simulate_alarm(device, request)
+
     # ~~~~~~~~~~~~~~~~~~~ Adapter-Facing Service ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def get_device(self, device_id):
