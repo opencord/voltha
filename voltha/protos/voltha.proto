@@ -972,6 +972,14 @@ service VolthaGlobalService {
             get: "/api/v1/openomci/{id}/alarm"
         };
     }
+
+    // Simulate an Alarm
+    rpc SimulateAlarm(SimulateAlarmRequest) returns(OperationResp) {
+        option (google.api.http) = {
+            post: "/api/v1/devices/{id}/simulate_larm"
+            body: "*"
+        };
+    }
 }
 
 /*
@@ -1712,6 +1720,14 @@ service VolthaLocalService {
     rpc GetAlarmDeviceData(ID) returns(alarm.AlarmDeviceData) {
         option (google.api.http) = {
             get: "/api/v1/openomci/{id}/alarm"
+        };
+    }
+
+    // Simulate an Alarm
+    rpc SimulateAlarm(SimulateAlarmRequest) returns(OperationResp) {
+        option (google.api.http) = {
+            post: "/api/v1/devices/{id}/simulate_alarm"
+            body: "*"
         };
     }
 }

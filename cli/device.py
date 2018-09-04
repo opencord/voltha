@@ -511,6 +511,57 @@ individual metrics.
         self.poutput('{}'.format(response))
 
     @options([
+        make_option('-i', '--intf_id', action='store', dest='intf_id',
+                    help="Interface ID", default=""),
+        make_option('-o', '--onu_device_id', action='store', dest='onu_device_id',
+                    help="Port type name", default=""),
+        make_option('-p', '--port_type_name', action='store', dest='port_type_name',
+                    help="Port type name", default=""),
+        make_option('-b', '--inverse_bit_error_rate', action='store', dest='inverse_bit_error_rate',
+                    help="Inverse bit error rate", default=0),
+        make_option('-d', '--drift', action='store', dest='drift',
+                    help="Drift", default=0),
+        make_option('-e', '--new_eqd', action='store', dest='new_eqd',
+                    help="New EQD", default=0),
+    ])
+    def do_simulate_alarm(self, line, opts):
+        device = self.get_device(depth=-1)
+        device_id = device.id
+        try:
+            # TODO: check for required arguments
+            if device_id: # and opts.indicator:
+                kw = dict(id=device_id)
+                #kw['indicator'] = opts.indicator
+
+                kw["indicator"] = line
+                kw["intf_id"] = opts.intf_id
+                kw["onu_device_id"] = opts.onu_device_id
+                kw["port_type_name"] = opts.port_type_name
+                kw["inverse_bit_error_rate"] = opts.inverse_bit_error_rate
+                kw["drift"] = opts.drift
+                kw["new_eqd"] = opts.new_eqd
+            else:
+                pass
+                #self.poutput('Indicator name is needed')
+                #raise Exception('Indicator name is needed')
+        except Exception as e:
+            self.poutput('Error simulate alarm {}. Error:{}'.format(device_id, e))
+            return
+        response = None
+        self.poutput("%s" % kw)
+        try:
+            simulate_alarm = voltha_pb2.SimulateAlarmRequest(**kw)
+            stub = self.get_stub()
+            response = stub.SimulateAlarm(simulate_alarm)
+        except Exception as e:
+            self.poutput('Error simulate alarm {}. Error:{}'.format(kw['id'], e))
+            return
+        name = enum2name(common_pb2.OperationResp,
+                        'OperationReturnCode', response.code)
+        self.poutput('response: {}'.format(name))
+        self.poutput('{}'.format(response))
+
+    @options([
         make_option('-n', '--name', action='store', dest='name',
                     help="Image name"),
         make_option('-s', '--save', action='store', dest='save_config',
