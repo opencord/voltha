@@ -22,6 +22,30 @@
       "revId": "11ae458d47a570859eae541f9c03bbee115e98dd",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "15210a1c_ac778e62",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 63,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-09-05T16:22:38Z",
+      "side": 1,
+      "message": "you are right. I somehow missed cleaning this up. Fixed now.",
+      "parentUuid": "453c37a5_33cb970d",
+      "range": {
+        "startLine": 58,
+        "startChar": 0,
+        "endLine": 63,
+        "endChar": 65
+      },
+      "revId": "11ae458d47a570859eae541f9c03bbee115e98dd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
