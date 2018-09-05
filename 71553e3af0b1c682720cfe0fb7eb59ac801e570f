@@ -87,6 +87,24 @@
       "revId": "71553e3af0b1c682720cfe0fb7eb59ac801e570f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "25942a5d_0cc82dd9",
+        "filename": "voltha/adapters/openolt/openolt_statistics.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 282,
+      "author": {
+        "id": 1000453
+      },
+      "writtenOn": "2018-09-05T19:29:49Z",
+      "side": 1,
+      "message": "We could extend the pon_pm_names to address this, but I was also trying to avoid having to update the proto names for the tx and rx values on the driver side.   Right now the name is different for the same values.    I expect that in some future openolt driver the naming could be brought in line with the extension naming.",
+      "parentUuid": "133c682c_5b9d1d93",
+      "revId": "71553e3af0b1c682720cfe0fb7eb59ac801e570f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
