@@ -25,6 +25,7 @@ from twisted.internet import reactor, defer
 from voltha.extensions.kpi.olt.olt_pm_metrics import OltPmMetrics
 from voltha.protos.device_pb2 import PmConfig, PmConfigs, PmGroupConfig
 
+
 class OpenOltStatisticsMgr(object):
     def __init__(self, openolt_device, log, **kargs):
 
@@ -89,7 +90,8 @@ class OpenOltStatisticsMgr(object):
         #
         #
         # #FIXME : only the first uplink is a logical port
-        # if port_stats.intf_id == 128:
+        # if platform.intf_id_to_port_type_name(port_stats.intf_id) ==
+        #   Port.ETHERNET_NNI:
         #     # ONOS update
         #     self.update_logical_port_stats(port_stats)
         # # FIXME: Discard other uplinks, they do not exist as an object
