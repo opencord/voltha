@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "129c2ca5_73c2a998",
+        "filename": "voltha/adapters/openolt/openolt_statistics.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 240,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-09-05T16:44:03Z",
+      "side": 1,
+      "message": "It looks like intf_id is duplicated as a metric here.  Also, for the port_no metric that follows, does it need to be part of the shared KPI extensions for NNI port?\n\nAlso, how does it differ from intf_id?   I\u0027m guessing intf_id is the physical port number and port_no perhaps the corresponding logical port number on the parent logical device.",
+      "revId": "71553e3af0b1c682720cfe0fb7eb59ac801e570f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3717fef2_9fe52bd3",
+        "filename": "voltha/adapters/openolt/openolt_statistics.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 282,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-09-05T16:44:03Z",
+      "side": 1,
+      "message": "Do we need to add \u0027port_no\u0027 as a context variable to the shared KPI extensions library for PON?  Also, how does it differ from either intf_id or pon_ind?",
+      "revId": "71553e3af0b1c682720cfe0fb7eb59ac801e570f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
