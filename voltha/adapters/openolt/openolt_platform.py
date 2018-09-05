@@ -81,6 +81,17 @@ Logical (OF) UNI port number
     pon id = 4 bits = 16 PON ports
     onu id = 7 bits = 128 ONUs per PON port
 
+Logical (OF) NNI port number
+
+    OpenFlow port number corresponding to PON UNI
+
+     16                             0
+    +--+----------------------------+
+    |1 |                    intf_id |
+    +--+----------------------------+
+
+    No overlap with UNI port number space
+
 
 PON OLT (OF) port number
 
@@ -130,8 +141,7 @@ def intf_id_from_pon_port_no(port_no):
 
 def intf_id_to_port_no(intf_id, intf_type):
     if intf_type is Port.ETHERNET_NNI:
-        # FIXME - Remove hardcoded '128'
-        return intf_id + 128
+        return (0x1 << 16) | intf_id
     elif intf_type is Port.PON_OLT:
         return 0x2 << 28 | intf_id
     else:
@@ -139,22 +149,16 @@ def intf_id_to_port_no(intf_id, intf_type):
 
 
 def intf_id_from_nni_port_num(port_num):
-    return port_num - 128
+    return port_num & 0xFFFF
 
-def intf_id_to_intf_type(intf_id):
-
-    if (2 << 28 ^ intf_id) < 16:
-        return Port.PON_OLT
-    elif  128 <= intf_id <= 132:
-        return Port.ETHERNET_NNI
-    else:
-        raise Exception('Invalid intf_id value')
 
 def intf_id_to_port_type_name(intf_id):
-    try:
-        return  port_type_name_by_port_index(intf_id_to_intf_type(intf_id))
-    except Exception as err:
-        raise Exception(err)
+    if (2 << 28 ^ intf_id) < 16:
+        return Port.PON_OLT
+    elif intf_id & (0x1 << 16) == (0x1 << 16):
+        return Port.ETHERNET_NNI
+    else:
+        return None
 
 def port_type_name_by_port_index(port_index):
     try:
@@ -163,21 +167,20 @@ def port_type_name_by_port_index(port_index):
         raise Exception(err)
 
 def extract_access_from_flow(in_port, out_port):
-    if is_upstream(in_port, out_port):
+    if is_upstream(out_port):
         return (intf_id_from_uni_port_num(in_port), onu_id_from_port_num(
             in_port))
     else:
         return (intf_id_from_uni_port_num(out_port), onu_id_from_port_num(
             out_port))
 
-def is_upstream(in_port, out_port):
-    #FIXME
-    if out_port in [128, 129, 130, 131, 0xfffd, 0xfffffffd]:
+def is_upstream(out_port):
+
+    if out_port in [0xfffd, 0xfffffffd]:
+        # To Controller
         return True
-    # if in_port not in [128, 129, 130, 131]:
-    #     return True
+    if (out_port & (0x1 << 16)) == (0x1 << 16):
+        # NNI interface
+        return True
 
     return False
-
-def is_downstream(in_port, out_port):
-    return not is_upstream(in_port, out_port)

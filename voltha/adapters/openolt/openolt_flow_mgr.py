@@ -20,6 +20,7 @@ import grpc
 from voltha.protos.openflow_13_pb2 import OFPXMC_OPENFLOW_BASIC, \
     ofp_flow_stats, ofp_match, OFPMT_OXM, Flows, FlowGroups, \
     OFPXMT_OFB_IN_PORT, OFPXMT_OFB_VLAN_VID
+from voltha.protos.device_pb2 import Port
 import voltha.core.flow_decomposer as fd
 import openolt_platform as platform
 from voltha.adapters.openolt.protos import openolt_pb2
@@ -326,7 +327,8 @@ class OpenOltFlowMgr(object):
         downstream_logical_flow = copy.deepcopy(logical_flow)
         for oxm_field in downstream_logical_flow.match.oxm_fields:
             if oxm_field.ofb_field.type == OFPXMT_OFB_IN_PORT:
-                oxm_field.ofb_field.port = 128
+                oxm_field.ofb_field.port = \
+                    platform.intf_id_to_port_no(0, Port.ETHERNET_NNI)
 
         classifier['udp_src'] = 67
         classifier['udp_dst'] = 68
@@ -517,8 +519,10 @@ class OpenOltFlowMgr(object):
         for flow in flows:
             in_port = fd.get_in_port(flow)
             out_port = fd.get_out_port(flow)
-            #FIXME
-            if in_port == port and out_port == 128:
+
+            if in_port == port and \
+                platform.intf_id_to_port_type_name(out_port) == Port.ETHERNET_NNI:
+
                 fields = fd.get_ofb_fields(flow)
                 self.log.debug('subscriber flow found', fields=fields)
                 for field in fields:

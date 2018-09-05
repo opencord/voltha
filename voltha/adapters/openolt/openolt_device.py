@@ -834,7 +834,7 @@ class OpenoltDevice(object):
 
         ofp = ofp_port(
             port_no=port_no,
-            hw_addr=mac_str_to_tuple('00:00:00:00:00:%02x' % port_no),
+            hw_addr=mac_str_to_tuple(self._get_mac_form_port_no(port_no)),
             name=label, config=0, state=of_oper_state, curr=cap,
             advertised=cap, peer=cap, curr_speed=curr_speed,
             max_speed=max_speed)
@@ -848,6 +848,13 @@ class OpenoltDevice(object):
 
         self.adapter_agent.add_logical_port(self.logical_device_id,
                                             logical_port)
+
+    def _get_mac_form_port_no(self, port_no):
+        mac = ''
+        for i in range(4):
+            mac = ':%02x' % ((port_no >> (i * 8)) & 0xff) + mac
+        return '00:00' + mac
+
 
     def add_port(self, intf_id, port_type, oper_status):
         port_no = platform.intf_id_to_port_no(intf_id, port_type)
