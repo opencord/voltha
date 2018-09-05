@@ -25,6 +25,40 @@
     },
     {
       "key": {
+        "uuid": "9b413a82_97936324",
+        "filename": "voltha/adapters/openolt/openolt_statistics.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 254,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-09-05T15:39:55Z",
+      "side": 1,
+      "message": "If I am reading some of the logic correctly, it looks like you are not using the KPI version for the NNI stats here but the one above.  The main difference is the one above duplicates the intf_id as a metric and adds the port_no as a metric.\n\nIf so, do we need to add the \u0027port_no\u0027 to the shared KPI metrics (or context variable) for an NNI Port?\n\nFor the intf_id as a metric, I think that having it as context specific (as it is in both) is enough.",
+      "revId": "5560ca4a91f226126a4f1076845ddab0b3b15524",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "c125c099_821b77a5",
+        "filename": "voltha/adapters/openolt/openolt_statistics.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 298,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-09-05T15:39:55Z",
+      "side": 1,
+      "message": "Same comment here as above on the port_no value (used above as a metric).  If there is a requirement (SEBA or operator) for this, then we need it in the shared KPI definitions, otherwise we defeat the purpose of sharing across OLT device adapters.",
+      "revId": "5560ca4a91f226126a4f1076845ddab0b3b15524",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "dd83081b_8772249a",
         "filename": "voltha/adapters/openolt/openolt_statistics.py",
         "patchSetId": 1
