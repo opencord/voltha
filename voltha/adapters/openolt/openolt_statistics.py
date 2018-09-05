@@ -237,7 +237,6 @@ class OpenOltStatisticsMgr(object):
 
             ('admin_state', PmConfig.STATE),
             ('oper_status', PmConfig.STATE),
-            ('intf_id', PmConfig.STATE),
             ('port_no', PmConfig.GAUGE),
             ('rx_bytes', PmConfig.COUNTER),
             ('rx_packets', PmConfig.COUNTER),
@@ -277,7 +276,6 @@ class OpenOltStatisticsMgr(object):
 
         # pon_names uses same structure as nmi_names with the addition of pon_id to context
         pon_pm_names = {
-            ('intf_id', PmConfig.CONTEXT),  # Physical device port number (PON)
             ('pon_id', PmConfig.CONTEXT),  # PON ID (0..n)
             ('port_no', PmConfig.CONTEXT),
 
