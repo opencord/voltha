@@ -15,6 +15,7 @@
 #
 from voltha.protos.events_pb2 import KpiEvent, MetricValuePairs
 from voltha.protos.events_pb2 import KpiEventType
+# from voltha.protos.device_pb2 import Port
 import voltha.adapters.openolt.openolt_platform as platform
 
 class OpenOltStatisticsMgr(object):
@@ -30,7 +31,8 @@ class OpenOltStatisticsMgr(object):
         #
         #
         # #FIXME : only the first uplink is a logical port
-        # if port_stats.intf_id == 128:
+        # if platform.intf_id_to_port_type_name(port_stats.intf_id) ==
+        #   Port.ETHERNET_NNI:
         #     # ONOS update
         #     self.update_logical_port_stats(port_stats)
         # # FIXME: Discard other uplinks, they do not exist as an object
