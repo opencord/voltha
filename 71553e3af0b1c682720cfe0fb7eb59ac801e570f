@@ -69,6 +69,24 @@
       "revId": "71553e3af0b1c682720cfe0fb7eb59ac801e570f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "133c682c_5b9d1d93",
+        "filename": "voltha/adapters/openolt/openolt_statistics.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 282,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-09-05T18:49:24Z",
+      "side": 1,
+      "message": "Could you adopt the pon_pm_names_from_kpi_extension and just set the value of the pon_id to the OpenOlt port number (0..15) and set the intf_id (physical device port number) to the (0x2 \u003c\u003c pon_id)?\n\nAlso, we could add the additional OpenOLT PON metrics to the general/shared KPI PON metrics.\n\nNone of the PON, ONU, or GEM Port metrics are set in stone, they are just some initial ones that I had access to on the Adtran OLT and thought would be useful for debugging purposes. If the OpenOLT/EdgeCore has a few others that would be useful, I would be fine with including them.\n\nFor all the metrics values, if a specific OLT does not support collection of that value, you just do not implement a property and it will automatically be excluded from the Kafka message.  I thought that was better than reporting \u00270\u0027 or None since that could be misleading.",
+      "parentUuid": "d0671f4a_25ca6fcb",
+      "revId": "71553e3af0b1c682720cfe0fb7eb59ac801e570f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
