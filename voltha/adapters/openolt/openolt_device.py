@@ -1078,3 +1078,12 @@ class OpenoltDevice(object):
         else:
             self.log.info('device rebooted')
 
+    def trigger_statistics_collection(self):
+        try:
+            self.stub.CollectStatistics(openolt_pb2.Empty())
+        except Exception as e:
+            self.log.error('Error while triggering statistics collection',
+                           error=e)
+        else:
+            self.log.info('statistics requested')
+

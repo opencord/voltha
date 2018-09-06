@@ -123,6 +123,13 @@ service Openolt {
         };
     }
 
+    rpc CollectStatistics(Empty) returns (Empty) {
+        option (google.api.http) = {
+            post: "/v1/CollectStatistics"
+            body: "*"
+        };
+    }
+
     rpc EnableIndication(Empty) returns (stream Indication) {}
 }
 
