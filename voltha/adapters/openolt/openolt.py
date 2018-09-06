@@ -352,3 +352,14 @@ class OpenoltAdapter(object):
             log.error('Could not find matching handler',
                       looking_for_device_id =parent_device_id,
                       available_handlers=self.devices.keys())
+
+    # This is currently not part of the Iadapter interface
+    def collect_stats(self, device_id):
+        log.info('collect_stats', device_id=device_id)
+        handler= self.devices[device_id]
+        if handler is not None:
+            handler.trigger_statistics_collection()
+        else:
+            log.error('Could not find matching handler',
+                      looking_for_device_id=device_id,
+                      available_handlers=self.devices.keys())
