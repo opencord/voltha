@@ -181,6 +181,15 @@ class OpenoltDevice(object):
         device = self.adapter_agent.get_device(self.device_id)
 
         self.stub = openolt_pb2_grpc.OpenoltStub(self.channel)
+
+        device_info = self.stub.GetDeviceInfo(openolt_pb2.Empty())
+        self.log.info('Device connected', device_info=device_info)
+
+        device.vendor = device_info.vendor
+        device.model = device_info.model
+        device.hardware_version = device_info.hardware_version
+        device.firmware_version = device_info.firmware_version
+
         self.flow_mgr = OpenOltFlowMgr(self.log, self.stub, self.device_id,
                                        self.logical_device_id)
         self.alarm_mgr = OpenOltAlarmMgr(self.log, self.adapter_agent,
@@ -188,6 +197,8 @@ class OpenoltDevice(object):
                                          self.logical_device_id)
         self.stats_mgr = OpenOltStatisticsMgr(self, self.log)
         self.bw_mgr = OpenOltBW(self.log, self.proxy)
+
+        # TODO: use content of device_info for Resource manager (VOL-948)
 
         # TODO: check for uptime and reboot if too long (VOL-1192)
 

@@ -109,6 +109,13 @@ service Openolt {
         };
     }
 
+    rpc GetDeviceInfo(Empty) returns (DeviceInfo) {
+        option (google.api.http) = {
+            post: "/v1/GetDeviceInfo"
+            body: "*"
+        };
+    }
+
     rpc Reboot(Empty) returns (Empty) {
          option (google.api.http) = {
             post: "/v1/Reboot"
@@ -221,6 +228,21 @@ message OnuPacket {
 message UplinkPacket {
     fixed32 intf_id = 1;
     bytes pkt = 2;
+}
+
+message DeviceInfo {
+    string vendor = 1;
+    string model = 2;
+    string hardware_version = 3;
+    string firmware_version = 4;
+    string technology = 5;
+    fixed32 onu_id_start = 6;
+    fixed32 onu_id_end = 7;
+    fixed32 alloc_id_start = 8;
+    fixed32 alloc_id_end = 9;
+    fixed32 gemport_id_start = 10;
+    fixed32 gemport_id_end = 11;
+    fixed32 pon_ports = 12;
 }
 
 message Classifier {
