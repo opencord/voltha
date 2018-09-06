@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "64144a72_f0dc48a8",
+        "filename": "voltha/adapters/openolt/openolt.py",
+        "patchSetId": 11
+      },
+      "lineNbr": 361,
+      "author": {
+        "id": 1000016
+      },
+      "writtenOn": "2018-09-06T21:22:25Z",
+      "side": 1,
+      "message": "I could use advice on this part in particular. When I want to send alarms, but the OLT doesn\u0027t physically exist, self.devices won\u0027t be populated. So I call adopt_device() on it.\n\nIf I restart vcore, this won\u0027t work a second time on the same OLT, since its identifier is already in use, even though self.devices is not populated with the device.",
+      "range": {
+        "startLine": 361,
+        "startChar": 12,
+        "endLine": 361,
+        "endChar": 26
+      },
+      "revId": "9ceec33e30fa5d8753fa2a476edc30a0b2fda992",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
