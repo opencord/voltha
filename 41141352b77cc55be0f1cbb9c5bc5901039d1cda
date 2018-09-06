@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "4c9e57c4_6513cf32",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 6
+      },
+      "lineNbr": 21,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-09-06T15:12:22Z",
+      "side": 0,
+      "message": "We need that",
+      "range": {
+        "startLine": 21,
+        "startChar": 20,
+        "endLine": 21,
+        "endChar": 29
+      },
+      "revId": "41141352b77cc55be0f1cbb9c5bc5901039d1cda",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "8c05eeea_4aec685f",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 6
+      },
+      "lineNbr": 55,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-09-06T15:12:22Z",
+      "side": 0,
+      "message": "We need that",
+      "range": {
+        "startLine": 55,
+        "startChar": 6,
+        "endLine": 55,
+        "endChar": 44
+      },
+      "revId": "41141352b77cc55be0f1cbb9c5bc5901039d1cda",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
