@@ -45,6 +45,30 @@
       "revId": "41141352b77cc55be0f1cbb9c5bc5901039d1cda",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f1e27985_6d2a13fe",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 6
+      },
+      "lineNbr": 55,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-09-06T17:34:59Z",
+      "side": 0,
+      "message": "Since I could not figure out where fd_object is being used, I assumed it was not needed. For my own understanding, where/how is this used?",
+      "parentUuid": "8c05eeea_4aec685f",
+      "range": {
+        "startLine": 55,
+        "startChar": 6,
+        "endLine": 55,
+        "endChar": 44
+      },
+      "revId": "41141352b77cc55be0f1cbb9c5bc5901039d1cda",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
