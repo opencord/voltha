@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a19ea8fb_52e3c342",
+        "filename": "cli/device.py",
+        "patchSetId": 8
+      },
+      "lineNbr": 517,
+      "author": {
+        "id": 1000417
+      },
+      "writtenOn": "2018-09-06T07:16:25Z",
+      "side": 1,
+      "message": "It would be a name for command description to match this option. ex: ONU device ID.",
+      "range": {
+        "startLine": 517,
+        "startChar": 26,
+        "endLine": 517,
+        "endChar": 40
+      },
+      "revId": "0029d720eaafe857dd96e1e9ab0bbfe705b45806",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "6426160c_607f66de",
+        "filename": "cli/device.py",
+        "patchSetId": 8
+      },
+      "lineNbr": 551,
+      "author": {
+        "id": 1000417
+      },
+      "writtenOn": "2018-09-06T07:16:25Z",
+      "side": 1,
+      "message": "Is it debug operation ? Or useless behavior ?",
+      "range": {
+        "startLine": 551,
+        "startChar": 8,
+        "endLine": 551,
+        "endChar": 30
+      },
+      "revId": "0029d720eaafe857dd96e1e9ab0bbfe705b45806",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1fb0c126_002003f2",
+        "filename": "voltha/adapters/openolt/openolt_alarms.py",
+        "patchSetId": 8
+      },
+      "lineNbr": 131,
+      "author": {
+        "id": 1000417
+      },
+      "writtenOn": "2018-09-06T07:16:25Z",
+      "side": 1,
+      "message": "Has those conditions included all alarm definition ? refer: https://jira.opencord.org/browse/VOL-192 or alarm events and PM User Stories.",
+      "range": {
+        "startLine": 105,
+        "startChar": 1,
+        "endLine": 131,
+        "endChar": 49
+      },
+      "revId": "0029d720eaafe857dd96e1e9ab0bbfe705b45806",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
