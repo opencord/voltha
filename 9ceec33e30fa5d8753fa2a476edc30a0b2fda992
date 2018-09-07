@@ -105,6 +105,24 @@
       "revId": "9ceec33e30fa5d8753fa2a476edc30a0b2fda992",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "446fd137_6e161bdb",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 11
+      },
+      "lineNbr": 1076,
+      "author": {
+        "id": 1000016
+      },
+      "writtenOn": "2018-09-07T20:26:28Z",
+      "side": 1,
+      "message": "Okay, I\u0027ve revised this code and it seems to be working through go_state_connected(). I\u0027m still using a test of `self.alarm_mgr` to determine whether or not to call go_state_connected(). Nicolas, are you suggesting I check to see if the current state is `state_init` instead? Where do I find the current state?",
+      "parentUuid": "3829ff9c_68d45897",
+      "revId": "9ceec33e30fa5d8753fa2a476edc30a0b2fda992",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
