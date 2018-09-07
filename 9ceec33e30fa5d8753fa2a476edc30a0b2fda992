@@ -87,6 +87,24 @@
       "revId": "9ceec33e30fa5d8753fa2a476edc30a0b2fda992",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3829ff9c_68d45897",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 11
+      },
+      "lineNbr": 1076,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-09-07T17:08:42Z",
+      "side": 1,
+      "message": "Checking for the state and if in init state self.go_state_connected() makes sense\n\nThat would cover both the case of the real device exists and you add alarms and the device does not really exist and you can just simulate alarms",
+      "parentUuid": "8aba1c81_9933bdf4",
+      "revId": "9ceec33e30fa5d8753fa2a476edc30a0b2fda992",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
