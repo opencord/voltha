@@ -84,6 +84,7 @@ class PerformanceIntervals(object):
     DEFAULT_TICK_DELAY = 15          # Seconds between checks for collection tick
     DEFAULT_INTERVAL_SKEW = 10 * 60  # Seconds to skew past interval boundary
     DEFAULT_COLLECT_ATTEMPTS = 3     # Maximum number of collection fetch attempts
+    DEFAULT_CREATE_ATTEMPTS = 5      # Maximum number of attempts to create a PM Managed Entities
 
     def __init__(self, agent, device_id, tasks,
                  advertise_events=False,
@@ -93,7 +94,8 @@ class PerformanceIntervals(object):
                  timeout_delay=DEFAULT_RETRY,
                  tick_delay=DEFAULT_TICK_DELAY,
                  interval_skew=DEFAULT_INTERVAL_SKEW,
-                 collect_attempts=DEFAULT_COLLECT_ATTEMPTS):
+                 collect_attempts=DEFAULT_COLLECT_ATTEMPTS,
+                 create_attempts=DEFAULT_CREATE_ATTEMPTS):
         """
         Class initialization
 
@@ -109,6 +111,7 @@ class PerformanceIntervals(object):
         :param interval_skew: (int/float) Seconds to randomly skew the next interval
                               collection to spread out requests for PM intervals
         :param collect_attempts: (int) Max requests for a single PM interval before fail
+        :param create_attempts: (int) Max attempts to create PM Managed entities before stopping state machine
         """
         self.log = structlog.get_logger(device_id=device_id)
 
@@ -120,6 +123,7 @@ class PerformanceIntervals(object):
         self._tick_delay = tick_delay
         self._interval_skew = interval_skew
         self._collect_attempts = collect_attempts
+        self._create_attempts = create_attempts
 
         self._sync_time_task = tasks['sync-time']
         self._get_interval_task = tasks['collect-data']
@@ -150,6 +154,7 @@ class PerformanceIntervals(object):
         self._delete_me_deferred = None
         self._next_interval = None
         self._enet_entity_id = IndexPool(1024, 1)
+        self._add_pm_me_retry = 0
 
         # (Class ID, Instance ID) -> Collect attempts remaining
         self._pm_me_collect_retries = dict()
@@ -505,10 +510,15 @@ class PerformanceIntervals(object):
         def failure(reason):
             self.log.info('create-me-failure', reason=reason)
             self._current_task = None
-            for pm, me in mes.items():
-                self._add_pm_me[pm] = me
-
-            self._deferred = reactor.callLater(self._timeout_delay, self.failure)
+            if self._add_pm_me_retry <= self._create_attempts:
+              for pm, me in mes.items():
+                  self._add_pm_me[pm] = me
+              self._add_pm_me_retry += 1
+              self._deferred = reactor.callLater(self._timeout_delay, self.failure)
+            else:
+              # we cant seem to create any collection me, no point in doing anything
+              self.log.warn('unable-to-create-pm-me-disabling-collection', reason=reason)
+              self._deferred = reactor.callLater(self._timeout_delay, self.stop)
 
         self._current_task = self._create_pm_task(self._agent, self._device_id, mes)
         self._task_deferred = self._device.task_runner.queue_task(self._current_task)
