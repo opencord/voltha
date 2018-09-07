@@ -46,6 +46,47 @@
       "revId": "9ceec33e30fa5d8753fa2a476edc30a0b2fda992",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "31871523_bb9a1ac8",
+        "filename": "voltha/adapters/openolt/openolt.py",
+        "patchSetId": 11
+      },
+      "lineNbr": 361,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-09-07T16:56:04Z",
+      "side": 1,
+      "message": "“Ask forgiveness not permission” \n\ntry:\n    handler.simulate_alarm(request)\nexcept AttributeError as error:\n    log.exception(error)",
+      "parentUuid": "f641ae37_4115ca65",
+      "range": {
+        "startLine": 361,
+        "startChar": 12,
+        "endLine": 361,
+        "endChar": 26
+      },
+      "revId": "9ceec33e30fa5d8753fa2a476edc30a0b2fda992",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "8aba1c81_9933bdf4",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 11
+      },
+      "lineNbr": 1076,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-09-07T16:56:04Z",
+      "side": 1,
+      "message": "Wondering if we want to do this through the state machine by calling:\n\nself.go_state_connected() \n\nThat will create the alarm_mgr (and the other mgrs but I think that should be OK)",
+      "revId": "9ceec33e30fa5d8753fa2a476edc30a0b2fda992",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
