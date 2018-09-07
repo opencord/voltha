@@ -22,6 +22,30 @@
       "revId": "9ceec33e30fa5d8753fa2a476edc30a0b2fda992",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f641ae37_4115ca65",
+        "filename": "voltha/adapters/openolt/openolt.py",
+        "patchSetId": 11
+      },
+      "lineNbr": 361,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-09-07T15:26:37Z",
+      "side": 1,
+      "message": "I would suggest to error out if the device does not exist.\nIf vcore is restarted reconciliation takes place and self.devices is repopulated.",
+      "parentUuid": "64144a72_f0dc48a8",
+      "range": {
+        "startLine": 361,
+        "startChar": 12,
+        "endLine": 361,
+        "endChar": 26
+      },
+      "revId": "9ceec33e30fa5d8753fa2a476edc30a0b2fda992",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
