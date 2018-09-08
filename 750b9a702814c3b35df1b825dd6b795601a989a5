@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "680b1602_3cc2a4ed",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 17
+      },
+      "lineNbr": 1091,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-09-08T10:52:31Z",
+      "side": 1,
+      "message": "I submitted a patch which creates the alarm_mgr at init time. So this check is not needed.\n\nhttps://gerrit.opencord.org/#/c/10947/\nhttps://jira.opencord.org/browse/VOL-1207",
+      "revId": "750b9a702814c3b35df1b825dd6b795601a989a5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
