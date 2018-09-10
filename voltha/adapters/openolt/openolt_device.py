@@ -71,7 +71,8 @@ class OpenoltDevice(object):
          {'trigger': 'go_state_init',
           'source': ['state_null', 'state_connected', 'state_down'],
           'dest': 'state_init',
-          'before': 'do_state_init'},
+          'before': 'do_state_init',
+          'after': 'post_init'},
          {'trigger': 'go_state_connected',
           'source': 'state_init',
           'dest': 'state_connected',
@@ -152,6 +153,19 @@ class OpenoltDevice(object):
         self.channel = grpc.insecure_channel(self.host_and_port)
         self.channel_ready_future = grpc.channel_ready_future(self.channel)
 
+        self.alarm_mgr = OpenOltAlarmMgr(self.log, self.adapter_agent,
+                                         self.device_id,
+                                         self.logical_device_id)
+        self.stats_mgr = OpenOltStatisticsMgr(self, self.log)
+        self.bw_mgr = OpenOltBW(self.log, self.proxy)
+
+        self.log.info('openolt-device-created', device_id=self.device_id)
+
+    def post_init(self, event):
+        self.log.debug('post_init')
+
+        # We have reached init state, starting the indications thread
+
         # Catch RuntimeError exception
         try:
             # Start indications thread
@@ -164,15 +178,7 @@ class OpenoltDevice(object):
             self.indications_thread_handle.setDaemon(True)
             self.indications_thread_handle.start()
         except Exception as e:
-            self.log.exception('do_state_init failed', e=e)
-
-        self.alarm_mgr = OpenOltAlarmMgr(self.log, self.adapter_agent,
-                                         self.device_id,
-                                         self.logical_device_id)
-        self.stats_mgr = OpenOltStatisticsMgr(self, self.log)
-        self.bw_mgr = OpenOltBW(self.log, self.proxy)
-
-        self.log.info('openolt-device-created', device_id=self.device_id)
+            self.log.exception('post_init failed', e=e)
 
     def do_state_connected(self, event):
         self.log.debug("do_state_connected")
