@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "cb6283be_b9987c53",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 160,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-09-10T13:58:50Z",
+      "side": 1,
+      "message": "If you put this in do_state_connected it will still happen before any ONU is activated and will happen after you get the parameters from the device",
+      "range": {
+        "startLine": 157,
+        "startChar": 0,
+        "endLine": 160,
+        "endChar": 49
+      },
+      "revId": "4f42410347b7b3c9c02b1d79890a95955ccca26c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9c275857_dd317e3f",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 212,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-09-10T13:58:50Z",
+      "side": 1,
+      "message": "Here\nThat happens before the indications start flowing",
+      "range": {
+        "startLine": 212,
+        "startChar": 8,
+        "endLine": 212,
+        "endChar": 73
+      },
+      "revId": "4f42410347b7b3c9c02b1d79890a95955ccca26c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
