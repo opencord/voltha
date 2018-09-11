@@ -23,7 +23,8 @@
 
 from twisted.internet import reactor, defer
 from voltha.extensions.kpi.olt.olt_pm_metrics import OltPmMetrics
-from voltha.protos.device_pb2 import PmConfig, PmConfigs, PmGroupConfig
+from voltha.protos.device_pb2 import PmConfig, PmConfigs, PmGroupConfig, Port
+import voltha.adapters.openolt.openolt_platform as platform
 
 
 class OpenOltStatisticsMgr(object):
@@ -94,10 +95,6 @@ class OpenOltStatisticsMgr(object):
         #   Port.ETHERNET_NNI:
         #     # ONOS update
         #     self.update_logical_port_stats(port_stats)
-        # # FIXME: Discard other uplinks, they do not exist as an object
-        # if port_stats.intf_id in [129, 130, 131]:
-        #     self.log.debug('those uplinks are not created')
-        #     return
         # # update port object stats
         # port = self.device.adapter_agent.get_port(self.device.device_id,
         #     port_no=port_stats.intf_id)
@@ -138,10 +135,12 @@ class OpenOltStatisticsMgr(object):
         try:
             intf_id = port_stats.intf_id
 
-            if 128 < intf_id < 133 :
+            if platform.intf_id_to_port_no(0, Port.ETHERNET_NNI) < intf_id < \
+                    platform.intf_id_to_port_no(4, Port.ETHERNET_NNI) :
                 """
-                for this release we are only interested in intf_id 128 for Northbound.
-                we are not using 129, 132
+                for this release we are only interested in the first NNI for
+                Northbound.
+                we are not using the other 3
                 """
                 return
             else:
@@ -174,13 +173,14 @@ class OpenOltStatisticsMgr(object):
                     For prefixing the rule is currently to use the port number and not the intf_id
                     
                 """
-                #
-                # FIXME
-                # Currently filter only 128 since the deployment will only be using port 0 / intf_id 128
-                if intf_id == 128:
+                #FIXME : Just use first NNI for now
+                if intf_id == platform.intf_id_to_port_no(0,
+                                                          Port.ETHERNET_NNI):
+                    #NNI port (just the first one)
                     self.update_port_object_kpi_data(
                         port_object=self.northbound_ports[port_stats.intf_id], datadict=pm_data)
                 else:
+                    #PON ports
                     self.update_port_object_kpi_data(
                         port_object=self.southbound_ports[port_stats.intf_id],datadict=pm_data)
         except Exception as err:
@@ -393,7 +393,8 @@ class OpenOltStatisticsMgr(object):
             if type == "nni":
                 kwargs = {
                     'port_no': port_num,
-                    'intf_id': port_num + 128,
+                    'intf_id': platform.intf_id_to_port_no(port_num,
+                                                           Port.ETHERNET_NNI),
                     "device_id": self.device.device_id
                 }
                 nni_port = NniPort
@@ -404,8 +405,10 @@ class OpenOltStatisticsMgr(object):
                 #  intf_id and pon_id are currently equal.
                 kwargs = {
                     'port_no': port_num,
-                    'intf_id': 0x2 << 28 | port_num,
-                    'pon-id': 0x2 << 28 | port_num,
+                    'intf_id':  platform.intf_id_to_port_no(port_num,
+                                                           Port.PON_OLT),
+                    'pon-id':  platform.intf_id_to_port_no(port_num,
+                                                           Port.PON_OLT),
                     "device_id": self.device.device_id
                 }
                 pon_port = PonPort
