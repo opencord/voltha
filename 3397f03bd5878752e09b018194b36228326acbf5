@@ -46,6 +46,30 @@
       "revId": "3397f03bd5878752e09b018194b36228326acbf5",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "4ea10c3d_a56937ae",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 11
+      },
+      "lineNbr": 200,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-09-11T18:00:35Z",
+      "side": 1,
+      "message": "correction in previous comment\n\nJust started reviewing the code, but could not figure out where the case is handled of using device_info retrieved from device (\"extra_args __NOT__ specified\" AND \"OLT returns device_info\")",
+      "parentUuid": "7d0e5090_30e1d07e",
+      "range": {
+        "startLine": 200,
+        "startChar": 0,
+        "endLine": 200,
+        "endChar": 63
+      },
+      "revId": "3397f03bd5878752e09b018194b36228326acbf5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
