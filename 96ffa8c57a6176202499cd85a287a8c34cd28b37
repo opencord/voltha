@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d240ba1d_4c40a9c6",
+        "filename": "ofagent/connection_mgr.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 317,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-09-11T15:58:48Z",
+      "side": 1,
+      "message": "It would be better to have an additional attribute in the logical device to show the state of the root device.  This will prevent the additional device query.\n\nThe other option is to define a new rpc to retrieve only the reachable device.",
+      "revId": "96ffa8c57a6176202499cd85a287a8c34cd28b37",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
