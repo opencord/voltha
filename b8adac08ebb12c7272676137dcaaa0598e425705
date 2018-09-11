@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "f4cd2e9f_25a37af6",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 10
+      },
+      "lineNbr": 199,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-09-11T14:56:47Z",
+      "side": 1,
+      "message": "device_info contains the bounds of the Resource manager. It could be used to configure the resource manager and use extra_args only to override it if not empty as discussed last time",
+      "range": {
+        "startLine": 199,
+        "startChar": 51,
+        "endLine": 199,
+        "endChar": 66
+      },
+      "revId": "b8adac08ebb12c7272676137dcaaa0598e425705",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
