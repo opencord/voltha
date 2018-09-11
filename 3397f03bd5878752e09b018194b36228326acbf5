@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "b656ab90_82e423df",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 11
+      },
+      "lineNbr": 200,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-09-11T17:31:50Z",
+      "side": 1,
+      "message": "device_info is passed to OpenOltResourceMgr and it uses it is used to initialize resource pools if no extra_args are passed to specify the olt_vendor_type",
+      "range": {
+        "startLine": 200,
+        "startChar": 0,
+        "endLine": 200,
+        "endChar": 63
+      },
+      "revId": "3397f03bd5878752e09b018194b36228326acbf5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
