@@ -22,6 +22,30 @@
       "revId": "3397f03bd5878752e09b018194b36228326acbf5",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7d0e5090_30e1d07e",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 11
+      },
+      "lineNbr": 200,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-09-11T17:58:35Z",
+      "side": 1,
+      "message": "If no extra_args are passed then seems like the \"default\" profile is used:\n\nopenolt_resource_manager.py\n\n 104         else:\\r\n 105             try:\\r\n 106                 # Default option\\r\n 107                 resource_manager \u003d PONResourceManager(\\r\n 108                     self.device_info.technology, \"default\",\\r\n 109                     self.device_id, self.args.backend,\\r\n 110                     host, port\\r\n 111                 )\\r\n\nJust started reviewing the code, but could not figure out where the case is handled of using device_info retrieved from device ( \"extra_args specified\" AND \"OLT returns device_info\").",
+      "parentUuid": "b656ab90_82e423df",
+      "range": {
+        "startLine": 200,
+        "startChar": 0,
+        "endLine": 200,
+        "endChar": 63
+      },
+      "revId": "3397f03bd5878752e09b018194b36228326acbf5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
