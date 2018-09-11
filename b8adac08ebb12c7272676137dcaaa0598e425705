@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "d2a84776_476d5beb",
+        "filename": "common/pon_resource_manager/resource_manager.py",
+        "patchSetId": 10
+      },
+      "lineNbr": 18,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-09-11T17:58:35Z",
+      "side": 1,
+      "message": "This comment is no longer valid?",
+      "revId": "b8adac08ebb12c7272676137dcaaa0598e425705",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "f4cd2e9f_25a37af6",
         "filename": "voltha/adapters/openolt/openolt_device.py",
         "patchSetId": 10
