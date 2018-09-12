@@ -196,7 +196,8 @@ class OmciGetRequest(Task):
             self.deferred.callback(self)
 
         except Exception as e:
-            self.log.exception('perform-get', e=e)
+            self.log.exception('perform-get', e=e, class_id=self._entity_class,
+                               entity_id=self._entity_id, attributes=self._attributes)
             self.deferred.errback(failure.Failure(e))
 
     @inlineCallbacks

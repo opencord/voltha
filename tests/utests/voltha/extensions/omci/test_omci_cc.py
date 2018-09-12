@@ -122,8 +122,6 @@ class TestOmciCc(TestCase):
             'rx_frames': omci_cc.rx_frames,
             'rx_unknown_tid': omci_cc.rx_unknown_tid,
             'rx_onu_frames': omci_cc.rx_onu_frames,
-            'rx_alarm_overflow': omci_cc.rx_alarm_overflow,
-            'rx_avc_overflow': omci_cc.rx_avc_overflow,
             'rx_onu_discards': omci_cc.rx_onu_discards,
             'rx_timeouts': omci_cc.rx_timeouts,
             'rx_unknown_me': omci_cc.rx_unknown_me,
@@ -155,8 +153,6 @@ class TestOmciCc(TestCase):
         self.assertEqual(omci_cc.rx_frames, 0)
         self.assertEqual(omci_cc.rx_unknown_tid, 0)
         self.assertEqual(omci_cc.rx_onu_frames, 0)
-        self.assertEqual(omci_cc.rx_alarm_overflow, 0)
-        self.assertEqual(omci_cc.rx_avc_overflow, 0)
         self.assertEqual(omci_cc.rx_onu_discards, 0)
         self.assertEqual(omci_cc.rx_unknown_me, 0)
         self.assertEqual(omci_cc.rx_timeouts, 0)
@@ -234,8 +230,6 @@ class TestOmciCc(TestCase):
         # d.addCallback(self._check_stats, snapshot, 'rx_frames', snapshot['rx_frames'] + 1)
         # d.addCallback(self._check_stats, snapshot, 'rx_unknown_tid', snapshot['rx_unknown_tid'])
         # d.addCallback(self._check_stats, snapshot, 'rx_onu_frames', snapshot['rx_onu_frames'])
-        # d.addCallback(self._check_stats, snapshot, 'rx_alarm_overflow', snapshot['rx_alarm_overflow'])
-        # d.addCallback(self._check_stats, snapshot, 'rx_avc_overflow', snapshot['rx_avc_overflow'])
         # d.addCallback(self._check_stats, snapshot, 'rx_onu_discards', snapshot['rx_onu_discards'])
         # d.addCallback(self._check_stats, snapshot, 'rx_unknown_me', snapshot['rx_unknown_me'])
         # d.addCallback(self._check_stats, snapshot, 'rx_timeouts', snapshot['rx_timeouts'])
@@ -266,8 +260,6 @@ class TestOmciCc(TestCase):
         # d.addCallback(self._check_stats, snapshot, 'rx_frames', snapshot['rx_frames'] + 1)
         # d.addCallback(self._check_stats, snapshot, 'rx_unknown_tid', snapshot['rx_unknown_tid'])
         # d.addCallback(self._check_stats, snapshot, 'rx_onu_frames', snapshot['rx_onu_frames'])
-        # d.addCallback(self._check_stats, snapshot, 'rx_alarm_overflow', snapshot['rx_alarm_overflow'])
-        # d.addCallback(self._check_stats, snapshot, 'rx_avc_overflow', snapshot['rx_avc_overflow'])
         # d.addCallback(self._check_stats, snapshot, 'rx_onu_discards', snapshot['rx_onu_discards'])
         # d.addCallback(self._check_stats, snapshot, 'rx_unknown_me', snapshot['rx_unknown_me'])
         # d.addCallback(self._check_stats, snapshot, 'rx_timeouts', snapshot['rx_timeouts'])
@@ -305,8 +297,6 @@ class TestOmciCc(TestCase):
         # d.addCallback(self._check_stats, snapshot, 'rx_frames', snapshot['rx_frames'] + 1)
         # d.addCallback(self._check_stats, snapshot, 'rx_unknown_tid', snapshot['rx_unknown_tid'])
         # d.addCallback(self._check_stats, snapshot, 'rx_onu_frames', snapshot['rx_onu_frames'])
-        # d.addCallback(self._check_stats, snapshot, 'rx_alarm_overflow', snapshot['rx_alarm_overflow'])
-        # d.addCallback(self._check_stats, snapshot, 'rx_avc_overflow', snapshot['rx_avc_overflow'])
         # d.addCallback(self._check_stats, snapshot, 'rx_onu_discards', snapshot['rx_onu_discards'])
         # d.addCallback(self._check_stats, snapshot, 'rx_unknown_me', snapshot['rx_unknown_me'])
         # d.addCallback(self._check_stats, snapshot, 'rx_timeouts', snapshot['rx_timeouts'])
@@ -337,8 +327,6 @@ class TestOmciCc(TestCase):
         # d.addCallback(self._check_stats, snapshot, 'rx_frames', snapshot['rx_frames'] + 1)
         # d.addCallback(self._check_stats, snapshot, 'rx_unknown_tid', snapshot['rx_unknown_tid'])
         # d.addCallback(self._check_stats, snapshot, 'rx_onu_frames', snapshot['rx_onu_frames'])
-        # d.addCallback(self._check_stats, snapshot, 'rx_alarm_overflow', snapshot['rx_alarm_overflow'])
-        # d.addCallback(self._check_stats, snapshot, 'rx_avc_overflow', snapshot['rx_avc_overflow'])
         # d.addCallback(self._check_stats, snapshot, 'rx_onu_discards', snapshot['rx_onu_discards'])
         # d.addCallback(self._check_stats, snapshot, 'rx_unknown_me', snapshot['rx_unknown_me'])
         # d.addCallback(self._check_stats, snapshot, 'rx_timeouts', snapshot['rx_timeouts'])
@@ -366,8 +354,6 @@ class TestOmciCc(TestCase):
         d.addCallback(self._check_stats, snapshot, 'rx_frames', snapshot['rx_frames'] + 1)
         d.addCallback(self._check_stats, snapshot, 'rx_unknown_tid', snapshot['rx_unknown_tid'])
         d.addCallback(self._check_stats, snapshot, 'rx_onu_frames', snapshot['rx_onu_frames'])
-        d.addCallback(self._check_stats, snapshot, 'rx_alarm_overflow', snapshot['rx_alarm_overflow'])
-        d.addCallback(self._check_stats, snapshot, 'rx_avc_overflow', snapshot['rx_avc_overflow'])
         d.addCallback(self._check_stats, snapshot, 'rx_onu_discards', snapshot['rx_onu_discards'])
         d.addCallback(self._check_stats, snapshot, 'rx_unknown_me', snapshot['rx_unknown_me'])
         d.addCallback(self._check_stats, snapshot, 'rx_timeouts', snapshot['rx_timeouts'])
@@ -396,8 +382,6 @@ class TestOmciCc(TestCase):
         d.addCallback(self._check_stats, snapshot, 'rx_frames', snapshot['rx_frames'] + 1)
         d.addCallback(self._check_stats, snapshot, 'rx_unknown_tid', snapshot['rx_unknown_tid'])
         d.addCallback(self._check_stats, snapshot, 'rx_onu_frames', snapshot['rx_onu_frames'])
-        d.addCallback(self._check_stats, snapshot, 'rx_alarm_overflow', snapshot['rx_alarm_overflow'])
-        d.addCallback(self._check_stats, snapshot, 'rx_avc_overflow', snapshot['rx_avc_overflow'])
         d.addCallback(self._check_stats, snapshot, 'rx_onu_discards', snapshot['rx_onu_discards'])
         d.addCallback(self._check_stats, snapshot, 'rx_unknown_me', snapshot['rx_unknown_me'])
         d.addCallback(self._check_stats, snapshot, 'rx_timeouts', snapshot['rx_timeouts'])
@@ -426,8 +410,6 @@ class TestOmciCc(TestCase):
         # d.addCallback(self._check_stats, snapshot, 'rx_frames', snapshot['rx_frames'] + 1)
         # d.addCallback(self._check_stats, snapshot, 'rx_unknown_tid', snapshot['rx_unknown_tid'])
         # d.addCallback(self._check_stats, snapshot, 'rx_onu_frames', snapshot['rx_onu_frames'])
-        # d.addCallback(self._check_stats, snapshot, 'rx_alarm_overflow', snapshot['rx_alarm_overflow'])
-        # d.addCallback(self._check_stats, snapshot, 'rx_avc_overflow', snapshot['rx_avc_overflow'])
         # d.addCallback(self._check_stats, snapshot, 'rx_onu_discards', snapshot['rx_onu_discards'])
         # d.addCallback(self._check_stats, snapshot, 'rx_unknown_me', snapshot['rx_unknown_me'])
         # d.addCallback(self._check_stats, snapshot, 'rx_timeouts', snapshot['rx_timeouts'])
@@ -452,8 +434,6 @@ class TestOmciCc(TestCase):
         d.addCallback(self._check_stats, snapshot, 'rx_frames', snapshot['rx_frames'] + 1)
         d.addCallback(self._check_stats, snapshot, 'rx_unknown_tid', snapshot['rx_unknown_tid'])
         d.addCallback(self._check_stats, snapshot, 'rx_onu_frames', snapshot['rx_onu_frames'])
-        d.addCallback(self._check_stats, snapshot, 'rx_alarm_overflow', snapshot['rx_alarm_overflow'])
-        d.addCallback(self._check_stats, snapshot, 'rx_avc_overflow', snapshot['rx_avc_overflow'])
         d.addCallback(self._check_stats, snapshot, 'rx_onu_discards', snapshot['rx_onu_discards'])
         d.addCallback(self._check_stats, snapshot, 'rx_unknown_me', snapshot['rx_unknown_me'])
         d.addCallback(self._check_stats, snapshot, 'rx_timeouts', snapshot['rx_timeouts'])
@@ -633,6 +613,47 @@ class TestOmciCc(TestCase):
 
         # TODO: add more
         self.assertTrue(True)  # TODO: Implement
+
+
+    def test_rx_discard_if_disabled(self):
+        # ME without a known decoder
+        self.setup_one_of_each()
+
+        omci_cc = self.onu_handler.omci_cc
+        omci_cc.enabled = False
+        snapshot = self._snapshot_stats()
+
+        msg = '00fc2e0a00020000ff780000e00000010000000c' \
+              '0000000000000000000000000000000000000000' \
+              '00000028105a86ef'
+
+        omci_cc.receive_message(hex2raw(msg))
+
+        # Note: No counter increments
+        self.assertEqual(omci_cc.rx_frames, snapshot['rx_frames'])
+        self.assertEqual(omci_cc.rx_unknown_me, snapshot['rx_unknown_me'])
+        self.assertEqual(omci_cc.rx_unknown_tid, snapshot['rx_unknown_tid'])
+        self.assertEqual(omci_cc.rx_onu_frames, snapshot['rx_onu_frames'])
+        self.assertEqual(omci_cc.rx_unknown_tid, snapshot['rx_unknown_tid'])
+
+    def test_omci_alarm_decode(self):
+        """
+        This test covers an issue discovered in Sept 2018 (JIRA-1213).  It was
+        an exception during frame decode.
+        """
+        self.setup_one_of_each()
+
+        omci_cc = self.onu_handler.omci_cc
+        omci_cc.enabled = True
+
+        # Frame from the JIRA issue
+        msg = '0000100a000b0102800000000000000000000000' \
+              '0000000000000000000000000000000000000015' \
+              '000000282d3ae0a6'
+
+        results = omci_cc.receive_message(hex2raw(msg))
+
+        self.assertTrue(True, 'Truth is the truth')
 
 
 if __name__ == '__main__':
