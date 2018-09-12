@@ -19,7 +19,7 @@ class OnuSignalDegradeAlarm(AlarmBase):
     def __init__(self, alarm_mgr, onu_id, intf_id,
                  inverse_bit_error_rate):
         super(OnuSignalDegradeAlarm, self).__init__(alarm_mgr, object_type='onu SIGNAL DEGRADE',
-                                          alarm='SIGNAL_DEGRADE',
+                                          alarm='ONU_SIGNAL_DEGRADE',
                                           alarm_category=AlarmEventCategory.ONU,
                                           alarm_type=AlarmEventType.COMMUNICATION,
                                           alarm_severity=AlarmEventSeverity.MAJOR)

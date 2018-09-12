@@ -103,7 +103,8 @@ class AdapterAlarms:
                 state=alarm_data.get('state'),
                 raised_ts=alarm_data.get('ts', 0),
                 context=current_context,
-                logical_device_id=self.logical_device_id
+                logical_device_id=self.logical_device_id,
+                alarm_type_name=alarm_data.get('alarm_type_name')
             )
             self.adapter_agent.submit_alarm(self.device_id, alarm_event)
 
@@ -160,7 +161,8 @@ class AlarmBase(object):
             'type': self._alarm_type,
             'category': self._alarm_category,
             'severity': self._alarm_severity,
-            'state': AlarmEventState.RAISED if status else AlarmEventState.CLEARED
+            'state': AlarmEventState.RAISED if status else AlarmEventState.CLEARED,
+            'alarm_type_name': self._alarm
         }
         if self._resource_id is not None:
             data['resource_id'] = self._resource_id

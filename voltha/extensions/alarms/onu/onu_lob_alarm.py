@@ -18,7 +18,7 @@ from voltha.extensions.alarms.adapter_alarms import AlarmBase
 class OnuLobAlarm(AlarmBase):
     def __init__(self, alarm_mgr, onu_id, intf_id):
         super(OnuLobAlarm, self).__init__(alarm_mgr, object_type='onu LOB',
-                                          alarm='LOB',
+                                          alarm='ONU_LOB',
                                           alarm_category=AlarmEventCategory.ONU,
                                           alarm_type=AlarmEventType.COMMUNICATION,
                                           alarm_severity=AlarmEventSeverity.MAJOR)

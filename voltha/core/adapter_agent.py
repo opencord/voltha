@@ -952,7 +952,8 @@ class AdapterAgent(object):
                      severity=AlarmEventSeverity.MINOR,
                      state=AlarmEventState.RAISED,
                      context=None,
-                     logical_device_id=None):
+                     logical_device_id=None,
+                     alarm_type_name=None):
 
         # Construct the ID if it is not provided
         if id is None:
@@ -970,7 +971,8 @@ class AdapterAgent(object):
             raised_ts=raised_ts,
             changed_ts=changed_ts,
             context=context,
-            logical_device_id=logical_device_id
+            logical_device_id=logical_device_id,
+            alarm_type_name=alarm_type_name
         )
 
     def filter_alarm(self, device_id, alarm_event):

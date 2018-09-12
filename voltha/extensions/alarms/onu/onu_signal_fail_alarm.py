@@ -25,7 +25,7 @@ from voltha.extensions.alarms.adapter_alarms import AlarmBase
 class OnuSignalFailAlarm(AlarmBase):
     def __init__(self, alarm_mgr, onu_id, intf_id, inverse_bit_error_rate):
         super(OnuSignalFailAlarm, self).__init__(alarm_mgr, object_type='onu SIGNAL FAIL',
-                                          alarm='SIGNAL_FAIL',
+                                          alarm='ONU_SIGNAL_FAIL',
                                           alarm_category=AlarmEventCategory.ONU,
                                           alarm_type=AlarmEventType.COMMUNICATION,
                                           alarm_severity=AlarmEventSeverity.MAJOR)

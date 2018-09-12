@@ -19,7 +19,7 @@ from voltha.extensions.alarms.adapter_alarms import AlarmBase
 class OnuLopcMicErrorAlarm(AlarmBase):
     def __init__(self, alarm_mgr, onu_id, intf_id):
         super(OnuLopcMicErrorAlarm, self).__init__(alarm_mgr,  object_type='onu LOPC_MIC_ERROR',
-                                                   alarm='LOPC_MIC_ERROR',
+                                                   alarm='ONU_LOPC_MIC_ERROR',
                                                    alarm_category=AlarmEventCategory.ONU,
                                                    alarm_type=AlarmEventType.COMMUNICATION,
                                                    alarm_severity=AlarmEventSeverity.MAJOR)

@@ -27,7 +27,7 @@ class OnuStartupAlarm(AlarmBase):
 
     def __init__(self, alarm_mgr, onu_id, intf_id):
         super(OnuStartupAlarm, self).__init__(alarm_mgr, object_type='onu STARTUP FAIL',
-                                          alarm='STARTUP_FAIL',
+                                          alarm='ONU_STARTUP_FAIL',
                                           alarm_category=AlarmEventCategory.ONU,
                                           alarm_type=AlarmEventType.COMMUNICATION,
                                           alarm_severity=AlarmEventSeverity.MAJOR)

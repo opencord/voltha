@@ -27,7 +27,7 @@ class OnuWindowDriftAlarm(AlarmBase):
     """
     def __init__(self, alarm_mgr, onu_id, intf_id, drift, new_eqd):
         super(OnuWindowDriftAlarm, self).__init__(alarm_mgr, object_type='onu WINDOW DRIFT',
-                                          alarm='WINDOW_DRIFT',
+                                          alarm='ONU_WINDOW_DRIFT',
                                           alarm_category=AlarmEventCategory.ONU,
                                           alarm_type=AlarmEventType.COMMUNICATION,
                                           alarm_severity=AlarmEventSeverity.MAJOR)

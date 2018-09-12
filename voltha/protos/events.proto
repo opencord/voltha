@@ -188,4 +188,7 @@ message AlarmEvent {
 
     // logical device id
     string logical_device_id = 12;
+
+    // alarm_type  name indicates clearly the name of the alarm
+    string alarm_type_name = 13;
 }
