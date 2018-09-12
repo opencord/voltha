@@ -2,6 +2,29 @@
   "comments": [
     {
       "key": {
+        "uuid": "c2f7ee9a_1ba3420e",
+        "filename": "common/pon_resource_manager/resource_manager.py",
+        "patchSetId": 11
+      },
+      "lineNbr": 119,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-09-12T17:44:15Z",
+      "side": 1,
+      "message": "Vol-1194 is merged",
+      "range": {
+        "startLine": 117,
+        "startChar": 8,
+        "endLine": 119,
+        "endChar": 34
+      },
+      "revId": "3397f03bd5878752e09b018194b36228326acbf5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b656ab90_82e423df",
         "filename": "voltha/adapters/openolt/openolt_device.py",
         "patchSetId": 11
@@ -66,6 +89,75 @@
         "startChar": 0,
         "endLine": 200,
         "endChar": 63
+      },
+      "revId": "3397f03bd5878752e09b018194b36228326acbf5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "e4f1bc1f_db0f8b4b",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 11
+      },
+      "lineNbr": 746,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-09-12T17:44:15Z",
+      "side": 1,
+      "message": "?",
+      "range": {
+        "startLine": 746,
+        "startChar": 0,
+        "endLine": 746,
+        "endChar": 25
+      },
+      "revId": "3397f03bd5878752e09b018194b36228326acbf5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "83187a42_55e74be5",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 11
+      },
+      "lineNbr": 1143,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-09-12T17:44:15Z",
+      "side": 1,
+      "message": "Is there a reason not to do this in the __init__ method of the OpenoltResourceManager",
+      "range": {
+        "startLine": 1135,
+        "startChar": 0,
+        "endLine": 1143,
+        "endChar": 23
+      },
+      "revId": "3397f03bd5878752e09b018194b36228326acbf5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da99f802_96aa0f3c",
+        "filename": "voltha/adapters/openolt/openolt_resource_manager.py",
+        "patchSetId": 11
+      },
+      "lineNbr": 108,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-09-12T17:44:15Z",
+      "side": 1,
+      "message": "I think using \"default\" is confusing, device_info contains the actual model. \nMaybe adding a separate flag to specify that the values from device_info are to be used will make more sense",
+      "range": {
+        "startLine": 108,
+        "startChar": 49,
+        "endLine": 108,
+        "endChar": 58
       },
       "revId": "3397f03bd5878752e09b018194b36228326acbf5",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
