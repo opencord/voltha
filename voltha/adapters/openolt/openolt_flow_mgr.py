@@ -147,6 +147,7 @@ class OpenOltFlowMgr(object):
         if fd.get_goto_table_id(flow) is not None and not 'pop_vlan' in \
                 action_info:
             self.log.debug('being taken care of by ONU', flow=flow)
+            return
 
         if not 'output' in action_info and 'metadata' in classifier_info:
             #find flow in the next table
