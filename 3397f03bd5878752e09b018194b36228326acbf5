@@ -142,6 +142,30 @@
     },
     {
       "key": {
+        "uuid": "692cfeae_388c3ba0",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 11
+      },
+      "lineNbr": 1143,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-09-12T18:56:13Z",
+      "side": 1,
+      "message": "Isn\u0027t sys.exit() too drastic? There will be multiple types of OLTs (openolt, adtran, ..) being managed by VOLTHA. We should log / alarm, disable the logical device and continue.",
+      "parentUuid": "83187a42_55e74be5",
+      "range": {
+        "startLine": 1135,
+        "startChar": 0,
+        "endLine": 1143,
+        "endChar": 23
+      },
+      "revId": "3397f03bd5878752e09b018194b36228326acbf5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "da99f802_96aa0f3c",
         "filename": "voltha/adapters/openolt/openolt_resource_manager.py",
         "patchSetId": 11
