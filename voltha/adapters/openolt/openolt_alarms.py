@@ -18,6 +18,7 @@ import arrow
 import voltha.adapters.openolt.openolt_platform as platform
 # from voltha.protos.device_pb2 import Port
 from voltha.extensions.alarms.adapter_alarms import AdapterAlarms
+from voltha.extensions.alarms.simulator.simulate_alarms import AdapterAlarmSimulator
 from voltha.extensions.alarms.olt.olt_los_alarm import OltLosAlarm
 from voltha.extensions.alarms.onu.onu_dying_gasp_alarm import OnuDyingGaspAlarm
 from voltha.extensions.alarms.onu.onu_los_alarm import OnuLosAlarm
@@ -30,8 +31,6 @@ from voltha.extensions.alarms.onu.onu_signal_degrade_alarm import OnuSignalDegra
 from voltha.extensions.alarms.onu.onu_signal_fail_alarm import OnuSignalFailAlarm
 from voltha.extensions.alarms.onu.onu_window_drift_alarm import OnuWindowDriftAlarm
 from voltha.extensions.alarms.onu.onu_activation_fail_alarm import OnuActivationFailAlarm
-
-from voltha.extensions.alarms.onu.onu_discovery_alarm import OnuDiscoveryAlarm
 
 import protos.openolt_pb2 as openolt_pb2
 import voltha.protos.device_pb2 as device_pb2
@@ -60,6 +59,7 @@ class OpenOltAlarmMgr(object):
         self.alarm_suppress = {"olt_los_clear": 0, "onu_disc_raised": []}  # Keep count of alarms to limit.
         try:
             self.alarms = AdapterAlarms(self.adapter_agent, self.device_id, self.logical_device_id)
+            self.simulator = AdapterAlarmSimulator(self.alarms)
         except Exception as initerr:
             self.log.exception("alarmhandler-init-error", errmsg=initerr.message)
             raise Exception(initerr)
@@ -104,48 +104,7 @@ class OpenOltAlarmMgr(object):
                            alarm=alarm_ind)
 
     def simulate_alarm(self, alarm):
-        if alarm.indicator == "los":
-            alarm_obj = OltLosAlarm(self.alarms, intf_id=alarm.intf_id, port_type_name=alarm.port_type_name)
-        elif alarm.indicator == "dying_gasp":
-            alarm_obj = OnuDyingGaspAlarm(self.alarms, alarm.intf_id, alarm.onu_device_id)
-        elif alarm.indicator == "onu_los":
-            alarm_obj = OnuLosAlarm(self.alarms, onu_id=alarm.onu_device_id, intf_id=alarm.intf_id)
-        elif alarm.indicator == "onu_lopc_miss":
-            alarm_obj = OnuLopcMissAlarm(self.alarms, onu_id=alarm.onu_device_id, intf_id=alarm.intf_id)
-        elif alarm.indicator == "onu_lopc_mic":
-            alarm_obj = OnuLopcMicErrorAlarm(self.alarms, onu_id=alarm.onu_device_id, intf_id=alarm.intf_id)
-        elif alarm.indicator == "onu_lob":
-            alarm_obj = OnuLobAlarm(self.alarms, onu_id=alarm.onu_device_id, intf_id=alarm.intf_id)
-        elif alarm.indicator == "onu_startup":
-            alarm_obj = OnuStartupAlarm(self.alarms, intf_id=alarm.intf_id, onu_id=alarm.onu_device_id)
-        elif alarm.indicator == "onu_signal_degrade":
-            alarm_obj = OnuSignalDegradeAlarm(self.alarms, intf_id=alarm.intf_id, onu_id=alarm.onu_device_id,
-                                  inverse_bit_error_rate=alarm.inverse_bit_error_rate)
-        elif alarm.indicator == "onu_drift_of_window":
-            alarm_obj = OnuWindowDriftAlarm(self.alarms, intf_id=alarm.intf_id,
-                                onu_id=alarm.onu_device_id,
-                                drift=alarm.drift,
-                                new_eqd=alarm.new_eqd)
-        elif alarm.indicator == "onu_signal_fail":
-            alarm_obj = OnuSignalFailAlarm(self.alarms, intf_id=alarm.intf_id,
-                               onu_id=alarm.onu_device_id,
-                               inverse_bit_error_rate=alarm.inverse_bit_error_rate)
-        elif alarm.indicator == "onu_activation":
-            alarm_obj = OnuActivationFailAlarm(self.alarms, intf_id=alarm.intf_id,
-                                   onu_id=alarm.onu_device_id)
-        elif alarm.indicator == "onu_discovery":
-            alarm_obj = OnuDiscoveryAlarm(self.alarms, pon_id=alarm.intf_id,
-                                   serial_number=alarm.onu_serial_number)
-        else:
-            raise Exception("Unknown alarm indicator %s" % alarm.indicator)
-
-        if alarm.operation == alarm.RAISE:
-            alarm_obj.raise_alarm()
-        elif alarm.operation == alarm.CLEAR:
-            alarm_obj.clear_alarm()
-        else:
-            # This shouldn't happen
-            raise Exception("Unknown alarm operation")
+        self.simulator.simulate_alarm(alarm)
 
     def los_indication(self, los_ind):
 
