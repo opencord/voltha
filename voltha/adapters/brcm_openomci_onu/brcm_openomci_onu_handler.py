@@ -412,114 +412,117 @@ class BrcmOpenomciOnuHandler(object):
                 #FIXME: CAREFUL, ignoring flow matching on ethertype
 
                 if _type is not None:
+                    self.log.warn('ignoring flow with ethType', ethType=_type)
+                    continue
+
+                if _vlan_vid == 0 and (_set_vlan_vid is None or _set_vlan_vid == 0):
+                    self.log.warn('ignorning flow that does not set vlanid')
                     continue
 
                 #
                 # All flows created from ONU adapter should be OMCI based
                 #
-                if _vlan_vid == 0 and _set_vlan_vid != None and _set_vlan_vid != 0:
+                # TODO: find a better place for all of this
+                # TODO: make this a member of the onu gem port or the uni port
+                _mac_bridge_service_profile_entity_id = 0x201
+                _mac_bridge_port_ani_entity_id = 0x2102   # TODO: can we just use the entity id from the anis list?
 
-                    # TODO: find a better place for all of this
-                    # TODO: make this a member of the onu gem port or the uni port
-                    _mac_bridge_service_profile_entity_id = 0x201
-                    _mac_bridge_port_ani_entity_id = 0x2102   # TODO: can we just use the entity id from the anis list?
+                # TODO: Move this to a task
+                # Delete bridge ani side vlan filter
+                msg = VlanTaggingFilterDataFrame(_mac_bridge_port_ani_entity_id)
+                frame = msg.delete()
+                self.log.debug('openomci-msg', msg=msg)
+                results = yield self.omci_cc.send(frame)
+                self.check_status_and_state(results, 'flow-delete-vlan-tagging-filter-data')
 
-                    # TODO: Move this to a task
-                    # Delete bridge ani side vlan filter
-                    msg = VlanTaggingFilterDataFrame(_mac_bridge_port_ani_entity_id)
-                    frame = msg.delete()
-                    self.log.debug('openomci-msg', msg=msg)
-                    results = yield self.omci_cc.send(frame)
-                    self.check_status_and_state(results, 'flow-delete-vlan-tagging-filter-data')
+                # TODO: Move this to a task
+                # Re-Create bridge ani side vlan filter
+                msg = VlanTaggingFilterDataFrame(
+                    _mac_bridge_port_ani_entity_id,  # Entity ID
+                    vlan_tcis=[_set_vlan_vid],        # VLAN IDs
+                    forward_operation=0x10
+                )
+                frame = msg.create()
+                self.log.debug('openomci-msg', msg=msg)
+                results = yield self.omci_cc.send(frame)
+                self.check_status_and_state(results, 'flow-create-vlan-tagging-filter-data')
 
-                    # TODO: Move this to a task
-                    # Re-Create bridge ani side vlan filter
-                    msg = VlanTaggingFilterDataFrame(
-                        _mac_bridge_port_ani_entity_id,  # Entity ID
-                        vlan_tcis=[_set_vlan_vid],        # VLAN IDs
-                        forward_operation=0x10
+                # Update uni side extended vlan filter
+                # filter for untagged
+                # probably for eapol
+                # TODO: magic 0x1000 / 4096?
+                # TODO: lots of magic
+                attributes = dict(
+                    received_frame_vlan_tagging_operation_table=
+                    VlanTaggingOperation(
+                        filter_outer_priority=15,
+                        filter_outer_vid=4096,
+                        filter_outer_tpid_de=0,
+
+                        filter_inner_priority=15,
+                        filter_inner_vid=4096,
+                        filter_inner_tpid_de=0,
+                        filter_ether_type=0,
+
+                        treatment_tags_to_remove=0,
+                        treatment_outer_priority=15,
+                        treatment_outer_vid=0,
+                        treatment_outer_tpid_de=0,
+
+                        treatment_inner_priority=0,
+                        treatment_inner_vid=_set_vlan_vid,
+                        treatment_inner_tpid_de=4
                     )
-                    frame = msg.create()
-                    self.log.debug('openomci-msg', msg=msg)
-                    results = yield self.omci_cc.send(frame)
-                    self.check_status_and_state(results, 'flow-create-vlan-tagging-filter-data')
+                )
+                # TODO: Move this to a task
+                msg = ExtendedVlanTaggingOperationConfigurationDataFrame(
+                    _mac_bridge_service_profile_entity_id,  # Bridge Entity ID
+                    attributes=attributes  # See above
+                )
+                frame = msg.set()
+                self.log.debug('openomci-msg', msg=msg)
+                results = yield self.omci_cc.send(frame)
+                self.check_status_and_state(results,
+                                            'flow-set-ext-vlan-tagging-op-config-data-untagged')
 
-                    # Update uni side extended vlan filter
-                    # filter for untagged
-                    # probably for eapol
-                    # TODO: magic 0x1000 / 4096?
-                    # TODO: lots of magic
-                    attributes = dict(
-                        received_frame_vlan_tagging_operation_table=
-                        VlanTaggingOperation(
-                            filter_outer_priority=15,
-                            filter_outer_vid=4096,
-                            filter_outer_tpid_de=0,
+                # Update uni side extended vlan filter
+                # filter for vlan 0
+                # TODO: lots of magic
+                attributes = dict(
+                    received_frame_vlan_tagging_operation_table=
+                    VlanTaggingOperation(
+                        filter_outer_priority=15,  # This entry is not a double-tag rule
+                        filter_outer_vid=4096,  # Do not filter on the outer VID value
+                        filter_outer_tpid_de=0,  # Do not filter on the outer TPID field
 
-                            filter_inner_priority=15,
-                            filter_inner_vid=4096,
-                            filter_inner_tpid_de=0,
-                            filter_ether_type=0,
+                        filter_inner_priority=8,  # Filter on inner vlan
+                        filter_inner_vid=0x0,  # Look for vlan 0
+                        filter_inner_tpid_de=0,  # Do not filter on inner TPID field
+                        filter_ether_type=0,  # Do not filter on EtherType
 
-                            treatment_tags_to_remove=0,
-                            treatment_outer_priority=15,
-                            treatment_outer_vid=0,
-                            treatment_outer_tpid_de=0,
+                        treatment_tags_to_remove=1,
+                        treatment_outer_priority=15,
+                        treatment_outer_vid=0,
+                        treatment_outer_tpid_de=0,
 
-                            treatment_inner_priority=0,
-                            treatment_inner_vid=_set_vlan_vid,
-                            treatment_inner_tpid_de=4
-                        )
+                        treatment_inner_priority=8,  # Add an inner tag and insert this value as the priority
+                        treatment_inner_vid=_set_vlan_vid,  # use this value as the VID in the inner VLAN tag
+                        treatment_inner_tpid_de=4,  # set TPID
                     )
-                    # TODO: Move this to a task
-                    msg = ExtendedVlanTaggingOperationConfigurationDataFrame(
-                        _mac_bridge_service_profile_entity_id,  # Bridge Entity ID
-                        attributes=attributes  # See above
-                    )
-                    frame = msg.set()
-                    self.log.debug('openomci-msg', msg=msg)
-                    results = yield self.omci_cc.send(frame)
-                    self.check_status_and_state(results,
-                                                'flow-set-ext-vlan-tagging-op-config-data-untagged')
+                )
+                # TODO: Move this to a task
+                msg = ExtendedVlanTaggingOperationConfigurationDataFrame(
+                    _mac_bridge_service_profile_entity_id,  # Bridge Entity ID
+                    attributes=attributes  # See above
+                )
+                frame = msg.set()
+                self.log.debug('openomci-msg', msg=msg)
+                results = yield self.omci_cc.send(frame)
+                self.check_status_and_state(results,
+                                            'flow-set-ext-vlan-tagging-op-config-data-zero-tagged')
 
-                    # Update uni side extended vlan filter
-                    # filter for vlan 0
-                    # TODO: lots of magic
-                    attributes = dict(
-                        received_frame_vlan_tagging_operation_table=
-                        VlanTaggingOperation(
-                            filter_outer_priority=15,  # This entry is not a double-tag rule
-                            filter_outer_vid=4096,  # Do not filter on the outer VID value
-                            filter_outer_tpid_de=0,  # Do not filter on the outer TPID field
-
-                            filter_inner_priority=8,  # Filter on inner vlan
-                            filter_inner_vid=0x0,  # Look for vlan 0
-                            filter_inner_tpid_de=0,  # Do not filter on inner TPID field
-                            filter_ether_type=0,  # Do not filter on EtherType
-
-                            treatment_tags_to_remove=1,
-                            treatment_outer_priority=15,
-                            treatment_outer_vid=0,
-                            treatment_outer_tpid_de=0,
-
-                            treatment_inner_priority=8,  # Add an inner tag and insert this value as the priority
-                            treatment_inner_vid=_set_vlan_vid,  # use this value as the VID in the inner VLAN tag
-                            treatment_inner_tpid_de=4,  # set TPID
-                        )
-                    )
-                    # TODO: Move this to a task
-                    msg = ExtendedVlanTaggingOperationConfigurationDataFrame(
-                        _mac_bridge_service_profile_entity_id,  # Bridge Entity ID
-                        attributes=attributes  # See above
-                    )
-                    frame = msg.set()
-                    self.log.debug('openomci-msg', msg=msg)
-                    results = yield self.omci_cc.send(frame)
-                    self.check_status_and_state(results,
-                                                'flow-set-ext-vlan-tagging-op-config-data-zero-tagged')
-
-                    device.reason = 'omci-flows-pushed'
-                    # For some reason we cant call update_device here, grpc RepeatedCompositeContainer errors happen, not sure why
+                device.reason = 'omci-flows-pushed'
+                # For some reason we cant call update_device here, grpc RepeatedCompositeContainer errors happen, not sure why
 
             except Exception as e:
                 self.log.exception('failed-to-install-flow', e=e, flow=flow)
@@ -967,4 +970,3 @@ class BrcmOpenomciOnuHandler(object):
 
         elif status == RC.InstanceExists:
             return False
-
