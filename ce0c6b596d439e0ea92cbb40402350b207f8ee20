@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "b1f0b3f3_ff750d79",
+        "filename": "voltha/adapters/openolt/openolt_resource_manager.py",
+        "patchSetId": 12
+      },
+      "lineNbr": 109,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-09-13T17:23:39Z",
+      "side": 1,
+      "message": "My point was not replacing \"default\" with some other string.\nself.device_info.vendor is the vendor.\n\nThere is a need (in the initialize_device_resource_pool) to have boolean flag to know if we use the data from device_info or the from the CLI",
+      "range": {
+        "startLine": 109,
+        "startChar": 20,
+        "endLine": 109,
+        "endChar": 65
+      },
+      "revId": "ce0c6b596d439e0ea92cbb40402350b207f8ee20",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
