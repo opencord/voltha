@@ -290,16 +290,16 @@ message Action {
 }
 
 message Flow {
-    fixed32 access_intf_id = 1;
-    fixed32 onu_id = 2;
+    sfixed32 access_intf_id = 1;
+    sfixed32 onu_id = 2;
     fixed32 flow_id = 3;
     string flow_type = 4;	// upstream, downstream, broadcast, multicast
-    fixed32 network_intf_id = 5;
-    fixed32 gemport_id = 6;
-    fixed32 alloc_id = 10;
+    sfixed32 alloc_id = 10;
+    sfixed32 network_intf_id = 5;
+    sfixed32 gemport_id = 6;
     Classifier classifier = 7;
     Action action = 8;
-    fixed32 priority = 9;
+    sfixed32 priority = 9;
 }
 
 message SerialNumber {

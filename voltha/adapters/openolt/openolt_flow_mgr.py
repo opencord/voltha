@@ -33,7 +33,7 @@ DHCP_FLOW_INDEX = 1  # FIXME
 DHCP_DOWNLINK_FLOW_INDEX = 6  # FIXME
 EAPOL_FLOW_INDEX = 2  # FIXME
 EAPOL_SECONDARY_FLOW_INDEX = 5  # FIXME
-LLDP_FLOW_INDEX = 7  # FIXME
+LLDP_FLOW_ID = 0x3FF8  # FIXME (16376)
 
 EAP_ETH_TYPE = 0x888e
 LLDP_ETH_TYPE = 0x88cc
@@ -269,9 +269,7 @@ class OpenOltFlowMgr(object):
                         vlan_id=vlan_id)
             if classifier[ETH_TYPE] == LLDP_ETH_TYPE:
                 self.log.debug('lldp flow add')
-                yield self.add_lldp_flow(intf_id, onu_id, flow, classifier,
-                                   action)
-
+                yield self.add_lldp_flow(flow)
 
         elif PUSH_VLAN in action:
             yield self.add_upstream_data_flow(intf_id, onu_id, classifier,
@@ -407,8 +405,6 @@ class OpenOltFlowMgr(object):
                        eapol_id=EAPOL_FLOW_INDEX,
                        vlan_id=DEFAULT_MGMT_VLAN):
 
-
-
         uplink_classifier = {}
         uplink_classifier[ETH_TYPE] = EAP_ETH_TYPE
         uplink_classifier[PACKET_TAG_TYPE] = SINGLE_TAG
@@ -454,7 +450,6 @@ class OpenOltFlowMgr(object):
             downlink_classifier[PACKET_TAG_TYPE] = SINGLE_TAG
             downlink_classifier[VLAN_VID] = special_vlan_downstream_flow
 
-
             downlink_action = {}
             downlink_action[PUSH_VLAN] = True
             downlink_action[VLAN_VID] = vlan_id
@@ -469,9 +464,10 @@ class OpenOltFlowMgr(object):
                 classifier=self.mk_classifier(downlink_classifier),
                 action=self.mk_action(downlink_action))
 
-            downstream_logical_flow = ofp_flow_stats(id=logical_flow.id,
-                 cookie=logical_flow.cookie, table_id=logical_flow.table_id,
-                 priority=logical_flow.priority, flags=logical_flow.flags)
+            downstream_logical_flow = ofp_flow_stats(
+                id=logical_flow.id, cookie=logical_flow.cookie,
+                table_id=logical_flow.table_id, priority=logical_flow.priority,
+                flags=logical_flow.flags)
 
             downstream_logical_flow.match.oxm_fields.extend(fd.mk_oxm_fields([
                 fd.in_port(fd.get_out_port(logical_flow)),
@@ -480,7 +476,7 @@ class OpenOltFlowMgr(object):
 
             downstream_logical_flow.instructions.extend(
                 fd.mk_instructions_from_actions([fd.output(
-                platform.mk_uni_port_num(intf_id, onu_id))]))
+                    platform.mk_uni_port_num(intf_id, onu_id))]))
 
             self.add_flow_to_device(downstream_flow, downstream_logical_flow)
 
@@ -500,37 +496,34 @@ class OpenOltFlowMgr(object):
     def reset_flows(self):
         self.flows_proxy.update('/', Flows())
 
+
+    """ Add a downstream LLDP trap flow on the NNI interface
+    """
     @inlineCallbacks
-    def add_lldp_flow(self, intf_id, onu_id, logical_flow, classifier, action):
+    def add_lldp_flow(self, logical_flow, network_intf_id=0):
 
-        self.log.debug('add lldp downstream trap', classifier=classifier,
-                       action=action)
-
-        action.clear()
-        action[TRAP_TO_HOST] = True
+        classifier = {}
+        classifier[ETH_TYPE] = LLDP_ETH_TYPE
         classifier[PACKET_TAG_TYPE] = UNTAGGED
+        action = {}
+        action[TRAP_TO_HOST] = True
 
-        pon_intf_onu_id = (intf_id, onu_id)
-        gemport_id = yield self.resource_mgr.get_gemport_id(
-                          pon_intf_onu_id=pon_intf_onu_id
-                     )
-        alloc_id = yield self.resource_mgr.get_alloc_id(
-                          pon_intf_onu_id=pon_intf_onu_id
-                     )
-
-        flow_id = platform.mk_flow_id(intf_id, onu_id, LLDP_FLOW_INDEX)
+        flow_id = LLDP_FLOW_ID  # FIXME
 
         downstream_flow = openolt_pb2.Flow(
-            onu_id=onu_id, flow_id=flow_id, flow_type=DOWNSTREAM,
-            access_intf_id=3, network_intf_id=0, gemport_id=gemport_id,
-            alloc_id=alloc_id,
+            onu_id=-1,  # onu_id not required
+            gemport_id=-1,  # gemport_id not required
+            access_intf_id=-1,  # access_intf_id not required
+            flow_id=flow_id,
+            flow_type=DOWNSTREAM,
             priority=logical_flow.priority,
+            network_intf_id=network_intf_id,
             classifier=self.mk_classifier(classifier),
             action=self.mk_action(action))
 
-        self.log.debug('add lldp downstream trap', access_intf_id=intf_id,
-                       onu_id=onu_id, flow_id=flow_id)
-        self.stub.FlowAdd(downstream_flow)
+        self.log.debug('add lldp downstream trap', classifier=classifier,
+                       action=action, flow=downstream_flow)
+        self.add_flow_to_device(downstream_flow, logical_flow)
 
     def mk_classifier(self, classifier_info):
 
@@ -614,9 +607,9 @@ class OpenOltFlowMgr(object):
         for flow in flows:
             in_port = fd.get_in_port(flow)
             out_port = fd.get_out_port(flow)
-
             if in_port == port and \
-                platform.intf_id_to_port_type_name(out_port) == Port.ETHERNET_NNI:
+                platform.intf_id_to_port_type_name(out_port) \
+                    == Port.ETHERNET_NNI:
                 fields = fd.get_ofb_fields(flow)
                 self.log.debug('subscriber flow found', fields=fields)
                 for field in fields:
