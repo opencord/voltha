@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "3e60f6b8_6ccdb43b",
+        "filename": "common/pon_resource_manager/resource_manager.py",
+        "patchSetId": 11
+      },
+      "lineNbr": 119,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-09-13T14:09:06Z",
+      "side": 1,
+      "message": "Ok. removing this.",
+      "parentUuid": "c2f7ee9a_1ba3420e",
+      "range": {
+        "startLine": 117,
+        "startChar": 8,
+        "endLine": 119,
+        "endChar": 34
+      },
+      "revId": "3397f03bd5878752e09b018194b36228326acbf5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b656ab90_82e423df",
         "filename": "voltha/adapters/openolt/openolt_device.py",
         "patchSetId": 11
@@ -119,6 +143,30 @@
     },
     {
       "key": {
+        "uuid": "3c47ab02_390b7283",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 11
+      },
+      "lineNbr": 746,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-09-13T14:09:06Z",
+      "side": 1,
+      "message": "This has no relevance. Removing this.",
+      "parentUuid": "e4f1bc1f_db0f8b4b",
+      "range": {
+        "startLine": 746,
+        "startChar": 0,
+        "endLine": 746,
+        "endChar": 25
+      },
+      "revId": "3397f03bd5878752e09b018194b36228326acbf5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "83187a42_55e74be5",
         "filename": "voltha/adapters/openolt/openolt_device.py",
         "patchSetId": 11
@@ -154,6 +202,54 @@
       "side": 1,
       "message": "Isn\u0027t sys.exit() too drastic? There will be multiple types of OLTs (openolt, adtran, ..) being managed by VOLTHA. We should log / alarm, disable the logical device and continue.",
       "parentUuid": "83187a42_55e74be5",
+      "range": {
+        "startLine": 1135,
+        "startChar": 0,
+        "endLine": 1143,
+        "endChar": 23
+      },
+      "revId": "3397f03bd5878752e09b018194b36228326acbf5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "444622f8_253a3791",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 11
+      },
+      "lineNbr": 1143,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-09-13T14:09:06Z",
+      "side": 1,
+      "message": "initialize_device_resource_range_and_pool actually is a blocking call since it reads from the KV store. In order to do it the non-blocking \"twisted\" way, it has to be yield-ed. Python \"@inlineCallback\" doesn\u0027t work well with __init__ function. So, it is moved out of __init__.",
+      "parentUuid": "83187a42_55e74be5",
+      "range": {
+        "startLine": 1135,
+        "startChar": 0,
+        "endLine": 1143,
+        "endChar": 23
+      },
+      "revId": "3397f03bd5878752e09b018194b36228326acbf5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "caf84f9b_566d7c97",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 11
+      },
+      "lineNbr": 1143,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-09-13T14:09:06Z",
+      "side": 1,
+      "message": "I don\u0027t think there is anything like disabling a LogicalDevice.\nTo handle this particular case, I think of the following handling\n1) Stop the Indication Thread handler\n2) Mark the Device OperStatus/ConnectionStatus as UNKNOWN/UNREACHABLE.\n\nPlease let me know if that looks Ok, before I make any change",
+      "parentUuid": "692cfeae_388c3ba0",
       "range": {
         "startLine": 1135,
         "startChar": 0,
