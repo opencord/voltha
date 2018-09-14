@@ -122,19 +122,19 @@ class GlobalHandler(VolthaGlobalServiceServicer):
 
     @twisted_async
     def GetVoltha(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         return self.root.get('/', depth=1)
 
     @twisted_async
     def ListVolthaInstances(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         items = self.dispatcher.get_cluster_instances()
         return VolthaInstances(items=items)
 
     @twisted_async
     @inlineCallbacks
     def GetVolthaInstance(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         core_id = self.dispatcher.get_core_id_from_instance_id(request.id)
         if not core_id:
             log.info('invalid-instance-id', instance=request.id)
@@ -146,20 +146,20 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                   Empty(),
                                                   context,
                                                   core_id=core_id)
-        log.debug('grpc-response', response=response)
+        log.trace('grpc-response', response=response)
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Voltha Instance error')
             context.set_code(response.error_code)
             returnValue(VolthaInstance())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def ListLogicalDevices(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch('ListLogicalDevices',
                                                   Empty(),
                                                   context,
