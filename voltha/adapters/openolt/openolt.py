@@ -180,6 +180,7 @@ class OpenoltAdapter(object):
         handler = self.devices[device.id]
         handler.delete()
         del self.devices[device.id]
+        del self.logical_device_id_to_root_device_id[device.parent_id]
         return device
 
     def get_device_details(self, device):
@@ -242,9 +243,12 @@ class OpenoltAdapter(object):
                 self.logical_device_id_to_root_device_id[ldi] = di
             return di
 
-        device_id = ldi_to_di(logical_device_id)
-        handler = self.devices[device_id]
-        handler.packet_out(egress_port_no, msg)
+        try:
+            device_id = ldi_to_di(logical_device_id)
+            handler = self.devices[device_id]
+            handler.packet_out(egress_port_no, msg)
+        except Exception as e:
+            log.error('packet-out:exception', e=e.message)
 
     def receive_inter_adapter_message(self, msg):
         log.info('rx_inter_adapter_msg - Not implemented')
