@@ -79,6 +79,14 @@ def setup_logging(log_config, instance_id, verbosity_adjust=0):
     logging.config.dictConfig(log_config)
     logging.root.level -= 10 * verbosity_adjust
 
+    # Add TRACE log level (lower than DEBUG:10)
+    TRACE_LOGLVL = 5
+    logging.addLevelName(TRACE_LOGLVL, "TRACE")
+    def trace_loglevel(self, message, *args, **kws):
+        if self.isEnabledFor(TRACE_LOGLVL):
+            self._log(TRACE_LOGLVL, message, args, **kws)
+    logging.Logger.trace = trace_loglevel
+
     processors = [
         add_exc_info_flag_for_exception,
         structlog.processors.StackInfoRenderer(),
@@ -95,7 +103,6 @@ def setup_logging(log_config, instance_id, verbosity_adjust=0):
     log = structlog.get_logger()
     log.info("first-line")
     return log
-
 
 def update_logging(instance_id, vcore_id):
     """
