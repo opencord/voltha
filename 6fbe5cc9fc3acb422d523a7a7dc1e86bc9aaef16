@@ -16,6 +16,24 @@
       "revId": "6fbe5cc9fc3acb422d523a7a7dc1e86bc9aaef16",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "6fc58ba7_24afb935",
+        "filename": "alarm-generator/README.md",
+        "patchSetId": 6
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-09-14T15:39:45Z",
+      "side": 1,
+      "message": "Yes, a future capability to trigger these on the ONU would be useful.  I could see two uses.\n1. Test alarms being generated (outside of alarm state machine)\n2. Insertion of active alarms into the OpenOMCI alarm status table/DB to see the alarm raised and then it being detected and cleared during an audit pass of the Alarm State machine.",
+      "parentUuid": "78b1760a_ff889dff",
+      "revId": "6fbe5cc9fc3acb422d523a7a7dc1e86bc9aaef16",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
