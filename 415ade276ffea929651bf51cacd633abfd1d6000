@@ -2,6 +2,29 @@
   "comments": [
     {
       "key": {
+        "uuid": "fc91e37e_e0e2364a",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 458,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-09-14T02:46:13Z",
+      "side": 1,
+      "message": "I understand this comes from legacy. But, it is better to use constants for instead of strings like \u0027eth_type\u0027, \u0027pkt_tag_type\u0027, \u0027untagged\u0027, \u0027downstream\u0027 etc. Much less chance of making mistakes.\nThis need not be addressed in this commit, but something that could be done in the future.",
+      "range": {
+        "startLine": 441,
+        "startChar": 1,
+        "endLine": 458,
+        "endChar": 42
+      },
+      "revId": "415ade276ffea929651bf51cacd633abfd1d6000",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "8383c7e1_145fa277",
         "filename": "voltha/adapters/openolt/protos/openolt.proto",
         "patchSetId": 3
