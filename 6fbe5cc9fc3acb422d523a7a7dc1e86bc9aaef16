@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "78b1760a_ff889dff",
+        "filename": "alarm-generator/README.md",
+        "patchSetId": 6
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1000453
+      },
+      "writtenOn": "2018-09-14T13:26:10Z",
+      "side": 1,
+      "message": "Typo:  streat -\u003e stream.\n\nAfter reading the generator class args and notes, README should have a usage overview for recommended ways to use this generator for testing (initially a TODO placeholder).   Along with more command line examples.   This would be helpful for those who just want to use this.\n\nSomeday:  OMCI indicator simulations.   Chip? thoughts?",
+      "revId": "6fbe5cc9fc3acb422d523a7a7dc1e86bc9aaef16",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
