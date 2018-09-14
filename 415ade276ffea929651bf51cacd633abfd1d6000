@@ -16,6 +16,24 @@
       "revId": "415ade276ffea929651bf51cacd633abfd1d6000",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "306cac78_609170b9",
+        "filename": "voltha/adapters/openolt/protos/openolt.proto",
+        "patchSetId": 3
+      },
+      "lineNbr": 296,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-09-14T02:38:14Z",
+      "side": 1,
+      "message": "There is different in the openolt.proto used between voltha and openolt commits..",
+      "parentUuid": "8383c7e1_145fa277",
+      "revId": "415ade276ffea929651bf51cacd633abfd1d6000",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
