@@ -1,0 +1,95 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d3fbee1f_f60cd907",
+        "filename": "voltha/extensions/omci/me_frame.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 381,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-09-14T14:35:35Z",
+      "side": 1,
+      "message": "could you change the print (and the other prints below) to a log.debug message",
+      "revId": "2004aa17a1b7ccc77c763f7a8b11ea1d113a7b5c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b0b246f1_c664fa51",
+        "filename": "voltha/extensions/omci/state_machines/image_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 193,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-09-14T14:35:35Z",
+      "side": 1,
+      "message": "change to a debug log message",
+      "revId": "2004aa17a1b7ccc77c763f7a8b11ea1d113a7b5c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "6b4c4f2d_6c061581",
+        "filename": "voltha/extensions/omci/state_machines/image_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 296,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-09-14T14:35:35Z",
+      "side": 1,
+      "message": "log message here and below, something like: \n\nself.log.debug(\u0027omci-resp-success\u0027, cur_state\u003dcur_state)",
+      "revId": "2004aa17a1b7ccc77c763f7a8b11ea1d113a7b5c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "af70dbc1_9a22afc9",
+        "filename": "voltha/extensions/omci/state_machines/image_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 338,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-09-14T14:35:35Z",
+      "side": 1,
+      "message": "Direct access to the OMCI_CC channel is highly discouraged from either DA\u0027s or even OMCI State Machines.   Could you change these into Tasks that can be ran by the Task Runner at the appropriate priority.    When you queue the task, you will get a defer that will fire on completion/failure of the task.  \n\nI think a majority of this state machine steps may be individual steps within the task.\n\nWhen you do create a task, make sure you set the \u0027exclusive\u0027 flag to false, that will allow software download to interleave with other ONU state machines (PM intervals, alarm \u0026 MIB DB, ...).\n\nRight now there are two areas that use exclusive OMCI_CC access. One is if a MIB-RESET \u0026 Download is needed in the MIB State machine.  This one will always be true as I have seen MIB uploads fail on some ONUs unless this is done exclusively.  The other location is in setting up of services (flows). These will need to be moved over to be non-exclusive once we get more experience on different ONUs and MIB-Resync works as expected.",
+      "range": {
+        "startLine": 338,
+        "startChar": 46,
+        "endLine": 338,
+        "endChar": 53
+      },
+      "revId": "2004aa17a1b7ccc77c763f7a8b11ea1d113a7b5c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f07e6c18_87dcea31",
+        "filename": "voltha/extensions/omci/state_machines/image_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 492,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-09-14T14:35:35Z",
+      "side": 1,
+      "message": "For state machine state changes, you could advertise these on the event bus. You have \u0027advertise\u0027 in the OpenOMCI Agent set to true for this state machine but it doesn\u0027t look like you call it anywhere for this SM",
+      "revId": "2004aa17a1b7ccc77c763f7a8b11ea1d113a7b5c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
