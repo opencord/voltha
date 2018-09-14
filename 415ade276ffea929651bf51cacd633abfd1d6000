@@ -2,6 +2,29 @@
   "comments": [
     {
       "key": {
+        "uuid": "104076a6_97e7d3d2",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 439,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-09-14T14:33:28Z",
+      "side": 1,
+      "message": "If you passed in the logical flow you could use it to extract the priority and it will allow to store it in the device flows so the view of it reflects the OLT\u0027s view",
+      "range": {
+        "startLine": 439,
+        "startChar": 4,
+        "endLine": 439,
+        "endChar": 47
+      },
+      "revId": "415ade276ffea929651bf51cacd633abfd1d6000",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fc91e37e_e0e2364a",
         "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
         "patchSetId": 3
@@ -17,6 +40,29 @@
         "startLine": 441,
         "startChar": 1,
         "endLine": 458,
+        "endChar": 42
+      },
+      "revId": "415ade276ffea929651bf51cacd633abfd1d6000",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3ed955fe_3b57844e",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 462,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-09-14T14:33:28Z",
+      "side": 1,
+      "message": "using self.add_flow_to_device with the constructed flow object and the logical flow handles the logging, the adding to the device and to the list of device flows",
+      "range": {
+        "startLine": 462,
+        "startChar": 8,
+        "endLine": 462,
         "endChar": 42
       },
       "revId": "415ade276ffea929651bf51cacd633abfd1d6000",
@@ -54,6 +100,24 @@
       "side": 1,
       "message": "There is different in the openolt.proto used between voltha and openolt commits..",
       "parentUuid": "8383c7e1_145fa277",
+      "revId": "415ade276ffea929651bf51cacd633abfd1d6000",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "c5931432_6fbffbb7",
+        "filename": "voltha/adapters/openolt/protos/openolt.proto",
+        "patchSetId": 3
+      },
+      "lineNbr": 296,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-09-14T14:33:28Z",
+      "side": 1,
+      "message": "True",
+      "parentUuid": "306cac78_609170b9",
       "revId": "415ade276ffea929651bf51cacd633abfd1d6000",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
