@@ -135,7 +135,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def ListLogicalDevices(self, request, context):
-        log.trace('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
         items = self.root.get('/logical_devices')
         return LogicalDevices(items=items)
 
@@ -161,7 +161,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def ListLogicalDevicePorts(self, request, context):
-        log.trace('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
 
         if '/' in request.id:
             context.set_details(
@@ -725,7 +725,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
     @twisted_async
     def ListDevicePorts(self, request, context):
-        log.trace('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
 
         if '/' in request.id:
             context.set_details(
