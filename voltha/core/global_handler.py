@@ -159,12 +159,12 @@ class GlobalHandler(VolthaGlobalServiceServicer):
     @twisted_async
     @inlineCallbacks
     def ListLogicalDevices(self, request, context):
-        log.trace('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
         response = yield self.dispatcher.dispatch('ListLogicalDevices',
                                                   Empty(),
                                                   context,
                                                   broadcast=True)
-        log.trace('grpc-response', response=response)
+        log.debug('grpc-response', response=response)
         returnValue(response)
 
     @twisted_async
@@ -190,13 +190,13 @@ class GlobalHandler(VolthaGlobalServiceServicer):
     @twisted_async
     @inlineCallbacks
     def ListLogicalDevicePorts(self, request, context):
-        log.trace('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
 
         response = yield self.dispatcher.dispatch('ListLogicalDevicePorts',
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.trace('grpc-response', response=response)
+        log.debug('grpc-response', response=response)
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details(
@@ -204,7 +204,7 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(Ports())
         else:
-            log.trace('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -476,19 +476,19 @@ class GlobalHandler(VolthaGlobalServiceServicer):
     @twisted_async
     @inlineCallbacks
     def ListDevicePorts(self, request, context):
-        log.trace('grpc-request', request=request)
+        log.debug('grpc-request', request=request)
         response = yield self.dispatcher.dispatch('ListDevicePorts',
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.trace('grpc-response', response=response)
+        log.debug('grpc-response', response=response)
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(Ports())
         else:
-            log.trace('grpc-success-response', response=response)
+            log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
