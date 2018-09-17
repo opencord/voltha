@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "99527e51_1019dd52",
+        "filename": "tests/atests/common/run_robot.sh",
+        "patchSetId": 2
+      },
+      "lineNbr": 21,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2018-09-17T16:01:46Z",
+      "side": 1,
+      "message": "where is env.sh? i dont see it in this patch",
+      "revId": "a3916899692f65c4ca23f080851e9f8692d26535",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
