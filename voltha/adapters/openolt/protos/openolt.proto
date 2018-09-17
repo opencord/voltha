@@ -218,9 +218,6 @@ message Onu {
     fixed32 onu_id = 2;
     SerialNumber serial_number = 3;
     fixed32 pir = 4;   // peak information rate assigned to onu
-    fixed32 agg_port_id = 5;
-    fixed32 sched_id = 6;
-
 }
 
 message OmciMsg {
@@ -296,7 +293,6 @@ message Flow {
     string flow_type = 4;	// upstream, downstream, broadcast, multicast
     fixed32 network_intf_id = 5;
     fixed32 gemport_id = 6;
-    fixed32 alloc_id = 10;
     Classifier classifier = 7;
     Action action = 8;
     fixed32 priority = 9;
