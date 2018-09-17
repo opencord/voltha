@@ -36,7 +36,7 @@ class AdapterAlarmSimulator(object):
         if alarm.indicator == "los":
             alarm_obj = OltLosAlarm(self.adapter_alarms, intf_id=alarm.intf_id, port_type_name=alarm.port_type_name)
         elif alarm.indicator == "dying_gasp":
-            alarm_obj = OnuDyingGaspAlarm(self.adapter_alarms, alarm.intf_id, alarm.onu_device_id)
+            alarm_obj = OnuDyingGaspAlarm(self.adapter_alarms, onu_id=alarm.onu_device_id, intf_id=alarm.intf_id)
         elif alarm.indicator == "onu_los":
             alarm_obj = OnuLosAlarm(self.adapter_alarms, onu_id=alarm.onu_device_id, intf_id=alarm.intf_id)
         elif alarm.indicator == "onu_lopc_miss":
