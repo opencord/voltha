@@ -967,12 +967,6 @@ class OpenoltDevice(object):
 
             try:
                 self.flow_mgr.add_flow(flow)
-            except grpc.RpcError as grpc_e:
-                if grpc_e.code() == grpc.StatusCode.ALREADY_EXISTS:
-                    self.log.warn('flow already exists', e=grpc_e, flow=flow)
-                else:
-                    self.log.error('failed to add flow', flow=flow,
-                                   grpc_error=grpc_e)
             except Exception as e:
                 self.log.error('failed to add flow', flow=flow, e=e)
 
