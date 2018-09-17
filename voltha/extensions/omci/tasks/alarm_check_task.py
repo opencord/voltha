@@ -31,7 +31,7 @@ class AlarmDataTask(Task):
     name = "Alarm Data Task"
     max_payload = 29
 
-    def __init__(self, omci_agent, device_id, class_id, entity_id):
+    def __init__(self, omci_agent, device_id):
         """
         Class initialization
 
@@ -46,8 +46,6 @@ class AlarmDataTask(Task):
                                             priority=AlarmDataTask.task_priority,
                                             exclusive=False)
         self._local_deferred = None
-        self._class_id = class_id
-        self._entity_id = entity_id
         self._last_number_of_commands = None
 
     def cancel_deferred(self):
@@ -81,8 +79,7 @@ class AlarmDataTask(Task):
         """
         Sync the current alarm sequence number
         """
-        self.log.info('perform-get-interval', class_id=self._class_id,
-                      entity_id=self._entity_id)
+        self.log.info('perform-get-interval')
 
         try:
             device = self.omci_agent.get_device(self.device_id)
