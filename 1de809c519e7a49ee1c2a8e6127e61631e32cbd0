@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ae7cd31c_9676faf9",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 15
+      },
+      "lineNbr": 59,
+      "author": {
+        "id": 1000410
+      },
+      "writtenOn": "2018-09-17T13:37:42Z",
+      "side": 1,
+      "message": "You removed the resource manager",
+      "range": {
+        "startLine": 59,
+        "startChar": 8,
+        "endLine": 59,
+        "endChar": 40
+      },
+      "revId": "1de809c519e7a49ee1c2a8e6127e61631e32cbd0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
