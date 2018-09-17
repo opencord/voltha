@@ -17,6 +17,9 @@ from connection_mgr import ConnectionManager
 
 class TestConection_mgr(TestCase):
 
+    # Set a default for the gRPC timeout (seconds)
+    grpc_timeout = 10
+
     def gen_endpoints(self):
         consul_endpoint = "localhost:8500"
         voltha_endpoint= "localhost:8880"
@@ -45,7 +48,8 @@ class TestConection_mgr(TestCase):
     def test_connection_mgr_init(self):
         consul_endpoint,voltha_endpoint,controller_endpoints  = self.gen_endpoints()
         my_name = self.gen_container_name()
-        test_connection_init = ConnectionManager(consul_endpoint, voltha_endpoint, controller_endpoints, my_name)
+        test_connection_init = ConnectionManager(consul_endpoint, voltha_endpoint, self.grpc_timeout,
+                                                 controller_endpoints, my_name)
         self.assertEqual(test_connection_init.consul_endpoint,consul_endpoint)
         self.assertEqual(test_connection_init.vcore_endpoint, voltha_endpoint)
         self.assertEqual(test_connection_init.controller_endpoints, controller_endpoints)
@@ -53,7 +57,8 @@ class TestConection_mgr(TestCase):
     def test_resolve_endpoint(self):
         consul_endpoint, voltha_endpoint, controller_endpoints = self.gen_endpoints()
         my_name = self.gen_container_name()
-        test_connection_init = ConnectionManager(consul_endpoint, voltha_endpoint, controller_endpoints, my_name)
+        test_connection_init = ConnectionManager(consul_endpoint, voltha_endpoint, self.grpc_timeout,
+                                                 controller_endpoints, my_name)
         host,port = test_connection_init.resolve_endpoint(endpoint=consul_endpoint)
         assert isinstance(port, int)
         assert isinstance(host, basestring)
@@ -62,21 +67,24 @@ class TestConection_mgr(TestCase):
         consul_endpoint, voltha_endpoint, controller_endpoints = self.gen_endpoints()
         my_name = self.gen_container_name()
         devices,device = self.gen_devices()
-        test_connection_init = ConnectionManager(consul_endpoint, voltha_endpoint, controller_endpoints, my_name)
+        test_connection_init = ConnectionManager(consul_endpoint, voltha_endpoint, self.grpc_timeout,
+                                                 controller_endpoints, my_name)
         test_connection_init.refresh_agent_connections(devices)
 
     def test_create_agent(self):
         consul_endpoint, voltha_endpoint, controller_endpoints = self.gen_endpoints()
         my_name = self.gen_container_name()
         devices,device = self.gen_devices()
-        test_connection_init = ConnectionManager(consul_endpoint, voltha_endpoint, controller_endpoints, my_name)
+        test_connection_init = ConnectionManager(consul_endpoint, voltha_endpoint, self.grpc_timeout,
+                                                 controller_endpoints, my_name)
         test_connection_init.create_agent(device)
 
     def test_delete_agent(self):
         consul_endpoint, voltha_endpoint, controller_endpoints = self.gen_endpoints()
         my_name = self.gen_container_name()
         devices,device = self.gen_devices()
-        test_connection_init = ConnectionManager(consul_endpoint, voltha_endpoint, controller_endpoints, my_name)
+        test_connection_init = ConnectionManager(consul_endpoint, voltha_endpoint, self.grpc_timeout,
+                                                 controller_endpoints, my_name)
         test_connection_init.create_agent(device)
         with self.assertRaises(Exception) as context:
             test_connection_init.delete_agent(device.datapath_id)
@@ -88,7 +96,8 @@ class TestConection_mgr(TestCase):
         my_name = self.gen_container_name()
         devices,device = self.gen_devices()
         packet_in = self.gen_packet_in()
-        test_connection_init = ConnectionManager(consul_endpoint, voltha_endpoint, controller_endpoints, my_name)
+        test_connection_init = ConnectionManager(consul_endpoint, voltha_endpoint, self.grpc_timeout,
+                                                 controller_endpoints, my_name)
         test_connection_init.create_agent(device)
         test_connection_init.forward_packet_in(device.id, packet_in)
 
