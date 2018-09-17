@@ -38,10 +38,11 @@ log = get_logger()
 
 class GrpcClient(object):
 
-    def __init__(self, connection_manager, channel):
+    def __init__(self, connection_manager, channel, grpc_timeout):
 
         self.connection_manager = connection_manager
         self.channel = channel
+        self.grpc_timeout = grpc_timeout
         self.local_stub = VolthaLocalServiceStub(channel)
 
         self.stopped = False
@@ -51,7 +52,7 @@ class GrpcClient(object):
         self.change_event_queue = DeferredQueue()  # queue change events
 
     def start(self):
-        log.debug('starting')
+        log.debug('starting', grpc_timeout=self.grpc_timeout)
         self.start_packet_out_stream()
         self.start_packet_in_stream()
         self.start_change_event_in_stream()
@@ -82,6 +83,7 @@ class GrpcClient(object):
             try:
                 self.local_stub.StreamPacketsOut(generator)
             except _Rendezvous, e:
+                log.error('grpc-exception', status=e.code())
                 if e.code() == StatusCode.UNAVAILABLE:
                     os.system("kill -15 {}".format(os.getpid()))
 
@@ -100,6 +102,7 @@ class GrpcClient(object):
                               packet_in=packet_in,
                               queue_len=len(self.packet_in_queue.pending))
             except _Rendezvous, e:
+                log.error('grpc-exception', status=e.code())
                 if e.code() == StatusCode.UNAVAILABLE:
                     os.system("kill -15 {}".format(os.getpid()))
 
@@ -117,6 +120,7 @@ class GrpcClient(object):
                               change_event=event,
                               queue_len=len(self.change_event_queue.pending))
             except _Rendezvous, e:
+                log.error('grpc-exception', status=e.code())
                 if e.code() == StatusCode.UNAVAILABLE:
                     os.system("kill -15 {}".format(os.getpid()))
 
@@ -152,14 +156,14 @@ class GrpcClient(object):
     def get_port(self, device_id, port_id):
         req = LogicalPortId(id=device_id, port_id=port_id)
         res = yield threads.deferToThread(
-            self.local_stub.GetLogicalDevicePort, req)
+            self.local_stub.GetLogicalDevicePort, req, timeout=self.grpc_timeout)
         returnValue(res)
 
     @inlineCallbacks
     def get_port_list(self, device_id):
         req = ID(id=device_id)
         res = yield threads.deferToThread(
-            self.local_stub.ListLogicalDevicePorts, req)
+            self.local_stub.ListLogicalDevicePorts, req, timeout=self.grpc_timeout)
         returnValue(res.items)
 
     @inlineCallbacks
@@ -169,7 +173,7 @@ class GrpcClient(object):
             port_id=port_id
         )
         res = yield threads.deferToThread(
-            self.local_stub.EnableLogicalDevicePort, req)
+            self.local_stub.EnableLogicalDevicePort, req, timeout=self.grpc_timeout)
         returnValue(res)
 
     @inlineCallbacks
@@ -179,14 +183,14 @@ class GrpcClient(object):
             port_id=port_id
         )
         res = yield threads.deferToThread(
-            self.local_stub.DisableLogicalDevicePort, req)
+            self.local_stub.DisableLogicalDevicePort, req, timeout=self.grpc_timeout)
         returnValue(res)
 
     @inlineCallbacks
     def get_device_info(self, device_id):
         req = ID(id=device_id)
         res = yield threads.deferToThread(
-            self.local_stub.GetLogicalDevice, req)
+            self.local_stub.GetLogicalDevice, req, timeout=self.grpc_timeout)
         returnValue(res)
 
     @inlineCallbacks
@@ -196,7 +200,7 @@ class GrpcClient(object):
             flow_mod=flow_mod
         )
         res = yield threads.deferToThread(
-            self.local_stub.UpdateLogicalDeviceFlowTable, req)
+            self.local_stub.UpdateLogicalDeviceFlowTable, req, timeout=self.grpc_timeout)
         returnValue(res)
 
     @inlineCallbacks
@@ -206,26 +210,38 @@ class GrpcClient(object):
             group_mod=group_mod
         )
         res = yield threads.deferToThread(
-            self.local_stub.UpdateLogicalDeviceFlowGroupTable, req)
+            self.local_stub.UpdateLogicalDeviceFlowGroupTable, req, timeout=self.grpc_timeout)
         returnValue(res)
 
     @inlineCallbacks
     def list_flows(self, device_id):
         req = ID(id=device_id)
         res = yield threads.deferToThread(
-            self.local_stub.ListLogicalDeviceFlows, req)
+            self.local_stub.ListLogicalDeviceFlows, req, timeout=self.grpc_timeout)
         returnValue(res.items)
 
     @inlineCallbacks
     def list_groups(self, device_id):
         req = ID(id=device_id)
         res = yield threads.deferToThread(
-            self.local_stub.ListLogicalDeviceFlowGroups, req)
+            self.local_stub.ListLogicalDeviceFlowGroups, req, timeout=self.grpc_timeout)
         returnValue(res.items)
 
     @inlineCallbacks
     def list_ports(self, device_id):
         req = ID(id=device_id)
         res = yield threads.deferToThread(
-            self.local_stub.ListLogicalDevicePorts, req)
+            self.local_stub.ListLogicalDevicePorts, req, timeout=self.grpc_timeout)
         returnValue(res.items)
+
+    @inlineCallbacks
+    def list_logical_devices(self):
+        res = yield threads.deferToThread(
+            self.local_stub.ListLogicalDevices, empty_pb2.Empty(), timeout=self.grpc_timeout)
+        returnValue(res.items)
+
+    @inlineCallbacks
+    def subscribe(self, subscriber):
+        res = yield threads.deferToThread(
+            self.local_stub.Subscribe, subscriber, timeout=self.grpc_timeout)
+        returnValue(res)

@@ -22,6 +22,5 @@ Note that this test needs to run being inside ofagent directory.
 ```
 cd /cord/incubator/voltha/
 . ./env.sh
-cd ofagent/
 nosetests -s tests/utests/ofagent/
 ```

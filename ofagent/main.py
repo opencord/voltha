@@ -203,6 +203,9 @@ class Main(object):
 
         self.args = args = parse_args()
         self.config = load_config(args)
+        # May want to specify the gRPC timeout as an arg (in future)
+        # Right now, set a default value
+        self.grpc_timeout = 10
 
         verbosity_adjust = (args.verbose or 0) - (args.quiet or 0)
         self.log = setup_logging(self.config.get('logging', {}),
@@ -227,7 +230,8 @@ class Main(object):
         self.log.info('starting-internal-components')
         args = self.args
         self.connection_manager = yield ConnectionManager(
-            args.consul, args.grpc_endpoint, args.controller, args.instance_id, \
+            args.consul, args.grpc_endpoint, self.grpc_timeout,
+            args.controller, args.instance_id,
             args.enable_tls, args.key_file, args.cert_file).start()
         self.log.info('started-internal-services')
 
