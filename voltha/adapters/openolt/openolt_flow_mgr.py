@@ -56,6 +56,7 @@ class OpenOltFlowMgr(object):
         self.flows_proxy = registry('core').get_proxy(
             '/devices/{}/flows'.format(self.device_id))
         self.root_proxy = registry('core').get_proxy('/')
+        self.resource_mgr = resource_mgr
 
     def add_flow(self, flow):
         self.log.debug('add flow', flow=flow)
