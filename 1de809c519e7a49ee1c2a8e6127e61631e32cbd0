@@ -22,6 +22,30 @@
       "revId": "1de809c519e7a49ee1c2a8e6127e61631e32cbd0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3223e7ce_c6bb16ab",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 15
+      },
+      "lineNbr": 59,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-09-17T15:45:24Z",
+      "side": 1,
+      "message": "Sorry about this. I rebased the code to resolve a merge conflict. And this bug must have crept in. Submitting another patch with this fixed.",
+      "parentUuid": "ae7cd31c_9676faf9",
+      "range": {
+        "startLine": 59,
+        "startChar": 8,
+        "endLine": 59,
+        "endChar": 40
+      },
+      "revId": "1de809c519e7a49ee1c2a8e6127e61631e32cbd0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
