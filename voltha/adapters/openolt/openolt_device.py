@@ -599,64 +599,10 @@ class OpenoltDevice(object):
             # Device was in Discovered state, setting it to active
 
             # Prepare onu configuration
-            # If we are using the old/current broadcom adapter otherwise
-            # use the openomci adapter
-            if onu_device.adapter == 'broadcom_onu':
-                self.log.debug('using-broadcom_onu')
+            # If we are  brcm_openomci adapter proceed
 
-                # onu initialization, base configuration (bridge setup ...)
-                def onu_initialization():
 
-                    onu_adapter_agent.adapter.devices_handlers[onu_device.id] \
-                                     .message_exchange(cvid=DEFAULT_MGMT_VLAN)
-                    self.log.debug('broadcom-message-exchange-started')
-
-                # tcont creation (onu)
-                tcont = TcontsConfigData()
-                tcont.alloc_id = alloc_id
-
-                # gem port creation
-                gem_port = GemportsConfigData()
-                gem_port.gemport_id = gemport_id
-
-                # ports creation/update
-                def port_config():
-
-                    # "v_enet" creation (olt)
-
-                    # add_port update port when it exists
-                    self.adapter_agent.add_port(
-                        self.device_id,
-                        Port(
-                            port_no=uni_no,
-                            label=uni_name,
-                            type=Port.ETHERNET_UNI,
-                            admin_state=AdminState.ENABLED,
-                            oper_status=OperStatus.ACTIVE))
-
-                    # v_enet creation (onu)
-
-                    venet = VEnetConfig(name=uni_name)
-                    venet.interface.name = uni_name
-                    onu_adapter_agent.create_interface(onu_device, venet)
-
-                # ONU device status update in the datastore
-                def onu_update_oper_status():
-                    onu_device.oper_status = OperStatus.ACTIVE
-                    onu_device.connect_status = ConnectStatus.REACHABLE
-                    self.adapter_agent.update_device(onu_device)
-
-                # FIXME : the asynchronicity has to be taken care of properly
-                onu_initialization()
-                reactor.callLater(10, onu_adapter_agent.create_tcont,
-                                  device=onu_device, tcont_data=tcont,
-                                  traffic_descriptor_data=None)
-                reactor.callLater(11, onu_adapter_agent.create_gemport,
-                                  onu_device, gem_port)
-                reactor.callLater(12, port_config)
-                reactor.callLater(12, onu_update_oper_status)
-
-            elif onu_device.adapter == 'brcm_openomci_onu':
+            if onu_device.adapter == 'brcm_openomci_onu':
                 self.log.debug('using-brcm_openomci_onu')
 
                 # tcont creation (onu)
@@ -679,7 +625,8 @@ class OpenoltDevice(object):
                 onu_adapter_agent.create_interface(onu_device, onu_indication)
 
             else:
-                self.log.error('unsupported-openolt-onu-adapter')
+                self.log.error('unsupported-openolt-onu-adapter',
+                               onu_adapter=onu_device.adapter)
 
         else:
             self.log.warn('Not-implemented-or-invalid-value-of-oper-state',
