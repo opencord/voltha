@@ -48,6 +48,30 @@
     },
     {
       "key": {
+        "uuid": "0dbb754a_f7b0a4c0",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 458,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-09-18T19:30:53Z",
+      "side": 1,
+      "message": "See your point but I would like the api protobuf to be simple and uncluttered. We can review this later.",
+      "parentUuid": "fc91e37e_e0e2364a",
+      "range": {
+        "startLine": 441,
+        "startChar": 1,
+        "endLine": 458,
+        "endChar": 42
+      },
+      "revId": "415ade276ffea929651bf51cacd633abfd1d6000",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "3ed955fe_3b57844e",
         "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
         "patchSetId": 3
@@ -118,6 +142,24 @@
       "side": 1,
       "message": "True",
       "parentUuid": "306cac78_609170b9",
+      "revId": "415ade276ffea929651bf51cacd633abfd1d6000",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "45a4f819_e0ae383e",
+        "filename": "voltha/adapters/openolt/protos/openolt.proto",
+        "patchSetId": 3
+      },
+      "lineNbr": 296,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-09-18T19:30:53Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "c5931432_6fbffbb7",
       "revId": "415ade276ffea929651bf51cacd633abfd1d6000",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
