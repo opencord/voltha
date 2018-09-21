@@ -40,7 +40,7 @@ class AdtranOnuAdapter(OnuAdapter):
                                                device_handler_class=AdtranOnuHandler,
                                                name='adtran_onu',
                                                vendor='Adtran Inc.',
-                                               version='0.14',
+                                               version='0.15',
                                                device_type='adtran_onu',
                                                vendor_id='ADTN',
                                                accepts_add_remove_flow_updates=False),  # TODO: Support flow-mods
@@ -151,7 +151,6 @@ class AdtranOnuAdapter(OnuAdapter):
         API to create various interfaces (only some PON interfaces as of now)
         in the devices
         """
-
         self.log.debug('create-interface', data=data)
 
         handler = self.devices_handlers.get(device.id)

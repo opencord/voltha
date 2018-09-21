@@ -24,7 +24,7 @@ from voltha.protos.openflow_13_pb2 import ofp_port
 
 class UniPort(object):
     """Wraps southbound-port(s) support for ONU"""
-    DEFAULT_UNTAGGED_VLAN = 4092
+    DEFAULT_UNTAGGED_VLAN = 4091        # TODO: BroadCom Default.  Need a better way to define this
 
     def __init__(self, handler, name, port_no, ofp_port_no, subscriber_vlan=None,
                  untagged_vlan=None):
@@ -40,6 +40,7 @@ class UniPort(object):
         self._subscriber_vlan = subscriber_vlan
         self._untagged_vlan = untagged_vlan
         self._entity_id = None                  # TODO: Use port number from UNI-G entity ID
+        self._mac_bridge_port_num = 0
 
         self._admin_state = AdminState.ENABLED
         self._oper_status = OperStatus.ACTIVE
@@ -108,6 +109,20 @@ class UniPort(object):
         :return: (int) port number
         """
         return self._port_number
+
+    @property
+    def mac_bridge_port_num(self):
+        """
+        Port number used when creating MacBridgePortConfigurationDataFrame port number
+        :return: (int) port number
+        """
+        self.log.debug('function-entry')
+        return self._mac_bridge_port_num
+
+    @mac_bridge_port_num.setter
+    def mac_bridge_port_num(self, value):
+        self.log.debug('function-entry')
+        self._mac_bridge_port_num = value
 
     @property
     def entity_id(self):
@@ -196,7 +211,7 @@ class UniPort(object):
         """
         if self._port is None:
             self._port = Port(port_no=self.port_number,
-                              label='Ethernet port',
+                              label='vEth-{}'.format(self.port_number),
                               type=Port.ETHERNET_UNI,
                               admin_state=self._admin_state,
                               oper_status=self._oper_status)

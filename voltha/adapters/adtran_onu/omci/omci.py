@@ -52,6 +52,8 @@ class OMCI(object):
         self._connectivity_subscription = None
         self._capabilities_subscription = None
 
+        self._service_downloaded = False
+        self._mib_downloaded = False
         self._mib_download_task = None
         self._mib_download_deferred = None
 
@@ -94,6 +96,7 @@ class OMCI(object):
         self._unsubscribe_to_events()
         self._onu_omci_device.stop()        # Will also cancel any running tasks/state-machines
 
+        self._mib_downloaded = False
         self._mib_download_task = None
         self._bridge_initialized = False
         self._in_sync_reached = False
@@ -198,11 +201,15 @@ class OMCI(object):
             # Save entity_id of PON ports
             self._handler.pon_ports[0].entity_id = ani_g.keys()[0]
 
-            # Save entity_id for UNI ports
-            uni_entity_ids = uni_g.keys()
-            uni_entity_ids.sort()
-            for uni in self._handler.uni_ports:
-                uni.entity_id = uni_entity_ids.pop(0)
+            # Save entity_id for UNI ports (this is only for xPON mode code).  For the
+            # non-xPON mode, we save the entity IDs during the mib-in-sync handler when
+            # we create the UNI ports.
+
+            if self._handler.xpon_support:
+                uni_entity_ids = uni_g.keys()
+                uni_entity_ids.sort()
+                for uni in self._handler.uni_ports:
+                    uni.entity_id = uni_entity_ids.pop(0)
 
             self._total_tcont_count = ani_g.get('total-tcont-count')
             self._qos_flexibility = config.qos_configuration_flexibility or 0
@@ -321,8 +328,16 @@ class OMCI(object):
         """
         if self._capabilities_subscription is not None:
             from adtn_mib_download_task import AdtnMibDownloadTask
+            from adtn_service_download_task import AdtnServiceDownloadTask
 
             def success(_results):
+                if self._mib_downloaded:
+                    self._service_downloaded = True
+                else:
+                    # Now try the services
+                    self._mib_downloaded = True
+                    reactor.callLater(0, self.capabilities_handler)
+
                 self._mib_download_task = None
 
             def failure(_reason):
@@ -330,7 +345,11 @@ class OMCI(object):
                 # TODO: Handle failure, retry for now?
                 self._mib_download_deferred = reactor.callLater(_STARTUP_RETRY_WAIT,
                                                                 self.capabilities_handler)
-            self._mib_download_task = AdtnMibDownloadTask(self.omci_agent, self._handler)
+            if not self._mib_downloaded:
+                self._mib_download_task = AdtnMibDownloadTask(self.omci_agent, self._handler)
+            else:
+                self._mib_download_task = AdtnServiceDownloadTask(self.omci_agent, self._handler)
+
             self._mib_download_deferred = self._onu_omci_device.task_runner.queue_task(self._mib_download_task)
             self._mib_download_deferred.addCallbacks(success, failure)
 
