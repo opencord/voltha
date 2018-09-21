@@ -69,14 +69,10 @@ class HeartBeat(object):
 
     @property
     def check_item(self):
-        # return 'vendor_id' if self._handler.olt_created else 'serial_number'
-        return 'vendor_id' if self._handler.olt_created else 'vendor_id'
+        return 'vendor_id'
 
     @property
     def check_value(self):
-        if self._handler.olt_created:
-            return 'ADTN'
-
         # device = self._handler.adapter_agent.get_device(self._device_id)
         # return device.serial_number
         return 'ADTN'
