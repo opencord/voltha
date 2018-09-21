@@ -256,6 +256,7 @@ class EVC(object):
     @inlineCallbacks
     def _do_install(self):
         # Install the EVC if needed
+        log.debug('do-install', valid=self._valid, installed=self._installed)
 
         if self._valid and not self._installed:
             # TODO: Currently install EVC and then MAPs. Can do it all in a single edit-config operation
@@ -281,8 +282,7 @@ class EVC(object):
             # xml += EVC.SwitchingMethod.xml(self._switching_method)
             xml += EVC._xml_trailer()
 
-            log.debug("Creating EVC {}: '{}'".format(self.name, xml))
-
+            log.debug('create-evc', name=self.name, xml=xml)
             try:
                 # Set installed to true while request is in progress
                 self._installed = True
@@ -291,7 +291,7 @@ class EVC(object):
                 self.status = '' if results.ok else results.error
 
             except Exception as e:
-                log.exception('Failed to install EVC', name=self.name, e=e)
+                log.exception('install-failed', name=self.name, e=e)
                 raise
 
         # Install any associated EVC Maps
@@ -303,7 +303,7 @@ class EVC(object):
 
                 except Exception as e:
                     evc_map.status = 'Exception during EVC-MAP Install: {}'.format(e.message)
-                    log.exception(evc_map.status, e=e)
+                    log.exception('evc-map-install-failed', e=e)
 
         returnValue(self._installed and self._valid)
 

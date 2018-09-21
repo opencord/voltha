@@ -99,6 +99,7 @@ class AdtranRestClient(object):
         :param is_retry: (boolean) True if this method called recursively in order to recover
                                    from a connection loss. Can happen sometimes in debug sessions
                                    and in the real world.
+        :param suppress_error: (boolean) If true, do not output ERROR message on REST request failure
         :return: (dict) On success with the proper results
         """
         log.debug('request', method=method, uri=uri, data=data, retry=is_retry)

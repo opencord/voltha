@@ -25,10 +25,12 @@ class OltTCont(TCont):
     Adtran OLT specific implementation
     """
     def __init__(self, alloc_id, traffic_descriptor,
-                 name=None, vont_ani=None, is_mock=False):
+                 name=None, vont_ani=None, is_mock=False,
+                 pb_data = None):
         super(OltTCont, self).__init__(alloc_id, traffic_descriptor,
                                        name=name, vont_ani=vont_ani)
         self._is_mock = is_mock
+        self.data = pb_data             # Needed for non-xPON mode
 
     @staticmethod
     def create(tcont, td):
@@ -39,7 +41,8 @@ class OltTCont(TCont):
 
         return OltTCont(tcont['alloc-id'], td,
                         name=tcont['name'],
-                        vont_ani=tcont['vont-ani'])
+                        vont_ani=tcont['vont-ani'],
+                        pb_data=tcont['data'])
 
     @inlineCallbacks
     def add_to_hardware(self, session, pon_id, onu_id):
@@ -57,7 +60,7 @@ class OltTCont(TCont):
         try:
             results = yield session.request('POST', uri, data=data, name=name,
                                             suppress_error=False)
-        except:
+        except Exception as _e:
             results = None
 
         if self.traffic_descriptor is not None:

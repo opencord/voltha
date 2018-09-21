@@ -27,6 +27,7 @@ from voltha.protos.bbf_fiber_multicast_distribution_set_body_pb2 import \
 log = structlog.get_logger()
 
 
+# SEBA
 class AdtranXPON(object):
     """
     Class to abstract common OLT and ONU xPON operations
@@ -219,23 +220,24 @@ class AdtranXPON(object):
 
         return None
 
-    def create_tcont(self, tcont_data, traffic_descriptor_data):
+    def create_tcont(self, tcont_data, td_data):
         """
         Create TCONT information
         :param tcont_data:
-        :param traffic_descriptor_data:
+        :param td_data:
         """
-        log.debug('create-tcont', tcont=tcont_data, td=traffic_descriptor_data)
+        log.debug('create-tcont', tcont=tcont_data, td=td_data)
 
         # Handle TD first, then TCONT
-        try:
-            self.xpon_create(traffic_descriptor_data)
+        if td_data is not None:
+            try:
+                self.xpon_create(td_data)
 
-        except Exception as e:
-            log.exception('td-create', td=traffic_descriptor_data)
+            except Exception as e:
+                log.exception('td-create', td=td_data)
 
         try:
-            td = self.traffic_descriptors.get(traffic_descriptor_data.name)
+            td = self.traffic_descriptors.get(td_data.name) if td_data is not None else None
             self.xpon_create(tcont_data, td=td)
 
         except Exception as e:
@@ -288,11 +290,13 @@ class AdtranXPON(object):
 
     def xpon_create(self, data, td=None):
         log.debug('xpon-create', data=data)
-
         name = data.name
         items, create_method, update_method, _ = self._get_xpon_collection(data)
 
         if items is None:
+            from voltha.adapters.adtran_olt.adtran_olt_handler import OnuIndication
+            if isinstance(data, OnuIndication):   # Ignore this
+                return
             raise ValueError('Unknown data type: {}'.format(type(data)))
 
         item_type, new_item = self._data_to_dict(data, td=td)
@@ -318,6 +322,8 @@ class AdtranXPON(object):
 
     def xpon_update(self, data, td=None):
         log.debug('xpon-update', data=data)
+        if not self.xpon_support:
+            raise NotImplementedError("xPON support has been disabled")
 
         name = data.name
         items, create, update_method, delete = self._get_xpon_collection(data)
@@ -373,6 +379,9 @@ class AdtranXPON(object):
 
     def xpon_remove(self, data):
         log.debug('xpon_remove', data=data)
+        if not self.xpon_support:
+            raise NotImplementedError("xPON support has been disabled")
+
         name = data.name
 
         items, create, update, delete_method = self._get_xpon_collection(data)

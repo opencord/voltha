@@ -40,8 +40,8 @@ _ = third_party
 
 DEFAULT_MULTICAST_VLAN = 4000
 DEFAULT_UTILITY_VLAN = 4094
-DEFAULT_UNTAGGED_VLAN = DEFAULT_UTILITY_VLAN    # if RG does not send priority tagged frames
-#DEFAULT_UNTAGGED_VLAN = 4092
+BROADCOM_UNTAGGED_VLAN = 4091                     # SEBA - For BBWF demo (BroadCom Default VLAN)
+DEFAULT_UNTAGGED_VLAN = BROADCOM_UNTAGGED_VLAN    # if RG does not send priority tagged frames
 
 _DEFAULT_RESTCONF_USERNAME = ""
 _DEFAULT_RESTCONF_PASSWORD = ""
@@ -51,7 +51,9 @@ _DEFAULT_NETCONF_USERNAME = ""
 _DEFAULT_NETCONF_PASSWORD = ""
 _DEFAULT_NETCONF_PORT = 830
 
-_STARTUP_RETRY_TIMEOUT = 5     # 5 seconds delay after activate failed before we
+_STARTUP_RETRY_TIMEOUT = 5       # 5 seconds delay after activate failed before we
+_DEFAULT_XPON_SUPPORTED = True   # LOOK for the keywords 'xpon_support', SEBA
+                                 # for areas to clean up once xPON is deprecated
 
 
 class AdtranDeviceHandler(object):
@@ -136,6 +138,8 @@ class AdtranDeviceHandler(object):
         self.netconf_password = _DEFAULT_NETCONF_PASSWORD
         self._netconf_client = None
 
+        # TODO: Decrement xPON once Technology Profiles completed
+        self.xpon_support = _DEFAULT_XPON_SUPPORTED
         self.max_nni_ports = 1  # TODO: This is a VOLTHA imposed limit in 'flow_decomposer.py
                                 # and logical_device_agent.py
         # OMCI ZMQ Channel
@@ -273,8 +277,9 @@ class AdtranDeviceHandler(object):
         parser.add_argument('--utility_vlan', '-B', action='store',
                             default='{}'.format(DEFAULT_UTILITY_VLAN),
                             help='VLAN for Untagged Frames from ONUs')
-        parser.add_argument('--deprecated_option', '-X', action='store',
-                            default='not-used', help='Deprecated command')
+        parser.add_argument('--xpon_enable', '-X', action='store_true',
+                            default=not _DEFAULT_XPON_SUPPORTED,
+                            help='enable xPON (BBF WT-385) provisioning support')
         try:
             args = parser.parse_args(shlex.split(device.extra_args))
 
@@ -291,6 +296,10 @@ class AdtranDeviceHandler(object):
 
             self.pon_agent_port = args.zmq_port
             self.pio_port = args.pio_port
+            self.xpon_support = args.xpon_enable
+
+            if not self.xpon_support:
+                self.untagged_vlan = BROADCOM_UNTAGGED_VLAN
 
             if not self.rest_username:
                 self.rest_username = 'NDE0NDRkNDk0ZQ==\n'.\
@@ -980,7 +989,7 @@ class AdtranDeviceHandler(object):
         for port in self.southbound_ports.itervalues():
             self.log.debug('reenable-checking-pon-port', pon_id=port.pon_id)
 
-            gpon_info = self.get_xpon_info(port.pon_id)
+            gpon_info = self.get_xpon_info(port.pon_id)         # SEBA
             if gpon_info is not None and \
                 gpon_info['channel-terminations'] is not None and \
                 len(gpon_info['channel-terminations']) > 0:

@@ -20,7 +20,7 @@ import structlog
 from port import AdtnPort
 from twisted.internet import reactor, defer
 from twisted.internet.defer import inlineCallbacks, returnValue
-
+from common.utils.indexpool import IndexPool
 from adtran_olt_handler import AdtranOltHandler
 from net.adtran_rest import RestInvalidResponseCode
 from codec.olt_config import OltConfig
@@ -46,11 +46,11 @@ class PonPort(AdtnPort):
     _MCAST_ONU_ID = 253
     _MCAST_ALLOC_BASE = 0x500
 
-    _SUPPORTED_ACTIVATION_METHODS = ['autodiscovery']    # , 'autoactivate']
+    # AutoActivate should be used if xPON configuration is not supported
+    _SUPPORTED_ACTIVATION_METHODS = ['autodiscovery', 'autoactivate']
     _SUPPORTED_AUTHENTICATION_METHODS = ['serial-number']
 
     def __init__(self, parent, **kwargs):
-
         super(PonPort, self).__init__(parent, **kwargs)
 
         assert 'pon-id' in kwargs, 'PON ID not found'
@@ -72,22 +72,29 @@ class PonPort(AdtnPort):
 
         self._onus = {}         # serial_number-base64 -> ONU  (allowed list)
         self._onu_by_id = {}    # onu-id -> ONU
-        self._next_onu_id = Onu.MIN_ONU_ID + 128
+        self._next_onu_id = Onu.MIN_ONU_ID
         self._mcast_gem_ports = {}                # VLAN -> GemPort
+        self._onu_id_pool = IndexPool(Onu.MAX_ONU_ID - Onu.MIN_ONU_ID + 1, Onu.MIN_ONU_ID)
 
         self._discovery_deferred = None           # Specifically for ONU discovery
         self._active_los_alarms = set()           # ONU-ID
 
-        # xPON configuration
+        # xPON configuration        # SEBA
+        self._activation_method = 'autodiscovery' if parent.xpon_support else 'autoactivate'
 
-        self._xpon_name = None
-        self._downstream_fec_enable = False
-        self._upstream_fec_enable = False
+        if self.olt.xpon_support:
+            self._xpon_name = None
+            self._downstream_fec_enable = False
+            self._upstream_fec_enable = False
+        else:
+            self._xpon_name = 'channel-termination {}'.format(self._pon_id)
+            self._downstream_fec_enable = True
+            self._upstream_fec_enable = True
+
         self._deployment_range = 25000
         self._authentication_method = 'serial-number'
         self._mcast_aes = False
         self._line_rate = 'down_10_up_10'
-        self._activation_method = 'autodiscovery'
 
         # Statistics
         self.tx_bip_errors = 0
@@ -265,6 +272,10 @@ class PonPort(AdtnPort):
         value = value.lower()
         if value not in PonPort._SUPPORTED_ACTIVATION_METHODS:
             raise ValueError('Invalid ONU activation method')
+
+        if not self._parent.xpon_support and value != 'autoactivate':
+            raise ValueError('Only autoactivate is supported in non-xPON mode')
+
         self._activation_method = value
 
     @property
@@ -415,7 +426,6 @@ class PonPort(AdtnPort):
                 self.log.exception('onu-cleanup', onu_id=onu_id, e=e)
 
         dl.append(self._set_pon_config("enabled", False))
-
         return defer.gatherResults(dl, consumeErrors=True)
 
     @inlineCallbacks
@@ -424,7 +434,8 @@ class PonPort(AdtnPort):
         Set the PON Port to a known good state on initial port startup.  Actual
         PON 'Start' is done elsewhere
         """
-        initial_port_state = AdminState.DISABLED
+        initial_port_state = AdminState.DISABLED if self._parent.xpon_support \
+            else AdminState.ENABLED
         self.log.info('reset', initial_state=initial_port_state)
 
         try:
@@ -516,7 +527,10 @@ class PonPort(AdtnPort):
         data = json.dumps({leaf: value})
         uri = AdtranOltHandler.GPON_PON_CONFIG_URI.format(self._pon_id)
         name = 'pon-set-config-{}-{}-{}'.format(self._pon_id, leaf, str(value))
-        return self._parent.rest_client.request('PATCH', uri, data=data, name=name)
+        # If no optics on PON, then PON config fails with status 400, suppress this
+        suppress_error = len(self.onu_ids) == 0
+        return self._parent.rest_client.request('PATCH', uri, data=data, name=name,
+                                                suppress_error=suppress_error)
 
     def _discover_onus(self):
         self.log.debug('discovery', state=self._admin_state, in_sync=self._in_sync)
@@ -565,9 +579,11 @@ class PonPort(AdtnPort):
                         dl.append(self._set_pon_config("deployment-range",
                                                        self.deployment_range))
 
+                    # A little side note: FEC enable/disable cannot be changed and
+                    # will remain in the previous status until an optical module
+                    # is plugged in.
                     if self.downstream_fec_enable != config.downstream_fec_enable:
                         self._in_sync = False
-                        self._expedite_sync = True
                         dl.append(self._set_pon_config("downstream-fec-enable",
                                                        self.downstream_fec_enable))
 
@@ -584,13 +600,21 @@ class PonPort(AdtnPort):
                     self.log.debug('sync-pon-onu-results', config=hw_onus)
 
                     # ONU's have their own sync task, extra (should be deleted) are
-                    # handled here. Missing are handled by normal discovery mechanisms.
+                    # handled here.
 
                     hw_onu_ids = frozenset(hw_onus.keys())
                     my_onu_ids = frozenset(self._onu_by_id.keys())
 
                     extra_onus = hw_onu_ids - my_onu_ids
                     dl = [self.delete_onu(onu_id) for onu_id in extra_onus]
+
+                    if self.activation_method == "autoactivate":
+                        # Autoactivation of ONUs requires missing ONU detection. If
+                        # not found, create them here but let TCont/GEM-Port restore be
+                        # handle by ONU H/w sync logic.
+                        for onu in [self._onu_by_id[onu_id] for onu_id in my_onu_ids - hw_onu_ids
+                                    if self._onu_by_id.get(onu_id) is not None]:
+                            dl.append(onu.create(dict(), dict(), reflow=True))
 
                     return defer.gatherResults(dl, consumeErrors=True)
 
@@ -639,7 +663,6 @@ class PonPort(AdtnPort):
         new, rediscovered_onus = self._process_status_onu_discovered_list(status.discovered_onu)
 
         # Process newly discovered ONU list and rediscovered ONUs
-
         for serial_number in new | rediscovered_onus:
             reactor.callLater(0, self.add_onu, serial_number, status)
 
@@ -688,7 +711,6 @@ class PonPort(AdtnPort):
                             owner_info['onu_id'] = \
                                 child_device.proxy_address.onu_id
                             owner_info['alloc_id'] = tcont.alloc_id
-                            # self.bal.create_scheduler(id, 'upstream', owner_info, 8)
         else:
             self.log.info('Invalid-ONU-event', olt_id=olt_id,
                           pon_ni=ind_info['_pon_id'], onu_data=ind_info)
@@ -757,7 +779,7 @@ class PonPort(AdtnPort):
         self.log.debug('discovered-ONUs', list=discovered_onus)
 
         # Only request discovery if activation is auto-discovery or auto-activate
-        continue_discovery = ['autodiscovery']   # , 'autoactivate']
+        continue_discovery = ['autodiscovery', 'autoactivate']
 
         if self._activation_method not in continue_discovery:
             return set(), set()
@@ -775,11 +797,11 @@ class PonPort(AdtnPort):
         :param serial_number: (string) Decoded (not base64) serial number string
         :return: (dict) onu config data or None on lookup failure
         """
+        activate_onu = False
         try:
             if self.activation_method == "autodiscovery":
                 if self.authentication_method == 'serial-number':
                     gpon_info = self.olt.get_xpon_info(self.pon_id)
-
                     try:
                         # TODO: Change iteration to itervalues below
                         vont_info = next(info for _, info in gpon_info['vont-anis'].items()
@@ -809,17 +831,47 @@ class PonPort(AdtnPort):
                     except StopIteration:
                         # Can happen if vont-ani or ont-ani has not yet been configured
                         self.log.debug('no-vont-or-ont')
-                        return None
+                        return None, False
 
                     except Exception as e:
                         self.log.exception('autodiscovery', e=e)
                         raise
                 else:
                     self.log.debug('not-serial-number-authentication')
-                    return None
+                    return None, False
+            elif self.activation_method == "autoactivate":
+                # TODO: Currently a somewhat copy of the xPON way to do things
+                #       update here with Technology profile info when it becomes available
+                gpon_info, activate_onu = self.olt.get_device_profile_info(self,
+                                                                           serial_number)
+                try:
+                    # TODO: (SEBA) All of this can be greatly simplified once we fully
+                    #       deprecate xPON support
+                    vont_ani = next(info for _, info in gpon_info['vont-anis'].items()
+                                    if info.get('expected-serial-number') == serial_number)
+
+                    # ont_ani = gpon_info['ont-anis'][vont_ani['name']]
+                    onu_id = vont_ani['onu-id']
+                    enabled = vont_ani['enabled']
+                    channel_speed = vont_ani['upstream-channel-speed']
+                    xpon_name = vont_ani['name']
+                    upstream_fec_enabled = gpon_info['ont-anis'][vont_ani['name']]['upstream-fec']
+
+                    tconts = gpon_info['tconts']
+                    gem_ports = gpon_info['gem-ports']
+                    venet = None
+
+                except StopIteration:
+                    # Can happen if vont-ani or ont-ani has not yet been configured
+                    self.log.error('no-vont-or-ont-autoactivate')
+                    return None, False
+
+                except Exception as e:
+                    self.log.exception('autoactivate', e=e)
+                    raise
             else:
-                self.log.debug('not-auto-discovery')
-                return None
+                self.log.debug('unsupported-activation-method', method=self.activation_method)
+                return None, False
 
             onu_info = {
                 'device-id': self.olt.device_id,
@@ -833,29 +885,56 @@ class PonPort(AdtnPort):
                 'password': Onu.DEFAULT_PASSWORD,
                 't-conts': tconts,
                 'gem-ports': gem_ports,
-                'onu-vid': self.olt.get_onu_vid(onu_id),
-                'channel-id': self.olt.get_channel_id(self._pon_id, onu_id),
+                'channel-id': self.olt.get_channel_id(self._pon_id, onu_id),  # TODO: Is this used anywhere?
                 'vont-ani': vont_ani,
                 'venet': venet
             }
+            if self.olt.xpon_support:
+                onu_info['onu-vid'] = self.olt.get_onu_vid(onu_id)
+            else:
+                import adtranolt_platform as platform
+                intf_id = platform.intf_id_to_port_no(self._pon_id, Port.PON_OLT)
+                # TODO: Currently only one ONU port and it is hardcoded to port 0
+                onu_info['uni-ports'] = [platform.mk_uni_port_num(intf_id, onu_id)]
+
             # Hold off ONU activation until at least one GEM Port is defined.
-            self.log.debug('onu-info', gem_ports=gem_ports)
+            self.log.debug('onu-info-tech-profiles', gem_ports=gem_ports)
 
             # return onu_info
-            return onu_info if len(gem_ports) > 0 and venet is not None else None
+            return onu_info, activate_onu
 
         except Exception as e:
-            self.log.exception('get-onu-info', e=e)
-            return None
+            self.log.exception('get-onu-info-tech-profiles', e=e)
+            return None, False
 
     @inlineCallbacks
     def add_onu(self, serial_number_64, status):
+        """
+        Add an ONU to the PON
+
+        TODO:  This needs major refactoring after xPON is deprecated to be more maintainable
+        """
         serial_number = Onu.serial_number_to_string(serial_number_64)
         self.log.info('add-onu', serial_number=serial_number,
                       serial_number_64=serial_number_64, status=status)
-        onu_info = self._get_onu_info(serial_number)
 
-        if onu_info is None:
+        # For non-XPON mode, it takes a little while for a new ONU to be removed from
+        # the discovery list. Return early here so extra ONU IDs are not allocated
+        if not self.olt.xpon_support and serial_number_64 in self._onus:
+            returnValue('wait-for-fpga')
+
+        onu_info, activate_onu = self._get_onu_info(serial_number)
+
+        if activate_onu:
+            # SEBA  - This is the new no-xPON way
+            alarm = OnuDiscoveryAlarm(self.olt.alarms, self.pon_id, serial_number)
+            reactor.callLater(0, alarm.raise_alarm)
+            # Fall through. We do not want to return and wait for the next discovery poll
+            # as that will consume an additional ONU ID (currently allocated during
+            # add_onu_device).
+
+        elif onu_info is None:
+            # SEBA  - This is the OLD xPON way
             self.log.info('onu-lookup-failure', serial_number=serial_number,
                           serial_number_64=serial_number_64)
             OnuDiscoveryAlarm(self.olt.alarms, self.pon_id, serial_number).raise_alarm()
@@ -872,8 +951,18 @@ class PonPort(AdtnPort):
             elif (serial_number_64 in self._onus and onu_id not in self._onu_by_id) or \
                     (serial_number_64 not in self._onus and onu_id in self._onu_by_id):
                 # May be here due to unmanaged power-cycle on OLT or fiber bounced for a
-                # previously activated ONU. Drop it and add back on next discovery cycle
-                self.delete_onu(onu_id)
+                # previously activated ONU.
+                if self.olt.xpon_support:                           # xPON will reassign the same ONU ID
+                    # Drop it and add back on next discovery cycle
+                    self.delete_onu(onu_id)
+                else:
+                    # TODO: Track when the ONU was discovered, and if > some maximum amount
+                    #       place the ONU (with serial number & ONU ID) on a wait list and
+                    #       use that to recover the ONU ID should it show up within a
+                    #       reasonable amount of time.  Periodically groom the wait list and
+                    #       delete state ONUs so we can reclaim the ONU ID.
+                    #
+                    returnValue('waiting-for-fpga')    # non-XPON mode will not
 
             elif len(self._onus) >= self.MAX_ONUS_SUPPORTED:
                 self.log.warning('max-onus-provisioned', count=len(self._onus))
@@ -886,10 +975,16 @@ class PonPort(AdtnPort):
                 self._onu_by_id[onu.onu_id] = onu
 
             if onu is not None:
-                try:
-                    tconts = onu_info['t-conts']
-                    gem_ports = onu_info['gem-ports']
+                tconts = onu_info['t-conts']
+                gem_ports = onu_info['gem-ports']
 
+                if activate_onu:
+                    # SEBA  - This is the new no-xPON way to start an ONU device handler
+                    _onu_device = self._parent.add_onu_device(self._port_no,        # PON ID
+                                                              onu_info['onu-id'],   # ONU ID
+                                                              serial_number,
+                                                              tconts, gem_ports)
+                try:
                     # Add Multicast to PON on a per-ONU basis until xPON multicast support is ready
                     # In xPON/BBF, mcast gems tie back to the channel-pair
                     # MCAST VLAN IDs stored as a negative value
@@ -901,28 +996,25 @@ class PonPort(AdtnPort):
                                 vid = self.olt.multicast_vlans[0] if len(self.olt.multicast_vlans) else None
                                 if vid is not None:
                                     self.add_mcast_gem_port(gem_port, vid)
+
                         except Exception as e:
                             self.log.exception('id-or-vid', e=e)
 
-                    yield onu.create(tconts, gem_ports)
+                    # TODO: Need to clean up TCont and GEM-Port on ONU delete in non-xPON mode
+                    _results = yield onu.create(tconts, gem_ports)
 
                 except Exception as e:
                     self.log.exception('add-onu', serial_number=serial_number_64, e=e)
-                    del self._onus[serial_number_64]
-                    del self._onu_by_id[onu.onu_id]
+                    # allowable exception.  H/w re-sync will recover any issues
 
+    @property
     def get_next_onu_id(self):
-        used_ids = [onu.onu_id for onu in self.onus]
+        assert not self.olt.xpon_support, 'Only non-XPON mode allocates ONU IDs.  xPON assigns tem'
+        return self._onu_id_pool.get_next()
 
-        while True:
-            onu_id = self._next_onu_id
-            self._next_onu_id += 1
-
-            if self._next_onu_id > Onu.MAX_ONU_ID:
-                self._next_onu_id = Onu.MIN_ONU_ID + 128
-
-            if onu_id not in used_ids:
-                return onu_id
+    def release_onu_id(self, onu_id):
+        if not self.olt.xpon_support:
+            self._onu_id_pool.release(onu_id)
 
     @inlineCallbacks
     def _remove_from_hardware(self, onu_id):
@@ -946,6 +1038,7 @@ class PonPort(AdtnPort):
         # Remove from any local dictionary
         if onu_id in self._onu_by_id:
             del self._onu_by_id[onu_id]
+            self.release_onu_id(onu.onu_id)
 
         for sn_64 in [onu.serial_number_64 for onu in self.onus if onu.onu_id == onu_id]:
             del self._onus[sn_64]
@@ -978,96 +1071,3 @@ class PonPort(AdtnPort):
         assert len(self.olt.multicast_vlans) == 1, 'Only support 1 MCAST VLAN until BBF Support'
 
         self._mcast_gem_ports[vlan] = mcast_gem
-
-    @inlineCallbacks
-    def channel_partition(self, name, partition=0, xpon_system=0, operation=None):
-        """
-        Delete/enable/disable a specified channel partition on this PON.
-
-        When creating a new Channel Partition, create it disabled, then define any associated
-        Channel Pairs. Then enable the Channel Partition.
-
-        :param name: (string) Name of the channel partition
-        :param partition: (int: 0..15) An index of the operator-specified channel subset
-                          in a NG-PON2 system. For XGS-PON, this is typically 0
-        :param xpon_system: (int: 0..1048575) Identifies a specific xPON system
-        :param operation: (string) 'delete', 'enable', or 'disable'
-        """
-        if operation.lower() not in ['delete', 'enable', 'disable']:
-            raise ValueError('Unsupported operation: {}'.format(operation))
-
-        try:
-            xml = 'interfaces xmlns="urn:ietf:params:xml:ns:yang:ietf-interfaces"'
-
-            if operation.lower() is 'delete':
-                xml += '<interface operation="delete">'
-            else:
-                xml += '<interface>'
-                xml += '<type xmlns:adtn-xp="http://www.adtran.com/ns/yang/adtran-xpon">' +\
-                       'adtn-xp:xpon-channel-partition</type>'
-                xml += '<adtn-xp:channel-partition xmlns:adtn-xp="http://www.adtran.com/ns/yang/adtran-xpon">'
-                xml += '  <adtn-xp:partition-id>{}</adtn-xp:partition-id>'.format(partition)
-                xml += '  <adtn-xp:xpon-system>{}</adtn-xp:xpon-system>'.format(xpon_system)
-                xml += '</adtn-xp:channel-partition>'
-                xml += '<enabled>{}</enabled>'.format('true' if operation.lower() == 'enable' else 'false')
-
-            xml += '<name>{}</name>'.format(name)
-            xml += '</interface></interfaces>'
-
-            results = yield self.olt.netconf_client.edit_config(xml)
-            returnValue(results)
-
-        except Exception as e:
-            self.log.exception('channel_partition')
-            raise
-
-    @inlineCallbacks
-    def channel_pair(self, name, partition, operation=None, **kwargs):
-        """
-        Create/delete a channel pair on a specific channel_partition for a PON
-
-        :param name: (string) Name of the channel pair
-        :param partition: (string) Name of the channel partition
-        :param operation: (string) 'delete', 'enable', or 'disable'
-        :param kwargs: (dict) Additional leaf settings if desired
-        """
-        if operation.lower() not in ['delete', 'enable', 'disable']:
-            raise ValueError('Unsupported operation: {}'.format(operation))
-
-        try:
-            xml = 'interfaces xmlns="urn:ietf:params:xml:ns:yang:ietf-interfaces"'
-
-            if operation.lower() is 'delete':
-                xml += '<interface operation="delete">'
-            else:
-                xml += '<interface>'
-                xml += '<type xmlns:adtn-xp="http://www.adtran.com/ns/yang/adtran-xpon">' +\
-                       'adtn-xp:xpon-channel-pair</type>'
-                xml += '<adtn-xp:channel-pair xmlns:adtn-xp="http://www.adtran.com/ns/yang/adtran-xpon">'
-                xml += '  <adtn-xp:channel-partition>{}</adtn-xp:channel-partition>'.format(partition)
-                xml += '  <adtn-xp:channel-termination>channel-termination {}</adtn-xp:channel-termination>'.\
-                    format(self.pon_id)
-                xml += '  <adtn-xp:upstream-admin-label>{}</adtn-xp:upstream-admin-label>'.\
-                    format(kwargs.get('upstream-admin-label', 1))
-                xml += '  <adtn-xp:downstream-admin-label>{}</adtn-xp:downstream-admin-label>'.\
-                    format(kwargs.get('downstream-admin-label', 1))
-                xml += '  <adtn-xp:upstream-channel-id>{}</adtn-xp:upstream-channel-id>'.\
-                    format(kwargs.get('upstream-channel-id', 15))
-                xml += '  <adtn-xp:downstream-channel-id>{}</adtn-xp:downstream-channel-id>'.\
-                    format(kwargs.get('downstream-channel-id', 15))
-                xml += '  <adtn-xp:downstream-channel-fec-enable>{}</adtn-xp:downstream-channel-fec-enable>'. \
-                    format('true' if kwargs.get('downstream-channel-fec-enable', True) else 'false')
-                xml += '  <adtn-xp:upstream-channel-fec-enable>{}</adtn-xp:upstream-channel-fec-enable>'. \
-                    format('true' if kwargs.get('upstream-channel-fec-enable', True) else 'false')
-                xml += '</adtn-xp:channel-pair>'
-                # TODO: Add support for upstream/downstream FEC-enable coming from here and not hard-coded
-
-            xml += '<name>{}</name>'.format(name)
-            xml += '</interface></interfaces>'
-
-            results = yield self.olt.netconf_client.edit_config(xml)
-            returnValue(results)
-
-        except Exception as e:
-            self.log.exception('channel_pair')
-            raise

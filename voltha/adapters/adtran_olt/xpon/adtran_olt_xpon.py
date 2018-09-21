@@ -24,10 +24,12 @@ from voltha.protos.bbf_fiber_multicast_gemport_body_pb2 import \
     MulticastGemportsConfigData
 from voltha.protos.bbf_fiber_multicast_distribution_set_body_pb2 import \
     MulticastDistributionSetData
+import voltha.adapters.adtran_olt.adtranolt_platform as platform
 
 log = structlog.get_logger()
 
 
+# SEBA
 class AdtranOltXPON(AdtranXPON):
     """
     Class to for OLT and XPON operations
@@ -57,9 +59,188 @@ class AdtranOltXPON(AdtranXPON):
     def channel_partitions(self):
         return self._channel_partitions
 
+    # SEBA
+    def get_device_profile_info(self, pon, serial_number):
+        """ TODO: For now, push into legacy xPON structures.  Clean up once we deprecate xPON and remove it"""
+        pon_id = pon.pon_id
+        if pon_id not in self._cached_xpon_pon_info:
+            venets = dict()
+            v_ont_anis = dict()
+            ont_anis = dict()
+            tconts = dict()
+            gem_ports = dict()
+            groups = {
+                "group-{}".format(pon_id):
+                    {
+                        'name'          : "group-{}".format(pon_id),
+                        'system-id'     : '000000',
+                        'enabled'       : True,
+                        'polling-period': 200
+                    }
+            }
+            partitions = {
+                "partition-{}".format(pon_id):
+                    {
+                        'name'                       : "partition-{}".format(pon_id),
+                        'enabled'                    : True,
+                        'fec-downstream'             : True,
+                        'mcast-aes'                  : False,
+                        'channel-group'              : 'group-{}'.format(pon_id),
+                        'authentication-method'      : 'serial-number',
+                        'differential-fiber-distance': 20
+                    }
+            }
+            pairs = {
+                'pon-{}'.format(pon_id):
+                    {
+                        'name'             : 'pon-{}.format(pon_id)',
+                        'enabled'          : True,
+                        'channel-group'    : 'group-{}'.format(pon_id),
+                        'channel-partition': 'partition-{}'.format(pon_id),
+                        'line-rate'        : 'down_10_up_10',
+
+                    }
+            }
+            terminations = {
+                'channel-termination {}'.format(pon_id):
+                {
+                    'name'           : 'channel-termination {}'.format(pon_id),
+                    'enabled'        : True,
+                    'channel-pair'   : 'pon-{}'.format(pon_id),
+                    'xgpon-ponid'    : pon_id,
+                    'xgs-ponid'      : pon_id,
+                    'ber-calc-period': 10,
+                }
+            }
+            # Save this to the cache
+            self._cached_xpon_pon_info[pon_id] = {
+                'channel-terminations': terminations,
+                'channel-pairs'       : pairs,
+                'channel-partitions'  : partitions,
+                'channel-groups'      : groups,
+                'vont-anis'           : v_ont_anis,
+                'ont-anis'            : ont_anis,
+                'v-enets'             : venets,
+                'tconts'              : tconts,
+                'gem-ports'           : gem_ports
+            }
+        # Now update vont_ani and ont_ani information if needed
+        xpon_info = self._cached_xpon_pon_info[pon_id]
+
+        vont_ani_info = next((info for _, info in xpon_info['vont-anis'].items()
+                             if info.get('expected-serial-number') == serial_number), None)
+        # New ONU?
+        activate_onu = vont_ani_info is None
+
+        if activate_onu:
+            onu_id = pon.get_next_onu_id
+            name = 'customer-000000-{}-{}'.format(pon_id, onu_id)
+            vont_ani_info = {
+                'name'                    : name,
+                'enabled'                 : True,
+                'description'             : '',
+                'onu-id'                  : onu_id,
+                'expected-serial-number'  : serial_number,
+                'expected-registration-id': '',                         # TODO: How about this?
+                'channel-partition'       : 'partition-{}'.format(pon_id),
+                'upstream-channel-speed'  : 10000000000,
+                'preferred-channel-pair'  : 'pon-{}'.format(pon_id)
+            }
+            ont_ani_info = {
+                'name':             name,
+                'description':      '',
+                'enabled':          True,
+                'upstream-fec':     True,
+                'mgnt-gemport-aes': False
+            }
+            xpon_info['vont-anis'][name] = vont_ani_info
+            xpon_info['ont-anis'][name] = ont_ani_info
+
+            from voltha.protos.bbf_fiber_tcont_body_pb2 import TcontsConfigData
+            from voltha.protos.bbf_fiber_traffic_descriptor_profile_body_pb2 import TrafficDescriptorProfileData
+            from voltha.protos.bbf_fiber_gemport_body_pb2 import GemportsConfigData
+
+            tcont = TcontsConfigData()
+            tcont.name = 'tcont-{}-{}-data'.format(pon_id, onu_id)
+            tcont.alloc_id = platform.mk_alloc_id(pon_id, onu_id)
+
+            traffic_desc = TrafficDescriptorProfileData(name='BestEffort',
+                                                        fixed_bandwidth=0,
+                                                        assured_bandwidth=0,
+                                                        maximum_bandwidth=10000000000,
+                                                        priority=0,
+                                                        weight=0,
+                                                        additional_bw_eligibility_indicator=0)
+            tc = {
+                'name': tcont.name,
+                'alloc-id': tcont.alloc_id,
+                'vont-ani': name,
+                'td-ref': {                    # TODO: This should be the TD Name and the TD installed in xpon cache
+                    'name': traffic_desc.name,
+                    'fixed-bandwidth': traffic_desc.fixed_bandwidth,
+                    'assured-bandwidth': traffic_desc.assured_bandwidth,
+                    'maximum-bandwidth': traffic_desc.maximum_bandwidth,
+                    'priority': traffic_desc.priority,
+                    'weight': traffic_desc.weight,
+                    'additional-bw-eligibility-indicator': 0,
+                    'data': traffic_desc
+                },
+                'data': tcont
+            }
+            from olt_tcont import OltTCont
+            from olt_traffic_descriptor import OltTrafficDescriptor
+            tc['object'] = OltTCont.create(tc, OltTrafficDescriptor.create(tc['td-ref']))
+            xpon_info['tconts'][tcont.name] = tc['object']
+
+            # gem port creation (this initial one is for untagged ONU data support / EAPOL)
+            gem_port, gp = self.create_gem_port(pon_id, onu_id, 0, tcont, untagged=True)
+            gem_ports = [gem_port]
+
+            from olt_gem_port import OltGemPort
+            gp['object'] = OltGemPort.create(self, gp)
+            xpon_info['gem-ports'][gem_port.name] = gp['object']
+
+            # Now create the User-Data GEM-Ports
+            nub_priorities = 1                          # TODO: Pull form tech-profile later
+            for index in range(1, nub_priorities + 1):
+                gem_port, gp = self.create_gem_port(pon_id, onu_id, index, tcont)
+                gem_ports.append(gem_port)
+
+                from olt_gem_port import OltGemPort
+                gp['object'] = OltGemPort.create(self, gp)
+                xpon_info['gem-ports'][gem_port.name] = gp['object']
+
+            self.create_tcont(tcont, traffic_desc)
+            for gem_port in gem_ports:
+                self.xpon_create(gem_port)
+
+        return xpon_info, activate_onu
+
+    def create_gem_port(self, pon_id, onu_id, index, tcont, untagged=False):
+        # gem port creation (this initial one is for untagged ONU data support / EAPOL)
+        gem_port = GemportsConfigData()
+        gem_port.gemport_id = platform.mk_gemport_id(pon_id, onu_id, idx=index)
+        if untagged:
+            gem_port.name = 'gemport-{}-{}-untagged-{}'.format(pon_id, onu_id, gem_port.gemport_id)
+        else:
+            gem_port.name = 'gemport-{}-{}-data-{}'.format(pon_id, onu_id, gem_port.gemport_id)
+
+        gem_port.tcont_ref = tcont.name
+
+        gp = {
+            'name': gem_port.name,
+            'gemport-id': gem_port.gemport_id,
+            'tcont-ref': gem_port.tcont_ref,
+            'encryption': False,
+            'traffic-class': 0,
+            'data': gem_port
+        }
+        return gem_port, gp
+
+    # SEBA
     def get_xpon_info(self, pon_id, pon_id_type='xgs-ponid'):
         """
-        Lookup all xPON configuraiton data for a specific pon-id / channel-termination
+        Lookup all xPON configuration data for a specific pon-id / channel-termination
         :param pon_id: (int) PON Identifier
         :return: (dict) reduced xPON information for the specific PON port
         """

@@ -18,8 +18,10 @@ import xmltodict
 
 from twisted.internet import reactor
 from twisted.internet.defer import returnValue, inlineCallbacks, succeed
+from voltha.protos.device_pb2 import Port
 
 from adtran_device_handler import AdtranDeviceHandler
+import adtranolt_platform as platform
 from download import Download
 from xpon.adtran_olt_xpon import AdtranOltXPON
 from codec.olt_state import OltState
@@ -318,10 +320,10 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         self.startup = self.rest_client.request('GET', self.GPON_PON_CONFIG_LIST_URI,
                                                 'pon-config')
         try:
-            results = yield self.startup
-
             from codec.ietf_interfaces import IetfInterfacesState
             from nni_port import MockNniPort
+
+            results = yield self.startup
 
             ietf_interfaces = IetfInterfacesState(self.netconf_client)
 
@@ -339,7 +341,8 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
                 pon_id = data['pon-id']
                 port = ports[pon_id + 1]
                 port['pon-id'] = pon_id
-                port['admin_state'] = AdminState.ENABLED if data.get('enabled', False)\
+                port['admin_state'] = AdminState.ENABLED \
+                    if data.get('enabled', not self.xpon_support)\
                     else AdminState.DISABLED
 
         except Exception as e:
@@ -983,18 +986,24 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         return pon_id + 1 + 4   # Skip over uninitialized ports
 
     def _port_number_to_pon_id(self, port):
-        # return port - 1 - self.num_northbound_ports
+        if not self.xpon_support and self.is_uni_port(port):
+            # Convert to OLT device port
+            port = platform.intf_id_from_uni_port_num(port)
+
         return port - 1 - 4  # Skip over uninitialized ports
 
     def is_pon_port(self, port):
         return self._port_number_to_pon_id(port) in self.southbound_ports
 
     def is_uni_port(self, port):
-        return port >= self._onu_offset(0)  # TODO: Really need to rework this one...
+        if self.xpon_support:
+            return port >= self._onu_offset(0)  # TODO: Really need to rework this one...
+        else:
+            return port >= (5 << 11)
 
     def get_onu_port_and_vlans(self, flow_entry):
         """
-        Get the logical port (openflow port) for a given southbound port of an ONU
+        Get the logical port (OpenFlow port) for a given southbound port of an ONU
 
         :param flow_entry: (FlowEntry) Flow to parse
         :return: None or openflow port number and the actual VLAN IDs we should use
@@ -1003,7 +1012,6 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
             # Upstream will have VID=Logical_port until VOL-460 is addressed
             ingress_port = flow_entry.in_port
             vid = flow_entry.vlan_id
-
         else:
             ingress_port = flow_entry.output
             vid = flow_entry.inner_vid
@@ -1013,14 +1021,26 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
             return None, None, None
 
         if flow_entry.flow_direction == FlowEntry.FlowDirection.UPSTREAM:
-            # Upstream ACLs will have VID=Logical_port until VOL-460 is addressed
-            # but User data flows have the correct VID / C-Tag.
+            self.log.debug('upstream-flow-search', acl=flow_entry.is_acl_flow,
+                           vid=vid)
+            # User data flows have the correct VID / C-Tag.
             if flow_entry.is_acl_flow:
-                onu = next((onu for onu in pon_port.onus if
-                            onu.logical_port == vid), None)
-            else:
+                if self.xpon_support:
+                    # Upstream ACLs will have VID=Logical_port until VOL-460 is addressed
+                    onu = next((onu for onu in pon_port.onus if
+                                onu.logical_port == vid), None)
+                else:
+                    # Upstream ACLs will be placed on the untagged vlan or ONU VID
+                    # TODO: Do we need an onu_vid set here for DHCP?
+                    # TODO: For non-xPON, we could really just match the UNI PORT number !!!!
+                    onu = next((onu for onu in pon_port.onus if
+                                vid == onu.untagged_vlan), None)
+            elif self.xpon_support:
                 onu = next((onu for onu in pon_port.onus if
                             onu.onu_vid == vid), None)
+            else:
+                onu = next((onu for onu in pon_port.onus if
+                            flow_entry.in_port in onu.uni_ports), None)
 
         elif flow_entry.vlan_id in (FlowEntry.LEGACY_CONTROL_VLAN,
                                     flow_entry.handler.untagged_vlan):
@@ -1032,6 +1052,7 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
             onu = next((onu for onu in pon_port.onus if
                         onu.onu_vid == vid), None)
 
+        self.log.debug('search-results', onu=onu)
         if onu is None:
             return None, None, None
 
@@ -1052,7 +1073,15 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
             return self.get_southbound_port(port).name
 
         if self.is_uni_port(port):
-            return self.northbound_ports[port].name
+            if self.xpon_support:
+                return self.northbound_ports[port].name
+            else:
+                # try:   TODO: Remove this crap
+                #     import voltha.protos.device_pb2 as dev_pb2
+                #     return dev_pb2._PORT_PORTTYPE.values_by_number[port].name
+                # except Exception as err:
+                #     pass
+                return 'uni-{}'.format(port)
 
         if self.is_logical_port(port):
             raise NotImplemented('TODO: Logical ports not yet supported')
@@ -1251,6 +1280,80 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         device.admin_state = AdminState.ENABLED
         self.adapter_agent.update_device(device)
         return done
+
+    # SEBA -- New way to launch ONU without xPON support
+    def add_onu_device(self, intf_id, onu_id, serial_number, tconts, gem_ports):
+        assert not self.xpon_support
+        onu_device = self.adapter_agent.get_child_device(self.device_id,
+                                                         serial_number=serial_number)
+        if onu_device is not None:
+            return onu_device
+
+        try:
+            from voltha.protos.voltha_pb2 import Device
+
+            # NOTE - channel_id of onu is set to intf_id
+            proxy_address = Device.ProxyAddress(device_id=self.device_id,
+                                                channel_id=intf_id, onu_id=onu_id,
+                                                onu_session_id=onu_id)
+
+            self.log.debug("added-onu", port_no=intf_id,
+                           onu_id=onu_id, serial_number=serial_number,
+                           proxy_address=proxy_address)
+
+            self.adapter_agent.add_onu_device(
+                parent_device_id=self.device_id,
+                parent_port_no=intf_id,
+                vendor_id=serial_number[:4],
+                proxy_address=proxy_address,
+                root=True,
+                serial_number=serial_number,
+                admin_state=AdminState.ENABLED,
+                vlan=self.get_onu_vid(onu_id)         # TODO: a hack, need a decent flow decomposer
+            )
+            assert serial_number is not None, 'ONU does not have a serial number'
+
+            onu_device = self.adapter_agent.get_child_device(self.device_id,
+                                                             serial_number=serial_number)
+
+            # self._seba_xpon_create(onu_device, intf_id, onu_id, tconts, gem_ports)
+            reactor.callLater(0, self._seba_xpon_create, onu_device, intf_id, onu_id, tconts, gem_ports)
+            return onu_device
+
+        except Exception as e:
+            self.log.exception('onu-activation-failed', e=e)
+            return None
+
+    def _seba_xpon_create(self, onu_device, intf_id, onu_id, tconts, gem_ports):
+        # For SEBA, send over tcont and gem_port information until tech profiles are ready
+        # tcont creation (onu)
+        from voltha.registry import registry
+        self.log.info('inject-tcont-gem-data-onu-handler', intf_id=intf_id,
+                      onu_id=onu_id, tconts=tconts, gem_ports=gem_ports)
+
+        onu_adapter_agent = registry('adapter_loader').get_agent(onu_device.adapter)
+        if onu_adapter_agent is None:
+            self.log.error('onu_adapter_agent-could-not-be-retrieved',
+                           onu_device=onu_device)
+
+        # In the OpenOLT version, this is where they signal the BroadCom ONU
+        # to enable OMCI. It is a call to the create_interface IAdapter method
+        #
+        # For the Adtran ONU, we are already running OpenOMCI.  On the Adtran ONU, a call
+        # to create_interface vectors into the xpon_create call which should not
+        # recognize the type and raise a value assertion
+        try:
+            onu_adapter_agent.create_interface(onu_device,
+                                               OnuIndication(intf_id, onu_id))
+        except:
+            pass
+
+        for tcont in tconts.itervalues():
+            td = tcont.traffic_descriptor.data if tcont.traffic_descriptor is not None else None
+            onu_adapter_agent.create_tcont(onu_device, tcont.data, traffic_descriptor_data=td)
+
+        for gem_port in gem_ports.itervalues():
+            onu_adapter_agent.create_gemport(onu_device, gem_port.data)
 
     def on_channel_group_modify(self, cgroup, update, diffs):
         valid_keys = ['enable',
@@ -1605,3 +1708,12 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         if len(onus) == 1:
             onus[0].remove_gem_id(gem_port['gemport-id'])
         return None
+
+
+class OnuIndication(object):
+    def __init__(self, intf_id, onu_id):
+        self.name = 'Dummy ONU Indication'
+        self.intf_id = intf_id
+        self.onu_id = onu_id
+        self.oper_state = 'up'
+        self.admin_state = 'up'

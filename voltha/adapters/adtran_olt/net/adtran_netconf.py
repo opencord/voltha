@@ -117,8 +117,9 @@ class AdtranNetconfClient(object):
         #
         #  self._session.raise_mode = RaiseMode:NONE
         #
-        # and the when you get a response back, you can check   'response.ok' to see if it is 'True'
-        # if it is not, you can enumerate the 'response.errors' list for more information
+        # and the when you get a response back, you can check   'response.ok' to
+        # see if it is 'True' if it is not, you can enumerate the 'response.errors'
+        # list for more information
 
         return self._session
 
@@ -240,7 +241,7 @@ class AdtranNetconfClient(object):
     def unlock(self, source):
         """
         Get the requested data from the server
-        :param rpc_string: RPC request
+        :param source: RPC request
 
         :return: (deferred) for RpcReply
         """
@@ -267,18 +268,24 @@ class AdtranNetconfClient(object):
 
     @inlineCallbacks
     def edit_config(self, config, target='running', default_operation='none',
-                    test_option=None, error_option=None):
+                    test_option=None, error_option=None, ignore_delete_error=False):
         """
-        Loads all or part of the specified config to the target configuration datastore with the ability to lock
-        the datastore during the edit.
+        Loads all or part of the specified config to the target configuration datastore
+        with the ability to lock the datastore during the edit.
 
-        :param config is the configuration, which must be rooted in the config element. It can be specified
-                      either as a string or an Element.format="xml"
+        :param config is the configuration, which must be rooted in the config element.
+                      It can be specified either as a string or an Element.format="xml"
         :param target is the name of the configuration datastore being edited
         :param default_operation if specified must be one of { 'merge', 'replace', or 'none' }
         :param test_option if specified must be one of { 'test_then_set', 'set' }
-        :param error_option if specified must be one of { 'stop-on-error', 'continue-on-error', 'rollback-on-error' }
-                            The 'rollback-on-error' error_option depends on the :rollback-on-error capability.
+        :param error_option if specified must be one of { 'stop-on-error',
+                            'continue-on-error', 'rollback-on-error' } The
+                            'rollback-on-error' error_option depends on the
+                            :rollback-on-error capability.
+        :param ignore_delete_error: (bool) For some startup deletes/clean-ups, we do a
+                                    delete high up in the config to get whole lists. If
+                                    these lists are empty, this helps suppress any error
+                                    message from NETConf on failure to delete an empty list
 
         :return: (deferred) for RpcReply
         """
@@ -298,16 +305,22 @@ class AdtranNetconfClient(object):
                          ' xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">' + \
                          config + '</config>'
 
+            log.debug('netconf-request', config=config, target=target,
+                      default_operation=default_operation)
+
             rpc_reply = yield threads.deferToThread(self._do_edit_config, target,
                                                     config, default_operation,
                                                     test_option, error_option)
         except Exception as e:
+            if ignore_delete_error and 'operation="delete"' in config.lower():
+                returnValue('ignoring-delete-error')
             log.exception('edit_config', e=e, config=config, target=target)
             raise
 
         returnValue(rpc_reply)
 
-    def _do_edit_config(self, target, config, default_operation, test_option, error_option):
+    def _do_edit_config(self, target, config, default_operation, test_option, error_option,
+                        ignore_delete_error=False):
         """
         Perform actual edit-config operation
         """
@@ -321,12 +334,13 @@ class AdtranNetconfClient(object):
                                                  # error_option=error_option
                                                  )
 
-            log.debug('response', response=response)
+            log.debug('netconf-response', response=response)
             # To get XML, use response.xml
             # To check status, use response.ok  (boolean)
 
         except RPCError as e:
-            log.exception('do_edit_config', e=e, config=config, target=target)
+            if not ignore_delete_error or 'operation="delete"' not in config.lower():
+                log.exception('do_edit_config', e=e, config=config, target=target)
             raise
 
         return response

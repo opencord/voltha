@@ -36,7 +36,8 @@ class OltGemPort(GemPort):
                  untagged=False,
                  name=None,
                  handler=None,
-                 is_mock=False):
+                 is_mock=False,
+                 pb_data=None):
         super(OltGemPort, self).__init__(gem_id, alloc_id,
                                          encryption=encryption,
                                          omci_transport=omci_transport,
@@ -49,6 +50,7 @@ class OltGemPort(GemPort):
                                          handler=handler)
         self._is_mock = is_mock
         self._timestamp = None
+        self.data = pb_data     # Needed for non-xPON mode
 
     @staticmethod
     def create(handler, gem_port):
@@ -67,7 +69,8 @@ class OltGemPort(GemPort):
                           intf_ref=gem_port.get(port_ref),
                           handler=handler,
                           multicast=mcast,
-                          untagged=untagged)
+                          untagged=untagged,
+                          pb_data=gem_port['data'])
 
     @property
     def timestamp(self):

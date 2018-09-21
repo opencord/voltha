@@ -15,13 +15,11 @@
 from evc import EVC
 from evc_map import EVCMap
 from enum import IntEnum
-
 from untagged_evc import UntaggedEVC
 from utility_evc import UtilityEVC
 import voltha.core.flow_decomposer as fd
 from voltha.core.flow_decomposer import *
 from voltha.protos.openflow_13_pb2 import OFPP_MAX
-from twisted.internet import defer
 from twisted.internet.defer import returnValue, inlineCallbacks, gatherResults
 
 log = structlog.get_logger()
@@ -123,6 +121,9 @@ class FlowEntry(object):
             self.name, self.in_port, self.output, self.vlan_id, self.inner_vid,
             self.eth_type, self.ip_protocol)
 
+    def __repr__(self):
+        return str(self)
+
     @property
     def name(self):
         return self._name    # TODO: Is a name really needed in production?
@@ -174,7 +175,6 @@ class FlowEntry(object):
 
         :param flow:   (Flow) Flow entry passed to VOLTHA adapter
         :param handler: (AdtranDeviceHandler) handler for the device
-
         :return: (FlowEntry, EVC)
         """
         # Exit early if it already exists
@@ -204,13 +204,12 @@ class FlowEntry(object):
             if flow_entry.flow_direction == FlowEntry.FlowDirection.DOWNSTREAM and\
                     flow_entry.signature in downstream_sig_table and\
                     flow_entry.flow_id in downstream_sig_table[flow_entry.signature]:
-                log.debug('flow-entry-upstream-exists', flow=flow_entry)
+                log.debug('flow-entry-downstream-exists', flow=flow_entry)
                 return flow_entry, None
 
             # Look for any matching flows in the other direction that might help make an EVC
             # and then save it off in the device specific flow table
             # TODO: For now, only support for E-LINE services between NNI and UNI
-
             log.debug('flow-entry-search-for-match', flow=flow_entry)
             downstream_flow = None
             upstream_flows = None
@@ -231,6 +230,7 @@ class FlowEntry(object):
                 downstream_sig = flow_entry.downstream_signature
 
             if downstream_sig is None:
+                log.debug('flow-entry-empty-downstream', flow=flow_entry)
                 return None, None
 
             if downstream_sig not in downstream_sig_table:
@@ -256,8 +256,8 @@ class FlowEntry(object):
                 if len(upstream_flows) == 0 and not downstream_flow.is_multicast_flow:
                     upstream_flows = None
 
-            log.debug('flow-entry-search-results', flow=flow_entry, downstream_flow=downstream_flow,
-                      upstream_flows=upstream_flows)
+            log.debug('flow-entry-search-results', flow=flow_entry,
+                      downstream_flow=downstream_flow, upstream_flows=upstream_flows)
 
             # Compute EVC and and maps
             evc = FlowEntry._create_evc_and_maps(evc, downstream_flow, upstream_flows)
@@ -281,6 +281,9 @@ class FlowEntry(object):
 
         :return: EVC object
         """
+        log.debug('flow-evc-and-maps', downstream_flow=downstream_flow,
+                  upstream_flows=upstream_flows)
+
         if (evc is None and downstream_flow is None) or upstream_flows is None:
             return None
 
@@ -300,6 +303,9 @@ class FlowEntry(object):
                 downstream_flow.evc = EVC(downstream_flow)
 
         if not downstream_flow.evc.valid:
+            log.debug('flow-evc-and-maps-downstream-invalid',
+                      downstream_flow=downstream_flow,
+                      upstream_flows=upstream_flows)
             return None
 
         # Create EVC-MAPs. Note upstream_flows is empty list for multicast
@@ -332,6 +338,10 @@ class FlowEntry(object):
         all_maps_valid = all(flow.evc_map.valid for flow in upstream_flows) \
             or downstream_flow.is_multicast_flow
 
+        log.debug('flow-evc-and-maps-downstream',
+                  downstream_flow=downstream_flow,
+                  upstream_flows=upstream_flows, all_valid=all_maps_valid)
+
         return downstream_flow.evc if all_maps_valid else None
 
     def get_utility_evc(self, upstream_flows=None, use_default_vlan_id=False):
@@ -355,6 +365,7 @@ class FlowEntry(object):
         """
         Examine flow rules and extract appropriate settings
         """
+        log.debug('start-decode')
         status = self._decode_traffic_selector() and self._decode_traffic_treatment()
 
         if status:
@@ -389,7 +400,7 @@ class FlowEntry(object):
                 try:
                     # TODO: Need to support flow retry if the ONU is not yet activated   !!!!
                     # Get the correct logical port and subscriber VLAN for this UNI
-                    self._logical_port, self.vlan_id, untagged_vlan = \
+                    self._logical_port, uni_vid, untagged_vlan = \
                         self._handler.get_onu_port_and_vlans(self)
 
                     if self._needs_acl_support:
@@ -400,10 +411,16 @@ class FlowEntry(object):
                             self.push_vlan_id[0] = self.handler.untagged_vlan
                         else:
                             self.push_vlan_id[0] = self.handler.utility_vlan
+                    elif self._handler.xpon_support:
+                        self.vlan_id = uni_vid
 
                 except Exception as e:
                     # TODO: Need to support flow retry if the ONU is not yet activated   !!!!
                     log.exception('tag-fixup', e=e)
+
+        log.debug('flow-evc-decode', direction=self._flow_direction, is_acl=self._is_acl_flow,
+                  inner_vid=self.inner_vid, vlan_id=self.vlan_id, pop_vlan=self.pop_vlan,
+                  push_vids=self.push_vlan_id)
 
         # Create a signature that will help locate related flow entries on a device.
         # These are not exact, just ones that may be put together to make an EVC. The
@@ -444,6 +461,8 @@ class FlowEntry(object):
             self.signature = upstream_sig
             self.downstream_signature = downstream_sig
 
+        log.debug('flow-evc-decode', upstream_sig=self.signature, downstream_sig=self.downstream_signature)
+
         return status
 
     def _decode_traffic_selector(self):
@@ -465,19 +484,28 @@ class FlowEntry(object):
 
             elif field.type == VLAN_VID:
                 # log.info('*** field.type == VLAN_VID', value=field.vlan_vid & 0xfff)
-                self.vlan_id = field.vlan_vid & 0xfff
+                if self.handler.xpon_support:
+                    # Traditional xPON way
+                    self.vlan_id = field.vlan_vid & 0xfff
+                else:
+                    if field.vlan_vid > ofp.OFPVID_PRESENT + 4095:      # Is it a UNI PORT on the PON?
+                        self.vlan_id = self.handler.untagged_vlan
+                    else:
+                        self.vlan_id = field.vlan_vid & 0xfff
+
+                log.debug('*** field.type == VLAN_VID', value=field.vlan_vid, vlan_id=self.vlan_id)
                 self._is_multicast = self.vlan_id in self._handler.multicast_vlans
 
             elif field.type == VLAN_PCP:
-                # log.info('*** field.type == VLAN_PCP', value=field.vlan_pcp)
+                log.debug('*** field.type == VLAN_PCP', value=field.vlan_pcp)
                 self.pcp = field.vlan_pcp
 
             elif field.type == ETH_TYPE:
-                # log.info('*** field.type == ETH_TYPE', value=field.eth_type)
+                log.debug('*** field.type == ETH_TYPE', value=field.eth_type)
                 self.eth_type = field.eth_type
 
             elif field.type == IP_PROTO:
-                # log.info('*** field.type == IP_PROTO', value=field.ip_proto)
+                log.debug('*** field.type == IP_PROTO', value=field.ip_proto)
                 self.ip_protocol = field.ip_proto
 
                 if self.ip_protocol not in _supported_ip_protocols:
@@ -485,20 +513,29 @@ class FlowEntry(object):
                     return False
 
             elif field.type == IPV4_DST:
-                # log.info('*** field.type == IPV4_DST', value=field.ipv4_dst)
+                log.debug('*** field.type == IPV4_DST', value=field.ipv4_dst)
                 self.ipv4_dst = field.ipv4_dst
 
             elif field.type == UDP_DST:
-                # log.info('*** field.type == UDP_DST', value=field.udp_dst)
+                log.debug('*** field.type == UDP_DST', value=field.udp_dst)
                 self.udp_dst = field.udp_dst
 
             elif field.type == UDP_SRC:
-                # log.info('*** field.type == UDP_SRC', value=field.udp_src)
+                log.debug('*** field.type == UDP_SRC', value=field.udp_src)
                 self.udp_src = field.udp_src
 
             elif field.type == METADATA:
-                # log.info('*** field.type == METADATA', value=field.table_metadata)
-                self.inner_vid = field.table_metadata
+                log.debug('*** field.type == METADATA', value=field.table_metadata)
+                if self.handler.xpon_support:
+                    # Traditional xPON way
+                    self.inner_vid = field.table_metadata
+                else:
+                    if field.table_metadata > ofp.OFPVID_PRESENT + 4095:      # Is it a UNI PORT on the PON?
+                        self.inner_vid = self.handler.untagged_vlan
+                    else:
+                        self.inner_vid = field.table_metadata
+
+                log.debug('*** field.type == METADATA', value=field.table_metadata, inner_vid=self.inner_vid)
 
             else:
                 log.warn('unsupported-selection-field', type=field.type)
@@ -520,17 +557,17 @@ class FlowEntry(object):
                 pass           # Handled earlier
 
             elif act.type == POP_VLAN:
-                # log.info('*** action.type == POP_VLAN')
+                log.debug('*** action.type == POP_VLAN')
                 self.pop_vlan += 1
 
             elif act.type == PUSH_VLAN:
-                # log.info('*** action.type == PUSH_VLAN', value=act.push)
+                log.debug('*** action.type == PUSH_VLAN', value=act.push)
                 # TODO: Do we want to test the ethertype for support?
                 tpid = act.push.ethertype
                 self.push_vlan_tpid.append(tpid)
 
             elif act.type == SET_FIELD:
-                # log.info('*** action.type == SET_FIELD', value=act.set_field.field)
+                log.debug('*** action.type == SET_FIELD', value=act.set_field.field)
                 assert (act.set_field.field.oxm_class == ofp.OFPXMC_OPENFLOW_BASIC)
                 field = act.set_field.field.ofb_field
                 if field.type == VLAN_VID:
@@ -676,7 +713,7 @@ class FlowEntry(object):
 
         for evc_map in evc_maps:
             if reflow or evc_map.reflow_needed():
-                evc_map.installed = False
+                evc_map.needs_update = False
 
             if not evc_map.installed:
                 evc = evc_map.evc

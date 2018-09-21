@@ -25,6 +25,7 @@ _acl_list = {}      # Key -> device-id -> Name: List of encoded EVCs
 ACL_NAME_FORMAT = 'VOLTHA-ACL-{}-{}'  # format(flow_entry.handler.device_id, flow_entry.flow.id)
 ACL_NAME_REGEX_ALL = 'VOLTHA-ACL-*'
 
+
 class ACL(object):
     """
     Class to wrap Trap-to-Controller functionality
@@ -47,10 +48,9 @@ class ACL(object):
         self._valid = self._decode()
 
     def __str__(self):
-        return 'ACL: {}, Installed: {}, L2: {}, L3/4: {}'.format(self.name,
-                                                                 self._installed,
-                                                                 self.is_l2_exception,
-                                                                 self.is_l3_l4_exception)
+        return 'ACL: {}, Installed: {}, L2: {}, L3/4: {}'.\
+            format(self.name, self._installed, self.is_l2_exception,
+                   self.is_l3_l4_exception)
 
     @property
     def name(self):

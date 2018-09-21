@@ -24,7 +24,7 @@ from net.adtran_rest import RestInvalidResponseCode
 
 _MAX_EXPEDITE_COUNT = 5
 _EXPEDITE_SECS = 2
-_HW_SYNC_SECS = 30
+_HW_SYNC_SECS = 60
 
 
 class Onu(object):
@@ -32,8 +32,7 @@ class Onu(object):
     Wraps an ONU
     """
     MIN_ONU_ID = 0
-    MAX_ONU_ID = 253            # G.984. 0..253, 254=reserved, 255=broadcast
-    BROADCAST_ONU_ID = 255
+    MAX_ONU_ID = 1020          # 1021..2013 reserved
     DEFAULT_PASSWORD = ''
 
     def __init__(self, onu_info):
@@ -52,11 +51,16 @@ class Onu(object):
         self._xpon_name = onu_info['xpon-name']
         self._gem_ports = {}                           # gem-id -> GemPort
         self._tconts = {}                              # alloc-id -> TCont
-        self._onu_vid = onu_info['onu-vid']
-        self.untagged_vlan = self._onu_vid
-        self._uni_ports = [onu_info['onu-vid']]     # TODO: Get rid of this
-        assert len(self._uni_ports) == 1, 'Only one UNI port supported at this time'
-        self._channel_id = onu_info['channel-id']
+        if self.olt.xpon_support:
+            self._onu_vid = onu_info['onu-vid']  # SEBA (xpon-mode may be only one using this)
+            self.untagged_vlan = self._onu_vid
+            self._uni_ports = [onu_info['onu-vid']]     # TODO: Get rid of this         # SEBA (xpon-mode may be only one using this)
+            assert len(self._uni_ports) == 1, 'Only one UNI port supported at this time'
+        else:
+            self._onu_vid = None
+            self.untagged_vlan = self.olt.untagged_vlan         # SEBA - BBWF has this hard coded to 4091
+            self._uni_ports = onu_info['uni-ports']
+        self._channel_id = onu_info['channel-id']                    # SEBA (xpon-mode may be only one using this)
         self._enabled = onu_info['enabled']
         self._vont_ani = onu_info.get('vont-ani')
         self._rssi = -9999
@@ -259,6 +263,7 @@ class Onu(object):
     @property
     def logical_port(self):
         """Return the logical PORT number of this ONU's UNI"""
+        # TODO: once we support multiple UNIs, this needs to be revisited
         return self._uni_ports[0]
 
     @property
@@ -273,19 +278,25 @@ class Onu(object):
             device_id = self.olt.device_id
 
             try:
-                v_ont_ani = self._vont_ani
-                voltha_core = self.olt.adapter_agent.core
-                xpon_agent = voltha_core.xpon_agent
-                channel_group_id = xpon_agent.get_channel_group_for_vont_ani(v_ont_ani)
-                parent_chnl_pair_id = xpon_agent.get_port_num(device_id,
-                                                              v_ont_ani.data.preferred_chanpair)
-                self._proxy_address = Device.ProxyAddress(
-                    device_id=device_id,
-                    channel_group_id=channel_group_id,
-                    channel_id=parent_chnl_pair_id,
-                    channel_termination=v_ont_ani.data.preferred_chanpair,
-                    onu_id=self.onu_id,
-                    onu_session_id=self.onu_id)
+                if self.olt.xpon_support:
+                    v_ont_ani = self._vont_ani
+                    voltha_core = self.olt.adapter_agent.core
+                    xpon_agent = voltha_core.xpon_agent
+                    channel_group_id = xpon_agent.get_channel_group_for_vont_ani(v_ont_ani)
+                    parent_chnl_pair_id = xpon_agent.get_port_num(device_id,
+                                                                  v_ont_ani.data.preferred_chanpair)
+                    self._proxy_address = Device.ProxyAddress(
+                        device_id=device_id,
+                        channel_group_id=channel_group_id,
+                        channel_id=parent_chnl_pair_id,
+                        channel_termination=v_ont_ani.data.preferred_chanpair,
+                        onu_id=self.onu_id,
+                        onu_session_id=self.onu_id)
+                else:
+                    self._proxy_address = Device.ProxyAddress(device_id=device_id,
+                                                              channel_id=self.pon.port_no,
+                                                              onu_id=self.onu_id,
+                                                              onu_session_id=self.onu_id)
             except Exception:
                 pass
 
@@ -309,7 +320,7 @@ class Onu(object):
 
     @property
     def channel_id(self):
-        return self._channel_id
+        return self._channel_id             # SEBA    (xPON mode may be only one using this. May also be no one)
 
     @property
     def serial_number_64(self):
@@ -388,12 +399,14 @@ class Onu(object):
         name = 'onu-create-{}-{}-{}: {}'.format(self._pon_id, self._onu_id,
                                                 self._serial_number_base64, self._enabled)
 
-        if not self._created:
+        first_sync = self._sync_tick if self._created else 3
+
+        if not self._created or reflow:
             try:
                 yield self.olt.rest_client.request('POST', uri, data=data, name=name)
                 self._created = True
 
-            except Exception as e:  # TODO: Add breakpoint here during unexpected reboot test
+            except Exception as e:
                 self.log.exception('onu-create', e=e)
                 # See if it failed due to already being configured
                 url = AdtranOltHandler.GPON_ONU_CONFIG_URI.format(self._pon_id, self._onu_id)
@@ -402,19 +415,19 @@ class Onu(object):
                 try:
                     results = yield self.olt.rest_client.request('GET', uri, name=name)
                     self.log.debug('onu-create-check', results=results)
-                    if len(results) != 1 or results[0].get('serial-number', '') != self._serial_number_base64:
-                        raise e
+                    if len(results) == 1 and results[0].get('serial-number', '') != self._serial_number_base64:
+                        self._created = True
 
                 except Exception as e:
-                    self.log.exception('onu-exists-check', e=e)
-                    raise
+                    self.log.warn('onu-exists-check', pon_id=self.pon_id, onu_id=self.onu_id,
+                                  serial_number=self.serial_number)
+                    if self.olt.xpon_support:                   # xPON mode does rediscovery...
+                        raise
 
-        # Now set up all tconts & gem-ports
-        first_sync = self._sync_tick
-
+        # Now set up all TConts & GEM-ports
         for _, tcont in tconts.items():
             try:
-                yield self.add_tcont(tcont, reflow=reflow)
+                _results = yield self.add_tcont(tcont, reflow=reflow)
 
             except Exception as e:
                 self.log.exception('add-tcont', tcont=tcont, e=e)
@@ -422,7 +435,7 @@ class Onu(object):
 
         for _, gem_port in gem_ports.items():
             try:
-                yield self.add_gem_port(gem_port, reflow=reflow)
+                _results = yield self.add_gem_port(gem_port, reflow=reflow)
 
             except Exception as e:
                 self.log.exception('add-gem-port', gem_port=gem_port, reflow=reflow, e=e)
@@ -669,8 +682,8 @@ class Onu(object):
             reflow, self._resync_flows = self._resync_flows, False
             return FlowEntry.sync_flows_by_onu(self, reflow=reflow)
 
-        def failure(reason):
-            # self.log.error('hardware-sync-get-config-failed', reason=reason)
+        def failure(_reason):
+            # self.log.error('hardware-sync-get-config-failed', reason=_reason)
             pass
 
         def reschedule(_):
@@ -873,9 +886,9 @@ class Onu(object):
                 for evc_map in evc_maps:
                     evc_map.remove_gem_port(gem_port)
 
-            results = yield gem_port.remove_from_hardware(self.olt.rest_client,
-                                                          self._pon_id,
-                                                          self.onu_id)
+            yield gem_port.remove_from_hardware(self.olt.rest_client,
+                                                self._pon_id,
+                                                self.onu_id)
         except RestInvalidResponseCode as e:
             if e.code != 404:
                 self.log.exception('onu-delete', e=e)
@@ -895,5 +908,5 @@ class Onu(object):
 
     @staticmethod
     def gem_id_to_gvid(gem_id):
-        """Calculate GEM VID for a given GEM port id"""
+        """Calculate GEM VID (gvid) for a given GEM port id"""
         return gem_id - 2048

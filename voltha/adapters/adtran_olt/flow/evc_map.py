@@ -146,10 +146,15 @@ class EVCMap(object):
     def installed(self):
         return self._installed
 
-    @installed.setter
-    def installed(self, value):
-        assert not value, 'installed can only be reset'                # Can only reset
-        self._installed = False
+    @property
+    def needs_update(self):
+        """ True if an parameter/ACL/... needs update or map needs to be reflowed after a failure"""
+        return self._needs_update
+
+    @needs_update.setter
+    def needs_update(self, value):
+        assert not value, 'needs update can only be reset'                # Can only reset
+        self._needs_update = False
 
     @property
     def name(self):
@@ -306,6 +311,8 @@ class EVCMap(object):
                 ports.extend(gems_and_vids[0])
             return ports
 
+        log.debug('install-evc-map', valid=self._valid, gem_ports=gem_ports())
+
         if self._valid and len(gem_ports()) > 0:
             # Install ACLs first (if not yet installed)
             work_acls = self._new_acls.copy()
@@ -318,12 +325,13 @@ class EVCMap(object):
                     #     pass                # TODO : do anything?
 
                 except Exception as e:
-                    log.exception('acl-install', name=self.name, e=e)
+                    log.exception('acl-install-failed', name=self.name, e=e)
                     self._new_acls.update(work_acls)
                     raise
 
             # Now EVC-MAP
             if not self._installed or self._needs_update:
+                log.debug('needs-install-or-update', installed=self._installed, update=self._needs_update)
                 try:
                     self._cancel_deferred()
                     map_xml = self._ingress_install_xml(self._gem_ids_and_vid, work_acls.values(),
@@ -343,7 +351,7 @@ class EVCMap(object):
                         self._new_acls.update(work_acls)
 
                 except Exception as e:
-                    log.exception('map-install', name=self.name, e=e)
+                    log.exception('evc-map-install-failed', name=self.name, e=e)
                     self._new_acls.update(work_acls)
                     raise
 
@@ -432,9 +440,12 @@ class EVCMap(object):
         returnValue('Done')
 
     def reflow_needed(self):
-        log.debug('reflow-needed')
-        reflow = not self.installed
-        # TODO: implement
+        log.debug('reflow-needed', installed=self.installed, needs_update=self.needs_update)
+        reflow = not self.installed or self.needs_update
+
+        if not reflow:
+            pass  # TODO: implement retrieve & compare of EVC Map parameters
+
         return reflow
 
     @staticmethod
@@ -494,6 +505,8 @@ class EVCMap(object):
         assert flow.flow_direction == FlowEntry.FlowDirection.UPSTREAM, \
             'Only Upstream flows additions are supported at this time'
 
+        log('add-flow-to-evc', flow=flow, evc=evc)
+
         tmp_map = EVCMap.create_ingress_map(flow, evc, dry_run=True) \
             if flow.flow_direction == FlowEntry.FlowDirection.UPSTREAM \
             else EVCMap.create_egress_map(flow, evc, dry_run=True)
@@ -529,6 +542,7 @@ class EVCMap(object):
         try:
             del self._flows[flow.flow_id]
 
+            log('remove-flow-to-evc', flow=flow, evc=evc)
             # Remove any ACLs
             acl_name = ACL.flow_to_name(flow)
             acl = None
@@ -701,8 +715,8 @@ class EVCMap(object):
         # flow, then this is a traditional EVC flow
 
         evc.men_to_uni_tag_manipulation = EVC.Men2UniManipulation.POP_OUT_TAG_ONLY
-        evc.switching_method = EVC.SwitchingMethod.DOUBLE_TAGGED  # \
-        #     if self._c_tag is not None else EVC.SwitchingMethod.SINGLE_TAGGED
+        evc.switching_method = EVC.SwitchingMethod.DOUBLE_TAGGED \
+            if self._c_tag is not None else EVC.SwitchingMethod.SINGLE_TAGGED
 
         try:
             acl = ACL.create(flow)

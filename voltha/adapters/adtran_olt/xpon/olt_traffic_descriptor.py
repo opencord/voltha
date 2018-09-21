@@ -28,12 +28,14 @@ class OltTrafficDescriptor(TrafficDescriptor):
                  additional=TrafficDescriptor.AdditionalBwEligibility.DEFAULT,
                  best_effort=None,
                  name=None,
-                 is_mock=False):
+                 is_mock=False,
+                 pb_data=None):
         super(OltTrafficDescriptor, self).__init__(fixed, assured, maximum,
                                                    additional=additional,
                                                    best_effort=best_effort,
                                                    name=name)
         self._is_mock = is_mock
+        self.data = pb_data
 
     @staticmethod
     def create(traffic_disc):
@@ -56,7 +58,8 @@ class OltTrafficDescriptor(TrafficDescriptor):
                                     traffic_disc['maximum-bandwidth'],
                                     name=traffic_disc['name'],
                                     best_effort=best_effort,
-                                    additional=additional)
+                                    additional=additional,
+                                    pb_data=traffic_disc['data'])
 
     @inlineCallbacks
     def add_to_hardware(self, session, pon_id, onu_id, alloc_id):

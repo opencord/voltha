@@ -518,7 +518,7 @@ class Download(object):
         del_job_xml = """
             <maintenance-jobs operation="delete" xmlns="http://www.adtran.com/ns/yang/adtran-maintenance-jobs"/>
             """
-        dl = [client.edit_config(del_fs_xml),
-              client.edit_config(del_job_xml)]
+        dl = [client.edit_config(del_fs_xml, ignore_delete_error=True),
+              client.edit_config(del_job_xml, ignore_delete_error=True)]
 
         return defer.gatherResults(dl, consumeErrors=True)

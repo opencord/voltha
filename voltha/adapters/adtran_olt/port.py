@@ -30,9 +30,6 @@ class AdtnPort(object):
         STOPPED = 2  # Disabled
         DELETING = 3  # Cleanup
 
-    _SUPPORTED_ACTIVATION_METHODS = ['autodiscovery']  # , 'autoactivate']
-    _SUPPORTED_AUTHENTICATION_METHODS = ['serial-number']
-
     def __init__(self, parent, **kwargs):
         assert parent, 'parent is None'
         assert 'port_no' in kwargs, 'Port number not found'
@@ -50,9 +47,15 @@ class AdtnPort(object):
         self.sync_tick = 20.0
         self.sync_deferred = None  # For sync of PON config to hardware
 
-        # TODO: Deprecate 'enabled' and use admin_state instead
-        self._enabled = False
-        self._admin_state = AdminState.DISABLED
+        # TODO: Deprecate 'enabled' and use admin_state instead may want initial to always be
+        # disabled and then in derived classes, set it in the 'reset' method called on startup.
+        if parent.xpon_support:
+            self._enabled = not parent.xpon_support
+            self._admin_state = AdminState.DISABLED
+        else:
+            self._enabled = not parent.xpon_support
+            self._admin_state = AdminState.ENABLED
+
         self._oper_status = OperStatus.DISCOVERED
         self._state = AdtnPort.State.INITIAL
 
@@ -119,18 +122,6 @@ class AdtnPort(object):
     def enabled(self, value):
         assert isinstance(value, bool), 'enabled is a boolean'
         self.admin_state = AdminState.ENABLED if value else AdminState.DISABLED
-
-    # @property
-    # def enabled(self):
-    #     return self._enabled
-    #
-    # @enabled.setter
-    # def enabled(self, value):
-    #     assert isinstance(value, bool), 'enabled is a boolean'
-    #     if self._enabled != value:
-    #         if value:
-    #             self.start()
-    #         self.stop()
 
     @property
     def oper_status(self):
