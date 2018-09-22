@@ -40,6 +40,7 @@ from voltha.protos import third_party
 from voltha.protos import openflow_13_pb2 as ofp
 from voltha.protos import ponsim_pb2
 from voltha.protos.common_pb2 import OperStatus, ConnectStatus, AdminState
+from voltha.protos.common_pb2 import OperationResp
 from voltha.protos.device_pb2 import Port, Device, PmConfig, PmConfigs
 from voltha.protos.events_pb2 import KpiEvent, KpiEventType, MetricValuePairs
 from google.protobuf.empty_pb2 import Empty
@@ -66,6 +67,9 @@ from voltha.protos.bbf_fiber_multicast_distribution_set_body_pb2 import \
     MulticastDistributionSetData
 
 from voltha.protos.ponsim_pb2 import InterfaceConfig, TcontInterfaceConfig
+
+from voltha.extensions.alarms.adapter_alarms import AdapterAlarms as VolthaAdapterAlarms
+from voltha.extensions.alarms.simulator.simulate_alarms import AdapterAlarmSimulator
 
 _ = third_party
 log = structlog.get_logger()
@@ -298,6 +302,10 @@ class PonSimOltAdapter(OltAdapter):
             self.devices_handlers[device.id].remove_multicast_distribution_set(
                 data)
 
+    def simulate_alarm(self, device, alarm):
+        handler = self.devices_handlers[device.id]
+        handler.simulate_alarm(alarm)
+        return OperationResp(code=OperationResp.OPERATION_SUCCESS)
 
 class PonSimOltHandler(object):
     xpon_ponsim_olt_itfs = {
@@ -1074,3 +1082,11 @@ class PonSimOltHandler(object):
     def remove_multicast_distribution_set(self, data):
         _method_name = sys._getframe().f_code.co_name
         self.xpon_ponsim_olt_interface(_method_name, data);
+
+    def simulate_alarm(self, alarm):
+        # Ponsim_olt implements its own AdapterAlarms class, rather than using the Voltha alarm extension. Until that
+        # has been reconciled, temporarily instantiate the Voltha alarm extension's AdapterAlarms here, for the
+        # purpose of sending simulated alarms.
+        alarms = VolthaAdapterAlarms(self.adapter_agent, self.device_id, self.logical_device_id)
+        simulator = AdapterAlarmSimulator(alarms)
+        simulator.simulate_alarm(alarm)
