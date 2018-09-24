@@ -70,6 +70,8 @@ class BrcmOpenomciOnuHandler(object):
         self.log.debug('function-entry')
         self.adapter = adapter
         self.adapter_agent = adapter.adapter_agent
+        self.parent_adapter = None
+        self.parent_id = None
         self.device_id = device_id
         self.incoming_messages = DeferredQueue()
         self.event_messages = DeferredQueue()
@@ -153,6 +155,11 @@ class BrcmOpenomciOnuHandler(object):
         # register for proxied messages right away
         self.proxy_address = device.proxy_address
         self.adapter_agent.register_for_proxied_messages(device.proxy_address)
+        self.parent_id = device.parent_id
+        parent_device = self.adapter_agent.get_device(self.parent_id)
+        if parent_device.type == 'openolt':
+            self.parent_adapter = registry('adapter_loader').\
+                                  get_agent(parent_device.adapter).adapter
 
         if self.enabled is not True:
             self.log.info('activating-new-onu')
@@ -239,20 +246,16 @@ class BrcmOpenomciOnuHandler(object):
         except Exception as e:
             self.log.exception("exception-updating-port",e=e)
 
-    @inlineCallbacks
     def delete(self, device):
         self.log.info('delete-onu', device=device)
-
-        parent_device = self.adapter_agent.get_device(device.parent_id)
-        if parent_device.type == 'openolt':
-            parent_adapter = registry('adapter_loader').get_agent(parent_device.adapter).adapter
-            self.log.debug('parent-adapter-delete-onu', onu_device=device,
-                          parent_device=parent_device,
-                          parent_adapter=parent_adapter)
+        if self.parent_adapter:
             try:
-                parent_adapter.delete_child_device(parent_device.id, device)
+                self.parent_adapter.delete_child_device(self.parent_id, device)
             except AttributeError:
                 self.log.debug('parent-device-delete-child-not-implemented')
+        else:
+            self.log.debug("parent-adapter-not-available")
+
 
     # Calling this assumes the onu is active/ready and had at least an initial mib downloaded.   This gets called from
     # flow decomposition that ultimately comes from onos
