@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "502f2f3e_6487a3c6",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 209,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-09-24T17:59:01Z",
+      "side": 1,
+      "message": "Cannot this initialization happen in the OpenOltResourceMgr constructor?",
+      "revId": "f93778e6601bb70a3b33a3b5f399368c7bfbb84a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f20204ea_29ba6f73",
+        "filename": "voltha/adapters/openolt/openolt_resource_manager.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 63,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-09-24T17:59:01Z",
+      "side": 1,
+      "message": "This dict needs to be moved to KV store. If you notice, OpenOLT does not maintain any per-ONU state in-memory.",
+      "revId": "f93778e6601bb70a3b33a3b5f399368c7bfbb84a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "6d3976fb_cb4a4dfc",
+        "filename": "voltha/adapters/openolt/openolt_resource_manager.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 71,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-09-24T17:59:01Z",
+      "side": 1,
+      "message": "Why cannot much of this reside in the base PONResourceManager class? OpenOLT should pass it variant name to the PONResourceManager and the PONResourceManager should look up KV store.",
+      "revId": "f93778e6601bb70a3b33a3b5f399368c7bfbb84a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "10dc5869_9ee19569",
+        "filename": "voltha/adapters/openolt/openolt_resource_manager.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 123,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-09-24T17:59:01Z",
+      "side": 1,
+      "message": "Same here - what is OpenOLT specific about this? Why cannot it be common to all adapters? Same comment applies to other methods - can we distill the common functionality out to the PONResourceManager and have only the very adapter dependant logic here.",
+      "revId": "f93778e6601bb70a3b33a3b5f399368c7bfbb84a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
