@@ -34,6 +34,7 @@ from voltha.adapters.openolt.openolt_alarms import OpenOltAlarmMgr
 from voltha.adapters.openolt.openolt_statistics import OpenOltStatisticsMgr
 from voltha.adapters.openolt.openolt_bw import OpenOltBW
 from voltha.adapters.openolt.openolt_platform import OpenOltPlatform
+from voltha.adapters.openolt.openolt_resource_manager import OpenOltResourceMgr
 
 _ = third_party
 log = structlog.get_logger()
@@ -42,6 +43,7 @@ log = structlog.get_logger()
 OpenOltDefaults = {
     'support_classes': {
         'platform': OpenOltPlatform,
+        'resource_mgr': OpenOltResourceMgr,
         'flow_mgr': OpenOltFlowMgr,
         'alarm_mgr': OpenOltAlarmMgr,
         'stats_mgr': OpenOltStatisticsMgr,
@@ -122,6 +124,7 @@ class OpenoltAdapter(object):
     def reconcile_device(self, device):
         log.info('reconcile-device', device=device)
         kwargs = {
+            'support_classes': OpenOltDefaults['support_classes'],
             'adapter_agent': self.adapter_agent,
             'device': device,
             'device_num': self.num_devices + 1,
