@@ -23,6 +23,7 @@ from voltha.protos.openflow_13_pb2 import OFPXMC_OPENFLOW_BASIC, \
 from voltha.protos.device_pb2 import Port
 import voltha.core.flow_decomposer as fd
 import openolt_platform as platform
+from common.pon_resource_manager.resource_manager import  PONResourceManager
 from voltha.adapters.openolt.protos import openolt_pb2
 from voltha.registry import registry
 
@@ -72,7 +73,7 @@ TRAP_TO_HOST = 'trap_to_host'
 
 class OpenOltFlowMgr(object):
 
-    def __init__(self, log, stub, device_id, logical_device_id):
+    def __init__(self, log, stub, device_id, logical_device_id, resource_mgr):
         self.log = log
         self.stub = stub
         self.device_id = device_id
@@ -82,6 +83,7 @@ class OpenOltFlowMgr(object):
         self.flows_proxy = registry('core').get_proxy(
             '/devices/{}/flows'.format(self.device_id))
         self.root_proxy = registry('core').get_proxy('/')
+        self.resource_mgr = resource_mgr
 
     def add_flow(self, flow):
         self.log.debug('add flow', flow=flow)
@@ -317,8 +319,14 @@ class OpenOltFlowMgr(object):
     def add_hsia_flow(self, intf_id, onu_id, classifier, action,
                       direction, hsia_id, logical_flow):
 
-        gemport_id = platform.mk_gemport_id(intf_id, onu_id)
-        alloc_id = platform.mk_alloc_id(intf_id, onu_id)
+        pon_intf_onu_id = (intf_id, onu_id)
+        gemport_id = self.resource_mgr.get_gemport_id(
+                          pon_intf_onu_id=pon_intf_onu_id
+                     )
+        alloc_id = self.resource_mgr.get_alloc_id(
+                          pon_intf_onu_id=pon_intf_onu_id
+                     )
+
         flow_id = platform.mk_flow_id(intf_id, onu_id, hsia_id)
 
         flow = openolt_pb2.Flow(
@@ -341,8 +349,14 @@ class OpenOltFlowMgr(object):
         classifier[PACKET_TAG_TYPE] = SINGLE_TAG
         classifier.pop(VLAN_VID, None)
 
-        gemport_id = platform.mk_gemport_id(intf_id, onu_id)
-        alloc_id = platform.mk_alloc_id(intf_id, onu_id)
+        pon_intf_onu_id = (intf_id, onu_id)
+        gemport_id = self.resource_mgr.get_gemport_id(
+                          pon_intf_onu_id=pon_intf_onu_id
+                     )
+        alloc_id = self.resource_mgr.get_alloc_id(
+                          pon_intf_onu_id=pon_intf_onu_id
+                     )
+
         flow_id = platform.mk_flow_id(intf_id, onu_id, DHCP_FLOW_INDEX)
 
         upstream_flow = openolt_pb2.Flow(
@@ -395,8 +409,14 @@ class OpenOltFlowMgr(object):
 
         # Add Upstream EAPOL Flow.
 
-        gemport_id = platform.mk_gemport_id(intf_id, onu_id)
-        alloc_id = platform.mk_alloc_id(intf_id, onu_id)
+        pon_intf_onu_id = (intf_id, onu_id)
+        gemport_id = self.resource_mgr.get_gemport_id(
+                          pon_intf_onu_id=pon_intf_onu_id
+                     )
+        alloc_id = self.resource_mgr.get_alloc_id(
+                          pon_intf_onu_id=pon_intf_onu_id
+                     )
+
         uplink_flow_id = platform.mk_flow_id(intf_id, onu_id, eapol_id)
 
         upstream_flow = openolt_pb2.Flow(

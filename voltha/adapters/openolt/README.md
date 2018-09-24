@@ -28,13 +28,13 @@ Please make sure to use the same KV store used by the VOLTHA core.
 To specify ASFvOLT16 OLT device specific resource ranges, first create a JSON file `asfvolt16_resource_range.json` with the following entry
 ```bash
 {
-    "onu_start_idx": 1,
-    "onu_end_idx": 127,
-    "alloc_id_start_idx": 1024,
-    "alloc_id_end_idx": 65534,
-    "gem_port_id_start_idx": 1024,
-    "gem_port_id_end_idx": 16383,
-    "num_of_pon_port": 16
+    "onu_id_start": 1,
+    "onu_id_end": 127,
+    "alloc_id_start": 1024,
+    "alloc_id_end": 2816,
+    "gemport_id_start": 1024,
+    "gemport_id_end": 8960,
+    "pon_ports": 16
 }
 ```
 This data should be put on the KV store location `resource_manager/xgspon/resource_ranges/asfvolt16`

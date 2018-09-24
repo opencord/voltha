@@ -23,10 +23,19 @@ uses a KV store in backend to ensure resiliency of the data.
 import json
 import structlog
 from bitstring import BitArray
-from twisted.internet.defer import returnValue, inlineCallbacks
+from ast import literal_eval
+import shlex
+from argparse import ArgumentParser, ArgumentError
 
-from common.kvstore.kvstore import create_kv_client
-from common.utils.asleep import asleep
+from common.pon_resource_manager.resource_kv_store import ResourceKvStore
+
+
+# Used to parse extra arguments to OpenOlt adapter from the NBI
+class OltVendorArgumentParser(ArgumentParser):
+    # Must override the exit command to prevent it from
+    # calling sys.exit().  Return exception instead.
+    def exit(self, status=0, message=None):
+        raise Exception(message)
 
 
 class PONResourceManager(object):
@@ -44,34 +53,45 @@ class PONResourceManager(object):
     # they are expected to be stored in the following format.
     # Note: All parameters are MANDATORY for now.
     '''
-        {
-           "onu_start_idx": 1,
-           "onu_end_idx": 127,
-           "alloc_id_start_idx": 1024,
-           "alloc_id_end_idx": 65534,
-           "gem_port_id_start_idx": 1024,
-           "gem_port_id_end_idx": 16383,
-           "num_of_pon_port": 16
-        }
+    {
+        "onu_id_start": 1,
+        "onu_id_end": 127,
+        "alloc_id_start": 1024,
+        "alloc_id_end": 2816,
+        "gemport_id_start": 1024,
+        "gemport_id_end": 8960,
+        "pon_ports": 16
+    }
+
     '''
     # constants used as keys to reference the resource range parameters from
     # and external KV store.
-    ONU_START_IDX = "onu_start_idx"
-    ONU_END_IDX = "onu_end_idx"
-    ALLOC_ID_START_IDX = "alloc_id_start_idx"
-    ALLOC_ID_END_IDX = "alloc_id_end_idx"
-    GEM_PORT_ID_START_IDX = "gem_port_id_start_idx"
-    GEM_PORT_ID_END_IDX = "gem_port_id_end_idx"
-    NUM_OF_PON_PORT = "num_of_pon_port"
+    ONU_START_IDX = "onu_id_start"
+    ONU_END_IDX = "onu_id_end"
+    ALLOC_ID_START_IDX = "alloc_id_start"
+    ALLOC_ID_END_IDX = "alloc_id_end"
+    GEM_PORT_ID_START_IDX = "gemport_id_start"
+    GEM_PORT_ID_END_IDX = "gemport_id_end"
+    NUM_OF_PON_PORT = "pon_ports"
 
     # PON Resource range configuration on the KV store.
     # Format: 'resource_manager/<technology>/resource_ranges/<olt_vendor_type>'
-    PON_RESOURCE_RANGE_CONFIG_PATH = 'resource_manager/{}/resource_ranges/{}'
+    # The KV store backend is initialized with a path prefix and we need to
+    # provide only the suffix.
+    PON_RESOURCE_RANGE_CONFIG_PATH = 'resource_ranges/{}'
 
-    # resource path in kv store
-    ALLOC_ID_POOL_PATH = 'resource_manager/{}/{}/alloc_id_pool/{}'
-    GEMPORT_ID_POOL_PATH = 'resource_manager/{}/{}/gemport_id_pool/{}'
-    ONU_ID_POOL_PATH = 'resource_manager/{}/{}/onu_id_pool/{}'
+    # resource path suffix
+    ALLOC_ID_POOL_PATH = '{}/alloc_id_pool/{}'
+    GEMPORT_ID_POOL_PATH = '{}/gemport_id_pool/{}'
+    ONU_ID_POOL_PATH = '{}/onu_id_pool/{}'
+
+    # Path on the KV store for storing list of alloc IDs for a given ONU
+    # Format: <device_id>/<(pon_intf_id, onu_id)>/alloc_ids
+    ALLOC_ID_RESOURCE_MAP_PATH = '{}/{}/alloc_ids'
+
+    # Path on the KV store for storing list of gemport IDs for a given ONU
+    # Format: <device_id>/<(pon_intf_id, onu_id)>/gemport_ids
+    GEMPORT_ID_RESOURCE_MAP_PATH = '{}/{}/gemport_ids'
 
     # Constants for internal usage.
     PON_INTF_ID = 'pon_intf_id'
@@ -79,15 +99,14 @@ class PONResourceManager(object):
     END_IDX = 'end_idx'
     POOL = 'pool'
 
-    def __init__(self, technology, olt_vendor_type, device_id,
+    def __init__(self, technology, extra_args, device_id,
                  backend, host, port):
         """
         Create PONResourceManager object.
 
         :param technology: PON technology
-        :param: olt_vendor_type: This string defines the OLT vendor type
-        and is used as a Key to load the resource range configuration from
-        KV store location.
+        :param: extra_args: This string contains extra arguments passed during
+        pre-provisioning of OLT and specifies the OLT Vendor type
         :param device_id: OLT device id
         :param backend: backend store
         :param host: ip of backend store
@@ -98,10 +117,15 @@ class PONResourceManager(object):
         self._log = structlog.get_logger()
 
         try:
-            self._kv_store = create_kv_client(backend, host, port)
             self.technology = technology
-            self.olt_vendor_type = olt_vendor_type
+            self.extra_args = extra_args
             self.device_id = device_id
+            self.backend = backend
+            self.host = host
+            self.port = port
+            self.olt_vendor = None
+            self._kv_store = ResourceKvStore(technology, device_id, backend,
+                                             host, port)
             # Below attribute, pon_resource_ranges, should be initialized
             # by reading from KV store.
             self.pon_resource_ranges = dict()
@@ -109,51 +133,79 @@ class PONResourceManager(object):
             self._log.exception("exception-in-init")
             raise Exception(e)
 
-    @inlineCallbacks
-    def init_pon_resource_ranges(self):
-        # Try to initialize the PON Resource Ranges from KV store if available
-        status = yield self.init_resource_ranges_from_kv_store()
-        # If reading from KV store fails, initialize to default values.
-        if not status:
-            self._log.error("failed-to-read-resource-ranges-from-kv-store")
-            self.init_default_pon_resource_ranges()
-
-    @inlineCallbacks
     def init_resource_ranges_from_kv_store(self):
-        path = self.PON_RESOURCE_RANGE_CONFIG_PATH.format(
-            self.technology, self.olt_vendor_type)
-        # get resource from kv store
-        result = yield self._kv_store.get(path)
-        resource_range_config = result[0]
+        """
+        Initialize PON resource ranges with config fetched from kv store.
 
-        if resource_range_config is not None:
-            self.pon_resource_ranges = eval(resource_range_config.value)
-            self._log.debug("Init-resource-ranges-from-kvstore-success",
-                            pon_resource_ranges=self.pon_resource_ranges,
-                            path=path)
-            returnValue(True)
+        :return boolean: True if PON resource ranges initialized else false
+        """
+        self.olt_vendor = self._get_olt_vendor()
+        # Try to initialize the PON Resource Ranges from KV store based on the
+        # OLT vendor key, if available
+        if self.olt_vendor is None:
+            self._log.info("olt-vendor-unavailable--not-reading-from-kv-store")
+            return False
 
-        returnValue(False)
+        path = self.PON_RESOURCE_RANGE_CONFIG_PATH.format(self.olt_vendor)
+        try:
+            # get resource from kv store
+            result = self._kv_store.get_from_kv_store(path)
+
+            if result is None:
+                self._log.debug("resource-range-config-unavailable-on-kvstore")
+                return False
+
+            resource_range_config = result
+
+            if resource_range_config is not None:
+                self.pon_resource_ranges = json.loads(resource_range_config)
+                self._log.debug("Init-resource-ranges-from-kvstore-success",
+                                pon_resource_ranges=self.pon_resource_ranges,
+                                path=path)
+                return True
+
+        except Exception as e:
+            self._log.exception("error-initializing-resource-range-from-kv-store",
+                                e=e)
+        return False
 
     def init_default_pon_resource_ranges(self, onu_start_idx=1,
                                          onu_end_idx=127,
                                          alloc_id_start_idx=1024,
-                                         alloc_id_end_idx=65534,
+                                         alloc_id_end_idx=2816,
                                          gem_port_id_start_idx=1024,
-                                         gem_port_id_end_idx=16383,
+                                         gem_port_id_end_idx=8960,
                                          num_of_pon_ports=16):
+        """
+        Initialize default PON resource ranges
+
+        :param onu_start_idx: onu id start index
+        :param onu_end_idx: onu id end index
+        :param alloc_id_start_idx: alloc id start index
+        :param alloc_id_end_idx: alloc id end index
+        :param gem_port_id_start_idx: gemport id start index
+        :param gem_port_id_end_idx: gemport id end index
+        :param num_of_pon_ports: number of PON ports
+        """
         self._log.info("initialize-default-resource-range-values")
-        self.pon_resource_ranges[PONResourceManager.ONU_START_IDX] = onu_start_idx
+        self.pon_resource_ranges[
+            PONResourceManager.ONU_START_IDX] = onu_start_idx
         self.pon_resource_ranges[PONResourceManager.ONU_END_IDX] = onu_end_idx
-        self.pon_resource_ranges[PONResourceManager.ALLOC_ID_START_IDX] = alloc_id_start_idx
-        self.pon_resource_ranges[PONResourceManager.ALLOC_ID_END_IDX] = alloc_id_end_idx
+        self.pon_resource_ranges[
+            PONResourceManager.ALLOC_ID_START_IDX] = alloc_id_start_idx
+        self.pon_resource_ranges[
+            PONResourceManager.ALLOC_ID_END_IDX] = alloc_id_end_idx
         self.pon_resource_ranges[
             PONResourceManager.GEM_PORT_ID_START_IDX] = gem_port_id_start_idx
         self.pon_resource_ranges[
             PONResourceManager.GEM_PORT_ID_END_IDX] = gem_port_id_end_idx
-        self.pon_resource_ranges[PONResourceManager.NUM_OF_PON_PORT] = num_of_pon_ports
+        self.pon_resource_ranges[
+            PONResourceManager.NUM_OF_PON_PORT] = num_of_pon_ports
 
     def init_device_resource_pool(self):
+        """
+        Initialize resource pool for all PON ports.
+        """
         i = 0
         while i < self.pon_resource_ranges[PONResourceManager.NUM_OF_PON_PORT]:
             self.init_resource_id_pool(
@@ -164,43 +216,49 @@ class PONResourceManager(object):
                 end_idx=self.pon_resource_ranges[
                     PONResourceManager.ONU_END_IDX])
 
-            self.init_resource_id_pool(
-                pon_intf_id=i,
-                resource_type=PONResourceManager.ALLOC_ID,
-                start_idx=self.pon_resource_ranges[
-                    PONResourceManager.ALLOC_ID_START_IDX],
-                end_idx=self.pon_resource_ranges[
-                    PONResourceManager.ALLOC_ID_END_IDX])
-
-            self.init_resource_id_pool(
-                pon_intf_id=i,
-                resource_type=PONResourceManager.GEMPORT_ID,
-                start_idx=self.pon_resource_ranges[
-                    PONResourceManager.GEM_PORT_ID_START_IDX],
-                end_idx=self.pon_resource_ranges[
-                    PONResourceManager.GEM_PORT_ID_END_IDX])
             i += 1
 
+        # TODO: ASFvOLT16 platform requires alloc and gemport ID to be unique
+        # across OLT. To keep it simple, a single pool (POOL 0) is maintained
+        # for both the resource types. This may need to change later.
+        self.init_resource_id_pool(
+            pon_intf_id=0,
+            resource_type=PONResourceManager.ALLOC_ID,
+            start_idx=self.pon_resource_ranges[
+                PONResourceManager.ALLOC_ID_START_IDX],
+            end_idx=self.pon_resource_ranges[
+                PONResourceManager.ALLOC_ID_END_IDX])
+
+        self.init_resource_id_pool(
+            pon_intf_id=0,
+            resource_type=PONResourceManager.GEMPORT_ID,
+            start_idx=self.pon_resource_ranges[
+                PONResourceManager.GEM_PORT_ID_START_IDX],
+            end_idx=self.pon_resource_ranges[
+                PONResourceManager.GEM_PORT_ID_END_IDX])
+
     def clear_device_resource_pool(self):
+        """
+        Clear resource pool of all PON ports.
+        """
         i = 0
         while i < self.pon_resource_ranges[PONResourceManager.NUM_OF_PON_PORT]:
             self.clear_resource_id_pool(
                 pon_intf_id=i,
                 resource_type=PONResourceManager.ONU_ID,
             )
-
-            self.clear_resource_id_pool(
-                pon_intf_id=i,
-                resource_type=PONResourceManager.ALLOC_ID,
-            )
-
-            self.clear_resource_id_pool(
-                pon_intf_id=i,
-                resource_type=PONResourceManager.GEMPORT_ID,
-            )
             i += 1
 
-    @inlineCallbacks
+        self.clear_resource_id_pool(
+            pon_intf_id=0,
+            resource_type=PONResourceManager.ALLOC_ID,
+        )
+
+        self.clear_resource_id_pool(
+            pon_intf_id=0,
+            resource_type=PONResourceManager.GEMPORT_ID,
+        )
+
     def init_resource_id_pool(self, pon_intf_id, resource_type, start_idx,
                               end_idx):
         """
@@ -215,26 +273,31 @@ class PONResourceManager(object):
         status = False
         path = self._get_path(pon_intf_id, resource_type)
         if path is None:
-            returnValue(status)
+            return status
 
-        # In case of adapter reboot and reconciliation resource in kv store
-        # checked for its presence if not kv store update happens
-        resource = yield self._get_resource(path)
+        try:
+            # In case of adapter reboot and reconciliation resource in kv store
+            # checked for its presence if not kv store update happens
+            resource = self._get_resource(path)
 
-        if resource is not None:
-            self._log.info("Resource-already-present-in-store", path=path)
-            status = True
-        else:
-            resource = self._format_resource(pon_intf_id, start_idx, end_idx)
-            self._log.info("Resource-initialized", path=path)
-
-            # Add resource as json in kv store.
-            result = yield self._kv_store.put(path, resource)
-            if result is None:
+            if resource is not None:
+                self._log.info("Resource-already-present-in-store", path=path)
                 status = True
-        returnValue(status)
+            else:
+                resource = self._format_resource(pon_intf_id, start_idx,
+                                                 end_idx)
+                self._log.info("Resource-initialized", path=path)
 
-    @inlineCallbacks
+                # Add resource as json in kv store.
+                result = self._kv_store.update_to_kv_store(path, resource)
+                if result is True:
+                    status = True
+
+        except Exception as e:
+            self._log.exception("error-initializing-resource-pool", e=e)
+
+        return status
+
     def get_resource_id(self, pon_intf_id, resource_type, num_of_id=1):
         """
         Create alloc/gemport/onu id for given OLT PON interface.
@@ -247,12 +310,21 @@ class PONResourceManager(object):
                                respectively
         """
         result = None
+
+        # TODO: ASFvOLT16 platform requires alloc and gemport ID to be unique
+        # across OLT. To keep it simple, a single pool (POOL 0) is maintained
+        # for both the resource types. This may need to change later.
+        # Override the incoming pon_intf_id to PON0
+        if resource_type == PONResourceManager.GEMPORT_ID or \
+                resource_type == PONResourceManager.ALLOC_ID:
+            pon_intf_id = 0
+
         path = self._get_path(pon_intf_id, resource_type)
         if path is None:
-            returnValue(result)
+            return result
 
-        resource = yield self._get_resource(path)
         try:
+            resource = self._get_resource(path)
             if resource is not None and resource_type == \
                     PONResourceManager.ONU_ID:
                 result = self._generate_next_id(resource)
@@ -263,18 +335,19 @@ class PONResourceManager(object):
                 while num_of_id > 0:
                     result.append(self._generate_next_id(resource))
                     num_of_id -= 1
+            else:
+                raise Exception("get-resource-failed")
 
+            self._log.debug("Get-" + resource_type + "-success", result=result,
+                            path=path)
             # Update resource in kv store
             self._update_resource(path, resource)
 
-        except BaseException:
+        except Exception as e:
             self._log.exception("Get-" + resource_type + "-id-failed",
-                                path=path)
-        self._log.debug("Get-" + resource_type + "-success", result=result,
-                        path=path)
-        returnValue(result)
+                                path=path, e=e)
+        return result
 
-    @inlineCallbacks
     def free_resource_id(self, pon_intf_id, resource_type, release_content):
         """
         Release alloc/gemport/onu id for given OLT PON interface.
@@ -286,12 +359,21 @@ class PONResourceManager(object):
                          else False
         """
         status = False
+
+        # TODO: ASFvOLT16 platform requires alloc and gemport ID to be unique
+        # across OLT. To keep it simple, a single pool (POOL 0) is maintained
+        # for both the resource types. This may need to change later.
+        # Override the incoming pon_intf_id to PON0
+        if resource_type == PONResourceManager.GEMPORT_ID or \
+                resource_type == PONResourceManager.ALLOC_ID:
+            pon_intf_id = 0
+
         path = self._get_path(pon_intf_id, resource_type)
         if path is None:
-            returnValue(status)
+            return status
 
-        resource = yield self._get_resource(path)
         try:
+            resource = self._get_resource(path)
             if resource is not None and resource_type == \
                     PONResourceManager.ONU_ID:
                 self._release_id(resource, release_content)
@@ -300,16 +382,19 @@ class PONResourceManager(object):
                     resource_type == PONResourceManager.GEMPORT_ID):
                 for content in release_content:
                     self._release_id(resource, content)
+            else:
+                raise Exception("get-resource-failed")
+
             self._log.debug("Free-" + resource_type + "-success", path=path)
 
             # Update resource in kv store
-            status = yield self._update_resource(path, resource)
+            status = self._update_resource(path, resource)
 
-        except BaseException:
-            self._log.exception("Free-" + resource_type + "-failed", path=path)
-        returnValue(status)
+        except Exception as e:
+            self._log.exception("Free-" + resource_type + "-failed",
+                                path=path, e=e)
+        return status
 
-    @inlineCallbacks
     def clear_resource_id_pool(self, pon_intf_id, resource_type):
         """
         Clear Resource Pool for a given Resource Type on a given PON Port.
@@ -318,16 +403,147 @@ class PONResourceManager(object):
         """
         path = self._get_path(pon_intf_id, resource_type)
         if path is None:
-            returnValue(False)
+            return False
 
-        result = yield self._kv_store.delete(path)
-        if result is None:
-            self._log.debug("Resource-pool-cleared", device_id=self.device_id,
-                            path=path)
-            returnValue(True)
+        try:
+            result = self._kv_store.remove_from_kv_store(path)
+            if result is True:
+                self._log.debug("Resource-pool-cleared",
+                                device_id=self.device_id,
+                                path=path)
+                return True
+        except Exception as e:
+            self._log.exception("error-clearing-resource-pool", e=e)
+
         self._log.error("Clear-resource-pool-failed", device_id=self.device_id,
                         path=path)
-        returnValue(False)
+        return False
+
+    def init_resource_map(self, pon_intf_onu_id):
+        """
+        Initialize resource map
+
+        :param pon_intf_onu_id: reference of PON interface id and onu id
+        """
+        # initialize pon_intf_onu_id tuple to alloc_ids map
+        alloc_id_path = PONResourceManager.ALLOC_ID_RESOURCE_MAP_PATH.format(
+            self.device_id, str(pon_intf_onu_id)
+        )
+        alloc_ids = list()
+        self._kv_store.update_to_kv_store(
+            alloc_id_path, json.dumps(alloc_ids)
+        )
+
+        # initialize pon_intf_onu_id tuple to gemport_ids map
+        gemport_id_path = PONResourceManager.GEMPORT_ID_RESOURCE_MAP_PATH.format(
+            self.device_id, str(pon_intf_onu_id)
+        )
+        gemport_ids = list()
+        self._kv_store.update_to_kv_store(
+            gemport_id_path, json.dumps(gemport_ids)
+        )
+
+    def remove_resource_map(self, pon_intf_onu_id):
+        """
+        Remove resource map
+
+        :param pon_intf_onu_id: reference of PON interface id and onu id
+        """
+        # remove pon_intf_onu_id tuple to alloc_ids map
+        alloc_id_path = PONResourceManager.ALLOC_ID_RESOURCE_MAP_PATH.format(
+            self.device_id, str(pon_intf_onu_id)
+        )
+        self._kv_store.remove_from_kv_store(alloc_id_path)
+
+        # remove pon_intf_onu_id tuple to gemport_ids map
+        gemport_id_path = PONResourceManager.GEMPORT_ID_RESOURCE_MAP_PATH.format(
+            self.device_id, str(pon_intf_onu_id)
+        )
+        self._kv_store.remove_from_kv_store(gemport_id_path)
+
+    def get_current_alloc_ids_for_onu(self, pon_intf_onu_id):
+        """
+        Get currently configured alloc ids for given pon_intf_onu_id
+
+        :param pon_intf_onu_id: reference of PON interface id and onu id
+        """
+        path = PONResourceManager.ALLOC_ID_RESOURCE_MAP_PATH.format(
+            self.device_id,
+            str(pon_intf_onu_id))
+        value = self._kv_store.get_from_kv_store(path)
+        if value is not None:
+            alloc_id_list = json.loads(value)
+            if len(alloc_id_list) > 0:
+                return alloc_id_list
+
+        return None
+
+    def get_current_gemport_ids_for_onu(self, pon_intf_onu_id):
+        """
+        Get currently configured gemport ids for given pon_intf_onu_id
+
+        :param pon_intf_onu_id: reference of PON interface id and onu id
+        """
+
+        path = PONResourceManager.GEMPORT_ID_RESOURCE_MAP_PATH.format(
+            self.device_id,
+            str(pon_intf_onu_id))
+        value = self._kv_store.get_from_kv_store(path)
+        if value is not None:
+            gemport_id_list = json.loads(value)
+            if len(gemport_id_list) > 0:
+                return gemport_id_list
+
+        return None
+
+    def update_alloc_ids_for_onu(self, pon_intf_onu_id, alloc_ids):
+        """
+        Update currently configured alloc ids for given pon_intf_onu_id
+
+        :param pon_intf_onu_id: reference of PON interface id and onu id
+        """
+        path = PONResourceManager.ALLOC_ID_RESOURCE_MAP_PATH.format(
+            self.device_id, str(pon_intf_onu_id)
+        )
+        self._kv_store.update_to_kv_store(
+            path, json.dumps(alloc_ids)
+        )
+
+    def update_gemport_ids_for_onu(self, pon_intf_onu_id, gemport_ids):
+        """
+        Update currently configured gemport ids for given pon_intf_onu_id
+
+        :param pon_intf_onu_id: reference of PON interface id and onu id
+        """
+        path = PONResourceManager.GEMPORT_ID_RESOURCE_MAP_PATH.format(
+            self.device_id, str(pon_intf_onu_id)
+        )
+        self._kv_store.update_to_kv_store(
+            path, json.dumps(gemport_ids)
+        )
+
+    def _get_olt_vendor(self):
+        """
+        Get olt vendor variant
+
+        :return: type of olt vendor
+        """
+        olt_vendor = None
+        if self.extra_args and len(self.extra_args) > 0:
+            parser = OltVendorArgumentParser(add_help=False)
+            parser.add_argument('--olt_vendor', '-o', action='store',
+                                choices=['default', 'asfvolt16'],
+                                default='default')
+            try:
+                args = parser.parse_args(shlex.split(self.extra_args))
+                self._log.debug('parsing-extra-arguments', args=args)
+                olt_vendor = args.olt_vendor
+            except ArgumentError as e:
+                self._log.exception('invalid-arguments: {}', e=e)
+            except Exception as e:
+                self._log.exception('option-parsing-error: {}', e=e)
+
+        return olt_vendor
 
     def _generate_next_id(self, resource):
         """
@@ -377,7 +593,7 @@ class PONResourceManager(object):
         :return: alloc id resource path
         """
         return PONResourceManager.ALLOC_ID_POOL_PATH.format(
-            self.technology, self.device_id, pon_intf_id)
+            self.device_id, pon_intf_id)
 
     def _get_gemport_id_resource_path(self, pon_intf_id):
         """
@@ -387,7 +603,7 @@ class PONResourceManager(object):
         :return: gemport id resource path
         """
         return PONResourceManager.GEMPORT_ID_POOL_PATH.format(
-            self.technology, self.device_id, pon_intf_id)
+            self.device_id, pon_intf_id)
 
     def _get_onu_id_resource_path(self, pon_intf_id):
         """
@@ -397,9 +613,8 @@ class PONResourceManager(object):
         :return: onu id resource path
         """
         return PONResourceManager.ONU_ID_POOL_PATH.format(
-            self.technology, self.device_id, pon_intf_id)
+            self.device_id, pon_intf_id)
 
-    @inlineCallbacks
     def _update_resource(self, path, resource):
         """
         Update resource in resource kv store.
@@ -410,12 +625,11 @@ class PONResourceManager(object):
         """
         resource[PONResourceManager.POOL] = \
             resource[PONResourceManager.POOL].bin
-        result = yield self._kv_store.put(path, json.dumps(resource))
-        if result is None:
-            returnValue(True)
-        returnValue(False)
+        result = self._kv_store.update_to_kv_store(path, json.dumps(resource))
+        if result is True:
+            return True
+        return False
 
-    @inlineCallbacks
     def _get_resource(self, path):
         """
         Get resource from kv store.
@@ -424,12 +638,15 @@ class PONResourceManager(object):
         :return: resource if resource present in kv store else None
         """
         # get resource from kv store
-        result = yield self._kv_store.get(path)
-        resource = result[0]
+        result = self._kv_store.get_from_kv_store(path)
+        if result is None:
+            return result
+        self._log.info("dumping resource", result=result)
+        resource = result
 
         if resource is not None:
             # decode resource fetched from backend store to dictionary
-            resource = eval(resource.value)
+            resource = json.loads(resource)
 
             # resource pool in backend store stored as binary string whereas to
             # access the pool to generate/release IDs it need to be converted
@@ -437,7 +654,7 @@ class PONResourceManager(object):
             resource[PONResourceManager.POOL] = \
                 BitArray('0b' + resource[PONResourceManager.POOL])
 
-        returnValue(resource)
+        return resource
 
     def _format_resource(self, pon_intf_id, start_idx, end_idx):
         """
