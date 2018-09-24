@@ -21,7 +21,7 @@ from voltha.core.config.config_backend import ConsulStore
 from voltha.core.config.config_backend import EtcdStore
 
 # KV store uses this prefix to store resource info
-PATH_PREFIX = 'resource_manager/{}/{}'
+PATH_PREFIX = 'resource_manager/{}'
 
 
 class ResourceKvStore(object):
@@ -44,14 +44,12 @@ class ResourceKvStore(object):
         # logger
         self._log = structlog.get_logger()
 
-        path = PATH_PREFIX.format(technology, device_id)
+        path = PATH_PREFIX.format(technology)
         try:
             if backend == 'consul':
                 self._kv_store = ConsulStore(host, port, path)
-                self._recurse = '?recurse'
             elif backend == 'etcd':
                 self._kv_store = EtcdStore(host, port, path)
-                self._recurse = ''
             else:
                 self._log.error('Invalid-backend')
                 raise Exception("Invalid-backend-for-kv-store")
@@ -99,7 +97,6 @@ class ResourceKvStore(object):
 
         :param path: path to remove the resource
         """
-        path = path + self._recurse
         try:
             del self._kv_store[path]
             self._log.debug("Resource-deleted-in-kv-store", path=path)

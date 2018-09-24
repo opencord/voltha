@@ -218,8 +218,7 @@ message Onu {
     fixed32 onu_id = 2;
     SerialNumber serial_number = 3;
     fixed32 pir = 4;   // peak information rate assigned to onu
-    fixed32 agg_port_id = 5;
-    fixed32 sched_id = 6;
+    fixed32 alloc_id = 5;
 
 }
 
