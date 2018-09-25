@@ -319,7 +319,8 @@ class PerformanceIntervals(object):
             if self._delete_me_deferred is None:
                 self._delete_me_deferred = reactor.callLater(0, self.delete_me)
 
-        self._add_pm_me.pop(key)
+        if key in self._add_pm_me:
+            self._add_pm_me.pop(key)
 
     def on_enter_disabled(self):
         """
@@ -337,21 +338,20 @@ class PerformanceIntervals(object):
                 self._device.omci_cc.event_bus.unsubscribe(sub)
 
         # Manually remove ani ANI/PON and UNI PM interval MEs
-        config = self._device.configuration()
+        config = self._device.configuration
+        anis = config.ani_g_entities
+        unis = config.uni_g_entities
 
-        for pon in config.ani_g_entities():
-            if pon is None:
-                continue
-            entity_id = pon['entity-id']
-            self.delete_pm_me(FecPerformanceMonitoringHistoryData.class_id, entity_id)
-            self.delete_pm_me(FecPerformanceMonitoringHistoryData.class_id, entity_id)
-            self.delete_pm_me(XgPonTcPerformanceMonitoringHistoryData.class_id, entity_id)
-            self.delete_pm_me(XgPonDownstreamPerformanceMonitoringHistoryData.class_id, entity_id)
-            self.delete_pm_me(XgPonUpstreamPerformanceMonitoringHistoryData.class_id, entity_id)
+        if anis is not None:
+            for entity_id in anis.iterkeys():
+                self.delete_pm_me(FecPerformanceMonitoringHistoryData.class_id, entity_id)
+                self.delete_pm_me(XgPonTcPerformanceMonitoringHistoryData.class_id, entity_id)
+                self.delete_pm_me(XgPonDownstreamPerformanceMonitoringHistoryData.class_id, entity_id)
+                self.delete_pm_me(XgPonUpstreamPerformanceMonitoringHistoryData.class_id, entity_id)
 
-        for uni in config.uni_g_entities:
-            entity_id = uni['entity-id']
-            self.delete_pm_me(EthernetPMMonitoringHistoryData.class_id, entity_id)
+        if unis is not None:
+            for entity_id in config.uni_g_entities.iterkeys():
+                self.delete_pm_me(EthernetPMMonitoringHistoryData.class_id, entity_id)
 
     def on_enter_starting(self):
         """ Add the PON/ANI and UNI PM intervals"""
@@ -382,8 +382,6 @@ class PerformanceIntervals(object):
                 for entity_id in anis.iterkeys():
                     self.add_pm_me(FecPerformanceMonitoringHistoryData.class_id,
                                    entity_id)
-                    self.add_pm_me(FecPerformanceMonitoringHistoryData.class_id
-                                   , entity_id)
                     self.add_pm_me(XgPonTcPerformanceMonitoringHistoryData.class_id,
                                    entity_id)
                     self.add_pm_me(XgPonDownstreamPerformanceMonitoringHistoryData.class_id,
