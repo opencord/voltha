@@ -22,28 +22,20 @@ import structlog
 from twisted.internet import reactor, task
 from twisted.internet.defer import DeferredQueue, inlineCallbacks, returnValue, TimeoutError
 
-from common.frameio.frameio import hexify
 from common.utils.indexpool import IndexPool
-from voltha.core.logical_device_agent import mac_str_to_tuple
 import voltha.core.flow_decomposer as fd
 from voltha.registry import registry
 from voltha.protos import third_party
-from voltha.protos.common_pb2 import OperStatus, ConnectStatus, \
-    AdminState
-from voltha.protos.device_pb2 import Port, Image
-from voltha.protos.logical_device_pb2 import LogicalPort
-from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, OFPPF_1GB_FD, OFPPS_LINK_DOWN
+from voltha.protos.common_pb2 import OperStatus, ConnectStatus, AdminState
 from voltha.protos.openflow_13_pb2 import OFPXMC_OPENFLOW_BASIC, ofp_port
-from voltha.protos.bbf_fiber_base_pb2 import VEnetConfig, VOntaniConfig
 from voltha.protos.bbf_fiber_tcont_body_pb2 import TcontsConfigData
 from voltha.protos.bbf_fiber_gemport_body_pb2 import GemportsConfigData
 from voltha.extensions.omci.onu_configuration import OMCCVersion
 from voltha.extensions.omci.onu_device_entry import OnuDeviceEvents, \
             OnuDeviceEntry, IN_SYNC_KEY
-from voltha.extensions.omci.tasks.omci_modify_request import OmciModifyRequest
-from voltha.extensions.omci.omci_me import *
 from voltha.adapters.brcm_openomci_onu.omci.brcm_mib_download_task import BrcmMibDownloadTask
 from voltha.adapters.brcm_openomci_onu.omci.brcm_uni_lock_task import BrcmUniLockTask
+from voltha.adapters.brcm_openomci_onu.omci.brcm_vlan_filter_task import BrcmVlanFilterTask
 from voltha.adapters.brcm_openomci_onu.onu_gem_port import *
 from voltha.adapters.brcm_openomci_onu.onu_tcont import *
 from voltha.adapters.brcm_openomci_onu.pon_port import *
@@ -110,32 +102,26 @@ class BrcmOpenomciOnuHandler(object):
 
     @property
     def enabled(self):
-        self.log.debug('function-entry')
         return self._enabled
 
     @enabled.setter
     def enabled(self, value):
-        self.log.debug('function-entry')
         if self._enabled != value:
             self._enabled = value
 
     @property
     def omci_agent(self):
-        self.log.debug('function-entry')
         return self.adapter.omci_agent
 
     @property
     def omci_cc(self):
-        self.log.debug('function-entry')
         return self._onu_omci_device.omci_cc if self._onu_omci_device is not None else None
 
     @property
     def uni_ports(self):
-        self.log.debug('function-entry')
         return self._unis.values()
 
     def uni_port(self, port_no_or_name):
-        self.log.debug('function-entry')
         if isinstance(port_no_or_name, (str, unicode)):
             return next((uni for uni in self.uni_ports
                          if uni.name == port_no_or_name), None)
@@ -145,20 +131,16 @@ class BrcmOpenomciOnuHandler(object):
 
     @property
     def pon_port(self):
-        self.log.debug('function-entry')
         return self._pon
 
     @property
     def _next_port_number(self):
-        self.log.debug('function-entry')
         return self._port_number_pool.get_next()
 
     def _release_port_number(self, number):
-        self.log.debug('function-entry', number=number)
         self._port_number_pool.release(number)
 
     def receive_message(self, msg):
-        self.log.debug('function-entry', msg=hexify(msg))
         if self.omci_cc is not None:
             self.omci_cc.receive_message(msg)
 
@@ -401,7 +383,7 @@ class BrcmOpenomciOnuHandler(object):
                                       field=_field, in_port=_in_port)
                         if _field.type == fd.VLAN_VID:
                             _set_vlan_vid = _field.vlan_vid & 0xfff
-                            self.log.debug('set-field-type-valn-vid', _set_vlan_vid)
+                            self.log.debug('set-field-type-vlan-vid', _set_vlan_vid)
                         else:
                             self.log.error('unsupported-action-set-field-type',
                                            field_type=_field.type)
@@ -409,123 +391,33 @@ class BrcmOpenomciOnuHandler(object):
                         self.log.error('unsupported-action-type',
                                   action_type=action.type, in_port=_in_port)
 
-                #FIXME: CAREFUL, ignoring flow matching on ethertype
-
+                # TODO: We only set vlan omci flows.  Handle omci matching ethertypes at some point in another task
                 if _type is not None:
-                    self.log.warn('ignoring flow with ethType', ethType=_type)
-                    continue
+                    self.log.warn('ignoring-flow-with-ethType', ethType=_type)
+                elif _set_vlan_vid is None or _set_vlan_vid == 0:
+                    self.log.warn('ignorning-flow-that-does-not-set-vlanid')
+                else:
+                    self._add_vlan_filter_task(device, _set_vlan_vid)
 
-                if _vlan_vid == 0 and (_set_vlan_vid is None or _set_vlan_vid == 0):
-                    self.log.warn('ignorning flow that does not set vlanid')
-                    continue
-
-                #
-                # All flows created from ONU adapter should be OMCI based
-                #
-                # TODO: find a better place for all of this
-                # TODO: make this a member of the onu gem port or the uni port
-                _mac_bridge_service_profile_entity_id = 0x201
-                _mac_bridge_port_ani_entity_id = 0x2102   # TODO: can we just use the entity id from the anis list?
-
-                # TODO: Move this to a task
-                # Delete bridge ani side vlan filter
-                msg = VlanTaggingFilterDataFrame(_mac_bridge_port_ani_entity_id)
-                frame = msg.delete()
-                self.log.debug('openomci-msg', msg=msg)
-                results = yield self.omci_cc.send(frame)
-                self.check_status_and_state(results, 'flow-delete-vlan-tagging-filter-data')
-
-                # TODO: Move this to a task
-                # Re-Create bridge ani side vlan filter
-                msg = VlanTaggingFilterDataFrame(
-                    _mac_bridge_port_ani_entity_id,  # Entity ID
-                    vlan_tcis=[_set_vlan_vid],        # VLAN IDs
-                    forward_operation=0x10
-                )
-                frame = msg.create()
-                self.log.debug('openomci-msg', msg=msg)
-                results = yield self.omci_cc.send(frame)
-                self.check_status_and_state(results, 'flow-create-vlan-tagging-filter-data')
-
-                # Update uni side extended vlan filter
-                # filter for untagged
-                # probably for eapol
-                # TODO: magic 0x1000 / 4096?
-                # TODO: lots of magic
-                attributes = dict(
-                    received_frame_vlan_tagging_operation_table=
-                    VlanTaggingOperation(
-                        filter_outer_priority=15,
-                        filter_outer_vid=4096,
-                        filter_outer_tpid_de=0,
-
-                        filter_inner_priority=15,
-                        filter_inner_vid=4096,
-                        filter_inner_tpid_de=0,
-                        filter_ether_type=0,
-
-                        treatment_tags_to_remove=0,
-                        treatment_outer_priority=15,
-                        treatment_outer_vid=0,
-                        treatment_outer_tpid_de=0,
-
-                        treatment_inner_priority=0,
-                        treatment_inner_vid=_set_vlan_vid,
-                        treatment_inner_tpid_de=4
-                    )
-                )
-                # TODO: Move this to a task
-                msg = ExtendedVlanTaggingOperationConfigurationDataFrame(
-                    _mac_bridge_service_profile_entity_id,  # Bridge Entity ID
-                    attributes=attributes  # See above
-                )
-                frame = msg.set()
-                self.log.debug('openomci-msg', msg=msg)
-                results = yield self.omci_cc.send(frame)
-                self.check_status_and_state(results,
-                                            'flow-set-ext-vlan-tagging-op-config-data-untagged')
-
-                # Update uni side extended vlan filter
-                # filter for vlan 0
-                # TODO: lots of magic
-                attributes = dict(
-                    received_frame_vlan_tagging_operation_table=
-                    VlanTaggingOperation(
-                        filter_outer_priority=15,  # This entry is not a double-tag rule
-                        filter_outer_vid=4096,  # Do not filter on the outer VID value
-                        filter_outer_tpid_de=0,  # Do not filter on the outer TPID field
-
-                        filter_inner_priority=8,  # Filter on inner vlan
-                        filter_inner_vid=0x0,  # Look for vlan 0
-                        filter_inner_tpid_de=0,  # Do not filter on inner TPID field
-                        filter_ether_type=0,  # Do not filter on EtherType
-
-                        treatment_tags_to_remove=1,
-                        treatment_outer_priority=15,
-                        treatment_outer_vid=0,
-                        treatment_outer_tpid_de=0,
-
-                        treatment_inner_priority=8,  # Add an inner tag and insert this value as the priority
-                        treatment_inner_vid=_set_vlan_vid,  # use this value as the VID in the inner VLAN tag
-                        treatment_inner_tpid_de=4,  # set TPID
-                    )
-                )
-                # TODO: Move this to a task
-                msg = ExtendedVlanTaggingOperationConfigurationDataFrame(
-                    _mac_bridge_service_profile_entity_id,  # Bridge Entity ID
-                    attributes=attributes  # See above
-                )
-                frame = msg.set()
-                self.log.debug('openomci-msg', msg=msg)
-                results = yield self.omci_cc.send(frame)
-                self.check_status_and_state(results,
-                                            'flow-set-ext-vlan-tagging-op-config-data-zero-tagged')
-
-                device.reason = 'omci-flows-pushed'
-                # For some reason we cant call update_device here, grpc RepeatedCompositeContainer errors happen, not sure why
 
             except Exception as e:
                 self.log.exception('failed-to-install-flow', e=e, flow=flow)
+
+    def _add_vlan_filter_task(self, device, _set_vlan_vid):
+        def success(_results):
+            self.log.info('vlan-tagging-success', _results=_results)
+            device.reason = 'omci-flows-pushed'
+            self._vlan_filter_task = None
+
+        def failure(_reason):
+            self.log.warn('vlan-tagging-failure', _reason=_reason)
+            device.reason = 'omci-flows-failed-retrying'
+            self._vlan_filter_task = reactor.callLater(_STARTUP_RETRY_WAIT,
+                                                       self._add_vlan_filter_task, device, _set_vlan_vid)
+        self.log.info('setting-vlan-tag')
+        self._vlan_filter_task = BrcmVlanFilterTask(self.omci_agent, self.device_id, _set_vlan_vid)
+        self._deferred = self._onu_omci_device.task_runner.queue_task(self._vlan_filter_task)
+        self._deferred.addCallbacks(success, failure)
 
     def get_tx_id(self):
         self.log.debug('function-entry')
@@ -885,10 +777,10 @@ class BrcmOpenomciOnuHandler(object):
                     self._mib_download_task = None
 
                 def failure(_reason):
-                    self.log.info('mib-download-failure', _reason=_reason)
-                    # TODO: test this.  also verify i can add this task this way
-                    self._mib_download_task = BrcmMibDownloadTask(self.omci_agent, self)
-                    self._deferred = self._onu_omci_device.task_runner.queue_task(self._mib_download_task)
+                    self.log.warn('mib-download-failure-retrying', _reason=_reason)
+                    device.reason = 'initial-mib-download-failure-retrying'
+                    self.adapter_agent.update_device(device)
+                    self._deferred = reactor.callLater(_STARTUP_RETRY_WAIT, self._mib_in_sync)
 
                 # Download an initial mib that creates simple bridge that can pass EAP.  On success (above) finally set
                 # the device to active/reachable.   This then opens up the handler to openflow pushes from outside
@@ -952,21 +844,3 @@ class BrcmOpenomciOnuHandler(object):
         self.adapter_agent.add_port_reference_to_parent(self.device_id,
                                                         pon_port)
         self.adapter_agent.update_device(device)
-
-
-    def check_status_and_state(self, results, operation=''):
-        self.log.debug('function-entry')
-        omci_msg = results.fields['omci_message'].fields
-        status = omci_msg['success_code']
-        error_mask = omci_msg.get('parameter_error_attributes_mask', 'n/a')
-        failed_mask = omci_msg.get('failed_attributes_mask', 'n/a')
-        unsupported_mask = omci_msg.get('unsupported_attributes_mask', 'n/a')
-
-        self.log.debug("OMCI Result:", operation, omci_msg=omci_msg, status=status, error_mask=error_mask,
-                       failed_mask=failed_mask, unsupported_mask=unsupported_mask)
-
-        if status == RC.Success:
-            return True
-
-        elif status == RC.InstanceExists:
-            return False
