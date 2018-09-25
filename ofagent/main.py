@@ -64,7 +64,7 @@ def parse_args():
     _help = '<hostname1>:<port1> <hostname2>:<port2> <hostname3>:<port3> ... <hostnamen>:<portn>   to openflow controller (default: %s)' % \
             defs['controller']
     parser.add_argument(
-        '-O', '--controller',nargs = '*', dest='controller', action='store',
+        '-O', '--controller',nargs = '+', dest='controller', action='store',
         default=defs['controller'],
         help=_help)
 
@@ -231,7 +231,7 @@ class Main(object):
         args = self.args
         self.connection_manager = yield ConnectionManager(
             args.consul, args.grpc_endpoint, self.grpc_timeout,
-            args.controller, args.instance_id,
+            args.controller[0].split(), args.instance_id,
             args.enable_tls, args.key_file, args.cert_file).start()
         self.log.info('started-internal-services')
 
