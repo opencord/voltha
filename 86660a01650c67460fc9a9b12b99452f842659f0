@@ -34,6 +34,24 @@
       "revId": "86660a01650c67460fc9a9b12b99452f842659f0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1c01f0b9_98797896",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_vlan_filter_task.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 90,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-09-25T19:43:54Z",
+      "side": 1,
+      "message": "Doesn\u0027t matter too much.  Your preference.  Adding it to the status check like you good.  If it was already there, then I must have missed it.",
+      "parentUuid": "4c3c5831_b79aeffa",
+      "revId": "86660a01650c67460fc9a9b12b99452f842659f0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
