@@ -19,6 +19,40 @@
     },
     {
       "key": {
+        "uuid": "78fb21ee_56523731",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 437,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-09-25T15:11:38Z",
+      "side": 1,
+      "message": "What is the purpose of the sched_id (last parameter)? Unless we have a good explanation for why this should be dictated by the voltha adapter, it should be kept internal to the device.",
+      "revId": "f93778e6601bb70a3b33a3b5f399368c7bfbb84a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ac5775fe_12ad924c",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1062,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-09-25T15:11:38Z",
+      "side": 1,
+      "message": "agg_port is a broadcom specific name. This should be changed in openolt.proto to alloc_id. Also, remove sched_id from the Onu message in openolt.proto. See previous comment - sched_id can remain a device specific attribute unless there is a good explanation for why it should be dictated by the voltha adapter.",
+      "revId": "f93778e6601bb70a3b33a3b5f399368c7bfbb84a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "f20204ea_29ba6f73",
         "filename": "voltha/adapters/openolt/openolt_resource_manager.py",
         "patchSetId": 1
