@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "39acd78f_faf478fc",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_vlan_filter_task.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 90,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-09-25T17:22:50Z",
+      "side": 1,
+      "message": "You may want to add one or two calls to strobe the watchdog timeout that we now have to watch tasks.  The watchdog fires by default after 10 seconds and an OMCI timeout is 3 seconds.  It is probably not really needed, but should we find we need to reduce the watchdog timeout, this will keep from a false event on a heavily loaded system.\n\nPerhaps add the following before a \u0027yield\u0027 that sends an OMCI frame.\n\n    self.strobe_watchdog()",
+      "revId": "86660a01650c67460fc9a9b12b99452f842659f0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
