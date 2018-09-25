@@ -16,6 +16,24 @@
       "revId": "86660a01650c67460fc9a9b12b99452f842659f0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "4c3c5831_b79aeffa",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_vlan_filter_task.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 90,
+      "author": {
+        "id": 1000436
+      },
+      "writtenOn": "2018-09-25T17:55:29Z",
+      "side": 1,
+      "message": "before or after the yield?  I noticed my other task had it added after the yield.",
+      "parentUuid": "39acd78f_faf478fc",
+      "revId": "86660a01650c67460fc9a9b12b99452f842659f0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
