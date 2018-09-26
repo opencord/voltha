@@ -34,12 +34,14 @@ from common.utils.indexpool import IndexPool
 from voltha.extensions.omci.omci_me import *
 
 import voltha.adapters.adtran_olt.adtranolt_platform as platform
+from voltha.adapters.adtran_onu.flow.flow_entry import FlowEntry
+from omci.adtn_install_flow import AdtnInstallFlowTask
+from omci.adtn_remove_flow import AdtnRemoveFlowTask
 
 _ = third_party
 _MAXIMUM_PORT = 17        # Only one PON and UNI port at this time
 _ONU_REBOOT_MIN = 90      # IBONT 602 takes about 3 minutes
 _ONU_REBOOT_RETRY = 10
-BRDCM_DEFAULT_VLAN = 4091
 
 
 class AdtranOnuHandler(AdtranXPON):
@@ -72,6 +74,14 @@ class AdtranOnuHandler(AdtranXPON):
 
         self._deferred = None
         self._event_deferred = None
+
+        # Flow entries
+        self._flows = dict()
+
+        # OMCI resources
+        # TODO: Some of these could be dynamically chosen
+        self.vlan_tcis_1 = 0x900
+        self.mac_bridge_service_profile_entity_id = self.vlan_tcis_1
 
         # Assume no XPON support unless we get an vont-ani/ont-ani/venet create
         self.xpon_support = False    # xPON no longer available
@@ -144,9 +154,8 @@ class AdtranOnuHandler(AdtranXPON):
         assert isinstance(port_no_or_name, int), 'Invalid parameter type'
         return self._unis.get(port_no_or_name)
 
-    @property
-    def pon_port(self):
-        return self._pon
+    def pon_port(self, port_no=None):
+        return self._pon if port_no is None or port_no == self._pon.port_number else None
 
     @property
     def pon_ports(self):
@@ -331,141 +340,31 @@ class AdtranOnuHandler(AdtranXPON):
 
     @inlineCallbacks
     def update_flow_table(self, flows):
-        #
-        # We need to proxy through the OLT to get to the ONU
-        # Configuration from here should be using OMCI
-        #
+        if len(flows) == 0:
+            returnValue('nop')  # TODO:  Do we need to delete all flows if empty?
+
         self.log.debug('bulk-flow-update', flows=flows)
-
-        import voltha.core.flow_decomposer as fd
-        from voltha.protos.openflow_13_pb2 import OFPXMC_OPENFLOW_BASIC
-
-        def is_downstream(port):
-            return port == self._pon_port_number
-
-        def is_upstream(port):
-            return not is_downstream(port)
+        valid_flows = set()
 
         for flow in flows:
-            match = {
-                'in_port': None,
-                # 'etype': None,            # These remaining key-value
-                # 'proto': None,            # pairs are set if found in the
-                # 'vlan_vid': None,         # flow information
-                # 'inner_vid': None,
-                # 'vlan_pcp': None,
-                # 'udp_dst': None,
-                # 'udp_src': None,
-                # 'ipv4_dst': None,
-                # 'ipv4_src': None,
-            }
-            actions = {
-                'out_port': None,
-                # 'push_tpid': None,        # These remaining key-value
-                # 'pop_vlan': None,  (bool) # pairs are set if found in the
-                # 'set_vlan_vid': None,     # flow information
-            }
-            self.log.debug('bulk-flow-update', flow=flow)
-            try:
-                _out_port = fd.get_out_port(flow)  # may be None
-                self.log.debug('out-port', out_port=_out_port)
+            # Decode it
+            flow_entry = FlowEntry.create(flow, self)
 
-                for field in fd.get_ofb_fields(flow):
-                    if field.type == fd.IN_PORT:
-                        assert match['in_port'] is None, \
-                            'Only a single input port is supported'
-                        match['in_port'] = field.port
-                        self.log.debug('field-type-in-port', in_port=field.port)
+            # Already handled?
+            if flow_entry.flow_id in self._flows:
+                valid_flows.add(flow_entry.flow_id)
 
-                    elif field.type == fd.ETH_TYPE:
-                        match['etype'] = field.eth_type
-                        self.log.debug('field-type-eth-type', eth_type=field.eth_type)
-
-                    elif field.type == fd.IP_PROTO:
-                        match['proto'] = field.ip_proto
-                        self.log.debug('field-type-ip-proto', ip_proto=field.ip_proto)
-
-                    elif field.type == fd.VLAN_VID:
-                        match['vlan_vid'] = field.vlan_vid & 0xfff
-                        self.log.debug('field-type-vlan-vid', vlan=field.vlan_vid & 0xfff)
-
-                    elif field.type == fd.VLAN_PCP:
-                        match['vlan_pcp'] = field.vlan_pcp
-                        self.log.debug('field-type-vlan-pcp', pcp=field.vlan_pcp)
-
-                    elif field.type == fd.UDP_DST:
-                        match['udp_dst'] = field.udp_dst
-                        self.log.debug('field-type-udp-dst', udp_dst=field.udp_dst)
-
-                    elif field.type == fd.UDP_SRC:
-                        match['udp_src'] = field.udp_src
-                        self.log.debug('field-type-udp-src', udp_src=field.udp_src)
-
-                    elif field.type == fd.IPV4_DST:
-                        match['ipv4_dst'] = field.ipv4_dst
-                        self.log.debug('field-type-ipv4-dst', ipv4_dst=field.ipv4_dst)
-
-                    elif field.type == fd.IPV4_SRC:
-                        match['ipv4_src'] = field.ipv4_src
-                        self.log.debug('field-type-ipv4-src', ipv4_dst=field.ipv4_src)
-
-                    elif field.type == fd.METADATA:
-                        match['inner_vid'] = field.table_metadata
-                        self.log.debug('field-type-metadata', metadata=field.table_metadata)
-
-                    else:
-                        raise NotImplementedError('field.type={}'.format(field.type))
-
-                for action in fd.get_actions(flow):
-                    if action.type == fd.OUTPUT:
-                        actions['out_port'] = action.output.port
-                        self.log.debug('action-type-output', output=action.output.port)
-
-                    elif action.type == fd.POP_VLAN:
-                        actions['pop_vlan'] = True
-                        self.log.debug('action-type-pop-vlan')
-
-                    elif action.type == fd.PUSH_VLAN:
-                        actions['push_tpid'] = action.push.ethertype
-                        self.log.debug('action-type-push-vlan',
-                                       push_tpid=action.push.ethertype)
-
-                        if action.push.ethertype != 0x8100:
-                            self.log.error('unsupported-tpid',
-                                           ethertype=action.push.ethertype,
-                                           in_port=match['in_port'])
-
-                    elif action.type == fd.SET_FIELD:
-                        _field = action.set_field.field.ofb_field
-                        self.log.debug('action-type-set-field', field=_field)
-                        assert (action.set_field.field.oxm_class == OFPXMC_OPENFLOW_BASIC)
-
-                        if _field.type == fd.VLAN_VID:
-                            actions['set_vlan_vid'] = _field.vlan_vid & 0xfff
-                            self.log.debug('set-field-type-vlan-vid', actions['set_vlan_vid'])
-                        else:
-                            self.log.error('unsupported-action-set-field-type',
-                                           field_type=_field.type,
-                                           in_port=match['in_port'])
-                    else:
-                        self.log.error('unsupported-action-type', action_type=action.type,
-                                       in_port=match['in_port'])
-
-                assert match['in_port'] is not None, 'No input port specified'
-                assert actions['out_port'] is not None, 'No output port specified'
-
-                _is_upstream = is_upstream(match['in_port'])
-
-            except Exception as e:
-                self.log.exception('failed-to-decode-flow', e=e)
+            if flow_entry is None or flow_entry.flow_direction not in {FlowEntry.FlowDirection.UPSTREAM,
+                                                                       FlowEntry.FlowDirection.DOWNSTREAM}:
                 continue
+
+            is_upstream = flow_entry.flow_direction == FlowEntry.FlowDirection.UPSTREAM
 
             # Ignore untagged upstream etherType flows. These are trapped at the
             # OLT and the default flows during initial OMCI service download will
             # send them to the Default VLAN (4091) port for us
             #
-            if _is_upstream and match.get('vlan_vid') is None \
-                    and match.get('etype') is not None:
+            if is_upstream and flow_entry.vlan_vid is None and flow_entry.etype is not None:
                 continue
 
             # Also ignore upstream untagged/priority tag that sets priority tag
@@ -473,14 +372,50 @@ class AdtranOnuHandler(AdtranXPON):
             # priority tag data will be at a higher level.  Also should ignore the
             # corresponding priority-tagged to priority-tagged flow as well.
 
-            if (match.get('vlan_vid') == 0 and action.get('set_vlan_vid') == 0) or \
-                    (match.get('vlan_vid') is None and action.get('set_vlan_vid') == 0
-                     and not _is_upstream):
+            if (flow_entry.vlan_vid == 0 and flow_entry.set_vlan_vid == 0) or \
+                    (flow_entry.vlan_vid is None and flow_entry.set_vlan_vid == 0
+                     and not is_upstream):
                 continue
 
-            from omci.adtn_install_flow import AdtnInstallFlowTask
-            task = AdtnInstallFlowTask(self.openomci, self, match, action, _is_upstream)
-            self.openomci.onu_omci_device.task_runner.queue_task(task)
+            # Is it the first user-data flow downstream with a non-zero/non-None VID
+            # to match on?  If so, use as the device VLAN
+            # TODO: When multicast is supported, skip the multicast VLAN here?
+
+            if not is_upstream and flow_entry.vlan_vid:
+                uni = self.uni_port(flow_entry.out_port)
+                if uni is not None:
+                    uni.subscriber_vlan = flow_entry.vlan_vid
+
+            # Add it to hardware
+            try:
+                def failed(_reason, fid):
+                    del self._flows[fid]
+
+                task = AdtnInstallFlowTask(self.openomci.omci_agent, self, flow_entry)
+                d = self.openomci.onu_omci_device.task_runner.queue_task(task)
+                d.addErrback(failed, flow_entry.flow_id)
+
+                valid_flows.add(flow_entry.flow_id)
+                self._flows[flow_entry.flow_id] = flow_entry
+
+            except Exception as e:
+                self.log.exception('flow-add', e=e, flow=flow_entry)
+
+        # Now check for flows that were missing in the bulk update
+        deleted_flows = set(self._flows.keys()) - valid_flows
+
+        for flow_id in deleted_flows:
+            try:
+                del_flow = self._flows[flow_id]
+
+                task = AdtnRemoveFlowTask(self.openomci.omci_agent, self, del_flow)
+                self.openomci.onu_omci_device.task_runner.queue_task(task)
+                # TODO: Change to success/failure callback checks later
+                # d.addCallback(success, flow_entry.flow_id)
+                del self._flows[flow_id]
+
+            except Exception as e:
+                self.log.exception('flow-remove', e=e, flow=self._flows[flow_id])
 
     @inlineCallbacks
     def reboot(self):
@@ -857,7 +792,7 @@ class AdtranOnuHandler(AdtranXPON):
 
         device = self.adapter_agent.get_device(self.device_id)
         subscriber_vlan = device.vlan
-        untagged_vlan = BRDCM_DEFAULT_VLAN          # TODO: Need a better way to define this
+        untagged_vlan = OMCI.DEFAULT_UNTAGGED_VLAN
 
         for entity_id, pptp in pptp_entities.items():
             intf_id = self.proxy_address.channel_id

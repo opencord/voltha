@@ -18,6 +18,7 @@ from twisted.internet.defer import inlineCallbacks, returnValue, TimeoutError, f
 from voltha.extensions.omci.omci_me import *
 from voltha.extensions.omci.tasks.task import Task
 from voltha.extensions.omci.omci_defs import *
+from voltha.adapters.adtran_onu.omci.omci import OMCI
 
 OP = EntityOperations
 RC = ReasonCodes
@@ -52,11 +53,8 @@ class AdtnServiceDownloadTask(Task):
     residential data service and DT residential data service.
     """
     task_priority = Task.DEFAULT_PRIORITY + 10
-    default_tpid = 0x8100
-    default_gem_payload = 1518
-    BRDCM_DEFAULT_VLAN = 4091
-
-    name = "ADTRAN MIB Download Example Task"
+    default_tpid = 0x8100                       # TODO: Move to a better location
+    name = "ADTRAN Service Download Task"
 
     def __init__(self, omci_agent, handler):
         """
@@ -68,34 +66,36 @@ class AdtnServiceDownloadTask(Task):
         super(AdtnServiceDownloadTask, self).__init__(AdtnServiceDownloadTask.name,
                                                       omci_agent,
                                                       handler.device_id,
-                                                      priority=AdtnServiceDownloadTask.task_priority)
+                                                      priority=AdtnServiceDownloadTask.task_priority,
+                                                      exclusive=True)
         self._handler = handler
         self._onu_device = omci_agent.get_device(handler.device_id)
         self._local_deferred = None
+        self._pon = handler.pon_port()
 
-        self._vlan_tcis_1 = 0x900
+        # self._vlan_tcis_1 = self._handler.vlan_tcis_1
         self._input_tpid = AdtnServiceDownloadTask.default_tpid
         self._output_tpid = AdtnServiceDownloadTask.default_tpid
 
         if self._handler.xpon_support:
             device = self._handler.adapter_agent.get_device(self.device_id)
-            self._cvid = device.vlan
+            self._vid = device.vlan
         else:
             # TODO: TCIS below is just a test, may need 0x900...as in the xPON mode
-            self._vlan_tcis_1 = AdtnServiceDownloadTask.BRDCM_DEFAULT_VLAN
-            self._cvid = AdtnServiceDownloadTask.BRDCM_DEFAULT_VLAN
+            # self._vlan_tcis_1 = OMCI.DEFAULT_UNTAGGED_VLAN
+            self._vid = OMCI.DEFAULT_UNTAGGED_VLAN
 
         # Entity IDs. IDs with values can probably be most anything for most ONUs,
         #             IDs set to None are discovered/set
         #
         # TODO: Probably need to store many of these in the appropriate object (UNI, PON,...)
         #
-        self._ieee_mapper_service_profile_entity_id = 0x100
+        self._ieee_mapper_service_profile_entity_id = self._pon.hsi_8021p_mapper_entity_id
         self._gal_enet_profile_entity_id = 0x100
 
         # Next to are specific
         self._ethernet_uni_entity_id = self._handler.uni_ports[0].entity_id
-        self._vlan_config_entity_id = self._vlan_tcis_1
+        self._mac_bridge_service_profile_entity_id = self._handler.mac_bridge_service_profile_entity_id
 
     def cancel_deferred(self):
         super(AdtnServiceDownloadTask, self).cancel_deferred()
@@ -160,7 +160,6 @@ class AdtnServiceDownloadTask(Task):
         have been defined.
         """
         self.log.info('perform-service-download')
-
         device = self._handler.adapter_agent.get_device(self.device_id)
 
         def resources_available():
@@ -168,12 +167,12 @@ class AdtnServiceDownloadTask(Task):
             if self._handler.xpon_support:
                 return (device.vlan > 0 and
                         len(self._handler.uni_ports) > 0 and
-                        len(self._handler.pon_port.tconts) and
-                        len(self._handler.pon_port.gem_ports))
+                        len(self._pon.tconts) and
+                        len(self._pon.gem_ports))
             else:
                 return (len(self._handler.uni_ports) > 0 and
-                        len(self._handler.pon_port.tconts) and
-                        len(self._handler.pon_port.gem_ports))
+                        len(self._pon.tconts) and
+                        len(self._pon.gem_ports))
 
         if self._handler.enabled and resources_available():
             device.reason = 'Performing Service OMCI Download'
@@ -191,14 +190,12 @@ class AdtnServiceDownloadTask(Task):
 
                 # If here, we are done
                 device = self._handler.adapter_agent.get_device(self.device_id)
-
                 device.reason = ''
                 self._handler.adapter_agent.update_device(device)
                 self.deferred.callback('service-download-success')
 
             except TimeoutError as e:
                 self.deferred.errback(failure.Failure(e))
-
         else:
             # TODO: Provide better error reason, what was missing...
             e = ServiceResourcesFailure('Required resources are not available')
@@ -221,7 +218,7 @@ class AdtnServiceDownloadTask(Task):
             tcont_idents = self._onu_device.query_mib(Tcont.class_id)
             self.log.debug('tcont-idents', tcont_idents=tcont_idents)
 
-            for tcont in self._handler.pon_port.tconts.itervalues():
+            for tcont in self._pon.tconts.itervalues():
                 free_entity_id = next((k for k, v in tcont_idents.items()
                                        if isinstance(k, int) and
                                        v.get('attributes', {}).get('alloc_id', 0) == 0xFFFF), None)
@@ -258,7 +255,7 @@ class AdtnServiceDownloadTask(Task):
             #              - GalEthernetProfile
             #
 
-            for gem_port in self._handler.pon_port.gem_ports.itervalues():
+            for gem_port in self._pon.gem_ports.itervalues():
                 tcont = gem_port.tcont
                 if tcont is None:
                     self.log.error('unknown-tcont-reference', gem_id=gem_port.gem_id)
@@ -278,7 +275,7 @@ class AdtnServiceDownloadTask(Task):
             #            - Gem Interworking TPs are set here
             #
             # TODO: All p-bits currently go to the one and only GEMPORT ID for now
-            gem_ports = self._handler.pon_port.gem_ports
+            gem_ports = self._pon.gem_ports
             gem_entity_ids = [gem_port.entity_id for _, gem_port in gem_ports.items()] \
                 if len(gem_ports) else [OmciNullPointer]
 
@@ -305,7 +302,7 @@ class AdtnServiceDownloadTask(Task):
             )
 
             frame = ExtendedVlanTaggingOperationConfigurationDataFrame(
-                self._vlan_config_entity_id,
+                self._mac_bridge_service_profile_entity_id,
                 attributes=attributes
             ).create()
             results = yield omci_cc.send(frame)
@@ -324,7 +321,7 @@ class AdtnServiceDownloadTask(Task):
                 downstream_mode=0,              # inverse of upstream
             )
             frame = ExtendedVlanTaggingOperationConfigurationDataFrame(
-                self._vlan_config_entity_id,
+                self._mac_bridge_service_profile_entity_id,
                 attributes=attributes
             ).set()
             results = yield omci_cc.send(frame)
@@ -355,56 +352,21 @@ class AdtnServiceDownloadTask(Task):
                     treatment_outer_tpid_de=0,    # n/a
 
                     treatment_inner_priority=0,      # Add an inner tag and insert this value as the priority
-                    treatment_inner_vid=self._cvid,  # use this value as the VID in the inner VLAN tag
+                    treatment_inner_vid=self._vid,   # use this value as the VID in the inner VLAN tag
                     treatment_inner_tpid_de=4,       # set TPID
                 )
             )
             frame = ExtendedVlanTaggingOperationConfigurationDataFrame(
-                self._vlan_config_entity_id,  # Entity ID
-                attributes=attributes         # See above
+                self._mac_bridge_service_profile_entity_id,  # Entity ID
+                attributes=attributes                        # See above
             ).set()
             results = yield omci_cc.send(frame)
             self.check_status_and_state(results, 'set-extended-vlan-tagging-operation-configuration-data-untagged')
 
-            ################################################################################
-            ################################################################################
-            ################################################################################
-            # BP: This is for AT&T RG's                #
-            #   TODO: CB: NOTE: TRY THIS ONCE OTHER SEQUENCES WORK
-            #
-            # Set AR - ExtendedVlanTaggingOperationConfigData
-            #          514 - RxVlanTaggingOperationTable - add VLAN <cvid> to priority tagged pkts - c-vid
-            # results = yield omci.send_set_extended_vlan_tagging_operation_vlan_configuration_data_single_tag(
-            #                                 0x900,  # Entity ID
-            #                                 8,      # Filter Inner Priority, do not filter on Inner Priority
-            #                                 0,    # Filter Inner VID, this will be 0 in CORD
-            #                                 0,      # Filter Inner TPID DE
-            #                                 1,      # Treatment tags, number of tags to remove
-            #                                 8,      # Treatment inner priority, copy Inner Priority
-            #                                 2)   # Treatment inner VID, this will be 2 in CORD
-            # Set AR - ExtendedVlanTaggingOperationConfigData
-            #          514 - RxVlanTaggingOperationTable - add VLAN <cvid> to priority tagged pkts - c-vid
-            # results = yield omci.send_set_extended_vlan_tagging_operation_vlan_configuration_data_single_tag(
-            #                                 0x200,  # Entity ID
-            #                                 8,      # Filter Inner Priority
-            #                                 0,      # Filter Inner VID
-            #                                 0,      # Filter Inner TPID DE
-            #                                 1,      # Treatment tags to remove
-            #                                 8,      # Treatment inner priority
-            #                                 cvid)   # Treatment inner VID
-            # Set AR - ExtendedVlanTaggingOperationConfigData
-            #          514 - RxVlanTaggingOperationTable - add VLAN <cvid> to untagged pkts - c-vid
-            # results = yield omci.send_set_extended_vlan_tagging_operation_vlan_configuration_data_untagged(
-            #                                0x100,   # Entity ID            BP: Oldvalue 0x202
-            #                                0x1000,  # Filter Inner VID     BP: Oldvalue 0x1000
-            #                                cvid)    # Treatment inner VID  BP: cvid
-            # success = results.fields['omci_message'].fields['success_code'] == 0
-            # error_mask = results.fields['omci_message'].fields['parameter_error_attributes_mask']
-
             ###############################################################################
 
         except TimeoutError as e:
-            self.log.warn('rx-timeout-2', frame=frame)
+            self.log.warn('rx-timeout-download', frame=hexlify(frame))
             raise
 
         except Exception as e:
@@ -440,7 +402,7 @@ class AdtnServiceDownloadTask(Task):
                 self.check_status_and_state(results, 'set-pptp-ethernet-uni-lock-restore')
 
             except TimeoutError:
-                self.log.warn('rx-timeout', frame=frame)
+                self.log.warn('rx-timeout-unis', frame=hexlify(frame))
                 raise
 
             except Exception as e:

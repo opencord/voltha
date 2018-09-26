@@ -1309,7 +1309,7 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
                 root=True,
                 serial_number=serial_number,
                 admin_state=AdminState.ENABLED,
-                vlan=self.get_onu_vid(onu_id)         # TODO: a hack, need a decent flow decomposer
+                # vlan=self.get_onu_vid(onu_id)         # TODO: a hack, need a decent flow decomposer
             )
             assert serial_number is not None, 'ONU does not have a serial number'
 

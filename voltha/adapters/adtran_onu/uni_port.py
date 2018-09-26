@@ -20,12 +20,11 @@ from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.protos.logical_device_pb2 import LogicalPort
 from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER
 from voltha.protos.openflow_13_pb2 import ofp_port
+from omci.omci import OMCI
 
 
 class UniPort(object):
     """Wraps southbound-port(s) support for ONU"""
-    DEFAULT_UNTAGGED_VLAN = 4091        # TODO: BroadCom Default.  Need a better way to define this
-
     def __init__(self, handler, name, port_no, ofp_port_no, subscriber_vlan=None,
                  untagged_vlan=None):
         self.log = structlog.get_logger(device_id=handler.device_id,
@@ -44,6 +43,7 @@ class UniPort(object):
 
         self._admin_state = AdminState.ENABLED
         self._oper_status = OperStatus.ACTIVE
+
         # TODO Add state, stats, alarm reference, ...
         pass
 
@@ -144,6 +144,12 @@ class UniPort(object):
         """
         return self._subscriber_vlan
 
+    @subscriber_vlan.setter
+    def subscriber_vlan(self, value):
+        if value:
+            if self._subscriber_vlan is None or self._subscriber_vlan != value:
+                self._subscriber_vlan = value
+
     @property
     def logical_port_number(self):
         """
@@ -178,7 +184,7 @@ class UniPort(object):
             # port number.  UNI-1,  UNI 1, and UNI 3-2-1 are the same
             port_no = int(venet_info['name'].replace(' ', '-').split('-')[-1:][0])
             subscriber_vlan = port_no
-            untagged_vlan = UniPort.DEFAULT_UNTAGGED_VLAN
+            untagged_vlan = OMCI.DEFAULT_UNTAGGED_VLAN
             try:
                 # Subscriber VLAN and Untagged vlan are comma separated
                 parts = venet_info['description'].split(',')

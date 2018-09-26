@@ -52,7 +52,7 @@ _DEFAULT_NETCONF_PASSWORD = ""
 _DEFAULT_NETCONF_PORT = 830
 
 _STARTUP_RETRY_TIMEOUT = 5       # 5 seconds delay after activate failed before we
-_DEFAULT_XPON_SUPPORTED = True   # LOOK for the keywords 'xpon_support', SEBA
+_DEFAULT_XPON_SUPPORTED = False  # LOOK for the keywords 'xpon_support', SEBA
                                  # for areas to clean up once xPON is deprecated
 
 
@@ -278,7 +278,7 @@ class AdtranDeviceHandler(object):
                             default='{}'.format(DEFAULT_UTILITY_VLAN),
                             help='VLAN for Untagged Frames from ONUs')
         parser.add_argument('--xpon_enable', '-X', action='store_true',
-                            default=not _DEFAULT_XPON_SUPPORTED,
+                            default=_DEFAULT_XPON_SUPPORTED,
                             help='enable xPON (BBF WT-385) provisioning support')
         try:
             args = parser.parse_args(shlex.split(device.extra_args))

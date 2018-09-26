@@ -4,18 +4,19 @@ the NETCONF/REST credentials for the device.  The NETCONF/REST credentials are a
 extension of the existing **preprovision_olt** command and these are placed after
 entering two dashes '_--_'.  The full syntax to use is.
 
-| Short | Long             | Default | Notes |
-| :---: | :--------------: | :-----: | ----- |
-|  -u   | --nc_username    | ''      | NETCONF Username |
-|  -p   | --nc_password    | ''      | NETCONF Password |
-|  -t   | --nc_port        | 830     | NETCONF TCP Port |
-|  -U   | --rc_username    | ''      | REST Username |
-|  -P   | --rc_password    | ''      | REST Password |
-|  -T   | --rc_port        | 8081    | REST TCP Port |
-|  -z   | --zmq_port       | 5656    | ZeroMQ OMCI Proxy Port |
-|  -M   | --multicast_vlan | 4000    | Multicast VLANs (comma-delimeted) |
-|  -v   | --untagged_vlan  | 4092    | VLAN wrapper for untagged ONU frames |
-|  -Z   | --pio_port       | 5657    | PIO Service ZeroMQ Port |
+| Short | Long               | Default    | Notes |
+| :---: | :----------------: | :--------: | ----- |
+|  -u   | --nc_username      | ''         | NETCONF Username |
+|  -p   | --nc_password      | ''         | NETCONF Password |
+|  -t   | --nc_port          | 830        | NETCONF TCP Port |
+|  -U   | --rc_username      | ''         | REST Username |
+|  -P   | --rc_password      | ''         | REST Password |
+|  -T   | --rc_port          | 8081       | REST TCP Port |
+|  -z   | --zmq_port         | 5656       | ZeroMQ OMCI Proxy Port |
+|  -M   | --multicast_vlan   | 4000       | Multicast VLANs (comma-delimited) |
+|  -v   | --untagged_vlan    | 4092       | VLAN wrapper for untagged ONU frames |
+|  -Z   | --pio_port         | 5657       | PIO Service ZeroMQ Port |
+|  -X   | --xpon_enable      | False      | Support BBF WT-386 xPON CLI/NBI provisioning |
 
 For example, if your Adtran OLT is address 10.17.174.193 with the default TCP ports and
 NETCONF credentials of admin/admin and REST credentials of ADMIN/ADMIN, the command line
@@ -42,13 +43,18 @@ or
     preprovision_olt -t adtran_olt --host_and_port 10.17.174.193:830
 ```
 
-Currently the Adtran Device Adapter supports xPON provisioning and to enable PON ports, or activate ONUs, you
-must use the appropriate commands. In the VOLTHA v2.0 release (Q4 2018?), the xPON provisioning will be removed
-from VOLTHA and replaced with Technology Profiles.
 
-## REST Based Pre-Provisioning
+## xPON Provisioning Support
+
+Currently the Adtran Device Adapter supports xPON provisioning to enable PON ports, or activate ONUs, you
+must use the appropriate commands. In the VOLTHA v2.0 release (Q4 2018?), the xPON provisioning will be removed
+from VOLTHA and replaced with Technology Profiles. _By default, this provisioning is now disabled and you should
+use the '-X' extra-arguments provisioning command switch if you wish to use it_.
+
+### REST Based xPON Pre-Provisioning
 In addition to CLI provisioning, the Adtran OLT Device Adapter can also be provisioned though the
-VOLTHA Northbound REST API. 
+VOLTHA Northbound REST API. The following examples show curl commands when running with the **_Consul_**
+key-value store. Similar curl commands can be used when **_etcd_** is used as the key value store
 
 ```bash
 VOLTHA_IP=localhost
@@ -94,14 +100,14 @@ curl -k -s -X POST https://${VOLTHA_IP}:${REST_PORT}/api/v1/devices \
 Besides specifying the "ipv4_address" leaf, you can alternatively use the "host_and_port" leaf to
 provide the IP Host address and the NetCONF port as in "10.17.174.228:830"
 
-## Enabling the Pre-Provisioned OLT
+### Enabling the Pre-Provisioned OLT
 To enable the OLT, you need the retrieve the OLT Device ID and issue a POST request to the proper URL as in:
 ```bash
 DEVICE_ID=$(jq .id /tmp/adtn-olt.json | sed 's/"//g')
 
 curl -k -s -X POST https://${VOLTHA_IP}:${REST_PORT}/api/v1/local/devices/${DEVICE_ID}/enable
 ```
-### Other REST APIs
+#### Other REST APIs
 To list out any devices, you can use the following command:
 
 ```bash

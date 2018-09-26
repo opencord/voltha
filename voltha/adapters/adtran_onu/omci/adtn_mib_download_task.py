@@ -55,7 +55,7 @@ class AdtnMibDownloadTask(Task):
     default_tpid = 0x8100
     default_gem_payload = 1518
 
-    name = "ADTRAN MIB Download Example Task"
+    name = "ADTRAN MIB Download Task"
 
     def __init__(self, omci_agent, handler):
         """
@@ -67,7 +67,8 @@ class AdtnMibDownloadTask(Task):
         super(AdtnMibDownloadTask, self).__init__(AdtnMibDownloadTask.name,
                                                   omci_agent,
                                                   handler.device_id,
-                                                  priority=AdtnMibDownloadTask.task_priority)
+                                                  priority=AdtnMibDownloadTask.task_priority,
+                                                  exclusive=True)
         self._handler = handler
         self._onu_device = omci_agent.get_device(handler.device_id)
         self._local_deferred = None
@@ -79,21 +80,22 @@ class AdtnMibDownloadTask(Task):
         self._pon_port_num = 0
         self._uni_port_num = 0  # TODO Both port numbers are the same, is this correct?  See MacBridgePortConfigurationDataFrame
 
-        self._vlan_tcis_1 = 0x900
+        self._pon = handler.pon_port()
+        self._vlan_tcis_1 = self._handler.vlan_tcis_1
 
         # Entity IDs. IDs with values can probably be most anything for most ONUs,
         #             IDs set to None are discovered/set
         #
         # TODO: Probably need to store many of these in the appropriate object (UNI, PON,...)
         #
-        self._mac_bridge_service_profile_entity_id = 0x100
-        self._ieee_mapper_service_profile_entity_id = 0x100
-        self._mac_bridge_port_ani_entity_id = 0x100
+        self._ieee_mapper_service_profile_entity_id = self._pon.hsi_8021p_mapper_entity_id
+        self._mac_bridge_port_ani_entity_id = self._pon.hsi_mac_bridge_port_ani_entity_id
         self._gal_enet_profile_entity_id = 0x100
 
-        # Next to are specific
+        # Next to are specific     TODO: UNI lookups here or uni specific install !!!
         self._ethernet_uni_entity_id = self._handler.uni_ports[0].entity_id
-        self._vlan_config_entity_id = self._vlan_tcis_1
+        self._mac_bridge_service_profile_entity_id = \
+            self._handler.mac_bridge_service_profile_entity_id
 
     def cancel_deferred(self):
         super(AdtnMibDownloadTask, self).cancel_deferred()
@@ -172,17 +174,17 @@ class AdtnMibDownloadTask(Task):
                 # Lock the UNI ports to prevent any alarms during initial configuration
                 # of the ONU
                 self.strobe_watchdog()
-                yield self.enable_unis(self._handler.uni_ports, True)
+                # yield self.enable_unis(self._handler.uni_ports, True)
 
                 # Provision the initial bridge configuration
                 yield self.perform_initial_bridge_setup()
 
-                # If here, we are done
+                # If here, we are done with the generic MIB download
                 device = self._handler.adapter_agent.get_device(self.device_id)
 
                 device.reason = 'Initial OMCI Download Complete'
                 self._handler.adapter_agent.update_device(device)
-                self.deferred.callback('TODO: What should we return to the caller?')
+                self.deferred.callback('MIB Download - success')
 
             except TimeoutError as e:
                 self.deferred.errback(failure.Failure(e))
@@ -207,7 +209,6 @@ class AdtnMibDownloadTask(Task):
             #            - MAC Bridge Port Configuration Data (PON & UNI)
             #  References:
             #            - Nothing
-
             attributes = {
                 'spanning_tree_ind': False
             }
@@ -251,15 +252,15 @@ class AdtnMibDownloadTask(Task):
             frame = MacBridgePortConfigurationDataFrame(
                 self._mac_bridge_port_ani_entity_id,                    # Entity ID
                 bridge_id_pointer=self._mac_bridge_service_profile_entity_id,  # Bridge Entity ID
-                # TODO: The PORT number for this port and the UNI port are the same. Is this correct?
+                # TODO: The PORT number for this port and the UNI port are the same. Correct?
                 port_num=self._pon_port_num,                            # Port ID
                 tp_type=3,                                              # TP Type (IEEE 802.1p mapper service)
                 tp_pointer=self._ieee_mapper_service_profile_entity_id  # TP ID, 8021p mapper ID
             ).create()
             results = yield omci_cc.send(frame)
-            self.check_status_and_state(results, 'create-mac-bridge-port-configuration-data-part-1')
+            self.check_status_and_state(results, 'create-mac-bridge-port-config-data-part-1')
 
-            ################################################################################
+            #############################################################
             # VLAN Tagging Filter config
             #
             #  EntityID will be referenced by:
@@ -269,15 +270,15 @@ class AdtnMibDownloadTask(Task):
             #
             # Set anything, this request will not be used when using Extended Vlan
 
-            frame = VlanTaggingFilterDataFrame(
-                self._mac_bridge_port_ani_entity_id,  # Entity ID
-                vlan_tcis=[self._vlan_tcis_1],        # VLAN IDs
-                forward_operation=0x10
-            ).create()
-            results = yield omci_cc.send(frame)
-            self.check_status_and_state(results, 'create-vlan-tagging-filter-data')
+            # frame = VlanTaggingFilterDataFrame(
+            #     self._mac_bridge_port_ani_entity_id,  # Entity ID
+            #     vlan_tcis=[self._vlan_tcis_1],        # VLAN IDs
+            #     forward_operation=0x10
+            # ).create()
+            # results = yield omci_cc.send(frame)
+            # self.check_status_and_state(results, 'create-vlan-tagging-filter-data')
 
-            ########################################################################################
+            #############################################################
             # Create GalEthernetProfile - Once per ONU/PON interface
             #
             #  EntityID will be referenced by:
@@ -292,9 +293,9 @@ class AdtnMibDownloadTask(Task):
             results = yield omci_cc.send(frame)
             self.check_status_and_state(results, 'create-gal-ethernet-profile')
 
-            ################################################################################
-            # UNI Specific                                                                 #
-            ################################################################################
+            ##################################################
+            # UNI Specific                                   #
+            ##################################################
             # MAC Bridge Port config
             # This configuration is for Ethernet UNI
             #
@@ -312,10 +313,10 @@ class AdtnMibDownloadTask(Task):
                 tp_pointer=self._ethernet_uni_entity_id  # TP ID, 8021p mapper Id
             ).create()
             results = yield omci_cc.send(frame)
-            self.check_status_and_state(results, 'create-mac-bridge-port-configuration-data-part-2')
+            self.check_status_and_state(results, 'create-mac-bridge-port-config-data-part-2')
 
-        except TimeoutError as e:
-            self.log.warn('rx-timeout-1', frame=frame)
+        except TimeoutError as _e:
+            self.log.warn('rx-timeout-download', frame=hexlify(frame))
             raise
 
         except Exception as e:
@@ -336,7 +337,7 @@ class AdtnMibDownloadTask(Task):
         frame = None
 
         for uni in unis:
-            ################################################################################
+            ##################################################################
             #  Lock/Unlock UNI  -  0 to Unlock, 1 to lock
             #
             #  EntityID is referenced by:
@@ -351,7 +352,7 @@ class AdtnMibDownloadTask(Task):
                 self.check_status_and_state(results, 'set-pptp-ethernet-uni-lock-restore')
 
             except TimeoutError:
-                self.log.warn('rx-timeout', frame=frame)
+                self.log.warn('rx-timeout-uni-enable', frame=hexlify(frame))
                 raise
 
             except Exception as e:

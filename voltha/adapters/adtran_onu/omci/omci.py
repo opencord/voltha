@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import structlog
 from twisted.internet.defer import inlineCallbacks, returnValue, TimeoutError
 from twisted.internet import reactor
@@ -33,6 +32,8 @@ class OMCI(object):
     """
     OpenOMCI Support
     """
+    DEFAULT_UNTAGGED_VLAN = 4091      # To be equivalent to BroadCom Defaults
+
     def __init__(self, handler, omci_agent):
         self.log = structlog.get_logger(device_id=handler.device_id)
         self._handler = handler
@@ -43,7 +44,6 @@ class OMCI(object):
         self._resync_deferred = None    # For TCont/GEM use
         self._bridge_initialized = False
         self._in_sync_reached = False
-
         self._omcc_version = OMCCVersion.Unknown
         self._total_tcont_count = 0                    # From ANI-G ME
         self._qos_flexibility = 0                      # From ONT2_G ME
@@ -334,23 +334,26 @@ class OMCI(object):
                 if self._mib_downloaded:
                     self._service_downloaded = True
                 else:
-                    # Now try the services
+                    # Now try the services (HSI, ...) specific download
                     self._mib_downloaded = True
-                    reactor.callLater(0, self.capabilities_handler)
+                    reactor.callLater(0, self.capabilities_handler, None, None)
 
                 self._mib_download_task = None
 
-            def failure(_reason):
+            def failure(reason):
+                self.log.error('mib-download-failure', reason=reason)
                 self._mib_download_task = None
-                # TODO: Handle failure, retry for now?
                 self._mib_download_deferred = reactor.callLater(_STARTUP_RETRY_WAIT,
-                                                                self.capabilities_handler)
+                                                                self.capabilities_handler,
+                                                                None, None)
             if not self._mib_downloaded:
-                self._mib_download_task = AdtnMibDownloadTask(self.omci_agent, self._handler)
+                self._mib_download_task = AdtnMibDownloadTask(self.omci_agent,
+                                                              self._handler)
             else:
-                self._mib_download_task = AdtnServiceDownloadTask(self.omci_agent, self._handler)
-
-            self._mib_download_deferred = self._onu_omci_device.task_runner.queue_task(self._mib_download_task)
+                self._mib_download_task = AdtnServiceDownloadTask(self.omci_agent,
+                                                                  self._handler)
+            self._mib_download_deferred = \
+                self._onu_omci_device.task_runner.queue_task(self._mib_download_task)
             self._mib_download_deferred.addCallbacks(success, failure)
 
     def onu_is_reachable(self, _topic, msg):
